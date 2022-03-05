@@ -21,12 +21,13 @@
         <version.gson>2.9.0</version.gson>
         <version.httpcore>4.4.15</version.httpcore>
         <version.sendGrid>4.8.3</version.sendGrid>
-        <version.slf4j>1.7.6</version.slf4j>
+        <version.slf4j>1.7.36</version.slf4j>
 
         <plugin.version.function-maven-plugin>0.10.0</plugin.version.function-maven-plugin>
         <plugin.version.maven-clean-plugin>3.1.0</plugin.version.maven-clean-plugin>
         <plugin.version.maven-compiler-plugin>3.10.0</plugin.version.maven-compiler-plugin>
         <plugin.version.maven-dependency-plugin>3.2.0</plugin.version.maven-dependency-plugin>
+        <plugin.version.maven-deploy-plugin>3.0.0-M2</plugin.version.maven-deploy-plugin>
         <plugin.version.maven-enforcer-plugin>3.0.0</plugin.version.maven-enforcer-plugin>
         <plugin.version.maven-install-plugin>3.0.0-M1</plugin.version.maven-install-plugin>
         <plugin.version.maven-jar-plugin>3.2.2</plugin.version.maven-jar-plugin>
@@ -130,6 +131,11 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <version>${plugin.version.maven-deploy-plugin}</version>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
                 <version>${plugin.version.maven-enforcer-plugin}</version>
                 <configuration>
@@ -201,4 +207,12 @@
             </plugin>
         </plugins>
     </build>
+
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>GitHub Camunda Cloud Connectors Apache Maven Packages</name>
+            <url>https://maven.pkg.github.com/camunda/cloud-connectors</url>
+        </repository>
+    </distributionManagement>
 </project>
