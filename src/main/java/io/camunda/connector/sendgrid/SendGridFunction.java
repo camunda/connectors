@@ -24,14 +24,14 @@ public class SendGridFunction implements HttpFunction {
   @Override
   public void service(final HttpRequest httpRequest, final HttpResponse httpResponse)
       throws Exception {
-    final var request = GSON.fromJson(httpRequest.getReader(), Request.class);
-    LOGGER.info("Received request from cluster {}", request.clusterId);
+    final var request = GSON.fromJson(httpRequest.getReader(), SendGridRequest.class);
+    LOGGER.info("Received request from cluster {}", request.getClusterId());
 
-    final var secretStore = new SecretStore(GSON, request.clusterId);
+    final var secretStore = new SecretStore(GSON, request.getClusterId());
     request.replaceSecrets(secretStore);
 
-    final var mail = createEmail(request, secretStore);
-    final Response response = sendEmail(request.apiKey, mail);
+    final var mail = createEmail(request);
+    final Response response = sendEmail(request.getApiKey(), mail);
     LOGGER.info("Received response from SendGrid with code {}", response.getStatusCode());
 
     httpResponse.setStatusCode(response.getStatusCode());
@@ -40,34 +40,35 @@ public class SendGridFunction implements HttpFunction {
     httpResponse.getWriter().write(response.getBody());
   }
 
-  private Mail createEmail(final Request request, final SecretStore secretStore) {
+  private Mail createEmail(final SendGridRequest request) {
     final var mail = new Mail();
 
-    mail.setFrom(new Email(request.fromEmail, request.fromName));
+    mail.setFrom(new Email(request.getFromEmail(), request.getFromName()));
     addContentIfPresent(mail, request);
     addTemplateIfPresent(mail, request);
 
     return mail;
   }
 
-  private void addTemplateIfPresent(final Mail mail, final Request request) {
+  private void addTemplateIfPresent(final Mail mail, final SendGridRequest request) {
     if (request.hasTemplate()) {
-      mail.setTemplateId(request.template.id);
+      mail.setTemplateId(request.getTemplate().getId());
 
       final var personalization = new Personalization();
-      personalization.addTo(new Email(request.toEmail, request.toName));
-      request.template.data.forEach(personalization::addDynamicTemplateData);
+      personalization.addTo(new Email(request.getToEmail(), request.getToName()));
+      request.getTemplate().getData().forEach(personalization::addDynamicTemplateData);
       mail.addPersonalization(personalization);
     }
   }
 
-  private void addContentIfPresent(final Mail mail, final Request request) {
+  private void addContentIfPresent(final Mail mail, final SendGridRequest request) {
     if (request.hasContent()) {
-      final Content content = request.content;
-      mail.setSubject(content.subject);
-      mail.addContent(new com.sendgrid.helpers.mail.objects.Content(content.type, content.value));
+      final SendGridContent content = request.getContent();
+      mail.setSubject(content.getSubject());
+      mail.addContent(
+          new com.sendgrid.helpers.mail.objects.Content(content.getType(), content.getValue()));
       final Personalization personalization = new Personalization();
-      personalization.addTo(new Email(request.toEmail, request.toName));
+      personalization.addTo(new Email(request.getToEmail(), request.getToName()));
       mail.addPersonalization(personalization);
     }
   }

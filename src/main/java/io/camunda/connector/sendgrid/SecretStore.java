@@ -54,6 +54,9 @@ public class SecretStore {
           SecretVersionName.of(projectId, secretName, "latest");
       final AccessSecretVersionResponse response = client.accessSecretVersion(secretVersionName);
       return response.getPayload().getData().toStringUtf8();
+    } catch (final NullPointerException e) {
+      LOGGER.info("No Google Secret Manager configured, falling back to environment secret store");
+      return null;
     } catch (final IOException e) {
       LOGGER.warn("Failed to load secrets from secret manager", e);
       return null;
