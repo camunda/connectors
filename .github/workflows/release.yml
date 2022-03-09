@@ -1,0 +1,29 @@
+name: Release a new version
+
+on:
+  workflow_dispatch:
+    inputs:
+      release-version:
+        description: 'Semantic version number to use in release: ^[0-9]+.[0-9]+.[0-9]+(-[a-zA-Z0-9.-]+){0,1}$'
+        required: true
+      next-version:
+        description: 'Semantic version number to use for next SNAPSHOT: ^[0-9]+.[0-9]+.[0-9]+(-[a-zA-Z0-9.-]+){0,1}$'
+        required: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: fregante/setup-git-user@v1
+
+      - name: Setup Java Environment
+        uses: actions/setup-java@v2
+        with:
+          java-version: 11
+          distribution: temurin
+          cache: 'maven'
+
+      - name: Run release script
+        run: ./release.sh ${{ inputs.release-version }} ${{ inputs.next-version }}
+
