@@ -1,7 +1,7 @@
 #!/bin/bash
 
 PROJECT_ID=${PROJECT_ID:-zeebe-io}
-STAGE=${STAGE:-dev}
+STAGE=${STAGE:-local}
 
 gcloud --project=${PROJECT_ID} functions deploy connector-sendgrid-${STAGE} \
   --region=europe-west1 \
