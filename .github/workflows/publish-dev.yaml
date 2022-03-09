@@ -1,4 +1,4 @@
-name: Publish Maven SNAPSHOT to GitHub Packages
+name: Publish development version to Cloud Functions and GitHub Package Registry
 
 on:
   push:
@@ -26,4 +26,4 @@ jobs:
         with:
           credentials_json: '${{ secrets.gcp_credentials }}'
       - name: Deploy Google Cloud Function
-        run: mvn --batch-mode function:deploy
+        run: STAGE=dev ./deploy.sh

@@ -15,8 +15,6 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-        <function.stage>dev</function.stage>
-
         <version.bcprov-jdk15on>1.70</version.bcprov-jdk15on>
         <version.google-cloud-functions>1.0.4</version.google-cloud-functions>
         <version.google-libraries-bom>24.4.0</version.google-libraries-bom>
@@ -108,13 +106,48 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-resources-plugin</artifactId>
-                <version>${plugin.version.maven-resources-plugin}</version>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>${plugin.version.maven-dependency-plugin}</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <overWriteReleases>false</overWriteReleases>
+                            <includeScope>runtime</includeScope>
+                            <outputDirectory>${project.build.directory}/libs</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-dependency-plugin</artifactId>
-                <version>${plugin.version.maven-dependency-plugin}</version>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>${plugin.version.maven-resources-plugin}</version>
+                <executions>
+                    <execution>
+                        <id>copy-resources</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/deployment</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${project.build.directory}</directory>
+                                    <includes>
+                                        <include>${project.build.finalName}.jar</include>
+                                        <include>libs/**</include>
+                                    </includes>
+                                    <filtering>false</filtering>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -125,6 +158,14 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
                 <version>${plugin.version.maven-jar-plugin}</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <addClasspath>true</addClasspath>
+                            <classpathPrefix>libs/</classpathPrefix>
+                        </manifest>
+                    </archive>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -188,23 +229,19 @@
                     </execution>
                 </executions>
             </plugin>
-
             <plugin>
                 <groupId>com.google.cloud.functions</groupId>
                 <artifactId>function-maven-plugin</artifactId>
                 <version>${plugin.version.function-maven-plugin}</version>
                 <configuration>
                     <projectId>zeebe-io</projectId>
-                    <name>connector-sendgrid-${function.stage}</name>
+                    <name>connector-sendgrid-local</name>
                     <functionTarget>io.camunda.connector.sendgrid.SendGridFunction</functionTarget>
                     <port>9081</port>
                     <region>europe-west1</region>
-                    <serviceAccount>connector-cloud-functions@zeebe-io.iam.gserviceaccount.com</serviceAccount>
-                    <triggerHttp>true</triggerHttp>
-                    <allowUnauthenticated>true</allowUnauthenticated>
                     <environmentVariables>
                         <SECRETS_PROJECT_ID>zeebe-io</SECRETS_PROJECT_ID>
-                        <SECRETS_STAGE>${function.stage}</SECRETS_STAGE>
+                        <SECRETS_STAGE>local</SECRETS_STAGE>
                     </environmentVariables>
                 </configuration>
             </plugin>

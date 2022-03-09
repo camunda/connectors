@@ -102,10 +102,11 @@ If the email should be send with a template the request has to contain a `templa
 
 ## Deploy manually
 
-This requires access to the `zeebe-io` google project.
+This requires access to the `zeebe-io` google project. With gcloud setup to deploy functions to google cloud.
 
 ```bash
-mvn function:deploy
+mvn clean package
+./deploy.sh
 ```
 
 ## Build a release
