@@ -25,5 +25,5 @@ jobs:
           cache: 'maven'
 
       - name: Run release script
-        run: ./release.sh ${{ inputs.release-version }} ${{ inputs.next-version }}
+        run: ./release.sh ${{ github.event.inputs.release-version }} ${{ github.event.inputs.next-version }}
 
