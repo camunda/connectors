@@ -116,6 +116,9 @@ with the version to release and the next development version. The release
 script requires git and maven to be setup correctly, and that the user has push
 rights to the repository.
 
+The release artifacts are deployed to Google Cloud Functions, and also the
+GitHub package registry under https://github.com/camunda/cloud-connectors/packages.
+
 ```bash
 ./release.sh 0.3.0 0.4.0
 ```
