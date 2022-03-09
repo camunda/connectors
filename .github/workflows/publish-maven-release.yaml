@@ -1,4 +1,4 @@
-name: Publish Maven SNAPSHOT to GitHub Packages
+name: Publish Maven release to GitHub Packages
 
 on:
   push:

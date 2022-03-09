@@ -9,6 +9,7 @@ mvn --batch-mode versions:set -DnewVersion=${RELEASE_VERSION} -DgenerateBackupPo
 mvn --batch-mode verify
 git commit -a -m "${RELEASE_MESSAGE}"
 git tag -a ${RELEASE_VERSION} -m "${RELEASE_MESSAGE}"
+git push --follow-tags
 mvn --batch-mode versions:set -DnewVersion=${NEXT_VERSION} -DgenerateBackupPoms=false
 mvn --batch-mode verify
 git commit -a -m "${NEXT_MESSAGE}"
