@@ -22,6 +22,7 @@ public class SecretStore {
   private static final Pattern SECRET_PATTERN = Pattern.compile("^secrets\\.(\\S+)$");
   public static final String SECRETS_ENV_NAME = "CONNECTOR_SECRETS";
   public static final String SECRETS_PROJECT_ENV_NAME = "SECRETS_PROJECT_ID";
+  public static final String SECRETS_STAGE_ENV_NAME = "SECRETS_STAGE";
 
   private final Map<String, String> secrets;
 
@@ -43,9 +44,14 @@ public class SecretStore {
           Objects.requireNonNull(
               System.getenv(SECRETS_PROJECT_ENV_NAME),
               "Environment variable " + SECRETS_PROJECT_ENV_NAME + " is missing");
+      final String stage =
+          Objects.requireNonNull(
+              System.getenv(SECRETS_STAGE_ENV_NAME),
+              "Environment variable " + SECRETS_STAGE_ENV_NAME + " is missing");
 
+      final String secretName = String.format("%s-%s", stage, clusterId);
       final SecretVersionName secretVersionName =
-          SecretVersionName.of(projectId, clusterId, "latest");
+          SecretVersionName.of(projectId, secretName, "latest");
       final AccessSecretVersionResponse response = client.accessSecretVersion(secretVersionName);
       return response.getPayload().getData().toStringUtf8();
     } catch (final IOException e) {

@@ -15,6 +15,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
+        <function.stage>dev</function.stage>
+
         <version.bcprov-jdk15on>1.70</version.bcprov-jdk15on>
         <version.google-cloud-functions>1.0.4</version.google-cloud-functions>
         <version.google-libraries-bom>24.4.0</version.google-libraries-bom>
@@ -193,7 +195,7 @@
                 <version>${plugin.version.function-maven-plugin}</version>
                 <configuration>
                     <projectId>zeebe-io</projectId>
-                    <name>connector-sendgrid-dev</name>
+                    <name>connector-sendgrid-${function.stage}</name>
                     <functionTarget>io.camunda.connector.sendgrid.SendGridFunction</functionTarget>
                     <port>9081</port>
                     <region>europe-west1</region>
@@ -202,6 +204,7 @@
                     <allowUnauthenticated>true</allowUnauthenticated>
                     <environmentVariables>
                         <SECRETS_PROJECT_ID>zeebe-io</SECRETS_PROJECT_ID>
+                        <SECRETS_STAGE>${function.stage}</SECRETS_STAGE>
                     </environmentVariables>
                 </configuration>
             </plugin>
