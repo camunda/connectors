@@ -10,5 +10,5 @@ gcloud --project=${PROJECT_ID} functions deploy connector-sendgrid-${STAGE} \
   --trigger-http \
   --source=target/deployment \
   --set-env-vars=SECRETS_PROJECT_ID=${PROJECT_ID},SECRETS_STAGE=${STAGE} \
-  --service-account=connector-cloud-functions@zeebe-io.iam.gserviceaccount.com \
+  --service-account=cloud-connectors@zeebe-io.iam.gserviceaccount.com \
   --allow-unauthenticated
