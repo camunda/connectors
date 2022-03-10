@@ -5,7 +5,7 @@ STAGE=${STAGE:-local}
 
 gcloud --project=${PROJECT_ID} functions deploy connector-sendgrid \
   --region=europe-west1 \
-  --update-label=stage=${stage} \
+  --update-labels=stage=${stage} \
   --entry-point=io.camunda.connector.sendgrid.SendGridFunction \
   --runtime=java11 \
   --trigger-http \
