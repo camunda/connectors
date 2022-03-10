@@ -1,14 +1,10 @@
 package io.camunda.connector.sendgrid;
 
-import com.google.gson.annotations.Since;
 import java.util.Map;
 import java.util.Objects;
 
 public class SendGridTemplate {
-  @Since(0.1)
   private String id;
-
-  @Since(0.1)
   private Map<String, String> data;
 
   public void replaceSecrets(final SecretStore secretStore) {

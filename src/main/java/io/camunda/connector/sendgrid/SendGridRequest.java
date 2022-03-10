@@ -1,53 +1,25 @@
 package io.camunda.connector.sendgrid;
 
-import com.google.gson.annotations.Since;
 import java.util.Objects;
 
 public class SendGridRequest {
-  @Since(0.1)
   private String clusterId;
-
-  @Since(0.1)
   private String apiKey;
-
-  @Since(0.1)
-  private String fromName;
-
-  @Since(0.1)
-  private String fromEmail;
-
-  @Since(0.1)
-  private String toName;
-
-  @Since(0.1)
-  private String toEmail;
-
-  @Since(0.1)
+  private SendGridEmail from;
+  private SendGridEmail to;
   private SendGridTemplate template;
-
-  @Since(0.1)
   private SendGridContent content;
 
   public void replaceSecrets(final SecretStore secretStore) {
     apiKey = secretStore.replaceSecret(apiKey);
-    fromName = secretStore.replaceSecret(fromName);
-    fromEmail = secretStore.replaceSecret(fromEmail);
-    toName = secretStore.replaceSecret(toName);
-    toEmail = secretStore.replaceSecret(toEmail);
+    from.replaceSecrets(secretStore);
+    to.replaceSecrets(secretStore);
     if (hasTemplate()) {
       template.replaceSecrets(secretStore);
     }
     if (hasContent()) {
       content.replaceSecrets(secretStore);
     }
-  }
-
-  public boolean hasTemplate() {
-    return template != null;
-  }
-
-  public boolean hasContent() {
-    return content != null;
   }
 
   public String getClusterId() {
@@ -66,36 +38,20 @@ public class SendGridRequest {
     this.apiKey = apiKey;
   }
 
-  public String getFromName() {
-    return fromName;
+  public SendGridEmail getFrom() {
+    return from;
   }
 
-  public void setFromName(final String fromName) {
-    this.fromName = fromName;
+  public void setFrom(final SendGridEmail from) {
+    this.from = from;
   }
 
-  public String getFromEmail() {
-    return fromEmail;
+  public SendGridEmail getTo() {
+    return to;
   }
 
-  public void setFromEmail(final String fromEmail) {
-    this.fromEmail = fromEmail;
-  }
-
-  public String getToName() {
-    return toName;
-  }
-
-  public void setToName(final String toName) {
-    this.toName = toName;
-  }
-
-  public String getToEmail() {
-    return toEmail;
-  }
-
-  public void setToEmail(final String toEmail) {
-    this.toEmail = toEmail;
+  public void setTo(final SendGridEmail to) {
+    this.to = to;
   }
 
   public SendGridTemplate getTemplate() {
@@ -106,12 +62,20 @@ public class SendGridRequest {
     this.template = template;
   }
 
+  public boolean hasTemplate() {
+    return template != null;
+  }
+
   public SendGridContent getContent() {
     return content;
   }
 
   public void setContent(final SendGridContent content) {
     this.content = content;
+  }
+
+  public boolean hasContent() {
+    return content != null;
   }
 
   @Override
@@ -125,17 +89,15 @@ public class SendGridRequest {
     final SendGridRequest that = (SendGridRequest) o;
     return Objects.equals(clusterId, that.clusterId)
         && Objects.equals(apiKey, that.apiKey)
-        && Objects.equals(fromName, that.fromName)
-        && Objects.equals(fromEmail, that.fromEmail)
-        && Objects.equals(toName, that.toName)
-        && Objects.equals(toEmail, that.toEmail)
+        && Objects.equals(from, that.from)
+        && Objects.equals(to, that.to)
         && Objects.equals(template, that.template)
         && Objects.equals(content, that.content);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(clusterId, apiKey, fromName, fromEmail, toName, toEmail, template, content);
+    return Objects.hash(clusterId, apiKey, from, to, template, content);
   }
 
   @Override
@@ -147,18 +109,10 @@ public class SendGridRequest {
         + ", apiKey='"
         + apiKey
         + '\''
-        + ", fromName='"
-        + fromName
-        + '\''
-        + ", fromEmail='"
-        + fromEmail
-        + '\''
-        + ", toName='"
-        + toName
-        + '\''
-        + ", toEmail='"
-        + toEmail
-        + '\''
+        + ", from="
+        + from
+        + ", to="
+        + to
         + ", template="
         + template
         + ", content="
