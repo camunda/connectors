@@ -3,9 +3,9 @@
 PROJECT_ID=${PROJECT_ID:-zeebe-io}
 STAGE=${STAGE:-local}
 
-gcloud --project=${PROJECT_ID} functions deploy connector-sendgrid \
+gcloud --project=${PROJECT_ID} functions deploy connector-sendgrid-${STAGE} \
   --region=europe-west1 \
-  --update-labels=stage=${stage} \
+  --update-labels=stage=${STAGE} \
   --entry-point=io.camunda.connector.sendgrid.SendGridFunction \
   --runtime=java11 \
   --trigger-http \
