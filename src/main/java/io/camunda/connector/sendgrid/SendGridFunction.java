@@ -12,14 +12,13 @@ import com.sendgrid.helpers.mail.Mail;
 import com.sendgrid.helpers.mail.objects.Email;
 import com.sendgrid.helpers.mail.objects.Personalization;
 import java.io.IOException;
-import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class SendGridFunction implements HttpFunction {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(SendGridFunction.class);
-  private static final Gson GSON = new GsonBuilder().setVersion(0.1).create();
+  private static final Gson GSON = new GsonBuilder().create();
 
   @Override
   public void service(final HttpRequest httpRequest, final HttpResponse httpResponse)
@@ -35,9 +34,8 @@ public class SendGridFunction implements HttpFunction {
     LOGGER.info("Received response from SendGrid with code {}", response.getStatusCode());
 
     httpResponse.setStatusCode(response.getStatusCode());
-    Optional.ofNullable(response.getHeaders().get("Content-Type"))
-        .ifPresent(httpResponse::setContentType);
-    httpResponse.getWriter().write(response.getBody());
+    httpResponse.setContentType("application/json");
+    GSON.toJson(response, httpResponse.getWriter());
   }
 
   private Mail createEmail(final SendGridRequest request) {
