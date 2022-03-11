@@ -1,25 +1,31 @@
 package io.camunda.connector.sendgrid;
 
+import com.sendgrid.helpers.mail.objects.Email;
 import java.util.Objects;
 
 public class SendGridRequest {
   private String clusterId;
   private String apiKey;
-  private SendGridEmail from;
-  private SendGridEmail to;
+  private Email from;
+  private Email to;
   private SendGridTemplate template;
   private SendGridContent content;
 
   public void replaceSecrets(final SecretStore secretStore) {
     apiKey = secretStore.replaceSecret(apiKey);
-    from.replaceSecrets(secretStore);
-    to.replaceSecrets(secretStore);
+    replaceSecrets(secretStore, getFrom());
+    replaceSecrets(secretStore, getTo());
     if (hasTemplate()) {
       template.replaceSecrets(secretStore);
     }
     if (hasContent()) {
       content.replaceSecrets(secretStore);
     }
+  }
+
+  private void replaceSecrets(final SecretStore secretStore, final Email email) {
+    email.setEmail(secretStore.replaceSecret(email.getEmail()));
+    email.setName(secretStore.replaceSecret(email.getName()));
   }
 
   public String getClusterId() {
@@ -38,19 +44,19 @@ public class SendGridRequest {
     this.apiKey = apiKey;
   }
 
-  public SendGridEmail getFrom() {
+  public Email getFrom() {
     return from;
   }
 
-  public void setFrom(final SendGridEmail from) {
+  public void setFrom(final Email from) {
     this.from = from;
   }
 
-  public SendGridEmail getTo() {
+  public Email getTo() {
     return to;
   }
 
-  public void setTo(final SendGridEmail to) {
+  public void setTo(final Email to) {
     this.to = to;
   }
 

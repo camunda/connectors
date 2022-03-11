@@ -9,7 +9,6 @@ import com.sendgrid.Method;
 import com.sendgrid.Response;
 import com.sendgrid.SendGrid;
 import com.sendgrid.helpers.mail.Mail;
-import com.sendgrid.helpers.mail.objects.Email;
 import com.sendgrid.helpers.mail.objects.Personalization;
 import java.io.IOException;
 import org.slf4j.Logger;
@@ -41,7 +40,7 @@ public class SendGridFunction implements HttpFunction {
   private Mail createEmail(final SendGridRequest request) {
     final var mail = new Mail();
 
-    mail.setFrom(toEmail(request.getFrom()));
+    mail.setFrom(request.getFrom());
     addContentIfPresent(mail, request);
     addTemplateIfPresent(mail, request);
 
@@ -53,7 +52,7 @@ public class SendGridFunction implements HttpFunction {
       mail.setTemplateId(request.getTemplate().getId());
 
       final var personalization = new Personalization();
-      personalization.addTo(toEmail(request.getTo()));
+      personalization.addTo(request.getTo());
       request.getTemplate().getData().forEach(personalization::addDynamicTemplateData);
       mail.addPersonalization(personalization);
     }
@@ -66,7 +65,7 @@ public class SendGridFunction implements HttpFunction {
       mail.addContent(
           new com.sendgrid.helpers.mail.objects.Content(content.getType(), content.getValue()));
       final Personalization personalization = new Personalization();
-      personalization.addTo(toEmail(request.getTo()));
+      personalization.addTo(request.getTo());
       mail.addPersonalization(personalization);
     }
   }
@@ -79,9 +78,5 @@ public class SendGridFunction implements HttpFunction {
     request.setEndpoint("mail/send");
     request.setBody(mail.build());
     return sg.api(request);
-  }
-
-  private Email toEmail(final SendGridEmail email) {
-    return new Email(email.getEmail(), email.getName());
   }
 }
