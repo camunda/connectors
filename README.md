@@ -147,6 +147,16 @@ If the email should be send with a template the request has to contain a `templa
 }
 ```
 
+## Element Template
+
+The element templates for sending an email using a template or content can be found in the [element-templates/sendgrid-connector.json](element-templates/sendgrid-connector.json) file.
+
+### Properties: Send an Email using Template
+![](element-templates/properties-template.png)
+
+### Properties: Send an Email using Content
+![](element-templates/properties-content.png)
+
 
 ## Build a release
 
