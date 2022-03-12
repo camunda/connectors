@@ -1,0 +1,255 @@
+[
+  {
+    "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+    "name": "SendGrid Email Template Task",
+    "id": "io.camunda.connectors.SendGrid.v1.template",
+    "description": "Send an Email via SendGrid Dynamic Template",
+    "appliesTo": [
+      "bpmn:ServiceTask"
+    ],
+    "groups": [
+      {
+        "id": "sendgrid",
+        "label": "SendGrid API"
+      },
+      {
+        "id": "sender",
+        "label": "Sender"
+      },
+      {
+        "id": "receiver",
+        "label": "Receiver"
+      },
+      {
+        "id": "template",
+        "label": "Dynamic Email Template"
+      }
+    ],
+    "properties": [
+      {
+        "type": "Hidden",
+        "value": "io.camunda:sendgrid:1",
+        "binding": {
+          "type": "zeebe:taskDefinition:type"
+        }
+      },
+      {
+        "label": "SendGrid API Key",
+        "group": "sendgrid",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "apiKey"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Name",
+        "group": "sender",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "from.name"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Email Address",
+        "group": "sender",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "from.email"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Name",
+        "group": "receiver",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "to.name"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Email Address",
+        "group": "receiver",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "to.email"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Template ID",
+        "group": "template",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "template.id"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Template Data",
+        "group": "template",
+        "type": "Text",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "template.data"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      }
+    ]
+  },
+  {
+    "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+    "name": "SendGrid Email Task",
+    "id": "io.camunda.connectors.SendGrid.v1.content",
+    "description": "Send an Email via SendGrid",
+    "appliesTo": [
+      "bpmn:ServiceTask"
+    ],
+    "groups": [
+      {
+        "id": "sendgrid",
+        "label": "SendGrid API"
+      },
+      {
+        "id": "sender",
+        "label": "Sender"
+      },
+      {
+        "id": "receiver",
+        "label": "Receiver"
+      },
+      {
+        "id": "content",
+        "label": "Email Content"
+      }
+    ],
+    "properties": [
+      {
+        "type": "Hidden",
+        "value": "io.camunda:sendgrid:1",
+        "binding": {
+          "type": "zeebe:taskDefinition:type"
+        }
+      },
+      {
+        "label": "SendGrid API Key",
+        "group": "sendgrid",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "apiKey"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Name",
+        "group": "sender",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "from.name"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Email Address",
+        "group": "sender",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "from.email"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Name",
+        "group": "receiver",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "to.name"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Email Address",
+        "group": "receiver",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "to.email"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Subject",
+        "group": "content",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "content.subject"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Content Type",
+        "group": "content",
+        "type": "String",
+        "value": "text/plain",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "content.type"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Body",
+        "group": "content",
+        "type": "Text",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "content.value"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      }
+    ]
+  }
+]
