@@ -47,7 +47,6 @@ jobs:
           source_dir: 'target/deployment'
           project_id: 'zeebe-io'
           service_account_email: 'cloud-connectors@zeebe-io.iam.gserviceaccount.com'
-          event_trigger_type: 'http'
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
