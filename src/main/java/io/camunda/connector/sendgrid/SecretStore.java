@@ -21,16 +21,19 @@ public class SecretStore {
   private static final Type MAP_TYPE = new TypeToken<Map<String, String>>() {}.getType();
   private static final Pattern SECRET_PATTERN = Pattern.compile("^secrets\\.(\\S+)$");
   public static final String SECRETS_ENV_NAME = "CONNECTOR_SECRETS";
+  public static final String SECRETS_PROPERTY_NAME = "connector.secrets";
   public static final String SECRETS_PROJECT_ENV_NAME = "SECRETS_PROJECT_ID";
   public static final String SECRETS_PREFIX_ENV_NAME = "SECRETS_PREFIX";
 
   private final Map<String, String> secrets;
 
-  public SecretStore(final Gson gson, final String clusterId) {
+  public SecretStore(final Gson gson, final String clusterId) throws IOException {
     final String json =
         Optional.ofNullable(clusterId)
             .map(SecretStore::loadGoogleSecrets)
-            .orElseGet(SecretStore::loadEnvironmentSecrets);
+            .or(SecretStore::loadEnvironmentSecrets)
+            .or(SecretStore::loadPropertiesSecrets)
+            .orElse("{}");
 
     Objects.requireNonNull(json, "Failed to load secrets");
 
@@ -61,9 +64,14 @@ public class SecretStore {
     }
   }
 
-  private static String loadEnvironmentSecrets() {
+  private static Optional<String> loadEnvironmentSecrets() {
     LOGGER.info("Loading secrets from environment variable {}", SECRETS_ENV_NAME);
-    return System.getenv(SECRETS_ENV_NAME);
+    return Optional.ofNullable(System.getenv(SECRETS_ENV_NAME));
+  }
+
+  private static Optional<String> loadPropertiesSecrets() {
+    LOGGER.info("Loading secrets from system property {}", SECRETS_PROPERTY_NAME);
+    return Optional.ofNullable(System.getProperty(SECRETS_PROPERTY_NAME));
   }
 
   public String replaceSecret(final String value) {
