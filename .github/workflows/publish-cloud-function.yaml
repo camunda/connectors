@@ -11,6 +11,7 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest 
+    concurrency: publish-${{ github.ref }}
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-java@v3
