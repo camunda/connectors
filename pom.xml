@@ -234,25 +234,10 @@
                 <artifactId>function-maven-plugin</artifactId>
                 <version>${plugin.version.function-maven-plugin}</version>
                 <configuration>
-                    <projectId>zeebe-io</projectId>
-                    <name>connector-sendgrid-local</name>
                     <functionTarget>io.camunda.connector.sendgrid.SendGridFunction</functionTarget>
                     <port>9081</port>
-                    <region>europe-west1</region>
-                    <environmentVariables>
-                        <SECRETS_PROJECT_ID>zeebe-io</SECRETS_PROJECT_ID>
-                        <SECRETS_STAGE>local</SECRETS_STAGE>
-                    </environmentVariables>
                 </configuration>
             </plugin>
         </plugins>
     </build>
-
-    <distributionManagement>
-        <repository>
-            <id>github</id>
-            <name>GitHub Camunda Cloud Connectors Apache Maven Packages</name>
-            <url>https://maven.pkg.github.com/camunda/cloud-connectors</url>
-        </repository>
-    </distributionManagement>
 </project>
