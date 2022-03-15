@@ -34,7 +34,6 @@ public class HttpJsonFunction implements HttpFunction {
   public static final HttpRequestFactory REQUEST_FACTORY =
       HTTP_TRANSPORT.createRequestFactory(
           request -> request.setParser(new JsonObjectParser(GSON_FACTORY)));
-  public static final EmptyContent EMPTY_CONTENT = new EmptyContent();
 
   @Override
   public void service(final HttpRequest incomingRequest, final HttpResponse outgoingResponse)
@@ -87,7 +86,7 @@ public class HttpJsonFunction implements HttpFunction {
     if (request.hasBody()) {
       return new JsonHttpContent(GSON_FACTORY, request.getBody());
     } else {
-      return EMPTY_CONTENT;
+      return null;
     }
   }
 
