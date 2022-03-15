@@ -1,7 +1,7 @@
 package io.camunda.connector.http;
 
 import com.google.api.client.http.*;
-import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.http.apache.v2.ApacheHttpTransport;
 import com.google.api.client.http.json.JsonHttpContent;
 import com.google.api.client.json.JsonObjectParser;
 import com.google.api.client.json.gson.GsonFactory;
@@ -30,7 +30,7 @@ public class HttpJsonFunction implements HttpFunction {
                   .registerSubtype(BearerAuthentication.class, "bearer"))
           .create();
   public static final GsonFactory GSON_FACTORY = new GsonFactory();
-  public static final NetHttpTransport HTTP_TRANSPORT = new NetHttpTransport();
+  public static final HttpTransport HTTP_TRANSPORT = new ApacheHttpTransport();
   public static final HttpRequestFactory REQUEST_FACTORY =
       HTTP_TRANSPORT.createRequestFactory(
           request -> request.setParser(new JsonObjectParser(GSON_FACTORY)));
@@ -110,7 +110,7 @@ public class HttpJsonFunction implements HttpFunction {
   }
 
   private HttpJsonResponse toHttpJsonResponse(
-      final com.google.api.client.http.HttpResponse externalResponse) throws IOException {
+      final com.google.api.client.http.HttpResponse externalResponse) {
     final HttpJsonResponse httpJsonResponse = new HttpJsonResponse();
     httpJsonResponse.setStatus(externalResponse.getStatusCode());
     final Map<String, Object> headers = new HashMap<>();
