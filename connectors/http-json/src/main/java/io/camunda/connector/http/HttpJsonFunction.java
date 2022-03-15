@@ -125,7 +125,14 @@ public class HttpJsonFunction implements HttpFunction {
               }
             });
     httpJsonResponse.setHeaders(headers);
-    httpJsonResponse.setBody(externalResponse.parseAs(Object.class));
+    try {
+      final Object body = externalResponse.parseAs(Object.class);
+      if (body != null) {
+        httpJsonResponse.setBody(body);
+      }
+    } catch (final Exception e) {
+      // ignore
+    }
     return httpJsonResponse;
   }
 }
