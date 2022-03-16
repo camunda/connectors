@@ -1,9 +1,9 @@
 [
   {
     "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-    "name": "HTTP JSON Task",
+    "name": "REST Connector (No Auth)",
     "id": "io.camunda.connectors.HttpJson.v1.noAuth",
-    "description": "Invoke a HTTP endpoint using JSON",
+    "description": "Invoke REST API and retrieve the result",
     "appliesTo": [
       "bpmn:ServiceTask"
     ],
@@ -119,9 +119,9 @@
   },
   {
     "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-    "name": "HTTP JSON Task (Basic Auth)",
+    "name": "REST Connector (Basic Auth)",
     "id": "io.camunda.connectors.HttpJson.v1.basicAuth",
-    "description": "Invoke a HTTP endpoint using JSON secured by Basic Authentication",
+    "description": "Invoke REST API and retrieve the result secured by Basic Authentication",
     "appliesTo": [
       "bpmn:ServiceTask"
     ],
@@ -135,8 +135,8 @@
         "label": "Payload"
       },
       {
-        "id": "authorization",
-        "label": "Authorization"
+        "id": "authentication",
+        "label": "Authentication"
       },
       {
         "id": "output",
@@ -216,7 +216,7 @@
       },
       {
         "label": "Username",
-        "group": "authorization",
+        "group": "authentication",
         "type": "String",
         "binding": {
           "type": "zeebe:input",
@@ -228,7 +228,7 @@
       },
       {
         "label": "Password",
-        "group": "authorization",
+        "group": "authentication",
         "type": "String",
         "binding": {
           "type": "zeebe:input",
@@ -273,9 +273,9 @@
   },
   {
     "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-    "name": "HTTP JSON Task (Bearer Token)",
+    "name": "REST Connector (Bearer Token Auth)",
     "id": "io.camunda.connectors.HttpJson.v1.bearerToken",
-    "description": "Invoke a HTTP endpoint using JSON secured by Bearer Token Authentication",
+    "description": "Invoke REST API and retrieve the result secured by Bearer Token Authentication",
     "appliesTo": [
       "bpmn:ServiceTask"
     ],
@@ -289,8 +289,8 @@
         "label": "Payload"
       },
       {
-        "id": "authorization",
-        "label": "Authorization"
+        "id": "authentication",
+        "label": "Authentication"
       },
       {
         "id": "output",
@@ -370,7 +370,7 @@
       },
       {
         "label": "Bearer Token",
-        "group": "authorization",
+        "group": "authentication",
         "type": "String",
         "binding": {
           "type": "zeebe:input",
