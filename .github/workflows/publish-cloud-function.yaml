@@ -51,7 +51,7 @@ jobs:
           env_vars: 'SECRETS_PROJECT_ID=camunda-cloud-240911'
           labels: 'stage=${{ steps.deployment-stage.outputs.stage }}'
           source_dir: 'target/deployment'
-          project_id: 'zeebe-io'
+          project_id: 'camunda-cloud-240911'
           service_account_email: 'connectors-${{ steps.deployment-stage.outputs.stage }}@camunda-cloud-240911.iam.gserviceaccount.com'
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
