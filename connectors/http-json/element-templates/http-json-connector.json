@@ -50,6 +50,7 @@
         "label": "URL",
         "group": "endpoint",
         "type": "String",
+        "feel": "optional",
         "binding": {
           "type": "zeebe:input",
           "name": "url"
@@ -67,6 +68,7 @@
         "description": "Map of query parameters to add to the request URL",
         "group": "endpoint",
         "type": "Text",
+        "feel": "required",
         "binding": {
           "type": "zeebe:input",
           "name": "queryParamters"
@@ -78,6 +80,7 @@
         "description": "Map of HTTP headers to add to the request",
         "group": "endpoint",
         "type": "Text",
+        "feel": "required",
         "binding": {
           "type": "zeebe:input",
           "name": "headers"
@@ -89,6 +92,7 @@
         "description": "JSON payload to send with the request",
         "group": "input",
         "type": "Text",
+        "feel": "optional",
         "binding": {
           "type": "zeebe:input",
           "name": "body"
@@ -110,6 +114,7 @@
         "description": "Expression to map the response into process variables",
         "group": "output",
         "type": "Text",
+        "feel": "required",
         "binding": {
           "type": "zeebe:taskHeader",
           "key": "resultExpression"
@@ -172,6 +177,7 @@
         "label": "URL",
         "group": "endpoint",
         "type": "String",
+        "feel": "optional",
         "binding": {
           "type": "zeebe:input",
           "name": "url"
@@ -189,6 +195,7 @@
         "description": "Map of query parameters to add to the request URL",
         "group": "endpoint",
         "type": "Text",
+        "feel": "required",
         "binding": {
           "type": "zeebe:input",
           "name": "queryParamters"
@@ -200,6 +207,7 @@
         "description": "Map of HTTP headers to add to the request",
         "group": "endpoint",
         "type": "Text",
+        "feel": "required",
         "binding": {
           "type": "zeebe:input",
           "name": "headers"
@@ -218,6 +226,7 @@
         "label": "Username",
         "group": "authentication",
         "type": "String",
+        "feel": "optional",
         "binding": {
           "type": "zeebe:input",
           "name": "authentication.username"
@@ -230,6 +239,7 @@
         "label": "Password",
         "group": "authentication",
         "type": "String",
+        "feel": "optional",
         "binding": {
           "type": "zeebe:input",
           "name": "authentication.password"
@@ -243,6 +253,7 @@
         "description": "JSON payload to send with the request",
         "group": "input",
         "type": "Text",
+        "feel": "required",
         "binding": {
           "type": "zeebe:input",
           "name": "body"
@@ -264,6 +275,7 @@
         "description": "Expression to map the response into process variables",
         "group": "output",
         "type": "Text",
+        "feel": "required",
         "binding": {
           "type": "zeebe:taskHeader",
           "key": "resultExpression"
@@ -326,6 +338,7 @@
         "label": "URL",
         "group": "endpoint",
         "type": "String",
+        "feel": "optional",
         "binding": {
           "type": "zeebe:input",
           "name": "url"
@@ -343,6 +356,7 @@
         "description": "Map of query parameters to add to the request URL",
         "group": "endpoint",
         "type": "Text",
+        "feel": "required",
         "binding": {
           "type": "zeebe:input",
           "name": "queryParamters"
@@ -354,6 +368,7 @@
         "description": "Map of HTTP headers to add to the request",
         "group": "endpoint",
         "type": "Text",
+        "feel": "required",
         "binding": {
           "type": "zeebe:input",
           "name": "headers"
@@ -372,6 +387,7 @@
         "label": "Bearer Token",
         "group": "authentication",
         "type": "String",
+        "feel": "optional",
         "binding": {
           "type": "zeebe:input",
           "name": "authentication.token"
@@ -385,6 +401,7 @@
         "description": "JSON payload to send with the request",
         "group": "input",
         "type": "Text",
+        "feel": "required",
         "binding": {
           "type": "zeebe:input",
           "name": "body"
@@ -406,6 +423,7 @@
         "description": "Expression to map the response into process variables",
         "group": "output",
         "type": "Text",
+        "feel": "required",
         "binding": {
           "type": "zeebe:taskHeader",
           "key": "resultExpression"
