@@ -20,7 +20,7 @@
         <version.google-libraries-bom>25.0.0</version.google-libraries-bom>
         <version.gson>2.9.0</version.gson>
         <version.httpcore>4.4.15</version.httpcore>
-        <version.sendGrid>4.9.0</version.sendGrid>
+        <version.sendGrid>4.9.1</version.sendGrid>
         <version.slf4j>1.7.36</version.slf4j>
 
         <plugin.version.function-maven-plugin>0.10.0</plugin.version.function-maven-plugin>
