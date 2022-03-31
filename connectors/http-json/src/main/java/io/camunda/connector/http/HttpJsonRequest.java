@@ -14,8 +14,11 @@ public class HttpJsonRequest {
   private Object body;
 
   public void replaceSecrets(final SecretStore secretStore) {
-    method = secretStore.replaceSecret(method);
-    url = secretStore.replaceSecret(url);
+    Objects.requireNonNull(clusterId, "Field 'clusterId' required in request");
+    method =
+        secretStore.replaceSecret(
+            Objects.requireNonNull(method, "Field 'method' required in request"));
+    url = secretStore.replaceSecret(Objects.requireNonNull(url, "Field 'url' required in request"));
     if (hasAuthentication()) {
       authentication.replaceSecrets(secretStore);
     }

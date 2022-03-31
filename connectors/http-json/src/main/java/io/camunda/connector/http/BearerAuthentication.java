@@ -21,7 +21,9 @@ public class BearerAuthentication extends Authentication {
 
   @Override
   void replaceSecrets(final SecretStore secretStore) {
-    token = secretStore.replaceSecret(token);
+    token =
+        secretStore.replaceSecret(
+            Objects.requireNonNull(token, "Field 'authentication.token' required in request"));
   }
 
   @Override

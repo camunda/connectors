@@ -38,11 +38,19 @@ public class HttpJsonFunction implements HttpFunction {
   @Override
   public void service(final HttpRequest incomingRequest, final HttpResponse outgoingResponse)
       throws Exception {
-    final var request = GSON.fromJson(incomingRequest.getReader(), HttpJsonRequest.class);
-    final var response = handleRequest(request);
-    outgoingResponse.setStatusCode(response.getStatus());
-    outgoingResponse.setContentType("application/json");
-    GSON.toJson(response, outgoingResponse.getWriter());
+    try {
+      final var request = GSON.fromJson(incomingRequest.getReader(), HttpJsonRequest.class);
+      final var response = handleRequest(request);
+      outgoingResponse.setStatusCode(response.getStatus());
+      outgoingResponse.setContentType("application/json");
+      GSON.toJson(response, outgoingResponse.getWriter());
+    } catch (final Exception e) {
+      LOGGER.error("Failed to execute request: " + e.getMessage(), e);
+      final var response = new ErrorResponse(e);
+      outgoingResponse.setStatusCode(500);
+      outgoingResponse.setContentType("application/json");
+      GSON.toJson(response, outgoingResponse.getWriter());
+    }
   }
 
   protected HttpJsonResponse handleRequest(final HttpJsonRequest request) throws IOException {
