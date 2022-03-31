@@ -6,26 +6,28 @@ import java.util.Objects;
 public class SendGridRequest {
   private String clusterId;
   private String apiKey;
-  private Email from;
-  private Email to;
+  private SendGridEmail from;
+  private SendGridEmail to;
   private SendGridTemplate template;
   private SendGridContent content;
 
   public void replaceSecrets(final SecretStore secretStore) {
-    apiKey = secretStore.replaceSecret(apiKey);
-    replaceSecrets(secretStore, getFrom());
-    replaceSecrets(secretStore, getTo());
+    Objects.requireNonNull(clusterId, "Field 'clusterId' required in request");
+    apiKey =
+        secretStore.replaceSecret(
+            Objects.requireNonNull(apiKey, "Field 'apiKey' required in request"));
+    Objects.requireNonNull(from, "Field 'from' required in request")
+        .replaceSecrets(secretStore, "from");
+    Objects.requireNonNull(to, "Field 'to' required in request").replaceSecrets(secretStore, "to");
+    if (template == null && content == null) {
+      throw new NullPointerException("Either 'template' or 'content' required in request");
+    }
     if (hasTemplate()) {
       template.replaceSecrets(secretStore);
     }
     if (hasContent()) {
       content.replaceSecrets(secretStore);
     }
-  }
-
-  private void replaceSecrets(final SecretStore secretStore, final Email email) {
-    email.setEmail(secretStore.replaceSecret(email.getEmail()));
-    email.setName(secretStore.replaceSecret(email.getName()));
   }
 
   public String getClusterId() {
@@ -45,18 +47,18 @@ public class SendGridRequest {
   }
 
   public Email getFrom() {
-    return from;
+    return new Email(from.getEmail(), from.getName());
   }
 
-  public void setFrom(final Email from) {
+  public void setFrom(final SendGridEmail from) {
     this.from = from;
   }
 
   public Email getTo() {
-    return to;
+    return new Email(to.getEmail(), to.getName());
   }
 
-  public void setTo(final Email to) {
+  public void setTo(final SendGridEmail to) {
     this.to = to;
   }
 

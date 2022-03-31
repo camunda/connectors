@@ -27,7 +27,7 @@ public class SecretStore {
 
   private final Map<String, String> secrets;
 
-  public SecretStore(final Gson gson, final String clusterId) throws IOException {
+  public SecretStore(final Gson gson, final String clusterId) {
     final String json =
         Optional.ofNullable(clusterId)
             .map(SecretStore::loadGoogleSecrets)

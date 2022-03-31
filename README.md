@@ -16,11 +16,11 @@ mvn clean package
 {
   "clusterId": "838d40dc-a4e2-42cd-a5fb-7e5ea993a970",
   "apiKey": "secrets.SENDGRID_API_KEY",
-  "from" {
+  "from": {
     "name": "John Doe",
     "Email": "john.doe@example.com"
   },
-  "to" {
+  "to": {
     "name": "Jane Doe",
     "Email": "jane.doe@example.com"
   },
@@ -41,21 +41,21 @@ mvn clean package
 
 ```json
 {
-    "body": "",
-    "headers": {
-        "Access-Control-Allow-Headers": "Authorization, Content-Type, On-behalf-of, x-sg-elas-acl",
-        "Access-Control-Allow-Methods": "POST",
-        "Access-Control-Allow-Origin": "https://sendgrid.api-docs.io",
-        "Access-Control-Max-Age": "600",
-        "Connection": "keep-alive",
-        "Content-Length": "0",
-        "Date": "Sat, 12 Mar 2022 08:17:35 GMT",
-        "Server": "nginx",
-        "Strict-Transport-Security": "max-age=600; includeSubDomains",
-        "X-Message-Id": "Uea26FX7RxKJ8DX1x9BdDQ",
-        "X-No-CORS-Reason": "https://sendgrid.com/docs/Classroom/Basics/API/cors.html"
-    },
-    "statusCode": 202
+  "body": "",
+  "headers": {
+    "Access-Control-Allow-Headers": "Authorization, Content-Type, On-behalf-of, x-sg-elas-acl",
+    "Access-Control-Allow-Methods": "POST",
+    "Access-Control-Allow-Origin": "https://sendgrid.api-docs.io",
+    "Access-Control-Max-Age": "600",
+    "Connection": "keep-alive",
+    "Content-Length": "0",
+    "Date": "Sat, 12 Mar 2022 08:17:35 GMT",
+    "Server": "nginx",
+    "Strict-Transport-Security": "max-age=600; includeSubDomains",
+    "X-Message-Id": "Uea26FX7RxKJ8DX1x9BdDQ",
+    "X-No-CORS-Reason": "https://sendgrid.com/docs/Classroom/Basics/API/cors.html"
+  },
+  "statusCode": 202
 }
 ```
 
@@ -81,9 +81,15 @@ And reference the secret in the request payload as `apiKey`.
 {
   "clusterId": "838d40dc-a4e2-42cd-a5fb-7e5ea993a970",
   "apiKey": "secrets.SENDGRID_API_KEY",
-  "from" { ... },
-  "to" { ... },
-  "template": { ... }
+  "from": {
+    ...
+  },
+  "to": {
+    ...
+  },
+  "template": {
+    ...
+  }
 }
 ```
 
@@ -103,11 +109,11 @@ If the email should be send with a template the request has to contain a `templa
 {
   "clusterId": "838d40dc-a4e2-42cd-a5fb-7e5ea993a970",
   "apiKey": "secrets.SENDGRID_API_KEY",
-  "from" {
+  "from": {
     "name": "John Doe",
     "Email": "john.doe@example.com"
   },
-  "to" {
+  "to": {
     "name": "Jane Doe",
     "Email": "jane.doe@example.com"
   },
@@ -124,18 +130,17 @@ If the email should be send with a template the request has to contain a `templa
 }
 ```
 
-
 #### Email Content
 
 ```json
 {
   "clusterId": "838d40dc-a4e2-42cd-a5fb-7e5ea993a970",
   "apiKey": "secrets.SENDGRID_API_KEY",
-  "from" {
+  "from": {
     "name": "John Doe",
     "Email": "john.doe@example.com"
   },
-  "to" {
+  "to": {
     "name": "Jane Doe",
     "Email": "jane.doe@example.com"
   },
@@ -149,21 +154,22 @@ If the email should be send with a template the request has to contain a `templa
 
 ## Element Template
 
-The element templates for sending an email using a template or content can be found in the [element-templates/sendgrid-connector.json](element-templates/sendgrid-connector.json) file.
+The element templates for sending an email using a template or content can be found in
+the [element-templates/sendgrid-connector.json](element-templates/sendgrid-connector.json) file.
 
 ### Properties: Send an Email using Template
+
 ![](element-templates/properties-template.png)
 
 ### Properties: Send an Email using Content
-![](element-templates/properties-content.png)
 
+![](element-templates/properties-content.png)
 
 ## Build a release
 
-Checkout the repo and branch to build the release from. Run the release script
-with the version to release and the next development version. The release
-script requires git and maven to be setup correctly, and that the user has push
-rights to the repository.
+Checkout the repo and branch to build the release from. Run the release script with the version to release and the next
+development version. The release script requires git and maven to be setup correctly, and that the user has push rights
+to the repository.
 
 The release artifacts are deployed to Google Cloud Function by a github workflow.
 

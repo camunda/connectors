@@ -22,19 +22,27 @@ public class SendGridFunction implements HttpFunction {
   @Override
   public void service(final HttpRequest httpRequest, final HttpResponse httpResponse)
       throws Exception {
-    final var request = GSON.fromJson(httpRequest.getReader(), SendGridRequest.class);
-    LOGGER.info("Received request from cluster {}", request.getClusterId());
+    try {
+      final var request = GSON.fromJson(httpRequest.getReader(), SendGridRequest.class);
+      LOGGER.info("Received request from cluster {}", request.getClusterId());
 
-    final var secretStore = new SecretStore(GSON, request.getClusterId());
-    request.replaceSecrets(secretStore);
+      final var secretStore = new SecretStore(GSON, request.getClusterId());
+      request.replaceSecrets(secretStore);
 
-    final var mail = createEmail(request);
-    final Response response = sendEmail(request.getApiKey(), mail);
-    LOGGER.info("Received response from SendGrid with code {}", response.getStatusCode());
+      final var mail = createEmail(request);
+      final Response response = sendEmail(request.getApiKey(), mail);
+      LOGGER.info("Received response from SendGrid with code {}", response.getStatusCode());
 
-    httpResponse.setStatusCode(response.getStatusCode());
-    httpResponse.setContentType("application/json");
-    GSON.toJson(response, httpResponse.getWriter());
+      httpResponse.setStatusCode(response.getStatusCode());
+      httpResponse.setContentType("application/json");
+      GSON.toJson(response, httpResponse.getWriter());
+    } catch (final Exception e) {
+      LOGGER.error("Failed to execute request: " + e.getMessage(), e);
+      final ErrorResponse errorResponse = new ErrorResponse(e);
+      httpResponse.setStatusCode(500);
+      httpResponse.setContentType("application/json");
+      GSON.toJson(errorResponse, httpResponse.getWriter());
+    }
   }
 
   private Mail createEmail(final SendGridRequest request) {
