@@ -7,6 +7,11 @@ public class SendGridTemplate {
   private String id;
   private Map<String, String> data;
 
+  public void validate(final Validator validator) {
+    validator.require(id, "Dynamic Email Template - Template ID");
+    validator.require(data, "Dynamic Email Template - Template Data");
+  }
+
   public void replaceSecrets(final SecretStore secretStore) {
     id = secretStore.replaceSecret(id);
     data.replaceAll((k, v) -> secretStore.replaceSecret(v));

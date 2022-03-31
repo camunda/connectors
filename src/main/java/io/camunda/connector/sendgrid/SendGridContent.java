@@ -7,6 +7,12 @@ public class SendGridContent {
   private String type;
   private String value;
 
+  public void validate(final Validator validator) {
+    validator.require(subject, "Email Content - Subject");
+    validator.require(type, "Email Content - Content Type");
+    validator.require(value, "Email Content - Body");
+  }
+
   public void replaceSecrets(final SecretStore secretStore) {
     subject = secretStore.replaceSecret(subject);
     type = secretStore.replaceSecret(type);
