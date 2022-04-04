@@ -20,10 +20,13 @@ public class BearerAuthentication extends Authentication {
   }
 
   @Override
+  void validate(final Validator validator) {
+    validator.require(token, "Authentication - Bearer Token");
+  }
+
+  @Override
   void replaceSecrets(final SecretStore secretStore) {
-    token =
-        secretStore.replaceSecret(
-            Objects.requireNonNull(token, "Field 'authentication.token' required in request"));
+    token = secretStore.replaceSecret(token);
   }
 
   @Override

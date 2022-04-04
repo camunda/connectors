@@ -13,12 +13,18 @@ public class HttpJsonRequest {
   private Map<String, String> headers;
   private Object body;
 
+  public void validate(final Validator validator) {
+    validator.require(clusterId, "Cluster ID");
+    validator.require(method, "HTTP Endpoint - Method");
+    validator.require(url, "HTTP Endpoint - URL");
+    if (hasAuthentication()) {
+      authentication.validate(validator);
+    }
+  }
+
   public void replaceSecrets(final SecretStore secretStore) {
-    Objects.requireNonNull(clusterId, "Field 'clusterId' required in request");
-    method =
-        secretStore.replaceSecret(
-            Objects.requireNonNull(method, "Field 'method' required in request"));
-    url = secretStore.replaceSecret(Objects.requireNonNull(url, "Field 'url' required in request"));
+    method = secretStore.replaceSecret(method);
+    url = secretStore.replaceSecret(url);
     if (hasAuthentication()) {
       authentication.replaceSecrets(secretStore);
     }

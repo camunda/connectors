@@ -3,7 +3,7 @@ package io.camunda.connector.http;
 import java.util.Map;
 import java.util.Objects;
 
-public class HttpJsonResponse {
+public class HttpJsonResult {
   private int status;
   private Map<String, Object> headers;
   private Object body;
@@ -40,7 +40,7 @@ public class HttpJsonResponse {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final HttpJsonResponse that = (HttpJsonResponse) o;
+    final HttpJsonResult that = (HttpJsonResult) o;
     return status == that.status
         && Objects.equals(headers, that.headers)
         && Objects.equals(body, that.body);

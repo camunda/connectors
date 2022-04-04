@@ -24,15 +24,15 @@ public class BasicAuthentication extends Authentication {
   }
 
   @Override
+  void validate(final Validator validator) {
+    validator.require(username, "Authentication - Username");
+    validator.require(password, "Authentication - Password");
+  }
+
+  @Override
   void replaceSecrets(final SecretStore secretStore) {
-    username =
-        secretStore.replaceSecret(
-            Objects.requireNonNull(
-                username, "Field 'authentication.username' required in request"));
-    password =
-        secretStore.replaceSecret(
-            Objects.requireNonNull(
-                password, "Field 'authentication.password' required in request"));
+    username = secretStore.replaceSecret(username);
+    password = secretStore.replaceSecret(password);
   }
 
   @Override
