@@ -38,22 +38,27 @@ public class HttpJsonFunction implements HttpFunction {
   @Override
   public void service(final HttpRequest incomingRequest, final HttpResponse outgoingResponse)
       throws Exception {
+    final ConnectorBridgeResponse response = new ConnectorBridgeResponse();
     try {
       final var request = GSON.fromJson(incomingRequest.getReader(), HttpJsonRequest.class);
-      final var response = handleRequest(request);
-      outgoingResponse.setStatusCode(response.getStatus());
-      outgoingResponse.setContentType("application/json");
-      GSON.toJson(response, outgoingResponse.getWriter());
+      final Validator validator = new Validator();
+      request.validate(validator);
+      validator.validate();
+
+      final var result = handleRequest(request);
+      outgoingResponse.setStatusCode(result.getStatus());
+      response.setResult(result);
     } catch (final Exception e) {
       LOGGER.error("Failed to execute request: " + e.getMessage(), e);
-      final var response = new ErrorResponse(e);
       outgoingResponse.setStatusCode(500);
-      outgoingResponse.setContentType("application/json");
-      GSON.toJson(response, outgoingResponse.getWriter());
+      response.setError(e.getMessage());
     }
+
+    outgoingResponse.setContentType("application/json");
+    GSON.toJson(response, outgoingResponse.getWriter());
   }
 
-  protected HttpJsonResponse handleRequest(final HttpJsonRequest request) throws IOException {
+  protected HttpJsonResult handleRequest(final HttpJsonRequest request) throws IOException {
     LOGGER.info("Received request from cluster {}", request.getClusterId());
 
     final var secretStore = new SecretStore(GSON, request.getClusterId());
@@ -116,10 +121,10 @@ public class HttpJsonFunction implements HttpFunction {
     return httpHeaders;
   }
 
-  private HttpJsonResponse toHttpJsonResponse(
+  private HttpJsonResult toHttpJsonResponse(
       final com.google.api.client.http.HttpResponse externalResponse) {
-    final HttpJsonResponse httpJsonResponse = new HttpJsonResponse();
-    httpJsonResponse.setStatus(externalResponse.getStatusCode());
+    final HttpJsonResult httpJsonResult = new HttpJsonResult();
+    httpJsonResult.setStatus(externalResponse.getStatusCode());
     final Map<String, Object> headers = new HashMap<>();
     externalResponse
         .getHeaders()
@@ -131,15 +136,15 @@ public class HttpJsonFunction implements HttpFunction {
                 headers.put(k, v);
               }
             });
-    httpJsonResponse.setHeaders(headers);
+    httpJsonResult.setHeaders(headers);
     try {
       final Object body = externalResponse.parseAs(Object.class);
       if (body != null) {
-        httpJsonResponse.setBody(body);
+        httpJsonResult.setBody(body);
       }
     } catch (final Exception e) {
       // ignore
     }
-    return httpJsonResponse;
+    return httpJsonResult;
   }
 }
