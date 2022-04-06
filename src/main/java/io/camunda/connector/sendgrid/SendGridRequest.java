@@ -40,6 +40,7 @@ public class SendGridRequest {
     apiKey = secretStore.replaceSecret(apiKey);
     from.replaceSecrets(secretStore);
     to.replaceSecrets(secretStore);
+
     if (hasTemplate()) {
       template.replaceSecrets(secretStore);
     }

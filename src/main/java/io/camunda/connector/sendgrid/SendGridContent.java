@@ -14,9 +14,15 @@ public class SendGridContent {
   }
 
   public void replaceSecrets(final SecretStore secretStore) {
-    subject = secretStore.replaceSecret(subject);
-    type = secretStore.replaceSecret(type);
-    value = secretStore.replaceSecret(value);
+    subject =
+        secretStore.replaceSecret(
+            Objects.requireNonNull(subject, "Field 'content.subject' required in request"));
+    type =
+        secretStore.replaceSecret(
+            Objects.requireNonNull(type, "Field 'content.type' required in request"));
+    value =
+        secretStore.replaceSecret(
+            Objects.requireNonNull(value, "Field 'content.value' required in request"));
   }
 
   public String getSubject() {

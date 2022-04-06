@@ -17,14 +17,14 @@
 
         <version.bcprov-jdk15on>1.70</version.bcprov-jdk15on>
         <version.google-cloud-functions>1.0.4</version.google-cloud-functions>
-        <version.google-libraries-bom>25.0.0</version.google-libraries-bom>
+        <version.google-libraries-bom>25.1.0</version.google-libraries-bom>
         <version.gson>2.9.0</version.gson>
         <version.httpcore>4.4.15</version.httpcore>
         <version.sendGrid>4.9.1</version.sendGrid>
         <version.slf4j>1.7.36</version.slf4j>
 
         <plugin.version.function-maven-plugin>0.10.0</plugin.version.function-maven-plugin>
-        <plugin.version.maven-clean-plugin>3.1.0</plugin.version.maven-clean-plugin>
+        <plugin.version.maven-clean-plugin>3.2.0</plugin.version.maven-clean-plugin>
         <plugin.version.maven-compiler-plugin>3.10.1</plugin.version.maven-compiler-plugin>
         <plugin.version.maven-dependency-plugin>3.3.0</plugin.version.maven-dependency-plugin>
         <plugin.version.maven-deploy-plugin>3.0.0-M2</plugin.version.maven-deploy-plugin>

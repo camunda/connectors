@@ -13,8 +13,11 @@ public class SendGridTemplate {
   }
 
   public void replaceSecrets(final SecretStore secretStore) {
-    id = secretStore.replaceSecret(id);
-    data.replaceAll((k, v) -> secretStore.replaceSecret(v));
+    id =
+        secretStore.replaceSecret(
+            Objects.requireNonNull(id, "Field 'template.id' required in request"));
+    Objects.requireNonNull(data, "Field 'template.data' required in request")
+        .replaceAll((k, v) -> secretStore.replaceSecret(v));
   }
 
   public String getId() {
