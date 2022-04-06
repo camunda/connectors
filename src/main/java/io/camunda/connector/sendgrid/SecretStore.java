@@ -5,7 +5,6 @@ import com.google.cloud.secretmanager.v1.SecretManagerServiceClient;
 import com.google.cloud.secretmanager.v1.SecretVersionName;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.Map;
 import java.util.Objects;
@@ -55,11 +54,10 @@ public class SecretStore {
           SecretVersionName.of(projectId, secretName, "latest");
       final AccessSecretVersionResponse response = client.accessSecretVersion(secretVersionName);
       return response.getPayload().getData().toStringUtf8();
-    } catch (final NullPointerException e) {
-      LOGGER.info("No Google Secret Manager configured, falling back to environment secret store");
-      return null;
-    } catch (final IOException e) {
-      LOGGER.warn("Failed to load secrets from secret manager", e);
+    } catch (final Exception e) {
+      LOGGER.info(
+          "Failed to load secrets from secret manager, falling back to environment secret store",
+          e);
       return null;
     }
   }
