@@ -11,17 +11,36 @@ public class SendGridRequest {
   private SendGridTemplate template;
   private SendGridContent content;
 
-  public void replaceSecrets(final SecretStore secretStore) {
-    Objects.requireNonNull(clusterId, "Field 'clusterId' required in request");
-    apiKey =
-        secretStore.replaceSecret(
-            Objects.requireNonNull(apiKey, "Field 'apiKey' required in request"));
-    Objects.requireNonNull(from, "Field 'from' required in request")
-        .replaceSecrets(secretStore, "from");
-    Objects.requireNonNull(to, "Field 'to' required in request").replaceSecrets(secretStore, "to");
-    if (template == null && content == null) {
-      throw new NullPointerException("Either 'template' or 'content' required in request");
+  public void validate(final Validator validator) {
+    validator.require(clusterId, "Cluster ID");
+    validator.require(apiKey, "SendGrid API - SendGrid API Key");
+    validator.require(from, "Sender");
+    if (from != null) {
+      from.validate(validator, "Sender");
     }
+    validator.require(to, "Receiver");
+    if (to != null) {
+      to.validate(validator, "Receiver");
+    }
+
+    // at least one of them should be set
+    if (!hasContent() && !hasTemplate()) {
+      validator.require(null, "Email Content");
+    }
+
+    if (hasTemplate()) {
+      template.validate(validator);
+    }
+    if (hasContent()) {
+      content.validate(validator);
+    }
+  }
+
+  public void replaceSecrets(final SecretStore secretStore) {
+    apiKey = secretStore.replaceSecret(apiKey);
+    from.replaceSecrets(secretStore);
+    to.replaceSecrets(secretStore);
+
     if (hasTemplate()) {
       template.replaceSecrets(secretStore);
     }

@@ -7,13 +7,14 @@ public class SendGridEmail {
   private String name;
   private String email;
 
-  public void replaceSecrets(final SecretStore secretStore, final String objectName) {
-    email =
-        secretStore.replaceSecret(
-            Objects.requireNonNull(email, "Field '" + objectName + ".email' required in request"));
-    name =
-        secretStore.replaceSecret(
-            Objects.requireNonNull(name, "Field '" + objectName + ".name' required in request"));
+  public void validate(final Validator validator, final String category) {
+    validator.require(name, category + " - Name");
+    validator.require(email, category + " - Email Address");
+  }
+
+  public void replaceSecrets(final SecretStore secretStore) {
+    email = secretStore.replaceSecret(email);
+    name = secretStore.replaceSecret(name);
   }
 
   public String getName() {

@@ -75,12 +75,23 @@ public class SecretStore {
   }
 
   public String replaceSecret(final String value) {
-    return Optional.ofNullable(value)
-        .map(String::trim)
-        .map(SECRET_PATTERN::matcher)
-        .filter(Matcher::matches)
-        .map(matcher -> matcher.group(1))
-        .map(secrets::get)
-        .orElse(value);
+    final Optional<String> secretName =
+        Optional.ofNullable(value)
+            .map(String::trim)
+            .map(SECRET_PATTERN::matcher)
+            .filter(Matcher::matches)
+            .map(matcher -> matcher.group(1));
+
+    if (secretName.isPresent()) {
+      return secretName
+          .map(secrets::get)
+          .orElseThrow(
+              () ->
+                  new IllegalArgumentException(
+                      String.format(
+                          "Secret with name '%s' is not available in cluster", secretName.get())));
+    } else {
+      return value;
+    }
   }
 }

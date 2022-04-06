@@ -41,21 +41,7 @@ mvn clean package
 
 ```json
 {
-  "body": "",
-  "headers": {
-    "Access-Control-Allow-Headers": "Authorization, Content-Type, On-behalf-of, x-sg-elas-acl",
-    "Access-Control-Allow-Methods": "POST",
-    "Access-Control-Allow-Origin": "https://sendgrid.api-docs.io",
-    "Access-Control-Max-Age": "600",
-    "Connection": "keep-alive",
-    "Content-Length": "0",
-    "Date": "Sat, 12 Mar 2022 08:17:35 GMT",
-    "Server": "nginx",
-    "Strict-Transport-Security": "max-age=600; includeSubDomains",
-    "X-Message-Id": "Uea26FX7RxKJ8DX1x9BdDQ",
-    "X-No-CORS-Reason": "https://sendgrid.com/docs/Classroom/Basics/API/cors.html"
-  },
-  "statusCode": 202
+  "error": "Error message if something went wrong"
 }
 ```
 

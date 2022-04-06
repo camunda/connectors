@@ -22,27 +22,38 @@ public class SendGridFunction implements HttpFunction {
   @Override
   public void service(final HttpRequest httpRequest, final HttpResponse httpResponse)
       throws Exception {
+    final ConnectorBridgeResponse response = new ConnectorBridgeResponse();
+
     try {
       final var request = GSON.fromJson(httpRequest.getReader(), SendGridRequest.class);
       LOGGER.info("Received request from cluster {}", request.getClusterId());
+      final Validator validator = new Validator();
+      request.validate(validator);
+      validator.validate();
 
       final var secretStore = new SecretStore(GSON, request.getClusterId());
       request.replaceSecrets(secretStore);
 
       final var mail = createEmail(request);
-      final Response response = sendEmail(request.getApiKey(), mail);
-      LOGGER.info("Received response from SendGrid with code {}", response.getStatusCode());
+      final Response result = sendEmail(request.getApiKey(), mail);
 
-      httpResponse.setStatusCode(response.getStatusCode());
-      httpResponse.setContentType("application/json");
-      GSON.toJson(response, httpResponse.getWriter());
+      final int statusCode = result.getStatusCode();
+      LOGGER.info("Received response from SendGrid with code {}", statusCode);
+      httpResponse.setStatusCode(statusCode);
+      if (statusCode != 202) {
+        final SendGridErrors errors = GSON.fromJson(result.getBody(), SendGridErrors.class);
+        LOGGER.info(
+            "User request failed to execute with status {} and error '{}'", statusCode, errors);
+        response.setError(errors.toString());
+      }
     } catch (final Exception e) {
       LOGGER.error("Failed to execute request: " + e.getMessage(), e);
-      final ErrorResponse errorResponse = new ErrorResponse(e);
       httpResponse.setStatusCode(500);
-      httpResponse.setContentType("application/json");
-      GSON.toJson(errorResponse, httpResponse.getWriter());
+      response.setError(e.getMessage());
     }
+
+    httpResponse.setContentType("application/json");
+    GSON.toJson(response, httpResponse.getWriter());
   }
 
   private Mail createEmail(final SendGridRequest request) {
