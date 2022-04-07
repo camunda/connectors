@@ -4,14 +4,14 @@ import java.util.Objects;
 
 public class ConnectorBridgeResponse {
 
-  private ResponseWrapper result;
+  private HttpJsonResult result;
   private String error;
 
-  public ResponseWrapper getResult() {
+  public HttpJsonResult getResult() {
     return result;
   }
 
-  public void setResult(final ResponseWrapper result) {
+  public void setResult(final HttpJsonResult result) {
     this.result = result;
   }
 
