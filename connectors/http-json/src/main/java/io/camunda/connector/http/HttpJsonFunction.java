@@ -47,7 +47,7 @@ public class HttpJsonFunction implements HttpFunction {
 
       final var result = handleRequest(request);
       outgoingResponse.setStatusCode(result.getStatus());
-      response.setResult(new ResponseWrapper(result));
+      response.setResult(result);
     } catch (final Exception e) {
       LOGGER.error("Failed to execute request: " + e.getMessage(), e);
       outgoingResponse.setStatusCode(500);
