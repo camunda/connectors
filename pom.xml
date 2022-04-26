@@ -17,7 +17,7 @@
 
         <version.bcprov-jdk15on>1.70</version.bcprov-jdk15on>
         <version.google-cloud-functions>1.0.4</version.google-cloud-functions>
-        <version.google-libraries-bom>25.1.0</version.google-libraries-bom>
+        <version.google-libraries-bom>25.2.0</version.google-libraries-bom>
         <version.gson>2.9.0</version.gson>
         <version.httpcore>4.4.15</version.httpcore>
         <version.sendGrid>4.9.1</version.sendGrid>
