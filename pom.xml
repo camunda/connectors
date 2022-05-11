@@ -32,7 +32,7 @@
         <plugin.version.maven-install-plugin>3.0.0-M1</plugin.version.maven-install-plugin>
         <plugin.version.maven-jar-plugin>3.2.2</plugin.version.maven-jar-plugin>
         <plugin.version.maven-resources-plugin>3.2.0</plugin.version.maven-resources-plugin>
-        <plugin.version.spotless-maven-plugin>2.22.4</plugin.version.spotless-maven-plugin>
+        <plugin.version.spotless-maven-plugin>2.22.5</plugin.version.spotless-maven-plugin>
     </properties>
 
     <dependencyManagement>
