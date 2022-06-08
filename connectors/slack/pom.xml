@@ -18,7 +18,7 @@
         <version.google-cloud-functions>1.0.4</version.google-cloud-functions>
         <version.google-libraries-bom>25.4.0</version.google-libraries-bom>
         <version.gson>2.9.0</version.gson>
-        <version.gson-extras>0.4.0</version.gson-extras>
+        <version.gson-extras>0.6.0</version.gson-extras>
         <version.slf4j>1.7.36</version.slf4j>
         <version.slack>1.22.1</version.slack>
         <version.kotlin>1.4.0</version.kotlin>
