@@ -10,6 +10,7 @@ import com.google.cloud.functions.HttpRequest;
 import com.google.cloud.functions.HttpResponse;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.ToNumberPolicy;
 import com.google.gson.typeadapters.RuntimeTypeAdapterFactory;
 import java.io.IOException;
 import java.util.HashMap;
@@ -24,6 +25,7 @@ public class HttpJsonFunction implements HttpFunction {
   private static final Logger LOGGER = LoggerFactory.getLogger(HttpJsonFunction.class);
   private static final Gson GSON =
       new GsonBuilder()
+          .setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
           .registerTypeAdapterFactory(
               RuntimeTypeAdapterFactory.of(Authentication.class)
                   .registerSubtype(BasicAuthentication.class, "basic")
