@@ -28,7 +28,7 @@
         <plugin.version.maven-compiler-plugin>3.10.1</plugin.version.maven-compiler-plugin>
         <plugin.version.maven-dependency-plugin>3.3.0</plugin.version.maven-dependency-plugin>
         <plugin.version.maven-deploy-plugin>3.0.0-M2</plugin.version.maven-deploy-plugin>
-        <plugin.version.maven-enforcer-plugin>3.0.0</plugin.version.maven-enforcer-plugin>
+        <plugin.version.maven-enforcer-plugin>3.1.0</plugin.version.maven-enforcer-plugin>
         <plugin.version.maven-install-plugin>3.0.0-M1</plugin.version.maven-install-plugin>
         <plugin.version.maven-jar-plugin>3.2.2</plugin.version.maven-jar-plugin>
         <plugin.version.maven-resources-plugin>3.2.0</plugin.version.maven-resources-plugin>
