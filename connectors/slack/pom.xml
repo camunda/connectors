@@ -20,7 +20,7 @@
         <version.gson>2.9.0</version.gson>
         <version.gson-extras>0.6.0</version.gson-extras>
         <version.slf4j>1.7.36</version.slf4j>
-        <version.slack>1.22.2</version.slack>
+        <version.slack>1.22.3</version.slack>
         <version.kotlin>1.7.0</version.kotlin>
 
         <plugin.version.function-maven-plugin>0.10.0</plugin.version.function-maven-plugin>
