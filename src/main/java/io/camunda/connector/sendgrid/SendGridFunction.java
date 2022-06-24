@@ -1,8 +1,5 @@
 package io.camunda.connector.sendgrid;
 
-import com.google.cloud.functions.HttpFunction;
-import com.google.cloud.functions.HttpRequest;
-import com.google.cloud.functions.HttpResponse;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.sendgrid.Method;
@@ -10,50 +7,52 @@ import com.sendgrid.Response;
 import com.sendgrid.SendGrid;
 import com.sendgrid.helpers.mail.Mail;
 import com.sendgrid.helpers.mail.objects.Personalization;
-import java.io.IOException;
+
+import io.camunda.connector.common.ConnectorFunction;
+import io.camunda.connector.common.ConnectorContext;
+import io.camunda.connector.common.ConnectorResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SendGridFunction implements HttpFunction {
+import java.io.IOException;
+
+public class SendGridFunction implements ConnectorFunction {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(SendGridFunction.class);
   private static final Gson GSON = new GsonBuilder().create();
 
   @Override
-  public void service(final HttpRequest httpRequest, final HttpResponse httpResponse)
-      throws Exception {
-    final ConnectorBridgeResponse response = new ConnectorBridgeResponse();
+  public Object service(ConnectorContext input) {
 
-    try {
-      final var request = GSON.fromJson(httpRequest.getReader(), SendGridRequest.class);
-      LOGGER.info("Received request from cluster {}", request.getClusterId());
-      final Validator validator = new Validator();
-      request.validate(validator);
-      validator.validate();
+    final var request = input.getVariableAsType(SendGridRequest.class);
+    final Validator validator = new Validator();
+    request.validate(validator);
+    validator.validate();
 
-      final var secretStore = new SecretStore(GSON, request.getClusterId());
-      request.replaceSecrets(secretStore);
+    final var secretStore = input.getSecretStore();
 
-      final var mail = createEmail(request);
-      final Response result = sendEmail(request.getApiKey(), mail);
+    request.replaceSecrets(secretStore);
 
-      final int statusCode = result.getStatusCode();
-      LOGGER.info("Received response from SendGrid with code {}", statusCode);
-      httpResponse.setStatusCode(statusCode);
-      if (statusCode != 202) {
-        final SendGridErrors errors = GSON.fromJson(result.getBody(), SendGridErrors.class);
-        LOGGER.info(
-            "User request failed to execute with status {} and error '{}'", statusCode, errors);
-        response.setError(errors.toString());
+    final var mail = createEmail(request);
+
+      try {
+        final Response result = sendEmail(request.getApiKey(), mail);
+
+        final int statusCode = result.getStatusCode();
+        LOGGER.info("Received response from SendGrid with code {}", statusCode);
+
+        if (statusCode != 202) {
+          final SendGridErrors errors = GSON.fromJson(result.getBody(), SendGridErrors.class);
+          LOGGER.info(
+              "User request failed to execute with status {} and error '{}'", statusCode, errors);
+
+          throw ConnectorResponse.failed(errors.toString());
+        }
+      } catch (IOException exception) {
+        throw ConnectorResponse.failed(exception);
       }
-    } catch (final Exception e) {
-      LOGGER.error("Failed to execute request: " + e.getMessage(), e);
-      httpResponse.setStatusCode(500);
-      response.setError(e.getMessage());
-    }
 
-    httpResponse.setContentType("application/json");
-    GSON.toJson(response, httpResponse.getWriter());
+    return ConnectorResponse.empty();
   }
 
   private Mail createEmail(final SendGridRequest request) {
@@ -98,4 +97,5 @@ public class SendGridFunction implements HttpFunction {
     request.setBody(mail.build());
     return sg.api(request);
   }
+
 }

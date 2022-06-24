@@ -1,4 +1,4 @@
-package io.camunda.connector.http;
+package io.camunda.connector.gcp;
 
 import com.google.cloud.secretmanager.v1.AccessSecretVersionResponse;
 import com.google.cloud.secretmanager.v1.SecretManagerServiceClient;
@@ -11,12 +11,14 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import io.camunda.connector.common.SecretStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SecretStore {
+public class GCPSecretStore implements SecretStore {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(SecretStore.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(GCPSecretStore.class);
   private static final Type MAP_TYPE = new TypeToken<Map<String, String>>() {}.getType();
   private static final Pattern SECRET_PATTERN = Pattern.compile("^secrets\\.(\\S+)$");
   public static final String SECRETS_ENV_NAME = "CONNECTOR_SECRETS";
@@ -26,12 +28,12 @@ public class SecretStore {
 
   private final Map<String, String> secrets;
 
-  public SecretStore(final Gson gson, final String clusterId) {
+  public GCPSecretStore(final Gson gson, final String clusterId) {
     final String json =
         Optional.ofNullable(clusterId)
-            .map(SecretStore::loadGoogleSecrets)
-            .or(SecretStore::loadEnvironmentSecrets)
-            .or(SecretStore::loadPropertiesSecrets)
+            .map(GCPSecretStore::loadGoogleSecrets)
+            .or(GCPSecretStore::loadEnvironmentSecrets)
+            .or(GCPSecretStore::loadPropertiesSecrets)
             .orElse("{}");
 
     Objects.requireNonNull(json, "Failed to load secrets");
@@ -72,6 +74,7 @@ public class SecretStore {
     return Optional.ofNullable(System.getProperty(SECRETS_PROPERTY_NAME));
   }
 
+  @Override
   public String replaceSecret(final String value) {
     final Optional<String> secretName =
         Optional.ofNullable(value)
