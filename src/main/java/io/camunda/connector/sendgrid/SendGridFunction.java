@@ -25,7 +25,7 @@ public class SendGridFunction implements ConnectorFunction {
   public Object service(ConnectorContext context) {
 
     final var request = context.getVariableAsType(SendGridRequest.class);
-    final Validator validator = new Validator();
+    final var validator = new Validator();
     request.validate(validator);
     validator.validate();
 
@@ -36,7 +36,7 @@ public class SendGridFunction implements ConnectorFunction {
     final var mail = createEmail(request);
 
       try {
-        final Response result = sendEmail(request.getApiKey(), mail);
+        final var result = sendEmail(request.getApiKey(), mail);
 
         final int statusCode = result.getStatusCode();
         LOGGER.info("Received response from SendGrid with code {}", statusCode);
