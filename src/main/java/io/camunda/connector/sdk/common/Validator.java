@@ -1,4 +1,4 @@
-package io.camunda.connector.sendgrid;
+package io.camunda.connector.sdk.common;
 
 import java.util.ArrayList;
 import java.util.List;

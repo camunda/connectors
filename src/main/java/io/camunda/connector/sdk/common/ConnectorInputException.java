@@ -1,8 +1,9 @@
 package io.camunda.connector.sdk.common;
 
-import java.io.IOException;
-
 public class ConnectorInputException extends RuntimeException {
+
+  private static final long serialVersionUID = 1L;
+
   public ConnectorInputException(Throwable exception) {
     super(exception);
   }

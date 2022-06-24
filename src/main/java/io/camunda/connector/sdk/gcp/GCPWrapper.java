@@ -1,61 +1,51 @@
 package io.camunda.connector.sdk.gcp;
 
+import java.io.IOException;
+import java.util.Optional;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.cloud.functions.HttpRequest;
 import com.google.cloud.functions.HttpResponse;
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.ToNumberPolicy;
-import com.google.gson.typeadapters.RuntimeTypeAdapterFactory;
-import io.camunda.connector.common.*;
-import io.camunda.connector.http.Authentication;
-import io.camunda.connector.http.BasicAuthentication;
-import io.camunda.connector.http.BearerAuthentication;
+
 import io.camunda.connector.sdk.common.ConnectorContext;
 import io.camunda.connector.sdk.common.ConnectorFunction;
 import io.camunda.connector.sdk.common.ConnectorInputException;
 import io.camunda.connector.sdk.common.SecretStore;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.util.Optional;
 
 public class GCPWrapper {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GCPWrapper.class);
 
-  private static final Gson GSON =
-      new GsonBuilder()
-          .setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
-          .registerTypeAdapterFactory(
-              RuntimeTypeAdapterFactory.of(Authentication.class)
-                  .registerSubtype(BasicAuthentication.class, "basic")
-                  .registerSubtype(BearerAuthentication.class, "bearer"))
-          .create();
+  private static final String REQUEST_HEADER_CLUSTER_ID = "X-Camunda-Cluster-ID";
 
-  private final ConnectorFunction call;
+  private final ConnectorFunction connectorFunction;
 
-  public GCPWrapper(ConnectorFunction call) {
-    this.call = call;
+  public GCPWrapper(ConnectorFunction connectorFunction) {
+    this.connectorFunction = connectorFunction;
   }
 
-  public void service(final HttpRequest httpRequest, final HttpResponse httpResponse)
-      throws Exception {
+  public void service(final HttpRequest httpRequest, final HttpResponse httpResponse) throws Exception {
 
     final ConnectorBridgeResponse response = new ConnectorBridgeResponse();
 
-    Optional<String> clusterId = httpRequest.getFirstHeader("X-Camunda-Cluster-ID");
+    Optional<String> clusterId = getClusterId(httpRequest);
 
     if (clusterId.isEmpty()) {
       httpResponse.setStatusCode(400);
-
+      httpResponse.setContentType("text/plain");
+      httpResponse.getWriter().append("No cluster id found at request header ").append(REQUEST_HEADER_CLUSTER_ID);
       return;
     }
 
     LOGGER.info("Received request from cluster {}", clusterId.get());
 
+    Gson gson = connectorFunction.getGson();
+
     try {
-      Object result = call.service(new GCPInput(httpRequest, httpResponse));
+      Object result = connectorFunction.service(new GCPInput(httpRequest, gson));
 
       response.setResult(result);
       httpResponse.setStatusCode(200);
@@ -66,23 +56,29 @@ public class GCPWrapper {
     }
 
     httpResponse.setContentType("application/json");
-    GSON.toJson(response, httpResponse.getWriter());
+    gson.toJson(response, httpResponse.getWriter());
   }
 
-  class GCPInput implements ConnectorContext {
+  protected Optional<String> getClusterId(final HttpRequest httpRequest) {
+    Optional<String> clusterId = httpRequest.getFirstHeader(REQUEST_HEADER_CLUSTER_ID);
+    return clusterId;
+  }
 
-    HttpRequest request;
-    HttpResponse response;
+  private class GCPInput implements ConnectorContext {
 
-    public GCPInput(HttpRequest request, HttpResponse response) {
+    private HttpRequest request;
+    private Gson gson;
+
+    public GCPInput(HttpRequest request, Gson gson) {
       this.request = request;
-      this.response = response;
+      this.gson = gson;
     }
 
-    public <T extends Object> T getVariableAsType(Class<T> cls) {
+    @Override
+    public <T extends Object> T getVariablesAsType(Class<T> cls) {
 
       try {
-        return GSON.fromJson(request.getReader(), cls);
+        return gson.fromJson(request.getReader(), cls);
       } catch (IOException exception) {
         throw new ConnectorInputException(exception);
       }
@@ -90,22 +86,7 @@ public class GCPWrapper {
 
     @Override
     public SecretStore getSecretStore() {
-      return new SecretStoreImpl() {
-        @Override
-        public String getEnvSecret(String name) {
-          return null;
-        }
-
-        @Override
-        public String getRemoteSecret(String name) {
-          return null;
-        }
-
-        @Override
-        public String replaceSecret(String value) {
-          return null;
-        }
-      };
+      return new GCPSecretStore(gson, getClusterId(request).get());
     }
   }
 }

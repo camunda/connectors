@@ -1,7 +1,9 @@
 package io.camunda.connector.sdk.jobworker;
 
-import io.camunda.connector.sdk.common.ConnectorFunction;
+import java.util.ServiceLoader;
+
 import io.camunda.connector.sdk.common.ConnectorContext;
+import io.camunda.connector.sdk.common.ConnectorFunction;
 import io.camunda.connector.sdk.common.SecretStore;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import io.camunda.zeebe.client.api.worker.JobClient;
@@ -35,16 +37,20 @@ public class JobHandlerWrapper implements JobHandler {
       this.job = job;
     }
 
-    public <T extends Object> T getVariableAsType(Class<T> cls) {
+    @Override
+    public <T extends Object> T getVariablesAsType(Class<T> cls) {
       return job.getVariablesAsType(cls);
     }
 
     @Override
     public SecretStore getSecretStore() {
+      return ServiceLoader.load(SecretStore.class).findFirst().orElse(getEnvSecretStore());
+    }
+
+    protected SecretStore getEnvSecretStore() {
       return new SecretStore() {
         @Override
         public String replaceSecret(String value) {
-
           // TODO(nikku): provide basic "load from ENV" secret store
           throw new UnsupportedOperationException("Secrets not supported");
         }
