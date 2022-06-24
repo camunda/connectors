@@ -18,6 +18,8 @@ import java.util.Objects;
 import io.camunda.connector.sdk.common.ConnectorContext;
 import io.camunda.connector.sdk.common.ConnectorFunction;
 import io.camunda.connector.sdk.common.ConnectorResponse;
+import io.camunda.connector.sdk.common.Validator;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,8 +41,13 @@ public class HttpJsonFunction implements ConnectorFunction {
           request -> request.setParser(new JsonObjectParser(GSON_FACTORY)));
 
   @Override
+  public Gson getGson() {
+    return GSON;
+  }
+
+  @Override
   public Object service(ConnectorContext context) {
-    final var request = context.getVariableAsType(HttpJsonRequest.class);
+    final var request = context.getVariablesAsType(HttpJsonRequest.class);
 
     final Validator validator = new Validator();
     request.validate(validator);

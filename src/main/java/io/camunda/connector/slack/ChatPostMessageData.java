@@ -7,6 +7,10 @@ import com.slack.api.methods.request.users.UsersListRequest;
 import com.slack.api.methods.response.chat.ChatPostMessageResponse;
 import com.slack.api.methods.response.users.UsersListResponse;
 import com.slack.api.model.User;
+
+import io.camunda.connector.sdk.common.SecretStore;
+import io.camunda.connector.sdk.common.Validator;
+
 import java.io.IOException;
 import java.util.Objects;
 

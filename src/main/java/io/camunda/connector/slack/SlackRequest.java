@@ -4,6 +4,7 @@ import com.slack.api.Slack;
 import com.slack.api.methods.MethodsClient;
 import com.slack.api.methods.SlackApiException;
 import io.camunda.connector.sdk.common.SecretStore;
+import io.camunda.connector.sdk.common.Validator;
 
 import java.io.IOException;
 import java.util.Objects;

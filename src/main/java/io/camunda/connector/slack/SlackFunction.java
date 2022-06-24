@@ -6,6 +6,8 @@ import com.slack.api.Slack;
 import io.camunda.connector.sdk.common.ConnectorContext;
 import io.camunda.connector.sdk.common.ConnectorFunction;
 import io.camunda.connector.sdk.common.ConnectorResponse;
+import io.camunda.connector.sdk.common.Validator;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,9 +23,14 @@ public class SlackFunction implements ConnectorFunction {
       new GsonBuilder().registerTypeAdapter(SlackRequest.class, DESERIALIZER).create();
 
   @Override
+  public Gson getGson() {
+    return GSON;
+  }
+
+  @Override
   public Object service(ConnectorContext context) {
 
-    final var slackRequest = context.getVariableAsType(SlackRequest.class);
+    final var slackRequest = context.getVariablesAsType(SlackRequest.class);
     final var validator = new Validator();
     slackRequest.validate(validator);
     validator.validate();
