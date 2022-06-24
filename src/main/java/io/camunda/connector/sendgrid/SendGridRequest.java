@@ -1,7 +1,7 @@
 package io.camunda.connector.sendgrid;
 
 import com.sendgrid.helpers.mail.objects.Email;
-import io.camunda.connector.common.SecretStore;
+import io.camunda.connector.sdk.common.SecretStore;
 
 import java.util.Objects;
 

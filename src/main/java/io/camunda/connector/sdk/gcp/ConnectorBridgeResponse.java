@@ -1,4 +1,4 @@
-package io.camunda.connector.gcp;
+package io.camunda.connector.sdk.gcp;
 
 import java.util.Objects;
 

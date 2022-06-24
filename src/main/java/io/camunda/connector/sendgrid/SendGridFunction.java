@@ -8,9 +8,9 @@ import com.sendgrid.SendGrid;
 import com.sendgrid.helpers.mail.Mail;
 import com.sendgrid.helpers.mail.objects.Personalization;
 
-import io.camunda.connector.common.ConnectorFunction;
-import io.camunda.connector.common.ConnectorContext;
-import io.camunda.connector.common.ConnectorResponse;
+import io.camunda.connector.sdk.common.ConnectorFunction;
+import io.camunda.connector.sdk.common.ConnectorContext;
+import io.camunda.connector.sdk.common.ConnectorResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,14 +22,14 @@ public class SendGridFunction implements ConnectorFunction {
   private static final Gson GSON = new GsonBuilder().create();
 
   @Override
-  public Object service(ConnectorContext input) {
+  public Object service(ConnectorContext context) {
 
-    final var request = input.getVariableAsType(SendGridRequest.class);
+    final var request = context.getVariableAsType(SendGridRequest.class);
     final Validator validator = new Validator();
     request.validate(validator);
     validator.validate();
 
-    final var secretStore = input.getSecretStore();
+    final var secretStore = context.getSecretStore();
 
     request.replaceSecrets(secretStore);
 

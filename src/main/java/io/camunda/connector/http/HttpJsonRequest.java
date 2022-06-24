@@ -1,11 +1,12 @@
 package io.camunda.connector.http;
 
+import io.camunda.connector.sdk.common.SecretStore;
+
 import java.util.Map;
 import java.util.Objects;
 
 public class HttpJsonRequest {
 
-  private String clusterId;
   private String method;
   private String url;
   private Authentication authentication;
@@ -14,7 +15,6 @@ public class HttpJsonRequest {
   private Object body;
 
   public void validate(final Validator validator) {
-    validator.require(clusterId, "Cluster ID");
     validator.require(method, "HTTP Endpoint - Method");
     validator.require(url, "HTTP Endpoint - URL");
     if (hasAuthentication()) {
@@ -31,14 +31,6 @@ public class HttpJsonRequest {
     if (hasQueryParameters()) {
       queryParameters.replaceAll((k, v) -> secretStore.replaceSecret(v));
     }
-  }
-
-  public String getClusterId() {
-    return clusterId;
-  }
-
-  public void setClusterId(final String clusterId) {
-    this.clusterId = clusterId;
   }
 
   public String getMethod() {
@@ -114,8 +106,7 @@ public class HttpJsonRequest {
       return false;
     }
     final HttpJsonRequest that = (HttpJsonRequest) o;
-    return Objects.equals(clusterId, that.clusterId)
-        && Objects.equals(method, that.method)
+    return Objects.equals(method, that.method)
         && Objects.equals(url, that.url)
         && Objects.equals(authentication, that.authentication)
         && Objects.equals(queryParameters, that.queryParameters)
@@ -125,16 +116,13 @@ public class HttpJsonRequest {
 
   @Override
   public int hashCode() {
-    return Objects.hash(clusterId, method, url, authentication, queryParameters, headers, body);
+    return Objects.hash(method, url, authentication, queryParameters, headers, body);
   }
 
   @Override
   public String toString() {
     return "HttpJsonRequest{"
-        + "clusterId='"
-        + clusterId
-        + '\''
-        + ", method='"
+        + "method='"
         + method
         + '\''
         + ", url='"

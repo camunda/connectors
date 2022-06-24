@@ -1,6 +1,8 @@
 package io.camunda.connector.http;
 
 import com.google.api.client.http.HttpHeaders;
+import io.camunda.connector.sdk.common.SecretStore;
+
 import java.util.Objects;
 
 public class BearerAuthentication extends Authentication {

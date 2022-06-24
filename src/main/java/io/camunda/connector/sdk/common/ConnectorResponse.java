@@ -1,6 +1,4 @@
-package io.camunda.connector.common;
-
-import java.io.IOException;
+package io.camunda.connector.sdk.common;
 
 public class ConnectorResponse {
 
