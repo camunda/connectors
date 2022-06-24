@@ -1,16 +1,15 @@
 package io.camunda.connector.slack;
 
-import com.google.cloud.functions.HttpFunction;
-import com.google.cloud.functions.HttpRequest;
-import com.google.cloud.functions.HttpResponse;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.slack.api.Slack;
-import io.camunda.connector.gcp.ConnectorBridgeResponse;
+import io.camunda.connector.sdk.common.ConnectorContext;
+import io.camunda.connector.sdk.common.ConnectorFunction;
+import io.camunda.connector.sdk.common.ConnectorResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SlackFunction implements HttpFunction {
+public class SlackFunction implements ConnectorFunction {
   private static final Logger LOGGER = LoggerFactory.getLogger(SlackFunction.class);
 
   private static final Slack SLACK = Slack.getInstance();
@@ -22,30 +21,22 @@ public class SlackFunction implements HttpFunction {
       new GsonBuilder().registerTypeAdapter(SlackRequest.class, DESERIALIZER).create();
 
   @Override
-  public void service(HttpRequest httpRequest, HttpResponse httpResponse) throws Exception {
-    final ConnectorBridgeResponse response = new ConnectorBridgeResponse();
+  public Object service(ConnectorContext context) {
+
+    final SlackRequest<?> slackRequest = context.getVariableAsType(SlackRequest.class);
+    final Validator validator = new Validator();
+    slackRequest.validate(validator);
+    validator.validate();
+
+    slackRequest.replaceSecrets(context.getSecretStore());
+
     try {
-      final SlackRequest<?> slackRequest =
-          GSON.fromJson(httpRequest.getReader(), SlackRequest.class);
-      final Validator validator = new Validator();
-      slackRequest.validate(validator);
-      validator.validate();
-
-      LOGGER.info("Received request from cluster {}", slackRequest.getClusterId());
-
-      final var secretStore = new SecretStore(GSON, slackRequest.getClusterId());
-      slackRequest.replaceSecrets(secretStore);
-
-      SlackResponse slackResponse = slackRequest.invoke(SLACK);
-      httpResponse.setStatusCode(200);
-      response.setResult(slackResponse);
+      return slackRequest.invoke(SLACK);
     } catch (final Exception e) {
       LOGGER.error("Failed to execute request: " + e.getMessage(), e);
-      httpResponse.setStatusCode(500);
-      response.setError(e.getMessage());
-    }
 
-    httpResponse.setContentType("application/json");
-    GSON.toJson(response, httpResponse.getWriter());
+      throw ConnectorResponse.failed(e);
+    }
   }
+
 }

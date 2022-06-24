@@ -1,4 +1,4 @@
-package io.camunda.connector.gcp;
+package io.camunda.connector.sdk.gcp;
 
 import com.google.cloud.functions.HttpRequest;
 import com.google.cloud.functions.HttpResponse;
@@ -10,6 +10,10 @@ import io.camunda.connector.common.*;
 import io.camunda.connector.http.Authentication;
 import io.camunda.connector.http.BasicAuthentication;
 import io.camunda.connector.http.BearerAuthentication;
+import io.camunda.connector.sdk.common.ConnectorContext;
+import io.camunda.connector.sdk.common.ConnectorFunction;
+import io.camunda.connector.sdk.common.ConnectorInputException;
+import io.camunda.connector.sdk.common.SecretStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
