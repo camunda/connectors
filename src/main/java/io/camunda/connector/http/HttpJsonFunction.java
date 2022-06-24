@@ -17,6 +17,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+
+import io.camunda.connector.gcp.ConnectorBridgeResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

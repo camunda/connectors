@@ -2,6 +2,8 @@ package io.camunda.connector.slack;
 
 import com.slack.api.methods.MethodsClient;
 import com.slack.api.methods.SlackApiException;
+import io.camunda.connector.common.SecretStore;
+
 import java.io.IOException;
 
 public interface SlackRequestData {

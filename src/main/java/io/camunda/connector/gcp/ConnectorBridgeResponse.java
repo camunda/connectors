@@ -1,17 +1,18 @@
-package io.camunda.connector.http;
+package io.camunda.connector.gcp;
 
 import java.util.Objects;
 
 public class ConnectorBridgeResponse {
 
-  private HttpJsonResult result;
   private String error;
 
-  public HttpJsonResult getResult() {
+  private Object result;
+
+  public Object getResult() {
     return result;
   }
 
-  public void setResult(final HttpJsonResult result) {
+  public void setResult(Object result) {
     this.result = result;
   }
 
@@ -32,16 +33,17 @@ public class ConnectorBridgeResponse {
       return false;
     }
     final ConnectorBridgeResponse that = (ConnectorBridgeResponse) o;
-    return Objects.equals(result, that.result) && Objects.equals(error, that.error);
+    return Objects.equals(error, that.error);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(result, error);
+    return Objects.hash(error);
   }
 
   @Override
   public String toString() {
-    return "ConnectorBridgeResponse{" + "result=" + result + ", error='" + error + '\'' + '}';
+    return "ConnectorBridgeResponse{" + "error='" + error + '\'' + '}';
   }
+
 }
