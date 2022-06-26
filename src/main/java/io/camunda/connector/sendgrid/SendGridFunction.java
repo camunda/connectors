@@ -21,7 +21,7 @@ public class SendGridFunction implements ConnectorFunction {
   private static final Logger LOGGER = LoggerFactory.getLogger(SendGridFunction.class);
 
   @Override
-  public Object service(ConnectorContext context) {
+  public Object execute(ConnectorContext context) {
 
     final var request = context.getVariablesAsType(SendGridRequest.class);
     final var validator = new Validator();

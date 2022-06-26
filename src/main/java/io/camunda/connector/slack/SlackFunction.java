@@ -28,7 +28,7 @@ public class SlackFunction implements ConnectorFunction {
   }
 
   @Override
-  public Object service(ConnectorContext context) {
+  public Object execute(ConnectorContext context) {
 
     final var slackRequest = context.getVariablesAsType(SlackRequest.class);
     final var validator = new Validator();

@@ -7,7 +7,7 @@ public interface ConnectorFunction {
 
   Gson DEFAULT_GSON = new GsonBuilder().create();
 
-  Object service(ConnectorContext input);
+  Object execute(ConnectorContext input);
 
   default Gson getGson() {
     return DEFAULT_GSON;

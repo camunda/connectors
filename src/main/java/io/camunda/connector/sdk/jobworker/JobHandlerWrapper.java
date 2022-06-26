@@ -21,7 +21,7 @@ public class JobHandlerWrapper implements JobHandler {
   public void handle(JobClient client, ActivatedJob job) throws Exception {
 
     try {
-      Object result = call.service(new JobHandlerInput(job));
+      Object result = call.execute(new JobHandlerInput(job));
 
       client.newCompleteCommand(job).variables(result).send().join();
     } catch (Exception error) {

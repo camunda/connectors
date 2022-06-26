@@ -45,7 +45,7 @@ public class GCPWrapper {
     Gson gson = connectorFunction.getGson();
 
     try {
-      Object result = connectorFunction.service(new GCPInput(httpRequest, gson));
+      Object result = connectorFunction.execute(new GCPInput(httpRequest, gson));
 
       response.setResult(result);
       httpResponse.setStatusCode(200);
