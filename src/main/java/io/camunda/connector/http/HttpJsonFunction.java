@@ -17,7 +17,7 @@ import java.util.Objects;
 
 import io.camunda.connector.sdk.common.ConnectorContext;
 import io.camunda.connector.sdk.common.ConnectorFunction;
-import io.camunda.connector.sdk.common.ConnectorResponse;
+import io.camunda.connector.sdk.common.ConnectorResult;
 import io.camunda.connector.sdk.common.Validator;
 
 import org.slf4j.Logger;
@@ -60,7 +60,7 @@ public class HttpJsonFunction implements ConnectorFunction {
     } catch (final Exception e) {
       LOGGER.error("Failed to execute request: " + e.getMessage(), e);
 
-      throw ConnectorResponse.failed(e);
+      throw ConnectorResult.failed(e);
     }
   }
 

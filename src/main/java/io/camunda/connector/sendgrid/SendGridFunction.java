@@ -8,7 +8,7 @@ import com.sendgrid.helpers.mail.objects.Personalization;
 
 import io.camunda.connector.sdk.common.ConnectorFunction;
 import io.camunda.connector.sdk.common.ConnectorContext;
-import io.camunda.connector.sdk.common.ConnectorResponse;
+import io.camunda.connector.sdk.common.ConnectorResult;
 import io.camunda.connector.sdk.common.Validator;
 
 import org.slf4j.Logger;
@@ -41,13 +41,13 @@ public class SendGridFunction implements ConnectorFunction {
       if (statusCode != 202) {
         final SendGridErrors errors = getGson().fromJson(result.getBody(), SendGridErrors.class);
         LOGGER.info("User request failed to execute with status {} and error '{}'", statusCode, errors);
-        throw ConnectorResponse.failed(errors.toString());
+        throw ConnectorResult.failed(errors.toString());
       }
     } catch (IOException exception) {
-      throw ConnectorResponse.failed(exception);
+      throw ConnectorResult.failed(exception);
     }
 
-    return ConnectorResponse.empty();
+    return ConnectorResult.empty();
   }
 
   private Mail createEmail(final SendGridRequest request) {

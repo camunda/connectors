@@ -1,6 +1,6 @@
 package io.camunda.connector.sdk.common;
 
-public class ConnectorResponse {
+public class ConnectorResult {
 
   public static Object empty() {
     return new Object();
