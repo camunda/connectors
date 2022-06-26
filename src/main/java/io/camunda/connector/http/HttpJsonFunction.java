@@ -9,17 +9,15 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.ToNumberPolicy;
 import com.google.gson.typeadapters.RuntimeTypeAdapterFactory;
+import io.camunda.connector.sdk.common.ConnectorContext;
+import io.camunda.connector.sdk.common.ConnectorFunction;
+import io.camunda.connector.sdk.common.ConnectorResult;
+import io.camunda.connector.sdk.common.Validator;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-
-import io.camunda.connector.sdk.common.ConnectorContext;
-import io.camunda.connector.sdk.common.ConnectorFunction;
-import io.camunda.connector.sdk.common.ConnectorResult;
-import io.camunda.connector.sdk.common.Validator;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -148,5 +146,4 @@ public class HttpJsonFunction implements ConnectorFunction {
     }
     return httpJsonResult;
   }
-
 }

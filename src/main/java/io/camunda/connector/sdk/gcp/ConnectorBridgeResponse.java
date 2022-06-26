@@ -45,5 +45,4 @@ public class ConnectorBridgeResponse {
   public String toString() {
     return "ConnectorBridgeResponse{" + "error='" + error + '\'' + '}';
   }
-
 }
