@@ -46,7 +46,7 @@ public class HttpJsonFunction implements ConnectorFunction {
   }
 
   @Override
-  public Object service(ConnectorContext context) {
+  public Object execute(ConnectorContext context) {
     final var request = context.getVariablesAsType(HttpJsonRequest.class);
 
     final Validator validator = new Validator();
