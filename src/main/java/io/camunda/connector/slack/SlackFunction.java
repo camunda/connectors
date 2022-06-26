@@ -7,7 +7,6 @@ import io.camunda.connector.sdk.common.ConnectorContext;
 import io.camunda.connector.sdk.common.ConnectorFunction;
 import io.camunda.connector.sdk.common.ConnectorResult;
 import io.camunda.connector.sdk.common.Validator;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,5 +44,4 @@ public class SlackFunction implements ConnectorFunction {
       throw ConnectorResult.failed(e);
     }
   }
-
 }

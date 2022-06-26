@@ -5,14 +5,13 @@ import com.google.cloud.secretmanager.v1.SecretManagerServiceClient;
 import com.google.cloud.secretmanager.v1.SecretVersionName;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import io.camunda.connector.sdk.common.SecretStore;
 import java.lang.reflect.Type;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import io.camunda.connector.sdk.common.SecretStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

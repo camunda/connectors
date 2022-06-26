@@ -5,16 +5,13 @@ import com.sendgrid.Response;
 import com.sendgrid.SendGrid;
 import com.sendgrid.helpers.mail.Mail;
 import com.sendgrid.helpers.mail.objects.Personalization;
-
-import io.camunda.connector.sdk.common.ConnectorFunction;
 import io.camunda.connector.sdk.common.ConnectorContext;
+import io.camunda.connector.sdk.common.ConnectorFunction;
 import io.camunda.connector.sdk.common.ConnectorResult;
 import io.camunda.connector.sdk.common.Validator;
-
+import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
 
 public class SendGridFunction implements ConnectorFunction {
 
@@ -40,7 +37,8 @@ public class SendGridFunction implements ConnectorFunction {
 
       if (statusCode != 202) {
         final SendGridErrors errors = getGson().fromJson(result.getBody(), SendGridErrors.class);
-        LOGGER.info("User request failed to execute with status {} and error '{}'", statusCode, errors);
+        LOGGER.info(
+            "User request failed to execute with status {} and error '{}'", statusCode, errors);
         throw ConnectorResult.failed(errors.toString());
       }
     } catch (IOException exception) {
@@ -75,7 +73,8 @@ public class SendGridFunction implements ConnectorFunction {
     if (request.hasContent()) {
       final SendGridContent content = request.getContent();
       mail.setSubject(content.getSubject());
-      mail.addContent(new com.sendgrid.helpers.mail.objects.Content(content.getType(), content.getValue()));
+      mail.addContent(
+          new com.sendgrid.helpers.mail.objects.Content(content.getType(), content.getValue()));
       final Personalization personalization = new Personalization();
       personalization.addTo(request.getTo());
       mail.addPersonalization(personalization);
@@ -90,5 +89,4 @@ public class SendGridFunction implements ConnectorFunction {
     request.setBody(mail.build());
     return sg.api(request);
   }
-
 }

@@ -1,13 +1,12 @@
 package io.camunda.connector.sdk.jobworker;
 
-import java.util.ServiceLoader;
-
 import io.camunda.connector.sdk.common.ConnectorContext;
 import io.camunda.connector.sdk.common.ConnectorFunction;
 import io.camunda.connector.sdk.common.SecretStore;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import io.camunda.zeebe.client.api.worker.JobClient;
 import io.camunda.zeebe.client.api.worker.JobHandler;
+import java.util.ServiceLoader;
 
 public class JobHandlerWrapper implements JobHandler {
 
@@ -56,7 +55,5 @@ public class JobHandlerWrapper implements JobHandler {
         }
       };
     }
-
   }
-
 }

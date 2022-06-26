@@ -3,7 +3,6 @@ package io.camunda.connector.sendgrid;
 import com.sendgrid.helpers.mail.objects.Email;
 import io.camunda.connector.sdk.common.SecretStore;
 import io.camunda.connector.sdk.common.Validator;
-
 import java.util.Objects;
 
 public class SendGridRequest {
