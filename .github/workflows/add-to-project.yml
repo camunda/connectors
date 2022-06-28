@@ -16,7 +16,7 @@ jobs:
     name: Add issue to project
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/add-to-project@73cb31d05fb3b93d7c2975e4d9be0134b0d646a1
+      - uses: actions/add-to-project@92eaaeabac658914d49d501ac8ce147d2371fc72
         with:
           project-url: https://github.com/orgs/camunda/projects/23/views/1
           github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
