@@ -4,15 +4,15 @@ Run-time for [connector functions](../connector-sdk) based on [Google Cloud Func
 
 ## Usage
 
-Specify `io.camunda.connectors.cloud.CloudConnectorFunction` as the [GCP function](https://github.com/GoogleCloudPlatform/functions-framework-java) and define the connector function via the `CONNECTOR_FUNCTION` environment variable:
+Put your connector function on the classpath and use `io.camunda.connectors.cloud.CloudConnectorFunction` as the [GCP function](https://github.com/GoogleCloudPlatform/functions-framework-java):
 
 ```bash
-CONNECTOR_FUNCTION=io.camunda.connectors.slack.SlackFunction
-
 java -jar java-function-invoker-1.1.0 \
     --classpath ... \
     --target io.camunda.connectors.cloud.CloudConnectorFunction
 ```
+
+If you don't want your connector to auto-magically load, configure it via the `CONNECTOR_FUNCTION` environment variable.
 
 ## Build
 
