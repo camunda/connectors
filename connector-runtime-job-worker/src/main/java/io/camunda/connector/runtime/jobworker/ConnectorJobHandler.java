@@ -6,6 +6,7 @@ import io.camunda.connector.sdk.SecretStore;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import io.camunda.zeebe.client.api.worker.JobClient;
 import io.camunda.zeebe.client.api.worker.JobHandler;
+import java.util.Optional;
 import java.util.ServiceLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,12 +40,30 @@ public class ConnectorJobHandler implements JobHandler {
     }
   }
 
+  SecretStore getSecretStore() {
+    return ServiceLoader.load(SecretStore.class).findFirst().orElse(getEnvSecretStore());
+  }
+
+  SecretStore getEnvSecretStore() {
+    return new SecretStore() {
+      @Override
+      public String replaceSecret(String value) {
+        return Optional.ofNullable(System.getenv(value)).orElseThrow();
+      }
+    };
+  }
+
   class JobHandlerContext implements ConnectorContext {
 
     private final ActivatedJob job;
 
     public JobHandlerContext(ActivatedJob job) {
       this.job = job;
+    }
+
+    @Override
+    public SecretStore getSecretStore() {
+      return ConnectorJobHandler.this.getSecretStore();
     }
 
     @Override
@@ -55,21 +74,6 @@ public class ConnectorJobHandler implements JobHandler {
     @Override
     public String getVariables() {
       return job.getVariables();
-    }
-
-    @Override
-    public SecretStore getSecretStore() {
-      return ServiceLoader.load(SecretStore.class).findFirst().orElse(getEnvSecretStore());
-    }
-
-    protected SecretStore getEnvSecretStore() {
-      return new SecretStore() {
-        @Override
-        public String replaceSecret(String value) {
-          // TODO(nikku): provide basic "load from ENV" secret store
-          throw new UnsupportedOperationException("Secrets not supported");
-        }
-      };
     }
   }
 }
