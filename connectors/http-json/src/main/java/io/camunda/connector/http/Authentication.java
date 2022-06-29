@@ -1,6 +1,8 @@
 package io.camunda.connector.http;
 
 import com.google.api.client.http.HttpHeaders;
+import io.camunda.connector.sdk.SecretStore;
+import io.camunda.connector.sdk.Validator;
 
 public abstract class Authentication {
   private transient String type;

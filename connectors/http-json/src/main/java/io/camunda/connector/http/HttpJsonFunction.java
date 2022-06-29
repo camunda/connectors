@@ -5,13 +5,14 @@ import com.google.api.client.http.apache.v2.ApacheHttpTransport;
 import com.google.api.client.http.json.JsonHttpContent;
 import com.google.api.client.json.JsonObjectParser;
 import com.google.api.client.json.gson.GsonFactory;
-import com.google.cloud.functions.HttpFunction;
-import com.google.cloud.functions.HttpRequest;
-import com.google.cloud.functions.HttpResponse;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.ToNumberPolicy;
 import com.google.gson.typeadapters.RuntimeTypeAdapterFactory;
+import io.camunda.connector.sdk.ConnectorContext;
+import io.camunda.connector.sdk.ConnectorFunction;
+import io.camunda.connector.sdk.ConnectorResult;
+import io.camunda.connector.sdk.Validator;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -20,7 +21,7 @@ import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class HttpJsonFunction implements HttpFunction {
+public class HttpJsonFunction implements ConnectorFunction {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(HttpJsonFunction.class);
   private static final Gson GSON =
@@ -38,34 +39,27 @@ public class HttpJsonFunction implements HttpFunction {
           request -> request.setParser(new JsonObjectParser(GSON_FACTORY)));
 
   @Override
-  public void service(final HttpRequest incomingRequest, final HttpResponse outgoingResponse)
-      throws Exception {
-    final ConnectorBridgeResponse response = new ConnectorBridgeResponse();
-    try {
-      final var request = GSON.fromJson(incomingRequest.getReader(), HttpJsonRequest.class);
-      final Validator validator = new Validator();
-      request.validate(validator);
-      validator.validate();
+  public Object execute(ConnectorContext context) {
+    final var json = context.getVariables();
 
-      final var result = handleRequest(request);
-      outgoingResponse.setStatusCode(result.getStatus());
-      response.setResult(result);
+    final var request = GSON.fromJson(json, HttpJsonRequest.class);
+
+    final var validator = new Validator();
+    request.validate(validator);
+    validator.validate();
+
+    request.replaceSecrets(context.getSecretStore());
+
+    try {
+      return handleRequest(request);
     } catch (final Exception e) {
       LOGGER.error("Failed to execute request: " + e.getMessage(), e);
-      outgoingResponse.setStatusCode(500);
-      response.setError(e.getMessage());
-    }
 
-    outgoingResponse.setContentType("application/json");
-    GSON.toJson(response, outgoingResponse.getWriter());
+      throw ConnectorResult.failed(e);
+    }
   }
 
   protected HttpJsonResult handleRequest(final HttpJsonRequest request) throws IOException {
-    LOGGER.info("Received request from cluster {}", request.getClusterId());
-
-    final var secretStore = new SecretStore(GSON, request.getClusterId());
-    request.replaceSecrets(secretStore);
-
     final com.google.api.client.http.HttpRequest externalRequest = createRequest(request);
     final com.google.api.client.http.HttpResponse externalResponse = sendRequest(externalRequest);
     return toHttpJsonResponse(externalResponse);

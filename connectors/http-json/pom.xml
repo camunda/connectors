@@ -64,15 +64,15 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.google.cloud.functions</groupId>
-            <artifactId>functions-framework-api</artifactId>
-            <version>${version.google-cloud-functions}</version>
-            <scope>provided</scope>
+            <groupId>io.camunda.connectors</groupId>
+            <artifactId>connector-sdk</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
         </dependency>
 
         <dependency>
-            <groupId>com.google.cloud</groupId>
-            <artifactId>google-cloud-secretmanager</artifactId>
+            <groupId>io.camunda.connectors</groupId>
+            <artifactId>connector-runtime-cloud</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
         </dependency>
 
         <dependency>
@@ -90,7 +90,6 @@
             <artifactId>google-http-client-apache-v2</artifactId>
             <version>1.42.2</version>
         </dependency>
-
 
         <dependency>
             <groupId>org.danilopianini</groupId>
@@ -247,7 +246,7 @@
                 <artifactId>function-maven-plugin</artifactId>
                 <version>${plugin.version.function-maven-plugin}</version>
                 <configuration>
-                    <functionTarget>io.camunda.connector.http.HttpJsonFunction</functionTarget>
+                    <functionTarget>io.camunda.connector.runtime.cloud.CloudConnectorFunction</functionTarget>
                     <port>9082</port>
                 </configuration>
             </plugin>
