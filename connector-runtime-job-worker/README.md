@@ -1,4 +1,4 @@
-# Connector Run-Time Job Worker
+# Job Worker Connector Run-Time
 
 A simple run-time to execute [connector functions](../connector-sdk) as job workers.
 
