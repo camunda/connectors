@@ -5,6 +5,7 @@ import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.client.ZeebeClientBuilder;
 import java.lang.reflect.InvocationTargetException;
 import java.time.Duration;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,23 +33,53 @@ public class Main {
 
     var connectors = ConnectorConfig.parse();
 
+    if (connectors.isEmpty()) {
+      throw new IllegalStateException("No connectors configured");
+    }
+
     try (ZeebeClient client = clientBuilder.build()) {
 
-      for (var connector : connectors) {
+      final var workers =
+          connectors.stream()
+              .map(
+                  connector -> {
+                    LOGGER.info(
+                        "Registering connector function {} as {} on job type {} with variables {}",
+                        connector.getFunction(),
+                        connector.getName(),
+                        connector.getType(),
+                        connector.getVariables());
 
-        LOGGER.info(
-            "Registering connector {} on topic {}", connector.getFunction(), connector.getType());
+                    var connectorFunction = loadConnectorFunction(connector.getFunction());
 
-        var connectorFunction = loadConnectorFunction(connector.getFunction());
+                    return client
+                        .newWorker()
+                        .jobType(connector.getType())
+                        .handler(new ConnectorJobHandler(connectorFunction))
+                        .timeout(Duration.ofSeconds(10))
+                        .name(connector.getName())
+                        .fetchVariables(connector.getVariables())
+                        .open();
+                  })
+              .collect(Collectors.toList());
 
-        client
-            .newWorker()
-            .jobType(connector.getType())
-            .handler(new ConnectorJobHandler(connectorFunction))
-            .timeout(Duration.ofSeconds(10))
-            .name(connector.getName())
-            .open();
-      }
+      Runtime.getRuntime()
+          .addShutdownHook(
+              new Thread() {
+                public void run() {
+                  LOGGER.info("Shutting down workers...");
+                  workers.forEach(
+                      worker -> {
+                        try {
+                          worker.close();
+                        } catch (Exception e) {
+                          ; // ignore
+                        }
+                      });
+                }
+              });
+
+      waitForever();
     }
   }
 
@@ -70,5 +101,15 @@ public class Main {
 
   private static RuntimeException loadFailed(String s, Exception e) {
     throw new IllegalStateException(s, e);
+  }
+
+  private static void waitForever() {
+    try {
+      while (true) {
+        Thread.sleep(3000);
+      }
+    } catch (Exception e) {
+      // ignore
+    }
   }
 }
