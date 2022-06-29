@@ -33,6 +33,8 @@ public class CloudConnectorFunction implements HttpFunction {
 
   public CloudConnectorFunction() {
     this.connectorFunction = new ConnectorFunctionLoader().load();
+
+    LOGGER.info("Connector Function: {}", this.connectorFunction.getClass().getName());
   }
 
   public void service(final HttpRequest httpRequest, final HttpResponse httpResponse)
