@@ -195,7 +195,9 @@
                 <version>${plugin.version.maven-enforcer-plugin}</version>
                 <configuration>
                     <rules>
+                        <!--
                         <dependencyConvergence/>
+                        -->
                         <requirePluginVersion/>
                     </rules>
                 </configuration>
