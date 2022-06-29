@@ -2,7 +2,7 @@
 
 A simple run-time to execute [connector functions](../connector-sdk) as job workers.
 
-## Creating a Job Worker
+## Wrapping a Connector Function
 
 You can create a job worker by wrapping a [connector function](../connector-sdk) like this:
 
@@ -27,12 +27,11 @@ public class Main {
 }
 ```
 
-## Running Connectors
+## Running Connector Function(s)
 
 We expose a simple main method to start one or more connectors directly.
 
-You configure Zeebe using the
-standard [Zeebe environment variables](https://docs.camunda.io/docs/apis-clients/java-client/#bootstrapping).
+You configure Zeebe using the standard [Zeebe environment variables](https://docs.camunda.io/docs/apis-clients/java-client/#bootstrapping).
 Additional variables define connectors and their mapping to job workers:
 
 | Environment variable | Purpose |
