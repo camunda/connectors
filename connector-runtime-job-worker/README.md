@@ -44,6 +44,10 @@ Additional variables define connectors and their mapping to job workers:
 Given that configuration you can start a single job worker to execute one or more connector run-times:
 
 ```bash
+ZEEBE_CONNECTOR_SLACK_TYPE=io.camunda:slack:1
+ZEEBE_CONNECTOR_SLACK_VARIABLES=token,method,data
+ZEEBE_CONNECTOR_SLACK_FUNCTION=io.camunda.connector.slack.SlackFunction
+
 java -jar connector-runtime-job-worker.jar
      -c cloud-connector-slack.jar
      ...
