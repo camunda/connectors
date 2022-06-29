@@ -7,7 +7,7 @@ import java.util.regex.Pattern;
 class ConnectorConfig {
 
   public static final Pattern ZEEBE_CONNECTOR_PATTERN =
-      Pattern.compile("^ZEEBE_CONNECTOR_([^_]+)_TYPE");
+      Pattern.compile("^ZEEBE_CONNECTOR_([^_]+)_TYPE$");
 
   public static List<ConnectorConfig> parse() {
 
