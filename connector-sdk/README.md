@@ -1,9 +1,10 @@
 # Connector SDK
 
 The foundation for re-usable connector functionality.
-Wrapping is possible for individual application scenarios ([Camunda cloud](../connector-runtime-cloud), [job worker](../connector-runtime-job-worker)).
 
 ## Example
+
+A connector implements [`ConnectorFunction#execute(ConnectorContext)`](https://github.com/camunda/connectors-framework/blob/main/connector-sdk/src/main/java/io/camunda/connector/sdk/ConnectorFunction.java) to define the connector logic.
 
 ```java
 public class PingConnector implements ConnectorFunction {
@@ -29,6 +30,9 @@ public class PingConnector implements ConnectorFunction {
   }
 }
 ```
+
+Connector run-times, e.g. [job worker run-time](../connector-runtime-job-worker) wrap the function to execute it in various environments.
+
 
 ## Build
 
