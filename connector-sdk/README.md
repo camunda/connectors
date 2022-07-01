@@ -12,9 +12,9 @@ public class PingConnector implements ConnectorFunction {
   @Override
   public Object execute(ConnectorContext context) {
 
-    final var request = context.getVariablesAsType(PingRequest.class);
+    var request = context.getVariablesAsType(PingRequest.class);
 
-    final var validator = new Validator();
+    var validator = new Validator();
     request.validate(validator);
     validator.validate();
 
@@ -24,8 +24,8 @@ public class PingConnector implements ConnectorFunction {
       var name = request.getCaller();
 
       return new PingResponse("Pong to " + caller);
-    } catch (final Exception e) {
-      throw ConnectorResponse.failed(e);
+    } catch (Exception e) {
+      throw new ConnectorFailedException(e);
     }
   }
 }
