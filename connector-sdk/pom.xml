@@ -19,6 +19,8 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
     <version.bcprov-jdk15on>1.70</version.bcprov-jdk15on>
+    <version.guava>31.1-jre</version.guava>
+    <version.gson>2.9.0</version.gson>
     <version.junit>4.13.1</version.junit>
     <version.mockito>4.3.1</version.mockito>
     <version.slf4j>1.7.36</version.slf4j>
@@ -60,6 +62,18 @@
       <artifactId>mockito-core</artifactId>
       <version>${version.mockito}</version>
       <scope>test</scope>
+    </dependency>
+    
+    <dependency>
+      <groupId>com.google.code.gson</groupId>
+      <artifactId>gson</artifactId>
+      <version>${version.gson}</version>
+    </dependency>
+    
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <version>${version.guava}</version>
     </dependency>
   </dependencies>
 
