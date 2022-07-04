@@ -2,11 +2,11 @@ package io.camunda.connector.runtime.jobworker;
 
 import io.camunda.connector.sdk.ConnectorContext;
 import io.camunda.connector.sdk.ConnectorFunction;
+import io.camunda.connector.sdk.SecretProvider;
 import io.camunda.connector.sdk.SecretStore;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import io.camunda.zeebe.client.api.worker.JobClient;
 import io.camunda.zeebe.client.api.worker.JobHandler;
-import java.util.Optional;
 import java.util.ServiceLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,15 +40,15 @@ public class ConnectorJobHandler implements JobHandler {
     }
   }
 
-  SecretStore getSecretStore() {
-    return ServiceLoader.load(SecretStore.class).findFirst().orElse(getEnvSecretStore());
+  protected SecretProvider getSecretProvider() {
+    return ServiceLoader.load(SecretProvider.class).findFirst().orElse(getEnvSecretProvider());
   }
 
-  SecretStore getEnvSecretStore() {
-    return new SecretStore() {
+  protected SecretProvider getEnvSecretProvider() {
+    return new SecretProvider() {
       @Override
-      public String replaceSecret(String value) {
-        return Optional.ofNullable(System.getenv(value)).orElseThrow();
+      public String getSecret(String value) {
+        return System.getenv(value);
       }
     };
   }
@@ -63,7 +63,7 @@ public class ConnectorJobHandler implements JobHandler {
 
     @Override
     public SecretStore getSecretStore() {
-      return ConnectorJobHandler.this.getSecretStore();
+      return new SecretStore(ConnectorJobHandler.this.getSecretProvider());
     }
 
     @Override
