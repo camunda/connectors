@@ -18,12 +18,10 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-    <version.bcprov-jdk15on>1.70</version.bcprov-jdk15on>
-    <version.guava>31.1-jre</version.guava>
-    <version.gson>2.9.0</version.gson>
     <version.junit>4.13.1</version.junit>
     <version.mockito>4.3.1</version.mockito>
     <version.slf4j>1.7.36</version.slf4j>
+    <assertj.version>3.23.1</assertj.version>
 
     <plugin.version.function-maven-plugin>0.10.0</plugin.version.function-maven-plugin>
     <plugin.version.maven-clean-plugin>3.2.0</plugin.version.maven-clean-plugin>
@@ -63,17 +61,12 @@
       <version>${version.mockito}</version>
       <scope>test</scope>
     </dependency>
-    
+
     <dependency>
-      <groupId>com.google.code.gson</groupId>
-      <artifactId>gson</artifactId>
-      <version>${version.gson}</version>
-    </dependency>
-    
-    <dependency>
-      <groupId>com.google.guava</groupId>
-      <artifactId>guava</artifactId>
-      <version>${version.guava}</version>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <version>${assertj.version}</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 
