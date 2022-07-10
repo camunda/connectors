@@ -1,8 +1,8 @@
-package io.camunda.connector.sdk;
+package io.camunda.connector.example;
 
 import static org.assertj.core.api.Assertions.*;
 
-import io.camunda.connector.sdk.test.ConnectorContextBuilder;
+import io.camunda.connector.test.ConnectorContextBuilder;
 import org.junit.Test;
 
 public class ExampleFunctionTest {

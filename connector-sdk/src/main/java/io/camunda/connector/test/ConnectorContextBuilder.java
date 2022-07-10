@@ -1,8 +1,8 @@
-package io.camunda.connector.sdk.test;
+package io.camunda.connector.test;
 
-import io.camunda.connector.sdk.ConnectorContext;
-import io.camunda.connector.sdk.SecretProvider;
-import io.camunda.connector.sdk.SecretStore;
+import io.camunda.connector.api.ConnectorContext;
+import io.camunda.connector.api.SecretProvider;
+import io.camunda.connector.api.SecretStore;
 import java.util.HashMap;
 import java.util.Map;
 

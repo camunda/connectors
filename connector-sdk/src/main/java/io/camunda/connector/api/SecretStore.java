@@ -1,4 +1,4 @@
-package io.camunda.connector.sdk;
+package io.camunda.connector.api;
 
 import java.util.Optional;
 import java.util.regex.Matcher;

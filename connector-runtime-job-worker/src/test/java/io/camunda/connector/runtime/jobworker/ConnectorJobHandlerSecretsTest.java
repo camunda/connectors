@@ -1,7 +1,7 @@
 package io.camunda.connector.runtime.jobworker;
 
-import io.camunda.connector.sdk.ConnectorFunction;
-import io.camunda.connector.sdk.SecretProvider;
+import io.camunda.connector.api.ConnectorFunction;
+import io.camunda.connector.api.SecretProvider;
 import io.camunda.zeebe.client.api.command.CompleteJobCommandStep1;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import io.camunda.zeebe.client.api.worker.JobClient;

@@ -1,4 +1,7 @@
-package io.camunda.connector.sdk;
+package io.camunda.connector.example;
+
+import io.camunda.connector.api.SecretStore;
+import io.camunda.connector.api.Validator;
 
 public class ExampleInput {
 

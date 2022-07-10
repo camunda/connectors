@@ -1,4 +1,4 @@
-package io.camunda.connector.sdk.test;
+package io.camunda.connector.test;
 
 import static org.assertj.core.api.Assertions.*;
 

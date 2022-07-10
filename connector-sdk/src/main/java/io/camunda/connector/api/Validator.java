@@ -1,4 +1,4 @@
-package io.camunda.connector.sdk;
+package io.camunda.connector.api;
 
 import java.util.ArrayList;
 import java.util.List;
