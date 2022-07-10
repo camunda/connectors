@@ -1,37 +1,56 @@
 package io.camunda.connector.sdk.test;
 
-import com.google.common.io.CharStreams;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import io.camunda.connector.sdk.ConnectorContext;
-import io.camunda.connector.sdk.ConnectorInputException;
 import io.camunda.connector.sdk.SecretProvider;
 import io.camunda.connector.sdk.SecretStore;
-import java.io.IOException;
-import java.io.Reader;
 import java.util.HashMap;
 import java.util.Map;
 
 public class ConnectorContextBuilder {
 
-  private static final Gson GSON = new GsonBuilder().create();
-
   protected Map<String, String> secrets = new HashMap<>();
   protected SecretProvider secretProvider = (name) -> secrets.get(name);
-  protected Reader variablesInputReader;
-  protected String variablesInputJson;
+
+  protected String variablesAsJSON;
+
+  private Object variablesAsObject;
 
   public static ConnectorContextBuilder create() {
     return new ConnectorContextBuilder();
   }
 
-  public ConnectorContextBuilder variables(String variablesAsJson) {
-    this.variablesInputJson = variablesAsJson;
+  private void assertNoVariables() {
+
+    if (this.variablesAsJSON != null) {
+      throw new IllegalStateException("variablesAsJSON already set");
+    }
+
+    if (this.variablesAsObject != null) {
+      throw new IllegalStateException("variablesAsObject already set");
+    }
+  }
+
+  /**
+   * Provides the variables as a JSON string.
+   *
+   * @param variablesAsJSON
+   */
+  public ConnectorContextBuilder variables(String variablesAsJSON) {
+    this.assertNoVariables();
+
+    this.variablesAsJSON = variablesAsJSON;
     return this;
   }
 
-  public ConnectorContextBuilder variables(Reader variablesReader) {
-    this.variablesInputReader = variablesReader;
+  /**
+   * Provides the variables as an object
+   *
+   * @param variablesAsObject
+   */
+  public ConnectorContextBuilder variables(Object variablesAsObject) {
+    this.assertNoVariables();
+
+    this.variablesAsObject = variablesAsObject;
     return this;
   }
 
@@ -50,22 +69,26 @@ public class ConnectorContextBuilder {
 
       @Override
       public String getVariables() {
-        try {
-          if (variablesInputReader != null) {
-            return CharStreams.toString(variablesInputReader);
-          }
-          return variablesInputJson;
-        } catch (IOException exception) {
-          throw new ConnectorInputException(exception);
+
+        if (variablesAsJSON == null) {
+          throw new IllegalStateException("variablesAsJSON not provided");
         }
+
+        return variablesAsJSON;
       }
 
       @Override
       public <T extends Object> T getVariablesAsType(Class<T> cls) {
-        if (variablesInputReader != null) {
-          return GSON.fromJson(variablesInputReader, cls);
+
+        if (variablesAsObject == null) {
+          throw new IllegalStateException("variablesAsObject not provided");
         }
-        return GSON.fromJson(variablesInputJson, cls);
+
+        try {
+          return cls.cast(variablesAsObject);
+        } catch (ClassCastException ex) {
+          throw new IllegalStateException("no variablesAsObject of type " + cls.getName() + " provided", ex);
+        }
       }
 
       @Override
