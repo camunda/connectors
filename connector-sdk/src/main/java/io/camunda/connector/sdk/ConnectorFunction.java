@@ -2,5 +2,5 @@ package io.camunda.connector.sdk;
 
 public interface ConnectorFunction {
 
-  Object execute(ConnectorContext context);
+  Object execute(ConnectorContext context) throws Exception;
 }
