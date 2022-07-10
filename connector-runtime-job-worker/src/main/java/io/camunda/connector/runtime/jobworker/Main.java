@@ -1,6 +1,6 @@
 package io.camunda.connector.runtime.jobworker;
 
-import io.camunda.connector.sdk.ConnectorFunction;
+import io.camunda.connector.api.ConnectorFunction;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.client.ZeebeClientBuilder;
 import java.lang.reflect.InvocationTargetException;

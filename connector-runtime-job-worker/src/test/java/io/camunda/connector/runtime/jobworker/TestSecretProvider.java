@@ -1,6 +1,6 @@
 package io.camunda.connector.runtime.jobworker;
 
-import io.camunda.connector.sdk.SecretProvider;
+import io.camunda.connector.api.SecretProvider;
 import java.util.Collections;
 import java.util.Map;
 

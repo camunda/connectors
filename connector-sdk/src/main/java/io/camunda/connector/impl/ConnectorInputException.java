@@ -1,4 +1,4 @@
-package io.camunda.connector.sdk;
+package io.camunda.connector.impl;
 
 public class ConnectorInputException extends RuntimeException {
 

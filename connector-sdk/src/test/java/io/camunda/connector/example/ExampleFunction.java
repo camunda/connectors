@@ -1,4 +1,8 @@
-package io.camunda.connector.sdk;
+package io.camunda.connector.example;
+
+import io.camunda.connector.api.ConnectorContext;
+import io.camunda.connector.api.ConnectorFunction;
+import io.camunda.connector.api.Validator;
 
 public class ExampleFunction implements ConnectorFunction {
 
