@@ -8,5 +8,4 @@ public class TestSecretStore extends SecretStore {
   public TestSecretStore(Map<String, String> secrets) {
     super((name) -> secrets.get(name));
   }
-
 }

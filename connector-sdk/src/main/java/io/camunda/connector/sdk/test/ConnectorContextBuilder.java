@@ -65,7 +65,7 @@ public class ConnectorContextBuilder {
   }
 
   public ConnectorContext build() {
-    return new ConnectorContext(){
+    return new ConnectorContext() {
 
       @Override
       public String getVariables() {
@@ -87,7 +87,8 @@ public class ConnectorContextBuilder {
         try {
           return cls.cast(variablesAsObject);
         } catch (ClassCastException ex) {
-          throw new IllegalStateException("no variablesAsObject of type " + cls.getName() + " provided", ex);
+          throw new IllegalStateException(
+              "no variablesAsObject of type " + cls.getName() + " provided", ex);
         }
       }
 

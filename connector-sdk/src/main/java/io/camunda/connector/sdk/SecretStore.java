@@ -28,11 +28,9 @@ public class SecretStore {
           .orElseThrow(
               () ->
                   new IllegalArgumentException(
-                      String.format(
-                          "Secret with name '%s' is not available", secretName.get())));
+                      String.format("Secret with name '%s' is not available", secretName.get())));
     } else {
       return value;
     }
   }
-
 }
