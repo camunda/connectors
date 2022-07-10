@@ -3,7 +3,7 @@ package io.camunda.connector.sdk;
 public class ExampleFunction implements ConnectorFunction {
 
   @Override
-  public Object execute(ConnectorContext context) {
+  public Object execute(ConnectorContext context) throws Exception {
 
     var input = context.getVariablesAsType(ExampleInput.class);
 
