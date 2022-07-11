@@ -25,7 +25,9 @@ public class ConnectorJobHandlerSecretsTest {
     ConnectorJobHandler wrapper =
         new ConnectorJobHandler(
             (context) -> {
-              return context.getSecretStore().replaceSecret("secrets." + TestSecretProvider.SECRET_NAME);
+              return context
+                  .getSecretStore()
+                  .replaceSecret("secrets." + TestSecretProvider.SECRET_NAME);
             });
 
     // when
