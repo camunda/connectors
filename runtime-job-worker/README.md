@@ -1,10 +1,10 @@
 # Job Worker Connector Run-Time
 
-A simple run-time to execute [connector functions](../connector-sdk) as job workers.
+A simple run-time to execute [connector functions](../core) as job workers.
 
 ## Wrapping a Connector Function
 
-You can create a job worker by wrapping a [connector function](../connector-sdk) like this:
+You can create a job worker by wrapping a [connector function](../core) like this:
 
 ```java
 import io.camunda.connector.slack.SlackFunction;

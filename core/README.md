@@ -1,10 +1,10 @@
-# Connector SDK
+# Connector Core
 
 The foundation for re-usable connector functionality.
 
 ## Example
 
-A connector implements [`ConnectorFunction#execute(ConnectorContext)`](https://github.com/camunda/connectors-framework/blob/main/connector-sdk/src/main/java/io/camunda/connector/sdk/ConnectorFunction.java) to define the connector logic.
+A connector implements [`ConnectorFunction#execute(ConnectorContext)`](https://github.com/camunda/connectors-framework/blob/main/core/src/main/java/io/camunda/connector/api/ConnectorFunction.java) to define the connector logic.
 
 ```java
 public class PingConnector implements ConnectorFunction {
@@ -29,7 +29,7 @@ public class PingConnector implements ConnectorFunction {
 
 It exposes itself as a [`ConnectorFunction` SPI implementation](https://docs.oracle.com/javase/8/docs/api/java/util/ServiceLoader.html).
 
-Connector run-times, e.g. [job worker run-time](../connector-runtime-job-worker) wrap the function to execute it in various environments.
+Connector run-times, e.g. [job worker run-time](../runtime-job-worker) wrap the function to execute it in various environments.
 
 
 ## Build
