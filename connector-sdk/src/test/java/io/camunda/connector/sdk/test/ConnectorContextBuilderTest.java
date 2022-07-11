@@ -88,7 +88,7 @@ public class ConnectorContextBuilderTest {
   }
 
   @Test
-  public void shouldThrowOnConflictingVariableDefinitions() {
+  public void shouldThrowOnConflictingVariableDefinitions_jsonVariablesAlreadySet() {
 
     // when
     var exception =
@@ -99,6 +99,20 @@ public class ConnectorContextBuilderTest {
 
     // then
     assertThat(exception).hasMessage("variablesAsJSON already set");
+  }
+
+  @Test
+  public void shouldThrowOnConflictingVariableDefinitions_objectVariablesAlreadySet() {
+
+    // when
+    var exception =
+        catchException(
+            () -> {
+              ConnectorContextBuilder.create().variables(new Object()).variables("{ }");
+            });
+
+    // then
+    assertThat(exception).hasMessage("variablesAsObject already set");
   }
 
   @Test
