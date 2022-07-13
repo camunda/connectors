@@ -31,6 +31,9 @@ public class HttpJsonRequest {
     if (hasQueryParameters()) {
       queryParameters.replaceAll((k, v) -> secretStore.replaceSecret(v));
     }
+    if (hasHeaders()) {
+      headers.replaceAll((k, v) -> secretStore.replaceSecret(v));
+    }
   }
 
   public String getClusterId() {
