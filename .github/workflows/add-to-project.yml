@@ -1,0 +1,22 @@
+name: ADD_TO_PROJECT
+
+on:
+  issues:
+    types:
+      - opened
+      - transferred
+      - labeled
+  pull_request:
+    types:
+      - opened
+      - labeled
+
+jobs:
+  Exec:
+    name: Add issue to project
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/add-to-project@9b0fd13e3f93278507c1f914c70728832330f3f1
+        with:
+          project-url: https://github.com/orgs/camunda/projects/23/views/1
+          github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
