@@ -156,6 +156,14 @@
               </archive>
             </configuration>
           </plugin>
+          <plugin>
+            <groupId>com.google.cloud.functions</groupId>
+            <artifactId>function-maven-plugin</artifactId>
+            <configuration>
+              <functionTarget>io.camunda.connector.runtime.cloud.CloudConnectorFunction</functionTarget>
+              <port>9082</port>
+            </configuration>
+          </plugin>
         </plugins>
       </build>
     </profile>
