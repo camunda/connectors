@@ -55,10 +55,10 @@ mvn clean verify
 Build as Google Cloud Function
 
 ```bash
-mvn clean package -Pcloud-function
+mvn function:run -Pcloud-function
 ```
 
-Use the [Camunda Cloud Connector Run-Time](https://github.com/camunda/connector-runtime-cloud) to run your function as a local Google Cloud Function.
+See also the [Camunda Cloud Connector Run-Time](https://github.com/camunda/connector-runtime-cloud) on how your function is run as a Google Cloud Function.
 
 ### Test as local Job Worker
 
