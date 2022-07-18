@@ -47,9 +47,8 @@ ZEEBE_CONNECTOR_SLACK_TYPE=io.camunda:slack:1
 ZEEBE_CONNECTOR_SLACK_VARIABLES=token,method,data
 ZEEBE_CONNECTOR_SLACK_FUNCTION=io.camunda.connector.slack.SlackFunction
 
-java -jar connector-runtime-job-worker.jar
-     -c cloud-connector-slack.jar
-     ...
+java -cp 'connector-runtime-job-worker.jar;cloud-connector-slack.jar' \
+    io.camunda.connector.runtime.jobworker.Main
 ```
 
 ## Build
