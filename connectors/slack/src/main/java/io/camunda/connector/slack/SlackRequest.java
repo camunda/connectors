@@ -3,19 +3,19 @@ package io.camunda.connector.slack;
 import com.slack.api.Slack;
 import com.slack.api.methods.MethodsClient;
 import com.slack.api.methods.SlackApiException;
-import io.camunda.connector.api.SecretStore;
-import io.camunda.connector.api.Validator;
 import java.io.IOException;
 import java.util.Objects;
 
 public class SlackRequest<T extends SlackRequestData> {
 
+  private String clusterId;
   private String token;
   private String method;
 
   private T data;
 
   public void validate(final Validator validator) {
+    validator.require(clusterId, "Cluster ID");
     validator.require(token, "Slack API - Token");
     validator.require(method, "Slack API - Method");
     validator.require(data, "Slack API - Data");
@@ -34,6 +34,14 @@ public class SlackRequest<T extends SlackRequestData> {
   public SlackResponse invoke(final Slack slack) throws SlackApiException, IOException {
     MethodsClient methods = slack.methods(token);
     return data.invoke(methods);
+  }
+
+  public String getClusterId() {
+    return clusterId;
+  }
+
+  public void setClusterId(String clusterId) {
+    this.clusterId = clusterId;
   }
 
   public String getToken() {
@@ -65,20 +73,24 @@ public class SlackRequest<T extends SlackRequestData> {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
     SlackRequest<?> that = (SlackRequest<?>) o;
-    return Objects.equals(token, that.token)
+    return Objects.equals(clusterId, that.clusterId)
+        && Objects.equals(token, that.token)
         && Objects.equals(method, that.method)
         && Objects.equals(data, that.data);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(token, method, data);
+    return Objects.hash(clusterId, token, method, data);
   }
 
   @Override
   public String toString() {
     return "SlackRequest{"
-        + "token='"
+        + "clusterId='"
+        + clusterId
+        + '\''
+        + ", token='"
         + token
         + '\''
         + ", method='"
