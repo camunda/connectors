@@ -17,14 +17,10 @@
 
 
   <properties>
-    <!-- external libraries -->
     <version.gson>2.9.0</version.gson>
     <version.gson-extras>0.6.0</version.gson-extras>
     <version.slack>1.24.0</version.slack>
     <version.kotlin>1.7.10</version.kotlin>
-
-    <!-- maven plugins -->
-    <plugin.version.maven-shade-plugin>3.3.0</plugin.version.maven-shade-plugin>
   </properties>
 
   <dependencyManagement>
@@ -149,49 +145,58 @@
         <plugins>
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-shade-plugin</artifactId>
-            <version>${plugin.version.maven-shade-plugin}</version>
+            <artifactId>maven-dependency-plugin</artifactId>
             <executions>
               <execution>
                 <phase>package</phase>
-                <goals><goal>shade</goal></goals>
+                <goals>
+                  <goal>copy-dependencies</goal>
+                </goals>
                 <configuration>
-                  <outputFile>${project.build.directory}/deployment/${project.build.finalName}.jar</outputFile>
-                  <!-- no need for this since we are not consuming this artifact downstream -->
-                  <createDependencyReducedPom>false</createDependencyReducedPom>
-                  <artifactSet>
-                    <excludes>
-                      <!-- Classes provided by JSR-250 artifact are fully covered by javax.annotation-api artifact 
-                           that comes with google-cloud-secretmanager (dependency of connector-runtime-cloud) -->
-                      <exclude>javax.annotation:jsr250-api</exclude>
-                    </excludes>
-                  </artifactSet>
-                  <filters>
-                    <filter>
-                      <artifact>*:*</artifact>
-                      <excludes>
-                        <exclude>module-info.class</exclude>
-                        <exclude>META-INF/versions/9/module-info.class</exclude>
-                        <exclude>META-INF/DEPENDENCIES</exclude>
-                        <exclude>META-INF/*.SF</exclude>
-                        <exclude>META-INF/*.DSA</exclude>
-                        <exclude>META-INF/*.RSA</exclude>
-                      </excludes>
-                    </filter>
-                  </filters>
-                  <transformers>
-                    <!-- This is needed if you have dependencies that use Service Loader. Most Google Cloud client libraries does. -->
-                    <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
-                    <!-- This is needed to not repeat licenses in the META-INF directory -->
-                    <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer"/>
-                    <!-- This is needed to merge existing NOTICE files and keep them downstream -->
-                    <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer">
-                      <addHeader>false</addHeader>
-                    </transformer>
-                  </transformers>
+                  <overWriteReleases>false</overWriteReleases>
+                  <includeScope>runtime</includeScope>
+                  <outputDirectory>${project.build.directory}/libs</outputDirectory>
                 </configuration>
               </execution>
             </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-resources-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>copy-resources</id>
+                <phase>package</phase>
+                <goals>
+                  <goal>copy-resources</goal>
+                </goals>
+                <configuration>
+                  <outputDirectory>${project.build.directory}/deployment</outputDirectory>
+                  <resources>
+                    <resource>
+                      <directory>${project.build.directory}</directory>
+                      <includes>
+                        <include>${project.build.finalName}.jar</include>
+                        <include>libs/**</include>
+                      </includes>
+                      <filtering>false</filtering>
+                    </resource>
+                  </resources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-jar-plugin</artifactId>
+            <configuration>
+              <archive>
+                <manifest>
+                  <addClasspath>true</addClasspath>
+                  <classpathPrefix>libs/</classpathPrefix>
+                </manifest>
+              </archive>
+            </configuration>
           </plugin>
           <plugin>
             <groupId>com.google.cloud.functions</groupId>
