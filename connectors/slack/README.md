@@ -10,7 +10,7 @@ mvn clean package
 
 ## API
 
-### Request
+### Input
 
 ```json
 {
@@ -24,9 +24,9 @@ mvn clean package
 }
 ```
 
-### Response
+### Output
 
-The response will contain the status code, the headers and the body of the response of the HTTP service.
+The response will contain the result of the called Slack method.
 
 ```json
 {
@@ -49,29 +49,27 @@ The response will contain the status code, the headers and the body of the respo
 
 ## Test locally
 
-```bash
-mvn compile function:run
-```
-
-The function will be available under `http://localhost:9082`.
-
-### Local secrets
-
-To inject secrets during execution export a `CONNECTOR_SECRETS` environment variable
+Run unit tests
 
 ```bash
-export CONNECTOR_SECRETS='{...}'
+mvn clean verify
 ```
 
-And reference the secret in the request payload prefixed with `secrets.MY_SECRET`.
+### Test as local Google Cloud Function
 
-### Send a request
-
-Save the request in a file, i.e. `request.json` and use curl to invoke the function.
+Build as Google Cloud Function
 
 ```bash
-curl -X POST -H "Content-Type: application/json" -d @request.json http://localhost:9082
+mvn function:run -Pcloud-function
 ```
+
+The function will be available at http://localhost:9082.
+
+Have a look at the [Camunda Cloud Connector Run-Time](https://github.com/camunda/connector-runtime-cloud) to see how your Connector function is wrapped as a Google Cloud Function.
+
+### Test as local Job Worker
+
+Use the [Camunda Job Worker Connector Run-Time](https://github.com/camunda/connector-framework/tree/main/runtime-job-worker) to run your function as a local Job Worker.
 
 ## Element Template
 
