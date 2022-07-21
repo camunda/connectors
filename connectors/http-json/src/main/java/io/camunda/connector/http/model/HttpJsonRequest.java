@@ -1,9 +1,10 @@
-package io.camunda.connector.http;
+package io.camunda.connector.http.model;
 
-import io.camunda.connector.sdk.SecretStore;
-import io.camunda.connector.sdk.Validator;
+import com.google.common.base.Objects;
+import io.camunda.connector.api.SecretStore;
+import io.camunda.connector.api.Validator;
+import io.camunda.connector.http.auth.Authentication;
 import java.util.Map;
-import java.util.Objects;
 
 public class HttpJsonRequest {
 
@@ -36,6 +37,22 @@ public class HttpJsonRequest {
     }
   }
 
+  public boolean hasAuthentication() {
+    return authentication != null;
+  }
+
+  public boolean hasQueryParameters() {
+    return queryParameters != null;
+  }
+
+  public boolean hasHeaders() {
+    return headers != null;
+  }
+
+  public boolean hasBody() {
+    return body != null;
+  }
+
   public String getMethod() {
     return method;
   }
@@ -60,20 +77,12 @@ public class HttpJsonRequest {
     this.authentication = authentication;
   }
 
-  public boolean hasAuthentication() {
-    return authentication != null;
-  }
-
   public Map<String, String> getQueryParameters() {
     return queryParameters;
   }
 
   public void setQueryParameters(final Map<String, String> queryParameters) {
     this.queryParameters = queryParameters;
-  }
-
-  public boolean hasQueryParameters() {
-    return queryParameters != null;
   }
 
   public Map<String, String> getHeaders() {
@@ -84,10 +93,6 @@ public class HttpJsonRequest {
     this.headers = headers;
   }
 
-  public boolean hasHeaders() {
-    return headers != null;
-  }
-
   public Object getBody() {
     return body;
   }
@@ -96,30 +101,26 @@ public class HttpJsonRequest {
     this.body = body;
   }
 
-  public boolean hasBody() {
-    return body != null;
-  }
-
   @Override
-  public boolean equals(final Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final HttpJsonRequest that = (HttpJsonRequest) o;
-    return Objects.equals(method, that.method)
-        && Objects.equals(url, that.url)
-        && Objects.equals(authentication, that.authentication)
-        && Objects.equals(queryParameters, that.queryParameters)
-        && Objects.equals(headers, that.headers)
-        && Objects.equals(body, that.body);
+    HttpJsonRequest that = (HttpJsonRequest) o;
+    return Objects.equal(method, that.method)
+        && Objects.equal(url, that.url)
+        && Objects.equal(authentication, that.authentication)
+        && Objects.equal(queryParameters, that.queryParameters)
+        && Objects.equal(headers, that.headers)
+        && Objects.equal(body, that.body);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(method, url, authentication, queryParameters, headers, body);
+    return Objects.hashCode(method, url, authentication, queryParameters, headers, body);
   }
 
   @Override
