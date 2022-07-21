@@ -9,6 +9,7 @@ import com.slack.api.methods.response.users.UsersListResponse;
 import com.slack.api.model.User;
 import java.io.IOException;
 import java.util.Objects;
+import org.apache.commons.text.StringEscapeUtils;
 
 public class ChatPostMessageData implements SlackRequestData {
 
@@ -36,7 +37,8 @@ public class ChatPostMessageData implements SlackRequestData {
     ChatPostMessageRequest request =
         ChatPostMessageRequest.builder()
             .channel(channel)
-            .text(text)
+            // Temporary workaround related to camunda/zeebe#9859
+            .text(StringEscapeUtils.unescapeJson(text))
             .linkNames(true) // Enables message formatting
             .build();
 

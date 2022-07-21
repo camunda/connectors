@@ -102,6 +102,14 @@
             <artifactId>slack-api-client</artifactId>
             <version>${version.slack}</version>
         </dependency>
+
+        <!-- This dependency will be removed after camunda/zeebe#9859 is resolved. -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-text</artifactId>
+            <version>1.9</version>
+        </dependency>
+
     </dependencies>
 
     <build>
