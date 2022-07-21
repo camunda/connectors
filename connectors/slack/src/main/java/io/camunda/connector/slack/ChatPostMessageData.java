@@ -34,7 +34,11 @@ public class ChatPostMessageData implements SlackRequestData {
     }
 
     ChatPostMessageRequest request =
-        ChatPostMessageRequest.builder().channel(channel).text(text).build();
+        ChatPostMessageRequest.builder()
+            .channel(channel)
+            .text(text)
+            .linkNames(true) // Enables message formatting
+            .build();
 
     ChatPostMessageResponse chatPostMessageResponse = methodsClient.chatPostMessage(request);
     if (chatPostMessageResponse.isOk()) {
