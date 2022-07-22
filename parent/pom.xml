@@ -12,7 +12,7 @@
 
   <groupId>io.camunda.connector</groupId>
   <artifactId>connector-parent</artifactId>
-  <version>0.1.1-SNAPSHOT</version>
+  <version>0.1.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>Camunda Connector Parent</name>
@@ -51,12 +51,10 @@
     <!-- external libraries -->
     <version.slf4j>1.7.36</version.slf4j>
     <version.zeebe>8.0.3</version.zeebe>
-    <version.aws-java-sdk-sqs>1.12.248</version.aws-java-sdk-sqs>
     <version.gson>2.9.0</version.gson>
     <version.mockito>4.6.1</version.mockito>
     <version.junit>4.13.2</version.junit>
     <version.assertj>3.23.1</version.assertj>
-    <version.mockito-inline>3.4.0</version.mockito-inline>
 
     <!-- maven plugins -->
     <plugin.version.function-maven-plugin>0.10.0</plugin.version.function-maven-plugin>
@@ -101,12 +99,6 @@
       </dependency>
 
       <dependency>
-        <groupId>com.amazonaws</groupId>
-        <artifactId>aws-java-sdk-sqs</artifactId>
-        <version>${version.aws-java-sdk-sqs}</version>
-      </dependency>
-
-      <dependency>
         <groupId>com.google.code.gson</groupId>
         <artifactId>gson</artifactId>
         <version>${version.gson}</version>
@@ -124,13 +116,6 @@
         <groupId>org.mockito</groupId>
         <artifactId>mockito-core</artifactId>
         <version>${version.mockito}</version>
-        <scope>test</scope>
-      </dependency>
-
-      <dependency>
-        <groupId>org.mockito</groupId>
-        <artifactId>mockito-inline</artifactId>
-        <version>${version.mockito-inline}</version>
         <scope>test</scope>
       </dependency>
 
