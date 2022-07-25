@@ -3,7 +3,7 @@ package io.camunda.connector.example;
 import static org.assertj.core.api.Assertions.*;
 
 import io.camunda.connector.test.ConnectorContextBuilder;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ExampleFunctionTest {
 
