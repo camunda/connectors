@@ -1,3 +1,0 @@
-name: SENDGRID
-type: io.camunda:sendgrid:1
-variables: [ apiKey, from, to, template, content ]

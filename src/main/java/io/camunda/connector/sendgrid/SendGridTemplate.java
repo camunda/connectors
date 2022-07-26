@@ -1,7 +1,5 @@
 package io.camunda.connector.sendgrid;
 
-import io.camunda.connector.api.SecretStore;
-import io.camunda.connector.api.Validator;
 import java.util.Map;
 import java.util.Objects;
 

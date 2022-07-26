@@ -10,18 +10,19 @@ mvn clean package
 
 ## API
 
-### Input
+### Request
 
 ```json
 {
+  "clusterId": "838d40dc-a4e2-42cd-a5fb-7e5ea993a970",
   "apiKey": "secrets.SENDGRID_API_KEY",
   "from": {
     "name": "John Doe",
-    "email": "john.doe@example.com"
+    "Email": "john.doe@example.com"
   },
   "to": {
     "name": "Jane Doe",
-    "email": "jane.doe@example.com"
+    "Email": "jane.doe@example.com"
   },
   "template": {
     "id": "d-0b51e8f77bf8450fae379e0639ca0d11",
@@ -36,7 +37,7 @@ mvn clean package
 }
 ```
 
-### Output
+### Response
 
 ```json
 {
@@ -46,29 +47,47 @@ mvn clean package
 
 ## Test locally
 
-Run unit tests
-
 ```bash
-mvn clean verify
+mvn compile function:run
 ```
 
-### Test as local Google Cloud Function
+The function will be available under `http://localhost:9081`.
 
-Build as Google Cloud Function
+### Local secrets
+
+To inject secrets during execution export a `CONNECTOR_SECRETS` environment variable
 
 ```bash
-mvn function:run -Pcloud-function
+export CONNECTOR_SECRETS='{"SENDGRID_API_KEY": "SG.zJvb3BMkSoO_skhdoS5Nvw.xxxxvckatYp4i5ALzUoZB28JTQhMKhBh5BpO_1T6gE"}'
 ```
 
-The function will be available at http://localhost:9082.
+And reference the secret in the request payload as `apiKey`.
 
-Have a look at the [Camunda Cloud Connector Run-Time](https://github.com/camunda/connector-runtime-cloud) to see how your Connector function is wrapped as a Google Cloud Function.
+```json
+{
+  "clusterId": "838d40dc-a4e2-42cd-a5fb-7e5ea993a970",
+  "apiKey": "secrets.SENDGRID_API_KEY",
+  "from": {
+    ...
+  },
+  "to": {
+    ...
+  },
+  "template": {
+    ...
+  }
+}
+```
 
-### Test as local Job Worker
+### Send a request
 
-Use the [Camunda Job Worker Connector Run-Time](https://github.com/camunda/connector-framework/tree/main/runtime-job-worker) to run your function as a local Job Worker.
+Save the request in a file, i.e. `request.json` and use curl to invoke the function.
 
-### email Template
+```bash
+curl -X POST -H "Content-Type: application/json" -d @request.json http://localhost:9081
+```
+
+#### Email Template
 
 If the email should be send with a template the request has to contain a `template` object.
 
@@ -78,11 +97,11 @@ If the email should be send with a template the request has to contain a `templa
   "apiKey": "secrets.SENDGRID_API_KEY",
   "from": {
     "name": "John Doe",
-    "email": "john.doe@example.com"
+    "Email": "john.doe@example.com"
   },
   "to": {
     "name": "Jane Doe",
-    "email": "jane.doe@example.com"
+    "Email": "jane.doe@example.com"
   },
   "template": {
     "id": "d-0b51e8f77bf8450fae379e0639ca0d11",
@@ -97,7 +116,7 @@ If the email should be send with a template the request has to contain a `templa
 }
 ```
 
-### Email Content
+#### Email Content
 
 ```json
 {
@@ -105,11 +124,11 @@ If the email should be send with a template the request has to contain a `templa
   "apiKey": "secrets.SENDGRID_API_KEY",
   "from": {
     "name": "John Doe",
-    "email": "john.doe@example.com"
+    "Email": "john.doe@example.com"
   },
   "to": {
     "name": "Jane Doe",
-    "email": "jane.doe@example.com"
+    "Email": "jane.doe@example.com"
   },
   "content": {
     "subject": "Testing with plain content",

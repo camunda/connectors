@@ -1,12 +1,10 @@
 package io.camunda.connector.sendgrid;
 
 import com.sendgrid.helpers.mail.objects.Email;
-import io.camunda.connector.api.SecretStore;
-import io.camunda.connector.api.Validator;
 import java.util.Objects;
 
 public class SendGridRequest {
-
+  private String clusterId;
   private String apiKey;
   private SendGridEmail from;
   private SendGridEmail to;
@@ -14,6 +12,7 @@ public class SendGridRequest {
   private SendGridContent content;
 
   public void validate(final Validator validator) {
+    validator.require(clusterId, "Cluster ID");
     validator.require(apiKey, "SendGrid API - SendGrid API Key");
     validator.require(from, "Sender");
     if (from != null) {
@@ -48,6 +47,14 @@ public class SendGridRequest {
     if (hasContent()) {
       content.replaceSecrets(secretStore);
     }
+  }
+
+  public String getClusterId() {
+    return clusterId;
+  }
+
+  public void setClusterId(final String clusterId) {
+    this.clusterId = clusterId;
   }
 
   public String getApiKey() {
@@ -107,7 +114,8 @@ public class SendGridRequest {
       return false;
     }
     final SendGridRequest that = (SendGridRequest) o;
-    return Objects.equals(apiKey, that.apiKey)
+    return Objects.equals(clusterId, that.clusterId)
+        && Objects.equals(apiKey, that.apiKey)
         && Objects.equals(from, that.from)
         && Objects.equals(to, that.to)
         && Objects.equals(template, that.template)
@@ -116,13 +124,16 @@ public class SendGridRequest {
 
   @Override
   public int hashCode() {
-    return Objects.hash(apiKey, from, to, template, content);
+    return Objects.hash(clusterId, apiKey, from, to, template, content);
   }
 
   @Override
   public String toString() {
     return "SendGridRequest{"
-        + "apiKey='"
+        + "clusterId='"
+        + clusterId
+        + '\''
+        + ", apiKey='"
         + apiKey
         + '\''
         + ", from="
