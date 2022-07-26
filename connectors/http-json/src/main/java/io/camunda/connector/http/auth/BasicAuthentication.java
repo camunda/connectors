@@ -1,6 +1,7 @@
 package io.camunda.connector.http.auth;
 
 import com.google.api.client.http.HttpHeaders;
+import com.google.common.base.Objects;
 import io.camunda.connector.api.SecretStore;
 import io.camunda.connector.api.Validator;
 
@@ -29,7 +30,7 @@ public class BasicAuthentication extends Authentication {
     return username;
   }
 
-  public void setUsername(String username) {
+  public void setUsername(final String username) {
     this.username = username;
   }
 
@@ -37,7 +38,36 @@ public class BasicAuthentication extends Authentication {
     return password;
   }
 
-  public void setPassword(String password) {
+  public void setPassword(final String password) {
     this.password = password;
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    if (!super.equals(o)) {
+      return false;
+    }
+    BasicAuthentication that = (BasicAuthentication) o;
+    return Objects.equal(username, that.username) && Objects.equal(password, that.password);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(super.hashCode(), username, password);
+  }
+
+  @Override
+  public String toString() {
+    return "BasicAuthentication {"
+        + "username='[REDACTED]'"
+        + ", password='[REDACTED]'"
+        + "}; Super: "
+        + super.toString();
   }
 }
