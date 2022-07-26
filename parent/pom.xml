@@ -67,6 +67,7 @@
     <plugin.version.maven-jar-plugin>3.2.2</plugin.version.maven-jar-plugin>
     <plugin.version.maven-resources-plugin>3.2.0</plugin.version.maven-resources-plugin>
     <plugin.version.maven-shade-plugin>3.3.0</plugin.version.maven-shade-plugin>
+    <plugin.version.maven-surefire-plugin>3.0.0-M7</plugin.version.maven-surefire-plugin>
     <plugin.version.spotless-maven-plugin>2.22.8</plugin.version.spotless-maven-plugin>
   </properties>
 
@@ -206,6 +207,11 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-shade-plugin</artifactId>
           <version>${plugin.version.maven-shade-plugin}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>${plugin.version.maven-surefire-plugin}</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
