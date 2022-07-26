@@ -1,20 +1,6 @@
-> A template for new C8 connectors.
->
-> To use this template update the following resources to match the name of your connector:
->
-> * [README](./README.md) (title, description)
-> * [Element Template](./element-templates/template-connector.json)
-> * [POM](./pom.xml) (artifact name, description)
-> * [Connector Function](./src/main/java/io/camunda/connector/MyConnectorFunction.java) (rename)
-> * [Publish Action](./.github/workflows/publish-cloud-function.yaml#L52) (name)
-> * [Service Provider Interface (SPI)](./src/main/resources/META-INF/services/io.camunda.connector.api.ConnectorFunction#L1) (rename)
->
-> ...and delete this hint.
+# Sqs Connector
 
-
-# Connector Template
-
-Camunda Connector Template
+Camunda SQS Connector
 
 ## Build
 
@@ -28,7 +14,11 @@ mvn clean package
 
 ```json
 {
-  "myProperty": "....."
+  "queueUrl": "https://sqs.your.url",
+  "queueRegion": "ap-north-5",
+  "accessKey": "my access key",
+  "secretKey": "my secrets key",
+  "messageBody": "{\"myKey\":\"myVal\"}"
 }
 ```
 
@@ -37,7 +27,7 @@ mvn clean package
 ```json
 {
   "result": {
-    "myProperty": "....."
+    "messageId": "c158a652-c3e3-5511-a565-fd01a05c0c45"
   }
 }
 ```
@@ -58,15 +48,19 @@ Build as Google Cloud Function
 mvn function:run -Pcloud-function
 ```
 
-See also the [Camunda Cloud Connector Run-Time](https://github.com/camunda/connector-runtime-cloud) on how your function is run as a Google Cloud Function.
+See also the [Camunda Cloud Connector Run-Time](https://github.com/camunda/connector-runtime-cloud) on how your function
+is run as a Google Cloud Function.
 
 ### Test as local Job Worker
 
-Use the [Camunda Job Worker Connector Run-Time](https://github.com/camunda/connector-framework/tree/main/runtime-job-worker) to run your function as a local Job Worker.
+Use
+the [Camunda Job Worker Connector Run-Time](https://github.com/camunda/connector-framework/tree/main/runtime-job-worker)
+to run your function as a local Job Worker.
 
 ## Element Template
 
-The element templates can be found in the [element-templates/template-connector.json](element-templates/template-connector.json) file.
+The element templates can be found in
+the [element-templates/template-connector.json](element-templates/template-connector.json) file.
 
 ## Build a release
 

@@ -1,0 +1,3 @@
+name: SQS
+type: io.camunda:sqs:1
+variables: [ queueUrl, queueRegion, accessKey, secretKey, messageBody ]

@@ -1,22 +1,18 @@
 [
   {
     "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-    "name": "Template: Some Function",
-    "id": "io.camunda.connectors.Template.v1",
-    "description": "Describe this connector",
-    "documentationRef": "https://docs.camunda.io/docs/components/modeler/web-modeler/connectors/available-connectors/template/",
+    "name": "AWS SQS Outbound Connector",
+    "id": "io.camunda.connectors.AWSSQSOutboundConnector.v1",
+    "description": "An SQS Outbound Connector",
+    "appliesTo": [
+      "bpmn:ServiceTask"
+    ],
     "icon": {
-      "contents": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20height%3D%2218%22%20width%3D%2218%22%20viewBox%3D%220%200%2010%2010%22%20shape-rendering%3D%22geometricPrecision%22%3E%3Ctitle%3ESlack%3C%2Ftitle%3E%3Cg%20fill%3D%22none%22%3E%3Cpath%20d%3D%22M0%2C0%20L0%2C10%20L10%2C10%20L10%2C0%20z%22%20fill%3D%22%23ecb12f%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E"
+      "contents": "data:image/svg+xml,%3Csvg version='1.1' id='Layer_1' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' x='0px' y='0px' width='22' height='22' viewBox='0 0 70 70' enable-background='new 0 0 70 70' xml:space='preserve'%3E%3Cg%3E%3Cpolygon fill='none' points='53.629,40.689 58.413,35.125 53.563,29.56 '/%3E%3Cpolygon fill='none' points='11.387,40.679 16.17,35.113 11.32,29.547 '/%3E%3Cpath fill='%23AAA877' d='M5.702,16.875v35.734h58.596V16.875H5.702z M11.387,40.679L11.32,29.547l4.85,5.566L11.387,40.679z M26.617,48.601h-5.962V21.661h5.962V48.601z M38.143,48.601H32.18V21.661h5.963V48.601z M48.717,48.601h-5.963V21.661h5.963 V48.601z M53.629,40.689l-0.067-11.13l4.85,5.565L53.629,40.689z'/%3E%3C/g%3E%3C/svg%3E"
     },
     "category": {
       "id": "connectors",
       "name": "Connectors"
-    },
-    "appliesTo": [
-      "bpmn:Task"
-    ],
-    "elementType": {
-      "value": "bpmn:ServiceTask"
     },
     "groups": [
       {
@@ -24,30 +20,77 @@
         "label": "Authentication"
       },
       {
-        "id": "compose",
-        "label": "Compose"
+        "id": "queueProperties",
+        "label": "Queue Properties"
       },
       {
         "id": "output",
-        "label": "Output Mapping"
+        "label": "Output"
+      },
+      {
+        "id": "input",
+        "label": "Input message data"
       }
     ],
     "properties": [
       {
         "type": "Hidden",
-        "value": "io.camunda:template:1",
+        "value": "io.camunda:sqs:1",
         "binding": {
           "type": "zeebe:taskDefinition:type"
         }
       },
       {
-        "label": "OAuth Token",
-        "group": "authentication",
+        "label": "SQS URL",
+        "description": "Specify the URL of the SQS queue where you would like to send message to.",
+        "group": "queueProperties",
         "type": "String",
-        "feel": "optional",
         "binding": {
           "type": "zeebe:input",
-          "name": "token"
+          "name": "queueUrl"
+        },
+        "constraints": {
+          "notEmpty": true,
+          "pattern": {
+            "value": "(^https?://.+)|(^secrets\\..+)",
+            "message": "Must be an http(s) URL or a secret.XYZ"
+          }
+        }
+      },
+      {
+        "label": "SQS Region",
+        "description": "Specify the AWS region of the SQS queue where you would like to send message to.",
+        "group": "queueProperties",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "queueRegion"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "SQS Access Key",
+        "description": "Provide AWS IAM access key that has permission to send to desired SQS. Please, use secrets.* to ensure security.",
+        "group": "authentication",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "accessKey"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "SQS Secret Key",
+        "description": "Provide AWS IAM secret key that has permission to send to desired SQS. Please, use secrets.* to ensure security.",
+        "group": "authentication",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "secretKey"
         },
         "constraints": {
           "notEmpty": true
@@ -55,16 +98,17 @@
       },
       {
         "label": "Message",
-        "group": "compose",
+        "description": "Data to send to the SQS queue.",
+        "group": "input",
         "type": "Text",
-        "feel": "optional",
         "binding": {
           "type": "zeebe:input",
-          "name": "data.message"
+          "name": "messageBody"
         },
         "constraints": {
           "notEmpty": true
-        }
+        },
+        "feel": "required"
       },
       {
         "label": "Result Variable",
