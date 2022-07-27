@@ -19,6 +19,7 @@
     <properties>
         <version.google-libraries-bom>25.4.0</version.google-libraries-bom>
         <version.gson-extras>0.6.0</version.gson-extras>
+        <version.httpcore>4.4.15</version.httpcore>
     </properties>
 
     <repositories>
@@ -56,10 +57,6 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-            <dependency>
-                <groupId>org.apache.httpcomponents</groupId>
-                <artifactId>httpcore</artifactId>
-            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -83,6 +80,12 @@
         <dependency>
             <groupId>com.google.http-client</groupId>
             <artifactId>google-http-client-apache-v2</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpcore</artifactId>
+            <version>${version.httpcore}</version>
         </dependency>
 
         <dependency>
