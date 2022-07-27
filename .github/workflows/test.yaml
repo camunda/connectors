@@ -18,4 +18,4 @@ jobs:
           java-version: '11'
           cache: 'maven'
       - name: Build Artifact
-        run: mvn --batch-mode clean package
+        run: mvn --batch-mode clean verify -PcheckFormat
