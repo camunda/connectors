@@ -10,7 +10,7 @@ mvn clean package
 
 ## API
 
-### Request
+### Input
 
 ```json
 {
@@ -34,7 +34,7 @@ mvn clean package
 }
 ```
 
-### Response
+### Output
 
 The response will contain the status code, the headers and the body of the response of the HTTP service.
 
@@ -80,7 +80,7 @@ The response will contain the status code, the headers and the body of the respo
 }
 ```
 
-### Request (Basic Auth)
+### Input (Basic Auth)
 
 ```json
 {
@@ -95,7 +95,7 @@ The response will contain the status code, the headers and the body of the respo
 }
 ```
 
-### Request (Bearer Token)
+### Output (Bearer Token)
 
 ```json
 {
@@ -111,18 +111,26 @@ The response will contain the status code, the headers and the body of the respo
 
 ## Test locally
 
+Build as Google Cloud Function
+
 ```bash
-mvn compile function:run
+mvn function:run -Pcloud-function
 ```
 
-The function will be available under `http://localhost:9082`.
+The function will be available at http://localhost:9082.
+
+Have a look at the [Camunda Cloud Connector Run-Time](https://github.com/camunda/connector-runtime-cloud) to see how your Connector function is wrapped as a Google Cloud Function.
+
+### Test as local Job Worker
+
+Use the [Camunda Job Worker Connector Run-Time](https://github.com/camunda/connector-framework/tree/main/runtime-job-worker) to run your function as a local Job Worker.
 
 ### Local secrets
 
 To inject secrets during execution export a `CONNECTOR_SECRETS` environment variable
 
 ```bash
-export CONNECTOR_SECRETS='{...}'
+export CONNECTOR_SECRETS='{"MY_SECRET":"XXX",...}'
 ```
 
 And reference the secret in the request payload prefixed with `secrets.MY_SECRET`.

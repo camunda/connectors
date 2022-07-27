@@ -1,0 +1,3 @@
+name: HTTPJSON
+type: io.camunda:http-json:1
+variables: [ url, method, authentication, headers, queryParameters, body ]
