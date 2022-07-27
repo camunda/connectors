@@ -111,9 +111,9 @@ public class HttpJsonFunctionTest {
 
   private static Stream loadTestCasesFromResourceFile(final String fileWithTestCasesUri)
       throws IOException {
-    final String successCases = readString(new File(fileWithTestCasesUri).toPath(), UTF_8);
+    final String cases = readString(new File(fileWithTestCasesUri).toPath(), UTF_8);
     final Gson testingGson = new Gson();
-    ArrayList array = testingGson.fromJson(successCases, ArrayList.class);
+    ArrayList array = testingGson.fromJson(cases, ArrayList.class);
     return array.stream().map(x -> testingGson.toJson(x)).map(Arguments::of);
   }
 
