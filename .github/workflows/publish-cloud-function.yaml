@@ -36,6 +36,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '11'
+          cache: 'maven'
 
       - name: Create ~/.m2/settings.xml with cache configuration
         shell: bash
