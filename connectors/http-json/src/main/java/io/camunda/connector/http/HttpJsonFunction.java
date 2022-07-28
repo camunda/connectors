@@ -53,8 +53,8 @@ public class HttpJsonFunction implements ConnectorFunction {
     final var request = gson.fromJson(json, HttpJsonRequest.class);
 
     final var validator = new Validator();
-    request.validate(validator);
-    validator.validate();
+    request.validateWith(validator);
+    validator.evaluate();
 
     request.replaceSecrets(context.getSecretStore());
 

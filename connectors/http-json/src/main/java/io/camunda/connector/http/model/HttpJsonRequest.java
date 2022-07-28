@@ -15,11 +15,11 @@ public class HttpJsonRequest {
   private Map<String, String> headers;
   private Object body;
 
-  public void validate(final Validator validator) {
+  public void validateWith(final Validator validator) {
     validator.require(method, "HTTP Endpoint - Method");
     validator.require(url, "HTTP Endpoint - URL");
     if (hasAuthentication()) {
-      authentication.validate(validator);
+      authentication.validateWith(validator);
     }
   }
 

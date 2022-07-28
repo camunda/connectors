@@ -15,7 +15,7 @@ public class BearerAuthentication extends Authentication {
   }
 
   @Override
-  public void validate(final Validator validator) {
+  public void validateWith(final Validator validator) {
     validator.require(token, "Authentication - Bearer Token");
   }
 
