@@ -10,7 +10,7 @@ public class BasicAuthentication extends Authentication {
   private String password;
 
   @Override
-  public void validate(final Validator validator) {
+  public void validateWith(final Validator validator) {
     validator.require(username, "Authentication - Username");
     validator.require(password, "Authentication - Password");
   }
