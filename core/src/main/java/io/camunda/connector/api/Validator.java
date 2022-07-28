@@ -4,26 +4,31 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Validator {
+  protected static final String PROPERTIES_MISSING_MSG =
+      "Evaluation failed with following errors: %s";
+  protected static final String PROPERTY_REQUIRED_MSG = "Property required: ";
 
-  private final List<String> errors = new ArrayList<>();
+  private final List<String> errorMessages = new ArrayList<>();
 
-  public void require(final Object object, final String propertyName) {
-    if (object == null) {
-      errors.add(propertyName);
+  public void addErrorMessage(final String errorMessage) {
+    if (errorMessage != null) {
+      errorMessages.add(errorMessage);
+    }
+  }
+
+  public void require(final Object property, final String propertyName) {
+    if (property == null) {
+      addErrorMessage(PROPERTY_REQUIRED_MSG + propertyName);
     }
   }
 
   public void evaluate() {
-    if (!errors.isEmpty()) {
-      throw new IllegalArgumentException(getErrorMessage());
+    if (!errorMessages.isEmpty()) {
+      throw new IllegalArgumentException(getEvaluationResultMessage());
     }
   }
 
-  private String getErrorMessage() {
-    if (errors.size() == 1) {
-      return String.format("Property '%s' is missing", errors.get(0));
-    } else {
-      return "The following properties are missing: " + String.join(", ", errors);
-    }
+  private String getEvaluationResultMessage() {
+    return String.format(PROPERTIES_MISSING_MSG, String.join(", ", errorMessages));
   }
 }

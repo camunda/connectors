@@ -57,7 +57,7 @@ public class ExampleFunctionTest {
             });
 
     // then
-    assertThat(exception).hasMessage("Property 'Test - foo' is missing");
+    assertThat(exception.getMessage()).contains("Test - foo");
   }
 
   @Test
