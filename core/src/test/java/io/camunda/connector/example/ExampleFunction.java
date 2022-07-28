@@ -12,8 +12,8 @@ public class ExampleFunction implements ConnectorFunction {
     var input = context.getVariablesAsType(ExampleInput.class);
 
     final var validator = new Validator();
-    input.validate(validator);
-    validator.validate();
+    input.validateWith(validator);
+    validator.evaluate();
 
     input.replaceSecrets(context.getSecretStore());
 

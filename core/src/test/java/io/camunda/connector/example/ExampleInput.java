@@ -13,7 +13,7 @@ public class ExampleInput {
     this.foo = foo;
   }
 
-  public void validate(Validator validator) {
+  public void validateWith(Validator validator) {
     validator.require(foo, "Test - foo");
   }
 

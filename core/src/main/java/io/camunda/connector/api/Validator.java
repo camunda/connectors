@@ -13,7 +13,7 @@ public class Validator {
     }
   }
 
-  public void validate() {
+  public void evaluate() {
     if (!errors.isEmpty()) {
       throw new IllegalArgumentException(getErrorMessage());
     }
