@@ -25,8 +25,8 @@ public class SendGridFunction implements ConnectorFunction {
 
     final var request = context.getVariablesAsType(SendGridRequest.class);
     final var validator = new Validator();
-    request.validate(validator);
-    validator.validate();
+    request.validateWith(validator);
+    validator.evaluate();
 
     final var secretStore = context.getSecretStore();
     request.replaceSecrets(secretStore);

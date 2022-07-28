@@ -9,7 +9,7 @@ public class SendGridContent {
   private String type;
   private String value;
 
-  public void validate(final Validator validator) {
+  public void validateWith(final Validator validator) {
     validator.require(subject, "Email Content - Subject");
     validator.require(type, "Email Content - Content Type");
     validator.require(value, "Email Content - Body");
