@@ -20,7 +20,7 @@ public class PingConnector implements ConnectorFunction {
 
     request.replaceSecrets(context.getSecretStore());
 
-    var name = request.getCaller();
+    var caller = request.getCaller();
 
     return new PingResponse("Pong to " + caller);
   }
