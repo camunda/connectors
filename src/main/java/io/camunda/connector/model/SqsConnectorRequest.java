@@ -16,7 +16,7 @@ public class SqsConnectorRequest {
 
   private String messageBody;
 
-  public void validate(final Validator validator) {
+  public void validateWith(final Validator validator) {
     validator.require(queueUrl, "sqs queue url");
     validator.require(queueRegion, "sqs queue region");
     validator.require(accessKey, "Access key");
