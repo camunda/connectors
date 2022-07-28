@@ -38,8 +38,8 @@ public class SqsConnectorFunction implements ConnectorFunction {
 
   private void validate(SqsConnectorRequest request) {
     final var validator = new Validator();
-    request.validate(validator);
-    validator.validate();
+    request.validateWith(validator);
+    validator.evaluate();
   }
 
   private SendMessageResult sendMsgToSqs(SqsConnectorRequest request) {

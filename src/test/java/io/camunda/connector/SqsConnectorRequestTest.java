@@ -39,11 +39,11 @@ class SqsConnectorRequestTest extends BaseTest {
     request.setSecretKey(SECRET_KEY);
     request.setMessageBody(null);
     // When request validate
-    request.validate(validator);
+    request.validateWith(validator);
     IllegalArgumentException thrown =
         assertThrows(
             IllegalArgumentException.class,
-            () -> validator.validate(),
+            () -> validator.evaluate(),
             "IllegalArgumentException was expected");
     // Then we except exception with message
     assertEquals("Property 'message body' is missing", thrown.getMessage());
