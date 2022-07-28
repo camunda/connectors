@@ -1,0 +1,111 @@
+name: Publish Google Cloud Function
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+*'
+
+
+jobs:
+  publish:
+    permissions:
+      contents: 'write'
+      id-token: 'write'
+
+    runs-on: ubuntu-latest
+    concurrency: publish-${{ github.ref }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Import Secrets
+        id: secrets # important to refer to it in later steps
+        uses: hashicorp/vault-action@v2.4.1
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false # we rely on step outputs, no need for environment variables
+          secrets: |
+            secret/data/products/connectors/ci/common ARTIFACTORY_USR;
+            secret/data/products/connectors/ci/common ARTIFACTORY_PSW;
+
+      - uses: actions/setup-java@v3.4.1
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+          cache: 'maven'
+
+      - name: Create ~/.m2/settings.xml with cache configuration
+        shell: bash
+        run: |
+          cat <<EOF > ~/.m2/settings.xml
+          <?xml version="1.0" encoding="UTF-8"?>
+          <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">
+            <interactiveMode>false</interactiveMode>
+            <servers>
+              <server>
+                <id>camunda-nexus</id>
+                <username>\${env.MAVEN_USERNAME}</username>
+                <password>\${env.MAVEN_PASSWORD}</password>
+              </server>
+            </servers>
+            <mirrors>
+              <mirror>
+                <id>camunda-nexus</id>
+                <mirrorOf>*</mirrorOf>
+                <name>Camunda Nexus</name>
+                <url>https://camunda.jfrog.io/artifactory/internal/</url>
+              </mirror>
+            </mirrors>
+          </settings>
+          EOF
+
+      - name: Build Artifact
+        run: mvn --batch-mode clean package -Pcloud-function
+        env:
+          MAVEN_USERNAME: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
+          MAVEN_PASSWORD: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
+
+      - name: Determine Deployment Stage
+        id: deployment-stage
+        run: |
+          if [[ ${{ github.event.ref }} =~ ^refs/tags/[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            STAGE=prod
+          elif [[ ${{ github.event.ref }} =~ ^refs/tags/[0-9]+\.[0-9]+\.[0-9]+-rc[0-9]+$ ]]; then
+            STAGE=int
+          else
+            STAGE=dev
+          fi
+          echo ::set-output name=stage::${STAGE}
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v0.8.0
+        with:
+          workload_identity_provider: projects/239151533311/locations/global/workloadIdentityPools/github/providers/camunda
+          service_account: github-actions@camunda-cloud-240911.iam.gserviceaccount.com
+
+      - name: Deploy Google Cloud Function
+        uses: 'google-github-actions/deploy-cloud-functions@v0'
+        with:
+          name: 'connector-template-${{ steps.deployment-stage.outputs.stage }}'
+          runtime: 'java11'
+          entry_point: 'io.camunda.connector.runtime.cloud.CloudConnectorFunction'
+          region: 'europe-west1'
+          env_vars: 'SECRETS_PROJECT_ID=camunda-cloud-240911'
+          labels: 'stage=${{ steps.deployment-stage.outputs.stage }}'
+          source_dir: 'target/deployment'
+          project_id: 'camunda-cloud-240911'
+          service_account_email: 'connectors-${{ steps.deployment-stage.outputs.stage }}@camunda-cloud-240911.iam.gserviceaccount.com'
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          generate_release_notes: true
+          files: |
+            target/*.jar
