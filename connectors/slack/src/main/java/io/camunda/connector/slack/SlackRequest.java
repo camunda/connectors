@@ -15,12 +15,12 @@ public class SlackRequest<T extends SlackRequestData> {
 
   private T data;
 
-  public void validate(final Validator validator) {
+  public void validateWith(final Validator validator) {
     validator.require(token, "Slack API - Token");
     validator.require(method, "Slack API - Method");
     validator.require(data, "Slack API - Data");
     if (data != null) {
-      data.validate(validator);
+      data.validateWith(validator);
     }
   }
 

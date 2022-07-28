@@ -7,7 +7,7 @@ import io.camunda.connector.api.Validator;
 import java.io.IOException;
 
 public interface SlackRequestData {
-  void validate(final Validator validator);
+  void validateWith(final Validator validator);
 
   void replaceSecrets(final SecretStore secretStore);
 

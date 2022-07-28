@@ -19,7 +19,7 @@ public class ChatPostMessageData implements SlackRequestData {
   private String text;
 
   @Override
-  public void validate(Validator validator) {
+  public void validateWith(Validator validator) {
     validator.require(channel, "Slack - Chat Post Message - Channel");
     validator.require(text, "Slack - Chat Post Message - Text");
   }

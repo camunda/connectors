@@ -24,8 +24,8 @@ public class SlackFunction implements ConnectorFunction {
     final var slackRequest = GSON.fromJson(variables, SlackRequest.class);
 
     final var validator = new Validator();
-    slackRequest.validate(validator);
-    validator.validate();
+    slackRequest.validateWith(validator);
+    validator.evaluate();
 
     slackRequest.replaceSecrets(context.getSecretStore());
 
