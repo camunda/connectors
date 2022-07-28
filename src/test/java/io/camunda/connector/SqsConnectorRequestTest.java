@@ -1,4 +1,23 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. See the NOTICE file
+ * distributed with this work for additional information regarding copyright
+ * ownership. Camunda licenses this file to you under the Apache License,
+ * Version 2.0; you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.camunda.connector;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.camunda.connector.api.ConnectorContext;
 import io.camunda.connector.api.Validator;
@@ -6,9 +25,6 @@ import io.camunda.connector.model.SqsConnectorRequest;
 import io.camunda.connector.test.ConnectorContextBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class SqsConnectorRequestTest extends BaseTest {
 
@@ -21,13 +37,13 @@ class SqsConnectorRequestTest extends BaseTest {
     request = new SqsConnectorRequest();
     validator = new Validator();
 
-    context = ConnectorContextBuilder.create()
+    context =
+        ConnectorContextBuilder.create()
             .secret(SECRET_KEY, ACTUAL_SECRET_KEY)
             .secret(ACCESS_KEY, ACTUAL_ACCESS_KEY)
             .secret(QUEUE_REGION_KEY, ACTUAL_QUEUE_REGION)
             .secret(QUEUE_URL_KEY, ACTUAL_QUEUE_URL)
             .build();
-
   }
 
   @Test
@@ -53,9 +69,8 @@ class SqsConnectorRequestTest extends BaseTest {
   void replaceSecrets_shouldDoNotReplaceMessageBody() {
     // Given request with message body
     request.setMessageBody(SECRETS + SQS_MESSAGE_BODY);
-    ConnectorContext context = ConnectorContextBuilder.create()
-            .secret(SQS_MESSAGE_BODY, WRONG_MESSAGE_BODY)
-            .build();
+    ConnectorContext context =
+        ConnectorContextBuilder.create().secret(SQS_MESSAGE_BODY, WRONG_MESSAGE_BODY).build();
     // When replace secrets
     request.replaceSecrets(context.getSecretStore());
     // Then expect that message body will be same as was
@@ -80,7 +95,7 @@ class SqsConnectorRequestTest extends BaseTest {
 
   @Test
   void replaceSecrets_shouldDoNotReplaceSecretsIfTheyDidNotStartFromSecretsWord() {
-    //Given request with data that not started from secrets. and context with secret store
+    // Given request with data that not started from secrets. and context with secret store
     request.setSecretKey(SECRET_KEY);
     request.setAccessKey(ACCESS_KEY);
     request.setQueueUrl(QUEUE_URL_KEY);
@@ -93,5 +108,4 @@ class SqsConnectorRequestTest extends BaseTest {
     assertEquals(request.getQueueUrl(), QUEUE_URL_KEY);
     assertEquals(request.getQueueRegion(), QUEUE_REGION_KEY);
   }
-
 }
