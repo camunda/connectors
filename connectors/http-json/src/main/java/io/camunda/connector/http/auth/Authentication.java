@@ -9,7 +9,7 @@ public abstract class Authentication {
 
   private transient String type;
 
-  public abstract void validate(Validator validator);
+  public abstract void validateWith(Validator validator);
 
   public abstract void replaceSecrets(SecretStore secretStore);
 
