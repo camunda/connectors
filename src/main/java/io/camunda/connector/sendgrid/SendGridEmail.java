@@ -9,7 +9,7 @@ public class SendGridEmail {
   private String name;
   private String email;
 
-  public void validate(final Validator validator, final String category) {
+  public void validateWith(final Validator validator, final String category) {
     validator.require(name, category + " - Name");
     validator.require(email, category + " - Email Address");
   }

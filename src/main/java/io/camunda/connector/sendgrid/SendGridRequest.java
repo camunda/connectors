@@ -13,15 +13,15 @@ public class SendGridRequest {
   private SendGridTemplate template;
   private SendGridContent content;
 
-  public void validate(final Validator validator) {
+  public void validateWith(final Validator validator) {
     validator.require(apiKey, "SendGrid API - SendGrid API Key");
     validator.require(from, "Sender");
     if (from != null) {
-      from.validate(validator, "Sender");
+      from.validateWith(validator, "Sender");
     }
     validator.require(to, "Receiver");
     if (to != null) {
-      to.validate(validator, "Receiver");
+      to.validateWith(validator, "Receiver");
     }
 
     // at least one of them should be set
@@ -30,10 +30,10 @@ public class SendGridRequest {
     }
 
     if (hasTemplate()) {
-      template.validate(validator);
+      template.validateWith(validator);
     }
     if (hasContent()) {
-      content.validate(validator);
+      content.validateWith(validator);
     }
   }
 

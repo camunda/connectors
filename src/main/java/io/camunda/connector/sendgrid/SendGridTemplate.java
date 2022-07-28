@@ -9,7 +9,7 @@ public class SendGridTemplate {
   private String id;
   private Map<String, String> data;
 
-  public void validate(final Validator validator) {
+  public void validateWith(final Validator validator) {
     validator.require(id, "Dynamic Email Template - Template ID");
     validator.require(data, "Dynamic Email Template - Template Data");
   }
