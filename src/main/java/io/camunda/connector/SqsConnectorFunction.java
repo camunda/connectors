@@ -21,7 +21,6 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import io.camunda.connector.api.ConnectorContext;
 import io.camunda.connector.api.ConnectorFunction;
-import io.camunda.connector.api.Validator;
 import io.camunda.connector.client.SqsClient;
 import io.camunda.connector.client.SqsClientDefault;
 import io.camunda.connector.model.SqsConnectorRequest;
@@ -47,15 +46,9 @@ public class SqsConnectorFunction implements ConnectorFunction {
     final var variables = context.getVariables();
     LOGGER.debug("Executing SQS connector with variables : {}", variables);
     final var request = GSON.fromJson(variables, SqsConnectorRequest.class);
-    validate(request);
-    request.replaceSecrets(context.getSecretStore());
+    context.validate(request);
+    context.replaceSecrets(request);
     return new SqsConnectorResult(sendMsgToSqs(request).getMessageId());
-  }
-
-  private void validate(SqsConnectorRequest request) {
-    final var validator = new Validator();
-    request.validateWith(validator);
-    validator.evaluate();
   }
 
   private SendMessageResult sendMsgToSqs(SqsConnectorRequest request) {
