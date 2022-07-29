@@ -1,1 +1,1 @@
-io.camunda.connector.MyConnectorFunction
+io.camunda.connector.gdrive.GoogleDriveFunction

@@ -1,0 +1,108 @@
+[
+  {
+    "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+    "name": "Google Drive: Create Folder",
+    "id": "io.camunda.connectors.GoogleDriveCreateFolder.v1",
+    "description": "Google Drive: Create Folder",
+    "category": {
+      "id": "connectors",
+      "name": "Connectors"
+    },
+    "appliesTo": [
+      "bpmn:ServiceTask"
+    ],
+    "icon": {
+      "contents": "data:image/svg+xml,%3Csvg width='94' height='94' viewBox='0 0 94 94' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='94' height='94' fill='white'/%3E%3Cpath d='M10.7219 73.2906L14.4917 79.8021C15.275 81.1729 16.401 82.25 17.7229 83.0333L31.1865 59.7292H4.25937C4.25937 61.2469 4.65104 62.7646 5.43437 64.1354L10.7219 73.2906Z' fill='%230066DA'/%3E%3Cpath d='M47 32.3125L33.5365 9.00833C32.2146 9.79166 31.0885 10.8687 30.3052 12.2396L5.43437 55.3229C4.65104 56.6938 4.25937 58.2115 4.25937 59.7292H31.1865L47 32.3125Z' fill='%2300AC47'/%3E%3Cpath d='M47 32.3125L60.4635 9.00833C59.1416 8.22499 57.6239 7.83333 56.0573 7.83333H37.9427C36.376 7.83333 34.8583 8.27395 33.5364 9.00833L47 32.3125Z' fill='%2300832D'/%3E%3Cpath d='M62.8135 59.7292H31.1864L17.7229 83.0333C19.0448 83.8167 20.5625 84.2083 22.1292 84.2083H71.8708C73.4375 84.2083 74.9552 83.7677 76.2771 83.0333L62.8135 59.7292Z' fill='%232684FC'/%3E%3Cpath d='M76.2771 83.0333C77.599 82.25 78.725 81.1729 79.5083 79.8021L81.075 77.1094L88.5656 64.1354C89.3489 62.7646 89.7406 61.2469 89.7406 59.7292H62.8625L76.2771 83.0333Z' fill='%23EA4335'/%3E%3Cpath d='M76.1302 33.7813L63.6948 12.2396C62.9115 10.8687 61.7854 9.79166 60.4635 9.00833L47 32.3125L62.8135 59.7292H89.6917C89.6917 58.2115 89.3 56.6938 88.5167 55.3229L76.1302 33.7813Z' fill='%23FFBA00'/%3E%3C/svg%3E"
+    },
+    "groups": [
+      {
+        "id": "authentication",
+        "label": "Authentication"
+      },
+      {
+        "id": "compose",
+        "label": "Compose"
+      },
+      {
+        "id": "output",
+        "label": "Output Mapping"
+      }
+    ],
+    "properties": [
+      {
+        "type": "Hidden",
+        "value": "io.camunda:google-drive:1",
+        "binding": {
+          "type": "zeebe:taskDefinition:type"
+        }
+      },
+      {
+        "label": "Google Drive Bearer Token",
+        "description": "Provide a Google API Bearer token that is authorized to manipulate desired Drive. Please, use secrets.* to ensure security.",
+        "group": "authentication",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.token"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Folder name",
+        "group": "compose",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "folder.name"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Parent folder ID",
+        "group": "compose",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "folder.parent"
+        }
+      },
+      {
+        "label": "Additional properties",
+        "description": "Use this field to pass additional Google Drive parameters as json. Please refer to the Google Drive API reference.",
+        "group": "compose",
+        "type": "Text",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "folder.additionalProperties"
+        }
+      },
+      {
+        "label": "Result Variable",
+        "description": "Name of variable to store the response in",
+        "group": "output",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "resultVariable"
+        }
+      },
+      {
+        "label": "Result Expression",
+        "description": "Expression to map the response into process variables",
+        "group": "output",
+        "type": "Text",
+        "feel": "required",
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "key": "resultExpression"
+        }
+      }
+    ]
+  }
+]

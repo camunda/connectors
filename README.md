@@ -1,20 +1,6 @@
-> A template for new C8 connectors.
->
-> To use this template update the following resources to match the name of your connector:
->
-> * [README](./README.md) (title, description)
-> * [Element Template](./element-templates/template-connector.json)
-> * [POM](./pom.xml) (artifact name, description)
-> * [Connector Function](./src/main/java/io/camunda/connector/MyConnectorFunction.java) (rename)
-> * [Publish Action](./.github/workflows/publish-cloud-function.yaml#L95) (name)
-> * [Service Provider Interface (SPI)](./src/main/resources/META-INF/services/io.camunda.connector.api.ConnectorFunction#L1) (rename)
->
-> ...and delete this hint.
+# Cloud Connector - Google Drive
 
-
-# Connector Template
-
-Camunda Connector Template
+A C8 Connector that lets you interact with Google Drive.
 
 ## Build
 
@@ -28,7 +14,14 @@ mvn clean package
 
 ```json
 {
-  "myProperty": "....."
+  "authentication": {
+    "token": "secrets.GDRIVE_BEARER"
+  },
+  "folder": {
+    "name":"MyNewFolder",
+    "parent":"113K12_sTvC28VM04sB6XOLGmEOYxUYCs",
+    "additionalProperties":"{\\\"description\\\":\\\"This is my folder description\\\", \\\"folderColorRgb\\\": \\\"#abcdef\\\"}"
+  }
 }
 ```
 
@@ -68,7 +61,7 @@ Use the [Camunda Job Worker Connector Run-Time](https://github.com/camunda/conne
 
 ## Element Template
 
-The element templates can be found in the [element-templates/template-connector.json](element-templates/template-connector.json) file.
+The element templates can be found in the [element-templates/template-connector.json](element-templates/google-drive-connector.json) file.
 
 ## Build a release
 
