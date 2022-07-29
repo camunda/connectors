@@ -21,7 +21,6 @@ import com.google.gson.GsonBuilder;
 import com.slack.api.Slack;
 import io.camunda.connector.api.ConnectorContext;
 import io.camunda.connector.api.ConnectorFunction;
-import io.camunda.connector.api.Validator;
 
 public class SlackFunction implements ConnectorFunction {
   private static final Slack SLACK = Slack.getInstance();
@@ -36,14 +35,10 @@ public class SlackFunction implements ConnectorFunction {
   public Object execute(ConnectorContext context) throws Exception {
 
     final var variables = context.getVariables();
-
     final var slackRequest = GSON.fromJson(variables, SlackRequest.class);
 
-    final var validator = new Validator();
-    slackRequest.validateWith(validator);
-    validator.evaluate();
-
-    slackRequest.replaceSecrets(context.getSecretStore());
+    context.validate(slackRequest);
+    context.replaceSecrets(slackRequest);
 
     return slackRequest.invoke(SLACK);
   }
