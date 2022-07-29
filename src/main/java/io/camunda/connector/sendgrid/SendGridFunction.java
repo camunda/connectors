@@ -25,7 +25,6 @@ import com.sendgrid.helpers.mail.Mail;
 import com.sendgrid.helpers.mail.objects.Personalization;
 import io.camunda.connector.api.ConnectorContext;
 import io.camunda.connector.api.ConnectorFunction;
-import io.camunda.connector.api.Validator;
 import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,12 +39,8 @@ public class SendGridFunction implements ConnectorFunction {
   public Object execute(ConnectorContext context) throws Exception {
 
     final var request = context.getVariablesAsType(SendGridRequest.class);
-    final var validator = new Validator();
-    request.validateWith(validator);
-    validator.evaluate();
-
-    final var secretStore = context.getSecretStore();
-    request.replaceSecrets(secretStore);
+    context.validate(request);
+    context.replaceSecrets(request);
 
     final var mail = createEmail(request);
 

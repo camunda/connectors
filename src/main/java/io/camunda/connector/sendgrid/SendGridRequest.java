@@ -17,11 +17,12 @@
 package io.camunda.connector.sendgrid;
 
 import com.sendgrid.helpers.mail.objects.Email;
+import io.camunda.connector.api.ConnectorInput;
 import io.camunda.connector.api.SecretStore;
 import io.camunda.connector.api.Validator;
 import java.util.Objects;
 
-public class SendGridRequest {
+public class SendGridRequest implements ConnectorInput {
 
   private String apiKey;
   private SendGridEmail from;
@@ -29,6 +30,7 @@ public class SendGridRequest {
   private SendGridTemplate template;
   private SendGridContent content;
 
+  @Override
   public void validateWith(final Validator validator) {
     validator.require(apiKey, "SendGrid API - SendGrid API Key");
     validator.require(from, "Sender");
@@ -53,6 +55,7 @@ public class SendGridRequest {
     }
   }
 
+  @Override
   public void replaceSecrets(final SecretStore secretStore) {
     apiKey = secretStore.replaceSecret(apiKey);
     from.replaceSecrets(secretStore);
