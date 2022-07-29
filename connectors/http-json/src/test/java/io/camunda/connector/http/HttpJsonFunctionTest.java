@@ -35,7 +35,6 @@ import com.google.api.client.http.HttpResponse;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.gson.Gson;
 import io.camunda.connector.api.ConnectorContext;
-import io.camunda.connector.api.SecretStore;
 import io.camunda.connector.http.components.GsonComponentSupplier;
 import io.camunda.connector.http.model.HttpJsonResult;
 import io.camunda.connector.test.ConnectorContextBuilder;
@@ -65,7 +64,6 @@ public class HttpJsonFunctionTest {
   private Gson gson = GsonComponentSupplier.gsonInstance();
   @Mock private GsonFactory gsonFactory;
   @Mock private HttpRequestFactory requestFactory;
-  @Mock private SecretStore secretStore;
   @Mock private HttpRequest httpRequest;
   @Mock private HttpResponse httpResponse;
 
@@ -87,9 +85,6 @@ public class HttpJsonFunctionTest {
     // given - minimal required entity
     final ConnectorContext context = Mockito.mock(ConnectorContext.class);
     when(context.getVariables()).thenReturn(input);
-    when(context.getSecretStore()).thenReturn(secretStore);
-
-    when(secretStore.replaceSecret(anyString())).thenAnswer(i -> i.getArguments()[0]);
 
     when(requestFactory.buildRequest(
             anyString(), any(GenericUrl.class), nullable(HttpContent.class)))
