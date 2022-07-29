@@ -21,6 +21,4 @@ jobs:
         with:
           node-version: '16'
       - name: Build Artifact
-        run: mvn --batch-mode clean package
-      - name: Verify Template
-        run: mvn --batch-mode clean package
+        run: mvn --batch-mode clean verify -PcheckFormat
