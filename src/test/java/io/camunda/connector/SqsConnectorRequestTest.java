@@ -72,7 +72,7 @@ class SqsConnectorRequestTest extends BaseTest {
     ConnectorContext context =
         ConnectorContextBuilder.create().secret(SQS_MESSAGE_BODY, WRONG_MESSAGE_BODY).build();
     // When replace secrets
-    request.replaceSecrets(context.getSecretStore());
+    context.replaceSecrets(request);
     // Then expect that message body will be same as was
     assertEquals(request.getMessageBody(), SECRETS + SQS_MESSAGE_BODY);
   }
@@ -85,7 +85,7 @@ class SqsConnectorRequestTest extends BaseTest {
     request.setQueueUrl(SECRETS + QUEUE_URL_KEY);
     request.setQueueRegion(SECRETS + QUEUE_REGION_KEY);
     // When replace secrets
-    request.replaceSecrets(context.getSecretStore());
+    context.replaceSecrets(request);
     // Then
     assertEquals(request.getSecretKey(), ACTUAL_SECRET_KEY);
     assertEquals(request.getAccessKey(), ACTUAL_ACCESS_KEY);
@@ -101,7 +101,7 @@ class SqsConnectorRequestTest extends BaseTest {
     request.setQueueUrl(QUEUE_URL_KEY);
     request.setQueueRegion(QUEUE_REGION_KEY);
     // When replace secrets
-    request.replaceSecrets(context.getSecretStore());
+    context.replaceSecrets(request);
     // Then secrets must be not replaced
     assertEquals(request.getSecretKey(), SECRET_KEY);
     assertEquals(request.getAccessKey(), ACCESS_KEY);

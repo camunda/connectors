@@ -16,11 +16,12 @@
  */
 package io.camunda.connector.model;
 
+import io.camunda.connector.api.ConnectorInput;
 import io.camunda.connector.api.SecretStore;
 import io.camunda.connector.api.Validator;
 import java.util.Objects;
 
-public class SqsConnectorRequest {
+public class SqsConnectorRequest implements ConnectorInput {
 
   private String queueUrl;
 
@@ -32,6 +33,7 @@ public class SqsConnectorRequest {
 
   private String messageBody;
 
+  @Override
   public void validateWith(final Validator validator) {
     validator.require(queueUrl, "sqs queue url");
     validator.require(queueRegion, "sqs queue region");
@@ -40,6 +42,7 @@ public class SqsConnectorRequest {
     validator.require(messageBody, "message body");
   }
 
+  @Override
   public void replaceSecrets(final SecretStore secretStore) {
     queueUrl = secretStore.replaceSecret(queueUrl);
     queueRegion = secretStore.replaceSecret(queueRegion);
