@@ -21,9 +21,12 @@ import io.camunda.connector.api.ConnectorInput;
 import io.camunda.connector.api.SecretStore;
 import io.camunda.connector.api.Validator;
 import io.camunda.connector.http.auth.Authentication;
+import java.util.Arrays;
 import java.util.Map;
 
 public class HttpJsonRequest implements ConnectorInput {
+
+  private static final String[] SUPPORTED_URL_PREFIXES = new String[] {"http", "https", "secrets"};
 
   private String method;
   private String url;
@@ -36,6 +39,16 @@ public class HttpJsonRequest implements ConnectorInput {
   public void validateWith(final Validator validator) {
     validator.require(method, "HTTP Endpoint - Method");
     validator.require(url, "HTTP Endpoint - URL");
+
+    if (Arrays.stream(SUPPORTED_URL_PREFIXES).noneMatch(url::startsWith)) {
+      validator.addErrorMessage(
+          "HTTP Endpoint - URL is invalid: "
+              + url
+              + ". "
+              + "Has to start with: "
+              + Arrays.toString(SUPPORTED_URL_PREFIXES));
+    }
+
     if (hasAuthentication()) {
       authentication.validateWith(validator);
     }
