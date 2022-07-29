@@ -29,7 +29,6 @@ import com.google.api.client.json.gson.GsonFactory;
 import com.google.gson.Gson;
 import io.camunda.connector.api.ConnectorContext;
 import io.camunda.connector.api.ConnectorFunction;
-import io.camunda.connector.api.Validator;
 import io.camunda.connector.http.components.GsonComponentSupplier;
 import io.camunda.connector.http.components.HttpTransportComponentSupplier;
 import io.camunda.connector.http.model.HttpJsonRequest;
@@ -68,11 +67,8 @@ public class HttpJsonFunction implements ConnectorFunction {
     final var json = context.getVariables();
     final var request = gson.fromJson(json, HttpJsonRequest.class);
 
-    final var validator = new Validator();
-    request.validateWith(validator);
-    validator.evaluate();
-
-    request.replaceSecrets(context.getSecretStore());
+    context.validate(request);
+    context.replaceSecrets(request);
 
     return handleRequest(request);
   }

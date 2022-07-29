@@ -17,12 +17,13 @@
 package io.camunda.connector.http.model;
 
 import com.google.common.base.Objects;
+import io.camunda.connector.api.ConnectorInput;
 import io.camunda.connector.api.SecretStore;
 import io.camunda.connector.api.Validator;
 import io.camunda.connector.http.auth.Authentication;
 import java.util.Map;
 
-public class HttpJsonRequest {
+public class HttpJsonRequest implements ConnectorInput {
 
   private String method;
   private String url;
@@ -31,6 +32,7 @@ public class HttpJsonRequest {
   private Map<String, String> headers;
   private Object body;
 
+  @Override
   public void validateWith(final Validator validator) {
     validator.require(method, "HTTP Endpoint - Method");
     validator.require(url, "HTTP Endpoint - URL");
@@ -39,6 +41,7 @@ public class HttpJsonRequest {
     }
   }
 
+  @Override
   public void replaceSecrets(final SecretStore secretStore) {
     method = secretStore.replaceSecret(method);
     url = secretStore.replaceSecret(url);
