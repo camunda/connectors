@@ -14,27 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.example;
+package io.camunda.connector.api;
 
-import io.camunda.connector.api.ConnectorContext;
-import io.camunda.connector.api.ConnectorFunction;
+public interface ConnectorInput {
 
-public class ExampleFunction implements ConnectorFunction {
+  default void validateWith(Validator validator) {
+    // don't validate anything
+  }
 
-  @Override
-  public Object execute(ConnectorContext context) throws Exception {
-
-    var input = context.getVariablesAsType(ExampleInput.class);
-
-    context.validate(input);
-    context.replaceSecrets(input);
-
-    var foo = input.getFoo();
-
-    if (foo.equals("BOOM!")) {
-      throw new UnsupportedOperationException("expected BOOM!");
-    }
-
-    return foo;
+  default void replaceSecrets(SecretStore secretStore) {
+    // don't replace any secrets
   }
 }

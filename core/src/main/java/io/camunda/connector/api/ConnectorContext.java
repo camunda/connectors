@@ -23,4 +23,12 @@ public interface ConnectorContext {
   <T extends Object> T getVariablesAsType(Class<T> cls);
 
   SecretStore getSecretStore();
+
+  void replaceSecrets(ConnectorInput input);
+
+  default void validate(ConnectorInput input) {
+    final var validator = new Validator();
+    input.validateWith(validator);
+    validator.evaluate();
+  }
 }
