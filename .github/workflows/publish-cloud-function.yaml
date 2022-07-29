@@ -66,7 +66,7 @@ jobs:
           EOF
 
       - name: Build Artifact
-        run: mvn --batch-mode clean package -Pcloud-function
+        run: mvn --batch-mode -U clean package -Pcloud-function
         env:
           MAVEN_USERNAME: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
           MAVEN_PASSWORD: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
