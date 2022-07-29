@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.jobworker;
 
 import io.camunda.connector.api.ConnectorContext;
 import io.camunda.connector.api.ConnectorFunction;
+import io.camunda.connector.api.ConnectorInput;
 import io.camunda.connector.api.SecretProvider;
 import io.camunda.connector.api.SecretStore;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
@@ -72,14 +73,23 @@ public class ConnectorJobHandler implements JobHandler {
   class JobHandlerContext implements ConnectorContext {
 
     private final ActivatedJob job;
+    private SecretStore secretStore;
 
     public JobHandlerContext(ActivatedJob job) {
       this.job = job;
     }
 
     @Override
+    public void replaceSecrets(ConnectorInput input) {
+      input.replaceSecrets(getSecretStore());
+    }
+
+    @Override
     public SecretStore getSecretStore() {
-      return new SecretStore(ConnectorJobHandler.this.getSecretProvider());
+      if (secretStore == null) {
+        secretStore = new SecretStore(ConnectorJobHandler.this.getSecretProvider());
+      }
+      return secretStore;
     }
 
     @Override

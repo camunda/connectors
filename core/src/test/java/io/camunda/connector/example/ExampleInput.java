@@ -16,10 +16,11 @@
  */
 package io.camunda.connector.example;
 
+import io.camunda.connector.api.ConnectorInput;
 import io.camunda.connector.api.SecretStore;
 import io.camunda.connector.api.Validator;
 
-public class ExampleInput {
+public class ExampleInput implements ConnectorInput {
 
   private String foo;
 
@@ -29,10 +30,12 @@ public class ExampleInput {
     this.foo = foo;
   }
 
+  @Override
   public void validateWith(Validator validator) {
     validator.require(foo, "Test - foo");
   }
 
+  @Override
   public void replaceSecrets(SecretStore secretStore) {
     this.foo = secretStore.replaceSecret(this.foo);
   }
