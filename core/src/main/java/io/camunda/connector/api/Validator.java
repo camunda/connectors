@@ -19,6 +19,13 @@ package io.camunda.connector.api;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * A generic validator.
+ *
+ * <p>This class is intended to validate the properties of supplied data objects. Users can
+ * implement their own local validation methods if necessary and add custom error messages to an
+ * instance of this validator class.
+ */
 public class Validator {
   protected static final String PROPERTIES_MISSING_MSG =
       "Evaluation failed with following errors: %s";
@@ -26,18 +33,45 @@ public class Validator {
 
   private final List<String> errorMessages = new ArrayList<>();
 
+  /**
+   * Adds a custom error message to the overall list of errors.
+   *
+   * @param errorMessage - message to be added
+   */
   public void addErrorMessage(final String errorMessage) {
     if (errorMessage != null) {
       errorMessages.add(errorMessage);
     }
   }
 
+  /**
+   * Indicates that the property is required.
+   *
+   * <p>Checks for <code>null</code> for all objects. If the object is <code>null</code>, adds a
+   * preformatted error message with <code>propertyName</code>.
+   *
+   * <p>Provides additional check for {@link CharSequence} objects. If the given object contains
+   * only whitespaces, adds a preformatted error message with <code>propertyName</code>.
+   *
+   * @param property - required property
+   * @param propertyName - property name; used to add into the error list
+   */
   public void require(final Object property, final String propertyName) {
-    if (property == null) {
+    if (property == null || isBlank(property)) {
       addErrorMessage(PROPERTY_REQUIRED_MSG + propertyName);
     }
   }
 
+  protected boolean isBlank(Object property) {
+    return property instanceof CharSequence
+        && ((CharSequence) property).chars().allMatch(Character::isWhitespace);
+  }
+
+  /**
+   * Evaluates whether validator contains errors.
+   *
+   * @throws IllegalArgumentException if there were errors.
+   */
   public void evaluate() {
     if (!errorMessages.isEmpty()) {
       throw new IllegalArgumentException(getEvaluationResultMessage());
