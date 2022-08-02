@@ -23,6 +23,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.model.File;
+import com.google.gson.Gson;
 import io.camunda.connector.gdrive.model.request.GoogleDriveRequest;
 import java.io.IOException;
 import java.util.List;
@@ -104,7 +105,8 @@ class GoogleDriveClientTest extends BaseTest {
   public void createFolder_shouldCreateFolder(String input) throws IOException {
     // Given
     Drive drive = Mockito.mock(Drive.class);
-    client = new GoogleDriveClient(drive, GsonComponentSupplier.getJsonFactory());
+    Gson gson = new Gson();
+    client = new GoogleDriveClient(drive, GsonComponentSupplier.getJsonFactory(), gson);
     Drive.Files files = Mockito.mock(Drive.Files.class);
     Drive.Files.Create create = Mockito.mock(Drive.Files.Create.class);
     when(drive.files()).thenReturn(files);

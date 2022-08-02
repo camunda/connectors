@@ -26,11 +26,13 @@ import com.google.api.services.drive.model.File;
 import com.google.auth.http.HttpCredentialsAdapter;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
+import com.google.gson.Gson;
 import io.camunda.connector.gdrive.model.request.Authentication;
 import io.camunda.connector.gdrive.model.request.FolderCreateParams;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.Collections;
+import org.apache.commons.text.StringEscapeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,16 +46,20 @@ public class GoogleDriveClient {
   private static final String ERROR_CREATING = "An error occurred while creating the %s";
   private static final String FOLDER_MIME_TYPE = "application/vnd.google-apps.folder";
 
+  private final Gson gson;
   private final JsonFactory jsonFactory;
   private Drive driveService;
 
   public GoogleDriveClient() {
     this.jsonFactory = GsonComponentSupplier.getJsonFactory();
+    this.gson = GsonComponentSupplier.getGson();
   }
 
-  public GoogleDriveClient(final Drive driveService, final JsonFactory jsonFactory) {
+  public GoogleDriveClient(
+      final Drive driveService, final JsonFactory jsonFactory, final Gson gson) {
     this.driveService = driveService;
     this.jsonFactory = jsonFactory;
+    this.gson = gson;
   }
 
   public void init(final Authentication authentication) {
@@ -86,14 +92,12 @@ public class GoogleDriveClient {
   }
 
   public File createMetaData(final FolderCreateParams folder) {
-    File fileMetadata = new File();
+    File fileMetadata =
+        gson.fromJson(StringEscapeUtils.unescapeJson(folder.getAdditionalProperties()), File.class);
     fileMetadata.setName(folder.getName());
     fileMetadata.setMimeType(FOLDER_MIME_TYPE);
     if (folder.getParent() != null) {
       fileMetadata.setParents(Collections.singletonList(folder.getParent()));
-    }
-    if (folder.getAdditionalProperties() != null) {
-      fileMetadata.setDescription(folder.getAdditionalProperties());
     }
     return fileMetadata;
   }
