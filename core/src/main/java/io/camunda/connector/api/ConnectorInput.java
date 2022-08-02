@@ -25,4 +25,16 @@ public interface ConnectorInput {
   default void replaceSecrets(SecretStore secretStore) {
     // don't replace any secrets
   }
+
+  default void validateIfNotNull(ConnectorInput input, Validator validator) {
+    if (input != null) {
+      input.validateWith(validator);
+    }
+  }
+
+  default void replaceSecretsIfNotNull(ConnectorInput input, SecretStore secretStore) {
+    if (input != null) {
+      input.replaceSecrets(secretStore);
+    }
+  }
 }
