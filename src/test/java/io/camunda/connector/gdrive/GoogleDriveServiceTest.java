@@ -28,6 +28,7 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 
 class GoogleDriveServiceTest extends BaseTest {
@@ -56,6 +57,19 @@ class GoogleDriveServiceTest extends BaseTest {
     Mockito.verify(googleDriveClient, Mockito.times(1)).shutdown();
 
     assertThat(execute.getGoogleDriveResourceId()).isEqualTo(FILE_ID);
+  }
+
+  @DisplayName("Should return full folder URL")
+  @ParameterizedTest(name = "Executing test case # {index}")
+  @ValueSource(strings = {"fileId", "idWithNum1239756", "-1!-=-=9071234"})
+  public void folderUrlById_shouldReturnFullUrlForGivenFolderId(String inputId) {
+    // Given
+    GoogleDriveService service = new GoogleDriveService();
+    // When
+    String folderUrlById = service.getFolderUrlById(inputId);
+    // Then
+    assertThat(folderUrlById)
+        .isEqualTo(String.format(GoogleDriveService.FOLDER_URL_TEMPLATE, inputId));
   }
 
   private static Stream<String> successRequestCases() throws IOException {

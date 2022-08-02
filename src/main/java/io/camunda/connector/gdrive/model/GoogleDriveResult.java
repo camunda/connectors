@@ -22,12 +22,9 @@ import java.util.Objects;
 public class GoogleDriveResult {
 
   private String googleDriveResourceId;
+  private String googleDriveResourceUrl;
 
   public GoogleDriveResult() {}
-
-  public GoogleDriveResult(final String resourceId) {
-    this.googleDriveResourceId = resourceId;
-  }
 
   public String getGoogleDriveResourceId() {
     return googleDriveResourceId;
@@ -35,6 +32,14 @@ public class GoogleDriveResult {
 
   public void setGoogleDriveResourceId(final String googleDriveResourceId) {
     this.googleDriveResourceId = googleDriveResourceId;
+  }
+
+  public String getGoogleDriveResourceUrl() {
+    return googleDriveResourceUrl;
+  }
+
+  public void setGoogleDriveResourceUrl(final String googleDriveResourceUrl) {
+    this.googleDriveResourceUrl = googleDriveResourceUrl;
   }
 
   @Override
@@ -46,16 +51,23 @@ public class GoogleDriveResult {
       return false;
     }
     GoogleDriveResult that = (GoogleDriveResult) o;
-    return Objects.equals(googleDriveResourceId, that.googleDriveResourceId);
+    return Objects.equals(googleDriveResourceId, that.googleDriveResourceId)
+        && Objects.equals(googleDriveResourceUrl, that.googleDriveResourceUrl);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(googleDriveResourceId);
+    return Objects.hash(googleDriveResourceId, googleDriveResourceUrl);
   }
 
   @Override
   public String toString() {
-    return "GoogleDriveResult{" + "googleDriveResourceId='" + googleDriveResourceId + "'}";
+    return "GoogleDriveResult{"
+        + "googleDriveResourceId='"
+        + googleDriveResourceId
+        + "'"
+        + ", googleDriveResourceUrl='"
+        + googleDriveResourceUrl
+        + "'}";
   }
 }

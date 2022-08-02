@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 
 public class GoogleDriveService {
   private static final Logger LOGGER = LoggerFactory.getLogger(GoogleDriveService.class);
+  protected static final String FOLDER_URL_TEMPLATE = "https://drive.google.com/drive/folders/%s";
 
   private final GoogleDriveClient client;
 
@@ -46,6 +47,13 @@ public class GoogleDriveService {
         "Resource was created on google drive with id [{}] and name [{}]",
         folder.getId(),
         request.getFolder().getName());
-    return new GoogleDriveResult(folder.getId());
+    GoogleDriveResult result = new GoogleDriveResult();
+    result.setGoogleDriveResourceId(folder.getId());
+    result.setGoogleDriveResourceUrl(getFolderUrlById(folder.getId()));
+    return result;
+  }
+
+  public String getFolderUrlById(String folderId) {
+    return String.format(FOLDER_URL_TEMPLATE, folderId);
   }
 }
