@@ -61,7 +61,7 @@ public class HttpJsonFunctionTest {
   private static final String FAIL_CASES_RESOURCE_PATH =
       "src/test/resources/requests/fail-test-cases.json";
 
-  private Gson gson = GsonComponentSupplier.gsonInstance();
+  private final Gson gson = GsonComponentSupplier.gsonInstance();
   @Mock private GsonFactory gsonFactory;
   @Mock private HttpRequestFactory requestFactory;
   @Mock private HttpRequest httpRequest;
@@ -110,17 +110,13 @@ public class HttpJsonFunctionTest {
 
     // when
     Throwable exceptionThrown =
-        Assertions.assertThrows(
-            RuntimeException.class,
-            () -> {
-              functionUnderTest.execute(ctx);
-            });
+        Assertions.assertThrows(RuntimeException.class, () -> functionUnderTest.execute(ctx));
 
     // then
     assertThat(exceptionThrown).isInstanceOf(RuntimeException.class);
   }
 
-  private static Stream loadTestCasesFromResourceFile(final String fileWithTestCasesUri)
+  private static Stream<Arguments> loadTestCasesFromResourceFile(final String fileWithTestCasesUri)
       throws IOException {
     final String cases = readString(new File(fileWithTestCasesUri).toPath(), UTF_8);
     final Gson testingGson = new Gson();
@@ -128,11 +124,11 @@ public class HttpJsonFunctionTest {
     return array.stream().map(x -> testingGson.toJson(x)).map(Arguments::of);
   }
 
-  private static Stream successCases() throws IOException {
+  private static Stream<Arguments> successCases() throws IOException {
     return loadTestCasesFromResourceFile(SUCCESS_CASES_RESOURCE_PATH);
   }
 
-  private static Stream failCases() throws IOException {
+  private static Stream<Arguments> failCases() throws IOException {
     return loadTestCasesFromResourceFile(FAIL_CASES_RESOURCE_PATH);
   }
 }
