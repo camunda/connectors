@@ -14,38 +14,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.gdrive.model;
 
+package io.camunda.connector.gdrive.model.request;
+
+import io.camunda.connector.api.ConnectorInput;
 import io.camunda.connector.api.SecretStore;
 import io.camunda.connector.api.Validator;
 import java.util.Objects;
 
-public class GoogleDriveRequest {
+public class GoogleDriveRequest implements ConnectorInput {
 
   private Authentication authentication;
   private FolderCreateParams folder;
 
+  @Override
   public void validateWith(final Validator validator) {
-    // TODO: Make proper validation
     validator.require(authentication, "Authentication");
-    if (authentication != null) {
-      authentication.validateWith(validator);
-    }
+    validateIfNotNull(authentication, validator);
     validator.require(folder, "Folder creation params");
-    if (folder != null) {
-      folder.validateWith(validator);
-    }
+    validateIfNotNull(folder, validator);
   }
 
+  @Override
   public void replaceSecrets(final SecretStore secretStore) {
-    authentication.replaceSecrets(secretStore);
+    replaceSecretsIfNotNull(authentication, secretStore);
   }
 
   public Authentication getAuthentication() {
     return authentication;
   }
 
-  public void setAuthentication(Authentication authentication) {
+  public void setAuthentication(final Authentication authentication) {
     this.authentication = authentication;
   }
 
@@ -53,12 +52,12 @@ public class GoogleDriveRequest {
     return folder;
   }
 
-  public void setFolder(FolderCreateParams folder) {
+  public void setFolder(final FolderCreateParams folder) {
     this.folder = folder;
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
@@ -76,6 +75,6 @@ public class GoogleDriveRequest {
 
   @Override
   public String toString() {
-    return "GoogleDriveRequest{" + "authentication=" + authentication + ", folder=" + folder + '}';
+    return "GoogleDriveRequest{" + "authentication=" + authentication + ", folder=" + folder + "}";
   }
 }

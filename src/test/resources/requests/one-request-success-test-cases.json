@@ -1,0 +1,13 @@
+[
+  {
+    "authentication": {
+      "token": "MyRealToken",
+      "applicationName": "MyApplicationName"
+    },
+    "folder": {
+      "name": "MyNewFolder",
+      "parent": "optional my idFolderParent",
+      "additionalProperties": "{\\\"description\\\":\\\" description\\\"}"
+    }
+  }
+]

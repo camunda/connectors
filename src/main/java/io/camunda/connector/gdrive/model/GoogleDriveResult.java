@@ -14,21 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.camunda.connector.gdrive.model;
 
 import java.util.Objects;
 
 public class GoogleDriveResult {
 
-  // TODO: define connector result properties, which are returned to the process engine
-  private String myProperty;
+  private String googleDriveResourceId;
 
-  public String getMyProperty() {
-    return myProperty;
+  public GoogleDriveResult() {}
+
+  public GoogleDriveResult(final String resourceId) {
+    this.googleDriveResourceId = resourceId;
   }
 
-  public void setMyProperty(String myProperty) {
-    this.myProperty = myProperty;
+  public String getGoogleDriveResourceId() {
+    return googleDriveResourceId;
+  }
+
+  public void setGoogleDriveResourceId(final String googleDriveResourceId) {
+    this.googleDriveResourceId = googleDriveResourceId;
   }
 
   @Override
@@ -39,17 +45,17 @@ public class GoogleDriveResult {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final GoogleDriveResult that = (GoogleDriveResult) o;
-    return Objects.equals(myProperty, that.myProperty);
+    GoogleDriveResult that = (GoogleDriveResult) o;
+    return Objects.equals(googleDriveResourceId, that.googleDriveResourceId);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(myProperty);
+    return Objects.hash(googleDriveResourceId);
   }
 
   @Override
   public String toString() {
-    return "GoogleDriveResult{" + "myProperty='" + myProperty + '\'' + '}';
+    return "GoogleDriveResult{" + "googleDriveResourceId='" + googleDriveResourceId + "'}";
   }
 }

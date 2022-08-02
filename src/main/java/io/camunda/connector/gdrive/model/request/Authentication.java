@@ -14,75 +14,70 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.gdrive.model;
 
+package io.camunda.connector.gdrive.model.request;
+
+import io.camunda.connector.api.ConnectorInput;
+import io.camunda.connector.api.SecretStore;
 import io.camunda.connector.api.Validator;
 import java.util.Objects;
 
-public class FolderCreateParams {
-  private String name;
-  private String parent;
-  private String additionalProperties;
+public class Authentication implements ConnectorInput {
+  private String token;
+  private String applicationName;
 
+  @Override
   public void validateWith(final Validator validator) {
-    // TODO implement
-  }
-
-  public String getName() {
-    return name;
-  }
-
-  public void setName(String name) {
-    this.name = name;
-  }
-
-  public String getParent() {
-    return parent;
-  }
-
-  public void setParent(String parent) {
-    this.parent = parent;
-  }
-
-  public String getAdditionalProperties() {
-    return additionalProperties;
-  }
-
-  public void setAdditionalProperties(String additionalProperties) {
-    this.additionalProperties = additionalProperties;
+    validator.require(token, "Token");
   }
 
   @Override
-  public boolean equals(Object o) {
+  public void replaceSecrets(final SecretStore secretStore) {
+    this.token = secretStore.replaceSecret(token);
+  }
+
+  public String getToken() {
+    return token;
+  }
+
+  public void setToken(final String token) {
+    this.token = token;
+  }
+
+  public String getApplicationName() {
+    return applicationName;
+  }
+
+  public void setApplicationName(final String applicationName) {
+    this.applicationName = applicationName;
+  }
+
+  @Override
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    FolderCreateParams that = (FolderCreateParams) o;
-    return name.equals(that.name)
-        && Objects.equals(parent, that.parent)
-        && Objects.equals(additionalProperties, that.additionalProperties);
+    Authentication that = (Authentication) o;
+    return Objects.equals(token, that.token)
+        && Objects.equals(applicationName, that.applicationName);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, parent, additionalProperties);
+    return Objects.hash(token, applicationName);
   }
 
   @Override
   public String toString() {
-    return "FolderCreateParams{"
-        + "name='"
-        + name
-        + '\''
-        + ", parent='"
-        + parent
-        + '\''
-        + ", additionalProperties='"
-        + additionalProperties
-        + '\''
-        + '}';
+    return "Authentication{"
+        + "token='"
+        + token
+        + "'"
+        + ", applicationName='"
+        + applicationName
+        + "'}";
   }
 }

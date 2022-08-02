@@ -1,0 +1,32 @@
+[
+  {
+    "authentication": {
+      "token": "secrets.MyToken"
+    },
+    "folder": {
+      "parent": "optional my idFolderParent",
+      "additionalProperties": "{\\\"description\\\":\\\" description\\\"}"
+    }
+  },
+  {
+    "authentication": {
+    },
+    "folder": {
+      "name": "MyNewFolder",
+      "parent": "optional my idFolderParent",
+      "additionalProperties": "{\\\"description\\\":\\\" description\\\"}"
+    }
+  },
+  {
+    "folder": {
+      "name": "MyNewFolder",
+      "parent": "optional my idFolderParent",
+      "additionalProperties": "{\\\"description\\\":\\\" description\\\"}"
+    }
+  },
+  {
+    "authentication": {
+      "token": "secrets.MyToken"
+    }
+  }
+]

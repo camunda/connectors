@@ -30,7 +30,7 @@ mvn clean package
 ```json
 {
   "result": {
-    "myProperty": "....."
+    "googleDriveResourceId": "....."
   }
 }
 ```

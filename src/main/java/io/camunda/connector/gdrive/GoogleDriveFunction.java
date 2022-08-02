@@ -14,42 +14,46 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.camunda.connector.gdrive;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import io.camunda.connector.api.ConnectorContext;
 import io.camunda.connector.api.ConnectorFunction;
-import io.camunda.connector.api.Validator;
-import io.camunda.connector.gdrive.model.GoogleDriveRequest;
 import io.camunda.connector.gdrive.model.GoogleDriveResult;
+import io.camunda.connector.gdrive.model.request.GoogleDriveRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class GoogleDriveFunction implements ConnectorFunction {
   private static final Logger LOGGER = LoggerFactory.getLogger(GoogleDriveFunction.class);
 
-  private static final Gson GSON = new GsonBuilder().create();
+  private final Gson gson;
+  private final GoogleDriveService service;
+
+  public GoogleDriveFunction() {
+    this(new GoogleDriveService(), GsonComponentSupplier.getGson());
+  }
+
+  public GoogleDriveFunction(final GoogleDriveService service, final Gson gson) {
+    this.service = service;
+    this.gson = gson;
+  }
 
   @Override
-  public Object execute(ConnectorContext context) throws Exception {
+  public Object execute(final ConnectorContext context) {
     var requestAsJson = context.getVariables();
-    final var connectorRequest = GSON.fromJson(requestAsJson, GoogleDriveRequest.class);
+    final var request = gson.fromJson(requestAsJson, GoogleDriveRequest.class);
 
-    var validator = new Validator();
-    connectorRequest.validateWith(validator);
-    validator.evaluate();
+    context.validate(request);
+    context.replaceSecrets(request);
 
-    connectorRequest.replaceSecrets(context.getSecretStore());
-
-    return executeConnector(connectorRequest);
+    LOGGER.debug("Request verified successfully and all required secrets replaced");
+    return executeConnector(request);
   }
 
   private GoogleDriveResult executeConnector(final GoogleDriveRequest connectorRequest) {
-    // TODO: implement connector logic
-    LOGGER.info("Executing my connector with request {}", connectorRequest);
-    var result = new GoogleDriveResult();
-    result.setMyProperty("NOT_IMPLEMENTED_YET");
-    return result;
+    LOGGER.debug("Executing my connector with request {}", connectorRequest);
+    return service.execute(connectorRequest);
   }
 }

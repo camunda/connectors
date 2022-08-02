@@ -18,11 +18,11 @@
 package io.camunda.connector.gdrive;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 
-import io.camunda.connector.api.ConnectorContext;
+import com.google.api.services.drive.model.File;
 import io.camunda.connector.gdrive.model.GoogleDriveResult;
 import io.camunda.connector.gdrive.model.request.GoogleDriveRequest;
-import io.camunda.connector.test.ConnectorContextBuilder;
 import java.io.IOException;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
@@ -30,36 +30,32 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mockito;
 
-class GoogleDriveFunctionTest extends BaseTest {
+class GoogleDriveServiceTest extends BaseTest {
 
   private static final String SUCCESS_CASES_RESOURCE_PATH =
-      "src/test/resources/requests/request-success-test-cases.json";
+      "src/test/resources/requests/one-request-success-test-cases.json";
 
-  @DisplayName("Should execute connector and return success result")
+  @DisplayName("Should init google client, and execute request ")
   @ParameterizedTest(name = "Executing test case # {index}")
   @MethodSource("successRequestCases")
-  public void execute_shouldExecuteAndReturnResultWhenGiveContext(String input) {
+  public void execute_shouldCreateGoogleClientAndExecuteRequestAndReturnFolderId(String input) {
     // Given
-    GoogleDriveService googleDriveServiceMock = Mockito.mock(GoogleDriveService.class);
-    GoogleDriveFunction service =
-        new GoogleDriveFunction(googleDriveServiceMock, GsonComponentSupplier.getGson());
-
-    ConnectorContext context =
-        ConnectorContextBuilder.create()
-            .variables(input)
-            .secret(SECRET_TOKEN, ACTUAL_TOKEN)
-            .build();
-
+    GoogleDriveClient googleDriveClient = Mockito.mock(GoogleDriveClient.class);
+    GoogleDriveService service = new GoogleDriveService(googleDriveClient);
     GoogleDriveRequest request = GSON.fromJson(input, GoogleDriveRequest.class);
-    context.replaceSecrets(request);
-
-    Mockito.when(googleDriveServiceMock.execute(request))
-        .thenReturn(new GoogleDriveResult(FILE_ID));
+    File file = new File();
+    file.setId(FILE_ID);
+    Mockito.when(googleDriveClient.createFolder(any())).thenReturn(file);
+    Mockito.when(googleDriveClient.createMetaData(any())).thenReturn(file);
     // When
-    Object execute = service.execute(context);
+    GoogleDriveResult execute = service.execute(request);
     // Then
-    assertThat(execute).isInstanceOf(GoogleDriveResult.class);
-    assertThat(((GoogleDriveResult) execute).getGoogleDriveResourceId()).isEqualTo(FILE_ID);
+    Mockito.verify(googleDriveClient).init(request.getAuthentication());
+    Mockito.verify(googleDriveClient).createMetaData(request.getFolder());
+    Mockito.verify(googleDriveClient).createFolder(any(File.class));
+    Mockito.verify(googleDriveClient, Mockito.times(1)).shutdown();
+
+    assertThat(execute.getGoogleDriveResourceId()).isEqualTo(FILE_ID);
   }
 
   private static Stream<String> successRequestCases() throws IOException {
