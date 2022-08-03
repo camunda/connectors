@@ -37,10 +37,6 @@ import org.slf4j.LoggerFactory;
 public class GoogleDriveClient {
   private static final Logger LOGGER = LoggerFactory.getLogger(GoogleDriveClient.class);
 
-  private static final String NAME = "name";
-  private static final String ID = "id";
-  private static final String PARENTS = "parents";
-
   private static final String ERROR_CREATING = "An error occurred while creating the %s";
   private static final String FOLDER_MIME_TYPE = "application/vnd.google-apps.folder";
 
@@ -100,13 +96,7 @@ public class GoogleDriveClient {
 
   public File createFolder(final File fileMetadata) {
     try {
-      return driveService
-          .files()
-          .create(fileMetadata)
-          .setFields(NAME)
-          .setFields(PARENTS)
-          .setFields(ID)
-          .execute();
+      return driveService.files().create(fileMetadata).execute();
     } catch (IOException e) {
       throw new RuntimeException(String.format(ERROR_CREATING, "file"), e);
     }

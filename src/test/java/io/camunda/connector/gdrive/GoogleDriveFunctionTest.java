@@ -53,8 +53,10 @@ class GoogleDriveFunctionTest extends BaseTest {
     GoogleDriveRequest request = GSON.fromJson(input, GoogleDriveRequest.class);
     context.replaceSecrets(request);
 
-    Mockito.when(googleDriveServiceMock.execute(request))
-        .thenReturn(new GoogleDriveResult(FILE_ID));
+    GoogleDriveResult googleDriveResult = new GoogleDriveResult();
+    googleDriveResult.setGoogleDriveResourceId(FILE_ID);
+
+    Mockito.when(googleDriveServiceMock.execute(request)).thenReturn(googleDriveResult);
     // When
     Object execute = service.execute(context);
     // Then
