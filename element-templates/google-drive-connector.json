@@ -1,9 +1,9 @@
 [
   {
     "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-    "name": "Google Drive: Create Folder",
-    "id": "io.camunda.connectors.GoogleDriveCreateFolder.v1",
-    "description": "Google Drive: Create Folder",
+    "name": "Google Drive",
+    "id": "io.camunda.connectors.GoogleDrive.v1",
+    "description": "A Google Drive Connector - Create a folder or a file from template.",
     "category": {
       "id": "connectors",
       "name": "Connectors"
@@ -11,17 +11,14 @@
     "appliesTo": [
       "bpmn:ServiceTask"
     ],
-    "icon": {
-      "contents": "data:image/svg+xml,%3Csvg width='94' height='94' viewBox='0 0 94 94' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='94' height='94' fill='white'/%3E%3Cpath d='M10.7219 73.2906L14.4917 79.8021C15.275 81.1729 16.401 82.25 17.7229 83.0333L31.1865 59.7292H4.25937C4.25937 61.2469 4.65104 62.7646 5.43437 64.1354L10.7219 73.2906Z' fill='%230066DA'/%3E%3Cpath d='M47 32.3125L33.5365 9.00833C32.2146 9.79166 31.0885 10.8687 30.3052 12.2396L5.43437 55.3229C4.65104 56.6938 4.25937 58.2115 4.25937 59.7292H31.1865L47 32.3125Z' fill='%2300AC47'/%3E%3Cpath d='M47 32.3125L60.4635 9.00833C59.1416 8.22499 57.6239 7.83333 56.0573 7.83333H37.9427C36.376 7.83333 34.8583 8.27395 33.5364 9.00833L47 32.3125Z' fill='%2300832D'/%3E%3Cpath d='M62.8135 59.7292H31.1864L17.7229 83.0333C19.0448 83.8167 20.5625 84.2083 22.1292 84.2083H71.8708C73.4375 84.2083 74.9552 83.7677 76.2771 83.0333L62.8135 59.7292Z' fill='%232684FC'/%3E%3Cpath d='M76.2771 83.0333C77.599 82.25 78.725 81.1729 79.5083 79.8021L81.075 77.1094L88.5656 64.1354C89.3489 62.7646 89.7406 61.2469 89.7406 59.7292H62.8625L76.2771 83.0333Z' fill='%23EA4335'/%3E%3Cpath d='M76.1302 33.7813L63.6948 12.2396C62.9115 10.8687 61.7854 9.79166 60.4635 9.00833L47 32.3125L62.8135 59.7292H89.6917C89.6917 58.2115 89.3 56.6938 88.5167 55.3229L76.1302 33.7813Z' fill='%23FFBA00'/%3E%3C/svg%3E"
-    },
     "groups": [
       {
         "id": "authentication",
         "label": "Authentication"
       },
       {
-        "id": "compose",
-        "label": "Compose"
+        "id": "create",
+        "label": "Create"
       },
       {
         "id": "output",
@@ -38,53 +35,113 @@
       },
       {
         "label": "Google Drive Bearer Token",
-        "description": "Provide a Google API Bearer token that is authorized to manipulate desired Drive. Please, use secrets.* to ensure security.",
+        "description": "Provide a Google API Bearer token that is authorized to interact with desired Drive. Please use secrets.* to ensure security.",
         "group": "authentication",
         "type": "String",
         "binding": {
           "type": "zeebe:input",
-          "name": "authentication.token"
+          "name": "token"
         },
         "constraints": {
           "notEmpty": true
         }
       },
       {
-        "label": "Folder name",
-        "group": "compose",
+        "id": "resourceType",
+        "label": "Resource Type",
+        "group": "create",
+        "description": "Specify resource type you wish to create.",
+        "type": "Dropdown",
+        "value": "folder",
+        "choices": [
+          {
+            "name": "Folder",
+            "value": "folder"
+          },
+          {
+            "name": "File from template",
+            "value": "file"
+          }
+        ],
+        "binding": {
+          "type": "zeebe:taskHeader",
+          "name": "resource.type",
+          "key": "resource.type"
+        }
+      },
+      {
+        "label": "Resource name",
+        "description": "Specify a desired name for your folder or file",
+        "group": "create",
         "type": "String",
         "feel": "optional",
         "binding": {
           "type": "zeebe:input",
-          "name": "folder.name"
+          "name": "resource.name"
+        },
+        "constraints": {
+          "notEmpty": true,
+          "maxLength": 255
+        }
+      },
+      {
+        "label": "Template ID",
+        "description": "Specify a Google Docs template ID.",
+        "group": "create",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "resource.template.id"
         },
         "constraints": {
           "notEmpty": true
+        },
+        "condition": {
+          "property": "resourceType",
+          "equals": "file"
         }
       },
       {
         "label": "Parent folder ID",
-        "group": "compose",
+        "description": "Specify a desired name for your folder or file.",
+        "group": "create",
         "type": "String",
         "feel": "optional",
         "binding": {
           "type": "zeebe:input",
-          "name": "folder.parent"
+          "name": "resource.parent"
         }
       },
       {
-        "label": "Additional properties",
-        "description": "Use this field to pass additional Google Drive parameters as json. Please refer to the Google Drive API reference.",
-        "group": "compose",
+        "label": "Template variables",
+        "description": "Use this field to pass required template variables.",
+        "group": "create",
         "type": "Text",
+        "feel": "optional",
         "binding": {
           "type": "zeebe:input",
-          "name": "folder.additionalProperties"
+          "name": "resource.template.variables"
+        },
+        "condition": {
+          "property": "resourceType",
+          "equals": "file"
+        }
+      },
+      {
+        "label": "Additional Google Drive API properties",
+        "description": "Use this field to pass additional Google Drive parameters as JSON.",
+        "group": "create",
+        "type": "Text",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "resource.additionalGoogleDriveProperties"
         }
       },
       {
         "label": "Result Variable",
-        "description": "Name of variable to store the response in",
+        "description": "Name of variable to store the response in.",
         "group": "output",
         "type": "String",
         "binding": {
@@ -103,6 +160,9 @@
           "key": "resultExpression"
         }
       }
-    ]
+    ],
+    "icon": {
+      "contents": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAtCAYAAADsvzj/AAACQElEQVRoQ93Yv04CMRzA8Z5odHJQmQ2js4k+AU/gK6iLcXLUmJjo6sTiQ/gEkLCbqCMDg4vvYEKIZ4+joZb2+vvXgxwjXs9+/LblJFNSr8ejnHSru1FGGucM4t/ktVsCRt+k+eSno9m4rKtYc2ENVgYhAOFi5CAEjKlhUnKq0CF2DTMT5PJyIZwqshBEFR+ifoivBrJKCELF4ItUIYCYKgR1v6SBVCwxCIJSBQeB1IhUgUKwmHQQTxUMIh0EUyNQBQvBYOBFKBCrCgUhD6EiBCBQTLwIBzFfYvlun/RAaQ+KPb6kh5z1Z78j7yvaY/5cw4MI1FBCkNgSqy7ChcwRZomkrBKGcBHF7IUhVVXSQRxE6ip+CL/GRNfY9h1Venn96Pd3OMeYb+MvQ/iIpSXlTpq7V3xLTB4SWFLSGLfKf0gNNaT2iltFFgKsIYWxqywgNdaQgthVSsjL8ZY62JtwThL3MwN6L+7GN1VKCL9GT0OuoZO3r8sH6kE/hd1TxpoxBSYTQESP29gkuVVmS4wNQW7wEIqLaRDkckz+P6Fz2ImtGtTP3wYnqOvtizPVGEjBImCka5i/LqVKe/ihT63idTGe6m3fgnZNhaBh8t/28LO1+GRHVFknSFGjPH7tFwCTGoGpYhANhkQ2fl01IFXsGstFGgUJYOquUVXFreEvUrx7Pr5SG6pnbrYqhA+zobLn/eH7jftREf46yDrB1gniqxEuYrgas2qEXSWEiEP0FZ2nKfmhEvqkALnu63az8uvdP0zeCSITJ93uAAAAAElFTkSuQmCC"
+    }
   }
 ]
