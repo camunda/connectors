@@ -28,12 +28,18 @@ import java.util.ServiceLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/** Job worker handler wrapper for a connector function */
 public class ConnectorJobHandler implements JobHandler {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ConnectorJobHandler.class);
 
   private final ConnectorFunction call;
 
+  /**
+   * Create a handler wrapper for the specified connector function.
+   *
+   * @param call - the connector function to call
+   */
   public ConnectorJobHandler(ConnectorFunction call) {
     this.call = call;
   }
@@ -70,7 +76,7 @@ public class ConnectorJobHandler implements JobHandler {
     };
   }
 
-  class JobHandlerContext implements ConnectorContext {
+  protected class JobHandlerContext implements ConnectorContext {
 
     private final ActivatedJob job;
     private SecretStore secretStore;

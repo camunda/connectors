@@ -20,16 +20,34 @@ import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * Store for environment secrets. It provides a general routine for resolving secrets in String
+ * values and how to handle missing secrets when a secret is required in those Strings. Secrets are
+ * fetched from the provided {@link SecretProvider}.
+ */
 public class SecretStore {
 
   private static final Pattern SECRET_PATTERN = Pattern.compile("^secrets\\.(\\S+)$");
 
   protected SecretProvider secretProvider;
 
+  /**
+   * Create a store with a specific {@link SecretProvider}.
+   *
+   * @param secretProvider - providing secret values for secret names
+   */
   public SecretStore(SecretProvider secretProvider) {
     this.secretProvider = secretProvider;
   }
 
+  /**
+   * Replaces secrets in String values that adhere to the internally defined secrets pattern.
+   *
+   * @param value - the String to replace secrets in
+   * @return the value with replaced secrets
+   * @throws IllegalArgumentException if secrets are defined in the value but are not present in the
+   *     store
+   */
   public String replaceSecret(String value) {
     final Optional<String> secretName =
         Optional.ofNullable(value)

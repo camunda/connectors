@@ -16,7 +16,25 @@
  */
 package io.camunda.connector.api;
 
+/**
+ * Central function interface of a connector. This will be called from the environment-specific
+ * runtime.
+ */
 public interface ConnectorFunction {
 
+  /**
+   * Executes the connector's central logic. The connector will receive a context object that allows
+   * to fetch objects provided by the environment transparently.
+   *
+   * <p>The connector can return any serializable object that will be passed to the
+   * environment-specifc runtime.
+   *
+   * <p>Checked exceptions can be handled by the connector if desired. The environment-specifc
+   * runtime will also take care of catching all checked exceptions from the connector function.
+   *
+   * @param context - allows to fetch information injected by the environment runtime
+   * @return the result of the connector function, can be <code>null</code>
+   * @throws Exception the connector function can potentially throw any checked exceptions
+   */
   Object execute(ConnectorContext context) throws Exception;
 }

@@ -20,11 +20,38 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
-class ConnectorConfig {
+/** Configuration class holding information of a connector. */
+public class ConnectorConfig {
 
+  /** Pattern describing the property TYPE of a connector. */
   public static final Pattern ZEEBE_CONNECTOR_PATTERN =
       Pattern.compile("^ZEEBE_CONNECTOR_([^_]+)_TYPE$");
 
+  private String name;
+  private String type;
+  private final String[] variables;
+  private String function;
+
+  /**
+   * Create a connector configuration.
+   *
+   * @param name the name of connector
+   * @param type the type of the connector
+   * @param variables the variables the connector needs as input
+   * @param className the connector function class
+   */
+  public ConnectorConfig(String name, String type, String[] variables, String className) {
+    this.name = name;
+    this.type = type;
+    this.variables = variables;
+    this.function = className;
+  }
+
+  /**
+   * Parses the connector definitions provided externally, e.g. via environment variables.
+   *
+   * @return the list of connector configurations
+   */
   public static List<ConnectorConfig> parse() {
 
     var connectors = new ArrayList<ConnectorConfig>();
@@ -52,34 +79,34 @@ class ConnectorConfig {
     return new ConnectorConfig(name, type, variables, function);
   }
 
-  static String getEnv(String name, String detail) {
+  private static String getEnv(String name, String detail) {
     return System.getenv("ZEEBE_CONNECTOR_" + name + "_" + detail);
   }
 
-  private String name;
-  private String type;
-  private final String[] variables;
-  private String function;
-
-  public ConnectorConfig(String name, String type, String[] variables, String className) {
-    this.name = name;
-    this.type = type;
-    this.variables = variables;
-    this.function = className;
-  }
-
+  /**
+   * @return the name of connector
+   */
   public String getName() {
     return name;
   }
 
+  /**
+   * @return the type of the connector
+   */
   public String getType() {
     return type;
   }
 
+  /**
+   * @return the connector function class
+   */
   public String getFunction() {
     return function;
   }
 
+  /**
+   * @return the variables the connector needs as input
+   */
   public String[] getVariables() {
     return variables;
   }

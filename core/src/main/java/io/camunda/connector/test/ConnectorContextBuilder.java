@@ -23,6 +23,7 @@ import io.camunda.connector.api.SecretStore;
 import java.util.HashMap;
 import java.util.Map;
 
+/** Test helper class for creating a {@link ConnectorContext} with a fluent API. */
 public class ConnectorContextBuilder {
 
   protected Map<String, String> secrets = new HashMap<>();
@@ -32,6 +33,9 @@ public class ConnectorContextBuilder {
 
   private Object variablesAsObject;
 
+  /**
+   * @return a new instance of the {@link ConnectorContextBuilder}
+   */
   public static ConnectorContextBuilder create() {
     return new ConnectorContextBuilder();
   }
@@ -50,7 +54,8 @@ public class ConnectorContextBuilder {
   /**
    * Provides the variables as a JSON string.
    *
-   * @param variablesAsJSON
+   * @param variablesAsJSON - the variables as JSON
+   * @return builder for fluent API
    */
   public ConnectorContextBuilder variables(String variablesAsJSON) {
     this.assertNoVariables();
@@ -60,9 +65,10 @@ public class ConnectorContextBuilder {
   }
 
   /**
-   * Provides the variables as an object
+   * Provides the variables as an object.
    *
-   * @param variablesAsObject
+   * @param variablesAsObject - the variables as a mapped object
+   * @return builder for fluent API
    */
   public ConnectorContextBuilder variables(Object variablesAsObject) {
     this.assertNoVariables();
@@ -71,16 +77,32 @@ public class ConnectorContextBuilder {
     return this;
   }
 
+  /**
+   * Provides the secret's value for the given name.
+   *
+   * @param name - the secret's name, e.g. MY_SECRET when referred to as "secrets.MY_SECRET"
+   * @param value - the secret's value
+   * @return builder for fluent API
+   */
   public ConnectorContextBuilder secret(String name, String value) {
     secrets.put(name, value);
     return this;
   }
 
+  /**
+   * Provides the secret values via the defined {@link SecretProvider}.
+   *
+   * @param secretProvider - provider for secret values, given a secret name
+   * @return builder for fluent API
+   */
   public ConnectorContextBuilder secrets(SecretProvider secretProvider) {
     this.secretProvider = secretProvider;
     return this;
   }
 
+  /**
+   * @return the {@link ConnectorContext} including all previously defined properties
+   */
   public ConnectorContext build() {
     return new ConnectorContext() {
 
