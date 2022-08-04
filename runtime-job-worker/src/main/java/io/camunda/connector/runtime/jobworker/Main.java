@@ -29,6 +29,11 @@ public class Main {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
 
+  /**
+   * Start a Zeebe client with handlers for all defined connector functions
+   *
+   * @param args no arguments are evaluated for this class
+   */
   public static void main(String[] args) {
 
     final String defaultAddress = "localhost:26500";
@@ -82,6 +87,7 @@ public class Main {
       Runtime.getRuntime()
           .addShutdownHook(
               new Thread() {
+                @Override
                 public void run() {
                   LOGGER.info("Shutting down workers...");
                   workers.forEach(
