@@ -51,6 +51,16 @@ java -cp 'connector-runtime-job-worker.jar;cloud-connector-slack.jar' \
     io.camunda.connector.runtime.jobworker.Main
 ```
 
+## Local secrets
+
+To inject secrets during connector function execution, export them as environment variables
+
+```bash
+export MY_SECRET='foo'
+```
+
+Reference the secret in the request payload prefixed with `secrets.MY_SECRET`.
+
 ## Build
 
 ```bash
