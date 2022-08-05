@@ -17,8 +17,12 @@
         "label": "Authentication"
       },
       {
-        "id": "create",
-        "label": "Create"
+        "id": "operation",
+        "label": "Select Operation"
+      },
+      {
+        "id": "operationDetails",
+        "label": "Operation Details"
       },
       {
         "id": "output",
@@ -35,7 +39,7 @@
       },
       {
         "label": "Google Drive Bearer Token",
-        "description": "Provide a Google API Bearer token that is authorized to interact with desired Drive. Please use secrets.* to ensure security.",
+        "description": "Provide a Google API Bearer token that is authorized to interact with desired Drive",
         "group": "authentication",
         "type": "String",
         "binding": {
@@ -48,18 +52,17 @@
       },
       {
         "id": "resourceType",
-        "label": "Resource Type",
-        "group": "create",
-        "description": "Specify resource type you wish to create.",
+        "label": "Operation Type",
+        "group": "operation",
         "type": "Dropdown",
         "value": "folder",
         "choices": [
           {
-            "name": "Folder",
+            "name": "Create Folder",
             "value": "folder"
           },
           {
-            "name": "File from template",
+            "name": "Create File from template",
             "value": "file"
           }
         ],
@@ -70,9 +73,9 @@
         }
       },
       {
-        "label": "Resource name",
-        "description": "Specify a desired name for your folder or file",
-        "group": "create",
+        "label": "File name",
+        "description": "Enter name for your file",
+        "group": "operationDetails",
         "type": "String",
         "feel": "optional",
         "binding": {
@@ -82,12 +85,35 @@
         "constraints": {
           "notEmpty": true,
           "maxLength": 255
+        },
+        "condition": {
+          "property": "resourceType",
+          "equals": "file"
+        }
+      },
+      {
+        "label": "Folder name",
+        "description": "Enter name for your folder",
+        "group": "operationDetails",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "resource.name"
+        },
+        "constraints": {
+          "notEmpty": true,
+          "maxLength": 255
+        },
+        "condition": {
+          "property": "resourceType",
+          "equals": "folder"
         }
       },
       {
         "label": "Template ID",
-        "description": "Specify a Google Docs template ID.",
-        "group": "create",
+        "description": "Enter ID of the template you are creating a file from",
+        "group": "operationDetails",
         "type": "String",
         "feel": "optional",
         "binding": {
@@ -104,19 +130,38 @@
       },
       {
         "label": "Parent folder ID",
-        "description": "Specify a desired name for your folder or file.",
-        "group": "create",
+        "description": "Enter ID of the parent folder where new folder will be created",
+        "group": "operationDetails",
         "type": "String",
         "feel": "optional",
         "binding": {
           "type": "zeebe:input",
           "name": "resource.parent"
+        },
+        "condition": {
+          "property": "resourceType",
+          "equals": "folder"
+        }
+      },
+      {
+        "label": "Parent folder ID",
+        "description": "Enter ID of the parent folder where new file will be created",
+        "group": "operationDetails",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "resource.parent"
+        },
+        "condition": {
+          "property": "resourceType",
+          "equals": "file"
         }
       },
       {
         "label": "Template variables",
-        "description": "Use this field to pass required template variables.",
-        "group": "create",
+        "description": "Use this field to pass and update variables in your template as JSON",
+        "group": "operationDetails",
         "type": "Text",
         "feel": "optional",
         "binding": {
@@ -129,9 +174,9 @@
         }
       },
       {
-        "label": "Additional Google Drive API properties",
+        "label": "Additional properties or metadata",
         "description": "Use this field to pass additional Google Drive parameters as JSON.",
-        "group": "create",
+        "group": "operationDetails",
         "type": "Text",
         "feel": "optional",
         "binding": {
@@ -141,7 +186,7 @@
       },
       {
         "label": "Result Variable",
-        "description": "Name of variable to store the response in.",
+        "description": "Enter name of variable to store the response in",
         "group": "output",
         "type": "String",
         "binding": {
