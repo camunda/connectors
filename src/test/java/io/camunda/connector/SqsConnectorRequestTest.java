@@ -18,6 +18,7 @@ package io.camunda.connector;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.camunda.connector.api.ConnectorContext;
 import io.camunda.connector.api.Validator;
@@ -62,7 +63,7 @@ class SqsConnectorRequestTest extends BaseTest {
             () -> validator.evaluate(),
             "IllegalArgumentException was expected");
     // Then we except exception with message
-    assertEquals("Property 'message body' is missing", thrown.getMessage());
+    assertTrue(thrown.getMessage().contains("Property required:"));
   }
 
   @Test
