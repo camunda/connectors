@@ -1,22 +1,37 @@
 [
   {
-    "authentication": {
-      "token": "secrets.MyToken"
-    },
-    "folder": {
-      "name": "MyNewFolder",
+    "token": "MyRealToken",
+    "resource": {
+      "type": "file",
+      "name": "MyNewFile",
       "parent": "optional my idFolderParent",
-      "additionalProperties": "{\\\"description\\\":\\\" description\\\"}"
+      "additionalGoogleDriveProperties": "{\\\"description\\\":\\\" description\\\"}",
+      "template": {
+        "id": "myTemplateId",
+        "variables": "[{\\\"replaceAllText\\\":{\\\"containsText\\\":{\\\"matchCase\\\":true,\\\"text\\\":\\\"replaceFrom\\\"},\\\"replaceText\\\":\\\"replaceTo\\\"}}]"
+      }
     }
   },
   {
-    "authentication": {
-      "token": "MyRealToken"
-    },
-    "folder": {
+    "token": "secrets.MyToken",
+    "resource": {
+      "type": "file",
+      "name": "MyNewFile",
+      "parent": "optional my idFolderParent",
+      "additionalGoogleDriveProperties": "{\\\"description\\\":\\\" description\\\"}",
+      "template": {
+        "id": "myTemplateId",
+        "variables": "[{\\\"replaceAllText\\\":{\\\"containsText\\\":{\\\"matchCase\\\":true,\\\"text\\\":\\\"replaceFrom\\\"},\\\"replaceText\\\":\\\"replaceTo\\\"}}]"
+      }
+    }
+  },
+  {
+    "token": "MyRealToken",
+    "resource": {
+      "type": "folder",
       "name": "MyNewFolder",
       "parent": "optional my idFolderParent",
-      "additionalProperties": "{\\\"description\\\":\\\" description\\\"}"
+      "additionalGoogleDriveProperties": "{\\\"description\\\":\\\" description\\\"}"
     }
   }
 ]

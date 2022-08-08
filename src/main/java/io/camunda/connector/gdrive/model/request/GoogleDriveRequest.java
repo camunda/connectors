@@ -24,36 +24,35 @@ import java.util.Objects;
 
 public class GoogleDriveRequest implements ConnectorInput {
 
-  private Authentication authentication;
-  private FolderCreateParams folder;
+  private String token;
+  private Resource resource;
 
   @Override
   public void validateWith(final Validator validator) {
-    validator.require(authentication, "Authentication");
-    validateIfNotNull(authentication, validator);
-    validator.require(folder, "Folder creation params");
-    validateIfNotNull(folder, validator);
+    validator.require(token, "Token");
+    validateIfNotNull(resource, validator);
   }
 
   @Override
   public void replaceSecrets(final SecretStore secretStore) {
-    replaceSecretsIfNotNull(authentication, secretStore);
+    token = secretStore.replaceSecret(token);
+    replaceSecretsIfNotNull(resource, secretStore);
   }
 
-  public Authentication getAuthentication() {
-    return authentication;
+  public String getToken() {
+    return token;
   }
 
-  public void setAuthentication(final Authentication authentication) {
-    this.authentication = authentication;
+  public void setToken(final String token) {
+    this.token = token;
   }
 
-  public FolderCreateParams getFolder() {
-    return folder;
+  public Resource getResource() {
+    return resource;
   }
 
-  public void setFolder(final FolderCreateParams folder) {
-    this.folder = folder;
+  public void setResource(final Resource resource) {
+    this.resource = resource;
   }
 
   @Override
@@ -64,17 +63,17 @@ public class GoogleDriveRequest implements ConnectorInput {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    GoogleDriveRequest that = (GoogleDriveRequest) o;
-    return authentication.equals(that.authentication) && folder.equals(that.folder);
+    final GoogleDriveRequest request = (GoogleDriveRequest) o;
+    return Objects.equals(token, request.token) && Objects.equals(resource, request.resource);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(authentication, folder);
+    return Objects.hash(token, resource);
   }
 
   @Override
   public String toString() {
-    return "GoogleDriveRequest{" + "authentication=" + authentication + ", folder=" + folder + "}";
+    return "GoogleDriveRequest{" + "token='[REDACTED]'" + ", resource=" + resource + "}";
   }
 }

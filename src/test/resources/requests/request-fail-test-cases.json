@@ -1,32 +1,20 @@
 [
   {
-    "authentication": {
-      "token": "secrets.MyToken"
-    },
-    "folder": {
+    "token": "MyRealToken",
+    "resource": {
+      "type": "",
+      "name": "MyNewFile",
       "parent": "optional my idFolderParent",
-      "additionalProperties": "{\\\"description\\\":\\\" description\\\"}"
+      "additionalGoogleDriveProperties": "{\\\"description\\\":\\\" description\\\"}"
     }
   },
   {
-    "authentication": {
-    },
-    "folder": {
-      "name": "MyNewFolder",
+    "token": "MyRealToken",
+    "resource": {
+      "type": "folder",
+      "name": "",
       "parent": "optional my idFolderParent",
-      "additionalProperties": "{\\\"description\\\":\\\" description\\\"}"
-    }
-  },
-  {
-    "folder": {
-      "name": "MyNewFolder",
-      "parent": "optional my idFolderParent",
-      "additionalProperties": "{\\\"description\\\":\\\" description\\\"}"
-    }
-  },
-  {
-    "authentication": {
-      "token": "secrets.MyToken"
+      "additionalGoogleDriveProperties": "{\\\"description\\\":\\\" description\\\"}"
     }
   }
 ]

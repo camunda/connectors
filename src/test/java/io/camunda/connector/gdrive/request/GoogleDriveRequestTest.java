@@ -22,7 +22,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.camunda.connector.api.ConnectorContext;
 import io.camunda.connector.gdrive.BaseTest;
-import io.camunda.connector.gdrive.model.request.Authentication;
 import io.camunda.connector.gdrive.model.request.GoogleDriveRequest;
 import io.camunda.connector.test.ConnectorContextBuilder;
 import java.io.IOException;
@@ -47,9 +46,8 @@ class GoogleDriveRequestTest extends BaseTest {
         ConnectorContextBuilder.create().secret(SECRET_TOKEN, ACTUAL_TOKEN).build();
     // When
     context.replaceSecrets(request);
-    Authentication authentication = request.getAuthentication();
     // Then
-    assertThat(authentication.getToken()).isNotNull().isEqualTo(ACTUAL_TOKEN);
+    assertThat(request.getToken()).isNotNull().isEqualTo(ACTUAL_TOKEN);
   }
 
   @DisplayName("Throw IllegalArgumentException when request without require fields")
@@ -64,7 +62,7 @@ class GoogleDriveRequestTest extends BaseTest {
     IllegalArgumentException thrown =
         assertThrows(IllegalArgumentException.class, () -> context.validate(request));
     // Then
-    assertThat(thrown).hasMessageContaining("Property required");
+    assertThat(thrown).isInstanceOf(IllegalArgumentException.class);
   }
 
   private static Stream<String> successRequestCases() throws IOException {

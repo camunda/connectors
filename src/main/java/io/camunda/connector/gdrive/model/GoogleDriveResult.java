@@ -26,6 +26,12 @@ public class GoogleDriveResult {
 
   public GoogleDriveResult() {}
 
+  public GoogleDriveResult(
+      final String googleDriveResourceId, final String googleDriveResourceUrl) {
+    this.googleDriveResourceId = googleDriveResourceId;
+    this.googleDriveResourceUrl = googleDriveResourceUrl;
+  }
+
   public String getGoogleDriveResourceId() {
     return googleDriveResourceId;
   }
@@ -50,9 +56,9 @@ public class GoogleDriveResult {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    GoogleDriveResult that = (GoogleDriveResult) o;
-    return Objects.equals(googleDriveResourceId, that.googleDriveResourceId)
-        && Objects.equals(googleDriveResourceUrl, that.googleDriveResourceUrl);
+    final GoogleDriveResult result = (GoogleDriveResult) o;
+    return Objects.equals(googleDriveResourceId, result.googleDriveResourceId)
+        && Objects.equals(googleDriveResourceUrl, result.googleDriveResourceUrl);
   }
 
   @Override
@@ -68,6 +74,7 @@ public class GoogleDriveResult {
         + "'"
         + ", googleDriveResourceUrl='"
         + googleDriveResourceUrl
-        + "'}";
+        + "'"
+        + "}";
   }
 }

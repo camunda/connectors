@@ -15,28 +15,13 @@
  * limitations under the License.
  */
 
-package io.camunda.connector.gdrive;
+package io.camunda.connector.gdrive.model.request;
 
-import com.google.api.services.drive.Drive;
-import com.google.api.services.drive.model.File;
-import java.io.IOException;
+import com.google.gson.annotations.SerializedName;
 
-public class GoogleDriveClient {
-
-  private static final String ERROR_CREATING = "An error occurred while creating the %s %s";
-
-  private final Drive driveService;
-
-  public GoogleDriveClient(final Drive driveService) {
-    this.driveService = driveService;
-  }
-
-  public File createWithMetadata(final File fileMetadata) {
-    try {
-      return driveService.files().create(fileMetadata).execute();
-    } catch (IOException e) {
-      throw new RuntimeException(
-          String.format(ERROR_CREATING, "resource with name", fileMetadata.getName()), e);
-    }
-  }
+public enum Type {
+  @SerializedName("folder")
+  FOLDER,
+  @SerializedName("file")
+  FILE
 }

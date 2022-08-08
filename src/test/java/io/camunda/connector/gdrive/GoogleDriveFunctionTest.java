@@ -18,10 +18,13 @@
 package io.camunda.connector.gdrive;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 
 import io.camunda.connector.api.ConnectorContext;
 import io.camunda.connector.gdrive.model.GoogleDriveResult;
 import io.camunda.connector.gdrive.model.request.GoogleDriveRequest;
+import io.camunda.connector.gdrive.model.request.Resource;
+import io.camunda.connector.gdrive.supliers.GJsonComponentSupplier;
 import io.camunda.connector.test.ConnectorContextBuilder;
 import java.io.IOException;
 import java.util.stream.Stream;
@@ -42,7 +45,10 @@ class GoogleDriveFunctionTest extends BaseTest {
     // Given
     GoogleDriveService googleDriveServiceMock = Mockito.mock(GoogleDriveService.class);
     GoogleDriveFunction service =
-        new GoogleDriveFunction(googleDriveServiceMock, GsonComponentSupplier.getGson());
+        new GoogleDriveFunction(
+            googleDriveServiceMock,
+            GJsonComponentSupplier.getGson(),
+            GJsonComponentSupplier.getJsonFactory());
 
     ConnectorContext context =
         ConnectorContextBuilder.create()
@@ -55,13 +61,16 @@ class GoogleDriveFunctionTest extends BaseTest {
 
     GoogleDriveResult googleDriveResult = new GoogleDriveResult();
     googleDriveResult.setGoogleDriveResourceId(FILE_ID);
+    googleDriveResult.setGoogleDriveResourceUrl(FILE_URL);
 
-    Mockito.when(googleDriveServiceMock.execute(request)).thenReturn(googleDriveResult);
+    Mockito.when(googleDriveServiceMock.execute(any(GoogleDriveClient.class), any(Resource.class)))
+        .thenReturn(googleDriveResult);
     // When
     Object execute = service.execute(context);
     // Then
     assertThat(execute).isInstanceOf(GoogleDriveResult.class);
     assertThat(((GoogleDriveResult) execute).getGoogleDriveResourceId()).isEqualTo(FILE_ID);
+    assertThat(((GoogleDriveResult) execute).getGoogleDriveResourceUrl()).isEqualTo(FILE_URL);
   }
 
   private static Stream<String> successRequestCases() throws IOException {

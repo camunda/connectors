@@ -17,43 +17,55 @@
 
 package io.camunda.connector.gdrive;
 
+import com.google.api.client.json.JsonFactory;
 import com.google.gson.Gson;
 import io.camunda.connector.api.ConnectorContext;
 import io.camunda.connector.api.ConnectorFunction;
 import io.camunda.connector.gdrive.model.GoogleDriveResult;
 import io.camunda.connector.gdrive.model.request.GoogleDriveRequest;
+import io.camunda.connector.gdrive.supliers.GJsonComponentSupplier;
+import io.camunda.connector.gdrive.supliers.GoogleDriveSupplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class GoogleDriveFunction implements ConnectorFunction {
   private static final Logger LOGGER = LoggerFactory.getLogger(GoogleDriveFunction.class);
 
-  private final Gson gson;
   private final GoogleDriveService service;
+  private final Gson gson;
+  private final JsonFactory jsonFactory;
 
   public GoogleDriveFunction() {
-    this(new GoogleDriveService(), GsonComponentSupplier.getGson());
+    this(
+        new GoogleDriveService(GJsonComponentSupplier.getGson()),
+        GJsonComponentSupplier.getGson(),
+        GJsonComponentSupplier.getJsonFactory());
   }
 
-  public GoogleDriveFunction(final GoogleDriveService service, final Gson gson) {
+  public GoogleDriveFunction(
+      final GoogleDriveService service, final Gson gson, final JsonFactory jsonFactory) {
     this.service = service;
     this.gson = gson;
+    this.jsonFactory = jsonFactory;
   }
 
   @Override
   public Object execute(final ConnectorContext context) {
     var requestAsJson = context.getVariables();
     final var request = gson.fromJson(requestAsJson, GoogleDriveRequest.class);
-
     context.validate(request);
     context.replaceSecrets(request);
-
     LOGGER.debug("Request verified successfully and all required secrets replaced");
     return executeConnector(request);
   }
 
-  private GoogleDriveResult executeConnector(final GoogleDriveRequest connectorRequest) {
-    LOGGER.debug("Executing my connector with request {}", connectorRequest);
-    return service.execute(connectorRequest);
+  private GoogleDriveResult executeConnector(final GoogleDriveRequest request) {
+    LOGGER.debug("Executing my connector with request {}", request);
+    GoogleDriveClient drive = getDriveClient(request.getToken());
+    return service.execute(drive, request.getResource());
+  }
+
+  private GoogleDriveClient getDriveClient(final String token) {
+    return new GoogleDriveClient(GoogleDriveSupplier.createDriveClientInstance(token, jsonFactory));
   }
 }

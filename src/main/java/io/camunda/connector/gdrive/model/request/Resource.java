@@ -18,17 +18,35 @@
 package io.camunda.connector.gdrive.model.request;
 
 import io.camunda.connector.api.ConnectorInput;
+import io.camunda.connector.api.SecretStore;
 import io.camunda.connector.api.Validator;
 import java.util.Objects;
 
-public class FolderCreateParams implements ConnectorInput {
+public class Resource implements ConnectorInput {
+
+  private Type type;
   private String name;
   private String parent;
-  private String additionalProperties;
+  private String additionalGoogleDriveProperties;
 
   @Override
   public void validateWith(final Validator validator) {
-    validator.require(name, "Folder name");
+    validator.require(type, "Resource type");
+    validator.require(name, "Resource name");
+  }
+
+  @Override
+  public void replaceSecrets(final SecretStore secretStore) {
+    name = secretStore.replaceSecret(name);
+    parent = secretStore.replaceSecret(parent);
+  }
+
+  public Type getType() {
+    return type;
+  }
+
+  public void setType(final Type type) {
+    this.type = type;
   }
 
   public String getName() {
@@ -47,44 +65,49 @@ public class FolderCreateParams implements ConnectorInput {
     this.parent = parent;
   }
 
-  public String getAdditionalProperties() {
-    return additionalProperties;
+  public String getAdditionalGoogleDriveProperties() {
+    return additionalGoogleDriveProperties;
   }
 
-  public void setAdditionalProperties(final String additionalProperties) {
-    this.additionalProperties = additionalProperties;
+  public void setAdditionalGoogleDriveProperties(final String additionalGoogleDriveProperties) {
+    this.additionalGoogleDriveProperties = additionalGoogleDriveProperties;
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    FolderCreateParams that = (FolderCreateParams) o;
-    return name.equals(that.name)
-        && Objects.equals(parent, that.parent)
-        && Objects.equals(additionalProperties, that.additionalProperties);
+    final Resource resource = (Resource) o;
+    return type == resource.type
+        && Objects.equals(name, resource.name)
+        && Objects.equals(parent, resource.parent)
+        && Objects.equals(
+            additionalGoogleDriveProperties, resource.additionalGoogleDriveProperties);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, parent, additionalProperties);
+    return Objects.hash(type, name, parent, additionalGoogleDriveProperties);
   }
 
   @Override
   public String toString() {
-    return "FolderCreateParams{"
-        + "name='"
+    return "Resource{"
+        + "type="
+        + type
+        + ", name='"
         + name
         + "'"
         + ", parent='"
         + parent
         + "'"
-        + ", additionalProperties='"
-        + additionalProperties
-        + "'}";
+        + ", additionalGoogleDriveProperties='"
+        + additionalGoogleDriveProperties
+        + "'"
+        + "}";
   }
 }

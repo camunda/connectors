@@ -1,0 +1,11 @@
+[
+  {
+    "token": "secrets.MyToken",
+    "resource": {
+      "type": "folder",
+      "name": "MyNewFolder",
+      "parent": "optional my idFolderParent",
+      "additionalGoogleDriveProperties": "{\\\"description\\\":\\\" description\\\"}"
+    }
+  }
+]

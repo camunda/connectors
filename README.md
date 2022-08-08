@@ -10,17 +10,17 @@ mvn clean package
 
 ## API
 
+### Create folder
 ### Input
 
 ```json
-{
-  "authentication": {
-    "token": "secrets.GDRIVE_BEARER"
-  },
-  "folder": {
-    "name":"MyNewFolder",
-    "parent":"113K12_sTvC28VM04sB6XOLGmEOYxUYCs",
-    "additionalProperties":"{\\\"description\\\":\\\"This is my folder description\\\", \\\"folderColorRgb\\\": \\\"#abcdef\\\"}"
+  {
+  "token": "secrets.GDRIVE_BEARER",
+  "resource": {
+    "type": "folder",
+    "name": "MyNewFolder",
+    "parent": "secrets.PARENT_ID",
+    "additionalGoogleDriveProperties": "{\\\"description\\\":\\\" description\\\"}"
   }
 }
 ```

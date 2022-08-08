@@ -33,12 +33,10 @@ public abstract class BaseTest {
   protected static final String SECRET_TOKEN = "MyToken";
   protected static final String ACTUAL_TOKEN = "MyRealToken";
   protected static final String FOLDER_NAME = "MyNewFolder";
-  protected static final String FOLDER_PARENT_ID = "optional my idFolderParent";
+  protected static final String FILE_NAME = "MyNewFile";
   protected static final String PARENT_ID = "optional my idFolderParent";
-  protected static final String ADDITIONAL_PROPERTIES =
-      "{\\\"description\\\":\\\" description\\\"}";
   protected static final String FILE_ID = "123456789654321564897";
-  protected static final String APPLICATION_NAME = "MyApplicationName";
+  protected static final String FILE_URL = "https://docs.google.com/document/d/123456644";
 
   protected Gson GSON = new GsonBuilder().create();
 
