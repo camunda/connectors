@@ -14,44 +14,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package io.camunda.connector.gdrive;
+package io.camunda.connector.gdrive.supliers;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
 
 import com.google.api.services.drive.Drive;
-import com.google.api.services.drive.model.File;
-import java.io.IOException;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
-class GoogleDriveClientTest {
+class GoogleDriveSupplierTest {
 
-  private GoogleDriveClient client;
-  private Drive.Files files;
+  private static final String BASE_DRIVE_V3_URL = "https://www.googleapis.com/drive/v3/";
+  private static final String ROOT_DRIVE_V3_URL = "https://www.googleapis.com/";
+  private static final String SERVICE_PATH_DRIVE_V3_URL = "drive/v3/";
 
-  @BeforeEach
-  public void before() {
-    Drive drive = Mockito.mock(Drive.class);
-    client = new GoogleDriveClient(drive);
-    files = Mockito.mock(Drive.Files.class);
-    when(drive.files()).thenReturn(files);
-  }
-
-  @DisplayName("Should create google metaData file")
+  @DisplayName("Should create google drive client")
   @Test
-  public void createWithMetadata_shouldCreateFolderWithMetaData() throws IOException {
+  public void getDriveClient_shouldInitGoogleDriveClientVersion3() {
     // Given
-    Drive.Files.Create create = Mockito.mock(Drive.Files.Create.class);
-    when(files.create(any(File.class))).thenReturn(create);
-    when(create.execute()).thenReturn(new File());
+    String token = "Bearer_token";
     // When
-    File byMetaData = client.createWithMetadata(new File());
+    Drive drive =
+        GoogleDriveSupplier.createDriveClientInstance(
+            token, GJsonComponentSupplier.getJsonFactory());
     // Then
-    assertThat(byMetaData).isNotNull();
+    assertThat(drive.getBaseUrl()).isEqualTo(BASE_DRIVE_V3_URL);
+    assertThat(drive.getRootUrl()).isEqualTo(ROOT_DRIVE_V3_URL);
+    assertThat(drive.getServicePath()).isEqualTo(SERVICE_PATH_DRIVE_V3_URL);
   }
 }

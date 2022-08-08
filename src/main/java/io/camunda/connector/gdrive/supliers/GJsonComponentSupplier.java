@@ -15,19 +15,19 @@
  * limitations under the License.
  */
 
-package io.camunda.connector.gdrive;
+package io.camunda.connector.gdrive.supliers;
 
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-public final class GsonComponentSupplier {
+public final class GJsonComponentSupplier {
 
   private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
   private static final Gson GSON = new GsonBuilder().create();
 
-  private GsonComponentSupplier() {}
+  private GJsonComponentSupplier() {}
 
   public static JsonFactory getJsonFactory() {
     return JSON_FACTORY;
