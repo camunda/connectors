@@ -28,6 +28,7 @@ public class Resource implements ConnectorInput {
   private String name;
   private String parent;
   private String additionalGoogleDriveProperties;
+  private Template template;
 
   @Override
   public void validateWith(final Validator validator) {
@@ -39,6 +40,7 @@ public class Resource implements ConnectorInput {
   public void replaceSecrets(final SecretStore secretStore) {
     name = secretStore.replaceSecret(name);
     parent = secretStore.replaceSecret(parent);
+    replaceSecretsIfNotNull(template, secretStore);
   }
 
   public Type getType() {
@@ -73,6 +75,14 @@ public class Resource implements ConnectorInput {
     this.additionalGoogleDriveProperties = additionalGoogleDriveProperties;
   }
 
+  public Template getTemplate() {
+    return template;
+  }
+
+  public void setTemplate(final Template template) {
+    this.template = template;
+  }
+
   @Override
   public boolean equals(final Object o) {
     if (this == o) {
@@ -85,13 +95,13 @@ public class Resource implements ConnectorInput {
     return type == resource.type
         && Objects.equals(name, resource.name)
         && Objects.equals(parent, resource.parent)
-        && Objects.equals(
-            additionalGoogleDriveProperties, resource.additionalGoogleDriveProperties);
+        && Objects.equals(additionalGoogleDriveProperties, resource.additionalGoogleDriveProperties)
+        && Objects.equals(template, resource.template);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(type, name, parent, additionalGoogleDriveProperties);
+    return Objects.hash(type, name, parent, additionalGoogleDriveProperties, template);
   }
 
   @Override
@@ -108,6 +118,8 @@ public class Resource implements ConnectorInput {
         + ", additionalGoogleDriveProperties='"
         + additionalGoogleDriveProperties
         + "'"
+        + ", template="
+        + template
         + "}";
   }
 }

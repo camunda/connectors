@@ -25,6 +25,25 @@ mvn clean package
 }
 ```
 
+### Create file
+### Input
+
+```json
+  {
+  "token": "secrets.GDRIVE_BEARER",
+  "resource": {
+    "type": "folder",
+    "name": "MyNewFolder",
+    "parent": "secrets.PARENT_ID",
+    "additionalGoogleDriveProperties": "{\\\"description\\\":\\\" description\\\"}",
+    "template": {
+      "id": "myTemplateId",
+      "variables": "[{\\\"replaceAllText\\\":{\"containsText\\\":{\\\"matchCase\\\":true,\\\"text\\\":\\\"replaceFrom\\\"},\\\"replaceText\\\":\\\"replaceTo\\\"}}]"
+    }
+  }
+}
+```
+
 ### Output
 
 ```json

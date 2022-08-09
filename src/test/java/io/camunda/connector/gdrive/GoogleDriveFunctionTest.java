@@ -24,7 +24,7 @@ import io.camunda.connector.api.ConnectorContext;
 import io.camunda.connector.gdrive.model.GoogleDriveResult;
 import io.camunda.connector.gdrive.model.request.GoogleDriveRequest;
 import io.camunda.connector.gdrive.model.request.Resource;
-import io.camunda.connector.gdrive.supliers.GJsonComponentSupplier;
+import io.camunda.connector.gdrive.supliers.GsonComponentSupplier;
 import io.camunda.connector.test.ConnectorContextBuilder;
 import java.io.IOException;
 import java.util.stream.Stream;
@@ -47,8 +47,8 @@ class GoogleDriveFunctionTest extends BaseTest {
     GoogleDriveFunction service =
         new GoogleDriveFunction(
             googleDriveServiceMock,
-            GJsonComponentSupplier.getGson(),
-            GJsonComponentSupplier.getJsonFactory());
+            GsonComponentSupplier.getGson(),
+            GsonComponentSupplier.getJsonFactory());
 
     ConnectorContext context =
         ConnectorContextBuilder.create()

@@ -5,7 +5,11 @@
       "type": "",
       "name": "MyNewFile",
       "parent": "optional my idFolderParent",
-      "additionalGoogleDriveProperties": "{\\\"description\\\":\\\" description\\\"}"
+      "additionalGoogleDriveProperties": "{\\\"description\\\":\\\" description\\\"}",
+      "template": {
+        "id": "myTemplateId",
+        "variables": "[{\\\"replaceAllText\\\":{\\\"containsText\\\":{\\\"matchCase\\\":true,\\\"text\\\":\\\"replaceFrom\\\"},\\\"replaceText\\\":\\\"replaceTo\\\"}}]"
+      }
     }
   },
   {
@@ -14,7 +18,37 @@
       "type": "folder",
       "name": "",
       "parent": "optional my idFolderParent",
-      "additionalGoogleDriveProperties": "{\\\"description\\\":\\\" description\\\"}"
+      "additionalGoogleDriveProperties": "{\\\"description\\\":\\\" description\\\"}",
+      "template": {
+        "id": "myTemplateId",
+        "variables": "[{\\\"replaceAllText\\\":{\\\"containsText\\\":{\\\"matchCase\\\":true,\\\"text\\\":\\\"replaceFrom\\\"},\\\"replaceText\\\":\\\"replaceTo\\\"}}]"
+      }
+    }
+  },
+  {
+    "token": "MyRealToken",
+    "resource": {
+      "type": "file",
+      "name": "",
+      "parent": "optional my idFolderParent",
+      "additionalGoogleDriveProperties": "{\\\"description\\\":\\\" description\\\"}",
+      "template": {
+        "id": "myTemplateId",
+        "variables": "[{\\\"replaceAllText\\\":{\\\"containsText\\\":{\\\"matchCase\\\":true,\\\"text\\\":\\\"replaceFrom\\\"},\\\"replaceText\\\":\\\"replaceTo\\\"}}]"
+      }
+    }
+  },
+  {
+    "token": "",
+    "resource": {
+      "type": "file",
+      "name": "",
+      "parent": "optional my idFolderParent",
+      "additionalGoogleDriveProperties": "{\\\"description\\\":\\\" description\\\"}",
+      "template": {
+        "id": "myTemplateId",
+        "variables": "[{\\\"replaceAllText\\\":{\\\"containsText\\\":{\\\"matchCase\\\":true,\\\"text\\\":\\\"replaceFrom\\\"},\\\"replaceText\\\":\\\"replaceTo\\\"}}]"
+      }
     }
   }
 ]

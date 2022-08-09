@@ -23,8 +23,8 @@ import io.camunda.connector.api.ConnectorContext;
 import io.camunda.connector.api.ConnectorFunction;
 import io.camunda.connector.gdrive.model.GoogleDriveResult;
 import io.camunda.connector.gdrive.model.request.GoogleDriveRequest;
-import io.camunda.connector.gdrive.supliers.GJsonComponentSupplier;
-import io.camunda.connector.gdrive.supliers.GoogleDriveSupplier;
+import io.camunda.connector.gdrive.supliers.GoogleServicesSupplier;
+import io.camunda.connector.gdrive.supliers.GsonComponentSupplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,9 +37,9 @@ public class GoogleDriveFunction implements ConnectorFunction {
 
   public GoogleDriveFunction() {
     this(
-        new GoogleDriveService(GJsonComponentSupplier.getGson()),
-        GJsonComponentSupplier.getGson(),
-        GJsonComponentSupplier.getJsonFactory());
+        new GoogleDriveService(),
+        GsonComponentSupplier.getGson(),
+        GsonComponentSupplier.getJsonFactory());
   }
 
   public GoogleDriveFunction(
@@ -61,11 +61,10 @@ public class GoogleDriveFunction implements ConnectorFunction {
 
   private GoogleDriveResult executeConnector(final GoogleDriveRequest request) {
     LOGGER.debug("Executing my connector with request {}", request);
-    GoogleDriveClient drive = getDriveClient(request.getToken());
+    GoogleDriveClient drive =
+        new GoogleDriveClient(
+            GoogleServicesSupplier.createDriveClientInstance(request.getToken(), jsonFactory),
+            GoogleServicesSupplier.createDocsClientInstance(request.getToken(), jsonFactory));
     return service.execute(drive, request.getResource());
-  }
-
-  private GoogleDriveClient getDriveClient(final String token) {
-    return new GoogleDriveClient(GoogleDriveSupplier.createDriveClientInstance(token, jsonFactory));
   }
 }

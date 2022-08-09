@@ -1,0 +1,15 @@
+[
+  {
+    "token": "secrets.MyToken",
+    "resource": {
+      "type": "file",
+      "name": "MyNewFile",
+      "parent": "optional my idFolderParent",
+      "additionalGoogleDriveProperties": "{\\\"description\\\":\\\"description\\\"}",
+      "template": {
+        "id": "myTemplateId",
+        "variables": "[{\\\"replaceAllText\\\":{\\\",containsText\\\":{\\\"matchCase\\\":true,\\\"text\\\":\\\"replaceFrom\\\"},\\\"replaceText\\\":\\\"replaceTo\\\"}}]"
+      }
+    }
+  }
+]
