@@ -19,21 +19,14 @@ package io.camunda.connector.gdrive.supliers;
 
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.gson.GsonFactory;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 public final class GsonComponentSupplier {
 
   private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
-  private static final Gson GSON = new GsonBuilder().create();
 
   private GsonComponentSupplier() {}
 
   public static JsonFactory getJsonFactory() {
     return JSON_FACTORY;
-  }
-
-  public static Gson getGson() {
-    return GSON;
   }
 }

@@ -18,13 +18,14 @@
 package io.camunda.connector.gdrive;
 
 import com.google.api.client.json.JsonFactory;
-import com.google.gson.Gson;
+import com.google.api.client.json.JsonParser;
 import io.camunda.connector.api.ConnectorContext;
 import io.camunda.connector.api.ConnectorFunction;
 import io.camunda.connector.gdrive.model.GoogleDriveResult;
 import io.camunda.connector.gdrive.model.request.GoogleDriveRequest;
 import io.camunda.connector.gdrive.supliers.GoogleServicesSupplier;
 import io.camunda.connector.gdrive.supliers.GsonComponentSupplier;
+import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,31 +33,33 @@ public class GoogleDriveFunction implements ConnectorFunction {
   private static final Logger LOGGER = LoggerFactory.getLogger(GoogleDriveFunction.class);
 
   private final GoogleDriveService service;
-  private final Gson gson;
   private final JsonFactory jsonFactory;
 
   public GoogleDriveFunction() {
-    this(
-        new GoogleDriveService(),
-        GsonComponentSupplier.getGson(),
-        GsonComponentSupplier.getJsonFactory());
+    this(new GoogleDriveService(), GsonComponentSupplier.getJsonFactory());
   }
 
-  public GoogleDriveFunction(
-      final GoogleDriveService service, final Gson gson, final JsonFactory jsonFactory) {
+  public GoogleDriveFunction(final GoogleDriveService service, final JsonFactory jsonFactory) {
     this.service = service;
-    this.gson = gson;
     this.jsonFactory = jsonFactory;
   }
 
   @Override
   public Object execute(final ConnectorContext context) {
-    var requestAsJson = context.getVariables();
-    final var request = gson.fromJson(requestAsJson, GoogleDriveRequest.class);
+    final GoogleDriveRequest request = parseVariablesToRequest(context.getVariables());
     context.validate(request);
     context.replaceSecrets(request);
     LOGGER.debug("Request verified successfully and all required secrets replaced");
     return executeConnector(request);
+  }
+
+  private GoogleDriveRequest parseVariablesToRequest(final String requestAsJson) {
+    try {
+      JsonParser jsonParser = jsonFactory.createJsonParser(requestAsJson);
+      return jsonParser.parseAndClose(GoogleDriveRequest.class);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private GoogleDriveResult executeConnector(final GoogleDriveRequest request) {

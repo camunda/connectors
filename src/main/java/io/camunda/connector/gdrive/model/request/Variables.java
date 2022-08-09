@@ -14,45 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package io.camunda.connector.gdrive.model.request;
 
 import com.google.api.client.util.Key;
-import io.camunda.connector.api.ConnectorInput;
-import io.camunda.connector.api.SecretStore;
-import io.camunda.connector.api.Validator;
+import com.google.api.services.docs.v1.model.Request;
+import java.util.List;
 import java.util.Objects;
 
-public class GoogleDriveRequest implements ConnectorInput {
-  @Key private String token;
-  @Key private Resource resource;
+public class Variables {
+  @Key private List<Request> requests;
 
-  @Override
-  public void validateWith(final Validator validator) {
-    validator.require(token, "Token");
-    validateIfNotNull(resource, validator);
+  public List<Request> getRequests() {
+    return requests;
   }
 
-  @Override
-  public void replaceSecrets(final SecretStore secretStore) {
-    token = secretStore.replaceSecret(token);
-    replaceSecretsIfNotNull(resource, secretStore);
-  }
-
-  public String getToken() {
-    return token;
-  }
-
-  public void setToken(final String token) {
-    this.token = token;
-  }
-
-  public Resource getResource() {
-    return resource;
-  }
-
-  public void setResource(final Resource resource) {
-    this.resource = resource;
+  public void setRequests(final List<Request> requests) {
+    this.requests = requests;
   }
 
   @Override
@@ -63,17 +40,17 @@ public class GoogleDriveRequest implements ConnectorInput {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final GoogleDriveRequest request = (GoogleDriveRequest) o;
-    return Objects.equals(token, request.token) && Objects.equals(resource, request.resource);
+    final Variables variables = (Variables) o;
+    return Objects.equals(requests, variables.requests);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(token, resource);
+    return Objects.hash(requests);
   }
 
   @Override
   public String toString() {
-    return "GoogleDriveRequest{" + "token='[REDACTED]'" + ", resource=" + resource + "}";
+    return "Variables{" + "requests=" + requests + "}";
   }
 }

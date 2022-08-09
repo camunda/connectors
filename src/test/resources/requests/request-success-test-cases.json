@@ -5,10 +5,24 @@
       "type": "file",
       "name": "MyNewFile",
       "parent": "optional my idFolderParent",
-      "additionalGoogleDriveProperties": "{\\\"description\\\":\\\" description\\\"}",
+      "additionalGoogleDriveProperties": {
+        "description": " description"
+      },
       "template": {
         "id": "myTemplateId",
-        "variables": "[{\\\"replaceAllText\\\":{\\\"containsText\\\":{\\\"matchCase\\\":true,\\\"text\\\":\\\"replaceFrom\\\"},\\\"replaceText\\\":\\\"replaceTo\\\"}}]"
+        "variables": {
+          "requests": [
+            {
+              "replaceAllText": {
+                "containsText": {
+                  "text": "replaceFrom",
+                  "matchCase": "true"
+                },
+                "replaceText": "replaceTo"
+              }
+            }
+          ]
+        }
       }
     }
   },
@@ -18,10 +32,24 @@
       "type": "file",
       "name": "MyNewFile",
       "parent": "optional my idFolderParent",
-      "additionalGoogleDriveProperties": "{\\\"description\\\":\\\" description\\\"}",
+      "additionalGoogleDriveProperties": {
+        "description": " description"
+      },
       "template": {
         "id": "myTemplateId",
-        "variables": "[{\\\"replaceAllText\\\":{\\\"containsText\\\":{\\\"matchCase\\\":true,\\\"text\\\":\\\"replaceFrom\\\"},\\\"replaceText\\\":\\\"replaceTo\\\"}}]"
+        "variables": {
+          "requests": [
+            {
+              "replaceAllText": {
+                "containsText": {
+                  "text": "replaceFrom",
+                  "matchCase": "true"
+                },
+                "replaceText": "replaceTo"
+              }
+            }
+          ]
+        }
       }
     }
   },
@@ -31,7 +59,9 @@
       "type": "folder",
       "name": "MyNewFolder",
       "parent": "optional my idFolderParent",
-      "additionalGoogleDriveProperties": "{\\\"description\\\":\\\" description\\\"}"
+      "additionalGoogleDriveProperties": {
+        "description": " description"
+      }
     }
   }
 ]
