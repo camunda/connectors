@@ -14,26 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package io.camunda.connector.gdrive.supliers;
 
-import com.google.api.client.json.JsonFactory;
-import com.google.api.client.json.gson.GsonFactory;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import static org.assertj.core.api.Assertions.assertThat;
 
-public final class GJsonComponentSupplier {
+import io.camunda.connector.gdrive.model.MimeTypeUrl;
+import java.util.Map;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
-  private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
-  private static final Gson GSON = new GsonBuilder().create();
+class MimeTypeUrlTest {
 
-  private GJsonComponentSupplier() {}
-
-  public static JsonFactory getJsonFactory() {
-    return JSON_FACTORY;
-  }
-
-  public static Gson getGson() {
-    return GSON;
+  @DisplayName("Should return resource url")
+  @Test
+  public void getResourceUrl_shouldReturnResourceUrl() {
+    // Given
+    Map<String, String> values = MimeTypeUrl.getValues();
+    String ID = "123456";
+    values.forEach(
+        (type, url) -> {
+          // When
+          String resourceUrl = MimeTypeUrl.getResourceUrl(type, ID);
+          // Then
+          assertThat(resourceUrl).isEqualTo(String.format(url, ID));
+        });
   }
 }

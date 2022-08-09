@@ -20,6 +20,7 @@ package io.camunda.connector.gdrive.supliers;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.JsonFactory;
+import com.google.api.services.docs.v1.Docs;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.DriveScopes;
 import com.google.auth.http.HttpCredentialsAdapter;
@@ -30,10 +31,10 @@ import java.security.GeneralSecurityException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class GoogleDriveSupplier {
-  private static final Logger LOGGER = LoggerFactory.getLogger(GoogleDriveSupplier.class);
+public final class GoogleServicesSupplier {
+  private static final Logger LOGGER = LoggerFactory.getLogger(GoogleServicesSupplier.class);
 
-  private GoogleDriveSupplier() {}
+  private GoogleServicesSupplier() {}
 
   public static Drive createDriveClientInstance(final String token, final JsonFactory jsonFactory) {
     Drive drive =
@@ -41,6 +42,14 @@ public final class GoogleDriveSupplier {
             .build();
     LOGGER.debug("Google drive service was successfully initialized");
     return drive;
+  }
+
+  public static Docs createDocsClientInstance(final String token, final JsonFactory jsonFactory) {
+    Docs docs =
+        new Docs.Builder(getNetHttpTransport(), jsonFactory, getHttpHttpCredentialsAdapter(token))
+            .build();
+    LOGGER.debug("Google docs service was successfully initialized");
+    return docs;
   }
 
   private static HttpCredentialsAdapter getHttpHttpCredentialsAdapter(final String token) {
