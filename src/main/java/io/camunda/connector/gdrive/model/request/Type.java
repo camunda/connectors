@@ -17,11 +17,11 @@
 
 package io.camunda.connector.gdrive.model.request;
 
-import com.google.gson.annotations.SerializedName;
+import com.google.api.client.util.Value;
 
 public enum Type {
-  @SerializedName("folder")
+  @Value("folder")
   FOLDER,
-  @SerializedName("file")
+  @Value("file")
   FILE
 }

@@ -5,7 +5,7 @@
       "type": "folder",
       "name": "MyNewFolder",
       "parent": "optional my idFolderParent",
-      "additionalGoogleDriveProperties": "{\\\"description\\\":\\\" description\\\"}"
+      "additionalGoogleDriveProperties": {"description":" description"}
     }
   }
 ]

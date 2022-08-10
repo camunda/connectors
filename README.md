@@ -11,6 +11,7 @@ mvn clean package
 ## API
 
 ### Create folder
+
 ### Input
 
 ```json
@@ -20,12 +21,15 @@ mvn clean package
     "type": "folder",
     "name": "MyNewFolder",
     "parent": "secrets.PARENT_ID",
-    "additionalGoogleDriveProperties": "{\\\"description\\\":\\\" description\\\"}"
+    "additionalGoogleDriveProperties": {
+      "description": " description"
+    }
   }
 }
 ```
 
 ### Create file
+
 ### Input
 
 ```json
@@ -35,10 +39,24 @@ mvn clean package
     "type": "folder",
     "name": "MyNewFolder",
     "parent": "secrets.PARENT_ID",
-    "additionalGoogleDriveProperties": "{\\\"description\\\":\\\" description\\\"}",
+    "additionalGoogleDriveProperties": {
+      "description": " description"
+    },
     "template": {
       "id": "myTemplateId",
-      "variables": "[{\\\"replaceAllText\\\":{\"containsText\\\":{\\\"matchCase\\\":true,\\\"text\\\":\\\"replaceFrom\\\"},\\\"replaceText\\\":\\\"replaceTo\\\"}}]"
+      "variables": {
+        "requests": [
+          {
+            "replaceAllText": {
+              "containsText": {
+                "text": "replaceFrom",
+                "matchCase": "true"
+              },
+              "replaceText": "replaceTo"
+            }
+          }
+        ]
+      }
     }
   }
 }
@@ -73,15 +91,18 @@ mvn function:run -Pcloud-function
 
 The function will be available at http://localhost:9082.
 
-Have a look at the [Camunda Cloud Connector Run-Time](https://github.com/camunda/connector-runtime-cloud) to see how your Connector function is wrapped as a Google Cloud Function.
+Have a look at the [Camunda Cloud Connector Run-Time](https://github.com/camunda/connector-runtime-cloud) to see how
+your Connector function is wrapped as a Google Cloud Function.
 
 ### Test as local Job Worker
 
-Use the [Camunda Job Worker Connector Run-Time](https://github.com/camunda/connector-framework/tree/main/runtime-job-worker) to run your function as a local Job Worker.
+Use the [Camunda Job Worker Connector Run-Time](https://github.com/camunda/connector-framework/tree/main/runtime-job-worker)
+to run your function as a local Job Worker.
 
 ## Element Template
 
-The element templates can be found in the [element-templates/template-connector.json](element-templates/google-drive-connector.json) file.
+The element templates can be found in
+the [element-templates/template-connector.json](element-templates/google-drive-connector.json) file.
 
 ## Build a release
 

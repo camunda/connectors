@@ -17,14 +17,15 @@
 
 package io.camunda.connector.gdrive.model.request;
 
+import com.google.api.client.util.Key;
 import io.camunda.connector.api.ConnectorInput;
 import io.camunda.connector.api.SecretStore;
 import io.camunda.connector.api.Validator;
 import java.util.Objects;
 
 public class Template implements ConnectorInput {
-  private String id;
-  private String variables;
+  @Key private String id;
+  @Key private Variables variables;
 
   @Override
   public void validateWith(final Validator validator) {
@@ -44,11 +45,11 @@ public class Template implements ConnectorInput {
     this.id = id;
   }
 
-  public String getVariables() {
+  public Variables getVariables() {
     return variables;
   }
 
-  public void setVariables(final String variables) {
+  public void setVariables(final Variables variables) {
     this.variables = variables;
   }
 
@@ -71,6 +72,6 @@ public class Template implements ConnectorInput {
 
   @Override
   public String toString() {
-    return "Template{" + "id='" + id + "'" + ", variables='" + variables + "'" + "}";
+    return "Template{" + "id='" + id + "'" + ", variables=" + variables + "}";
   }
 }

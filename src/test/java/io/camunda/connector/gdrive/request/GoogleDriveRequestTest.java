@@ -41,7 +41,7 @@ class GoogleDriveRequestTest extends BaseTest {
   @MethodSource("successRequestCases")
   public void replaceSecrets_shouldReplaceAllSecrets(final String input) {
     // Given
-    GoogleDriveRequest request = GSON.fromJson(input, GoogleDriveRequest.class);
+    GoogleDriveRequest request = parseInput(input, GoogleDriveRequest.class);
     ConnectorContext context =
         ConnectorContextBuilder.create().secret(SECRET_TOKEN, ACTUAL_TOKEN).build();
     // When
@@ -56,7 +56,7 @@ class GoogleDriveRequestTest extends BaseTest {
   public void validateWith_shouldThrowExceptionWhenNonExistLeastOneRequireField(
       final String input) {
     // Given
-    GoogleDriveRequest request = GSON.fromJson(input, GoogleDriveRequest.class);
+    GoogleDriveRequest request = parseInput(input, GoogleDriveRequest.class);
     ConnectorContext context = ConnectorContextBuilder.create().build();
     // When
     IllegalArgumentException thrown =

@@ -67,7 +67,7 @@ class GoogleDriveServiceTest extends BaseTest {
   @MethodSource("successFolderRequestCases")
   public void execute_shouldCreateFolderFromRequest(String input) {
     // Given
-    GoogleDriveRequest request = GSON.fromJson(input, GoogleDriveRequest.class);
+    GoogleDriveRequest request = parseInput(input, GoogleDriveRequest.class);
     ArgumentCaptor<File> captor = ArgumentCaptor.forClass(File.class);
     // When
     GoogleDriveResult execute = service.execute(googleDriveClient, request.getResource());
@@ -88,7 +88,7 @@ class GoogleDriveServiceTest extends BaseTest {
   @MethodSource("successFileRequestCases")
   public void execute_shouldCreateFileFromRequest(String input) {
     // Given
-    GoogleDriveRequest request = GSON.fromJson(input, GoogleDriveRequest.class);
+    GoogleDriveRequest request = parseInput(input, GoogleDriveRequest.class);
     String templateId = request.getResource().getTemplate().getId();
     Mockito.when(googleDriveClient.createWithTemplate(any(), eq(templateId))).thenReturn(file);
     ArgumentCaptor<File> captor = ArgumentCaptor.forClass(File.class);
@@ -108,7 +108,7 @@ class GoogleDriveServiceTest extends BaseTest {
   @MethodSource("successFileRequestCases")
   public void execute_shouldCreateFileWithoutTemplate(String input) {
     // Given
-    GoogleDriveRequest request = GSON.fromJson(input, GoogleDriveRequest.class);
+    GoogleDriveRequest request = parseInput(input, GoogleDriveRequest.class);
     String templateId = request.getResource().getTemplate().getId();
     Mockito.when(googleDriveClient.createWithTemplate(any(), eq(templateId))).thenReturn(file);
     ArgumentCaptor<File> captor = ArgumentCaptor.forClass(File.class);
@@ -131,7 +131,8 @@ class GoogleDriveServiceTest extends BaseTest {
   @MethodSource("successFileRequestCases")
   public void execute_shouldCreateFileAndUpdateDocument(String input) {
     // Given
-    GoogleDriveRequest request = GSON.fromJson(input, GoogleDriveRequest.class);
+    GoogleDriveRequest request = parseInput(input, GoogleDriveRequest.class);
+
     file.setMimeType(MimeTypeUrl.DOCUMENT.getMimeType());
     String templateId = request.getResource().getTemplate().getId();
     BatchUpdateDocumentResponse response = new BatchUpdateDocumentResponse();
@@ -154,7 +155,7 @@ class GoogleDriveServiceTest extends BaseTest {
   @MethodSource("successFileRequestCases")
   public void execute_shouldDoNotUpdateDocumentIfTypeNotDocument(String input) {
     // Given
-    GoogleDriveRequest request = GSON.fromJson(input, GoogleDriveRequest.class);
+    GoogleDriveRequest request = parseInput(input, GoogleDriveRequest.class);
     file.setMimeType(MimeTypeUrl.PRESENTATION.getMimeType());
     String templateId = request.getResource().getTemplate().getId();
     BatchUpdateDocumentResponse response = new BatchUpdateDocumentResponse();

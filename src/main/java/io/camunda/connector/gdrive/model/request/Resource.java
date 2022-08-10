@@ -17,18 +17,19 @@
 
 package io.camunda.connector.gdrive.model.request;
 
+import com.google.api.client.util.Key;
+import com.google.api.services.drive.model.File;
 import io.camunda.connector.api.ConnectorInput;
 import io.camunda.connector.api.SecretStore;
 import io.camunda.connector.api.Validator;
 import java.util.Objects;
 
 public class Resource implements ConnectorInput {
-
-  private Type type;
-  private String name;
-  private String parent;
-  private String additionalGoogleDriveProperties;
-  private Template template;
+  @Key private Type type;
+  @Key private String name;
+  @Key private String parent;
+  @Key private File additionalGoogleDriveProperties;
+  @Key private Template template;
 
   @Override
   public void validateWith(final Validator validator) {
@@ -67,11 +68,11 @@ public class Resource implements ConnectorInput {
     this.parent = parent;
   }
 
-  public String getAdditionalGoogleDriveProperties() {
+  public File getAdditionalGoogleDriveProperties() {
     return additionalGoogleDriveProperties;
   }
 
-  public void setAdditionalGoogleDriveProperties(final String additionalGoogleDriveProperties) {
+  public void setAdditionalGoogleDriveProperties(final File additionalGoogleDriveProperties) {
     this.additionalGoogleDriveProperties = additionalGoogleDriveProperties;
   }
 
@@ -115,9 +116,8 @@ public class Resource implements ConnectorInput {
         + ", parent='"
         + parent
         + "'"
-        + ", additionalGoogleDriveProperties='"
+        + ", additionalGoogleDriveProperties="
         + additionalGoogleDriveProperties
-        + "'"
         + ", template="
         + template
         + "}";

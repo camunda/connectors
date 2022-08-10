@@ -20,8 +20,9 @@ package io.camunda.connector.gdrive;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.readString;
 
+import com.google.api.client.json.JsonParser;
+import com.google.api.client.json.gson.GsonFactory;
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -38,8 +39,6 @@ public abstract class BaseTest {
   protected static final String FILE_ID = "123456789654321564897";
   protected static final String FILE_URL = "https://docs.google.com/document/d/123456644";
 
-  protected Gson GSON = new GsonBuilder().create();
-
   @SuppressWarnings("unchecked")
   protected static Stream<String> loadTestCasesFromResourceFile(final String fileWithTestCasesUri)
       throws IOException {
@@ -47,5 +46,14 @@ public abstract class BaseTest {
     final Gson testingGson = new Gson();
     var array = testingGson.fromJson(cases, ArrayList.class);
     return array.stream().map(testingGson::toJson).map(Arguments::of);
+  }
+
+  protected static <T> T parseInput(final String input, final Class<T> clazz) {
+    JsonParser jsonParser = GsonFactory.getDefaultInstance().createJsonParser(input);
+    try {
+      return jsonParser.parseAndClose(clazz);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 }
