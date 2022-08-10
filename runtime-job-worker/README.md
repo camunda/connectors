@@ -4,6 +4,16 @@ A simple run-time to execute [connector functions](../core) as job workers.
 
 ## Wrapping a Connector Function
 
+Include the job worker run-time as maven dependency
+
+```xml
+<dependency>
+  <groupId>io.camunda.connector</groupId>
+  <artifactId>connector-runtime-job-worker</artifactId>
+  <version>0.1.0</version>
+</dependency>
+```
+
 You can create a job worker by wrapping a [connector function](../core) like this:
 
 ```java
