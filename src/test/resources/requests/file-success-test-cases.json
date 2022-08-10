@@ -2,23 +2,23 @@
   {
     "token": "secrets.MyToken",
     "resource": {
-      "type": "file",
-      "name": "MyNewFile",
-      "parent": "optional my idFolderParent",
-      "additionalGoogleDriveProperties": {
-        "description": "description"
+      "type":"file",
+      "parent":"optional my idFolderParent",
+      "name":"MyNewFile",
+      "additionalGoogleDriveProperties":{
+        "description":"xxx"
       },
-      "template": {
-        "id": "myTemplateId",
-        "variables": {
-          "requests": [
+      "template":{
+        "id":"121J6hMy-4ffHhXl5egwIhCsznS3mXWm",
+        "variables":{
+          "requests":[
             {
-              "replaceAllText": {
-                "containsText": {
-                  "text": "replaceFrom",
-                  "matchCase": "true"
-                },
-                "replaceText": "replaceTo"
+              "replaceAllText":{
+                "replaceText":"2022-08-03",
+                "containsText":{
+                  "matchCase":"true",
+                  "text":"{{recordDate}}"
+                }
               }
             }
           ]

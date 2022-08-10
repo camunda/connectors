@@ -1,24 +1,25 @@
 [
   {
+    "testDescription": "Token given as plain text",
     "token": "MyRealToken",
     "resource": {
-      "type": "file",
-      "name": "MyNewFile",
-      "parent": "optional my idFolderParent",
-      "additionalGoogleDriveProperties": {
-        "description": " description"
+      "type":"file",
+      "parent":"1wF4ME7XcM_6ZIaNCMADMXawz",
+      "name":"demoFile",
+      "additionalGoogleDriveProperties":{
+        "description":"xxx"
       },
-      "template": {
-        "id": "myTemplateId",
-        "variables": {
-          "requests": [
+      "template":{
+        "id":"121J6hMy-4ffHhXl5egwIhCsznS3mXWm",
+        "variables":{
+          "requests":[
             {
-              "replaceAllText": {
-                "containsText": {
-                  "text": "replaceFrom",
-                  "matchCase": "true"
-                },
-                "replaceText": "replaceTo"
+              "replaceAllText":{
+                "replaceText":"2022-08-03",
+                "containsText":{
+                  "matchCase":"true",
+                  "text":"{{recordDate}}"
+                }
               }
             }
           ]
@@ -27,25 +28,26 @@
     }
   },
   {
+    "testDescription": "Token given as secret",
     "token": "secrets.MyToken",
     "resource": {
-      "type": "file",
-      "name": "MyNewFile",
-      "parent": "optional my idFolderParent",
-      "additionalGoogleDriveProperties": {
-        "description": " description"
+      "type":"file",
+      "parent":"1wF4ME7XcM_6ZIaNCMADMXawz",
+      "name":"demoFile",
+      "additionalGoogleDriveProperties":{
+        "description":"xxx"
       },
-      "template": {
-        "id": "myTemplateId",
-        "variables": {
-          "requests": [
+      "template":{
+        "id":"121J6hMy-4ffHhXl5egwIhCsznS3mXWm",
+        "variables":{
+          "requests":[
             {
-              "replaceAllText": {
-                "containsText": {
-                  "text": "replaceFrom",
-                  "matchCase": "true"
-                },
-                "replaceText": "replaceTo"
+              "replaceAllText":{
+                "replaceText":"2022-08-03",
+                "containsText":{
+                  "matchCase":"true",
+                  "text":"{{recordDate}}"
+                }
               }
             }
           ]
@@ -56,12 +58,12 @@
   {
     "token": "MyRealToken",
     "resource": {
-      "type": "folder",
-      "name": "MyNewFolder",
-      "parent": "optional my idFolderParent",
-      "additionalGoogleDriveProperties": {
-        "description": " description"
-      }
+      "type":"folder",
+      "additionalGoogleDriveProperties":{
+        "description":"description111"
+      },
+      "name":"demo",
+      "parent":"1wF4ME7XcM_6ZIaNCMADMXawzV"
     }
   }
 ]

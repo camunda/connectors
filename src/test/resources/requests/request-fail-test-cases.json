@@ -1,25 +1,28 @@
 [
   {
+    "testDescription": "Folder without a name token",
     "resource": {
-      "type": "folder",
-      "name": "MyNewFile",
-      "parent": "optional my idFolderParent",
-      "additionalGoogleDriveProperties": {
-        "description": " description"
-      }
+      "type":"folder",
+      "additionalGoogleDriveProperties":{
+        "description":"xxx"
+      },
+      "name":"demo",
+      "parent":"1wF4ME7XcM_6ZIaNCMADMXawzV5"
     }
   },
   {
+    "testDescription": "Folder without a name",
     "token": "MyRealToken",
     "resource": {
-      "type": "folder",
-      "parent": "optional my idFolderParent",
-      "additionalGoogleDriveProperties": {
-        "description": " description"
-      }
+      "type":"folder",
+      "additionalGoogleDriveProperties":{
+        "description":"xxx"
+      },
+      "parent":"1wF4ME7XcM_6ZIaNCMADMXawzV5DpVqXw"
     }
   },
   {
+    "testDescription": "File without a name",
     "token": "MyRealToken",
     "resource": {
       "type": "file",
