@@ -17,7 +17,7 @@
 
   <properties>
     <!-- external libraries -->
-    <version.gson-extras>0.6.0</version.gson-extras>
+    <version.gson-extras>1.0.0</version.gson-extras>
     <version.slack>1.24.0</version.slack>
     <version.kotlin>1.7.10</version.kotlin>
   </properties>
