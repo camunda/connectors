@@ -67,7 +67,7 @@
           }
         ],
         "binding": {
-          "type": "zeebe:taskHeader",
+          "type": "zeebe:input",
           "name": "resource.type",
           "key": "resource.type"
         }
@@ -163,7 +163,7 @@
         "description": "Use this field to pass and update variables in your template as JSON",
         "group": "operationDetails",
         "type": "Text",
-        "feel": "optional",
+        "feel": "required",
         "binding": {
           "type": "zeebe:input",
           "name": "resource.template.variables"
@@ -178,10 +178,11 @@
         "description": "Use this field to pass additional Google Drive parameters as JSON.",
         "group": "operationDetails",
         "type": "Text",
-        "feel": "optional",
+        "feel": "required",
         "binding": {
           "type": "zeebe:input",
-          "name": "resource.additionalGoogleDriveProperties"
+          "name": "resource.additionalGoogleDriveProperties",
+          "key": "resource.additionalGoogleDriveProperties"
         }
       },
       {
