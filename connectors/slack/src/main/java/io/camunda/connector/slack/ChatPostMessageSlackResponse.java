@@ -73,7 +73,7 @@ public class ChatPostMessageSlackResponse implements SlackResponse {
         + '}';
   }
 
-  private static class Message {
+  protected static class Message {
     private final String type;
     private final String team;
     private final String user;

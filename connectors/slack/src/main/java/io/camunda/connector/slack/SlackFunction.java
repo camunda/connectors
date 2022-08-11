@@ -23,13 +23,22 @@ import io.camunda.connector.api.ConnectorContext;
 import io.camunda.connector.api.ConnectorFunction;
 
 public class SlackFunction implements ConnectorFunction {
-  private static final Slack SLACK = Slack.getInstance();
 
   private static final SlackRequestDeserializer DESERIALIZER =
       new SlackRequestDeserializer("method")
           .registerType("chat.postMessage", ChatPostMessageData.class);
   private static final Gson GSON =
       new GsonBuilder().registerTypeAdapter(SlackRequest.class, DESERIALIZER).create();
+
+  private final Slack slack;
+
+  public SlackFunction() {
+    this(Slack.getInstance());
+  }
+
+  public SlackFunction(final Slack slack) {
+    this.slack = slack;
+  }
 
   @Override
   public Object execute(ConnectorContext context) throws Exception {
@@ -40,6 +49,6 @@ public class SlackFunction implements ConnectorFunction {
     context.validate(slackRequest);
     context.replaceSecrets(slackRequest);
 
-    return slackRequest.invoke(SLACK);
+    return slackRequest.invoke(slack);
   }
 }
