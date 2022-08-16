@@ -25,6 +25,8 @@ import io.camunda.connector.api.SecretStore;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import io.camunda.zeebe.client.api.worker.JobClient;
 import io.camunda.zeebe.client.api.worker.JobHandler;
+import java.util.Map;
+import java.util.Optional;
 import java.util.ServiceLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +35,8 @@ import org.slf4j.LoggerFactory;
 public class ConnectorJobHandler implements JobHandler {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ConnectorJobHandler.class);
+
+  protected static final String RESULT_VARIABLE_HEADER_NAME = "resultVariable";
 
   private final ConnectorFunction call;
 
@@ -53,7 +57,11 @@ public class ConnectorJobHandler implements JobHandler {
     try {
       Object result = call.execute(new JobHandlerContext(job));
 
-      client.newCompleteCommand(job).variables(result).send().join();
+      client
+          .newCompleteCommand(job)
+          .variables(createOutputVariables(result, job.getCustomHeaders()))
+          .send()
+          .join();
 
       LOGGER.debug("Completed job {}", job.getKey());
     } catch (Exception error) {
@@ -62,6 +70,14 @@ public class ConnectorJobHandler implements JobHandler {
 
       client.newFailCommand(job).retries(0).errorMessage(error.getMessage()).send().join();
     }
+  }
+
+  protected Map<String, Object> createOutputVariables(
+      final Object responseContent, final Map<String, String> jobHeaders) {
+    return Optional.ofNullable(jobHeaders)
+        .map(headers -> headers.get(RESULT_VARIABLE_HEADER_NAME))
+        .map(resultVariableName -> Map.of(resultVariableName, responseContent))
+        .orElseGet(Map::of);
   }
 
   protected SecretProvider getSecretProvider() {
