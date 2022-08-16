@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.camunda.connector.runtime.jobworker;
 
 import io.camunda.connector.api.ConnectorFunction;
@@ -86,25 +87,24 @@ public class Main {
 
       Runtime.getRuntime()
           .addShutdownHook(
-              new Thread() {
-                @Override
-                public void run() {
-                  LOGGER.info("Shutting down workers...");
-                  workers.forEach(
-                      worker -> {
-                        try {
-                          worker.close();
-                        } catch (Exception e) {
-                          ; // ignore
-                        }
-                      });
-                }
-              });
+              new Thread(
+                  () -> {
+                    LOGGER.info("Shutting down workers...");
+                    workers.forEach(
+                        worker -> {
+                          try {
+                            worker.close();
+                          } catch (Exception e) {
+                            // ignore
+                          }
+                        });
+                  }));
 
       waitForever();
     }
   }
 
+  @SuppressWarnings("unchecked")
   private static ConnectorFunction loadConnectorFunction(String clsName) {
 
     try {

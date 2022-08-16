@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.camunda.connector.runtime.jobworker;
 
 import io.camunda.connector.api.ConnectorContext;
@@ -28,7 +29,7 @@ import java.util.ServiceLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** Job worker handler wrapper for a connector function */
+/** Job worker handler wrapper for a connector function. */
 public class ConnectorJobHandler implements JobHandler {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ConnectorJobHandler.class);
@@ -40,12 +41,12 @@ public class ConnectorJobHandler implements JobHandler {
    *
    * @param call - the connector function to call
    */
-  public ConnectorJobHandler(ConnectorFunction call) {
+  public ConnectorJobHandler(final ConnectorFunction call) {
     this.call = call;
   }
 
   @Override
-  public void handle(JobClient client, ActivatedJob job) {
+  public void handle(final JobClient client, final ActivatedJob job) {
 
     LOGGER.info("Received job {}", job.getKey());
 
@@ -68,12 +69,7 @@ public class ConnectorJobHandler implements JobHandler {
   }
 
   protected SecretProvider getEnvSecretProvider() {
-    return new SecretProvider() {
-      @Override
-      public String getSecret(String value) {
-        return System.getenv(value);
-      }
-    };
+    return System::getenv;
   }
 
   protected class JobHandlerContext implements ConnectorContext {
@@ -81,12 +77,12 @@ public class ConnectorJobHandler implements JobHandler {
     private final ActivatedJob job;
     private SecretStore secretStore;
 
-    public JobHandlerContext(ActivatedJob job) {
+    public JobHandlerContext(final ActivatedJob job) {
       this.job = job;
     }
 
     @Override
-    public void replaceSecrets(ConnectorInput input) {
+    public void replaceSecrets(final ConnectorInput input) {
       input.replaceSecrets(getSecretStore());
     }
 
@@ -99,7 +95,7 @@ public class ConnectorJobHandler implements JobHandler {
     }
 
     @Override
-    public <T extends Object> T getVariablesAsType(Class<T> cls) {
+    public <T> T getVariablesAsType(Class<T> cls) {
       return job.getVariablesAsType(cls);
     }
 
