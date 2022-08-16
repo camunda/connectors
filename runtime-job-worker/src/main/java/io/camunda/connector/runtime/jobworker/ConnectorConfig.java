@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.camunda.connector.runtime.jobworker;
 
 import java.util.ArrayList;
@@ -27,10 +28,10 @@ public class ConnectorConfig {
   public static final Pattern ZEEBE_CONNECTOR_PATTERN =
       Pattern.compile("^ZEEBE_CONNECTOR_([^_]+)_TYPE$");
 
-  private String name;
-  private String type;
+  private final String name;
+  private final String type;
   private final String[] variables;
-  private String function;
+  private final String function;
 
   /**
    * Create a connector configuration.
@@ -40,7 +41,8 @@ public class ConnectorConfig {
    * @param variables the variables the connector needs as input
    * @param className the connector function class
    */
-  public ConnectorConfig(String name, String type, String[] variables, String className) {
+  public ConnectorConfig(
+      final String name, final String type, final String[] variables, final String className) {
     this.name = name;
     this.type = type;
     this.variables = variables;
@@ -70,7 +72,7 @@ public class ConnectorConfig {
     return connectors;
   }
 
-  private static ConnectorConfig parseConnector(String name) {
+  private static ConnectorConfig parseConnector(final String name) {
 
     var type = getEnv(name, "TYPE");
     var function = getEnv(name, "FUNCTION");
@@ -79,7 +81,7 @@ public class ConnectorConfig {
     return new ConnectorConfig(name, type, variables, function);
   }
 
-  private static String getEnv(String name, String detail) {
+  private static String getEnv(final String name, final String detail) {
     return System.getenv("ZEEBE_CONNECTOR_" + name + "_" + detail);
   }
 
