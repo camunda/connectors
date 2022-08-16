@@ -25,7 +25,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-public class ConnectorJobHandlerSecretsTest {
+public class ConnectorJobHandlerTest {
 
   @Nested
   class Secrets {
