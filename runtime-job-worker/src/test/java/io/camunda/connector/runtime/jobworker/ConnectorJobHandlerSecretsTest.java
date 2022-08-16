@@ -14,69 +14,95 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package io.camunda.connector.runtime.jobworker;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.api.ConnectorFunction;
 import io.camunda.connector.api.SecretProvider;
-import io.camunda.zeebe.client.api.command.CompleteJobCommandStep1;
-import io.camunda.zeebe.client.api.response.ActivatedJob;
-import io.camunda.zeebe.client.api.worker.JobClient;
+import java.util.Map;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentMatchers;
-import org.mockito.Mockito;
 
 public class ConnectorJobHandlerSecretsTest {
 
-  @Test
-  public void shouldReplaceSecretsViaSpi() throws Exception {
-    // given
-    JobClient jobClient = Mockito.mock(JobClient.class);
-    CompleteJobCommandStep1 step1 =
-        Mockito.mock(CompleteJobCommandStep1.class, Mockito.RETURNS_DEEP_STUBS);
+  @Nested
+  class Secrets {
 
-    Mockito.when(jobClient.newCompleteCommand(ArgumentMatchers.any())).thenReturn(step1);
-    ActivatedJob job = Mockito.mock(ActivatedJob.class);
-    Mockito.when(job.getKey()).thenReturn(-1l);
+    @Test
+    public void shouldReplaceSecretsViaSpiLoadedProvider() throws Exception {
+      // given
+      var jobHandler =
+          new ConnectorJobHandler(
+              (context) -> {
+                return context
+                    .getSecretStore()
+                    .replaceSecret("secrets." + TestSecretProvider.SECRET_NAME);
+              });
 
-    ConnectorJobHandler wrapper =
-        new ConnectorJobHandler(
-            (context) -> {
-              return context
-                  .getSecretStore()
-                  .replaceSecret("secrets." + TestSecretProvider.SECRET_NAME);
-            });
+      // when
+      var result = JobBuilder.create().withResultHeader("result").execute(jobHandler);
 
-    // when
-    wrapper.handle(jobClient, job);
+      // then
+      assertThat(result.getVariable("result")).isEqualTo(TestSecretProvider.SECRET_VALUE);
+    }
 
-    // then
-    // the secret provider was loaded dynamically as SPI and replaced the secret
-    Mockito.verify(step1, Mockito.times(1)).variables((Object) TestSecretProvider.SECRET_VALUE);
+    @Test
+    public void shouldOverrideSecretProvider() {
+      // given
+      var jobHandler =
+          new TestConnectorJobHandler(
+              (context) -> {
+                return context
+                    .getSecretStore()
+                    .replaceSecret("secrets." + TestSecretProvider.SECRET_NAME);
+              });
+
+      // when
+      var result = JobBuilder.create().withResultHeader("result").execute(jobHandler);
+
+      // then
+      assertThat(result.getVariable("result")).isEqualTo("baz");
+    }
   }
 
-  @Test
-  public void shouldOverrideSecretProvider() {
-    // given
-    JobClient jobClient = Mockito.mock(JobClient.class);
-    CompleteJobCommandStep1 step1 =
-        Mockito.mock(CompleteJobCommandStep1.class, Mockito.RETURNS_DEEP_STUBS);
+  @Nested
+  class Output {
 
-    Mockito.when(jobClient.newCompleteCommand(ArgumentMatchers.any())).thenReturn(step1);
-    ActivatedJob job = Mockito.mock(ActivatedJob.class);
-    Mockito.when(job.getKey()).thenReturn(-1l);
+    @Test
+    public void shouldNotSetWithoutResultVariable() throws Exception {
 
-    ConnectorJobHandler wrapper =
-        new TestConnectorJobHandler(
-            (context) -> {
-              return context.getSecretStore().replaceSecret("secrets.BAR");
-            });
+      // given
+      var jobHandler =
+          new ConnectorJobHandler(
+              (context) -> {
+                return Map.of("hello", "world");
+              });
 
-    // when
-    wrapper.handle(jobClient, job);
+      // when
+      var result = JobBuilder.create().execute(jobHandler);
 
-    // then
-    // the custom secret provider was used
-    Mockito.verify(step1, Mockito.times(1)).variables((Object) "baz");
+      // then
+      assertThat(result.getVariables()).isEmpty();
+    }
+
+    @Test
+    public void shouldSetToResultVariable() throws Exception {
+
+      // given
+      var jobHandler =
+          new ConnectorJobHandler(
+              (context) -> {
+                return Map.of("hello", "world");
+              });
+
+      // when
+      var result = JobBuilder.create().withResultHeader("result").execute(jobHandler);
+
+      // then
+      assertThat(result.getVariables()).isEqualTo(Map.of("result", Map.of("hello", "world")));
+    }
   }
 
   private static class TestConnectorJobHandler extends ConnectorJobHandler {
@@ -87,7 +113,7 @@ public class ConnectorJobHandlerSecretsTest {
 
     @Override
     public SecretProvider getSecretProvider() {
-      return name -> "BAR".equals(name) ? "baz" : null;
+      return name -> TestSecretProvider.SECRET_NAME.equals(name) ? "baz" : null;
     }
   }
 }
