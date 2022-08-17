@@ -1,0 +1,4 @@
+java temurin-11.0.15+10
+maven 3.8.4
+gcloud 367.0.0
+python 3.7.12
