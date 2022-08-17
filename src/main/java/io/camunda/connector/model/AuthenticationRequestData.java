@@ -21,68 +21,57 @@ import io.camunda.connector.api.SecretStore;
 import io.camunda.connector.api.Validator;
 import java.util.Objects;
 
-public class SqsConnectorRequest implements ConnectorInput {
-
-  private AuthenticationRequestData authentication;
-  private QueueRequestData queue;
+public class AuthenticationRequestData implements ConnectorInput {
+  private String accessKey;
+  private String secretKey;
 
   @Override
-  public void validateWith(final Validator validator) {
-    validator.require(authentication, "authentication");
-    validator.require(queue, "queue");
-
-    if (authentication != null) {
-      authentication.validateWith(validator);
-    }
-
-    if (queue != null) {
-      queue.validateWith(validator);
-    }
+  public void validateWith(Validator validator) {
+    validator.require(accessKey, "access key");
+    validator.require(secretKey, "secret key");
   }
 
   @Override
-  public void replaceSecrets(final SecretStore secretStore) {
-    authentication.replaceSecrets(secretStore);
-    queue.replaceSecrets(secretStore);
+  public void replaceSecrets(SecretStore secretStore) {
+    accessKey = secretStore.replaceSecret(accessKey);
+    secretKey = secretStore.replaceSecret(secretKey);
   }
 
-  public AuthenticationRequestData getAuthentication() {
-    return authentication;
+  public String getAccessKey() {
+    return accessKey;
   }
 
-  public void setAuthentication(final AuthenticationRequestData authentication) {
-    this.authentication = authentication;
+  public void setAccessKey(String accessKey) {
+    this.accessKey = accessKey;
   }
 
-  public QueueRequestData getQueue() {
-    return queue;
+  public String getSecretKey() {
+    return secretKey;
   }
 
-  public void setQueue(final QueueRequestData queue) {
-    this.queue = queue;
+  public void setSecretKey(String secretKey) {
+    this.secretKey = secretKey;
   }
 
   @Override
-  public boolean equals(final Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
-
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-
-    SqsConnectorRequest that = (SqsConnectorRequest) o;
-    return authentication.equals(that.authentication) && queue.equals(that.queue);
+    AuthenticationRequestData that = (AuthenticationRequestData) o;
+    return accessKey.equals(that.accessKey) && secretKey.equals(that.secretKey);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(authentication, queue);
+    return Objects.hash(accessKey, secretKey);
   }
 
   @Override
   public String toString() {
-    return "SqsConnectorRequest{" + "authentication=" + authentication + ", queue=" + queue + '}';
+    return "AuthenticationRequestData{" + "accessKey=[REDACTED]" + ", secretKey=[REDACTED]" + '}';
   }
 }

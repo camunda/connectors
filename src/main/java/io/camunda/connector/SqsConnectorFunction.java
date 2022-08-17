@@ -16,48 +16,62 @@
  */
 package io.camunda.connector;
 
+import com.amazonaws.services.sqs.AmazonSQS;
+import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.amazonaws.services.sqs.model.SendMessageResult;
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import io.camunda.connector.api.ConnectorContext;
 import io.camunda.connector.api.ConnectorFunction;
-import io.camunda.connector.client.SqsClient;
-import io.camunda.connector.client.SqsClientDefault;
 import io.camunda.connector.model.SqsConnectorRequest;
 import io.camunda.connector.model.SqsConnectorResult;
+import io.camunda.connector.suppliers.GsonComponentSupplier;
+import io.camunda.connector.suppliers.SqsClientSupplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class SqsConnectorFunction implements ConnectorFunction {
   private static final Logger LOGGER = LoggerFactory.getLogger(SqsConnectorFunction.class);
-  private static final Gson GSON = new GsonBuilder().create();
-  private final SqsClient sqsClient;
+
+  private final SqsClientSupplier sqsClientSupplier;
+  private final Gson gson;
 
   public SqsConnectorFunction() {
-    this.sqsClient = new SqsClientDefault();
+    this(new SqsClientSupplier(), GsonComponentSupplier.gsonInstance());
   }
 
-  public SqsConnectorFunction(SqsClient sqsClient) {
-    this.sqsClient = sqsClient;
+  public SqsConnectorFunction(final SqsClientSupplier sqsClientSupplier, final Gson gson) {
+    this.sqsClientSupplier = sqsClientSupplier;
+    this.gson = gson;
   }
 
   @Override
-  public Object execute(ConnectorContext context) {
+  public Object execute(final ConnectorContext context) {
     final var variables = context.getVariables();
     LOGGER.debug("Executing SQS connector with variables : {}", variables);
-    final var request = GSON.fromJson(variables, SqsConnectorRequest.class);
+    final var request = gson.fromJson(variables, SqsConnectorRequest.class);
+    System.out.println(request);
     context.validate(request);
     context.replaceSecrets(request);
     return new SqsConnectorResult(sendMsgToSqs(request).getMessageId());
   }
 
   private SendMessageResult sendMsgToSqs(SqsConnectorRequest request) {
+    AmazonSQS sqsClient = null;
     try {
-      sqsClient.init(request.getAccessKey(), request.getSecretKey(), request.getQueueRegion());
-      sqsClient.createMsg(request.getQueueUrl(), request.getMessageBody());
-      return sqsClient.execute();
+      sqsClient =
+          sqsClientSupplier.sqsClient(
+              request.getAuthentication().getAccessKey(),
+              request.getAuthentication().getSecretKey(),
+              request.getQueue().getRegion());
+      SendMessageRequest message =
+          new SendMessageRequest()
+              .withQueueUrl(request.getQueue().getUrl())
+              .withMessageBody(request.getQueue().getMessageBody().toString());
+      return sqsClient.sendMessage(message);
     } finally {
-      sqsClient.shutDown();
+      if (sqsClient != null) {
+        sqsClient.shutdown();
+      }
     }
   }
 }

@@ -34,5 +34,24 @@ public abstract class BaseTest {
   protected static final String WRONG_MESSAGE_BODY = "its wrong msg";
   protected static final String MSG_ID = "nmsgId";
 
+  // TODO: move to proper tests
+  protected static final String DEFAULT_REQUEST_BODY =
+      "{\n"
+          + "  \"authentication\":{\n"
+          + "    \"secretKey\":\"XXXX\",\n"
+          + "    \"accessKey\":\"YYYY\"\n"
+          + "  },\n"
+          + "  \"queue\":{\n"
+          + "    \"messageAttributes\":{\n"
+          + "      \"size\":\"2kb\"\n"
+          + "    },\n"
+          + "    \"messageBody\":{\n"
+          + "      \"data\":\"ok\"\n"
+          + "    },\n"
+          + "    \"url\":\"https://sqs.us-east-1.amazonaws.com/0000000/test-test-test\",\n"
+          + "    \"region\":\"us-east-1\"\n"
+          + "  }\n"
+          + "}";
+
   protected static final Gson GSON = new GsonBuilder().create();
 }

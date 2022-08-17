@@ -16,22 +16,21 @@
  */
 package io.camunda.connector;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.when;
 
 import com.amazonaws.SdkClientException;
+import com.amazonaws.services.sqs.AmazonSQS;
+import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.amazonaws.services.sqs.model.SendMessageResult;
 import io.camunda.connector.api.ConnectorContext;
-import io.camunda.connector.client.SqsClient;
 import io.camunda.connector.model.SqsConnectorRequest;
 import io.camunda.connector.model.SqsConnectorResult;
+import io.camunda.connector.suppliers.SqsClientSupplier;
 import io.camunda.connector.test.ConnectorContextBuilder;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 
 public class SqsConnectorFunctionTest extends BaseTest {
@@ -39,19 +38,10 @@ public class SqsConnectorFunctionTest extends BaseTest {
   private SqsConnectorFunction connector;
   private ConnectorContext context;
   private SendMessageResult sendMessageResult;
-  private SqsClient mockSqsClient;
 
   @BeforeEach
   public void init() {
-    mockSqsClient = mock(SqsClient.class);
-
-    SqsConnectorRequest request = new SqsConnectorRequest();
-    request.setQueueUrl(ACTUAL_QUEUE_URL);
-    request.setQueueRegion(ACTUAL_QUEUE_REGION);
-    request.setAccessKey(SECRETS + ACCESS_KEY);
-    request.setSecretKey(SECRETS + SECRET_KEY);
-    request.setMessageBody(SQS_MESSAGE_BODY);
-
+    SqsConnectorRequest request = GSON.fromJson(DEFAULT_REQUEST_BODY, SqsConnectorRequest.class);
     context =
         ConnectorContextBuilder.create()
             .secret(ACCESS_KEY, ACTUAL_ACCESS_KEY)
@@ -77,18 +67,26 @@ public class SqsConnectorFunctionTest extends BaseTest {
   @Test
   public void execute_shouldExecuteRequestAndReturnResultWithMsgId() {
     // Given
-    connector = new SqsConnectorFunction(mockSqsClient);
-    // When
-    when(mockSqsClient.execute()).thenReturn(sendMessageResult);
-    Object execute = connector.execute(context);
-    // Then
-    Mockito.verify(mockSqsClient).init(ACTUAL_ACCESS_KEY, ACTUAL_SECRET_KEY, ACTUAL_QUEUE_REGION);
-    Mockito.verify(mockSqsClient).createMsg(ACTUAL_QUEUE_URL, SQS_MESSAGE_BODY);
-    Mockito.verify(mockSqsClient, times(1)).execute();
-    Mockito.verify(mockSqsClient, times(1)).shutDown();
+    AmazonSQS sqsClient = Mockito.mock(AmazonSQS.class);
+    Mockito.when(sqsClient.sendMessage(ArgumentMatchers.any(SendMessageRequest.class)))
+        .thenReturn(sendMessageResult);
+    SqsClientSupplier sqsClientSupplier = Mockito.mock(SqsClientSupplier.class);
+    Mockito.when(
+            sqsClientSupplier.sqsClient(
+                ArgumentMatchers.anyString(),
+                ArgumentMatchers.anyString(),
+                ArgumentMatchers.anyString()))
+        .thenReturn(sqsClient);
+    connector = new SqsConnectorFunction(sqsClientSupplier, GSON);
 
-    assertTrue(execute instanceof SqsConnectorResult);
+    // When
+    Object execute = connector.execute(context);
+
+    // Then
+    Mockito.verify(sqsClient, Mockito.times(1)).shutdown();
+
+    Assertions.assertThat(execute instanceof SqsConnectorResult);
     var result = (SqsConnectorResult) execute;
-    assertEquals(result.getMessageId(), MSG_ID);
+    Assertions.assertThat(result.getMessageId()).isEqualTo(MSG_ID);
   }
 }
