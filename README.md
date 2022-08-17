@@ -14,11 +14,20 @@ mvn clean package
 
 ```json
 {
-  "queueUrl": "https://sqs.your.url",
-  "queueRegion": "ap-north-5",
-  "accessKey": "my access key",
-  "secretKey": "my secrets key",
-  "messageBody": "{\"myKey\":\"myVal\"}"
+  "authentication":{
+    "secretKey":"secrets.AWS_ACCESS_KEY",
+    "accessKey":"secrets.AWS_SECRET_KEY"
+  },
+  "queue":{
+    "messageAttributes":{
+      "size":"2kb"
+    },
+    "messageBody":{
+      "data":"ok"
+    },
+    "url":"secrets.MY_QUEUE_URL",
+    "region":"us-east-1"
+  }
 }
 ```
 

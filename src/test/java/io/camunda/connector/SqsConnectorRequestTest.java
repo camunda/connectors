@@ -35,7 +35,7 @@ class SqsConnectorRequestTest extends BaseTest {
 
   @BeforeEach
   public void beforeEach() {
-    request = new SqsConnectorRequest();
+    request = GSON.fromJson(DEFAULT_REQUEST_BODY, SqsConnectorRequest.class);
     validator = new Validator();
 
     context =
@@ -50,11 +50,7 @@ class SqsConnectorRequestTest extends BaseTest {
   @Test
   void validate_shouldThrowExceptionWhenLeastOneNotExistRequestField() {
     // Given request , where one field is null
-    request.setAccessKey(ACCESS_KEY);
-    request.setQueueRegion(ACTUAL_QUEUE_REGION);
-    request.setQueueUrl(ACTUAL_QUEUE_URL);
-    request.setSecretKey(SECRET_KEY);
-    request.setMessageBody(null);
+    request.getQueue().setMessageBody(null);
     // When request validate
     request.validateWith(validator);
     IllegalArgumentException thrown =
@@ -69,44 +65,41 @@ class SqsConnectorRequestTest extends BaseTest {
   @Test
   void replaceSecrets_shouldDoNotReplaceMessageBody() {
     // Given request with message body
-    request.setMessageBody(SECRETS + SQS_MESSAGE_BODY);
+    request.getQueue().setMessageBody(SECRETS + SQS_MESSAGE_BODY);
     ConnectorContext context =
         ConnectorContextBuilder.create().secret(SQS_MESSAGE_BODY, WRONG_MESSAGE_BODY).build();
     // When replace secrets
     context.replaceSecrets(request);
     // Then expect that message body will be same as was
-    assertEquals(request.getMessageBody(), SECRETS + SQS_MESSAGE_BODY);
+    assertEquals(request.getQueue().getMessageBody(), SECRETS + SQS_MESSAGE_BODY);
   }
 
   @Test
   void replaceSecrets_shouldReplaceSecrets() {
     // Given request with secrets. all secrets look like 'secrets.KEY'
-    request.setSecretKey(SECRETS + SECRET_KEY);
-    request.setAccessKey(SECRETS + ACCESS_KEY);
-    request.setQueueUrl(SECRETS + QUEUE_URL_KEY);
-    request.setQueueRegion(SECRETS + QUEUE_REGION_KEY);
+    request.getAuthentication().setAccessKey(SECRETS + ACCESS_KEY);
+    request.getAuthentication().setSecretKey(SECRETS + SECRET_KEY);
+    request.getQueue().setUrl(SECRETS + QUEUE_URL_KEY);
+
     // When replace secrets
     context.replaceSecrets(request);
     // Then
-    assertEquals(request.getSecretKey(), ACTUAL_SECRET_KEY);
-    assertEquals(request.getAccessKey(), ACTUAL_ACCESS_KEY);
-    assertEquals(request.getQueueUrl(), ACTUAL_QUEUE_URL);
-    assertEquals(request.getQueueRegion(), ACTUAL_QUEUE_REGION);
+    assertEquals(request.getAuthentication().getSecretKey(), ACTUAL_SECRET_KEY);
+    assertEquals(request.getAuthentication().getAccessKey(), ACTUAL_ACCESS_KEY);
+    assertEquals(request.getQueue().getUrl(), ACTUAL_QUEUE_URL);
   }
 
   @Test
   void replaceSecrets_shouldDoNotReplaceSecretsIfTheyDidNotStartFromSecretsWord() {
     // Given request with data that not started from secrets. and context with secret store
-    request.setSecretKey(SECRET_KEY);
-    request.setAccessKey(ACCESS_KEY);
-    request.setQueueUrl(QUEUE_URL_KEY);
-    request.setQueueRegion(QUEUE_REGION_KEY);
+    request.getAuthentication().setSecretKey(SECRET_KEY);
+    request.getAuthentication().setAccessKey(ACCESS_KEY);
+    request.getQueue().setUrl(QUEUE_URL_KEY);
     // When replace secrets
     context.replaceSecrets(request);
     // Then secrets must be not replaced
-    assertEquals(request.getSecretKey(), SECRET_KEY);
-    assertEquals(request.getAccessKey(), ACCESS_KEY);
-    assertEquals(request.getQueueUrl(), QUEUE_URL_KEY);
-    assertEquals(request.getQueueRegion(), QUEUE_REGION_KEY);
+    assertEquals(request.getAuthentication().getSecretKey(), SECRET_KEY);
+    assertEquals(request.getAuthentication().getAccessKey(), ACCESS_KEY);
+    assertEquals(request.getQueue().getUrl(), QUEUE_URL_KEY);
   }
 }

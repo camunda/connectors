@@ -14,17 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.client;
+package io.camunda.connector.suppliers;
 
-import com.amazonaws.services.sqs.model.SendMessageResult;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
-public interface SqsClient {
+public final class GsonComponentSupplier {
 
-  void init(String accessKey, String secretKey, String region);
+  private static final Gson GSON = new GsonBuilder().create();
 
-  void createMsg(String url, String msgData);
+  private GsonComponentSupplier() {}
 
-  SendMessageResult execute();
-
-  void shutDown();
+  public static Gson gsonInstance() {
+    return GSON;
+  }
 }
