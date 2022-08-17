@@ -3,7 +3,7 @@
     "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
     "name": "AWS SQS Outbound Connector",
     "id": "io.camunda.connectors.AWSSQS.v1",
-    "description": "An SQS Outbound Connector",
+    "description": "AWS SQS Outbound Connector",
     "appliesTo": [
       "bpmn:ServiceTask"
     ],
@@ -81,8 +81,8 @@
         }
       },
       {
-        "label": "SQS URL",
-        "description": "Specify the URL of the SQS queue where you would like to send message to",
+        "label": "SQS Region",
+        "description": "Specify the AWS region of your queue",
         "group": "queueProperties",
         "type": "String",
         "binding": {
@@ -90,11 +90,7 @@
           "name": "queue.region"
         },
         "constraints": {
-          "notEmpty": true,
-          "pattern": {
-            "value": "(^https?://.+)|(^secrets\\..+)",
-            "message": "Must be an http(s) URL or a secret.XYZ"
-          }
+          "notEmpty": true
         }
       },
       {
@@ -119,9 +115,6 @@
         "binding": {
           "type": "zeebe:input",
           "name": "queue.messageAttributes"
-        },
-        "constraints": {
-          "notEmpty": true
         },
         "feel": "required"
       },
