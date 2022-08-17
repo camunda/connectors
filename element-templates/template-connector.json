@@ -32,7 +32,7 @@
     "properties": [
       {
         "type": "Hidden",
-        "value": "io.camunda:sqs:1",
+        "value": "io.camunda:aws-sqs:1",
         "binding": {
           "type": "zeebe:taskDefinition:type"
         }
