@@ -49,7 +49,6 @@ public class SqsConnectorFunction implements ConnectorFunction {
     final var variables = context.getVariables();
     LOGGER.debug("Executing SQS connector with variables : {}", variables);
     final var request = gson.fromJson(variables, SqsConnectorRequest.class);
-    System.out.println(request);
     context.validate(request);
     context.replaceSecrets(request);
     return new SqsConnectorResult(sendMsgToSqs(request).getMessageId());
