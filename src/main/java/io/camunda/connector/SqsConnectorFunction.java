@@ -65,7 +65,8 @@ public class SqsConnectorFunction implements ConnectorFunction {
       SendMessageRequest message =
           new SendMessageRequest()
               .withQueueUrl(request.getQueue().getUrl())
-              .withMessageBody(request.getQueue().getMessageBody().toString());
+              .withMessageBody(request.getQueue().getMessageBody().toString())
+              .withMessageAttributes(request.getQueue().getMessageAttributes());
       return sqsClient.sendMessage(message);
     } finally {
       if (sqsClient != null) {

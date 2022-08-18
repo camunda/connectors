@@ -23,7 +23,6 @@ import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.amazonaws.services.sqs.model.SendMessageResult;
 import io.camunda.connector.api.ConnectorContext;
-import io.camunda.connector.model.SqsConnectorRequest;
 import io.camunda.connector.model.SqsConnectorResult;
 import io.camunda.connector.suppliers.SqsClientSupplier;
 import io.camunda.connector.test.ConnectorContextBuilder;
@@ -41,12 +40,11 @@ public class SqsConnectorFunctionTest extends BaseTest {
 
   @BeforeEach
   public void init() {
-    SqsConnectorRequest request = GSON.fromJson(DEFAULT_REQUEST_BODY, SqsConnectorRequest.class);
     context =
         ConnectorContextBuilder.create()
-            .secret(ACCESS_KEY, ACTUAL_ACCESS_KEY)
-            .secret(SECRET_KEY, ACTUAL_SECRET_KEY)
-            .variables(GSON.toJson(request))
+            .secret(AWS_ACCESS_KEY, ACTUAL_ACCESS_KEY)
+            .secret(AWS_SECRET_KEY, ACTUAL_SECRET_KEY)
+            .variables(DEFAULT_REQUEST_BODY)
             .build();
     sendMessageResult = new SendMessageResult();
     sendMessageResult.setMessageId(MSG_ID);
