@@ -1,20 +1,6 @@
-> A template for new C8 connectors.
->
-> To use this template update the following resources to match the name of your connector:
->
-> * [README](./README.md) (title, description)
-> * [Element Template](./element-templates/template-connector.json)
-> * [POM](./pom.xml) (artifact name, description)
-> * [Connector Function](./src/main/java/io/camunda/connector/MyConnectorFunction.java) (rename)
-> * [Publish Action](./.github/workflows/publish-cloud-function.yaml#L95) (name)
-> * [Service Provider Interface (SPI)](./src/main/resources/META-INF/services/io.camunda.connector.api.ConnectorFunction#L1) (rename)
->
-> ...and delete this hint.
+# Connector AWS lambda
 
-
-# Connector Template
-
-Camunda Connector Template
+Camunda AWS Lambda function connector
 
 ## Build
 
@@ -28,7 +14,16 @@ mvn clean package
 
 ```json
 {
-  "myProperty": "....."
+  "authentication": {
+    "secretKey": "secrets.SECRET_KEY",
+    "accessKey": "secrets.ACCESS_KEY",
+    "region": "secrets.REGION_KEY"
+  },
+  "function": {
+    "payload": "secrets.PAYLOAD_KEY",
+    "functionName": "secrets.FUNCTION_NAME",
+    "operationType": "secrets.OPERATION_TYPE"
+  }
 }
 ```
 
@@ -37,7 +32,9 @@ mvn clean package
 ```json
 {
   "result": {
-    "myProperty": "....."
+    "statusCode": ".....",
+    "executedVersion": ".....",
+    "payload": "....."
   }
 }
 ```
