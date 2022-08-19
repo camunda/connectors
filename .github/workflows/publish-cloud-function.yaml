@@ -21,7 +21,7 @@ jobs:
 
       - name: Import Secrets
         id: secrets # important to refer to it in later steps
-        uses: hashicorp/vault-action@v2.4.0
+        uses: hashicorp/vault-action@v2.4.1
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -31,8 +31,7 @@ jobs:
           secrets: |
             secret/data/products/connectors/ci/common ARTIFACTORY_USR;
             secret/data/products/connectors/ci/common ARTIFACTORY_PSW;
-
-      - uses: actions/setup-java@v3.4.0
+      - uses: actions/setup-java@v3.4.1
         with:
           distribution: 'temurin'
           java-version: '11'
@@ -64,7 +63,6 @@ jobs:
             </mirrors>
           </settings>
           EOF
-
       - name: Build Artifact
         run: mvn --batch-mode -U clean package -Pcloud-function
         env:
@@ -82,7 +80,6 @@ jobs:
             STAGE=dev
           fi
           echo ::set-output name=stage::${STAGE}
-
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v0.8.0
         with:
@@ -92,7 +89,7 @@ jobs:
       - name: Deploy Google Cloud Function
         uses: 'google-github-actions/deploy-cloud-functions@v0'
         with:
-          name: 'connector-sqs-${{ steps.deployment-stage.outputs.stage }}'
+          name: 'connector-aws-sqs-${{ steps.deployment-stage.outputs.stage }}'
           runtime: 'java11'
           entry_point: 'io.camunda.connector.runtime.cloud.CloudConnectorFunction'
           region: 'europe-west1'
@@ -109,4 +106,3 @@ jobs:
           generate_release_notes: true
           files: |
             target/*.jar
-
