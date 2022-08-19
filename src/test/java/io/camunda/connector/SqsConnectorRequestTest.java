@@ -40,10 +40,10 @@ class SqsConnectorRequestTest extends BaseTest {
 
     context =
         ConnectorContextBuilder.create()
-            .secret(SECRET_KEY, ACTUAL_SECRET_KEY)
-            .secret(ACCESS_KEY, ACTUAL_ACCESS_KEY)
-            .secret(QUEUE_REGION_KEY, ACTUAL_QUEUE_REGION)
-            .secret(QUEUE_URL_KEY, ACTUAL_QUEUE_URL)
+            .secret(AWS_SECRET_KEY, ACTUAL_SECRET_KEY)
+            .secret(AWS_ACCESS_KEY, ACTUAL_ACCESS_KEY)
+            .secret(SQS_QUEUE_REGION, ACTUAL_QUEUE_REGION)
+            .secret(SQS_QUEUE_URL, ACTUAL_QUEUE_URL)
             .build();
   }
 
@@ -77,9 +77,9 @@ class SqsConnectorRequestTest extends BaseTest {
   @Test
   void replaceSecrets_shouldReplaceSecrets() {
     // Given request with secrets. all secrets look like 'secrets.KEY'
-    request.getAuthentication().setAccessKey(SECRETS + ACCESS_KEY);
-    request.getAuthentication().setSecretKey(SECRETS + SECRET_KEY);
-    request.getQueue().setUrl(SECRETS + QUEUE_URL_KEY);
+    request.getAuthentication().setAccessKey(SECRETS + AWS_ACCESS_KEY);
+    request.getAuthentication().setSecretKey(SECRETS + AWS_SECRET_KEY);
+    request.getQueue().setUrl(SECRETS + SQS_QUEUE_URL);
 
     // When replace secrets
     context.replaceSecrets(request);
@@ -92,14 +92,14 @@ class SqsConnectorRequestTest extends BaseTest {
   @Test
   void replaceSecrets_shouldDoNotReplaceSecretsIfTheyDidNotStartFromSecretsWord() {
     // Given request with data that not started from secrets. and context with secret store
-    request.getAuthentication().setSecretKey(SECRET_KEY);
-    request.getAuthentication().setAccessKey(ACCESS_KEY);
-    request.getQueue().setUrl(QUEUE_URL_KEY);
+    request.getAuthentication().setSecretKey(AWS_SECRET_KEY);
+    request.getAuthentication().setAccessKey(AWS_ACCESS_KEY);
+    request.getQueue().setUrl(SQS_QUEUE_URL);
     // When replace secrets
     context.replaceSecrets(request);
     // Then secrets must be not replaced
-    assertEquals(request.getAuthentication().getSecretKey(), SECRET_KEY);
-    assertEquals(request.getAuthentication().getAccessKey(), ACCESS_KEY);
-    assertEquals(request.getQueue().getUrl(), QUEUE_URL_KEY);
+    assertEquals(request.getAuthentication().getSecretKey(), AWS_SECRET_KEY);
+    assertEquals(request.getAuthentication().getAccessKey(), AWS_ACCESS_KEY);
+    assertEquals(request.getQueue().getUrl(), SQS_QUEUE_URL);
   }
 }

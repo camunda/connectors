@@ -15,18 +15,25 @@ mvn clean package
 ```json
 {
   "authentication":{
-    "secretKey":"secrets.AWS_ACCESS_KEY",
-    "accessKey":"secrets.AWS_SECRET_KEY"
+    "secretKey":"secrets.AWS_SECRET_KEY",
+    "accessKey":"secrets.AWS_ACCESS_KEY"
   },
   "queue":{
     "messageAttributes":{
-      "size":"2kb"
+      "attribute2":{
+        "StringValue":"attribute 2 value",
+        "DataType":"String"
+      },
+      "attribute1":{
+        "StringValue":"attribute 1 value",
+        "DataType":"String"
+      }
     },
     "messageBody":{
       "data":"ok"
     },
-    "url":"secrets.MY_QUEUE_URL",
-    "region":"us-east-1"
+    "region":"us-east-1",
+    "url":"https://sqs.us-east-1.amazonaws.com/000000000/my-sqs"
   }
 }
 ```

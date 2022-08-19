@@ -16,9 +16,11 @@
  */
 package io.camunda.connector.model;
 
+import com.amazonaws.services.sqs.model.MessageAttributeValue;
 import io.camunda.connector.api.ConnectorInput;
 import io.camunda.connector.api.SecretStore;
 import io.camunda.connector.api.Validator;
+import java.util.Map;
 import java.util.Objects;
 
 public class QueueRequestData implements ConnectorInput {
@@ -26,7 +28,7 @@ public class QueueRequestData implements ConnectorInput {
   private String url;
   private String region;
   private Object messageBody; // we don't need to know the customer message as we will pass it as-is
-  private Object messageAttributes;
+  private Map<String, MessageAttributeValue> messageAttributes;
 
   @Override
   public void validateWith(final Validator validator) {
@@ -64,11 +66,11 @@ public class QueueRequestData implements ConnectorInput {
     this.messageBody = messageBody;
   }
 
-  public Object getMessageAttributes() {
+  public Map<String, MessageAttributeValue> getMessageAttributes() {
     return messageAttributes;
   }
 
-  public void setMessageAttributes(Object messageAttributes) {
+  public void setMessageAttributes(Map<String, MessageAttributeValue> messageAttributes) {
     this.messageAttributes = messageAttributes;
   }
 
