@@ -13,7 +13,7 @@
   <description>Camunda AWS SQS Connector</description>
   <artifactId>connector-sqs</artifactId>
   <packaging>jar</packaging>
-  <version>0.1.0-rc3</version>
+  <version>0.1.0-SNAPSHOT</version>
 
   <properties>
     <version.aws-java-sdk-sqs>1.12.248</version.aws-java-sdk-sqs>
