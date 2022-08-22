@@ -1,31 +1,28 @@
 [
   {
     "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-    "name": "Template: Some Function",
-    "id": "io.camunda.connectors.Template.v1",
-    "description": "Describe this connector",
-    "documentationRef": "https://docs.camunda.io/docs/components/modeler/web-modeler/connectors/available-connectors/template/",
-    "icon": {
-      "contents": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20height%3D%2218%22%20width%3D%2218%22%20viewBox%3D%220%200%2010%2010%22%20shape-rendering%3D%22geometricPrecision%22%3E%3Ctitle%3ESlack%3C%2Ftitle%3E%3Cg%20fill%3D%22none%22%3E%3Cpath%20d%3D%22M0%2C0%20L0%2C10%20L10%2C10%20L10%2C0%20z%22%20fill%3D%22%23ecb12f%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E"
-    },
+    "name": "AWS Lambda",
+    "id": "io.camunda.connectors.AWSLambda.v1",
+    "description": "An AWS Lambda Connector - Invoke an AWS Cloud Lambda Function",
     "category": {
       "id": "connectors",
       "name": "Connectors"
     },
     "appliesTo": [
-      "bpmn:Task"
+      "bpmn:ServiceTask"
     ],
-    "elementType": {
-      "value": "bpmn:ServiceTask"
-    },
     "groups": [
       {
         "id": "authentication",
         "label": "Authentication"
       },
       {
-        "id": "compose",
-        "label": "Compose"
+        "id": "operation",
+        "label": "Operation Type"
+      },
+      {
+        "id": "operationDetails",
+        "label": "Operation Details"
       },
       {
         "id": "output",
@@ -35,40 +32,107 @@
     "properties": [
       {
         "type": "Hidden",
-        "value": "io.camunda:template:1",
+        "value": "io.camunda:aws-lambda:1",
         "binding": {
           "type": "zeebe:taskDefinition:type"
         }
       },
       {
-        "label": "OAuth Token",
+        "label": "AWS Access Key",
+        "description": "Provide an access key of a user with permissions to invoke specified AWS Lambda Function",
+        "group": "authentication",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.accessKey"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "AWS Secret Key",
+        "description": "Provide a secret key of a user with permissions to invoke specified AWS Lambda Function",
+        "group": "authentication",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.secretKey"
+        },
+        "constraints": {
+          "notEmpty": true
+        }
+      },
+      {
+        "label": "Region",
+        "description": "Specify the AWS region",
         "group": "authentication",
         "type": "String",
         "feel": "optional",
         "binding": {
           "type": "zeebe:input",
-          "name": "token"
+          "name": "authentication.region"
         },
         "constraints": {
-          "notEmpty": true
+          "notEmpty": true,
+          "maxLength": 255
         }
       },
       {
-        "label": "Message",
-        "group": "compose",
-        "type": "Text",
+        "id": "operationType",
+        "label": "Select Operation",
+        "group": "operation",
+        "type": "Dropdown",
+        "value": "sync",
+        "choices": [
+          {
+            "name": "Invoke function (sync)",
+            "value": "sync"
+          }
+        ],
+        "binding": {
+          "type": "zeebe:input",
+          "name": "function.operationType",
+          "key": "function.operationType"
+        }
+      },
+      {
+        "label": "Function name",
+        "description": "Enter a name, ARI or alias of your function",
+        "group": "operationDetails",
+        "type": "String",
         "feel": "optional",
         "binding": {
           "type": "zeebe:input",
-          "name": "data.message"
+          "name": "function.name"
         },
         "constraints": {
-          "notEmpty": true
+          "notEmpty": true,
+          "maxLength": 255
+        },
+        "condition": {
+          "property": "operationType",
+          "equals": "sync"
+        }
+      },
+      {
+        "label": "Payload",
+        "description": "Provide payload for your function as JSON",
+        "group": "operationDetails",
+        "type": "Text",
+        "feel": "required",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "function.payload"
+        },
+        "condition": {
+          "property": "operationType",
+          "equals": "sync"
         }
       },
       {
         "label": "Result Variable",
-        "description": "Name of variable to store the response in",
+        "description": "Enter name of variable to store the response in",
         "group": "output",
         "type": "String",
         "binding": {
@@ -87,6 +151,9 @@
           "key": "resultExpression"
         }
       }
-    ]
+    ],
+    "icon": {
+      "contents": "data:image/svg+xml;utf8,%3Csvg width='18' height='18' viewBox='0 0 79.375 79.375' version='1.1' id='svg5' inkscape:version='1.1.1 (3bf5ae0d25, 2021-09-20)' sodipodi:docname='Amazon Lambda architecture logo.svg' xmlns:inkscape='http://www.inkscape.org/namespaces/inkscape' xmlns:sodipodi='http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd' xmlns='http://www.w3.org/2000/svg' xmlns:svg='http://www.w3.org/2000/svg'%3E%3Csodipodi:namedview id='namedview7' pagecolor='%23ffffff' bordercolor='%23111111' borderopacity='1' inkscape:pageshadow='0' inkscape:pageopacity='0' inkscape:pagecheckerboard='1' inkscape:document-units='mm' showgrid='true' fit-margin-top='0' fit-margin-left='0' fit-margin-right='0' fit-margin-bottom='0' inkscape:zoom='1.4467452' inkscape:cx='133.7485' inkscape:cy='89.511268' inkscape:window-width='1920' inkscape:window-height='1001' inkscape:window-x='-9' inkscape:window-y='-9' inkscape:window-maximized='1' inkscape:current-layer='layer1'%3E%3Cinkscape:grid type='xygrid' id='grid836' enabled='true'/%3E%3C/sodipodi:namedview%3E%3Cdefs id='defs2'/%3E%3Cg inkscape:label='Layer 1' inkscape:groupmode='layer' id='layer1' transform='translate(-59.800182,-58.702892)'%3E%3Crect style='fill:%23d86613;fill-opacity:1;stroke:none;stroke-width:2.05;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stop-color:%23000000' id='rect6798' width='79.375' height='79.375' x='59.800182' y='58.702892'/%3E%3Cpath style='fill:none;fill-opacity:0.992157;stroke:%23ffffff;stroke-width:2.05;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stop-color:%23000000' d='m 83.711974,73.081971 v 11.544412 h 8.138237 L 110.8242,123.71736 h 13.03032 v -11.47583 h -5.05211 L 99.80557,73.081971 Z' id='path1212'/%3E%3Cpath style='fill:none;fill-opacity:1;stroke:%23ffffff;stroke-width:2.05;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stop-color:%23000000' d='M 89.543079,93.570702 96.332218,107.55632 88.961152,123.62 H 75.350544 Z' id='path1214'/%3E%3C/g%3E%3C/svg%3E"
+    }
   }
 ]
