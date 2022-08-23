@@ -91,7 +91,7 @@ jobs:
       - name: Deploy Google Cloud Function
         uses: 'google-github-actions/deploy-cloud-functions@v0'
         with:
-          name: 'connector-template-${{ steps.deployment-stage.outputs.stage }}'
+          name: 'connector-aws-lambda-${{ steps.deployment-stage.outputs.stage }}'
           runtime: 'java11'
           entry_point: 'io.camunda.connector.runtime.cloud.CloudConnectorFunction'
           region: 'europe-west1'

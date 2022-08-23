@@ -14,58 +14,55 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector;
+
+package io.camunda.connector.awslambda.model;
 
 import io.camunda.connector.api.ConnectorInput;
 import io.camunda.connector.api.SecretStore;
 import io.camunda.connector.api.Validator;
-import java.util.Objects;
 
-public class MyConnectorRequest implements ConnectorInput {
+public class AwsLambdaRequest implements ConnectorInput {
 
-  private String myProperty;
-
-  // TODO: add request properties
+  private AuthenticationRequestData authentication;
+  private FunctionRequestData function;
 
   @Override
   public void validateWith(final Validator validator) {
-    validator.require(myProperty, "my property");
-    // TODO: validate request properties
+    validator.require(authentication, "AuthenticationRequestData");
+    validator.require(function, "FunctionRequestData");
+    authentication.validateWith(validator);
+    function.validateWith(validator);
   }
 
   @Override
   public void replaceSecrets(final SecretStore secretStore) {
-    // TODO: replace secrets in request properties
-    myProperty = secretStore.replaceSecret(myProperty);
+    authentication.replaceSecrets(secretStore);
+    function.replaceSecrets(secretStore);
   }
 
-  public String getMyProperty() {
-    return myProperty;
+  public AuthenticationRequestData getAuthentication() {
+    return authentication;
   }
 
-  public void setMyProperty(final String myProperty) {
-    this.myProperty = myProperty;
+  public void setAuthentication(final AuthenticationRequestData authentication) {
+    this.authentication = authentication;
   }
 
-  @Override
-  public boolean equals(final Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    final MyConnectorRequest that = (MyConnectorRequest) o;
-    return Objects.equals(myProperty, that.myProperty);
+  public FunctionRequestData getFunction() {
+    return function;
   }
 
-  @Override
-  public int hashCode() {
-    return Objects.hash(myProperty);
+  public void setFunction(final FunctionRequestData function) {
+    this.function = function;
   }
 
   @Override
   public String toString() {
-    return "MyConnectorRequest{" + "myProperty='" + myProperty + '\'' + '}';
+    return "AwsLambdaRequest{"
+        + "authentication="
+        + authentication
+        + ", function="
+        + function
+        + "}";
   }
 }
