@@ -62,13 +62,17 @@ limitations under the License.</license.inlineheader>
     <nexus.release.repository>https://artifacts.camunda.com/artifactory/connectors/</nexus.release.repository>
     <nexus.sonatype.url>https://s01.oss.sonatype.org</nexus.sonatype.url>
 
-    <!-- external libraries -->
-    <version.slf4j>1.7.36</version.slf4j>
+    <!-- Camunda internal libraries -->
     <version.zeebe>8.0.3</version.zeebe>
+    <version.feel-engine>1.15.1</version.feel-engine>
+
+    <!-- Third party dependencies -->
+    <version.slf4j>1.7.36</version.slf4j>
     <version.gson>2.9.0</version.gson>
     <version.mockito>4.6.1</version.mockito>
     <version.junit-jupiter>5.8.2</version.junit-jupiter>
     <version.assertj>3.23.1</version.assertj>
+    <version.jackson-module-scala>2.13.3</version.jackson-module-scala>
 
     <!-- maven plugins (not managed by parent) -->
     <plugin.version.function-maven-plugin>0.10.0</plugin.version.function-maven-plugin>
@@ -95,6 +99,12 @@ limitations under the License.</license.inlineheader>
         <artifactId>zeebe-client-java</artifactId>
         <version>${version.zeebe}</version>
       </dependency>
+
+      <dependency>
+        <groupId>org.camunda.feel</groupId>
+        <artifactId>feel-engine</artifactId>
+        <version>${version.feel-engine}</version>
+      </dependency>
       
       <!-- Third party dependencies -->
       <dependency>
@@ -113,6 +123,12 @@ limitations under the License.</license.inlineheader>
         <groupId>com.google.code.gson</groupId>
         <artifactId>gson</artifactId>
         <version>${version.gson}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.fasterxml.jackson.module</groupId>
+        <artifactId>jackson-module-scala_2.13</artifactId>
+        <version>${version.jackson-module-scala}</version>
       </dependency>
 
       <!-- test dependencies -->
