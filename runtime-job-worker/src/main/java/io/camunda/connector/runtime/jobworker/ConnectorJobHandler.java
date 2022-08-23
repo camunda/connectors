@@ -17,14 +17,19 @@
 
 package io.camunda.connector.runtime.jobworker;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.ConnectorContext;
 import io.camunda.connector.api.ConnectorFunction;
 import io.camunda.connector.api.ConnectorInput;
 import io.camunda.connector.api.SecretProvider;
 import io.camunda.connector.api.SecretStore;
+import io.camunda.connector.runtime.jobworker.feel.FeelEngineWrapper;
+import io.camunda.connector.runtime.jobworker.feel.FeelEngineWrapperException;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import io.camunda.zeebe.client.api.worker.JobClient;
 import io.camunda.zeebe.client.api.worker.JobHandler;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.ServiceLoader;
@@ -36,9 +41,14 @@ public class ConnectorJobHandler implements JobHandler {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ConnectorJobHandler.class);
 
-  protected static final String RESULT_VARIABLE_HEADER_NAME = "resultVariable";
+  private static final String ERROR_CANNOT_PARSE_VARIABLES = "Cannot parse variables";
 
+  protected static final String RESULT_VARIABLE_HEADER_NAME = "resultVariable";
+  protected static final String RESULT_EXPRESSION_HEADER_NAME = "resultExpression";
+
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   private final ConnectorFunction call;
+  private final FeelEngineWrapper feelEngineWrapper;
 
   /**
    * Create a handler wrapper for the specified connector function.
@@ -47,6 +57,7 @@ public class ConnectorJobHandler implements JobHandler {
    */
   public ConnectorJobHandler(final ConnectorFunction call) {
     this.call = call;
+    this.feelEngineWrapper = new FeelEngineWrapper();
   }
 
   @Override
@@ -74,10 +85,29 @@ public class ConnectorJobHandler implements JobHandler {
 
   protected Map<String, Object> createOutputVariables(
       final Object responseContent, final Map<String, String> jobHeaders) {
-    return Optional.ofNullable(jobHeaders)
-        .map(headers -> headers.get(RESULT_VARIABLE_HEADER_NAME))
-        .map(resultVariableName -> Map.of(resultVariableName, responseContent))
-        .orElseGet(Map::of);
+    final Map<String, Object> outputVariables = new HashMap<>();
+    final var resultVariableName = jobHeaders.get(RESULT_VARIABLE_HEADER_NAME);
+    final var resultExpression = jobHeaders.get(RESULT_EXPRESSION_HEADER_NAME);
+
+    if (resultVariableName != null) {
+      outputVariables.put(resultVariableName, responseContent);
+    }
+
+    Optional.ofNullable(resultExpression)
+        .map(expression -> feelEngineWrapper.evaluateToJson(expression, responseContent))
+        .map(json -> parseJsonVarsAsMapOrThrow(json, resultExpression))
+        .ifPresent(map -> outputVariables.putAll(map));
+
+    return outputVariables;
+  }
+
+  private Map<String, Object> parseJsonVarsAsMapOrThrow(
+      final String jsonVars, final String expression) {
+    try {
+      return OBJECT_MAPPER.readValue(jsonVars, Map.class);
+    } catch (JsonProcessingException e) {
+      throw new FeelEngineWrapperException(ERROR_CANNOT_PARSE_VARIABLES, expression, jsonVars, e);
+    }
   }
 
   protected SecretProvider getSecretProvider() {

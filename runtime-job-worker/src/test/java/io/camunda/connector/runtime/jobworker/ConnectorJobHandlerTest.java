@@ -17,10 +17,14 @@
 
 package io.camunda.connector.runtime.jobworker;
 
+import static io.camunda.connector.runtime.jobworker.ConnectorJobHandler.RESULT_EXPRESSION_HEADER_NAME;
+import static io.camunda.connector.runtime.jobworker.ConnectorJobHandler.RESULT_VARIABLE_HEADER_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.api.ConnectorFunction;
 import io.camunda.connector.api.SecretProvider;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -31,18 +35,17 @@ public class ConnectorJobHandlerTest {
   class Secrets {
 
     @Test
-    public void shouldReplaceSecretsViaSpiLoadedProvider() throws Exception {
+    public void shouldReplaceSecretsViaSpiLoadedProvider() {
       // given
       var jobHandler =
           new ConnectorJobHandler(
-              (context) -> {
-                return context
-                    .getSecretStore()
-                    .replaceSecret("secrets." + TestSecretProvider.SECRET_NAME);
-              });
+              (context) ->
+                  context
+                      .getSecretStore()
+                      .replaceSecret("secrets." + TestSecretProvider.SECRET_NAME));
 
       // when
-      var result = JobBuilder.create().withResultHeader("result").execute(jobHandler);
+      var result = JobBuilder.create().withResultVariableHeader("result").execute(jobHandler);
 
       // then
       assertThat(result.getVariable("result")).isEqualTo(TestSecretProvider.SECRET_VALUE);
@@ -53,14 +56,13 @@ public class ConnectorJobHandlerTest {
       // given
       var jobHandler =
           new TestConnectorJobHandler(
-              (context) -> {
-                return context
-                    .getSecretStore()
-                    .replaceSecret("secrets." + TestSecretProvider.SECRET_NAME);
-              });
+              (context) ->
+                  context
+                      .getSecretStore()
+                      .replaceSecret("secrets." + TestSecretProvider.SECRET_NAME));
 
       // when
-      var result = JobBuilder.create().withResultHeader("result").execute(jobHandler);
+      var result = JobBuilder.create().withResultVariableHeader("result").execute(jobHandler);
 
       // then
       assertThat(result.getVariable("result")).isEqualTo("baz");
@@ -71,14 +73,9 @@ public class ConnectorJobHandlerTest {
   class Output {
 
     @Test
-    public void shouldNotSetWithoutResultVariable() throws Exception {
-
+    public void shouldNotSetWithoutResultVariable() {
       // given
-      var jobHandler =
-          new ConnectorJobHandler(
-              (context) -> {
-                return Map.of("hello", "world");
-              });
+      var jobHandler = new ConnectorJobHandler((context) -> Map.of("hello", "world"));
 
       // when
       var result = JobBuilder.create().execute(jobHandler);
@@ -88,20 +85,122 @@ public class ConnectorJobHandlerTest {
     }
 
     @Test
-    public void shouldSetToResultVariable() throws Exception {
-
+    public void shouldSetToResultVariable() {
       // given
-      var jobHandler =
-          new ConnectorJobHandler(
-              (context) -> {
-                return Map.of("hello", "world");
-              });
+      var jobHandler = new ConnectorJobHandler((context) -> Map.of("hello", "world"));
 
       // when
-      var result = JobBuilder.create().withResultHeader("result").execute(jobHandler);
+      var result = JobBuilder.create().withResultVariableHeader("result").execute(jobHandler);
 
       // then
       assertThat(result.getVariables()).isEqualTo(Map.of("result", Map.of("hello", "world")));
+    }
+
+    @Test
+    public void shouldSetToResultExpression() {
+      // given
+      // Response from service -> {"callStatus":{"statusCode":"200 OK"}}
+      var jobHandler =
+          new ConnectorJobHandler(
+              (context) -> Map.of("callStatus", Map.of("statusCode", "200 OK")));
+
+      // FEEL expression -> {"processedOutput":response.callStatus}
+      final String resultExpression = "{\"processedOutput\": response.callStatus }";
+
+      // when
+      var result =
+          JobBuilder.create().withResultExpressionHeader(resultExpression).execute(jobHandler);
+
+      // then
+      assertThat(result.getVariables())
+          .isEqualTo(Map.of("processedOutput", Map.of("statusCode", "200 OK")));
+    }
+
+    @Test
+    public void shouldSetBothResultVariableAndExpression() {
+      // given
+      // Response from service -> {"callStatus":{"statusCode":"200 OK"}}
+      var jobHandler =
+          new ConnectorJobHandler(
+              (context) -> Map.of("callStatus", Map.of("statusCode", "200 OK")));
+
+      final String resultVariable = "result";
+
+      // FEEL expression -> {"processedOutput":response.callStatus}
+      final String resultExpression = "{\"processedOutput\": response.callStatus }";
+
+      // when
+      var result =
+          JobBuilder.create()
+              .withHeaders(
+                  Map.of(
+                      RESULT_VARIABLE_HEADER_NAME, resultVariable,
+                      RESULT_EXPRESSION_HEADER_NAME, resultExpression))
+              .execute(jobHandler);
+
+      // then
+      assertThat(result.getVariables().size()).isEqualTo(2);
+      assertThat(result.getVariable("processedOutput")).isEqualTo(Map.of("statusCode", "200 OK"));
+      assertThat(result.getVariable(resultVariable))
+          .isEqualTo(Map.of("callStatus", Map.of("statusCode", "200 OK")));
+    }
+
+    @Test
+    public void shouldSetResultVariableNullWhenCallReturnedNull() {
+      // given
+      final ConnectorJobHandler jobHandler = new ConnectorJobHandler((ctx) -> null);
+      final String resultVariableName = "result";
+
+      // when
+      final JobBuilder.JobResult result =
+          JobBuilder.create().withResultVariableHeader(resultVariableName).execute(jobHandler);
+
+      // then
+      assertThat(result.getVariables()).containsKey(resultVariableName);
+      assertThat(result.getVariable(resultVariableName)).isNull();
+      assertThat(result.getVariables().size()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldSetResultVariableEmptyWhenCallReturnedEmpty() {
+      // given
+      final ConnectorJobHandler jobHandler = new ConnectorJobHandler((ctx) -> new HashMap());
+      final String resultVariableName = "result";
+
+      // when
+      final JobBuilder.JobResult result =
+          JobBuilder.create().withResultVariableHeader(resultVariableName).execute(jobHandler);
+
+      // then
+      assertThat(result.getVariables()).containsKey(resultVariableName);
+      assertThat(result.getVariable(resultVariableName)).isEqualTo(Collections.EMPTY_MAP);
+      assertThat(result.getVariables().size()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldProduceFailCommandWhenResultExpressionIsDefinedAndCallReturnedNull() {
+      // given
+      // Response from service -> null
+      var jobHandler = new ConnectorJobHandler((context) -> null);
+
+      // FEEL expression -> {"processedOutput":response.callStatus}
+      final String resultExpression = "{\"processedOutput\": response.callStatus }";
+
+      // when & then
+      JobBuilder.create().withResultExpressionHeader(resultExpression).execute(jobHandler, false);
+    }
+
+    @Test
+    public void shouldProduceFailCommandWhenResultExpressionIsDefinedAndCallReturnedEmpty() {
+      // given
+      // Response from service -> empty
+      var jobHandler = new ConnectorJobHandler((context) -> new HashMap<>());
+
+      // FEEL expression -> {"processedOutput":response.callStatus}
+      final String resultExpression = "{\"processedOutput\": response.callStatus }";
+
+      // when & then
+      JobBuilder.create().withResultExpressionHeader(resultExpression).execute(jobHandler, false);
     }
   }
 

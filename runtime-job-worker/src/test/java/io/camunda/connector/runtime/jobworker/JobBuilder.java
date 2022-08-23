@@ -16,13 +16,19 @@
  */
 package io.camunda.connector.runtime.jobworker;
 
+import static io.camunda.connector.runtime.jobworker.ConnectorJobHandler.RESULT_EXPRESSION_HEADER_NAME;
 import static io.camunda.connector.runtime.jobworker.ConnectorJobHandler.RESULT_VARIABLE_HEADER_NAME;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import io.camunda.zeebe.client.api.command.CompleteJobCommandStep1;
+import io.camunda.zeebe.client.api.command.FailJobCommandStep1;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import io.camunda.zeebe.client.api.worker.JobClient;
+import java.util.Collections;
 import java.util.Map;
 import org.mockito.ArgumentCaptor;
 
@@ -33,14 +39,17 @@ class JobBuilder {
     private final JobClient jobClient;
     private final ActivatedJob job;
     private final CompleteJobCommandStep1 completeCommand;
+    private final FailJobCommandStep1 failCommand;
 
     public JobBuilderStep() {
 
       this.jobClient = mock(JobClient.class);
       this.job = mock(ActivatedJob.class);
       this.completeCommand = mock(CompleteJobCommandStep1.class, RETURNS_DEEP_STUBS);
+      this.failCommand = mock(FailJobCommandStep1.class, RETURNS_DEEP_STUBS);
 
       when(jobClient.newCompleteCommand(any())).thenReturn(completeCommand);
+      when(jobClient.newFailCommand(any())).thenReturn(failCommand);
       when(job.getKey()).thenReturn(-1l);
     }
 
@@ -50,8 +59,12 @@ class JobBuilder {
       return this;
     }
 
-    public JobBuilderStep withResultHeader(String value) {
+    public JobBuilderStep withResultVariableHeader(final String value) {
       return withHeader(RESULT_VARIABLE_HEADER_NAME, value);
+    }
+
+    public JobBuilderStep withResultExpressionHeader(final String value) {
+      return withHeader(RESULT_EXPRESSION_HEADER_NAME, value);
     }
 
     public JobBuilderStep withHeader(String key, String value) {
@@ -59,16 +72,23 @@ class JobBuilder {
     }
 
     public JobResult execute(ConnectorJobHandler connectorJobHandler) {
+      return execute(connectorJobHandler, true);
+    }
+
+    public JobResult execute(ConnectorJobHandler connectorJobHandler, boolean expectComplete) {
 
       // when
       connectorJobHandler.handle(jobClient, job);
 
-      var variablesCaptor = ArgumentCaptor.forClass(Map.class);
-
-      // then
-      verify(completeCommand).variables(variablesCaptor.capture());
-
-      return new JobResult(variablesCaptor.getValue());
+      if (expectComplete) {
+        var variablesCaptor = ArgumentCaptor.forClass(Map.class);
+        // then
+        verify(completeCommand).variables(variablesCaptor.capture());
+        return new JobResult(variablesCaptor.getValue());
+      } else {
+        verify(failCommand).retries(0);
+        return new JobResult(Collections.emptyMap());
+      }
     }
   }
 
