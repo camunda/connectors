@@ -24,7 +24,7 @@ The user configures the inbound webhook connector via `zeebe.property` bindings:
       <!-- type of inbound connector -->
       <zeebe:property name="inbound.type" value="webhook" />
 
-      <!-- available via INBOUND_BASE/GITHUB_INBOUND -->
+      <!-- available via ${INBOUND_BASE}/GITHUB_INBOUND -->
       <zeebe:property name="inbound.context" value="GITHUB_INBOUND" />
 
       <!-- where to get the inbound secret from to validate against -->
