@@ -14,7 +14,7 @@ We use the following example to showcase inbound capabilities:
 
 ## How does it work
 
-The user configures the inbound webhook connector via `zeebe.property` bindings:
+The user configures the inbound webhook connector via `zeebe.property` bindings on the `bpmn:StartEvent`:
 
 ```xml
 <bpmn:startEvent id="StartEvent_1" name="New Pull Request Opened">
