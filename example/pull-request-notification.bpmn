@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Web Modeler" exporterVersion="538d40a" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.0.0">
+  <bpmn:process id="Process_e5cb2bfd-42f8-494a-b95e-e0947dff037e" name="Pull Request Notification"isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1" name="New Pull Request Opened">
+      <bpmn:outgoing>Flow_147usyy</bpmn:outgoing>
+      <bpmn:extensionElements>
+        <zeebe:properties>
+          <zeebe:property name="inbound.type" value="webhook" />
+          <!-- available via INBOUND_BASE/FOOBAR -->
+          <zeebe:property name="inbound.context" value="GITHUB_INBOUND" />
+          <zeebe:property name="inbound.secretExtractor" value="=headers['X-Hub-Signature']" />
+          <zeebe:property name="inbound.activationCondition" value="=(&#38;#10;  request.body.action = &#34;opened&#34; and &#38;#10;  starts with(request.body.repository.full_name, &#34;camunda/&#34;)&#38;#10;)" />
+          <zeebe:property name="inbound.variableMapping" value="={&#38;#10;  &#34;githubLoginToSlackMapping&#34;: {&#38;#10;    &#34;nikku&#34;: &#34;Nico Rehwaldt&#34;,&#38;#10;    &#34;menski&#34;: &#34;menski&#34;&#38;#10;  },&#38;#10;  &#34;pull_request&#34;: {&#38;#10;    &#34;htmlURL&#34;: request.body.pull_request.html_url,&#38;#10;    &#34;githubUser&#34;: request.body.pull_request.user.login,&#38;#10;    &#34;githubUserURL&#34;: request.body.pull_request.user.html_url,&#38;#10;    &#34;userLink&#34;: (&#38;#10;      if githubLoginToSlackMapping[githubUser] then &#38;#10;        &#34;@&#34; + githubLoginToSlackMapping[githubUser]&#38;#10;      else &#38;#10;        &#34;GitHub user &#60;&#34; + githubUserURL + &#34;|&#34; + githubUser + &#34;&#62;&#34;&#38;#10;    )&#38;#10;  }&#38;#10;}" />
+        </zeebe:properties>
+      </bpmn:extensionElements>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="Flow_147usyy" sourceRef="StartEvent_1" targetRef="Activity_1fbr5ma" />
+    <bpmn:serviceTask id="Activity_1fbr5ma" name="Notify Team" zeebe:modelerTemplate="io.camunda.connectors.Slack.v1" zeebe:modelerTemplateIcon="data:image/svg+xml;utf8,%3Csvg%20width%3D%2218%22%20height%3D%2218%22%20%20viewBox%3D%220%200%20127%20127%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%20%20%3Cpath%20d%3D%22M27.2%2080c0%207.3-5.9%2013.2-13.2%2013.2C6.7%2093.2.8%2087.3.8%2080c0-7.3%205.9-13.2%2013.2-13.2h13.2V80zm6.6%200c0-7.3%205.9-13.2%2013.2-13.2%207.3%200%2013.2%205.9%2013.2%2013.2v33c0%207.3-5.9%2013.2-13.2%2013.2-7.3%200-13.2-5.9-13.2-13.2V80z%22%20fill%3D%22%23E01E5A%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M47%2027c-7.3%200-13.2-5.9-13.2-13.2C33.8%206.5%2039.7.6%2047%20.6c7.3%200%2013.2%205.9%2013.2%2013.2V27H47zm0%206.7c7.3%200%2013.2%205.9%2013.2%2013.2%200%207.3-5.9%2013.2-13.2%2013.2H13.9C6.6%2060.1.7%2054.2.7%2046.9c0-7.3%205.9-13.2%2013.2-13.2H47z%22%20fill%3D%22%2336C5F0%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M99.9%2046.9c0-7.3%205.9-13.2%2013.2-13.2%207.3%200%2013.2%205.9%2013.2%2013.2%200%207.3-5.9%2013.2-13.2%2013.2H99.9V46.9zm-6.6%200c0%207.3-5.9%2013.2-13.2%2013.2-7.3%200-13.2-5.9-13.2-13.2V13.8C66.9%206.5%2072.8.6%2080.1.6c7.3%200%2013.2%205.9%2013.2%2013.2v33.1z%22%20fill%3D%22%232EB67D%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M80.1%2099.8c7.3%200%2013.2%205.9%2013.2%2013.2%200%207.3-5.9%2013.2-13.2%2013.2-7.3%200-13.2-5.9-13.2-13.2V99.8h13.2zm0-6.6c-7.3%200-13.2-5.9-13.2-13.2%200-7.3%205.9-13.2%2013.2-13.2h33.1c7.3%200%2013.2%205.9%2013.2%2013.2%200%207.3-5.9%2013.2-13.2%2013.2H80.1z%22%20fill%3D%22%23ECB22E%22%2F%3E%0A%3C%2Fsvg%3E%0A">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="io.camunda:slack:1" />
+        <zeebe:ioMapping>
+          <zeebe:input source="chat.postMessage" target="method" />
+          <zeebe:input source="secrets.SLACK_TOKEN" target="token" />
+          <zeebe:input source="#general" target="data.channel" />
+          <zeebe:input source="=pull_request.userLink + &#38;#10;&#34; opened a new pull request: &#34; + &#38;#10;pull_request.htmlURL + &#34;. Please check it out!&#34;" target="data.text" />
+        </zeebe:ioMapping>
+        <zeebe:taskHeaders>
+          <zeebe:header key="resultVariable" />
+          <zeebe:header key="resultExpression" />
+        </zeebe:taskHeaders>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_147usyy</bpmn:incoming>
+      <bpmn:outgoing>Flow_18mjlo7</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="Event_1l2ca0e" name="Happy">
+      <bpmn:incoming>Flow_18mjlo7</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_18mjlo7" sourceRef="Activity_1fbr5ma" targetRef="Event_1l2ca0e" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_e5cb2bfd-42f8-494a-b95e-e0947dff037e">
+      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="StartEvent_1">
+        <dc:Bounds x="150" y="100" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="126" y="143" width="84" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1l2ca0e_di" bpmnElement="Event_1l2ca0e">
+        <dc:Bounds x="562" y="100" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="564" y="143" width="32" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1evl9zk_di" bpmnElement="Activity_1fbr5ma">
+        <dc:Bounds x="330" y="78" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_147usyy_di" bpmnElement="Flow_147usyy">
+        <di:waypoint x="186" y="118" />
+        <di:waypoint x="330" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_18mjlo7_di" bpmnElement="Flow_18mjlo7">
+        <di:waypoint x="430" y="118" />
+        <di:waypoint x="562" y="118" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
