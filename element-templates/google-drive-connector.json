@@ -1,9 +1,9 @@
 [
   {
     "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-    "name": "Google Drive",
+    "name": "Google Drive Connector (Bearer Token Auth or Refresh Token Auth)",
     "id": "io.camunda.connectors.GoogleDrive.v1",
-    "description": "A Google Drive Connector - Create a folder or a file from template.",
+    "description": "Create folder or a file from template",
     "category": {
       "id": "connectors",
       "name": "Connectors"
@@ -38,16 +38,93 @@
         }
       },
       {
+        "id": "authenticationType",
+        "label": "Authorization Type",
+        "group": "authentication",
+        "type": "Dropdown",
+        "value": "authentication.bearer",
+        "choices": [
+          {
+            "name": "Google Drive Bearer Token",
+            "value": "authentication.bearer"
+          },
+          {
+            "name": "Google Drive Refresh Token",
+            "value": "authentication.refresh"
+          }
+        ],
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.type",
+          "key": "authentication.type"
+        }
+      },
+      {
         "label": "Google Drive Bearer Token",
-        "description": "Provide a Google API Bearer token that is authorized to interact with desired Drive",
+        "description": "Enter Google API Bearer token that is authorized to interact with desired Drive",
         "group": "authentication",
         "type": "String",
         "binding": {
           "type": "zeebe:input",
-          "name": "token"
+          "name": "authentication.bearerToken"
         },
         "constraints": {
           "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "authentication.bearer"
+        }
+      },
+      {
+        "label": "Google Drive Client Id",
+        "description": "Enter Google API Client Id",
+        "group": "authentication",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.oauthClientId"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "authentication.refresh"
+        }
+      },
+      {
+        "label": "Google Drive Client Secret",
+        "description": "Enter Google API Client Secret",
+        "group": "authentication",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.oauthClientSecret"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "authentication.refresh"
+        }
+      },
+      {
+        "label": "Google Drive Refresh Token",
+        "description": "Enter Google API Refresh token that is authorized to interact with desired Drive",
+        "group": "authentication",
+        "type": "String",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "authentication.oauthrefreshToken"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "authenticationType",
+          "equals": "authentication.refresh"
         }
       },
       {
