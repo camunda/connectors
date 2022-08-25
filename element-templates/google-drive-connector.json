@@ -117,7 +117,7 @@
         "type": "String",
         "binding": {
           "type": "zeebe:input",
-          "name": "authentication.oauthrefreshToken"
+          "name": "authentication.oauthRefreshToken"
         },
         "constraints": {
           "notEmpty": true
