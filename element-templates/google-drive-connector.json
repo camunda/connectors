@@ -1,7 +1,7 @@
 [
   {
     "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-    "name": "Google Drive Connector (Bearer Token Auth or Refresh Token Auth)",
+    "name": "Google Drive Connector",
     "id": "io.camunda.connectors.GoogleDrive.v1",
     "description": "Create folder or a file from template",
     "category": {
@@ -39,17 +39,17 @@
       },
       {
         "id": "authenticationType",
-        "label": "Authorization Type",
+        "label": "Type",
         "group": "authentication",
         "type": "Dropdown",
         "value": "authentication.bearer",
         "choices": [
           {
-            "name": "Google Drive Bearer Token",
+            "name": "Bearer Token",
             "value": "authentication.bearer"
           },
           {
-            "name": "Google Drive Refresh Token",
+            "name": "Refresh Token",
             "value": "authentication.refresh"
           }
         ],
@@ -60,7 +60,7 @@
         }
       },
       {
-        "label": "Google Drive Bearer Token",
+        "label": "Bearer Token",
         "description": "Enter Google API Bearer token that is authorized to interact with desired Drive",
         "group": "authentication",
         "type": "String",
@@ -77,7 +77,7 @@
         }
       },
       {
-        "label": "Google Drive Client Id",
+        "label": "Client Id",
         "description": "Enter Google API Client Id",
         "group": "authentication",
         "type": "String",
@@ -94,7 +94,7 @@
         }
       },
       {
-        "label": "Google Drive Client Secret",
+        "label": "Client Secret",
         "description": "Enter Google API Client Secret",
         "group": "authentication",
         "type": "String",
@@ -111,7 +111,7 @@
         }
       },
       {
-        "label": "Google Drive Refresh Token",
+        "label": "Refresh Token",
         "description": "Enter Google API Refresh token that is authorized to interact with desired Drive",
         "group": "authentication",
         "type": "String",
@@ -129,9 +129,9 @@
       },
       {
         "id": "resourceType",
-        "label": "Operation Type",
         "group": "operation",
         "type": "Dropdown",
+        "label": "Type",
         "value": "folder",
         "choices": [
           {
