@@ -1,0 +1,52 @@
+[
+  {
+    "authentication": {
+      "accessKey": "secrets.ACCESS_KEY"
+    },
+    "function": {
+      "payload": "secrets.PAYLOAD_KEY",
+      "functionName": "secrets.FUNCTION_NAME",
+      "region": "secrets.REGION_KEY"
+    }
+  },
+  {
+    "authentication": {
+      "secretKey": "secrets.SECRET_KEY"
+    },
+    "function": {
+      "payload": "secrets.PAYLOAD_KEY",
+      "functionName": "secrets.FUNCTION_NAME",
+      "region": "secrets.REGION_KEY"
+    }
+  },
+  {
+    "authentication": {
+      "secretKey": "secrets.SECRET_KEY",
+      "accessKey": "secrets.ACCESS_KEY"
+    },
+    "function": {
+      "functionName": "secrets.FUNCTION_NAME",
+      "region": "secrets.REGION_KEY"
+    }
+  },
+  {
+    "authentication": {
+      "secretKey": "secrets.SECRET_KEY",
+      "accessKey": "secrets.ACCESS_KEY"
+    },
+    "function": {
+      "payload": "secrets.PAYLOAD_KEY",
+      "region": "secrets.REGION_KEY"
+    }
+  },
+  {
+    "authentication": {
+      "secretKey": "secrets.SECRET_KEY",
+      "accessKey": "secrets.ACCESS_KEY"
+    },
+    "function": {
+      "payload": "secrets.PAYLOAD_KEY",
+      "functionName": "secrets.FUNCTION_NAME"
+    }
+  }
+]
