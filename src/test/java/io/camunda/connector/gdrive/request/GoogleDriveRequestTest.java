@@ -43,11 +43,35 @@ class GoogleDriveRequestTest extends BaseTest {
     // Given
     GoogleDriveRequest request = parseInput(input, GoogleDriveRequest.class);
     ConnectorContext context =
-        ConnectorContextBuilder.create().secret(SECRET_TOKEN, ACTUAL_TOKEN).build();
+        ConnectorContextBuilder.create()
+            .secret(SECRET_BEARER_TOKEN, ACTUAL_BEARER_TOKEN)
+            .secret(SECRET_REFRESH_TOKEN, ACTUAL_REFRESH_TOKEN)
+            .secret(SECRET_OAUTH_CLIENT_ID, ACTUAL_OAUTH_CLIENT_ID)
+            .secret(SECRET_OAUTH_SECRET_ID, ACTUAL_OAUTH_SECRET_ID)
+            .build();
+
     // When
     context.replaceSecrets(request);
+
     // Then
-    assertThat(request.getAuthentication().getBearerToken()).isNotNull().isEqualTo(ACTUAL_TOKEN);
+    // FIXME: move to enum
+    if ("bearer".equals(request.getAuthentication().getAuthType())) {
+      assertThat(request.getAuthentication().getBearerToken())
+          .isNotNull()
+          .isEqualTo(ACTUAL_BEARER_TOKEN);
+    }
+
+    if ("refresh".equals(request.getAuthentication().getAuthType())) {
+      assertThat(request.getAuthentication().getOauthClientId())
+          .isNotNull()
+          .isEqualTo(ACTUAL_OAUTH_CLIENT_ID);
+      assertThat(request.getAuthentication().getOauthClientSecret())
+          .isNotNull()
+          .isEqualTo(ACTUAL_OAUTH_SECRET_ID);
+      assertThat(request.getAuthentication().getOauthRefreshToken())
+          .isNotNull()
+          .isEqualTo(ACTUAL_REFRESH_TOKEN);
+    }
   }
 
   @DisplayName("Throw IllegalArgumentException when request without require fields")

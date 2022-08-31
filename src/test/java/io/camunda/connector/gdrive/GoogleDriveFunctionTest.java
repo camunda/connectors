@@ -45,15 +45,20 @@ class GoogleDriveFunctionTest extends BaseTest {
     // Given
     GoogleDriveService googleDriveServiceMock = Mockito.mock(GoogleDriveService.class);
     GoogleDriveFunction service =
-        new GoogleDriveFunction(googleDriveServiceMock, GsonComponentSupplier.getJsonFactory());
+        new GoogleDriveFunction(
+            googleDriveServiceMock, GsonComponentSupplier.gsonFactoryInstance());
 
     ConnectorContext context =
         ConnectorContextBuilder.create()
             .variables(input)
-            .secret(SECRET_TOKEN, ACTUAL_TOKEN)
+            .secret(SECRET_BEARER_TOKEN, ACTUAL_BEARER_TOKEN)
+            .secret(SECRET_REFRESH_TOKEN, ACTUAL_REFRESH_TOKEN)
+            .secret(SECRET_OAUTH_CLIENT_ID, ACTUAL_OAUTH_CLIENT_ID)
+            .secret(SECRET_OAUTH_SECRET_ID, ACTUAL_OAUTH_SECRET_ID)
             .build();
 
     GoogleDriveRequest request = parseInput(input, GoogleDriveRequest.class);
+
     context.replaceSecrets(request);
 
     GoogleDriveResult googleDriveResult = new GoogleDriveResult();

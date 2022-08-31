@@ -25,6 +25,7 @@ import io.camunda.connector.api.Validator;
 import java.util.Objects;
 
 public class Resource implements ConnectorInput {
+
   @Key private Type type;
   @Key private String name;
   @Key private String parent;
