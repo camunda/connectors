@@ -11,13 +11,14 @@ public class ConnectorService {
 
   private static final Logger LOG = LoggerFactory.getLogger(ConnectorService.class);
 
-  @Autowired
-  private ConnectorPropertiesRepository respository;
-
+  @Autowired private ConnectorPropertiesRepository respository;
 
   public void registerConnector(ConnectorProperties connectorProperties) {
+
+    // TODO(nikku): validate that connector is properly configured
+
     if (connectorProperties.context() != null) {
-      LOG.debug("Registering new connector {}", connectorProperties);
+      LOG.info("Registering new connector {}", connectorProperties);
       respository.save(connectorProperties);
     }
   }

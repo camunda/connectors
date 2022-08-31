@@ -12,7 +12,7 @@ import org.springframework.data.elasticsearch.annotations.Setting;
 @Document(indexName = "connector-inbound-properties")
 @Setting(replicas = 0)
 public record ConnectorProperties(@Id String context, String bpmnProcessId, int version, String type,
-                                  String secretExtractor, String activationCondition,
+                                  String secretExtractor, String secret, String activationCondition,
                                   String variableMapping) {
 
   public static ConnectorProperties from(String bpmnProcessId, int version,
@@ -26,6 +26,7 @@ public record ConnectorProperties(@Id String context, String bpmnProcessId, int 
         version,
         readInboundProperty(propertiesMap, "type"),
         readInboundProperty(propertiesMap, "secretExtractor"),
+        readInboundProperty(propertiesMap, "secret"),
         readInboundProperty(propertiesMap, "activationCondition"),
         readInboundProperty(propertiesMap, "variableMapping")
     );
