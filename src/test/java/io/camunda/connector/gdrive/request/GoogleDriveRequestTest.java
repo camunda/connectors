@@ -47,7 +47,7 @@ class GoogleDriveRequestTest extends BaseTest {
     // When
     context.replaceSecrets(request);
     // Then
-    assertThat(request.getToken()).isNotNull().isEqualTo(ACTUAL_TOKEN);
+    assertThat(request.getAuthentication().getBearerToken()).isNotNull().isEqualTo(ACTUAL_TOKEN);
   }
 
   @DisplayName("Throw IllegalArgumentException when request without require fields")

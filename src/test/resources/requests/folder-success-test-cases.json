@@ -1,6 +1,8 @@
 [
   {
-    "token": "secrets.MyToken",
+    "authentication": {
+      "bearerToken": "secrets.MyToken"
+    },
     "resource": {
       "type":"folder",
       "additionalGoogleDriveProperties":{

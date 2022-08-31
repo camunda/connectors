@@ -1,7 +1,9 @@
 [
   {
     "testDescription": "Token given as plain text",
-    "token": "MyRealToken",
+    "authentication": {
+      "bearerToken": "MyRealToken"
+    },
     "resource": {
       "type":"file",
       "parent":"1wF4ME7XcM_6ZIaNCMADMXawz",
@@ -29,7 +31,9 @@
   },
   {
     "testDescription": "Token given as secret",
-    "token": "secrets.MyToken",
+    "authentication": {
+      "bearerToken": "secrets.MyToken"
+    },
     "resource": {
       "type":"file",
       "parent":"1wF4ME7XcM_6ZIaNCMADMXawz",
@@ -56,7 +60,9 @@
     }
   },
   {
-    "token": "MyRealToken",
+    "authentication": {
+      "bearerToken": "MyRealToken"
+    },
     "resource": {
       "type":"folder",
       "additionalGoogleDriveProperties":{

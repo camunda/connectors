@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package io.camunda.connector.gdrive.model.request;
 
 import com.google.api.client.util.Key;
@@ -23,44 +22,27 @@ import io.camunda.connector.api.SecretStore;
 import io.camunda.connector.api.Validator;
 import java.util.Objects;
 
-public class GoogleDriveRequest implements ConnectorInput {
+// TODO: requires refactoring when refresh token is implemented
+public class Authentication implements ConnectorInput {
 
-  @Key private Authentication authentication;
-  @Key private Resource resource;
+  @Key private String bearerToken;
 
   @Override
   public void validateWith(final Validator validator) {
-    validator.require(authentication, "Authentication");
-    if (authentication != null) {
-      authentication.validateWith(validator);
-    }
-
-    validator.require(resource, "Resource");
-    if (resource != null) {
-      resource.validateWith(validator);
-    }
+    validator.require(bearerToken, "Bearer token");
   }
 
   @Override
   public void replaceSecrets(final SecretStore secretStore) {
-    replaceSecretsIfNotNull(authentication, secretStore);
-    replaceSecretsIfNotNull(resource, secretStore);
+    bearerToken = secretStore.replaceSecret(bearerToken);
   }
 
-  public Authentication getAuthentication() {
-    return authentication;
+  public String getBearerToken() {
+    return bearerToken;
   }
 
-  public void setAuthentication(final Authentication authentication) {
-    this.authentication = authentication;
-  }
-
-  public Resource getResource() {
-    return resource;
-  }
-
-  public void setResource(final Resource resource) {
-    this.resource = resource;
+  public void setBearerToken(final String bearerToken) {
+    this.bearerToken = bearerToken;
   }
 
   @Override
@@ -73,23 +55,17 @@ public class GoogleDriveRequest implements ConnectorInput {
       return false;
     }
 
-    GoogleDriveRequest that = (GoogleDriveRequest) o;
-    return Objects.equals(authentication, that.authentication)
-        && Objects.equals(resource, that.resource);
+    Authentication that = (Authentication) o;
+    return Objects.equals(bearerToken, that.bearerToken);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(authentication, resource);
+    return Objects.hash(bearerToken);
   }
 
   @Override
   public String toString() {
-    return "GoogleDriveRequest{"
-        + "authentication="
-        + authentication
-        + ", resource="
-        + resource
-        + '}';
+    return "Authentication{" + "bearerToken=[REDACTED]}";
   }
 }
