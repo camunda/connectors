@@ -28,7 +28,7 @@ The user configures the inbound webhook connector via `zeebe.property` bindings 
       <zeebe:property name="inbound.context" value="GITHUB_INBOUND" />
 
       <!-- where to get the inbound secret from to validate against -->
-      <zeebe:property name="inbound.secretExtractor" value="=headers['X-Hub-Signature']" />
+      <zeebe:property name="inbound.secretExtractor" value="=request.headers['X-Hub-Signature']" />
       
       <!-- secret to validate the request against -->
       <zeebe:property name="inbound.secret" value="secrets.GITHUB_INBOUND_SECRET" />

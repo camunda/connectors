@@ -42,8 +42,10 @@ public class ConnectorController {
     // TODO(nikku): what context do we expose?
     final Map<String, Object> webhookContext =
         Map.of(
-            "body", body,
-            "headers", headers);
+            "request",
+            Map.of(
+                "body", body,
+                "headers", headers));
 
     final var valid = validateSecret(connectorProperties, webhookContext);
 
