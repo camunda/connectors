@@ -1,8 +1,5 @@
 package io.camunda.connector.inbound.connector;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.module.scala.DefaultScalaModule$;
 import org.camunda.feel.FeelEngine;
 import org.camunda.feel.impl.SpiServiceLoader;
 import org.springframework.stereotype.Service;
@@ -17,7 +14,6 @@ import java.util.Optional;
 public class FeelEngineWrapper {
 
   private final FeelEngine feelEngine;
-  private final ObjectMapper objectMapper;
 
   public FeelEngineWrapper() {
     feelEngine =
@@ -25,7 +21,6 @@ public class FeelEngineWrapper {
             .valueMapper(SpiServiceLoader.loadValueMapper())
             .functionProvider(SpiServiceLoader.loadFunctionProvider())
             .build();
-    objectMapper = new ObjectMapper().registerModule(DefaultScalaModule$.MODULE$);
   }
 
   private static String trimExpression(final String expression) {
@@ -42,32 +37,42 @@ public class FeelEngineWrapper {
     return scala.collection.immutable.Map.from(CollectionConverters.asScala(context));
   }
 
+  private static Object toJava(final Object scalaObject) {
+
+    if (scalaObject instanceof scala.collection.immutable.Map) {
+      return CollectionConverters.asJava((scala.collection.immutable.Map) scalaObject);
+    }
+
+    return scalaObject;
+  }
+
   @SuppressWarnings("unchecked")
   private static Map<String, Object> ensureVariablesMap(final Object variables) {
     return (Map<String, Object>) Objects.requireNonNull(variables, "variables cannot be null");
   }
 
   public <T> T evaluate(final String expression, final Object variables) {
-    return Optional.ofNullable(variables)
-        .map(FeelEngineWrapper::ensureVariablesMap)
-        .map(FeelEngineWrapper::toScalaMap)
-        .map(context -> feelEngine.evalExpression(trimExpression(expression), context))
-        .map(
-            evaluationResult -> {
+    scala.collection.immutable.Map<String, Object> context =
+        Optional.ofNullable(variables)
+            .map(FeelEngineWrapper::ensureVariablesMap)
+            .map(FeelEngineWrapper::toScalaMap)
+            .get();
 
-              // throw error on evaluation issue
-              evaluationResult
-                  .left()
-                  .foreach(
-                      failure -> {
-                        throw new FeelEngineWrapperException(
-                            "expression evaluation failed with message: " + failure.message(),
-                            expression,
-                            variables);
-                      });
+    var result = feelEngine.evalExpression(trimExpression(expression), context);
 
-              return (T) evaluationResult.right().get();
-            })
-        .get();
+    if (result.isLeft()) {
+      throw new FeelEngineWrapperException(
+          "expression evaluation failed with message: " + result.left().get().message(),
+          expression,
+          variables);
+    }
+
+    var val = result.right().get();
+
+    if (val == null) {
+      return null;
+    }
+
+    return (T) toJava(val);
   }
 }
