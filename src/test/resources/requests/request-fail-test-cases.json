@@ -12,7 +12,9 @@
   },
   {
     "testDescription": "Folder without a name",
-    "token": "MyRealToken",
+    "authentication": {
+      "bearerToken": "MyRealToken"
+    },
     "resource": {
       "type":"folder",
       "additionalGoogleDriveProperties":{
@@ -23,7 +25,9 @@
   },
   {
     "testDescription": "File without a name",
-    "token": "MyRealToken",
+    "authentication": {
+      "bearerToken": "myRealToken"
+    },
     "resource": {
       "type": "file",
       "parent": "optional my idFolderParent",

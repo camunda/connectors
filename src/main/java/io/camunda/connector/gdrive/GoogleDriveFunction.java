@@ -66,8 +66,10 @@ public class GoogleDriveFunction implements ConnectorFunction {
     LOGGER.debug("Executing my connector with request {}", request);
     GoogleDriveClient drive =
         new GoogleDriveClient(
-            GoogleServicesSupplier.createDriveClientInstance(request.getToken(), jsonFactory),
-            GoogleServicesSupplier.createDocsClientInstance(request.getToken(), jsonFactory));
+            GoogleServicesSupplier.createDriveClientInstance(
+                request.getAuthentication().getBearerToken(), jsonFactory),
+            GoogleServicesSupplier.createDocsClientInstance(
+                request.getAuthentication().getBearerToken(), jsonFactory));
     return service.execute(drive, request.getResource());
   }
 }
