@@ -1,7 +1,7 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "GitHubWebhookTemplate",
-  "id": "aba851f6-e9ef-490e-80a9-82b74529231e",
+  "id": "io.camunda.inbound:github-webhook:1",
   "appliesTo": [
     "bpmn:StartEvent"
   ],
