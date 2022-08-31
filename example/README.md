@@ -28,7 +28,7 @@ The user configures the inbound webhook connector via `zeebe.property` bindings 
       <zeebe:property name="inbound.context" value="GITHUB_INBOUND" />
 
       <!-- where to get the inbound secret from to validate against -->
-      <zeebe:property name="inbound.secretExtractor" value="=request.headers[&#34;X-Hub-Signature&#34;]" />
+      <zeebe:property name="inbound.secretExtractor" value="=get value(request.headers, &#34;x-hub-signature&#34;)" />
       
       <!-- secret to validate the request against -->
       <zeebe:property name="inbound.secret" value="secrets.GITHUB_INBOUND_SECRET" />
@@ -37,7 +37,7 @@ The user configures the inbound webhook connector via `zeebe.property` bindings 
       <zeebe:property name="inbound.activationCondition" value="=(&#10;  request.body.action = &#34;opened&#34; and &#10;  starts with(request.body.repository.full_name, &#34;camunda/&#34;)&#10;)" />
 
       <!-- which variables to pass from the webhook to start the process -->
-      <zeebe:property name="inbound.variableMapping" value="={&#10;  &#34;githubLoginToSlackMapping&#34;: {&#10;    &#34;nikku&#34;: &#34;Nico Rehwaldt&#34;,&#10;    &#34;menski&#34;: &#34;menski&#34;&#10;  },&#10;  &#34;pull_request&#34;: {&#10;    &#34;htmlURL&#34;: request.body.pull_request.html_url,&#10;    &#34;githubUser&#34;: request.body.pull_request.user.login,&#10;    &#34;githubUserURL&#34;: request.body.pull_request.user.html_url,&#10;    &#34;userLink&#34;: (&#10;      if githubLoginToSlackMapping[githubUser] then &#10;        &#34;@&#34; + githubLoginToSlackMapping[githubUser]&#10;      else &#10;        &#34;GitHub user &#60;&#34; + githubUserURL + &#34;|&#34; + githubUser + &#34;&#62;&#34;&#10;    )&#10;  }&#10;}" />
+      <zeebe:property name="inbound.variableMapping" value="={&#10;  &#34;githubLoginToSlackMapping&#34;: {&#10;    &#34;nikku&#34;: &#34;Nico Rehwaldt&#34;,&#10;    &#34;menski&#34;: &#34;menski&#34;&#10;  },&#10;  &#34;pull_request&#34;: {&#10;    &#34;htmlURL&#34;: request.body.pull_request.html_url,&#10;    &#34;githubUser&#34;: request.body.pull_request.user.login,&#10;    &#34;slackUser&#34;: get value(githubLoginToSlackMapping, githubUser),&#10;    &#34;githubUserURL&#34;: request.body.pull_request.user.html_url,&#10;    &#34;userLink&#34;: (&#10;      if slackUser = null then&#10;        &#34;GitHub user &#60;&#34; + githubUserURL + &#34;|&#34; + githubUser + &#34;&#62;&#34;&#10;      else&#10;         &#34;@&#34; + slackUser&#10;    )&#10;  }&#10;}" />
     </zeebe:properties>
   </bpmn:extensionElements>
 </bpmn:startEvent>
