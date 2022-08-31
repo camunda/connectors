@@ -30,7 +30,7 @@
     },
     {
       "type": "Hidden",
-      "value": "=request.headers[\"X-Hub-Signature\"]",
+      "value": "=get value(request.headers, &#34;x-hub-signature&#34;)",
       "binding": {
         "type": "zeebe:property",
         "name": "inbound.secretExtractor"
