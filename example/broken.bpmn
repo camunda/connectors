@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Web Modeler" exporterVersion="538d40a" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.0.0">
   <bpmn:process id="Process_PULL_REQUEST_NOTIFICATION_BROKEN" name="Pull Request Notification" isExecutable="true">
-    <bpmn:startEvent id="StartEvent_1" name="New Pull Request Opened" zeebe:modelerTemplate="io.camunda.inbound:github-webhook:1">
+    <bpmn:startEvent id="StartEvent_1" name="New Pull Request Opened" zeebe:modelerTemplate="io.camunda.example.inbound.GitHubWebhook.v1">
       <bpmn:extensionElements>
         <zeebe:properties>
           <zeebe:property name="inbound.type" value="webhook" />
