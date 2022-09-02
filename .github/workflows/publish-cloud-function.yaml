@@ -31,6 +31,8 @@ jobs:
           secrets: |
             secret/data/products/connectors/ci/common ARTIFACTORY_USR;
             secret/data/products/connectors/ci/common ARTIFACTORY_PSW;
+            secret/data/products/connectors/ci/common GCP_PROJECT_ID;
+            secret/data/products/connectors/ci/common GCP_SERVICE_ACCOUNT;
 
       - uses: actions/setup-java@v3.4.1
         with:
@@ -84,10 +86,9 @@ jobs:
           echo ::set-output name=stage::${STAGE}
 
       - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v0.8.0
+        uses: camunda-cloud/action-google-auth@v1
         with:
-          workload_identity_provider: projects/239151533311/locations/global/workloadIdentityPools/github/providers/camunda
-          service_account: github-actions@camunda-cloud-240911.iam.gserviceaccount.com
+          account-alias: ${{ steps.secrets.outputs.GCP_PROJECT_ID }}
 
       - name: Deploy Google Cloud Function
         uses: 'google-github-actions/deploy-cloud-functions@v0'
@@ -96,11 +97,11 @@ jobs:
           runtime: 'java11'
           entry_point: 'io.camunda.connector.runtime.cloud.CloudConnectorFunction'
           region: 'europe-west1'
-          env_vars: 'SECRETS_PROJECT_ID=camunda-cloud-240911'
+          env_vars: 'SECRETS_PROJECT_ID=${{ steps.secrets.outputs.GCP_PROJECT_ID }}'
           labels: 'stage=${{ steps.deployment-stage.outputs.stage }}'
           source_dir: 'target/deployment'
-          project_id: 'camunda-cloud-240911'
-          service_account_email: 'connectors-${{ steps.deployment-stage.outputs.stage }}@camunda-cloud-240911.iam.gserviceaccount.com'
+          project_id: '${{ steps.secrets.outputs.GCP_PROJECT_ID }}'
+          service_account_email: 'connectors-${{ steps.deployment-stage.outputs.stage }}@${{ steps.secrets.outputs.GCP_SERVICE_ACCOUNT }}'
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
