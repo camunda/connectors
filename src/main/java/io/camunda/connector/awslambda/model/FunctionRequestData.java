@@ -25,7 +25,7 @@ import java.util.Objects;
 public class FunctionRequestData implements ConnectorInput {
 
   private String functionName;
-  private String payload;
+  private Object payload;
   private String region;
   private OperationType operationType; // this is not use and not implemented yet
 
@@ -39,7 +39,6 @@ public class FunctionRequestData implements ConnectorInput {
   @Override
   public void replaceSecrets(final SecretStore secretStore) {
     functionName = secretStore.replaceSecret(functionName);
-    payload = secretStore.replaceSecret(payload);
     region = secretStore.replaceSecret(region);
   }
 
@@ -51,11 +50,11 @@ public class FunctionRequestData implements ConnectorInput {
     this.functionName = functionName;
   }
 
-  public String getPayload() {
+  public Object getPayload() {
     return payload;
   }
 
-  public void setPayload(final String payload) {
+  public void setPayload(final Object payload) {
     this.payload = payload;
   }
 

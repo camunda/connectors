@@ -20,6 +20,8 @@ package io.camunda.connector.awslambda;
 import com.amazonaws.services.lambda.AWSLambda;
 import com.amazonaws.services.lambda.model.InvokeRequest;
 import com.amazonaws.services.lambda.model.InvokeResult;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import io.camunda.connector.api.ConnectorContext;
 import io.camunda.connector.api.ConnectorFunction;
 import io.camunda.connector.awslambda.model.AwsLambdaRequest;
@@ -31,13 +33,16 @@ public class LambdaConnectorFunction implements ConnectorFunction {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(LambdaConnectorFunction.class);
   private final AwsLambdaSupplier awsLambdaSupplier;
+  private final Gson gson;
 
   public LambdaConnectorFunction() {
     awsLambdaSupplier = new AwsLambdaSupplier();
+    gson = new GsonBuilder().create();
   }
 
-  public LambdaConnectorFunction(final AwsLambdaSupplier awsLambdaSupplier) {
+  public LambdaConnectorFunction(final AwsLambdaSupplier awsLambdaSupplier, final Gson gson) {
     this.awsLambdaSupplier = awsLambdaSupplier;
+    this.gson = gson;
   }
 
   @Override
@@ -46,7 +51,7 @@ public class LambdaConnectorFunction implements ConnectorFunction {
     LOGGER.info("Executing my connector with request {}", request);
     context.validate(request);
     context.replaceSecrets(request);
-    return new AwsLambdaResult(invokeLambdaFunction(request));
+    return new AwsLambdaResult(invokeLambdaFunction(request), gson);
   }
 
   private InvokeResult invokeLambdaFunction(AwsLambdaRequest request) {
@@ -56,7 +61,7 @@ public class LambdaConnectorFunction implements ConnectorFunction {
     final InvokeRequest invokeRequest =
         new InvokeRequest()
             .withFunctionName(request.getFunction().getFunctionName())
-            .withPayload(request.getFunction().getPayload());
+            .withPayload(gson.toJson(request.getFunction().getPayload()));
     try {
       return awsLambda.invoke(invokeRequest);
     } finally {

@@ -20,9 +20,13 @@ mvn clean package
     "region": "secrets.REGION_KEY"
   },
   "function": {
-    "payload": "secrets.PAYLOAD_KEY",
     "functionName": "secrets.FUNCTION_NAME",
-    "operationType": "secrets.OPERATION_TYPE"
+    "operationType": "secrets.OPERATION_TYPE",
+    "payload": {
+      "event": {
+        "data": "value"
+      }
+    }
   }
 }
 ```

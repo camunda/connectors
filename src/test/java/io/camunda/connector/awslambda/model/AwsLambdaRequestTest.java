@@ -14,17 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.awslambda.model.model;
+
+package io.camunda.connector.awslambda.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.camunda.connector.api.ConnectorContext;
 import io.camunda.connector.api.Validator;
-import io.camunda.connector.awslambda.model.AuthenticationRequestData;
-import io.camunda.connector.awslambda.model.AwsLambdaRequest;
-import io.camunda.connector.awslambda.model.BaseTest;
-import io.camunda.connector.awslambda.model.FunctionRequestData;
+import io.camunda.connector.awslambda.BaseTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -72,7 +70,6 @@ class AwsLambdaRequestTest extends BaseTest {
     assertThat(request.getAuthentication().getSecretKey()).isEqualTo(ACTUAL_SECRET_KEY);
     assertThat(request.getAuthentication().getAccessKey()).isEqualTo(ACTUAL_ACCESS_KEY);
     assertThat(request.getFunction().getRegion()).isEqualTo(ACTUAL_FUNCTION_REGION);
-    assertThat(request.getFunction().getPayload()).isEqualTo(ACTUAL_PAYLOAD);
     assertThat(request.getFunction().getFunctionName()).isEqualTo(ACTUAL_FUNCTION_NAME);
   }
 
