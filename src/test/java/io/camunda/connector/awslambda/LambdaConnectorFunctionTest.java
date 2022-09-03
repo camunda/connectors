@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-package io.camunda.connector.awslambda.model;
+package io.camunda.connector.awslambda;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -26,10 +26,8 @@ import static org.mockito.Mockito.when;
 import com.amazonaws.services.lambda.AWSLambda;
 import com.amazonaws.services.lambda.model.InvokeResult;
 import io.camunda.connector.api.ConnectorContext;
-import io.camunda.connector.awslambda.AwsLambdaSupplier;
-import io.camunda.connector.awslambda.LambdaConnectorFunction;
-import java.nio.ByteBuffer;
-import org.assertj.core.api.Assertions;
+import io.camunda.connector.awslambda.model.AwsLambdaRequest;
+import io.camunda.connector.awslambda.model.AwsLambdaResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -45,11 +43,11 @@ class LambdaConnectorFunctionTest extends BaseTest {
   public void init() {
     supplier = mock(AwsLambdaSupplier.class);
     awsLambda = mock(AWSLambda.class);
-    function = new LambdaConnectorFunction(supplier);
+    function = new LambdaConnectorFunction(supplier, gson);
     invokeResult =
         new InvokeResult()
             .withStatusCode(200)
-            .withPayload(ByteBuffer.wrap(ACTUAL_PAYLOAD.getBytes()))
+            .withPayload(ACTUAL_BYTEBUFFER_PAYLOAD)
             .withExecutedVersion(EXECUTED_VERSION);
   }
 
@@ -86,6 +84,6 @@ class LambdaConnectorFunctionTest extends BaseTest {
             () -> function.execute(context),
             "IllegalArgumentException was expected");
     // Then we except exception with message
-    Assertions.assertThat(thrown.getMessage().contains("Property required:")).isTrue();
+    assertThat(thrown.getMessage().contains("Property required:")).isTrue();
   }
 }

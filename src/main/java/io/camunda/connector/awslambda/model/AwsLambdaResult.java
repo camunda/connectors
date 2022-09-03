@@ -18,24 +18,18 @@
 package io.camunda.connector.awslambda.model;
 
 import com.amazonaws.services.lambda.model.InvokeResult;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.util.Optional;
+import com.google.gson.Gson;
 
 public class AwsLambdaResult {
 
   private Integer statusCode;
   private String executedVersion;
-  private String payload;
+  private Object payload;
 
-  public AwsLambdaResult(final InvokeResult invokeResult) {
+  public AwsLambdaResult(final InvokeResult invokeResult, Gson gson) {
     this.statusCode = invokeResult.getStatusCode();
     this.executedVersion = invokeResult.getExecutedVersion();
-    this.payload =
-        Optional.ofNullable(invokeResult.getPayload())
-            .map(ByteBuffer::array)
-            .map(byteArray -> new String(byteArray, StandardCharsets.UTF_8))
-            .orElse(null);
+    this.payload = gson.fromJson(new String(invokeResult.getPayload().array()), Object.class);
   }
 
   public Integer getStatusCode() {
@@ -54,7 +48,7 @@ public class AwsLambdaResult {
     this.executedVersion = executedVersion;
   }
 
-  public String getPayload() {
+  public Object getPayload() {
     return payload;
   }
 

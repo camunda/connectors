@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package io.camunda.connector.awslambda.model;
+package io.camunda.connector.awslambda;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.readString;
@@ -25,13 +25,15 @@ import com.google.gson.GsonBuilder;
 import io.camunda.connector.test.ConnectorContextBuilder;
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.stream.Stream;
 import org.junit.jupiter.params.provider.Arguments;
 
 public abstract class BaseTest {
 
-  protected Gson gson = new GsonBuilder().create();
+  protected static final Gson gson = new GsonBuilder().create();
 
   protected static final String SECRET_KEY = "SECRET_KEY";
   protected static final String ACTUAL_SECRET_KEY = "testSecretKey";
@@ -42,8 +44,13 @@ public abstract class BaseTest {
   protected static final String ACTUAL_FUNCTION_NAME =
       "arn:aws:lambda:us-east-1:1234567891017:function:cam";
   protected static final String FUNCTION_NAME_KEY = "FUNCTION_NAME";
-  protected static final String PAYLOAD_KEY = "PAYLOAD_KEY";
-  protected static final String ACTUAL_PAYLOAD = "{\"dataForInvoke\":\"someSpecialData\"}";
+
+  protected static final String ACTUAL_STRING_PAYLOAD = "{\"event\":{\"key\":\"value\"}}";
+  protected static final Object ACTUAL_PAYLOAD =
+      gson.fromJson(ACTUAL_STRING_PAYLOAD, Object.class); // toObject(ACTUAL_STRING_PAYLOAD);
+  protected static final ByteBuffer ACTUAL_BYTEBUFFER_PAYLOAD =
+      ByteBuffer.wrap(ACTUAL_STRING_PAYLOAD.getBytes(StandardCharsets.UTF_8));
+
   protected static final String EXECUTED_VERSION = "LATEST";
 
   protected static final String SUCCESS_REQUEST_CASE_PATH =
@@ -72,8 +79,7 @@ public abstract class BaseTest {
         .secret(SECRET_KEY, ACTUAL_SECRET_KEY)
         .secret(ACCESS_KEY, ACTUAL_ACCESS_KEY)
         .secret(FUNCTION_REGION_KEY, ACTUAL_FUNCTION_REGION)
-        .secret(FUNCTION_NAME_KEY, ACTUAL_FUNCTION_NAME)
-        .secret(PAYLOAD_KEY, ACTUAL_PAYLOAD);
+        .secret(FUNCTION_NAME_KEY, ACTUAL_FUNCTION_NAME);
   }
 
   @SuppressWarnings("unchecked")

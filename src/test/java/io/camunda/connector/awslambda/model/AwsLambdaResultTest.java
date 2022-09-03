@@ -17,39 +17,38 @@
 
 package io.camunda.connector.awslambda.model;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.amazonaws.services.lambda.model.InvokeResult;
+import io.camunda.connector.awslambda.BaseTest;
 import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
-import java.nio.charset.CharacterCodingException;
 import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
-class AwsLambdaResultTest {
+class AwsLambdaResultTest extends BaseTest {
 
-  @ParameterizedTest(name = "create result from ivokeResult")
+  @ParameterizedTest(name = "create result from invokeResult #{index}")
   @CsvSource({
-    "200,1.2,payload",
+    "200,1.2,{\"body\": {\"key\":\"value\"}}",
     "400,$LATEST,{\"1\":\"2\"}",
-    "400,$LATEST,!@#$%^&*",
+    "400,$LATEST,{\"!@#$%^&*\":\"!@#$%^&*\"}"
   })
   public void newAwsLambdaResult_shouldReturnResultWithCorrectData(
-      Integer statusCode, String version, String payload) throws CharacterCodingException {
+      Integer statusCode, String version, String payload) {
     // Given invoke result from aws lambda client
-    ByteBuffer byteBufferPayload =
-        StandardCharsets.UTF_8.newEncoder().encode(CharBuffer.wrap(payload));
+    ByteBuffer wrap = ByteBuffer.wrap(payload.getBytes(StandardCharsets.UTF_8));
     InvokeResult invokeResult =
         new InvokeResult()
             .withStatusCode(statusCode)
             .withExecutedVersion(version)
-            .withPayload(byteBufferPayload);
+            .withPayload(wrap);
+
     // When
-    AwsLambdaResult awsLambdaResult = new AwsLambdaResult(invokeResult);
+    AwsLambdaResult awsLambdaResult = new AwsLambdaResult(invokeResult, gson);
     // Then
     assertThat(awsLambdaResult.getStatusCode()).isEqualTo(statusCode);
     assertThat(awsLambdaResult.getExecutedVersion()).isEqualTo(version);
-    assertThat(awsLambdaResult.getPayload()).isEqualTo(payload);
+    assertThat(awsLambdaResult.getPayload()).isEqualTo(gson.fromJson(payload, Object.class));
   }
 }

@@ -5,7 +5,7 @@
       "accessKey": "secrets.ACCESS_KEY"
     },
     "function": {
-      "payload": "secrets.PAYLOAD_KEY",
+      "payload": {"key":{"key1":{"key2":"value"}}},
       "functionName": "secrets.FUNCTION_NAME",
       "region": "secrets.REGION_KEY"
     }
@@ -16,7 +16,7 @@
       "accessKey": "testAccessKey123456"
     },
     "function": {
-      "payload": "{\"value\":\"key\"}",
+      "payload": {"key":"value"},
       "functionName": "arn:aws:lambda:test-region:123456789:function:test",
       "region": "test-region"
     }
@@ -27,7 +27,7 @@
       "accessKey": "testAccessKey123456"
     },
     "function": {
-      "payload": "{\"value\":{\"value\":\"key\"}}",
+      "payload": {"key":{"key":"value"}},
       "functionName": "test",
       "region": "test-region"
     }
