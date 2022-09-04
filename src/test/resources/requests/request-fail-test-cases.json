@@ -13,6 +13,7 @@
   {
     "testDescription": "Folder without a name",
     "authentication": {
+      "authType": "bearer",
       "bearerToken": "MyRealToken"
     },
     "resource": {
@@ -26,6 +27,7 @@
   {
     "testDescription": "File without a name",
     "authentication": {
+      "authType": "bearer",
       "bearerToken": "myRealToken"
     },
     "resource": {
@@ -56,6 +58,99 @@
     "resource": {
       "type": "file",
       "name": "",
+      "parent": "optional my idFolderParent",
+      "additionalGoogleDriveProperties": {
+        "description": " description"
+      },
+      "template": {
+        "id": "myTemplateId",
+        "variables": {
+          "requests":[
+            {
+              "replaceAllText":{
+                "containsText":{
+                  "text":"replaceFrom",
+                  "matchCase":"true"
+                },
+                "replaceText":"replaceTo"
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "testDescription": "File with refresh token without client id",
+    "authentication": {
+      "authType": "refresh",
+      "oauthClientSecret": "secrets.MyOauthSecret",
+      "oauthRefreshToken": "secrets.MyOauthRefresh"
+    },
+    "resource": {
+      "type": "file",
+      "parent": "optional my idFolderParent",
+      "additionalGoogleDriveProperties": {
+        "description": " description"
+      },
+      "template": {
+        "id": "myTemplateId",
+        "variables": {
+          "requests":[
+            {
+              "replaceAllText":{
+                "containsText":{
+                  "text":"replaceFrom",
+                  "matchCase":"true"
+                },
+                "replaceText":"replaceTo"
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "testDescription": "File with refresh token without secret",
+    "authentication": {
+      "authType": "refresh",
+      "oauthClientId": "secrets.MyOauthClient",
+      "oauthRefreshToken": "secrets.MyOauthRefresh"
+    },
+    "resource": {
+      "type": "file",
+      "parent": "optional my idFolderParent",
+      "additionalGoogleDriveProperties": {
+        "description": " description"
+      },
+      "template": {
+        "id": "myTemplateId",
+        "variables": {
+          "requests":[
+            {
+              "replaceAllText":{
+                "containsText":{
+                  "text":"replaceFrom",
+                  "matchCase":"true"
+                },
+                "replaceText":"replaceTo"
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "testDescription": "File with refresh token without refresh token",
+    "authentication": {
+      "authType": "refresh",
+      "oauthClientId": "secrets.MyOauthClient",
+      "oauthClientSecret": "secrets.MyOauthSecret"
+    },
+    "resource": {
+      "type": "file",
       "parent": "optional my idFolderParent",
       "additionalGoogleDriveProperties": {
         "description": " description"

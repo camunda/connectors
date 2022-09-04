@@ -1,7 +1,8 @@
 [
   {
-    "testDescription": "Token given as plain text",
+    "testDescription": "Bearer token given as plain text",
     "authentication": {
+      "authType": "bearer",
       "bearerToken": "MyRealToken"
     },
     "resource": {
@@ -30,8 +31,42 @@
     }
   },
   {
-    "testDescription": "Token given as secret",
+    "testDescription": "Refresh token given as plain text",
     "authentication": {
+      "authType": "refresh",
+      "oauthClientId": "MyRealOauthClientValue",
+      "oauthClientSecret": "MyRealOauthSecretValue",
+      "oauthRefreshToken": "MyRealRefreshTokenValue"
+    },
+    "resource": {
+      "type":"file",
+      "parent":"1wF4ME7XcM_6ZIaNCMADMXawz",
+      "name":"demoFile",
+      "additionalGoogleDriveProperties":{
+        "description":"xxx"
+      },
+      "template":{
+        "id":"121J6hMy-4ffHhXl5egwIhCsznS3mXWm",
+        "variables":{
+          "requests":[
+            {
+              "replaceAllText":{
+                "replaceText":"2022-08-03",
+                "containsText":{
+                  "matchCase":"true",
+                  "text":"{{recordDate}}"
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "testDescription": "Bearer token given as secret",
+    "authentication": {
+      "authType": "bearer",
       "bearerToken": "secrets.MyToken"
     },
     "resource": {
@@ -60,7 +95,41 @@
     }
   },
   {
+    "testDescription": "Refresh token given as secret",
     "authentication": {
+      "authType": "refresh",
+      "oauthClientId": "secrets.MyOauthClient",
+      "oauthClientSecret": "secrets.MyOauthSecret",
+      "oauthRefreshToken": "secrets.MyOauthRefresh"
+    },
+    "resource": {
+      "type":"file",
+      "parent":"1wF4ME7XcM_6ZIaNCMADMXawz",
+      "name":"demoFile",
+      "additionalGoogleDriveProperties":{
+        "description":"xxx"
+      },
+      "template":{
+        "id":"121J6hMy-4ffHhXl5egwIhCsznS3mXWm",
+        "variables":{
+          "requests":[
+            {
+              "replaceAllText":{
+                "replaceText":"2022-08-03",
+                "containsText":{
+                  "matchCase":"true",
+                  "text":"{{recordDate}}"
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "authentication": {
+      "authType": "bearer",
       "bearerToken": "MyRealToken"
     },
     "resource": {

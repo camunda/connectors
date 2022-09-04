@@ -19,13 +19,10 @@ package io.camunda.connector.gdrive.supliers;
 
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.JsonFactory;
 import com.google.api.services.docs.v1.Docs;
 import com.google.api.services.drive.Drive;
-import com.google.api.services.drive.DriveScopes;
 import com.google.auth.http.HttpCredentialsAdapter;
-import com.google.auth.oauth2.AccessToken;
-import com.google.auth.oauth2.GoogleCredentials;
+import io.camunda.connector.gdrive.model.request.Authentication;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import org.slf4j.Logger;
@@ -36,29 +33,30 @@ public final class GoogleServicesSupplier {
 
   private GoogleServicesSupplier() {}
 
-  public static Drive createDriveClientInstance(final String token, final JsonFactory jsonFactory) {
+  public static Drive createDriveClientInstance(final Authentication authentication) {
     Drive drive =
-        new Drive.Builder(getNetHttpTransport(), jsonFactory, getHttpHttpCredentialsAdapter(token))
+        new Drive.Builder(
+                getNetHttpTransport(),
+                GsonComponentSupplier.gsonFactoryInstance(),
+                getHttpHttpCredentialsAdapter(authentication))
             .build();
     LOGGER.debug("Google drive service was successfully initialized");
     return drive;
   }
 
-  public static Docs createDocsClientInstance(final String token, final JsonFactory jsonFactory) {
+  public static Docs createDocsClientInstance(final Authentication auth) {
     Docs docs =
-        new Docs.Builder(getNetHttpTransport(), jsonFactory, getHttpHttpCredentialsAdapter(token))
+        new Docs.Builder(
+                getNetHttpTransport(),
+                GsonComponentSupplier.gsonFactoryInstance(),
+                getHttpHttpCredentialsAdapter(auth))
             .build();
     LOGGER.debug("Google docs service was successfully initialized");
     return docs;
   }
 
-  private static HttpCredentialsAdapter getHttpHttpCredentialsAdapter(final String token) {
-    return new HttpCredentialsAdapter(createGoogleCredentials(token));
-  }
-
-  private static GoogleCredentials createGoogleCredentials(final String token) {
-    AccessToken accessToken = new AccessToken(token, null);
-    return new GoogleCredentials(accessToken).createScoped(DriveScopes.DRIVE);
+  private static HttpCredentialsAdapter getHttpHttpCredentialsAdapter(final Authentication auth) {
+    return new HttpCredentialsAdapter(auth.fetchCredentials());
   }
 
   private static NetHttpTransport getNetHttpTransport() {

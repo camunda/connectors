@@ -20,6 +20,8 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 import com.google.api.services.docs.v1.Docs;
 import com.google.api.services.drive.Drive;
+import io.camunda.connector.gdrive.model.request.Authentication;
+import io.camunda.connector.gdrive.model.request.AuthenticationType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -36,10 +38,11 @@ class GoogleServicesSupplierTest {
   public void getDriveClient_shouldInitGoogleDriveClientVersion3() {
     // Given
     String token = "Bearer_token";
+    Authentication authentication = new Authentication();
+    authentication.setAuthType(AuthenticationType.BEARER);
+    authentication.setBearerToken(token);
     // When
-    Drive drive =
-        GoogleServicesSupplier.createDriveClientInstance(
-            token, GsonComponentSupplier.getJsonFactory());
+    Drive drive = GoogleServicesSupplier.createDriveClientInstance(authentication);
     // Then
     assertThat(drive.getBaseUrl()).isEqualTo(BASE_DRIVE_V3_URL);
     assertThat(drive.getRootUrl()).isEqualTo(ROOT_DRIVE_V3_URL);
@@ -51,10 +54,11 @@ class GoogleServicesSupplierTest {
   public void getDocsClient_shouldInitGoogleDocsClientVersion1() {
     // Given
     String token = "Bearer_token";
+    Authentication authentication = new Authentication();
+    authentication.setAuthType(AuthenticationType.BEARER);
+    authentication.setBearerToken(token);
     // When
-    Docs docs =
-        GoogleServicesSupplier.createDocsClientInstance(
-            token, GsonComponentSupplier.getJsonFactory());
+    Docs docs = GoogleServicesSupplier.createDocsClientInstance(authentication);
     // Then
     assertThat(docs.getBaseUrl()).isEqualTo(DOCS_V1_URL);
     assertThat(docs.getRootUrl()).isEqualTo(DOCS_V1_URL);

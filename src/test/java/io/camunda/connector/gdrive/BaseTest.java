@@ -21,8 +21,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.readString;
 
 import com.google.api.client.json.JsonParser;
-import com.google.api.client.json.gson.GsonFactory;
 import com.google.gson.Gson;
+import io.camunda.connector.gdrive.supliers.GsonComponentSupplier;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -31,8 +31,14 @@ import org.junit.jupiter.params.provider.Arguments;
 
 public abstract class BaseTest {
 
-  protected static final String SECRET_TOKEN = "MyToken";
-  protected static final String ACTUAL_TOKEN = "MyRealToken";
+  protected static final String SECRET_BEARER_TOKEN = "MyToken";
+  protected static final String SECRET_REFRESH_TOKEN = "MyOauthRefresh";
+  protected static final String ACTUAL_BEARER_TOKEN = "MyRealToken";
+  protected static final String ACTUAL_REFRESH_TOKEN = "MyRealRefreshTokenValue";
+  protected static final String SECRET_OAUTH_CLIENT_ID = "MyOauthClient";
+  protected static final String ACTUAL_OAUTH_CLIENT_ID = "MyRealOauthClientValue";
+  protected static final String SECRET_OAUTH_SECRET_ID = "MyOauthSecret";
+  protected static final String ACTUAL_OAUTH_SECRET_ID = "MyRealOauthSecretValue";
   protected static final String FOLDER_NAME = "MyNewFolder";
   protected static final String FILE_NAME = "MyNewFile";
   protected static final String PARENT_ID = "optional my idFolderParent";
@@ -49,7 +55,7 @@ public abstract class BaseTest {
   }
 
   protected static <T> T parseInput(final String input, final Class<T> clazz) {
-    JsonParser jsonParser = GsonFactory.getDefaultInstance().createJsonParser(input);
+    JsonParser jsonParser = GsonComponentSupplier.gsonFactoryInstance().createJsonParser(input);
     try {
       return jsonParser.parseAndClose(clazz);
     } catch (IOException e) {

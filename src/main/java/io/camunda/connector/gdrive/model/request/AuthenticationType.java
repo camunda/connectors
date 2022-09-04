@@ -14,18 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package io.camunda.connector.gdrive.model.request;
 
-package io.camunda.connector.gdrive.supliers;
+import com.google.api.client.util.Value;
 
-import com.google.api.client.json.gson.GsonFactory;
+public enum AuthenticationType {
+  @Value("bearer")
+  BEARER,
 
-public final class GsonComponentSupplier {
-
-  private static final GsonFactory GSON_FACTORY = GsonFactory.getDefaultInstance();
-
-  private GsonComponentSupplier() {}
-
-  public static GsonFactory gsonFactoryInstance() {
-    return GSON_FACTORY;
-  }
+  @Value("refresh")
+  REFRESH
 }

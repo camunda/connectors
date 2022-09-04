@@ -17,8 +17,8 @@
 
 package io.camunda.connector.gdrive;
 
-import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.JsonParser;
+import com.google.api.client.json.gson.GsonFactory;
 import io.camunda.connector.api.ConnectorContext;
 import io.camunda.connector.api.ConnectorFunction;
 import io.camunda.connector.gdrive.model.GoogleDriveResult;
@@ -33,15 +33,15 @@ public class GoogleDriveFunction implements ConnectorFunction {
   private static final Logger LOGGER = LoggerFactory.getLogger(GoogleDriveFunction.class);
 
   private final GoogleDriveService service;
-  private final JsonFactory jsonFactory;
+  private final GsonFactory gsonFactory;
 
   public GoogleDriveFunction() {
-    this(new GoogleDriveService(), GsonComponentSupplier.getJsonFactory());
+    this(new GoogleDriveService(), GsonComponentSupplier.gsonFactoryInstance());
   }
 
-  public GoogleDriveFunction(final GoogleDriveService service, final JsonFactory jsonFactory) {
+  public GoogleDriveFunction(final GoogleDriveService service, final GsonFactory gsonFactory) {
     this.service = service;
-    this.jsonFactory = jsonFactory;
+    this.gsonFactory = gsonFactory;
   }
 
   @Override
@@ -55,7 +55,7 @@ public class GoogleDriveFunction implements ConnectorFunction {
 
   private GoogleDriveRequest parseVariablesToRequest(final String requestAsJson) {
     try {
-      JsonParser jsonParser = jsonFactory.createJsonParser(requestAsJson);
+      JsonParser jsonParser = gsonFactory.createJsonParser(requestAsJson);
       return jsonParser.parseAndClose(GoogleDriveRequest.class);
     } catch (IOException e) {
       throw new RuntimeException(e);
@@ -66,10 +66,8 @@ public class GoogleDriveFunction implements ConnectorFunction {
     LOGGER.debug("Executing my connector with request {}", request);
     GoogleDriveClient drive =
         new GoogleDriveClient(
-            GoogleServicesSupplier.createDriveClientInstance(
-                request.getAuthentication().getBearerToken(), jsonFactory),
-            GoogleServicesSupplier.createDocsClientInstance(
-                request.getAuthentication().getBearerToken(), jsonFactory));
+            GoogleServicesSupplier.createDriveClientInstance(request.getAuthentication()),
+            GoogleServicesSupplier.createDocsClientInstance(request.getAuthentication()));
     return service.execute(drive, request.getResource());
   }
 }

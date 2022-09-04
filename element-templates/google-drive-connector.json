@@ -46,17 +46,17 @@
         "choices": [
           {
             "name": "Bearer Token",
-            "value": "authentication.bearer"
+            "value": "bearer"
           },
           {
             "name": "Refresh Token",
-            "value": "authentication.refresh"
+            "value": "refresh"
           }
         ],
         "binding": {
           "type": "zeebe:input",
-          "name": "authentication.type",
-          "key": "authentication.type"
+          "name": "authentication.authType",
+          "key": "authentication.authType"
         }
       },
       {
@@ -73,7 +73,7 @@
         },
         "condition": {
           "property": "authenticationType",
-          "equals": "authentication.bearer"
+          "equals": "bearer"
         }
       },
       {
@@ -90,7 +90,7 @@
         },
         "condition": {
           "property": "authenticationType",
-          "equals": "authentication.refresh"
+          "equals": "refresh"
         }
       },
       {
@@ -107,7 +107,7 @@
         },
         "condition": {
           "property": "authenticationType",
-          "equals": "authentication.refresh"
+          "equals": "refresh"
         }
       },
       {
@@ -124,7 +124,7 @@
         },
         "condition": {
           "property": "authenticationType",
-          "equals": "authentication.refresh"
+          "equals": "refresh"
         }
       },
       {
