@@ -1,9 +1,9 @@
 [
   {
     "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-    "name": "AWS SQS Outbound Connector",
+    "name": "AWS Simple Queue Service",
     "id": "io.camunda.connectors.AWSSQS.v1",
-    "description": "AWS SQS Outbound Connector",
+    "description": "Send message to queue",
     "appliesTo": [
       "bpmn:ServiceTask"
     ],
