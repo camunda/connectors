@@ -1,6 +1,6 @@
-# cloud-connector-http-json
+# Camunda HTTP JSON Connector
 
-Camunda Cloud HTTP JSON Connector
+Find the user documentation in our [Camunda Platform 8 Docs](https://docs.camunda.io/docs/components/integration-framework/connectors/out-of-the-box-connectors/rest/).
 
 ## Build
 
@@ -14,7 +14,6 @@ mvn clean package
 
 ```json
 {
-  "clusterId": "test",
   "method": "post",
   "url": "https://httpbin.org/anything",
   "queryParameters": {
@@ -84,7 +83,6 @@ The response will contain the status code, the headers and the body of the respo
 
 ```json
 {
-  "clusterId": "test",
   "method": "get",
   "url": "https://httpbin.org/basic-auth/user/password",
   "authentication": {
@@ -99,7 +97,6 @@ The response will contain the status code, the headers and the body of the respo
 
 ```json
 {
-  "clusterId": "test",
   "method": "get",
   "url": "https://httpbin.org/bearer",
   "authentication": {
@@ -111,37 +108,29 @@ The response will contain the status code, the headers and the body of the respo
 
 ## Test locally
 
+Run unit tests
+
+```bash
+mvn clean verify
+```
+
+### Test as local Job Worker
+
+Use the [Camunda Job Worker Connector Run-Time](https://github.com/camunda/connector-framework/tree/main/runtime-job-worker) to run your function as a local Job Worker.
+
+### :lock: Test as local Google Cloud Function
+
+> **Warning**
+> This is Camunda-internal only. The Maven profile `cloud-function` accesses an internal artifact.
+
 Build as Google Cloud Function
 
 ```bash
 mvn function:run -Pcloud-function
 ```
 
-The function will be available at http://localhost:9082.
-
-Have a look at the [Camunda Cloud Connector Run-Time](https://github.com/camunda/connector-runtime-cloud) to see how your Connector function is wrapped as a Google Cloud Function.
-
-### Test as local Job Worker
-
-Use the [Camunda Job Worker Connector Run-Time](https://github.com/camunda/connector-framework/tree/main/runtime-job-worker) to run your function as a local Job Worker.
-
-### Local secrets
-
-To inject secrets during execution export a `CONNECTOR_SECRETS` environment variable
-
-```bash
-export CONNECTOR_SECRETS='{"MY_SECRET":"XXX",...}'
-```
-
-And reference the secret in the request payload prefixed with `secrets.MY_SECRET`.
-
-### Send a request
-
-Save the request in a file, i.e. `request.json` and use curl to invoke the function.
-
-```bash
-curl -X POST -H "Content-Type: application/json" -d @request.json http://localhost:9082
-```
+See also the [:lock:Camunda Cloud Connector Run-Time](https://github.com/camunda/connector-runtime-cloud) on how your function
+is run as a Google Cloud Function.
 
 ## Element Template
 
