@@ -1,6 +1,6 @@
-# Sqs Connector
+# Camunda AWS SQS Connector
 
-Camunda SQS Connector
+Find the user documentation in our [Camunda Platform 8 Docs](https://docs.camunda.io/docs/components/integration-framework/connectors/out-of-the-box-connectors/aws-sqs/).
 
 ## Build
 
@@ -56,7 +56,16 @@ Run unit tests
 mvn clean verify
 ```
 
-### Test as local Google Cloud Function
+### Test as local Job Worker
+
+Use
+the [Camunda Job Worker Connector Run-Time](https://github.com/camunda/connector-framework/tree/main/runtime-job-worker)
+to run your function as a local Job Worker.
+
+### :lock: Test as local Google Cloud Function
+
+> **Warning**
+> This is Camunda-internal only. The Maven profile `cloud-function` accesses an internal artifact.
 
 Build as Google Cloud Function
 
@@ -64,14 +73,8 @@ Build as Google Cloud Function
 mvn function:run -Pcloud-function
 ```
 
-See also the [Camunda Cloud Connector Run-Time](https://github.com/camunda/connector-runtime-cloud) on how your function
+See also the [:lock:Camunda Cloud Connector Run-Time](https://github.com/camunda/connector-runtime-cloud) on how your function
 is run as a Google Cloud Function.
-
-### Test as local Job Worker
-
-Use
-the [Camunda Job Worker Connector Run-Time](https://github.com/camunda/connector-framework/tree/main/runtime-job-worker)
-to run your function as a local Job Worker.
 
 ## Element Template
 
