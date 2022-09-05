@@ -42,7 +42,7 @@
         "label": "Type",
         "group": "authentication",
         "type": "Dropdown",
-        "value": "authentication.bearer",
+        "value": "bearer",
         "choices": [
           {
             "name": "Bearer Token",
@@ -131,7 +131,6 @@
         "id": "resourceType",
         "group": "operation",
         "type": "Dropdown",
-        "label": "Type",
         "value": "folder",
         "choices": [
           {

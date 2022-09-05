@@ -12,29 +12,93 @@ mvn clean package
 
 ### Create folder
 
-### Input
+#### Input with bearer token
 
 ```json
   {
-  "token": "secrets.GDRIVE_BEARER",
+  "authentication":{
+    "authType":"bearer",
+    "bearerToken": "secrets.GDRIVE_BEARER"
+  },
   "resource": {
     "type": "folder",
-    "name": "MyNewFolder",
+    "name": "MyNewFolderName",
     "parent": "secrets.PARENT_ID",
     "additionalGoogleDriveProperties": {
-      "description": " description"
+      "description": "description"
     }
+  }
+}
+```
+
+#### Input with refresh token
+
+```json
+{
+  "authentication":{
+    "authType":"refresh",
+    "oauthClientId":"secrets.GDRIVE_OAUTH_CLIENT_ID",
+    "oauthClientSecret":"secrets.GDRIVE_OAUTH_CLIENT_SECRET",
+    "oauthRefreshToken":"secrets.GDRIVE_OAUTH_REFRESH_TOKEN"
+  },
+  "resource":{
+    "type":"folder",
+    "additionalGoogleDriveProperties":{
+      "description": "description"
+    },
+    "parent":"secrets.PARENT_ID",
+    "name":"MyNewFolderName"
   }
 }
 ```
 
 ### Create file
 
-### Input
+#### Input with bearer token
 
 ```json
   {
-  "token": "secrets.GDRIVE_BEARER",
+  "authentication":{
+    "authType":"bearer",
+    "bearerToken": "secrets.GDRIVE_BEARER"
+  },
+  "resource": {
+    "type": "folder",
+    "name": "MyNewFolder",
+    "parent": "secrets.PARENT_ID",
+    "additionalGoogleDriveProperties": {
+      "description": " description"
+    },
+    "template": {
+      "id": "myTemplateId",
+      "variables": {
+        "requests": [
+          {
+            "replaceAllText": {
+              "containsText": {
+                "text": "replaceFrom",
+                "matchCase": "true"
+              },
+              "replaceText": "replaceTo"
+            }
+          }
+        ]
+      }
+    }
+  }
+}
+```
+
+#### Input with refresh token
+
+```json
+  {
+  "authentication":{
+    "authType":"refresh",
+    "oauthClientId":"secrets.GDRIVE_OAUTH_CLIENT_ID",
+    "oauthClientSecret":"secrets.GDRIVE_OAUTH_CLIENT_SECRET",
+    "oauthRefreshToken":"secrets.GDRIVE_OAUTH_REFRESH_TOKEN"
+  },
   "resource": {
     "type": "folder",
     "name": "MyNewFolder",

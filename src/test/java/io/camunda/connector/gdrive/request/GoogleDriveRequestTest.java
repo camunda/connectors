@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.camunda.connector.api.ConnectorContext;
 import io.camunda.connector.gdrive.BaseTest;
+import io.camunda.connector.gdrive.model.request.AuthenticationType;
 import io.camunda.connector.gdrive.model.request.GoogleDriveRequest;
 import io.camunda.connector.test.ConnectorContextBuilder;
 import java.io.IOException;
@@ -54,14 +55,13 @@ class GoogleDriveRequestTest extends BaseTest {
     context.replaceSecrets(request);
 
     // Then
-    // FIXME: move to enum
-    if ("bearer".equals(request.getAuthentication().getAuthType())) {
+    if (request.getAuthentication().getAuthType() == AuthenticationType.BEARER) {
       assertThat(request.getAuthentication().getBearerToken())
           .isNotNull()
           .isEqualTo(ACTUAL_BEARER_TOKEN);
     }
 
-    if ("refresh".equals(request.getAuthentication().getAuthType())) {
+    if (request.getAuthentication().getAuthType() == AuthenticationType.REFRESH) {
       assertThat(request.getAuthentication().getOauthClientId())
           .isNotNull()
           .isEqualTo(ACTUAL_OAUTH_CLIENT_ID);
