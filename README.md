@@ -1,6 +1,6 @@
-# cloud-connector-sendgrid
+# Camunda SendGrid Connector
 
-Camunda Cloud SendGrid Connector
+Find the user documentation in our [Camunda Platform 8 Docs](https://docs.camunda.io/docs/components/integration-framework/connectors/out-of-the-box-connectors/sendgrid/).
 
 ## Build
 
@@ -52,7 +52,14 @@ Run unit tests
 mvn clean verify
 ```
 
-### Test as local Google Cloud Function
+### Test as local Job Worker
+
+Use the [Camunda Job Worker Connector Run-Time](https://github.com/camunda/connector-framework/tree/main/runtime-job-worker) to run your function as a local Job Worker.
+
+### :lock: Test as local Google Cloud Function
+
+> **Warning**
+> This is Camunda-internal only. The Maven profile `cloud-function` accesses an internal artifact.
 
 Build as Google Cloud Function
 
@@ -60,21 +67,15 @@ Build as Google Cloud Function
 mvn function:run -Pcloud-function
 ```
 
-The function will be available at http://localhost:9082.
+See also the [:lock:Camunda Cloud Connector Run-Time](https://github.com/camunda/connector-runtime-cloud) on how your function
+is run as a Google Cloud Function.
 
-Have a look at the [Camunda Cloud Connector Run-Time](https://github.com/camunda/connector-runtime-cloud) to see how your Connector function is wrapped as a Google Cloud Function.
-
-### Test as local Job Worker
-
-Use the [Camunda Job Worker Connector Run-Time](https://github.com/camunda/connector-framework/tree/main/runtime-job-worker) to run your function as a local Job Worker.
-
-### email Template
+### Email Template
 
 If the email should be send with a template the request has to contain a `template` object.
 
 ```json
 {
-  "clusterId": "838d40dc-a4e2-42cd-a5fb-7e5ea993a970",
   "apiKey": "secrets.SENDGRID_API_KEY",
   "from": {
     "name": "John Doe",
@@ -101,7 +102,6 @@ If the email should be send with a template the request has to contain a `templa
 
 ```json
 {
-  "clusterId": "838d40dc-a4e2-42cd-a5fb-7e5ea993a970",
   "apiKey": "secrets.SENDGRID_API_KEY",
   "from": {
     "name": "John Doe",
