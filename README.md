@@ -1,6 +1,6 @@
-# Cloud Connector - Google Drive
+# Camunda Google Drive Connector
 
-A C8 Connector that lets you interact with Google Drive.
+Find the user documentation in our [Camunda Platform 8 Docs](https://docs.camunda.io/docs/components/integration-framework/connectors/out-of-the-box-connectors/googledrive/).
 
 ## Build
 
@@ -81,7 +81,15 @@ Run unit tests
 mvn clean verify
 ```
 
-### Test as local Google Cloud Function
+### Test as local Job Worker
+
+Use the [Camunda Job Worker Connector Run-Time](https://github.com/camunda/connector-framework/tree/main/runtime-job-worker)
+to run your function as a local Job Worker.
+
+### :lock: Test as local Google Cloud Function
+
+> **Warning**
+> This is Camunda-internal only. The Maven profile `cloud-function` accesses an internal artifact.
 
 Build as Google Cloud Function
 
@@ -89,20 +97,13 @@ Build as Google Cloud Function
 mvn function:run -Pcloud-function
 ```
 
-The function will be available at http://localhost:9082.
-
-Have a look at the [Camunda Cloud Connector Run-Time](https://github.com/camunda/connector-runtime-cloud) to see how
-your Connector function is wrapped as a Google Cloud Function.
-
-### Test as local Job Worker
-
-Use the [Camunda Job Worker Connector Run-Time](https://github.com/camunda/connector-framework/tree/main/runtime-job-worker)
-to run your function as a local Job Worker.
+See also the [:lock:Camunda Cloud Connector Run-Time](https://github.com/camunda/connector-runtime-cloud) on how your function
+is run as a Google Cloud Function.
 
 ## Element Template
 
 The element templates can be found in
-the [element-templates/template-connector.json](element-templates/google-drive-connector.json) file.
+the [element-templates/google-drive-connector.json](element-templates/google-drive-connector.json) file.
 
 ## Build a release
 
