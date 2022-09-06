@@ -10,7 +10,7 @@
 
   <name>connector-template</name>
   <description>Camunda Template Connector</description>
-  <artifactId>connector-template</artifactId>
+  <artifactId>connector-google-drive</artifactId>
   <packaging>jar</packaging>
   <version>0.3.0-SNAPSHOT</version>
 
