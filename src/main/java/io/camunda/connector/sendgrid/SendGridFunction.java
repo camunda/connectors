@@ -17,7 +17,6 @@
 package io.camunda.connector.sendgrid;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.sendgrid.Method;
 import com.sendgrid.Response;
 import com.sendgrid.SendGrid;
@@ -33,7 +32,17 @@ public class SendGridFunction implements ConnectorFunction {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(SendGridFunction.class);
 
-  private static final Gson GSON = new GsonBuilder().create();
+  private final Gson gson;
+
+  private SendGrid sendGrid;
+
+  public SendGridFunction() {
+    this(GsonComponentSupplier.gsonInstance());
+  }
+
+  public SendGridFunction(final Gson gson) {
+    this.gson = gson;
+  }
 
   @Override
   public Object execute(ConnectorContext context) throws Exception {
@@ -42,14 +51,16 @@ public class SendGridFunction implements ConnectorFunction {
     context.validate(request);
     context.replaceSecrets(request);
 
-    final var mail = createEmail(request);
+    sendGrid = new SendGrid(request.getApiKey());
 
-    final var result = sendEmail(request.getApiKey(), mail);
+    final var mail = createEmail(request);
+    final var result = sendEmail(mail);
+
     final int statusCode = result.getStatusCode();
     LOGGER.info("Received response from SendGrid with code {}", statusCode);
 
     if (statusCode != 202) {
-      final SendGridErrors errors = GSON.fromJson(result.getBody(), SendGridErrors.class);
+      final SendGridErrors errors = gson.fromJson(result.getBody(), SendGridErrors.class);
       final var exceptionMessage =
           String.format(
               "User request failed to execute with status %s and error '%s'",
@@ -94,12 +105,11 @@ public class SendGridFunction implements ConnectorFunction {
     }
   }
 
-  private Response sendEmail(final String apiKey, final Mail mail) throws IOException {
-    final SendGrid sg = new SendGrid(apiKey);
+  private Response sendEmail(final Mail mail) throws IOException {
     final com.sendgrid.Request request = new com.sendgrid.Request();
     request.setMethod(Method.POST);
     request.setEndpoint("mail/send");
     request.setBody(mail.build());
-    return sg.api(request);
+    return sendGrid.api(request);
   }
 }

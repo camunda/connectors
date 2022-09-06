@@ -16,25 +16,16 @@
  */
 package io.camunda.connector.sendgrid;
 
-public class BaseTest {
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
-  protected static final String SECRETS = "secrets.";
+public class GsonComponentSupplier {
 
-  protected static final String API_KEY = "test";
-  protected static final String ACTUAL_API_KEY = "send_grid_key";
+  private GsonComponentSupplier() {}
 
-  protected static final String ACTUAL_SUBJECT = "subject_test";
-  protected static final String ACTUAL_TYPE = "type_test";
-  protected static final String ACTUAL_VALUE = "value_test";
+  private static final Gson GSON = new GsonBuilder().create();
 
-  protected static final String ACTUAL_ID = "Test";
-  protected static final String ACTUAL_DATA_VALUE = "Value";
-
-  protected static final String FROM_EMAIL_VALUE = "from@test.com";
-  protected static final String TO_EMAIL_VALUE = "receiver@test.com";
-
-  protected static final String SENDER = "Sender";
-  protected static final String RECEIVER = "Receiver";
-
-  protected static final String SAMPLE = "Sample";
+  public static Gson gsonInstance() {
+    return GSON;
+  }
 }
