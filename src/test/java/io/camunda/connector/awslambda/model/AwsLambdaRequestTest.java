@@ -38,7 +38,7 @@ class AwsLambdaRequestTest extends BaseTest {
   public void beforeEach() {
     request = new AwsLambdaRequest();
     request.setAuthentication(new AuthenticationRequestData());
-    request.setFunction(new FunctionRequestData());
+    request.setAwsFunction(new FunctionRequestData());
     validator = new Validator();
     context = getContextBuilderWithSecrets().build(); // builder with secrets
   }
@@ -69,8 +69,8 @@ class AwsLambdaRequestTest extends BaseTest {
     // Then
     assertThat(request.getAuthentication().getSecretKey()).isEqualTo(ACTUAL_SECRET_KEY);
     assertThat(request.getAuthentication().getAccessKey()).isEqualTo(ACTUAL_ACCESS_KEY);
-    assertThat(request.getFunction().getRegion()).isEqualTo(ACTUAL_FUNCTION_REGION);
-    assertThat(request.getFunction().getFunctionName()).isEqualTo(ACTUAL_FUNCTION_NAME);
+    assertThat(request.getAwsFunction().getRegion()).isEqualTo(ACTUAL_FUNCTION_REGION);
+    assertThat(request.getAwsFunction().getFunctionName()).isEqualTo(ACTUAL_FUNCTION_NAME);
   }
 
   @Test
@@ -78,16 +78,16 @@ class AwsLambdaRequestTest extends BaseTest {
     // Given request with data that not started from secrets. and context with secret store
     request.getAuthentication().setSecretKey(ACTUAL_SECRET_KEY);
     request.getAuthentication().setAccessKey(ACTUAL_ACCESS_KEY);
-    request.getFunction().setRegion(ACTUAL_FUNCTION_REGION);
-    request.getFunction().setFunctionName(ACTUAL_FUNCTION_NAME);
-    request.getFunction().setPayload(ACTUAL_PAYLOAD);
+    request.getAwsFunction().setRegion(ACTUAL_FUNCTION_REGION);
+    request.getAwsFunction().setFunctionName(ACTUAL_FUNCTION_NAME);
+    request.getAwsFunction().setPayload(ACTUAL_PAYLOAD);
     // When replace secrets
     context.replaceSecrets(request);
     // Then secrets must be not replaced
     assertThat(request.getAuthentication().getSecretKey()).isEqualTo(ACTUAL_SECRET_KEY);
     assertThat(request.getAuthentication().getAccessKey()).isEqualTo(ACTUAL_ACCESS_KEY);
-    assertThat(request.getFunction().getRegion()).isEqualTo(ACTUAL_FUNCTION_REGION);
-    assertThat(request.getFunction().getFunctionName()).isEqualTo(ACTUAL_FUNCTION_NAME);
-    assertThat(request.getFunction().getPayload()).isEqualTo(ACTUAL_PAYLOAD);
+    assertThat(request.getAwsFunction().getRegion()).isEqualTo(ACTUAL_FUNCTION_REGION);
+    assertThat(request.getAwsFunction().getFunctionName()).isEqualTo(ACTUAL_FUNCTION_NAME);
+    assertThat(request.getAwsFunction().getPayload()).isEqualTo(ACTUAL_PAYLOAD);
   }
 }

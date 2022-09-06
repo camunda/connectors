@@ -71,7 +71,7 @@
         "feel": "optional",
         "binding": {
           "type": "zeebe:input",
-          "name": "function.region"
+          "name": "awsFunction.region"
         },
         "constraints": {
           "notEmpty": true,
@@ -91,8 +91,8 @@
         ],
         "binding": {
           "type": "zeebe:input",
-          "name": "function.operationType",
-          "key": "function.operationType"
+          "name": "awsFunction.operationType",
+          "key": "awsFunction.operationType"
         }
       },
       {
@@ -103,7 +103,7 @@
         "feel": "optional",
         "binding": {
           "type": "zeebe:input",
-          "name": "function.functionName"
+          "name": "awsFunction.functionName"
         },
         "constraints": {
           "notEmpty": true,
@@ -122,7 +122,7 @@
         "feel": "required",
         "binding": {
           "type": "zeebe:input",
-          "name": "function.payload"
+          "name": "awsFunction.payload"
         },
         "condition": {
           "property": "operationType",

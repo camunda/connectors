@@ -24,20 +24,20 @@ import io.camunda.connector.api.Validator;
 public class AwsLambdaRequest implements ConnectorInput {
 
   private AuthenticationRequestData authentication;
-  private FunctionRequestData function;
+  private FunctionRequestData awsFunction;
 
   @Override
   public void validateWith(final Validator validator) {
     validator.require(authentication, "AuthenticationRequestData");
-    validator.require(function, "FunctionRequestData");
+    validator.require(awsFunction, "FunctionRequestData");
     authentication.validateWith(validator);
-    function.validateWith(validator);
+    awsFunction.validateWith(validator);
   }
 
   @Override
   public void replaceSecrets(final SecretStore secretStore) {
     authentication.replaceSecrets(secretStore);
-    function.replaceSecrets(secretStore);
+    awsFunction.replaceSecrets(secretStore);
   }
 
   public AuthenticationRequestData getAuthentication() {
@@ -48,12 +48,12 @@ public class AwsLambdaRequest implements ConnectorInput {
     this.authentication = authentication;
   }
 
-  public FunctionRequestData getFunction() {
-    return function;
+  public FunctionRequestData getAwsFunction() {
+    return awsFunction;
   }
 
-  public void setFunction(final FunctionRequestData function) {
-    this.function = function;
+  public void setAwsFunction(final FunctionRequestData awsFunction) {
+    this.awsFunction = awsFunction;
   }
 
   @Override
@@ -62,7 +62,7 @@ public class AwsLambdaRequest implements ConnectorInput {
         + "authentication="
         + authentication
         + ", function="
-        + function
+        + awsFunction
         + "}";
   }
 }
