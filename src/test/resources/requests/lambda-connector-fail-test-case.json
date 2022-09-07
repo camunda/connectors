@@ -3,7 +3,7 @@
     "authentication": {
       "accessKey": "secrets.ACCESS_KEY"
     },
-    "function": {
+    "awsFunction": {
       "payload": "secrets.PAYLOAD_KEY",
       "functionName": "secrets.FUNCTION_NAME",
       "region": "secrets.REGION_KEY"
@@ -13,7 +13,7 @@
     "authentication": {
       "secretKey": "secrets.SECRET_KEY"
     },
-    "function": {
+    "awsFunction": {
       "payload": "secrets.PAYLOAD_KEY",
       "functionName": "secrets.FUNCTION_NAME",
       "region": "secrets.REGION_KEY"
@@ -24,7 +24,7 @@
       "secretKey": "secrets.SECRET_KEY",
       "accessKey": "secrets.ACCESS_KEY"
     },
-    "function": {
+    "awsFunction": {
       "functionName": "secrets.FUNCTION_NAME",
       "region": "secrets.REGION_KEY"
     }
@@ -34,7 +34,7 @@
       "secretKey": "secrets.SECRET_KEY",
       "accessKey": "secrets.ACCESS_KEY"
     },
-    "function": {
+    "awsFunction": {
       "payload": "secrets.PAYLOAD_KEY",
       "region": "secrets.REGION_KEY"
     }
@@ -44,7 +44,7 @@
       "secretKey": "secrets.SECRET_KEY",
       "accessKey": "secrets.ACCESS_KEY"
     },
-    "function": {
+    "awsFunction": {
       "payload": "secrets.PAYLOAD_KEY",
       "functionName": "secrets.FUNCTION_NAME"
     }

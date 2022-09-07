@@ -57,11 +57,11 @@ public class LambdaConnectorFunction implements ConnectorFunction {
   private InvokeResult invokeLambdaFunction(AwsLambdaRequest request) {
     final AWSLambda awsLambda =
         awsLambdaSupplier.awsLambdaService(
-            request.getAuthentication(), request.getFunction().getRegion());
+            request.getAuthentication(), request.getAwsFunction().getRegion());
     final InvokeRequest invokeRequest =
         new InvokeRequest()
-            .withFunctionName(request.getFunction().getFunctionName())
-            .withPayload(gson.toJson(request.getFunction().getPayload()));
+            .withFunctionName(request.getAwsFunction().getFunctionName())
+            .withPayload(gson.toJson(request.getAwsFunction().getPayload()));
     try {
       return awsLambda.invoke(invokeRequest);
     } finally {
