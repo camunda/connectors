@@ -33,13 +33,36 @@ import org.mockito.Mockito;
 public class SendGridFunctionTest extends BaseTest {
 
   private ConnectorContext context;
+  private SendGrid sendGrid;
 
   @BeforeEach
   public void init() {
+    sendGrid = Mockito.mock(SendGrid.class);
+
+    SendGridRequest sendGridRequest = new SendGridRequest();
+    sendGridRequest.setApiKey(SECRETS + API_KEY);
+
+    SendGridEmail from = new SendGridEmail();
+    from.setName("Sender");
+    from.setEmail("from@test.com");
+
+    SendGridEmail to = new SendGridEmail();
+    to.setName("Receiver");
+    to.setEmail("receiver@test.com");
+
+    SendGridContent sendGridContent = new SendGridContent();
+    sendGridContent.setSubject(ACTUAL_SUBJECT);
+    sendGridContent.setType(ACTUAL_TYPE);
+    sendGridContent.setValue(ACTUAL_VALUE);
+
+    sendGridRequest.setFrom(from);
+    sendGridRequest.setTo(to);
+    sendGridRequest.setContent(sendGridContent);
+
     context =
         ConnectorContextBuilder.create()
             .secret(API_KEY, ACTUAL_API_KEY)
-            .variables(new SendGridRequest())
+            .variables(sendGridRequest)
             .build();
   }
 
