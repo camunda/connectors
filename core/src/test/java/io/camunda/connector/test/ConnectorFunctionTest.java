@@ -16,8 +16,7 @@
  */
 package io.camunda.connector.test;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.catchException;
+import static org.assertj.core.api.Assertions.*;
 
 import io.camunda.connector.example.ExampleFunction;
 import io.camunda.connector.example.ExampleInput;
@@ -60,7 +59,14 @@ public class ConnectorFunctionTest {
   public void shouldValidateInput() {
     // given
     var fn = new ExampleFunction();
-    var context = ConnectorContextBuilder.create().variables(new ExampleInput()).build();
+    var context =
+        ConnectorContextBuilder.create()
+            .variables(new ExampleInput("foo"))
+            .validation(
+                input -> {
+                  throw new IllegalStateException("This will never validate: Test - foo");
+                })
+            .build();
 
     // when
     var exception = catchException(() -> fn.execute(context));
@@ -70,15 +76,17 @@ public class ConnectorFunctionTest {
   }
 
   @Test
-  public void shouldFail() {
+  public void shouldFailOnMissingValidationProvider() {
     // given
     var fn = new ExampleFunction();
 
     // when
-    var context = ConnectorContextBuilder.create().variables(new ExampleInput("BOOM!")).build();
+    var context = ConnectorContextBuilder.create().variables(new ExampleInput("foo")).build();
     var exception = catchException(() -> fn.execute(context));
 
     // then
-    assertThat(exception).hasMessage("expected BOOM!");
+    assertThat(exception)
+        .hasMessage(
+            "Please bind an implementation to io.camunda.connector.api.ValidationProvider via SPI");
   }
 }

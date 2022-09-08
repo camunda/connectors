@@ -26,15 +26,15 @@ public class ExampleFunction implements ConnectorFunction {
 
     var input = context.getVariablesAsType(ExampleInput.class);
 
-    context.validate(input);
+    if ("foo".equals(input.getFoo())) {
+      context.validate(input);
+    }
     context.replaceSecrets(input);
 
-    var foo = input.getFoo();
-
-    if (foo.equals("BOOM!")) {
+    if ("BOOM!".equals(input.getFoo())) {
       throw new UnsupportedOperationException("expected BOOM!");
     }
 
-    return foo;
+    return input.getFoo();
   }
 }

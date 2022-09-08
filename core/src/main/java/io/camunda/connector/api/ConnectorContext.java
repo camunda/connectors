@@ -41,8 +41,7 @@ public interface ConnectorContext {
 
   /**
    * Fetches the secret store that is provided by the environment. You can use this to create your
-   * own secret replacement routines. For default secret replacement mechanism, please use {@link
-   * #replaceSecrets(ConnectorInput)}.
+   * own secret replacement routines.
    *
    * @return the secret store provided by the environment
    */
@@ -53,17 +52,12 @@ public interface ConnectorContext {
    *
    * @param input - the object to replace secrets in
    */
-  void replaceSecrets(ConnectorInput input);
+  void replaceSecrets(Object input);
 
   /**
-   * Validates the input object regarding validation routines provided by the input object itself
-   * via {@link ConnectorInput#validateWith(Validator)}.
+   * Validates the input object
    *
    * @param input - the object to validate
    */
-  default void validate(ConnectorInput input) {
-    final var validator = new Validator();
-    input.validateWith(validator);
-    validator.evaluate();
-  }
+  void validate(Object input);
 }

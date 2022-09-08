@@ -14,25 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.example;
 
-import io.camunda.connector.api.annotation.Secret;
+package io.camunda.connector.api;
 
-public class ExampleInput {
-
-  @Secret private String foo;
-
-  public ExampleInput() {}
-
-  public ExampleInput(String foo) {
-    this.foo = foo;
-  }
-
-  public String getFoo() {
-    return foo;
-  }
-
-  public void setFoo(String foo) {
-    this.foo = foo;
-  }
+/**
+ * Provider of validation for an environment. This class will be instantiated from an environment
+ * runtime according to the <a
+ * href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/ServiceLoader.html">Service
+ * Provider Interface (SPI)</a> documentation.
+ */
+public interface ValidationProvider {
+  /**
+   * Performs a validation on the given object and throws an exception if the object is invalid.
+   *
+   * @param objectToValidate the object the validation should run for
+   */
+  void validate(Object objectToValidate);
 }
