@@ -17,17 +17,22 @@
 package io.camunda.connector.test;
 
 import io.camunda.connector.api.ConnectorContext;
-import io.camunda.connector.api.ConnectorInput;
 import io.camunda.connector.api.SecretProvider;
 import io.camunda.connector.api.SecretStore;
+import io.camunda.connector.api.ValidationProvider;
+import io.camunda.connector.impl.AbstractConnectorContext;
+import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 /** Test helper class for creating a {@link ConnectorContext} with a fluent API. */
 public class ConnectorContextBuilder {
 
   protected Map<String, String> secrets = new HashMap<>();
   protected SecretProvider secretProvider = (name) -> secrets.get(name);
+
+  protected ValidationProvider validationProvider;
 
   protected String variablesAsJSON;
 
@@ -100,51 +105,67 @@ public class ConnectorContextBuilder {
     return this;
   }
 
+  public ConnectorContextBuilder validation(ValidationProvider validationProvider) {
+    this.validationProvider = validationProvider;
+    return this;
+  }
+
   /**
    * @return the {@link ConnectorContext} including all previously defined properties
    */
-  public ConnectorContext build() {
-    return new ConnectorContext() {
+  public TestConnectorContext build() {
+    return new TestConnectorContext();
+  }
 
-      private SecretStore secretStore;
+  public class TestConnectorContext extends AbstractConnectorContext {
+    private SecretStore secretStore;
 
-      @Override
-      public String getVariables() {
+    @Override
+    public String getVariables() {
 
-        if (variablesAsJSON == null) {
-          throw new IllegalStateException("variablesAsJSON not provided");
-        }
-
-        return variablesAsJSON;
+      if (variablesAsJSON == null) {
+        throw new IllegalStateException("variablesAsJSON not provided");
       }
 
-      @Override
-      public <T extends Object> T getVariablesAsType(Class<T> cls) {
+      return variablesAsJSON;
+    }
 
-        if (variablesAsObject == null) {
-          throw new IllegalStateException("variablesAsObject not provided");
-        }
+    @Override
+    public <T extends Object> T getVariablesAsType(Class<T> cls) {
 
-        try {
-          return cls.cast(variablesAsObject);
-        } catch (ClassCastException ex) {
-          throw new IllegalStateException(
-              "no variablesAsObject of type " + cls.getName() + " provided", ex);
-        }
+      if (variablesAsObject == null) {
+        throw new IllegalStateException("variablesAsObject not provided");
       }
 
-      @Override
-      public void replaceSecrets(ConnectorInput input) {
-        input.replaceSecrets(getSecretStore());
+      try {
+        return cls.cast(variablesAsObject);
+      } catch (ClassCastException ex) {
+        throw new IllegalStateException(
+            "no variablesAsObject of type " + cls.getName() + " provided", ex);
       }
+    }
 
-      @Override
-      public SecretStore getSecretStore() {
-        if (secretStore == null) {
-          secretStore = new SecretStore(secretProvider);
-        }
-        return secretStore;
+    @Override
+    public SecretStore getSecretStore() {
+      if (secretStore == null) {
+        secretStore = new SecretStore(secretProvider);
       }
-    };
+      return secretStore;
+    }
+
+    @Override
+    public ValidationProvider getValidationProvider() {
+      return Optional.ofNullable(validationProvider).orElseGet(super::getValidationProvider);
+    }
+
+    @Override
+    public <T> T getProperty(Object input, Field field) {
+      return super.getProperty(input, field);
+    }
+
+    @Override
+    public void setProperty(Object input, Field field, Object property) {
+      super.setProperty(input, field, property);
+    }
   }
 }

@@ -14,25 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.example;
 
-import io.camunda.connector.api.annotation.Secret;
+package io.camunda.connector.api.annotation;
 
-public class ExampleInput {
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-  @Secret private String foo;
-
-  public ExampleInput() {}
-
-  public ExampleInput(String foo) {
-    this.foo = foo;
-  }
-
-  public String getFoo() {
-    return foo;
-  }
-
-  public void setFoo(String foo) {
-    this.foo = foo;
-  }
-}
+/**
+ * Marks the path to a secret field as well as the secret itself. Secrets are always of type {@link
+ * CharSequence}
+ */
+@Target(ElementType.FIELD)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface Secret {}

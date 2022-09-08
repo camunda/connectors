@@ -19,11 +19,10 @@ package io.camunda.connector.runtime.jobworker;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.api.ConnectorContext;
 import io.camunda.connector.api.ConnectorFunction;
-import io.camunda.connector.api.ConnectorInput;
 import io.camunda.connector.api.SecretProvider;
 import io.camunda.connector.api.SecretStore;
+import io.camunda.connector.impl.AbstractConnectorContext;
 import io.camunda.connector.runtime.jobworker.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.jobworker.feel.FeelEngineWrapperException;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
@@ -47,6 +46,7 @@ public class ConnectorJobHandler implements JobHandler {
   protected static final String RESULT_EXPRESSION_HEADER_NAME = "resultExpression";
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
   private final ConnectorFunction call;
   private final FeelEngineWrapper feelEngineWrapper;
 
@@ -118,18 +118,13 @@ public class ConnectorJobHandler implements JobHandler {
     return System::getenv;
   }
 
-  protected class JobHandlerContext implements ConnectorContext {
+  protected class JobHandlerContext extends AbstractConnectorContext {
 
     private final ActivatedJob job;
     private SecretStore secretStore;
 
     public JobHandlerContext(final ActivatedJob job) {
       this.job = job;
-    }
-
-    @Override
-    public void replaceSecrets(final ConnectorInput input) {
-      input.replaceSecrets(getSecretStore());
     }
 
     @Override
