@@ -97,7 +97,7 @@
       },
       {
         "label": "Function name",
-        "description": "Enter a name, ARI or alias of your function",
+        "description": "Enter a name, ARN or alias of your function",
         "group": "operationDetails",
         "type": "String",
         "feel": "optional",
