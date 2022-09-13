@@ -1,151 +1,27 @@
 [
   {
     "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-    "name": "SendGrid Email Template Task",
-    "id": "io.camunda.connectors.SendGrid.v1.template",
-    "description": "Send an Email via SendGrid Dynamic Template",
-    "documentationRef": "https://docs.camunda.io/docs/components/modeler/web-modeler/connectors/available-connectors/sendgrid/",
-    "icon": {
-      "contents": "data:image/svg+xml;utf8,%3Csvg%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Cpath%20d%3D%22M0.285706%205.40847H5.43837V10.5611H0.285706V5.40847Z%22%20fill%3D%22white%22%2F%3E%0A%3Cpath%20d%3D%22M0.285706%205.40847H5.43837V10.5611H0.285706V5.40847Z%22%20fill%3D%22%2399E1F4%22%2F%3E%0A%3Cpath%20d%3D%22M5.43837%2010.5611L10.5611%2010.5616V15.6844H5.43837V10.5611Z%22%20fill%3D%22white%22%2F%3E%0A%3Cpath%20d%3D%22M5.43837%2010.5611L10.5611%2010.5616V15.6844H5.43837V10.5611Z%22%20fill%3D%22%2399E1F4%22%2F%3E%0A%3Cpath%20d%3D%22M0.285706%2015.6846L5.43837%2015.6844V15.7143H0.285706V15.6846ZM0.285706%2010.5619H5.43837V15.6844L0.285706%2015.6846V10.5619Z%22%20fill%3D%22%231A82E2%22%2F%3E%0A%3Cpath%20d%3D%22M5.43837%200.285706H10.5611V5.40847H5.43837V0.285706ZM10.5616%205.43837H15.7143V10.5611H10.5616V5.43837Z%22%20fill%3D%22%2300B3E3%22%2F%3E%0A%3Cpath%20d%3D%22M5.43837%2010.5611L10.5611%2010.5616V5.40847H5.43837V10.5611Z%22%20fill%3D%22%23009DD9%22%2F%3E%0A%3Cpath%20d%3D%22M10.5611%200.285706H15.7143V5.40847H10.5611V0.285706Z%22%20fill%3D%22%231A82E2%22%2F%3E%0A%3Cpath%20d%3D%22M10.5611%205.40847H15.7143V5.43837H10.5616L10.5611%205.40847Z%22%20fill%3D%22%231A82E2%22%2F%3E%0A%3C%2Fsvg%3E"
-    },
-    "appliesTo": [
-      "bpmn:ServiceTask"
-    ],
-    "groups": [
-      {
-        "id": "sendgrid",
-        "label": "SendGrid API"
-      },
-      {
-        "id": "sender",
-        "label": "Sender"
-      },
-      {
-        "id": "receiver",
-        "label": "Receiver"
-      },
-      {
-        "id": "template",
-        "label": "Dynamic Email Template"
-      }
-    ],
-    "properties": [
-      {
-        "type": "Hidden",
-        "value": "io.camunda:sendgrid:1",
-        "binding": {
-          "type": "zeebe:taskDefinition:type"
-        }
-      },
-      {
-        "label": "SendGrid API Key",
-        "group": "sendgrid",
-        "type": "String",
-        "feel": "optional",
-        "binding": {
-          "type": "zeebe:input",
-          "name": "apiKey"
-        },
-        "constraints": {
-          "notEmpty": true
-        }
-      },
-      {
-        "label": "Name",
-        "group": "sender",
-        "type": "String",
-        "feel": "optional",
-        "binding": {
-          "type": "zeebe:input",
-          "name": "from.name"
-        },
-        "constraints": {
-          "notEmpty": true
-        }
-      },
-      {
-        "label": "Email Address",
-        "group": "sender",
-        "type": "String",
-        "feel": "optional",
-        "binding": {
-          "type": "zeebe:input",
-          "name": "from.email"
-        },
-        "constraints": {
-          "notEmpty": true
-        }
-      },
-      {
-        "label": "Name",
-        "group": "receiver",
-        "type": "String",
-        "feel": "optional",
-        "binding": {
-          "type": "zeebe:input",
-          "name": "to.name"
-        },
-        "constraints": {
-          "notEmpty": true
-        }
-      },
-      {
-        "label": "Email Address",
-        "group": "receiver",
-        "type": "String",
-        "feel": "optional",
-        "binding": {
-          "type": "zeebe:input",
-          "name": "to.email"
-        },
-        "constraints": {
-          "notEmpty": true
-        }
-      },
-      {
-        "label": "Template ID",
-        "group": "template",
-        "type": "String",
-        "feel": "optional",
-        "binding": {
-          "type": "zeebe:input",
-          "name": "template.id"
-        },
-        "constraints": {
-          "notEmpty": true
-        }
-      },
-      {
-        "label": "Template Data",
-        "group": "template",
-        "type": "Text",
-        "feel": "required",
-        "binding": {
-          "type": "zeebe:input",
-          "name": "template.data"
-        },
-        "constraints": {
-          "notEmpty": true
-        }
-      }
-    ]
-  },
-  {
-    "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-    "name": "SendGrid Email Task",
-    "id": "io.camunda.connectors.SendGrid.v1.content",
+    "name": "SendGrid Email",
+    "id": "io.camunda.connectors.SendGrid.v2",
     "description": "Send an Email via SendGrid",
     "documentationRef": "https://docs.camunda.io/docs/components/modeler/web-modeler/connectors/available-connectors/sendgrid/",
     "icon": {
       "contents": "data:image/svg+xml;utf8,%3Csvg%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Cpath%20d%3D%22M0.285706%205.40847H5.43837V10.5611H0.285706V5.40847Z%22%20fill%3D%22white%22%2F%3E%0A%3Cpath%20d%3D%22M0.285706%205.40847H5.43837V10.5611H0.285706V5.40847Z%22%20fill%3D%22%2399E1F4%22%2F%3E%0A%3Cpath%20d%3D%22M5.43837%2010.5611L10.5611%2010.5616V15.6844H5.43837V10.5611Z%22%20fill%3D%22white%22%2F%3E%0A%3Cpath%20d%3D%22M5.43837%2010.5611L10.5611%2010.5616V15.6844H5.43837V10.5611Z%22%20fill%3D%22%2399E1F4%22%2F%3E%0A%3Cpath%20d%3D%22M0.285706%2015.6846L5.43837%2015.6844V15.7143H0.285706V15.6846ZM0.285706%2010.5619H5.43837V15.6844L0.285706%2015.6846V10.5619Z%22%20fill%3D%22%231A82E2%22%2F%3E%0A%3Cpath%20d%3D%22M5.43837%200.285706H10.5611V5.40847H5.43837V0.285706ZM10.5616%205.43837H15.7143V10.5611H10.5616V5.43837Z%22%20fill%3D%22%2300B3E3%22%2F%3E%0A%3Cpath%20d%3D%22M5.43837%2010.5611L10.5611%2010.5616V5.40847H5.43837V10.5611Z%22%20fill%3D%22%23009DD9%22%2F%3E%0A%3Cpath%20d%3D%22M10.5611%200.285706H15.7143V5.40847H10.5611V0.285706Z%22%20fill%3D%22%231A82E2%22%2F%3E%0A%3Cpath%20d%3D%22M10.5611%205.40847H15.7143V5.43837H10.5616L10.5611%205.40847Z%22%20fill%3D%22%231A82E2%22%2F%3E%0A%3C%2Fsvg%3E"
     },
+    "category": {
+      "id": "connectors",
+      "name": "Connectors"
+    },
     "appliesTo": [
       "bpmn:ServiceTask"
     ],
+    "elementType": {
+      "value": "bpmn:ServiceTask"
+    },
     "groups": [
       {
-        "id": "sendgrid",
-        "label": "SendGrid API"
+        "id": "authentication",
+        "label": "Authentication"
       },
       {
         "id": "sender",
@@ -157,7 +33,7 @@
       },
       {
         "id": "content",
-        "label": "Email Content"
+        "label": "Compose Email"
       }
     ],
     "properties": [
@@ -170,7 +46,7 @@
       },
       {
         "label": "SendGrid API Key",
-        "group": "sendgrid",
+        "group": "authentication",
         "type": "String",
         "feel": "optional",
         "binding": {
@@ -231,6 +107,26 @@
         },
         "constraints": {
           "notEmpty": true
+        }
+      },
+      {
+        "id": "mailType",
+        "group": "content",
+        "value": "mail",
+        "type": "Dropdown",
+        "choices": [
+          {
+            "name": "Simple (no dynamic template)",
+            "value": "mail"
+          },
+          {
+            "name": "Using dynamic template",
+            "value": "byTemplate"
+          }
+        ],
+        "binding": {
+          "type": "zeebe:input",
+          "name": "unMappedFieldNotUseInModel.mailType"
         }
       },
       {
@@ -244,6 +140,10 @@
         },
         "constraints": {
           "notEmpty": true
+        },
+        "condition": {
+          "property": "mailType",
+          "equals": "mail"
         }
       },
       {
@@ -258,6 +158,10 @@
         },
         "constraints": {
           "notEmpty": true
+        },
+        "condition": {
+          "property": "mailType",
+          "equals": "mail"
         }
       },
       {
@@ -271,6 +175,44 @@
         },
         "constraints": {
           "notEmpty": true
+        },
+        "condition": {
+          "property": "mailType",
+          "equals": "mail"
+        }
+      },
+      {
+        "label": "Template ID",
+        "group": "content",
+        "type": "String",
+        "feel": "optional",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "template.id"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "mailType",
+          "equals": "byTemplate"
+        }
+      },
+      {
+        "label": "Template Data",
+        "group": "content",
+        "type": "Text",
+        "feel": "required",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "template.data"
+        },
+        "constraints": {
+          "notEmpty": true
+        },
+        "condition": {
+          "property": "mailType",
+          "equals": "byTemplate"
         }
       }
     ]
