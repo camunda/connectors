@@ -9,8 +9,11 @@
     },
     "documentationRef": "https://docs.camunda.io/docs/components/modeler/web-modeler/connectors/available-connectors/rest/",
     "appliesTo": [
-      "bpmn:ServiceTask"
+      "bpmn:Task"
     ],
+    "elementType": {
+      "value": "bpmn:ServiceTask"
+    },
     "groups": [
       {
         "id": "authentication",
