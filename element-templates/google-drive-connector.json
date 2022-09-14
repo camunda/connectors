@@ -9,8 +9,11 @@
       "name": "Connectors"
     },
     "appliesTo": [
-      "bpmn:ServiceTask"
+      "bpmn:Task"
     ],
+    "elementType": {
+      "value": "bpmn:ServiceTask"
+    },
     "groups": [
       {
         "id": "authentication",
