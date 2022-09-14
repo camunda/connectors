@@ -68,11 +68,14 @@ limitations under the License.</license.inlineheader>
 
     <!-- Third party dependencies -->
     <version.slf4j>1.7.36</version.slf4j>
+    <version.jakarta-validation>3.0.2</version.jakarta-validation>
     <version.gson>2.9.0</version.gson>
     <version.mockito>4.6.1</version.mockito>
     <version.junit-jupiter>5.8.2</version.junit-jupiter>
     <version.assertj>3.23.1</version.assertj>
     <version.jackson-module-scala>2.13.3</version.jackson-module-scala>
+    <version.hibernate-validator>8.0.0.Final</version.hibernate-validator>
+    <version.glassfish-el>4.0.2</version.glassfish-el>
 
     <!-- maven plugins (not managed by parent) -->
     <plugin.version.function-maven-plugin>0.10.0</plugin.version.function-maven-plugin>
@@ -91,6 +94,12 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>io.camunda.connector</groupId>
         <artifactId>connector-core</artifactId>
+        <version>0.2.0-SNAPSHOT</version>
+      </dependency>
+
+      <dependency>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>connector-validation</artifactId>
         <version>0.2.0-SNAPSHOT</version>
       </dependency>
 
@@ -120,6 +129,12 @@ limitations under the License.</license.inlineheader>
       </dependency>
 
       <dependency>
+        <groupId>jakarta.validation</groupId>
+        <artifactId>jakarta.validation-api</artifactId>
+        <version>${version.jakarta-validation}</version>
+      </dependency>
+
+      <dependency>
         <groupId>com.google.code.gson</groupId>
         <artifactId>gson</artifactId>
         <version>${version.gson}</version>
@@ -129,6 +144,18 @@ limitations under the License.</license.inlineheader>
         <groupId>com.fasterxml.jackson.module</groupId>
         <artifactId>jackson-module-scala_2.13</artifactId>
         <version>${version.jackson-module-scala}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.hibernate.validator</groupId>
+        <artifactId>hibernate-validator</artifactId>
+        <version>${version.hibernate-validator}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.glassfish</groupId>
+        <artifactId>jakarta.el</artifactId>
+        <version>${version.glassfish-el}</version>
       </dependency>
 
       <!-- test dependencies -->

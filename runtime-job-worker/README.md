@@ -10,7 +10,7 @@ Include the job worker run-time as maven dependency
 <dependency>
   <groupId>io.camunda.connector</groupId>
   <artifactId>connector-runtime-job-worker</artifactId>
-  <version>0.1.0</version>
+  <version>0.2.0-SNAPSHOT</version>
 </dependency>
 ```
 

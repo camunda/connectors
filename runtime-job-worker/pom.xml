@@ -19,7 +19,6 @@
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-core</artifactId>
-      <version>${project.version}</version>
     </dependency>
 
     <dependency>
