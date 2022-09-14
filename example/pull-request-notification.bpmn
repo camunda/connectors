@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Web Modeler" exporterVersion="538d40a" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.0.0">
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:modeler="http://camunda.org/schema/modeler/1.0" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.3.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.0.0">
   <bpmn:process id="Process_PULL_REQUEST_NOTIFICATION" name="Pull Request Notification" isExecutable="true">
     <bpmn:startEvent id="StartEvent_1" name="New Pull Request Opened" zeebe:modelerTemplate="io.camunda.example.inbound.GitHubWebhook.v1">
       <bpmn:extensionElements>
@@ -8,8 +8,8 @@
           <zeebe:property name="inbound.secretExtractor" value="=get value(request.headers, &#34;x-hub-signature&#34;)" />
           <zeebe:property name="inbound.context" value="GITHUB_INBOUND" />
           <zeebe:property name="inbound.secret" value="secrets.GITHUB_INBOUND_SECRET" />
-          <zeebe:property name="inbound.activationCondition" value="=(&#10;  request.body.action = &#34;opened&#34; and &#10;  starts with(request.body.repository.full_name, &#34;camunda/&#34;)&#10;)" />
           <zeebe:property name="inbound.variableMapping" value="={&#10;  &#34;githubLoginToSlackMapping&#34;: {&#10;    &#34;nikku&#34;: &#34;Nico Rehwaldt&#34;,&#10;    &#34;menski&#34;: &#34;menski&#34;&#10;  },&#10;  &#34;pull_request&#34;: {&#10;    &#34;htmlURL&#34;: request.body.pull_request.html_url,&#10;    &#34;githubUser&#34;: request.body.pull_request.user.login,&#10;    &#34;slackUser&#34;: get value(githubLoginToSlackMapping, githubUser),&#10;    &#34;githubUserURL&#34;: request.body.pull_request.user.html_url,&#10;    &#34;userLink&#34;: (&#10;      if slackUser = null then&#10;        &#34;GitHub user &#60;&#34; + githubUserURL + &#34;|&#34; + githubUser + &#34;&#62;&#34;&#10;      else&#10;         &#34;@&#34; + slackUser&#10;    )&#10;  }&#10;}" />
+          <zeebe:property name="inbound.activationCondition" value="=(&#10;  request.body.action = &#34;opened&#34; and &#10;  starts with(request.body.repository.full_name, &#34;camunda/&#34;)&#10;)" />
         </zeebe:properties>
       </bpmn:extensionElements>
       <bpmn:outgoing>Flow_147usyy</bpmn:outgoing>
@@ -22,7 +22,7 @@
           <zeebe:input source="chat.postMessage" target="method" />
           <zeebe:input source="secrets.SLACK_TOKEN" target="token" />
           <zeebe:input source="#general" target="data.channel" />
-          <zeebe:input source="=pull_request.userLink + &#34; opened a new pull request: &#34; + pull_request.htmlURL + &#34;. Please check it out!&#34;" target="data.text" />
+          <zeebe:input source="=pull_request.userLink + &#34; opened a new pull request: &#34; + &#10;pull_request.htmlURL + &#34;. Please check it out!&#34;" target="data.text" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="resultVariable" />
@@ -38,22 +38,22 @@
     <bpmn:sequenceFlow id="Flow_18mjlo7" sourceRef="Activity_1fbr5ma" targetRef="Event_1l2ca0e" />
   </bpmn:process>
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
-    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_e5cb2bfd-42f8-494a-b95e-e0947dff037e">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_PULL_REQUEST_NOTIFICATION">
       <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="StartEvent_1">
         <dc:Bounds x="150" y="100" width="36" height="36" />
         <bpmndi:BPMNLabel>
           <dc:Bounds x="126" y="143" width="84" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1evl9zk_di" bpmnElement="Activity_1fbr5ma">
+        <dc:Bounds x="330" y="78" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Event_1l2ca0e_di" bpmnElement="Event_1l2ca0e">
         <dc:Bounds x="562" y="100" width="36" height="36" />
         <bpmndi:BPMNLabel>
           <dc:Bounds x="564" y="143" width="32" height="14" />
         </bpmndi:BPMNLabel>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_1evl9zk_di" bpmnElement="Activity_1fbr5ma">
-        <dc:Bounds x="330" y="78" width="100" height="80" />
-        <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_147usyy_di" bpmnElement="Flow_147usyy">
         <di:waypoint x="186" y="118" />
