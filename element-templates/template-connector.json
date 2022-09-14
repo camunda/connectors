@@ -5,8 +5,11 @@
     "id": "io.camunda.connectors.AWSSQS.v1",
     "description": "Send message to queue",
     "appliesTo": [
-      "bpmn:ServiceTask"
+      "bpmn:Task"
     ],
+    "elementType": {
+      "value": "bpmn:ServiceTask"
+    },
     "category": {
       "id": "connectors",
       "name": "Connectors"
