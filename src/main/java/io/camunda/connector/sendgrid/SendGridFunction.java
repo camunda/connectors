@@ -34,14 +34,15 @@ public class SendGridFunction implements ConnectorFunction {
 
   private final Gson gson;
 
-  private SendGrid sendGrid;
+  private final SendGridClientSupplier sendGridSupplier;
 
   public SendGridFunction() {
-    this(GsonComponentSupplier.gsonInstance());
+    this(GsonComponentSupplier.gsonInstance(), new SendGridClientSupplier());
   }
 
-  public SendGridFunction(final Gson gson) {
+  public SendGridFunction(final Gson gson, SendGridClientSupplier sendGridSupplier) {
     this.gson = gson;
+    this.sendGridSupplier = sendGridSupplier;
   }
 
   @Override
@@ -51,10 +52,10 @@ public class SendGridFunction implements ConnectorFunction {
     context.validate(request);
     context.replaceSecrets(request);
 
-    sendGrid = new SendGrid(request.getApiKey());
+    SendGrid sendGrid = sendGridSupplier.sendGrid(request.getApiKey());
 
     final var mail = createEmail(request);
-    final var result = sendEmail(mail);
+    final var result = sendEmail(mail, sendGrid);
 
     final int statusCode = result.getStatusCode();
     LOGGER.info("Received response from SendGrid with code {}", statusCode);
@@ -105,7 +106,7 @@ public class SendGridFunction implements ConnectorFunction {
     }
   }
 
-  private Response sendEmail(final Mail mail) throws IOException {
+  private Response sendEmail(final Mail mail, final SendGrid sendGrid) throws IOException {
     final com.sendgrid.Request request = new com.sendgrid.Request();
     request.setMethod(Method.POST);
     request.setEndpoint("mail/send");
