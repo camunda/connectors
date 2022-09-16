@@ -24,66 +24,127 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Optional;
 import java.util.ServiceLoader;
+import java.util.function.Consumer;
 
 public abstract class AbstractConnectorContext implements ConnectorContext {
-  protected static final List<Class<?>> PRIMITIVE_TYPES =
-      Arrays.asList(String.class, Number.class, Boolean.class);
 
+  protected static final List<Class<?>> PRIMITIVE_TYPES =
+      List.of(String.class, Number.class, Boolean.class);
+
+  @Override
+  public void validate(Object input) {
+    getValidationProvider().validate(input);
+  }
+
+  @SuppressWarnings("unchecked")
   @Override
   public void replaceSecrets(Object input) {
     if (input == null) {
       return;
     }
     if (input.getClass().isArray()) {
-      for (Object innerObject : (Object[]) input) {
-        replaceSecrets(innerObject);
-      }
-    } else if (Iterable.class.isAssignableFrom(input.getClass())) {
-      ((Iterable<?>) input).forEach(this::replaceSecrets);
+      handleSecretsArray((Object[]) input);
+    } else if (input instanceof Map) {
+      handleSecretsMap((Map<Object, Object>) input);
+    } else if (input instanceof List) {
+      handleSecretsList((List<Object>) input);
+    } else if (input instanceof Iterable) {
+      handleSecretsIterable((Iterable<?>) input);
     } else {
-      Arrays.stream(input.getClass().getDeclaredFields())
-          .filter(field -> field.isAnnotationPresent(Secret.class))
-          .forEach(
-              field -> {
-                Object property = getProperty(input, field);
-                if (hasNestedProperties(field, property)) {
-                  replaceSecrets(property);
-                } else if (CharSequence.class.isAssignableFrom(field.getType())) {
-                  handleSecret(input, field);
-                } else {
+      handleSecretsField(input);
+    }
+  }
+
+  protected void handleSecretsArray(Object[] input) {
+    final var array = input;
+    for (int i = 0; i < array.length; i++) {
+      int index = i;
+      handleSecretsElement(
+          array[index],
+          "Element at index " + index + " in array has no nested properties and is no String!",
+          "Array",
+          value -> array[index] = value);
+    }
+  }
+
+  protected void handleSecretsMap(final Map<Object, Object> input) {
+    input.forEach(
+        (k, v) ->
+            handleSecretsElement(
+                v,
+                "Element at key '" + k + "' in map has no nested properties and is no String!",
+                "Map",
+                value -> input.put(k, value)));
+  }
+
+  protected void handleSecretsList(List<Object> input) {
+    for (ListIterator<Object> iterator = input.listIterator(); iterator.hasNext(); ) {
+      handleSecretsElement(
+          iterator.next(),
+          "Element at index "
+              + iterator.previousIndex()
+              + " in list has no nested properties and is no String!",
+          "List",
+          iterator::set);
+    }
+  }
+
+  protected void handleSecretsIterable(Iterable<?> input) {
+    for (Object o : input) {
+      handleSecretsElement(o, "Element in iterable has no nested properties!", "Set", null);
+    }
+  }
+
+  protected void handleSecretsField(Object input) {
+    Arrays.stream(input.getClass().getDeclaredFields())
+        .filter(field -> field.isAnnotationPresent(Secret.class))
+        .forEach(
+            field ->
+                handleSecretsElement(
+                    getProperty(input, field),
+                    "Field '"
+                        + field.getName()
+                        + "' in type '"
+                        + input.getClass()
+                        + "'is marked as a secret, but it has no nested properties and is no String!",
+                    "Field",
+                    value -> setProperty(input, field, value)));
+  }
+
+  protected void handleSecretsElement(
+      Object value, String failureMessage, String type, Consumer<String> setValueHandler) {
+    Optional.ofNullable(value)
+        .ifPresent(
+            element -> {
+              if (isSecretContainer(element)) {
+                replaceSecrets(element);
+              } else if (setValueHandler != null && element instanceof String) {
+                try {
+                  setValueHandler.accept(getSecretStore().replaceSecret((String) element));
+                } catch (UnsupportedOperationException uoe) {
                   throw new IllegalStateException(
-                      "Field '"
-                          + field.getName()
-                          + "' in type '"
-                          + input.getClass()
-                          + "'is marked as a secret, but it has no nested properties and is no string!");
+                      type + " is immutable but contains String secrets to replace!");
                 }
-              });
-    }
+              } else {
+                throw new IllegalStateException(failureMessage);
+              }
+            });
   }
 
-  /**
-   * Verify that the content of a field has nested properties that need to be checked for secrets
-   *
-   * @param field the field of the class the replacement is done for
-   * @param property the content of the field
-   * @return whether the given property in the given field potentially has inner properties
-   */
-  protected boolean hasNestedProperties(Field field, Object property) {
-    Class<?> comparingClass = field.getType();
-    if (property != null) {
-      comparingClass = property.getClass();
-    }
-    for (Class<?> primitiveType : PRIMITIVE_TYPES) {
-      if (primitiveType.isAssignableFrom(comparingClass)) {
-        return false;
-      }
-    }
-    return true;
+  protected static boolean isSecretContainer(Object property) {
+    return Optional.ofNullable(property.getClass()).filter(c -> !isPrimitive(c)).isPresent();
   }
 
-  protected <T> T getProperty(Object input, Field field) {
+  protected static boolean isPrimitive(Class<?> clazz) {
+    return clazz.isPrimitive() || PRIMITIVE_TYPES.stream().anyMatch(c -> c.isAssignableFrom(clazz));
+  }
+
+  @SuppressWarnings("unchecked")
+  protected static <T> T getProperty(Object input, Field field) {
     if (field.canAccess(input)) {
       try {
         return (T) field.get(input);
@@ -127,7 +188,7 @@ public abstract class AbstractConnectorContext implements ConnectorContext {
     }
   }
 
-  protected void setProperty(Object input, Field field, Object property) {
+  protected static void setProperty(Object input, Field field, Object property) {
     if (Modifier.isFinal(field.getModifiers())) {
       throw new IllegalStateException(
           "Cannot invoke set or setter on final field '"
@@ -173,11 +234,6 @@ public abstract class AbstractConnectorContext implements ConnectorContext {
     }
   }
 
-  @Override
-  public void validate(Object input) {
-    getValidationProvider().validate(input);
-  }
-
   /**
    * Override this method to provide your own {@link ValidationProvider} discovery strategy. By
    * default, SPI is being used and should be implemented by each implementation.
@@ -193,13 +249,5 @@ public abstract class AbstractConnectorContext implements ConnectorContext {
                     "Please bind an implementation to "
                         + ValidationProvider.class.getName()
                         + " via SPI"));
-  }
-
-  private void handleSecret(Object secretsToReplace, Field fieldContainingSecret) {
-    String secretName = getProperty(secretsToReplace, fieldContainingSecret);
-    if (secretName != null) {
-      String secretValue = getSecretStore().replaceSecret(secretName);
-      setProperty(secretsToReplace, fieldContainingSecret, secretValue);
-    }
   }
 }

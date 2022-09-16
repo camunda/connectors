@@ -14,21 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.validation;
+package io.camunda.connector.impl.secrets;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import io.camunda.connector.api.annotation.Secret;
+import io.camunda.connector.impl.TestInput;
+import java.util.List;
 
-import io.camunda.connector.api.ValidationProvider;
-import io.camunda.connector.test.ConnectorContextBuilder;
-import io.camunda.connector.validation.impl.DefaultValidationProvider;
-import org.junit.jupiter.api.Test;
-
-class ValidatorServiceLoaderTest {
-
-  @Test
-  public void shouldDiscoverValidator() {
-    ValidationProvider validationProvider =
-        ConnectorContextBuilder.create().build().getValidationProvider();
-    assertThat(validationProvider).isOfAnyClassIn(DefaultValidationProvider.class);
-  }
+public class InputObjectList {
+  @Secret public final List<TestInput> inputList = List.of(new TestInput(), new TestInput());
 }

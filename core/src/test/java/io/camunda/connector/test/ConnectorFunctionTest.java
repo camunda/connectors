@@ -16,7 +16,8 @@
  */
 package io.camunda.connector.test;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchException;
 
 import io.camunda.connector.example.ExampleFunction;
 import io.camunda.connector.example.ExampleInput;

@@ -86,7 +86,7 @@ public class ConnectorContextBuilderTest {
     var context = ConnectorContextBuilder.create().build();
 
     // when
-    var exception = catchException(() -> context.getVariables());
+    var exception = catchException(context::getVariables);
 
     // then
     assertThat(exception).hasMessage("variablesAsJSON not provided");

@@ -16,14 +16,14 @@
  */
 package io.camunda.connector.validation;
 
-import static org.assertj.core.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
+import static org.assertj.core.api.Assertions.catchException;
 
 import io.camunda.connector.api.ValidationProvider;
 import io.camunda.connector.impl.ConnectorInputException;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.function.Executable;
 
 class ValidationProviderTest {
   private static final ValidationProvider VALIDATION_PROVIDER = new DefaultValidationProvider();
@@ -34,10 +34,11 @@ class ValidationProviderTest {
     User user =
         mockUser(
             "Peter Parker", "peter.parker@marvel.com", "Definitely not a super hero", 18, true);
-    // when
-    Executable ex = () -> VALIDATION_PROVIDER.validate(user);
     // then
-    assertDoesNotThrow(ex);
+    assertThatNoException()
+        .isThrownBy(
+            // when
+            () -> VALIDATION_PROVIDER.validate(user));
   }
 
   @Test
@@ -45,14 +46,14 @@ class ValidationProviderTest {
     // given
     User user = mockUser("Green Goblin", "weird", "Definitely not a trustworthy person", 60, false);
     // when
-    ConnectorInputException exception =
-        assertThrows(ConnectorInputException.class, () -> VALIDATION_PROVIDER.validate(user));
+    Exception exception = catchException(() -> VALIDATION_PROVIDER.validate(user));
     // then
-    assertThat(exception.getMessage())
-        .startsWith(
+    assertThat(exception)
+        .isInstanceOf(ConnectorInputException.class)
+        .hasMessageStartingWith(
             "jakarta.validation.ValidationException: Found constraints violated while validating input:")
-        .contains("- working: must be true")
-        .contains("- email: Email should be valid");
+        .hasMessageContaining("- working:")
+        .hasMessageContaining("- email: Email should be valid");
   }
 
   private User mockUser(String name, String email, String aboutMe, int age, boolean working) {

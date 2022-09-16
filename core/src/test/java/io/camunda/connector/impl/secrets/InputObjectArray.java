@@ -14,20 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.impl;
+package io.camunda.connector.impl.secrets;
 
 import io.camunda.connector.api.annotation.Secret;
-import java.util.Set;
+import io.camunda.connector.impl.TestInput;
 
-public class ComplexTestInput {
-  @Secret public TestInput[] inputArray = new TestInput[] {new TestInput(), new TestInput()};
-  @Secret public Set<TestInput> testInputs = Set.of(new TestInput(), new TestInput());
-  @Secret public TestInput secretContainer = new TestInput();
-  public TestInput otherProperty = new TestInput();
-
-  @Secret public ComplexTestInput complexInput;
-
-  public ComplexTestInput(ComplexTestInput complexInput) {
-    this.complexInput = complexInput;
-  }
+public class InputObjectArray {
+  @Secret public final TestInput[] inputArray = new TestInput[] {new TestInput(), new TestInput()};
 }
