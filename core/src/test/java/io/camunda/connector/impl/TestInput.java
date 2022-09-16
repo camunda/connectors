@@ -18,7 +18,7 @@ package io.camunda.connector.impl;
 
 import io.camunda.connector.api.annotation.Secret;
 
-class TestInput {
+public class TestInput {
   public final String finalField = "final";
   public String publicField = "public";
   protected String protectedField = "protected";

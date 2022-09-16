@@ -21,7 +21,6 @@ import io.camunda.connector.api.SecretProvider;
 import io.camunda.connector.api.SecretStore;
 import io.camunda.connector.api.ValidationProvider;
 import io.camunda.connector.impl.AbstractConnectorContext;
-import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -29,8 +28,8 @@ import java.util.Optional;
 /** Test helper class for creating a {@link ConnectorContext} with a fluent API. */
 public class ConnectorContextBuilder {
 
-  protected Map<String, String> secrets = new HashMap<>();
-  protected SecretProvider secretProvider = (name) -> secrets.get(name);
+  protected final Map<String, String> secrets = new HashMap<>();
+  protected SecretProvider secretProvider = secrets::get;
 
   protected ValidationProvider validationProvider;
 
@@ -156,16 +155,6 @@ public class ConnectorContextBuilder {
     @Override
     public ValidationProvider getValidationProvider() {
       return Optional.ofNullable(validationProvider).orElseGet(super::getValidationProvider);
-    }
-
-    @Override
-    public <T> T getProperty(Object input, Field field) {
-      return super.getProperty(input, field);
-    }
-
-    @Override
-    public void setProperty(Object input, Field field, Object property) {
-      super.setProperty(input, field, property);
     }
   }
 }

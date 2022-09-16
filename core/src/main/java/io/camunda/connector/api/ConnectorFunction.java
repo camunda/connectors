@@ -27,7 +27,7 @@ public interface ConnectorFunction {
    * to fetch objects provided by the environment transparently.
    *
    * <p>The connector can return any serializable object that will be passed to the
-   * environment-specifc runtime.
+   * environment-specific runtime.
    *
    * <p>Checked exceptions can be handled by the connector if desired. The environment-specifc
    * runtime will also take care of catching all checked exceptions from the connector function.

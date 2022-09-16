@@ -29,7 +29,7 @@ public class SecretStore {
 
   private static final Pattern SECRET_PATTERN = Pattern.compile("^secrets\\.(\\S+)$");
 
-  protected SecretProvider secretProvider;
+  protected final SecretProvider secretProvider;
 
   /**
    * Create a store with a specific {@link SecretProvider}.
