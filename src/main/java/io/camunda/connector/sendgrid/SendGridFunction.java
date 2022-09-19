@@ -12,13 +12,13 @@ import com.sendgrid.Response;
 import com.sendgrid.SendGrid;
 import com.sendgrid.helpers.mail.Mail;
 import com.sendgrid.helpers.mail.objects.Personalization;
-import io.camunda.connector.api.ConnectorContext;
-import io.camunda.connector.api.ConnectorFunction;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SendGridFunction implements ConnectorFunction {
+public class SendGridFunction implements OutboundConnectorFunction {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(SendGridFunction.class);
 
@@ -36,7 +36,7 @@ public class SendGridFunction implements ConnectorFunction {
   }
 
   @Override
-  public Object execute(ConnectorContext context) throws Exception {
+  public Object execute(OutboundConnectorContext context) throws Exception {
 
     final var request = context.getVariablesAsType(SendGridRequest.class);
     context.validate(request);
@@ -66,7 +66,7 @@ public class SendGridFunction implements ConnectorFunction {
   private Mail createEmail(final SendGridRequest request) {
     final var mail = new Mail();
 
-    mail.setFrom(request.getFrom());
+    mail.setFrom(request.getInnerSenGridEmailFrom());
     addContentIfPresent(mail, request);
     addTemplateIfPresent(mail, request);
 
@@ -78,7 +78,7 @@ public class SendGridFunction implements ConnectorFunction {
       mail.setTemplateId(request.getTemplate().getId());
 
       final var personalization = new Personalization();
-      personalization.addTo(request.getTo());
+      personalization.addTo(request.getInnerSenGridEmailTo());
       request.getTemplate().getData().forEach(personalization::addDynamicTemplateData);
       mail.addPersonalization(personalization);
     }
@@ -91,7 +91,7 @@ public class SendGridFunction implements ConnectorFunction {
       mail.addContent(
           new com.sendgrid.helpers.mail.objects.Content(content.getType(), content.getValue()));
       final Personalization personalization = new Personalization();
-      personalization.addTo(request.getTo());
+      personalization.addTo(request.getInnerSenGridEmailTo());
       mail.addPersonalization(personalization);
     }
   }

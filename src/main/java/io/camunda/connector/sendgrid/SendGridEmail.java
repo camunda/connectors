@@ -6,24 +6,13 @@
  */
 package io.camunda.connector.sendgrid;
 
-import io.camunda.connector.api.SecretStore;
-import io.camunda.connector.api.Validator;
+import io.camunda.connector.api.annotation.Secret;
+import jakarta.validation.constraints.NotEmpty;
 import java.util.Objects;
 
 public class SendGridEmail {
-
-  private String name;
-  private String email;
-
-  public void validateWith(final Validator validator, final String category) {
-    validator.require(name, category + " - Name");
-    validator.require(email, category + " - Email Address");
-  }
-
-  public void replaceSecrets(final SecretStore secretStore) {
-    email = secretStore.replaceSecret(email);
-    name = secretStore.replaceSecret(name);
-  }
+  @NotEmpty @Secret private String name;
+  @NotEmpty @Secret private String email;
 
   public String getName() {
     return name;
