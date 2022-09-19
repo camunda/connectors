@@ -3,6 +3,9 @@
     "descriptionOfTest": "Normal request with no auth",
     "method": "get",
     "url": "https://camunda.io/http-endpoint",
+    "authentication": {
+      "type": "noAuth"
+    },
     "queryParameters": {
       "q": "test",
       "priority": 12
