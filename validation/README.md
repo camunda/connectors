@@ -6,7 +6,7 @@ Default implementation for the [ValdationProvider](../core/src/main/java/io/camu
 
 Adding this module as a dependency makes the [DefaultValidationProvider](./src/main/java/io/camunda/connector/validation/impl/DefaultValidationProvider.java) discoverable via SPI in the SDK core.
 
-Then, you can use [Jakarta Bean Validation Constraints](https://jakarta.ee/specifications/bean-validation/3.0/apidocs/jakarta/validation/constraints/package-frame.html) on your Connector's input objects.
+Then, you can use [Jakarta Bean Validation Constraints](https://jakarta.ee/specifications/bean-validation/3.0/apidocs/jakarta/validation/constraints/package-summary.html) on your Connector's input objects.
 
 ```java
 import jakarta.validation.constraints.Max;
