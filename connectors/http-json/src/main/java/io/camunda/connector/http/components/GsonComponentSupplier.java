@@ -24,6 +24,7 @@ import com.google.gson.typeadapters.RuntimeTypeAdapterFactory;
 import io.camunda.connector.http.auth.Authentication;
 import io.camunda.connector.http.auth.BasicAuthentication;
 import io.camunda.connector.http.auth.BearerAuthentication;
+import io.camunda.connector.http.auth.NoAuthentication;
 
 public class GsonComponentSupplier {
 
@@ -36,6 +37,7 @@ public class GsonComponentSupplier {
           .setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
           .registerTypeAdapterFactory(
               RuntimeTypeAdapterFactory.of(Authentication.class, "type")
+                  .registerSubtype(NoAuthentication.class, "noAuth")
                   .registerSubtype(BasicAuthentication.class, "basic")
                   .registerSubtype(BearerAuthentication.class, "bearer"))
           .create();
