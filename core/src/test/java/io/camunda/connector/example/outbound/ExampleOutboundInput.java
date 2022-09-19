@@ -14,12 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.impl.secrets;
+package io.camunda.connector.example.outbound;
 
 import io.camunda.connector.api.annotation.Secret;
-import io.camunda.connector.impl.TestInput;
-import java.util.List;
 
-public class InputObjectList {
-  @Secret public final List<TestInput> inputList = List.of(new TestInput(), new TestInput());
+public class ExampleOutboundInput {
+
+  @Secret private String foo;
+
+  public ExampleOutboundInput() {}
+
+  public ExampleOutboundInput(String foo) {
+    this.foo = foo;
+  }
+
+  public String getFoo() {
+    return foo;
+  }
+
+  public void setFoo(String foo) {
+    this.foo = foo;
+  }
 }

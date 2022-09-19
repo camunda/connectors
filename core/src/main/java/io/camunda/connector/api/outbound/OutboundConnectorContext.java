@@ -14,13 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.api;
+package io.camunda.connector.api.outbound;
+
+import io.camunda.connector.api.secret.SecretStore;
 
 /**
  * The context object provided to a connector function. The context allows to fetch information
  * injected by the environment runtime.
  */
-public interface ConnectorContext {
+public interface OutboundConnectorContext {
 
   /**
    * @return the raw variables input as JSON String

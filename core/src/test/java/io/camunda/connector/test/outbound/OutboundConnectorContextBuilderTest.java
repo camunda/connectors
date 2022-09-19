@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.test;
+package io.camunda.connector.test.outbound;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchException;
@@ -23,7 +23,7 @@ import java.util.HashSet;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
-public class ConnectorContextBuilderTest {
+public class OutboundConnectorContextBuilderTest {
 
   @Test
   public void shouldProvideVariablesAsObject() {
@@ -32,7 +32,7 @@ public class ConnectorContextBuilderTest {
     var obj = new Object();
 
     // when
-    var context = ConnectorContextBuilder.create().variables(obj).build();
+    var context = OutboundConnectorContextBuilder.create().variables(obj).build();
 
     // then
     assertThat(context.getVariablesAsType(Object.class)).isEqualTo(obj);
@@ -42,7 +42,7 @@ public class ConnectorContextBuilderTest {
   public void shouldProvideVariablesAsObject_failIfNotProvided() {
 
     // given
-    var context = ConnectorContextBuilder.create().build();
+    var context = OutboundConnectorContextBuilder.create().build();
 
     // when
     var exception = catchException(() -> context.getVariablesAsType(Object.class));
@@ -57,7 +57,7 @@ public class ConnectorContextBuilderTest {
     // given
     var set = new HashSet<String>();
 
-    var context = ConnectorContextBuilder.create().variables(set).build();
+    var context = OutboundConnectorContextBuilder.create().variables(set).build();
 
     // when
     var exception = catchException(() -> context.getVariablesAsType(Map.class));
@@ -73,7 +73,7 @@ public class ConnectorContextBuilderTest {
     var json = "{ \"foo\" : \"FOO\" }";
 
     // when
-    var context = ConnectorContextBuilder.create().variables(json).build();
+    var context = OutboundConnectorContextBuilder.create().variables(json).build();
 
     // then
     assertThat(context.getVariables()).isEqualTo(json);
@@ -83,7 +83,7 @@ public class ConnectorContextBuilderTest {
   public void shouldProvideVariablesAsString_failIfNotProvided() {
 
     // given
-    var context = ConnectorContextBuilder.create().build();
+    var context = OutboundConnectorContextBuilder.create().build();
 
     // when
     var exception = catchException(context::getVariables);
@@ -98,7 +98,8 @@ public class ConnectorContextBuilderTest {
     // when
     var exception =
         catchException(
-            () -> ConnectorContextBuilder.create().variables("{ }").variables(new Object()));
+            () ->
+                OutboundConnectorContextBuilder.create().variables("{ }").variables(new Object()));
 
     // then
     assertThat(exception).hasMessage("variablesAsJSON already set");
@@ -110,7 +111,8 @@ public class ConnectorContextBuilderTest {
     // when
     var exception =
         catchException(
-            () -> ConnectorContextBuilder.create().variables(new Object()).variables("{ }"));
+            () ->
+                OutboundConnectorContextBuilder.create().variables(new Object()).variables("{ }"));
 
     // then
     assertThat(exception).hasMessage("variablesAsObject already set");
@@ -121,7 +123,8 @@ public class ConnectorContextBuilderTest {
 
     // when
     var exception =
-        catchException(() -> ConnectorContextBuilder.create().variables("{ }").variables("{ }"));
+        catchException(
+            () -> OutboundConnectorContextBuilder.create().variables("{ }").variables("{ }"));
 
     // then
     assertThat(exception).hasMessage("variablesAsJSON already set");
@@ -131,7 +134,7 @@ public class ConnectorContextBuilderTest {
   public void shouldProvideSecret() {
 
     // given
-    var context = ConnectorContextBuilder.create().secret("foo", "FOO").build();
+    var context = OutboundConnectorContextBuilder.create().secret("foo", "FOO").build();
 
     // when
     var replaced = context.getSecretStore().replaceSecret("secrets.foo");
@@ -144,7 +147,7 @@ public class ConnectorContextBuilderTest {
   public void shouldProvideSecret_failIfNotProvided() {
 
     // given
-    var context = ConnectorContextBuilder.create().build();
+    var context = OutboundConnectorContextBuilder.create().build();
 
     // when
     var exception = catchException(() -> context.getSecretStore().replaceSecret("secrets.foo"));

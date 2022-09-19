@@ -15,14 +15,14 @@
  * limitations under the License.
  */
 
-package io.camunda.connector.runtime.jobworker;
+package io.camunda.connector.runtime.jobworker.outbound;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.api.ConnectorFunction;
-import io.camunda.connector.api.SecretProvider;
-import io.camunda.connector.api.SecretStore;
-import io.camunda.connector.impl.AbstractConnectorContext;
+import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.api.secret.SecretProvider;
+import io.camunda.connector.api.secret.SecretStore;
+import io.camunda.connector.impl.outbound.AbstractOutboundConnectorContext;
 import io.camunda.connector.runtime.jobworker.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.jobworker.feel.FeelEngineWrapperException;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
@@ -47,7 +47,7 @@ public class ConnectorJobHandler implements JobHandler {
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-  private final ConnectorFunction call;
+  private final OutboundConnectorFunction call;
   private final FeelEngineWrapper feelEngineWrapper;
 
   /**
@@ -55,7 +55,7 @@ public class ConnectorJobHandler implements JobHandler {
    *
    * @param call - the connector function to call
    */
-  public ConnectorJobHandler(final ConnectorFunction call) {
+  public ConnectorJobHandler(final OutboundConnectorFunction call) {
     this.call = call;
     this.feelEngineWrapper = new FeelEngineWrapper();
   }
@@ -96,11 +96,12 @@ public class ConnectorJobHandler implements JobHandler {
     Optional.ofNullable(resultExpression)
         .map(expression -> feelEngineWrapper.evaluateToJson(expression, responseContent))
         .map(json -> parseJsonVarsAsMapOrThrow(json, resultExpression))
-        .ifPresent(map -> outputVariables.putAll(map));
+        .ifPresent(outputVariables::putAll);
 
     return outputVariables;
   }
 
+  @SuppressWarnings("unchecked")
   private Map<String, Object> parseJsonVarsAsMapOrThrow(
       final String jsonVars, final String expression) {
     try {
@@ -118,7 +119,7 @@ public class ConnectorJobHandler implements JobHandler {
     return System::getenv;
   }
 
-  protected class JobHandlerContext extends AbstractConnectorContext {
+  protected class JobHandlerContext extends AbstractOutboundConnectorContext {
 
     private final ActivatedJob job;
     private SecretStore secretStore;

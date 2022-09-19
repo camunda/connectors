@@ -14,16 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.impl;
+package io.camunda.connector.impl.outbound;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchException;
 
-import io.camunda.connector.api.ConnectorContext;
-import io.camunda.connector.impl.secrets.*;
-import io.camunda.connector.test.ConnectorContextBuilder;
+import io.camunda.connector.api.annotation.Secret;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DynamicTest;
@@ -32,7 +37,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.function.ThrowingConsumer;
 
-class ConnectorContextTest {
+class OutboundConnectorContextTest {
 
   @Nested
   class FieldAccessTests {
@@ -40,7 +45,7 @@ class ConnectorContextTest {
     @TestFactory
     public Stream<DynamicTest> shouldGetPropertyFromField() {
       // given
-      TestInput testInput = new TestInput();
+      OutboundTestInput testInput = new OutboundTestInput();
       Stream<GetPropertyTestInput> input =
           Stream.of(
               new GetPropertyTestInput("publicField", testInput.publicField),
@@ -52,7 +57,7 @@ class ConnectorContextTest {
           in -> {
             // when
             String content =
-                AbstractConnectorContext.getProperty(testInput, fieldForName(in.fieldName));
+                AbstractOutboundConnectorContext.getProperty(testInput, fieldForName(in.fieldName));
             // then
             assertThat(content).isEqualTo(in.expectedContent);
           };
@@ -62,7 +67,7 @@ class ConnectorContextTest {
     @TestFactory
     public Stream<DynamicTest> shouldSetPropertyToField() {
       // given
-      TestInput testInput = new TestInput();
+      OutboundTestInput testInput = new OutboundTestInput();
       String modified = "modified";
       Stream<SetPropertyTestInput> input =
           Stream.of(
@@ -73,7 +78,8 @@ class ConnectorContextTest {
       ThrowingConsumer<SetPropertyTestInput> executor =
           in -> {
             // when
-            AbstractConnectorContext.setProperty(testInput, fieldForName(in.fieldName), modified);
+            AbstractOutboundConnectorContext.setProperty(
+                testInput, fieldForName(in.fieldName), modified);
             // then
             assertThat(in.getter.get()).isEqualTo(modified);
           };
@@ -83,19 +89,20 @@ class ConnectorContextTest {
     @Test
     public void shouldThrowWhenSettingOnFinalField() {
       // given
-      TestInput testInput = new TestInput();
+      OutboundTestInput testInput = new OutboundTestInput();
       String modified = "modified";
       Exception expected =
           catchException(
               () ->
                   // when
-                  AbstractConnectorContext.setProperty(
+                  AbstractOutboundConnectorContext.setProperty(
                       testInput, fieldForName("finalField"), modified));
       // then
       assertThat(expected)
           .isInstanceOf(IllegalStateException.class)
           .hasMessage(
-              "Cannot invoke set or setter on final field 'finalField' of type class io.camunda.connector.impl.TestInput");
+              "Cannot invoke set or setter on final field 'finalField' of type class "
+                  + testInput.getClass().getName());
     }
   }
 
@@ -104,8 +111,8 @@ class ConnectorContextTest {
     @Test
     void shouldReplaceNestedSecrets() {
       // given
-      ConnectorContext connectorContext =
-          ConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
+      OutboundConnectorContext connectorContext =
+          OutboundConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
       final var testInput = new InputNestedObject();
       // when
       connectorContext.replaceSecrets(testInput);
@@ -118,8 +125,8 @@ class ConnectorContextTest {
     @Test
     void shouldIgnoreAnnotatedNullValues() {
       // given
-      ConnectorContext connectorContext =
-          ConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
+      OutboundConnectorContext connectorContext =
+          OutboundConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
       final var testInput = new InputNestedObject();
       // when
       connectorContext.replaceSecrets(testInput);
@@ -130,8 +137,8 @@ class ConnectorContextTest {
     @Test
     void shouldReplaceSecretsInStringList() {
       // given
-      ConnectorContext connectorContext =
-          ConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
+      OutboundConnectorContext connectorContext =
+          OutboundConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
       final var testInput = new InputStringList();
       // when
       connectorContext.replaceSecrets(testInput);
@@ -142,8 +149,8 @@ class ConnectorContextTest {
     @Test
     void shouldReplaceSecretsInObjectList() {
       // given
-      ConnectorContext connectorContext =
-          ConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
+      OutboundConnectorContext connectorContext =
+          OutboundConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
       final var testInput = new InputObjectList();
       // when
       connectorContext.replaceSecrets(testInput);
@@ -154,8 +161,8 @@ class ConnectorContextTest {
     @Test
     void shouldFailIfReplaceSecretsInNumberList() {
       // given
-      ConnectorContext connectorContext =
-          ConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
+      OutboundConnectorContext connectorContext =
+          OutboundConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
       final var testInput = new InputNumberList();
       // when
       Exception expected = catchException(() -> connectorContext.replaceSecrets(testInput));
@@ -168,8 +175,8 @@ class ConnectorContextTest {
     @Test
     void shouldFailIfReplaceSecretsInImmutableStringList() {
       // given
-      ConnectorContext connectorContext =
-          ConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
+      OutboundConnectorContext connectorContext =
+          OutboundConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
       final var testInput = new InputStringListImmutable();
       // when
       Exception expected = catchException(() -> connectorContext.replaceSecrets(testInput));
@@ -182,8 +189,8 @@ class ConnectorContextTest {
     @Test
     void shouldReplaceSecretsInObjectSet() {
       // given
-      ConnectorContext connectorContext =
-          ConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
+      OutboundConnectorContext connectorContext =
+          OutboundConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
       final var testInput = new InputObjectSet();
       // when
       connectorContext.replaceSecrets(testInput);
@@ -194,8 +201,8 @@ class ConnectorContextTest {
     @Test
     void shouldFailIfReplaceSecretsInStringSet() {
       // given
-      ConnectorContext connectorContext =
-          ConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
+      OutboundConnectorContext connectorContext =
+          OutboundConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
       final var testInput = new InputStringSet();
       // when
       Exception expected = catchException(() -> connectorContext.replaceSecrets(testInput));
@@ -208,8 +215,8 @@ class ConnectorContextTest {
     @Test
     void shouldFailIfReplaceSecretsInNumberSet() {
       // given
-      ConnectorContext connectorContext =
-          ConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
+      OutboundConnectorContext connectorContext =
+          OutboundConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
       final var testInput = new InputNumberSet();
       // when
       Exception expected = catchException(() -> connectorContext.replaceSecrets(testInput));
@@ -222,8 +229,8 @@ class ConnectorContextTest {
     @Test
     void shouldReplaceSecretsInStringArray() {
       // given
-      ConnectorContext connectorContext =
-          ConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
+      OutboundConnectorContext connectorContext =
+          OutboundConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
       final var testInput = new InputStringArray();
       // when
       connectorContext.replaceSecrets(testInput);
@@ -234,8 +241,8 @@ class ConnectorContextTest {
     @Test
     void shouldReplaceSecretsInObjectArray() {
       // given
-      ConnectorContext connectorContext =
-          ConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
+      OutboundConnectorContext connectorContext =
+          OutboundConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
       final var testInput = new InputObjectArray();
       // when
       connectorContext.replaceSecrets(testInput);
@@ -246,8 +253,8 @@ class ConnectorContextTest {
     @Test
     void shouldFailIfReplaceSecretsInNumberArray() {
       // given
-      ConnectorContext connectorContext =
-          ConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
+      OutboundConnectorContext connectorContext =
+          OutboundConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
       final var testInput = new InputNumberArray();
       // when
       Exception expected = catchException(() -> connectorContext.replaceSecrets(testInput));
@@ -260,8 +267,8 @@ class ConnectorContextTest {
     @Test
     void shouldReplaceSecretsInStringMap() {
       // given
-      ConnectorContext connectorContext =
-          ConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
+      OutboundConnectorContext connectorContext =
+          OutboundConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
       final var testInput = new InputStringMap();
       // when
       connectorContext.replaceSecrets(testInput);
@@ -273,8 +280,8 @@ class ConnectorContextTest {
     @Test
     void shouldReplaceSecretsInObjectMap() {
       // given
-      ConnectorContext connectorContext =
-          ConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
+      OutboundConnectorContext connectorContext =
+          OutboundConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
       final var testInput = new InputObjectMap();
       // when
       connectorContext.replaceSecrets(testInput);
@@ -286,8 +293,8 @@ class ConnectorContextTest {
     @Test
     void shouldReplaceSecretsInImmutableStringMap() {
       // given
-      ConnectorContext connectorContext =
-          ConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
+      OutboundConnectorContext connectorContext =
+          OutboundConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
       final var testInput = new InputStringMapImmutable();
       // when
       Exception expected = catchException(() -> connectorContext.replaceSecrets(testInput));
@@ -300,8 +307,8 @@ class ConnectorContextTest {
     @Test
     void shouldFailIfReplaceSecretsInNumberMap() {
       // given
-      ConnectorContext connectorContext =
-          ConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
+      OutboundConnectorContext connectorContext =
+          OutboundConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
       final var testInput = new InputNumberMap();
       // when
       Exception expected = catchException(() -> connectorContext.replaceSecrets(testInput));
@@ -315,8 +322,8 @@ class ConnectorContextTest {
     @Test
     void shouldReplaceSecretsInRootList() {
       // given
-      ConnectorContext connectorContext =
-          ConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
+      OutboundConnectorContext connectorContext =
+          OutboundConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
       final var testInput = new InputObjectList();
       // when
       connectorContext.replaceSecrets(testInput.inputList);
@@ -327,8 +334,8 @@ class ConnectorContextTest {
     @Test
     void shouldReplaceSecretsInRootSet() {
       // given
-      ConnectorContext connectorContext =
-          ConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
+      OutboundConnectorContext connectorContext =
+          OutboundConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
       final var testInput = new InputObjectSet();
       // when
       connectorContext.replaceSecrets(testInput.inputSet);
@@ -339,8 +346,8 @@ class ConnectorContextTest {
     @Test
     void shouldReplaceSecretsInRootArray() {
       // given
-      ConnectorContext connectorContext =
-          ConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
+      OutboundConnectorContext connectorContext =
+          OutboundConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
       final var testInput = new InputObjectArray();
       // when
       connectorContext.replaceSecrets(testInput.inputArray);
@@ -351,8 +358,8 @@ class ConnectorContextTest {
     @Test
     void shouldReplaceSecretsInRootMap() {
       // given
-      ConnectorContext connectorContext =
-          ConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
+      OutboundConnectorContext connectorContext =
+          OutboundConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
       final var testInput = new InputObjectMap();
       // when
       connectorContext.replaceSecrets(testInput.inputMap);
@@ -364,7 +371,7 @@ class ConnectorContextTest {
 
   private static Field fieldForName(String fieldName) {
     try {
-      return TestInput.class.getDeclaredField(fieldName);
+      return OutboundTestInput.class.getDeclaredField(fieldName);
     } catch (NoSuchFieldException e) {
       throw new RuntimeException(e);
     }
@@ -388,5 +395,77 @@ class ConnectorContextTest {
       this.fieldName = fieldName;
       this.expectedContent = expectedContent;
     }
+  }
+
+  static class InputNestedObject {
+    @Secret public final OutboundTestInput secretContainer = new OutboundTestInput();
+    @Secret public final OutboundTestInput nullContainer = null;
+    public final OutboundTestInput otherProperty = new OutboundTestInput();
+  }
+
+  static class InputNumberArray {
+    @Secret public Number[] numberArray = new Number[] {3, 5.6f};
+  }
+
+  static class InputNumberList {
+    @Secret public List<Number> numberList = new ArrayList<>(List.of(3, 5.6f));
+  }
+
+  static class InputNumberMap {
+    @Secret public Map<String, Number> numberMap = new HashMap<>(Map.of("bar", 3, "baz", 5.6f));
+  }
+
+  static class InputNumberSet {
+    @Secret public Set<Number> numberSet = new HashSet<>(Set.of(3, 5.6f));
+  }
+
+  static class InputObjectArray {
+    @Secret
+    public final OutboundTestInput[] inputArray =
+        new OutboundTestInput[] {new OutboundTestInput(), new OutboundTestInput()};
+  }
+
+  static class InputObjectList {
+    @Secret
+    public final List<OutboundTestInput> inputList =
+        List.of(new OutboundTestInput(), new OutboundTestInput());
+  }
+
+  static class InputObjectMap {
+    @Secret
+    public final Map<String, OutboundTestInput> inputMap = Map.of("bar", new OutboundTestInput());
+  }
+
+  static class InputObjectSet {
+    @Secret
+    public final Set<OutboundTestInput> inputSet =
+        Set.of(new OutboundTestInput(), new OutboundTestInput());
+  }
+
+  static class InputStringArray {
+    @Secret public final String[] stringArray = new String[] {"secrets.s3cr3t", "foo"};
+  }
+
+  static class InputStringList {
+    @Secret
+    public final List<String> stringList = new ArrayList<>(List.of("secrets.s3cr3t", "foo"));
+  }
+
+  static class InputStringListImmutable {
+    @Secret public List<String> stringSet = List.of("secrets.s3cr3t", "foo");
+  }
+
+  static class InputStringMap {
+    @Secret
+    public final Map<String, String> stringMap =
+        new HashMap<>(Map.of("bar", "secrets.s3cr3t", "baz", "foo"));
+  }
+
+  static class InputStringMapImmutable {
+    @Secret public Map<String, String> stringMap = Map.of("foo", "secrets.s3cr3t");
+  }
+
+  static class InputStringSet {
+    @Secret public Set<String> stringSet = new HashSet<>(Set.of("secrets.s3cr3t", "foo"));
   }
 }

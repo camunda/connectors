@@ -25,13 +25,13 @@ public class PingRequest {
 }
 ```
 
-An instance of the class can be validated by using the `ConnectorContext.validate` method.
+An instance of the class can be validated by using the `OutboundConnectorContext.validate` method.
 
 ```java
-public class PingConnector implements ConnectorFunction {
+public class PingConnector implements OutboundConnectorFunction {
 
   @Override
-  public Object execute(ConnectorContext context) throws Exception {
+  public Object execute(OutboundConnectorContext context) throws Exception {
 
     var request = context.getVariablesAsType(PingRequest.class);
 

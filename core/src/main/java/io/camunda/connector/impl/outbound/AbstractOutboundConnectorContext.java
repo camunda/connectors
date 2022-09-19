@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.impl;
+package io.camunda.connector.impl.outbound;
 
-import io.camunda.connector.api.ConnectorContext;
-import io.camunda.connector.api.ValidationProvider;
 import io.camunda.connector.api.annotation.Secret;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.api.validation.ValidationProvider;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -30,7 +30,7 @@ import java.util.Optional;
 import java.util.ServiceLoader;
 import java.util.function.Consumer;
 
-public abstract class AbstractConnectorContext implements ConnectorContext {
+public abstract class AbstractOutboundConnectorContext implements OutboundConnectorContext {
 
   protected static final List<Class<?>> PRIMITIVE_TYPES =
       List.of(String.class, Number.class, Boolean.class);

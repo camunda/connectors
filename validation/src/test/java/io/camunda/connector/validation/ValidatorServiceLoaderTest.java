@@ -18,8 +18,8 @@ package io.camunda.connector.validation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.camunda.connector.api.ValidationProvider;
-import io.camunda.connector.test.ConnectorContextBuilder;
+import io.camunda.connector.api.validation.ValidationProvider;
+import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import org.junit.jupiter.api.Test;
 
@@ -28,7 +28,7 @@ class ValidatorServiceLoaderTest {
   @Test
   public void shouldDiscoverValidator() {
     ValidationProvider validationProvider =
-        ConnectorContextBuilder.create().build().getValidationProvider();
+        OutboundConnectorContextBuilder.create().build().getValidationProvider();
     assertThat(validationProvider).isOfAnyClassIn(DefaultValidationProvider.class);
   }
 }
