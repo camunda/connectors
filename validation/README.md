@@ -1,6 +1,6 @@
 # Connector Validation
 
-Default implementation for the [ValdationProvider](../core/src/main/java/io/camunda/connector/api/ValidationProvider.java).
+Default implementation for the [ValdationProvider](../core/src/main/java/io/camunda/connector/api/validation/ValidationProvider.java).
 
 ## Example
 
