@@ -18,7 +18,7 @@ You can create a job worker by wrapping a [connector function](../core) like thi
 
 ```java
 import io.camunda.connector.slack.SlackFunction;
-import io.camunda.connector.runtime.jobworker.ConnectorJobHandler;
+import io.camunda.connector.runtime.jobworker.outbound.ConnectorJobHandler;
 import io.camunda.zeebe.client.ZeebeClient;
 
 public class Main {

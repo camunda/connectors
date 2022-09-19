@@ -14,11 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.impl.secrets;
+package io.camunda.connector.example.outbound;
 
-import io.camunda.connector.api.annotation.Secret;
-import io.camunda.connector.impl.TestInput;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 
-public class InputObjectArray {
-  @Secret public final TestInput[] inputArray = new TestInput[] {new TestInput(), new TestInput()};
+public class ExampleOutboundFunction implements OutboundConnectorFunction {
+
+  @Override
+  public Object execute(OutboundConnectorContext context) throws Exception {
+
+    var input = context.getVariablesAsType(ExampleOutboundInput.class);
+
+    if ("foo".equals(input.getFoo())) {
+      context.validate(input);
+    }
+    context.replaceSecrets(input);
+
+    if ("BOOM!".equals(input.getFoo())) {
+      throw new UnsupportedOperationException("expected BOOM!");
+    }
+
+    return input.getFoo();
+  }
 }

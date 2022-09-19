@@ -18,7 +18,7 @@ package io.camunda.connector.runtime.jobworker;
 
 import static java.util.Collections.singletonMap;
 
-import io.camunda.connector.api.SecretProvider;
+import io.camunda.connector.api.secret.SecretProvider;
 import java.util.Map;
 
 public class TestSecretProvider implements SecretProvider {

@@ -17,7 +17,9 @@
 
 package io.camunda.connector.runtime.jobworker;
 
-import io.camunda.connector.api.ConnectorFunction;
+import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.runtime.jobworker.outbound.ConnectorJobHandler;
+import io.camunda.connector.runtime.jobworker.outbound.OutboundConnectorConfig;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.client.ZeebeClientBuilder;
 import java.lang.reflect.InvocationTargetException;
@@ -53,7 +55,7 @@ public class Main {
       clientBuilder = ZeebeClient.newClientBuilder().gatewayAddress(defaultAddress).usePlaintext();
     }
 
-    var connectors = ConnectorConfig.parse();
+    var connectors = OutboundConnectorConfig.parse();
 
     if (connectors.isEmpty()) {
       throw new IllegalStateException("No connectors configured");
@@ -105,10 +107,10 @@ public class Main {
   }
 
   @SuppressWarnings("unchecked")
-  private static ConnectorFunction loadConnectorFunction(String clsName) {
+  private static OutboundConnectorFunction loadConnectorFunction(String clsName) {
 
     try {
-      var cls = (Class<ConnectorFunction>) Class.forName(clsName);
+      var cls = (Class<OutboundConnectorFunction>) Class.forName(clsName);
 
       return cls.getDeclaredConstructor().newInstance();
     } catch (ClassNotFoundException

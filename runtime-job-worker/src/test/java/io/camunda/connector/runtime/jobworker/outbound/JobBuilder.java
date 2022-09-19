@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.jobworker;
+package io.camunda.connector.runtime.jobworker.outbound;
 
-import static io.camunda.connector.runtime.jobworker.ConnectorJobHandler.RESULT_EXPRESSION_HEADER_NAME;
-import static io.camunda.connector.runtime.jobworker.ConnectorJobHandler.RESULT_VARIABLE_HEADER_NAME;
+import static io.camunda.connector.runtime.jobworker.outbound.ConnectorJobHandler.RESULT_EXPRESSION_HEADER_NAME;
+import static io.camunda.connector.runtime.jobworker.outbound.ConnectorJobHandler.RESULT_VARIABLE_HEADER_NAME;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;

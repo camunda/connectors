@@ -14,24 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.test;
+package io.camunda.connector.test.outbound;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchException;
 
-import io.camunda.connector.example.ExampleFunction;
-import io.camunda.connector.example.ExampleInput;
+import io.camunda.connector.example.outbound.ExampleOutboundFunction;
+import io.camunda.connector.example.outbound.ExampleOutboundInput;
 import org.junit.jupiter.api.Test;
 
-public class ConnectorFunctionTest {
+public class OutboundConnectorFunctionTest {
 
   @Test
   public void shouldExecuteConnector() throws Exception {
     // given
-    var fn = new ExampleFunction();
+    var fn = new ExampleOutboundFunction();
 
     // when
-    var context = ConnectorContextBuilder.create().variables(new ExampleInput("FOO")).build();
+    var context =
+        OutboundConnectorContextBuilder.create().variables(new ExampleOutboundInput("FOO")).build();
     var result = fn.execute(context);
 
     // then
@@ -41,12 +42,12 @@ public class ConnectorFunctionTest {
   @Test
   public void shouldReplaceSecret() throws Exception {
     // given
-    var fn = new ExampleFunction();
+    var fn = new ExampleOutboundFunction();
 
     // when
     var context =
-        ConnectorContextBuilder.create()
-            .variables(new ExampleInput("secrets.FOO"))
+        OutboundConnectorContextBuilder.create()
+            .variables(new ExampleOutboundInput("secrets.FOO"))
             .secret("FOO", "SECRET_FOO")
             .build();
 
@@ -59,10 +60,10 @@ public class ConnectorFunctionTest {
   @Test
   public void shouldValidateInput() {
     // given
-    var fn = new ExampleFunction();
+    var fn = new ExampleOutboundFunction();
     var context =
-        ConnectorContextBuilder.create()
-            .variables(new ExampleInput("foo"))
+        OutboundConnectorContextBuilder.create()
+            .variables(new ExampleOutboundInput("foo"))
             .validation(
                 input -> {
                   throw new IllegalStateException("This will never validate: Test - foo");
@@ -79,15 +80,16 @@ public class ConnectorFunctionTest {
   @Test
   public void shouldFailOnMissingValidationProvider() {
     // given
-    var fn = new ExampleFunction();
+    var fn = new ExampleOutboundFunction();
 
     // when
-    var context = ConnectorContextBuilder.create().variables(new ExampleInput("foo")).build();
+    var context =
+        OutboundConnectorContextBuilder.create().variables(new ExampleOutboundInput("foo")).build();
     var exception = catchException(() -> fn.execute(context));
 
     // then
     assertThat(exception)
         .hasMessage(
-            "Please bind an implementation to io.camunda.connector.api.ValidationProvider via SPI");
+            "Please bind an implementation to io.camunda.connector.api.validation.ValidationProvider via SPI");
   }
 }

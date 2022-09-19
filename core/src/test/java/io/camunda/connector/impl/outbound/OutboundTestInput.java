@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.impl;
+package io.camunda.connector.impl.outbound;
 
 import io.camunda.connector.api.annotation.Secret;
 
-public class TestInput {
+public class OutboundTestInput {
   public final String finalField = "final";
   public String publicField = "public";
   protected String protectedField = "protected";

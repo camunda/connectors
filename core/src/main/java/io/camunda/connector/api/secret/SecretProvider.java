@@ -14,12 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.impl.secrets;
+package io.camunda.connector.api.secret;
 
-import io.camunda.connector.api.annotation.Secret;
-import java.util.HashMap;
-import java.util.Map;
+/**
+ * Provider of secrets for an environment. This class will be instantiated from an environment
+ * runtime according to the <a
+ * href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/ServiceLoader.html">Service
+ * Provider Interface (SPI)</a> documentation.
+ */
+public interface SecretProvider {
 
-public class InputNumberMap {
-  @Secret public Map<String, Number> stringMap = new HashMap<>(Map.of("bar", 3, "baz", 5.6f));
+  /**
+   * @param name - the secret's name to find a value for
+   * @return the secret's value for the given name, if it exists, can be <code>null</code>
+   */
+  String getSecret(String name);
 }

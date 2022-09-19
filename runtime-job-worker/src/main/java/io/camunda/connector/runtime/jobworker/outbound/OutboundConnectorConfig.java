@@ -15,14 +15,14 @@
  * limitations under the License.
  */
 
-package io.camunda.connector.runtime.jobworker;
+package io.camunda.connector.runtime.jobworker.outbound;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
 /** Configuration class holding information of a connector. */
-public class ConnectorConfig {
+public class OutboundConnectorConfig {
 
   /** Pattern describing the property TYPE of a connector. */
   public static final Pattern ZEEBE_CONNECTOR_PATTERN =
@@ -41,7 +41,7 @@ public class ConnectorConfig {
    * @param variables the variables the connector needs as input
    * @param className the connector function class
    */
-  public ConnectorConfig(
+  public OutboundConnectorConfig(
       final String name, final String type, final String[] variables, final String className) {
     this.name = name;
     this.type = type;
@@ -54,9 +54,9 @@ public class ConnectorConfig {
    *
    * @return the list of connector configurations
    */
-  public static List<ConnectorConfig> parse() {
+  public static List<OutboundConnectorConfig> parse() {
 
-    var connectors = new ArrayList<ConnectorConfig>();
+    var connectors = new ArrayList<OutboundConnectorConfig>();
 
     for (var entry : System.getenv().entrySet()) {
 
@@ -72,13 +72,13 @@ public class ConnectorConfig {
     return connectors;
   }
 
-  private static ConnectorConfig parseConnector(final String name) {
+  private static OutboundConnectorConfig parseConnector(final String name) {
 
     var type = getEnv(name, "TYPE");
     var function = getEnv(name, "FUNCTION");
     var variables = getEnv(name, "VARIABLES").split(",");
 
-    return new ConnectorConfig(name, type, variables, function);
+    return new OutboundConnectorConfig(name, type, variables, function);
   }
 
   private static String getEnv(final String name, final String detail) {

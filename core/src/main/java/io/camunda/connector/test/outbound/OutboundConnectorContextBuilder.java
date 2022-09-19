@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.test;
+package io.camunda.connector.test.outbound;
 
-import io.camunda.connector.api.ConnectorContext;
-import io.camunda.connector.api.SecretProvider;
-import io.camunda.connector.api.SecretStore;
-import io.camunda.connector.api.ValidationProvider;
-import io.camunda.connector.impl.AbstractConnectorContext;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.api.secret.SecretProvider;
+import io.camunda.connector.api.secret.SecretStore;
+import io.camunda.connector.api.validation.ValidationProvider;
+import io.camunda.connector.impl.outbound.AbstractOutboundConnectorContext;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-/** Test helper class for creating a {@link ConnectorContext} with a fluent API. */
-public class ConnectorContextBuilder {
+/** Test helper class for creating a {@link OutboundConnectorContext} with a fluent API. */
+public class OutboundConnectorContextBuilder {
 
   protected final Map<String, String> secrets = new HashMap<>();
   protected SecretProvider secretProvider = secrets::get;
@@ -38,10 +38,10 @@ public class ConnectorContextBuilder {
   private Object variablesAsObject;
 
   /**
-   * @return a new instance of the {@link ConnectorContextBuilder}
+   * @return a new instance of the {@link OutboundConnectorContextBuilder}
    */
-  public static ConnectorContextBuilder create() {
-    return new ConnectorContextBuilder();
+  public static OutboundConnectorContextBuilder create() {
+    return new OutboundConnectorContextBuilder();
   }
 
   private void assertNoVariables() {
@@ -61,7 +61,7 @@ public class ConnectorContextBuilder {
    * @param variablesAsJSON - the variables as JSON
    * @return builder for fluent API
    */
-  public ConnectorContextBuilder variables(String variablesAsJSON) {
+  public OutboundConnectorContextBuilder variables(String variablesAsJSON) {
     this.assertNoVariables();
 
     this.variablesAsJSON = variablesAsJSON;
@@ -74,7 +74,7 @@ public class ConnectorContextBuilder {
    * @param variablesAsObject - the variables as a mapped object
    * @return builder for fluent API
    */
-  public ConnectorContextBuilder variables(Object variablesAsObject) {
+  public OutboundConnectorContextBuilder variables(Object variablesAsObject) {
     this.assertNoVariables();
 
     this.variablesAsObject = variablesAsObject;
@@ -88,7 +88,7 @@ public class ConnectorContextBuilder {
    * @param value - the secret's value
    * @return builder for fluent API
    */
-  public ConnectorContextBuilder secret(String name, String value) {
+  public OutboundConnectorContextBuilder secret(String name, String value) {
     secrets.put(name, value);
     return this;
   }
@@ -99,24 +99,24 @@ public class ConnectorContextBuilder {
    * @param secretProvider - provider for secret values, given a secret name
    * @return builder for fluent API
    */
-  public ConnectorContextBuilder secrets(SecretProvider secretProvider) {
+  public OutboundConnectorContextBuilder secrets(SecretProvider secretProvider) {
     this.secretProvider = secretProvider;
     return this;
   }
 
-  public ConnectorContextBuilder validation(ValidationProvider validationProvider) {
+  public OutboundConnectorContextBuilder validation(ValidationProvider validationProvider) {
     this.validationProvider = validationProvider;
     return this;
   }
 
   /**
-   * @return the {@link ConnectorContext} including all previously defined properties
+   * @return the {@link OutboundConnectorContext} including all previously defined properties
    */
   public TestConnectorContext build() {
     return new TestConnectorContext();
   }
 
-  public class TestConnectorContext extends AbstractConnectorContext {
+  public class TestConnectorContext extends AbstractOutboundConnectorContext {
     private SecretStore secretStore;
 
     @Override

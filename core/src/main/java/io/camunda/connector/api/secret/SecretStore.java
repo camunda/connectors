@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.api;
+package io.camunda.connector.api.secret;
 
 import java.util.Optional;
 import java.util.regex.Matcher;

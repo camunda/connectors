@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.api;
+package io.camunda.connector.api.outbound;
 
 /**
  * Central function interface of a connector. This will be called from the environment-specific
  * runtime.
  */
-public interface ConnectorFunction {
+public interface OutboundConnectorFunction {
 
   /**
    * Executes the connector's central logic. The connector will receive a context object that allows
@@ -36,5 +36,5 @@ public interface ConnectorFunction {
    * @return the result of the connector function, can be <code>null</code>
    * @throws Exception the connector function can potentially throw any checked exceptions
    */
-  Object execute(ConnectorContext context) throws Exception;
+  Object execute(OutboundConnectorContext context) throws Exception;
 }
