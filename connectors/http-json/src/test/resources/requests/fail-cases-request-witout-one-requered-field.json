@@ -1,0 +1,150 @@
+[
+  {
+    "testDescription": "without method field",
+    "url": "testmail@testmail.com",
+    "authentication": {
+      "type": "noAuth"
+    },
+    "queryParameters": {
+      "q": "query parameter",
+      "priority": 12
+    }
+  },
+  {
+    "testDescription": "without URL field",
+    "method": "get",
+    "authentication": {
+      "type": "noAuth"
+    },
+    "queryParameters": {
+      "q": "query parameter",
+      "priority": 12
+    },
+    "headers": {
+      "X-Camunda-Cluster-ID": "abcdef",
+      "User-Agent": "http-connector-demo"
+    },
+    "body": {
+      "customer": {
+        "id": 1231231,
+        "name": "Jane Doe",
+        "email": "jane.doe@exampe.com"
+      }
+    }
+  },
+  {
+    "testDescription": "bearer auth type without URL field",
+    "method": "get",
+    "authentication": {
+      "type": "bearer"
+    },
+    "queryParameters": {
+      "q": "query parameter",
+      "priority": 12
+    },
+    "headers": {
+      "X-Camunda-Cluster-ID": "abcdef",
+      "User-Agent": "http-connector-demo"
+    },
+    "body": {
+      "customer": {
+        "id": 1231231,
+        "name": "Jane Doe",
+        "email": "jane.doe@exampe.com"
+      }
+    }
+  },
+  {
+    "testDescription": "basic auth type without URL field",
+    "method": "get",
+    "authentication": {
+      "type": "basic"
+    },
+    "queryParameters": {
+      "q": "query parameter",
+      "priority": 12
+    },
+    "headers": {
+      "X-Camunda-Cluster-ID": "abcdef",
+      "User-Agent": "http-connector-demo"
+    },
+    "body": {
+      "customer": {
+        "id": 1231231,
+        "name": "Jane Doe",
+        "email": "jane.doe@exampe.com"
+      }
+    }
+  },
+  {
+    "testDescription": "bearer auth without token",
+    "method": "get",
+    "url": "testmail@testmail.com",
+    "authentication": {
+      "type": "bearer"
+    },
+    "queryParameters": {
+      "q": "query parameter",
+      "priority": 12
+    },
+    "headers": {
+      "X-Camunda-Cluster-ID": "abcdef",
+      "User-Agent": "http-connector-demo"
+    },
+    "body": {
+      "customer": {
+        "id": 1231231,
+        "name": "Jane Doe",
+        "email": "jane.doe@exampe.com"
+      }
+    }
+  },
+  {
+    "testDescription": "basic auth without password",
+    "method": "get",
+    "url": "testmail@testmail.com",
+    "authentication": {
+      "type": "basic",
+      "username": "username"
+    },
+    "queryParameters": {
+      "q": "query parameter",
+      "priority": 12
+    },
+    "headers": {
+      "X-Camunda-Cluster-ID": "abcdef",
+      "User-Agent": "http-connector-demo"
+    },
+    "body": {
+      "customer": {
+        "id": 1231231,
+        "name": "Jane Doe",
+        "email": "jane.doe@exampe.com"
+      }
+    }
+  },
+  {
+    "testDescription": "basic auth without username",
+    "method": "get",
+    "url": "testmail@testmail.com",
+    "authentication": {
+      "type": "basic",
+      "password": "password"
+    },
+    "queryParameters": {
+      "q": "query parameter",
+      "priority": 12
+    },
+    "headers": {
+      "X-Camunda-Cluster-ID": "abcdef",
+      "User-Agent": "http-connector-demo"
+    },
+    "body": {
+      "customer": {
+        "id": 1231231,
+        "name": "Jane Doe",
+        "email": "jane.doe@exampe.com"
+      }
+    }
+  }
+]

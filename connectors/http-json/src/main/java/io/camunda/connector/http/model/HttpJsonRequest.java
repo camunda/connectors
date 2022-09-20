@@ -17,57 +17,26 @@
 package io.camunda.connector.http.model;
 
 import com.google.common.base.Objects;
-import io.camunda.connector.api.ConnectorInput;
-import io.camunda.connector.api.SecretStore;
-import io.camunda.connector.api.Validator;
+import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.http.auth.Authentication;
-import java.util.Arrays;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import java.util.Map;
 
-public class HttpJsonRequest implements ConnectorInput {
+public class HttpJsonRequest {
 
-  private static final String[] SUPPORTED_URL_PREFIXES = new String[] {"http", "https", "secrets"};
+  @NotBlank @Secret private String method;
 
-  private String method;
+  @NotBlank
+  @Pattern(regexp = "^(http://|https://|secrets).*$")
+  @Secret
   private String url;
-  private Authentication authentication;
-  private Map<String, String> queryParameters;
-  private Map<String, String> headers;
+
+  @Valid @Secret private Authentication authentication;
+  @Secret private Map<String, String> queryParameters;
+  @Secret private Map<String, String> headers;
   private Object body;
-
-  @Override
-  public void validateWith(final Validator validator) {
-    validator.require(method, "HTTP Endpoint - Method");
-    validator.require(url, "HTTP Endpoint - URL");
-
-    if (Arrays.stream(SUPPORTED_URL_PREFIXES).noneMatch(url::startsWith)) {
-      validator.addErrorMessage(
-          "HTTP Endpoint - URL is invalid: "
-              + url
-              + ". "
-              + "Has to start with: "
-              + Arrays.toString(SUPPORTED_URL_PREFIXES));
-    }
-
-    if (hasAuthentication()) {
-      authentication.validateWith(validator);
-    }
-  }
-
-  @Override
-  public void replaceSecrets(final SecretStore secretStore) {
-    method = secretStore.replaceSecret(method);
-    url = secretStore.replaceSecret(url);
-    if (hasAuthentication()) {
-      authentication.replaceSecrets(secretStore);
-    }
-    if (hasQueryParameters()) {
-      queryParameters.replaceAll((k, v) -> secretStore.replaceSecret(v));
-    }
-    if (hasHeaders()) {
-      headers.replaceAll((k, v) -> secretStore.replaceSecret(v));
-    }
-  }
 
   public boolean hasAuthentication() {
     return authentication != null;

@@ -19,19 +19,28 @@ package io.camunda.connector.http;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import io.camunda.connector.api.ConnectorContext;
-import io.camunda.connector.test.ConnectorContextBuilder;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.http.model.HttpJsonRequest;
+import io.camunda.connector.impl.ConnectorInputException;
+import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
+import java.io.IOException;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class HttpJsonFunctionInputValidationTest {
+public class HttpJsonFunctionInputValidationTest extends BaseTest {
+
+  private static final String FAIL_REQUEST_CASES_PATH =
+      "src/test/resources/requests/fail-cases-request-witout-one-requered-field.json";
 
   private static final String REQUEST_METHOD_OBJECT_PLACEHOLDER =
       "{\n \"method\": \"%s\",\n \"url\": \"https://camunda.io/http-endpoint\"\n}";
+
   private static final String REQUEST_ENDPOINT_OBJECT_PLACEHOLDER =
       "{\n \"method\": \"get\",\n \"url\": \"%s\"\n}";
 
@@ -46,33 +55,56 @@ public class HttpJsonFunctionInputValidationTest {
   @ValueSource(strings = {"", " ", "\r\n"})
   void shouldRaiseException_WhenExecuted_MethodMalformed(final String input) {
     // Given
-    ConnectorContext ctx =
-        ConnectorContextBuilder.create()
+    OutboundConnectorContext ctx =
+        OutboundConnectorContextBuilder.create()
             .variables(String.format(REQUEST_METHOD_OBJECT_PLACEHOLDER, input))
             .build();
 
     // When
     Throwable exception =
-        assertThrows(IllegalArgumentException.class, () -> functionUnderTest.execute(ctx));
+        assertThrows(ConnectorInputException.class, () -> functionUnderTest.execute(ctx));
 
     // Then
-    assertThat(exception.getMessage()).contains("HTTP Endpoint - Method");
+    assertThat(exception.getMessage())
+        .contains("Found constraints violated while validating input", "method: must not be blank");
   }
 
   @ParameterizedTest
   @ValueSource(strings = {"", " ", "iAmWrongUrl", "ftp://camunda.org/", "camunda@camunda.com"})
   void shouldRaiseException_WhenExecuted_EndpointMalformed(final String input) {
     // Given
-    ConnectorContext ctx =
-        ConnectorContextBuilder.create()
+    OutboundConnectorContext ctx =
+        OutboundConnectorContextBuilder.create()
             .variables(String.format(REQUEST_ENDPOINT_OBJECT_PLACEHOLDER, input))
             .build();
-
     // When
     Throwable exception =
-        assertThrows(IllegalArgumentException.class, () -> functionUnderTest.execute(ctx));
-
+        assertThrows(ConnectorInputException.class, () -> functionUnderTest.execute(ctx));
     // Then
-    assertThat(exception.getMessage()).contains("HTTP Endpoint - URL");
+    assertThat(exception.getMessage())
+        .contains(
+            "Found constraints violated while validating input",
+            "must match \"^(http://|https://|secrets).*$\"");
+  }
+
+  @ParameterizedTest(name = "Validate null field # {index}")
+  @MethodSource("failRequestCases")
+  void validate_shouldThrowExceptionWhenLeastOneNotExistRequestField(String input) {
+    // Given request without one required field
+    HttpJsonRequest httpJsonRequest = gson.fromJson(input, HttpJsonRequest.class);
+    OutboundConnectorContext context =
+        OutboundConnectorContextBuilder.create().variables(httpJsonRequest).build();
+    // When context.validate(request);
+    // Then expect exception that one required field not set
+    ConnectorInputException thrown =
+        assertThrows(
+            ConnectorInputException.class,
+            () -> context.validate(httpJsonRequest),
+            "ConnectorInputException was expected");
+    assertThat(thrown.getMessage()).contains("Found constraints violated while validating input");
+  }
+
+  protected static Stream<String> failRequestCases() throws IOException {
+    return loadTestCasesFromResourceFile(FAIL_REQUEST_CASES_PATH);
   }
 }
