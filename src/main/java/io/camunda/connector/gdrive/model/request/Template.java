@@ -18,24 +18,13 @@
 package io.camunda.connector.gdrive.model.request;
 
 import com.google.api.client.util.Key;
-import io.camunda.connector.api.ConnectorInput;
-import io.camunda.connector.api.SecretStore;
-import io.camunda.connector.api.Validator;
+import io.camunda.connector.api.annotation.Secret;
+import jakarta.validation.constraints.NotEmpty;
 import java.util.Objects;
 
-public class Template implements ConnectorInput {
-  @Key private String id;
+public class Template {
+  @Key @NotEmpty @Secret private String id;
   @Key private Variables variables;
-
-  @Override
-  public void validateWith(final Validator validator) {
-    validator.require(id, "Template id");
-  }
-
-  @Override
-  public void replaceSecrets(final SecretStore secretStore) {
-    id = secretStore.replaceSecret(id);
-  }
 
   public String getId() {
     return id;

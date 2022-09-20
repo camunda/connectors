@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.camunda.connector</groupId>
     <artifactId>connector-parent</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.2.0-SNAPSHOT</version>
     <relativePath/>
   </parent>
 
@@ -26,6 +26,10 @@
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-validation</artifactId>
     </dependency>
     <dependency>
       <groupId>com.google.code.gson</groupId>
@@ -154,7 +158,7 @@
         <dependency>
           <groupId>io.camunda.connector</groupId>
           <artifactId>connector-runtime-cloud</artifactId>
-          <version>0.1.0</version>
+          <version>0.2.0-SNAPSHOT</version>
         </dependency>
       </dependencies>
       <build>

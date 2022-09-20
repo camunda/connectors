@@ -18,34 +18,15 @@
 package io.camunda.connector.gdrive.model.request;
 
 import com.google.api.client.util.Key;
-import io.camunda.connector.api.ConnectorInput;
-import io.camunda.connector.api.SecretStore;
-import io.camunda.connector.api.Validator;
+import io.camunda.connector.api.annotation.Secret;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import java.util.Objects;
 
-public class GoogleDriveRequest implements ConnectorInput {
+public class GoogleDriveRequest {
 
-  @Key private Authentication authentication;
-  @Key private Resource resource;
-
-  @Override
-  public void validateWith(final Validator validator) {
-    validator.require(authentication, "Authentication");
-    if (authentication != null) {
-      authentication.validateWith(validator);
-    }
-
-    validator.require(resource, "Resource");
-    if (resource != null) {
-      resource.validateWith(validator);
-    }
-  }
-
-  @Override
-  public void replaceSecrets(final SecretStore secretStore) {
-    replaceSecretsIfNotNull(authentication, secretStore);
-    replaceSecretsIfNotNull(resource, secretStore);
-  }
+  @Key @Valid @NotNull @Secret private Authentication authentication;
+  @Key @Valid @NotNull @Secret private Resource resource;
 
   public Authentication getAuthentication() {
     return authentication;
