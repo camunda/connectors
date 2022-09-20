@@ -17,30 +17,17 @@
 
 package io.camunda.connector.awslambda.model;
 
-import io.camunda.connector.api.ConnectorInput;
-import io.camunda.connector.api.SecretStore;
-import io.camunda.connector.api.Validator;
+import io.camunda.connector.api.annotation.Secret;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import java.util.Objects;
 
-public class FunctionRequestData implements ConnectorInput {
+public class FunctionRequestData {
 
-  private String functionName;
-  private Object payload;
-  private String region;
+  @NotEmpty @Secret private String functionName;
+  @NotNull private Object payload;
+  @NotEmpty @Secret private String region;
   private OperationType operationType; // this is not use and not implemented yet
-
-  @Override
-  public void validateWith(final Validator validator) {
-    validator.require(functionName, "function name");
-    validator.require(payload, "payload");
-    validator.require(region, "region");
-  }
-
-  @Override
-  public void replaceSecrets(final SecretStore secretStore) {
-    functionName = secretStore.replaceSecret(functionName);
-    region = secretStore.replaceSecret(region);
-  }
 
   public String getFunctionName() {
     return functionName;

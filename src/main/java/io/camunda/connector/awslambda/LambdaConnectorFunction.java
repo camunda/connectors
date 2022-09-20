@@ -22,14 +22,14 @@ import com.amazonaws.services.lambda.model.InvokeRequest;
 import com.amazonaws.services.lambda.model.InvokeResult;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import io.camunda.connector.api.ConnectorContext;
-import io.camunda.connector.api.ConnectorFunction;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.awslambda.model.AwsLambdaRequest;
 import io.camunda.connector.awslambda.model.AwsLambdaResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class LambdaConnectorFunction implements ConnectorFunction {
+public class LambdaConnectorFunction implements OutboundConnectorFunction {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(LambdaConnectorFunction.class);
   private final AwsLambdaSupplier awsLambdaSupplier;
@@ -46,7 +46,7 @@ public class LambdaConnectorFunction implements ConnectorFunction {
   }
 
   @Override
-  public Object execute(ConnectorContext context) {
+  public Object execute(OutboundConnectorContext context) {
     var request = context.getVariablesAsType(AwsLambdaRequest.class);
     LOGGER.info("Executing my connector with request {}", request);
     context.validate(request);

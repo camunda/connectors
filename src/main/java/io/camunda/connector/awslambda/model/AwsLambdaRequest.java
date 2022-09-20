@@ -17,28 +17,14 @@
 
 package io.camunda.connector.awslambda.model;
 
-import io.camunda.connector.api.ConnectorInput;
-import io.camunda.connector.api.SecretStore;
-import io.camunda.connector.api.Validator;
+import io.camunda.connector.api.annotation.Secret;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 
-public class AwsLambdaRequest implements ConnectorInput {
+public class AwsLambdaRequest {
 
-  private AuthenticationRequestData authentication;
-  private FunctionRequestData awsFunction;
-
-  @Override
-  public void validateWith(final Validator validator) {
-    validator.require(authentication, "AuthenticationRequestData");
-    validator.require(awsFunction, "FunctionRequestData");
-    authentication.validateWith(validator);
-    awsFunction.validateWith(validator);
-  }
-
-  @Override
-  public void replaceSecrets(final SecretStore secretStore) {
-    authentication.replaceSecrets(secretStore);
-    awsFunction.replaceSecrets(secretStore);
-  }
+  @Valid @NotNull @Secret private AuthenticationRequestData authentication;
+  @Valid @NotNull @Secret private FunctionRequestData awsFunction;
 
   public AuthenticationRequestData getAuthentication() {
     return authentication;

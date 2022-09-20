@@ -22,7 +22,7 @@ import static java.nio.file.Files.readString;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import io.camunda.connector.test.ConnectorContextBuilder;
+import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -74,8 +74,8 @@ public abstract class BaseTest {
     return BaseTest.loadTestCasesFromResourceFile(FAIL_REQUEST_CASE_PATH);
   }
 
-  protected static ConnectorContextBuilder getContextBuilderWithSecrets() {
-    return ConnectorContextBuilder.create()
+  protected static OutboundConnectorContextBuilder getContextBuilderWithSecrets() {
+    return OutboundConnectorContextBuilder.create()
         .secret(SECRET_KEY, ACTUAL_SECRET_KEY)
         .secret(ACCESS_KEY, ACTUAL_ACCESS_KEY)
         .secret(FUNCTION_REGION_KEY, ACTUAL_FUNCTION_REGION)

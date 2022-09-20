@@ -20,9 +20,9 @@ package io.camunda.connector.awslambda.model;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import io.camunda.connector.api.ConnectorContext;
-import io.camunda.connector.api.Validator;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.awslambda.BaseTest;
+import io.camunda.connector.impl.ConnectorInputException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -31,15 +31,13 @@ import org.junit.jupiter.params.provider.MethodSource;
 class AwsLambdaRequestTest extends BaseTest {
 
   private AwsLambdaRequest request;
-  private Validator validator;
-  private ConnectorContext context;
+  private OutboundConnectorContext context;
 
   @BeforeEach
   public void beforeEach() {
     request = new AwsLambdaRequest();
     request.setAuthentication(new AuthenticationRequestData());
     request.setAwsFunction(new FunctionRequestData());
-    validator = new Validator();
     context = getContextBuilderWithSecrets().build(); // builder with secrets
   }
 
@@ -49,14 +47,13 @@ class AwsLambdaRequestTest extends BaseTest {
     // Given request , where one field is null
     request = gson.fromJson(input, AwsLambdaRequest.class);
     // When request validate
-    request.validateWith(validator);
-    IllegalArgumentException thrown =
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> validator.evaluate(),
-            "IllegalArgumentException was expected");
     // Then we except exception with message
-    assertThat(thrown.getMessage().contains("Property required:")).isTrue();
+    ConnectorInputException thrown =
+        assertThrows(
+            ConnectorInputException.class,
+            () -> context.validate(request),
+            "IllegalArgumentException was expected");
+    assertThat(thrown.getMessage()).contains("Found constraints violated while validating input:");
   }
 
   @ParameterizedTest(name = "Should replace secrets")
