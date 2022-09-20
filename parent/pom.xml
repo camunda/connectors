@@ -64,7 +64,7 @@ limitations under the License.</license.inlineheader>
 
     <!-- Camunda internal libraries -->
     <version.zeebe>8.0.6</version.zeebe>
-    <version.feel-engine>1.15.1</version.feel-engine>
+    <version.feel-engine>1.15.2</version.feel-engine>
 
     <!-- Third party dependencies -->
     <version.slf4j>1.7.36</version.slf4j>
