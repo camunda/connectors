@@ -73,7 +73,7 @@ limitations under the License.</license.inlineheader>
     <version.mockito>4.6.1</version.mockito>
     <version.junit-jupiter>5.8.2</version.junit-jupiter>
     <version.assertj>3.23.1</version.assertj>
-    <version.jackson-module-scala>2.13.3</version.jackson-module-scala>
+    <version.jackson-module-scala>2.13.4</version.jackson-module-scala>
     <version.hibernate-validator>8.0.0.Final</version.hibernate-validator>
     <version.glassfish-el>4.0.2</version.glassfish-el>
 
