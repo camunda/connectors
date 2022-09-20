@@ -44,9 +44,44 @@ public class PingConnector implements OutboundConnectorFunction {
 }
 ```
 
+## Constraint message interpolation
+
+By default, the validation module uses Hibernate Validator's
+[ParameterMessageInterpolator](https://docs.jboss.org/hibernate/stable/validator/api/org/hibernate/validator/messageinterpolation/ParameterMessageInterpolator.html).
+This allows using message parameters in contraint messages, like in the following example:
+
+```java
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotEmpty;
+
+public class PingRequest {
+  @NotEmpty
+  private String ping;
+
+  @Min(value = 1, message = "Number must be at least {value}")
+  @Max(value = 3, message = "Number must be at most {value}")
+  private Integer someNumber;
+
+  // omitted getters and setter
+}
+```
+
+The validation module does not support using expressions by default as described in the
+[Bean Validation API](https://jakarta.ee/specifications/bean-validation/3.0/jakarta-bean-validation-spec-3.0.html#validationapi-message).
+To enable expression support, add a dependency on an expression provider like the following
+
+```xml
+  <dependency>
+    <groupId>org.glassfish.expressly</groupId>
+    <artifactId>expressly</artifactId>
+    <version>5.0.0</version>
+  </dependency>
+```
+
 ## Replace Jakarta Bean Validation implementation
 
-This validation module uses [Hibernate Validator](https://hibernate.org/validator/) and [Glassfish Jakarta EL](https://mvnrepository.com/artifact/org.glassfish/jakarta.el) to provide an implementation of the Jakarta Bean Validation API.
+This validation module uses [Hibernate Validator](https://hibernate.org/validator/) to provide an implementation of the Jakarta Bean Validation API.
 If you want to provide your own implementation, you can exclude those two from the dependency and add your own.
 
 ```xml
@@ -61,10 +96,6 @@ If you want to provide your own implementation, you can exclude those two from t
       <exclusion>
         <groupId>org.hibernate.validator</groupId>
         <artifactId>hibernate-validator</artifactId>
-      </exclusion>
-      <exclusion>
-        <groupId>org.glassfish</groupId>
-        <artifactId>jakarta.el</artifactId>
       </exclusion>
     </exclusions>
   </dependency>

@@ -75,7 +75,6 @@ limitations under the License.</license.inlineheader>
     <version.assertj>3.23.1</version.assertj>
     <version.jackson-module-scala>2.13.4</version.jackson-module-scala>
     <version.hibernate-validator>8.0.0.Final</version.hibernate-validator>
-    <version.glassfish-el>4.0.2</version.glassfish-el>
 
     <!-- maven plugins (not managed by parent) -->
     <plugin.version.function-maven-plugin>0.10.1</plugin.version.function-maven-plugin>
@@ -150,12 +149,6 @@ limitations under the License.</license.inlineheader>
         <groupId>org.hibernate.validator</groupId>
         <artifactId>hibernate-validator</artifactId>
         <version>${version.hibernate-validator}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.glassfish</groupId>
-        <artifactId>jakarta.el</artifactId>
-        <version>${version.glassfish-el}</version>
       </dependency>
 
       <!-- test dependencies -->
