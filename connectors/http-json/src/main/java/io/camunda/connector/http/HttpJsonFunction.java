@@ -27,8 +27,8 @@ import com.google.api.client.http.HttpResponse;
 import com.google.api.client.http.json.JsonHttpContent;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.gson.Gson;
-import io.camunda.connector.api.ConnectorContext;
-import io.camunda.connector.api.ConnectorFunction;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.http.components.GsonComponentSupplier;
 import io.camunda.connector.http.components.HttpTransportComponentSupplier;
 import io.camunda.connector.http.model.HttpJsonRequest;
@@ -40,7 +40,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class HttpJsonFunction implements ConnectorFunction {
+public class HttpJsonFunction implements OutboundConnectorFunction {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(HttpJsonFunction.class);
 
@@ -63,7 +63,7 @@ public class HttpJsonFunction implements ConnectorFunction {
   }
 
   @Override
-  public Object execute(final ConnectorContext context) throws IOException {
+  public Object execute(final OutboundConnectorContext context) throws IOException {
     final var json = context.getVariables();
     final var request = gson.fromJson(json, HttpJsonRequest.class);
 
@@ -149,7 +149,7 @@ public class HttpJsonFunction implements ConnectorFunction {
         httpJsonResult.setBody(body);
       }
     } catch (final Exception e) {
-      LOGGER.error("Failed to parse external response: {}", e);
+      LOGGER.error("Failed to parse external response: {}", externalResponse, e);
     }
     return httpJsonResult;
   }

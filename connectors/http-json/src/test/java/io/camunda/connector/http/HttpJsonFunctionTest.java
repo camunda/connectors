@@ -16,8 +16,6 @@
  */
 package io.camunda.connector.http;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.nio.file.Files.readString;
 import static org.apache.http.entity.ContentType.APPLICATION_JSON;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -33,35 +31,28 @@ import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpResponse;
 import com.google.api.client.json.gson.GsonFactory;
-import com.google.gson.Gson;
-import io.camunda.connector.api.ConnectorContext;
-import io.camunda.connector.http.components.GsonComponentSupplier;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.http.model.HttpJsonResult;
-import io.camunda.connector.test.ConnectorContextBuilder;
-import java.io.File;
+import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class HttpJsonFunctionTest {
+public class HttpJsonFunctionTest extends BaseTest {
 
   private static final String SUCCESS_CASES_RESOURCE_PATH =
       "src/test/resources/requests/success-test-cases.json";
   private static final String FAIL_CASES_RESOURCE_PATH =
       "src/test/resources/requests/fail-test-cases.json";
 
-  private final Gson gson = GsonComponentSupplier.gsonInstance();
   @Mock private GsonFactory gsonFactory;
   @Mock private HttpRequestFactory requestFactory;
   @Mock private HttpRequest httpRequest;
@@ -74,16 +65,11 @@ public class HttpJsonFunctionTest {
     functionUnderTest = new HttpJsonFunction(gson, requestFactory, gsonFactory);
   }
 
-  @Test
-  public void shouldConstruct_WhenEmptyConstructorInvoked() {
-    new HttpJsonFunction();
-  }
-
   @ParameterizedTest(name = "Executing test case: {0}")
   @MethodSource("successCases")
   public void shouldReturnResult_WhenExecuted(final String input) throws IOException {
     // given - minimal required entity
-    final ConnectorContext context = Mockito.mock(ConnectorContext.class);
+    final OutboundConnectorContext context = Mockito.mock(OutboundConnectorContext.class);
     when(context.getVariables()).thenReturn(input);
 
     when(requestFactory.buildRequest(
@@ -106,7 +92,8 @@ public class HttpJsonFunctionTest {
   @ParameterizedTest(name = "Executing test case: {0}")
   @MethodSource("failCases")
   public void shouldReturnFallbackResult_WhenMalformedRequest(final String input) {
-    final ConnectorContext ctx = ConnectorContextBuilder.create().variables(input).build();
+    final OutboundConnectorContext ctx =
+        OutboundConnectorContextBuilder.create().variables(input).build();
 
     // when
     Throwable exceptionThrown =
@@ -116,19 +103,11 @@ public class HttpJsonFunctionTest {
     assertThat(exceptionThrown).isInstanceOf(RuntimeException.class);
   }
 
-  private static Stream<Arguments> loadTestCasesFromResourceFile(final String fileWithTestCasesUri)
-      throws IOException {
-    final String cases = readString(new File(fileWithTestCasesUri).toPath(), UTF_8);
-    final Gson testingGson = new Gson();
-    ArrayList array = testingGson.fromJson(cases, ArrayList.class);
-    return array.stream().map(x -> testingGson.toJson(x)).map(Arguments::of);
-  }
-
-  private static Stream<Arguments> successCases() throws IOException {
+  private static Stream<String> successCases() throws IOException {
     return loadTestCasesFromResourceFile(SUCCESS_CASES_RESOURCE_PATH);
   }
 
-  private static Stream<Arguments> failCases() throws IOException {
+  private static Stream<String> failCases() throws IOException {
     return loadTestCasesFromResourceFile(FAIL_CASES_RESOURCE_PATH);
   }
 }

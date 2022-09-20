@@ -18,24 +18,13 @@ package io.camunda.connector.http.auth;
 
 import com.google.api.client.http.HttpHeaders;
 import com.google.common.base.Objects;
-import io.camunda.connector.api.SecretStore;
-import io.camunda.connector.api.Validator;
+import io.camunda.connector.api.annotation.Secret;
+import jakarta.validation.constraints.NotEmpty;
 
 public class BasicAuthentication extends Authentication {
-  private String username;
-  private String password;
 
-  @Override
-  public void validateWith(final Validator validator) {
-    validator.require(username, "Authentication - Username");
-    validator.require(password, "Authentication - Password");
-  }
-
-  @Override
-  public void replaceSecrets(final SecretStore secretStore) {
-    username = secretStore.replaceSecret(username);
-    password = secretStore.replaceSecret(password);
-  }
+  @NotEmpty @Secret private String username;
+  @NotEmpty @Secret private String password;
 
   @Override
   public void setHeaders(final HttpHeaders headers) {
