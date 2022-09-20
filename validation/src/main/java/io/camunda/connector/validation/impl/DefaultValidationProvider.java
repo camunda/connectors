@@ -19,15 +19,24 @@ package io.camunda.connector.validation.impl;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.impl.ConnectorInputException;
 import jakarta.validation.ConstraintViolation;
+import jakarta.validation.MessageInterpolator;
 import jakarta.validation.Validation;
 import jakarta.validation.ValidationException;
 import jakarta.validation.ValidatorFactory;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.hibernate.validator.messageinterpolation.ParameterMessageInterpolator;
 
 public class DefaultValidationProvider implements ValidationProvider {
-  private static final String LF = "\n";
-  private final ValidatorFactory validatorFactory = Validation.buildDefaultValidatorFactory();
+  protected static final String LF = "\n";
+  protected final ValidatorFactory validatorFactory;
+
+  public DefaultValidationProvider() {
+    final var configuration = Validation.byDefaultProvider().configure();
+    Optional.ofNullable(getMessageInterpolator()).ifPresent(configuration::messageInterpolator);
+    this.validatorFactory = configuration.buildValidatorFactory();
+  }
 
   @Override
   public void validate(Object objectToValidate) {
@@ -39,13 +48,29 @@ public class DefaultValidationProvider implements ValidationProvider {
     }
   }
 
-  private String composeMessage(Set<ConstraintViolation<Object>> violations) {
+  protected MessageInterpolator getMessageInterpolator() {
+    try {
+      Class.forName("jakarta.el.ExpressionFactory");
+      // return null to use validator factory's default
+      return null;
+    } catch (Exception e) {
+      // Jakarta EL is not present, use message parameter interpolator
+      try {
+        return new ParameterMessageInterpolator();
+      } catch (Exception ex) {
+        // Hibernate validator not present, return null to use validator factory's default
+        return null;
+      }
+    }
+  }
+
+  protected String composeMessage(Set<ConstraintViolation<Object>> violations) {
     String firstLine = "Found constraints violated while validating input: " + LF;
     return firstLine
         + violations.stream().map(this::buildValidationMessage).collect(Collectors.joining(LF));
   }
 
-  private String buildValidationMessage(ConstraintViolation<Object> violation) {
+  protected String buildValidationMessage(ConstraintViolation<Object> violation) {
     return " - " + violation.getPropertyPath().toString() + ": " + violation.getMessage();
   }
 }

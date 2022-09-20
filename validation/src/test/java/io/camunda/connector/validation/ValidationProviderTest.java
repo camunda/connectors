@@ -44,7 +44,8 @@ class ValidationProviderTest {
   @Test
   void shouldFailValidationWithInvalidObject() {
     // given
-    User user = mockUser("Green Goblin", "weird", "Definitely not a trustworthy person", 60, false);
+    User user =
+        mockUser("Green Goblin", "weird", "Definitely not a trustworthy person", 160, false);
     // when
     Exception exception = catchException(() -> VALIDATION_PROVIDER.validate(user));
     // then
@@ -53,7 +54,8 @@ class ValidationProviderTest {
         .hasMessageStartingWith(
             "jakarta.validation.ValidationException: Found constraints violated while validating input:")
         .hasMessageContaining("- working:")
-        .hasMessageContaining("- email: Email should be valid");
+        .hasMessageContaining("- email: Email should be valid")
+        .hasMessageContaining("- age: Age should not be greater than 150");
   }
 
   private User mockUser(String name, String email, String aboutMe, int age, boolean working) {
