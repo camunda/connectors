@@ -69,7 +69,7 @@ limitations under the License.</license.inlineheader>
     <!-- Third party dependencies -->
     <version.slf4j>1.7.36</version.slf4j>
     <version.jakarta-validation>3.0.2</version.jakarta-validation>
-    <version.gson>2.9.0</version.gson>
+    <version.gson>2.9.1</version.gson>
     <version.mockito>4.6.1</version.mockito>
     <version.junit-jupiter>5.8.2</version.junit-jupiter>
     <version.assertj>3.23.1</version.assertj>
