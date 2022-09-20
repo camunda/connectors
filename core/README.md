@@ -7,6 +7,12 @@ The foundation for re-usable connector functionality.
 A connector implements [`ConnectorFunction#execute(ConnectorContext)`](./src/main/java/io/camunda/connector/api/ConnectorFunction.java) to define the connector logic.
 
 ```java
+
+@OutboundConnector(
+    name = "PING",
+    inputVariables = {"caller"},
+    taskType = "io.camunda.example.PingConnector:1"
+)
 public class PingConnector implements ConnectorFunction {
 
   @Override
