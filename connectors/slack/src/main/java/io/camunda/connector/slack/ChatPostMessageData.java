@@ -13,28 +13,16 @@ import com.slack.api.methods.request.users.UsersListRequest;
 import com.slack.api.methods.response.chat.ChatPostMessageResponse;
 import com.slack.api.methods.response.users.UsersListResponse;
 import com.slack.api.model.User;
-import io.camunda.connector.api.SecretStore;
-import io.camunda.connector.api.Validator;
+import io.camunda.connector.api.annotation.Secret;
+import jakarta.validation.constraints.NotEmpty;
 import java.io.IOException;
 import java.util.Objects;
 import org.apache.commons.text.StringEscapeUtils;
 
 public class ChatPostMessageData implements SlackRequestData {
 
-  private String channel;
-  private String text;
-
-  @Override
-  public void validateWith(Validator validator) {
-    validator.require(channel, "Slack - Chat Post Message - Channel");
-    validator.require(text, "Slack - Chat Post Message - Text");
-  }
-
-  @Override
-  public void replaceSecrets(SecretStore secretStore) {
-    channel = secretStore.replaceSecret(channel);
-    text = secretStore.replaceSecret(text);
-  }
+  @NotEmpty @Secret private String channel;
+  @NotEmpty @Secret private String text;
 
   @Override
   public SlackResponse invoke(MethodsClient methodsClient) throws SlackApiException, IOException {

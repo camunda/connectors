@@ -14,8 +14,8 @@ import com.slack.api.methods.MethodsClient;
 import com.slack.api.methods.request.chat.ChatPostMessageRequest;
 import com.slack.api.methods.response.chat.ChatPostMessageResponse;
 import com.slack.api.model.Message;
-import io.camunda.connector.api.ConnectorContext;
-import io.camunda.connector.test.ConnectorContextBuilder;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,14 +23,14 @@ import org.mockito.Mockito;
 
 public class SlackFunctionTest extends BaseTest {
 
-  private ConnectorContext context;
+  private OutboundConnectorContext context;
   private Slack slack;
 
   @BeforeEach
   public void init() {
     slack = Mockito.mock(Slack.class);
 
-    SlackRequest request = new SlackRequest();
+    SlackRequest<ChatPostMessageData> request = new SlackRequest();
     request.setToken(SECRETS + TOKEN_KEY);
     request.setMethod(ACTUAL_METHOD);
 
@@ -40,7 +40,7 @@ public class SlackFunctionTest extends BaseTest {
     request.setData(chatPostMessageData);
 
     context =
-        ConnectorContextBuilder.create()
+        OutboundConnectorContextBuilder.create()
             .secret(TOKEN_KEY, ACTUAL_TOKEN)
             .secret(CHANNEL_KEY, ACTUAL_CHANNEL)
             .secret(TEXT_KEY, ACTUAL_TEXT)
