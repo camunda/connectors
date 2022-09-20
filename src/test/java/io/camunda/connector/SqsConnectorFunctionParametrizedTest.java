@@ -35,12 +35,12 @@ import static org.mockito.Mockito.when;
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.amazonaws.services.sqs.model.SendMessageResult;
-import io.camunda.connector.api.ConnectorContext;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.model.SqsConnectorRequest;
 import io.camunda.connector.model.SqsConnectorResult;
 import io.camunda.connector.suppliers.GsonComponentSupplier;
 import io.camunda.connector.suppliers.SqsClientSupplier;
-import io.camunda.connector.test.ConnectorContextBuilder;
+import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -85,8 +85,8 @@ class SqsConnectorFunctionParametrizedTest {
     SendMessageResult sendMessageResult = mock(SendMessageResult.class);
     when(sendMessageResult.getMessageId()).thenReturn(MSG_ID);
     when(sqsClient.sendMessage(sendMessageRequest.capture())).thenReturn(sendMessageResult);
-    ConnectorContext ctx =
-        ConnectorContextBuilder.create()
+    OutboundConnectorContext ctx =
+        OutboundConnectorContextBuilder.create()
             .variables(incomingJson)
             .secret(AWS_SECRET_KEY, ACTUAL_SECRET_KEY)
             .secret(AWS_ACCESS_KEY, ACTUAL_ACCESS_KEY)
@@ -111,8 +111,8 @@ class SqsConnectorFunctionParametrizedTest {
   void execute_ShouldThrowExceptionOnMalformedRequests(final String incomingJson) {
     // given
     SqsConnectorRequest expectedRequest = GSON.fromJson(incomingJson, SqsConnectorRequest.class);
-    ConnectorContext ctx =
-        ConnectorContextBuilder.create()
+    OutboundConnectorContext ctx =
+        OutboundConnectorContextBuilder.create()
             .variables(incomingJson)
             .secret(AWS_SECRET_KEY, ACTUAL_SECRET_KEY)
             .secret(AWS_ACCESS_KEY, ACTUAL_ACCESS_KEY)

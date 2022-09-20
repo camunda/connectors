@@ -17,30 +17,21 @@
 package io.camunda.connector.model;
 
 import com.amazonaws.services.sqs.model.MessageAttributeValue;
-import io.camunda.connector.api.ConnectorInput;
-import io.camunda.connector.api.SecretStore;
-import io.camunda.connector.api.Validator;
+import io.camunda.connector.api.annotation.Secret;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import java.util.Map;
 import java.util.Objects;
 
-public class QueueRequestData implements ConnectorInput {
+public class QueueRequestData {
 
-  private String url;
-  private String region;
+  @NotEmpty @Secret private String url;
+  @NotEmpty @Secret private String region;
+
+  @NotNull
   private Object messageBody; // we don't need to know the customer message as we will pass it as-is
+
   private Map<String, MessageAttributeValue> messageAttributes;
-
-  @Override
-  public void validateWith(final Validator validator) {
-    validator.require(url, "queue url");
-    validator.require(region, "queue region");
-    validator.require(messageBody, "message body");
-  }
-
-  @Override
-  public void replaceSecrets(final SecretStore secretStore) {
-    url = secretStore.replaceSecret(url);
-  }
 
   public String getUrl() {
     return url;

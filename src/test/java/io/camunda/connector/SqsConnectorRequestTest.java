@@ -16,30 +16,27 @@
  */
 package io.camunda.connector;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.camunda.connector.api.ConnectorContext;
-import io.camunda.connector.api.Validator;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.impl.ConnectorInputException;
 import io.camunda.connector.model.SqsConnectorRequest;
-import io.camunda.connector.test.ConnectorContextBuilder;
+import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class SqsConnectorRequestTest extends BaseTest {
 
   private SqsConnectorRequest request;
-  private Validator validator;
-  private ConnectorContext context;
+  private OutboundConnectorContext context;
 
   @BeforeEach
   public void beforeEach() {
     request = GSON.fromJson(DEFAULT_REQUEST_BODY, SqsConnectorRequest.class);
-    validator = new Validator();
 
     context =
-        ConnectorContextBuilder.create()
+        OutboundConnectorContextBuilder.create()
             .secret(AWS_SECRET_KEY, ACTUAL_SECRET_KEY)
             .secret(AWS_ACCESS_KEY, ACTUAL_ACCESS_KEY)
             .secret(SQS_QUEUE_REGION, ACTUAL_QUEUE_REGION)
@@ -52,26 +49,27 @@ class SqsConnectorRequestTest extends BaseTest {
     // Given request , where one field is null
     request.getQueue().setMessageBody(null);
     // When request validate
-    request.validateWith(validator);
-    IllegalArgumentException thrown =
+    ConnectorInputException thrown =
         assertThrows(
-            IllegalArgumentException.class,
-            () -> validator.evaluate(),
-            "IllegalArgumentException was expected");
+            ConnectorInputException.class,
+            () -> context.validate(request),
+            "ConnectorInputException was expected");
     // Then we except exception with message
-    assertTrue(thrown.getMessage().contains("Property required:"));
+    assertThat(thrown.getMessage()).contains("Found constraints violated while validating input:");
   }
 
   @Test
   void replaceSecrets_shouldDoNotReplaceMessageBody() {
     // Given request with message body
     request.getQueue().setMessageBody(SECRETS + SQS_MESSAGE_BODY);
-    ConnectorContext context =
-        ConnectorContextBuilder.create().secret(SQS_MESSAGE_BODY, WRONG_MESSAGE_BODY).build();
+    OutboundConnectorContext context =
+        OutboundConnectorContextBuilder.create()
+            .secret(SQS_MESSAGE_BODY, WRONG_MESSAGE_BODY)
+            .build();
     // When replace secrets
     context.replaceSecrets(request);
     // Then expect that message body will be same as was
-    assertEquals(request.getQueue().getMessageBody(), SECRETS + SQS_MESSAGE_BODY);
+    assertThat(request.getQueue().getMessageBody()).isEqualTo(SECRETS + SQS_MESSAGE_BODY);
   }
 
   @Test
@@ -84,9 +82,9 @@ class SqsConnectorRequestTest extends BaseTest {
     // When replace secrets
     context.replaceSecrets(request);
     // Then
-    assertEquals(request.getAuthentication().getSecretKey(), ACTUAL_SECRET_KEY);
-    assertEquals(request.getAuthentication().getAccessKey(), ACTUAL_ACCESS_KEY);
-    assertEquals(request.getQueue().getUrl(), ACTUAL_QUEUE_URL);
+    assertThat(request.getAuthentication().getSecretKey()).isEqualTo(ACTUAL_SECRET_KEY);
+    assertThat(request.getAuthentication().getAccessKey()).isEqualTo(ACTUAL_ACCESS_KEY);
+    assertThat(request.getQueue().getUrl()).isEqualTo(ACTUAL_QUEUE_URL);
   }
 
   @Test
@@ -98,8 +96,8 @@ class SqsConnectorRequestTest extends BaseTest {
     // When replace secrets
     context.replaceSecrets(request);
     // Then secrets must be not replaced
-    assertEquals(request.getAuthentication().getSecretKey(), AWS_SECRET_KEY);
-    assertEquals(request.getAuthentication().getAccessKey(), AWS_ACCESS_KEY);
-    assertEquals(request.getQueue().getUrl(), SQS_QUEUE_URL);
+    assertThat(request.getAuthentication().getSecretKey()).isEqualTo(AWS_SECRET_KEY);
+    assertThat(request.getAuthentication().getAccessKey()).isEqualTo(AWS_ACCESS_KEY);
+    assertThat(request.getQueue().getUrl()).isEqualTo(SQS_QUEUE_URL);
   }
 }
