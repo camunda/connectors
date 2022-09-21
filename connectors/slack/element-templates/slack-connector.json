@@ -1,7 +1,7 @@
 [
   {
     "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-    "name": "Slack: Send Message",
+    "name": "Slack Connector",
     "id": "io.camunda.connectors.Slack.v1",
     "description": "Send a message to a channel or user",
     "documentationRef": "https://docs.camunda.io/docs/components/modeler/web-modeler/connectors/available-connectors/slack/",
