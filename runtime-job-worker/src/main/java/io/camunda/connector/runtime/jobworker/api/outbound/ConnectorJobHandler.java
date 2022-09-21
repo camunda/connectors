@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package io.camunda.connector.runtime.jobworker.outbound;
+package io.camunda.connector.runtime.jobworker.api.outbound;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,8 +23,8 @@ import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.secret.SecretStore;
 import io.camunda.connector.impl.outbound.AbstractOutboundConnectorContext;
-import io.camunda.connector.runtime.jobworker.feel.FeelEngineWrapper;
-import io.camunda.connector.runtime.jobworker.feel.FeelEngineWrapperException;
+import io.camunda.connector.runtime.jobworker.impl.feel.FeelEngineWrapper;
+import io.camunda.connector.runtime.jobworker.impl.feel.FeelEngineWrapperException;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import io.camunda.zeebe.client.api.worker.JobClient;
 import io.camunda.zeebe.client.api.worker.JobHandler;

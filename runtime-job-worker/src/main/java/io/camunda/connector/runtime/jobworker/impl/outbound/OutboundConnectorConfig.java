@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package io.camunda.connector.runtime.jobworker.outbound;
+package io.camunda.connector.runtime.jobworker.impl.outbound;
 
 import java.util.ArrayList;
 import java.util.List;
