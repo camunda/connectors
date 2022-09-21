@@ -25,9 +25,10 @@ import static org.mockito.Mockito.when;
 
 import com.amazonaws.services.lambda.AWSLambda;
 import com.amazonaws.services.lambda.model.InvokeResult;
-import io.camunda.connector.api.ConnectorContext;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.awslambda.model.AwsLambdaRequest;
 import io.camunda.connector.awslambda.model.AwsLambdaResult;
+import io.camunda.connector.impl.ConnectorInputException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -56,7 +57,8 @@ class LambdaConnectorFunctionTest extends BaseTest {
   public void execute_shouldExecuteAndReturnStatusOkAndActualPayload(String input) {
     // Given valid data
     AwsLambdaRequest connectorRequest = gson.fromJson(input, AwsLambdaRequest.class);
-    ConnectorContext context = getContextBuilderWithSecrets().variables(connectorRequest).build();
+    OutboundConnectorContext context =
+        getContextBuilderWithSecrets().variables(connectorRequest).build();
     when(supplier.awsLambdaService(any(), any())).thenReturn(awsLambda);
     when(awsLambda.invoke(any())).thenReturn(invokeResult);
     // When connector execute
@@ -73,17 +75,18 @@ class LambdaConnectorFunctionTest extends BaseTest {
   public void execute_shouldThrowExceptionWhenDataNotValid(String input) {
     // Given invalid data (without all required fields)
     AwsLambdaRequest connectorRequest = gson.fromJson(input, AwsLambdaRequest.class);
-    ConnectorContext context = getContextBuilderWithSecrets().variables(connectorRequest).build();
+    OutboundConnectorContext context =
+        getContextBuilderWithSecrets().variables(connectorRequest).build();
     when(supplier.awsLambdaService(any(), any())).thenReturn(awsLambda);
     when(awsLambda.invoke(any())).thenReturn(invokeResult);
     // When connector execute
     // Then throw IllegalArgumentException
-    IllegalArgumentException thrown =
+    ConnectorInputException thrown =
         assertThrows(
-            IllegalArgumentException.class,
+            ConnectorInputException.class,
             () -> function.execute(context),
-            "IllegalArgumentException was expected");
+            "ConnectorInputException was expected");
     // Then we except exception with message
-    assertThat(thrown.getMessage().contains("Property required:")).isTrue();
+    assertThat(thrown.getMessage()).contains("Found constraints violated while validating input:");
   }
 }

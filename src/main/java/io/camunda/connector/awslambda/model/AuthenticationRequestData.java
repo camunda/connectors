@@ -17,26 +17,13 @@
 
 package io.camunda.connector.awslambda.model;
 
-import io.camunda.connector.api.ConnectorInput;
-import io.camunda.connector.api.SecretStore;
-import io.camunda.connector.api.Validator;
+import io.camunda.connector.api.annotation.Secret;
+import jakarta.validation.constraints.NotEmpty;
 import java.util.Objects;
 
-public class AuthenticationRequestData implements ConnectorInput {
-  private String accessKey;
-  private String secretKey;
-
-  @Override
-  public void validateWith(Validator validator) {
-    validator.require(accessKey, "access key");
-    validator.require(secretKey, "secret key");
-  }
-
-  @Override
-  public void replaceSecrets(SecretStore secretStore) {
-    accessKey = secretStore.replaceSecret(accessKey);
-    secretKey = secretStore.replaceSecret(secretKey);
-  }
+public class AuthenticationRequestData {
+  @NotEmpty @Secret private String accessKey;
+  @NotEmpty @Secret private String secretKey;
 
   public String getAccessKey() {
     return accessKey;
