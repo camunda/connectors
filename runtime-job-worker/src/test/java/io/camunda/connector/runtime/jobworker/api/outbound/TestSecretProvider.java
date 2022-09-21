@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.jobworker;
+package io.camunda.connector.runtime.jobworker.api.outbound;
 
 import static java.util.Collections.singletonMap;
 

@@ -15,15 +15,12 @@
  * limitations under the License.
  */
 
-package io.camunda.connector.runtime.jobworker.outbound;
+package io.camunda.connector.runtime.jobworker.api.outbound;
 
-import static io.camunda.connector.runtime.jobworker.outbound.ConnectorJobHandler.RESULT_EXPRESSION_HEADER_NAME;
-import static io.camunda.connector.runtime.jobworker.outbound.ConnectorJobHandler.RESULT_VARIABLE_HEADER_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.secret.SecretProvider;
-import io.camunda.connector.runtime.jobworker.TestSecretProvider;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -135,8 +132,8 @@ public class ConnectorJobHandlerTest {
           JobBuilder.create()
               .withHeaders(
                   Map.of(
-                      RESULT_VARIABLE_HEADER_NAME, resultVariable,
-                      RESULT_EXPRESSION_HEADER_NAME, resultExpression))
+                      ConnectorJobHandler.RESULT_VARIABLE_HEADER_NAME, resultVariable,
+                      ConnectorJobHandler.RESULT_EXPRESSION_HEADER_NAME, resultExpression))
               .execute(jobHandler);
 
       // then
