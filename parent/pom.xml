@@ -82,7 +82,7 @@ limitations under the License.</license.inlineheader>
     <plugin.version.maven-install-plugin>3.0.1</plugin.version.maven-install-plugin>
     <plugin.version.license>4.1</plugin.version.license>
     <plugin.version.maven-resources-plugin>3.2.0</plugin.version.maven-resources-plugin>
-    <plugin.version.maven-shade-plugin>3.3.0</plugin.version.maven-shade-plugin>
+    <plugin.version.maven-shade-plugin>3.4.0</plugin.version.maven-shade-plugin>
     <plugin.version.maven-surefire-plugin>3.0.0-M7</plugin.version.maven-surefire-plugin>
     <plugin.version.spotless-maven-plugin>2.27.0</plugin.version.spotless-maven-plugin>
   </properties>
