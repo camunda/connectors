@@ -16,35 +16,15 @@
  */
 package io.camunda.connector.model;
 
-import io.camunda.connector.api.ConnectorInput;
-import io.camunda.connector.api.SecretStore;
-import io.camunda.connector.api.Validator;
+import io.camunda.connector.api.annotation.Secret;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import java.util.Objects;
 
-public class SqsConnectorRequest implements ConnectorInput {
+public class SqsConnectorRequest {
 
-  private AuthenticationRequestData authentication;
-  private QueueRequestData queue;
-
-  @Override
-  public void validateWith(final Validator validator) {
-    validator.require(authentication, "authentication");
-    validator.require(queue, "queue");
-
-    if (authentication != null) {
-      authentication.validateWith(validator);
-    }
-
-    if (queue != null) {
-      queue.validateWith(validator);
-    }
-  }
-
-  @Override
-  public void replaceSecrets(final SecretStore secretStore) {
-    authentication.replaceSecrets(secretStore);
-    queue.replaceSecrets(secretStore);
-  }
+  @Valid @NotNull @Secret private AuthenticationRequestData authentication;
+  @Valid @NotNull @Secret private QueueRequestData queue;
 
   public AuthenticationRequestData getAuthentication() {
     return authentication;

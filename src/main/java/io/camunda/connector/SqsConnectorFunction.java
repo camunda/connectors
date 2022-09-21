@@ -20,8 +20,8 @@ import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.amazonaws.services.sqs.model.SendMessageResult;
 import com.google.gson.Gson;
-import io.camunda.connector.api.ConnectorContext;
-import io.camunda.connector.api.ConnectorFunction;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.model.SqsConnectorRequest;
 import io.camunda.connector.model.SqsConnectorResult;
 import io.camunda.connector.suppliers.GsonComponentSupplier;
@@ -29,7 +29,7 @@ import io.camunda.connector.suppliers.SqsClientSupplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SqsConnectorFunction implements ConnectorFunction {
+public class SqsConnectorFunction implements OutboundConnectorFunction {
   private static final Logger LOGGER = LoggerFactory.getLogger(SqsConnectorFunction.class);
 
   private final SqsClientSupplier sqsClientSupplier;
@@ -45,7 +45,7 @@ public class SqsConnectorFunction implements ConnectorFunction {
   }
 
   @Override
-  public Object execute(final ConnectorContext context) {
+  public Object execute(final OutboundConnectorContext context) {
     final var variables = context.getVariables();
     LOGGER.debug("Executing SQS connector with variables : {}", variables);
     final var request = gson.fromJson(variables, SqsConnectorRequest.class);
