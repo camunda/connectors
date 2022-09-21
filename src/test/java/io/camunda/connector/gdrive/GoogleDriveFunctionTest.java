@@ -20,12 +20,12 @@ package io.camunda.connector.gdrive;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 
-import io.camunda.connector.api.ConnectorContext;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.gdrive.model.GoogleDriveResult;
 import io.camunda.connector.gdrive.model.request.GoogleDriveRequest;
 import io.camunda.connector.gdrive.model.request.Resource;
 import io.camunda.connector.gdrive.supliers.GsonComponentSupplier;
-import io.camunda.connector.test.ConnectorContextBuilder;
+import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import java.io.IOException;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
@@ -48,8 +48,8 @@ class GoogleDriveFunctionTest extends BaseTest {
         new GoogleDriveFunction(
             googleDriveServiceMock, GsonComponentSupplier.gsonFactoryInstance());
 
-    ConnectorContext context =
-        ConnectorContextBuilder.create()
+    OutboundConnectorContext context =
+        OutboundConnectorContextBuilder.create()
             .variables(input)
             .secret(SECRET_BEARER_TOKEN, ACTUAL_BEARER_TOKEN)
             .secret(SECRET_REFRESH_TOKEN, ACTUAL_REFRESH_TOKEN)

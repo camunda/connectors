@@ -19,31 +19,19 @@ package io.camunda.connector.gdrive.model.request;
 
 import com.google.api.client.util.Key;
 import com.google.api.services.drive.model.File;
-import io.camunda.connector.api.ConnectorInput;
-import io.camunda.connector.api.SecretStore;
-import io.camunda.connector.api.Validator;
+import io.camunda.connector.api.annotation.Secret;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import java.util.Objects;
 
-public class Resource implements ConnectorInput {
+public class Resource {
 
-  @Key private Type type;
-  @Key private String name;
-  @Key private String parent;
+  @Key @NotNull private Type type;
+  @Key @NotEmpty @Secret private String name;
+  @Key @Secret private String parent;
   @Key private File additionalGoogleDriveProperties;
-  @Key private Template template;
-
-  @Override
-  public void validateWith(final Validator validator) {
-    validator.require(type, "Resource type");
-    validator.require(name, "Resource name");
-  }
-
-  @Override
-  public void replaceSecrets(final SecretStore secretStore) {
-    name = secretStore.replaceSecret(name);
-    parent = secretStore.replaceSecret(parent);
-    replaceSecretsIfNotNull(template, secretStore);
-  }
+  @Key @Valid @Secret private Template template;
 
   public Type getType() {
     return type;

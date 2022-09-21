@@ -19,8 +19,8 @@ package io.camunda.connector.gdrive;
 
 import com.google.api.client.json.JsonParser;
 import com.google.api.client.json.gson.GsonFactory;
-import io.camunda.connector.api.ConnectorContext;
-import io.camunda.connector.api.ConnectorFunction;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.gdrive.model.GoogleDriveResult;
 import io.camunda.connector.gdrive.model.request.GoogleDriveRequest;
 import io.camunda.connector.gdrive.supliers.GoogleServicesSupplier;
@@ -29,7 +29,7 @@ import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class GoogleDriveFunction implements ConnectorFunction {
+public class GoogleDriveFunction implements OutboundConnectorFunction {
   private static final Logger LOGGER = LoggerFactory.getLogger(GoogleDriveFunction.class);
 
   private final GoogleDriveService service;
@@ -45,7 +45,7 @@ public class GoogleDriveFunction implements ConnectorFunction {
   }
 
   @Override
-  public Object execute(final ConnectorContext context) {
+  public Object execute(final OutboundConnectorContext context) {
     final GoogleDriveRequest request = parseVariablesToRequest(context.getVariables());
     context.validate(request);
     context.replaceSecrets(request);

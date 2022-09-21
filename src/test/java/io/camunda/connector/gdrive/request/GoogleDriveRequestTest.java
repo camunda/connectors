@@ -20,11 +20,12 @@ package io.camunda.connector.gdrive.request;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import io.camunda.connector.api.ConnectorContext;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.gdrive.BaseTest;
 import io.camunda.connector.gdrive.model.request.AuthenticationType;
 import io.camunda.connector.gdrive.model.request.GoogleDriveRequest;
-import io.camunda.connector.test.ConnectorContextBuilder;
+import io.camunda.connector.impl.ConnectorInputException;
+import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import java.io.IOException;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
@@ -43,8 +44,8 @@ class GoogleDriveRequestTest extends BaseTest {
   public void replaceSecrets_shouldReplaceAllSecrets(final String input) {
     // Given
     GoogleDriveRequest request = parseInput(input, GoogleDriveRequest.class);
-    ConnectorContext context =
-        ConnectorContextBuilder.create()
+    OutboundConnectorContext context =
+        OutboundConnectorContextBuilder.create()
             .secret(SECRET_BEARER_TOKEN, ACTUAL_BEARER_TOKEN)
             .secret(SECRET_REFRESH_TOKEN, ACTUAL_REFRESH_TOKEN)
             .secret(SECRET_OAUTH_CLIENT_ID, ACTUAL_OAUTH_CLIENT_ID)
@@ -81,12 +82,11 @@ class GoogleDriveRequestTest extends BaseTest {
       final String input) {
     // Given
     GoogleDriveRequest request = parseInput(input, GoogleDriveRequest.class);
-    ConnectorContext context = ConnectorContextBuilder.create().build();
-    // When
-    IllegalArgumentException thrown =
-        assertThrows(IllegalArgumentException.class, () -> context.validate(request));
-    // Then
-    assertThat(thrown).isInstanceOf(IllegalArgumentException.class);
+    OutboundConnectorContext context = OutboundConnectorContextBuilder.create().build();
+    // When and Then
+    ConnectorInputException thrown =
+        assertThrows(ConnectorInputException.class, () -> context.validate(request));
+    assertThat(thrown.getMessage()).contains("Found constraints violated while validating input:");
   }
 
   private static Stream<String> successRequestCases() throws IOException {

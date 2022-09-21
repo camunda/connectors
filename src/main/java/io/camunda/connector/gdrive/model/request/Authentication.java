@@ -21,40 +21,28 @@ import com.google.api.services.drive.DriveScopes;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.UserCredentials;
-import io.camunda.connector.api.ConnectorInput;
-import io.camunda.connector.api.SecretStore;
-import io.camunda.connector.api.Validator;
+import io.camunda.connector.api.annotation.Secret;
+import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.NotNull;
 import java.util.Objects;
 
-public class Authentication implements ConnectorInput {
+public class Authentication {
 
-  @Key private AuthenticationType authType;
-  @Key private String bearerToken;
-  @Key private String oauthClientId;
-  @Key private String oauthClientSecret;
-  @Key private String oauthRefreshToken;
+  @Key @NotNull private AuthenticationType authType;
+  @Key @Secret private String bearerToken;
+  @Key @Secret private String oauthClientId;
+  @Key @Secret private String oauthClientSecret;
+  @Key @Secret private String oauthRefreshToken;
 
-  @Override
-  public void validateWith(final Validator validator) {
-    validator.require(authType, "Authentication type");
-
+  @AssertTrue
+  private boolean isHasAuthData() {
     if (authType == AuthenticationType.BEARER) {
-      validator.require(bearerToken, "Bearer token");
+      return bearerToken != null;
+    } else if (authType == AuthenticationType.REFRESH) {
+      return oauthClientId != null && oauthClientSecret != null && oauthRefreshToken != null;
+    } else {
+      return false;
     }
-
-    if (authType == AuthenticationType.REFRESH) {
-      validator.require(oauthClientId, "OAuth client ID");
-      validator.require(oauthClientSecret, "OAuth client secret");
-      validator.require(oauthRefreshToken, "OAuth Refresh token");
-    }
-  }
-
-  @Override
-  public void replaceSecrets(final SecretStore secretStore) {
-    bearerToken = secretStore.replaceSecret(bearerToken);
-    oauthClientId = secretStore.replaceSecret(oauthClientId);
-    oauthClientSecret = secretStore.replaceSecret(oauthClientSecret);
-    oauthRefreshToken = secretStore.replaceSecret(oauthRefreshToken);
   }
 
   public GoogleCredentials fetchCredentials() {
