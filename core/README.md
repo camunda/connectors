@@ -11,7 +11,7 @@ A connector implements [`ConnectorFunction#execute(ConnectorContext)`](./src/mai
 @OutboundConnector(
     name = "PING",
     inputVariables = {"caller"},
-    taskType = "io.camunda.example.PingConnector:1"
+    type = "io.camunda.example.PingConnector:1"
 )
 public class PingConnector implements ConnectorFunction {
 

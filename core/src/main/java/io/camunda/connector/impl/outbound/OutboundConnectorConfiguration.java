@@ -20,12 +20,12 @@ public class OutboundConnectorConfiguration {
 
   private final String name;
   private final String[] inputVariables;
-  private final String taskType;
+  private final String type;
 
-  public OutboundConnectorConfiguration(String name, String[] inputVariables, String taskType) {
+  public OutboundConnectorConfiguration(String name, String[] inputVariables, String type) {
     this.name = name;
     this.inputVariables = inputVariables;
-    this.taskType = taskType;
+    this.type = type;
   }
 
   public String getName() {
@@ -36,7 +36,7 @@ public class OutboundConnectorConfiguration {
     return inputVariables;
   }
 
-  public String getTaskType() {
-    return taskType;
+  public String getType() {
+    return type;
   }
 }

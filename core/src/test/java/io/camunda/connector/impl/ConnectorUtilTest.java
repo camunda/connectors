@@ -42,7 +42,7 @@ public class ConnectorUtilTest {
           .hasValueSatisfying(
               config -> {
                 assertThat(config.getName()).isEqualTo("ANNOTATED");
-                assertThat(config.getTaskType()).isEqualTo("io.camunda.Annotated");
+                assertThat(config.getType()).isEqualTo("io.camunda.Annotated");
                 assertThat(config.getInputVariables()).isEqualTo(new String[] {"FOO"});
               });
     }
@@ -63,7 +63,7 @@ public class ConnectorUtilTest {
 @OutboundConnector(
     name = "ANNOTATED",
     inputVariables = {"FOO"},
-    taskType = "io.camunda.Annotated")
+    type = "io.camunda.Annotated")
 class AnnotatedFunction {}
 
 class UnannotatedFunction {}
