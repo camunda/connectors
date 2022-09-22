@@ -19,6 +19,10 @@
     <version.bcprov-jdk15on>1.70</version.bcprov-jdk15on>
     <version.httpcore>4.4.15</version.httpcore>
     <version.sendGrid>4.9.3</version.sendGrid>
+    <license.inlineheader>Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+under one or more contributor license agreements. Licensed under a proprietary license.
+See the License.txt file for more information. You may not use this file
+except in compliance with the proprietary license.</license.inlineheader>
   </properties>
 
   <dependencyManagement>
