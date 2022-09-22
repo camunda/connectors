@@ -30,6 +30,6 @@ public final class ConnectorUtil {
         .map(
             annotation ->
                 new OutboundConnectorConfiguration(
-                    annotation.name(), annotation.inputVariables(), annotation.taskType()));
+                    annotation.name(), annotation.inputVariables(), annotation.type()));
   }
 }

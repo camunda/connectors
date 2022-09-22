@@ -32,6 +32,6 @@ public @interface OutboundConnector {
   /** Input variables the connector reads */
   String[] inputVariables();
 
-  /** Task type the connector registers for. */
-  String taskType();
+  /** Job / task type the connector registers for */
+  String type();
 }
