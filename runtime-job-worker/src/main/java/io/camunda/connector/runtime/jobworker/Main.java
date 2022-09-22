@@ -17,12 +17,10 @@
 
 package io.camunda.connector.runtime.jobworker;
 
-import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.runtime.jobworker.api.outbound.ConnectorJobHandler;
-import io.camunda.connector.runtime.jobworker.impl.outbound.OutboundConnectorConfig;
+import io.camunda.connector.runtime.jobworker.impl.outbound.OutboundConnectorRegistration;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.client.ZeebeClientBuilder;
-import java.lang.reflect.InvocationTargetException;
 import java.time.Duration;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -59,7 +57,7 @@ public class Main {
       clientBuilder = ZeebeClient.newClientBuilder().gatewayAddress(defaultAddress).usePlaintext();
     }
 
-    var connectors = OutboundConnectorConfig.parse();
+    var connectors = OutboundConnectorRegistration.parse();
 
     if (connectors.isEmpty()) {
       throw new IllegalStateException("No connectors configured");
@@ -70,23 +68,16 @@ public class Main {
       final var workers =
           connectors.stream()
               .map(
-                  connector -> {
-                    LOGGER.info(
-                        "Registering connector function {} as {} on job type {} with variables {}",
-                        connector.getFunction(),
-                        connector.getName(),
-                        connector.getType(),
-                        connector.getVariables());
-
-                    var connectorFunction = loadConnectorFunction(connector.getFunction());
+                  registration -> {
+                    LOGGER.info("Registering outbound connector {}", registration);
 
                     return client
                         .newWorker()
-                        .jobType(connector.getType())
-                        .handler(new ConnectorJobHandler(connectorFunction))
+                        .jobType(registration.getType())
+                        .handler(new ConnectorJobHandler(registration.getFunction()))
                         .timeout(Duration.ofSeconds(10))
-                        .name(connector.getName())
-                        .fetchVariables(connector.getVariables())
+                        .name(registration.getName())
+                        .fetchVariables(registration.getInputVariables())
                         .open();
                   })
               .collect(Collectors.toList());
@@ -108,27 +99,6 @@ public class Main {
 
       waitForever();
     }
-  }
-
-  @SuppressWarnings("unchecked")
-  private static OutboundConnectorFunction loadConnectorFunction(String clsName) {
-
-    try {
-      var cls = (Class<OutboundConnectorFunction>) Class.forName(clsName);
-
-      return cls.getDeclaredConstructor().newInstance();
-    } catch (ClassNotFoundException
-        | InvocationTargetException
-        | InstantiationException
-        | IllegalAccessException
-        | ClassCastException
-        | NoSuchMethodException e) {
-      throw loadFailed("Failed to load " + clsName, e);
-    }
-  }
-
-  private static RuntimeException loadFailed(String s, Exception e) {
-    throw new IllegalStateException(s, e);
   }
 
   private static void waitForever() {

@@ -7,6 +7,7 @@ A simple run-time to execute [connector functions](../core) as job workers.
 Include the job worker run-time as maven dependency
 
 ```xml
+
 <dependency>
   <groupId>io.camunda.connector</groupId>
   <artifactId>connector-runtime-job-worker</artifactId>
@@ -39,23 +40,40 @@ public class Main {
 
 ## Running Connector Function(s)
 
-We expose a simple main method to start one or more connectors directly.
+We expose a main method to run one or more connectors and register them
+as [Zeebe job workers](https://docs.camunda.io/docs/next/components/concepts/job-workers/).
 
-You configure Zeebe using the standard [Zeebe environment variables](https://docs.camunda.io/docs/apis-clients/java-client/#bootstrapping).
-Additional variables define connectors and their mapping to job workers:
+### Connecting to Zeebe
 
-| Environment variable | Purpose |
-| :--- | :--- |
-| `ZEEBE_CONNECTOR_{NAME}_TYPE` | Job type to register for worker with `NAME` |
-| `ZEEBE_CONNECTOR_{NAME}_VARIABLES` | Variables to fetch for worker with `NAME` |
-| `ZEEBE_CONNECTOR_{NAME}_FUNCTION` | Connector function to call for worker with `NAME` |
+You configure the connection to Zeebe using the
+standard [Zeebe environment variables](https://docs.camunda.io/docs/apis-clients/java-client/#bootstrapping).
 
-Given that configuration you can start a single job worker to execute one or more connector run-times:
+### Automatic Connector Discovery
+
+The run-time picks up outbound connectors available on the classpath automatically unless [overriden through manual configuration](#manual-discovery).
+It uses the default configuration specified through the `@OutboundConnector` annotation in these cases.
 
 ```bash
-ZEEBE_CONNECTOR_SLACK_TYPE=io.camunda:slack:1
-ZEEBE_CONNECTOR_SLACK_VARIABLES=token,method,data
-ZEEBE_CONNECTOR_SLACK_FUNCTION=io.camunda.connector.slack.SlackFunction
+java -cp 'connector-runtime-job-worker.jar;cloud-connector-slack.jar' \
+    io.camunda.connector.runtime.jobworker.Main
+```
+
+### Manual Discovery
+
+Use environment variables to configure connectors and their configuration explicitly, without [auto-discovery](#automatic-connector-discovery):
+
+| Environment variable                          | Purpose                                                       |
+|:----------------------------------------------|:--------------------------------------------------------------|
+| `CONNECTOR_{NAME}_FUNCTION` (required)        | Function to be registered as job worker with the given `NAME` |
+| `CONNECTOR_{NAME}_TYPE` (optional)            | Job type to register for worker with `NAME`                   |
+| `CONNECTOR_{NAME}_INPUT_VARIABLES` (optional) | Variables to fetch for worker with `NAME`                     |
+
+Through that configuration you define all job workers to run.
+Specifying optional values allow you to override `@OutboundConnector` provided connector configuration.
+
+```bash
+CONNECTOR_SLACK_FUNCTION=io.camunda.connector.slack.SlackFunction
+CONNECTOR_SLACK_TYPE=non-default-slack-task-type
 
 java -cp 'connector-runtime-job-worker.jar;cloud-connector-slack.jar' \
     io.camunda.connector.runtime.jobworker.Main
