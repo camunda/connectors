@@ -17,8 +17,6 @@ import java.util.List;
 
 public class GoogleDriveClient {
 
-  private static final String ERROR_CREATING = "An error occurred while creating the %s %s";
-
   private final Drive driveService;
   private final Docs docsService;
 
@@ -31,8 +29,7 @@ public class GoogleDriveClient {
     try {
       return driveService.files().create(fileMetadata).execute();
     } catch (IOException e) {
-      throw new RuntimeException(
-          String.format(ERROR_CREATING, "resource with name", fileMetadata.getName()), e);
+      throw new RuntimeException(e);
     }
   }
 
@@ -40,8 +37,7 @@ public class GoogleDriveClient {
     try {
       return driveService.files().copy(templateId, fileMetaData).execute();
     } catch (IOException e) {
-      throw new RuntimeException(
-          String.format(ERROR_CREATING, "file from template with id", templateId), e);
+      throw new RuntimeException(e);
     }
   }
 
@@ -51,7 +47,7 @@ public class GoogleDriveClient {
     try {
       return docsService.documents().batchUpdate(fileId, body).execute();
     } catch (IOException e) {
-      throw new RuntimeException("An error occurred while update file with id: " + fileId, e);
+      throw new RuntimeException(e);
     }
   }
 }
