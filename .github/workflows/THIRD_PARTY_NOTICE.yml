@@ -1,0 +1,36 @@
+name: Third-party notice
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: { }
+
+jobs:
+  create-notice:
+
+    name: Create third-party notice
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Prepare Java and Maven settings
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+
+      - name: Create notice file
+        run: mvn org.codehaus.mojo:license-maven-plugin:add-third-party
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v4
+        with:
+          branch: update-third-party-notice
+          delete-branch: true
+          commit-message: 'docs: update third-party notice'
+          author: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
+          assignees: ${{ github.actor }}
+          title: 'docs: update third-party notice'
+          body: Adjust the third-party notice file
