@@ -7,56 +7,23 @@
 package io.camunda.connector.sendgrid;
 
 import com.sendgrid.helpers.mail.objects.Email;
-import io.camunda.connector.api.ConnectorInput;
-import io.camunda.connector.api.SecretStore;
-import io.camunda.connector.api.Validator;
+import io.camunda.connector.api.annotation.Secret;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import java.util.Objects;
 
-public class SendGridRequest implements ConnectorInput {
+public class SendGridRequest {
+  @NotEmpty @Secret private String apiKey;
+  @Valid @NotNull @Secret private SendGridEmail from;
+  @Valid @NotNull @Secret private SendGridEmail to;
+  @Valid @Secret private SendGridTemplate template;
+  @Valid @Secret private SendGridContent content;
 
-  private String apiKey;
-  private SendGridEmail from;
-  private SendGridEmail to;
-  private SendGridTemplate template;
-  private SendGridContent content;
-
-  @Override
-  public void validateWith(final Validator validator) {
-    validator.require(apiKey, "SendGrid API - SendGrid API Key");
-    validator.require(from, "Sender");
-    if (from != null) {
-      from.validateWith(validator, "Sender");
-    }
-    validator.require(to, "Receiver");
-    if (to != null) {
-      to.validateWith(validator, "Receiver");
-    }
-
-    // at least one of them should be set
-    if (!hasContent() && !hasTemplate()) {
-      validator.require(null, "Email Content");
-    }
-
-    if (hasTemplate()) {
-      template.validateWith(validator);
-    }
-    if (hasContent()) {
-      content.validateWith(validator);
-    }
-  }
-
-  @Override
-  public void replaceSecrets(final SecretStore secretStore) {
-    apiKey = secretStore.replaceSecret(apiKey);
-    from.replaceSecrets(secretStore);
-    to.replaceSecrets(secretStore);
-
-    if (hasTemplate()) {
-      template.replaceSecrets(secretStore);
-    }
-    if (hasContent()) {
-      content.replaceSecrets(secretStore);
-    }
+  @AssertTrue
+  private boolean isHasContentOrTemplate() {
+    return content != null || template != null;
   }
 
   public String getApiKey() {
@@ -67,16 +34,24 @@ public class SendGridRequest implements ConnectorInput {
     this.apiKey = apiKey;
   }
 
-  public Email getFrom() {
+  public Email getInnerSenGridEmailFrom() {
     return new Email(from.getEmail(), from.getName());
+  }
+
+  public Email getInnerSenGridEmailTo() {
+    return new Email(to.getEmail(), to.getName());
   }
 
   public void setFrom(final SendGridEmail from) {
     this.from = from;
   }
 
-  public Email getTo() {
-    return new Email(to.getEmail(), to.getName());
+  public SendGridEmail getFrom() {
+    return from;
+  }
+
+  public SendGridEmail getTo() {
+    return to;
   }
 
   public void setTo(final SendGridEmail to) {

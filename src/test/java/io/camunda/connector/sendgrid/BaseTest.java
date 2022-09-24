@@ -10,7 +10,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.readString;
 
 import com.google.gson.Gson;
-import io.camunda.connector.test.ConnectorContextBuilder;
+import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -112,8 +112,8 @@ public class BaseTest {
     return loadTestCasesFromResourceFile(SUCCESS_SEND_MAIL_WITH_CONTENT_REQUEST_CASES_PATH);
   }
 
-  protected static ConnectorContextBuilder getContextBuilderWithSecrets() {
-    return ConnectorContextBuilder.create()
+  protected static OutboundConnectorContextBuilder getContextBuilderWithSecrets() {
+    return OutboundConnectorContextBuilder.create()
         .secret(SecretsConstant.API_KEY, ActualValue.API_KEY)
         .secret(SecretsConstant.SENDER_EMAIL, ActualValue.SENDER_EMAIL)
         .secret(SecretsConstant.SENDER_NAME, ActualValue.SENDER_NAME)

@@ -6,27 +6,14 @@
  */
 package io.camunda.connector.sendgrid;
 
-import io.camunda.connector.api.SecretStore;
-import io.camunda.connector.api.Validator;
+import io.camunda.connector.api.annotation.Secret;
+import jakarta.validation.constraints.NotEmpty;
 import java.util.Map;
 import java.util.Objects;
 
 public class SendGridTemplate {
-  private String id;
-  private Map<String, String> data;
-
-  public void validateWith(final Validator validator) {
-    validator.require(id, "Dynamic Email Template - Template ID");
-    validator.require(data, "Dynamic Email Template - Template Data");
-  }
-
-  public void replaceSecrets(final SecretStore secretStore) {
-    id =
-        secretStore.replaceSecret(
-            Objects.requireNonNull(id, "Field 'template.id' required in request"));
-    Objects.requireNonNull(data, "Field 'template.data' required in request")
-        .replaceAll((k, v) -> secretStore.replaceSecret(v));
-  }
+  @NotEmpty @Secret private String id;
+  @NotEmpty @Secret private Map<String, String> data;
 
   public String getId() {
     return id;

@@ -6,32 +6,14 @@
  */
 package io.camunda.connector.sendgrid;
 
-import io.camunda.connector.api.SecretStore;
-import io.camunda.connector.api.Validator;
+import io.camunda.connector.api.annotation.Secret;
+import jakarta.validation.constraints.NotEmpty;
 import java.util.Objects;
 
 public class SendGridContent {
-  private String subject;
-  private String type;
-  private String value;
-
-  public void validateWith(final Validator validator) {
-    validator.require(subject, "Email Content - Subject");
-    validator.require(type, "Email Content - Content Type");
-    validator.require(value, "Email Content - Body");
-  }
-
-  public void replaceSecrets(final SecretStore secretStore) {
-    subject =
-        secretStore.replaceSecret(
-            Objects.requireNonNull(subject, "Field 'content.subject' required in request"));
-    type =
-        secretStore.replaceSecret(
-            Objects.requireNonNull(type, "Field 'content.type' required in request"));
-    value =
-        secretStore.replaceSecret(
-            Objects.requireNonNull(value, "Field 'content.value' required in request"));
-  }
+  @NotEmpty @Secret private String subject;
+  @NotEmpty @Secret private String type;
+  @NotEmpty @Secret private String value;
 
   public String getSubject() {
     return subject;

@@ -8,7 +8,9 @@ package io.camunda.connector.sendgrid;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -17,8 +19,8 @@ import com.sendgrid.Method;
 import com.sendgrid.Request;
 import com.sendgrid.Response;
 import com.sendgrid.SendGrid;
-import io.camunda.connector.api.ConnectorContext;
-import io.camunda.connector.test.ConnectorContextBuilder;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import java.io.IOException;
 import java.util.List;
 import org.junit.jupiter.api.Assertions;
@@ -41,12 +43,12 @@ public class SendGridFunctionTest extends BaseTest {
   private static final String NAME_JSON_NAME = "name";
   private static final String EMAIL_JSON_NAME = "email";
 
-  private ConnectorContext context;
+  private OutboundConnectorContext context;
   private SendGridFunction function;
   private Response sendGridResponse;
   private SendGrid sendGridMock;
   private ArgumentCaptor<Request> requestArgumentCaptor;
-  private ConnectorContextBuilder contextBuilder;
+  private OutboundConnectorContextBuilder contextBuilder;
 
   @BeforeEach
   public void init() throws IOException {
@@ -75,9 +77,12 @@ public class SendGridFunctionTest extends BaseTest {
   @ParameterizedTest(name = " # {index} , test statusCode = {0}")
   @ValueSource(ints = {100, 200, 201, 203, 303, 400, 404})
   public void execute_shouldThrowExceptionIfResponseStatusCodeIsNot202(int statusCode) {
-    // Given
-    SendGridRequest request = mock(SendGridRequest.class);
-    context = contextBuilder.variables(request).build();
+    // ignore validate and replace secrets, test only result cases
+    context = spy(OutboundConnectorContext.class);
+    when(context.getVariablesAsType(any())).thenReturn(mock(SendGridRequest.class));
+    doNothing().when(context).validate(any());
+    doNothing().when(context).replaceSecrets(any());
+    // Given response with bad status
     sendGridResponse.setStatusCode(statusCode);
     // When and then
     IllegalArgumentException exceptionThrown =
@@ -90,9 +95,12 @@ public class SendGridFunctionTest extends BaseTest {
   @ParameterizedTest(name = " # {index} , test statusCode = {0}")
   @ValueSource(ints = {202})
   public void execute_shouldReturnNullIfResponseStatusCodeIs202(int statusCode) throws Exception {
+    // ignore validate and replace secrets, test only result cases
+    context = spy(OutboundConnectorContext.class);
+    when(context.getVariablesAsType(any())).thenReturn(mock(SendGridRequest.class));
+    doNothing().when(context).validate(any());
+    doNothing().when(context).replaceSecrets(any());
     // Given
-    SendGridRequest request = mock(SendGridRequest.class);
-    context = contextBuilder.variables(request).build();
     sendGridResponse.setStatusCode(statusCode);
     // When
     Object execute = function.execute(context);
