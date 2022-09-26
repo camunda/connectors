@@ -41,17 +41,21 @@ public class Main {
 
     final String defaultAddress = "localhost:26500";
     final String envVarAddress = System.getenv("ZEEBE_ADDRESS");
+    final String envVarInsecure = System.getenv("ZEEBE_INSECURE");
 
     final ZeebeClientBuilder clientBuilder;
 
     if (envVarAddress != null) {
-      /**
+      /*
        * Connect to Camunda Cloud Cluster, assumes that credentials are set in environment
        * variables. See JavaDoc on class level for details
        */
       clientBuilder = ZeebeClient.newClientBuilder().gatewayAddress(envVarAddress);
+      if (Boolean.parseBoolean(envVarInsecure)) {
+        clientBuilder.usePlaintext();
+      }
     } else {
-      /** Connect to local deployment; assumes that authentication is disabled */
+      /* Connect to local deployment; assumes that authentication is disabled */
       clientBuilder = ZeebeClient.newClientBuilder().gatewayAddress(defaultAddress).usePlaintext();
     }
 
