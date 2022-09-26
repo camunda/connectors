@@ -27,6 +27,7 @@ import com.google.api.client.http.HttpResponse;
 import com.google.api.client.http.json.JsonHttpContent;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.gson.Gson;
+import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.http.components.GsonComponentSupplier;
@@ -40,6 +41,10 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@OutboundConnector(
+    name = "HTTPJSON",
+    inputVariables = {"url", "method", "authentication", "headers", "queryParameters", "body"},
+    type = "io.camunda:http-json:1")
 public class HttpJsonFunction implements OutboundConnectorFunction {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(HttpJsonFunction.class);
