@@ -19,11 +19,14 @@ package io.camunda.connector.impl.outbound;
 import io.camunda.connector.api.annotation.Secret;
 
 public class OutboundTestInput {
+
+  public static String staticField = "static";
   public final String finalField = "final";
   public String publicField = "public";
   protected String protectedField = "protected";
   String packageField = "package";
   private String privateField = "private";
+  private static String privateStaticField = "privateStatic";
 
   @Secret private String secretField = "secrets.s3cr3t";
 
@@ -69,5 +72,13 @@ public class OutboundTestInput {
 
   public void setSecretField(String secretField) {
     this.secretField = secretField;
+  }
+
+  public static void setPrivateStaticField(String staticFieldValue) {
+    privateStaticField = staticFieldValue;
+  }
+
+  public static String getPrivateStaticField() {
+    return privateStaticField;
   }
 }

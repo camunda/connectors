@@ -52,7 +52,10 @@ class OutboundConnectorContextTest {
               new GetPropertyTestInput("protectedField", testInput.protectedField),
               new GetPropertyTestInput("privateField", testInput.getPrivateField()),
               new GetPropertyTestInput("finalField", testInput.finalField),
-              new GetPropertyTestInput("packageField", testInput.packageField));
+              new GetPropertyTestInput("packageField", testInput.packageField),
+              new GetPropertyTestInput("staticField", OutboundTestInput.staticField),
+              new GetPropertyTestInput(
+                  "privateStaticField", OutboundTestInput.getPrivateStaticField()));
       ThrowingConsumer<GetPropertyTestInput> executor =
           in -> {
             // when
@@ -102,6 +105,44 @@ class OutboundConnectorContextTest {
           .isInstanceOf(IllegalStateException.class)
           .hasMessage(
               "Cannot invoke set or setter on final field 'finalField' of type class "
+                  + testInput.getClass().getName());
+    }
+
+    @Test
+    public void shouldThrowWhenSettingOnStaticField() {
+      // given
+      OutboundTestInput testInput = new OutboundTestInput();
+      String modified = "modified";
+      Exception expected =
+          catchException(
+              () ->
+                  // when
+                  AbstractOutboundConnectorContext.setProperty(
+                      testInput, fieldForName("staticField"), modified));
+      // then
+      assertThat(expected)
+          .isInstanceOf(IllegalStateException.class)
+          .hasMessage(
+              "Cannot invoke set or setter on static field 'staticField' of type class "
+                  + testInput.getClass().getName());
+    }
+
+    @Test
+    public void shouldThrowWhenSettingOnPrivateStaticField() {
+      // given
+      OutboundTestInput testInput = new OutboundTestInput();
+      String modified = "modified";
+      Exception expected =
+          catchException(
+              () ->
+                  // when
+                  AbstractOutboundConnectorContext.setProperty(
+                      testInput, fieldForName("privateStaticField"), modified));
+      // then
+      assertThat(expected)
+          .isInstanceOf(IllegalStateException.class)
+          .hasMessage(
+              "Cannot invoke set or setter on static field 'privateStaticField' of type class "
                   + testInput.getClass().getName());
     }
   }
@@ -291,7 +332,7 @@ class OutboundConnectorContextTest {
     }
 
     @Test
-    void shouldReplaceSecretsInImmutableStringMap() {
+    void shouldFailIfReplaceSecretsInImmutableStringMap() {
       // given
       OutboundConnectorContext connectorContext =
           OutboundConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
@@ -317,6 +358,34 @@ class OutboundConnectorContextTest {
           .isInstanceOf(IllegalStateException.class)
           .hasMessageContaining("Element at key")
           .hasMessageContaining("in map has no nested properties and is no String!");
+    }
+
+    @Test
+    void shouldFailIfReplaceSecretsInStaticString() {
+      // given
+      OutboundConnectorContext connectorContext =
+          OutboundConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
+      final var testInput = new InputStaticString();
+      // when
+      Exception expected = catchException(() -> connectorContext.replaceSecrets(testInput));
+      // then
+      assertThat(expected)
+          .isInstanceOf(IllegalStateException.class)
+          .hasMessageContaining("Cannot invoke set or setter on static field");
+    }
+
+    @Test
+    void shouldFailIfReplaceSecretsInPrivateStaticString() {
+      // given
+      OutboundConnectorContext connectorContext =
+          OutboundConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
+      final var testInput = new InputPrivateStaticString();
+      // when
+      Exception expected = catchException(() -> connectorContext.replaceSecrets(testInput));
+      // then
+      assertThat(expected)
+          .isInstanceOf(IllegalStateException.class)
+          .hasMessageContaining("Cannot invoke set or setter on static field");
     }
 
     @Test
@@ -467,5 +536,17 @@ class OutboundConnectorContextTest {
 
   static class InputStringSet {
     @Secret public Set<String> stringSet = new HashSet<>(Set.of("secrets.s3cr3t", "foo"));
+  }
+
+  static class InputStaticString {
+    @Secret public static String staticString = "secrets.s3cr3t";
+  }
+
+  static class InputPrivateStaticString {
+    @Secret private static String staticString = "secrets.s3cr3t";
+
+    public static String getStaticString() {
+      return staticString;
+    }
   }
 }
