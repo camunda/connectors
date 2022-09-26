@@ -9,9 +9,14 @@ package io.camunda.connector.slack;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.slack.api.Slack;
+import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 
+@OutboundConnector(
+    name = "SLACK",
+    inputVariables = {"token", "method", "data"},
+    type = "io.camunda:slack:1")
 public class SlackFunction implements OutboundConnectorFunction {
 
   private static final SlackRequestDeserializer DESERIALIZER =
