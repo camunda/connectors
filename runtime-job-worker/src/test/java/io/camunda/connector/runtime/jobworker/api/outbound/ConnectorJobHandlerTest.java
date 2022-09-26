@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.secret.SecretProvider;
+import io.camunda.connector.runtime.jobworker.impl.feel.FeelEngineWrapper;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -40,7 +41,8 @@ public class ConnectorJobHandlerTest {
               (context) ->
                   context
                       .getSecretStore()
-                      .replaceSecret("secrets." + TestSecretProvider.SECRET_NAME));
+                      .replaceSecret("secrets." + TestSecretProvider.SECRET_NAME),
+              new FeelEngineWrapper());
 
       // when
       var result = JobBuilder.create().withResultVariableHeader("result").execute(jobHandler);
@@ -73,7 +75,8 @@ public class ConnectorJobHandlerTest {
     @Test
     public void shouldNotSetWithoutResultVariable() {
       // given
-      var jobHandler = new ConnectorJobHandler((context) -> Map.of("hello", "world"));
+      var jobHandler =
+          new ConnectorJobHandler((context) -> Map.of("hello", "world"), new FeelEngineWrapper());
 
       // when
       var result = JobBuilder.create().execute(jobHandler);
@@ -85,7 +88,8 @@ public class ConnectorJobHandlerTest {
     @Test
     public void shouldSetToResultVariable() {
       // given
-      var jobHandler = new ConnectorJobHandler((context) -> Map.of("hello", "world"));
+      var jobHandler =
+          new ConnectorJobHandler((context) -> Map.of("hello", "world"), new FeelEngineWrapper());
 
       // when
       var result = JobBuilder.create().withResultVariableHeader("result").execute(jobHandler);
@@ -100,7 +104,8 @@ public class ConnectorJobHandlerTest {
       // Response from service -> {"callStatus":{"statusCode":"200 OK"}}
       var jobHandler =
           new ConnectorJobHandler(
-              (context) -> Map.of("callStatus", Map.of("statusCode", "200 OK")));
+              (context) -> Map.of("callStatus", Map.of("statusCode", "200 OK")),
+              new FeelEngineWrapper());
 
       // FEEL expression -> {"processedOutput":response.callStatus}
       final String resultExpression = "{\"processedOutput\": response.callStatus }";
@@ -120,7 +125,8 @@ public class ConnectorJobHandlerTest {
       // Response from service -> {"callStatus":{"statusCode":"200 OK"}}
       var jobHandler =
           new ConnectorJobHandler(
-              (context) -> Map.of("callStatus", Map.of("statusCode", "200 OK")));
+              (context) -> Map.of("callStatus", Map.of("statusCode", "200 OK")),
+              new FeelEngineWrapper());
 
       final String resultVariable = "result";
 
@@ -146,7 +152,8 @@ public class ConnectorJobHandlerTest {
     @Test
     public void shouldSetResultVariableNullWhenCallReturnedNull() {
       // given
-      final ConnectorJobHandler jobHandler = new ConnectorJobHandler((ctx) -> null);
+      final ConnectorJobHandler jobHandler =
+          new ConnectorJobHandler((ctx) -> null, new FeelEngineWrapper());
       final String resultVariableName = "result";
 
       // when
@@ -162,7 +169,8 @@ public class ConnectorJobHandlerTest {
     @Test
     public void shouldSetResultVariableEmptyWhenCallReturnedEmpty() {
       // given
-      final ConnectorJobHandler jobHandler = new ConnectorJobHandler((ctx) -> new HashMap<>());
+      final ConnectorJobHandler jobHandler =
+          new ConnectorJobHandler((ctx) -> new HashMap<>(), new FeelEngineWrapper());
       final String resultVariableName = "result";
 
       // when
@@ -179,7 +187,7 @@ public class ConnectorJobHandlerTest {
     public void shouldProduceFailCommandWhenResultExpressionIsDefinedAndCallReturnedNull() {
       // given
       // Response from service -> null
-      var jobHandler = new ConnectorJobHandler((context) -> null);
+      var jobHandler = new ConnectorJobHandler((context) -> null, new FeelEngineWrapper());
 
       // FEEL expression -> {"processedOutput":response.callStatus}
       final String resultExpression = "{\"processedOutput\": response.callStatus }";
@@ -192,7 +200,8 @@ public class ConnectorJobHandlerTest {
     public void shouldProduceFailCommandWhenResultExpressionIsDefinedAndCallReturnedEmpty() {
       // given
       // Response from service -> empty
-      var jobHandler = new ConnectorJobHandler((context) -> new HashMap<>());
+      var jobHandler =
+          new ConnectorJobHandler((context) -> new HashMap<>(), new FeelEngineWrapper());
 
       // FEEL expression -> {"processedOutput":response.callStatus}
       final String resultExpression = "{\"processedOutput\": response.callStatus }";
@@ -205,7 +214,7 @@ public class ConnectorJobHandlerTest {
   private static class TestConnectorJobHandler extends ConnectorJobHandler {
 
     public TestConnectorJobHandler(OutboundConnectorFunction call) {
-      super(call);
+      super(call, new FeelEngineWrapper());
     }
 
     @Override
