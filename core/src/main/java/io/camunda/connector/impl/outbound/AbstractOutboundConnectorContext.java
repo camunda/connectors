@@ -145,9 +145,10 @@ public abstract class AbstractOutboundConnectorContext implements OutboundConnec
 
   @SuppressWarnings("unchecked")
   protected static <T> T getProperty(Object input, Field field) {
-    if (field.canAccess(input)) {
+    final var inputToCall = Modifier.isStatic(field.getModifiers()) ? null : input;
+    if (field.canAccess(inputToCall)) {
       try {
-        return (T) field.get(input);
+        return (T) field.get(inputToCall);
       } catch (IllegalAccessException e) {
         throw new RuntimeException(e);
       }
@@ -156,7 +157,9 @@ public abstract class AbstractOutboundConnectorContext implements OutboundConnec
       Method getter =
           Arrays.stream(field.getDeclaringClass().getDeclaredMethods())
               // method has to be public
-              .filter(method -> method.canAccess(input))
+              .filter(
+                  method ->
+                      method.canAccess(Modifier.isStatic(method.getModifiers()) ? null : input))
               // method has to follow java getter conventions
               .filter(
                   method ->
@@ -196,6 +199,13 @@ public abstract class AbstractOutboundConnectorContext implements OutboundConnec
               + "' of type "
               + field.getDeclaringClass());
     }
+    if (Modifier.isStatic(field.getModifiers())) {
+      throw new IllegalStateException(
+          "Cannot invoke set or setter on static field '"
+              + field.getName()
+              + "' of type "
+              + field.getDeclaringClass());
+    }
     if (field.canAccess(input)) {
       try {
         field.set(input, property);
@@ -206,6 +216,8 @@ public abstract class AbstractOutboundConnectorContext implements OutboundConnec
     try {
       Method setter =
           Arrays.stream(field.getDeclaringClass().getDeclaredMethods())
+              // method must not be static
+              .filter(method -> !Modifier.isStatic(method.getModifiers()))
               // method has to be public
               .filter(method -> method.canAccess(input))
               // method has to follow java setter conventions
