@@ -8,6 +8,7 @@ package io.camunda.connector.gdrive;
 
 import com.google.api.client.json.JsonParser;
 import com.google.api.client.json.gson.GsonFactory;
+import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.gdrive.model.GoogleDriveResult;
@@ -18,6 +19,10 @@ import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@OutboundConnector(
+    name = "GOOGLEDRIVE",
+    inputVariables = {"authentication", "resource"},
+    type = "io.camunda:google-drive:1")
 public class GoogleDriveFunction implements OutboundConnectorFunction {
   private static final Logger LOGGER = LoggerFactory.getLogger(GoogleDriveFunction.class);
 
