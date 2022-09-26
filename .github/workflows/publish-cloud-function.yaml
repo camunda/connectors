@@ -34,7 +34,7 @@ jobs:
             secret/data/products/connectors/ci/common GCP_PROJECT_ID;
             secret/data/products/connectors/ci/common GCP_SERVICE_ACCOUNT;
 
-      - uses: actions/setup-java@v3.5.0
+      - uses: actions/setup-java@v3.5.1
         with:
           distribution: 'temurin'
           java-version: '11'
