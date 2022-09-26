@@ -9,10 +9,10 @@ package io.camunda.connector.slack;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.slack.api.Slack;
-import io.camunda.connector.api.ConnectorContext;
-import io.camunda.connector.api.ConnectorFunction;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 
-public class SlackFunction implements ConnectorFunction {
+public class SlackFunction implements OutboundConnectorFunction {
 
   private static final SlackRequestDeserializer DESERIALIZER =
       new SlackRequestDeserializer("method")
@@ -31,7 +31,7 @@ public class SlackFunction implements ConnectorFunction {
   }
 
   @Override
-  public Object execute(ConnectorContext context) throws Exception {
+  public Object execute(OutboundConnectorContext context) throws Exception {
 
     final var variables = context.getVariables();
     final var slackRequest = GSON.fromJson(variables, SlackRequest.class);

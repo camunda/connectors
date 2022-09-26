@@ -9,36 +9,19 @@ package io.camunda.connector.slack;
 import com.slack.api.Slack;
 import com.slack.api.methods.MethodsClient;
 import com.slack.api.methods.SlackApiException;
-import io.camunda.connector.api.ConnectorInput;
-import io.camunda.connector.api.SecretStore;
-import io.camunda.connector.api.Validator;
+import io.camunda.connector.api.annotation.Secret;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import java.io.IOException;
 import java.util.Objects;
 
-public class SlackRequest<T extends SlackRequestData> implements ConnectorInput {
+public class SlackRequest<T extends SlackRequestData> {
 
-  private String token;
-  private String method;
+  @NotEmpty @Secret private String token;
+  @NotEmpty private String method;
 
-  private T data;
-
-  @Override
-  public void validateWith(final Validator validator) {
-    validator.require(token, "Slack API - Token");
-    validator.require(method, "Slack API - Method");
-    validator.require(data, "Slack API - Data");
-    if (data != null) {
-      data.validateWith(validator);
-    }
-  }
-
-  @Override
-  public void replaceSecrets(final SecretStore secretStore) {
-    token = secretStore.replaceSecret(token);
-    if (data != null) {
-      data.replaceSecrets(secretStore);
-    }
-  }
+  @Valid @NotNull @Secret private T data;
 
   public SlackResponse invoke(final Slack slack) throws SlackApiException, IOException {
     MethodsClient methods = slack.methods(token);

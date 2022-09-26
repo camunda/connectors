@@ -9,24 +9,22 @@ package io.camunda.connector.slack;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import io.camunda.connector.api.ConnectorContext;
-import io.camunda.connector.api.Validator;
-import io.camunda.connector.test.ConnectorContextBuilder;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.impl.ConnectorInputException;
+import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class SlackConnectorRequestTest extends BaseTest {
 
   private SlackRequest request;
-  private Validator validator;
-  private ConnectorContext context;
+  private OutboundConnectorContext context;
 
   @BeforeEach
   public void beforeEach() {
     request = new SlackRequest();
-    validator = new Validator();
     context =
-        ConnectorContextBuilder.create()
+        OutboundConnectorContextBuilder.create()
             .secret(TOKEN_KEY, ACTUAL_TOKEN)
             .secret(METHOD, ACTUAL_METHOD)
             .secret(CHANNEL_KEY, ACTUAL_CHANNEL)
@@ -39,21 +37,21 @@ public class SlackConnectorRequestTest extends BaseTest {
     request.setToken(TOKEN);
     request.setMethod(METHOD);
     request.setData(null);
-    request.validateWith(validator);
-    IllegalArgumentException thrown =
+    // When context validate request
+    // Then expect ConnectorInputException
+    ConnectorInputException thrown =
         assertThrows(
-            IllegalArgumentException.class,
-            () -> validator.evaluate(),
-            "IllegalArgumentException was expected");
-    assertThat(thrown.getMessage())
-        .isEqualTo("Evaluation failed with following errors: Property required: Slack API - Data");
+            ConnectorInputException.class,
+            () -> context.validate(request),
+            "ConnectorInputException was expected");
+    assertThat(thrown.getMessage()).contains("Found constraints violated while validating input");
   }
 
   @Test
   void replaceSecrets_shouldDoNotReplaceMethod() {
     request.setMethod(ACTUAL_METHOD);
-    ConnectorContext context =
-        ConnectorContextBuilder.create().secret(ACTUAL_METHOD, METHOD).build();
+    OutboundConnectorContext context =
+        OutboundConnectorContextBuilder.create().secret(ACTUAL_METHOD, METHOD).build();
     context.replaceSecrets(request);
     assertThat(request.getMethod()).isEqualTo(ACTUAL_METHOD);
   }
