@@ -18,15 +18,8 @@
 package io.camunda.connector.http.auth;
 
 import com.google.api.client.http.HttpHeaders;
-import io.camunda.connector.api.SecretStore;
-import io.camunda.connector.api.Validator;
 
 public class NoAuthentication extends Authentication {
-  @Override
-  public void validateWith(final Validator validator) {}
-
-  @Override
-  public void replaceSecrets(final SecretStore secretStore) {}
 
   @Override
   public void setHeaders(final HttpHeaders headers) {}

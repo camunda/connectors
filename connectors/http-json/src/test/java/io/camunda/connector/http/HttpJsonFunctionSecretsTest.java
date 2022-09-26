@@ -16,77 +16,100 @@
  */
 package io.camunda.connector.http;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
-import io.camunda.connector.api.ConnectorContext;
-import io.camunda.connector.api.ConnectorInput;
+import com.google.gson.JsonObject;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.http.auth.Authentication;
+import io.camunda.connector.http.auth.BasicAuthentication;
 import io.camunda.connector.http.auth.BearerAuthentication;
+import io.camunda.connector.http.auth.NoAuthentication;
 import io.camunda.connector.http.model.HttpJsonRequest;
-import io.camunda.connector.test.ConnectorContextBuilder;
 import java.io.IOException;
-import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
+import java.util.stream.Stream;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
-public class HttpJsonFunctionSecretsTest {
+public class HttpJsonFunctionSecretsTest extends BaseTest {
+  private static final String SUCCESS_REPLACE_SECRETS_CASES_PATH =
+      "src/test/resources/requests/success-cases-replace-secrets.json";
 
-  private static final String DUMMY_REQUEST =
-      "{\n"
-          + "    \"method\": \"get\",\n"
-          + "    \"url\": \"secrets.MY_SECRET_URL\",\n"
-          + "    \"authentication\": {\n"
-          + "      \"type\": \"bearer\",\n"
-          + "      \"token\": \"secrets.MY_TOKEN\"\n"
-          + "      }\n"
-          + "  }";
+  private OutboundConnectorContext context;
 
-  private ArgumentCaptor<ConnectorInput> captor = ArgumentCaptor.forClass(ConnectorInput.class);
-
-  private HttpJsonFunction functionUnderTest;
-
-  @BeforeEach
-  void setup() {
-    functionUnderTest = new HttpJsonFunction();
+  protected static Stream<String> successReplaceSecretsCases() throws IOException {
+    return loadTestCasesFromResourceFile(SUCCESS_REPLACE_SECRETS_CASES_PATH);
   }
 
-  @Test
-  void shouldChangeSecret_WhenSecretSupplied() throws IOException {
-    // Given
-    final String secretUrl = "https://camunda.io/secretUrl";
-    final String token = "s3cr3tT0k3n";
-    ConnectorContext ctx =
-        Mockito.spy(
-            ConnectorContextBuilder.create()
-                .variables(DUMMY_REQUEST)
-                .secret("MY_TOKEN", token)
-                .secret("MY_SECRET_URL", secretUrl)
-                .build());
-
+  @ParameterizedTest(name = "Should replace request secrets")
+  @MethodSource("successReplaceSecretsCases")
+  void replaceSecrets_shouldReplaceRequestSecrets(String input) {
+    // Given request with secrets
+    HttpJsonRequest httpJsonRequest = gson.fromJson(input, HttpJsonRequest.class);
+    context = getContextBuilderWithSecrets().variables(httpJsonRequest).build();
     // When
-    functionUnderTest.execute(ctx);
-
-    // Then
-    Mockito.verify(ctx).replaceSecrets(captor.capture());
-    ConnectorInput input = captor.getValue();
-    Assertions.assertThat(input).isInstanceOf(HttpJsonRequest.class);
-    HttpJsonRequest inputAsHttpJsonRequest = (HttpJsonRequest) input;
-    Assertions.assertThat(inputAsHttpJsonRequest.getAuthentication())
-        .isInstanceOf(BearerAuthentication.class);
-    BearerAuthentication auth = (BearerAuthentication) inputAsHttpJsonRequest.getAuthentication();
-    Assertions.assertThat(auth.getToken()).isEqualTo(token);
+    context.replaceSecrets(httpJsonRequest);
+    // Then should replace secrets
+    assertThat(httpJsonRequest.getUrl()).isEqualTo(ActualValue.URL);
+    assertThat(httpJsonRequest.getMethod()).isEqualTo(ActualValue.METHOD);
   }
 
-  @Test
-  void shouldWhat_WhenSecretNotSupplied() {
-    ConnectorContext ctx =
-        Mockito.spy(ConnectorContextBuilder.create().variables(DUMMY_REQUEST).build());
+  @ParameterizedTest(name = "Should replace auth secrets")
+  @MethodSource("successReplaceSecretsCases")
+  void replaceSecrets_shouldReplaceAuthSecrets(String input) {
+    // Given request with secrets
+    HttpJsonRequest httpJsonRequest = gson.fromJson(input, HttpJsonRequest.class);
+    context = getContextBuilderWithSecrets().variables(httpJsonRequest).build();
+    // When
+    context.replaceSecrets(httpJsonRequest);
+    // Then should replace secrets
+    Authentication authentication = httpJsonRequest.getAuthentication();
+    if (authentication instanceof NoAuthentication) {
+      // nothing check in this case
+    } else if (authentication instanceof BearerAuthentication) {
+      BearerAuthentication bearerAuth = (BearerAuthentication) authentication;
+      assertThat(bearerAuth.getToken()).isEqualTo(ActualValue.Authentication.TOKEN);
+    } else if (authentication instanceof BasicAuthentication) {
+      BasicAuthentication basicAuth = (BasicAuthentication) authentication;
+      assertThat(basicAuth.getPassword()).isEqualTo(ActualValue.Authentication.PASSWORD);
+      assertThat(basicAuth.getUsername()).isEqualTo(ActualValue.Authentication.USERNAME);
+    } else {
+      fail("unknown authentication type");
+    }
+  }
 
-    Throwable exception =
-        assertThrows(IllegalArgumentException.class, () -> functionUnderTest.execute(ctx));
+  @ParameterizedTest(name = "Should replace QueryParameters secrets")
+  @MethodSource("successReplaceSecretsCases")
+  void replaceSecrets_shouldReplaceQueryParametersSecrets(String input) {
+    // Given request with secrets
+    HttpJsonRequest httpJsonRequest = gson.fromJson(input, HttpJsonRequest.class);
+    context = getContextBuilderWithSecrets().variables(httpJsonRequest).build();
+    // When
+    context.replaceSecrets(httpJsonRequest);
+    // Then should replace secrets
+    JsonObject queryParams =
+        gson.toJsonTree(httpJsonRequest.getQueryParameters()).getAsJsonObject();
 
-    Assertions.assertThat(exception.getMessage())
-        .contains("Secret with name 'MY_SECRET_URL' is not available");
+    assertThat(queryParams.get(JsonKeys.QUERY).getAsString())
+        .isEqualTo(ActualValue.QueryParameters.QUEUE);
+    assertThat(queryParams.get(JsonKeys.PRIORITY).getAsString())
+        .isEqualTo(ActualValue.QueryParameters.PRIORITY);
+  }
+
+  @ParameterizedTest(name = "Should replace headers secrets")
+  @MethodSource("successReplaceSecretsCases")
+  void replaceSecrets_shouldReplaceHeadersSecrets(String input) {
+    // Given request with secrets
+    HttpJsonRequest httpJsonRequest = gson.fromJson(input, HttpJsonRequest.class);
+    context = getContextBuilderWithSecrets().variables(httpJsonRequest).build();
+    // When
+    context.replaceSecrets(httpJsonRequest);
+    // Then should replace secrets
+    JsonObject headers = gson.toJsonTree(httpJsonRequest.getHeaders()).getAsJsonObject();
+
+    assertThat(headers.get(JsonKeys.CLUSTER_ID).getAsString())
+        .isEqualTo(ActualValue.Headers.CLUSTER_ID);
+    assertThat(headers.get(JsonKeys.USER_AGENT).getAsString())
+        .isEqualTo(ActualValue.Headers.USER_AGENT);
   }
 }
