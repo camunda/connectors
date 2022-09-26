@@ -10,6 +10,7 @@ import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.amazonaws.services.sqs.model.SendMessageResult;
 import com.google.gson.Gson;
+import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.model.SqsConnectorRequest;
@@ -19,6 +20,10 @@ import io.camunda.connector.suppliers.SqsClientSupplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@OutboundConnector(
+    name = "AWSSQS",
+    inputVariables = {"authentication", "queue"},
+    type = "io.camunda:aws-sqs:1")
 public class SqsConnectorFunction implements OutboundConnectorFunction {
   private static final Logger LOGGER = LoggerFactory.getLogger(SqsConnectorFunction.class);
 
