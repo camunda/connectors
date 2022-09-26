@@ -15,6 +15,16 @@
     <packaging>jar</packaging>
     <version>0.2.0-SNAPSHOT</version>
 
+    <licenses>
+      <license>
+        <name>Camunda Platform Self-Managed Free Edition license</name>
+        <url>https://camunda.com/legal/terms/cloud-terms-and-conditions/camunda-cloud-self-managed-free-edition-terms/</url>
+      </license>
+      <license>
+        <name>Camunda Platform Self-Managed Enterprise Edition license</name>
+      </license>
+    </licenses>
+
     <properties>
         <version.aws-java-sdk-lambda>1.12.310</version.aws-java-sdk-lambda>
         <license.inlineheader>Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
