@@ -11,6 +11,7 @@ import com.amazonaws.services.lambda.model.InvokeRequest;
 import com.amazonaws.services.lambda.model.InvokeResult;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.awslambda.model.AwsLambdaRequest;
@@ -18,6 +19,10 @@ import io.camunda.connector.awslambda.model.AwsLambdaResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@OutboundConnector(
+    name = "AWSLambda",
+    inputVariables = {"authentication", "awsFunction"},
+    type = "io.camunda:aws-lambda:1")
 public class LambdaConnectorFunction implements OutboundConnectorFunction {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(LambdaConnectorFunction.class);
