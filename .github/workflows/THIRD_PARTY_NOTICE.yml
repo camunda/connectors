@@ -31,6 +31,6 @@ jobs:
           delete-branch: true
           commit-message: 'docs: update third-party notice'
           author: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
-          assignees: ${{ github.actor }}
+          assignees: 'camunda/connectors-dev'
           title: 'docs: update third-party notice'
           body: Adjust the third-party notice file
