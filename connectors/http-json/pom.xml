@@ -11,7 +11,7 @@
 
     <name>connector-http-json</name>
     <description>Camunda Cloud HTTP JSON Connector</description>
-    <groupId>io.camunda</groupId>
+    <groupId>io.camunda.connector</groupId>
     <artifactId>connector-http-json</artifactId>
     <version>0.9.0-SNAPSHOT</version>
     <packaging>jar</packaging>
