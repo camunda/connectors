@@ -10,7 +10,7 @@
 
   <name>connector-slack</name>
   <description>Camunda Cloud Slack Connector</description>
-  <groupId>io.camunda</groupId>
+  <groupId>io.camunda.connector</groupId>
   <artifactId>connector-slack</artifactId>
   <version>0.4.0-SNAPSHOT</version>
   <packaging>jar</packaging>
