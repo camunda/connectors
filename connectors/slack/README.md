@@ -78,12 +78,5 @@ The element templates can be found in the [element-templates/slack-connector.jso
 
 ## Build a release
 
-Checkout the repo and branch to build the release from. Run the release script with the version to release and the next
-development version. The release script requires git and maven to be setup correctly, and that the user has push rights
-to the repository.
-
-The release artifacts are deployed to Google Cloud Function by a GitHub workflow.
-
-```bash
-./release.sh 0.3.0 0.4.0
-```
+Trigger the [release action](./.github/workflows/RELEASE.yml) manually with the version `x.y.z` you want to release and the next SNAPSHOT version.
+Depending on the release version (major, minor, release candidate), the release artifacts are deployed to the respective Google Cloud Function by another GitHub workflow.
