@@ -13,7 +13,7 @@
     <description>Camunda Connector AWS Lambda function</description>
     <artifactId>connector-aws-lambda</artifactId>
     <packaging>jar</packaging>
-    <version>0.2.0-SNAPSHOT</version>
+    <version>0.3.0-rc1</version>
 
     <licenses>
       <license>
