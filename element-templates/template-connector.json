@@ -50,11 +50,7 @@
           "name": "authentication.accessKey"
         },
         "constraints": {
-          "notEmpty": true,
-          "pattern": {
-            "value": "^\\S+$",
-            "message": "Must not contain whitespace characters"
-          }
+          "notEmpty": true
         }
       },
       {
@@ -67,11 +63,7 @@
           "name": "authentication.secretKey"
         },
         "constraints": {
-          "notEmpty": true,
-          "pattern": {
-            "value": "^\\S+$",
-            "message": "Must not contain whitespace characters"
-          }
+          "notEmpty": true
         }
       },
       {
