@@ -79,7 +79,7 @@ is run as a Google Cloud Function.
 ## Element Template
 
 The element templates can be found in
-the [element-templates/template-connector.json](element-templates/template-connector.json) file.
+the [element-templates/aws-sqs-connector.json](element-templates/aws-sqs-connector.json) file.
 
 ## Build a release
 
