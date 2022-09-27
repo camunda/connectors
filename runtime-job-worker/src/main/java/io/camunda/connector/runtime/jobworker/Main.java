@@ -18,7 +18,6 @@
 package io.camunda.connector.runtime.jobworker;
 
 import io.camunda.connector.runtime.jobworker.api.outbound.ConnectorJobHandler;
-import io.camunda.connector.runtime.jobworker.impl.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.jobworker.impl.outbound.OutboundConnectorRegistration;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.client.ZeebeClientBuilder;
@@ -65,7 +64,6 @@ public class Main {
     }
 
     try (ZeebeClient client = clientBuilder.build()) {
-      final FeelEngineWrapper feelEngineWrapper = new FeelEngineWrapper();
 
       final var workers =
           connectors.stream()
@@ -76,8 +74,7 @@ public class Main {
                     return client
                         .newWorker()
                         .jobType(registration.getType())
-                        .handler(
-                            new ConnectorJobHandler(registration.getFunction(), feelEngineWrapper))
+                        .handler(new ConnectorJobHandler(registration.getFunction()))
                         .timeout(Duration.ofSeconds(10))
                         .name(registration.getName())
                         .fetchVariables(registration.getInputVariables())

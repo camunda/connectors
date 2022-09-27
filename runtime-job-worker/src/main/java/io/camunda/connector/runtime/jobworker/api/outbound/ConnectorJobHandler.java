@@ -55,10 +55,9 @@ public class ConnectorJobHandler implements JobHandler {
    *
    * @param call - the connector function to call
    */
-  public ConnectorJobHandler(
-      final OutboundConnectorFunction call, final FeelEngineWrapper feelEngineWrapper) {
+  public ConnectorJobHandler(final OutboundConnectorFunction call) {
     this.call = call;
-    this.feelEngineWrapper = feelEngineWrapper;
+    this.feelEngineWrapper = new FeelEngineWrapper();
   }
 
   @Override
