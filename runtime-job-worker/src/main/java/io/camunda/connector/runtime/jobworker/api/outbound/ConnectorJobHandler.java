@@ -45,10 +45,10 @@ public class ConnectorJobHandler implements JobHandler {
   protected static final String RESULT_VARIABLE_HEADER_NAME = "resultVariable";
   protected static final String RESULT_EXPRESSION_HEADER_NAME = "resultExpression";
 
+  private static final FeelEngineWrapper FEEL_ENGINE_WRAPPER = new FeelEngineWrapper();
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   private final OutboundConnectorFunction call;
-  private final FeelEngineWrapper feelEngineWrapper;
 
   /**
    * Create a handler wrapper for the specified connector function.
@@ -57,7 +57,6 @@ public class ConnectorJobHandler implements JobHandler {
    */
   public ConnectorJobHandler(final OutboundConnectorFunction call) {
     this.call = call;
-    this.feelEngineWrapper = new FeelEngineWrapper();
   }
 
   @Override
@@ -94,7 +93,7 @@ public class ConnectorJobHandler implements JobHandler {
     }
 
     Optional.ofNullable(resultExpression)
-        .map(expression -> feelEngineWrapper.evaluateToJson(expression, responseContent))
+        .map(expression -> FEEL_ENGINE_WRAPPER.evaluateToJson(expression, responseContent))
         .map(json -> parseJsonVarsAsMapOrThrow(json, resultExpression))
         .ifPresent(outputVariables::putAll);
 
