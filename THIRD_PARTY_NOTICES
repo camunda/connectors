@@ -5,9 +5,9 @@ Do Not Translate or Localize
 
 This project incorporates components with the licenses under which Camunda received them as listed below.
 
-  * com.amazonaws:aws-java-sdk-core (Version: 1.12.310, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
-  * com.amazonaws:aws-java-sdk-lambda (Version: 1.12.310, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
-  * com.amazonaws:jmespath-java (Version: 1.12.310, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
+  * com.amazonaws:aws-java-sdk-core (Version: 1.12.311, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
+  * com.amazonaws:aws-java-sdk-lambda (Version: 1.12.311, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
+  * com.amazonaws:jmespath-java (Version: 1.12.311, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * com.fasterxml:classmate (Version: 1.5.1, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * com.fasterxml.jackson.core:jackson-annotations (Version: 2.12.6, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * com.fasterxml.jackson.core:jackson-core (Version: 2.12.6, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
@@ -16,8 +16,8 @@ This project incorporates components with the licenses under which Camunda recei
   * com.google.code.gson:gson (Version: 2.9.1, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * commons-codec:commons-codec (Version: 1.15, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * commons-logging:commons-logging (Version: 1.1.3, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
-  * io.camunda.connector:connector-core (Version: 0.2.0-20220926.104701-34, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
-  * io.camunda.connector:connector-validation (Version: 0.2.0-20220926.104701-28, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
+  * io.camunda.connector:connector-core (Version: 0.2.0, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
+  * io.camunda.connector:connector-validation (Version: 0.2.0, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * jakarta.validation:jakarta.validation-api (Version: 3.0.2, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * joda-time:joda-time (Version: 2.8.1, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * org.apache.httpcomponents:httpclient (Version: 4.5.13, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
