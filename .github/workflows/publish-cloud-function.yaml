@@ -102,11 +102,3 @@ jobs:
           source_dir: 'target/deployment'
           project_id: '${{ steps.secrets.outputs.GCP_PROJECT_ID }}'
           service_account_email: 'connectors-${{ steps.deployment-stage.outputs.stage }}@${{ steps.secrets.outputs.GCP_SERVICE_ACCOUNT }}'
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
-        with:
-          generate_release_notes: true
-          files: |
-            target/*.jar
