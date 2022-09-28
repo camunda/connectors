@@ -72,11 +72,7 @@
           "name": "authentication.bearerToken"
         },
         "constraints": {
-          "notEmpty": true,
-          "pattern": {
-            "value": "^\\S+$",
-            "message": "Must not contain whitespace characters"
-          }
+          "notEmpty": true
         },
         "condition": {
           "property": "authenticationType",
@@ -93,11 +89,7 @@
           "name": "authentication.oauthClientId"
         },
         "constraints": {
-          "notEmpty": true,
-          "pattern": {
-            "value": "^\\S+$",
-            "message": "Must not contain whitespace characters"
-          }
+          "notEmpty": true
         },
         "condition": {
           "property": "authenticationType",
@@ -114,11 +106,7 @@
           "name": "authentication.oauthClientSecret"
         },
         "constraints": {
-          "notEmpty": true,
-          "pattern": {
-            "value": "^\\S+$",
-            "message": "Must not contain whitespace characters"
-          }
+          "notEmpty": true
         },
         "condition": {
           "property": "authenticationType",
@@ -135,11 +123,7 @@
           "name": "authentication.oauthRefreshToken"
         },
         "constraints": {
-          "notEmpty": true,
-          "pattern": {
-            "value": "^\\S+$",
-            "message": "Must not contain whitespace characters"
-          }
+          "notEmpty": true
         },
         "condition": {
           "property": "authenticationType",
