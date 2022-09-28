@@ -54,7 +54,7 @@ The run-time picks up outbound connectors available on the classpath automatical
 It uses the default configuration specified through the `@OutboundConnector` annotation in these cases.
 
 ```bash
-java -cp 'connector-runtime-job-worker.jar;cloud-connector-slack.jar' \
+java -cp 'connector-runtime-job-worker.jar;connector-http-json.jar' \
     io.camunda.connector.runtime.jobworker.Main
 ```
 
@@ -72,10 +72,10 @@ Through that configuration you define all job workers to run.
 Specifying optional values allow you to override `@OutboundConnector` provided connector configuration.
 
 ```bash
-CONNECTOR_SLACK_FUNCTION=io.camunda.connector.slack.SlackFunction
-CONNECTOR_SLACK_TYPE=non-default-slack-task-type
+CONNECTOR_HTTPJSON_FUNCTION=io.camunda.connector.http.HttpJsonFunction
+CONNECTOR_HTTPJSON_TYPE=non-default-httpjson-task-type
 
-java -cp 'connector-runtime-job-worker.jar;cloud-connector-slack.jar' \
+java -cp 'connector-runtime-job-worker.jar;connector-http-json.jar' \
     io.camunda.connector.runtime.jobworker.Main
 ```
 
