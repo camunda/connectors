@@ -1,7 +1,7 @@
 [
   {
     "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-    "name": "AWS Simple Queue Service",
+    "name": "Amazon SQS Connector",
     "id": "io.camunda.connectors.AWSSQS.v1",
     "description": "Send message to queue",
     "appliesTo": [
