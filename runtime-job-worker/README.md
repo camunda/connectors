@@ -54,7 +54,7 @@ The run-time picks up outbound connectors available on the classpath automatical
 It uses the default configuration specified through the `@OutboundConnector` annotation in these cases.
 
 ```bash
-java -cp 'connector-runtime-job-worker.jar;connector-http-json.jar' \
+java -cp 'connector-runtime-job-worker-with-dependencies.jar;connector-http-json-with-dependencies.jar' \
     io.camunda.connector.runtime.jobworker.Main
 ```
 
@@ -75,7 +75,7 @@ Specifying optional values allow you to override `@OutboundConnector` provided c
 CONNECTOR_HTTPJSON_FUNCTION=io.camunda.connector.http.HttpJsonFunction
 CONNECTOR_HTTPJSON_TYPE=non-default-httpjson-task-type
 
-java -cp 'connector-runtime-job-worker.jar;connector-http-json.jar' \
+java -cp 'connector-runtime-job-worker-with-dependencies.jar;connector-http-json-with-dependencies.jar' \
     io.camunda.connector.runtime.jobworker.Main
 ```
 
