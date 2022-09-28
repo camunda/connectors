@@ -80,7 +80,7 @@ except in compliance with the proprietary license.</license.inlineheader>
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-text</artifactId>
-      <version>1.9</version>
+      <version>1.10.0</version>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
