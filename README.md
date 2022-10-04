@@ -4,17 +4,17 @@ The connectors bundle contains all out of the box connectors for Camunda 8. It's
 
 The bundle contains the following components
 
-| Component                  | Version |
-| -------------------------- | ------- |
-| Job Worker Runtime         | 0.2.0   |
-| AWS Lambda Connector       | 0.3.0   |
-| Google Drive Connector     | 0.4.0   |
-| HTTP JSON Connector (REST) | 0.9.0   |
-| SendGrid Connector         | 0.11.0  |
-| Slack Connector            | 0.4.0   |
-| SQS Connector              | 0.2.0   |
+| Component                    | Version | License                                      |
+| ---------------------------- | ------- | -------------------------------------------- |
+| [Job Worker Runtime]         | 0.2.0   | [Apache 2.0]                                 |
+| [AWS Lambda Connector]       | 0.3.0   | [Camunda Platform Self-Managed Free Edition] |
+| [Google Drive Connector]     | 0.4.0   | [Camunda Platform Self-Managed Free Edition] |
+| [HTTP JSON Connector (REST)] | 0.9.0   | [Apache 2.0]                                 |
+| [SendGrid Connector]         | 0.11.0  | [Camunda Platform Self-Managed Free Edition] |
+| [Slack Connector]            | 0.4.0   | [Camunda Platform Self-Managed Free Edition] |
+| [SQS Connector]              | 0.2.0   | [Camunda Platform Self-Managed Free Edition] |
 
-The [`Dockerfile`](./Dockerfile) provides an image including the [job worker runtime](https://github.com/camunda/connector-sdk/tree/main/runtime-job-worker)
+The [`Dockerfile`](./Dockerfile) provides an image including the [job worker runtime]
 and all [out-of-the-box Connectors](https://docs.camunda.io/docs/components/integration-framework/connectors/out-of-the-box-connectors/available-connectors-overview/)
 provided by Camunda. The image starts the job worker runtime with all `jar`
 files provided in the `/opt/app` directory as classpath.
@@ -58,3 +58,19 @@ docker build \
          --build-arg SLACK_VERSION=0.5.0  \         # Overwrite slack connector version
          -t camunda/connectors-bundle:${VERSION} .
 ```
+
+# License
+
+[Apache 2.0]
+
+The docker image contains connectors licensed under [Camunda Platform Self-Managed Free Edition] license.
+
+[apache 2.0]: https://www.apache.org/licenses/LICENSE-2.0
+[aws lambda connector]: https://github.com/camunda/connector-aws-lambda
+[camunda platform self-managed free edition]: https://camunda.com/legal/terms/cloud-terms-and-conditions/camunda-cloud-self-managed-free-edition-terms/
+[google drive connector]: https://github.com/camunda/connector-google-drive
+[http json connector (rest)]: https://github.com/camunda/connector-http-json
+[job worker runtime]: https://github.com/camunda/connector-sdk/tree/main/runtime-job-worker
+[sendgrid connector]: https://github.com/camunda/connector-sendgrid
+[slack connector]: https://github.com/camunda/connector-slack
+[sqs connector]: https://github.com/camunda/connector-sqs
