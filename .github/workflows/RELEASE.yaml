@@ -60,3 +60,9 @@ jobs:
           context: .
           push: true
           tags: camunda/connectors-bundle:latest
+
+      - name: Tag version
+        uses: actions-ecosystem/action-push-tag@v1
+        with:
+          tag: ${{ github.event.inputs.version }}
+          message: 'ci: release version ${{ github.event.inputs.version }}'
