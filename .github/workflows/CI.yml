@@ -36,5 +36,5 @@ jobs:
       uses: docker/build-push-action@v3
       with:
         context: .
-        push: github.ref == 'refs/heads/main'
+        push: ${{ github.ref == 'refs/heads/main' }}
         tags: camunda/connectors-bundle:SNAPSHOT
