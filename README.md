@@ -30,7 +30,7 @@ available in the environment of the docker container.
 For example, you can inject secrets when running a container:
 
 ```bash
-docker run --rm --name=connectors -d -e MY_SECRET=secret -e SECRET_FROM_SHELL --env-file secrets.txt camunda/connectors-bundle:0.2.0
+docker run --rm --name=connectors -d -e MY_SECRET=secret -e SECRET_FROM_SHELL --env-file secrets.txt camunda/connectors-bundle:0.1.0
 ```
 
 The secret `MY_SECRET` value is specified directly in the `docker run` call,
