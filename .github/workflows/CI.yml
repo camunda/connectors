@@ -8,6 +8,9 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
 
+    - name: Lint Job Worker Runtime Dockerfile
+      uses: hadolint/hadolint-action@v2.0.0
+
     - name: Import Secrets
       id: secrets
       uses: hashicorp/vault-action@v2.4.2
