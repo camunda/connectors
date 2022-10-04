@@ -30,7 +30,12 @@ available in the environment of the docker container.
 For example, you can inject secrets when running a container:
 
 ```bash
-docker run --rm --name=connectors -d -e MY_SECRET=secret -e SECRET_FROM_SHELL --env-file secrets.txt camunda/connectors-bundle:0.1.0
+docker run --rm --name=connectors -d \
+           -v $PWD/connector.jar:/opt/app/ \  # Add a connector jar to the classpath
+           -e MY_SECRET=secret \              # Set a secret with value
+           -e SECRET_FROM_SHELL \             # Set a secret from the environment
+           --env-file secrets.txt \           # Set secrets from a file
+           camunda/connectors-bundle:0.1.0
 ```
 
 The secret `MY_SECRET` value is specified directly in the `docker run` call,
@@ -48,5 +53,8 @@ docker build -t camunda/connectors-bundle:${VERSION} .
 All version can be overwritten as build args, i.e. to use a different runtime version and slack connector version run
 
 ```bash
-docker build --build-arg RUNTIME_VERSION=0.3.0 --build-arg SLACK_VERSION=0.5.0 -t camunda/connectors-bundle:${VERSION} .
+docker build \
+         --build-arg RUNTIME_VERSION=0.3.0 \        # Overwrite job worker runtime version
+         --build-arg SLACK_VERSION=0.5.0  \         # Overwrite slack connector version
+         -t camunda/connectors-bundle:${VERSION} .
 ```
