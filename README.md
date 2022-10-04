@@ -1,19 +1,4 @@
-> A template for new C8 connectors.
->
-> To use this template update the following resources to match the name of your connector:
->
-> * [README](./README.md) (title, description)
-> * [Element Template](./element-templates/template-connector.json)
-> * [POM](./pom.xml) (artifact name, description)
-> * [Connector Function](./src/main/java/io/camunda/connector/MyConnectorFunction.java) (rename and update `OutboundConnector` annotation)
-> * [Publish Action](./.github/workflows/publish-cloud-function.yaml#L95) (name)
-> * [Service Provider Interface (SPI)](./src/main/resources/META-INF/services/io.camunda.connector.api.ConnectorFunction#L1) (rename)
-> * [Third-party notices template](./licenses/third-party.ftl#L34) (name)
->
-> ...and delete this hint.
-
-
-# Camunda Connector Template
+# Camunda RabbitMQ Connector
 
 Find the user documentation in our [Camunda Platform 8 Docs](https://docs.camunda.io/docs/components/integration-framework/connectors/out-of-the-box-connectors/available-connectors-overview).
 
@@ -29,7 +14,50 @@ mvn clean package
 
 ```json
 {
-  "myProperty": "....."
+  "authentication": {
+    "authType": "credentials",
+    "userName": "secrets.USERNAME",
+    "password": "secrets.PASSWORD"
+  },
+  "routing": {
+    "exchange": "exchangeName",
+    "routingKey": "routingKey",
+    "virtualHost": "virtualHostName",
+    "hostName": "localhost",
+    "port": "5672"
+  },
+  "message": {
+    "body": {"messageBodyKey": "value"},
+    "properties": {
+      "contentType":"text/plan",
+      "headers": {
+        "key": "value",
+        "key2":"value2"
+      }
+    }
+  }
+}
+```
+
+```json
+{
+  "authentication": {
+    "authType": "uri",
+    "uri": "amqp://userName:password@localhost:5672/virtualHostName"
+  },
+  "routing": {
+    "exchange": "exchange",
+    "routingKey": "routingKey"
+  },
+  "message": {
+    "properties": {
+      "contentType":"text/plan",
+      "headers": {
+        "key": "value"
+      }
+    },
+    "body": "some data for send"
+  }
 }
 ```
 
@@ -38,7 +66,7 @@ mvn clean package
 ```json
 {
   "result": {
-    "myProperty": "....."
+    "statusResult": "success"
   }
 }
 ```
