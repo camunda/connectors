@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.jobworker.impl.feel;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.module.scala.DefaultScalaModule$;
 import java.util.HashMap;
@@ -31,6 +32,8 @@ public class FeelEngineWrapper {
   static final String RESPONSE_MAP_KEY = "response";
   static final String ERROR_VARIABLES_MUST_NOT_BE_NULL = "variables cannot be null";
   static final String ERROR_EXPRESSION_EVALUATION_FAILED = "expression evaluation failed";
+  public static final TypeReference<Map<String, Object>> MAP_TYPE_REFERENCE =
+      new TypeReference<>() {};
 
   private final FeelEngine feelEngine;
   private final ObjectMapper objectMapper;
@@ -64,10 +67,9 @@ public class FeelEngineWrapper {
     return scala.collection.immutable.Map.from(CollectionConverters.asScala(context));
   }
 
-  @SuppressWarnings("unchecked")
-  private static Map<String, Object> ensureVariablesMap(final Object variables) {
-    return (Map<String, Object>)
-        Objects.requireNonNull(variables, ERROR_VARIABLES_MUST_NOT_BE_NULL);
+  private Map<String, Object> ensureVariablesMap(final Object variables) {
+    Objects.requireNonNull(variables, ERROR_VARIABLES_MUST_NOT_BE_NULL);
+    return objectMapper.convertValue(variables, MAP_TYPE_REFERENCE);
   }
 
   public String evaluateToJson(final String expression, final Object variables) {
