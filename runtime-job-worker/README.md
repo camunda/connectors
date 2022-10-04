@@ -108,13 +108,6 @@ Example adding a connector jar by using volumes
 docker run --rm --name=connectors -d -v $PWD/connector.jar:/opt/app/ camunda/connectors:0.2.0
 ```
 
-#### Docker OOTB Connector Image
-
-The [`Dockerfile.ootb`](./Dockerfile.ootb) provides an image including the job worker runtime and all out-of-the-box Connectors provided by Camunda.
-The image starts the job worker runtime with all `jar` files provided in the `/opt/app` directory as classpath.
-
-To add more connectors to the image follow the examples in the [Docker Job Worker Runtime Image](#docker-job-worker-runtime-image) section.
-
 ## Local secrets
 
 To inject secrets during connector function execution, export them as environment variables
@@ -132,7 +125,12 @@ To inject secrets into the [docker images of the runtime](#docker), they have to
 For example, you can inject secrets when running a container:
 
 ```bash
-docker run --rm --name=connectors -d -e MY_SECRET=secret -e SECRET_FROM_SHELL --env-file secrets.txt camunda/connectors:0.2.0-ootb
+docker run --rm --name=connectors -d \
+           -v $PWD/connector.jar:/opt/app/ \  # Add a connector jar to the classpath
+           -e MY_SECRET=secret \              # Set a secret with value
+           -e SECRET_FROM_SHELL \             # Set a secret from the environment
+           --env-file secrets.txt \           # Set secrets from a file
+           camunda/connectors:0.2.0
 ```
 
 The secret `MY_SECRET` value is specified directly in the `docker run` call,
