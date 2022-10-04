@@ -115,6 +115,25 @@ public class ConnectorJobHandlerTest {
     }
 
     @Test
+    public void shouldSetToResultExpressionWhenPojoIsReturned() {
+      // given
+      // Response from service -> {"callStatus":{"statusCode":"200 OK"}}
+      final String responseValue = "response";
+      var jobHandler =
+          new ConnectorJobHandler((context) -> new TestConnectorResponsePojo(responseValue));
+
+      // FEEL expression -> {"processedOutput":response.callStatus}
+      final String resultExpression = "{\"processedOutput\": response.value }";
+
+      // when
+      var result =
+          JobBuilder.create().withResultExpressionHeader(resultExpression).execute(jobHandler);
+
+      // then
+      assertThat(result.getVariables()).isEqualTo(Map.of("processedOutput", responseValue));
+    }
+
+    @Test
     public void shouldSetBothResultVariableAndExpression() {
       // given
       // Response from service -> {"callStatus":{"statusCode":"200 OK"}}
@@ -211,6 +230,18 @@ public class ConnectorJobHandlerTest {
     @Override
     public SecretProvider getSecretProvider() {
       return name -> TestSecretProvider.SECRET_NAME.equals(name) ? "baz" : null;
+    }
+  }
+
+  private static class TestConnectorResponsePojo {
+    private final String value;
+
+    private TestConnectorResponsePojo(final String value) {
+      this.value = value;
+    }
+
+    public String getValue() {
+      return value;
     }
   }
 }
