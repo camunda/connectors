@@ -1,5 +1,5 @@
 # Configure the connector runtime version
-ARG RUNTIME_VERSION=SNAPSHOT
+ARG RUNTIME_VERSION=0.2.1
 FROM camunda/connectors:${RUNTIME_VERSION}
 
 # Configure versions of included connectors
