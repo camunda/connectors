@@ -32,8 +32,8 @@ public class FeelEngineWrapper {
   static final String RESPONSE_MAP_KEY = "response";
   static final String ERROR_VARIABLES_MUST_NOT_BE_NULL = "variables cannot be null";
   static final String ERROR_EXPRESSION_EVALUATION_FAILED = "expression evaluation failed";
-  public static final TypeReference<Map<String, Object>> MAP_TYPE_REFERENCE =
-      new TypeReference<>() {};
+
+  static final TypeReference<Map<String, Object>> MAP_TYPE_REFERENCE = new TypeReference<>() {};
 
   private final FeelEngine feelEngine;
   private final ObjectMapper objectMapper;
