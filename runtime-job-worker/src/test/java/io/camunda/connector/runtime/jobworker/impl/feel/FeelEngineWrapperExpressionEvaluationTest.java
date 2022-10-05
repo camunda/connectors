@@ -50,6 +50,21 @@ class FeelEngineWrapperExpressionEvaluationTest {
   }
 
   @Test
+  void evaluateToJson_ShouldSucceed_WhenHandlingPojo() {
+    // given
+    final var resultExpression = "= { value: response.value, response: response }";
+    final var variables = new TestPojo("FOO");
+
+    // when
+    final String evaluatedResultAsJson =
+        objectUnderTest.evaluateToJson(resultExpression, variables);
+
+    // then
+    assertThat(evaluatedResultAsJson)
+        .isEqualTo("{\"response\":{\"value\":\"FOO\"},\"value\":\"FOO\"}");
+  }
+
+  @Test
   void evaluateToJson_ShouldSucceed_WhenExpressionStartsWithEqualsSign() {
     // given
     // FEEL expression -> ={"processedOutput":response.callStatus}
@@ -146,5 +161,18 @@ class FeelEngineWrapperExpressionEvaluationTest {
 
     // then
     assertThat(e.getMessage()).contains(FeelEngineWrapper.ERROR_EXPRESSION_EVALUATION_FAILED);
+  }
+
+  class TestPojo {
+
+    private String value;
+
+    public TestPojo(String value) {
+      this.value = value;
+    }
+
+    public String getValue() {
+      return value;
+    }
   }
 }
