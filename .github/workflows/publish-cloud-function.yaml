@@ -86,7 +86,7 @@ jobs:
           echo ::set-output name=stage::${STAGE}
 
       - name: Authenticate to Google Cloud
-        uses: camunda-cloud/action-google-auth@v1.0.0
+        uses: camunda-cloud/action-google-auth@v1
         with:
           account-alias: ${{ steps.secrets.outputs.GCP_PROJECT_ID }}
 
