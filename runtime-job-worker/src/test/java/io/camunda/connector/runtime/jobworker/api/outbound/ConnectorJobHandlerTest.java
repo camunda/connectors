@@ -24,6 +24,7 @@ import io.camunda.connector.api.secret.SecretProvider;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -117,7 +118,7 @@ public class ConnectorJobHandlerTest {
     @Test
     public void shouldSetToResultExpressionWhenPojoIsReturned() {
       // given
-      // Response from service -> {"callStatus":{"statusCode":"200 OK"}}
+      // Response from service -> {"value": "response"}
       final String responseValue = "response";
       var jobHandler =
           new ConnectorJobHandler((context) -> new TestConnectorResponsePojo(responseValue));
@@ -131,6 +132,43 @@ public class ConnectorJobHandlerTest {
 
       // then
       assertThat(result.getVariables()).isEqualTo(Map.of("processedOutput", responseValue));
+    }
+
+    @Test
+    public void shouldSetToResultExpressionWhenContainsNull() {
+      // given
+      // Response from service -> {"value": null}
+      var jobHandler = new ConnectorJobHandler((context) -> new TestConnectorResponsePojo(null));
+
+      // FEEL expression -> {"processedOutput":response.callStatus}
+      final String resultExpression = "{\"processedOutput\": response.value }";
+
+      // when
+      var result =
+          JobBuilder.create().withResultExpressionHeader(resultExpression).execute(jobHandler);
+
+      // then
+      assertThat(result.getVariables()).containsEntry("processedOutput", null);
+    }
+
+    @Test
+    public void shouldSetToResultExpressionWhenContainsUnknownObject() {
+      // given
+      var response = new HashMap<>();
+      response.put("status", "COMPLETED");
+      response.put("failure", new NonSerializable());
+      var jobHandler = new ConnectorJobHandler((context) -> response);
+
+      final String resultExpression =
+          "{\"processedOutput\": response.status, \"ignoredOutput\": response.failure}";
+
+      // when
+      var result =
+          JobBuilder.create().withResultExpressionHeader(resultExpression).execute(jobHandler);
+
+      // then
+      assertThat(result.getVariables())
+          .isEqualTo(Map.of("processedOutput", "COMPLETED", "ignoredOutput", Map.of()));
     }
 
     @Test
@@ -234,6 +272,7 @@ public class ConnectorJobHandlerTest {
   }
 
   private static class TestConnectorResponsePojo {
+
     private final String value;
 
     private TestConnectorResponsePojo(final String value) {
@@ -243,5 +282,10 @@ public class ConnectorJobHandlerTest {
     public String getValue() {
       return value;
     }
+  }
+
+  private static class NonSerializable {
+
+    private final UUID field = UUID.randomUUID();
   }
 }
