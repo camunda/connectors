@@ -91,7 +91,7 @@ If you want to provide your own implementation, you can exclude those two from t
   <dependency>
     <groupId>io.camunda.connector</groupId>
     <artifactId>connector-validation</artifactId>
-    <version>0.2.0</version>
+    <version>0.2.2</version>
     <exclusions>
       <exclusion>
         <groupId>org.hibernate.validator</groupId>

@@ -11,7 +11,7 @@ Include the job worker run-time as maven dependency
 <dependency>
   <groupId>io.camunda.connector</groupId>
   <artifactId>connector-runtime-job-worker</artifactId>
-  <version>0.2.0</version>
+  <version>0.2.2</version>
 </dependency>
 ```
 
@@ -97,7 +97,7 @@ To use the image at least one connector has to be added to the classpath. We rec
 Example adding a connector jar by extending the image
 
 ```dockerfile
-FROM camunda/connectors:0.2.0
+FROM camunda/connectors:0.2.2
 
 ADD https://repo1.maven.org/maven2/io/camunda/connector/connector-http-json/0.9.0/connector-http-json-0.9.0-with-dependencies.jar /opt/app/
 ```
@@ -105,7 +105,7 @@ ADD https://repo1.maven.org/maven2/io/camunda/connector/connector-http-json/0.9.
 Example adding a connector jar by using volumes
 
 ```bash
-docker run --rm --name=connectors -d -v $PWD/connector.jar:/opt/app/ camunda/connectors:0.2.0
+docker run --rm --name=connectors -d -v $PWD/connector.jar:/opt/app/ camunda/connectors:0.2.2
 ```
 
 ## Local secrets
@@ -130,7 +130,7 @@ docker run --rm --name=connectors -d \
            -e MY_SECRET=secret \              # Set a secret with value
            -e SECRET_FROM_SHELL \             # Set a secret from the environment
            --env-file secrets.txt \           # Set secrets from a file
-           camunda/connectors:0.2.0
+           camunda/connectors:0.2.2
 ```
 
 The secret `MY_SECRET` value is specified directly in the `docker run` call,
