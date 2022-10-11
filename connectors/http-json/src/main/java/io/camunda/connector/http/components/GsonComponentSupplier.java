@@ -34,6 +34,7 @@ public class GsonComponentSupplier {
 
   private static final Gson GSON =
       new GsonBuilder()
+          .serializeNulls()
           .setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
           .registerTypeAdapterFactory(
               RuntimeTypeAdapterFactory.of(Authentication.class, "type")
