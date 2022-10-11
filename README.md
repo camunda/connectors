@@ -1,5 +1,7 @@
 # Camunda 8 Connectors Bundle
 
+[![CI](https://github.com/camunda/connectors-bundle/actions/workflows/CI.yml/badge.svg)](https://github.com/camunda/connectors-bundle/actions/workflows/CI.yml)
+
 The connectors bundle contains all out of the box connectors for Camunda 8. It's an easy way to try them out in your local setup or in k8s.
 
 The bundle contains the following components
