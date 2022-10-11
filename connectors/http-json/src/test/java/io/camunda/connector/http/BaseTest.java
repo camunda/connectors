@@ -98,7 +98,7 @@ public class BaseTest {
   protected static Stream<String> loadTestCasesFromResourceFile(final String fileWithTestCasesUri)
       throws IOException {
     final String cases = readString(new File(fileWithTestCasesUri).toPath(), UTF_8);
-    final Gson testingGson = new Gson();
+    final Gson testingGson = GsonComponentSupplier.gsonInstance();
     var array = testingGson.fromJson(cases, ArrayList.class);
     return array.stream().map(testingGson::toJson).map(Arguments::of);
   }

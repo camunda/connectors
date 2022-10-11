@@ -31,13 +31,17 @@ import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpResponse;
 import com.google.api.client.json.gson.GsonFactory;
+import com.google.gson.JsonObject;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.http.model.HttpJsonResult;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -101,6 +105,33 @@ public class HttpJsonFunctionTest extends BaseTest {
 
     // then
     assertThat(exceptionThrown).isInstanceOf(RuntimeException.class);
+  }
+
+  @Test
+  public void execute_shouldReturnNullFieldWhenResponseWithContainNullField() throws IOException {
+    // given request, and response body with null field value
+    final var request =
+        "{ \"method\": \"get\", \"url\": \"https://camunda.io/http-endpoint\", \"authentication\": { \"type\": \"noAuth\" } }";
+    final var response =
+        "{ \"createdAt\": \"2022-10-10T05:03:14.723Z\", \"name\": \"Marvin Cremin\", \"unknown\": null, \"id\": \"1\" }";
+
+    final OutboundConnectorContext context =
+        OutboundConnectorContextBuilder.create().variables(request).build();
+    when(requestFactory.buildRequest(
+            anyString(), any(GenericUrl.class), nullable(HttpContent.class)))
+        .thenReturn(httpRequest);
+    when(httpResponse.getHeaders())
+        .thenReturn(new HttpHeaders().setContentType(APPLICATION_JSON.getMimeType()));
+    when(httpResponse.getContent())
+        .thenReturn(new ByteArrayInputStream(response.getBytes(StandardCharsets.UTF_8)));
+    when(httpRequest.execute()).thenReturn(httpResponse);
+    // when connector execute
+    Object functionCallResponseAsObject = functionUnderTest.execute(context);
+    // then null field 'unknown' exist in response body and equal null
+    HttpJsonResult result = (HttpJsonResult) functionCallResponseAsObject;
+    JsonObject asJsonObject = gson.toJsonTree(result.getBody()).getAsJsonObject();
+    assertThat(asJsonObject.has("unknown")).isTrue();
+    assertThat(asJsonObject.get("unknown").isJsonNull()).isTrue();
   }
 
   private static Stream<String> successCases() throws IOException {
