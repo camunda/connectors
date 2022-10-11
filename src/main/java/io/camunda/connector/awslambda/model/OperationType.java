@@ -7,6 +7,6 @@
 package io.camunda.connector.awslambda.model;
 
 public enum OperationType {
-  SYNC,
-  ASYNC
+  sync,
+  async
 }
