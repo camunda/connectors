@@ -8,7 +8,7 @@ The bundle contains the following components
 
 | Component                    | Version | License                                      |
 | ---------------------------- | ------- | -------------------------------------------- |
-| [Job Worker Runtime]         | 0.2.0   | [Apache 2.0]                                 |
+| [Job Worker Runtime]         | 0.2.2   | [Apache 2.0]                                 |
 | [AWS Lambda Connector]       | 0.3.0   | [Camunda Platform Self-Managed Free Edition] |
 | [Google Drive Connector]     | 0.4.0   | [Camunda Platform Self-Managed Free Edition] |
 | [HTTP JSON Connector (REST)] | 0.9.0   | [Apache 2.0]                                 |
