@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/camunda/connectors-bundle/actions/workflows/CI.yml/badge.svg)](https://github.com/camunda/connectors-bundle/actions/workflows/CI.yml)
 
-The connectors bundle contains all out of the box connectors for Camunda 8. It's an easy way to try them out in your local setup or in k8s.
+The Connectors Bundle contains all out-of-the-box Connectors for Camunda 8. It's an easy way to try them out in your local setup or in k8s.
 
 The bundle contains the following components
 
@@ -60,6 +60,11 @@ docker build \
          --build-arg SLACK_VERSION=0.5.0  \         # Overwrite slack connector version
          -t camunda/connectors-bundle:${VERSION} .
 ```
+
+# Connector templates
+
+You can use the provided [download script](./download-templates.sh) to fetch the latest Connector templates of all out-of-the-box Connectors.
+Adjust the versions in the top of the script if you don't want to use the latest versions.
 
 # License
 
