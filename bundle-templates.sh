@@ -20,6 +20,25 @@ https://github.com/camunda/connector-slack/releases/download/${SLACK_VERSION}/sl
 https://github.com/camunda/connector-sqs/releases/download/${SQS_VERSION}/aws-sqs-connector.json
 EOF
 
+tag_version() {
+  local file=$1
+  local version=$(cat $file | jq '. | if type == "array" then .[0] else . end | .version')
+
+  local base_name="${file%%".json"*}"
+
+  if [[ "null" != "$version" ]]; then
+    echo "tag_version: Renaming $file -> $base_name-$version.json"
+
+    mv "$file" "$base_name-$version.json"
+  else
+    echo "tag_version: Keeping $file (unversioned)"
+  fi
+}
+
+for file in *.json; do
+  tag_version $file
+done
+
 tar czvf ${ARTIFACT_DIR}/connectors-bundle-templates-${RELEASE_VERSION}.tar.gz *.json
 zip ${ARTIFACT_DIR}/connectors-bundle-templates-${RELEASE_VERSION}.zip *.json
 
