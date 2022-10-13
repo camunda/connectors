@@ -68,3 +68,14 @@ jobs:
           git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
           git tag -a "${tag}" -m "${message}"
           git push origin "${tag}"
+
+      - name: Bundle element templates
+        run: ./bundle-templates.sh ${RELEASE_VERSION}
+        env:
+          RELEASE_VERSION: ${{ github.event.inputs.version }}
+
+      - name: Create GitHub release
+        run: gh release create --generate-notes ${RELEASE_VERSION} connectors-bundle-templates-${RELEASE_VERSION}.tar.gz connectors-bundle-templates-${RELEASE_VERSION}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_VERSION: ${{ github.event.inputs.version }}
