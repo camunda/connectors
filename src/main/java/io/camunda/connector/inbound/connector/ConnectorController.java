@@ -17,11 +17,22 @@ public class ConnectorController {
 
   private static final Logger LOG = LoggerFactory.getLogger(ConnectorController.class);
 
-  @Autowired private ConnectorService connectorService;
+  private ConnectorService connectorService;
 
-  @Autowired private ZeebeClient zeebeClient;
+  private ZeebeClient zeebeClient;
 
-  @Autowired private FeelEngineWrapper feelEngine;
+  private FeelEngineWrapper feelEngine;
+
+  @Autowired
+  public ConnectorController(
+      ConnectorService connectorService,
+      ZeebeClient zeebeClient,
+      FeelEngineWrapper feelEngine
+  ) {
+    this.connectorService = connectorService;
+    this.zeebeClient = zeebeClient;
+    this.feelEngine = feelEngine;
+  }
 
   @PostMapping("/inbound/{context}")
   public ResponseEntity<ProcessInstanceEvent> inbound(
