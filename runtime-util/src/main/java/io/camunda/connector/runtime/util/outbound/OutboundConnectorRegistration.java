@@ -15,17 +15,13 @@
  * limitations under the License.
  */
 
-package io.camunda.connector.runtime.jobworker.impl.outbound;
+package io.camunda.connector.runtime.util.outbound;
 
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.impl.ConnectorUtil;
 import io.camunda.connector.impl.outbound.OutboundConnectorConfiguration;
 import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.ServiceLoader;
+import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;

@@ -17,8 +17,8 @@
 
 package io.camunda.connector.runtime.jobworker;
 
-import io.camunda.connector.runtime.jobworker.api.outbound.ConnectorJobHandler;
-import io.camunda.connector.runtime.jobworker.impl.outbound.OutboundConnectorRegistration;
+import io.camunda.connector.runtime.util.outbound.ConnectorJobHandler;
+import io.camunda.connector.runtime.util.outbound.OutboundConnectorRegistration;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.client.ZeebeClientBuilder;
 import java.time.Duration;

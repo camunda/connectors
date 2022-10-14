@@ -1,1 +1,1 @@
-io.camunda.connector.runtime.jobworker.impl.outbound.AnnotatedFunction
+io.camunda.connector.runtime.util.outbound.AnnotatedFunction

@@ -14,22 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.jobworker.api.outbound;
+package io.camunda.connector.runtime.util.outbound;
 
-import static java.util.Collections.singletonMap;
+import io.camunda.connector.api.annotation.OutboundConnector;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 
-import io.camunda.connector.api.secret.SecretProvider;
-import java.util.Map;
-
-public class TestSecretProvider implements SecretProvider {
-
-  public static final String SECRET_NAME = "FOO";
-  public static final String SECRET_VALUE = "bar";
-
-  private static final Map<String, String> SECRETS = singletonMap(SECRET_NAME, SECRET_VALUE);
+@OutboundConnector(
+    name = "ANNOTATED",
+    inputVariables = {"a", "b"},
+    type = "io.camunda:annotated")
+public class AnnotatedFunction implements OutboundConnectorFunction {
 
   @Override
-  public String getSecret(String value) {
-    return SECRETS.get(value);
+  public Object execute(OutboundConnectorContext context) throws Exception {
+    return null;
   }
 }

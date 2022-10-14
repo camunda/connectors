@@ -14,15 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.jobworker.impl.outbound;
+package io.camunda.connector.runtime.util.feel;
 
-import io.camunda.connector.api.outbound.OutboundConnectorContext;
-import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+public class FeelEngineWrapperException extends RuntimeException {
 
-public class NotAnnotatedFunction implements OutboundConnectorFunction {
-
-  @Override
-  public Object execute(OutboundConnectorContext context) throws Exception {
-    return null;
+  public FeelEngineWrapperException(
+      final String reason,
+      final String expression,
+      final Object context,
+      final Throwable throwable) {
+    super(
+        String.format(
+            "Failed to evaluate expression '%s' and context '%s', because %s",
+            expression, context, reason),
+        throwable);
   }
 }

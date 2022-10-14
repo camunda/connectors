@@ -14,8 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.jobworker.api.outbound;
+package io.camunda.connector.runtime.util.outbound;
 
+import static io.camunda.connector.runtime.util.ConnectorHelper.RESULT_EXPRESSION_HEADER_NAME;
+import static io.camunda.connector.runtime.util.ConnectorHelper.RESULT_VARIABLE_HEADER_NAME;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
@@ -58,11 +60,11 @@ class JobBuilder {
     }
 
     public JobBuilderStep withResultVariableHeader(final String value) {
-      return withHeader(ConnectorJobHandler.RESULT_VARIABLE_HEADER_NAME, value);
+      return withHeader(RESULT_VARIABLE_HEADER_NAME, value);
     }
 
     public JobBuilderStep withResultExpressionHeader(final String value) {
-      return withHeader(ConnectorJobHandler.RESULT_EXPRESSION_HEADER_NAME, value);
+      return withHeader(RESULT_EXPRESSION_HEADER_NAME, value);
     }
 
     public JobBuilderStep withHeader(String key, String value) {
