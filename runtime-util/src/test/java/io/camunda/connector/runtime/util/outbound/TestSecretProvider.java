@@ -14,19 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.jobworker.impl.feel;
+package io.camunda.connector.runtime.util.outbound;
 
-public class FeelEngineWrapperException extends RuntimeException {
+import static java.util.Collections.singletonMap;
 
-  public FeelEngineWrapperException(
-      final String reason,
-      final String expression,
-      final Object context,
-      final Throwable throwable) {
-    super(
-        String.format(
-            "Failed to evaluate expression '%s' and context '%s', because %s",
-            expression, context, reason),
-        throwable);
+import io.camunda.connector.api.secret.SecretProvider;
+import java.util.Map;
+
+public class TestSecretProvider implements SecretProvider {
+
+  public static final String SECRET_NAME = "FOO";
+  public static final String SECRET_VALUE = "bar";
+
+  private static final Map<String, String> SECRETS = singletonMap(SECRET_NAME, SECRET_VALUE);
+
+  @Override
+  public String getSecret(String value) {
+    return SECRETS.get(value);
   }
 }

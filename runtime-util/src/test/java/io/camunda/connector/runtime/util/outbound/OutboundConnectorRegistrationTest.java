@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.jobworker.impl.outbound;
+package io.camunda.connector.runtime.util.outbound;
 
 import java.util.Arrays;
 import java.util.List;
@@ -37,17 +37,17 @@ public class OutboundConnectorRegistrationTest {
         new Object[] {
           // shall be picked up with meta-data + overrides
           "CONNECTOR_ANNOTATED_OVERRIDE_FUNCTION",
-          "io.camunda.connector.runtime.jobworker.impl.outbound.AnnotatedFunction",
+          "io.camunda.connector.runtime.util.outbound.AnnotatedFunction",
           "CONNECTOR_ANNOTATED_OVERRIDE_TYPE",
           "io.camunda:annotated-override",
 
           // shall be picked up with meta-data
           "CONNECTOR_ANNOTATED_FUNCTION",
-          "io.camunda.connector.runtime.jobworker.impl.outbound.AnnotatedFunction",
+          "io.camunda.connector.runtime.util.outbound.AnnotatedFunction",
 
           // shall be picked up despite no meta-data
           "CONNECTOR_NOT_ANNOTATED_FUNCTION",
-          "io.camunda.connector.runtime.jobworker.impl.outbound.NotAnnotatedFunction",
+          "io.camunda.connector.runtime.util.outbound.NotAnnotatedFunction",
           "CONNECTOR_NOT_ANNOTATED_TYPE",
           "io.camunda:not-annotated",
           "CONNECTOR_NOT_ANNOTATED_INPUT_VARIABLES",
@@ -94,7 +94,7 @@ public class OutboundConnectorRegistrationTest {
     var env =
         new Object[] {
           "CONNECTOR_NOT_ANNOTATED_FUNCTION",
-          "io.camunda.connector.runtime.jobworker.impl.outbound.NotAnnotatedFunction",
+          "io.camunda.connector.runtime.util.outbound.NotAnnotatedFunction",
           "CONNECTOR_NOT_ANNOTATED_INPUT_VARIABLES",
           "foo,bar"
         };

@@ -14,17 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.jobworker.impl.outbound;
+package io.camunda.connector.runtime.util.outbound;
 
-import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 
-@OutboundConnector(
-    name = "ANNOTATED",
-    inputVariables = {"a", "b"},
-    type = "io.camunda:annotated")
-public class AnnotatedFunction implements OutboundConnectorFunction {
+public class NotAnnotatedFunction implements OutboundConnectorFunction {
 
   @Override
   public Object execute(OutboundConnectorContext context) throws Exception {
