@@ -25,10 +25,7 @@ public class ConnectorController {
 
   @Autowired
   public ConnectorController(
-      ConnectorService connectorService,
-      ZeebeClient zeebeClient,
-      FeelEngineWrapper feelEngine
-  ) {
+      ConnectorService connectorService, ZeebeClient zeebeClient, FeelEngineWrapper feelEngine) {
     this.connectorService = connectorService;
     this.zeebeClient = zeebeClient;
     this.feelEngine = feelEngine;
@@ -63,7 +60,7 @@ public class ConnectorController {
     if (!valid) {
       LOG.debug("Failed validation {} :: {} {}", context, webhookContext);
 
-      return ResponseEntity.status(400).build();
+      return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
     }
 
     final var shouldActivate = checkActivation(connectorProperties, webhookContext);
