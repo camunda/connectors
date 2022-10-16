@@ -1,0 +1,167 @@
+[
+  {
+    "testDescription": "Regular happy case",
+    "authentication":{
+      "username":"myLogin",
+      "password":"mySecretPassword"
+    },
+    "topic":{
+      "bootstrapServers":"kafka-stub.kafka.cloud:1234",
+      "topicName":"some-awesome-topic"
+    },
+    "message":{
+      "keySerializer":"org.apache.kafka.common.serialization.StringSerializer",
+      "key":"Happy",
+      "valueSerializer":"org.apache.kafka.common.serialization.StringSerializer",
+      "value":"Case"
+    }
+  },
+  {
+    "testDescription": "With additional properties",
+    "authentication":{
+      "username":"myLogin",
+      "password":"mySecretPassword"
+    },
+    "topic":{
+      "bootstrapServers":"kafka-stub.kafka.cloud:1234",
+      "topicName":"some-awesome-topic"
+    },
+    "message":{
+      "keySerializer":"org.apache.kafka.common.serialization.StringSerializer",
+      "key":"Happy",
+      "valueSerializer":"org.apache.kafka.common.serialization.StringSerializer",
+      "value":"Case"
+    },
+    "additionalProperties" : {
+      "transaction.timeout.ms": "20000"
+    }
+  },
+  {
+    "testDescription": "With overridden properties",
+    "authentication":{
+      "username":"myLogin",
+      "password":"mySecretPassword"
+    },
+    "topic":{
+      "bootstrapServers":"kafka-stub.kafka.cloud:1234",
+      "topicName":"some-awesome-topic"
+    },
+    "message":{
+      "keySerializer":"org.apache.kafka.common.serialization.StringSerializer",
+      "key":"Happy",
+      "valueSerializer":"org.apache.kafka.common.serialization.StringSerializer",
+      "value":"Case"
+    },
+    "additionalProperties" : {
+      "delivery.timeout.ms": "20000"
+    }
+  },
+  {
+    "testDescription": "With value as JSON",
+    "authentication":{
+      "username":"myLogin",
+      "password":"mySecretPassword"
+    },
+    "topic":{
+      "bootstrapServers":"kafka-stub.kafka.cloud:1234",
+      "topicName":"some-awesome-topic"
+    },
+    "message":{
+      "keySerializer":"org.apache.kafka.common.serialization.StringSerializer",
+      "key":"Happy",
+      "valueSerializer":"org.apache.kafka.common.serialization.StringSerializer",
+      "value": {"documentId": "1234567890", "signee": "User Testerson", "contentBase64": "QXQgbGVhc3Qgc29tZWJvZHkgcmVhZHMgdGhlIHRlc3RzLiBHcmVhdCBqb2Ih"}
+    },
+    "additionalProperties" : {
+      "delivery.timeout.ms": "20000"
+    }
+  },
+  {
+    "testDescription": "With key as JSON",
+    "authentication":{
+      "username":"myLogin",
+      "password":"mySecretPassword"
+    },
+    "topic":{
+      "bootstrapServers":"kafka-stub.kafka.cloud:1234",
+      "topicName":"some-awesome-topic"
+    },
+    "message":{
+      "keySerializer":"org.apache.kafka.common.serialization.StringSerializer",
+      "key":{"keyId": "1234567890"},
+      "valueSerializer":"org.apache.kafka.common.serialization.StringSerializer",
+      "value": "OK"
+    },
+    "additionalProperties" : {
+      "delivery.timeout.ms": "20000"
+    }
+  },
+  {
+    "testDescription": "Username as secret",
+    "authentication":{
+      "username":"secrets.USER_NAME",
+      "password":"mySecretPassword"
+    },
+    "topic":{
+      "bootstrapServers":"kafka-stub.kafka.cloud:1234",
+      "topicName":"some-awesome-topic"
+    },
+    "message":{
+      "keySerializer":"org.apache.kafka.common.serialization.StringSerializer",
+      "key":"Happy",
+      "valueSerializer":"org.apache.kafka.common.serialization.StringSerializer",
+      "value":"Case"
+    }
+  },
+  {
+    "testDescription": "Password as secret",
+    "authentication":{
+      "username":"myLogin",
+      "password":"secrets.PASSWORD"
+    },
+    "topic":{
+      "bootstrapServers":"kafka-stub.kafka.cloud:1234",
+      "topicName":"some-awesome-topic"
+    },
+    "message":{
+      "keySerializer":"org.apache.kafka.common.serialization.StringSerializer",
+      "key":"Happy",
+      "valueSerializer":"org.apache.kafka.common.serialization.StringSerializer",
+      "value":"Case"
+    }
+  },
+  {
+    "testDescription": "Bootstrap server as secret",
+    "authentication":{
+      "username":"myLogin",
+      "password":"mySecretPassword"
+    },
+    "topic":{
+      "bootstrapServers":"secrets.BOOTSTRAP_SERVER",
+      "topicName":"some-awesome-topic"
+    },
+    "message":{
+      "keySerializer":"org.apache.kafka.common.serialization.StringSerializer",
+      "key":"Happy",
+      "valueSerializer":"org.apache.kafka.common.serialization.StringSerializer",
+      "value":"Case"
+    }
+  },
+  {
+    "testDescription": "Topic name as secret",
+    "authentication":{
+      "username":"myLogin",
+      "password":"mySecretPassword"
+    },
+    "topic":{
+      "bootstrapServers":"kafka-stub.kafka.cloud:1234",
+      "topicName":"secrets.TOPIC_NAME"
+    },
+    "message":{
+      "keySerializer":"org.apache.kafka.common.serialization.StringSerializer",
+      "key":"Happy",
+      "valueSerializer":"org.apache.kafka.common.serialization.StringSerializer",
+      "value":"Case"
+    }
+  }
+]
