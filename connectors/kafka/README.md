@@ -14,7 +14,22 @@ mvn clean package
 
 ```json
 {
-  "myProperty": "....."
+  "authentication":{
+    "username":"secrets.KAFKA_USER_NAME",
+    "password":"secrets.KAFKA_PASSWORD"
+  },
+  "topic":{
+    "bootstrapServers":"secrets.KAFKA_BOOTSTRAP_SERVERS",
+    "topicName":"secrets.KAFKA_TOPIC_NAME"
+  },
+  "message":{
+    "key":"document-id-1234567890",
+    "value": {"documentId": "1234567890", "signedBy": "Tester Testerson", "contentBase64": "Q2FtdW5kYSBLYWZrYSBDb25uZWN0b3I="}
+  },
+  "additionalProperties": {
+    "delivery.timeout.ms":"25000",
+    "request.timeout.ms":"25000"
+  }
 }
 ```
 
@@ -22,8 +37,18 @@ mvn clean package
 
 ```json
 {
-  "result": {
-    "myProperty": "....."
+  "result":{
+    "kafkaResponse":{
+      "offset":1,
+      "timestamp":1665927163361,
+      "serializedKeySize":5,
+      "serializedValueSize":5,
+      "topicPartition":{
+        "hash":728818543,
+        "partition":3,
+        "topic":"quickstart-events"
+      }
+    }
   }
 }
 ```
