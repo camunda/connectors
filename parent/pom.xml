@@ -74,7 +74,7 @@ limitations under the License.</license.inlineheader>
     <version.slf4j>1.7.36</version.slf4j>
     <version.jakarta-validation>3.0.2</version.jakarta-validation>
     <version.gson>2.9.1</version.gson>
-    <version.mockito>4.8.0</version.mockito>
+    <version.mockito>4.8.1</version.mockito>
     <version.junit-jupiter>5.9.1</version.junit-jupiter>
     <version.assertj>3.23.1</version.assertj>
     <version.jackson-module-scala>2.13.4</version.jackson-module-scala>
