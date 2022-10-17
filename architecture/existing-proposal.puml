@@ -1,0 +1,50 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+' Person who can deploy diagrams
+actor User as u
+participant Zeebe as zb
+database "Zeebe Data Storage\n(ElasticSearch)" as zbes
+database "Inbound Connector Database\n(ElasticSearch)" as icdbes
+participant "Inbound Connector" as ic
+participant "Webhook Client\n(i.e., GH)" as whc
+
+== Usecase: scheduled polling for deploy events ==
+
+ic -> zbes: [Scheduled] Every X seconds poll
+zbes --> ic:
+
+== Usecase: user deploys new process; process registered in inbound ==
+
+autonumber
+
+u -> zb: Deploy new process
+zb -> zb: Internal processing
+zb -> zbes: Store new process\nand deploy event
+zbes --> zb: OK
+zb --> u: OK
+ic -> zbes: [Scheduled] Poll new deployment event
+zbes --> ic: Deployment event metadata
+ic -> ic: Process event
+ic -> icdbes: Store processed event
+icdbes --> ic: OK
+
+== Usecase: webhook executed ==
+
+autonumber 1
+
+whc -> ic: Call '/inbound/{context}'
+ic -> ic: Validate call integrity
+ic -> icdbes: Lookup for process reference\nby context
+alt No applicable context
+icdbes --> ic: {empty}
+ic --> whc: HTTP:400
+else Process with context found
+icdbes --> ic: Process metadata
+ic -> ic: Validate additional params\n(i.e., activate&evaluate)
+ic -> zb: Start process instance
+zb --> ic: {processInstanceId}
+ic --> whc: {HTTP:200+processInstanceId}
+end
+
+@enduml
