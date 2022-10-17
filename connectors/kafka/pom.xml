@@ -8,11 +8,11 @@
     <relativePath></relativePath>    
   </parent>
 
-  <name>connector-template-internal</name>
-  <description>Camunda Connector Template (Internal)</description>
-  <artifactId>connector-template-internal</artifactId>
+  <name>connector-kafka</name>
+  <description>Camunda Kafka Connector</description>
+  <artifactId>connector-kafka</artifactId>
   <packaging>jar</packaging>
-  <version>0.0.1-SNAPSHOT</version>
+  <version>0.1.0-SNAPSHOT</version>
 
   <licenses>
     <license>
@@ -25,6 +25,7 @@
   </licenses>
 
   <properties>
+    <version.kafka-clients>3.3.1</version.kafka-clients>
     <license.inlineheader>Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
 under one or more contributor license agreements. Licensed under a proprietary license.
 See the License.txt file for more information. You may not use this file
@@ -40,12 +41,26 @@ except in compliance with the proprietary license.</license.inlineheader>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-validation</artifactId>
     </dependency>
+
+    <dependency>
+      <groupId>org.apache.kafka</groupId>
+      <artifactId>kafka-clients</artifactId>
+      <version>${version.kafka-clients}</version>
+    </dependency>
+
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
     </dependency>
 
     <!-- test dependencies -->
+
+    <dependency>
+      <groupId>com.google.code.gson</groupId>
+      <artifactId>gson</artifactId>
+      <scope>test</scope>
+    </dependency>
+
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
