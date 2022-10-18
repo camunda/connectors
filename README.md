@@ -1,21 +1,6 @@
-> A template for new C8 connectors.
->
-> To use this template update the following resources to match the name of your connector:
->
-> * [README](./README.md) (title, description)
-> * [Element Template](./element-templates/template-connector.json)
-> * [POM](./pom.xml) (artifact name, description)
-> * [Connector Function](./src/main/java/io/camunda/connector/MyConnectorFunction.java) (rename and update `OutboundConnector` annotation)
-> * [Publish Action](./.github/workflows/publish-cloud-function.yaml#L95) (name)
-> * [Service Provider Interface (SPI)](./src/main/resources/META-INF/services/io.camunda.connector.api.ConnectorFunction#L1) (rename)
-> * [Third-party notices template](./licenses/third-party.ftl#L34) (name)
->
-> ...and delete this hint.
+# Camunda AWS SNS Connector
 
-
-# Camunda Connector Template
-
-Find the user documentation in our [Camunda Platform 8 Docs](https://docs.camunda.io/docs/components/integration-framework/connectors/out-of-the-box-connectors/available-connectors-overview).
+Find the user documentation in our [Camunda Platform 8 Docs](https://docs.camunda.io/docs/components/integration-framework/connectors/out-of-the-box-connectors/aws-sns/).
 
 ## Build
 
@@ -29,7 +14,16 @@ mvn clean package
 
 ```json
 {
-  "myProperty": "....."
+  "authentication":{
+    "secretKey":"mySecretKey",
+    "accessKey":"myAccessKey"
+  },
+  "topic":{
+    "message":"MyMessage",
+    "subject":"MySubject",
+    "region":"us-east-1",
+    "topicArn":"arn:aws:sns:us-east-1:00000000:MySNSTopic"
+  }
 }
 ```
 
@@ -38,7 +32,7 @@ mvn clean package
 ```json
 {
   "result": {
-    "myProperty": "....."
+    "messageId": "c158a652-c3e3-5511-a565-fd01a05c0c45"
   }
 }
 ```
@@ -53,7 +47,9 @@ mvn clean verify
 
 ### Test as local Job Worker
 
-Use the [Camunda Job Worker Connector Run-Time](https://github.com/camunda/connector-framework/tree/main/runtime-job-worker) to run your function as a local Job Worker.
+Use
+the [Camunda Job Worker Connector Run-Time](https://github.com/camunda/connector-framework/tree/main/runtime-job-worker)
+to run your function as a local Job Worker.
 
 ### :lock: Test as local Google Cloud Function
 
@@ -71,7 +67,8 @@ is run as a Google Cloud Function.
 
 ## Element Template
 
-The element templates can be found in the [element-templates/template-connector.json](element-templates/template-connector.json) file.
+The element templates can be found in
+the [element-templates/aws-sns-connector.json](element-templates/aws-sns-connector.json) file.
 
 ## Build a release
 
