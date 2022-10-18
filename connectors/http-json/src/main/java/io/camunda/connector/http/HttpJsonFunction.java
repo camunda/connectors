@@ -35,6 +35,9 @@ import io.camunda.connector.http.components.HttpTransportComponentSupplier;
 import io.camunda.connector.http.model.HttpJsonRequest;
 import io.camunda.connector.http.model.HttpJsonResult;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -148,8 +151,9 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
               }
             });
     httpJsonResult.setHeaders(headers);
-    try {
-      final Object body = externalResponse.parseAs(Object.class);
+    try (InputStream content = externalResponse.getContent();
+        Reader reader = new InputStreamReader(content)) {
+      final Object body = gson.fromJson(reader, Object.class);
       if (body != null) {
         httpJsonResult.setBody(body);
       }
