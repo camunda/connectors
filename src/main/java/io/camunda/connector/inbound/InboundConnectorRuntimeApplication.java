@@ -8,10 +8,10 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @SpringBootApplication
 @EnableScheduling
 @EnableZeebeClient
-public class Application {
+public class InboundConnectorRuntimeApplication {
 
   public static void main(String[] args) {
-    SpringApplication.run(Application.class, args);
+    SpringApplication.run(InboundConnectorRuntimeApplication.class, args);
   }
 
 }
