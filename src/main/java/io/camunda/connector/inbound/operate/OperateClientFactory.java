@@ -89,7 +89,6 @@ public class OperateClientFactory {
         throw new IllegalArgumentException("In order to connect to Camunda Operate you need to configure authentication properly.");
     }
 
-    @Bean
     public CamundaOperateClient camundaOperateClient() throws OperateException {
         String operateUrl = getOperateUrl();
         return new CamundaOperateClient.Builder()
