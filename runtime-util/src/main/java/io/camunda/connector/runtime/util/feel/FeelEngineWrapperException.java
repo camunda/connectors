@@ -19,6 +19,11 @@ package io.camunda.connector.runtime.util.feel;
 public class FeelEngineWrapperException extends RuntimeException {
 
   public FeelEngineWrapperException(
+      final String reason, final String expression, final Object context) {
+    this(reason, expression, context, null);
+  }
+
+  public FeelEngineWrapperException(
       final String reason,
       final String expression,
       final Object context,
