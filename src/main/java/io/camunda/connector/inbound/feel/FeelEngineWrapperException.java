@@ -1,4 +1,4 @@
-package io.camunda.connector.inbound.connector;
+package io.camunda.connector.inbound.feel;
 
 public class FeelEngineWrapperException extends RuntimeException {
 
