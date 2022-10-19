@@ -14,7 +14,6 @@ import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.Process;
 import io.camunda.zeebe.model.bpmn.instance.StartEvent;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeProperties;
-import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,14 +22,14 @@ import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 @Component
-public class OperateImporter {
+public class ProcessDefinitionImporter {
 
-  private static final Logger LOG = LoggerFactory.getLogger(OperateImporter.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ProcessDefinitionImporter.class);
 
   @Autowired
   private InboundConnectorRegistry registry;
@@ -44,7 +43,9 @@ public class OperateImporter {
     // Lazy initialize the client - could be replaced by some Spring tricks later
     CamundaOperateClient camundaOperateClient = operateClientFactory.camundaOperateClient();
 
+    // TODO: Think about pagination if we really have more process definitions
     SearchQuery processDefinitionQuery = new SearchQuery.Builder()
+            .withSize(1000)
             .withSort(new Sort("version", SortOrder.ASC))
             .build();
 
@@ -89,7 +90,10 @@ public class OperateImporter {
             processDefinition.getVersion().intValue(),
             processDefinition.getKey(),
             zeebeProperties.getProperties().stream()
-                    .collect(Collectors.toMap(ZeebeProperty::getName, ZeebeProperty::getValue)));
+                    // Avoid issue with OpenJDK when collecting null values
+                    // --> https://stackoverflow.com/questions/24630963/nullpointerexception-in-collectors-tomap-with-null-entry-values
+                    // .collect(Collectors.toMap(ZeebeProperty::getName, ZeebeProperty::getValue)));
+                    .collect(HashMap::new, (m, zeebeProperty)->m.put(zeebeProperty.getName(), zeebeProperty.getValue()), HashMap::putAll));
 
     if (InboundConnectorProperties.TYPE_WEBHOOK.equals(properties.getType())) {
 
