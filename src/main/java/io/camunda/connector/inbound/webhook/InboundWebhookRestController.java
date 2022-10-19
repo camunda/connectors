@@ -1,41 +1,34 @@
-package io.camunda.connector.inbound.connector;
+package io.camunda.connector.inbound.webhook;
 
+import io.camunda.connector.inbound.feel.FeelEngineWrapper;
+import io.camunda.connector.inbound.registry.InboundConnectorRegistry;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.client.api.response.ProcessInstanceEvent;
-import java.util.Map;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Map;
+
 @RestController
-public class ConnectorController {
+public class InboundWebhookRestController {
 
-  private static final Logger LOG = LoggerFactory.getLogger(ConnectorController.class);
-
-  private ConnectorService connectorService;
-
-  private ZeebeClient zeebeClient;
-
-  private FeelEngineWrapper feelEngine;
+  private static final Logger LOG = LoggerFactory.getLogger(InboundWebhookRestController.class);
 
   @Autowired
-  public ConnectorController(
-      ConnectorService connectorService, ZeebeClient zeebeClient, FeelEngineWrapper feelEngine) {
-    this.connectorService = connectorService;
-    this.zeebeClient = zeebeClient;
-    this.feelEngine = feelEngine;
-  }
+  private InboundConnectorRegistry registry;
 
-  @PostMapping(
-      value = "/inbound/{context}",
-      produces = MediaType.APPLICATION_JSON_VALUE,
-      consumes = MediaType.APPLICATION_JSON_VALUE)
+  @Autowired
+  private ZeebeClient zeebeClient;
+
+  @Autowired
+  private FeelEngineWrapper feelEngine;
+
+  @PostMapping("/inbound2/{context}")
   public ResponseEntity<ProcessInstanceEvent> inbound(
       @PathVariable String context,
       @RequestBody Map<String, Object> body,
@@ -43,13 +36,10 @@ public class ConnectorController {
 
     LOG.debug("Received inbound hook on {}", context);
 
-    final var connectorProperties =
-        connectorService
-            .get(context)
-            .orElseThrow(
-                () ->
-                    new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "No webhook found for context: " + context));
+    if (!registry.containsContextPath(context)) {
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No webhook found for context: " + context);
+    }
+    WebhookConnectorProperties connectorProperties = registry.getWebhookConnectorByContextPath(context);
 
     // TODO(nikku): what context do we expose?
     final Map<String, Object> webhookContext =
@@ -63,15 +53,12 @@ public class ConnectorController {
 
     if (!valid) {
       LOG.debug("Failed validation {} :: {} {}", context, webhookContext);
-
-      return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+      return ResponseEntity.status(400).build();
     }
 
     final var shouldActivate = checkActivation(connectorProperties, webhookContext);
-
     if (!shouldActivate) {
       LOG.debug("Should not activate {} :: {}", context, webhookContext);
-
       return ResponseEntity.status(HttpStatus.OK).build();
     }
 
@@ -92,13 +79,12 @@ public class ConnectorController {
   }
 
   private ProcessInstanceEvent startInstance(
-      ConnectorProperties connectorProperties, Map<String, Object> variables) {
-
+          WebhookConnectorProperties connectorProperties, Map<String, Object> variables) {
     try {
       return zeebeClient
           .newCreateInstanceCommand()
-          .bpmnProcessId(connectorProperties.bpmnProcessId())
-          .version(connectorProperties.version())
+          .bpmnProcessId(connectorProperties.getBpmnProcessId())
+          .version(connectorProperties.getVersion())
           .variables(variables)
           .send()
           .join();
@@ -108,44 +94,35 @@ public class ConnectorController {
   }
 
   private ResponseStatusException fail(
-      String message, ConnectorProperties connectorProperties, Exception exception) {
-
+      String message, WebhookConnectorProperties connectorProperties, Exception exception) {
     LOG.error("Webhook {} failed to create process instance", connectorProperties, exception);
-
     return new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, message);
   }
 
   private Map<String, Object> extractVariables(
-      ConnectorProperties connectorProperties, Map<String, Object> context) {
+          WebhookConnectorProperties connectorProperties, Map<String, Object> context) {
 
-    var variableMapping = connectorProperties.variableMapping();
-
+    var variableMapping = connectorProperties.getVariableMapping();
     if (variableMapping == null) {
       return context;
     }
-
     try {
-      Map<String, Object> variables = feelEngine.evaluate(variableMapping, context);
-
-      return variables;
+      return feelEngine.evaluate(variableMapping, context);
     } catch (Exception exception) {
       throw fail("Failed to extract variables", connectorProperties, exception);
     }
   }
 
   private boolean checkActivation(
-      ConnectorProperties connectorProperties, Map<String, Object> context) {
+          WebhookConnectorProperties connectorProperties, Map<String, Object> context) {
 
     // at this point we assume secrets exist / had been specified
-    var activationCondition = connectorProperties.activationCondition();
-
+    var activationCondition = connectorProperties.getActivationCondition();
     if (activationCondition == null) {
       return true;
     }
-
     try {
       Object shouldActivate = feelEngine.evaluate(activationCondition, context);
-
       return Boolean.TRUE.equals(shouldActivate);
     } catch (Exception exception) {
       throw fail("Failed to check activation", connectorProperties, exception);
@@ -153,15 +130,13 @@ public class ConnectorController {
   }
 
   private boolean validateSecret(
-      ConnectorProperties connectorProperties, Map<String, Object> context) {
+          WebhookConnectorProperties connectorProperties, Map<String, Object> context) {
 
     // at this point we assume secrets exist / had been specified
-    var secretExtractor = connectorProperties.secretExtractor();
-    var secret = connectorProperties.secret();
-
+    var secretExtractor = connectorProperties.getSecretExtractor();
+    var secret = connectorProperties.getSecret();
     try {
       String providedSecret = feelEngine.evaluate(secretExtractor, context);
-
       return secret.equals(providedSecret);
     } catch (Exception exception) {
       throw fail("Failed to validate secret", connectorProperties, exception);

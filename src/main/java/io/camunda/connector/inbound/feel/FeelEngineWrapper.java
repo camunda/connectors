@@ -1,4 +1,4 @@
-package io.camunda.connector.inbound.connector;
+package io.camunda.connector.inbound.feel;
 
 import org.camunda.feel.FeelEngine;
 import org.camunda.feel.impl.SpiServiceLoader;
