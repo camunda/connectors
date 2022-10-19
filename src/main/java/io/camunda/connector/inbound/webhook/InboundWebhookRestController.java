@@ -28,7 +28,7 @@ public class InboundWebhookRestController {
   @Autowired
   private FeelEngineWrapper feelEngine;
 
-  @PostMapping("/inbound2/{context}")
+  @PostMapping("/inbound/{context}")
   public ResponseEntity<ProcessInstanceEvent> inbound(
       @PathVariable String context,
       @RequestBody Map<String, Object> body,
@@ -41,7 +41,7 @@ public class InboundWebhookRestController {
     }
     WebhookConnectorProperties connectorProperties = registry.getWebhookConnectorByContextPath(context);
 
-    // TODO(nikku): what context do we expose?
+    // TODO: what context do we expose?
     final Map<String, Object> webhookContext =
         Map.of(
             "request",
@@ -72,7 +72,7 @@ public class InboundWebhookRestController {
         processInstanceEvent.getProcessInstanceKey(),
         variables);
 
-    // TODO(nikku): how much context do we want to expose?
+    // TODO: how much context do we want to expose?
 
     // respond with 201 if execution triggered behavior
     return ResponseEntity.status(HttpStatus.CREATED).body(processInstanceEvent);
