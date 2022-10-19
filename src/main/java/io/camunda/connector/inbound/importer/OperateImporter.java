@@ -1,5 +1,6 @@
 package io.camunda.connector.inbound.importer;
 
+import io.camunda.connector.inbound.operate.OperateClientFactory;
 import io.camunda.connector.inbound.registry.InboundConnectorProperties;
 import io.camunda.connector.inbound.registry.InboundConnectorRegistry;
 import io.camunda.operate.CamundaOperateClient;
@@ -35,11 +36,13 @@ public class OperateImporter {
   private InboundConnectorRegistry registry;
 
   @Autowired
-  private CamundaOperateClient camundaOperateClient;
+  private OperateClientFactory operateClientFactory;
 
   @Scheduled(fixedDelay = 5000)
   public void scheduleImport() throws OperateException {
     LOG.trace("Query process deployments...");
+    // Lazy initialize the client - could be replaced by some Spring tricks later
+    CamundaOperateClient camundaOperateClient = operateClientFactory.camundaOperateClient();
 
     SearchQuery processDefinitionQuery = new SearchQuery.Builder()
             .withSort(new Sort("version", SortOrder.ASC))
