@@ -40,15 +40,16 @@ public class FeelEngineWrapper {
   private final ObjectMapper objectMapper;
 
   public FeelEngineWrapper() {
-    this(
+    this.feelEngine =
         new FeelEngine.Builder()
             .valueMapper(SpiServiceLoader.loadValueMapper())
             .functionProvider(SpiServiceLoader.loadFunctionProvider())
-            .build(),
+            .build();
+    this.objectMapper =
         new ObjectMapper()
             .registerModule(DefaultScalaModule$.MODULE$)
             // deserialize unknown types as empty objects
-            .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS));
+            .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
   }
 
   public FeelEngineWrapper(final FeelEngine feelEngine, final ObjectMapper objectMapper) {
@@ -76,13 +77,21 @@ public class FeelEngineWrapper {
     return objectMapper.convertValue(variables, MAP_TYPE_REFERENCE);
   }
 
+  public <T> T evaluate(final String expression, final Object variables) {
+    return (T) evaluateInternal(expression, variables);
+  }
+
   public String evaluateToJson(final String expression, final Object variables) {
+    return resultToJson(evaluateInternal(expression, variables));
+  }
+
+  private Object evaluateInternal(final String expression, final Object variables) {
     try {
       var variablesAsMap = ensureVariablesMap(variables);
       var variablesAsMapAsScalaMap = toScalaMap(variablesAsMap);
       var result = feelEngine.evalExpression(trimExpression(expression), variablesAsMapAsScalaMap);
       if (result.isRight()) {
-        return resultToJson(result.right().get());
+        return result.right().get();
       } else {
         throw new RuntimeException(result.left().get().message());
       }

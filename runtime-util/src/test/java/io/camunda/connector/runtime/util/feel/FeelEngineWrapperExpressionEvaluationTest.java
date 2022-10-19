@@ -50,6 +50,22 @@ class FeelEngineWrapperExpressionEvaluationTest {
   }
 
   @Test
+  void evaluate_ShouldSucceed_WhenHappyCaseJavaType() {
+    // given
+    // FEEL expression -> {"processedOutput":response.callStatus}
+    final String resultExpression = "{\"processedOutput\": response.callStatus }";
+    // Response from service -> {"callStatus":{"statusCode":"200 OK"}}
+    final Map variables = Map.of("callStatus", Map.of("statusCode", "200 OK"));
+
+    // when
+    final Map evaluatedResultAsMap = objectUnderTest.evaluate(resultExpression, variables);
+
+    // then
+    final Map expectedResult = Map.of("processedOutput", Map.of("statusCode", "200 OK"));
+    assertThat(evaluatedResultAsMap).isEqualTo(expectedResult);
+  }
+
+  @Test
   void evaluateToJson_ShouldSucceed_WhenHandlingPojo() {
     // given
     final var resultExpression = "= { value: response.value, response: response }";
