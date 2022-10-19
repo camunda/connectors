@@ -53,7 +53,6 @@ public class ProcessDefinitionImporter {
             .searchProcessDefinitions(processDefinitionQuery);
     LOG.trace("... returned " + processDefinitions.size() + " process definitions.");
 
-    ArrayList<InboundConnectorProperties> connectorProperties = new ArrayList<>();
     for (ProcessDefinition processDefinition: processDefinitions) {
 
       if (!registry.processDefinitionChecked(processDefinition.getKey())) {
