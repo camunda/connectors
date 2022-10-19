@@ -42,7 +42,6 @@ public class OperateImporter {
     LOG.trace("Query process deployments...");
 
     SearchQuery processDefinitionQuery = new SearchQuery.Builder()
-            .withSize(1000)
             .withSort(new Sort("version", SortOrder.ASC))
             .build();
 
