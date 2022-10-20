@@ -17,6 +17,8 @@
 
 package io.camunda.connector.api.annotation;
 
+import io.camunda.connector.api.secret.SecretContainerHandler;
+import io.camunda.connector.impl.secret.SecretHandler;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -24,8 +26,12 @@ import java.lang.annotation.Target;
 
 /**
  * Marks the path to a secret field as well as the secret itself. Secrets are always of type {@link
- * CharSequence}
+ * String} or a container type like Array, Map, List, Iterable, or a custom class. For
+ * container-type fields, a container <code>handler</code> can be defined. Otherwise, the SDK's
+ * default {@link SecretHandler} is used.
  */
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface Secret {}
+public @interface Secret {
+  Class<? extends SecretContainerHandler> handler() default SecretHandler.class;
+}

@@ -21,6 +21,9 @@ import static org.assertj.core.api.Assertions.catchException;
 
 import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.api.secret.SecretContainerHandler;
+import io.camunda.connector.api.secret.SecretElementHandler;
+import io.camunda.connector.impl.ReflectionHelper;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -59,8 +62,7 @@ class OutboundConnectorContextTest {
       ThrowingConsumer<GetPropertyTestInput> executor =
           in -> {
             // when
-            String content =
-                AbstractOutboundConnectorContext.getProperty(testInput, fieldForName(in.fieldName));
+            String content = ReflectionHelper.getProperty(testInput, fieldForName(in.fieldName));
             // then
             assertThat(content).isEqualTo(in.expectedContent);
           };
@@ -81,8 +83,7 @@ class OutboundConnectorContextTest {
       ThrowingConsumer<SetPropertyTestInput> executor =
           in -> {
             // when
-            AbstractOutboundConnectorContext.setProperty(
-                testInput, fieldForName(in.fieldName), modified);
+            ReflectionHelper.setProperty(testInput, fieldForName(in.fieldName), modified);
             // then
             assertThat(in.getter.get()).isEqualTo(modified);
           };
@@ -98,8 +99,7 @@ class OutboundConnectorContextTest {
           catchException(
               () ->
                   // when
-                  AbstractOutboundConnectorContext.setProperty(
-                      testInput, fieldForName("finalField"), modified));
+                  ReflectionHelper.setProperty(testInput, fieldForName("finalField"), modified));
       // then
       assertThat(expected)
           .isInstanceOf(IllegalStateException.class)
@@ -117,8 +117,7 @@ class OutboundConnectorContextTest {
           catchException(
               () ->
                   // when
-                  AbstractOutboundConnectorContext.setProperty(
-                      testInput, fieldForName("staticField"), modified));
+                  ReflectionHelper.setProperty(testInput, fieldForName("staticField"), modified));
       // then
       assertThat(expected)
           .isInstanceOf(IllegalStateException.class)
@@ -136,7 +135,7 @@ class OutboundConnectorContextTest {
           catchException(
               () ->
                   // when
-                  AbstractOutboundConnectorContext.setProperty(
+                  ReflectionHelper.setProperty(
                       testInput, fieldForName("privateStaticField"), modified));
       // then
       assertThat(expected)
@@ -436,6 +435,20 @@ class OutboundConnectorContextTest {
       assertThat(testInput.inputMap)
           .allSatisfy((key, value) -> assertThat(value.getSecretField()).isEqualTo("plain"));
     }
+
+    @Test
+    void shouldReplaceSecretsStringSetWithCustomHandler() {
+      // given
+      OutboundConnectorContext connectorContext =
+          OutboundConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
+      final var testInput = new InputStringSetCustomHandling();
+      // when
+      connectorContext.replaceSecrets(testInput);
+      // then
+      assertThat(testInput.objectSet)
+          .allMatch(
+              s -> "plain".equals(s) || "plain".equals(((OutboundTestInput) s).getSecretField()));
+    }
   }
 
   private static Field fieldForName(String fieldName) {
@@ -466,87 +479,106 @@ class OutboundConnectorContextTest {
     }
   }
 
-  static class InputNestedObject {
+  public static class InputNestedObject {
     @Secret public final OutboundTestInput secretContainer = new OutboundTestInput();
     @Secret public final OutboundTestInput nullContainer = null;
     public final OutboundTestInput otherProperty = new OutboundTestInput();
   }
 
-  static class InputNumberArray {
+  public static class InputNumberArray {
     @Secret public Number[] numberArray = new Number[] {3, 5.6f};
   }
 
-  static class InputNumberList {
+  public static class InputNumberList {
     @Secret public List<Number> numberList = new ArrayList<>(List.of(3, 5.6f));
   }
 
-  static class InputNumberMap {
+  public static class InputNumberMap {
     @Secret public Map<String, Number> numberMap = new HashMap<>(Map.of("bar", 3, "baz", 5.6f));
   }
 
-  static class InputNumberSet {
+  public static class InputNumberSet {
     @Secret public Set<Number> numberSet = new HashSet<>(Set.of(3, 5.6f));
   }
 
-  static class InputObjectArray {
+  public static class InputObjectArray {
     @Secret
     public final OutboundTestInput[] inputArray =
         new OutboundTestInput[] {new OutboundTestInput(), new OutboundTestInput()};
   }
 
-  static class InputObjectList {
+  public static class InputObjectList {
     @Secret
     public final List<OutboundTestInput> inputList =
         List.of(new OutboundTestInput(), new OutboundTestInput());
   }
 
-  static class InputObjectMap {
+  public static class InputObjectMap {
     @Secret
     public final Map<String, OutboundTestInput> inputMap = Map.of("bar", new OutboundTestInput());
   }
 
-  static class InputObjectSet {
+  public static class InputObjectSet {
     @Secret
     public final Set<OutboundTestInput> inputSet =
         Set.of(new OutboundTestInput(), new OutboundTestInput());
   }
 
-  static class InputStringArray {
+  public static class InputStringArray {
     @Secret public final String[] stringArray = new String[] {"secrets.s3cr3t", "foo"};
   }
 
-  static class InputStringList {
+  public static class InputStringList {
     @Secret
     public final List<String> stringList = new ArrayList<>(List.of("secrets.s3cr3t", "foo"));
   }
 
-  static class InputStringListImmutable {
+  public static class InputStringListImmutable {
     @Secret public List<String> stringSet = List.of("secrets.s3cr3t", "foo");
   }
 
-  static class InputStringMap {
+  public static class InputStringMap {
     @Secret
     public final Map<String, String> stringMap =
         new HashMap<>(Map.of("bar", "secrets.s3cr3t", "baz", "foo"));
   }
 
-  static class InputStringMapImmutable {
+  public static class InputStringMapImmutable {
     @Secret public Map<String, String> stringMap = Map.of("foo", "secrets.s3cr3t");
   }
 
-  static class InputStringSet {
+  public static class InputStringSet {
     @Secret public Set<String> stringSet = new HashSet<>(Set.of("secrets.s3cr3t", "foo"));
   }
 
-  static class InputStaticString {
+  public static class InputStaticString {
     @Secret public static String staticString = "secrets.s3cr3t";
   }
 
-  static class InputPrivateStaticString {
+  public static class InputStringSetCustomHandling {
+    @Secret(handler = MySetHandler.class)
+    public Set<Object> objectSet = new HashSet<>(Set.of("secrets.s3cr3t", new OutboundTestInput()));
+  }
+
+  public static class InputPrivateStaticString {
     @Secret private static String staticString = "secrets.s3cr3t";
 
     public static String getStaticString() {
       return staticString;
+    }
+  }
+
+  public static class MySetHandler implements SecretContainerHandler {
+
+    @SuppressWarnings({"ResultOfMethodCallIgnored", "unchecked"})
+    @Override
+    public void handleSecretContainer(Object input, SecretElementHandler elementHandler) {
+      // plain secret Strings are directly replaced
+      Set<Object> inputSet = (Set<Object>) input;
+      inputSet.remove("secrets.s3cr3t");
+      inputSet.add("plain");
+      // all elements are handled afterward, to also handle potential containers
+      inputSet.forEach(e -> elementHandler.handleSecretElement(e, "", "", Object::toString));
     }
   }
 }
