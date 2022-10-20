@@ -1,0 +1,41 @@
+[
+  {
+    "testDescription": "Request with secrets",
+    "authentication":{
+      "secretKey":"secrets.AWS_SECRET_KEY",
+      "accessKey":"secrets.AWS_ACCESS_KEY"
+    },
+    "topic":{
+      "message":"Hello",
+      "subject":"MySubject",
+      "region":"us-east-1",
+      "topicArn":"arn:aws:sns:us-east-1:036433529947:MyCamundaDemo"
+    }
+  },
+  {
+    "testDescription": "Request without secrets",
+    "authentication":{
+      "secretKey":"AAAABBBBCCCDDD",
+      "accessKey":"4W553CR3TK3Y"
+    },
+    "topic":{
+      "message":"Hello",
+      "subject":"MySubject",
+      "region":"us-east-1",
+      "topicArn":"arn:aws:sns:us-east-1:036433529947:MyCamundaDemo"
+    }
+  },
+  {
+    "testDescription": "Request with secrets for ARN",
+    "authentication":{
+      "secretKey":"secrets.AWS_SECRET_KEY",
+      "accessKey":"secrets.AWS_ACCESS_KEY"
+    },
+    "topic":{
+      "message":"Hello",
+      "subject":"MySubject",
+      "region":"us-east-1",
+      "topicArn":"secrets.AWS_TOPIC_ARN"
+    }
+  }
+]

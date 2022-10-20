@@ -1,0 +1,78 @@
+[
+  {
+    "testDescription": "No authentication",
+    "topic":{
+      "message":"Hello",
+      "subject":"MySubject",
+      "region":"us-east-1",
+      "topicArn":"arn:aws:sns:us-east-1:036433529947:MyCamundaDemo"
+    }
+  },
+  {
+    "testDescription": "No access key",
+    "authentication":{
+      "secretKey":"secrets.AWS_SECRET_KEY"
+    },
+    "topic":{
+      "message":"Hello",
+      "subject":"MySubject",
+      "region":"us-east-1",
+      "topicArn":"arn:aws:sns:us-east-1:036433529947:MyCamundaDemo"
+    }
+  },
+  {
+    "testDescription": "No secret key",
+    "authentication":{
+      "accessKey":"secrets.AWS_ACCESS_KEY"
+    },
+    "topic":{
+      "message":"Hello",
+      "subject":"MySubject",
+      "region":"us-east-1",
+      "topicArn":"arn:aws:sns:us-east-1:036433529947:MyCamundaDemo"
+    }
+  },
+  {
+    "testDescription": "No topic ARN",
+    "authentication":{
+      "secretKey":"secrets.AWS_SECRET_KEY",
+      "accessKey":"secrets.AWS_ACCESS_KEY"
+    },
+    "topic":{
+      "message":"Hello",
+      "subject":"MySubject",
+      "region":"us-east-1"
+    }
+  },
+  {
+    "testDescription": "No region",
+    "authentication":{
+      "secretKey":"secrets.AWS_SECRET_KEY",
+      "accessKey":"secrets.AWS_ACCESS_KEY"
+    },
+    "topic":{
+      "message":"Hello",
+      "subject":"MySubject",
+      "topicArn":"arn:aws:sns:us-east-1:036433529947:MyCamundaDemo"
+    }
+  },
+  {
+    "testDescription": "No message body",
+    "authentication":{
+      "secretKey":"secrets.AWS_SECRET_KEY",
+      "accessKey":"secrets.AWS_ACCESS_KEY"
+    },
+    "topic":{
+      "subject":"MySubject",
+      "region":"us-east-1",
+      "topicArn":"arn:aws:sns:us-east-1:036433529947:MyCamundaDemo"
+    }
+  },
+  {
+    "testDescription": "No topic",
+    "authentication":{
+      "secretKey":"secrets.AWS_SECRET_KEY",
+      "accessKey":"secrets.AWS_ACCESS_KEY"
+    }
+  }
+]
