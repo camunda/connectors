@@ -17,6 +17,7 @@ import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -35,13 +36,11 @@ public class ProcessDefinitionImporter {
   private InboundConnectorRegistry registry;
 
   @Autowired
-  private OperateClientFactory operateClientFactory;
+  private CamundaOperateClient camundaOperateClient;
 
   @Scheduled(fixedDelay = 5000)
   public void scheduleImport() throws OperateException {
     LOG.trace("Query process deployments...");
-    // Lazy initialize the client - could be replaced by some Spring tricks later
-    CamundaOperateClient camundaOperateClient = operateClientFactory.camundaOperateClient();
 
     // TODO: Think about pagination if we really have more process definitions
     SearchQuery processDefinitionQuery = new SearchQuery.Builder()

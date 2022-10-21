@@ -9,6 +9,7 @@ import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.client.api.response.ProcessInstanceEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Collection;
 import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -33,6 +35,7 @@ public class InboundWebhookRestController {
   private final FeelEngineWrapper feelEngine;
   private final ObjectMapper jsonMapper;
 
+  @Autowired
   public InboundWebhookRestController(
           final InboundConnectorRegistry registry,
           final ZeebeClient zeebeClient,
@@ -45,7 +48,7 @@ public class InboundWebhookRestController {
   }
 
   @PostMapping("/inbound/{context}")
-  public ResponseEntity<ProcessInstanceEvent> inbound(
+  public ResponseEntity<WebhookResponse> inbound(
       @PathVariable String context,
       @RequestBody byte[] bodyAsByteArray, // it is important to get pure body in order to recalculate HMAC
       @RequestHeader Map<String, String> headers) throws IOException {
@@ -55,56 +58,53 @@ public class InboundWebhookRestController {
     if (!registry.containsContextPath(context)) {
       throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No webhook found for context: " + context);
     }
-    WebhookConnectorProperties connectorProperties = registry.getWebhookConnectorByContextPath(context);
 
     // TODO(nikku): what context do we expose?
     // TODO(igpetrov): handling exceptions? Throw or fail? Maybe spring controller advice?
+    // TODO: Check if that always works (can we have an empty body for example?)
     Map bodyAsMap = jsonMapper.readValue(bodyAsByteArray, Map.class);
-    final Map<String, Object> webhookContext =
-        Map.of(
-            "request",
-            Map.of(
+    final Map<String, Object> webhookContext = Map.of(
+            "request", Map.of(
                 "body", bodyAsMap,
                 "headers", headers));
 
-    final var valid = validateSecret(connectorProperties, webhookContext);
+    WebhookResponse response = new WebhookResponse();
+    Collection<WebhookConnectorProperties> connectors = registry.getWebhookConnectorByContextPath(context);
+    for (WebhookConnectorProperties connectorProperties : connectors) {
 
-    if (!valid) {
-      LOG.debug("Failed validation {} :: {} {}", context, webhookContext);
-      return ResponseEntity.status(400).build();
+      try {
+        if (!validateSecret(connectorProperties, webhookContext)) {
+          LOG.debug("Failed validation {} :: {} {}", context, webhookContext);
+          response.addUnauthorizedConnector(connectorProperties);
+        } else { // Authorized
+
+          try {
+            // TODO(igpetrov): currently in test mode. Don't enforce for now.
+            final var isHmacValid = isValidHmac(connectorProperties, bodyAsByteArray, headers);
+            LOG.debug("Test mode: validating HMAC. Was {}", isHmacValid);
+          } catch (NoSuchAlgorithmException e) {
+            LOG.error("Wasn't able to recognise HMAC algorithm {}", connectorProperties.getHMACAlgo());
+          } catch (InvalidKeyException e) {
+            // FIXME: remove exposure of secret key when prototyping complit
+            LOG.error("Secret key '{}' was invalid", connectorProperties.getHMACSecret());
+          }
+
+          if (!checkActivation(connectorProperties, webhookContext)) {
+            LOG.debug("Should not activate {} :: {}", context, webhookContext);
+            response.addUnactivatedConnector(connectorProperties);
+          } else {
+            ProcessInstanceEvent processInstanceEvent = executeWebhookConnector(connectorProperties, webhookContext);
+            LOG.debug("Webhook {} created process instance {}", connectorProperties, processInstanceEvent);
+            response.addExecutedConnector(connectorProperties, processInstanceEvent);
+          }
+        }
+      } catch (Exception exception) {
+        LOG.error("Webhook {} failed to create process instance", connectorProperties, exception);
+        response.addException(connectorProperties, exception);
+      }
     }
 
-    try {
-      // TODO(igpetrov): currently in test mode. Don't enforce for now.
-      final var isHmacValid = isValidHmac(connectorProperties, bodyAsByteArray, headers);
-      LOG.debug("Test mode: validating HMAC. Was {}", isHmacValid);
-    } catch (NoSuchAlgorithmException e) {
-      LOG.error("Wasn't able to recognise HMAC algorithm {}", connectorProperties.getHMACAlgo());
-    } catch (InvalidKeyException e) {
-      // FIXME: remove exposure of secret key when prototyping complit
-      LOG.error("Secret key '{}' was invalid", connectorProperties.getHMACSecret());
-    }
-
-    final var shouldActivate = checkActivation(connectorProperties, webhookContext);
-    if (!shouldActivate) {
-      LOG.debug("Should not activate {} :: {}", context, webhookContext);
-      return ResponseEntity.status(HttpStatus.OK).build();
-    }
-
-    final var variables = extractVariables(connectorProperties, webhookContext);
-
-    final var processInstanceEvent = startInstance(connectorProperties, variables);
-
-    LOG.debug(
-        "Webhook {} created process instance {} with variables {}",
-        connectorProperties,
-        processInstanceEvent.getProcessInstanceKey(),
-        variables);
-
-    // TODO: how much context do we want to expose?
-
-    // respond with 201 if execution triggered behavior
-    return ResponseEntity.status(HttpStatus.CREATED).body(processInstanceEvent);
+    return ResponseEntity.status(HttpStatus.OK).body(response);
   }
 
   private boolean isValidHmac(final WebhookConnectorProperties connectorProperties,
@@ -126,25 +126,22 @@ public class InboundWebhookRestController {
     return validator.isRequestValid();
   }
 
-  private ProcessInstanceEvent startInstance(
-          WebhookConnectorProperties connectorProperties, Map<String, Object> variables) {
-    try {
-      return zeebeClient
-          .newCreateInstanceCommand()
-          .bpmnProcessId(connectorProperties.getBpmnProcessId())
-          .version(connectorProperties.getVersion())
-          .variables(variables)
-          .send()
-          .join();
-    } catch (Exception exception) {
-      throw fail("Failed to start process instance", connectorProperties, exception);
-    }
-  }
+  /**
+   * This could be potentially moved to an interface?
+   * See https://github.com/camunda/connector-sdk-inbound-webhook/issues/26
+   * @return
+   */
+  private ProcessInstanceEvent executeWebhookConnector(WebhookConnectorProperties connectorProperties, Map<String, Object> webhookContext) {
+    final Map<String, Object> variables = extractVariables(connectorProperties, webhookContext);
 
-  private ResponseStatusException fail(
-      String message, WebhookConnectorProperties connectorProperties, Exception exception) {
-    LOG.error("Webhook {} failed to create process instance", connectorProperties, exception);
-    return new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, message);
+    return zeebeClient
+        .newCreateInstanceCommand()
+        .bpmnProcessId(connectorProperties.getBpmnProcessId())
+        .version(connectorProperties.getVersion())
+        .variables(variables)
+        .send()
+        .join();
+      //throw fail("Failed to start process instance", connectorProperties, exception);
   }
 
   private Map<String, Object> extractVariables(
@@ -154,11 +151,8 @@ public class InboundWebhookRestController {
     if (variableMapping == null) {
       return context;
     }
-    try {
-      return feelEngine.evaluate(variableMapping, context);
-    } catch (Exception exception) {
-      throw fail("Failed to extract variables", connectorProperties, exception);
-    }
+    return feelEngine.evaluate(variableMapping, context);
+//      throw fail("Failed to extract variables", connectorProperties, exception);
   }
 
   private boolean checkActivation(
@@ -169,12 +163,9 @@ public class InboundWebhookRestController {
     if (activationCondition == null) {
       return true;
     }
-    try {
-      Object shouldActivate = feelEngine.evaluate(activationCondition, context);
-      return Boolean.TRUE.equals(shouldActivate);
-    } catch (Exception exception) {
-      throw fail("Failed to check activation", connectorProperties, exception);
-    }
+    Object shouldActivate = feelEngine.evaluate(activationCondition, context);
+    return Boolean.TRUE.equals(shouldActivate);
+//      throw fail("Failed to check activation", connectorProperties, exception);
   }
 
   private boolean validateSecret(
@@ -183,11 +174,10 @@ public class InboundWebhookRestController {
     // at this point we assume secrets exist / had been specified
     var secretExtractor = connectorProperties.getSecretExtractor();
     var secret = connectorProperties.getSecret();
-    try {
-      String providedSecret = feelEngine.evaluate(secretExtractor, context);
-      return secret.equals(providedSecret);
-    } catch (Exception exception) {
-      throw fail("Failed to validate secret", connectorProperties, exception);
-    }
+
+    String providedSecret = feelEngine.evaluate(secretExtractor, context);
+    return secret.equals(providedSecret);
+//      throw fail("Failed to validate secret", connectorProperties, exception);
+
   }
 }

@@ -1,6 +1,7 @@
 package io.camunda.connector.inbound.feel;
 
 import org.camunda.feel.FeelEngine;
+import org.camunda.feel.impl.JavaValueMapper;
 import org.camunda.feel.impl.SpiServiceLoader;
 import org.springframework.stereotype.Service;
 import scala.jdk.javaapi.CollectionConverters;
@@ -10,7 +11,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-@Service
+/**
+ * Wait for https://github.com/camunda/connector-sdk/issues/178 to be solved - then delete this here.
+ */
 public class FeelEngineWrapper {
 
   private final FeelEngine feelEngine;
@@ -18,8 +21,7 @@ public class FeelEngineWrapper {
   public FeelEngineWrapper() {
     feelEngine =
         new FeelEngine.Builder()
-            .valueMapper(SpiServiceLoader.loadValueMapper())
-            .functionProvider(SpiServiceLoader.loadFunctionProvider())
+            .customValueMapper(new JavaValueMapper())
             .build();
   }
 

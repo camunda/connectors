@@ -10,20 +10,31 @@ public class WebhookConnectorProperties {
         this.genericProperties = properties;
     }
 
+    public String getConnectorIdentifier() {
+        return "" + genericProperties.getType() + "-" + getContext() + "-" + genericProperties.getBpmnProcessId() + "-" + genericProperties.getVersion();
+    }
+    public String readProperty(String propertyName) {
+        String result = genericProperties.getProperties().get(propertyName);
+        if (result==null) {
+            throw new IllegalArgumentException("Property '"+propertyName+"' must be set for connector");
+        }
+        return result;
+    }
+
     public String getContext() {
-        return genericProperties.getProperties().get("inbound.context");
+        return readProperty("inbound.context");
     }
     public String getSecretExtractor() {
-        return genericProperties.getProperties().get("inbound.secretExtractor");
+        return readProperty("inbound.secretExtractor");
     }
     public String getSecret() {
-        return genericProperties.getProperties().get("inbound.secret");
+        return readProperty("inbound.secret");
     }
     public String getActivationCondition() {
-        return genericProperties.getProperties().get("inbound.activationCondition");
+        return readProperty("inbound.activationCondition");
     }
     public String getVariableMapping() {
-        return genericProperties.getProperties().get("inbound.variableMapping");
+        return readProperty("inbound.variableMapping");
     }
 
     // Security / HMAC Validation
