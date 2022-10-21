@@ -97,6 +97,11 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
     final var method = request.getMethod().toUpperCase();
     final var url = request.getUrl();
 
+    // TODO: add more clean solution
+    if (url.contains("computeMetadata")) {
+      throw new RuntimeException("The provided URL is not allowed");
+    }
+
     final GenericUrl genericUrl = new GenericUrl(url);
 
     if (request.hasQueryParameters()) {
