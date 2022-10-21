@@ -9,6 +9,7 @@ import io.camunda.operate.exception.OperateException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
@@ -49,10 +50,6 @@ public class OperateClientFactory {
     @Value("${camunda.operate.client.keycloak-realm:#{null}}")
     private String operateKeycloakRealm;
 
-    // Cached client, which is lazy initialized
-    // TODO: Move lazy initialization to the Spring level
-    private CamundaOperateClient client;
-
     private String getOperateUrl() {
         if (clusterId!=null) {
             String url = "https://" + region + ".operate.camunda.io/" + clusterId + "/";
@@ -92,16 +89,10 @@ public class OperateClientFactory {
     }
 
     public CamundaOperateClient camundaOperateClient() throws OperateException {
-        if (client==null) {
-            client = createCamundaOperateClient();
-        }
-        return client;
-    }
-
-    private CamundaOperateClient createCamundaOperateClient() throws OperateException {
         String operateUrl = getOperateUrl();
         return new CamundaOperateClient.Builder()
                 .operateUrl(operateUrl)
-                .authentication(getAuthentication(operateUrl)).build();
+                .authentication(getAuthentication(operateUrl))
+                .build();
     }
 }

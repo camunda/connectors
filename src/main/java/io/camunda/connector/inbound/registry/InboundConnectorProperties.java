@@ -28,6 +28,13 @@ public class InboundConnectorProperties {
         this.processDefinitionKey = processDefinitionKey;
     }
 
+    /**
+     * @return a string identifying this connector in log message or responses
+     */
+    public String getConnectorIdentifier() {
+        return type + "-" + bpmnProcessId + "-" + version;
+    }
+
     public String getBpmnProcessId() {
         return bpmnProcessId;
     }
