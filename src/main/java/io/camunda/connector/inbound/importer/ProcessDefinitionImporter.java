@@ -42,9 +42,7 @@ public class ProcessDefinitionImporter {
   public void scheduleImport() throws OperateException {
     LOG.trace("Query process deployments...");
 
-    // TODO: Think about pagination if we really have more process definitions
     SearchQuery processDefinitionQuery = new SearchQuery.Builder()
-            .withSize(1000)
             .withSort(new Sort("version", SortOrder.ASC))
             .build();
 
@@ -58,7 +56,7 @@ public class ProcessDefinitionImporter {
         LOG.debug("Check " + processDefinition + " for connectors.");
 
         String processDefinitionXml = camundaOperateClient.getProcessDefinitionXml(processDefinition.getKey());
-        processBpmnXml(processDefinitionXml, processDefinition);
+        processBpmnXml(processDefinition, processDefinitionXml);
 
         registry.markProcessDefinitionChecked(processDefinition.getKey());
       }
@@ -68,7 +66,7 @@ public class ProcessDefinitionImporter {
 
 
 
-  private void processBpmnXml(String resource, ProcessDefinition processDefinition) {
+  private void processBpmnXml(ProcessDefinition processDefinition, String resource) {
     final BpmnModelInstance bpmnModelInstance = Bpmn.readModelFromStream(
         new ByteArrayInputStream(resource.getBytes()));
     bpmnModelInstance.getDefinitions()
