@@ -109,6 +109,7 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
     }
 
     final var httpRequest = requestFactory.buildRequest(method, genericUrl, content);
+    httpRequest.setFollowRedirects(false);
 
     final var headers = createHeaders(request);
     httpRequest.setHeaders(headers);
