@@ -33,6 +33,7 @@ import com.google.api.client.http.HttpResponse;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.gson.JsonObject;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.http.model.HttpJsonRequest;
 import io.camunda.connector.http.model.HttpJsonResult;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import java.io.ByteArrayInputStream;
@@ -132,6 +133,28 @@ public class HttpJsonFunctionTest extends BaseTest {
     JsonObject asJsonObject = gson.toJsonTree(result.getBody()).getAsJsonObject();
     assertThat(asJsonObject.has("unknown")).isTrue();
     assertThat(asJsonObject.get("unknown").isJsonNull()).isTrue();
+  }
+
+  @ParameterizedTest(name = "Executing test case: {0}")
+  @MethodSource("successCases")
+  public void execute_shouldSetConnectTime(final String input) throws IOException {
+    // given - minimal required entity
+    final OutboundConnectorContext context = Mockito.mock(OutboundConnectorContext.class);
+    when(context.getVariables()).thenReturn(input);
+
+    when(requestFactory.buildRequest(
+            anyString(), any(GenericUrl.class), nullable(HttpContent.class)))
+        .thenReturn(httpRequest);
+    when(httpResponse.getHeaders())
+        .thenReturn(new HttpHeaders().setContentType(APPLICATION_JSON.getMimeType()));
+    when(httpRequest.execute()).thenReturn(httpResponse);
+    // when
+    functionUnderTest.execute(context);
+    // then
+    String connectTimeout =
+        gson.fromJson(input, HttpJsonRequest.class).getConnectionTimeoutInSeconds();
+    int expectedTimeInMilliseconds = Integer.parseInt(connectTimeout) * 1000;
+    verify(httpRequest).setConnectTimeout(expectedTimeInMilliseconds);
   }
 
   private static Stream<String> successCases() throws IOException {

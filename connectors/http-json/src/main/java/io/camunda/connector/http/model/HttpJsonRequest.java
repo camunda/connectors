@@ -36,6 +36,11 @@ public class HttpJsonRequest {
   @Valid @Secret private Authentication authentication;
   @Secret private Map<String, String> queryParameters;
   @Secret private Map<String, String> headers;
+
+  @Pattern(regexp = "^([0-9]*$)|(secrets.*$)")
+  @Secret
+  private String connectionTimeoutInSeconds;
+
   private Object body;
 
   public boolean hasAuthentication() {
@@ -94,6 +99,14 @@ public class HttpJsonRequest {
     this.headers = headers;
   }
 
+  public String getConnectionTimeoutInSeconds() {
+    return connectionTimeoutInSeconds;
+  }
+
+  public void setConnectionTimeoutInSeconds(final String connectionTimeoutInSeconds) {
+    this.connectionTimeoutInSeconds = connectionTimeoutInSeconds;
+  }
+
   public Object getBody() {
     return body;
   }
@@ -110,13 +123,14 @@ public class HttpJsonRequest {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    HttpJsonRequest that = (HttpJsonRequest) o;
-    return Objects.equal(method, that.method)
-        && Objects.equal(url, that.url)
-        && Objects.equal(authentication, that.authentication)
-        && Objects.equal(queryParameters, that.queryParameters)
-        && Objects.equal(headers, that.headers)
-        && Objects.equal(body, that.body);
+    final HttpJsonRequest that = (HttpJsonRequest) o;
+    return java.util.Objects.equals(method, that.method)
+        && java.util.Objects.equals(url, that.url)
+        && java.util.Objects.equals(authentication, that.authentication)
+        && java.util.Objects.equals(queryParameters, that.queryParameters)
+        && java.util.Objects.equals(headers, that.headers)
+        && java.util.Objects.equals(connectionTimeoutInSeconds, that.connectionTimeoutInSeconds)
+        && java.util.Objects.equals(body, that.body);
   }
 
   @Override
@@ -139,6 +153,9 @@ public class HttpJsonRequest {
         + queryParameters
         + ", headers="
         + headers
+        + ", connectionTimeoutInSeconds='"
+        + connectionTimeoutInSeconds
+        + '\''
         + ", body="
         + body
         + '}';

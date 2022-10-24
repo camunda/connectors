@@ -52,6 +52,8 @@ public class HttpJsonFunctionSecretsTest extends BaseTest {
     // Then should replace secrets
     assertThat(httpJsonRequest.getUrl()).isEqualTo(ActualValue.URL);
     assertThat(httpJsonRequest.getMethod()).isEqualTo(ActualValue.METHOD);
+    assertThat(httpJsonRequest.getConnectionTimeoutInSeconds())
+        .isEqualTo(ActualValue.CONNECT_TIMEOUT);
   }
 
   @ParameterizedTest(name = "Should replace auth secrets")

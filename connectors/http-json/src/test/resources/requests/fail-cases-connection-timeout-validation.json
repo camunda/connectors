@@ -1,0 +1,85 @@
+[
+  {
+    "descriptionOfTest": "Negative value",
+    "method": "get",
+    "url": "https://camunda.io/http-endpoint",
+    "connectionTimeoutInSeconds": "-1",
+    "authentication": {
+      "type": "noAuth"
+    }
+  },
+  {
+    "descriptionOfTest": "Negative value",
+    "method": "get",
+    "url": "https://camunda.io/http-endpoint",
+    "connectionTimeoutInSeconds": "-99",
+    "authentication": {
+      "type": "noAuth"
+    }
+  },
+  {
+    "descriptionOfTest": "String value",
+    "method": "get",
+    "url": "https://camunda.io/http-endpoint",
+    "connectionTimeoutInSeconds": "bad value",
+    "authentication": {
+      "type": "noAuth"
+    }
+  },
+  {
+    "descriptionOfTest": "Normal value with space",
+    "method": "get",
+    "url": "https://camunda.io/http-endpoint",
+    "connectionTimeoutInSeconds": "23 ",
+    "authentication": {
+      "type": "noAuth"
+    }
+  },
+  {
+    "descriptionOfTest": "Blank value",
+    "method": "get",
+    "url": "https://camunda.io/http-endpoint",
+    "connectionTimeoutInSeconds": " ",
+    "authentication": {
+      "type": "noAuth"
+    }
+  },
+  {
+    "descriptionOfTest": "Float value",
+    "method": "get",
+    "url": "https://camunda.io/http-endpoint",
+    "connectionTimeoutInSeconds": "1.56",
+    "authentication": {
+      "type": "bearer",
+      "token": "secrets.TOKEN_KEY"
+    }
+  },
+  {
+    "descriptionOfTest": "Float value",
+    "method": "get",
+    "url": "https://camunda.io/http-endpoint",
+    "connectionTimeoutInSeconds": "0.1",
+    "authentication": {
+      "type": "noAuth"
+    }
+  },
+  {
+    "descriptionOfTest": "Binary value",
+    "method": "get",
+    "url": "https://camunda.io/http-endpoint",
+    "connectionTimeoutInSeconds": "0xFF",
+    "authentication": {
+      "type": "noAuth"
+    }
+  },
+  {
+    "descriptionOfTest": "Binary value",
+    "method": "get",
+    "url": "https://camunda.io/http-endpoint",
+    "connectionTimeoutInSeconds": "0b0011",
+    "authentication": {
+      "type": "bearer",
+      "token": "secrets.TOKEN_KEY"
+    }
+  }
+]
