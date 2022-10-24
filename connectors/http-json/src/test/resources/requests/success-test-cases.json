@@ -3,6 +3,7 @@
     "descriptionOfTest": "Normal request with no auth",
     "method": "get",
     "url": "https://camunda.io/http-endpoint",
+    "connectionTimeoutInSeconds": "20",
     "authentication": {
       "type": "noAuth"
     },
@@ -25,6 +26,7 @@
     "descriptionOfTest": "Normal request with basic auth",
     "method": "get",
     "url": "https://camunda.io/http-endpoint",
+    "connectionTimeoutInSeconds": "0",
     "queryParameters": {
       "q": "test",
       "priority": 12
@@ -50,6 +52,7 @@
     "descriptionOfTest": "Normal request with bearer auth",
     "method": "get",
     "url": "https://camunda.io/http-endpoint",
+    "connectionTimeoutInSeconds": "30",
     "queryParameters": {
       "q": "test",
       "priority": 12
@@ -74,6 +77,7 @@
     "descriptionOfTest": "Normal request with no query params",
     "method": "get",
     "url": "https://camunda.io/http-endpoint",
+    "connectionTimeoutInSeconds": "200",
     "headers": {
       "X-Camunda-Cluster-ID": "abcdef",
       "User-Agent": "http-connector-demo"
@@ -94,6 +98,7 @@
     "descriptionOfTest": "Normal request with no headers",
     "method": "get",
     "url": "https://camunda.io/http-endpoint",
+    "connectionTimeoutInSeconds": "50",
     "queryParameters": {
       "q": "test",
       "priority": 12
@@ -114,6 +119,7 @@
   {
     "descriptionOfTest": "Normal request with no body",
     "method": "get",
+    "connectionTimeoutInSeconds": "30",
     "url": "https://camunda.io/http-endpoint",
     "queryParameters": {
       "q": "test",
@@ -132,6 +138,7 @@
     "descriptionOfTest": "Normal request with empty body",
     "method": "get",
     "url": "https://camunda.io/http-endpoint",
+    "connectionTimeoutInSeconds": "0",
     "queryParameters": {
       "q": "test",
       "priority": 12
@@ -145,6 +152,31 @@
       "token": "secrets.MY_TOKEN"
     },
     "body": {
+    }
+  },
+  {
+    "descriptionOfTest": "Normal request with connectionTimeoutInSeconds",
+    "method": "get",
+    "url": "https://camunda.io/http-endpoint",
+    "queryParameters": {
+      "q": "test",
+      "priority": 12
+    },
+    "headers": {
+      "X-Camunda-Cluster-ID": "abcdef",
+      "User-Agent": "http-connector-demo"
+    },
+    "authentication": {
+      "type": "bearer",
+      "token": "secrets.MY_TOKEN"
+    },
+    "connectionTimeoutInSeconds": "50",
+    "body": {
+      "customer": {
+        "id": 1231231,
+        "name": "Jane Doe",
+        "email": "jane.doe@exampe.com"
+      }
     }
   }
 ]

@@ -35,6 +35,7 @@ public class BaseTest {
   protected interface SecretsConstant {
     String URL = "URL_KEY";
     String METHOD = "METHOD_KEY";
+    String CONNECT_TIMEOUT = "CONNECT_TIMEOUT_KEY";
 
     interface Authentication {
       String TOKEN = "TOKEN_KEY";
@@ -56,6 +57,7 @@ public class BaseTest {
   protected interface ActualValue {
     String URL = "https://camunda.io/http-endpoint";
     String METHOD = "GET";
+    String CONNECT_TIMEOUT = "50";
 
     interface Authentication {
       String TOKEN = "test token";
@@ -85,6 +87,7 @@ public class BaseTest {
     return OutboundConnectorContextBuilder.create()
         .secret(SecretsConstant.URL, ActualValue.URL)
         .secret(SecretsConstant.METHOD, ActualValue.METHOD)
+        .secret(SecretsConstant.CONNECT_TIMEOUT, ActualValue.CONNECT_TIMEOUT)
         .secret(SecretsConstant.Authentication.TOKEN, ActualValue.Authentication.TOKEN)
         .secret(SecretsConstant.Authentication.USERNAME, ActualValue.Authentication.USERNAME)
         .secret(SecretsConstant.Authentication.PASSWORD, ActualValue.Authentication.PASSWORD)

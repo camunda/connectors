@@ -31,6 +31,10 @@
       "label": "Payload"
     },
     {
+      "id": "timeout",
+      "label": "Connect Timeout"
+    },
+    {
       "id": "output",
       "label": "Response Mapping"
     }
@@ -192,6 +196,25 @@
       "condition": {
         "property": "authenticationType",
         "equals": "basic"
+      }
+    },
+    {
+      "label": "Connection Timeout",
+      "description": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout.",
+      "group": "timeout",
+      "type": "String",
+      "value": "20",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "connectionTimeoutInSeconds"
+      },
+      "optional": true,
+      "constraints": {
+        "notEmpty": false,
+        "pattern": {
+          "value": "^([0-9]*$)|(secrets.*$)",
+          "message": "Must be timeout in seconds (default value is 20 seconds)"
+        }
       }
     },
     {

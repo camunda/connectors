@@ -38,6 +38,12 @@ public class HttpJsonFunctionInputValidationTest extends BaseTest {
   private static final String FAIL_REQUEST_CASES_PATH =
       "src/test/resources/requests/fail-cases-request-witout-one-requered-field.json";
 
+  private static final String FAIL_CASES_TIMEOUT_CONNECTION_RESOURCE_PATH =
+      "src/test/resources/requests/fail-cases-connection-timeout-validation.json";
+
+  private static final String SUCCESS_CASES_TIMEOUT_CONNECTION_RESOURCE_PATH =
+      "src/test/resources/requests/success-cases-connection-timeout-validation.json";
+
   private static final String REQUEST_METHOD_OBJECT_PLACEHOLDER =
       "{\n \"method\": \"%s\",\n \"url\": \"https://camunda.io/http-endpoint\"\n}";
 
@@ -104,7 +110,44 @@ public class HttpJsonFunctionInputValidationTest extends BaseTest {
     assertThat(thrown.getMessage()).contains("Found constraints violated while validating input");
   }
 
+  @ParameterizedTest(name = "Validate connectionTimeout # {index}")
+  @MethodSource("failTimeOutConnectionCases")
+  void validate_shouldThrowExceptionConnectionTimeoutIsWrong(String input) {
+    // Given request without one required field
+    HttpJsonRequest httpJsonRequest = gson.fromJson(input, HttpJsonRequest.class);
+    OutboundConnectorContext context =
+        OutboundConnectorContextBuilder.create().variables(httpJsonRequest).build();
+    // When context.validate(request);
+    // Then expect exception
+    ConnectorInputException thrown =
+        assertThrows(
+            ConnectorInputException.class,
+            () -> context.validate(httpJsonRequest),
+            "ConnectorInputException was expected");
+    assertThat(thrown.getMessage()).contains("Found constraints violated while validating input");
+  }
+
+  @ParameterizedTest(name = "Success validate connectionTimeout # {index}")
+  @MethodSource("successTimeOutConnectionCases")
+  void validate_shouldValidateWithoutException(String input) {
+    // Given request without one required field
+    HttpJsonRequest httpJsonRequest = gson.fromJson(input, HttpJsonRequest.class);
+    OutboundConnectorContext context =
+        OutboundConnectorContextBuilder.create().variables(httpJsonRequest).build();
+    // When context.validate(request);
+    // Then expect normal validate without exception
+    context.validate(httpJsonRequest);
+  }
+
   protected static Stream<String> failRequestCases() throws IOException {
     return loadTestCasesFromResourceFile(FAIL_REQUEST_CASES_PATH);
+  }
+
+  private static Stream<String> failTimeOutConnectionCases() throws IOException {
+    return loadTestCasesFromResourceFile(FAIL_CASES_TIMEOUT_CONNECTION_RESOURCE_PATH);
+  }
+
+  private static Stream<String> successTimeOutConnectionCases() throws IOException {
+    return loadTestCasesFromResourceFile(SUCCESS_CASES_TIMEOUT_CONNECTION_RESOURCE_PATH);
   }
 }

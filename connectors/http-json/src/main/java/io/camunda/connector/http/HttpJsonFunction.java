@@ -41,12 +41,21 @@ import java.io.Reader;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @OutboundConnector(
     name = "HTTPJSON",
-    inputVariables = {"url", "method", "authentication", "headers", "queryParameters", "body"},
+    inputVariables = {
+      "url",
+      "method",
+      "authentication",
+      "headers",
+      "queryParameters",
+      "connectionTimeoutInSeconds",
+      "body"
+    },
     type = "io.camunda:http-json:1")
 public class HttpJsonFunction implements OutboundConnectorFunction {
 
@@ -110,6 +119,12 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
 
     final var httpRequest = requestFactory.buildRequest(method, genericUrl, content);
     httpRequest.setFollowRedirects(false);
+
+    if (request.getConnectionTimeoutInSeconds() != null) {
+      long connectionTimeout =
+          TimeUnit.SECONDS.toMillis(Long.parseLong(request.getConnectionTimeoutInSeconds()));
+      httpRequest.setConnectTimeout(Math.toIntExact(connectionTimeout));
+    }
 
     final var headers = createHeaders(request);
     httpRequest.setHeaders(headers);
