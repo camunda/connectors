@@ -10,9 +10,7 @@
       "topicName":"some-awesome-topic"
     },
     "message":{
-      "keySerializer":"org.apache.kafka.common.serialization.StringSerializer",
       "key":"Happy",
-      "valueSerializer":"org.apache.kafka.common.serialization.StringSerializer",
       "value":"Case"
     }
   },
@@ -27,9 +25,7 @@
       "topicName":"some-awesome-topic"
     },
     "message":{
-      "keySerializer":"org.apache.kafka.common.serialization.StringSerializer",
       "key":"Happy",
-      "valueSerializer":"org.apache.kafka.common.serialization.StringSerializer",
       "value":"Case"
     },
     "additionalProperties" : {
@@ -47,13 +43,12 @@
       "topicName":"some-awesome-topic"
     },
     "message":{
-      "keySerializer":"org.apache.kafka.common.serialization.StringSerializer",
       "key":"Happy",
-      "valueSerializer":"org.apache.kafka.common.serialization.StringSerializer",
       "value":"Case"
     },
     "additionalProperties" : {
-      "delivery.timeout.ms": "20000"
+      "delivery.timeout.ms": "20000",
+      "value.serializer":"org.apache.kafka.common.serialization.StringSerializer"
     }
   },
   {
@@ -67,9 +62,7 @@
       "topicName":"some-awesome-topic"
     },
     "message":{
-      "keySerializer":"org.apache.kafka.common.serialization.StringSerializer",
       "key":"Happy",
-      "valueSerializer":"org.apache.kafka.common.serialization.StringSerializer",
       "value": {"documentId": "1234567890", "signee": "User Testerson", "contentBase64": "QXQgbGVhc3Qgc29tZWJvZHkgcmVhZHMgdGhlIHRlc3RzLiBHcmVhdCBqb2Ih"}
     },
     "additionalProperties" : {
@@ -87,9 +80,7 @@
       "topicName":"some-awesome-topic"
     },
     "message":{
-      "keySerializer":"org.apache.kafka.common.serialization.StringSerializer",
       "key":{"keyId": "1234567890"},
-      "valueSerializer":"org.apache.kafka.common.serialization.StringSerializer",
       "value": "OK"
     },
     "additionalProperties" : {
@@ -107,9 +98,7 @@
       "topicName":"some-awesome-topic"
     },
     "message":{
-      "keySerializer":"org.apache.kafka.common.serialization.StringSerializer",
       "key":"Happy",
-      "valueSerializer":"org.apache.kafka.common.serialization.StringSerializer",
       "value":"Case"
     }
   },
@@ -124,9 +113,7 @@
       "topicName":"some-awesome-topic"
     },
     "message":{
-      "keySerializer":"org.apache.kafka.common.serialization.StringSerializer",
       "key":"Happy",
-      "valueSerializer":"org.apache.kafka.common.serialization.StringSerializer",
       "value":"Case"
     }
   },
@@ -141,9 +128,7 @@
       "topicName":"some-awesome-topic"
     },
     "message":{
-      "keySerializer":"org.apache.kafka.common.serialization.StringSerializer",
       "key":"Happy",
-      "valueSerializer":"org.apache.kafka.common.serialization.StringSerializer",
       "value":"Case"
     }
   },
@@ -158,9 +143,7 @@
       "topicName":"secrets.TOPIC_NAME"
     },
     "message":{
-      "keySerializer":"org.apache.kafka.common.serialization.StringSerializer",
       "key":"Happy",
-      "valueSerializer":"org.apache.kafka.common.serialization.StringSerializer",
       "value":"Case"
     }
   }
