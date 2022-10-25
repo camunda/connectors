@@ -1,0 +1,49 @@
+[
+  {
+    "description": "sender name is null",
+    "apiKey": "secrets.SENDGRID_API_KEY",
+    "from": {
+      "name": null,
+      "email": "john.doe@example.com"
+    },
+    "to": {
+      "name": "Jane Doe",
+      "email": "jane.doe@example.com"
+    },
+    "content": {
+      "subject": "secrets.CONTENT_SUBJECT",
+      "type": "secrets.CONTENT_TYPE",
+      "value": "secrets.CONTENT_VALUE"
+    }
+  },
+  {
+    "description": "sender name is emppty",
+    "apiKey": "send_grid_key",
+    "from": {
+      "name": "   ",
+      "email": "john.doe@example.com"
+    },
+    "to": {
+      "name": "Jane Doe",
+      "email": "jane.doe@example.com"
+    },
+    "content": {
+      "subject": "subject_test",
+      "type": "text/json",
+      "value": "Hello world"
+    }
+  },
+  {
+    "description": "sender is null",
+    "from": null,
+    "to": {
+      "name": "Jane Doe",
+      "email": "jane.doe@example.com"
+    },
+    "content": {
+      "subject": "subject_test",
+      "type": "text/json",
+      "value": "Hello world"
+    }
+  }
+]

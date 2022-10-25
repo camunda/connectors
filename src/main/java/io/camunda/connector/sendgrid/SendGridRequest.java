@@ -21,6 +21,30 @@ public class SendGridRequest {
   @Valid @Secret private SendGridTemplate template;
   @Valid @Secret private SendGridContent content;
 
+  @AssertTrue(message = "must not be empty")
+  private boolean isSenderName() {
+    return from != null && isNotBlank(from.getName());
+  }
+
+  @AssertTrue(message = "must not be empty")
+  private boolean isSenderEmail() {
+    return from != null && isNotBlank(from.getEmail());
+  }
+
+  @AssertTrue(message = "must not be empty")
+  private boolean isReceiverName() {
+    return to != null && isNotBlank(to.getName());
+  }
+
+  @AssertTrue(message = "must not be empty")
+  private boolean isReceiverEmail() {
+    return to != null && isNotBlank(to.getEmail());
+  }
+
+  private boolean isNotBlank(String str) {
+    return str != null && !str.isBlank();
+  }
+
   @AssertTrue
   private boolean isHasContentOrTemplate() {
     return content != null || template != null;

@@ -22,7 +22,16 @@ public class BaseTest {
   protected static final Gson gson = new Gson();
 
   private static final String FAIL_REQUEST_CASES_PATH =
-      "src/test/resources/requests/request-without-one-field-fail-test-cases.json";
+      "src/test/resources/requests/validation/request-without-one-field-fail-test-cases.json";
+  private static final String FAIL_REQUEST_WITH_WRONG_SENDER_EMAIL =
+      "src/test/resources/requests/validation/validate-sender-email-tests-cases.json";
+  private static final String FAIL_REQUEST_WITH_WRONG_SENDER_NAME =
+      "src/test/resources/requests/validation/validate-sender-name-tests-cases.json";
+  private static final String FAIL_REQUEST_WITH_WRONG_RECEIVER_EMAIL =
+      "src/test/resources/requests/validation/validate-receiver-email-tests-cases.json";
+  private static final String FAIL_REQUEST_WITH_WRONG_RECEIVER_NAME =
+      "src/test/resources/requests/validation/validate-receiver-name-tests-cases.json";
+
   private static final String SUCCESS_REPLACE_SECRETS_REQUEST_CASES_PATH =
       "src/test/resources/requests/replace-secrets-success-test-cases.json";
   private static final String SUCCESS_REPLACE_SECRETS_CONTENT_REQUEST_CASES_PATH =
@@ -33,8 +42,6 @@ public class BaseTest {
       "src/test/resources/requests/send-mail-by-template-success-cases.json";
   private static final String SUCCESS_SEND_MAIL_WITH_CONTENT_REQUEST_CASES_PATH =
       "src/test/resources/requests/send-mail-with-content-success-cases.json";
-
-  protected static final String METHOD = "POST";
 
   protected interface ActualValue {
     String API_KEY = "send_grid_key";
@@ -110,6 +117,22 @@ public class BaseTest {
 
   protected static Stream<String> successSendMailWithContentRequestCases() throws IOException {
     return loadTestCasesFromResourceFile(SUCCESS_SEND_MAIL_WITH_CONTENT_REQUEST_CASES_PATH);
+  }
+
+  protected static Stream<String> failTestWithWrongSenderEmail() throws IOException {
+    return loadTestCasesFromResourceFile(FAIL_REQUEST_WITH_WRONG_SENDER_EMAIL);
+  }
+
+  protected static Stream<String> failTestWithWrongSenderName() throws IOException {
+    return loadTestCasesFromResourceFile(FAIL_REQUEST_WITH_WRONG_SENDER_NAME);
+  }
+
+  protected static Stream<String> failTestWithWrongReceiverEmail() throws IOException {
+    return loadTestCasesFromResourceFile(FAIL_REQUEST_WITH_WRONG_RECEIVER_EMAIL);
+  }
+
+  protected static Stream<String> failTestWithWrongReceiverName() throws IOException {
+    return loadTestCasesFromResourceFile(FAIL_REQUEST_WITH_WRONG_RECEIVER_NAME);
   }
 
   protected static OutboundConnectorContextBuilder getContextBuilderWithSecrets() {
