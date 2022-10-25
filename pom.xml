@@ -4,15 +4,15 @@
   <parent>
     <groupId>io.camunda.connector</groupId>
     <artifactId>connector-parent</artifactId>
-    <version>0.2.0</version>
-    <relativePath></relativePath>    
+    <version>0.2.2</version>
+    <relativePath/>
   </parent>
 
-  <name>connector-template-internal</name>
-  <description>Camunda Connector Template (Internal)</description>
-  <artifactId>connector-template-internal</artifactId>
+  <name>connector-rabbitmq</name>
+  <description>Camunda RabbitMq Connector</description>
+  <artifactId>connector-rabbitmq</artifactId>
   <packaging>jar</packaging>
-  <version>0.0.1-SNAPSHOT</version>
+  <version>0.1.0-SNAPSHOT</version>
 
   <licenses>
     <license>
@@ -43,6 +43,17 @@ except in compliance with the proprietary license.</license.inlineheader>
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.google.code.gson</groupId>
+      <artifactId>gson</artifactId>
+    </dependency>
+
+    <!-- https://mvnrepository.com/artifact/com.rabbitmq/amqp-client -->
+    <dependency>
+      <groupId>com.rabbitmq</groupId>
+      <artifactId>amqp-client</artifactId>
+      <version>5.16.0</version>
     </dependency>
 
     <!-- test dependencies -->
@@ -132,7 +143,7 @@ except in compliance with the proprietary license.</license.inlineheader>
         <dependency>
           <groupId>io.camunda.connector</groupId>
           <artifactId>connector-runtime-cloud</artifactId>
-          <version>0.2.0</version>
+          <version>0.3.0-SNAPSHOT</version>
         </dependency>
       </dependencies>
       <build>
