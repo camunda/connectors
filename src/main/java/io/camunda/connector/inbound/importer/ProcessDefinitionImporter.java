@@ -54,14 +54,19 @@ public class ProcessDefinitionImporter {
 
       if (!registry.processDefinitionChecked(processDefinition.getKey())) {
         LOG.debug("Check " + processDefinition + " for connectors.");
+        registry.markProcessDefinitionChecked(
+                processDefinition.getKey(),
+                processDefinition.getBpmnProcessId(),
+                processDefinition.getVersion().intValue());
 
         String processDefinitionXml = camundaOperateClient.getProcessDefinitionXml(processDefinition.getKey());
         processBpmnXml(processDefinition, processDefinitionXml);
-
-        registry.markProcessDefinitionChecked(processDefinition.getKey());
       }
 
     }
+
+    // Make sure all webhooks endpoints are properly set
+    registry.rewireWebhookEndpoints();
   }
 
 
