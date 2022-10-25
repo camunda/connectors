@@ -9,10 +9,8 @@
     <relativePath/> <!-- lookup parent from repository -->
   </parent>
   <groupId>io.camunda.connector</groupId>
-  <artifactId>connector-inboud-prototype</artifactId>
+  <artifactId>connector-inboud</artifactId>
   <version>0.0.1-SNAPSHOT</version>
-  <name>connector-inboud-prototype</name>
-  <description>Inbound Connector Prototype</description>
   <properties>
     <java.version>17</java.version>
     <version.zeebe>8.1.2</version.zeebe>
