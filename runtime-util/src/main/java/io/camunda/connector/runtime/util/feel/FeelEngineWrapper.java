@@ -25,7 +25,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import org.camunda.feel.FeelEngine;
-import org.camunda.feel.impl.SpiServiceLoader;
+import org.camunda.feel.impl.JavaValueMapper;
 import scala.jdk.javaapi.CollectionConverters;
 
 public class FeelEngineWrapper {
@@ -40,11 +40,7 @@ public class FeelEngineWrapper {
   private final ObjectMapper objectMapper;
 
   public FeelEngineWrapper() {
-    this.feelEngine =
-        new FeelEngine.Builder()
-            .valueMapper(SpiServiceLoader.loadValueMapper())
-            .functionProvider(SpiServiceLoader.loadFunctionProvider())
-            .build();
+    this.feelEngine = new FeelEngine.Builder().customValueMapper(new JavaValueMapper()).build();
     this.objectMapper =
         new ObjectMapper()
             .registerModule(DefaultScalaModule$.MODULE$)
