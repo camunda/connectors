@@ -6,11 +6,7 @@
  */
 package io.camunda.connector.rabbitmq.model;
 
-import com.google.gson.annotations.SerializedName;
-
 public enum RabbitMqAuthenticationType {
-  @SerializedName("uri")
-  URI,
-  @SerializedName("credentials")
-  CREDENTIALS
+  uri,
+  credentials
 }

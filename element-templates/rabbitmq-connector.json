@@ -35,7 +35,7 @@
   "properties": [
     {
       "type": "Hidden",
-      "value": "io.camunda:rabbit-mq:1",
+      "value": "io.camunda:rabbitmq:1",
       "binding": {
         "type": "zeebe:taskDefinition:type"
       }
@@ -48,7 +48,7 @@
       "value": "uri",
       "binding": {
         "type": "zeebe:input",
-        "name": "authentication.connectionType"
+        "name": "authentication.authType"
       },
       "choices": [
         {
@@ -117,7 +117,7 @@
     {
       "label": "Routing Data",
       "description": "Include 'Virtual host', 'Host name', 'Port', 'Exchange', 'Routing key'.",
-      "feel":"required",
+      "feel": "required",
       "group": "routing",
       "type": "String",
       "binding": {
@@ -126,10 +126,6 @@
       },
       "constraints": {
         "notEmpty": true
-      },
-      "condition": {
-        "property": "connectionType",
-        "equals": "credentials"
       }
     },
     {
@@ -149,6 +145,7 @@
       "group": "message",
       "type": "Text",
       "feel": "required",
+      "value": "{}",
       "binding": {
         "type": "zeebe:input",
         "name": "message.properties"
@@ -177,6 +174,6 @@
     }
   ],
   "icon": {
-    "contents": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjcxcHgiIGhlaWdodD0iMjcxcHgiIHZpZXdCb3g9Ii03LjUgMCAyNzEgMjcxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHByZXNlcnZlQXNwZWN0UmF0aW89InhNaWRZTWlkIj48cGF0aCBkPSJNMjQ1LjQ0IDEwOC4zMDhoLTg1LjA5YTcuNzM4IDcuNzM4IDAgMCAxLTcuNzM1LTcuNzM0di04OC42OEMxNTIuNjE1IDUuMzI3IDE0Ny4yOSAwIDE0MC43MjYgMGgtMzAuMzc1Yy02LjU2OCAwLTExLjg5IDUuMzI3LTExLjg5IDExLjg5NHY4OC4xNDNjMCA0LjU3My0zLjY5NyA4LjI5LTguMjcgOC4zMWwtMjcuODg1LjEzM2MtNC42MTIuMDI1LTguMzU5LTMuNzE3LTguMzUtOC4zMjVsLjE3My04OC4yNDFDNTQuMTQ0IDUuMzM3IDQ4LjgxNyAwIDQyLjI0IDBIMTEuODlDNS4zMjEgMCAwIDUuMzI3IDAgMTEuODk0VjI2MC4yMWMwIDUuODM0IDQuNzI2IDEwLjU2IDEwLjU1NSAxMC41NkgyNDUuNDRjNS44MzQgMCAxMC41Ni00LjcyNiAxMC41Ni0xMC41NlYxMTguODY4YzAtNS44MzQtNC43MjYtMTAuNTYtMTAuNTYtMTAuNTZ6bS0zOS45MDIgOTMuMjMzYzAgNy42NDUtNi4xOTggMTMuODQ0LTEzLjg0MyAxMy44NDRIMTY3LjY5Yy03LjY0NiAwLTEzLjg0NC02LjE5OS0xMy44NDQtMTMuODQ0di0yNC4wMDVjMC03LjY0NiA2LjE5OC0xMy44NDQgMTMuODQ0LTEzLjg0NGgyNC4wMDVjNy42NDUgMCAxMy44NDMgNi4xOTggMTMuODQzIDEzLjg0NHYyNC4wMDV6IiBmaWxsPSIjRjYwIi8+PC9zdmc+"
+    "contents": "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='-7.5 0 271 271' preserveAspectRatio='xMidYMid'%3E%3Cpath d='M245.44 108.308h-85.09a7.738 7.738 0 0 1-7.735-7.734v-88.68C152.615 5.327 147.29 0 140.726 0h-30.375c-6.568 0-11.89 5.327-11.89 11.894v88.143c0 4.573-3.697 8.29-8.27 8.31l-27.885.133c-4.612.025-8.359-3.717-8.35-8.325l.173-88.241C54.144 5.337 48.817 0 42.24 0H11.89C5.321 0 0 5.327 0 11.894V260.21c0 5.834 4.726 10.56 10.555 10.56H245.44c5.834 0 10.56-4.726 10.56-10.56V118.868c0-5.834-4.726-10.56-10.56-10.56zm-39.902 93.233c0 7.645-6.198 13.844-13.843 13.844H167.69c-7.646 0-13.844-6.199-13.844-13.844v-24.005c0-7.646 6.198-13.844 13.844-13.844h24.005c7.645 0 13.843 6.198 13.843 13.844v24.005z' fill='%23F60'/%3E%3C/svg%3E"
   }
 }

@@ -20,11 +20,11 @@ public class RabbitMqRequest {
 
   @AssertFalse
   private boolean isRoutingParamsNotFilling() {
-    if (authentication.getAuthType() == RabbitMqAuthenticationType.URI) {
+    if (authentication.getAuthType() == RabbitMqAuthenticationType.uri) {
       // not need check routing when we use URI auth type
       return false;
     }
-    if (authentication.getAuthType() == RabbitMqAuthenticationType.CREDENTIALS && routing != null) {
+    if (authentication.getAuthType() == RabbitMqAuthenticationType.credentials && routing != null) {
       return routing.getPort() == null
           || routing.getPort().isBlank()
           || routing.getHostName() == null
