@@ -17,6 +17,7 @@
 package io.camunda.connector.inbound.webhook;
 
 import io.camunda.connector.inbound.registry.InboundConnectorProperties;
+import io.camunda.connector.inbound.security.signature.HMACSwitchCustomerChoice;
 
 public class WebhookConnectorProperties {
 
@@ -40,12 +41,7 @@ public class WebhookConnectorProperties {
     public String getContext() {
         return readProperty("inbound.context");
     }
-    public String getSecretExtractor() {
-        return readProperty("inbound.secretExtractor");
-    }
-    public String getSecret() {
-        return readProperty("inbound.secret");
-    }
+
     public String getActivationCondition() {
         return readProperty("inbound.activationCondition");
     }
@@ -57,9 +53,9 @@ public class WebhookConnectorProperties {
 
     // Dropdown that indicates whether customer wants to validate webhook request with HMAC. Values: enabled | disabled
     public String shouldValidateHMAC() {
-        return genericProperties.getProperties().getOrDefault("inbound.shouldValidateHmac", "disabled");
+        return genericProperties.getProperties().getOrDefault("inbound.shouldValidateHmac", HMACSwitchCustomerChoice.disabled.name());
     }
-    // HMAC secret token. An arbitrary String, example 'mySecretToken'. Is it the same as getSecret(...)?
+    // HMAC secret token. An arbitrary String, example 'mySecretToken'
     public String getHMACSecret() {
         return genericProperties.getProperties().get("inbound.hmacSecret");
     }

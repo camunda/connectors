@@ -55,9 +55,12 @@ public class HMACSignatureValidator {
     }
 
     public boolean isRequestValid() throws NoSuchAlgorithmException, InvalidKeyException {
-        final String providedHmac = headers.get(hmacHeader);
-
+        final String providedHmac = headers.get(hmacHeader.toLowerCase());
         LOG.debug("Given HMAC from webhook call: {}", providedHmac);
+
+        if (providedHmac == null || providedHmac.isBlank()) {
+            return false;
+        }
 
         byte[] signedEntity = requestBody;
 

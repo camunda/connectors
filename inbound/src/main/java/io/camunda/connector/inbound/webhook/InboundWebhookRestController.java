@@ -21,6 +21,7 @@ import io.camunda.connector.inbound.feel.FeelEngineWrapper;
 import io.camunda.connector.inbound.registry.InboundConnectorRegistry;
 import io.camunda.connector.inbound.security.signature.HMACAlgoCustomerChoice;
 import io.camunda.connector.inbound.security.signature.HMACSignatureValidator;
+import io.camunda.connector.inbound.security.signature.HMACSwitchCustomerChoice;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.client.api.response.ProcessInstanceEvent;
 import org.slf4j.Logger;
@@ -89,22 +90,10 @@ public class InboundWebhookRestController {
     for (WebhookConnectorProperties connectorProperties : connectors) {
 
       try {
-        if (!validateSecret(connectorProperties, webhookContext)) {
-          LOG.debug("Failed validation {} :: {} {}", context, webhookContext);
+        if (!isValidHmac(connectorProperties, bodyAsByteArray, headers)) {
+          LOG.debug("HMAC validation failed {} :: {}", context, webhookContext);
           response.addUnauthorizedConnector(connectorProperties);
         } else { // Authorized
-
-          try {
-            // TODO(igpetrov): currently in test mode. Don't enforce for now.
-            final var isHmacValid = isValidHmac(connectorProperties, bodyAsByteArray, headers);
-            LOG.debug("Test mode: validating HMAC. Was {}", isHmacValid);
-          } catch (NoSuchAlgorithmException e) {
-            LOG.error("Wasn't able to recognise HMAC algorithm {}", connectorProperties.getHMACAlgo());
-          } catch (InvalidKeyException e) {
-            // FIXME: remove exposure of secret key when prototyping complit
-            LOG.error("Secret key '{}' was invalid", connectorProperties.getHMACSecret());
-          }
-
           if (!checkActivation(connectorProperties, webhookContext)) {
             LOG.debug("Should not activate {} :: {}", context, webhookContext);
             response.addUnactivatedConnector(connectorProperties);
@@ -127,7 +116,7 @@ public class InboundWebhookRestController {
                               final byte[] bodyAsByteArray,
                               final Map<String, String> headers)
           throws NoSuchAlgorithmException, InvalidKeyException {
-    if ("disabled".equals(connectorProperties.shouldValidateHMAC())) {
+    if (HMACSwitchCustomerChoice.disabled.name().equals(connectorProperties.shouldValidateHMAC())) {
       return true;
     }
 
@@ -182,18 +171,5 @@ public class InboundWebhookRestController {
     Object shouldActivate = feelEngine.evaluate(activationCondition, context);
     return Boolean.TRUE.equals(shouldActivate);
 //      throw fail("Failed to check activation", connectorProperties, exception);
-  }
-
-  private boolean validateSecret(
-          WebhookConnectorProperties connectorProperties, Map<String, Object> context) {
-
-    // at this point we assume secrets exist / had been specified
-    var secretExtractor = connectorProperties.getSecretExtractor();
-    var secret = connectorProperties.getSecret();
-
-    String providedSecret = feelEngine.evaluate(secretExtractor, context);
-    return secret.equals(providedSecret);
-//      throw fail("Failed to validate secret", connectorProperties, exception);
-
   }
 }

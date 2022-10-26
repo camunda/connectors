@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:modeler="http://camunda.org/schema/modeler/1.0" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.3.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.0.0">
   <bpmn:process id="Process_PULL_REQUEST_NOTIFICATION" name="Pull Request Notification" isExecutable="true">
-    <bpmn:startEvent id="StartEvent_1" name="New Pull Request Opened" zeebe:modelerTemplate="io.camunda.example.inbound.GitHubWebhook.v1">
+    <bpmn:startEvent id="StartEvent_1" name="New Pull Request Opened" zeebe:modelerTemplate="io.camunda.example.inbound.GenericWebhook.v1">
       <bpmn:extensionElements>
         <zeebe:properties>
           <zeebe:property name="inbound.type" value="webhook" />
-          <zeebe:property name="inbound.secretExtractor" value="=get value(request.headers, &#34;x-hub-signature&#34;)" />
+          <zeebe:property name="inbound.shouldValidateHmac" value="disabled" />
           <zeebe:property name="inbound.context" value="GITHUB_INBOUND" />
-          <zeebe:property name="inbound.secret" value="secrets.GITHUB_INBOUND_SECRET" />
           <zeebe:property name="inbound.variableMapping" value="={&#10;  &#34;githubLoginToSlackMapping&#34;: {&#10;    &#34;nikku&#34;: &#34;Nico Rehwaldt&#34;,&#10;    &#34;menski&#34;: &#34;menski&#34;&#10;  },&#10;  &#34;pull_request&#34;: {&#10;    &#34;htmlURL&#34;: request.body.pull_request.html_url,&#10;    &#34;githubUser&#34;: request.body.pull_request.user.login,&#10;    &#34;slackUser&#34;: get value(githubLoginToSlackMapping, githubUser),&#10;    &#34;githubUserURL&#34;: request.body.pull_request.user.html_url,&#10;    &#34;userLink&#34;: (&#10;      if slackUser = null then&#10;        &#34;GitHub user &#60;&#34; + githubUserURL + &#34;|&#34; + githubUser + &#34;&#62;&#34;&#10;      else&#10;         &#34;@&#34; + slackUser&#10;    )&#10;  }&#10;}" />
           <zeebe:property name="inbound.activationCondition" value="=(&#10;  request.body.action = &#34;opened&#34; and &#10;  starts with(request.body.repository.full_name, &#34;camunda/&#34;)&#10;)" />
         </zeebe:properties>
