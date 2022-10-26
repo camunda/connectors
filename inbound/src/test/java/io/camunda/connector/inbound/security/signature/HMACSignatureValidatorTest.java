@@ -32,9 +32,9 @@ import static java.nio.file.Files.readString;
 
 class HMACSignatureValidatorTest {
 
-    private static final String GH_SHA1_HEADER = "X-Hub-Signature";
+    private static final String GH_SHA1_HEADER = "x-hub-signature";
     private static final String GH_SHA1_VALUE = "sha1=de81c837cc792e7d21d7bf9feb74cd19d714baca";
-    private static final String GH_SHA256_HEADER = "X-Hub-Signature-256";
+    private static final String GH_SHA256_HEADER = "x-hub-signature-256";
     private static final String GH_SHA256_LONG_VALUE = "sha256=dd22cfb7ae96875d81bd1a695a0244f2b4c32c0938be0b445f520b0b3e0f43fd";
     private static final String GH_SHA256_SHORT_VALUE = "dd22cfb7ae96875d81bd1a695a0244f2b4c32c0938be0b445f520b0b3e0f43fd";
     private static final String GH_SECRET_KEY = "mySecretKey";
