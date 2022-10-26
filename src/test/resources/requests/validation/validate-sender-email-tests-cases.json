@@ -1,0 +1,50 @@
+[
+  {
+    "description": "sender email is empty",
+    "apiKey": "secrets.SENDGRID_API_KEY",
+    "from": {
+      "name": "John Doe",
+      "email": "  "
+    },
+    "to": {
+      "name": "Jane Doe",
+      "email": "jane.doe@example.com"
+    },
+    "content": {
+      "subject": "secrets.CONTENT_SUBJECT",
+      "type": "secrets.CONTENT_TYPE",
+      "value": "secrets.CONTENT_VALUE"
+    }
+  },
+  {
+    "description": "email sender is null",
+    "apiKey": "send_grid_key",
+    "from": {
+      "name": "John Doe",
+      "email": null
+    },
+    "to": {
+      "name": "Jane Doe",
+      "email": "jane.doe@example.com"
+    },
+    "content": {
+      "subject": "subject_test",
+      "type": "text/json",
+      "value": "Hello world"
+    }
+  },
+  {
+    "description": "sender is null",
+    "apiKey": "send_grid_key",
+    "from": null,
+    "to": {
+      "name": "Jane Doe",
+      "email": "jane.doe@example.com"
+    },
+    "content": {
+      "subject": "subject_test",
+      "type": "text/json",
+      "value": "Hello world"
+    }
+  }
+]

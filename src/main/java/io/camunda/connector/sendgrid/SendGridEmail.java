@@ -7,12 +7,11 @@
 package io.camunda.connector.sendgrid;
 
 import io.camunda.connector.api.annotation.Secret;
-import jakarta.validation.constraints.NotEmpty;
 import java.util.Objects;
 
 public class SendGridEmail {
-  @NotEmpty @Secret private String name;
-  @NotEmpty @Secret private String email;
+  @Secret private String name;
+  @Secret private String email;
 
   public String getName() {
     return name;
