@@ -13,6 +13,7 @@ import static io.camunda.connector.BaseTest.ACTUAL_TOPIC_REGION;
 import static io.camunda.connector.BaseTest.AWS_ACCESS_KEY;
 import static io.camunda.connector.BaseTest.AWS_SECRET_KEY;
 import static io.camunda.connector.BaseTest.AWS_TOPIC_ARN;
+import static io.camunda.connector.BaseTest.AWS_TOPIC_REGION;
 import static io.camunda.connector.BaseTest.GSON;
 import static io.camunda.connector.BaseTest.MSG_ID;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -96,6 +97,7 @@ class SnsConnectorFunctionParametrizedTest {
             .secret(AWS_SECRET_KEY, ACTUAL_SECRET_KEY)
             .secret(AWS_ACCESS_KEY, ACTUAL_ACCESS_KEY)
             .secret(AWS_TOPIC_ARN, ACTUAL_TOPIC_ARN)
+            .secret(AWS_TOPIC_REGION, ACTUAL_TOPIC_REGION)
             .build();
     // when
     Object connectorResultObject = function.execute(ctx);
@@ -119,6 +121,7 @@ class SnsConnectorFunctionParametrizedTest {
             .secret(AWS_SECRET_KEY, ACTUAL_SECRET_KEY)
             .secret(AWS_ACCESS_KEY, ACTUAL_ACCESS_KEY)
             .secret(AWS_TOPIC_ARN, ACTUAL_TOPIC_ARN)
+            .secret(AWS_TOPIC_REGION, ACTUAL_TOPIC_REGION)
             .build();
 
     // when & then

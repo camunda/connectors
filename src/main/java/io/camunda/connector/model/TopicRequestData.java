@@ -6,19 +6,23 @@
  */
 package io.camunda.connector.model;
 
+import com.amazonaws.services.sns.model.MessageAttributeValue;
 import io.camunda.connector.api.annotation.Secret;
-import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import java.util.Map;
 import java.util.Objects;
 
 public class TopicRequestData {
 
-  @NotEmpty @Secret private String topicArn;
-  @NotEmpty @Secret private String region;
-  @NotEmpty @Secret private String subject;
+  @NotBlank @Secret private String topicArn;
+  @NotBlank @Secret private String region;
+  private String subject;
 
   // we don't need to know the customer message as we will pass it as-is
   @NotNull private Object message;
+
+  private Map<String, MessageAttributeValue> messageAttributes;
 
   public String getTopicArn() {
     return topicArn;
@@ -52,20 +56,33 @@ public class TopicRequestData {
     this.message = message;
   }
 
+  public Map<String, MessageAttributeValue> getMessageAttributes() {
+    return messageAttributes;
+  }
+
+  public void setMessageAttributes(Map<String, MessageAttributeValue> messageAttributes) {
+    this.messageAttributes = messageAttributes;
+  }
+
   @Override
   public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
     TopicRequestData that = (TopicRequestData) o;
     return topicArn.equals(that.topicArn)
         && region.equals(that.region)
-        && subject.equals(that.subject)
-        && message.equals(that.message);
+        && Objects.equals(subject, that.subject)
+        && message.equals(that.message)
+        && Objects.equals(messageAttributes, that.messageAttributes);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(topicArn, region, subject, message);
+    return Objects.hash(topicArn, region, subject, message, messageAttributes);
   }
 
   @Override
@@ -82,6 +99,8 @@ public class TopicRequestData {
         + '\''
         + ", message="
         + message
+        + ", messageAttributes="
+        + messageAttributes
         + '}';
   }
 }

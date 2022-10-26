@@ -20,6 +20,16 @@ mvn clean package
   },
   "topic":{
     "message":"MyMessage",
+    "messageAttributes":{
+      "attribute2":{
+        "StringValue":"attribute 2 value",
+        "DataType":"String"
+      },
+      "attribute1":{
+        "StringValue":"attribute 1 value",
+        "DataType":"String"
+      }
+    },
     "subject":"MySubject",
     "region":"us-east-1",
     "topicArn":"arn:aws:sns:us-east-1:00000000:MySNSTopic"
