@@ -23,11 +23,7 @@ import java.util.ServiceLoader;
 
 public abstract class AbstractOutboundConnectorContext implements OutboundConnectorContext {
 
-  private final SecretHandler secretHandler;
-
-  public AbstractOutboundConnectorContext() {
-    this.secretHandler = new SecretHandler(getSecretStore());
-  }
+  private SecretHandler secretHandler;
 
   @Override
   public void validate(Object input) {
@@ -36,7 +32,14 @@ public abstract class AbstractOutboundConnectorContext implements OutboundConnec
 
   @Override
   public void replaceSecrets(Object input) {
-    secretHandler.handleSecretContainer(input, secretHandler);
+    getSecretHandler().handleSecretContainer(input, getSecretHandler());
+  }
+
+  public SecretHandler getSecretHandler() {
+    if (secretHandler == null) {
+      secretHandler = new SecretHandler(getSecretStore());
+    }
+    return secretHandler;
   }
 
   /**
