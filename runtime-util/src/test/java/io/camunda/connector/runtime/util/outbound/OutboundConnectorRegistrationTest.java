@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.util.outbound;
 
+import io.camunda.connector.impl.outbound.OutboundConnectorConfiguration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -55,11 +56,11 @@ public class OutboundConnectorRegistrationTest {
         };
 
     // when
-    List<OutboundConnectorRegistration> registrations =
+    List<OutboundConnectorConfiguration> registrations =
         withEnvVars(
             env,
             () -> {
-              return OutboundConnectorRegistration.parse();
+              return OutboundConnectorRegistrationHelper.parse();
             });
 
     // then
@@ -101,7 +102,7 @@ public class OutboundConnectorRegistrationTest {
 
     // then
     Assertions.assertThatThrownBy(
-            () -> withEnvVars(env, () -> OutboundConnectorRegistration.parse()))
+            () -> withEnvVars(env, () -> OutboundConnectorRegistrationHelper.parse()))
         .hasMessage(
             "Type not specified: Please configure it via CONNECTOR_NOT_ANNOTATED_TYPE environment variable");
   }
@@ -118,7 +119,7 @@ public class OutboundConnectorRegistrationTest {
 
     // then
     Assertions.assertThatThrownBy(
-            () -> withEnvVars(env, () -> OutboundConnectorRegistration.parse()))
+            () -> withEnvVars(env, () -> OutboundConnectorRegistrationHelper.parse()))
         .hasMessage("Failed to load io.camunda.connector.runtime.jobworker.impl.outbound.NotFound");
   }
 
@@ -126,7 +127,8 @@ public class OutboundConnectorRegistrationTest {
   public void shouldConfigureViaSPI() {
 
     // when
-    List<OutboundConnectorRegistration> registrations = OutboundConnectorRegistration.parse();
+    List<OutboundConnectorConfiguration> registrations =
+        OutboundConnectorRegistrationHelper.parse();
 
     // then
     Assertions.assertThat(registrations).hasSize(1);
@@ -140,7 +142,7 @@ public class OutboundConnectorRegistrationTest {
   }
 
   private static void assertRegistration(
-      List<OutboundConnectorRegistration> registrations,
+      List<OutboundConnectorConfiguration> registrations,
       String name,
       String type,
       String[] inputVariables,

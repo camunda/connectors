@@ -28,37 +28,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** Configuration class holding information of a connector. */
-public class OutboundConnectorRegistration {
+public class OutboundConnectorRegistrationHelper {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(OutboundConnectorRegistration.class);
+  private static final Logger LOGGER =
+      LoggerFactory.getLogger(OutboundConnectorRegistrationHelper.class);
 
   /** Pattern describing the connector env configuration pattern. */
   public static final Pattern CONNECTOR_FUNCTION_PATTERN =
       Pattern.compile("^CONNECTOR_(.*)_FUNCTION$");
-
-  private final String name;
-  private final String type;
-  private final String[] inputVariables;
-  private final OutboundConnectorFunction function;
-
-  /**
-   * Create a connector configuration.
-   *
-   * @param name the name of connector
-   * @param type the type of the connector
-   * @param inputVariables the variables the connector needs as input
-   * @param function the connector function class
-   */
-  public OutboundConnectorRegistration(
-      final String name,
-      final String type,
-      final String[] inputVariables,
-      final OutboundConnectorFunction function) {
-    this.name = name;
-    this.type = type;
-    this.inputVariables = inputVariables;
-    this.function = function;
-  }
 
   public static boolean isEnvConfigured() {
     return System.getenv().entrySet().stream()
@@ -70,8 +47,7 @@ public class OutboundConnectorRegistration {
    *
    * @return the list of registrations
    */
-  public static List<OutboundConnectorRegistration> parse() {
-
+  public static List<OutboundConnectorConfiguration> parse() {
     if (isEnvConfigured()) {
       return parseFromEnv();
     } else {
@@ -84,7 +60,7 @@ public class OutboundConnectorRegistration {
    *
    * @return the list of registrations
    */
-  public static List<OutboundConnectorRegistration> parseFromSPI() {
+  public static List<OutboundConnectorConfiguration> parseFromSPI() {
 
     return ServiceLoader.load(OutboundConnectorFunction.class).stream()
         .map(
@@ -94,7 +70,7 @@ public class OutboundConnectorRegistration {
               return ConnectorUtil.getOutboundConnectorConfiguration(function.getClass())
                   .map(
                       cfg ->
-                          new OutboundConnectorRegistration(
+                          new OutboundConnectorConfiguration(
                               cfg.getName(), cfg.getType(), cfg.getInputVariables(), function))
                   .orElseThrow(
                       () ->
@@ -111,9 +87,9 @@ public class OutboundConnectorRegistration {
    *
    * @return the list of registrations
    */
-  public static List<OutboundConnectorRegistration> parseFromEnv() {
+  public static List<OutboundConnectorConfiguration> parseFromEnv() {
 
-    var connectors = new ArrayList<OutboundConnectorRegistration>();
+    var connectors = new ArrayList<OutboundConnectorConfiguration>();
 
     for (var entry : System.getenv().entrySet()) {
 
@@ -129,11 +105,11 @@ public class OutboundConnectorRegistration {
     return connectors;
   }
 
-  private static OutboundConnectorRegistration parseConnector(final String name) {
+  private static OutboundConnectorConfiguration parseConnector(final String name) {
 
     var function =
         getEnv(name, "FUNCTION")
-            .map(OutboundConnectorRegistration::loadConnectorFunction)
+            .map(OutboundConnectorRegistrationHelper::loadConnectorFunction)
             .orElseThrow(() -> envMissing("No function specified", name, "FUNCTION"));
 
     var config = ConnectorUtil.getOutboundConnectorConfiguration(function.getClass());
@@ -144,7 +120,7 @@ public class OutboundConnectorRegistration {
           function.getClass().getName());
     }
 
-    return new OutboundConnectorRegistration(
+    return new OutboundConnectorConfiguration(
         name,
         getEnv(name, "TYPE")
             .or(() -> config.map(OutboundConnectorConfiguration::getType))
@@ -186,42 +162,5 @@ public class OutboundConnectorRegistration {
         String.format(
             "%s: Please configure it via CONNECTOR_%s_%s environment variable",
             message, name, envKey));
-  }
-
-  /**
-   * @return the name of connector
-   */
-  public String getName() {
-    return name;
-  }
-
-  /**
-   * @return the type of the connector
-   */
-  public String getType() {
-    return type;
-  }
-
-  /**
-   * @return the connector function class
-   */
-  public OutboundConnectorFunction getFunction() {
-    return function;
-  }
-
-  /**
-   * @return the variables the connector needs as input
-   */
-  public String[] getInputVariables() {
-    return inputVariables;
-  }
-
-  public String toString() {
-    return String.format(
-        "OutboundConnectorRegistration { name=%s, type=%s, function=%s, inputVariables=%s }",
-        this.name,
-        this.type,
-        this.function.getClass().getName(),
-        Arrays.toString(this.inputVariables));
   }
 }

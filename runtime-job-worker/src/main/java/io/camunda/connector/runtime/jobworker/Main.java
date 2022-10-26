@@ -18,7 +18,7 @@
 package io.camunda.connector.runtime.jobworker;
 
 import io.camunda.connector.runtime.util.outbound.ConnectorJobHandler;
-import io.camunda.connector.runtime.util.outbound.OutboundConnectorRegistration;
+import io.camunda.connector.runtime.util.outbound.OutboundConnectorRegistrationHelper;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.client.ZeebeClientBuilder;
 import java.time.Duration;
@@ -57,7 +57,7 @@ public class Main {
       clientBuilder = ZeebeClient.newClientBuilder().gatewayAddress(defaultAddress).usePlaintext();
     }
 
-    var connectors = OutboundConnectorRegistration.parse();
+    var connectors = OutboundConnectorRegistrationHelper.parse();
 
     if (connectors.isEmpty()) {
       throw new IllegalStateException("No connectors configured");
