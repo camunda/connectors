@@ -28,19 +28,27 @@ import org.camunda.feel.FeelEngine;
 import org.camunda.feel.impl.JavaValueMapper;
 import scala.jdk.javaapi.CollectionConverters;
 
+/** Wrapper for the FEEL engine, handling type conversions and expression evaluations. */
 public class FeelEngineWrapper {
 
   static final String RESPONSE_MAP_KEY = "response";
-  static final String ERROR_VARIABLES_MUST_NOT_BE_NULL = "variables cannot be null";
-  static final String ERROR_EXPRESSION_EVALUATION_FAILED = "expression evaluation failed";
+  static final String ERROR_CONTEXT_IS_NULL = "Context is null";
 
   static final TypeReference<Map<String, Object>> MAP_TYPE_REFERENCE = new TypeReference<>() {};
 
   private final FeelEngine feelEngine;
   private final ObjectMapper objectMapper;
 
+  /**
+   * Default constructor, creating an {@link ObjectMapper} and a {@link FeelEngine} with default
+   * configuration.
+   */
   public FeelEngineWrapper() {
-    this.feelEngine = new FeelEngine.Builder().customValueMapper(new JavaValueMapper()).build();
+    this.feelEngine =
+        new FeelEngine.Builder()
+            .customValueMapper(new JavaValueMapper())
+            .functionProvider(new FeelConnectorFunctionProvider())
+            .build();
     this.objectMapper =
         new ObjectMapper()
             .registerModule(DefaultScalaModule$.MODULE$)
@@ -48,6 +56,13 @@ public class FeelEngineWrapper {
             .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
   }
 
+  /**
+   * Injection constructor allowing to pass in the {@link FeelEngine} and {@link ObjectMapper} to
+   * use.
+   *
+   * @param feelEngine the FEEL engine to use
+   * @param objectMapper the object mapper to use
+   */
   public FeelEngineWrapper(final FeelEngine feelEngine, final ObjectMapper objectMapper) {
     this.feelEngine = feelEngine;
     this.objectMapper = objectMapper;
@@ -69,31 +84,58 @@ public class FeelEngineWrapper {
   }
 
   private Map<String, Object> ensureVariablesMap(final Object variables) {
-    Objects.requireNonNull(variables, ERROR_VARIABLES_MUST_NOT_BE_NULL);
-    return objectMapper.convertValue(variables, MAP_TYPE_REFERENCE);
+    try {
+      Objects.requireNonNull(variables, ERROR_CONTEXT_IS_NULL);
+      return objectMapper.convertValue(variables, MAP_TYPE_REFERENCE);
+    } catch (IllegalArgumentException ex) {
+      throw new IllegalArgumentException(
+          String.format("Unable to parse '%s' as context", variables), ex);
+    }
   }
 
+  /**
+   * Evaluates an expression with the FEEL engine with the given variables.
+   *
+   * @param expression the expression to evaluate
+   * @param variables the variables to use in evaluation
+   * @return the evaluation result
+   * @param <T> the type to cast the evaluation result to
+   * @throws FeelEngineWrapperException when there is an exception message as a result of the
+   *     evaluation or the result cannot be cast to the given type
+   */
   public <T> T evaluate(final String expression, final Object variables) {
-    return (T) evaluateInternal(expression, variables);
+    try {
+      return (T) evaluateInternal(expression, variables);
+    } catch (Exception e) {
+      throw new FeelEngineWrapperException(e.getMessage(), expression, variables, e);
+    }
   }
 
+  /**
+   * Evaluates an expression to a JSON String.
+   *
+   * @param expression the expression to evaluate
+   * @param variables the variables to use in evaluation
+   * @return the JSON String representing the evaluation result
+   * @throws FeelEngineWrapperException when there is an exception message as a result of the
+   *     evaluation or the result cannot be parsed as JSON
+   */
   public String evaluateToJson(final String expression, final Object variables) {
-    return resultToJson(evaluateInternal(expression, variables));
+    try {
+      return resultToJson(evaluateInternal(expression, variables));
+    } catch (Exception e) {
+      throw new FeelEngineWrapperException(e.getMessage(), expression, variables, e);
+    }
   }
 
   private Object evaluateInternal(final String expression, final Object variables) {
-    try {
-      var variablesAsMap = ensureVariablesMap(variables);
-      var variablesAsMapAsScalaMap = toScalaMap(variablesAsMap);
-      var result = feelEngine.evalExpression(trimExpression(expression), variablesAsMapAsScalaMap);
-      if (result.isRight()) {
-        return result.right().get();
-      } else {
-        throw new RuntimeException(result.left().get().message());
-      }
-    } catch (Exception e) {
-      throw new FeelEngineWrapperException(
-          ERROR_EXPRESSION_EVALUATION_FAILED, expression, variables, e);
+    var variablesAsMap = ensureVariablesMap(variables);
+    var variablesAsMapAsScalaMap = toScalaMap(variablesAsMap);
+    var result = feelEngine.evalExpression(trimExpression(expression), variablesAsMapAsScalaMap);
+    if (result.isRight()) {
+      return result.right().get();
+    } else {
+      throw new RuntimeException(result.left().get().message());
     }
   }
 
@@ -101,7 +143,8 @@ public class FeelEngineWrapper {
     try {
       return objectMapper.writeValueAsString(result);
     } catch (final JsonProcessingException e) {
-      throw new RuntimeException(e);
+      throw new RuntimeException(
+          "The output expression result cannot be parsed as JSON: " + result, e);
     }
   }
 }

@@ -16,8 +16,7 @@
  */
 package io.camunda.connector.runtime.util.outbound;
 
-import static io.camunda.connector.runtime.util.ConnectorHelper.RESULT_EXPRESSION_HEADER_NAME;
-import static io.camunda.connector.runtime.util.ConnectorHelper.RESULT_VARIABLE_HEADER_NAME;
+import static io.camunda.connector.runtime.util.ConnectorHelper.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
@@ -26,9 +25,11 @@ import static org.mockito.Mockito.when;
 
 import io.camunda.zeebe.client.api.command.CompleteJobCommandStep1;
 import io.camunda.zeebe.client.api.command.FailJobCommandStep1;
+import io.camunda.zeebe.client.api.command.ThrowErrorCommandStep1;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import io.camunda.zeebe.client.api.worker.JobClient;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import org.mockito.ArgumentCaptor;
 
@@ -40,6 +41,8 @@ class JobBuilder {
     private final ActivatedJob job;
     private final CompleteJobCommandStep1 completeCommand;
     private final FailJobCommandStep1 failCommand;
+    private final ThrowErrorCommandStep1 throwCommand;
+    private final ThrowErrorCommandStep1.ThrowErrorCommandStep2 throwCommandStep2;
 
     public JobBuilderStep() {
 
@@ -47,9 +50,14 @@ class JobBuilder {
       this.job = mock(ActivatedJob.class);
       this.completeCommand = mock(CompleteJobCommandStep1.class, RETURNS_DEEP_STUBS);
       this.failCommand = mock(FailJobCommandStep1.class, RETURNS_DEEP_STUBS);
+      this.throwCommand = mock(ThrowErrorCommandStep1.class, RETURNS_DEEP_STUBS);
+      this.throwCommandStep2 =
+          mock(ThrowErrorCommandStep1.ThrowErrorCommandStep2.class, RETURNS_DEEP_STUBS);
 
       when(jobClient.newCompleteCommand(any())).thenReturn(completeCommand);
       when(jobClient.newFailCommand(any())).thenReturn(failCommand);
+      when(jobClient.newThrowErrorCommand(any())).thenReturn(throwCommand);
+      when(throwCommand.errorCode(any())).thenReturn(throwCommandStep2);
       when(job.getKey()).thenReturn(-1l);
     }
 
@@ -67,15 +75,22 @@ class JobBuilder {
       return withHeader(RESULT_EXPRESSION_HEADER_NAME, value);
     }
 
+    public JobBuilderStep withErrorExpressionHeader(final String value) {
+      return withHeader(ERROR_EXPRESSION_HEADER_NAME, value);
+    }
+
     public JobBuilderStep withHeader(String key, String value) {
-      return withHeaders(Map.of(key, value));
+      final Map<String, String> headers = new HashMap<>();
+      headers.put(key, value);
+      return withHeaders(headers);
     }
 
     public JobResult execute(ConnectorJobHandler connectorJobHandler) {
-      return execute(connectorJobHandler, true);
+      return execute(connectorJobHandler, true, false);
     }
 
-    public JobResult execute(ConnectorJobHandler connectorJobHandler, boolean expectComplete) {
+    public JobResult execute(
+        ConnectorJobHandler connectorJobHandler, boolean expectComplete, boolean expectBpmnError) {
 
       // when
       connectorJobHandler.handle(jobClient, job);
@@ -85,6 +100,13 @@ class JobBuilder {
         // then
         verify(completeCommand).variables(variablesCaptor.capture());
         return new JobResult(variablesCaptor.getValue());
+      } else if (expectBpmnError) {
+        // then
+        var errorCodeCaptor = ArgumentCaptor.forClass(String.class);
+        var errorMessageCaptor = ArgumentCaptor.forClass(String.class);
+        verify(throwCommand).errorCode(errorCodeCaptor.capture());
+        verify(throwCommandStep2).errorMessage(errorMessageCaptor.capture());
+        return new JobResult(errorCodeCaptor.getValue(), errorMessageCaptor.getValue());
       } else {
         verify(failCommand).retries(0);
         return new JobResult(Collections.emptyMap());
@@ -94,10 +116,17 @@ class JobBuilder {
 
   public static class JobResult {
 
-    private final Map<String, Object> variables;
+    private Map<String, Object> variables;
+    private String errorCode;
+    private String errorMessage;
 
     public JobResult(Map<String, Object> variables) {
       this.variables = variables;
+    }
+
+    public JobResult(String errorCode, String errorMessage) {
+      this.errorCode = errorCode;
+      this.errorMessage = errorMessage;
     }
 
     public Map<String, Object> getVariables() {
@@ -107,9 +136,17 @@ class JobBuilder {
     public Object getVariable(String key) {
       return variables.get(key);
     }
+
+    public String getErrorCode() {
+      return errorCode;
+    }
+
+    public String getErrorMessage() {
+      return errorMessage;
+    }
   }
 
-  static JobBuilderStep create() {
+  protected static JobBuilderStep create() {
     return new JobBuilderStep();
   }
 }

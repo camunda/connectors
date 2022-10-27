@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.util.feel;
 
+/** Exception class indicating issues in a {@link FeelEngineWrapper} call */
 public class FeelEngineWrapperException extends RuntimeException {
 
   public FeelEngineWrapperException(
@@ -30,7 +31,7 @@ public class FeelEngineWrapperException extends RuntimeException {
       final Throwable throwable) {
     super(
         String.format(
-            "Failed to evaluate expression '%s' and context '%s', because %s",
+            "Failed to evaluate expression '%s' in context '%s'. Reason: %s",
             expression, context, reason),
         throwable);
   }
