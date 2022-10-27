@@ -372,11 +372,13 @@ limitations under the License.</license.inlineheader>
           <version>${plugin.version.license.codehaus}</version>
           <configuration>
             <licenseMerges>
-              <licenseMerge>Apache-2.0|Apache License 2.0|Apache License, Version 2.0|The Apache Software License, Version 2.0|Apache 2.0|Apache License, version 2.0|The Apache License, Version 2.0|Apache 2</licenseMerge>
+              <licenseMerge>Apache-2.0|Apache License 2.0|Apache License, Version 2.0|The Apache Software License, Version 2.0|Apache 2.0|Apache License, version 2.0|The Apache License, Version 2.0|Apache 2|Apache License</licenseMerge>
               <licenseMerge>MIT|MIT License|The MIT License|MIT license|The MIT License (MIT)</licenseMerge>
               <licenseMerge>BSD-3-Clause|3-Clause BSD License|BSD|BSD New license</licenseMerge>
-              <licenseMerge>EPL-2.0|Eclipse Public License v. 2.0</licenseMerge>
-              <licenseMerge>GPLv2 with Classpath Exception|GNU General Public License, version 2 with the GNU Classpath Exception</licenseMerge>
+              <licenseMerge>EPL-1.0|Eclipse Public License - v 1.0|Eclipse Public License v. 1.0</licenseMerge>
+              <licenseMerge>EPL-2.0|Eclipse Public License v. 2.0|EPL 2.0</licenseMerge>
+              <licenseMerge>GPLv2 with Classpath Exception|GPL2 w/ CPE|GNU General Public License, version 2 with the GNU Classpath Exception</licenseMerge>
+              <licenseMerge>GNU Lesser General Public License, Version 2.1|GNU Lesser General Public License</licenseMerge>
               <licenseMerge>CDDLv1.0|COMMON DEVELOPMENT AND DISTRIBUTION LICENSE (CDDL) Version 1.0</licenseMerge>
               <licenseMerge>Bouncy Castle|Bouncy Castle Licence</licenseMerge>
             </licenseMerges>
