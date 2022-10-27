@@ -73,7 +73,7 @@ limitations under the License.</license.inlineheader>
     <version.operate-client>1.3.1</version.operate-client>
 
     <!-- Third party dependencies -->
-    <version.spring-boot>2.7.4</version.spring-boot>
+    <version.spring-boot>2.7.5</version.spring-boot>
     <version.slf4j>1.7.36</version.slf4j>
     <version.jakarta-validation>3.0.2</version.jakarta-validation>
     <version.gson>2.10</version.gson>
