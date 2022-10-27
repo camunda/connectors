@@ -37,8 +37,31 @@ public class OutboundConnectorRegistrationHelper {
   public static final Pattern CONNECTOR_FUNCTION_PATTERN =
       Pattern.compile("^CONNECTOR_(.*)_FUNCTION$");
 
+  public static Map<String, String> hardwiredEnvironmentVariables;
+
+  public static void addHardwiredEnvironmentVariable(String key, String value) {
+    if (hardwiredEnvironmentVariables == null) {
+      hardwiredEnvironmentVariables = new HashMap<>();
+    }
+    hardwiredEnvironmentVariables.put(key, value);
+  }
+
+  public static void clearHardwiredEnvironmentVariable() {
+    hardwiredEnvironmentVariables = null;
+  }
+
+  public static Map<String, String> getEnvironmentVariables() {
+    if (hardwiredEnvironmentVariables != null) {
+      HashMap<String, String> result = new HashMap<>();
+      result.putAll(System.getenv());
+      result.putAll(hardwiredEnvironmentVariables);
+      return result;
+    }
+    return System.getenv();
+  }
+
   public static boolean isEnvConfigured() {
-    return System.getenv().entrySet().stream()
+    return getEnvironmentVariables().entrySet().stream()
         .anyMatch(entry -> CONNECTOR_FUNCTION_PATTERN.matcher(entry.getKey()).matches());
   }
 
@@ -49,8 +72,10 @@ public class OutboundConnectorRegistrationHelper {
    */
   public static List<OutboundConnectorConfiguration> parse() {
     if (isEnvConfigured()) {
+      LOGGER.info("Reading environment variables to find connectors that are not Spring beans");
       return parseFromEnv();
     } else {
+      LOGGER.info("Parsing SPI to find connectors that are not Spring beans");
       return parseFromSPI();
     }
   }
@@ -91,7 +116,7 @@ public class OutboundConnectorRegistrationHelper {
 
     var connectors = new ArrayList<OutboundConnectorConfiguration>();
 
-    for (var entry : System.getenv().entrySet()) {
+    for (var entry : getEnvironmentVariables().entrySet()) {
 
       var key = entry.getKey();
 
@@ -133,7 +158,7 @@ public class OutboundConnectorRegistrationHelper {
   }
 
   private static Optional<String> getEnv(final String name, final String detail) {
-    return Optional.ofNullable(System.getenv("CONNECTOR_" + name + "_" + detail));
+    return Optional.ofNullable(getEnvironmentVariables().get("CONNECTOR_" + name + "_" + detail));
   }
 
   @SuppressWarnings("unchecked")

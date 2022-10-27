@@ -16,18 +16,9 @@
  */
 package io.camunda.connector.inbound;
 
-import io.camunda.zeebe.spring.client.EnableZeebeClient;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
 
-@SpringBootApplication
-@EnableScheduling
-@EnableZeebeClient
-public class InboundConnectorRuntimeApplication {
-
-  public static void main(String[] args) {
-    SpringApplication.run(InboundConnectorRuntimeApplication.class, args);
-  }
-
-}
+@Configuration
+@ComponentScan
+public class InboundConnectorRuntimeConfiguration {}

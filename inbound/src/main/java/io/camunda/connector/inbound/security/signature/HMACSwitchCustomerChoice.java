@@ -18,5 +18,6 @@
 package io.camunda.connector.inbound.security.signature;
 
 public enum HMACSwitchCustomerChoice {
-    enabled, disabled
+  enabled,
+  disabled
 }

@@ -29,6 +29,7 @@ import java.util.Optional;
 public class ConnectorHelper {
 
   public static FeelEngineWrapper FEEL_ENGINE_WRAPPER = new FeelEngineWrapper();
+  // TODO: Check if this is properly configured
   public static ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   private static final String ERROR_CANNOT_PARSE_VARIABLES = "Cannot parse variables";
