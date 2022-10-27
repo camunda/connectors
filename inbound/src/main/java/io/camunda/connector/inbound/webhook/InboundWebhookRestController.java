@@ -17,13 +17,18 @@
 package io.camunda.connector.inbound.webhook;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.inbound.feel.FeelEngineWrapper;
 import io.camunda.connector.inbound.registry.InboundConnectorRegistry;
 import io.camunda.connector.inbound.security.signature.HMACAlgoCustomerChoice;
 import io.camunda.connector.inbound.security.signature.HMACSignatureValidator;
 import io.camunda.connector.inbound.security.signature.HMACSwitchCustomerChoice;
+import io.camunda.connector.runtime.util.feel.FeelEngineWrapper;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.client.api.response.ProcessInstanceEvent;
+import java.io.IOException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.util.Collection;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,12 +40,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
-
-import java.util.Collection;
-import java.io.IOException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.util.Map;
 
 @RestController
 public class InboundWebhookRestController {
@@ -54,10 +53,10 @@ public class InboundWebhookRestController {
 
   @Autowired
   public InboundWebhookRestController(
-          final InboundConnectorRegistry registry,
-          final ZeebeClient zeebeClient,
-          final FeelEngineWrapper feelEngine,
-          final ObjectMapper jsonMapper) {
+      final InboundConnectorRegistry registry,
+      final ZeebeClient zeebeClient,
+      final FeelEngineWrapper feelEngine,
+      final ObjectMapper jsonMapper) {
     this.registry = registry;
     this.zeebeClient = zeebeClient;
     this.feelEngine = feelEngine;
@@ -67,26 +66,32 @@ public class InboundWebhookRestController {
   @PostMapping("/inbound/{context}")
   public ResponseEntity<WebhookResponse> inbound(
       @PathVariable String context,
-      @RequestBody byte[] bodyAsByteArray, // it is important to get pure body in order to recalculate HMAC
-      @RequestHeader Map<String, String> headers) throws IOException {
+      @RequestBody
+          byte[] bodyAsByteArray, // it is important to get pure body in order to recalculate HMAC
+      @RequestHeader Map<String, String> headers)
+      throws IOException {
 
     LOG.debug("Received inbound hook on {}", context);
 
     if (!registry.containsContextPath(context)) {
-      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No webhook found for context: " + context);
+      throw new ResponseStatusException(
+          HttpStatus.NOT_FOUND, "No webhook found for context: " + context);
     }
 
     // TODO(nikku): what context do we expose?
     // TODO(igpetrov): handling exceptions? Throw or fail? Maybe spring controller advice?
     // TODO: Check if that always works (can we have an empty body for example?)
     Map bodyAsMap = jsonMapper.readValue(bodyAsByteArray, Map.class);
-    final Map<String, Object> webhookContext = Map.of(
-            "request", Map.of(
+    final Map<String, Object> webhookContext =
+        Map.of(
+            "request",
+            Map.of(
                 "body", bodyAsMap,
                 "headers", headers));
 
     WebhookResponse response = new WebhookResponse();
-    Collection<WebhookConnectorProperties> connectors = registry.getWebhookConnectorByContextPath(context);
+    Collection<WebhookConnectorProperties> connectors =
+        registry.getWebhookConnectorByContextPath(context);
     for (WebhookConnectorProperties connectorProperties : connectors) {
 
       try {
@@ -98,8 +103,12 @@ public class InboundWebhookRestController {
             LOG.debug("Should not activate {} :: {}", context, webhookContext);
             response.addUnactivatedConnector(connectorProperties);
           } else {
-            ProcessInstanceEvent processInstanceEvent = executeWebhookConnector(connectorProperties, webhookContext);
-            LOG.debug("Webhook {} created process instance {}", connectorProperties, processInstanceEvent);
+            ProcessInstanceEvent processInstanceEvent =
+                executeWebhookConnector(connectorProperties, webhookContext);
+            LOG.debug(
+                "Webhook {} created process instance {}",
+                connectorProperties,
+                processInstanceEvent);
             response.addExecutedConnector(connectorProperties, processInstanceEvent);
           }
         }
@@ -112,31 +121,34 @@ public class InboundWebhookRestController {
     return ResponseEntity.status(HttpStatus.OK).body(response);
   }
 
-  private boolean isValidHmac(final WebhookConnectorProperties connectorProperties,
-                              final byte[] bodyAsByteArray,
-                              final Map<String, String> headers)
-          throws NoSuchAlgorithmException, InvalidKeyException {
+  private boolean isValidHmac(
+      final WebhookConnectorProperties connectorProperties,
+      final byte[] bodyAsByteArray,
+      final Map<String, String> headers)
+      throws NoSuchAlgorithmException, InvalidKeyException {
     if (HMACSwitchCustomerChoice.disabled.name().equals(connectorProperties.shouldValidateHMAC())) {
       return true;
     }
 
-    HMACSignatureValidator validator = new HMACSignatureValidator(
+    HMACSignatureValidator validator =
+        new HMACSignatureValidator(
             bodyAsByteArray,
             headers,
             connectorProperties.getHMACHeader(),
             connectorProperties.getHMACSecret(),
-            HMACAlgoCustomerChoice.valueOf(connectorProperties.getHMACAlgo())
-    );
+            HMACAlgoCustomerChoice.valueOf(connectorProperties.getHMACAlgo()));
 
     return validator.isRequestValid();
   }
 
   /**
-   * This could be potentially moved to an interface?
-   * See https://github.com/camunda/connector-sdk-inbound-webhook/issues/26
+   * This could be potentially moved to an interface? See
+   * https://github.com/camunda/connector-sdk-inbound-webhook/issues/26
+   *
    * @return
    */
-  private ProcessInstanceEvent executeWebhookConnector(WebhookConnectorProperties connectorProperties, Map<String, Object> webhookContext) {
+  private ProcessInstanceEvent executeWebhookConnector(
+      WebhookConnectorProperties connectorProperties, Map<String, Object> webhookContext) {
     final Map<String, Object> variables = extractVariables(connectorProperties, webhookContext);
 
     return zeebeClient
@@ -146,22 +158,22 @@ public class InboundWebhookRestController {
         .variables(variables)
         .send()
         .join();
-      //throw fail("Failed to start process instance", connectorProperties, exception);
+    // throw fail("Failed to start process instance", connectorProperties, exception);
   }
 
   private Map<String, Object> extractVariables(
-          WebhookConnectorProperties connectorProperties, Map<String, Object> context) {
+      WebhookConnectorProperties connectorProperties, Map<String, Object> context) {
 
     var variableMapping = connectorProperties.getVariableMapping();
     if (variableMapping == null) {
       return context;
     }
     return feelEngine.evaluate(variableMapping, context);
-//      throw fail("Failed to extract variables", connectorProperties, exception);
+    //      throw fail("Failed to extract variables", connectorProperties, exception);
   }
 
   private boolean checkActivation(
-          WebhookConnectorProperties connectorProperties, Map<String, Object> context) {
+      WebhookConnectorProperties connectorProperties, Map<String, Object> context) {
 
     // at this point we assume secrets exist / had been specified
     var activationCondition = connectorProperties.getActivationCondition();
@@ -170,6 +182,6 @@ public class InboundWebhookRestController {
     }
     Object shouldActivate = feelEngine.evaluate(activationCondition, context);
     return Boolean.TRUE.equals(shouldActivate);
-//      throw fail("Failed to check activation", connectorProperties, exception);
+    //      throw fail("Failed to check activation", connectorProperties, exception);
   }
 }

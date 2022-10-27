@@ -21,71 +21,85 @@ import io.camunda.connector.inbound.security.signature.HMACSwitchCustomerChoice;
 
 public class WebhookConnectorProperties {
 
-    public InboundConnectorProperties genericProperties;
+  public InboundConnectorProperties genericProperties;
 
-    public WebhookConnectorProperties(InboundConnectorProperties properties) {
-        this.genericProperties = properties;
-    }
+  public WebhookConnectorProperties(InboundConnectorProperties properties) {
+    this.genericProperties = properties;
+  }
 
-    public String getConnectorIdentifier() {
-        return "" + genericProperties.getType() + "-" + getContext() + "-" + genericProperties.getBpmnProcessId() + "-" + genericProperties.getVersion();
-    }
-    public String readProperty(String propertyName) {
-        String result = genericProperties.getProperties().get(propertyName);
-        if (result==null) {
-            throw new IllegalArgumentException("Property '"+propertyName+"' must be set for connector");
-        }
-        return result;
-    }
+  public String getConnectorIdentifier() {
+    return ""
+        + genericProperties.getType()
+        + "-"
+        + getContext()
+        + "-"
+        + genericProperties.getBpmnProcessId()
+        + "-"
+        + genericProperties.getVersion();
+  }
 
-    public String getContext() {
-        return readProperty("inbound.context");
+  public String readProperty(String propertyName) {
+    String result = genericProperties.getProperties().get(propertyName);
+    if (result == null) {
+      throw new IllegalArgumentException(
+          "Property '" + propertyName + "' must be set for connector");
     }
+    return result;
+  }
 
-    public String getActivationCondition() {
-        return readProperty("inbound.activationCondition");
-    }
-    public String getVariableMapping() {
-        return readProperty("inbound.variableMapping");
-    }
+  public String getContext() {
+    return readProperty("inbound.context");
+  }
 
-    // Security / HMAC Validation
+  public String getActivationCondition() {
+    return readProperty("inbound.activationCondition");
+  }
 
-    // Dropdown that indicates whether customer wants to validate webhook request with HMAC. Values: enabled | disabled
-    public String shouldValidateHMAC() {
-        return genericProperties.getProperties().getOrDefault("inbound.shouldValidateHmac", HMACSwitchCustomerChoice.disabled.name());
-    }
-    // HMAC secret token. An arbitrary String, example 'mySecretToken'
-    public String getHMACSecret() {
-        return genericProperties.getProperties().get("inbound.hmacSecret");
-    }
-    // Indicates which header is used to store HMAC signature. Example, X-Hub-Signature-256
-    public String getHMACHeader() {
-        return genericProperties.getProperties().get("inbound.hmacHeader");
-    }
-    // Indicates which algorithm was used to produce HMAC signature. Should correlate enum names of io.camunda.connector.inbound.security.signature.HMACAlgoCustomerChoice
-    public String getHMACAlgo() {
-        return genericProperties.getProperties().get("inbound.hmacAlgorithm");
-    }
+  public String getVariableMapping() {
+    return readProperty("inbound.variableMapping");
+  }
 
-    public String getBpmnProcessId() {
-        return genericProperties.getBpmnProcessId();
-    }
+  // Security / HMAC Validation
 
-    public int getVersion() {
-        return genericProperties.getVersion();
-    }
+  // Dropdown that indicates whether customer wants to validate webhook request with HMAC. Values:
+  // enabled | disabled
+  public String shouldValidateHMAC() {
+    return genericProperties
+        .getProperties()
+        .getOrDefault("inbound.shouldValidateHmac", HMACSwitchCustomerChoice.disabled.name());
+  }
+  // HMAC secret token. An arbitrary String, example 'mySecretToken'
+  public String getHMACSecret() {
+    return genericProperties.getProperties().get("inbound.hmacSecret");
+  }
+  // Indicates which header is used to store HMAC signature. Example, X-Hub-Signature-256
+  public String getHMACHeader() {
+    return genericProperties.getProperties().get("inbound.hmacHeader");
+  }
+  // Indicates which algorithm was used to produce HMAC signature. Should correlate enum names of
+  // io.camunda.connector.inbound.security.signature.HMACAlgoCustomerChoice
+  public String getHMACAlgo() {
+    return genericProperties.getProperties().get("inbound.hmacAlgorithm");
+  }
 
-    public String getType() {
-        return genericProperties.getType();
-    }
+  public String getBpmnProcessId() {
+    return genericProperties.getBpmnProcessId();
+  }
 
-    public long getProcessDefinitionKey() {
-        return genericProperties.getProcessDefinitionKey();
-    }
+  public int getVersion() {
+    return genericProperties.getVersion();
+  }
 
-    @Override
-    public String toString() {
-        return "WebhookConnectorProperties-" + genericProperties.toString();
-    }
+  public String getType() {
+    return genericProperties.getType();
+  }
+
+  public long getProcessDefinitionKey() {
+    return genericProperties.getProcessDefinitionKey();
+  }
+
+  @Override
+  public String toString() {
+    return "WebhookConnectorProperties-" + genericProperties.toString();
+  }
 }

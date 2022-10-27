@@ -68,9 +68,12 @@ limitations under the License.</license.inlineheader>
 
     <!-- Camunda internal libraries -->
     <version.zeebe>8.1.2</version.zeebe>
+    <version.spring-zeebe>8.1.2</version.spring-zeebe>
     <version.feel-engine>1.15.2</version.feel-engine>
+    <version.operate-client>1.3.1</version.operate-client>
 
     <!-- Third party dependencies -->
+    <version.spring-boot>2.7.4</version.spring-boot>
     <version.slf4j>1.7.36</version.slf4j>
     <version.jakarta-validation>3.0.2</version.jakarta-validation>
     <version.gson>2.10</version.gson>
@@ -114,9 +117,21 @@ limitations under the License.</license.inlineheader>
       </dependency>
 
       <dependency>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>connector-inbound</artifactId>
+        <version>0.3.0-SNAPSHOT</version>
+      </dependency>
+
+      <dependency>
         <groupId>io.camunda</groupId>
         <artifactId>zeebe-client-java</artifactId>
         <version>${version.zeebe}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>io.camunda</groupId>
+        <artifactId>spring-zeebe-starter</artifactId>
+        <version>${version.spring-zeebe}</version>
       </dependency>
 
       <dependency>
@@ -124,7 +139,13 @@ limitations under the License.</license.inlineheader>
         <artifactId>feel-engine</artifactId>
         <version>${version.feel-engine}</version>
       </dependency>
-      
+
+      <dependency>
+        <groupId>io.camunda</groupId>
+        <artifactId>camunda-operate-client-java</artifactId>
+        <version>${version.operate-client}</version>
+      </dependency>
+
       <!-- Third party dependencies -->
       <dependency>
         <groupId>org.slf4j</groupId>
@@ -162,6 +183,12 @@ limitations under the License.</license.inlineheader>
         <version>${version.hibernate-validator}</version>
       </dependency>
 
+      <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-web</artifactId>
+        <version>${version.spring-boot}</version>
+      </dependency>
+
       <!-- test dependencies -->
       <dependency>
         <groupId>org.junit.jupiter</groupId>
@@ -190,6 +217,20 @@ limitations under the License.</license.inlineheader>
         <version>${version.assertj}</version>
         <scope>test</scope>
       </dependency>
+
+      <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-test</artifactId>
+        <version>${version.spring-boot}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.camunda</groupId>
+        <artifactId>spring-zeebe-test</artifactId>
+        <version>${version.spring-zeebe}</version>
+        <scope>test</scope>
+      </dependency>
+
     </dependencies>
   </dependencyManagement>
 

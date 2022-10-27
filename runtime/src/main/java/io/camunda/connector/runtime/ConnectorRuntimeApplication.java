@@ -14,15 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.inbound.feel;
+package io.camunda.connector.runtime;
 
-public class FeelEngineWrapperException extends RuntimeException {
+import io.camunda.zeebe.spring.client.EnableZeebeClient;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
-  public FeelEngineWrapperException(
-      final String reason, final String expression, final Object context) {
-    super(
-        String.format(
-            "Failed to evaluate expression '%s' and context '%s', because %s",
-            expression, context, reason));
+@SpringBootApplication
+@EnableScheduling
+@EnableZeebeClient
+public class ConnectorRuntimeApplication {
+
+  public static void main(String[] args) {
+    SpringApplication.run(ConnectorRuntimeApplication.class, args);
   }
 }
