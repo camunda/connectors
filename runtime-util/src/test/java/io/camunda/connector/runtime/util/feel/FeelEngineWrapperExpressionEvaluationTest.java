@@ -17,7 +17,7 @@
 package io.camunda.connector.runtime.util.feel;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,13 +36,12 @@ class FeelEngineWrapperExpressionEvaluationTest {
   void evaluateToJson_ShouldSucceed_WhenHappyCase() {
     // given
     // FEEL expression -> {"processedOutput":response.callStatus}
-    final String resultExpression = "{\"processedOutput\": response.callStatus }";
+    final var resultExpression = "{\"processedOutput\": response.callStatus }";
     // Response from service -> {"callStatus":{"statusCode":"200 OK"}}
-    final Map variables = Map.of("callStatus", Map.of("statusCode", "200 OK"));
+    final var variables = Map.of("callStatus", Map.of("statusCode", "200 OK"));
 
     // when
-    final String evaluatedResultAsJson =
-        objectUnderTest.evaluateToJson(resultExpression, variables);
+    final var evaluatedResultAsJson = objectUnderTest.evaluateToJson(resultExpression, variables);
 
     // then
     assertThat(evaluatedResultAsJson)
@@ -53,15 +52,15 @@ class FeelEngineWrapperExpressionEvaluationTest {
   void evaluate_ShouldSucceed_WhenHappyCaseJavaType() {
     // given
     // FEEL expression -> {"processedOutput":response.callStatus}
-    final String resultExpression = "{\"processedOutput\": response.callStatus }";
+    final var resultExpression = "{\"processedOutput\": response.callStatus }";
     // Response from service -> {"callStatus":{"statusCode":"200 OK"}}
-    final Map variables = Map.of("callStatus", Map.of("statusCode", "200 OK"));
+    final var variables = Map.of("callStatus", Map.of("statusCode", "200 OK"));
 
     // when
-    final Map evaluatedResultAsMap = objectUnderTest.evaluate(resultExpression, variables);
+    final var evaluatedResultAsMap = objectUnderTest.evaluate(resultExpression, variables);
 
     // then
-    final Map expectedResult = Map.of("processedOutput", Map.of("statusCode", "200 OK"));
+    final var expectedResult = Map.of("processedOutput", Map.of("statusCode", "200 OK"));
     assertThat(evaluatedResultAsMap).isEqualTo(expectedResult);
   }
 
@@ -72,8 +71,7 @@ class FeelEngineWrapperExpressionEvaluationTest {
     final var variables = new TestPojo("FOO");
 
     // when
-    final String evaluatedResultAsJson =
-        objectUnderTest.evaluateToJson(resultExpression, variables);
+    final var evaluatedResultAsJson = objectUnderTest.evaluateToJson(resultExpression, variables);
 
     // then
     assertThat(evaluatedResultAsJson)
@@ -84,13 +82,12 @@ class FeelEngineWrapperExpressionEvaluationTest {
   void evaluateToJson_ShouldSucceed_WhenExpressionStartsWithEqualsSign() {
     // given
     // FEEL expression -> ={"processedOutput":response.callStatus}
-    final String resultExpression = "={\"processedOutput\": response.callStatus }";
+    final var resultExpression = "={\"processedOutput\": response.callStatus }";
     // Response from service -> {"callStatus":{"statusCode":"200 OK"}}
-    final Map variables = Map.of("callStatus", Map.of("statusCode", "200 OK"));
+    final var variables = Map.of("callStatus", Map.of("statusCode", "200 OK"));
 
     // when
-    final String evaluatedResultAsJson =
-        objectUnderTest.evaluateToJson(resultExpression, variables);
+    final var evaluatedResultAsJson = objectUnderTest.evaluateToJson(resultExpression, variables);
 
     // then
     assertThat(evaluatedResultAsJson)
@@ -101,13 +98,12 @@ class FeelEngineWrapperExpressionEvaluationTest {
   void evaluateToJson_ShouldSucceed_WhenVariableNotFound() {
     // given
     // FEEL expression -> ={"processedOutput":response.doesnt-exist}
-    final String resultExpression = "={\"processedOutput\": response.doesnt-exist }";
+    final var resultExpression = "={\"processedOutput\": response.doesnt-exist }";
     // Response from service -> {"callStatus":{"statusCode":"200 OK"}}
-    final Map variables = Map.of("callStatus", Map.of("statusCode", "200 OK"));
+    final var variables = Map.of("callStatus", Map.of("statusCode", "200 OK"));
 
     // when
-    final String evaluatedResultAsJson =
-        objectUnderTest.evaluateToJson(resultExpression, variables);
+    final var evaluatedResultAsJson = objectUnderTest.evaluateToJson(resultExpression, variables);
 
     // then
     assertThat(evaluatedResultAsJson).isEqualTo("{\"processedOutput\":null}");
@@ -117,13 +113,12 @@ class FeelEngineWrapperExpressionEvaluationTest {
   void evaluateToJson_ShouldSucceed_WhenUsedBuiltInFunction() {
     // given
     // FEEL expression -> {"processedOutput": upper case(response.callStatus)}
-    final String resultExpression = "{\"processedOutput\": upper case(response.callStatus) }";
+    final var resultExpression = "{\"processedOutput\": upper case(response.callStatus) }";
     // Response from service -> {"callStatus":"done"}
-    final Map variables = Map.of("callStatus", "done");
+    final var variables = Map.of("callStatus", "done");
 
     // when
-    final String evaluatedResultAsJson =
-        objectUnderTest.evaluateToJson(resultExpression, variables);
+    final var evaluatedResultAsJson = objectUnderTest.evaluateToJson(resultExpression, variables);
 
     // then
     assertThat(evaluatedResultAsJson)
@@ -134,30 +129,30 @@ class FeelEngineWrapperExpressionEvaluationTest {
   void evaluateToJson_ShouldFail_WhenVariablesAreNull() {
     // given
     // FEEL expression -> {"processedOutput":response.callStatus}
-    final String resultExpression = "{\"processedOutput\": response.callStatus }";
+    final var resultExpression = "{\"processedOutput\": response.callStatus }";
 
     // when & then
-    Throwable e =
-        assertThrows(
-            FeelEngineWrapperException.class,
-            () -> objectUnderTest.evaluateToJson(resultExpression, null));
+    final var exception =
+        catchThrowable(() -> objectUnderTest.evaluateToJson(resultExpression, null));
 
-    assertThat(e.getMessage()).contains(FeelEngineWrapper.ERROR_EXPRESSION_EVALUATION_FAILED);
+    assertThat(exception)
+        .isInstanceOf(FeelEngineWrapperException.class)
+        .hasMessageContaining("Context is null");
   }
 
   @Test
   void evaluateToJson_ShouldFail_WhenVariablesAreNotMap() {
     // given
     // FEEL expression -> {"processedOutput":response.callStatus}
-    final String resultExpression = "{\"processedOutput\": response.callStatus }";
+    final var resultExpression = "{\"processedOutput\": response.callStatus }";
 
     // when & then
-    Throwable e =
-        assertThrows(
-            FeelEngineWrapperException.class,
-            () -> objectUnderTest.evaluateToJson(resultExpression, "I am not a map"));
+    final var exception =
+        catchThrowable(() -> objectUnderTest.evaluateToJson(resultExpression, "I am not a map"));
 
-    assertThat(e.getMessage()).contains(FeelEngineWrapper.ERROR_EXPRESSION_EVALUATION_FAILED);
+    assertThat(exception)
+        .isInstanceOf(FeelEngineWrapperException.class)
+        .hasMessageContaining("Unable to parse 'I am not a map' as context");
   }
 
   @Test
@@ -165,18 +160,34 @@ class FeelEngineWrapperExpressionEvaluationTest {
     // given
     // FEEL expression -> {"processedOutput": camel case(response.callStatus)}
     // camel case function does not exist in FEEL
-    final String resultExpression = "{\"processedOutput\": camel case(response.callStatus) }";
+    final var resultExpression = "{\"processedOutput\": camel case(response.callStatus) }";
     // Response from service -> {"callStatus":"done"}
-    final Map variables = Map.of("callStatus", "done");
+    final var variables = Map.of("callStatus", "done");
 
     // when
-    Throwable e =
-        assertThrows(
-            FeelEngineWrapperException.class,
-            () -> objectUnderTest.evaluateToJson(resultExpression, variables));
+    final var exception =
+        catchThrowable(() -> objectUnderTest.evaluateToJson(resultExpression, variables));
 
     // then
-    assertThat(e.getMessage()).contains(FeelEngineWrapper.ERROR_EXPRESSION_EVALUATION_FAILED);
+    assertThat(exception)
+        .isInstanceOf(FeelEngineWrapperException.class)
+        .hasMessageContaining("no function found with name 'camel case'");
+  }
+
+  @Test
+  public void evaluateToJson_ShouldFail_WhenNonJsonResult() {
+    // given
+    final var resultExpression = "now()";
+    final var variables = Map.of();
+
+    // when
+    final var exception =
+        catchThrowable(() -> objectUnderTest.evaluateToJson(resultExpression, variables));
+
+    // then
+    assertThat(exception)
+        .isInstanceOf(FeelEngineWrapperException.class)
+        .hasMessageContaining("output expression result cannot be parsed as JSON");
   }
 
   class TestPojo {

@@ -17,6 +17,8 @@
 
 package io.camunda.connector.runtime.util.outbound;
 
+import io.camunda.connector.api.error.BpmnError;
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.secret.SecretStore;
@@ -24,7 +26,9 @@ import io.camunda.connector.runtime.util.ConnectorHelper;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import io.camunda.zeebe.client.api.worker.JobClient;
 import io.camunda.zeebe.client.api.worker.JobHandler;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.ServiceLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,22 +54,39 @@ public class ConnectorJobHandler implements JobHandler {
 
     LOGGER.info("Received job {}", job.getKey());
 
+    final ConnectorResult result = new ConnectorResult();
     try {
       SecretStore secretStore = new SecretStore(getSecretProvider());
-      Object result = call.execute(new JobHandlerContext(job, secretStore));
+      result.setResponseValue(call.execute(new JobHandlerContext(job, secretStore)));
+      result.setVariables(
+          ConnectorHelper.createOutputVariables(result.getResponseValue(), job.getCustomHeaders()));
 
-      client
-          .newCompleteCommand(job)
-          .variables(ConnectorHelper.createOutputVariables(result, job.getCustomHeaders()))
-          .send()
-          .join();
+    } catch (Exception ex) {
+      result.setResponseValue(Map.of("error", toMap(ex)));
+      result.setException(ex);
+      LOGGER.debug("Exception while processing job {}, error: {}", job.getKey(), ex);
+    }
 
-      LOGGER.debug("Completed job {}", job.getKey());
-    } catch (Exception error) {
-
-      LOGGER.error("Failed to process job {}", job.getKey(), error);
-
-      client.newFailCommand(job).retries(0).errorMessage(error.getMessage()).send().join();
+    try {
+      ConnectorHelper.examineErrorExpression(result.getResponseValue(), job.getCustomHeaders())
+          .ifPresentOrElse(
+              error -> {
+                throwBpmnError(client, job, error);
+                LOGGER.debug(
+                    "BpmnError thrown for job {} with code {}", job.getKey(), error.getCode());
+              },
+              () -> {
+                if (result.isSuccess()) {
+                  completeJob(client, job, result);
+                  LOGGER.debug("Completed job {}", job.getKey());
+                } else {
+                  failJob(client, job, result.getException());
+                  logError(job, result.getException());
+                }
+              });
+    } catch (Exception ex) {
+      failJob(client, job, ex);
+      logError(job, ex);
     }
   }
 
@@ -79,5 +100,42 @@ public class ConnectorJobHandler implements JobHandler {
 
   protected SecretProvider getEnvSecretProvider() {
     return System::getenv;
+  }
+
+  private void logError(ActivatedJob job, Exception ex) {
+    LOGGER.error("Exception while processing job {}, error: {}", job.getKey(), ex);
+  }
+
+  private void completeJob(JobClient client, ActivatedJob job, ConnectorResult result) {
+    client.newCompleteCommand(job).variables(result.getVariables()).send().join();
+  }
+
+  private void failJob(JobClient client, ActivatedJob job, Exception exception) {
+    client.newFailCommand(job).retries(0).errorMessage(exception.getMessage()).send().join();
+  }
+
+  private void throwBpmnError(JobClient client, ActivatedJob job, BpmnError value) {
+    client
+        .newThrowErrorCommand(job)
+        .errorCode(value.getCode())
+        .errorMessage(value.getMessage())
+        .send()
+        .join();
+  }
+
+  protected static Map<String, Object> toMap(Exception exception) {
+    Map<String, Object> result = new HashMap<>();
+    result.put("type", exception.getClass().getName());
+    var message = exception.getMessage();
+    if (message != null) {
+      result.put("message", message);
+    }
+    if (exception instanceof ConnectorException) {
+      var code = ((ConnectorException) exception).getErrorCode();
+      if (code != null) {
+        result.put("code", code);
+      }
+    }
+    return Map.copyOf(result);
   }
 }

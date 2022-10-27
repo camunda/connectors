@@ -17,10 +17,10 @@
 
 package io.camunda.connector.runtime.util.outbound;
 
-import static io.camunda.connector.runtime.util.ConnectorHelper.RESULT_EXPRESSION_HEADER_NAME;
-import static io.camunda.connector.runtime.util.ConnectorHelper.RESULT_VARIABLE_HEADER_NAME;
+import static io.camunda.connector.runtime.util.ConnectorHelper.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.secret.SecretProvider;
 import java.util.Collections;
@@ -29,14 +29,18 @@ import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EmptySource;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
-public class ConnectorJobHandlerTest {
+class ConnectorJobHandlerTest {
 
   @Nested
-  class Secrets {
+  class SecretTests {
 
     @Test
-    public void shouldReplaceSecretsViaSpiLoadedProvider() {
+    void shouldReplaceSecretsViaSpiLoadedProvider() {
       // given
       var jobHandler =
           new ConnectorJobHandler(
@@ -53,7 +57,7 @@ public class ConnectorJobHandlerTest {
     }
 
     @Test
-    public void shouldOverrideSecretProvider() {
+    void shouldOverrideSecretProvider() {
       // given
       var jobHandler =
           new TestConnectorJobHandler(
@@ -71,10 +75,10 @@ public class ConnectorJobHandlerTest {
   }
 
   @Nested
-  class Output {
+  class OutputTests {
 
     @Test
-    public void shouldNotSetWithoutResultVariable() {
+    void shouldNotSetWithoutResultVariableAndExpression() {
       // given
       var jobHandler = new ConnectorJobHandler((context) -> Map.of("hello", "world"));
 
@@ -85,8 +89,38 @@ public class ConnectorJobHandlerTest {
       assertThat(result.getVariables()).isEmpty();
     }
 
+    @ParameterizedTest
+    @NullSource
+    @EmptySource
+    @ValueSource(strings = {" ", "\t", "\n"})
+    void shouldNotSetWithBlankResultVariable(String variableName) {
+      // given
+      var jobHandler = new ConnectorJobHandler((context) -> Map.of("hello", "world"));
+
+      // when
+      var result = JobBuilder.create().withResultVariableHeader(variableName).execute(jobHandler);
+
+      // then
+      assertThat(result.getVariables()).isEmpty();
+    }
+
+    @ParameterizedTest
+    @NullSource
+    @EmptySource
+    @ValueSource(strings = {" ", "\t", "\n"})
+    void shouldNotSetWithBlankResultExpression(String expression) {
+      // given
+      var jobHandler = new ConnectorJobHandler((context) -> Map.of("hello", "world"));
+
+      // when
+      var result = JobBuilder.create().withResultExpressionHeader(expression).execute(jobHandler);
+
+      // then
+      assertThat(result.getVariables()).isEmpty();
+    }
+
     @Test
-    public void shouldSetToResultVariable() {
+    void shouldSetToResultVariable() {
       // given
       var jobHandler = new ConnectorJobHandler((context) -> Map.of("hello", "world"));
 
@@ -98,7 +132,7 @@ public class ConnectorJobHandlerTest {
     }
 
     @Test
-    public void shouldSetToResultExpression() {
+    void shouldSetToResultExpression() {
       // given
       // Response from service -> {"callStatus":{"statusCode":"200 OK"}}
       var jobHandler =
@@ -118,7 +152,7 @@ public class ConnectorJobHandlerTest {
     }
 
     @Test
-    public void shouldSetToResultExpressionWhenPojoIsReturned() {
+    void shouldSetToResultExpressionWhenPojoIsReturned() {
       // given
       // Response from service -> {"value": "response"}
       final String responseValue = "response";
@@ -137,7 +171,7 @@ public class ConnectorJobHandlerTest {
     }
 
     @Test
-    public void shouldSetToResultExpressionWhenContainsNull() {
+    void shouldSetToResultExpressionWhenContainsNull() {
       // given
       // Response from service -> {"value": null}
       var jobHandler = new ConnectorJobHandler((context) -> new TestConnectorResponsePojo(null));
@@ -154,7 +188,7 @@ public class ConnectorJobHandlerTest {
     }
 
     @Test
-    public void shouldSetToResultExpressionWhenContainsUnknownObject() {
+    void shouldSetToResultExpressionWhenContainsUnknownObject() {
       // given
       var response = new HashMap<>();
       response.put("status", "COMPLETED");
@@ -174,7 +208,7 @@ public class ConnectorJobHandlerTest {
     }
 
     @Test
-    public void shouldSetBothResultVariableAndExpression() {
+    void shouldSetBothResultVariableAndExpression() {
       // given
       // Response from service -> {"callStatus":{"statusCode":"200 OK"}}
       var jobHandler =
@@ -203,7 +237,7 @@ public class ConnectorJobHandlerTest {
     }
 
     @Test
-    public void shouldSetResultVariableNullWhenCallReturnedNull() {
+    void shouldSetResultVariableNullWhenCallReturnedNull() {
       // given
       final ConnectorJobHandler jobHandler = new ConnectorJobHandler((ctx) -> null);
       final String resultVariableName = "result";
@@ -219,7 +253,7 @@ public class ConnectorJobHandlerTest {
     }
 
     @Test
-    public void shouldSetResultVariableEmptyWhenCallReturnedEmpty() {
+    void shouldSetResultVariableEmptyWhenCallReturnedEmpty() {
       // given
       final ConnectorJobHandler jobHandler = new ConnectorJobHandler((ctx) -> new HashMap<>());
       final String resultVariableName = "result";
@@ -235,7 +269,7 @@ public class ConnectorJobHandlerTest {
     }
 
     @Test
-    public void shouldProduceFailCommandWhenResultExpressionIsDefinedAndCallReturnedNull() {
+    void shouldProduceFailCommandWhenResultExpressionIsDefinedAndCallReturnedNull() {
       // given
       // Response from service -> null
       var jobHandler = new ConnectorJobHandler((context) -> null);
@@ -244,11 +278,13 @@ public class ConnectorJobHandlerTest {
       final String resultExpression = "{\"processedOutput\": response.callStatus }";
 
       // when & then
-      JobBuilder.create().withResultExpressionHeader(resultExpression).execute(jobHandler, false);
+      JobBuilder.create()
+          .withResultExpressionHeader(resultExpression)
+          .execute(jobHandler, false, false);
     }
 
     @Test
-    public void shouldProduceFailCommandWhenResultExpressionIsDefinedAndCallReturnedEmpty() {
+    void shouldProduceFailCommandWhenResultExpressionIsDefinedAndCallReturnedEmpty() {
       // given
       // Response from service -> empty
       var jobHandler = new ConnectorJobHandler((context) -> new HashMap<>());
@@ -257,7 +293,277 @@ public class ConnectorJobHandlerTest {
       final String resultExpression = "{\"processedOutput\": response.callStatus }";
 
       // when & then
-      JobBuilder.create().withResultExpressionHeader(resultExpression).execute(jobHandler, false);
+      JobBuilder.create()
+          .withResultExpressionHeader(resultExpression)
+          .execute(jobHandler, false, false);
+    }
+
+    @Test
+    void shouldProduceFailCommandWhenCallThrowsException() {
+      // given
+      var jobHandler =
+          new ConnectorJobHandler(
+              context -> {
+                throw new NullPointerException("expected");
+              });
+
+      // when & then
+      JobBuilder.create().execute(jobHandler, false, false);
+    }
+  }
+
+  @Nested
+  class ErrorExpressionTests {
+
+    @ParameterizedTest
+    @NullSource
+    @EmptySource
+    @ValueSource(
+        strings = {
+          " ",
+          "\t",
+          "\n",
+          "if error.code != null then bpmnError(\"123\", \"\") else {}",
+          "if error.code != null then bpmnError(\"123\", \"\") else null",
+          "if unknownFunction(error.code) then bpmnError(\"123\", \"\") else null",
+          "bpmnError(123, \"\")"
+        })
+    void shouldNotCreateBpmnErrorWithExpression(String expression) {
+      var jobHandler =
+          new ConnectorJobHandler(
+              context -> {
+                // no error code provided
+                throw new ConnectorException(null, "exception message");
+              });
+      // when & then
+      JobBuilder.create().withErrorExpressionHeader(expression).execute(jobHandler, false, false);
+    }
+
+    @Test
+    void shouldCreateBpmnError_UsingExceptionCodeAndRawContext() {
+      // given
+      final String errorExpression =
+          "if error.code != null then "
+              + "{ \"code\": error.code, \"message\": \"Message: \" + error.message} "
+              + "else {}";
+      var jobHandler =
+          new ConnectorJobHandler(
+              context -> {
+                throw new ConnectorException("1013", "exception message");
+              });
+      // when
+      var result =
+          JobBuilder.create()
+              .withErrorExpressionHeader(errorExpression)
+              .execute(jobHandler, false, true);
+      // then
+      assertThat(result.getErrorCode()).isEqualTo("1013");
+      assertThat(result.getErrorMessage()).isEqualTo("Message: exception message");
+    }
+
+    @Test
+    void shouldCreateBpmnError_UsingExceptionWithBpmnErrorFunction() {
+      // given
+      final String errorExpression =
+          "if error.code != null then "
+              + "bpmnError(error.code, \"Message: \" + error.message) "
+              + "else null";
+      var jobHandler =
+          new ConnectorJobHandler(
+              context -> {
+                throw new ConnectorException("1013", "exception message");
+              });
+      // when
+      var result =
+          JobBuilder.create()
+              .withErrorExpressionHeader(errorExpression)
+              .execute(jobHandler, false, true);
+      // then
+      assertThat(result.getErrorCode()).isEqualTo("1013");
+      assertThat(result.getErrorMessage()).isEqualTo("Message: exception message");
+    }
+
+    @Test
+    void shouldCreateBpmnError_UsingExceptionWithDefaultFunction() {
+      // given
+      final String errorExpression =
+          "if contains(error.code,\"10\") then "
+              + "bpmnError(error.code, \"Message: \" + error.message) "
+              + "else null";
+      var jobHandler =
+          new ConnectorJobHandler(
+              context -> {
+                throw new ConnectorException("1013", "exception message");
+              });
+      // when
+      var result =
+          JobBuilder.create()
+              .withErrorExpressionHeader(errorExpression)
+              .execute(jobHandler, false, true);
+      // then
+      assertThat(result.getErrorCode()).isEqualTo("1013");
+      assertThat(result.getErrorMessage()).isEqualTo("Message: exception message");
+    }
+
+    @Test
+    void shouldCreateBpmnError_UsingExceptionCodeAsFirstCondition() {
+      // given
+      final String errorExpression =
+          "if error.code != null then "
+              + "bpmnError(error.code, \"Message: \" + error.message) "
+              + "else if testProperty = \"foo\" then "
+              + "bpmnError(\"9999\", \"Message for foo value on test property\") "
+              + "else null";
+      var jobHandler =
+          new ConnectorJobHandler(
+              context -> {
+                throw new ConnectorException("1013", "exception message");
+              });
+      // when
+      var result =
+          JobBuilder.create()
+              .withErrorExpressionHeader(errorExpression)
+              .execute(jobHandler, false, true);
+      // then
+      assertThat(result.getErrorCode()).isEqualTo("1013");
+      assertThat(result.getErrorMessage()).isEqualTo("Message: exception message");
+    }
+
+    @Test
+    void shouldCreateBpmnError_UsingExceptionCodeAsSecondConditionAfterResponseProperty() {
+      // given
+      final String errorExpression =
+          "if response.testProperty = \"foo\" then "
+              + "bpmnError(\"9999\", \"Message for foo value on test property\") "
+              + "else if error.code != null then "
+              + "bpmnError(error.code, \"Message: \" + error.message) "
+              + "else {}";
+      var jobHandler =
+          new ConnectorJobHandler(
+              context -> {
+                throw new ConnectorException("1013", "exception message");
+              });
+      // when
+      var result =
+          JobBuilder.create()
+              .withErrorExpressionHeader(errorExpression)
+              .execute(jobHandler, false, true);
+      // then
+      assertThat(result.getErrorCode()).isEqualTo("1013");
+      assertThat(result.getErrorMessage()).isEqualTo("Message: exception message");
+    }
+
+    @Test
+    void shouldCreateBpmnError_UsingExceptionCodeAsSecondConditionAfterPlainProperty() {
+      // given
+      final String errorExpression =
+          "if testProperty = \"foo\" then "
+              + "bpmnError(\"9999\", \"Message for foo value on test property\") "
+              + "else if error.code != null then "
+              + "bpmnError(error.code, \"Message: \" + error.message) "
+              + "else {}";
+      var jobHandler =
+          new ConnectorJobHandler(
+              context -> {
+                throw new ConnectorException("1013", "exception message");
+              });
+      // when
+      var result =
+          JobBuilder.create()
+              .withErrorExpressionHeader(errorExpression)
+              .execute(jobHandler, false, true);
+      // then
+      assertThat(result.getErrorCode()).isEqualTo("1013");
+      assertThat(result.getErrorMessage()).isEqualTo("Message: exception message");
+    }
+
+    @Test
+    void shouldCreateBpmnError_UsingExceptionCodeAsSecondConditionAfterContextProperty() {
+      // given
+      final String errorExpression =
+          "if testObject.testProperty = \"foo\" then "
+              + "bpmnError(\"9999\", \"Message for foo value on test property\") "
+              + "else if error.code != null then "
+              + "bpmnError(error.code, \"Message: \" + error.message) "
+              + "else {}";
+      var jobHandler =
+          new ConnectorJobHandler(
+              context -> {
+                throw new ConnectorException("1013", "exception message");
+              });
+      // when
+      var result =
+          JobBuilder.create()
+              .withErrorExpressionHeader(errorExpression)
+              .execute(jobHandler, false, true);
+      // then
+      assertThat(result.getErrorCode()).isEqualTo("1013");
+      assertThat(result.getErrorMessage()).isEqualTo("Message: exception message");
+    }
+
+    @Test
+    void shouldCreateBpmnError_UsingResponseValueAsFirstCondition() {
+      // given
+      final String errorExpression =
+          "if response.testProperty = \"foo\" then "
+              + "bpmnError(\"9999\", \"Message for foo value on test property\") "
+              + "else if error.code != null then "
+              + "bpmnError(error.code, \"Message: \" + error.message) "
+              + "else {}";
+      var jobHandler = new ConnectorJobHandler(context -> Map.of("testProperty", "foo"));
+      // when
+      var result =
+          JobBuilder.create()
+              .withErrorExpressionHeader(errorExpression)
+              .execute(jobHandler, false, true);
+      // then
+      assertThat(result.getErrorCode()).isEqualTo("9999");
+      assertThat(result.getErrorMessage()).isEqualTo("Message for foo value on test property");
+    }
+
+    @Test
+    void shouldCreateBpmnError_UsingResponseValueAsSecondCondition() {
+      // given
+      final String errorExpression =
+          "if error.code != null then "
+              + "bpmnError(error.code, \"Message: \" + error.message) "
+              + "else if response.testProperty = \"foo\" then "
+              + "bpmnError(\"9999\", \"Message for foo value on test property\") "
+              + "else {}";
+      var jobHandler = new ConnectorJobHandler(context -> Map.of("testProperty", "foo"));
+      // when
+      var result =
+          JobBuilder.create()
+              .withErrorExpressionHeader(errorExpression)
+              .execute(jobHandler, false, true);
+      // then
+      assertThat(result.getErrorCode()).isEqualTo("9999");
+      assertThat(result.getErrorMessage()).isEqualTo("Message for foo value on test property");
+    }
+
+    @Test
+    void shouldCreateBpmnError_UsingResultVariable() {
+      // given
+      final String errorExpression =
+          "if testProperty = \"foo\" then "
+              + "bpmnError(\"9999\", \"Message for foo value on test property\") "
+              + "else if error.code != null then "
+              + "bpmnError(error.code, \"Message: \" + error.message) "
+              + "else {}";
+      var jobHandler = new ConnectorJobHandler(context -> "foo");
+      // when
+      var result =
+          JobBuilder.create()
+              .withHeaders(
+                  Map.of(
+                      RESULT_VARIABLE_HEADER_NAME,
+                      "testProperty",
+                      ERROR_EXPRESSION_HEADER_NAME,
+                      errorExpression))
+              .execute(jobHandler, false, true);
+      // then
+      assertThat(result.getErrorCode()).isEqualTo("9999");
+      assertThat(result.getErrorMessage()).isEqualTo("Message for foo value on test property");
     }
   }
 

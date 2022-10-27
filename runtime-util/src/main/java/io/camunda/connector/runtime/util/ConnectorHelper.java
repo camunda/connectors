@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.util;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.error.BpmnError;
 import io.camunda.connector.runtime.util.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.util.feel.FeelEngineWrapperException;
 import java.util.HashMap;
@@ -34,6 +35,7 @@ public class ConnectorHelper {
 
   public static final String RESULT_VARIABLE_HEADER_NAME = "resultVariable";
   public static final String RESULT_EXPRESSION_HEADER_NAME = "resultExpression";
+  public static final String ERROR_EXPRESSION_HEADER_NAME = "errorExpression";
 
   /**
    * @return a map with output process variables for a given response from an {@link
@@ -46,23 +48,33 @@ public class ConnectorHelper {
     final String resultVariableName = jobHeaders.get(RESULT_VARIABLE_HEADER_NAME);
     final String resultExpression = jobHeaders.get(RESULT_EXPRESSION_HEADER_NAME);
 
-    if (resultVariableName != null) {
+    if (resultVariableName != null && !resultVariableName.isBlank()) {
       outputVariables.put(resultVariableName, responseContent);
     }
 
     Optional.ofNullable(resultExpression)
+        .filter(s -> !s.isBlank())
         .map(expression -> FEEL_ENGINE_WRAPPER.evaluateToJson(expression, responseContent))
-        .map(json -> parseJsonVarsAsMapOrThrow(json, resultExpression))
+        .map(json -> parseJsonVarsAsTypeOrThrow(json, Map.class, resultExpression))
         .ifPresent(outputVariables::putAll);
 
     return outputVariables;
   }
 
-  @SuppressWarnings("unchecked")
-  private static Map<String, Object> parseJsonVarsAsMapOrThrow(
-      final String jsonVars, final String expression) {
+  public static Optional<BpmnError> examineErrorExpression(
+      final Object responseContent, final Map<String, String> jobHeaders) {
+    final var errorExpression = jobHeaders.get(ERROR_EXPRESSION_HEADER_NAME);
+    return Optional.ofNullable(errorExpression)
+        .filter(s -> !s.isBlank())
+        .map(expression -> FEEL_ENGINE_WRAPPER.evaluateToJson(expression, responseContent))
+        .map(json -> parseJsonVarsAsTypeOrThrow(json, BpmnError.class, errorExpression))
+        .filter(BpmnError::hasCode);
+  }
+
+  private static <T> T parseJsonVarsAsTypeOrThrow(
+      final String jsonVars, Class<T> type, final String expression) {
     try {
-      return OBJECT_MAPPER.readValue(jsonVars, Map.class);
+      return OBJECT_MAPPER.readValue(jsonVars, type);
     } catch (JsonProcessingException e) {
       throw new FeelEngineWrapperException(ERROR_CANNOT_PARSE_VARIABLES, expression, jsonVars, e);
     }
