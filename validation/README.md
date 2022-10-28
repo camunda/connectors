@@ -115,7 +115,7 @@ If you want to provide your own implementation, you can exclude those two from t
 
 ## Custom validation
 
-If you want to provide your own validation implementation instead of the `connector-validation`, you need to implement the [ValidationProvider](./core/src/main/java/io/camunda/connector/api/validation/ValidationProvider.java) and provide it as an SPI.
+If you want to provide your own validation implementation instead of the `connector-validation`, you need to implement the [ValidationProvider](../core/src/main/java/io/camunda/connector/api/validation/ValidationProvider.java) and provide it as an SPI.
 
 ```java
 public class MyValidationProviderImpl implements ValidationProvider {
