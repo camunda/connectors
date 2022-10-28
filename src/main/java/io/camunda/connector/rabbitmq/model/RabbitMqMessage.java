@@ -6,13 +6,34 @@
  */
 package io.camunda.connector.rabbitmq.model;
 
+import com.rabbitmq.client.AMQP;
 import io.camunda.connector.api.annotation.Secret;
+import io.camunda.connector.rabbitmq.ValidationPropertiesUtil;
+import io.camunda.connector.rabbitmq.supplier.GsonSupplier;
 import jakarta.validation.constraints.NotNull;
 import java.util.Objects;
+import java.util.Optional;
 
 public class RabbitMqMessage {
   @Secret private Object properties;
   @NotNull @Secret private Object body;
+
+  public AMQP.BasicProperties getPropertiesAsAmqpBasicProperties() {
+    return Optional.ofNullable(properties)
+        .map(GsonSupplier.gson()::toJsonTree)
+        .map(ValidationPropertiesUtil::validateAmqpBasicPropertiesOrThrowException)
+        .map(
+            jsonProperties ->
+                GsonSupplier.gson().fromJson(jsonProperties, AMQP.BasicProperties.class))
+        .orElse(null);
+  }
+
+  public byte[] getBodyAsByteArray() {
+    return Optional.of(body)
+        .map(GsonSupplier.gson()::toJson)
+        .map(String::getBytes)
+        .orElseThrow(() -> new RuntimeException("Parse error to byte array"));
+  }
 
   public Object getProperties() {
     return properties;

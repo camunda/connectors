@@ -20,7 +20,7 @@ public class ConnectionFactorySupplier {
     final var auth = request.getAuthentication();
     final var routing = request.getRouting();
     final var factory = new ConnectionFactory();
-    if (auth.getAuthType() == RabbitMqAuthenticationType.URI) {
+    if (auth.getAuthType() == RabbitMqAuthenticationType.uri) {
       factory.setUri(auth.getUri());
     } else {
       factory.setUsername(auth.getUserName());

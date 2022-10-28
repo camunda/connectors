@@ -11,13 +11,11 @@ import com.google.gson.GsonBuilder;
 
 public final class GsonSupplier {
 
-  private final Gson gson;
+  private static final Gson gson = new GsonBuilder().create();
 
-  public GsonSupplier() {
-    gson = new GsonBuilder().create();
-  }
+  private GsonSupplier() {}
 
-  public Gson gson() {
+  public static Gson gson() {
     return gson;
   }
 }

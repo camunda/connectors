@@ -19,10 +19,10 @@ public class RabbitMqAuthentication {
 
   @AssertFalse
   private boolean isAuthFieldsIsEmpty() {
-    if (authType == RabbitMqAuthenticationType.URI) {
+    if (authType == RabbitMqAuthenticationType.uri) {
       return uri == null || uri.isBlank();
     }
-    if (authType == RabbitMqAuthenticationType.CREDENTIALS) {
+    if (authType == RabbitMqAuthenticationType.credentials) {
       return userName == null || userName.isBlank() || password == null || password.isBlank();
     }
     return true;
