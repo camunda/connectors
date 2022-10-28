@@ -371,6 +371,9 @@ limitations under the License.</license.inlineheader>
           <artifactId>license-maven-plugin</artifactId>
           <version>${plugin.version.license.codehaus}</version>
           <configuration>
+            <useMissingFile>true</useMissingFile>
+            <deployMissingFile>false</deployMissingFile>
+            <missingFileUrl>https://raw.githubusercontent.com/camunda/connector-sdk/main/licenses/THIRD-PARTY.properties</missingFileUrl>
             <licenseMerges>
               <licenseMerge>Apache-2.0|Apache License 2.0|Apache License, Version 2.0|The Apache Software License, Version 2.0|Apache 2.0|Apache License, version 2.0|The Apache License, Version 2.0|Apache 2|Apache License</licenseMerge>
               <licenseMerge>MIT|MIT License|The MIT License|MIT license|The MIT License (MIT)</licenseMerge>
