@@ -18,7 +18,7 @@
 
     <properties>
         <version.google-libraries-bom>26.1.3</version.google-libraries-bom>
-        <version.gson-extras>1.0.0</version.gson-extras>
+        <version.gson-extras>1.1.0</version.gson-extras>
         <version.httpcore>4.4.15</version.httpcore>
     </properties>
 
