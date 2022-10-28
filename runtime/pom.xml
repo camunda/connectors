@@ -35,13 +35,6 @@
       <artifactId>spring-zeebe-test</artifactId>
       <scope>test</scope>
     </dependency>
-    <!-- Put one connector on the classpath to test if that is properly loaded -->
-    <dependency>
-      <groupId>io.camunda.connector</groupId>
-      <artifactId>connector-http-json</artifactId>
-      <version>0.10.0</version>
-      <scope>test</scope>
-    </dependency>
   </dependencies>
 
   <build>

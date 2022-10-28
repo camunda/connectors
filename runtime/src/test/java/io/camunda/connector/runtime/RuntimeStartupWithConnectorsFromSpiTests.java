@@ -38,7 +38,7 @@ class RuntimeStartupWithConnectorsFromSpiTests {
 
   @Test
   public void httpConnectorLoadedViaSpi() {
-    Optional<ZeebeWorkerValue> httpjson = jobWorkerManager.findJobWorkerConfigByName("HTTPJSON");
+    Optional<ZeebeWorkerValue> httpjson = jobWorkerManager.findJobWorkerConfigByName("TEST");
     assertTrue(httpjson.isPresent());
   }
 }
