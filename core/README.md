@@ -31,7 +31,7 @@ public class PingConnector implements ConnectorFunction {
 
 It exposes itself as a [`ConnectorFunction` SPI implementation](https://docs.oracle.com/javase/8/docs/api/java/util/ServiceLoader.html).
 
-Connector run-times, e.g. [job worker run-time](../runtime-job-worker) wrap the function to execute it in various environments.
+Connector run-times, e.g. [job worker run-time](../runtime) wrap the function to execute it in various environments.
 
 
 ## Build
