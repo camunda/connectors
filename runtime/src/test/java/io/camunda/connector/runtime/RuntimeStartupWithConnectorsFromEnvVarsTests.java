@@ -39,8 +39,8 @@ import org.springframework.test.context.event.annotation.BeforeTestClass;
 @ZeebeSpringTest
 /*
 @TestPropertySource(properties = {
-        "CONNECTOR_HTTPJSON2_FUNCTION=io.camunda.connector.http.HttpJsonFunction",
-        "CONNECTOR_HTTPJSON2_TYPE=non-default-httpjson-task-type"
+        "CONNECTOR_TEST2_FUNCTION=io.camunda.connector.http.HttpJsonFunction",
+        "CONNECTOR_TEST2_TYPE=non-default-TEST-task-type"
 })
  */
 class RuntimeStartupWithConnectorsFromEnvVarsTests {
@@ -50,9 +50,9 @@ class RuntimeStartupWithConnectorsFromEnvVarsTests {
   @BeforeTestClass
   public static void prepare() throws Exception {
     OutboundConnectorRegistrationHelper.addHardwiredEnvironmentVariable(
-        "CONNECTOR_HTTPJSON2_FUNCTION", "io.camunda.connector.http.HttpJsonFunction");
+        "CONNECTOR_TEST2_FUNCTION", "io.camunda.connector.http.HttpJsonFunction");
     OutboundConnectorRegistrationHelper.addHardwiredEnvironmentVariable(
-        "CONNECTOR_HTTPJSON2_TYPE", "non-default-httpjson-task-type");
+        "CONNECTOR_TEST2_TYPE", "non-default-TEST-task-type");
   }
 
   @AfterTestClass
@@ -69,11 +69,11 @@ class RuntimeStartupWithConnectorsFromEnvVarsTests {
       // programmatic way to retrigger scanning?)
       return;
     }
-    // Make sure the environment variables are used INSTEAD of SPI (which would load HTTPJSON)
-    assertFalse(jobWorkerManager.findJobWorkerConfigByName("HTTPJSON").isPresent());
+    // Make sure the environment variables are used INSTEAD of SPI (which would load TEST)
+    assertFalse(jobWorkerManager.findJobWorkerConfigByName("TEST").isPresent());
 
-    Optional<ZeebeWorkerValue> httpjson = jobWorkerManager.findJobWorkerConfigByName("HTTPJSON2");
-    assertTrue(httpjson.isPresent());
-    assertEquals("non-default-httpjson-task-type", httpjson.get().getType());
+    Optional<ZeebeWorkerValue> testConnector = jobWorkerManager.findJobWorkerConfigByName("TEST2");
+    assertTrue(testConnector.isPresent());
+    assertEquals("non-default-TEST-task-type", testConnector.get().getType());
   }
 }
