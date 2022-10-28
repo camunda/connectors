@@ -45,12 +45,10 @@
       "description": "Provide the username (must have permissions to produce message to the topic)",
       "group": "authentication",
       "type": "String",
+      "optional": true,
       "binding": {
         "type": "zeebe:input",
         "name": "authentication.username"
-      },
-      "constraints": {
-        "notEmpty": true
       }
     },
     {
@@ -58,12 +56,10 @@
       "description": "Provide a password for the user",
       "group": "authentication",
       "type": "String",
+      "optional": true,
       "binding": {
         "type": "zeebe:input",
         "name": "authentication.password"
-      },
-      "constraints": {
-        "notEmpty": true
       }
     },
     {
