@@ -33,6 +33,10 @@
     {
       "id": "content",
       "label": "Compose Email"
+    },
+    {
+      "id": "errors",
+      "label": "Error Handling"
     }
   ],
   "properties": [
@@ -212,6 +216,17 @@
       "condition": {
         "property": "mailType",
         "equals": "byTemplate"
+      }
+    },
+    {
+      "label": "Error Expression",
+      "description": "Expression to define BPMN Errors to throw",
+      "group": "errors",
+      "type": "Text",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "errorExpression"
       }
     }
   ]
