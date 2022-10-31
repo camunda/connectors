@@ -11,7 +11,7 @@ import io.camunda.connector.suppliers.GsonComponentSupplier;
 
 public abstract class BaseTest {
 
-  protected static final String AWS_TOPIC_REGION = "REGION";
+  protected static final String AWS_TOPIC_REGION = "AWS_TOPIC_REGION";
   protected static final String ACTUAL_TOPIC_REGION = "us-east-1";
   protected static final String SECRETS = "secrets.";
   protected static final String AWS_ACCESS_KEY = "AWS_ACCESS_KEY";

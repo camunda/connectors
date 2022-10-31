@@ -30,6 +30,7 @@ class SnsConnectorRequestTest extends BaseTest {
             .secret(AWS_SECRET_KEY, ACTUAL_SECRET_KEY)
             .secret(AWS_ACCESS_KEY, ACTUAL_ACCESS_KEY)
             .secret(AWS_TOPIC_ARN, ACTUAL_TOPIC_ARN)
+            .secret(AWS_TOPIC_REGION, ACTUAL_TOPIC_REGION)
             .build();
   }
 
@@ -67,6 +68,7 @@ class SnsConnectorRequestTest extends BaseTest {
     request.getAuthentication().setAccessKey(SECRETS + AWS_ACCESS_KEY);
     request.getAuthentication().setSecretKey(SECRETS + AWS_SECRET_KEY);
     request.getTopic().setTopicArn(SECRETS + AWS_TOPIC_ARN);
+    request.getTopic().setRegion(SECRETS + AWS_TOPIC_REGION);
 
     // When replace secrets
     context.replaceSecrets(request);
@@ -74,6 +76,7 @@ class SnsConnectorRequestTest extends BaseTest {
     assertThat(request.getAuthentication().getSecretKey()).isEqualTo(ACTUAL_SECRET_KEY);
     assertThat(request.getAuthentication().getAccessKey()).isEqualTo(ACTUAL_ACCESS_KEY);
     assertThat(request.getTopic().getTopicArn()).isEqualTo(ACTUAL_TOPIC_ARN);
+    assertThat(request.getTopic().getRegion()).isEqualTo(ACTUAL_TOPIC_REGION);
   }
 
   @Test
@@ -83,8 +86,10 @@ class SnsConnectorRequestTest extends BaseTest {
     request.getAuthentication().setAccessKey(AWS_ACCESS_KEY);
     request.getTopic().setTopicArn(AWS_TOPIC_ARN);
     request.getTopic().setRegion(AWS_TOPIC_REGION);
+
     // When replace secrets
     context.replaceSecrets(request);
+
     // Then secrets must be not replaced
     assertThat(request.getAuthentication().getSecretKey()).isEqualTo(AWS_SECRET_KEY);
     assertThat(request.getAuthentication().getAccessKey()).isEqualTo(AWS_ACCESS_KEY);

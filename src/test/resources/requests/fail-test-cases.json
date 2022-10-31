@@ -3,6 +3,7 @@
     "testDescription": "No authentication",
     "topic":{
       "message":"Hello",
+      "messageAttributes":{},
       "subject":"MySubject",
       "region":"us-east-1",
       "topicArn":"arn:aws:sns:us-east-1:036433529947:MyCamundaDemo"
@@ -15,6 +16,7 @@
     },
     "topic":{
       "message":"Hello",
+      "messageAttributes":{},
       "subject":"MySubject",
       "region":"us-east-1",
       "topicArn":"arn:aws:sns:us-east-1:036433529947:MyCamundaDemo"
@@ -27,6 +29,7 @@
     },
     "topic":{
       "message":"Hello",
+      "messageAttributes":{},
       "subject":"MySubject",
       "region":"us-east-1",
       "topicArn":"arn:aws:sns:us-east-1:036433529947:MyCamundaDemo"
@@ -40,6 +43,7 @@
     },
     "topic":{
       "message":"Hello",
+      "messageAttributes":{},
       "subject":"MySubject",
       "region":"us-east-1"
     }
@@ -52,6 +56,7 @@
     },
     "topic":{
       "message":"Hello",
+      "messageAttributes":{},
       "subject":"MySubject",
       "topicArn":"arn:aws:sns:us-east-1:036433529947:MyCamundaDemo"
     }
@@ -64,6 +69,7 @@
     },
     "topic":{
       "subject":"MySubject",
+      "messageAttributes":{},
       "region":"us-east-1",
       "topicArn":"arn:aws:sns:us-east-1:036433529947:MyCamundaDemo"
     }
@@ -73,6 +79,48 @@
     "authentication":{
       "secretKey":"secrets.AWS_SECRET_KEY",
       "accessKey":"secrets.AWS_ACCESS_KEY"
+    }
+  },
+  {
+    "testDescription": "Request with empty region",
+    "authentication":{
+      "secretKey":"secrets.AWS_SECRET_KEY",
+      "accessKey":"secrets.AWS_ACCESS_KEY"
+    },
+    "topic":{
+      "message":"Hello",
+      "messageAttributes":{},
+      "subject":"MySubject",
+      "region":"",
+      "topicArn":"arn:aws:sns:us-east-1:036433529947:MyCamundaDemo"
+    }
+  },
+  {
+    "testDescription": "Request with blank region",
+    "authentication":{
+      "secretKey":"secrets.AWS_SECRET_KEY",
+      "accessKey":"secrets.AWS_ACCESS_KEY"
+    },
+    "topic":{
+      "message":"Hello",
+      "messageAttributes":{},
+      "subject":"MySubject",
+      "region":"  ",
+      "topicArn":"arn:aws:sns:us-east-1:036433529947:MyCamundaDemo"
+
+    }
+  },
+  {
+    "testDescription": "Request without topic ARN",
+    "authentication":{
+      "secretKey":"secrets.AWS_SECRET_KEY",
+      "accessKey":"secrets.AWS_ACCESS_KEY"
+    },
+    "topic":{
+      "message":"Hello",
+      "messageAttributes":{},
+      "subject":"MySubject",
+      "region":"us-east-1"
     }
   }
 ]

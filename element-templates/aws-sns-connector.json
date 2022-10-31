@@ -73,6 +73,9 @@
         "type": "zeebe:input",
         "name": "topic.topicArn"
       },
+      "constraints": {
+        "notEmpty": true
+      },
       "feel": "optional"
     },
     {
@@ -113,6 +116,17 @@
         "notEmpty": true
       },
       "feel": "optional"
+    },
+    {
+      "label": "Message attributes",
+      "description": "Message attributes metadata",
+      "group": "input",
+      "type": "Text",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "topic.messageAttributes"
+      },
+      "feel": "required"
     },
     {
       "label": "Result Variable",
