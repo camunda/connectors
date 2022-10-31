@@ -39,16 +39,14 @@
 
   <build>
     <plugins>
-      <!--
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-shade-plugin</artifactId>
-        </plugin>
-        -->
         <plugin>
           <groupId>org.springframework.boot</groupId>
           <artifactId>spring-boot-maven-plugin</artifactId>
           <version>${version.spring-boot}</version>
+          <configuration>
+            <mainClass>io.camunda.connector.runtime.ConnectorRuntimeApplication</mainClass>
+            <layout>ZIP</layout> <!-- to use PropertiesLaunchar -->
+          </configuration>
           <executions>
             <execution>
               <goals>
