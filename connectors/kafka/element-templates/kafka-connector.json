@@ -4,7 +4,7 @@
   "id": "io.camunda.connectors.KAFKA.v1",
   "version": 1,
   "description": "Produce Kafka Message",
-  "documentationRef": "https://docs.camunda.io/docs/components/modeler/web-modeler/connectors/available-connectors/rest/",
+  "documentationRef": "https://docs.camunda.io/docs/components/modeler/web-modeler/connectors/available-connectors/kafka/",
   "category": {
     "id": "connectors",
     "name": "Connectors"
