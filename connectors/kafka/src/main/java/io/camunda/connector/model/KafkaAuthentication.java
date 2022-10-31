@@ -7,7 +7,7 @@
 package io.camunda.connector.model;
 
 import io.camunda.connector.api.annotation.Secret;
-import jakarta.validation.constraints.NotEmpty;
+import io.camunda.connector.impl.ConnectorInputException;
 import java.util.Objects;
 import java.util.Properties;
 import org.apache.kafka.clients.CommonClientConfigs;
@@ -17,11 +17,12 @@ public class KafkaAuthentication {
 
   protected static final String SASL_JAAS_CONFIG_VALUE =
       "org.apache.kafka.common.security.plain.PlainLoginModule   required username='%s'   password='%s';";
+
   protected static final String SECURITY_PROTOCOL_VALUE = "SASL_SSL"; // default value
   protected static final String SASL_MECHANISM_VALUE = "PLAIN"; // default value
 
-  @NotEmpty @Secret private String username;
-  @NotEmpty @Secret private String password;
+  @Secret private String username;
+  @Secret private String password;
 
   public String getUsername() {
     return username;
@@ -41,8 +42,20 @@ public class KafkaAuthentication {
 
   public Properties produceAuthenticationProperties() {
     Properties authProps = new Properties();
-    authProps.put(
-        SaslConfigs.SASL_JAAS_CONFIG, String.format(SASL_JAAS_CONFIG_VALUE, username, password));
+
+    // Both username and password arrived empty thus not setting security config.
+    if ((username == null || username.isBlank()) && (password == null || password.isBlank())) {
+      return authProps;
+    }
+
+    if (username != null && !username.isBlank() && password != null && !password.isBlank()) {
+      authProps.put(
+          SaslConfigs.SASL_JAAS_CONFIG, String.format(SASL_JAAS_CONFIG_VALUE, username, password));
+    } else {
+      throw new ConnectorInputException(
+          new RuntimeException("Username / password pair is required"));
+    }
+
     authProps.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SECURITY_PROTOCOL_VALUE);
     authProps.put(SaslConfigs.SASL_MECHANISM, SASL_MECHANISM_VALUE);
     return authProps;

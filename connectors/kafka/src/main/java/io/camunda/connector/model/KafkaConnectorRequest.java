@@ -23,7 +23,7 @@ public class KafkaConnectorRequest {
   protected static final String CLIENT_DNS_LOOKUP_RECOMMENDED_VALUE = "use_all_dns_ips";
   protected static final String ACKS_RECOMMENDED_VALUE = "all";
 
-  @Valid @NotNull @Secret private KafkaAuthentication authentication;
+  @Valid @Secret private KafkaAuthentication authentication;
   @Valid @NotNull @Secret private KafkaTopic topic;
   @Valid @NotNull private KafkaMessage message;
 
@@ -67,8 +67,10 @@ public class KafkaConnectorRequest {
     Properties props = new Properties();
 
     // Step 1: collect properties directly from the form
-    Properties authProps = this.authentication.produceAuthenticationProperties();
-    props.putAll(authProps);
+    if (authentication != null) {
+      Properties authProps = this.authentication.produceAuthenticationProperties();
+      props.putAll(authProps);
+    }
 
     Properties topicProps = this.topic.produceTopicProperties();
     props.putAll(topicProps);

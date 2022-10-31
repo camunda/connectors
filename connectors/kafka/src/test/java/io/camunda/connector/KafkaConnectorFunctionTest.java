@@ -24,6 +24,7 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -37,7 +38,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 // This test only tests different input validation and compliance, and secrets replacement
 @ExtendWith(MockitoExtension.class)
-class KafkaConnectorFunctionParametrizedTest {
+class KafkaConnectorFunctionTest {
 
   private static final String SUCCESS_CASES_RESOURCE_PATH =
       "src/test/resources/requests/success-test-cases.json";
@@ -100,10 +101,48 @@ class KafkaConnectorFunctionParametrizedTest {
 
   @ParameterizedTest
   @MethodSource("failRequestCases")
-  void execute_ShouldFail(final String incomingJson) throws Exception {
+  void execute_ShouldFail(final String incomingJson) {
     KafkaConnectorRequest req = new Gson().fromJson(incomingJson, KafkaConnectorRequest.class);
     OutboundConnectorContext ctx = OutboundConnectorContextBuilder.create().variables(req).build();
     Assertions.assertThrows(ConnectorInputException.class, () -> objectUnderTest.execute(ctx));
+  }
+
+  @Test
+  void execute_NoCredsProvided_ShouldPass() throws Exception {
+    // given
+    final String noAuthRequest =
+        "{\n"
+            + "    \"topic\":{\n"
+            + "      \"bootstrapServers\":\"kafka-stub.kafka.cloud:1234\",\n"
+            + "      \"topicName\":\"some-awesome-topic\"\n"
+            + "    },\n"
+            + "    \"message\":{\n"
+            + "      \"key\":\"Happy\",\n"
+            + "      \"value\":\"Case\"\n"
+            + "    }\n"
+            + "  }";
+    CompletableFuture<Object> completedKafkaResult = new CompletableFuture<>();
+    completedKafkaResult.complete("OK");
+    Mockito.when(producer.send(ArgumentMatchers.any())).thenReturn(completedKafkaResult);
+    KafkaConnectorRequest req = new Gson().fromJson(noAuthRequest, KafkaConnectorRequest.class);
+    OutboundConnectorContext ctx = OutboundConnectorContextBuilder.create().variables(req).build();
+
+    // when
+    objectUnderTest.execute(ctx);
+    // then
+    // Testing records are equal
+    Mockito.verify(producer).send(producerRecordCaptor.capture());
+    ProducerRecord recordActual = producerRecordCaptor.getValue();
+    ProducerRecord recordExpected =
+        new ProducerRecord(
+            req.getTopic().getTopicName(), req.getMessage().getKey(), req.getMessage().getValue());
+    assertThat(recordActual.toString()).isEqualTo(recordExpected.toString());
+
+    // Testing secrets updated
+    assertThat(req.getAuthentication()).isNull();
+    assertThat(req.getAuthentication()).isNull();
+    assertThat(req.getTopic().getBootstrapServers()).isEqualTo(SECRET_BOOTSTRAP_SERVER);
+    assertThat(req.getTopic().getTopicName()).isEqualTo(SECRET_TOPIC_NAME);
   }
 
   private static Stream<String> successRequestCases() throws IOException {
