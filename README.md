@@ -15,8 +15,8 @@ mvn clean package
 ```json
 {
   "authentication":{
-    "secretKey":"mySecretKey",
-    "accessKey":"myAccessKey"
+    "accessKey":"secrets.SNS_ACCESS_KEY",
+    "secretKey":"secrets.SNS_SECRET_KEY"
   },
   "topic":{
     "message":"MyMessage",
