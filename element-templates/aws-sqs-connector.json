@@ -23,12 +23,16 @@
       "label": "Queue Properties"
     },
     {
+      "id": "input",
+      "label": "Input message data"
+    },
+    {
       "id": "output",
       "label": "Output"
     },
     {
-      "id": "input",
-      "label": "Input message data"
+      "id": "errors",
+      "label": "Error Handling"
     }
   ],
   "properties": [
@@ -139,6 +143,17 @@
       "binding": {
         "type": "zeebe:taskHeader",
         "key": "resultExpression"
+      }
+    },
+    {
+      "label": "Error Expression",
+      "description": "Expression to define BPMN Errors to throw",
+      "group": "errors",
+      "type": "Text",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "errorExpression"
       }
     }
   ],
