@@ -4,6 +4,7 @@
   "id": "io.camunda.connectors.RabbitMQ.v1",
   "description": "Send message to RabbitMQ",
   "documentationRef": "https://docs.camunda.io/docs/components/integration-framework/connectors/out-of-the-box-connectors/rabbit-mq/",
+  "version": 1,
   "category": {
     "id": "connectors",
     "name": "Connectors"
