@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.suppliers;
 
-import com.amazonaws.services.sqs.model.MessageAttributeValue;
+import com.amazonaws.services.sns.model.MessageAttributeValue;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonDeserializationContext;
@@ -45,7 +45,7 @@ public final class GsonComponentSupplier {
       // support is very limited to DataType, StringValue and BinaryValue.
       // At the same time, we do not plan to support custom binary types.
       // See more at:
-      // https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_MessageAttributeValue.html
+      // https://docs.aws.amazon.com/sns/latest/dg/sns-message-attributes.html
       Optional.ofNullable(jObject.get("DataType").getAsString()).ifPresent(mav::setDataType);
       Optional.ofNullable(jObject.get("StringValue").getAsString()).ifPresent(mav::setStringValue);
       return mav;
