@@ -24,16 +24,20 @@ import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpResponse;
+import com.google.api.client.http.HttpResponseException;
 import com.google.api.client.http.json.JsonHttpContent;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.gson.Gson;
 import io.camunda.connector.api.annotation.OutboundConnector;
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.http.components.GsonComponentSupplier;
 import io.camunda.connector.http.components.HttpTransportComponentSupplier;
 import io.camunda.connector.http.model.HttpJsonRequest;
 import io.camunda.connector.http.model.HttpJsonResult;
+import io.camunda.connector.impl.ConnectorInputException;
+import jakarta.validation.ValidationException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -97,19 +101,22 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
   }
 
   protected HttpResponse sendRequest(final HttpRequest request) throws IOException {
-    return request.execute();
+    try {
+      return request.execute();
+    } catch (HttpResponseException hrex) {
+      throw new ConnectorException(String.valueOf(hrex.getStatusCode()), hrex.getMessage());
+    }
   }
 
   private HttpRequest createRequest(final HttpJsonRequest request) throws IOException {
-    final var content = createContent(request);
-
-    final var method = request.getMethod().toUpperCase();
     final var url = request.getUrl();
-
-    // TODO: add more clean solution
+    // TODO: add more holistic solution
     if (url.contains("computeMetadata")) {
-      throw new RuntimeException("The provided URL is not allowed");
+      throw new ConnectorInputException(new ValidationException("The provided URL is not allowed"));
     }
+
+    final var content = createContent(request);
+    final var method = request.getMethod().toUpperCase();
 
     final GenericUrl genericUrl = new GenericUrl(url);
 
