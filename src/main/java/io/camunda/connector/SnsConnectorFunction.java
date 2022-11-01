@@ -43,7 +43,6 @@ public class SnsConnectorFunction implements OutboundConnectorFunction {
   public Object execute(final OutboundConnectorContext context) {
     final var variables = context.getVariables();
     LOGGER.debug("Executing SNS connector with variables : {}", variables);
-    // TODO: move to var connectorRequest = context.getVariablesAsType(SnsConnectorRequest.class);
     final var request = gson.fromJson(variables, SnsConnectorRequest.class);
     context.validate(request);
     context.replaceSecrets(request);
