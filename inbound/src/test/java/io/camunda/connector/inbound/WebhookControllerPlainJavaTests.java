@@ -17,17 +17,21 @@
 package io.camunda.connector.inbound;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.inbound.registry.InboundConnectorProperties;
 import io.camunda.connector.inbound.registry.InboundConnectorRegistry;
 import io.camunda.connector.inbound.webhook.InboundWebhookRestController;
 import io.camunda.connector.inbound.webhook.WebhookConnectorProperties;
 import io.camunda.connector.inbound.webhook.WebhookResponse;
 import io.camunda.connector.runtime.util.feel.FeelEngineWrapper;
+import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.client.api.ZeebeFuture;
 import io.camunda.zeebe.client.api.command.CreateProcessInstanceCommandStep1;
@@ -52,11 +56,13 @@ public class WebhookControllerPlainJavaTests {
   @Test
   public void multipleWebhooksOnSameContextPath() throws IOException {
     InboundConnectorRegistry registry = new InboundConnectorRegistry();
+    InboundConnectorContext connectorContext =
+        InboundConnectorContextBuilder.create().secret("DUMMY_SECRET", "s3cr3T").build();
     ZeebeClient zeebeClient = mock(ZeebeClient.class);
     when(zeebeClient.newCreateInstanceCommand()).thenReturn(new CreateCommandDummy());
     InboundWebhookRestController controller =
         new InboundWebhookRestController(
-            registry, zeebeClient, new FeelEngineWrapper(), new ObjectMapper());
+            registry, connectorContext, zeebeClient, new FeelEngineWrapper(), new ObjectMapper());
 
     registry.reset();
     // registry.markProcessDefinitionChecked(123, "processA", 1);

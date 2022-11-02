@@ -14,24 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.impl.outbound;
+package io.camunda.connector.impl.context;
 
-import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.api.secret.SecretStore;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.impl.secret.SecretHandler;
 import java.util.ServiceLoader;
 
-public abstract class AbstractOutboundConnectorContext implements OutboundConnectorContext {
+public abstract class AbstractConnectorContext {
 
-  private SecretHandler secretHandler;
+  protected SecretHandler secretHandler;
+  protected final SecretStore secretStore;
 
-  @Override
-  public void validate(Object input) {
-    getValidationProvider().validate(input);
+  protected AbstractConnectorContext(final SecretStore secretStore) {
+    if (secretStore == null) {
+      throw new RuntimeException("Secret store was not provided");
+    }
+    this.secretStore = secretStore;
   }
 
-  @Override
-  public void replaceSecrets(Object input) {
+  public void replaceSecrets(final Object input) {
     getSecretHandler().handleSecretContainer(input, getSecretHandler());
   }
 
@@ -40,6 +42,14 @@ public abstract class AbstractOutboundConnectorContext implements OutboundConnec
       secretHandler = new SecretHandler(getSecretStore());
     }
     return secretHandler;
+  }
+
+  public SecretStore getSecretStore() {
+    return secretStore;
+  }
+
+  public void validate(Object input) {
+    getValidationProvider().validate(input);
   }
 
   /**

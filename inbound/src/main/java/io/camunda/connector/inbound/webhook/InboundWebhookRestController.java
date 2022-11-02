@@ -17,6 +17,7 @@
 package io.camunda.connector.inbound.webhook;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.inbound.registry.InboundConnectorRegistry;
 import io.camunda.connector.inbound.security.signature.HMACAlgoCustomerChoice;
 import io.camunda.connector.inbound.security.signature.HMACSignatureValidator;
@@ -49,6 +50,7 @@ public class InboundWebhookRestController {
   private static final Logger LOG = LoggerFactory.getLogger(InboundWebhookRestController.class);
 
   private final InboundConnectorRegistry registry;
+  private final InboundConnectorContext connectorContext;
   private final ZeebeClient zeebeClient;
   private final FeelEngineWrapper feelEngine;
   private final ObjectMapper jsonMapper;
@@ -56,10 +58,12 @@ public class InboundWebhookRestController {
   @Autowired
   public InboundWebhookRestController(
       final InboundConnectorRegistry registry,
+      final InboundConnectorContext connectorContext,
       final ZeebeClient zeebeClient,
       final FeelEngineWrapper feelEngine,
       final ObjectMapper jsonMapper) {
     this.registry = registry;
+    this.connectorContext = connectorContext;
     this.zeebeClient = zeebeClient;
     this.feelEngine = feelEngine;
     this.jsonMapper = jsonMapper;
@@ -68,8 +72,7 @@ public class InboundWebhookRestController {
   @PostMapping("/inbound/{context}")
   public ResponseEntity<WebhookResponse> inbound(
       @PathVariable String context,
-      @RequestBody
-          byte[] bodyAsByteArray, // it is important to get pure body in order to recalculate HMAC
+      @RequestBody byte[] bodyAsByteArray, // required to calculate HMAC
       @RequestHeader Map<String, String> headers)
       throws IOException {
 
@@ -95,13 +98,14 @@ public class InboundWebhookRestController {
     Collection<WebhookConnectorProperties> connectors =
         registry.getWebhookConnectorByContextPath(context);
     for (WebhookConnectorProperties connectorProperties : connectors) {
+      connectorContext.replaceSecrets(connectorProperties);
 
       try {
         if (!isValidHmac(connectorProperties, bodyAsByteArray, headers)) {
           LOG.debug("HMAC validation failed {} :: {}", context, webhookContext);
           response.addUnauthorizedConnector(connectorProperties);
         } else { // Authorized
-          if (!checkActivation(connectorProperties, webhookContext)) {
+          if (!activationConditionTriggered(connectorProperties, webhookContext)) {
             LOG.debug("Should not activate {} :: {}", context, webhookContext);
             response.addUnactivatedConnector(connectorProperties);
           } else {
@@ -128,7 +132,9 @@ public class InboundWebhookRestController {
       final byte[] bodyAsByteArray,
       final Map<String, String> headers)
       throws NoSuchAlgorithmException, InvalidKeyException {
-    if (HMACSwitchCustomerChoice.disabled.name().equals(connectorProperties.shouldValidateHMAC())) {
+    if (HMACSwitchCustomerChoice.disabled
+        .name()
+        .equals(connectorProperties.getShouldValidateHmac())) {
       return true;
     }
 
@@ -136,9 +142,9 @@ public class InboundWebhookRestController {
         new HMACSignatureValidator(
             bodyAsByteArray,
             headers,
-            connectorProperties.getHMACHeader(),
-            connectorProperties.getHMACSecret(),
-            HMACAlgoCustomerChoice.valueOf(connectorProperties.getHMACAlgo()));
+            connectorProperties.getHmacHeader(),
+            connectorProperties.getHmacSecret(),
+            HMACAlgoCustomerChoice.valueOf(connectorProperties.getHmacAlgorithm()));
 
     return validator.isRequestValid();
   }
@@ -174,12 +180,12 @@ public class InboundWebhookRestController {
     //      throw fail("Failed to extract variables", connectorProperties, exception);
   }
 
-  private boolean checkActivation(
+  private boolean activationConditionTriggered(
       WebhookConnectorProperties connectorProperties, Map<String, Object> context) {
 
     // at this point we assume secrets exist / had been specified
     var activationCondition = connectorProperties.getActivationCondition();
-    if (activationCondition == null) {
+    if (activationCondition == null || activationCondition.isBlank()) {
       return true;
     }
     Object shouldActivate = feelEngine.evaluate(activationCondition, context);

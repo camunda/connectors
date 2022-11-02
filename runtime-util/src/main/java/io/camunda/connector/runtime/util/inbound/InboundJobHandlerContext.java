@@ -14,35 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.util.outbound;
+package io.camunda.connector.runtime.util.inbound;
 
-import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.secret.SecretStore;
 import io.camunda.connector.impl.context.AbstractConnectorContext;
-import io.camunda.zeebe.client.api.response.ActivatedJob;
 
-/**
- * Implementation of {@link io.camunda.connector.api.outbound.OutboundConnectorContext} passed on to
- * a {@link io.camunda.connector.api.outbound.OutboundConnectorFunction} when called from the {@link
- * ConnectorJobHandler}.
- */
-public class JobHandlerContext extends AbstractConnectorContext
-    implements OutboundConnectorContext {
+/** Implementation of {@link io.camunda.connector.api.inbound.InboundConnectorContext} */
+public class InboundJobHandlerContext extends AbstractConnectorContext
+    implements InboundConnectorContext {
 
-  private final ActivatedJob job;
-
-  public JobHandlerContext(final ActivatedJob job, final SecretStore secretStore) {
+  public InboundJobHandlerContext(final SecretStore secretStore) {
     super(secretStore);
-    this.job = job;
-  }
-
-  @Override
-  public <T> T getVariablesAsType(Class<T> cls) {
-    return job.getVariablesAsType(cls);
-  }
-
-  @Override
-  public String getVariables() {
-    return job.getVariables();
   }
 }
