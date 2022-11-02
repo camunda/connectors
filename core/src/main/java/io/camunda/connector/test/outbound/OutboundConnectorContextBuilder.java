@@ -20,7 +20,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.secret.SecretStore;
 import io.camunda.connector.api.validation.ValidationProvider;
-import io.camunda.connector.impl.outbound.AbstractOutboundConnectorContext;
+import io.camunda.connector.impl.context.AbstractConnectorContext;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -30,6 +30,7 @@ public class OutboundConnectorContextBuilder {
 
   protected final Map<String, String> secrets = new HashMap<>();
   protected SecretProvider secretProvider = secrets::get;
+  protected SecretStore secretStore = new SecretStore(secretProvider);
 
   protected ValidationProvider validationProvider;
 
@@ -104,6 +105,17 @@ public class OutboundConnectorContextBuilder {
     return this;
   }
 
+  /**
+   * Provides the secret values via the defined {@link SecretStore}.
+   *
+   * @param secretStore - secret store
+   * @return builder for fluent API
+   */
+  public OutboundConnectorContextBuilder secrets(SecretStore secretStore) {
+    this.secretStore = secretStore;
+    return this;
+  }
+
   public OutboundConnectorContextBuilder validation(ValidationProvider validationProvider) {
     this.validationProvider = validationProvider;
     return this;
@@ -113,11 +125,15 @@ public class OutboundConnectorContextBuilder {
    * @return the {@link OutboundConnectorContext} including all previously defined properties
    */
   public TestConnectorContext build() {
-    return new TestConnectorContext();
+    return new TestConnectorContext(secretStore);
   }
 
-  public class TestConnectorContext extends AbstractOutboundConnectorContext {
-    private SecretStore secretStore;
+  public class TestConnectorContext extends AbstractConnectorContext
+      implements OutboundConnectorContext {
+
+    protected TestConnectorContext(SecretStore secretStore) {
+      super(secretStore);
+    }
 
     @Override
     public String getVariables() {
@@ -142,14 +158,6 @@ public class OutboundConnectorContextBuilder {
         throw new IllegalStateException(
             "no variablesAsObject of type " + cls.getName() + " provided", ex);
       }
-    }
-
-    @Override
-    public SecretStore getSecretStore() {
-      if (secretStore == null) {
-        secretStore = new SecretStore(secretProvider);
-      }
-      return secretStore;
     }
 
     @Override

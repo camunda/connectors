@@ -17,6 +17,13 @@
 package io.camunda.connector.inbound.configs;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.inbound.InboundConnectorContext;
+import io.camunda.connector.api.secret.SecretProvider;
+import io.camunda.connector.api.secret.SecretStore;
+import io.camunda.connector.runtime.util.inbound.InboundJobHandlerContext;
+import java.util.Iterator;
+import java.util.ServiceLoader;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -26,5 +33,26 @@ public class LocalContextBeanConfiguration {
   @Bean
   public ObjectMapper jacksonMapper() {
     return new ObjectMapper();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  protected SecretProvider getSecretProvider() {
+    Iterator<SecretProvider> secretProviders = ServiceLoader.load(SecretProvider.class).iterator();
+    if (!secretProviders.hasNext()) {
+      return System::getenv; // Fallback to environment variables loading
+    }
+    return secretProviders.next();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public SecretStore secretStore(final SecretProvider secretProvider) {
+    return new SecretStore(secretProvider);
+  }
+
+  @Bean
+  public InboundConnectorContext jobHandlerContext(final SecretStore secretStore) {
+    return new InboundJobHandlerContext(secretStore);
   }
 }
