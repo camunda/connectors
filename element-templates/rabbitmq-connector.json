@@ -78,8 +78,8 @@
       "constraints": {
         "notEmpty": true,
         "pattern": {
-          "value": "^(amqp://)|(secrets).*",
-          "message": "Must start with amqp://"
+          "value": "^(amqps?://)|(secrets).*",
+          "message": "Must start with amqp(s)://"
         }
       },
       "condition": {
