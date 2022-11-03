@@ -1,2 +1,2 @@
 *
-!target/connector-runtime-*.jar
+!target/connector-runtime-*-with-dependencies.jar
