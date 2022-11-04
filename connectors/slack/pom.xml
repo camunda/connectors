@@ -55,6 +55,7 @@ except in compliance with the proprietary license.</license.inlineheader>
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-validation</artifactId>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>com.google.code.gson</groupId>
@@ -75,6 +76,7 @@ except in compliance with the proprietary license.</license.inlineheader>
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-core</artifactId>
+      <scope>provided</scope>
     </dependency>
     <!-- This dependency will be removed after camunda/zeebe#9859 is resolved. -->
     <dependency>
