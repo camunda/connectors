@@ -130,7 +130,10 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
     if (request.getConnectionTimeoutInSeconds() != null) {
       long connectionTimeout =
           TimeUnit.SECONDS.toMillis(Long.parseLong(request.getConnectionTimeoutInSeconds()));
-      httpRequest.setConnectTimeout(Math.toIntExact(connectionTimeout));
+      int intConnectionTimeout = Math.toIntExact(connectionTimeout);
+      httpRequest.setConnectTimeout(intConnectionTimeout);
+      httpRequest.setReadTimeout(intConnectionTimeout);
+      httpRequest.setWriteTimeout(intConnectionTimeout);
     }
 
     final var headers = createHeaders(request);
