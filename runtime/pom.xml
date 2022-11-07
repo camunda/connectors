@@ -16,7 +16,7 @@
   <dependencies>
     <dependency>
       <groupId>io.camunda.connector</groupId>
-      <artifactId>connector-runtime-util</artifactId>
+      <artifactId>connector-inbound</artifactId>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
@@ -42,7 +42,14 @@
 
   <build>
     <plugins>
-        <plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <configuration>
+          <mainClass>io.camunda.connector.runtime.ConnectorRuntimeApplication</mainClass>
+        </configuration>
+      </plugin>
+       <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-shade-plugin</artifactId>
           <dependencies>

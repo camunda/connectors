@@ -36,17 +36,15 @@ import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 @Component
+@ConditionalOnProperty(name = "camunda.connector.polling.enabled")
 public class ProcessDefinitionImporter {
 
   private static final Logger LOG = LoggerFactory.getLogger(ProcessDefinitionImporter.class);
-
-  @Value("${camunda.connector.polling.enabled:true}")
-  private boolean pollingEnabled;
 
   private InboundConnectorRegistry registry;
   private CamundaOperateClient camundaOperateClient;
@@ -58,13 +56,8 @@ public class ProcessDefinitionImporter {
     this.camundaOperateClient = camundaOperateClient;
   }
 
-  // TODO: Make delay configurable
-  @Scheduled(fixedDelay = 5000)
+  @Scheduled(fixedDelayString = "${camunda.connector.polling.interval:5000}")
   public void scheduleImport() throws OperateException {
-    if (!pollingEnabled) {
-      LOG.trace("Skip polling for process deploymens (camunda.connector.polling.enabled=false)");
-      return;
-    }
     LOG.trace("Query process deployments...");
 
     SearchQuery processDefinitionQuery =

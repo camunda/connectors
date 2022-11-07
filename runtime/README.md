@@ -1,20 +1,123 @@
-# Job Worker Connector Run-Time
+# Camunda Connector Runtime
 
-A simple run-time to execute [connector functions](../core) as job workers.
+This runtime can execute Camunda Connectors, especially:
 
-## Running Connector Function(s)
+* Outbound [Connector functions](../core) via [Zeebe Job Workers](https://docs.camunda.io/docs/components/concepts/job-workers/)
+* Inbound [Webhooks](../inbound)
 
-We expose a main method to run one or more connectors and register them
-as [Zeebe job workers](https://docs.camunda.io/docs/next/components/concepts/job-workers/).
+# Concept
 
-### Connecting to Zeebe
+# How-to run?
 
-You configure the connection to Zeebe using the
-standard [Zeebe environment variables](https://docs.camunda.io/docs/apis-clients/java-client/#bootstrapping).
+## Via Maven
+
+```bash
+mvn exec:java
+```
+
+## Via Java
+
+Build via Maven:
+
+```bash
+mvn package
+```
+
+And afterwards run:
+
+```bash
+java -jar target/connector-runtime-VERSION-with-dependencies.jar
+```
+
+## Via Docker
+
+The [`Dockerfile`](./Dockerfile) in this repository provides a base image
+including the job worker runtime. The image starts the job worker runtime with
+all `jar` files provided in the `/opt/app` directory as classpath.
+
+To use the image at least one connector has to be added to the classpath. We recommend to provide jars with all dependencies bundled.
+
+> :warning: As all connectors share a single classpath it can happen that
+> different versions of the same dependency are available which can lead to
+> conflicts. To prevent this, common dependencies like `jackson` can be shaded and
+> relocated inside the connector jar.
+
+Example adding a connector jar by extending the image
+
+```dockerfile
+FROM camunda/connectors:0.2.2
+
+ADD https://repo1.maven.org/maven2/io/camunda/connector/connector-http-json/0.9.0/connector-http-json-0.9.0-with-dependencies.jar /opt/app/
+```
+
+Example adding a connector jar by using volumes
+
+```bash
+docker run --rm --name=connectors -d -v $PWD/connector.jar:/opt/app/ camunda/connectors:0.2.2
+```
+
+
+
+# Configuration Options
+
+The following configuration properties can be set via `src/main/application.properties` if you run Java directly.
+
+You can also set those configuration options via environment variables (then named `ZEEBE_CLIENT_CLOUD_CLUSTER-ID` instead of `zeebe.client.cloud.cluster-id`), especially useful if you run via DOCKER.
+
+In general, the Connector Runtime will respect all properties known to [Spring Zeebe](https://github.com/camunda-community-hub/spring-zeebe), which allows to specify some more options.
+
+## Configure Camunda Platform
+
+### SaaS
+
+To use Camunda Platform 8 SaaS specify the connection properties:
+
+```properties
+zeebe.client.cloud.cluster-id=xxx
+zeebe.client.cloud.client-id=xxx
+zeebe.client.cloud.client-secret=xxx
+zeebe.client.cloud.region=bru-2
+```
+
+You can further configure separate connection properties for Camunda Operate (othewise it will use the properties configured for Zeebe above):
+
+```properties
+camunda.operate.client.client-id=xxx
+camunda.operate.client.client-secret=xxx
+```
+
+### Local installation
+
+Zeebe:
+
+```properties
+zeebe.client.broker.gateway-address=127.0.0.1:26500
+zeebe.client.security.plaintext=true
+```
+
+Connect to Operate locally using username and password:
+
+```properties
+camunda.operate.client.url=http://localhost:8081
+camunda.operate.client.username=demo
+camunda.operate.client.password=demo
+```
+
+When running against a self-managed environment you might also need to configure the keycloak endpoint to not use Operate username/password authentication:
+
+```properties
+camunda.operate.client.keycloak-url=http://localhost:18080
+camunda.operate.client.keycloak-realm=camunda-platform
+```
+
+
+
+## Adding Outbound Connector Function(s)
 
 ### Automatic Connector Discovery
 
-The run-time picks up outbound connectors available on the classpath automatically unless [overriden through manual configuration](#manual-discovery).
+The runtime picks up outbound connectors available on the classpath automatically unless [overriden through manual configuration](#manual-discovery).
+
 It uses the default configuration specified through the `@OutboundConnector` annotation in these cases.
 
 ```bash
@@ -50,36 +153,9 @@ java -cp 'connector-runtime-VERSION-with-dependencies.jar:connector-http-json-VE
     io.camunda.connector.runtime.ConnectorRuntimeApplication
 ```
 
-### Docker
+### Secrets
 
-#### Docker Job Worker Runtime Image
-
-The [`Dockerfile`](./Dockerfile) in this repository provides a base image
-including the job worker runtime. The image starts the job worker runtime with
-all `jar` files provided in the `/opt/app` directory as classpath.
-
-To use the image at least one connector has to be added to the classpath. We recommend to provide jars with all dependencies bundled.
-
-> :warning: As all connectors share a single classpath it can happen that
-> different versions of the same dependency are available which can lead to
-> conflicts. To prevent this, common dependencies like `jackson` can be shaded and
-> relocated inside the connector jar.
-
-Example adding a connector jar by extending the image
-
-```dockerfile
-FROM camunda/connectors:0.2.2
-
-ADD https://repo1.maven.org/maven2/io/camunda/connector/connector-http-json/0.9.0/connector-http-json-0.9.0-with-dependencies.jar /opt/app/
-```
-
-Example adding a connector jar by using volumes
-
-```bash
-docker run --rm --name=connectors -d -v $PWD/connector.jar:/opt/app/ camunda/connectors:0.2.2
-```
-
-## Local secrets
+#### Local secrets
 
 To inject secrets during connector function execution, export them as environment variables
 
@@ -89,7 +165,7 @@ export MY_SECRET='foo'
 
 Reference the secret in the request payload prefixed with `secrets.MY_SECRET`.
 
-### Docker Image Secrets
+#### Docker Image Secrets
 
 To inject secrets into the [docker images of the runtime](#docker), they have to be available in the environment of the docker container.
 
@@ -109,9 +185,3 @@ whereas the `SECRET_FROM_SHELL` is injected based on the value in the
 current shell environment when `docker run` is executed. The `--env-file`
 option allows using a single file with the format `NAME=VALUE` per line
 to inject multiple secrets at once.
-
-## Build
-
-```bash
-mvn clean package
-```
