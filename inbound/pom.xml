@@ -19,10 +19,6 @@
       <artifactId>spring-boot-starter-web</artifactId>
     </dependency>
     <dependency>
-      <groupId>io.camunda</groupId>
-      <artifactId>spring-zeebe-starter</artifactId>
-    </dependency>
-    <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-runtime-util</artifactId>
     </dependency>

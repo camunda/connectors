@@ -42,7 +42,10 @@ import org.springframework.http.ResponseEntity;
 
 @SpringBootTest(
     classes = InboundConnectorRuntimeConfiguration.class,
-    properties = {"spring.main.allow-bean-definition-overriding=true"})
+    properties = {
+      "spring.main.allow-bean-definition-overriding=true",
+      "camunda.connector.webhook.enabled=true"
+    })
 @ZeebeSpringTest
 @ExtendWith(MockitoExtension.class)
 class WebhookControllerTestZeebeTests {

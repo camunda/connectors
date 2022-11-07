@@ -1,96 +1,16 @@
-# Inbound Webhook Connector Runtime (WORK IN PROGRESS)
+# Inbound Connector Implementation (work in progress)
 
-see https://github.com/camunda/product-hub/issues/174
+This project contains the main runtime logic for the Inbound Connector Runtime.
 
-Currently work in progress - not yet stable!
+## Inbound Webhook Connector
 
-
-## Start Inbound Connector Runtime
-
-### Configure for C8 SaaS
-
-You can use Camunda SaaS. Edit `src/main/application.properties` accordingly:
-
-```properties
-zeebe.client.cloud.cluster-id=xxx
-zeebe.client.cloud.client-id=xxx
-zeebe.client.cloud.client-secret=xxx
-zeebe.client.cloud.region=bru-2
-```
-
-You can further configure the connection to Operate.  As a default, it will use the `cluster-id` and credentials configured for Zeebe, but can also configure it otherwise.
-
-Connect to Operate locally using username and password:
-
-```properties
-camunda.operate.client.url=http://localhost:8081
-camunda.operate.client.username=demo
-camunda.operate.client.password=demo
-```
-
-Set specific credentials for Operate (different than for Zeebe API):
-
-```properties
-camunda.operate.client.client-id=xxx
-camunda.operate.client.client-secret=xxx
-```
+The inbound webhook connector is directly baked into the Inbound Runtime, as one generic
+HTTP endpoint is opened up and used. This is not provided as seperate connector library.
 
 
+### Webhook Connector Properties
 
-### Use Docker Compose
-
-```bash
-docker compose up --wait
-```
-
-URLs:
-
-- Zeebe: 'grpc://localhost:26500'
-- Operate: `http://localhost:8081`
-- Elasticsearch: `http://localhost:9200`
-
-Make sure `src/main/application.properties` is configured properly:
-
-
-```properties
-zeebe.client.broker.gateway-address=127.0.0.1:26500
-zeebe.client.security.plaintext=true
-```
-
-When running against a self-managed environment you might also need to configure the keycloak endpoint to not use Operate username/password authentication.
-
-```properties
-camunda.operate.client.keycloak-url=http://localhost:18080
-camunda.operate.client.keycloak-realm=camunda-platform
-```
-
-### Further Configurations
-
-The Connector can read all properties from [https://github.com/camunda-community-hub/spring-zeebe](Spring Zeebe), this is especially important to configure the connection to Zeebe.
-
-### Calculate HMAC of your content
-
-To start with, you'll need to decide:
-- HMAC algorithm (e.g., SHA-256)
-- Secret key (e.g., __mySecretKey__)
-
-Example of calculating HMAC signature with `gh-webhook-request.json` file content and secret `mySecretKey`.
-```
-openssl dgst -sha256 -hmac "mySecretKey" < src/test/resources/hmac/gh-webhook-request.json
-```
-
-```
-$> dd22cfb7ae96875d81bd1a695a0244f2b4c32c0938be0b445f520b0b3e0f43fd
-```
-
-### Run
-
-```bash
-mvn spring-boot:run
-```
-
-
-## Webhook Connector Properties
+The following properties can be set for a webhook in your BPMN Model:
 
 | Property | Required | Default value | Description |
 | :- | :- | :- | :- |
@@ -104,9 +24,30 @@ mvn spring-boot:run
 | inbound.hmacHeader | no | | Header where the actual HMAC signature is stored
 | inbound.hmacAlgorithm | no | | `sha1`, `sha256`, or `sha512` |
 
-## Run example
 
-### Deploy process
+### Calculating HMAC of your content
+
+If you want to play around with the connector and need to calculate the HMAC of your content,
+you'll need to decide:
+
+- HMAC algorithm (e.g., SHA-256)
+- Secret key (e.g., __mySecretKey__)
+
+Example of calculating HMAC signature with `gh-webhook-request.json` file content and secret `mySecretKey`:
+
+```
+openssl dgst -sha256 -hmac "mySecretKey" < src/test/resources/hmac/gh-webhook-request.json
+```
+
+```
+$> dd22cfb7ae96875d81bd1a695a0244f2b4c32c0938be0b445f520b0b3e0f43fd
+```
+
+
+
+### Example
+
+#### Deploy process
 
 Via Modeler or zbctl:
 
