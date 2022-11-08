@@ -1,4 +1,4 @@
-FROM eclipse-temurin:17.0.4_8-jre
+FROM eclipse-temurin:17.0.5_8-jre
 RUN mkdir /opt/app
 
 COPY target/connector-runtime-*-with-dependencies.jar /opt/app
