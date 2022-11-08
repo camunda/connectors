@@ -86,6 +86,7 @@ limitations under the License.</license.inlineheader>
     <!-- maven plugins (not managed by parent) -->
     <plugin.version.function-maven-plugin>0.10.1</plugin.version.function-maven-plugin>
     <plugin.version.maven-enforcer-plugin>3.1.0</plugin.version.maven-enforcer-plugin>
+    <plugin.version.maven-exec-plugin>3.1.0</plugin.version.maven-exec-plugin>
     <plugin.version.maven-install-plugin>3.0.1</plugin.version.maven-install-plugin>
     <plugin.version.license>4.1</plugin.version.license>
     <plugin.version.license.codehaus>2.0.0</plugin.version.license.codehaus>
@@ -237,6 +238,11 @@ limitations under the License.</license.inlineheader>
   <build>
     <pluginManagement>
       <plugins>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>exec-maven-plugin</artifactId>
+          <version>${plugin.version.maven-exec-plugin}</version>
+        </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-install-plugin</artifactId>
