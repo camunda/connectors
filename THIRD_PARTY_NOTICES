@@ -1,0 +1,10 @@
+Camunda Connector Template
+
+THIRD-PARTY SOFTWARE NOTICES AND INFORMATION
+Do Not Translate or Localize
+
+This project incorporates components with the licenses under which Camunda received them as listed below.
+
+  * com.google.code.gson:gson (Version: 2.9.1, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
+  * com.rabbitmq:amqp-client (Version: 5.16.0, License: AL 2.0 (URL: no known URL), GPL v2 (URL: no known URL), MPL 2.0 (URL: no known URL))
+  * org.slf4j:slf4j-api (Version: 1.7.36, License: MIT (URL: https://opensource.org/licenses/MIT))
