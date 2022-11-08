@@ -19,6 +19,9 @@ package io.camunda.connector.impl;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.impl.outbound.OutboundConnectorConfiguration;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public final class ConnectorUtil {
 
@@ -31,5 +34,20 @@ public final class ConnectorUtil {
             annotation ->
                 new OutboundConnectorConfiguration(
                     annotation.name(), annotation.inputVariables(), annotation.type()));
+  }
+
+  public static String replaceTokens(
+      String original, Pattern pattern, Function<Matcher, String> converter) {
+    int lastIndex = 0;
+    StringBuilder output = new StringBuilder();
+    Matcher matcher = pattern.matcher(original);
+    while (matcher.find()) {
+      output.append(original, lastIndex, matcher.start()).append(converter.apply(matcher));
+      lastIndex = matcher.end();
+    }
+    if (lastIndex < original.length()) {
+      output.append(original, lastIndex, original.length());
+    }
+    return output.toString();
   }
 }

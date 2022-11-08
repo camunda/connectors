@@ -39,6 +39,8 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.function.ThrowingConsumer;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class OutboundConnectorContextTest {
 
@@ -449,6 +451,54 @@ class OutboundConnectorContextTest {
           .allMatch(
               s -> "plain".equals(s) || "plain".equals(((OutboundTestInput) s).getSecretField()));
     }
+
+    @ParameterizedTest
+    @ValueSource(
+        strings = {
+          "secrets.FOO",
+          "{{secrets.FOO}}",
+          " secrets.FOO ",
+          " {{secrets.FOO}} ",
+          "{{ secrets.FOO}}",
+          "{{ secrets.FOO }}",
+          "{{secrets.FOO }}"
+        })
+    void shouldReplacePlaceholderSecrets(String input) {
+      // given
+      OutboundConnectorContext connectorContext =
+          OutboundConnectorContextBuilder.create().secret("FOO", "baz").build();
+      final var testInput = new InputVariableString(input);
+      // when
+      connectorContext.replaceSecrets(testInput);
+      // then
+      assertThat(testInput.getInputString()).isEqualTo("baz");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Bar {{secrets.FOO}}", "Bar {{  secrets.FOO }}"})
+    void shouldReplacePlaceholderSecret_Simple(String input) {
+      // given
+      OutboundConnectorContext connectorContext =
+          OutboundConnectorContextBuilder.create().secret("FOO", "baz").build();
+      final var testInput = new InputVariableString(input);
+      // when
+      connectorContext.replaceSecrets(testInput);
+      // then
+      assertThat(testInput.getInputString()).isEqualTo("Bar baz");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Bar {{{secrets.FOO}}}", "Bar {{{ secrets.FOO }}}"})
+    void shouldReplacePlaceholderSecret_AdditionalBrackets(String input) {
+      // given
+      OutboundConnectorContext connectorContext =
+          OutboundConnectorContextBuilder.create().secret("FOO", "baz").build();
+      final var testInput = new InputVariableString(input);
+      // when
+      connectorContext.replaceSecrets(testInput);
+      // then
+      assertThat(testInput.getInputString()).isEqualTo("Bar {baz}");
+    }
   }
 
   private static Field fieldForName(String fieldName) {
@@ -565,6 +615,22 @@ class OutboundConnectorContextTest {
 
     public static String getStaticString() {
       return staticString;
+    }
+  }
+
+  public static class InputVariableString {
+    @Secret private String inputString;
+
+    public InputVariableString(final String inputString) {
+      this.inputString = inputString;
+    }
+
+    public String getInputString() {
+      return inputString;
+    }
+
+    public void setInputString(String inputString) {
+      this.inputString = inputString;
     }
   }
 
