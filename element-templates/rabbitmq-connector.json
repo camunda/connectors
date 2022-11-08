@@ -40,7 +40,7 @@
   "properties": [
     {
       "type": "Hidden",
-      "value": "io.camunda:rabbitmq:1",
+      "value": "io.camunda:connector-rabbitmq:1",
       "binding": {
         "type": "zeebe:taskDefinition:type"
       }

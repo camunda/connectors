@@ -1,0 +1,3 @@
+name: RABBITMQ
+type: io.camunda:connector-rabbitmq:1
+variables: [ authentication, routing, message ]

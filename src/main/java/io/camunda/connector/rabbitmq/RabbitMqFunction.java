@@ -16,7 +16,7 @@ import io.camunda.connector.rabbitmq.supplier.ConnectionFactorySupplier;
 @OutboundConnector(
     name = "RABBITMQ",
     inputVariables = {"authentication", "routing", "message"},
-    type = "io.camunda:rabbitmq:1")
+    type = "io.camunda:connector-rabbitmq:1")
 public class RabbitMqFunction implements OutboundConnectorFunction {
 
   private final ConnectionFactorySupplier connectionFactorySupplier;
