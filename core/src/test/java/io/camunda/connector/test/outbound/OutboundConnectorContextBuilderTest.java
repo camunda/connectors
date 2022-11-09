@@ -137,7 +137,7 @@ public class OutboundConnectorContextBuilderTest {
     var context = OutboundConnectorContextBuilder.create().secret("foo", "FOO").build();
 
     // when
-    var replaced = context.getSecretStore().replaceSecret("secrets.foo");
+    var replaced = context.getSecretHandler().replaceSecret("secrets.foo");
 
     // then
     assertThat(replaced).isEqualTo("FOO");
@@ -150,7 +150,7 @@ public class OutboundConnectorContextBuilderTest {
     var context = OutboundConnectorContextBuilder.create().build();
 
     // when
-    var exception = catchException(() -> context.getSecretStore().replaceSecret("secrets.foo"));
+    var exception = catchException(() -> context.getSecretHandler().replaceSecret("secrets.foo"));
 
     // then
     assertThat(exception).hasMessage("Secret with name 'foo' is not available");

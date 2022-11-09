@@ -20,6 +20,7 @@ package io.camunda.connector.runtime.util.outbound;
 import static io.camunda.connector.runtime.util.ConnectorHelper.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.secret.SecretProvider;
@@ -44,16 +45,19 @@ class ConnectorJobHandlerTest {
       // given
       var jobHandler =
           new ConnectorJobHandler(
-              (context) ->
-                  context
-                      .getSecretStore()
-                      .replaceSecret("secrets." + TestSecretProvider.SECRET_NAME));
+              (context) -> {
+                var input = new TestInput("secrets." + TestSecretProvider.SECRET_NAME);
+                context.replaceSecrets(input);
+                return input;
+              });
 
       // when
       var result = JobBuilder.create().withResultVariableHeader("result").execute(jobHandler);
 
       // then
-      assertThat(result.getVariable("result")).isEqualTo(TestSecretProvider.SECRET_VALUE);
+      assertThat(result.getVariable("result"))
+          .extracting("value")
+          .isEqualTo(TestSecretProvider.SECRET_VALUE);
     }
 
     @Test
@@ -61,16 +65,17 @@ class ConnectorJobHandlerTest {
       // given
       var jobHandler =
           new TestConnectorJobHandler(
-              (context) ->
-                  context
-                      .getSecretStore()
-                      .replaceSecret("secrets." + TestSecretProvider.SECRET_NAME));
+              (context) -> {
+                var input = new TestInput("secrets." + TestSecretProvider.SECRET_NAME);
+                context.replaceSecrets(input);
+                return input;
+              });
 
       // when
       var result = JobBuilder.create().withResultVariableHeader("result").execute(jobHandler);
 
       // then
-      assertThat(result.getVariable("result")).isEqualTo("baz");
+      assertThat(result.getVariable("result")).extracting("value").isEqualTo("baz");
     }
   }
 
@@ -564,6 +569,22 @@ class ConnectorJobHandlerTest {
       // then
       assertThat(result.getErrorCode()).isEqualTo("9999");
       assertThat(result.getErrorMessage()).isEqualTo("Message for foo value on test property");
+    }
+  }
+
+  public static class TestInput {
+    @Secret private String value;
+
+    public TestInput(String value) {
+      this.value = value;
+    }
+
+    public String getValue() {
+      return value;
+    }
+
+    public void setValue(String value) {
+      this.value = value;
     }
   }
 

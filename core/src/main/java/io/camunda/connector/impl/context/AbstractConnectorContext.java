@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.impl.context;
 
-import io.camunda.connector.api.secret.SecretStore;
+import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.impl.secret.SecretHandler;
 import java.util.ServiceLoader;
@@ -24,13 +24,13 @@ import java.util.ServiceLoader;
 public abstract class AbstractConnectorContext {
 
   protected SecretHandler secretHandler;
-  protected final SecretStore secretStore;
+  protected final SecretProvider secretProvider;
 
-  protected AbstractConnectorContext(final SecretStore secretStore) {
-    if (secretStore == null) {
-      throw new RuntimeException("Secret store was not provided");
+  protected AbstractConnectorContext(final SecretProvider secretProvider) {
+    if (secretProvider == null) {
+      throw new RuntimeException("Secret provider required in Connector context but was null");
     }
-    this.secretStore = secretStore;
+    this.secretProvider = secretProvider;
   }
 
   public void replaceSecrets(final Object input) {
@@ -39,13 +39,9 @@ public abstract class AbstractConnectorContext {
 
   public SecretHandler getSecretHandler() {
     if (secretHandler == null) {
-      secretHandler = new SecretHandler(getSecretStore());
+      secretHandler = new SecretHandler(secretProvider);
     }
     return secretHandler;
-  }
-
-  public SecretStore getSecretStore() {
-    return secretStore;
   }
 
   public void validate(Object input) {

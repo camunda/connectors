@@ -18,7 +18,6 @@ package io.camunda.connector.test.inbound;
 
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.secret.SecretProvider;
-import io.camunda.connector.api.secret.SecretStore;
 import io.camunda.connector.impl.context.AbstractConnectorContext;
 import java.util.HashMap;
 import java.util.Map;
@@ -26,7 +25,6 @@ import java.util.Map;
 public class InboundConnectorContextBuilder {
   protected final Map<String, String> secrets = new HashMap<>();
   protected SecretProvider secretProvider = secrets::get;
-  protected SecretStore secretStore = new SecretStore(secretProvider);
 
   public static InboundConnectorContextBuilder create() {
     return new InboundConnectorContextBuilder();
@@ -56,38 +54,18 @@ public class InboundConnectorContextBuilder {
   }
 
   /**
-   * Provides the secret values via the defined {@link SecretStore}.
-   *
-   * @param secretStore - secret store
-   * @return builder for fluent API
-   */
-  public InboundConnectorContextBuilder secrets(SecretStore secretStore) {
-    this.secretStore = secretStore;
-    return this;
-  }
-
-  /**
    * @return the {@link io.camunda.connector.api.inbound.InboundConnectorContext} including all
    *     previously defined properties
    */
   public InboundConnectorContextBuilder.TestInboundConnectorContext build() {
-    return new InboundConnectorContextBuilder.TestInboundConnectorContext(secretStore);
+    return new InboundConnectorContextBuilder.TestInboundConnectorContext(secretProvider);
   }
 
   public class TestInboundConnectorContext extends AbstractConnectorContext
       implements InboundConnectorContext {
-    private SecretStore secretStore;
 
-    protected TestInboundConnectorContext(SecretStore secretStore) {
-      super(secretStore);
-    }
-
-    @Override
-    public SecretStore getSecretStore() {
-      if (secretStore == null) {
-        secretStore = new SecretStore(System::getenv);
-      }
-      return secretStore;
+    protected TestInboundConnectorContext(SecretProvider secretProvider) {
+      super(secretProvider);
     }
   }
 }

@@ -19,7 +19,6 @@ package io.camunda.connector.inbound.configs;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.secret.SecretProvider;
-import io.camunda.connector.api.secret.SecretStore;
 import io.camunda.connector.runtime.util.inbound.InboundJobHandlerContext;
 import java.util.Iterator;
 import java.util.ServiceLoader;
@@ -46,13 +45,7 @@ public class LocalContextBeanConfiguration {
   }
 
   @Bean
-  @ConditionalOnMissingBean
-  public SecretStore secretStore(final SecretProvider secretProvider) {
-    return new SecretStore(secretProvider);
-  }
-
-  @Bean
-  public InboundConnectorContext jobHandlerContext(final SecretStore secretStore) {
-    return new InboundJobHandlerContext(secretStore);
+  public InboundConnectorContext jobHandlerContext(final SecretProvider secretProvider) {
+    return new InboundJobHandlerContext(secretProvider);
   }
 }

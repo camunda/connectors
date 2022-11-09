@@ -19,7 +19,8 @@ package io.camunda.connector.impl.secret;
 import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.api.secret.SecretContainerHandler;
 import io.camunda.connector.api.secret.SecretElementHandler;
-import io.camunda.connector.api.secret.SecretStore;
+import io.camunda.connector.api.secret.SecretProvider;
+import io.camunda.connector.impl.ConnectorUtil;
 import io.camunda.connector.impl.ReflectionHelper;
 import java.lang.reflect.Field;
 import java.util.Arrays;
@@ -28,6 +29,8 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Internal default implementation for a {@link SecretElementHandler} and {@link
@@ -41,10 +44,14 @@ public class SecretHandler implements SecretElementHandler, SecretContainerHandl
   protected static final List<Class<?>> PRIMITIVE_TYPES =
       List.of(String.class, Number.class, Boolean.class);
 
-  private final SecretStore secretStore;
+  private static final Pattern SECRET_PATTERN_FULL = Pattern.compile("^secrets\\.(?<secret>\\S+)$");
+  private static final Pattern SECRET_PATTERN_PLACEHOLDER =
+      Pattern.compile("\\{\\{\\s*secrets\\.(?<secret>\\S+?\\s*)}}");
 
-  public SecretHandler(final SecretStore secretStore) {
-    this.secretStore = secretStore;
+  protected final SecretProvider secretProvider;
+
+  public SecretHandler(final SecretProvider secretProvider) {
+    this.secretProvider = secretProvider;
   }
 
   @Override
@@ -69,6 +76,27 @@ public class SecretHandler implements SecretElementHandler, SecretContainerHandl
     } else {
       handleSecretsField(input);
     }
+  }
+
+  /**
+   * Replaces secrets in String values that adhere to the internally defined secrets pattern.
+   *
+   * @param value - the String to replace secrets in
+   * @return the value with replaced secrets
+   * @throws IllegalArgumentException if secrets are defined in the value but are not present in the
+   *     store
+   */
+  public String replaceSecret(String value) {
+    Optional<String> preparedValue =
+        Optional.ofNullable(value).filter(s -> !s.isBlank()).map(String::trim);
+    if (preparedValue.isPresent()) {
+      Matcher fullMatcher = SECRET_PATTERN_FULL.matcher(preparedValue.get());
+      if (fullMatcher.matches()) {
+        return getSecret(fullMatcher.group("secret"));
+      }
+      return replaceSecretPlaceholders(preparedValue.get());
+    }
+    return value;
   }
 
   protected void handleSecretsArray(Object[] input) {
@@ -154,7 +182,7 @@ public class SecretHandler implements SecretElementHandler, SecretContainerHandl
                 containerHandler.handleSecretContainer(element, this);
               } else if (setValueHandler != null && element instanceof String) {
                 try {
-                  setValueHandler.accept(secretStore.replaceSecret((String) element));
+                  setValueHandler.accept(replaceSecret((String) element));
                 } catch (UnsupportedOperationException uoe) {
                   throw new IllegalStateException(
                       type + " is immutable but contains String secrets to replace!");
@@ -163,6 +191,19 @@ public class SecretHandler implements SecretElementHandler, SecretContainerHandl
                 throw new IllegalStateException(failureMessage);
               }
             });
+  }
+
+  protected String getSecret(String secretName) {
+    return Optional.ofNullable(secretProvider.getSecret(secretName))
+        .orElseThrow(
+            () ->
+                new IllegalArgumentException(
+                    String.format("Secret with name '%s' is not available", secretName)));
+  }
+
+  protected String replaceSecretPlaceholders(String original) {
+    return ConnectorUtil.replaceTokens(
+        original, SECRET_PATTERN_PLACEHOLDER, matcher -> getSecret(matcher.group("secret").trim()));
   }
 
   protected static boolean isSecretContainer(Object property) {
