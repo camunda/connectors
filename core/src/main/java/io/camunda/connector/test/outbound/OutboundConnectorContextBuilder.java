@@ -18,7 +18,6 @@ package io.camunda.connector.test.outbound;
 
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.secret.SecretProvider;
-import io.camunda.connector.api.secret.SecretStore;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.impl.context.AbstractConnectorContext;
 import java.util.HashMap;
@@ -30,7 +29,6 @@ public class OutboundConnectorContextBuilder {
 
   protected final Map<String, String> secrets = new HashMap<>();
   protected SecretProvider secretProvider = secrets::get;
-  protected SecretStore secretStore = new SecretStore(secretProvider);
 
   protected ValidationProvider validationProvider;
 
@@ -105,17 +103,6 @@ public class OutboundConnectorContextBuilder {
     return this;
   }
 
-  /**
-   * Provides the secret values via the defined {@link SecretStore}.
-   *
-   * @param secretStore - secret store
-   * @return builder for fluent API
-   */
-  public OutboundConnectorContextBuilder secrets(SecretStore secretStore) {
-    this.secretStore = secretStore;
-    return this;
-  }
-
   public OutboundConnectorContextBuilder validation(ValidationProvider validationProvider) {
     this.validationProvider = validationProvider;
     return this;
@@ -125,14 +112,14 @@ public class OutboundConnectorContextBuilder {
    * @return the {@link OutboundConnectorContext} including all previously defined properties
    */
   public TestConnectorContext build() {
-    return new TestConnectorContext(secretStore);
+    return new TestConnectorContext(secretProvider);
   }
 
   public class TestConnectorContext extends AbstractConnectorContext
       implements OutboundConnectorContext {
 
-    protected TestConnectorContext(SecretStore secretStore) {
-      super(secretStore);
+    protected TestConnectorContext(SecretProvider secretProvider) {
+      super(secretProvider);
     }
 
     @Override

@@ -18,32 +18,14 @@ package io.camunda.connector.runtime.util.inbound;
 
 import static org.junit.jupiter.api.Assertions.assertThrowsExactly;
 
-import io.camunda.connector.api.secret.SecretStore;
-import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
-@ExtendWith(MockitoExtension.class)
 class InboundJobHandlerContextTest {
 
   private InboundJobHandlerContext testObject;
-  @Mock private SecretStore secretStore;
-
-  @BeforeEach
-  void beforeEach() {
-    testObject = new InboundJobHandlerContext(secretStore);
-  }
 
   @Test
-  void constructor_NormalInitialization() {
-    Assertions.assertThat(testObject.getSecretStore()).isSameAs(secretStore);
-  }
-
-  @Test
-  void constructor_InitializationWithNullSecretStore_RaisesException() {
+  void shouldFailConstructor_WhenNullSecretProvider() {
     assertThrowsExactly(RuntimeException.class, () -> new InboundJobHandlerContext(null));
   }
 }

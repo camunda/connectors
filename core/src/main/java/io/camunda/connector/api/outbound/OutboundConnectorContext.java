@@ -16,8 +16,6 @@
  */
 package io.camunda.connector.api.outbound;
 
-import io.camunda.connector.api.secret.SecretStore;
-
 /**
  * The context object provided to a connector function. The context allows to fetch information
  * injected by the environment runtime.
@@ -40,14 +38,6 @@ public interface OutboundConnectorContext {
    * @return the mapped object containing the variable values
    */
   <T extends Object> T getVariablesAsType(Class<T> cls);
-
-  /**
-   * Fetches the secret store that is provided by the environment. You can use this to create your
-   * own secret replacement routines.
-   *
-   * @return the secret store provided by the environment
-   */
-  SecretStore getSecretStore();
 
   /**
    * Replaces the secrets in the input object by the defined secrets in the context's secret store.

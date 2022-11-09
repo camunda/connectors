@@ -32,6 +32,7 @@ import io.camunda.zeebe.spring.test.ZeebeSpringTest;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Set;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -48,6 +49,7 @@ import org.springframework.http.ResponseEntity;
     })
 @ZeebeSpringTest
 @ExtendWith(MockitoExtension.class)
+@Disabled
 class WebhookControllerTestZeebeTests {
 
   @Test

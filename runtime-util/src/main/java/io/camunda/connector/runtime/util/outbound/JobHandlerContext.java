@@ -17,7 +17,7 @@
 package io.camunda.connector.runtime.util.outbound;
 
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
-import io.camunda.connector.api.secret.SecretStore;
+import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.impl.context.AbstractConnectorContext;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 
@@ -31,8 +31,8 @@ public class JobHandlerContext extends AbstractConnectorContext
 
   private final ActivatedJob job;
 
-  public JobHandlerContext(final ActivatedJob job, final SecretStore secretStore) {
-    super(secretStore);
+  public JobHandlerContext(final ActivatedJob job, final SecretProvider secretProvider) {
+    super(secretProvider);
     this.job = job;
   }
 

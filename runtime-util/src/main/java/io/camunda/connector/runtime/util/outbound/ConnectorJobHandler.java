@@ -21,7 +21,6 @@ import io.camunda.connector.api.error.BpmnError;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.secret.SecretProvider;
-import io.camunda.connector.api.secret.SecretStore;
 import io.camunda.connector.runtime.util.ConnectorHelper;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import io.camunda.zeebe.client.api.worker.JobClient;
@@ -56,8 +55,7 @@ public class ConnectorJobHandler implements JobHandler {
 
     final ConnectorResult result = new ConnectorResult();
     try {
-      SecretStore secretStore = new SecretStore(getSecretProvider());
-      result.setResponseValue(call.execute(new JobHandlerContext(job, secretStore)));
+      result.setResponseValue(call.execute(new JobHandlerContext(job, getSecretProvider())));
       result.setVariables(
           ConnectorHelper.createOutputVariables(result.getResponseValue(), job.getCustomHeaders()));
 

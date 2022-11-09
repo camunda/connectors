@@ -17,14 +17,14 @@
 package io.camunda.connector.runtime.util.inbound;
 
 import io.camunda.connector.api.inbound.InboundConnectorContext;
-import io.camunda.connector.api.secret.SecretStore;
+import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.impl.context.AbstractConnectorContext;
 
 /** Implementation of {@link io.camunda.connector.api.inbound.InboundConnectorContext} */
 public class InboundJobHandlerContext extends AbstractConnectorContext
     implements InboundConnectorContext {
 
-  public InboundJobHandlerContext(final SecretStore secretStore) {
-    super(secretStore);
+  public InboundJobHandlerContext(final SecretProvider secretProvider) {
+    super(secretProvider);
   }
 }

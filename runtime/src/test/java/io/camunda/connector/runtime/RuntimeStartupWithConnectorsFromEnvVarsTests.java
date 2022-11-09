@@ -25,6 +25,7 @@ import io.camunda.zeebe.spring.client.annotation.value.ZeebeWorkerValue;
 import io.camunda.zeebe.spring.client.jobhandling.JobWorkerManager;
 import io.camunda.zeebe.spring.test.ZeebeSpringTest;
 import java.util.Optional;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -43,6 +44,7 @@ import org.springframework.test.context.event.annotation.BeforeTestClass;
         "CONNECTOR_TEST2_TYPE=non-default-TEST-task-type"
 })
  */
+@Disabled
 class RuntimeStartupWithConnectorsFromEnvVarsTests {
 
   @Autowired private JobWorkerManager jobWorkerManager;
