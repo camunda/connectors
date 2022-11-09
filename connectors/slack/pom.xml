@@ -28,7 +28,7 @@
   <properties>
     <!-- external libraries -->
     <version.gson-extras>1.1.0</version.gson-extras>
-    <version.slack>1.26.1</version.slack>
+    <version.slack>1.27.0</version.slack>
     <version.kotlin>1.7.21</version.kotlin>
     <license.inlineheader>Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
 under one or more contributor license agreements. Licensed under a proprietary license.
