@@ -17,6 +17,7 @@ import io.camunda.connector.model.SnsConnectorRequest;
 import io.camunda.connector.model.SnsConnectorResult;
 import io.camunda.connector.suppliers.GsonComponentSupplier;
 import io.camunda.connector.suppliers.SnsClientSupplier;
+import org.apache.commons.text.StringEscapeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,10 +58,13 @@ public class SnsConnectorFunction implements OutboundConnectorFunction {
               request.getAuthentication().getAccessKey(),
               request.getAuthentication().getSecretKey(),
               request.getTopic().getRegion());
+      String topicMessage =
+          StringEscapeUtils.unescapeJson(request.getTopic().getMessage().toString());
+
       PublishRequest message =
           new PublishRequest()
               .withTopicArn(request.getTopic().getTopicArn())
-              .withMessage(request.getTopic().getMessage().toString())
+              .withMessage(topicMessage)
               .withMessageAttributes(request.getTopic().getMessageAttributes())
               .withSubject(request.getTopic().getSubject());
       return snsClient.publish(message);
