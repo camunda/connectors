@@ -103,9 +103,14 @@
       "description": "Specify the subject of the message you want to publish in the SNS topic",
       "group": "input",
       "type": "String",
+      "optional": true,
       "binding": {
         "type": "zeebe:input",
         "name": "topic.subject"
+      },
+      "constraints": {
+        "notEmpty": false,
+        "maxLength": 99
       },
       "feel": "optional"
     },

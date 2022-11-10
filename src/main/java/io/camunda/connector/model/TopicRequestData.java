@@ -10,6 +10,7 @@ import com.amazonaws.services.sns.model.MessageAttributeValue;
 import io.camunda.connector.api.annotation.Secret;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import java.util.Map;
 import java.util.Objects;
 
@@ -17,6 +18,8 @@ public class TopicRequestData {
 
   @NotBlank @Secret private String topicArn;
   @NotBlank @Secret private String region;
+
+  @Size(max = 99)
   private String subject;
 
   // we don't need to know the customer message as we will pass it as-is
