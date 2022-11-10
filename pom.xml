@@ -13,7 +13,7 @@
   <description>Camunda AWS SNS Connector</description>
   <artifactId>connector-sns</artifactId>
   <packaging>jar</packaging>
-  <version>0.1.0-SNAPSHOT</version>
+  <version>0.1.0-rc3</version>
 
   <licenses>
     <license>
