@@ -32,7 +32,7 @@ public class ConnectorHelper {
   // TODO: Check if this is properly configured
   public static ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-  private static final String ERROR_CANNOT_PARSE_VARIABLES = "Cannot parse variables";
+  private static final String ERROR_CANNOT_PARSE_VARIABLES = "Cannot parse '%s' as '%s'.";
 
   public static final String RESULT_VARIABLE_HEADER_NAME = "resultVariable";
   public static final String RESULT_EXPRESSION_HEADER_NAME = "resultExpression";
@@ -77,7 +77,11 @@ public class ConnectorHelper {
     try {
       return OBJECT_MAPPER.readValue(jsonVars, type);
     } catch (JsonProcessingException e) {
-      throw new FeelEngineWrapperException(ERROR_CANNOT_PARSE_VARIABLES, expression, jsonVars, e);
+      throw new FeelEngineWrapperException(
+          String.format(ERROR_CANNOT_PARSE_VARIABLES, jsonVars, type.getName()),
+          expression,
+          jsonVars,
+          e);
     }
   }
 }

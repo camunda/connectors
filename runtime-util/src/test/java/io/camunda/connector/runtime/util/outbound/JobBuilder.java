@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.util.outbound;
 
 import static io.camunda.connector.runtime.util.ConnectorHelper.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -28,7 +29,6 @@ import io.camunda.zeebe.client.api.command.FailJobCommandStep1;
 import io.camunda.zeebe.client.api.command.ThrowErrorCommandStep1;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import io.camunda.zeebe.client.api.worker.JobClient;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import org.mockito.ArgumentCaptor;
@@ -41,6 +41,7 @@ class JobBuilder {
     private final ActivatedJob job;
     private final CompleteJobCommandStep1 completeCommand;
     private final FailJobCommandStep1 failCommand;
+    private final FailJobCommandStep1.FailJobCommandStep2 failCommandStep2;
     private final ThrowErrorCommandStep1 throwCommand;
     private final ThrowErrorCommandStep1.ThrowErrorCommandStep2 throwCommandStep2;
 
@@ -50,12 +51,15 @@ class JobBuilder {
       this.job = mock(ActivatedJob.class);
       this.completeCommand = mock(CompleteJobCommandStep1.class, RETURNS_DEEP_STUBS);
       this.failCommand = mock(FailJobCommandStep1.class, RETURNS_DEEP_STUBS);
+      this.failCommandStep2 =
+          mock(FailJobCommandStep1.FailJobCommandStep2.class, RETURNS_DEEP_STUBS);
       this.throwCommand = mock(ThrowErrorCommandStep1.class, RETURNS_DEEP_STUBS);
       this.throwCommandStep2 =
           mock(ThrowErrorCommandStep1.ThrowErrorCommandStep2.class, RETURNS_DEEP_STUBS);
 
       when(jobClient.newCompleteCommand(any())).thenReturn(completeCommand);
       when(jobClient.newFailCommand(any())).thenReturn(failCommand);
+      when(failCommand.retries(anyInt())).thenReturn(failCommandStep2);
       when(jobClient.newThrowErrorCommand(any())).thenReturn(throwCommand);
       when(throwCommand.errorCode(any())).thenReturn(throwCommandStep2);
       when(job.getKey()).thenReturn(-1l);
@@ -89,6 +93,10 @@ class JobBuilder {
       return execute(connectorJobHandler, true, false);
     }
 
+    public JobResult execute(ConnectorJobHandler connectorJobHandler, boolean expectComplete) {
+      return execute(connectorJobHandler, expectComplete, false);
+    }
+
     public JobResult execute(
         ConnectorJobHandler connectorJobHandler, boolean expectComplete, boolean expectBpmnError) {
 
@@ -108,8 +116,10 @@ class JobBuilder {
         verify(throwCommandStep2).errorMessage(errorMessageCaptor.capture());
         return new JobResult(errorCodeCaptor.getValue(), errorMessageCaptor.getValue());
       } else {
+        var errorMessageCaptor = ArgumentCaptor.forClass(String.class);
         verify(failCommand).retries(0);
-        return new JobResult(Collections.emptyMap());
+        verify(failCommandStep2).errorMessage(errorMessageCaptor.capture());
+        return new JobResult(null, errorMessageCaptor.getValue());
       }
     }
   }
