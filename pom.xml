@@ -72,6 +72,12 @@ except in compliance with the proprietary license.</license.inlineheader>
       <artifactId>assertj-core</artifactId>
       <scope>test</scope>
     </dependency>
+    <!-- This dependency will be removed after camunda/zeebe#9859 is resolved. -->
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-text</artifactId>
+      <version>1.10.0</version>
+    </dependency>
   </dependencies>
 
   <repositories>
