@@ -22,6 +22,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -67,8 +69,10 @@ class KafkaConnectorFunctionTest {
   @MethodSource("successRequestCases")
   void execute_ShouldSucceedSuccessCases(final String incomingJson) throws Exception {
     // given
-    CompletableFuture<Object> completedKafkaResult = new CompletableFuture<>();
-    completedKafkaResult.complete("OK");
+    CompletableFuture<RecordMetadata> completedKafkaResult = new CompletableFuture<>();
+    RecordMetadata kafkaResponse =
+        new RecordMetadata(new TopicPartition(SECRET_TOPIC_NAME, 1), 1, 1, 1, 1, 1);
+    completedKafkaResult.complete(kafkaResponse);
     Mockito.when(producer.send(ArgumentMatchers.any())).thenReturn(completedKafkaResult);
     KafkaConnectorRequest req = new Gson().fromJson(incomingJson, KafkaConnectorRequest.class);
     OutboundConnectorContext ctx =
@@ -121,8 +125,10 @@ class KafkaConnectorFunctionTest {
             + "      \"value\":\"Case\"\n"
             + "    }\n"
             + "  }";
-    CompletableFuture<Object> completedKafkaResult = new CompletableFuture<>();
-    completedKafkaResult.complete("OK");
+    CompletableFuture<RecordMetadata> completedKafkaResult = new CompletableFuture<>();
+    RecordMetadata kafkaResponse =
+        new RecordMetadata(new TopicPartition(SECRET_TOPIC_NAME, 1), 1, 1, 1, 1, 1);
+    completedKafkaResult.complete(kafkaResponse);
     Mockito.when(producer.send(ArgumentMatchers.any())).thenReturn(completedKafkaResult);
     KafkaConnectorRequest req = new Gson().fromJson(noAuthRequest, KafkaConnectorRequest.class);
     OutboundConnectorContext ctx = OutboundConnectorContextBuilder.create().variables(req).build();

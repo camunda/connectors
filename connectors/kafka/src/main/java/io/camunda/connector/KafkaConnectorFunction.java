@@ -14,10 +14,13 @@ import io.camunda.connector.model.KafkaConnectorResponse;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,19 +52,21 @@ public class KafkaConnectorFunction implements OutboundConnectorFunction {
   }
 
   private KafkaConnectorResponse executeConnector(final KafkaConnectorRequest request)
-      throws ExecutionException, InterruptedException {
+      throws ExecutionException, InterruptedException, TimeoutException {
     Properties props = request.assembleKafkaClientProperties();
-    LOGGER.debug("Will assemble a Kafka client with following properties: " + props);
     Producer<String, String> producer = producerCreatorFunction.apply(props);
-    // TODO: need to verify whether we need to open transaction before hand
-    Future result =
+    Future<RecordMetadata> kafkaResponse =
         producer.send(
             new ProducerRecord<>(
                 request.getTopic().getTopicName(),
                 request.getMessage().getKey().toString(),
                 request.getMessage().getValue().toString()));
-    KafkaConnectorResponse res = new KafkaConnectorResponse();
-    res.setResponseValue(result.get());
-    return res;
+    KafkaConnectorResponse result = new KafkaConnectorResponse();
+    RecordMetadata recordMetadata = kafkaResponse.get(30, TimeUnit.SECONDS);
+    result.setTopic(recordMetadata.topic());
+    result.setPartition(recordMetadata.partition());
+    result.setOffset(recordMetadata.offset());
+    result.setTimestamp(result.getTimestamp());
+    return result;
   }
 }
