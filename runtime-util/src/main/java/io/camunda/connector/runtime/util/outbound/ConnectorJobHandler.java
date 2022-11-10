@@ -37,7 +37,7 @@ public class ConnectorJobHandler implements JobHandler {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ConnectorJobHandler.class);
 
-  private final OutboundConnectorFunction call;
+  protected final OutboundConnectorFunction call;
 
   /**
    * Create a handler wrapper for the specified connector function.
@@ -60,31 +60,31 @@ public class ConnectorJobHandler implements JobHandler {
           ConnectorHelper.createOutputVariables(result.getResponseValue(), job.getCustomHeaders()));
 
     } catch (Exception ex) {
+      LOGGER.debug("Exception while processing job {}, error: {}", job.getKey(), ex);
       result.setResponseValue(Map.of("error", toMap(ex)));
       result.setException(ex);
-      LOGGER.debug("Exception while processing job {}, error: {}", job.getKey(), ex);
     }
 
     try {
       ConnectorHelper.examineErrorExpression(result.getResponseValue(), job.getCustomHeaders())
           .ifPresentOrElse(
               error -> {
-                throwBpmnError(client, job, error);
                 LOGGER.debug(
-                    "BpmnError thrown for job {} with code {}", job.getKey(), error.getCode());
+                    "Throwing BPMN error for job {} with code {}", job.getKey(), error.getCode());
+                throwBpmnError(client, job, error);
               },
               () -> {
                 if (result.isSuccess()) {
+                  LOGGER.debug("Completing job {}", job.getKey());
                   completeJob(client, job, result);
-                  LOGGER.debug("Completed job {}", job.getKey());
                 } else {
-                  failJob(client, job, result.getException());
                   logError(job, result.getException());
+                  failJob(client, job, result.getException());
                 }
               });
     } catch (Exception ex) {
-      failJob(client, job, ex);
       logError(job, ex);
+      failJob(client, job, ex);
     }
   }
 
@@ -100,19 +100,19 @@ public class ConnectorJobHandler implements JobHandler {
     return System::getenv;
   }
 
-  private void logError(ActivatedJob job, Exception ex) {
+  protected void logError(ActivatedJob job, Exception ex) {
     LOGGER.error("Exception while processing job {}, error: {}", job.getKey(), ex);
   }
 
-  private void completeJob(JobClient client, ActivatedJob job, ConnectorResult result) {
+  protected void completeJob(JobClient client, ActivatedJob job, ConnectorResult result) {
     client.newCompleteCommand(job).variables(result.getVariables()).send().join();
   }
 
-  private void failJob(JobClient client, ActivatedJob job, Exception exception) {
+  protected void failJob(JobClient client, ActivatedJob job, Exception exception) {
     client.newFailCommand(job).retries(0).errorMessage(exception.getMessage()).send().join();
   }
 
-  private void throwBpmnError(JobClient client, ActivatedJob job, BpmnError value) {
+  protected void throwBpmnError(JobClient client, ActivatedJob job, BpmnError value) {
     client
         .newThrowErrorCommand(job)
         .errorCode(value.getCode())
