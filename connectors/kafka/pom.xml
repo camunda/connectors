@@ -159,6 +159,10 @@ except in compliance with the proprietary license.</license.inlineheader>
           <groupId>io.camunda.connector</groupId>
           <artifactId>connector-validation</artifactId>
         </dependency>
+        <dependency>
+          <groupId>com.google.code.gson</groupId>
+          <artifactId>gson</artifactId>
+        </dependency>
       </dependencies>
       <build>
         <plugins>
