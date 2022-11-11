@@ -51,8 +51,8 @@ class ValidationProviderTest {
     // then
     assertThat(exception)
         .isInstanceOf(ConnectorInputException.class)
-        .hasMessageStartingWith(
-            "jakarta.validation.ValidationException: Found constraints violated while validating input:")
+        .hasMessageContaining(
+            "ValidationException: Found constraints violated while validating input:")
         .hasMessageContaining("- working:")
         .hasMessageContaining("- email: Email should be valid")
         .hasMessageContaining("- age: Age should not be greater than 150");

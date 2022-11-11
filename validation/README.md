@@ -6,12 +6,12 @@ Default implementation for the [ValdationProvider](../core/src/main/java/io/camu
 
 Adding this module as a dependency makes the [DefaultValidationProvider](./src/main/java/io/camunda/connector/validation/impl/DefaultValidationProvider.java) discoverable via SPI in the SDK core.
 
-Then, you can use [Jakarta Bean Validation Constraints](https://jakarta.ee/specifications/bean-validation/3.0/apidocs/jakarta/validation/constraints/package-summary.html) on your Connector's input objects.
+Then, you can use [Jakarta Bean Validation Constraints](https://jakarta.ee/specifications/bean-validation/2.0/apidocs/javax/validation/constraints/package-summary.html) on your Connector's input objects.
 
 ```java
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotEmpty;
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotEmpty;
 
 public class PingRequest {
   @NotEmpty
@@ -47,13 +47,13 @@ public class PingConnector implements OutboundConnectorFunction {
 ## Constraint message interpolation
 
 By default, the validation module uses Hibernate Validator's
-[ParameterMessageInterpolator](https://docs.jboss.org/hibernate/stable/validator/api/org/hibernate/validator/messageinterpolation/ParameterMessageInterpolator.html).
-This allows using message parameters in contraint messages, like in the following example:
+[ParameterMessageInterpolator](https://docs.jboss.org/hibernate/validator/6.2/api/org/hibernate/validator/messageinterpolation/ParameterMessageInterpolator.html).
+This allows using message parameters in constraint messages, like in the following example:
 
 ```java
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotEmpty;
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotEmpty;
 
 public class PingRequest {
   @NotEmpty
@@ -68,65 +68,22 @@ public class PingRequest {
 ```
 
 The validation module does not support using expressions by default as described in the
-[Bean Validation API](https://jakarta.ee/specifications/bean-validation/3.0/jakarta-bean-validation-spec-3.0.html#validationapi-message).
-To enable expression support, add a dependency on an expression provider like the following
+[Bean Validation API](https://jakarta.ee/specifications/bean-validation/2.0/bean-validation_2.0.html#validationapi-message).
+To enable expression support, add a dependency on an expression provider like the following:
 
 ```xml
-  <dependency>
-    <groupId>org.glassfish.expressly</groupId>
-    <artifactId>expressly</artifactId>
-    <version>5.0.0</version>
-  </dependency>
-```
-
-## Replace Jakarta Bean Validation implementation
-
-This validation module uses [Hibernate Validator](https://hibernate.org/validator/) to provide an implementation of the Jakarta Bean Validation API.
-If you want to provide your own implementation, you can exclude those two from the dependency and add your own.
-
-```xml
-
-<dependencies>
-  ...
-  <dependency>
-    <groupId>io.camunda.connector</groupId>
-    <artifactId>connector-validation</artifactId>
-    <version>0.2.2</version>
-    <exclusions>
-      <exclusion>
-        <groupId>org.hibernate.validator</groupId>
-        <artifactId>hibernate-validator</artifactId>
-      </exclusion>
-    </exclusions>
-  </dependency>
-
-  <dependency>
-    <groupId>some.vendor</groupId>
-    <artifactId>some-validator-implementation</artifactId>
-  </dependency>
-
-  <dependency>
-    <groupId>some.vendor</groupId>
-    <artifactId>some-el-implementation</artifactId>
-  </dependency>
-  ...
-</dependencies>
+<dependency>
+  <groupId>org.glassfish</groupId>
+  <artifactId>jakarta.el</artifactId>
+  <version>3.0.4</version>
+  <scope>test</scope>
+</dependency>
 ```
 
 ## Custom validation
 
-If you want to provide your own validation implementation instead of the `connector-validation`, you need to implement the [ValidationProvider](../core/src/main/java/io/camunda/connector/api/validation/ValidationProvider.java) and provide it as an SPI.
-
-```java
-public class MyValidationProviderImpl implements ValidationProvider {
-  public void validate(Object objectToValidate) {
-    // do what you will
-    // throw an exception containing your validation result as message if something is wrong
-  }
-}
-```
-
-To provide this as an SPI, create a file `src/main/resources/META-INF/services/io.camunda.connector.api.validation.ValidationProvider` containing the fully qualified classname of your implementation, for example `org.myorg.validation.MyValidationProviderImpl`.
+You can provide your own validation implementation within your Connector.
+Trigger it from within your Connector function as needed and do not use `OutboundConnectorContext.validate`.
 
 ## Build
 
