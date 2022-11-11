@@ -7,9 +7,9 @@
 package io.camunda.connector.model;
 
 import io.camunda.connector.api.annotation.Secret;
-import jakarta.validation.constraints.NotEmpty;
 import java.util.Objects;
 import java.util.Properties;
+import javax.validation.constraints.NotEmpty;
 import org.apache.kafka.clients.producer.ProducerConfig;
 
 public class KafkaTopic {
