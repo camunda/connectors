@@ -1,4 +1,4 @@
-ARG SPRING_ZEEBE_VERSION=8.1.4
+ARG SPRING_ZEEBE_VERSION=8.1.3
 FROM eclipse-temurin:17.0.5_8-jre
 
 RUN mkdir /opt/app

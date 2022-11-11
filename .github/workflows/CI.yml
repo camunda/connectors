@@ -47,4 +47,4 @@ jobs:
       with:
         context: bundle/
         push: ${{ github.ref == 'refs/heads/main' }}
-        tags: camunda/connectors:SNAPSHOT
+        tags: camunda/connectors-bundle:SNAPSHOT
