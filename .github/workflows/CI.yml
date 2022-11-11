@@ -8,8 +8,15 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
 
-    - name: Lint Job Worker Runtime Dockerfile
+    - name: Lint Connector Runtime Dockerfile
       uses: hadolint/hadolint-action@v2.0.0
+      with:
+        dockerfile: runtime/Dockerfile
+
+    - name: Lint Connector Bundle Dockerfile
+      uses: hadolint/hadolint-action@v2.0.0
+      with:
+        dockerfile: bundle/Dockerfile
 
     - name: Import Secrets
       id: secrets
