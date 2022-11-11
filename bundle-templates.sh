@@ -1,4 +1,6 @@
 #!/bin/bash -eu
+# Download element templates as JSON for all bundled connectors to be distributed
+# as single ZIP file on the Github Release page
 
 set -o pipefail
 

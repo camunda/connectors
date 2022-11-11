@@ -1,4 +1,4 @@
-name: Build and Push Connectors Bundle Docker Image
+name: Build and Push Connector Runtime and Bundle Docker Image
 
 on:
   workflow_dispatch:
@@ -52,11 +52,19 @@ jobs:
           push: true
           tags: camunda/connectors-bundle:${{ github.event.inputs.version }}
 
-      - name: Build and Push Docker Image with tag latest
+      - name: Build and Push Runtime Docker Image with tag latest
         if: ${{ github.event.inputs.push-latest }}
         uses: docker/build-push-action@v3
         with:
-          context: .
+          context: runtime/
+          push: true
+          tags: camunda/connectors:latest
+
+      - name: Build and Push Bundle Docker Image with tag latest
+        if: ${{ github.event.inputs.push-latest }}
+        uses: docker/build-push-action@v3
+        with:
+          context: bundle/
           push: true
           tags: camunda/connectors-bundle:latest
 

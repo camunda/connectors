@@ -8,8 +8,15 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
 
-    - name: Lint Job Worker Runtime Dockerfile
+    - name: Lint Connector Runtime Dockerfile
       uses: hadolint/hadolint-action@v2.0.0
+      with:
+        dockerfile: runtime/Dockerfile
+
+    - name: Lint Connector Bundle Dockerfile
+      uses: hadolint/hadolint-action@v2.0.0
+      with:
+        dockerfile: bundle/Dockerfile
 
     - name: Import Secrets
       id: secrets
@@ -35,9 +42,16 @@ jobs:
         username: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
         password: ${{ steps.secrets.outputs.DOCKERHUB_PASSWORD }}
 
-    - name: Build and Push Docker Image tag SNAPSHOT
+    - name: Build and Push Runtime Docker Image tag SNAPSHOT
       uses: docker/build-push-action@v3
       with:
-        context: .
+        context: runtime/
+        push: ${{ github.ref == 'refs/heads/main' }}
+        tags: camunda/connectors:SNAPSHOT
+
+    - name: Build and Push Bundle Docker Image tag SNAPSHOT
+      uses: docker/build-push-action@v3
+      with:
+        context: bundle/
         push: ${{ github.ref == 'refs/heads/main' }}
         tags: camunda/connectors-bundle:SNAPSHOT
