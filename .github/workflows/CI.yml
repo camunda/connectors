@@ -49,7 +49,7 @@ jobs:
         push: ${{ github.ref == 'refs/heads/main' }}
         tags: camunda/connectors:SNAPSHOT
 
-    - name: Build and Push Docker Image tag SNAPSHOT
+    - name: Build and Push Bundle Docker Image tag SNAPSHOT
       uses: docker/build-push-action@v3
       with:
         context: bundle/
