@@ -8,7 +8,7 @@ The bundle contains the following components
 
 | Component                    | Version | License                                      |
 | ---------------------------- |---------| -------------------------------------------- |
-| [Job Worker Runtime]         | 0.2.2   | [Apache 2.0]                                 |
+| [Connector Runtime]          | 8.1.3   | [Apache 2.0]                                 |
 | [AWS Lambda Connector]       | 0.3.2   | [Camunda Platform Self-Managed Free Edition] |
 | [Google Drive Connector]     | 0.4.0   | [Camunda Platform Self-Managed Free Edition] |
 | [HTTP JSON Connector (REST)] | 0.9.0   | [Apache 2.0]                                 |
@@ -16,12 +16,12 @@ The bundle contains the following components
 | [Slack Connector]            | 0.4.0   | [Camunda Platform Self-Managed Free Edition] |
 | [SQS Connector]              | 0.2.0   | [Camunda Platform Self-Managed Free Edition] |
 
-The [`Dockerfile`](./Dockerfile) provides an image including the [job worker runtime]
-and all [out-of-the-box Connectors](https://docs.camunda.io/docs/components/integration-framework/connectors/out-of-the-box-connectors/available-connectors-overview/)
-provided by Camunda. The image starts the job worker runtime with all `jar`
+The [`Dockerfile`](./Dockerfile) provides an image including the [Connector runtime]
+and all [out-of-the-box Connectors](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/available-connectors-overview/)
+provided by Camunda. The image starts the Connector runtime with all `jar`
 files provided in the `/opt/app` directory as classpath.
 
-To add more connectors to the image follow the examples in the [Docker Job Worker Runtime Image](https://github.com/camunda/connector-sdk/tree/main/runtime-job-worker#docker-job-worker-runtime-image)
+To add more connectors to the image follow the examples in the [Docker Connector Runtime Image](https://github.com/camunda-community-hub/spring-zeebe/tree/master/connector-runtime#via-docker)
 section.
 
 # Secrets
@@ -72,7 +72,7 @@ The docker image contains connectors licensed under [Camunda Platform Self-Manag
 [camunda platform self-managed free edition]: https://camunda.com/legal/terms/cloud-terms-and-conditions/camunda-cloud-self-managed-free-edition-terms/
 [google drive connector]: https://github.com/camunda/connector-google-drive
 [http json connector (rest)]: https://github.com/camunda/connector-http-json
-[job worker runtime]: https://github.com/camunda/connector-sdk/tree/main/runtime-job-worker
+[connector runtime]: https://github.com/camunda-community-hub/spring-zeebe/tree/master/connector-runtime
 [sendgrid connector]: https://github.com/camunda/connector-sendgrid
 [slack connector]: https://github.com/camunda/connector-slack
 [sqs connector]: https://github.com/camunda/connector-sqs
