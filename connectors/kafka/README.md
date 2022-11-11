@@ -37,18 +37,11 @@ mvn clean package
 
 ```json
 {
-  "result":{
-    "kafkaResponse":{
-      "offset":1,
-      "timestamp":1665927163361,
-      "serializedKeySize":5,
-      "serializedValueSize":5,
-      "topicPartition":{
-        "hash":728818543,
-        "partition":3,
-        "topic":"quickstart-events"
-      }
-    }
+  "result": {
+    "topic":"topic_0",
+    "timestamp":1665927163361,
+    "offset":9,
+    "partition":1
   }
 }
 ```

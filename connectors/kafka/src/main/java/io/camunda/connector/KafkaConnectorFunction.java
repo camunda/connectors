@@ -62,11 +62,11 @@ public class KafkaConnectorFunction implements OutboundConnectorFunction {
                 request.getMessage().getKey().toString(),
                 request.getMessage().getValue().toString()));
     KafkaConnectorResponse result = new KafkaConnectorResponse();
-    RecordMetadata recordMetadata = kafkaResponse.get(30, TimeUnit.SECONDS);
+    RecordMetadata recordMetadata = kafkaResponse.get(60, TimeUnit.SECONDS);
     result.setTopic(recordMetadata.topic());
     result.setPartition(recordMetadata.partition());
     result.setOffset(recordMetadata.offset());
-    result.setTimestamp(result.getTimestamp());
+    result.setTimestamp(recordMetadata.timestamp());
     return result;
   }
 }
