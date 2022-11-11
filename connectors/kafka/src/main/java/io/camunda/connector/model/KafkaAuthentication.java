@@ -51,13 +51,12 @@ public class KafkaAuthentication {
     if (username != null && !username.isBlank() && password != null && !password.isBlank()) {
       authProps.put(
           SaslConfigs.SASL_JAAS_CONFIG, String.format(SASL_JAAS_CONFIG_VALUE, username, password));
+      authProps.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SECURITY_PROTOCOL_VALUE);
+      authProps.put(SaslConfigs.SASL_MECHANISM, SASL_MECHANISM_VALUE);
     } else {
       throw new ConnectorInputException(
           new RuntimeException("Username / password pair is required"));
     }
-
-    authProps.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SECURITY_PROTOCOL_VALUE);
-    authProps.put(SaslConfigs.SASL_MECHANISM, SASL_MECHANISM_VALUE);
     return authProps;
   }
 
