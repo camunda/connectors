@@ -7,9 +7,9 @@
 package io.camunda.connector.model;
 
 import io.camunda.connector.api.annotation.Secret;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
 import java.util.Objects;
+import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
 
 public class SnsConnectorRequest {
 
