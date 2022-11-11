@@ -1,21 +1,21 @@
-# Job Worker Connector Run-Time utilities
+# Job Worker Connector RunTime utilities
 
-A collection of run-time utilities to wrap [connector functions](../core) as job workers.
+A collection of runtime utilities to wrap [Connector functions](../core) as job workers.
 
-## Wrapping a Connector Function
+## Wrapping a Connector function
 
-Include the job worker run-time utilities as maven dependency
+Include the job worker runtime utilities as maven dependency:
 
 ```xml
 
 <dependency>
   <groupId>io.camunda.connector</groupId>
   <artifactId>connector-runtime-util</artifactId>
-  <version>0.3.0-SNAPSHOT</version>
+  <version>0.3.0</version>
 </dependency>
 ```
 
-You can create a job worker by wrapping a [connector function](../core) like this:
+You can create a job worker by wrapping a [Connector function](../core) like this:
 
 ```java
 import io.camunda.connector.slack.SlackFunction;
