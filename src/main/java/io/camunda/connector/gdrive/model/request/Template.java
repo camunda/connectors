@@ -8,8 +8,8 @@ package io.camunda.connector.gdrive.model.request;
 
 import com.google.api.client.util.Key;
 import io.camunda.connector.api.annotation.Secret;
-import jakarta.validation.constraints.NotEmpty;
 import java.util.Objects;
+import javax.validation.constraints.NotEmpty;
 
 public class Template {
   @Key @NotEmpty @Secret private String id;

@@ -8,9 +8,9 @@ package io.camunda.connector.gdrive.model.request;
 
 import com.google.api.client.util.Key;
 import io.camunda.connector.api.annotation.Secret;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
 import java.util.Objects;
+import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
 
 public class GoogleDriveRequest {
 
