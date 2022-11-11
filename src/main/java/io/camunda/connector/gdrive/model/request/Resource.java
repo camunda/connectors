@@ -9,10 +9,10 @@ package io.camunda.connector.gdrive.model.request;
 import com.google.api.client.util.Key;
 import com.google.api.services.drive.model.File;
 import io.camunda.connector.api.annotation.Secret;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
 import java.util.Objects;
+import javax.validation.Valid;
+import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotNull;
 
 public class Resource {
 
