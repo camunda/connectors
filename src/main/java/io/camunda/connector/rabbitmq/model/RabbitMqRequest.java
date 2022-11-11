@@ -7,10 +7,10 @@
 package io.camunda.connector.rabbitmq.model;
 
 import io.camunda.connector.api.annotation.Secret;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.AssertFalse;
-import jakarta.validation.constraints.NotNull;
 import java.util.Objects;
+import javax.validation.Valid;
+import javax.validation.constraints.AssertFalse;
+import javax.validation.constraints.NotNull;
 
 public class RabbitMqRequest {
 

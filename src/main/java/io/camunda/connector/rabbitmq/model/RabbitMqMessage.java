@@ -10,9 +10,9 @@ import com.rabbitmq.client.AMQP;
 import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.rabbitmq.ValidationPropertiesUtil;
 import io.camunda.connector.rabbitmq.supplier.GsonSupplier;
-import jakarta.validation.constraints.NotNull;
 import java.util.Objects;
 import java.util.Optional;
+import javax.validation.constraints.NotNull;
 
 public class RabbitMqMessage {
   @Secret private Object properties;
