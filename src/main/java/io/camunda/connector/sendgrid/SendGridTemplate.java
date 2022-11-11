@@ -7,9 +7,9 @@
 package io.camunda.connector.sendgrid;
 
 import io.camunda.connector.api.annotation.Secret;
-import jakarta.validation.constraints.NotEmpty;
 import java.util.Map;
 import java.util.Objects;
+import javax.validation.constraints.NotEmpty;
 
 public class SendGridTemplate {
   @NotEmpty @Secret private String id;
