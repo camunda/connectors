@@ -8,11 +8,11 @@ package io.camunda.connector.model;
 
 import com.amazonaws.services.sns.model.MessageAttributeValue;
 import io.camunda.connector.api.annotation.Secret;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import java.util.Map;
 import java.util.Objects;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
 
 public class TopicRequestData {
 
