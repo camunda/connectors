@@ -19,7 +19,7 @@ package io.camunda.connector.http.auth;
 import com.google.api.client.http.HttpHeaders;
 import com.google.common.base.Objects;
 import io.camunda.connector.api.annotation.Secret;
-import jakarta.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotEmpty;
 
 public class BasicAuthentication extends Authentication {
 
