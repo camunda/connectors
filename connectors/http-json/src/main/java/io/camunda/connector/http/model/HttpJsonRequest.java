@@ -19,10 +19,10 @@ package io.camunda.connector.http.model;
 import com.google.common.base.Objects;
 import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.http.auth.Authentication;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
 import java.util.Map;
+import javax.validation.Valid;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.Pattern;
 
 public class HttpJsonRequest {
 
