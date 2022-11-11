@@ -7,8 +7,8 @@
 package io.camunda.connector.model;
 
 import io.camunda.connector.api.annotation.Secret;
-import jakarta.validation.constraints.NotEmpty;
 import java.util.Objects;
+import javax.validation.constraints.NotEmpty;
 
 public class AuthenticationRequestData {
   @NotEmpty @Secret private String accessKey;
