@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.rabbitmq.model;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonSyntaxException;
 import com.rabbitmq.client.AMQP;
 import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.rabbitmq.ValidationPropertiesUtil;
@@ -13,8 +15,12 @@ import io.camunda.connector.rabbitmq.supplier.GsonSupplier;
 import java.util.Objects;
 import java.util.Optional;
 import javax.validation.constraints.NotNull;
+import org.apache.commons.text.StringEscapeUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RabbitMqMessage {
+  private static final Logger LOGGER = LoggerFactory.getLogger(RabbitMqMessage.class);
   @Secret private Object properties;
   @NotNull @Secret private Object body;
 
@@ -29,8 +35,26 @@ public class RabbitMqMessage {
   }
 
   public byte[] getBodyAsByteArray() {
+    if (body instanceof String) {
+      try {
+        JsonElement jsonElement =
+            GsonSupplier.gson()
+                .fromJson(StringEscapeUtils.unescapeJson(body.toString()), JsonElement.class);
+        if (jsonElement.isJsonPrimitive()) {
+          return ((String) body).getBytes();
+        } else {
+          body = jsonElement;
+        }
+      } catch (JsonSyntaxException e) {
+        // this is plain text value, and not JSON. For example, "some input text".
+        LOGGER.debug("Expected exception when parsing a plain text value : {}", body, e);
+        return body.toString().getBytes();
+      }
+    }
+
     return Optional.of(body)
         .map(GsonSupplier.gson()::toJson)
+        .map(StringEscapeUtils::unescapeJson)
         .map(String::getBytes)
         .orElseThrow(() -> new RuntimeException("Parse error to byte array"));
   }

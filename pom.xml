@@ -58,6 +58,13 @@ except in compliance with the proprietary license.</license.inlineheader>
       <version>5.16.0</version>
     </dependency>
 
+    <!-- This dependency will be removed after camunda/zeebe#9859 is resolved. -->
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-text</artifactId>
+      <version>1.10.0</version>
+    </dependency>
+
     <!-- test dependencies -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>

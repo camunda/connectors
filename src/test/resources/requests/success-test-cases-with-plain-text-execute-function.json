@@ -14,34 +14,7 @@
       "port": "5672"
     },
     "message": {
-      "body": {
-        "key": "value"
-      },
-      "properties": {
-        "contentType":"text/plan",
-        "headers": {
-          "key": "value",
-          "key2":"demo value"
-        }
-      }
-    }
-  },
-  {
-    "testDescription": "success request with 'credentials' auth type and body json string with numbers",
-    "authentication": {
-      "authType": "credentials",
-      "password": "password",
-      "userName": "userName"
-    },
-    "routing": {
-      "virtualHost": "virtualHost",
-      "hostName": "localhost",
-      "exchange": "exchangeName",
-      "routingKey": "routingKey",
-      "port": "5672"
-    },
-    "message": {
-      "body": "{\n \\\"key\\\": 1}",
+      "body": "some plain text body",
       "properties": {
         "contentType":"text/plan",
         "headers": {
@@ -65,9 +38,7 @@
       "port": "5672"
     },
     "message": {
-      "body": {
-        "key": "value"
-      },
+      "body": "true",
       "properties": {
         "contentType":"text/plan",
         "headers": {
@@ -92,9 +63,7 @@
       "port": "secrets.PORT_KEY"
     },
     "message": {
-      "body": {
-        "msg_key": "secrets.TEXT_KEY"
-      },
+      "body": "secrets.TEXT_KEY",
       "properties": {
         "contentType": "secrets.CONTENT_TYPE_KEY",
         "contentEncoding": "secrets.CONTENT_ENCODING_KEY",
@@ -118,9 +87,7 @@
       "port": "secrets.PORT_KEY"
     },
     "message": {
-      "body": {
-        "msg_key": "secrets.TEXT_KEY"
-      },
+      "body": "false",
       "properties": {
         "contentType": "secrets.CONTENT_TYPE_KEY",
         "contentEncoding": "secrets.CONTENT_ENCODING_KEY",
@@ -131,7 +98,7 @@
     }
   },
   {
-    "testDescription": "success request with 'uri' auth type and secrets with numbers in body",
+    "testDescription": "success request with 'uri' auth type and secrets with string in body",
     "authentication": {
       "authType": "uri",
       "uri": "secrets.URI_KEY"
@@ -144,31 +111,7 @@
       "port": "secrets.PORT_KEY"
     },
     "message": {
-      "body": "{14:-23}",
-      "properties": {
-        "contentType": "secrets.CONTENT_TYPE_KEY",
-        "contentEncoding": "secrets.CONTENT_ENCODING_KEY",
-        "headers": {
-          "header1": "secrets.HEADER_VALUE_KEY"
-        }
-      }
-    }
-  },
-  {
-    "testDescription": "success request with 'uri' auth type and secrets with array in body",
-    "authentication": {
-      "authType": "uri",
-      "uri": "secrets.URI_KEY"
-    },
-    "routing": {
-      "virtualHost": "secrets.VIRTUAL_HOST_KEY",
-      "hostName": "secrets.HOST_NAME_KEY",
-      "exchange": "secrets.EXCHANGE_NAME_KEY",
-      "routingKey": "secrets.ROUTING_SECRET_KEY",
-      "port": "secrets.PORT_KEY"
-    },
-    "message": {
-      "body": "[1,3,4,]",
+      "body": "string text",
       "properties": {
         "contentType": "secrets.CONTENT_TYPE_KEY",
         "contentEncoding": "secrets.CONTENT_ENCODING_KEY",
