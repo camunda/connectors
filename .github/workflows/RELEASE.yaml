@@ -54,7 +54,7 @@ jobs:
           password: ${{ steps.secrets.outputs.DOCKERHUB_PASSWORD }}
 
       - name: Build and Push Runtime Docker Image tag ${{ github.event.inputs.version }}
-        if: ${{ github.event.inputs.release-runtime }}
+        if: github.event.inputs.release-runtime == 'true'
         uses: docker/build-push-action@v3
         with:
           context: runtime/
@@ -62,7 +62,7 @@ jobs:
           tags: camunda/connectors:${{ github.event.inputs.version }}
 
       - name: Build and Push Bundle Docker Image tag ${{ github.event.inputs.version }}
-        if: ${{ github.event.inputs.release-bundle }}
+        if: github.event.inputs.release-bundle == 'true'
         uses: docker/build-push-action@v3
         with:
           context: bundle/
@@ -70,7 +70,7 @@ jobs:
           tags: camunda/connectors-bundle:${{ github.event.inputs.version }}
 
       - name: Build and Push Runtime Docker Image with tag latest
-        if: ${{ github.event.inputs.release-runtime }} && ${{ github.event.inputs.push-latest }}
+        if: github.event.inputs.release-runtime == 'true' && github.event.inputs.push-latest == 'true'
         uses: docker/build-push-action@v3
         with:
           context: runtime/
@@ -78,7 +78,7 @@ jobs:
           tags: camunda/connectors:latest
 
       - name: Build and Push Bundle Docker Image with tag latest
-        if: ${{ github.event.inputs.release-bundle }} && ${{ github.event.inputs.push-latest }}
+        if: github.event.inputs.release-bundle == 'true' && github.event.inputs.push-latest == 'true'
         uses: docker/build-push-action@v3
         with:
           context: bundle/
@@ -95,7 +95,7 @@ jobs:
           git push origin "${tag}"
 
       - name: Bundle element templates
-        if: ${{ github.event.inputs.release-bundle }}
+        if: github.event.inputs.release-bundle == 'true'
         run: pushd bundle && bash bundle-templates.sh ${RELEASE_VERSION}
         env:
           RELEASE_VERSION: ${{ github.event.inputs.version }}
