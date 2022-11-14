@@ -99,6 +99,26 @@ class RabbitMqFunctionTest extends BaseTest {
   }
 
   @ParameterizedTest
+  @MethodSource("successExecuteConnectorWithPlainTextTest")
+  void execute_shouldCorrectParseMessageBodyToByteArrayWithPlainText(final String input)
+      throws Exception {
+    // given
+    RabbitMqRequest request = gson.fromJson(input, RabbitMqRequest.class);
+    OutboundConnectorContext context = getContextBuilderWithSecrets().variables(request).build();
+    // when
+    function.execute(context);
+    // then
+    verify(channel)
+        .basicPublish(
+            anyString(),
+            anyString(),
+            any(AMQP.BasicProperties.class),
+            messageInByteArrayRequest.capture());
+    assertThat(new String(messageInByteArrayRequest.getValue()))
+        .isEqualTo(request.getMessage().getBody());
+  }
+
+  @ParameterizedTest
   @MethodSource("failExecuteConnectorWithWrongPropertiesFields")
   void execute_shouldTrowExceptionWhenPropertiesFieldUnsupported(final String input) {
     // given

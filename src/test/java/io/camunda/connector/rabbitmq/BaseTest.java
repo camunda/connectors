@@ -31,6 +31,9 @@ public abstract class BaseTest {
   private static final String SUCCESS_REQUEST_EXECUTE_CASES_PATH =
       "src/test/resources/requests/success-test-cases-execute-function.json";
 
+  private static final String SUCCESS_REQUEST_WITH_PLAIN_TEXT_EXECUTE_CASES_PATH =
+      "src/test/resources/requests/success-test-cases-with-plain-text-execute-function.json";
+
   private static final String SUCCESS_REPLACE_SECRETS_TEST_CASES_PATH =
       "src/test/resources/requests/success-test-cases-replace-secrets.json";
 
@@ -149,6 +152,10 @@ public abstract class BaseTest {
 
   protected static Stream<String> successExecuteConnectorTest() throws IOException {
     return loadTestCasesFromResourceFile(SUCCESS_REQUEST_EXECUTE_CASES_PATH);
+  }
+
+  protected static Stream<String> successExecuteConnectorWithPlainTextTest() throws IOException {
+    return loadTestCasesFromResourceFile(SUCCESS_REQUEST_WITH_PLAIN_TEXT_EXECUTE_CASES_PATH);
   }
 
   protected static Stream<String> successReplaceSecretsTest() throws IOException {
