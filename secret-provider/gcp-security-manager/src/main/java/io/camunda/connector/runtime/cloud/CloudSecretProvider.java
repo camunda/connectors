@@ -17,35 +17,26 @@ public class CloudSecretProvider implements SecretProvider {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(CloudSecretProvider.class);
   private static final Type MAP_TYPE = new TypeToken<Map<String, String>>() {}.getType();
-  public static final String SECRETS_ENV_NAME = "CONNECTOR_SECRETS";
-  public static final String SECRETS_PROPERTY_NAME = "connector.secrets";
   public static final String SECRETS_PROJECT_ENV_NAME = "SECRETS_PROJECT_ID";
   public static final String SECRETS_PREFIX_ENV_NAME = "SECRETS_PREFIX";
 
   private final Map<String, String> secrets;
 
   public CloudSecretProvider(final Gson gson, final String clusterId) {
-    final String json =
-        Optional.ofNullable(clusterId)
-            .map(CloudSecretProvider::loadGoogleSecrets)
-            .or(CloudSecretProvider::loadEnvironmentSecrets)
-            .or(CloudSecretProvider::loadPropertiesSecrets)
-            .orElse("{}");
-
-    Objects.requireNonNull(json, "Failed to load secrets");
-
+    String json = loadGoogleSecrets(clusterId);
     secrets = gson.fromJson(json, MAP_TYPE);
   }
 
   private static String loadGoogleSecrets(final String clusterId) {
+    Objects.requireNonNull(clusterId, "You need to specify the clusterId to load secrets for");
     LOGGER.info("Fetching secrets for cluster {} from secret manager", clusterId);
     try (final SecretManagerServiceClient client = SecretManagerServiceClient.create()) {
-      final String projectId =
-          Objects.requireNonNull(
+      final String projectId = Objects.requireNonNull(
               System.getenv(SECRETS_PROJECT_ENV_NAME),
               "Environment variable " + SECRETS_PROJECT_ENV_NAME + " is missing");
-      final String secretPrefix =
-          Objects.requireNonNullElse(System.getenv(SECRETS_PREFIX_ENV_NAME), "connector-secrets");
+      final String secretPrefix = Objects.requireNonNull(
+              System.getenv(SECRETS_PREFIX_ENV_NAME),
+              "Environment variable " + SECRETS_PREFIX_ENV_NAME + " is missing");
 
       final String secretName = String.format("%s-%s", secretPrefix, clusterId);
       final SecretVersionName secretVersionName =
@@ -53,21 +44,9 @@ public class CloudSecretProvider implements SecretProvider {
       final AccessSecretVersionResponse response = client.accessSecretVersion(secretVersionName);
       return response.getPayload().getData().toStringUtf8();
     } catch (final Exception e) {
-      LOGGER.info(
-          "Failed to load secrets from secret manager, falling back to environment secret store",
-          e);
-      return null;
+      LOGGER.trace("Failed to load secrets from secret manager", e);
+      throw new RuntimeException("Failed to load secrets from secret manager", e);
     }
-  }
-
-  private static Optional<String> loadEnvironmentSecrets() {
-    LOGGER.info("Loading secrets from environment variable {}", SECRETS_ENV_NAME);
-    return Optional.ofNullable(System.getenv(SECRETS_ENV_NAME));
-  }
-
-  private static Optional<String> loadPropertiesSecrets() {
-    LOGGER.info("Loading secrets from system property {}", SECRETS_PROPERTY_NAME);
-    return Optional.ofNullable(System.getProperty(SECRETS_PROPERTY_NAME));
   }
 
   @Override
