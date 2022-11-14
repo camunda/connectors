@@ -86,6 +86,7 @@ jobs:
           tags: camunda/connectors-bundle:latest
 
       - name: Tag version
+        if: github.event.inputs.release-bundle == 'true'
         run: |
           tag=${{ github.event.inputs.version }}
           message='ci: release version ${{ github.event.inputs.version }}'
@@ -101,6 +102,7 @@ jobs:
           RELEASE_VERSION: ${{ github.event.inputs.version }}
 
       - name: Create GitHub release
+        if: github.event.inputs.release-bundle == 'true'
         run: gh release create --generate-notes ${RELEASE_VERSION} bundle/connectors-bundle-templates-${RELEASE_VERSION}.tar.gz bundle/connectors-bundle-templates-${RELEASE_VERSION}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
