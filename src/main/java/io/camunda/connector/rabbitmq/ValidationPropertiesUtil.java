@@ -25,7 +25,7 @@ public final class ValidationPropertiesUtil {
               .anyMatch(f -> f.getName().equals(entry.getKey()));
       if (!fieldExist) {
         throw new IllegalArgumentException(
-            "Unsupported field '" + entry.getKey() + "' for properties");
+            "Unsupported field [" + entry.getKey() + "] for properties");
       }
     }
     return jsonElement;
