@@ -5,7 +5,7 @@
     <parent>
         <groupId>io.camunda.connector</groupId>
         <artifactId>connector-parent</artifactId>
-        <version>0.3.0-SNAPSHOT</version>
+        <version>0.3.0</version>
         <relativePath/>
     </parent>
 
@@ -159,7 +159,7 @@ except in compliance with the proprietary license.</license.inlineheader>
                 <dependency>
                     <groupId>io.camunda.connector</groupId>
                     <artifactId>connector-runtime-cloud</artifactId>
-                    <version>0.3.0-alpha5</version>
+                    <version>0.3.0</version>
                 </dependency>
                 <dependency>
                     <groupId>io.camunda.connector</groupId>
