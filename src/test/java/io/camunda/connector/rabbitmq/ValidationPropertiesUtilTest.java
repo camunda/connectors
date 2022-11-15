@@ -49,6 +49,6 @@ class ValidationPropertiesUtilTest extends BaseTest {
             IllegalArgumentException.class,
             () -> ValidationPropertiesUtil.validateAmqpBasicPropertiesOrThrowException(properties),
             "IllegalArgumentException was expected");
-    assertThat(thrown.getMessage()).contains("Unsupported field", "for properties");
+    assertThat(thrown.getMessage()).contains("Unsupported field [", "] for properties");
   }
 }
