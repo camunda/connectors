@@ -41,6 +41,10 @@ public class BaseTest {
       String TOKEN = "TOKEN_KEY";
       String PASSWORD = "PASSWORD_KEY";
       String USERNAME = "USERNAME_KEY";
+      String OAUTH_TOKEN_ENDPOINT = "OAUTH_TOKEN_ENDPOINT_KEY";
+      String CLIENT_ID = "CLIENT_ID_KEY";
+      String CLIENT_SECRET = "CLIENT_SECRET_KEY";
+      String AUDIENCE = "AUDIENCE_KEY";
     }
 
     interface QueryParameters {
@@ -63,6 +67,10 @@ public class BaseTest {
       String TOKEN = "test token";
       String PASSWORD = "1234567890";
       String USERNAME = "test username";
+      String OAUTH_TOKEN_ENDPOINT = "https://test/api/v2/";
+      String CLIENT_ID = "bi1cekB123456GRWBBEgzdxA89S2T";
+      String CLIENT_SECRET = "Bzw6SL12345678934562eqg4fJM72EeeM2JQiF4BfbyYZUDCur7ntB";
+      String AUDIENCE = "https://test/api/v2/";
     }
 
     interface QueryParameters {
@@ -91,6 +99,13 @@ public class BaseTest {
         .secret(SecretsConstant.Authentication.TOKEN, ActualValue.Authentication.TOKEN)
         .secret(SecretsConstant.Authentication.USERNAME, ActualValue.Authentication.USERNAME)
         .secret(SecretsConstant.Authentication.PASSWORD, ActualValue.Authentication.PASSWORD)
+        .secret(
+            SecretsConstant.Authentication.OAUTH_TOKEN_ENDPOINT,
+            ActualValue.Authentication.OAUTH_TOKEN_ENDPOINT)
+        .secret(SecretsConstant.Authentication.CLIENT_ID, ActualValue.Authentication.CLIENT_ID)
+        .secret(
+            SecretsConstant.Authentication.CLIENT_SECRET, ActualValue.Authentication.CLIENT_SECRET)
+        .secret(SecretsConstant.Authentication.AUDIENCE, ActualValue.Authentication.AUDIENCE)
         .secret(SecretsConstant.QueryParameters.QUEUE, ActualValue.QueryParameters.QUEUE)
         .secret(SecretsConstant.QueryParameters.PRIORITY, ActualValue.QueryParameters.PRIORITY)
         .secret(SecretsConstant.Headers.ID, ActualValue.Headers.CLUSTER_ID)

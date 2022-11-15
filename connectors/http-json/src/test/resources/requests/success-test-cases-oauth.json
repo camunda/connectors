@@ -1,0 +1,27 @@
+[{
+  "descriptionOfTest": "Normal request with oauth",
+  "method": "post",
+  "url": "https://camunda.io/http-endpoint",
+  "connectionTimeoutInSeconds": "30",
+  "headers": {
+    "X-Camunda-Cluster-ID": "abcdef",
+    "User-Agent": "http-connector-demo"
+  },
+  "authentication":{
+    "oauthTokenEndpoint":"https://dev-test.eu.auth0.com/api/v2/",
+    "scopes": "read:clients",
+    "audience":"https://dev-test.eu.auth0.com/api/v2/",
+    "clientId":"secrets.CLIENT_ID",
+    "clientSecret":"secrets.CLIENT_SECRET",
+    "type":"oauth-client-credentials-flow",
+    "clientAuthentication":"basicAuthHeader"
+  },
+  "body": {
+    "customer": {
+      "id": 1231231,
+      "name": "Jane Doe",
+      "email": "jane.doe@exampe.com"
+    }
+  }
+}
+]

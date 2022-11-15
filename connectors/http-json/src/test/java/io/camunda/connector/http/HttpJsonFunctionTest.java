@@ -23,6 +23,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -41,6 +42,7 @@ import io.camunda.connector.impl.ConnectorInputException;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.StandardCharsets;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -57,6 +59,9 @@ public class HttpJsonFunctionTest extends BaseTest {
 
   private static final String SUCCESS_CASES_RESOURCE_PATH =
       "src/test/resources/requests/success-test-cases.json";
+
+  private static final String SUCCESS_CASES_OAUTH_RESOURCE_PATH =
+      "src/test/resources/requests/success-test-cases-oauth.json";
   private static final String FAIL_CASES_RESOURCE_PATH =
       "src/test/resources/requests/fail-test-cases.json";
 
@@ -76,9 +81,31 @@ public class HttpJsonFunctionTest extends BaseTest {
   @MethodSource("successCases")
   public void shouldReturnResult_WhenExecuted(final String input) throws IOException {
     // given - minimal required entity
+    Object functionCallResponseAsObject = arrange(input);
+
+    // then
+    verify(httpRequest).execute();
+    assertThat(functionCallResponseAsObject).isInstanceOf(HttpJsonResult.class);
+    assertThat(((HttpJsonResult) functionCallResponseAsObject).getHeaders())
+        .containsValue(APPLICATION_JSON.getMimeType());
+  }
+
+  @ParameterizedTest(name = "Executing test case: {0}")
+  @MethodSource("successCasesOauth")
+  public void shouldReturnResultOAuth_WhenExecuted(final String input)
+      throws IOException, InvocationTargetException, IllegalAccessException {
+    Object functionCallResponseAsObject = arrange(input);
+
+    // then
+    verify(httpRequest, times(2)).execute();
+    assertThat(functionCallResponseAsObject).isInstanceOf(HttpJsonResult.class);
+    assertThat(((HttpJsonResult) functionCallResponseAsObject).getHeaders())
+        .containsValue(APPLICATION_JSON.getMimeType());
+  }
+
+  private Object arrange(String input) throws IOException {
     final var context =
         OutboundConnectorContextBuilder.create().variables(input).secrets(name -> "foo").build();
-
     when(requestFactory.buildRequest(
             anyString(), any(GenericUrl.class), nullable(HttpContent.class)))
         .thenReturn(httpRequest);
@@ -88,12 +115,7 @@ public class HttpJsonFunctionTest extends BaseTest {
 
     // when
     var functionCallResponseAsObject = functionUnderTest.execute(context);
-
-    // then
-    verify(httpRequest).execute();
-    assertThat(functionCallResponseAsObject).isInstanceOf(HttpJsonResult.class);
-    assertThat(((HttpJsonResult) functionCallResponseAsObject).getHeaders())
-        .containsValue(APPLICATION_JSON.getMimeType());
+    return functionCallResponseAsObject;
   }
 
   @ParameterizedTest(name = "Executing test case: {0}")
@@ -188,6 +210,10 @@ public class HttpJsonFunctionTest extends BaseTest {
 
   private static Stream<String> successCases() throws IOException {
     return loadTestCasesFromResourceFile(SUCCESS_CASES_RESOURCE_PATH);
+  }
+
+  private static Stream<String> successCasesOauth() throws IOException {
+    return loadTestCasesFromResourceFile(SUCCESS_CASES_OAUTH_RESOURCE_PATH);
   }
 
   private static Stream<String> failCases() throws IOException {

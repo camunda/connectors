@@ -28,12 +28,15 @@ import com.google.api.client.http.HttpResponseException;
 import com.google.api.client.http.json.JsonHttpContent;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.http.auth.OAuthAuthentication;
 import io.camunda.connector.http.components.GsonComponentSupplier;
 import io.camunda.connector.http.components.HttpTransportComponentSupplier;
+import io.camunda.connector.http.constants.Constants;
 import io.camunda.connector.http.model.HttpJsonRequest;
 import io.camunda.connector.http.model.HttpJsonResult;
 import io.camunda.connector.impl.ConnectorInputException;
@@ -64,7 +67,6 @@ import org.slf4j.LoggerFactory;
 public class HttpJsonFunction implements OutboundConnectorFunction {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(HttpJsonFunction.class);
-
   private final Gson gson;
   private final GsonFactory gsonFactory;
   private final HttpRequestFactory requestFactory;
@@ -95,34 +97,70 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
   }
 
   protected HttpJsonResult handleRequest(final HttpJsonRequest request) throws IOException {
-    final HttpRequest externalRequest = createRequest(request);
+    String token = null;
+    if (request.getAuthentication() != null
+        && request.getAuthentication() instanceof OAuthAuthentication) {
+      final HttpRequest oauthRequest = createOAuthRequest(request);
+      final HttpResponse oauthResponse = sendRequest(oauthRequest);
+      token = extractAccessToken(oauthResponse);
+    }
+
+    final HttpRequest externalRequest = createRequest(request, token);
     final HttpResponse externalResponse = sendRequest(externalRequest);
     return toHttpJsonResponse(externalResponse);
   }
 
-  protected HttpResponse sendRequest(final HttpRequest request) throws IOException {
-    try {
-      return request.execute();
-    } catch (HttpResponseException hrex) {
-      throw new ConnectorException(String.valueOf(hrex.getStatusCode()), hrex.getMessage());
+  private String extractAccessToken(HttpResponse oauthResponse) throws IOException {
+    String token = null;
+    String oauthResponseStr = oauthResponse.parseAsString();
+    if (oauthResponseStr != null && !oauthResponseStr.isEmpty()) {
+      JsonObject jsonObject = gson.fromJson(oauthResponseStr, JsonObject.class);
+      if (jsonObject.get(Constants.ACCESS_TOKEN) != null) {
+        token = jsonObject.get(Constants.ACCESS_TOKEN).toString();
+      }
     }
+    return token;
   }
 
-  private HttpRequest createRequest(final HttpJsonRequest request) throws IOException {
-    final var url = request.getUrl();
-    // TODO: add more holistic solution
-    if (url.contains("computeMetadata")) {
+  private HttpRequest createOAuthRequest(HttpJsonRequest request) throws IOException {
+    OAuthAuthentication authentication = (OAuthAuthentication) request.getAuthentication();
+    final var url = authentication.getOauthTokenEndpoint();
+    Map<String, String> data = getDataForAuthRequestBody(authentication);
+    HttpContent content = new JsonHttpContent(gsonFactory, data);
+    final GenericUrl genericUrl = new GenericUrl(url);
+
+    final HttpRequest httpRequest = initRequest(request, url, content, genericUrl);
+
+    if (authentication.getClientAuthentication().equals(Constants.BASIC_AUTH_HEADER)) {
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBasicAuthentication(
+          authentication.getClientId(), authentication.getClientSecret());
+      httpRequest.setHeaders(headers);
+    }
+    return httpRequest;
+  }
+
+  private static Map<String, String> getDataForAuthRequestBody(OAuthAuthentication authentication) {
+    Map<String, String> data = new HashMap<>();
+    data.put(Constants.GRANT_TYPE, authentication.getGrantType());
+    data.put(Constants.AUDIENCE, authentication.getAudience());
+    data.put(Constants.SCOPE, authentication.getScopes());
+
+    if (authentication.getClientAuthentication().equals(Constants.CREDENTIALS_BODY)) {
+      data.put(Constants.CLIENT_ID, authentication.getClientId());
+      data.put(Constants.CLIENT_SECRET, authentication.getClientSecret());
+    }
+    return data;
+  }
+
+  private HttpRequest initRequest(
+      HttpJsonRequest request, String url, HttpContent content, GenericUrl genericUrl)
+      throws IOException {
+    if (url.contains(Constants.COMPUTE_METADATA)) {
       throw new ConnectorInputException(new ValidationException("The provided URL is not allowed"));
     }
 
-    final var content = createContent(request);
     final var method = request.getMethod().toUpperCase();
-
-    final GenericUrl genericUrl = new GenericUrl(url);
-
-    if (request.hasQueryParameters()) {
-      genericUrl.putAll(request.getQueryParameters());
-    }
 
     final var httpRequest = requestFactory.buildRequest(method, genericUrl, content);
     httpRequest.setFollowRedirects(false);
@@ -136,20 +174,41 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
       httpRequest.setWriteTimeout(intConnectionTimeout);
     }
 
-    final var headers = createHeaders(request);
+    return httpRequest;
+  }
+
+  protected HttpResponse sendRequest(final HttpRequest request) throws IOException {
+    try {
+      return request.execute();
+    } catch (HttpResponseException hrex) {
+      throw new ConnectorException(String.valueOf(hrex.getStatusCode()), hrex.getMessage());
+    }
+  }
+
+  private HttpRequest createRequest(final HttpJsonRequest request, final String token)
+      throws IOException {
+    final var url = request.getUrl();
+    HttpContent content = createContent(request);
+    final GenericUrl genericUrl = new GenericUrl(url);
+    if (request.hasQueryParameters()) {
+      genericUrl.putAll(request.getQueryParameters());
+    }
+    final var headers = createHeaders(request, token);
+    final var httpRequest = initRequest(request, url, content, genericUrl);
     httpRequest.setHeaders(headers);
+
     return httpRequest;
   }
 
   private HttpContent createContent(final HttpJsonRequest request) {
+    HttpContent httpContent = null;
     if (request.hasBody()) {
-      return new JsonHttpContent(gsonFactory, request.getBody());
-    } else {
-      return null;
+      httpContent = new JsonHttpContent(gsonFactory, request.getBody());
     }
+    return httpContent;
   }
 
-  private HttpHeaders createHeaders(final HttpJsonRequest request) {
+  private HttpHeaders createHeaders(final HttpJsonRequest request, final String token) {
     final HttpHeaders httpHeaders = new HttpHeaders();
 
     if (request.hasBody()) {
@@ -157,13 +216,15 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
     }
 
     if (request.hasAuthentication()) {
+      if (token != null && !token.isEmpty()) {
+        httpHeaders.setAuthorization("Bearer " + token);
+      }
       request.getAuthentication().setHeaders(httpHeaders);
     }
 
     if (request.hasHeaders()) {
       httpHeaders.putAll(request.getHeaders());
     }
-
     return httpHeaders;
   }
 

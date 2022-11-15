@@ -70,6 +70,10 @@
         {
           "name": "Bearer Token Auth",
           "value": "bearer"
+        },
+        {
+          "name": "OAuth 2.0",
+          "value": "oauth-client-credentials-flow"
         }
       ],
       "binding": {
@@ -166,6 +170,119 @@
       "condition": {
         "property": "authenticationType",
         "equals": "bearer"
+      }
+    },
+    {
+      "label": "OAuth Token Endpoint",
+      "description": "The OAuth token endpoint",
+      "group": "authentication",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.oauthTokenEndpoint"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "oauth-client-credentials-flow"
+      }
+    },
+    {
+      "label": "Client ID",
+      "description": "Your application's Client ID from the OAuth client",
+      "group": "authentication",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.clientId"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "oauth-client-credentials-flow"
+      }
+    },
+    {
+      "label": "Client secret",
+      "description": "Your application's Client secret from the OAuth client",
+      "group": "authentication",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.clientSecret"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "oauth-client-credentials-flow"
+      }
+    },
+    {
+      "label": "Scopes",
+      "description": "The scopes which you want to request authorization for (e.g.read:contacts)",
+      "group": "authentication",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.scopes"
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "oauth-client-credentials-flow"
+      }
+    },
+    {
+      "label": "Audience",
+      "description": "The unique identifier of the target API you want to access",
+      "group": "authentication",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.audience"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "oauth-client-credentials-flow"
+      }
+    },
+    {
+      "label": "Client Authentication",
+      "id": "authenticationType",
+      "group": "authentication",
+      "description": "Send client id and client secret as Basic Auth request in the header, or as client credentials in the request body",
+      "value": "basicAuthHeader",
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Send client credentials in body",
+          "value": "credentialsBody"
+        },
+        {
+          "name": "Send as Basic Auth header",
+          "value": "basicAuthHeader"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.clientAuthentication"
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "oauth-client-credentials-flow"
       }
     },
     {

@@ -25,13 +25,11 @@ import io.camunda.connector.http.auth.Authentication;
 import io.camunda.connector.http.auth.BasicAuthentication;
 import io.camunda.connector.http.auth.BearerAuthentication;
 import io.camunda.connector.http.auth.NoAuthentication;
+import io.camunda.connector.http.auth.OAuthAuthentication;
 
 public class GsonComponentSupplier {
 
-  private GsonComponentSupplier() {}
-
   private static final GsonFactory GSON_FACTORY = new GsonFactory();
-
   private static final Gson GSON =
       new GsonBuilder()
           .serializeNulls()
@@ -40,8 +38,11 @@ public class GsonComponentSupplier {
               RuntimeTypeAdapterFactory.of(Authentication.class, "type")
                   .registerSubtype(NoAuthentication.class, "noAuth")
                   .registerSubtype(BasicAuthentication.class, "basic")
-                  .registerSubtype(BearerAuthentication.class, "bearer"))
+                  .registerSubtype(BearerAuthentication.class, "bearer")
+                  .registerSubtype(OAuthAuthentication.class, "oauth-client-credentials-flow"))
           .create();
+
+  private GsonComponentSupplier() {}
 
   public static Gson gsonInstance() {
     return GSON;

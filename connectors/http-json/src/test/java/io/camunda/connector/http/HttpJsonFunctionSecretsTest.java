@@ -25,6 +25,7 @@ import io.camunda.connector.http.auth.Authentication;
 import io.camunda.connector.http.auth.BasicAuthentication;
 import io.camunda.connector.http.auth.BearerAuthentication;
 import io.camunda.connector.http.auth.NoAuthentication;
+import io.camunda.connector.http.auth.OAuthAuthentication;
 import io.camunda.connector.http.model.HttpJsonRequest;
 import java.io.IOException;
 import java.util.stream.Stream;
@@ -75,6 +76,14 @@ public class HttpJsonFunctionSecretsTest extends BaseTest {
       BasicAuthentication basicAuth = (BasicAuthentication) authentication;
       assertThat(basicAuth.getPassword()).isEqualTo(ActualValue.Authentication.PASSWORD);
       assertThat(basicAuth.getUsername()).isEqualTo(ActualValue.Authentication.USERNAME);
+    } else if (authentication instanceof OAuthAuthentication) {
+      OAuthAuthentication oAuthAuthentication = (OAuthAuthentication) authentication;
+      assertThat(oAuthAuthentication.getOauthTokenEndpoint())
+          .isEqualTo(ActualValue.Authentication.OAUTH_TOKEN_ENDPOINT);
+      assertThat(oAuthAuthentication.getClientId()).isEqualTo(ActualValue.Authentication.CLIENT_ID);
+      assertThat(oAuthAuthentication.getClientSecret())
+          .isEqualTo(ActualValue.Authentication.CLIENT_SECRET);
+      assertThat(oAuthAuthentication.getAudience()).isEqualTo(ActualValue.Authentication.AUDIENCE);
     } else {
       fail("unknown authentication type");
     }
