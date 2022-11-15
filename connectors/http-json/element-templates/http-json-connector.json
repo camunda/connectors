@@ -55,7 +55,7 @@
       "label": "Type",
       "id": "authenticationType",
       "group": "authentication",
-      "description": "Choose the authentication type. Select 'No Auth' if no authentication is necessary.",
+      "description": "Choose the authentication type. Select 'No Auth' if no authentication is necessary",
       "value": "noAuth",
       "type": "Dropdown",
       "choices": [
@@ -321,7 +321,7 @@
     },
     {
       "label": "Connection Timeout",
-      "description": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout.",
+      "description": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
       "group": "timeout",
       "type": "String",
       "value": "20",
