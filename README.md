@@ -10,4 +10,4 @@ This repository manages two Docker images:
 
 [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0)
 
-The Connectors Bundle Docker image contains Connectors licensed under [Camunda Platform Self-Managed Free Edition] license.
+The Connectors Bundle Docker image contains Connectors licensed under [Camunda Platform Self-Managed Free Edition](https://camunda.com/legal/terms/cloud-terms-and-conditions/camunda-cloud-self-managed-free-edition-terms/) license.
