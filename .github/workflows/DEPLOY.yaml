@@ -1,4 +1,5 @@
 name: Deploy Snapshots
+run-name: Release version ${{ inputs.version }}
 
 on:
   push:
