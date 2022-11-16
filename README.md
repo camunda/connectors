@@ -53,7 +53,7 @@ mvn clean verify
 
 ### Test as local Job Worker
 
-Use the [Camunda Job Worker Connector Run-Time](https://github.com/camunda/connector-framework/tree/main/runtime-job-worker) to run your function as a local Job Worker.
+Use the [Camunda Connector Runtime](https://github.com/camunda-community-hub/spring-zeebe/tree/master/connector-runtime#building-connector-runtime-bundles) to run your function as a local Job Worker.
 
 ### :lock: Test as local Google Cloud Function
 
