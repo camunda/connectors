@@ -13,7 +13,7 @@ To use the image at least one Connector has to be added to the classpath. We rec
 Example adding a Connector JAR by extending the image
 
 ```dockerfile
-FROM camunda/connectors:0.3.0
+FROM camunda/connectors:0.3.1
 
 ADD https://repo1.maven.org/maven2/io/camunda/connector/connector-http-json/0.11.0/connector-http-json-0.11.0-with-dependencies.jar /opt/app/
 ```
@@ -21,5 +21,5 @@ ADD https://repo1.maven.org/maven2/io/camunda/connector/connector-http-json/0.11
 Example adding a Connector JAR by using volumes
 
 ```bash
-docker run --rm --name=connectors -d -v $PWD/connector.jar:/opt/app/ camunda/connectors:0.3.0
+docker run --rm --name=connectors -d -v $PWD/connector.jar:/opt/app/ camunda/connectors:0.3.1
 ```
