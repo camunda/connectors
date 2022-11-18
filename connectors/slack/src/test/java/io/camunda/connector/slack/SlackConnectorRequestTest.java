@@ -26,7 +26,7 @@ public class SlackConnectorRequestTest extends BaseTest {
     context =
         OutboundConnectorContextBuilder.create()
             .secret(TOKEN_KEY, ACTUAL_TOKEN)
-            .secret(METHOD, ACTUAL_METHOD)
+            .secret(METHOD, ACTUAL_POST_MESSAGE_METHOD)
             .secret(CHANNEL_KEY, ACTUAL_CHANNEL)
             .secret(TEXT_KEY, ACTUAL_TEXT)
             .build();
@@ -49,11 +49,11 @@ public class SlackConnectorRequestTest extends BaseTest {
 
   @Test
   void replaceSecrets_shouldDoNotReplaceMethod() {
-    request.setMethod(ACTUAL_METHOD);
+    request.setMethod(ACTUAL_POST_MESSAGE_METHOD);
     OutboundConnectorContext context =
-        OutboundConnectorContextBuilder.create().secret(ACTUAL_METHOD, METHOD).build();
+        OutboundConnectorContextBuilder.create().secret(ACTUAL_POST_MESSAGE_METHOD, METHOD).build();
     context.replaceSecrets(request);
-    assertThat(request.getMethod()).isEqualTo(ACTUAL_METHOD);
+    assertThat(request.getMethod()).isEqualTo(ACTUAL_POST_MESSAGE_METHOD);
   }
 
   @Test
@@ -62,10 +62,10 @@ public class SlackConnectorRequestTest extends BaseTest {
     chatPostMessageData.setChannel(SECRETS + CHANNEL_KEY);
     chatPostMessageData.setText(SECRETS + TEXT_KEY);
     request.setToken(SECRETS + TOKEN_KEY);
-    request.setMethod(ACTUAL_METHOD);
+    request.setMethod(ACTUAL_POST_MESSAGE_METHOD);
     request.setData(chatPostMessageData);
     context.replaceSecrets(request);
-    assertThat(request.getMethod()).isEqualTo(ACTUAL_METHOD);
+    assertThat(request.getMethod()).isEqualTo(ACTUAL_POST_MESSAGE_METHOD);
     assertThat(request.getToken()).isEqualTo(ACTUAL_TOKEN);
     assertThat(request.getData()).isInstanceOf(ChatPostMessageData.class);
   }

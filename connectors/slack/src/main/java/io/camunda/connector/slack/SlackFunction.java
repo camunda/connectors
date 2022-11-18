@@ -21,7 +21,8 @@ public class SlackFunction implements OutboundConnectorFunction {
 
   private static final SlackRequestDeserializer DESERIALIZER =
       new SlackRequestDeserializer("method")
-          .registerType("chat.postMessage", ChatPostMessageData.class);
+          .registerType("chat.postMessage", ChatPostMessageData.class)
+          .registerType("conversations.create", ConversationsCreateData.class);
   private static final Gson GSON =
       new GsonBuilder().registerTypeAdapter(SlackRequest.class, DESERIALIZER).create();
 

@@ -24,7 +24,8 @@ public abstract class BaseTest {
   protected static final String ACTUAL_TEXT = "some text";
 
   protected static final String METHOD = "chat.getMessage";
-  protected static final String ACTUAL_METHOD = "chat.postMessage";
+  protected static final String ACTUAL_POST_MESSAGE_METHOD = "chat.postMessage";
+  protected static final String ACTUAL_CREATE_CHANNEL_METHOD = "conversations.create";
 
   protected Gson GSON = new GsonBuilder().create();
 }
