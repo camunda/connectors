@@ -78,11 +78,16 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
   private final Optional<String> proxyFunctionUrl;
 
   public HttpJsonFunction() {
+    // As a default, load the configuration from an environment property
+    this(System.getenv(ENV_PROXY_FUNCTION_URL));
+  }
+
+  public HttpJsonFunction(String proxyFunctionUrl) {
     this(
-        GsonComponentSupplier.gsonInstance(),
-        HttpTransportComponentSupplier.httpRequestFactoryInstance(),
-        GsonComponentSupplier.gsonFactoryInstance(),
-        System.getenv(ENV_PROXY_FUNCTION_URL));
+            GsonComponentSupplier.gsonInstance(),
+            HttpTransportComponentSupplier.httpRequestFactoryInstance(),
+            GsonComponentSupplier.gsonFactoryInstance(),
+            proxyFunctionUrl);
   }
 
   public HttpJsonFunction(
