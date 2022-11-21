@@ -86,7 +86,7 @@
       }
     },
     {
-      "label": "Channel/User Name",
+      "label": "Channel/User Name/Email",
       "group": "channel",
       "type": "String",
       "feel": "optional",
@@ -97,8 +97,8 @@
       "constraints": {
         "notEmpty": true,
         "pattern": {
-          "value": "^(#|@|=).*",
-          "message": "Must be a #channel, @user or FEEL expression."
+          "value": "(^(#|@|=).*)|(^.+[@].+[.].{2,4}$)",
+          "message": "Must be a #channel, @user, email or FEEL expression."
         }
       },
       "condition": {
