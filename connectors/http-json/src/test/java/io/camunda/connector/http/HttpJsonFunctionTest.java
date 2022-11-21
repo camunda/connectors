@@ -74,7 +74,7 @@ public class HttpJsonFunctionTest extends BaseTest {
 
   @BeforeEach
   public void setup() {
-    functionUnderTest = new HttpJsonFunction(gson, requestFactory, gsonFactory);
+    functionUnderTest = new HttpJsonFunction(gson, requestFactory, gsonFactory, null);
   }
 
   @ParameterizedTest(name = "Executing test case: {0}")

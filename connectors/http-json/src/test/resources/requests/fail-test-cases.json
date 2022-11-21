@@ -56,49 +56,5 @@
         "email": "jane.doe@exampe.com"
       }
     }
-  },
-  {
-    "descriptionOfTest": "Block-listed pattern with domain name",
-    "method": "get",
-    "url": "http://address.google.internal/computeMetadata/v1/",
-    "authentication": {
-      "type": "noAuth"
-    },
-    "queryParameters": {
-      "q": "test",
-      "priority": 12
-    },
-    "headers": {
-      "User-Agent": "http-connector-demo"
-    },
-    "body": {
-      "customer": {
-        "id": 1231231,
-        "name": "Jane Doe",
-        "email": "jane.doe@exampe.com"
-      }
-    }
-  },
-  {
-    "descriptionOfTest": "Block-listed pattern with IP address",
-    "method": "get",
-    "url": "http://101.202.303.404/computeMetadata/v1/",
-    "authentication": {
-      "type": "noAuth"
-    },
-    "queryParameters": {
-      "q": "test",
-      "priority": 12
-    },
-    "headers": {
-      "User-Agent": "http-connector-demo"
-    },
-    "body": {
-      "customer": {
-        "id": 1231231,
-        "name": "Jane Doe",
-        "email": "jane.doe@exampe.com"
-      }
-    }
   }
 ]
