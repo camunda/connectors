@@ -10,16 +10,21 @@ import com.slack.api.methods.MethodsClient;
 import com.slack.api.methods.SlackApiException;
 import com.slack.api.methods.request.chat.ChatPostMessageRequest;
 import com.slack.api.methods.request.users.UsersListRequest;
+import com.slack.api.methods.request.users.UsersLookupByEmailRequest;
 import com.slack.api.methods.response.chat.ChatPostMessageResponse;
 import com.slack.api.methods.response.users.UsersListResponse;
+import com.slack.api.methods.response.users.UsersLookupByEmailResponse;
 import com.slack.api.model.User;
 import io.camunda.connector.api.annotation.Secret;
 import java.io.IOException;
 import java.util.Objects;
+import java.util.Optional;
 import javax.validation.constraints.NotEmpty;
 import org.apache.commons.text.StringEscapeUtils;
 
 public class ChatPostMessageData implements SlackRequestData {
+
+  private static final String EMAIL_REGEX = "^.+[@].+[.].{2,4}$";
 
   @NotEmpty @Secret private String channel;
   @NotEmpty @Secret private String text;
@@ -28,8 +33,9 @@ public class ChatPostMessageData implements SlackRequestData {
   public SlackResponse invoke(MethodsClient methodsClient) throws SlackApiException, IOException {
     if (channel.startsWith("@")) {
       channel = getUserId(channel.substring(1), methodsClient);
+    } else if (isEmail(channel)) {
+      channel = getUserIdByEmail(methodsClient);
     }
-
     ChatPostMessageRequest request =
         ChatPostMessageRequest.builder()
             .channel(channel)
@@ -78,6 +84,26 @@ public class ChatPostMessageData implements SlackRequestData {
     }
 
     return userId;
+  }
+
+  private boolean isEmail(final String str) {
+    return str.matches(EMAIL_REGEX);
+  }
+
+  private String getUserIdByEmail(final MethodsClient methodsClient)
+      throws IOException, SlackApiException {
+    UsersLookupByEmailRequest lookupByEmailRequest =
+        UsersLookupByEmailRequest.builder().email(channel).build();
+
+    return Optional.ofNullable(methodsClient.usersLookupByEmail(lookupByEmailRequest))
+        .map(UsersLookupByEmailResponse::getUser)
+        .map(User::getId)
+        .orElseThrow(
+            () ->
+                new RuntimeException(
+                    "User with email "
+                        + channel
+                        + " not found; or unable 'users:read.email' permission"));
   }
 
   public String getChannel() {
