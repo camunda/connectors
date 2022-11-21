@@ -1,0 +1,96 @@
+[
+  {
+    "description": "without token",
+    "method": "chat.postMessage",
+    "data": {
+      "channel": "channel",
+      "text": "_ this is secret test text _"
+    }
+  },
+  {
+    "description": "without blank token",
+    "token": "  ",
+    "method": "chat.postMessage",
+    "data": {
+      "channel": "channel",
+      "text": "_ this is secret test text _"
+    }
+  },
+  {
+    "description": "without data",
+    "token": "xoxb-0123456789456-123467890987-thisIsTestToken",
+    "method": "chat.postMessage",
+    "data": null
+  },
+  {
+    "description": "without channel",
+    "token": "xoxb-0123456789456-123467890987-thisIsTestToken",
+    "method": "chat.postMessage",
+    "data": {
+      "channel": null,
+      "text": "_ this is secret test text _"
+    }
+  },
+  {
+    "description": "with blank channel",
+    "token": "xoxb-0123456789456-123467890987-thisIsTestToken",
+    "method": "chat.postMessage",
+    "data": {
+      "channel": "   ",
+      "text": "_ this is secret test text _"
+    }
+  },
+  {
+    "description": "without text",
+    "token": "xoxb-0123456789456-123467890987-thisIsTestToken",
+    "method": "chat.postMessage",
+    "data": {
+      "channel": "channel",
+      "text": null
+    }
+  },
+  {
+    "description": "without blank text",
+    "token": "xoxb-0123456789456-123467890987-thisIsTestToken",
+    "method": "chat.postMessage",
+    "data": {
+      "channel":"channel",
+      "text": "    "
+    }
+  },
+  {
+    "description": "create channel; with wrong visibility",
+    "token": "xoxb-0123456789456-123467890987-thisIsTestToken",
+    "method": "conversations.create",
+    "data": {
+      "newChannelName": "new Channel name",
+      "visibility": "wrong name for deserialization"
+    }
+  },
+  {
+    "description": "create channel; without visibility",
+    "token": "xoxb-0123456789456-123467890987-thisIsTestToken",
+    "method": "conversations.create",
+    "data": {
+      "newChannelName": "new Channel name"
+    }
+  },
+  {
+    "description": "create channel; with blank newChannelName",
+    "token": "xoxb-0123456789456-123467890987-thisIsTestToken",
+    "method": "conversations.create",
+    "data": {
+      "newChannelName": "   ",
+      "visibility": "wrong name for deserialization"
+    }
+  },
+  {
+    "description": "create channel; without newChannelName",
+    "token": "xoxb-0123456789456-123467890987-thisIsTestToken",
+    "method": "conversations.create",
+    "data": {
+      "newChannelName": null,
+      "visibility": "wrong name for deserialization"
+    }
+  }
+]

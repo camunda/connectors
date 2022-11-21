@@ -19,15 +19,15 @@ import io.camunda.connector.api.annotation.Secret;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.Optional;
-import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotBlank;
 import org.apache.commons.text.StringEscapeUtils;
 
 public class ChatPostMessageData implements SlackRequestData {
 
   private static final String EMAIL_REGEX = "^.+[@].+[.].{2,4}$";
 
-  @NotEmpty @Secret private String channel;
-  @NotEmpty @Secret private String text;
+  @NotBlank @Secret private String channel;
+  @NotBlank @Secret private String text;
 
   @Override
   public SlackResponse invoke(MethodsClient methodsClient) throws SlackApiException, IOException {
@@ -124,8 +124,12 @@ public class ChatPostMessageData implements SlackRequestData {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
     ChatPostMessageData that = (ChatPostMessageData) o;
     return Objects.equals(channel, that.channel) && Objects.equals(text, that.text);
   }
