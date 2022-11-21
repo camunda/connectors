@@ -64,7 +64,7 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
     this.gson = gson;
     this.http = new HttpInvocationHelper(gson, requestFactory, gsonFactory);
 
-    //proxyFunctionToUse = Optional.of("http://localhost:8080/function-connector-http-proxy-function-test1");
+    proxyFunctionToUse = Optional.ofNullable(System.getenv("PROXY_FUNCTION_URL"));
   }
 
   @Override

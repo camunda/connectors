@@ -75,8 +75,8 @@ public class HttpInvocationHelper {
   public HttpJsonResult executeRequestViaProxy(String proxyUrl, HttpJsonRequest request)
       throws IOException {
 
-    //String jsonString = gson.toJson(request);
-    //LOGGER.info("Sending request to proxy: " + jsonString);
+    // String jsonString = gson.toJson(request);
+    // LOGGER.info("Sending request to proxy: " + jsonString);
 
     // Using the JsonHttpContent cannot work with an element on the root content??
     // final HttpContent content = new JsonHttpContent(gsonFactory, jsonString);
@@ -115,9 +115,8 @@ public class HttpInvocationHelper {
           "Failed to execute HTTP request: " + httpResponse.getStatusMessage());
     }
 
-    try (InputStream responseContentStream = httpResponse.getContent();
-        Reader reader = new InputStreamReader(responseContentStream)) {
-      final HttpJsonResult jsonResult = gson.fromJson(reader, HttpJsonResult.class);
+    try {
+      final HttpJsonResult jsonResult = toHttpJsonResponse(httpResponse);
 
       LOGGER.info("Proxy returned result: " + jsonResult);
 
