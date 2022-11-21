@@ -1,0 +1,29 @@
+[
+  {
+    "description": "with secrets keys without braces",
+    "token": "secrets.TOKEN_KEY",
+    "method": "conversations.create",
+    "data": {
+      "newChannelName": "secrets.NEW_CHANNEL_NAME_KEY",
+      "visibility": "PUBLIC"
+    }
+  },
+  {
+    "description": "create channel; with braces ",
+    "token": "xoxb-0123456789456-123467890987-thisIsTestToken",
+    "method": "conversations.create",
+    "data": {
+      "newChannelName": "{{secrets.NEW_CHANNEL_NAME_KEY}}",
+      "visibility": "PRIVATE"
+    }
+  },
+  {
+    "description": "without secrets",
+    "token": "xoxb-0123456789456-123467890987-thisIsTestToken",
+    "method": "conversations.create",
+    "data": {
+      "newChannelName": "_ new channel name _",
+      "visibility": "PUBLIC"
+    }
+  }
+]

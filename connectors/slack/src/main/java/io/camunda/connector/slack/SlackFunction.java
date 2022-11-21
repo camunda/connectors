@@ -7,7 +7,6 @@
 package io.camunda.connector.slack;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.slack.api.Slack;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
@@ -19,28 +18,23 @@ import io.camunda.connector.api.outbound.OutboundConnectorFunction;
     type = "io.camunda:slack:1")
 public class SlackFunction implements OutboundConnectorFunction {
 
-  private static final SlackRequestDeserializer DESERIALIZER =
-      new SlackRequestDeserializer("method")
-          .registerType("chat.postMessage", ChatPostMessageData.class)
-          .registerType("conversations.create", ConversationsCreateData.class);
-  private static final Gson GSON =
-      new GsonBuilder().registerTypeAdapter(SlackRequest.class, DESERIALIZER).create();
-
+  private final Gson gson;
   private final Slack slack;
 
   public SlackFunction() {
-    this(Slack.getInstance());
+    this(Slack.getInstance(), GsonSupplier.getGson());
   }
 
-  public SlackFunction(final Slack slack) {
+  public SlackFunction(final Slack slack, final Gson gson) {
     this.slack = slack;
+    this.gson = gson;
   }
 
   @Override
   public Object execute(OutboundConnectorContext context) throws Exception {
 
     final var variables = context.getVariables();
-    final var slackRequest = GSON.fromJson(variables, SlackRequest.class);
+    final var slackRequest = gson.fromJson(variables, SlackRequest.class);
 
     context.validate(slackRequest);
     context.replaceSecrets(slackRequest);

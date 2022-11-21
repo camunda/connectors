@@ -13,13 +13,13 @@ import io.camunda.connector.api.annotation.Secret;
 import java.io.IOException;
 import java.util.Objects;
 import javax.validation.Valid;
-import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
 public class SlackRequest<T extends SlackRequestData> {
 
-  @NotEmpty @Secret private String token;
-  @NotEmpty private String method;
+  @NotBlank @Secret private String token;
+  @NotBlank private String method;
 
   @Valid @NotNull @Secret private T data;
 

@@ -22,6 +22,8 @@ import com.slack.api.model.User;
 import java.io.IOException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
@@ -56,11 +58,19 @@ class ChatPostMessageDataTest {
             "User with email test@test.com not found; or unable 'users:read.email' permission");
   }
 
-  @Test
-  void invoke_shouldFindUserIdByEmail() throws SlackApiException, IOException {
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "test@test.com",
+        "firstName.LastName@mail.org",
+        "n.a.m.e@mail.ua",
+        "a@m.uat",
+        "_23@ma.au"
+      })
+  void invoke_shouldFindUserIdByEmail(String email) throws SlackApiException, IOException {
     // Given
     ChatPostMessageData chatPostMessageData = new ChatPostMessageData();
-    chatPostMessageData.setChannel("test@test.com");
+    chatPostMessageData.setChannel(email);
     chatPostMessageData.setText("test");
 
     when(methodsClient.usersLookupByEmail(any(UsersLookupByEmailRequest.class)))
