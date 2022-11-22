@@ -91,8 +91,4 @@ public class HttpJsonFunctionProxyTest extends BaseTest {
   private static Stream<String> successCases() throws IOException {
     return loadTestCasesFromResourceFile(SUCCESS_CASES_RESOURCE_PATH);
   }
-
-  private static Stream<String> failCases() throws IOException {
-    return loadTestCasesFromResourceFile(FAIL_CASES_RESOURCE_PATH);
-  }
 }
