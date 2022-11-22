@@ -76,22 +76,15 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
 
   private final Optional<String> proxyFunctionUrl;
 
-  static {
-    ConnectorConfigurationUtil.addBeanOverwrite(GsonComponentSupplier.gsonInstance());
-    ConnectorConfigurationUtil.addBeanOverwrite(
-        HttpTransportComponentSupplier.httpRequestFactoryInstance());
-    ConnectorConfigurationUtil.addBeanOverwrite(GsonComponentSupplier.gsonFactoryInstance());
-  }
-
   public HttpJsonFunction() {
     this(ConnectorConfigurationUtil.getProperty(PROXY_FUNCTION_URL_ENV_NAME));
   }
 
   public HttpJsonFunction(String proxyFunctionUrl) {
     this(
-        ConnectorConfigurationUtil.getBean(Gson.class),
-        ConnectorConfigurationUtil.getBean(HttpRequestFactory.class),
-        ConnectorConfigurationUtil.getBean(GsonFactory.class),
+        GsonComponentSupplier.gsonInstance(),
+        HttpTransportComponentSupplier.httpRequestFactoryInstance(),
+        GsonComponentSupplier.gsonFactoryInstance(),
         proxyFunctionUrl);
   }
 
