@@ -20,6 +20,7 @@ public class KafkaConnectorRequest {
 
   protected static final String SESSION_TIMEOUT_MS_RECOMMENDED_VALUE = "45000";
   protected static final String DELIVERY_TIMEOUT_MS_RECOMMENDED_VALUE = "45000";
+  protected static final String MAX_BLOCK_MS_RECOMMENDED_VALUE = "45000";
   protected static final String CLIENT_DNS_LOOKUP_RECOMMENDED_VALUE = "use_all_dns_ips";
   protected static final String ACKS_RECOMMENDED_VALUE = "all";
 
@@ -84,6 +85,7 @@ public class KafkaConnectorRequest {
     props.put(ProducerConfig.CLIENT_DNS_LOOKUP_CONFIG, CLIENT_DNS_LOOKUP_RECOMMENDED_VALUE);
     props.put(ProducerConfig.ACKS_CONFIG, ACKS_RECOMMENDED_VALUE);
     props.put(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, DELIVERY_TIMEOUT_MS_RECOMMENDED_VALUE);
+    props.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, MAX_BLOCK_MS_RECOMMENDED_VALUE);
 
     // Step 3: override properties provided by the client
     if (!additionalProperties.isEmpty()) {
