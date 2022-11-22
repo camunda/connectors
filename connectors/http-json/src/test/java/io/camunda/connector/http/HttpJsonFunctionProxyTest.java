@@ -16,43 +16,30 @@
  */
 package io.camunda.connector.http;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.HttpContent;
-import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpResponse;
-import com.google.api.client.http.HttpResponseException;
 import com.google.api.client.json.gson.GsonFactory;
-import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.http.model.HttpJsonRequest;
 import io.camunda.connector.http.model.HttpJsonResult;
-import io.camunda.connector.impl.ConnectorInputException;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.stream.Stream;
-
-import static org.apache.http.entity.ContentType.APPLICATION_JSON;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.catchException;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.nullable;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 public class HttpJsonFunctionProxyTest extends BaseTest {
@@ -88,11 +75,13 @@ public class HttpJsonFunctionProxyTest extends BaseTest {
         .thenReturn(httpRequest);
     when(httpResponse.isSuccessStatusCode()).thenReturn(true);
     String responseContent = "{ headers: { 'someHeader'='someValue'}}";
-    when(httpResponse.getContent()).thenReturn(new ByteArrayInputStream(responseContent.getBytes(StandardCharsets.UTF_8)));
+    when(httpResponse.getContent())
+        .thenReturn(new ByteArrayInputStream(responseContent.getBytes(StandardCharsets.UTF_8)));
     when(httpRequest.execute()).thenReturn(httpResponse);
 
     // when
-    HttpJsonResult functionCallResponseAsObject = (HttpJsonResult) functionUnderTest.execute(context);
+    HttpJsonResult functionCallResponseAsObject =
+        (HttpJsonResult) functionUnderTest.execute(context);
 
     // then
     verify(httpRequest).execute();

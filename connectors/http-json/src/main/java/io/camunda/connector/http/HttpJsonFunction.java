@@ -38,7 +38,7 @@ import io.camunda.connector.http.components.GsonComponentSupplier;
 import io.camunda.connector.http.components.HttpTransportComponentSupplier;
 import io.camunda.connector.http.model.HttpJsonRequest;
 import io.camunda.connector.http.model.HttpJsonResult;
-
+import io.camunda.connector.impl.config.ConnectorConfigurationUtil;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -50,7 +50,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,7 +68,7 @@ import org.slf4j.LoggerFactory;
 public class HttpJsonFunction implements OutboundConnectorFunction {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(HttpJsonFunction.class);
-  public static final String ENV_PROXY_FUNCTION_URL = "PROXY_FUNCTION_URL";
+  public static final String PROXY_FUNCTION_URL_ENV_NAME = "PROXY_FUNCTION_URL";
 
   private final Gson gson;
   private final GsonFactory gsonFactory;
@@ -77,21 +76,30 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
 
   private final Optional<String> proxyFunctionUrl;
 
+  static {
+    ConnectorConfigurationUtil.addBeanOverwrite(GsonComponentSupplier.gsonInstance());
+    ConnectorConfigurationUtil.addBeanOverwrite(
+        HttpTransportComponentSupplier.httpRequestFactoryInstance());
+    ConnectorConfigurationUtil.addBeanOverwrite(GsonComponentSupplier.gsonFactoryInstance());
+  }
+
   public HttpJsonFunction() {
-    // As a default, load the configuration from an environment property
-    this(System.getenv(ENV_PROXY_FUNCTION_URL));
+    this(ConnectorConfigurationUtil.getProperty(PROXY_FUNCTION_URL_ENV_NAME));
   }
 
   public HttpJsonFunction(String proxyFunctionUrl) {
     this(
-            GsonComponentSupplier.gsonInstance(),
-            HttpTransportComponentSupplier.httpRequestFactoryInstance(),
-            GsonComponentSupplier.gsonFactoryInstance(),
-            proxyFunctionUrl);
+        ConnectorConfigurationUtil.getBean(Gson.class),
+        ConnectorConfigurationUtil.getBean(HttpRequestFactory.class),
+        ConnectorConfigurationUtil.getBean(GsonFactory.class),
+        proxyFunctionUrl);
   }
 
   public HttpJsonFunction(
-      final Gson gson, final HttpRequestFactory requestFactory, final GsonFactory gsonFactory, String proxyFunctionUrl) {
+      final Gson gson,
+      final HttpRequestFactory requestFactory,
+      final GsonFactory gsonFactory,
+      String proxyFunctionUrl) {
     this.gson = gson;
     this.requestFactory = requestFactory;
     this.gsonFactory = gsonFactory;
@@ -130,7 +138,8 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
     HttpContent content =
         new AbstractHttpContent("application/json; charset=UTF-8") {
           public void writeTo(OutputStream outputStream) throws IOException {
-            JsonGenerator jsonGenerator = gsonFactory.createJsonGenerator(outputStream, StandardCharsets.UTF_8);
+            JsonGenerator jsonGenerator =
+                gsonFactory.createJsonGenerator(outputStream, StandardCharsets.UTF_8);
             jsonGenerator.serialize(request);
             jsonGenerator.flush();
           }
