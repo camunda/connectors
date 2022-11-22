@@ -114,10 +114,14 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
   }
 
   public HttpJsonResult executeRequestDirectly(HttpJsonRequest request) throws IOException {
+    final HttpRequest httpRequest = createRequest(request);
+    HttpResponse httpResponse = executeHttpRequest(httpRequest);
+    return toHttpJsonResponse(httpResponse);
+  }
+
+  private HttpResponse executeHttpRequest(HttpRequest externalRequest) throws IOException {
     try {
-      final HttpRequest externalRequest = createRequest(request);
-      HttpResponse externalResponse = externalRequest.execute();
-      return toHttpJsonResponse(externalResponse);
+      return externalRequest.execute();
     } catch (HttpResponseException hrex) {
       throw new ConnectorException(String.valueOf(hrex.getStatusCode()), hrex.getMessage(), hrex);
     }
@@ -142,7 +146,8 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
     httpRequest.setFollowRedirects(false);
     setTimeout(request, httpRequest);
 
-    HttpResponse httpResponse = httpRequest.execute();
+    HttpResponse httpResponse = executeHttpRequest(httpRequest);
+
     if (!httpResponse.isSuccessStatusCode()) {
       LOGGER.debug(
           "Proxy invocation failed with HTTP error code {}: {}",
