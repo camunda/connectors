@@ -26,7 +26,7 @@
   </licenses>
 
   <properties>
-    <version.aws-java-sdk-sqs>1.12.346</version.aws-java-sdk-sqs>
+    <version.aws-java-sdk-sqs>1.12.347</version.aws-java-sdk-sqs>
     <license.inlineheader>Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
 under one or more contributor license agreements. Licensed under a proprietary license.
 See the License.txt file for more information. You may not use this file
