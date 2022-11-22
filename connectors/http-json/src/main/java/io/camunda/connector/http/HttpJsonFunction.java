@@ -48,7 +48,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,7 +73,7 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
   private final GsonFactory gsonFactory;
   private final HttpRequestFactory requestFactory;
 
-  private final Optional<String> proxyFunctionUrl;
+  private final String proxyFunctionUrl;
 
   public HttpJsonFunction() {
     this(ConnectorConfigurationUtil.getProperty(PROXY_FUNCTION_URL_ENV_NAME));
@@ -96,7 +95,7 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
     this.gson = gson;
     this.requestFactory = requestFactory;
     this.gsonFactory = gsonFactory;
-    this.proxyFunctionUrl = Optional.ofNullable(proxyFunctionUrl);
+    this.proxyFunctionUrl = proxyFunctionUrl;
   }
 
   @Override
@@ -107,8 +106,8 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
     context.validate(request);
     context.replaceSecrets(request);
 
-    if (proxyFunctionUrl.isPresent()) {
-      return executeRequestViaProxy(proxyFunctionUrl.get(), request);
+    if (proxyFunctionUrl != null) {
+      return executeRequestViaProxy(proxyFunctionUrl, request);
     } else {
       return executeRequestDirectly(request);
     }
