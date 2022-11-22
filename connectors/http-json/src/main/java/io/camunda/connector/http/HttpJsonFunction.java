@@ -113,13 +113,13 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
     }
   }
 
-  public HttpJsonResult executeRequestDirectly(HttpJsonRequest request) throws IOException {
+  protected HttpJsonResult executeRequestDirectly(HttpJsonRequest request) throws IOException {
     final HttpRequest httpRequest = createRequest(request);
     HttpResponse httpResponse = executeHttpRequest(httpRequest);
     return toHttpJsonResponse(httpResponse);
   }
 
-  private HttpResponse executeHttpRequest(HttpRequest externalRequest) throws IOException {
+  protected HttpResponse executeHttpRequest(HttpRequest externalRequest) throws IOException {
     try {
       return externalRequest.execute();
     } catch (HttpResponseException hrex) {
@@ -127,7 +127,7 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
     }
   }
 
-  public HttpJsonResult executeRequestViaProxy(String proxyUrl, HttpJsonRequest request)
+  protected HttpJsonResult executeRequestViaProxy(String proxyUrl, HttpJsonRequest request)
       throws IOException {
     // Using the JsonHttpContent cannot work with an element on the root content,
     // hence write it ourselves:
@@ -169,7 +169,7 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
     }
   }
 
-  public HttpRequest createRequest(final HttpJsonRequest request) throws IOException {
+  protected HttpRequest createRequest(final HttpJsonRequest request) throws IOException {
     final String method = request.getMethod().toUpperCase();
     final GenericUrl genericUrl = new GenericUrl(request.getUrl());
     final HttpContent content = createContent(request);
@@ -187,7 +187,7 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
     return httpRequest;
   }
 
-  private void setTimeout(HttpJsonRequest request, HttpRequest httpRequest) {
+  protected void setTimeout(HttpJsonRequest request, HttpRequest httpRequest) {
     if (request.getConnectionTimeoutInSeconds() != null) {
       long connectionTimeout =
           TimeUnit.SECONDS.toMillis(Long.parseLong(request.getConnectionTimeoutInSeconds()));
@@ -198,7 +198,7 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
     }
   }
 
-  public HttpContent createContent(final HttpJsonRequest request) {
+  protected HttpContent createContent(final HttpJsonRequest request) {
     if (request.hasBody()) {
       return new JsonHttpContent(gsonFactory, request.getBody());
     } else {
@@ -206,7 +206,7 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
     }
   }
 
-  public HttpHeaders createHeaders(final HttpJsonRequest request) {
+  protected HttpHeaders createHeaders(final HttpJsonRequest request) {
     final HttpHeaders httpHeaders = new HttpHeaders();
     if (request.hasBody()) {
       httpHeaders.setContentType(APPLICATION_JSON.getMimeType());
@@ -220,7 +220,7 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
     return httpHeaders;
   }
 
-  public HttpJsonResult toHttpJsonResponse(final HttpResponse externalResponse) {
+  protected HttpJsonResult toHttpJsonResponse(final HttpResponse externalResponse) {
     final HttpJsonResult httpJsonResult = new HttpJsonResult();
     httpJsonResult.setStatus(externalResponse.getStatusCode());
     final Map<String, Object> headers = new HashMap<>();
