@@ -68,7 +68,7 @@ import org.slf4j.LoggerFactory;
 public class HttpJsonFunction implements OutboundConnectorFunction {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(HttpJsonFunction.class);
-  public static final String PROXY_FUNCTION_URL_ENV_NAME = "PROXY_FUNCTION_URL";
+  public static final String PROXY_FUNCTION_URL_ENV_NAME = "CAMUNDA_CONNECTOR_HTTP_PROXY_URL";
 
   private final Gson gson;
   private final GsonFactory gsonFactory;

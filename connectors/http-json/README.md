@@ -110,7 +110,38 @@ The response will contain the status code, the headers and the body of the respo
 
 The Connector will fail on any non-2XX HTTP status code in the response. This error status code will be passed on as error code, e.g. "404".
 
+## Use proxy-mechanism
+
+You can configure the HTTP JSON Connector to do any outgoing HTTP call via a proxy. This proxy should be effectively also an HTTP JSON Connector
+running in a different environment.
+
+For example, you can build the following runtime architecture:
+
+```
+   Camunda Process --> HTTP Connector (Proxy-mode) --> HTTP Connector --> Endpoint
+ [ Camunda Network, e.g. K8S                      ]  [ Separate network, e.g. Google Function ] 
+```
+
+Now, any call via the Http Connector will be just forwarded to a specified hardcoded URL. And this proxy does the real call then.
+This avoids that you could reach internal endpoints in your Camunda network (e.g. the current Kubernetes cluster).
+
+Just set the following property to enable proxy mode for the connector, e.g. in application.properties when using the Spring-based runtime:
+
+```properties
+camunda.connector.http.proxy.url=https://someUrl/
+```
+
+You can also set this via environment variables:
+
+```
+CAMUNDA_CONNECTOR_HTTP_PROXY_URL=https://someUrl/
+```
+
+
+
 ## Test locally
+
+### Run unit tests
 
 Run unit tests
 
@@ -118,9 +149,11 @@ Run unit tests
 mvn clean verify
 ```
 
-### Test as local Job Worker
+### Test with local runtime
 
-Use the [Camunda Connector Runtime](https://github.com/camunda-community-hub/spring-zeebe/tree/master/connector-runtime#building-connector-runtime-bundles) to run your function as a local Job Worker.
+Use the [Camunda Connector Runtime](https://github.com/camunda-community-hub/spring-zeebe/tree/master/connector-runtime#building-connector-runtime-bundles) to run your function as a local Java application.
+
+In your IDE you can also simply navigate to the `LocalContainerRuntime` class in test scope and run it via your IDE.
 
 ### :lock: Test as local Google Cloud Function
 
