@@ -156,7 +156,8 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
           "Proxy invocation failed with HTTP error code {}: {}",
           httpResponse.getStatusCode(),
           httpResponse.getStatusMessage());
-      throw new RuntimeException(
+      throw new ConnectorException(
+          String.valueOf(httpResponse.getStatusCode()),
           "Failed to execute HTTP request: " + httpResponse.getStatusMessage());
     }
 

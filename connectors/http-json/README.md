@@ -119,7 +119,7 @@ For example, you can build the following runtime architecture:
 
 ```
    Camunda Process --> HTTP Connector (Proxy-mode) --> HTTP Connector --> Endpoint
- [ Camunda Network, e.g. K8S                      ]  [ Separate network, e.g. Google Function ] 
+ [ Camunda Network, e.g. K8S                      ]  [ Separate network, e.g. Google Function ]
 ```
 
 Now, any call via the Http Connector will be just forwarded to a specified hardcoded URL. And this proxy does the real call then.
