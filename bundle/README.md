@@ -6,7 +6,7 @@ The bundle contains the following components
 
 | Component                    | Version | License                                      |
 | ---------------------------- |---------| -------------------------------------------- |
-| [Connector Runtime]          | 0.3.1   | [Apache 2.0]                                 |
+| [Connector Runtime]          | 0.3.2   | [Apache 2.0]                                 |
 | [AWS Lambda Connector]       | 0.4.0   | [Camunda Platform Self-Managed Free Edition] |
 | [Google Drive Connector]     | 0.5.0   | [Camunda Platform Self-Managed Free Edition] |
 | [HTTP JSON Connector (REST)] | 0.11.0  | [Apache 2.0]                                 |
