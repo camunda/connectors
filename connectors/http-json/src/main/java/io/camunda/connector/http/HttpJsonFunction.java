@@ -64,7 +64,7 @@ import org.slf4j.LoggerFactory;
       "connectionTimeoutInSeconds",
       "body"
     },
-    type = "io.camunda:http-json:test")
+    type = "io.camunda:http-json:1")
 public class HttpJsonFunction implements OutboundConnectorFunction {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(HttpJsonFunction.class);
