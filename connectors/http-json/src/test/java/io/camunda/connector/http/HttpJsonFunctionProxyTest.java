@@ -74,7 +74,7 @@ public class HttpJsonFunctionProxyTest extends BaseTest {
             eq(new GenericUrl(PROXY_FUNCTION_URL)), nullable(HttpContent.class)))
         .thenReturn(httpRequest);
     when(httpResponse.isSuccessStatusCode()).thenReturn(true);
-    String responseContent = "{ headers: { 'someHeader'='someValue'}}";
+    String responseContent = "{ headers: { 'someHeader': 'someValue'}}";
     when(httpResponse.getContent())
         .thenReturn(new ByteArrayInputStream(responseContent.getBytes(StandardCharsets.UTF_8)));
     when(httpRequest.execute()).thenReturn(httpResponse);
