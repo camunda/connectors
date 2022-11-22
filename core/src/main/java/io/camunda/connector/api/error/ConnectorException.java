@@ -23,17 +23,12 @@ public class ConnectorException extends RuntimeException {
 
   protected String errorCode;
 
-  /**
-   * Constructs a new exception with the specified cause and a detail message of {@code (cause==null
-   * ? null : cause.toString())} (which typically contains the class and detail message of {@code
-   * cause}).
-   *
-   * @param cause - the cause (which is saved for later retrieval by the {@link #getCause()}
-   *     method). (A <code>null</code> value is permitted, and indicates that the cause is
-   *     nonexistent or unknown.)
-   */
   public ConnectorException(Throwable cause) {
     super(cause);
+  }
+
+  public ConnectorException(String message) {
+    super(message);
   }
 
   /**
