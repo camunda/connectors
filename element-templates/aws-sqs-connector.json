@@ -148,7 +148,7 @@
     },
     {
       "label": "Error Expression",
-      "description": "Expression to define BPMN Errors to throw",
+      "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
       "group": "errors",
       "type": "Text",
       "feel": "required",
