@@ -17,11 +17,12 @@
 package io.camunda.connector.bundle;
 
 import io.camunda.connector.runtime.ConnectorRuntimeApplication;
+import io.camunda.connector.runtime.SaaSConnectorRuntimeApplication;
 import org.springframework.boot.SpringApplication;
 
 public class LocalConnectorRuntime {
 
   public static void main(String[] args) {
-    SpringApplication.run(ConnectorRuntimeApplication.class, args);
+    SpringApplication.run(SaaSConnectorRuntimeApplication.class, args);
   }
 }

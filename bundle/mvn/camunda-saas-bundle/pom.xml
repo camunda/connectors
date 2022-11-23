@@ -30,7 +30,7 @@
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
         <configuration>
-          <mainClass>io.camunda.connector.runtime.ConnectorRuntimeApplication</mainClass>
+          <mainClass>io.camunda.connector.runtime.SaaSConnectorRuntimeApplication</mainClass>
         </configuration>
       </plugin>
        <plugin>
