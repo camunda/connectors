@@ -38,6 +38,7 @@ public class ConnectorJobHandler implements JobHandler {
   private static final Logger LOGGER = LoggerFactory.getLogger(ConnectorJobHandler.class);
 
   protected final OutboundConnectorFunction call;
+  protected SecretProvider secretProvider;
 
   /**
    * Create a handler wrapper for the specified connector function.
@@ -46,6 +47,12 @@ public class ConnectorJobHandler implements JobHandler {
    */
   public ConnectorJobHandler(final OutboundConnectorFunction call) {
     this.call = call;
+  }
+
+  public ConnectorJobHandler(
+      final OutboundConnectorFunction call, final SecretProvider secretProvider) {
+    this.call = call;
+    this.secretProvider = secretProvider;
   }
 
   @Override
@@ -89,6 +96,15 @@ public class ConnectorJobHandler implements JobHandler {
   }
 
   protected SecretProvider getSecretProvider() {
+    if (secretProvider != null) {
+      return secretProvider;
+    }
+    // Initialize in legacy scenario where this is not provided by the environment with every call
+    // to not break former behavior
+    return loadOrCreateSecretProvider();
+  }
+
+  protected SecretProvider loadOrCreateSecretProvider() {
     Iterator<SecretProvider> secretProviders = ServiceLoader.load(SecretProvider.class).iterator();
     if (!secretProviders.hasNext()) {
       getEnvSecretProvider();
