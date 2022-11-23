@@ -36,9 +36,10 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CloudSecretProvider implements SecretProvider {
+public class GcpSecretManagerSecretProvider implements SecretProvider {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(CloudSecretProvider.class);
+  private static final Logger LOGGER =
+      LoggerFactory.getLogger(GcpSecretManagerSecretProvider.class);
   private final Gson gson;
   private final String clusterId;
   private static final Type MAP_TYPE = new TypeToken<Map<String, String>>() {}.getType();
@@ -51,11 +52,15 @@ public class CloudSecretProvider implements SecretProvider {
   private static final String CACHE_KEY = "SECRETS";
   LoadingCache<String, Map<String, String>> secretsCache;
 
-  public CloudSecretProvider() {
-    this(new GsonBuilder().create(), ConnectorConfigurationUtil.getProperty(CLUSTER_ID_ENV_NAME));
+  public GcpSecretManagerSecretProvider() {
+    this(ConnectorConfigurationUtil.getProperty(CLUSTER_ID_ENV_NAME));
   }
 
-  public CloudSecretProvider(Gson gson, String clusterId) {
+  public GcpSecretManagerSecretProvider(String clusterId) {
+    this(new GsonBuilder().create(), clusterId);
+  }
+
+  public GcpSecretManagerSecretProvider(Gson gson, String clusterId) {
     this.gson = gson;
     this.clusterId = clusterId;
     this.setupSecretsCache();
