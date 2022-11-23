@@ -26,4 +26,6 @@ public class Constants {
   public static final String COMPUTE_METADATA = "computeMetadata";
   public static final String BASIC_AUTH_HEADER = "basicAuthHeader";
   public static final String CREDENTIALS_BODY = "credentialsBody";
+  public static final String PROXY_FUNCTION_URL_ENV_NAME = "CAMUNDA_CONNECTOR_HTTP_PROXY_URL";
+  public static final String POST = "POST";
 }
