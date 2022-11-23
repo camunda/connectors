@@ -27,7 +27,6 @@ import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpResponse;
 import com.google.api.client.http.HttpResponseException;
 import com.google.api.client.http.json.JsonHttpContent;
-import com.google.api.client.json.JsonGenerator;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.gson.Gson;
 import io.camunda.connector.api.annotation.OutboundConnector;
@@ -131,13 +130,11 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
       throws IOException {
     // Using the JsonHttpContent cannot work with an element on the root content,
     // hence write it ourselves:
+    String contentAsJson = gson.toJson(request);
     HttpContent content =
         new AbstractHttpContent("application/json; charset=UTF-8") {
           public void writeTo(OutputStream outputStream) throws IOException {
-            JsonGenerator jsonGenerator =
-                gsonFactory.createJsonGenerator(outputStream, StandardCharsets.UTF_8);
-            jsonGenerator.serialize(request);
-            jsonGenerator.flush();
+            outputStream.write(contentAsJson.getBytes(StandardCharsets.UTF_8));
           }
         };
     final GenericUrl genericUrl = new GenericUrl(proxyUrl);
