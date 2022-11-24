@@ -53,38 +53,21 @@ jobs:
         server-username: MAVEN_USERNAME
         server-password: MAVEN_PASSWORD
 
-    - name: Deploy default-bundle Maven Artifact
+    - name: Deploy Maven Artifact
       run: mvn -B compile generate-sources source:jar javadoc:jar deploy
       if: github.ref == 'refs/heads/main'
-      working-directory: bundle/mvn/default-bundle/
+      working-directory: bundle/mvn/
       env:
         MAVEN_USERNAME: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
         MAVEN_PASSWORD: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
 
-    - name: Deploy saas-bundle Maven Artifact
-      run: mvn -B compile generate-sources source:jar javadoc:jar deploy
-      if: github.ref == 'refs/heads/main'
-      working-directory: bundle/mvn/camunda-saas-bundle/
-      env:
-        MAVEN_USERNAME: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
-        MAVEN_PASSWORD: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
-
-    - name: Build default-bundle Maven Artifact
+    - name: Build Maven Artifact
       run: mvn -B compile install
       if: github.ref != 'refs/heads/main'
-      working-directory: bundle/mvn/default-bundle/
+      working-directory: bundle/mvn/
       env:
         MAVEN_USERNAME: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
         MAVEN_PASSWORD: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
-
-    - name: Build saas-bundle Maven Artifact
-      run: mvn -B compile install
-      if: github.ref != 'refs/heads/main'
-      working-directory: bundle/mvn/camunda-saas-bundle/
-      env:
-        MAVEN_USERNAME: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
-        MAVEN_PASSWORD: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
-
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
