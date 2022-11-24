@@ -69,7 +69,7 @@ public class KafkaConnectorFunction implements OutboundConnectorFunction {
       result.setTimestamp(recordMetadata.timestamp());
       return result;
     } catch (Exception e) {
-      throw new ConnectorException("001", "Kafka Producer execution exception", e);
+      throw new ConnectorException("FAIL", "Kafka Producer execution exception", e);
     } finally {
       producer.close();
     }
