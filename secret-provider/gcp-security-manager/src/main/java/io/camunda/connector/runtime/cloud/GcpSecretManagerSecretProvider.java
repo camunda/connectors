@@ -46,6 +46,7 @@ public class GcpSecretManagerSecretProvider implements SecretProvider {
 
   public static final String SECRETS_PROJECT_ENV_NAME = "SECRETS_PROJECT_ID";
   public static final String SECRETS_PREFIX_ENV_NAME = "SECRETS_PREFIX";
+  public static final String SECRETS_CACHE_MILLIS_ENV_NAME = "CAMUNDA_CONNECTOR_SECRETS_CACHE_MILLIS";
   public static final String CLUSTER_ID_ENV_NAME = "CAMUNDA_CLUSTER_ID";
 
   // private Map<String, String> secrets = new HashMap<>();
@@ -75,7 +76,8 @@ public class GcpSecretManagerSecretProvider implements SecretProvider {
             return unwrapSecrets(loadGoogleSecrets(clusterId));
           }
         };
-    secretsCache = CacheBuilder.newBuilder().refreshAfterWrite(5, TimeUnit.SECONDS).build(loader);
+    long millis = Long.valueOf(ConnectorConfigurationUtil.getProperty(SECRETS_CACHE_MILLIS_ENV_NAME, "5000"));
+    secretsCache = CacheBuilder.newBuilder().refreshAfterWrite(millis, TimeUnit.MILLISECONDS).build(loader);
   }
 
   protected Map<String, String> unwrapSecrets(final String secretsAsjson) {

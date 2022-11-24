@@ -41,4 +41,14 @@ public class ConnectorConfigurationUtil {
     }
     return System.getenv(key);
   }
+
+  public static String getProperty(String key, String defaultValue) {
+    String result = getProperty(key);
+    if (result == null) {
+      return defaultValue;
+    } else {
+      return result;
+    }
+  }
+
 }
