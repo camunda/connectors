@@ -70,7 +70,7 @@ jobs:
         MAVEN_PASSWORD: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
 
     - name: Build default-bundle Maven Artifact
-      run: mvn -B compile package
+      run: mvn -B compile install
       if: github.ref != 'refs/heads/main'
       working-directory: bundle/mvn/default-bundle/
       env:
@@ -78,7 +78,7 @@ jobs:
         MAVEN_PASSWORD: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
 
     - name: Build saas-bundle Maven Artifact
-      run: mvn -B compile package
+      run: mvn -B compile install
       if: github.ref != 'refs/heads/main'
       working-directory: bundle/mvn/camunda-saas-bundle/
       env:

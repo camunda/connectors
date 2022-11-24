@@ -1,21 +1,20 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-    <parent>
+  <parent>
         <groupId>io.camunda.connector</groupId>
         <artifactId>connector-runtime-bundle-parent</artifactId>
         <version>0.4.0-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
-    </parent>
+  </parent>
   <artifactId>connector-runtime-bundle-saas</artifactId>
-  <version>0.4.0-SNAPSHOT</version>
   <packaging>jar</packaging>
 
   <dependencies>
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-runtime-bundle</artifactId>
-      <version>0.4.0-SNAPSHOT</version>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
@@ -94,52 +93,4 @@
         </plugin>
     </plugins>
   </build>
-
-    <repositories>
-        <repository>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-            <id>connectors</id>
-            <name>Connectors Repository</name>
-            <url>https://artifacts.camunda.com/artifactory/connectors/</url>
-        </repository>
-        <repository>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-            <id>connectors-snapshots</id>
-            <name>Connectors Snapshot Repository</name>
-            <url>https://artifacts.camunda.com/artifactory/connectors-snapshots/</url>
-        </repository>
-
-        <repository>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-            <id>zeebe</id>
-            <name>Zeebe and Spring Zeebe Repository</name>
-            <url>https://artifacts.camunda.com/artifactory/zeebe-io/</url>
-        </repository>
-        <repository>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-            <id>zeebe-snapshots</id>
-            <name>Zeebe and Spring Zeebe Snapshot Repository</name>
-            <url>https://artifacts.camunda.com/artifactory/zeebe-io-snapshots/</url>
-        </repository>
-    </repositories>
 </project>

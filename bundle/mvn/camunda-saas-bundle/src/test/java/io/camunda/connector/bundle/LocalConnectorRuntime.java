@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.bundle;
 
-import io.camunda.connector.runtime.ConnectorRuntimeApplication;
 import io.camunda.connector.runtime.SaaSConnectorRuntimeApplication;
 import org.springframework.boot.SpringApplication;
 
