@@ -31,7 +31,6 @@ jobs:
     - name: Import Secrets
       id: secrets
       uses: hashicorp/vault-action@v2.4.2
-      if: github.ref == 'refs/heads/main'
       with:
         url: ${{ secrets.VAULT_ADDR }}
         method: approle
@@ -54,19 +53,38 @@ jobs:
         server-username: MAVEN_USERNAME
         server-password: MAVEN_PASSWORD
 
-    - name: Build default-bundle Maven Artifact
+    - name: Deploy default-bundle Maven Artifact
       run: mvn -B compile generate-sources source:jar javadoc:jar deploy
+      if: github.ref == 'refs/heads/main'
+      working-directory: bundle/mvn/default-bundle/
+      env:
+        MAVEN_USERNAME: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
+        MAVEN_PASSWORD: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
+
+    - name: Deploy saas-bundle Maven Artifact
+      run: mvn -B compile generate-sources source:jar javadoc:jar deploy
+      if: github.ref == 'refs/heads/main'
+      working-directory: bundle/mvn/camunda-saas-bundle/
+      env:
+        MAVEN_USERNAME: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
+        MAVEN_PASSWORD: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
+
+    - name: Build default-bundle Maven Artifact
+      run: mvn -B compile package
+      if: github.ref != 'refs/heads/main'
       working-directory: bundle/mvn/default-bundle/
       env:
         MAVEN_USERNAME: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
         MAVEN_PASSWORD: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
 
     - name: Build saas-bundle Maven Artifact
-      run: mvn -B compile generate-sources source:jar javadoc:jar deploy
+      run: mvn -B compile package
+      if: github.ref != 'refs/heads/main'
       working-directory: bundle/mvn/camunda-saas-bundle/
       env:
         MAVEN_USERNAME: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
         MAVEN_PASSWORD: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
+
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
