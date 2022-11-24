@@ -267,6 +267,8 @@ limitations under the License.</license.inlineheader>
           <version>${plugin.version.maven-surefire-plugin}</version>
           <configuration>
             <redirectTestOutputToFile>true</redirectTestOutputToFile>
+            <runOrder>hourly</runOrder>
+            <argLine>-Duser.language=en -Duser.region=US</argLine>
           </configuration>
         </plugin>
         <plugin>
