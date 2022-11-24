@@ -11,7 +11,6 @@
     <version>0.4.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-
   <dependencies>
     <dependency>
       <groupId>io.camunda</groupId>
@@ -130,4 +129,52 @@
         </plugin>
     </plugins>
   </build>
+
+    <repositories>
+        <repository>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <id>connectors</id>
+            <name>Connectors Repository</name>
+            <url>https://artifacts.camunda.com/artifactory/connectors/</url>
+        </repository>
+        <repository>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+            <id>connectors-snapshots</id>
+            <name>Connectors Snapshot Repository</name>
+            <url>https://artifacts.camunda.com/artifactory/connectors-snapshots/</url>
+        </repository>
+
+        <repository>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <id>zeebe</id>
+            <name>Zeebe and Spring Zeebe Repository</name>
+            <url>https://artifacts.camunda.com/artifactory/zeebe-io/</url>
+        </repository>
+        <repository>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+            <id>zeebe-snapshots</id>
+            <name>Zeebe and Spring Zeebe Snapshot Repository</name>
+            <url>https://artifacts.camunda.com/artifactory/zeebe-io-snapshots/</url>
+        </repository>
+    </repositories>
 </project>
