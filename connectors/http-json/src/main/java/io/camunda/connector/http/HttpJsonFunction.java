@@ -26,7 +26,7 @@ import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpResponse;
 import com.google.api.client.http.HttpResponseException;
-import com.google.api.client.http.json.JsonHttpContent;
+import com.google.api.client.http.UrlEncodedContent;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
@@ -147,19 +147,19 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
 
     final GenericUrl genericUrl = new GenericUrl(authentication.getOauthTokenEndpoint());
     Map<String, String> data = getDataForAuthRequestBody(authentication);
-    HttpContent content = new JsonHttpContent(gsonFactory, data);
+    HttpContent content = new UrlEncodedContent(data);
     final String method = Constants.POST;
-
     final var httpRequest = requestFactory.buildRequest(method, genericUrl, content);
     httpRequest.setFollowRedirects(false);
     setTimeout(request, httpRequest);
+    HttpHeaders headers = new HttpHeaders();
 
     if (authentication.getClientAuthentication().equals(Constants.BASIC_AUTH_HEADER)) {
-      HttpHeaders headers = new HttpHeaders();
       headers.setBasicAuthentication(
           authentication.getClientId(), authentication.getClientSecret());
-      httpRequest.setHeaders(headers);
     }
+    headers.setContentType(Constants.APPLICATION_X_WWW_FORM_URLENCODED);
+    httpRequest.setHeaders(headers);
     return httpRequest;
   }
 
@@ -202,7 +202,7 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
     // hence write it ourselves:
     String contentAsJson = gson.toJson(request);
     HttpContent content =
-        new AbstractHttpContent("application/json; charset=UTF-8") {
+        new AbstractHttpContent(Constants.APPLICATION_JSON_CHARSET_UTF_8) {
           public void writeTo(OutputStream outputStream) throws IOException {
             outputStream.write(contentAsJson.getBytes(StandardCharsets.UTF_8));
           }
@@ -258,7 +258,7 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
 
   protected HttpContent createContent(final HttpJsonRequest request) {
     if (request.hasBody()) {
-      return new JsonHttpContent(gsonFactory, request.getBody());
+      return new UrlEncodedContent(request.hasBody());
     } else {
       return null;
     }

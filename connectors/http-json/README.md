@@ -106,6 +106,34 @@ The response will contain the status code, the headers and the body of the respo
 }
 ```
 
+### Input (OAuth)
+
+```json
+{
+  "method": "post",
+  "url": "https://youroauthclientdomainname.eu.auth0.com/oauth/token",
+  "authentication": {
+    "oauthTokenEndpoint":"secrets.OAUTH_TOKEN_ENDPOINT_KEY",
+    "scopes": "read:clients read:users",
+    "audience":"secrets.AUDIENCE_KEY",
+    "clientId":"secrets.CLIENT_ID_KEY",
+    "clientSecret":"secrets.CLIENT_SECRET_KEY",
+    "type": "oauth-client-credentials-flow",
+    "clientAuthentication":"secrets.CLIENT_AUTHENTICATION_KEY"
+  }
+}
+```
+
+### Output (Access Token)
+
+```json
+{
+  "access_token":"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IlUtN2N6WG1sMzljUFNfUnlQQkNMWCJ9.kjhwfjkhfejkrhfbwjkfbhetcetc",
+  "scope":"read:clients create:users",
+  "expires_in":86400,
+  "token_type":"Bearer"
+}
+```
 ### Error codes
 
 The Connector will fail on any non-2XX HTTP status code in the response. This error status code will be passed on as error code, e.g. "404".

@@ -251,9 +251,6 @@
         "type": "zeebe:input",
         "name": "authentication.audience"
       },
-      "constraints": {
-        "notEmpty": true
-      },
       "condition": {
         "property": "authenticationType",
         "equals": "oauth-client-credentials-flow"
