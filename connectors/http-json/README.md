@@ -137,8 +137,6 @@ You can also set this via environment variables:
 CAMUNDA_CONNECTOR_HTTP_PROXY_URL=https://someUrl/
 ```
 
-
-
 ## Test locally
 
 ### Run unit tests
@@ -164,6 +162,12 @@ Build as Google Cloud Function
 
 ```bash
 mvn function:run -Pcloud-function
+```
+
+Run as plain Google Cloud Function (no cluster ID needed, result return directly without additional JSON Object wrapping)
+
+```bash
+mvn function:run -Pcloud-function,cloud-function-plain
 ```
 
 See also the [:lock:Camunda Cloud Connector Run-Time](https://github.com/camunda/connector-runtime-cloud) on how your function

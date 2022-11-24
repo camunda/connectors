@@ -38,6 +38,7 @@ import io.camunda.connector.http.auth.OAuthAuthentication;
 import io.camunda.connector.http.components.GsonComponentSupplier;
 import io.camunda.connector.http.components.HttpTransportComponentSupplier;
 import io.camunda.connector.http.constants.Constants;
+import io.camunda.connector.http.model.ErrorResponse;
 import io.camunda.connector.http.model.HttpJsonRequest;
 import io.camunda.connector.http.model.HttpJsonResult;
 import io.camunda.connector.impl.config.ConnectorConfigurationUtil;
@@ -120,12 +121,12 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
     if (request.getAuthentication() != null
         && request.getAuthentication() instanceof OAuthAuthentication) {
       final HttpRequest oauthRequest = createOAuthRequest(request);
-      final HttpResponse oauthResponse = executeHttpRequest(oauthRequest);
+      final HttpResponse oauthResponse = executeHttpRequest(oauthRequest, false);
       bearerToken = extractAccessToken(oauthResponse);
     }
 
     final HttpRequest httpRequest = createRequest(request, bearerToken);
-    HttpResponse httpResponse = executeHttpRequest(httpRequest);
+    HttpResponse httpResponse = executeHttpRequest(httpRequest, false);
     return toHttpJsonResponse(httpResponse);
   }
 
@@ -175,11 +176,23 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
     return data;
   }
 
-  protected HttpResponse executeHttpRequest(HttpRequest externalRequest) throws IOException {
+  protected HttpResponse executeHttpRequest(HttpRequest externalRequest, boolean isProxyCall)
+      throws IOException {
     try {
       return externalRequest.execute();
     } catch (HttpResponseException hrex) {
-      throw new ConnectorException(String.valueOf(hrex.getStatusCode()), hrex.getMessage(), hrex);
+      var errorCode = String.valueOf(hrex.getStatusCode());
+      var errorMessage = hrex.getMessage();
+      if (isProxyCall && hrex.getContent() != null) {
+        try {
+          final var errorContent = gson.fromJson(hrex.getContent(), ErrorResponse.class);
+          errorCode = errorContent.getErrorCode();
+          errorMessage = errorContent.getError();
+        } catch (Exception e) {
+          // cannot be loaded as JSON, ignore and use plain message
+        }
+      }
+      throw new ConnectorException(errorCode, errorMessage, hrex);
     }
   }
 
@@ -200,17 +213,7 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
     httpRequest.setFollowRedirects(false);
     setTimeout(request, httpRequest);
 
-    HttpResponse httpResponse = executeHttpRequest(httpRequest);
-
-    if (!httpResponse.isSuccessStatusCode()) {
-      LOGGER.debug(
-          "Proxy invocation failed with HTTP error code {}: {}",
-          httpResponse.getStatusCode(),
-          httpResponse.getStatusMessage());
-      throw new ConnectorException(
-          String.valueOf(httpResponse.getStatusCode()),
-          "Failed to execute HTTP request: " + httpResponse.getStatusMessage());
-    }
+    HttpResponse httpResponse = executeHttpRequest(httpRequest, true);
 
     try (InputStream responseContentStream = httpResponse.getContent();
         Reader reader = new InputStreamReader(responseContentStream)) {

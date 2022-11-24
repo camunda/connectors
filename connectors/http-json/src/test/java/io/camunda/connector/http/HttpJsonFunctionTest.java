@@ -23,6 +23,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -79,7 +80,7 @@ public class HttpJsonFunctionTest extends BaseTest {
 
   @ParameterizedTest(name = "Executing test case: {0}")
   @MethodSource("successCases")
-  public void shouldReturnResult_WhenExecuted(final String input) throws IOException {
+  void shouldReturnResult_WhenExecuted(final String input) throws IOException {
     // given - minimal required entity
     Object functionCallResponseAsObject = arrange(input);
 
@@ -92,7 +93,7 @@ public class HttpJsonFunctionTest extends BaseTest {
 
   @ParameterizedTest(name = "Executing test case: {0}")
   @MethodSource("successCasesOauth")
-  public void shouldReturnResultOAuth_WhenExecuted(final String input)
+  void shouldReturnResultOAuth_WhenExecuted(final String input)
       throws IOException, InvocationTargetException, IllegalAccessException {
     Object functionCallResponseAsObject = arrange(input);
 
@@ -120,7 +121,7 @@ public class HttpJsonFunctionTest extends BaseTest {
 
   @ParameterizedTest(name = "Executing test case: {0}")
   @MethodSource("failCases")
-  public void shouldReturnFallbackResult_WhenMalformedRequest(final String input) {
+  void shouldReturnFallbackResult_WhenMalformedRequest(final String input) {
     final var context =
         OutboundConnectorContextBuilder.create().variables(input).secrets(name -> "foo").build();
 
@@ -134,7 +135,7 @@ public class HttpJsonFunctionTest extends BaseTest {
   }
 
   @Test
-  public void execute_shouldReturnNullFieldWhenResponseWithContainNullField() throws IOException {
+  void execute_shouldReturnNullFieldWhenResponseWithContainNullField() throws IOException {
     // given request, and response body with null field value
     final var request =
         "{ \"method\": \"get\", \"url\": \"https://camunda.io/http-endpoint\", \"authentication\": { \"type\": \"noAuth\" } }";
@@ -162,7 +163,7 @@ public class HttpJsonFunctionTest extends BaseTest {
 
   @ParameterizedTest(name = "Executing test case: {0}")
   @MethodSource("successCases")
-  public void execute_shouldSetConnectTime(final String input) throws IOException {
+  void execute_shouldSetConnectTime(final String input) throws IOException {
     // given - minimal required entity
     final var context =
         OutboundConnectorContextBuilder.create().variables(input).secrets(name -> "foo").build();
@@ -185,7 +186,7 @@ public class HttpJsonFunctionTest extends BaseTest {
 
   @ParameterizedTest
   @ValueSource(ints = {400, 404, 500})
-  public void execute_shouldPassOnHttpErrorAsErrorCode(final int input) throws IOException {
+  void execute_shouldPassOnHttpErrorAsErrorCode(final int input) throws IOException {
     // given
     final var request =
         "{ \"method\": \"get\", \"url\": \"https://camunda.io/http-endpoint\", \"authentication\": { \"type\": \"noAuth\" } }";
@@ -206,6 +207,31 @@ public class HttpJsonFunctionTest extends BaseTest {
         .isInstanceOf(ConnectorException.class)
         .extracting("errorCode")
         .isEqualTo(String.valueOf(input));
+  }
+
+  @Test
+  void execute_shouldNotUseErrorDataOnHttpError() throws IOException {
+    // given
+    final var request =
+        "{ \"method\": \"get\", \"url\": \"https://camunda.io/http-endpoint\", \"authentication\": { \"type\": \"noAuth\" } }";
+    final var context = OutboundConnectorContextBuilder.create().variables(request).build();
+    final var httpException = mock(HttpResponseException.class);
+
+    when(requestFactory.buildRequest(
+            anyString(), any(GenericUrl.class), nullable(HttpContent.class)))
+        .thenReturn(httpRequest);
+    when(httpException.getStatusCode()).thenReturn(500);
+    when(httpException.getMessage()).thenReturn("message");
+    doThrow(httpException).when(httpRequest).execute();
+    // when
+    final var result = catchException(() -> functionUnderTest.execute(context));
+    // then HTTP status code is passed on as error code
+    verify(httpException, times(0)).getContent();
+    assertThat(result)
+        .isInstanceOf(ConnectorException.class)
+        .hasMessage("message")
+        .extracting("errorCode")
+        .isEqualTo("500");
   }
 
   private static Stream<String> successCases() throws IOException {

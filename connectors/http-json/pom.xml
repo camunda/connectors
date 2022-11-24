@@ -186,7 +186,7 @@
                 <dependency>
                     <groupId>io.camunda.connector</groupId>
                     <artifactId>connector-runtime-cloud</artifactId>
-                    <version>0.3.0</version>
+                    <version>0.4.0-SNAPSHOT</version>
                 </dependency>
                 <dependency>
                     <groupId>io.camunda.connector</groupId>
@@ -212,6 +212,22 @@
                         <configuration>
                             <functionTarget>io.camunda.connector.runtime.cloud.CloudConnectorFunction</functionTarget>
                             <port>9082</port>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <profile>
+            <id>cloud-function-plain</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>com.google.cloud.functions</groupId>
+                        <artifactId>function-maven-plugin</artifactId>
+                        <configuration>
+                            <functionTarget>io.camunda.connector.runtime.cloud.PlainCloudConnectorFunction</functionTarget>
+                            <port>9083</port>
                         </configuration>
                     </plugin>
                 </plugins>
