@@ -14,9 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.bundle;
+package io.camunda.connector.runtime;
 
-import io.camunda.connector.runtime.SaaSConnectorRuntimeApplication;
 import org.springframework.boot.SpringApplication;
 
 public class LocalConnectorRuntime {
