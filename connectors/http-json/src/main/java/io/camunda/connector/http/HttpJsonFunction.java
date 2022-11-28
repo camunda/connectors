@@ -35,6 +35,7 @@ import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.http.auth.OAuthAuthentication;
+import io.camunda.connector.http.auth.ProxyOAuthHelper;
 import io.camunda.connector.http.components.GsonComponentSupplier;
 import io.camunda.connector.http.components.HttpTransportComponentSupplier;
 import io.camunda.connector.http.constants.Constants;
@@ -98,6 +99,8 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
     this.requestFactory = requestFactory;
     this.gsonFactory = gsonFactory;
     this.proxyFunctionUrl = proxyFunctionUrl;
+
+    ProxyOAuthHelper.initialize(proxyFunctionUrl);
   }
 
   @Override
@@ -212,6 +215,7 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
     final HttpRequest httpRequest = requestFactory.buildPostRequest(genericUrl, content);
     httpRequest.setFollowRedirects(false);
     setTimeout(request, httpRequest);
+    ProxyOAuthHelper.addOauthHeaders(httpRequest);
 
     HttpResponse httpResponse = executeHttpRequest(httpRequest, true);
 
