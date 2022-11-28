@@ -165,6 +165,12 @@ You can also set this via environment variables:
 CAMUNDA_CONNECTOR_HTTP_PROXY_URL=https://someUrl/
 ```
 
+If the other party requiring OAuth for authentication, you need to set the following environment property:
+
+```shell
+GOOGLE_APPLICATION_CREDENTIALS=...
+```
+
 ## Test locally
 
 ### Run unit tests
