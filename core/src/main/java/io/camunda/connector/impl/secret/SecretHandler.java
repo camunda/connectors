@@ -60,6 +60,10 @@ public class SecretHandler implements SecretElementHandler, SecretContainerHandl
     handleSecretElement(value, failureMessage, type, setValueHandler, this);
   }
 
+  public void handleSecretElement(Object value, String type, Consumer<String> setValueHandler) {
+    handleSecretElement(value, null, type, setValueHandler, this);
+  }
+
   @Override
   public void handleSecretContainer(Object input, SecretElementHandler elementHandler) {
     if (input == null) {
@@ -103,39 +107,23 @@ public class SecretHandler implements SecretElementHandler, SecretContainerHandl
     final var array = input;
     for (int i = 0; i < array.length; i++) {
       int index = i;
-      handleSecretElement(
-          array[index],
-          "Element at index " + index + " in array has no nested properties and is no String!",
-          "Array",
-          value -> array[index] = value);
+      handleSecretElement(array[index], "Array", value -> array[index] = value);
     }
   }
 
   protected void handleSecretsMap(final Map<Object, Object> input) {
-    input.forEach(
-        (k, v) ->
-            handleSecretElement(
-                v,
-                "Element at key '" + k + "' in map has no nested properties and is no String!",
-                "Map",
-                value -> input.put(k, value)));
+    input.forEach((k, v) -> handleSecretElement(v, "Map", value -> input.put(k, value)));
   }
 
   protected void handleSecretsList(List<Object> input) {
     for (ListIterator<Object> iterator = input.listIterator(); iterator.hasNext(); ) {
-      handleSecretElement(
-          iterator.next(),
-          "Element at index "
-              + iterator.previousIndex()
-              + " in list has no nested properties and is no String!",
-          "List",
-          iterator::set);
+      handleSecretElement(iterator.next(), "List", iterator::set);
     }
   }
 
   protected void handleSecretsIterable(Iterable<?> input) {
     for (Object o : input) {
-      handleSecretElement(o, "Element in iterable has no nested properties!", "Set", null);
+      handleSecretElement(o, "Set", null);
     }
   }
 
@@ -188,7 +176,9 @@ public class SecretHandler implements SecretElementHandler, SecretContainerHandl
                       type + " is immutable but contains String secrets to replace!");
                 }
               } else {
-                throw new IllegalStateException(failureMessage);
+                if (failureMessage != null) {
+                  throw new IllegalStateException(failureMessage);
+                }
               }
             });
   }
