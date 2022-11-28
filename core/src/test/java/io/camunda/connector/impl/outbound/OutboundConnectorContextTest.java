@@ -201,17 +201,15 @@ class OutboundConnectorContextTest {
     }
 
     @Test
-    void shouldFailIfReplaceSecretsInNumberList() {
+    void shouldIgnoreReplaceSecretsInNumberList() {
       // given
       OutboundConnectorContext connectorContext =
           OutboundConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
       final var testInput = new InputNumberList();
       // when
-      Exception expected = catchException(() -> connectorContext.replaceSecrets(testInput));
-      // then
-      assertThat(expected)
-          .isInstanceOf(IllegalStateException.class)
-          .hasMessage("Element at index 0 in list has no nested properties and is no String!");
+      connectorContext.replaceSecrets(testInput);
+      // then expect no any thrown exception, and input data didn't change
+      assertThat(testInput.numberList).isEqualTo(new InputNumberList().numberList);
     }
 
     @Test
@@ -241,31 +239,27 @@ class OutboundConnectorContextTest {
     }
 
     @Test
-    void shouldFailIfReplaceSecretsInStringSet() {
+    void shouldIgnoreReplaceSecretsInStringSet() {
       // given
       OutboundConnectorContext connectorContext =
           OutboundConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
       final var testInput = new InputStringSet();
       // when
-      Exception expected = catchException(() -> connectorContext.replaceSecrets(testInput));
-      // then
-      assertThat(expected)
-          .isInstanceOf(IllegalStateException.class)
-          .hasMessage("Element in iterable has no nested properties!");
+      connectorContext.replaceSecrets(testInput);
+      // then expect no any thrown exception, and input data didn't change
+      assertThat(testInput.stringSet).isEqualTo(new InputStringSet().stringSet);
     }
 
     @Test
-    void shouldFailIfReplaceSecretsInNumberSet() {
+    void shouldIgnoreReplaceSecretsInNumberSet() {
       // given
       OutboundConnectorContext connectorContext =
           OutboundConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
       final var testInput = new InputNumberSet();
       // when
-      Exception expected = catchException(() -> connectorContext.replaceSecrets(testInput));
-      // then
-      assertThat(expected)
-          .isInstanceOf(IllegalStateException.class)
-          .hasMessage("Element in iterable has no nested properties!");
+      connectorContext.replaceSecrets(testInput);
+      // then expect no any thrown exception, and input data didn't change
+      assertThat(testInput.numberSet).isEqualTo(new InputNumberSet().numberSet);
     }
 
     @Test
@@ -293,17 +287,15 @@ class OutboundConnectorContextTest {
     }
 
     @Test
-    void shouldFailIfReplaceSecretsInNumberArray() {
+    void shouldIgnoreReplaceSecretsInNumberArray() {
       // given
       OutboundConnectorContext connectorContext =
           OutboundConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
       final var testInput = new InputNumberArray();
       // when
-      Exception expected = catchException(() -> connectorContext.replaceSecrets(testInput));
-      // then
-      assertThat(expected)
-          .isInstanceOf(IllegalStateException.class)
-          .hasMessage("Element at index 0 in array has no nested properties and is no String!");
+      connectorContext.replaceSecrets(testInput);
+      // then expect no any thrown exception, and input data didn't change
+      assertThat(testInput.numberArray).isEqualTo(new InputNumberArray().numberArray);
     }
 
     @Test
@@ -333,6 +325,19 @@ class OutboundConnectorContextTest {
     }
 
     @Test
+    void shouldReplaceSecretsInMultiplyObjectMap() {
+      // given
+      OutboundConnectorContext connectorContext =
+          OutboundConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
+      final var testInput = new InputMultiplyObjectMap();
+      // when
+      connectorContext.replaceSecrets(testInput);
+      // then expect that secret replaced without exception
+      assertThat(((Map<Object, Object>) testInput.inputMultiplyMap.get("baz")).get("bar"))
+          .isEqualTo("plain");
+    }
+
+    @Test
     void shouldFailIfReplaceSecretsInImmutableStringMap() {
       // given
       OutboundConnectorContext connectorContext =
@@ -347,18 +352,15 @@ class OutboundConnectorContextTest {
     }
 
     @Test
-    void shouldFailIfReplaceSecretsInNumberMap() {
+    void shouldIgnoreReplaceSecretsInNumberMap() {
       // given
       OutboundConnectorContext connectorContext =
           OutboundConnectorContextBuilder.create().secret("s3cr3t", "plain").build();
       final var testInput = new InputNumberMap();
       // when
-      Exception expected = catchException(() -> connectorContext.replaceSecrets(testInput));
-      // then
-      assertThat(expected)
-          .isInstanceOf(IllegalStateException.class)
-          .hasMessageContaining("Element at key")
-          .hasMessageContaining("in map has no nested properties and is no String!");
+      connectorContext.replaceSecrets(testInput);
+      // then expect no any thrown exception, and map didn't change
+      assertThat(testInput.numberMap).isEqualTo(new InputNumberMap().numberMap);
     }
 
     @Test
@@ -566,6 +568,12 @@ class OutboundConnectorContextTest {
   public static class InputObjectMap {
     @Secret
     public final Map<String, OutboundTestInput> inputMap = Map.of("bar", new OutboundTestInput());
+  }
+
+  public static class InputMultiplyObjectMap {
+    @Secret
+    public final Map<String, Object> inputMultiplyMap =
+        Map.of("bar", 5, "baz", new HashMap<>(Map.of("bar", "secrets.s3cr3t", "baz", "foo")));
   }
 
   public static class InputObjectSet {
