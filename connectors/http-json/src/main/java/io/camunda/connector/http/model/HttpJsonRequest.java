@@ -41,7 +41,7 @@ public class HttpJsonRequest {
   @Secret
   private String connectionTimeoutInSeconds;
 
-  private Object body;
+  @Secret private Object body;
 
   public boolean hasAuthentication() {
     return authentication != null;

@@ -56,6 +56,16 @@ public class BaseTest {
       String ID = "CLUSTER_ID_KEY";
       String USER_AGENT = "USER_AGENT_KEY";
     }
+
+    interface Body {
+      String CUSTOMER_ID = "CUSTOMER_ID_KEY";
+      String CUSTOMER_NAME = "NAME_KEY";
+      String CUSTOMER_EMAIL = "EMAIL_KEY";
+      String TEXT = "TEXT_KEY";
+      String TEXT_PART_1 = "TEXT_PART_1_KEY";
+      String TEXT_PART_2 = "TEXT_PART_2_KEY";
+      String TEXT_PART_3 = "TEXT_PART_3_KEY";
+    }
   }
 
   protected interface ActualValue {
@@ -82,6 +92,19 @@ public class BaseTest {
       String CLUSTER_ID = "testClusterId";
       String USER_AGENT = "http-connector-demo";
     }
+
+    interface Body {
+      String CUSTOMER_ID_SECRET = "secret id key";
+      String CUSTOMER_ID_REAL = "startId plus " + CUSTOMER_ID_SECRET;
+      String CUSTOMER_NAME_SECRET = "secret name";
+      String CUSTOMER_NAME_REAL = CUSTOMER_NAME_SECRET + " plus some text";
+      String CUSTOMER_EMAIL_SECRET = "start email plus secret email part plus end email";
+      String CUSTOMER_EMAIL_REAL = "start email plus " + CUSTOMER_EMAIL_SECRET + " plus end email";
+      String TEXT_PART_1 = "start secret text plus ";
+      String TEXT_PART_2 = "mid of text plus ";
+      String TEXT_PART_3 = "end of text";
+      String TEXT = TEXT_PART_1 + TEXT_PART_2 + TEXT_PART_3;
+    }
   }
 
   protected interface JsonKeys {
@@ -89,6 +112,11 @@ public class BaseTest {
     String USER_AGENT = "User-Agent";
     String QUERY = "q";
     String PRIORITY = "priority";
+    String CUSTOMER = "customer";
+    String ID = "id";
+    String NAME = "name";
+    String EMAIL = "email";
+    String TEXT = "text";
   }
 
   protected OutboundConnectorContextBuilder getContextBuilderWithSecrets() {
@@ -109,7 +137,14 @@ public class BaseTest {
         .secret(SecretsConstant.QueryParameters.QUEUE, ActualValue.QueryParameters.QUEUE)
         .secret(SecretsConstant.QueryParameters.PRIORITY, ActualValue.QueryParameters.PRIORITY)
         .secret(SecretsConstant.Headers.ID, ActualValue.Headers.CLUSTER_ID)
-        .secret(SecretsConstant.Headers.USER_AGENT, ActualValue.Headers.USER_AGENT);
+        .secret(SecretsConstant.Headers.USER_AGENT, ActualValue.Headers.USER_AGENT)
+        .secret(SecretsConstant.Body.CUSTOMER_NAME, ActualValue.Body.CUSTOMER_NAME_SECRET)
+        .secret(SecretsConstant.Body.CUSTOMER_EMAIL, ActualValue.Body.CUSTOMER_EMAIL_SECRET)
+        .secret(SecretsConstant.Body.CUSTOMER_ID, ActualValue.Body.CUSTOMER_ID_SECRET)
+        .secret(SecretsConstant.Body.TEXT, ActualValue.Body.TEXT)
+        .secret(SecretsConstant.Body.TEXT_PART_1, ActualValue.Body.TEXT_PART_1)
+        .secret(SecretsConstant.Body.TEXT_PART_2, ActualValue.Body.TEXT_PART_2)
+        .secret(SecretsConstant.Body.TEXT_PART_3, ActualValue.Body.TEXT_PART_3);
   }
 
   @SuppressWarnings("unchecked")
