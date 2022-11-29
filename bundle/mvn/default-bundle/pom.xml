@@ -15,6 +15,7 @@
       <groupId>io.camunda</groupId>
       <artifactId>spring-zeebe-connector-runtime</artifactId>
       <version>${spring-zeebe.version}</version>
+      <scope>compile</scope>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>

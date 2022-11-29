@@ -16,6 +16,13 @@
       <artifactId>connector-runtime-bundle</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <!-- Need to overwrite scope, as set to test by parent, which would take precedence -->
+    <dependency>
+      <groupId>io.camunda</groupId>
+      <artifactId>spring-zeebe-connector-runtime</artifactId>
+      <version>${spring-zeebe.version}</version>
+      <scope>compile</scope>
+    </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-gcp-security-manager</artifactId>
