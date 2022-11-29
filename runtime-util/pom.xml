@@ -37,7 +37,7 @@
 
     <dependency>
       <groupId>com.fasterxml.jackson.module</groupId>
-      <artifactId>jackson-module-scala_2.13</artifactId>
+      <artifactId>jackson-module-scala_3</artifactId>
     </dependency>
 
     <dependency>
