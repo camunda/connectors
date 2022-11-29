@@ -19,7 +19,7 @@
     <properties>
         <version.google-libraries-bom>26.1.5</version.google-libraries-bom>
         <version.gson-extras>1.1.0</version.gson-extras>
-        <version.httpcore>4.4.15</version.httpcore>
+        <version.httpcore>4.4.16</version.httpcore>
         <version.spring-zeebe>8.1.7</version.spring-zeebe>
     </properties>
 
