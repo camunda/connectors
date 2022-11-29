@@ -54,7 +54,7 @@ jobs:
         server-password: MAVEN_PASSWORD
 
     - name: Deploy Maven Artifact
-      run: mvn -B compile generate-sources source:jar javadoc:jar deploy
+      run: mvn -B compile generate-sources source:jar javadoc:jar install # TODO : Switch back to deploy
       if: github.ref == 'refs/heads/main'
       working-directory: bundle/mvn/
       env:
