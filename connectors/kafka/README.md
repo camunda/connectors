@@ -74,7 +74,7 @@ is run as a Google Cloud Function.
 
 ## Element Template
 
-The element templates can be found in the [element-templates/template-connector.json](element-templates/template-connector.json) file.
+The element templates can be found in the [element-templates/kafka-connector.json](element-templates/kafka-connector.json) file.
 
 ## Build a release
 
