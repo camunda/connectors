@@ -28,6 +28,7 @@ import com.google.api.client.http.HttpResponse;
 import com.google.api.client.http.HttpResponseException;
 import com.google.api.client.http.UrlEncodedContent;
 import com.google.api.client.json.gson.GsonFactory;
+import com.google.auth.oauth2.OAuth2Credentials;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import io.camunda.connector.api.annotation.OutboundConnector;
@@ -77,6 +78,7 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
   private final HttpRequestFactory requestFactory;
 
   private final String proxyFunctionUrl;
+  private final OAuth2Credentials proxyCredentials;
 
   public HttpJsonFunction() {
     this(ConnectorConfigurationUtil.getProperty(Constants.PROXY_FUNCTION_URL_ENV_NAME));
@@ -99,8 +101,7 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
     this.requestFactory = requestFactory;
     this.gsonFactory = gsonFactory;
     this.proxyFunctionUrl = proxyFunctionUrl;
-
-    ProxyOAuthHelper.initialize(proxyFunctionUrl);
+    this.proxyCredentials = ProxyOAuthHelper.initializeCredentials(proxyFunctionUrl);
   }
 
   @Override
@@ -112,7 +113,7 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
     context.replaceSecrets(request);
 
     if (proxyFunctionUrl != null) {
-      return executeRequestViaProxy(proxyFunctionUrl, request);
+      return executeRequestViaProxy(request);
     } else {
       return executeRequestDirectly(request);
     }
@@ -134,15 +135,14 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
   }
 
   protected String extractAccessToken(HttpResponse oauthResponse) throws IOException {
-    String token = null;
     String oauthResponseStr = oauthResponse.parseAsString();
     if (oauthResponseStr != null && !oauthResponseStr.isEmpty()) {
       JsonObject jsonObject = gson.fromJson(oauthResponseStr, JsonObject.class);
       if (jsonObject.get(Constants.ACCESS_TOKEN) != null) {
-        token = jsonObject.get(Constants.ACCESS_TOKEN).toString();
+        return jsonObject.get(Constants.ACCESS_TOKEN).toString();
       }
     }
-    return token;
+    return null;
   }
 
   protected HttpRequest createOAuthRequest(HttpJsonRequest request) throws IOException {
@@ -199,23 +199,22 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
     }
   }
 
-  protected HttpJsonResult executeRequestViaProxy(String proxyUrl, HttpJsonRequest request)
-      throws IOException {
+  protected HttpJsonResult executeRequestViaProxy(HttpJsonRequest request) throws IOException {
     // Using the JsonHttpContent cannot work with an element on the root content,
     // hence write it ourselves:
-    String contentAsJson = gson.toJson(request);
+    final String contentAsJson = gson.toJson(request);
     HttpContent content =
         new AbstractHttpContent(Constants.APPLICATION_JSON_CHARSET_UTF_8) {
           public void writeTo(OutputStream outputStream) throws IOException {
             outputStream.write(contentAsJson.getBytes(StandardCharsets.UTF_8));
           }
         };
-    final GenericUrl genericUrl = new GenericUrl(proxyUrl);
+    final GenericUrl genericUrl = new GenericUrl(proxyFunctionUrl);
 
     final HttpRequest httpRequest = requestFactory.buildPostRequest(genericUrl, content);
     httpRequest.setFollowRedirects(false);
     setTimeout(request, httpRequest);
-    ProxyOAuthHelper.addOauthHeaders(httpRequest);
+    ProxyOAuthHelper.addOauthHeaders(httpRequest, proxyCredentials);
 
     HttpResponse httpResponse = executeHttpRequest(httpRequest, true);
 

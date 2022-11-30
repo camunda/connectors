@@ -20,6 +20,7 @@ import com.google.api.client.http.HttpRequest;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.IdTokenCredentials;
 import com.google.auth.oauth2.IdTokenProvider;
+import com.google.auth.oauth2.OAuth2Credentials;
 import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,27 +29,29 @@ public class ProxyOAuthHelper {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ProxyOAuthHelper.class);
 
-  public static IdTokenCredentials credentials;
-
-  public static void initialize(String proxyUrl) {
-    if (proxyUrl != null) {
-      // Statically try to initialize
-      try {
-        IdTokenProvider idTokenProvider = createIdTokenProvider();
-        credentials = createIdTokenCredentials(proxyUrl, idTokenProvider);
-      } catch (Exception ex) {
-        // and run without OAuth if not provided properly
-        LOGGER.warn("Could not wire OAuth for proxy, not using OAuth", ex);
-      }
+  public static OAuth2Credentials initializeCredentials(String proxyUrl) {
+    if (proxyUrl == null) {
+      return null;
+    }
+    // Statically try to initialize
+    try {
+      IdTokenProvider idTokenProvider = createIdTokenProvider();
+      return createIdTokenCredentials(proxyUrl, idTokenProvider);
+    } catch (Exception ex) {
+      // and run without OAuth if not provided properly
+      LOGGER.warn("Could not wire OAuth for proxy, not using OAuth", ex);
+      return null;
     }
   }
 
-  public static void addOauthHeaders(HttpRequest request) throws IOException {
-    if (credentials == null) {
-      return;
+  public static void addOauthHeaders(HttpRequest request, OAuth2Credentials credentials)
+      throws IOException {
+    if (credentials != null) {
+      credentials.refreshIfExpired();
+      request
+          .getHeaders()
+          .setAuthorization("Bearer " + credentials.getAccessToken().getTokenValue());
     }
-    credentials.refreshIfExpired();
-    request.getHeaders().setAuthorization(credentials.getAccessToken().getTokenValue());
   }
 
   private static IdTokenProvider createIdTokenProvider() throws IOException {
