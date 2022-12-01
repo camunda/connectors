@@ -15,7 +15,7 @@
   </parent>
 
   <properties>
-    <spring-zeebe.version>8.1.7</spring-zeebe.version>
+    <spring-zeebe.version>8.1.8</spring-zeebe.version>
     <spring-boot.version>2.7.5</spring-boot.version>
     <connector.version>0.4.0-alpha1</connector.version>
 
