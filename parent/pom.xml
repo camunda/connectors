@@ -80,7 +80,7 @@ limitations under the License.</license.inlineheader>
     <version.mockito>4.9.0</version.mockito>
     <version.junit-jupiter>5.9.1</version.junit-jupiter>
     <version.assertj>3.23.1</version.assertj>
-    <version.jackson-module-scala>2.14.1</version.jackson-module-scala>
+    <version.jackson>2.14.1</version.jackson>
     <version.hibernate-validator>6.2.5.Final</version.hibernate-validator>
 
     <!-- maven plugins (not managed by parent) -->
@@ -155,9 +155,15 @@ limitations under the License.</license.inlineheader>
       </dependency>
 
       <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-databind</artifactId>
+        <version>${version.jackson}</version>
+      </dependency>
+
+      <dependency>
         <groupId>com.fasterxml.jackson.module</groupId>
         <artifactId>jackson-module-scala_3</artifactId>
-        <version>${version.jackson-module-scala}</version>
+        <version>${version.jackson}</version>
       </dependency>
 
       <dependency>
