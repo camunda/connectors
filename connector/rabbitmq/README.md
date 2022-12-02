@@ -103,4 +103,4 @@ The element templates can be found in the [element-templates/template-connector.
 
 ## Build a release
 
-Trigger the [release action](./.github/workflows/RELEASE.yml) manually with the version `x.y.z` you want to release and the next SNAPSHOT version.
+Trigger the [release action](../../.github/workflows/RELEASE.yml) manually with the version `x.y.z` you want to release and the next SNAPSHOT version.
