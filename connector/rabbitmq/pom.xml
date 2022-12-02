@@ -5,7 +5,7 @@
     <groupId>io.camunda.connector</groupId>
     <artifactId>connector-function-parent</artifactId>
     <version>${revision}</version>
-    <relativePath/>
+    <relativePath>../pom.xml</relativePath>
   </parent>
 
   <name>connector-rabbitmq</name>

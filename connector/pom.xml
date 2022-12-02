@@ -23,6 +23,7 @@
     <module>sqs</module>
     <module>aws-lambda</module>
     <module>google-drive</module>
+    <module>rabbitmq</module>
   </modules>
 
   <properties>
