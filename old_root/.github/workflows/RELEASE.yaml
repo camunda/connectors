@@ -26,9 +26,6 @@ on:
         default: true
 
 jobs:
-  release-and-deploy:
-    name: Release and deploy artifacts
-
   build-and-push:
     name: Build and push Docker images
     runs-on: ubuntu-latest

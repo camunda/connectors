@@ -3,17 +3,16 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
+    <artifactId>connector-function-parent</artifactId>
     <groupId>io.camunda.connector</groupId>
-    <artifactId>connector-parent</artifactId>
-    <version>0.3.0</version>
-    <relativePath/>
+    <version>0.14.0-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
   </parent>
 
   <name>connector-sns</name>
   <description>Camunda AWS SNS Connector</description>
   <artifactId>connector-sns</artifactId>
   <packaging>jar</packaging>
-  <version>0.2.0-SNAPSHOT</version>
 
   <licenses>
     <license>

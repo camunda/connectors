@@ -15,12 +15,17 @@
       <groupId>io.camunda</groupId>
       <artifactId>spring-zeebe-connector-runtime</artifactId>
       <version>${spring-zeebe.version}</version>
+      <!-- TODO: rm this dep from parent when all connectors are transferred to mono repo -->
       <scope>compile</scope>
     </dependency>
 
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-example</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-sns</artifactId>
     </dependency>
   </dependencies>
 

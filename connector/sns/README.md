@@ -82,4 +82,4 @@ the [element-templates/aws-sns-connector.json](element-templates/aws-sns-connect
 
 ## Build a release
 
-Trigger the [release action](./.github/workflows/RELEASE.yml) manually with the version `x.y.z` you want to release and the next SNAPSHOT version.
+Trigger the [release action](.githuborkflows/RELEASE.yml) manually with the version `x.y.z` you want to release and the next SNAPSHOT version.

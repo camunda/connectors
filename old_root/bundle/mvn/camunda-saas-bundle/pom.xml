@@ -21,6 +21,7 @@
       <groupId>io.camunda</groupId>
       <artifactId>spring-zeebe-connector-runtime</artifactId>
       <version>${spring-zeebe.version}</version>
+      <!-- TODO: rm this dep from parent when all connectors are transferred to mono repo -->
       <scope>compile</scope>
     </dependency>
     <dependency>
