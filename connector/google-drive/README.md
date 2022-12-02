@@ -171,5 +171,5 @@ the [element-templates/google-drive-connector.json](element-templates/google-dri
 
 ## Build a release
 
-Trigger the [release action](./.github/workflows/RELEASE.yml) manually with the version `x.y.z` you want to release and the next SNAPSHOT version.
+Trigger the [release action](../../.github/workflows/RELEASE.yml) manually with the version `x.y.z` you want to release and the next SNAPSHOT version.
 Depending on the release version (major, minor, release candidate), the release artifacts are deployed to the respective Google Cloud Function by another GitHub workflow.
