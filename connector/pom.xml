@@ -24,6 +24,7 @@
     <module>aws-lambda</module>
     <module>google-drive</module>
     <module>rabbitmq</module>
+    <module>sendgrid</module>
   </modules>
 
   <properties>
