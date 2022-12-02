@@ -1,0 +1,514 @@
+[
+  {
+    "testDescription": "{1} Test without 'authType' field",
+    "authentication": {
+      "uri": "amqp://userName:password@localhost:5672/vhost"
+    },
+    "routing": {
+      "exchange": "exchangeName",
+      "routingKey": "routingKey"
+    },
+    "message": {
+      "body": {
+        "key": "value"
+      },
+      "properties": {
+      }
+    }
+  },
+  {
+    "testDescription": "{2} Test with 'authType' field is empty",
+    "authentication": {
+      "authType": " ",
+      "uri": "amqp://userName:password@localhost:5672/vhost"
+    },
+    "routing": {
+      "exchange": "exchangeName",
+      "routingKey": "routingKey"
+    },
+    "message": {
+      "body": {
+        "key": "value"
+      },
+      "properties": {
+      }
+    }
+  },
+  {
+    "testDescription": "{3} Test with 'authType' URI without 'uri' field",
+    "authentication": {
+      "authType": "uri"
+    },
+    "routing": {
+      "exchange": "exchangeName",
+      "routingKey": "routingKey"
+    },
+    "message": {
+      "body": {
+        "key": "value"
+      },
+      "properties": {
+      }
+    }
+  },
+  {
+    "testDescription": "{4} Test URI authType with 'authType' URI with empty 'uri' ",
+    "authentication": {
+      "authType": "uri",
+      "uri": " "
+    },
+    "routing": {
+      "exchange": "exchangeName",
+      "routingKey": "routingKey"
+    },
+    "message": {
+      "body": {
+        "key": "value"
+      },
+      "properties": {
+      }
+    }
+  },
+  {
+    "testDescription": "{5} Test URI authType without 'routing' field",
+    "authentication": {
+      "authType": "uri",
+      "uri": "amqp://userName:password@localhost:5672/vhost"
+    },
+    "message": {
+      "body": {
+        "key": "value"
+      },
+      "properties": {
+      }
+    }
+  },
+  {
+    "testDescription": "{6} Test URI authType without 'routing.exchange' field",
+    "authentication": {
+      "authType": "uri",
+      "uri": "amqp://userName:password@localhost:5672/vhost"
+    },
+    "routing": {
+      "routingKey": "routingKey"
+    },
+    "message": {
+      "body": {
+        "key": "value"
+      },
+      "properties": {
+      }
+    }
+  },
+  {
+    "testDescription": "{7} Test URI authType without 'routing.routingKey' field",
+    "authentication": {
+      "authType": "uri",
+      "uri": "amqp://userName:password@localhost:5672/vhost"
+    },
+    "routing": {
+      "exchange": "exchangeName"
+    },
+    "message": {
+      "body": {
+        "key": "value"
+      },
+      "properties": {
+      }
+    }
+  },
+  {
+    "testDescription": "{8} Test URI authType with empty 'routing.routingKey' field",
+    "authentication": {
+      "authType": "uri",
+      "uri": "amqp://userName:password@localhost:5672/vhost"
+    },
+    "routing": {
+      "exchange": "exchangeName",
+      "routingKey": " "
+    },
+    "message": {
+      "body": {
+        "key": "value"
+      },
+      "properties": {
+      }
+    }
+  },
+  {
+    "testDescription": "{9} Test URI authType with empty 'routing.exchange' field",
+    "authentication": {
+      "authType": "uri",
+      "uri": "amqp://userName:password@localhost:5672/vhost"
+    },
+    "routing": {
+      "exchange": " ",
+      "routingKey": "routingKey"
+    },
+    "message": {
+      "body": {
+        "key": "value"
+      }
+    }
+  },
+  {
+    "testDescription": "{10} Test URI authType without 'message' field",
+    "authentication": {
+      "authType": "uri",
+      "uri": "amqp://userName:password@localhost:5672/vhost"
+    },
+    "routing": {
+      "exchange": "exchangeName",
+      "routingKey": "routingKey"
+    }
+  },
+  {
+    "testDescription": "{11} Test URI authType without 'message.body' field",
+    "authentication": {
+      "authType": "uri",
+      "uri": "amqp://userName:password@localhost:5672/vhost"
+    },
+    "routing": {
+      "exchange": "exchangeName",
+      "routingKey": "routingKey"
+    },
+    "message": {
+    }
+  },
+  {
+    "testDescription": "{12} Test credentials authType without password",
+    "authentication": {
+      "authType": "credentials",
+      "userName": "userName"
+    },
+    "routing": {
+      "virtualHost": "virtualHost",
+      "hostName": "hostName",
+      "port": "port",
+      "exchange": "exchangeName",
+      "routingKey": "routingKey"
+    },
+    "message": {
+      "body": {
+        "key": "value"
+      }
+    }
+  },
+  {
+    "testDescription": "{13} Test credentials authType without userName",
+    "authentication": {
+      "authType": "credentials",
+      "password": "password"
+    },
+    "routing": {
+      "virtualHost": "virtualHost",
+      "hostName": "hostName",
+      "port": "port",
+      "exchange": "exchangeName",
+      "routingKey": "routingKey"
+    },
+    "message": {
+      "body": {
+        "key": "value"
+      }
+    }
+  },
+  {
+    "testDescription": "{14} Test credentials authType with empty userName",
+    "authentication": {
+      "authType": "credentials",
+      "password": "password",
+      "userName": " "
+    },
+    "routing": {
+      "virtualHost": "virtualHost",
+      "hostName": "hostName",
+      "port": "port",
+      "exchange": "exchangeName",
+      "routingKey": "routingKey"
+    },
+    "message": {
+      "body": {
+        "key": "value"
+      }
+    }
+  },
+  {
+    "testDescription": "{15} Test credentials authType with empty password",
+    "authentication": {
+      "authType": "credentials",
+      "password": " ",
+      "userName": "userName"
+    },
+    "routing": {
+      "virtualHost": "virtualHost",
+      "hostName": "hostName",
+      "port": "port",
+      "exchange": "exchangeName",
+      "routingKey": "routingKey"
+    },
+    "message": {
+      "body": {
+        "key": "value"
+      }
+    }
+  },
+  {
+    "testDescription": "{16} Test 'credentials' authType without Routing",
+    "authentication": {
+      "authType": "credentials",
+      "password": "password",
+      "userName": "userName"
+    },
+    "message": {
+      "body": {
+        "key": "value"
+      }
+    }
+  },
+  {
+    "testDescription": "{17} Test 'credentials' authType without message",
+    "authentication": {
+      "authType": "credentials",
+      "password": "password",
+      "userName": "userName"
+    },
+    "routing": {
+      "virtualHost": "virtualHost",
+      "hostName": "hostName",
+      "port": "port",
+      "exchange": "exchangeName",
+      "routingKey": "routingKey"
+    }
+  },
+  {
+    "testDescription": "{18} Test 'credentials' authType with empty routing.virtualHost",
+    "authentication": {
+      "authType": "credentials",
+      "password": "password",
+      "userName": "userName"
+    },
+    "routing": {
+      "virtualHost": " ",
+      "hostName": "hostName",
+      "port": "port",
+      "exchange": "exchangeName",
+      "routingKey": "routingKey"
+    },
+    "message": {
+      "body": {
+        "key": "value"
+      }
+    }
+  },
+  {
+    "testDescription": "{19} Test 'credentials' authType with empty routing.hostName",
+    "authentication": {
+      "authType": "credentials",
+      "password": "password",
+      "userName": "userName"
+    },
+    "routing": {
+      "virtualHost": "virtualHost",
+      "hostName": " ",
+      "port": "port",
+      "exchange": "exchangeName",
+      "routingKey": "routingKey"
+    },
+    "message": {
+      "body": {
+        "key": "value"
+      }
+    }
+  },
+  {
+    "testDescription": "{20} Test 'credentials' authType with empty routing.port",
+    "authentication": {
+      "authType": "credentials",
+      "password": "password",
+      "userName": "userName"
+    },
+    "routing": {
+      "virtualHost": "virtualHost",
+      "hostName": "hostName",
+      "port": " ",
+      "exchange": "exchangeName",
+      "routingKey": "routingKey"
+    },
+    "message": {
+      "body": {
+        "key": "value"
+      }
+    }
+  },
+  {
+    "testDescription": "{21} Test 'credentials' authType with empty routing.exchangeName",
+    "authentication": {
+      "authType": "credentials",
+      "password": "password",
+      "userName": "userName"
+    },
+    "routing": {
+      "virtualHost": "virtualHost",
+      "hostName": "hostName",
+      "port": "port",
+      "exchange": " ",
+      "routingKey": "routingKey"
+    },
+    "message": {
+      "body": {
+        "key": "value"
+      }
+    }
+  },
+  {
+    "testDescription": "{22} Test 'credentials' authType with empty routing.routingKey",
+    "authentication": {
+      "authType": "credentials",
+      "password": "password",
+      "userName": "userName"
+    },
+    "routing": {
+      "virtualHost": "virtualHost",
+      "hostName": "hostName",
+      "port": "port",
+      "exchange": "exchangeName",
+      "routingKey": " "
+    },
+    "message": {
+      "body": {
+        "key": "value"
+      }
+    }
+  },
+  {
+    "testDescription": "{23} Test 'credentials' authType without routing.virtualHost",
+    "authentication": {
+      "authType": "credentials",
+      "password": "password",
+      "userName": "userName"
+    },
+    "routing": {
+      "hostName": "hostName",
+      "port": "port",
+      "exchange": "exchangeName",
+      "routingKey": "routingKey"
+    },
+    "message": {
+      "body": {
+        "key": "value"
+      }
+    }
+  },
+  {
+    "testDescription": "{24} Test 'credentials' authType without routing.hostName",
+    "authentication": {
+      "authType": "credentials",
+      "password": "password",
+      "userName": "userName"
+    },
+    "routing": {
+      "virtualHost": "virtualHost",
+      "port": "port",
+      "exchange": "exchangeName",
+      "routingKey": "routingKey"
+    },
+    "message": {
+      "body": {
+        "key": "value"
+      }
+    }
+  },
+  {
+    "testDescription": "{25} Test 'credentials' authType without routing.port",
+    "authentication": {
+      "authType": "credentials",
+      "password": "password",
+      "userName": "userName"
+    },
+    "routing": {
+      "virtualHost": "virtualHost",
+      "hostName": "hostName",
+      "exchange": "exchangeName",
+      "routingKey": "routingKey"
+    },
+    "message": {
+      "body": {
+        "key": "value"
+      }
+    }
+  },
+  {
+    "testDescription": "{26} Test 'credentials' authType without routing.exchangeName",
+    "authentication": {
+      "authType": "credentials",
+      "password": "password",
+      "userName": "userName"
+    },
+    "routing": {
+      "virtualHost": "virtualHost",
+      "hostName": "hostName",
+      "port": "port",
+      "routingKey": "routingKey"
+    },
+    "message": {
+      "body": {
+        "key": "value"
+      }
+    }
+  },
+  {
+    "testDescription": "{27} Test 'credentials' authType without routing.routingKey",
+    "authentication": {
+      "authType": "credentials",
+      "password": "password",
+      "userName": "userName"
+    },
+    "routing": {
+      "virtualHost": "virtualHost",
+      "hostName": "hostName",
+      "port": "port",
+      "exchange": "exchangeName"
+    },
+    "message": {
+      "body": {
+        "key": "value"
+      }
+    }
+  },
+  {
+    "testDescription": "{28} Test 'credentials' authType without message.body",
+    "authentication": {
+      "authType": "credentials",
+      "password": "password",
+      "userName": "userName"
+    },
+    "routing": {
+      "virtualHost": "virtualHost",
+      "hostName": "hostName",
+      "port": "port",
+      "exchange": "exchangeName",
+      "routingKey": "routingKey"
+    },
+    "message": {
+    }
+  },
+  {
+    "testDescription": "{29} Test 'credentials' authType with null message.body",
+    "authentication": {
+      "authType": "credentials",
+      "password": "password",
+      "userName": "userName"
+    },
+    "routing": {
+      "virtualHost": "virtualHost",
+      "hostName": "hostName",
+      "port": "port",
+      "exchange": "exchangeName",
+      "routingKey": "routingKey"
+    },
+    "message": {
+      "body": null
+    }
+  }
+]
