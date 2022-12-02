@@ -3,8 +3,8 @@
 [![CI](https://github.com/camunda/connectors-bundle/actions/workflows/CI.yml/badge.svg)](https://github.com/camunda/connectors-bundle/actions/workflows/CI.yml)
 
 This repository manages two Docker images:
-* [Connectors Bundle](./bundle) - All out-of-the-box Connectors for Camunda 8, bundled with a runtime.
-* [Connector Runtime](./runtime) - Execution environment for any Connector, without any preconfigured Connector.
+* [Connectors Bundle](bundle) - All out-of-the-box Connectors for Camunda 8, bundled with a runtime.
+* [Connector Runtime](runtime) - Execution environment for any Connector, without any preconfigured Connector.
 
 # License
 

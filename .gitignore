@@ -1,4 +1,30 @@
-*.tar.gz
-*.zip
-.idea
-target
+# the standard maven ignores
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+
+# Avoid ignoring Maven wrapper jar file (.jar files are usually ignored)
+!/.mvn/wrapper/maven-wrapper.jar
+
+# idea ignores
+.idea/
+*.iml
+
+# osx ignores
+.DS_Store
+vscode_workspace.code-workspace
+
+#VSCODE: subprojects settings directory
+**/.settings
+#VSCODE: files
+*.project
+*.classpath
+*.factorypath
+.vscode/*
+.attach_pid*

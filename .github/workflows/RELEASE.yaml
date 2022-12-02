@@ -6,6 +6,9 @@ on:
       version:
         description: 'Semantic version number of release: ^[0-9]+.[0-9]+.[0-9]+(-[a-zA-Z0-9.-]+){0,1}$'
         required: true
+      nextVersion:
+        description: 'Semantic version number to use as next SNAPSHOT version: ^[0-9]+.[0-9]+.[0-9]+(-[a-zA-Z0-9.-]+){0,1}$'
+        required: true
       release-runtime:
         description: 'Release the Docker image for Connector Runtime'
         type: boolean
@@ -23,9 +26,13 @@ on:
         default: true
 
 jobs:
+  release-and-deploy:
+    name: Release and deploy artifacts
+
   build-and-push:
-    name: Build and Push Docker Images
+    name: Build and push Docker images
     runs-on: ubuntu-latest
+    needs: release-and-deploy
     steps:
       - uses: actions/checkout@v3
         with:
