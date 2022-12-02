@@ -19,9 +19,9 @@
   <inceptionYear>2022</inceptionYear>
 
   <modules>
-    <module>example</module>
     <module>sns</module>
     <module>sqs</module>
+    <module>aws-lambda</module>
   </modules>
 
   <properties>
@@ -31,6 +31,8 @@
       under one or more contributor license agreements. Licensed under a proprietary license.
       See the License.txt file for more information. You may not use this file
       except in compliance with the proprietary license.</license.inlineheader>
+
+    <version.aws-java-sdk>1.12.356</version.aws-java-sdk>
   </properties>
 
   <dependencies>

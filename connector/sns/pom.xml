@@ -13,6 +13,7 @@
   <description>Camunda AWS SNS Connector</description>
   <artifactId>connector-sns</artifactId>
   <packaging>jar</packaging>
+  <version>${revision}</version>
 
   <licenses>
     <license>
@@ -25,7 +26,6 @@
   </licenses>
 
   <properties>
-    <version.aws-java-sdk-sns>1.12.321</version.aws-java-sdk-sns>
     <license.inlineheader>Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
 under one or more contributor license agreements. Licensed under a proprietary license.
 See the License.txt file for more information. You may not use this file
@@ -54,7 +54,7 @@ except in compliance with the proprietary license.</license.inlineheader>
     <dependency>
       <groupId>com.amazonaws</groupId>
       <artifactId>aws-java-sdk-sns</artifactId>
-      <version>${version.aws-java-sdk-sns}</version>
+      <version>${version.aws-java-sdk}</version>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
