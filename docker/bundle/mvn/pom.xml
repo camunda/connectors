@@ -1,5 +1,6 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>io.camunda.connector</groupId>
@@ -34,13 +35,45 @@
     <dependencies>
       <dependency>
         <groupId>io.camunda.connector</groupId>
-        <artifactId>connector-example</artifactId>
+        <artifactId>connector-sqs</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>connector-aws-lambda</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>connector-google-drive</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>connector-rabbitmq</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>connector-sendgrid</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>io.camunda.connector</groupId>
         <artifactId>connector-sns</artifactId>
         <version>${project.version}</version>
+      </dependency>
+
+      <!-- TODO: Connectors not yet transferred to mono repo -->
+      <dependency>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>connector-http-json</artifactId>
+        <version>0.12.0-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>connector-slack</artifactId>
+        <version>0.6.0</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
