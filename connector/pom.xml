@@ -2,10 +2,6 @@
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <modules>
-    <module>example</module>
-    <module>sns</module>
-  </modules>
 
   <parent>
     <groupId>io.camunda.connector</groupId>
@@ -15,14 +11,22 @@
   </parent>
 
   <artifactId>connector-function-parent</artifactId>
-  <version>0.14.0-SNAPSHOT</version>
+  <version>${revision}</version>
   <packaging>pom</packaging>
 
   <name>connector-function-parent</name>
   <description>Parent POM for out-of-the-box Connectors</description>
   <inceptionYear>2022</inceptionYear>
 
+  <modules>
+    <module>example</module>
+    <module>sns</module>
+    <module>sqs</module>
+  </modules>
+
   <properties>
+    <revision>0.14.0-SNAPSHOT</revision>
+
     <license.inlineheader>Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
       under one or more contributor license agreements. Licensed under a proprietary license.
       See the License.txt file for more information. You may not use this file
