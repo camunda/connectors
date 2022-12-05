@@ -1,0 +1,65 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.camunda.connector</groupId>
+    <artifactId>connector-parent</artifactId>
+    <version>0.4.0-SNAPSHOT</version>
+    <relativePath/>
+  </parent>
+
+  <artifactId>connectors-bundle-parent</artifactId>
+  <version>${revision}</version>
+  <packaging>pom</packaging>
+
+  <name>connectors-bundle</name>
+  <description>Parent POM for out-of-the-box Connectors</description>
+  <inceptionYear>2022</inceptionYear>
+
+  <modules>
+    <module>connector</module>
+    <module>docker/bundle/mvn</module>
+  </modules>
+
+  <properties>
+    <revision>0.14.0-SNAPSHOT</revision>
+  </properties>
+
+  <repositories>
+    <repository>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+      <id>connectors</id>
+      <name>Connectors Repository</name>
+      <url>https://artifacts.camunda.com/artifactory/connectors/</url>
+    </repository>
+
+    <repository>
+      <releases>
+        <enabled>false</enabled>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+      <id>connectors-snapshots</id>
+      <name>Connectors Snapshot Repository</name>
+      <url>https://artifacts.camunda.com/artifactory/connectors-snapshots/</url>
+    </repository>
+  </repositories>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+
+</project>

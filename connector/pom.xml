@@ -5,9 +5,9 @@
 
   <parent>
     <groupId>io.camunda.connector</groupId>
-    <artifactId>connector-parent</artifactId>
-    <version>0.4.0-SNAPSHOT</version>
-    <relativePath/>
+    <artifactId>connectors-bundle-parent</artifactId>
+    <version>${revision}</version>
+    <relativePath>../pom.xml</relativePath>
   </parent>
 
   <artifactId>connector-function-parent</artifactId>
@@ -15,7 +15,7 @@
   <packaging>pom</packaging>
 
   <name>connector-function-parent</name>
-  <description>Parent POM for out-of-the-box Connectors</description>
+  <description>Parent POM for Connector function implementations</description>
   <inceptionYear>2022</inceptionYear>
 
   <modules>
@@ -28,8 +28,6 @@
   </modules>
 
   <properties>
-    <revision>0.14.0-SNAPSHOT</revision>
-
     <license.inlineheader>Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
       under one or more contributor license agreements. Licensed under a proprietary license.
       See the License.txt file for more information. You may not use this file
@@ -71,40 +69,5 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
-
-  <repositories>
-    <repository>
-      <releases>
-        <enabled>true</enabled>
-      </releases>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-      <id>connectors</id>
-      <name>Connectors Repository</name>
-      <url>https://artifacts.camunda.com/artifactory/connectors/</url>
-    </repository>
-
-    <repository>
-      <releases>
-        <enabled>false</enabled>
-      </releases>
-      <snapshots>
-        <enabled>true</enabled>
-      </snapshots>
-      <id>connectors-snapshots</id>
-      <name>Connectors Snapshot Repository</name>
-      <url>https://artifacts.camunda.com/artifactory/connectors-snapshots/</url>
-    </repository>
-  </repositories>
-
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-shade-plugin</artifactId>
-      </plugin>
-    </plugins>
-  </build>
 
 </project>

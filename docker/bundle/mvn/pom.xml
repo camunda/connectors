@@ -3,21 +3,18 @@
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>io.camunda.connector</groupId>
   <artifactId>connector-runtime-bundle-parent</artifactId>
   <version>${revision}</version>
   <packaging>pom</packaging>
 
   <parent>
     <groupId>io.camunda.connector</groupId>
-    <artifactId>connector-parent</artifactId>
-    <version>0.4.0-SNAPSHOT</version>
-    <relativePath/>
+    <artifactId>connectors-bundle-parent</artifactId>
+    <version>${revision}</version>
+    <relativePath>../../../pom.xml</relativePath>
   </parent>
 
   <properties>
-    <revision>0.14.0-SNAPSHOT</revision>
-
     <spring-zeebe.version>8.1.8</spring-zeebe.version>
     <spring-boot.version>2.7.5</spring-boot.version>
     <connector.version>0.4.0-alpha1</connector.version>

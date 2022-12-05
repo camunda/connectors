@@ -1,7 +1,7 @@
 FROM eclipse-temurin:17.0.5_8-jre
 
 # Configure the connector runtime version
-ARG SPRING_ZEEBE_VERSION=8.1.6
+ARG SPRING_ZEEBE_VERSION=8.1.8
 
 RUN mkdir /opt/app
 # Download connectors from maven central
