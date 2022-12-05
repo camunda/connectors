@@ -24,8 +24,3 @@ jobs:
 
       - name: Build Connectors
         run: mvn --batch-mode clean verify -PcheckFormat
-        working-directory: connector/
-
-      - name: Build Bundle
-        run: mvn --batch-mode clean verify -PcheckFormat
-        working-directory: docker/bundle/mvn/
