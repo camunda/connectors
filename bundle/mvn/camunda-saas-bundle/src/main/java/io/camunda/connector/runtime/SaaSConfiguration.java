@@ -29,15 +29,14 @@ public class SaaSConfiguration {
 
   @Value("${camunda.saas.secrets.projectId}")
   private String secretsProjectId;
-
-  // TODO: Default value?
-  @Value("${camunda.saas.secrets.prefix}")
+  
+  @Value("${camunda.saas.secrets.prefix:connector-secrets}")
   private String secretsNamePrefix;
 
   /**
    * Internal prefix used for M2M tokens
    */
-  @Value("${camunda.saas.secrets.internalPrefix:internal-connector-secrets-}")
+  @Value("${camunda.saas.secrets.internalPrefix:internal-connector-secrets}")
   private String secretsInternalNamePrefix;
 
   private final ZeebeClientConfigurationProperties conf;
