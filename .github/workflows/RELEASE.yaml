@@ -246,6 +246,6 @@ jobs:
           body: ${{ steps.changelog.outputs.changes }}
           tag_name: ${{ github.event.inputs.version }}
           files: |
-            **/THIRD_PARTY_NOTICES
+            THIRD_PARTY_NOTICES
             connectors-bundle-templates-${{ github.event.inputs.version }}.tar.gz
             connectors-bundle-templates-${{ github.event.inputs.version }}.zip

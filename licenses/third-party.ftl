@@ -36,8 +36,6 @@
   <#return licenseText?substring(2)>
 </#function>
 <#-- START Third-party license text -->
-Camunda Google Drive Connector
-
 THIRD-PARTY SOFTWARE NOTICES AND INFORMATION
 Do Not Translate or Localize
 
