@@ -13,7 +13,7 @@
     <description>Camunda Cloud HTTP JSON Connector</description>
     <groupId>io.camunda.connector</groupId>
     <artifactId>connector-http-json</artifactId>
-    <version>0.12.0-rc2</version>
+    <version>0.12.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <properties>
