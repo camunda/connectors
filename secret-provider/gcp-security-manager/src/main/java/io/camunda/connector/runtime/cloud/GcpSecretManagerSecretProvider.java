@@ -40,31 +40,49 @@ public class GcpSecretManagerSecretProvider implements SecretProvider {
 
   private static final Logger LOGGER =
       LoggerFactory.getLogger(GcpSecretManagerSecretProvider.class);
-  private final Gson gson;
-  private final String clusterId;
   private static final Type MAP_TYPE = new TypeToken<Map<String, String>>() {}.getType();
 
+  /** Secrets used as fallback if SecretProvider is loaded via SPI */
   public static final String SECRETS_PROJECT_ENV_NAME = "SECRETS_PROJECT_ID";
+
   public static final String SECRETS_PREFIX_ENV_NAME = "SECRETS_PREFIX";
+  public static final String CLUSTER_ID_ENV_NAME = "CAMUNDA_CLUSTER_ID";
+
   public static final String SECRETS_CACHE_MILLIS_ENV_NAME =
       "CAMUNDA_CONNECTOR_SECRETS_CACHE_MILLIS";
-  public static final String CLUSTER_ID_ENV_NAME = "CAMUNDA_CLUSTER_ID";
+
+  private final Gson gson;
+  private final String clusterId;
+  private final String secretsProjectId;
+  private final String secretsNamePrefix;
 
   // private Map<String, String> secrets = new HashMap<>();
   private static final String CACHE_KEY = "SECRETS";
   LoadingCache<String, Map<String, String>> secretsCache;
 
   public GcpSecretManagerSecretProvider() {
-    this(ConnectorConfigurationUtil.getProperty(CLUSTER_ID_ENV_NAME));
+    this(
+        ConnectorConfigurationUtil.getProperty(CLUSTER_ID_ENV_NAME),
+        ConnectorConfigurationUtil.getProperty(SECRETS_PROJECT_ENV_NAME),
+        ConnectorConfigurationUtil.getProperty(SECRETS_PREFIX_ENV_NAME));
   }
 
-  public GcpSecretManagerSecretProvider(String clusterId) {
-    this(new GsonBuilder().create(), clusterId);
+  public GcpSecretManagerSecretProvider(
+      String clusterId, String secretsProjectId, String secretsNamePrefix) {
+    this(new GsonBuilder().create(), clusterId, secretsProjectId, secretsNamePrefix);
   }
 
-  public GcpSecretManagerSecretProvider(Gson gson, String clusterId) {
+  public GcpSecretManagerSecretProvider(
+      Gson gson, String clusterId, String secretsProjectId, String secretsNamePrefix) {
     this.gson = gson;
+
     this.clusterId = clusterId;
+    this.secretsProjectId =
+        Objects.requireNonNull(secretsProjectId, "Configuration for Secrets project id is missing");
+    this.secretsNamePrefix =
+        Objects.requireNonNull(
+            secretsNamePrefix, "Configuration for Secrets name prefix is missing");
+
     this.setupSecretsCache();
   }
 
@@ -91,18 +109,9 @@ public class GcpSecretManagerSecretProvider implements SecretProvider {
     Objects.requireNonNull(clusterId, "You need to specify the clusterId to load secrets for");
     LOGGER.info("Fetching secrets for cluster {} from secret manager", clusterId);
     try (final SecretManagerServiceClient client = SecretManagerServiceClient.create()) {
-      final String projectId =
-          Objects.requireNonNull(
-              System.getenv(SECRETS_PROJECT_ENV_NAME),
-              "Environment variable " + SECRETS_PROJECT_ENV_NAME + " is missing");
-      final String secretPrefix =
-          Objects.requireNonNull(
-              System.getenv(SECRETS_PREFIX_ENV_NAME),
-              "Environment variable " + SECRETS_PREFIX_ENV_NAME + " is missing");
-
-      final String secretName = String.format("%s-%s", secretPrefix, clusterId);
+      final String secretName = String.format("%s-%s", secretsNamePrefix, clusterId);
       final SecretVersionName secretVersionName =
-          SecretVersionName.of(projectId, secretName, "latest");
+          SecretVersionName.of(secretsProjectId, secretName, "latest");
       final AccessSecretVersionResponse response = client.accessSecretVersion(secretVersionName);
       return response.getPayload().getData().toStringUtf8();
     } catch (final Exception e) {
