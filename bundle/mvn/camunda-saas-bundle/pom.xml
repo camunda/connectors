@@ -10,6 +10,10 @@
   <artifactId>connector-runtime-bundle-saas</artifactId>
   <packaging>jar</packaging>
 
+  <properties>
+    <version.spring-cloud-gcp-starter-logging>3.4.0</version.spring-cloud-gcp-starter-logging>
+  </properties>
+
   <dependencies>
     <dependency>
         <!-- Workaround for https://github.com/camunda/team-connectors/issues/251 to enforce proper version
@@ -34,6 +38,11 @@
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-gcp-security-manager</artifactId>
       <version>${connector.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.google.cloud</groupId>
+      <artifactId>spring-cloud-gcp-starter-logging</artifactId>
+      <version>${version.spring-cloud-gcp-starter-logging}</version>
     </dependency>
   </dependencies>
 
