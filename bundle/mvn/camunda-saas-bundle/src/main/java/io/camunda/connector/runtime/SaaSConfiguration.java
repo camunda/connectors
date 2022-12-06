@@ -29,13 +29,11 @@ public class SaaSConfiguration {
 
   @Value("${camunda.saas.secrets.projectId}")
   private String secretsProjectId;
-  
+
   @Value("${camunda.saas.secrets.prefix:connector-secrets}")
   private String secretsNamePrefix;
 
-  /**
-   * Internal prefix used for M2M tokens
-   */
+  /** Internal prefix used for M2M tokens */
   @Value("${camunda.saas.secrets.internalPrefix:internal-connector-secrets}")
   private String secretsInternalNamePrefix;
 
@@ -48,11 +46,12 @@ public class SaaSConfiguration {
 
   @Bean
   public SecretProvider getSecretProvider() {
-    return new GcpSecretManagerSecretProvider(conf.getCloud().getClusterId(), secretsProjectId, secretsNamePrefix);
+    return new GcpSecretManagerSecretProvider(
+        conf.getCloud().getClusterId(), secretsProjectId, secretsNamePrefix);
   }
 
   public SecretProvider getInternalSecretProvider() {
-    return new GcpSecretManagerSecretProvider(conf.getCloud().getClusterId(), secretsProjectId, secretsInternalNamePrefix);
+    return new GcpSecretManagerSecretProvider(
+        conf.getCloud().getClusterId(), secretsProjectId, secretsInternalNamePrefix);
   }
-
 }
