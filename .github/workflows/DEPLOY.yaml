@@ -71,7 +71,7 @@ jobs:
       - name: Lint Connector Bundle Dockerfile
         uses: hadolint/hadolint-action@v2.0.0
         with:
-          dockerfile: bundle/mvn/camunda-saas-bundle/Dockerfile
+          dockerfile: docker/bundle/mvn/camunda-saas-bundle/Dockerfile
 
       - name: Lint Connector Bundle Dockerfile
         uses: hadolint/hadolint-action@v2.0.0
@@ -104,15 +104,8 @@ jobs:
           server-password: MAVEN_PASSWORD
 
       - name: Deploy Maven Artifact
-        run: mvn -B compile generate-sources source:jar javadoc:jar install # TODO : Switch back to deploy
+        run: mvn -B compile generate-sources source:jar javadoc:jar deploy
         if: github.ref == 'refs/heads/main'
-        env:
-          MAVEN_USERNAME: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
-          MAVEN_PASSWORD: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
-
-      - name: Build Maven Artifact
-        run: mvn -B compile install
-        if: github.ref != 'refs/heads/main'
         env:
           MAVEN_USERNAME: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
           MAVEN_PASSWORD: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}

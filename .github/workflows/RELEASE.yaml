@@ -102,8 +102,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
+    # Maven build & version bump
+
       - name: Set Connectors release version
-        run: mvn -B versions:set-property -Dproperty=revision -DnewVersion=${RELEASE_VERSION} -DgenerateBackupPoms=false
+        run:  mvn -B versions:set -DnewVersion=${RELEASE_VERSION} -DgenerateBackupPoms=false
         env:
           RELEASE_VERSION: ${{ github.event.inputs.version }}
 
@@ -125,39 +127,14 @@ jobs:
 
       - name: Set next development patch version
         run: |
-          mvn -B versions:set-property -Dproperty=revision -DnewVersion=${NEXT_VERSION} -DgenerateBackupPoms=false
+          mvn -B versions:set -DnewVersion=${NEXT_VERSION} -DgenerateBackupPoms=false
           git commit -am "ci: set next development version"
           git push --follow-tags
         env:
           NEXT_VERSION: ${{ github.event.inputs.nextVersion }}
 
-      - name: Get number of tags
-        id: get-tags
-        run: |-
-          TAG_COUNT=`git tag | wc -l`
-          echo "::set-output name=count::${TAG_COUNT}";
-
-      - name: "Build Changelog"
-        if: steps.get-tags.outputs.count > 1
-        id: changelog
-        uses: Requarks/changelog-action@v1
-        with:
-          token: ${{ github.token }}
-          tag: ${{ github.event.inputs.version }}
-          writeToFile: false
-          excludeTypes: build,docs,other,style,ci
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
-        with:
-          body: ${{ steps.changelog.outputs.changes }}
-          tag_name: ${{ github.event.inputs.version }}
-          files: |
-            **/THIRD_PARTY_NOTICES
-            **/element-templates/*.json
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+      - name: Set up Docker Build
+        uses: docker/setup-buildx-action@v2 # TODO adjust
 
       - name: Login to Docker Hub
         uses: docker/login-action@v2
@@ -165,37 +142,77 @@ jobs:
           username: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
           password: ${{ steps.secrets.outputs.DOCKERHUB_PASSWORD }}
 
-      - name: Build and Push Runtime Docker Image tag ${{ github.event.inputs.version }}
+    # Build & push bundle docker images (with version tag)
+
+      # TODO: extract runtime to a separate repo
+      - name: Build and Push Docker Image tag ${{ github.event.inputs.version }} - Runtime
         if: github.event.inputs.release-runtime == 'true'
         uses: docker/build-push-action@v3
         with:
-          context: runtime/
+          context: docker/runtime/
           push: true
           tags: camunda/connectors:${{ github.event.inputs.version }}
 
-      - name: Build and Push Bundle Docker Image tag ${{ github.event.inputs.version }}
+      - name: Build and Push Docker Image tag ${{ github.event.inputs.version }} - bundle-bash
         if: github.event.inputs.release-bundle == 'true'
         uses: docker/build-push-action@v3
         with:
-          context: bundle/
-          push: true
+          context: docker/bundle/bash/
+          push: ${{ github.ref == 'refs/heads/main' }}
+          tags: camunda/connectors-bundle-bash:${{ github.event.inputs.version }}
+
+      - name: Build and Push Docker Image tag ${{ github.event.inputs.version }} - bundle-default
+        if: github.event.inputs.release-bundle == 'true'
+        uses: docker/build-push-action@v3
+        with:
+          context: docker/bundle/mvn/default-bundle/
+          push: ${{ github.ref == 'refs/heads/main' }}
           tags: camunda/connectors-bundle:${{ github.event.inputs.version }}
 
-      - name: Build and Push Runtime Docker Image with tag latest
+      - name: Build and Push Docker Image tag ${{ github.event.inputs.version }} - bundle-saas
+        if: github.event.inputs.release-bundle == 'true'
+        uses: docker/build-push-action@v3
+        with:
+          context: docker/bundle/mvn/camunda-saas-bundle/
+          push: ${{ github.ref == 'refs/heads/main' }}
+          tags: camunda/connectors-bundle-saas:${{ github.event.inputs.version }}
+
+    # Build & push bundle docker images (with 'latest' tag)
+
+      # TODO: extract runtime to a separate repo
+      - name: Build and Push Docker Image with tag latest - Runtime
         if: github.event.inputs.release-runtime == 'true' && github.event.inputs.push-latest == 'true'
         uses: docker/build-push-action@v3
         with:
-          context: runtime/
+          context: docker/runtime/
           push: true
           tags: camunda/connectors:latest
 
-      - name: Build and Push Bundle Docker Image with tag latest
+      - name: Build and Push Docker Image with tag latest - bundle-bash
         if: github.event.inputs.release-bundle == 'true' && github.event.inputs.push-latest == 'true'
         uses: docker/build-push-action@v3
         with:
-          context: bundle/
+          context: docker/bundle/bash/
           push: true
           tags: camunda/connectors-bundle:latest
+
+      - name: Build and Push Docker Image tag latest - bundle-default
+        if: github.event.inputs.release-bundle == 'true' && github.event.inputs.push-latest == 'true'
+        uses: docker/build-push-action@v3
+        with:
+          context: docker/bundle/mvn/default-bundle/
+          push: ${{ github.ref == 'refs/heads/main' }}
+          tags: camunda/connectors-bundle:latest
+
+      - name: Build and Push Docker Image tag latest - bundle-saas
+        if: github.event.inputs.release-bundle == 'true' && github.event.inputs.push-latest == 'true'
+        uses: docker/build-push-action@v3
+        with:
+          context: docker/bundle/mvn/camunda-saas-bundle/
+          push: ${{ github.ref == 'refs/heads/main' }}
+          tags: camunda/connectors-bundle-saas:latest
+
+    # Create GitHub release
 
       - name: Tag version
         if: github.event.inputs.release-bundle == 'true'
@@ -209,13 +226,26 @@ jobs:
 
       - name: Bundle element templates
         if: github.event.inputs.release-bundle == 'true'
-        run: pushd bundle && bash bundle-templates.sh ${RELEASE_VERSION}
+        run: bash docker/bundle/bundle-templates.sh ${RELEASE_VERSION}
         env:
           RELEASE_VERSION: ${{ github.event.inputs.version }}
 
-      - name: Create GitHub release
+      - name: Build Changelog
+        id: changelog
+        uses: Requarks/changelog-action@v1
+        with:
+          token: ${{ github.token }}
+          tag: ${{ github.event.inputs.version }}
+          writeToFile: false
+          excludeTypes: build,docs,other,style,ci
+
+      - name: Create GitHub Release
         if: github.event.inputs.release-bundle == 'true'
-        run: gh release create --generate-notes ${RELEASE_VERSION} bundle/connectors-bundle-templates-${RELEASE_VERSION}.tar.gz bundle/connectors-bundle-templates-${RELEASE_VERSION}.zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_VERSION: ${{ github.event.inputs.version }}
+        uses: softprops/action-gh-release@v1
+        with:
+          body: ${{ steps.changelog.outputs.changes }}
+          tag_name: ${{ github.event.inputs.version }}
+          files: |
+            **/THIRD_PARTY_NOTICES
+            connectors-bundle-templates-${{ github.event.inputs.version }}.tar.gz
+            connectors-bundle-templates-${{ github.event.inputs.version }}.zip

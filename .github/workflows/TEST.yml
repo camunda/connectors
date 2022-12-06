@@ -24,3 +24,24 @@ jobs:
 
       - name: Build Connectors
         run: mvn --batch-mode clean verify -PcheckFormat
+
+      # TODO: extract runtime to a separate repo
+      - name: Lint Connector Runtime Dockerfile
+        uses: hadolint/hadolint-action@v2.0.0
+        with:
+          dockerfile: docker/runtime/Dockerfile
+
+      - name: Lint Connector Bundle Dockerfile
+        uses: hadolint/hadolint-action@v2.0.0
+        with:
+          dockerfile: docker/bundle/bash/Dockerfile
+
+      - name: Lint Connector Bundle Dockerfile
+        uses: hadolint/hadolint-action@v2.0.0
+        with:
+          dockerfile: docker/bundle/mvn/camunda-saas-bundle/Dockerfile
+
+      - name: Lint Connector Bundle Dockerfile
+        uses: hadolint/hadolint-action@v2.0.0
+        with:
+          dockerfile: docker/bundle/mvn/default-bundle/Dockerfile
