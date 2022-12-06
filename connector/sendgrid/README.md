@@ -44,32 +44,6 @@ mvn clean package
 }
 ```
 
-## Test locally
-
-Run unit tests
-
-```bash
-mvn clean verify
-```
-
-### Test as local Job Worker
-
-Use the [Camunda Connector Runtime](https://github.com/camunda-community-hub/spring-zeebe/tree/master/connector-runtime#building-connector-runtime-bundles) to run your function as a local Job Worker.
-
-### :lock: Test as local Google Cloud Function
-
-> **Warning**
-> This is Camunda-internal only. The Maven profile `cloud-function` accesses an internal artifact.
-
-Build as Google Cloud Function
-
-```bash
-mvn function:run -Pcloud-function
-```
-
-See also the [:lock:Camunda Cloud Connector Run-Time](https://github.com/camunda/connector-runtime-cloud) on how your function
-is run as a Google Cloud Function.
-
 ### Email Template
 
 If the email should be send with a template the request has to contain a `template` object.
@@ -131,7 +105,3 @@ the [element-templates/sendgrid-connector.json](element-templates/sendgrid-conne
 ### Properties: Send an Email using Content
 
 ![](element-templates/properties-content.png)
-
-## Build a release
-
-Trigger the [release action](../../.github/workflows/RELEASE.yml) manually with the version `x.y.z` you want to release and the next SNAPSHOT version.
