@@ -99,6 +99,11 @@ except in compliance with the proprietary license.</license.inlineheader>
       <artifactId>mockito-junit-jupiter</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>io.camunda</groupId>
+      <artifactId>spring-zeebe-connector-runtime</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <repositories>

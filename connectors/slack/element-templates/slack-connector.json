@@ -35,6 +35,10 @@
       "label": "Channel"
     },
     {
+      "id": "invite",
+      "label": "Invite"
+    },
+    {
       "id": "output",
       "label": "Output Mapping"
     },
@@ -65,6 +69,10 @@
         {
           "name": "Create Channel",
           "value": "conversations.create"
+        },
+        {
+          "name": "Invite to Channel",
+          "value": "conversations.invite"
         }
       ],
       "binding": {
@@ -167,6 +175,44 @@
       "condition": {
         "property": "method",
         "equals": "chat.postMessage"
+      }
+    },
+    {
+      "label": "Channel Name",
+      "group": "invite",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "data.channelName"
+      },
+      "constraints": {
+        "notEmpty": true,
+        "pattern": {
+          "value": "^(=|[-_a-z0-9]{1,80}$)",
+          "message": "May contain up to 80 lowercase letters, digits, underscores, and dashes"
+        }
+      },
+      "condition": {
+        "property": "method",
+        "equals": "conversations.invite"
+      }
+    },
+    {
+      "label": "Users",
+      "description": "Comma separated list of invitee names",
+      "group": "invite",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "data.users"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "method",
+        "equals": "conversations.invite"
       }
     },
     {

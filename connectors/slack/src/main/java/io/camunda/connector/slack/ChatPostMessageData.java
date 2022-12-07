@@ -9,10 +9,8 @@ package io.camunda.connector.slack;
 import com.slack.api.methods.MethodsClient;
 import com.slack.api.methods.SlackApiException;
 import com.slack.api.methods.request.chat.ChatPostMessageRequest;
-import com.slack.api.methods.request.users.UsersListRequest;
 import com.slack.api.methods.request.users.UsersLookupByEmailRequest;
 import com.slack.api.methods.response.chat.ChatPostMessageResponse;
-import com.slack.api.methods.response.users.UsersListResponse;
 import com.slack.api.methods.response.users.UsersLookupByEmailResponse;
 import com.slack.api.model.User;
 import io.camunda.connector.api.annotation.Secret;
@@ -24,16 +22,14 @@ import org.apache.commons.text.StringEscapeUtils;
 
 public class ChatPostMessageData implements SlackRequestData {
 
-  private static final String EMAIL_REGEX = "^.+[@].+[.].{2,4}$";
-
   @NotBlank @Secret private String channel;
   @NotBlank @Secret private String text;
 
   @Override
   public SlackResponse invoke(MethodsClient methodsClient) throws SlackApiException, IOException {
     if (channel.startsWith("@")) {
-      channel = getUserId(channel.substring(1), methodsClient);
-    } else if (isEmail(channel)) {
+      channel = DataLookupService.getUserIdByName(channel.substring(1), methodsClient);
+    } else if (DataLookupService.isEmail(channel)) {
       channel = getUserIdByEmail(methodsClient);
     }
     ChatPostMessageRequest request =
@@ -50,44 +46,6 @@ public class ChatPostMessageData implements SlackRequestData {
     } else {
       throw new RuntimeException(chatPostMessageResponse.getError());
     }
-  }
-
-  private String getUserId(String userName, MethodsClient methodsClient) {
-    String userId = null;
-    String nextCursor = null;
-
-    do {
-      UsersListRequest request = UsersListRequest.builder().limit(100).cursor(nextCursor).build();
-
-      try {
-        UsersListResponse response = methodsClient.usersList(request);
-        if (response.isOk()) {
-          userId =
-              response.getMembers().stream()
-                  .filter(user -> userName.equals(user.getRealName()))
-                  .map(User::getId)
-                  .findFirst()
-                  .orElse(null);
-          nextCursor = response.getResponseMetadata().getNextCursor();
-        } else {
-          throw new RuntimeException(
-              "Unable to find user with name: " + userName + "; message: " + response.getError());
-        }
-      } catch (Exception e) {
-        throw new RuntimeException("Unable to find user with name: " + userName, e);
-      }
-
-    } while (userId == null && nextCursor != null && !nextCursor.isBlank());
-
-    if (userId == null) {
-      throw new RuntimeException("Unable to find user with name: " + userName);
-    }
-
-    return userId;
-  }
-
-  private boolean isEmail(final String str) {
-    return str.matches(EMAIL_REGEX);
   }
 
   private String getUserIdByEmail(final MethodsClient methodsClient)
