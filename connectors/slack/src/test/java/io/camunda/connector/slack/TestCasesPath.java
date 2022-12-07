@@ -15,6 +15,8 @@ interface TestCasesPath {
   String EXECUTE_WITH_CHANNEL_NAME = PATH + "execute-function-with-channel-name.json";
   String EXECUTE_CREATE_CHANNEL = PATH + "execute-create-channel.json";
 
+  String EXECUTE_INVITE_TO_CHANNEL = PATH + "execute-invite-to-channel.json";
+
   String VALIDATE_REQUIRED_FIELDS_FAIL = PATH + "validate-fields-fail.json";
   String FROM_JSON_FAIL = PATH + "with-wrong-method.json";
 }

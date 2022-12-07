@@ -30,7 +30,10 @@ public class DataLookupService {
     if (StringUtils.isBlank(string)) {
       return new ArrayList<>();
     }
-    return Arrays.stream(string.split(",")).map(s -> s.trim()).collect(Collectors.toList());
+    return Arrays.stream(string.split(","))
+            .map(s -> s.trim())
+            .map(s -> s.startsWith("@") ? s.substring(1) : s)
+            .collect(Collectors.toList());
   }
 
   public static boolean isEmail(final String str) {
