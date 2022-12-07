@@ -134,7 +134,7 @@ jobs:
           NEXT_VERSION: ${{ github.event.inputs.nextVersion }}
 
       - name: Set up Docker Build
-        uses: docker/setup-buildx-action@v2 # TODO adjust
+        uses: docker/setup-buildx-action@v2
 
       - name: Login to Docker Hub
         uses: docker/login-action@v2
@@ -144,20 +144,11 @@ jobs:
 
     # Build & push bundle docker images (with version tag)
 
-      # TODO: extract runtime to a separate repo
-      - name: Build and Push Docker Image tag ${{ github.event.inputs.version }} - Runtime
-        if: github.event.inputs.release-runtime == 'true'
-        uses: docker/build-push-action@v3
-        with:
-          context: docker/runtime/
-          push: true
-          tags: camunda/connectors:${{ github.event.inputs.version }}
-
       - name: Build and Push Docker Image tag ${{ github.event.inputs.version }} - bundle-bash
         if: github.event.inputs.release-bundle == 'true'
         uses: docker/build-push-action@v3
         with:
-          context: docker/bundle/bash/
+          context: bundle/bash/
           push: ${{ github.ref == 'refs/heads/main' }}
           tags: camunda/connectors-bundle-bash:${{ github.event.inputs.version }}
 
@@ -165,7 +156,7 @@ jobs:
         if: github.event.inputs.release-bundle == 'true'
         uses: docker/build-push-action@v3
         with:
-          context: docker/bundle/mvn/default-bundle/
+          context: bundle/mvn/default-bundle/
           push: ${{ github.ref == 'refs/heads/main' }}
           tags: camunda/connectors-bundle:${{ github.event.inputs.version }}
 
@@ -173,26 +164,17 @@ jobs:
         if: github.event.inputs.release-bundle == 'true'
         uses: docker/build-push-action@v3
         with:
-          context: docker/bundle/mvn/camunda-saas-bundle/
+          context: bundle/mvn/camunda-saas-bundle/
           push: ${{ github.ref == 'refs/heads/main' }}
           tags: camunda/connectors-bundle-saas:${{ github.event.inputs.version }}
 
     # Build & push bundle docker images (with 'latest' tag)
 
-      # TODO: extract runtime to a separate repo
-      - name: Build and Push Docker Image with tag latest - Runtime
-        if: github.event.inputs.release-runtime == 'true' && github.event.inputs.push-latest == 'true'
-        uses: docker/build-push-action@v3
-        with:
-          context: docker/runtime/
-          push: true
-          tags: camunda/connectors:latest
-
       - name: Build and Push Docker Image with tag latest - bundle-bash
         if: github.event.inputs.release-bundle == 'true' && github.event.inputs.push-latest == 'true'
         uses: docker/build-push-action@v3
         with:
-          context: docker/bundle/bash/
+          context: bundle/bash/
           push: true
           tags: camunda/connectors-bundle:latest
 
@@ -200,7 +182,7 @@ jobs:
         if: github.event.inputs.release-bundle == 'true' && github.event.inputs.push-latest == 'true'
         uses: docker/build-push-action@v3
         with:
-          context: docker/bundle/mvn/default-bundle/
+          context: bundle/mvn/default-bundle/
           push: ${{ github.ref == 'refs/heads/main' }}
           tags: camunda/connectors-bundle:latest
 
@@ -208,7 +190,7 @@ jobs:
         if: github.event.inputs.release-bundle == 'true' && github.event.inputs.push-latest == 'true'
         uses: docker/build-push-action@v3
         with:
-          context: docker/bundle/mvn/camunda-saas-bundle/
+          context: bundle/mvn/camunda-saas-bundle/
           push: ${{ github.ref == 'refs/heads/main' }}
           tags: camunda/connectors-bundle-saas:latest
 
@@ -226,7 +208,7 @@ jobs:
 
       - name: Bundle element templates
         if: github.event.inputs.release-bundle == 'true'
-        run: bash docker/bundle/bundle-templates.sh ${RELEASE_VERSION}
+        run: bash bundle/bundle-templates.sh ${RELEASE_VERSION}
         env:
           RELEASE_VERSION: ${{ github.event.inputs.version }}
 

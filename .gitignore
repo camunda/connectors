@@ -23,7 +23,7 @@
 hs_err_pid*
 
 HELP.md
-connector/aws-lambda/target/
+target
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
@@ -38,7 +38,7 @@ connector/aws-lambda/target/
 .sts4-cache
 
 ### IntelliJ IDEA ###
-../../.idea
+.idea
 *.iws
 *.iml
 *.ipr

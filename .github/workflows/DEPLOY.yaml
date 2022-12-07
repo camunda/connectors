@@ -36,16 +36,8 @@ jobs:
           server-username: MAVEN_USERNAME
           server-password: MAVEN_PASSWORD
 
-      - name: Build Connectors Artifacts
+      - name: Build Artifacts
         run: mvn -B compile generate-sources source:jar javadoc:jar deploy
-        working-directory: connector/
-        env:
-          MAVEN_USERNAME: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
-          MAVEN_PASSWORD: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
-
-      - name: Build Bundle Artifact
-        run: mvn -B compile generate-sources source:jar javadoc:jar deploy
-        working-directory: docker/bundle/mvn/
         env:
           MAVEN_USERNAME: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
           MAVEN_PASSWORD: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
@@ -58,25 +50,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Lint Connector Runtime Dockerfile
+      - name: Lint Connector Bundle Dockerfile - bundle-bash
         uses: hadolint/hadolint-action@v2.0.0
         with:
-          dockerfile: docker/runtime/Dockerfile
+          dockerfile: bundle/bash/Dockerfile
 
-      - name: Lint Connector Bundle Dockerfile
+      - name: Lint Connector Bundle Dockerfile - SaaS
         uses: hadolint/hadolint-action@v2.0.0
         with:
-          dockerfile: docker/bundle/bash/Dockerfile
+          dockerfile: bundle/mvn/camunda-saas-bundle/Dockerfile
 
-      - name: Lint Connector Bundle Dockerfile
+      - name: Lint Connector Bundle Dockerfile - default-bundle
         uses: hadolint/hadolint-action@v2.0.0
         with:
-          dockerfile: docker/bundle/mvn/camunda-saas-bundle/Dockerfile
-
-      - name: Lint Connector Bundle Dockerfile
-        uses: hadolint/hadolint-action@v2.0.0
-        with:
-          dockerfile: docker/bundle/mvn/default-bundle/Dockerfile
+          dockerfile: bundle/mvn/default-bundle/Dockerfile
 
       - name: Import Secrets
         id: secrets
@@ -103,13 +90,6 @@ jobs:
           server-username: MAVEN_USERNAME
           server-password: MAVEN_PASSWORD
 
-      - name: Deploy Maven Artifact
-        run: mvn -B compile generate-sources source:jar javadoc:jar deploy
-        if: github.ref == 'refs/heads/main'
-        env:
-          MAVEN_USERNAME: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
-          MAVEN_PASSWORD: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
-
       - name: Set up Docker Build
         uses: docker/setup-buildx-action@v2
 
@@ -120,30 +100,23 @@ jobs:
           username: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
           password: ${{ steps.secrets.outputs.DOCKERHUB_PASSWORD }}
 
-      - name: Build and Push Docker Image tag SNAPSHOT - Runtime
-        uses: docker/build-push-action@v3
-        with:
-          context: docker/runtime/
-          push: ${{ github.ref == 'refs/heads/main' }}
-          tags: camunda/connectors:SNAPSHOT
-
       - name: Build and Push Docker Image tag SNAPSHOT - bundle-bash
         uses: docker/build-push-action@v3
         with:
-          context: docker/bundle/bash/
+          context: bundle/bash/
           push: ${{ github.ref == 'refs/heads/main' }}
           tags: camunda/connectors-bundle-bash:SNAPSHOT
 
       - name: Build and Push Docker Image tag SNAPSHOT - bundle-default
         uses: docker/build-push-action@v3
         with:
-          context: docker/bundle/mvn/default-bundle/
+          context: bundle/mvn/default-bundle/
           push: ${{ github.ref == 'refs/heads/main' }}
           tags: camunda/connectors-bundle:SNAPSHOT
 
       - name: Build and Push Docker Image tag SNAPSHOT - bundle-saas
         uses: docker/build-push-action@v3
         with:
-          context: docker/bundle/mvn/camunda-saas-bundle/
+          context: bundle/mvn/camunda-saas-bundle/
           push: ${{ github.ref == 'refs/heads/main' }}
           tags: camunda/connectors-bundle-saas:SNAPSHOT

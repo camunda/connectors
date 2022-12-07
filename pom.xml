@@ -19,8 +19,8 @@
   <inceptionYear>2022</inceptionYear>
 
   <modules>
-    <module>connector</module>
-    <module>docker/bundle/mvn</module>
+    <module>connectors</module>
+    <module>bundle/mvn</module>
   </modules>
 
   <repositories>
