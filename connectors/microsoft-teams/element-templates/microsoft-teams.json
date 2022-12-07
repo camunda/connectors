@@ -1,0 +1,696 @@
+{
+  "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name": "Microsoft Teams Connector",
+  "id": "io.camunda:connector-microsoft-teams:1",
+  "description": "Create, update, and send a message to your Microsoft Teams",
+  "documentationRef": "https://docs.camunda.io/docs/components/integration-framework/connectors/out-of-the-box-connectors/microsoft-teams/",
+  "version": 1,
+  "category": {
+    "id": "connectors",
+    "name": "Connectors"
+  },
+  "appliesTo": [
+    "bpmn:Task"
+  ],
+  "elementType": {
+    "value": "bpmn:ServiceTask"
+  },
+  "groups": [
+    {
+      "id": "authentication",
+      "label": "Authentication"
+    },
+    {
+      "id": "operation",
+      "label": "Operation"
+    },
+    {
+      "id": "data",
+      "label": "Data"
+    },
+    {
+      "id": "output",
+      "label": "Output Mapping"
+    },
+    {
+      "id": "errors",
+      "label": "Error Handling"
+    }
+  ],
+  "properties": [
+    {
+      "type": "Hidden",
+      "value": "io.camunda:microsoft-teams:1",
+      "binding": {
+        "type": "zeebe:taskDefinition:type"
+      }
+    },
+    {
+      "label": "Type",
+      "id": "authType",
+      "description": "Authentication type depends on your MS Teams account permission and operation with connector. See connector documentation",
+      "group": "authentication",
+      "type": "Dropdown",
+      "value": "token",
+      "choices": [
+        {
+          "name": "Bearer token",
+          "value": "token"
+        },
+        {
+          "name": "Client credentials",
+          "value": "clientCredentials"
+        }
+      ],
+      "constraints": {
+        "notEmpty": true
+      },
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.type"
+      }
+    },
+    {
+      "label": "Bearer Token",
+      "group": "authentication",
+      "type": "String",
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authType",
+        "equals": "token"
+      },
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.token"
+      }
+    },
+    {
+      "label": "Client ID",
+      "description": "The client ID of the application",
+      "group": "authentication",
+      "type": "String",
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authType",
+        "equals": "clientCredentials"
+      },
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.clientId"
+      }
+    },
+    {
+      "label": "Tenant ID",
+      "description": "The tenant ID of the application",
+      "group": "authentication",
+      "type": "String",
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authType",
+        "equals": "clientCredentials"
+      },
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.tenantId"
+      }
+    },
+    {
+      "label": "Client Secret",
+      "description": " The secret value of the Azure AD application",
+      "group": "authentication",
+      "type": "String",
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authType",
+        "equals": "clientCredentials"
+      },
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.clientCredentials"
+      }
+    },
+    {
+      "label": "Conversation type",
+      "id": "operationType",
+      "group": "operation",
+      "description": "Choose conversation type",
+      "value": "chat",
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Chat",
+          "value": "chat"
+        },
+        {
+          "name": "Channel",
+          "value": "channel"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "data.type"
+      }
+    },
+    {
+      "label": "Method",
+      "id": "chatMethod",
+      "group": "operation",
+      "description": "Select method for chat interaction",
+      "value": "sendMessageToChat",
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Create a new chat",
+          "value": "createChat"
+        },
+        {
+          "name": "Get chat by ID",
+          "value": "getChat"
+        },
+        {
+          "name": "List chat members",
+          "value": "listMembersOfChat"
+        },
+        {
+          "name": "Send message in chat",
+          "value": "sendMessageToChat"
+        },
+        {
+          "name": "List messages in chat",
+          "value": "listMessagesInChat"
+        },
+        {
+          "name": "Get message in chat",
+          "value": "getMessageFromChat"
+        }
+      ],
+      "condition": {
+        "property": "operationType",
+        "equals": "chat"
+      },
+      "binding": {
+        "type": "zeebe:input",
+        "name": "data.action"
+      }
+    },
+    {
+      "label": "Method",
+      "id": "channelMethod",
+      "group": "operation",
+      "description": "Select method for channel interaction",
+      "value": "sendMessageToChannel",
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Create channel",
+          "value": "createChannel"
+        },
+        {
+          "name": "Get channel",
+          "value": "getChannel"
+        },
+        {
+          "name": "List channels",
+          "value": "listAllChannels"
+        },
+        {
+          "name": "Send message to channel",
+          "value": "sendMessageToChannel"
+        },
+        {
+          "name": "Get channel message",
+          "value": "getMessageFromChannel"
+        },
+        {
+          "name": "List channel messages",
+          "value": "listChannelMessages"
+        },
+        {
+          "name": "List message replies",
+          "value": "listMessageRepliesInChannel"
+        },
+        {
+          "name": "List members",
+          "value": "listMembersInChannel"
+        }
+      ],
+      "condition": {
+        "property": "operationType",
+        "equals": "channel"
+      },
+      "binding": {
+        "type": "zeebe:input",
+        "name": "data.action"
+      }
+    },
+    {
+      "label": "Chat type",
+      "description": "The type of a new chat",
+      "group": "data",
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "One on one",
+          "value": "one_on_one"
+        },
+        {
+          "name": "Group",
+          "value": "group"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "data.chatType"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "chatMethod",
+        "equals": "createChat"
+      }
+    },
+    {
+      "label": "Topic",
+      "description": "Set topic of chat (optional)",
+      "group": "data",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "data.topic"
+      },
+      "condition": {
+        "property": "chatMethod",
+        "equals": "createChat"
+      }
+    },
+    {
+      "label": "Members",
+      "description": "Set array members of chat",
+      "group": "data",
+      "type": "Text",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "data.members"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "chatMethod",
+        "equals": "createChat"
+      }
+    },
+    {
+      "label": "Chat ID",
+      "description": "The chat ID",
+      "group": "data",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "data.chatId"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "chatMethod",
+        "oneOf": [
+          "getChat",
+          "listMembersOfChat",
+          "sendMessageToChat",
+          "getMessageFromChat",
+          "listMessagesInChat"
+        ]
+      }
+    },
+    {
+      "label": "Content",
+      "description": "Enter content",
+      "group": "data",
+      "type": "Text",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "data.content"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "chatMethod",
+        "equals": "sendMessageToChat"
+      }
+    },
+    {
+      "label": "Message ID",
+      "description": "The message ID",
+      "group": "data",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "data.messageId"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "chatMethod",
+        "equals": "getMessageFromChat"
+      }
+    },
+    {
+      "label": "Top",
+      "description": "Controls the number of items per response. Maximum allowed $top value is 50",
+      "group": "data",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "data.top"
+      },
+      "constraints": {
+        "notEmpty": false
+      },
+      "condition": {
+        "property": "chatMethod",
+        "equals": "listMessagesInChat"
+      }
+    },
+    {
+      "label": "Order by",
+      "group": "data",
+      "type": "Dropdown",
+      "value": "withoutOrdering",
+      "choices": [
+        {
+          "name": "Without ordering",
+          "value": "withoutOrdering"
+        },
+        {
+          "name": "Last modified data time",
+          "value": "lastModifiedDateTime"
+        },
+        {
+          "name": "Created data time",
+          "value": "createdDateTime"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "data.orderBy"
+      },
+      "constraints": {
+        "notEmpty": false
+      },
+      "condition": {
+        "property": "chatMethod",
+        "equals": "listMessagesInChat"
+      }
+    },
+    {
+      "label": "Filter",
+      "description": "Sets the date range filter for the lastModifiedDateTime and createdDateTime properties",
+      "group": "data",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "data.filter"
+      },
+      "condition": {
+        "property": "chatMethod",
+        "equals": "listMessagesInChat"
+      }
+    },
+    {
+      "label": "Group ID",
+      "description": "The group id for teams",
+      "group": "data",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "data.groupId"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "channelMethod",
+        "oneOf": [
+          "createChannel",
+          "listAllChannels",
+          "getChannel",
+          "sendMessageToChannel",
+          "getMessageFromChannel",
+          "listChannelMessages",
+          "listMessageRepliesInChannel",
+          "listMembersInChannel"
+        ]
+      }
+    },
+    {
+      "label": "Channel ID",
+      "description": "The channel ID",
+      "group": "data",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "data.teamId"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "channelMethod",
+        "oneOf": [
+          "getChannel",
+          "sendMessageToChannel",
+          "getMessageFromChannel",
+          "listChannelMessages",
+          "listMessageRepliesInChannel",
+          "listMembersInChannel"
+        ]
+      }
+    },
+    {
+      "label": "Display Name",
+      "description": "Enter name of a channel",
+      "group": "data",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "data.name"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "channelMethod",
+        "equals": "createChannel"
+      }
+    },
+    {
+      "label": "Description",
+      "description": "Enter description",
+      "group": "data",
+      "type": "Text",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "data.description"
+      },
+      "condition": {
+        "property": "channelMethod",
+        "equals": "createChannel"
+      }
+    },
+    {
+      "label": "Channel membership type ",
+      "id": "channelType",
+      "description": "Choose type",
+      "group": "data",
+      "type": "Dropdown",
+      "value": "standard",
+      "choices": [
+        {
+          "name": "STANDARD",
+          "value": "standard"
+        },
+        {
+          "name": "PUBLIC",
+          "value": "public"
+        },
+        {
+          "name": "PRIVATE",
+          "value": "private"
+        },
+        {
+          "name": "SHARED",
+          "value": "shared"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "data.channelType"
+      },
+      "condition": {
+        "property": "channelMethod",
+        "equals": "createChannel"
+      }
+    },
+    {
+      "label": "Owner",
+      "description": "Enter ID or principal name of a user",
+      "group": "data",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "data.owner"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "channelType",
+        "oneOf": [
+          "public",
+          "private",
+          "shared"
+        ]
+      }
+    },
+    {
+      "label": "Filter",
+      "description": "Sets the search filter",
+      "group": "data",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "data.filter"
+      },
+      "condition": {
+        "property": "channelMethod",
+        "equals": "listAllChannels"
+      }
+    },
+    {
+      "label": "Content",
+      "description": "Enter content",
+      "group": "data",
+      "type": "Text",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "data.content"
+      },
+      "condition": {
+        "property": "channelMethod",
+        "equals": "sendMessageToChannel"
+      }
+    },
+    {
+      "label": "Message ID",
+      "description": "The message ID",
+      "group": "data",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "data.messageId"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "chatMethod",
+        "oneOf": [
+          "getMessageFromChannel",
+          "listMessageRepliesInChannel"
+        ]
+      }
+    },
+    {
+      "label": "Top",
+      "description": "Controls the number of items per response",
+      "group": "data",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "data.top"
+      },
+      "constraints": {
+        "notEmpty": false
+      },
+      "condition": {
+        "property": "channelMethod",
+        "equals": "listChannelMessages"
+      }
+    },
+    {
+      "label": "With replies",
+      "description": "Return messages with replies",
+      "group": "data",
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "True",
+          "value": "true"
+        },
+        {
+          "name": "False",
+          "value": "false"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "data.expand"
+      },
+      "constraints": {
+        "notEmpty": false
+      },
+      "condition": {
+        "property": "channelMethod",
+        "equals": "listChannelMessages"
+      }
+    },
+    {
+      "label": "Result Variable",
+      "description": "Enter the name of the variable where the response should be stored",
+      "group": "output",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultVariable"
+      }
+    },
+    {
+      "label": "Result Expression",
+      "description": "Expression to map the response into process variables",
+      "group": "output",
+      "type": "Text",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultExpression"
+      }
+    },
+    {
+      "label": "Error Expression",
+      "description": "Expression to define BPMN errors to throw",
+      "group": "errors",
+      "type": "Text",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "errorExpression"
+      }
+    }
+  ],
+  "icon": {
+    "contents": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iODAwIiB3aWR0aD0iMTIwMCIgdmlld0JveD0iLTMzNC4zMjQ5NSAtNTE4LjMzMzUgMjg5Ny40ODI5IDMxMTAuMDAxIj48cGF0aCBkPSJNMTU1NC42MzcgNzc3LjVoNTc1LjcxM2M1NC4zOTEgMCA5OC40ODMgNDQuMDkyIDk4LjQ4MyA5OC40ODN2NTI0LjM5OGMwIDE5OS45MDEtMTYyLjA1MSAzNjEuOTUyLTM2MS45NTIgMzYxLjk1MmgtMS43MTFjLTE5OS45MDEuMDI4LTM2MS45NzUtMTYyLTM2Mi4wMDQtMzYxLjkwMVY4MjguOTcxYy4wMDEtMjguNDI3IDIzLjA0NS01MS40NzEgNTEuNDcxLTUxLjQ3MXoiIGZpbGw9IiM1MDU5QzkiLz48Y2lyY2xlIHI9IjIzMy4yNSIgY3k9IjQ0MC41ODMiIGN4PSIxOTQzLjc1IiBmaWxsPSIjNTA1OUM5Ii8+PGNpcmNsZSByPSIzMzYuOTE3IiBjeT0iMzM2LjkxNyIgY3g9IjEyMTguMDgzIiBmaWxsPSIjN0I4M0VCIi8+PHBhdGggZD0iTTE2NjcuMzIzIDc3Ny41SDcxNy4wMWMtNTMuNzQzIDEuMzMtOTYuMjU3IDQ1LjkzMS05NS4wMSA5OS42NzZ2NTk4LjEwNWMtNy41MDUgMzIyLjUxOSAyNDcuNjU3IDU5MC4xNiA1NzAuMTY3IDU5OC4wNTMgMzIyLjUxLTcuODkzIDU3Ny42NzEtMjc1LjUzNCA1NzAuMTY3LTU5OC4wNTNWODc3LjE3NmMxLjI0NS01My43NDUtNDEuMjY4LTk4LjM0Ni05NS4wMTEtOTkuNjc2eiIgZmlsbD0iIzdCODNFQiIvPjxwYXRoIGQ9Ik0xMjQ0IDc3Ny41djgzOC4xNDVjLS4yNTggMzguNDM1LTIzLjU0OSA3Mi45NjQtNTkuMDkgODcuNTk4YTkxLjg1NiA5MS44NTYgMCAwMS0zNS43NjUgNy4yNTdINjY3LjYxM2MtNi43MzgtMTcuMTA1LTEyLjk1OC0zNC4yMS0xOC4xNDItNTEuODMzYTYzMS4yODcgNjMxLjI4NyAwIDAxLTI3LjQ3Mi0xODMuNDlWODc3LjAyYy0xLjI0Ni01My42NTkgNDEuMTk4LTk4LjE5IDk0Ljg1NS05OS41MnoiIG9wYWNpdHk9Ii4xIi8+PHBhdGggZD0iTTExOTIuMTY3IDc3Ny41djg4OS45NzhhOTEuODAyIDkxLjgwMiAwIDAxLTcuMjU3IDM1Ljc2NWMtMTQuNjM0IDM1LjU0MS00OS4xNjMgNTguODMzLTg3LjU5OCA1OS4wOUg2OTEuOTc1Yy04LjgxMi0xNy4xMDUtMTcuMTA1LTM0LjIxLTI0LjM2Mi01MS44MzMtNy4yNTctMTcuNjIzLTEyLjk1OC0zNC4yMS0xOC4xNDItNTEuODMzYTYzMS4yODIgNjMxLjI4MiAwIDAxLTI3LjQ3Mi0xODMuNDlWODc3LjAyYy0xLjI0Ni01My42NTkgNDEuMTk4LTk4LjE5IDk0Ljg1NS05OS41MnoiIG9wYWNpdHk9Ii4yIi8+PHBhdGggZD0iTTExOTIuMTY3IDc3Ny41djc4Ni4zMTJjLS4zOTUgNTIuMjIzLTQyLjYzMiA5NC40Ni05NC44NTUgOTQuODU1aC00NDcuODRBNjMxLjI4MiA2MzEuMjgyIDAgMDE2MjIgMTQ3NS4xNzdWODc3LjAyYy0xLjI0Ni01My42NTkgNDEuMTk4LTk4LjE5IDk0Ljg1NS05OS41MnoiIG9wYWNpdHk9Ii4yIi8+PHBhdGggZD0iTTExNDAuMzMzIDc3Ny41djc4Ni4zMTJjLS4zOTUgNTIuMjIzLTQyLjYzMiA5NC40Ni05NC44NTUgOTQuODU1SDY0OS40NzJBNjMxLjI4MiA2MzEuMjgyIDAgMDE2MjIgMTQ3NS4xNzdWODc3LjAyYy0xLjI0Ni01My42NTkgNDEuMTk4LTk4LjE5IDk0Ljg1NS05OS41MnoiIG9wYWNpdHk9Ii4yIi8+PHBhdGggZD0iTTEyNDQgNTA5LjUyMnYxNjMuMjc1Yy04LjgxMi41MTgtMTcuMTA1IDEuMDM3LTI1LjkxNyAxLjAzNy04LjgxMiAwLTE3LjEwNS0uNTE4LTI1LjkxNy0xLjAzN2EyODQuNDcyIDI4NC40NzIgMCAwMS01MS44MzMtOC4yOTNjLTEwNC45NjMtMjQuODU3LTE5MS42NzktOTguNDY5LTIzMy4yNS0xOTguMDAzYTI4OC4wMiAyODguMDIgMCAwMS0xNi41ODctNTEuODMzaDI1OC42NDhjNTIuMzA1LjE5OCA5NC42NTcgNDIuNTQ5IDk0Ljg1NiA5NC44NTR6IiBvcGFjaXR5PSIuMSIvPjxwYXRoIGQ9Ik0xMTkyLjE2NyA1NjEuMzU1djExMS40NDJhMjg0LjQ3MiAyODQuNDcyIDAgMDEtNTEuODMzLTguMjkzYy0xMDQuOTYzLTI0Ljg1Ny0xOTEuNjc5LTk4LjQ2OS0yMzMuMjUtMTk4LjAwM2gxOTAuMjI4YzUyLjMwNC4xOTggOTQuNjU2IDQyLjU1IDk0Ljg1NSA5NC44NTR6IiBvcGFjaXR5PSIuMiIvPjxwYXRoIGQ9Ik0xMTkyLjE2NyA1NjEuMzU1djExMS40NDJhMjg0LjQ3MiAyODQuNDcyIDAgMDEtNTEuODMzLTguMjkzYy0xMDQuOTYzLTI0Ljg1Ny0xOTEuNjc5LTk4LjQ2OS0yMzMuMjUtMTk4LjAwM2gxOTAuMjI4YzUyLjMwNC4xOTggOTQuNjU2IDQyLjU1IDk0Ljg1NSA5NC44NTR6IiBvcGFjaXR5PSIuMiIvPjxwYXRoIGQ9Ik0xMTQwLjMzMyA1NjEuMzU1djEwMy4xNDhjLTEwNC45NjMtMjQuODU3LTE5MS42NzktOTguNDY5LTIzMy4yNS0xOTguMDAzaDEzOC4zOTVjNTIuMzA1LjE5OSA5NC42NTYgNDIuNTUxIDk0Ljg1NSA5NC44NTV6IiBvcGFjaXR5PSIuMiIvPjxsaW5lYXJHcmFkaWVudCBncmFkaWVudFRyYW5zZm9ybT0ibWF0cml4KDEgMCAwIC0xIDAgMjA3NS4zMzMpIiB5Mj0iMzk0LjI2MSIgeDI9Ijk0Mi4yMzQiIHkxPSIxNjgzLjA3MyIgeDE9IjE5OC4wOTkiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiBpZD0iYSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjNWE2MmMzIi8+PHN0b3Agb2Zmc2V0PSIuNSIgc3RvcC1jb2xvcj0iIzRkNTViZCIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzM5NDBhYiIvPjwvbGluZWFyR3JhZGllbnQ+PHBhdGggZD0iTTk1LjAxIDQ2Ni41aDk1MC4zMTJjNTIuNDczIDAgOTUuMDEgNDIuNTM4IDk1LjAxIDk1LjAxdjk1MC4zMTJjMCA1Mi40NzMtNDIuNTM4IDk1LjAxLTk1LjAxIDk1LjAxSDk1LjAxYy01Mi40NzMgMC05NS4wMS00Mi41MzgtOTUuMDEtOTUuMDFWNTYxLjUxYzAtNTIuNDcyIDQyLjUzOC05NS4wMSA5NS4wMS05NS4wMXoiIGZpbGw9InVybCgjYSkiLz48cGF0aCBkPSJNODIwLjIxMSA4MjguMTkzaC0xODkuOTd2NTE3LjI5N2gtMTIxLjAzVjgyOC4xOTNIMzIwLjEyM1Y3MjcuODQ0aDUwMC4wODh6IiBmaWxsPSIjRkZGIi8+PC9zdmc+"
+  }
+}
