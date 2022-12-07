@@ -4,10 +4,12 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.slack;
+package io.camunda.connector.slack.utils;
 
 import com.google.gson.*;
 import com.google.gson.reflect.TypeToken;
+import io.camunda.connector.slack.SlackRequest;
+import io.camunda.connector.slack.SlackRequestData;
 import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.Map;

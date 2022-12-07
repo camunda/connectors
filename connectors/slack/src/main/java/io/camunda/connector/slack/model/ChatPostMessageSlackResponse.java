@@ -4,9 +4,10 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.slack;
+package io.camunda.connector.slack.model;
 
 import com.slack.api.methods.response.chat.ChatPostMessageResponse;
+import io.camunda.connector.slack.SlackResponse;
 import java.util.Objects;
 
 public class ChatPostMessageSlackResponse implements SlackResponse {

@@ -11,6 +11,7 @@ import com.slack.api.Slack;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.slack.suppliers.GsonSupplier;
 
 @OutboundConnector(
     name = "SLACK",

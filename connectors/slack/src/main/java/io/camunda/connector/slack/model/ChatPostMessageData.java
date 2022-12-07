@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.slack;
+package io.camunda.connector.slack.model;
 
 import com.slack.api.methods.MethodsClient;
 import com.slack.api.methods.SlackApiException;
@@ -14,6 +14,9 @@ import com.slack.api.methods.response.chat.ChatPostMessageResponse;
 import com.slack.api.methods.response.users.UsersLookupByEmailResponse;
 import com.slack.api.model.User;
 import io.camunda.connector.api.annotation.Secret;
+import io.camunda.connector.slack.SlackRequestData;
+import io.camunda.connector.slack.SlackResponse;
+import io.camunda.connector.slack.utils.DataLookupService;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.Optional;

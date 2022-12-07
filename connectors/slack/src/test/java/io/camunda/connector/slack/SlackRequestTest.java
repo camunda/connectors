@@ -12,6 +12,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.slack.api.methods.MethodsClient;
 import com.slack.api.methods.response.chat.ChatPostMessageResponse;
 import io.camunda.connector.impl.ConnectorInputException;
+import io.camunda.connector.slack.model.ChatPostMessageData;
+import io.camunda.connector.slack.model.ChatPostMessageSlackResponse;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
