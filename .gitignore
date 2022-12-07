@@ -58,7 +58,6 @@ build/
 
 # environment
 .env
-request*.json
 
 # License
 THIRD-PARTY.properties
