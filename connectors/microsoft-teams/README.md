@@ -1,19 +1,4 @@
-> A template for new C8 connectors.
->
-> To use this template update the following resources to match the name of your connector:
->
-> * [README](./README.md) (title, description)
-> * [Element Template](./element-templates/template-connector.json)
-> * [POM](./pom.xml) (artifact name, description)
-> * [Connector Function](./src/main/java/io/camunda/connector/MyConnectorFunction.java) (rename and update `OutboundConnector` annotation)
-> * [Publish Action](./.github/workflows/publish-cloud-function.yaml#L95) (name)
-> * [Service Provider Interface (SPI)](./src/main/resources/META-INF/services/io.camunda.connector.api.ConnectorFunction#L1) (rename)
-> * [Third-party notices template](./licenses/third-party.ftl#L34) (name)
->
-> ...and delete this hint.
-
-
-# Camunda Connector Template
+# Camunda Microsoft Teams Connector
 
 Find the user documentation in our [Camunda Platform 8 Docs](https://docs.camunda.io/docs/components/integration-framework/connectors/out-of-the-box-connectors/available-connectors-overview).
 
