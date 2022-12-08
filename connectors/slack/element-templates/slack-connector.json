@@ -200,9 +200,10 @@
     },
     {
       "label": "Users",
-      "description": "Comma separated list of invitee names",
+      "description": "A single user, or comma separated list of users, or a valid list of strings as a FEEL expression",
       "group": "invite",
       "type": "String",
+      "feel": "optional",
       "binding": {
         "type": "zeebe:input",
         "name": "data.users"

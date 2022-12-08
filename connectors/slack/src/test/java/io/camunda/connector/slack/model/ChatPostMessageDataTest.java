@@ -75,6 +75,7 @@ class ChatPostMessageDataTest {
 
     when(methodsClient.usersLookupByEmail(any(UsersLookupByEmailRequest.class)))
         .thenReturn(lookupByEmailResponse);
+    when(lookupByEmailResponse.isOk()).thenReturn(Boolean.TRUE);
     when(lookupByEmailResponse.getUser()).thenReturn(user);
     when(user.getId()).thenReturn(USERID);
     when(methodsClient.chatPostMessage(chatPostMessageRequest.capture()))

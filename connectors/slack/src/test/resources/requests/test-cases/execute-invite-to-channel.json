@@ -14,7 +14,7 @@
     "method": "conversations.invite",
     "data": {
       "channelName": "{{secrets.NEW_CHANNEL_NAME_KEY}}",
-      "users": "JohnDou,@JohnDou"
+      "users": "[\"JohnDou\",\"@JohnDou\"]"
     }
   },
   {

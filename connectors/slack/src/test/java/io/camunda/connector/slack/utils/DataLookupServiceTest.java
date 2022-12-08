@@ -22,7 +22,7 @@ public class DataLookupServiceTest {
     String stringToConvertToList = "test@test.com,@test1, test2 ,  @test3 ";
     List<String> result = DataLookupService.convertStringToList(stringToConvertToList);
     assertEquals(4, result.size());
-    assertEquals("test3", result.get(3));
+    assertEquals("@test3", result.get(3));
   }
 
   @ParameterizedTest

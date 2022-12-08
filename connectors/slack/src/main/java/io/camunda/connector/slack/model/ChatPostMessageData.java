@@ -9,17 +9,13 @@ package io.camunda.connector.slack.model;
 import com.slack.api.methods.MethodsClient;
 import com.slack.api.methods.SlackApiException;
 import com.slack.api.methods.request.chat.ChatPostMessageRequest;
-import com.slack.api.methods.request.users.UsersLookupByEmailRequest;
 import com.slack.api.methods.response.chat.ChatPostMessageResponse;
-import com.slack.api.methods.response.users.UsersLookupByEmailResponse;
-import com.slack.api.model.User;
 import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.slack.SlackRequestData;
 import io.camunda.connector.slack.SlackResponse;
 import io.camunda.connector.slack.utils.DataLookupService;
 import java.io.IOException;
 import java.util.Objects;
-import java.util.Optional;
 import javax.validation.constraints.NotBlank;
 import org.apache.commons.text.StringEscapeUtils;
 
@@ -33,7 +29,7 @@ public class ChatPostMessageData implements SlackRequestData {
     if (channel.startsWith("@")) {
       channel = DataLookupService.getUserIdByName(channel.substring(1), methodsClient);
     } else if (DataLookupService.isEmail(channel)) {
-      channel = getUserIdByEmail(methodsClient);
+      channel = DataLookupService.getUserIdByEmail(channel, methodsClient);
     }
     ChatPostMessageRequest request =
         ChatPostMessageRequest.builder()
@@ -49,22 +45,6 @@ public class ChatPostMessageData implements SlackRequestData {
     } else {
       throw new RuntimeException(chatPostMessageResponse.getError());
     }
-  }
-
-  private String getUserIdByEmail(final MethodsClient methodsClient)
-      throws IOException, SlackApiException {
-    UsersLookupByEmailRequest lookupByEmailRequest =
-        UsersLookupByEmailRequest.builder().email(channel).build();
-
-    return Optional.ofNullable(methodsClient.usersLookupByEmail(lookupByEmailRequest))
-        .map(UsersLookupByEmailResponse::getUser)
-        .map(User::getId)
-        .orElseThrow(
-            () ->
-                new RuntimeException(
-                    "User with email "
-                        + channel
-                        + " not found; or unable 'users:read.email' permission"));
   }
 
   public String getChannel() {

@@ -15,20 +15,28 @@ import io.camunda.connector.slack.SlackRequestData;
 import io.camunda.connector.slack.SlackResponse;
 import io.camunda.connector.slack.utils.DataLookupService;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 
 public class ConversationsInviteData implements SlackRequestData {
 
   @NotBlank @Secret private String channelName;
-  @NotBlank @Secret private String users;
+  @NotNull @Secret private Object users;
 
   @Override
   public SlackResponse invoke(MethodsClient methodsClient) throws SlackApiException, IOException {
+    List<String> userInputAsList = null;
+    if (users instanceof Collection<?>) {
+      userInputAsList = (ArrayList<String>) users;
+    } else {
+      userInputAsList = DataLookupService.convertStringToList((String) users);
+    }
     List<String> userList =
-        DataLookupService.getUserIdsFromNameOrEmail(
-            DataLookupService.convertStringToList(users), methodsClient);
+        DataLookupService.getUserIdsFromNameOrEmail(userInputAsList, methodsClient);
     ConversationsInviteRequest request =
         ConversationsInviteRequest.builder()
             .channel(DataLookupService.getChannelIdByName(channelName, methodsClient))
@@ -52,11 +60,11 @@ public class ConversationsInviteData implements SlackRequestData {
     this.channelName = channelName;
   }
 
-  public String getUsers() {
+  public Object getUsers() {
     return users;
   }
 
-  public void setUsers(String users) {
+  public void setUsers(Object users) {
     this.users = users;
   }
 

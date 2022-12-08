@@ -30,10 +30,7 @@ public class DataLookupService {
     if (StringUtils.isBlank(string)) {
       return new ArrayList<>();
     }
-    return Arrays.stream(string.split(","))
-        .map(s -> s.trim())
-        .map(s -> s.startsWith("@") ? s.substring(1) : s)
-        .collect(Collectors.toList());
+    return Arrays.stream(string.split(",")).map(s -> s.trim()).collect(Collectors.toList());
   }
 
   public static boolean isEmail(final String str) {
@@ -48,7 +45,19 @@ public class DataLookupService {
 
     List<String> emails = new ArrayList<>();
     List<String> usernames = new ArrayList<>();
-    userList.stream().forEach(user -> (isEmail(user) ? emails : usernames).add(user));
+    List<String> userIds = new ArrayList<>();
+    userList.stream()
+        .filter(Objects::nonNull)
+        .forEach(
+            user -> {
+              if (isEmail(user)) {
+                emails.add(user);
+              } else if (user.startsWith("@")) {
+                usernames.add(user.substring(1));
+              } else {
+                userIds.add(user);
+              }
+            });
 
     List<String> idListByEmail =
         emails.stream()
@@ -65,19 +74,26 @@ public class DataLookupService {
 
     List<String> idListByUserName = getIdListByUserNameList(usernames, methodsClient);
 
-    return Stream.concat(idListByEmail.stream(), idListByUserName.stream())
+    return Stream.of(idListByEmail, idListByUserName, userIds)
+        .flatMap(Collection::stream)
         .collect(Collectors.toList());
   }
 
-  public static String getUserIdByEmail(String email, MethodsClient methodsClient)
-      throws SlackApiException, IOException {
+  public static String getUserIdByEmail(final String email, final MethodsClient methodsClient)
+      throws IOException, SlackApiException {
     UsersLookupByEmailRequest lookupByEmailRequest =
         UsersLookupByEmailRequest.builder().email(email).build();
+
     return Optional.ofNullable(methodsClient.usersLookupByEmail(lookupByEmailRequest))
         .filter(UsersLookupByEmailResponse::isOk)
         .map(UsersLookupByEmailResponse::getUser)
         .map(User::getId)
-        .orElseThrow(() -> new RuntimeException("Unable to find user with email: " + email));
+        .orElseThrow(
+            () ->
+                new RuntimeException(
+                    "User with email "
+                        + email
+                        + " not found; or unable 'users:read.email' permission"));
   }
 
   public static List<String> getIdListByUserNameList(
