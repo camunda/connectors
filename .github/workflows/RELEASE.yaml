@@ -127,7 +127,7 @@ jobs:
 
       - name: Set next development patch version
         run: |
-          mvn -B versions:set -DnewVersion=${NEXT_VERSION} -DgenerateBackupPoms=false
+          mvn -B versions:set -DnewVersion=${NEXT_VERSION}-SNAPSHOT -DgenerateBackupPoms=false
           git commit -am "ci: set next development version"
           git push --follow-tags
         env:
