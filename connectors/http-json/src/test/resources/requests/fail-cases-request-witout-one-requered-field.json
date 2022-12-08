@@ -1,0 +1,275 @@
+[
+  {
+    "testDescription": "without method field",
+    "url": "testmail@testmail.com",
+    "authentication": {
+      "type": "noAuth"
+    },
+    "queryParameters": {
+      "q": "query parameter",
+      "priority": 12
+    }
+  },
+  {
+    "testDescription": "without URL field",
+    "method": "get",
+    "authentication": {
+      "type": "noAuth"
+    },
+    "queryParameters": {
+      "q": "query parameter",
+      "priority": 12
+    },
+    "headers": {
+      "X-Camunda-Cluster-ID": "abcdef",
+      "User-Agent": "http-connector-demo"
+    },
+    "body": {
+      "customer": {
+        "id": 1231231,
+        "name": "Jane Doe",
+        "email": "jane.doe@exampe.com"
+      }
+    }
+  },
+  {
+    "testDescription": "bearer auth type without URL field",
+    "method": "get",
+    "authentication": {
+      "type": "bearer"
+    },
+    "queryParameters": {
+      "q": "query parameter",
+      "priority": 12
+    },
+    "headers": {
+      "X-Camunda-Cluster-ID": "abcdef",
+      "User-Agent": "http-connector-demo"
+    },
+    "body": {
+      "customer": {
+        "id": 1231231,
+        "name": "Jane Doe",
+        "email": "jane.doe@exampe.com"
+      }
+    }
+  },
+  {
+    "testDescription": "basic auth type without URL field",
+    "method": "get",
+    "authentication": {
+      "type": "basic"
+    },
+    "queryParameters": {
+      "q": "query parameter",
+      "priority": 12
+    },
+    "headers": {
+      "X-Camunda-Cluster-ID": "abcdef",
+      "User-Agent": "http-connector-demo"
+    },
+    "body": {
+      "customer": {
+        "id": 1231231,
+        "name": "Jane Doe",
+        "email": "jane.doe@exampe.com"
+      }
+    }
+  },
+  {
+    "testDescription": "bearer auth without token",
+    "method": "get",
+    "url": "testmail@testmail.com",
+    "authentication": {
+      "type": "bearer"
+    },
+    "queryParameters": {
+      "q": "query parameter",
+      "priority": 12
+    },
+    "headers": {
+      "X-Camunda-Cluster-ID": "abcdef",
+      "User-Agent": "http-connector-demo"
+    },
+    "body": {
+      "customer": {
+        "id": 1231231,
+        "name": "Jane Doe",
+        "email": "jane.doe@exampe.com"
+      }
+    }
+  },
+  {
+    "testDescription": "basic auth without password",
+    "method": "get",
+    "url": "testmail@testmail.com",
+    "authentication": {
+      "type": "basic",
+      "username": "username"
+    },
+    "queryParameters": {
+      "q": "query parameter",
+      "priority": 12
+    },
+    "headers": {
+      "X-Camunda-Cluster-ID": "abcdef",
+      "User-Agent": "http-connector-demo"
+    },
+    "body": {
+      "customer": {
+        "id": 1231231,
+        "name": "Jane Doe",
+        "email": "jane.doe@exampe.com"
+      }
+    }
+  },
+  {
+    "testDescription": "basic auth without username",
+    "method": "get",
+    "url": "testmail@testmail.com",
+    "authentication": {
+      "type": "basic",
+      "password": "password"
+    },
+    "queryParameters": {
+      "q": "query parameter",
+      "priority": 12
+    },
+    "headers": {
+      "X-Camunda-Cluster-ID": "abcdef",
+      "User-Agent": "http-connector-demo"
+    },
+    "body": {
+      "customer": {
+        "id": 1231231,
+        "name": "Jane Doe",
+        "email": "jane.doe@exampe.com"
+      }
+    }
+  },
+  {
+    "descriptionOfTest": "oauth request without client id",
+    "method": "post",
+    "url": "https://abc/def",
+    "connectionTimeoutInSeconds": "30",
+    "headers": {
+      "X-Camunda-Cluster-ID": "abcdef",
+      "User-Agent": "http-connector-demo"
+    },
+    "authentication":{
+      "oauthTokenEndpoint":"https://abc.eu.auth0.com/api/v2/",
+      "scopes": "read:clients",
+      "audience":"https://abc.eu.auth0.com/api/v2/",
+      "clientSecret":"secrets.CLIENT_SECRET",
+      "type":"oauth-client-credentials-flow",
+      "clientAuthentication":"basicAuthHeader"
+    },
+    "body": {
+      "customer": {
+        "id": 1231231,
+        "name": "Jane Doe",
+        "email": "jane.doe@exampe.com"
+      }
+    }
+  },
+  {
+    "descriptionOfTest": "oauth request without client secret",
+    "method": "post",
+    "url": "https://abc/def",
+    "connectionTimeoutInSeconds": "30",
+    "headers": {
+      "X-Camunda-Cluster-ID": "abcdef",
+      "User-Agent": "http-connector-demo"
+    },
+    "authentication":{
+      "oauthTokenEndpoint":"https://abc.eu.auth0.com/api/v2/",
+      "scopes": "read:clients",
+      "audience":"https://abc.eu.auth0.com/api/v2/",
+      "clientId":"secrets.CLIENT_ID",
+      "type":"oauth-client-credentials-flow",
+      "clientAuthentication":"basicAuthHeader"
+    },
+    "body": {
+      "customer": {
+        "id": 1231231,
+        "name": "Jane Doe",
+        "email": "jane.doe@exampe.com"
+      }
+    }
+  },
+  {
+    "descriptionOfTest": "oauth request without oauth token endpoint",
+    "method": "post",
+    "url": "https://abc/def",
+    "connectionTimeoutInSeconds": "30",
+    "headers": {
+      "X-Camunda-Cluster-ID": "abcdef",
+      "User-Agent": "http-connector-demo"
+    },
+    "authentication":{
+      "scopes": "read:clients",
+      "audience":"https://abc.eu.auth0.com/api/v2/",
+      "clientId":"secrets.CLIENT_ID",
+      "clientSecret":"secrets.CLIENT_SECRET",
+      "type":"oauth-client-credentials-flow",
+      "clientAuthentication":"basicAuthHeader"
+    },
+    "body": {
+      "customer": {
+        "id": 1231231,
+        "name": "Jane Doe",
+        "email": "jane.doe@exampe.com"
+      }
+    }
+  },
+  {
+    "descriptionOfTest": "oauth request without audience",
+    "method": "post",
+    "url": "https://abc/def",
+    "connectionTimeoutInSeconds": "30",
+    "headers": {
+      "X-Camunda-Cluster-ID": "abcdef",
+      "User-Agent": "http-connector-demo"
+    },
+    "authentication":{
+      "oauthTokenEndpoint":"https://abc.eu.auth0.com/api/v2/",
+      "scopes": "read:clients",
+      "clientId":"secrets.CLIENT_ID",
+      "clientSecret":"secrets.CLIENT_SECRET",
+      "type":"oauth-client-credentials-flow",
+      "clientAuthentication":"basicAuthHeader"
+    },
+    "body": {
+      "customer": {
+        "id": 1231231,
+        "name": "Jane Doe",
+        "email": "jane.doe@exampe.com"
+      }
+    }
+  },
+  {
+    "descriptionOfTest": "oauth request without client authentication",
+    "method": "post",
+    "url": "https://abc/def",
+    "connectionTimeoutInSeconds": "30",
+    "headers": {
+      "X-Camunda-Cluster-ID": "abcdef",
+      "User-Agent": "http-connector-demo"
+    },
+    "authentication":{
+      "oauthTokenEndpoint":"https://abc.eu.auth0.com/api/v2/",
+      "scopes": "read:clients",
+      "audience":"https://abc.eu.auth0.com/api/v2/",
+      "clientId":"secrets.CLIENT_ID",
+      "clientSecret":"secrets.CLIENT_SECRET",
+      "type":"oauth-client-credentials-flow"
+    },
+    "body": {
+      "customer": {
+        "id": 1231231,
+        "name": "Jane Doe",
+        "email": "jane.doe@exampe.com"
+      }
+    }
+  }
+]

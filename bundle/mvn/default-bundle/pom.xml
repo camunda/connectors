@@ -51,6 +51,10 @@
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-slack</artifactId>
     </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-kafka</artifactId>
+    </dependency>
   </dependencies>
 
   <build>

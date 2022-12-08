@@ -1,0 +1,41 @@
+[
+  {
+    "descriptionOfTest": "0 value",
+    "method": "get",
+    "url": "https://camunda.io/http-endpoint",
+    "connectionTimeoutInSeconds": "0",
+    "authentication": {
+      "type": "noAuth"
+    }
+  },
+  {
+    "descriptionOfTest": "0 value with bearer auth",
+    "method": "get",
+    "url": "https://camunda.io/http-endpoint",
+    "connectionTimeoutInSeconds": "0",
+    "authentication": {
+      "type": "bearer",
+      "token": "secrets.TOKEN_KEY"
+    }
+  },
+  {
+    "descriptionOfTest": "positive value",
+    "method": "get",
+    "url": "https://camunda.io/http-endpoint",
+    "connectionTimeoutInSeconds": "99",
+    "authentication": {
+      "type": "bearer",
+      "token": "secrets.TOKEN_KEY"
+    }
+  },
+  {
+    "descriptionOfTest": "secrets value",
+    "method": "get",
+    "url": "https://camunda.io/http-endpoint",
+    "connectionTimeoutInSeconds": "secrets.SOME_SECRET_KEY",
+    "authentication": {
+      "type": "bearer",
+      "token": "secrets.TOKEN_KEY"
+    }
+  }
+]

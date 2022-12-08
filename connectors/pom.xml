@@ -24,6 +24,8 @@
     <module>google-drive</module>
     <module>rabbitmq</module>
     <module>sendgrid</module>
+    <module>kafka</module>
+    <module>http-json</module>
   </modules>
 
   <properties>
