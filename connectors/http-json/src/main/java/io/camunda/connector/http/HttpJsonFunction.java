@@ -27,6 +27,7 @@ import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpResponse;
 import com.google.api.client.http.HttpResponseException;
 import com.google.api.client.http.UrlEncodedContent;
+import com.google.api.client.http.json.JsonHttpContent;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.auth.oauth2.OAuth2Credentials;
 import com.google.gson.Gson;
@@ -261,7 +262,7 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
 
   protected HttpContent createContent(final HttpJsonRequest request) {
     if (request.hasBody()) {
-      return new UrlEncodedContent(request.hasBody());
+      return new JsonHttpContent(gsonFactory, request.getBody());
     } else {
       return null;
     }
