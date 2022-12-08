@@ -171,47 +171,7 @@ If the other party requiring OAuth for authentication, you need to set the follo
 GOOGLE_APPLICATION_CREDENTIALS=...
 ```
 
-## Test locally
-
-### Run unit tests
-
-Run unit tests
-
-```bash
-mvn clean verify
-```
-
-### Test with local runtime
-
-Use the [Camunda Connector Runtime](https://github.com/camunda-community-hub/spring-zeebe/tree/master/connector-runtime#building-connector-runtime-bundles) to run your function as a local Java application.
-
-In your IDE you can also simply navigate to the `LocalContainerRuntime` class in test scope and run it via your IDE.
-
-### :lock: Test as local Google Cloud Function
-
-> **Warning**
-> This is Camunda-internal only. The Maven profile `cloud-function` accesses an internal artifact.
-
-Build as Google Cloud Function
-
-```bash
-mvn function:run -Pcloud-function
-```
-
-Run as plain Google Cloud Function (no cluster ID needed, result return directly without additional JSON Object wrapping)
-
-```bash
-mvn function:run -Pcloud-function,cloud-function-plain
-```
-
-See also the [:lock:Camunda Cloud Connector Run-Time](https://github.com/camunda/connector-runtime-cloud) on how your function
-is run as a Google Cloud Function.
-
 ## Element Template
 
 The element templates can be found in
 the [element-templates/http-json-connector.json](element-templates/http-json-connector.json) file.
-
-## Build a release
-
-Trigger the [release action](./.github/workflows/RELEASE.yml) manually with the version `x.y.z` you want to release and the next SNAPSHOT version.
