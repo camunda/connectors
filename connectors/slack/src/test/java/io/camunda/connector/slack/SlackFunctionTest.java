@@ -32,11 +32,8 @@ import com.slack.api.model.ResponseMetadata;
 import com.slack.api.model.User;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.slack.model.*;
-
 import java.io.IOException;
-import java.util.Collection;
 import java.util.List;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -113,12 +110,13 @@ public class SlackFunctionTest extends BaseTest {
 
     // invite tot channel
     when(methodsClient.conversationsInvite(conversationsInviteRequestArgumentCaptor.capture()))
-            .thenReturn(conversationsInviteResponse);
+        .thenReturn(conversationsInviteResponse);
 
     when(conversationsInviteResponse.isOk()).thenReturn(Boolean.TRUE);
     when(conversationsInviteResponse.getChannel()).thenReturn(new Conversation());
 
-    when(methodsClient.conversationsList(any(ConversationsListRequest.class))).thenReturn(conversationsListResponse);
+    when(methodsClient.conversationsList(any(ConversationsListRequest.class)))
+        .thenReturn(conversationsListResponse);
     when(responseMetadata.getNextCursor()).thenReturn(null);
     when(conversationsListResponse.getChannels()).thenReturn(List.of(channel));
     when(conversationsListResponse.isOk()).thenReturn(Boolean.TRUE);
@@ -208,7 +206,7 @@ public class SlackFunctionTest extends BaseTest {
     Object executeResponse = slackFunction.execute(context);
     // Then
     assertThat(conversationsInviteRequestArgumentCaptor.getValue().getChannel())
-            .isEqualTo(ActualValue.ConversationsCreateData.NEW_CHANNEL_NAME);
+        .isEqualTo(ActualValue.ConversationsCreateData.NEW_CHANNEL_NAME);
 
     SlackRequest<ConversationsInviteData> request = gson.fromJson(input, SlackRequest.class);
     assertThat(executeResponse).isInstanceOf(ConversationsInviteSlackResponse.class);
