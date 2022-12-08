@@ -29,7 +29,6 @@ jobs:
   build-and-push:
     name: Build and push Docker images
     runs-on: ubuntu-latest
-    needs: release-and-deploy
     steps:
       - uses: actions/checkout@v3
         with:
@@ -127,7 +126,7 @@ jobs:
 
       - name: Set next development patch version
         run: |
-          mvn -B versions:set -DnewVersion=${NEXT_VERSION} -DgenerateBackupPoms=false
+          mvn -B versions:set -DnewVersion=${NEXT_VERSION}-SNAPSHOT -DgenerateBackupPoms=false
           git commit -am "ci: set next development version"
           git push --follow-tags
         env:
@@ -179,16 +178,6 @@ jobs:
           tags: camunda/connectors-bundle-saas:latest
 
     # Create GitHub release
-
-      - name: Tag version
-        if: github.event.inputs.release-bundle == 'true'
-        run: |
-          tag=${{ github.event.inputs.version }}
-          message='ci: release version ${{ github.event.inputs.version }}'
-          git config user.name "${GITHUB_ACTOR}"
-          git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
-          git tag -a "${tag}" -m "${message}"
-          git push origin "${tag}"
 
       - name: Bundle element templates
         if: github.event.inputs.release-bundle == 'true'
