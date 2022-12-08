@@ -523,10 +523,6 @@
           "value": "standard"
         },
         {
-          "name": "PUBLIC",
-          "value": "public"
-        },
-        {
           "name": "PRIVATE",
           "value": "private"
         },

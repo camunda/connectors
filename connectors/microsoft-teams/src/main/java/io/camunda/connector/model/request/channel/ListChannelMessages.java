@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.model.request.channel;
 
+import com.microsoft.graph.requests.ChatMessageCollectionPage;
 import com.microsoft.graph.requests.ChatMessageCollectionRequest;
 import com.microsoft.graph.requests.GraphServiceClient;
 import io.camunda.connector.api.annotation.Secret;
@@ -26,7 +27,7 @@ public class ListChannelMessages extends MSTeamsRequestData {
   private String top;
 
   @Override
-  public Object invoke(final GraphServiceClient<Request> graphClient) {
+  public ChatMessageCollectionPage invoke(final GraphServiceClient<Request> graphClient) {
     ChatMessageCollectionRequest request =
         graphClient.teams(groupId).channels(channelId).messages().buildRequest();
     if (Boolean.parseBoolean(isExpand)) {

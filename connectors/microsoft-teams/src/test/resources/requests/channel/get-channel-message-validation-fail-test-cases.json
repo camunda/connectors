@@ -1,0 +1,56 @@
+[
+  {
+    "description": "groupId is blank",
+    "data": {
+      "method": "getMessageFromChannel",
+      "groupId": "    ",
+      "channelId": "abc01234-0c7f-012c-9876-testClientId",
+      "messageId": "01234436675734"
+    }
+  },
+  {
+    "description": "groupId is null",
+    "data": {
+      "method": "getMessageFromChannel",
+      "groupId": null,
+      "channelId": "abc01234-0c7f-012c-9876-testClientId",
+      "messageId": "01234436675734"
+    }
+  },
+  {
+    "description": "channelId is null",
+    "data": {
+      "method": "getMessageFromChannel",
+      "groupId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "channelId": null,
+      "messageId": "01234436675734"
+    }
+  },
+  {
+    "description": "channelId is blank",
+    "data": {
+      "method": "getMessageFromChannel",
+      "groupId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "channelId": "   ",
+      "messageId": "01234436675734"
+    }
+  },
+  {
+    "description": "messageId is blank",
+    "data": {
+      "method": "getMessageFromChannel",
+      "groupId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "channelId": "abc01234-0c7f-012c-9876-testClientId",
+      "messageId": "    "
+    }
+  },
+  {
+    "description": "messageId is null",
+    "data": {
+      "method": "getMessageFromChannel",
+      "groupId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "channelId": "abc01234-0c7f-012c-9876-testClientId",
+      "messageId": null
+    }
+  }
+]
