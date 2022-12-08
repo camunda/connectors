@@ -1,0 +1,195 @@
+{
+  "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name": "RabbitMQ Connector",
+  "id": "io.camunda.connectors.RabbitMQ.v1",
+  "description": "Send message to RabbitMQ",
+  "documentationRef": "https://docs.camunda.io/docs/components/integration-framework/connectors/out-of-the-box-connectors/rabbit-mq/",
+  "version": 1,
+  "category": {
+    "id": "connectors",
+    "name": "Connectors"
+  },
+  "appliesTo": [
+    "bpmn:Task"
+  ],
+  "elementType": {
+    "value": "bpmn:ServiceTask"
+  },
+  "groups": [
+    {
+      "id": "authentication",
+      "label": "Authentication"
+    },
+    {
+      "id": "routing",
+      "label": "Routing"
+    },
+    {
+      "id": "message",
+      "label": "Message"
+    },
+    {
+      "id": "output",
+      "label": "Output Mapping"
+    },
+    {
+      "id": "errors",
+      "label": "Error Handling"
+    }
+  ],
+  "properties": [
+    {
+      "type": "Hidden",
+      "value": "io.camunda:connector-rabbitmq:1",
+      "binding": {
+        "type": "zeebe:taskDefinition:type"
+      }
+    },
+    {
+      "id": "connectionType",
+      "label": "Connection Type",
+      "group": "authentication",
+      "type": "Dropdown",
+      "value": "uri",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.authType"
+      },
+      "choices": [
+        {
+          "name": "URI",
+          "value": "uri"
+        },
+        {
+          "name": "Username/Password",
+          "value": "credentials"
+        }
+      ]
+    },
+    {
+      "label": "URI",
+      "description": "URI should contain username, password, host name, port number, and virtual host",
+      "group": "authentication",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.uri"
+      },
+      "constraints": {
+        "notEmpty": true,
+        "pattern": {
+          "value": "^(amqps?://)|(secrets).*",
+          "message": "Must start with amqp(s)://"
+        }
+      },
+      "condition": {
+        "property": "connectionType",
+        "equals": "uri"
+      }
+    },
+    {
+      "label": "Username",
+      "group": "authentication",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.userName"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "connectionType",
+        "equals": "credentials"
+      }
+    },
+    {
+      "label": "Password",
+      "group": "authentication",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.password"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "connectionType",
+        "equals": "credentials"
+      }
+    },
+    {
+      "label": "Routing Data",
+      "description": "Include 'Virtual host', 'Host name', 'Port', 'Exchange', 'Routing key'.",
+      "feel": "required",
+      "group": "routing",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "routing"
+      },
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
+      "label": "Message",
+      "description": "Data to send to RabbitMQ",
+      "group": "message",
+      "type": "Text",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "message.body"
+      }
+    },
+    {
+      "label": "Properties",
+      "description": "Properties for the message, routing headers, etc.",
+      "group": "message",
+      "type": "Text",
+      "feel": "required",
+      "value": "{}",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "message.properties"
+      }
+    },
+    {
+      "label": "Result Variable",
+      "description": "Enter name of variable to store the response in",
+      "group": "output",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultVariable"
+      }
+    },
+    {
+      "label": "Result Expression",
+      "description": "Expression to map the response into process variables",
+      "group": "output",
+      "type": "Text",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultExpression"
+      }
+    },
+    {
+      "label": "Error Expression",
+      "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
+      "group": "errors",
+      "type": "Text",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "errorExpression"
+      }
+    }
+  ],
+  "icon": {
+    "contents": "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='-7.5 0 271 271' preserveAspectRatio='xMidYMid'%3E%3Cpath d='M245.44 108.308h-85.09a7.738 7.738 0 0 1-7.735-7.734v-88.68C152.615 5.327 147.29 0 140.726 0h-30.375c-6.568 0-11.89 5.327-11.89 11.894v88.143c0 4.573-3.697 8.29-8.27 8.31l-27.885.133c-4.612.025-8.359-3.717-8.35-8.325l.173-88.241C54.144 5.337 48.817 0 42.24 0H11.89C5.321 0 0 5.327 0 11.894V260.21c0 5.834 4.726 10.56 10.555 10.56H245.44c5.834 0 10.56-4.726 10.56-10.56V118.868c0-5.834-4.726-10.56-10.56-10.56zm-39.902 93.233c0 7.645-6.198 13.844-13.843 13.844H167.69c-7.646 0-13.844-6.199-13.844-13.844v-24.005c0-7.646 6.198-13.844 13.844-13.844h24.005c7.645 0 13.843 6.198 13.843 13.844v24.005z' fill='%23F60'/%3E%3C/svg%3E"
+  }
+}

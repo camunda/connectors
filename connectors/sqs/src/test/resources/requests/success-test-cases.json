@@ -1,0 +1,56 @@
+[
+  {
+    "testDescription": "Request with secrets",
+    "authentication":{
+      "secretKey":"secrets.AWS_SECRET_KEY",
+      "accessKey":"secrets.AWS_ACCESS_KEY"
+    },
+    "queue":{
+      "messageAttributes":{},
+      "messageBody":{
+        "data":"ok"
+      },
+      "region":"us-east-1",
+      "url":"secrets.SQS_QUEUE_URL"
+    }
+  },
+  {
+    "testDescription": "Request without secrets",
+    "authentication":{
+      "secretKey":"AAAABBBBCCCDDD",
+      "accessKey":"4W553CR3TK3Y"
+    },
+    "queue":{
+      "messageAttributes":{},
+      "messageBody":{
+        "data":"ok"
+      },
+      "region":"us-east-1",
+      "url":"https://my.queue.url"
+    }
+  },
+  {
+    "testDescription":"Request with attributes",
+    "authentication":{
+      "secretKey":"secrets.AWS_SECRET_KEY",
+      "accessKey":"secrets.AWS_ACCESS_KEY"
+    },
+    "queue":{
+      "messageAttributes":{
+        "attribute2":{
+          "StringValue":"attribute 2 value",
+          "DataType":"String"
+        },
+        "attribute1":{
+          "StringValue":"attribute 1 value",
+          "DataType":"String"
+        }
+      },
+      "messageBody":{
+        "data":"ok"
+      },
+      "region":"us-east-1",
+      "url":"secrets.SQS_QUEUE_URL"
+    }
+  }
+]

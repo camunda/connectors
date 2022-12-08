@@ -1,0 +1,307 @@
+{
+  "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name": "Google Drive Connector",
+  "id": "io.camunda.connectors.GoogleDrive.v1",
+  "documentationRef": "https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/googledrive/",
+  "description": "Create folder or a file from template",
+  "category": {
+    "id": "connectors",
+    "name": "Connectors"
+  },
+  "appliesTo": [
+    "bpmn:Task"
+  ],
+  "elementType": {
+    "value": "bpmn:ServiceTask"
+  },
+  "groups": [
+    {
+      "id": "authentication",
+      "label": "Authentication"
+    },
+    {
+      "id": "operation",
+      "label": "Select Operation"
+    },
+    {
+      "id": "operationDetails",
+      "label": "Operation Details"
+    },
+    {
+      "id": "output",
+      "label": "Output Mapping"
+    },
+    {
+      "id": "errors",
+      "label": "Error Handling"
+    }
+  ],
+  "properties": [
+    {
+      "type": "Hidden",
+      "value": "io.camunda:google-drive:1",
+      "binding": {
+        "type": "zeebe:taskDefinition:type"
+      }
+    },
+    {
+      "id": "authenticationType",
+      "label": "Type",
+      "group": "authentication",
+      "type": "Dropdown",
+      "value": "bearer",
+      "choices": [
+        {
+          "name": "Bearer Token",
+          "value": "bearer"
+        },
+        {
+          "name": "Refresh Token",
+          "value": "refresh"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.authType",
+        "key": "authentication.authType"
+      }
+    },
+    {
+      "label": "Bearer Token",
+      "description": "Enter Google API Bearer token that is authorized to interact with desired Drive",
+      "group": "authentication",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.bearerToken"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "bearer"
+      }
+    },
+    {
+      "label": "Client Id",
+      "description": "Enter Google API Client Id",
+      "group": "authentication",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.oauthClientId"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "refresh"
+      }
+    },
+    {
+      "label": "Client Secret",
+      "description": "Enter Google API Client Secret",
+      "group": "authentication",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.oauthClientSecret"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "refresh"
+      }
+    },
+    {
+      "label": "Refresh Token",
+      "description": "Enter Google API Refresh token that is authorized to interact with desired Drive",
+      "group": "authentication",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.oauthRefreshToken"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "refresh"
+      }
+    },
+    {
+      "id": "resourceType",
+      "group": "operation",
+      "type": "Dropdown",
+      "value": "folder",
+      "choices": [
+        {
+          "name": "Create Folder",
+          "value": "folder"
+        },
+        {
+          "name": "Create File from template",
+          "value": "file"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "resource.type",
+        "key": "resource.type"
+      }
+    },
+    {
+      "label": "File name",
+      "description": "Enter name for your file",
+      "group": "operationDetails",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "resource.name"
+      },
+      "constraints": {
+        "notEmpty": true,
+        "maxLength": 255
+      },
+      "condition": {
+        "property": "resourceType",
+        "equals": "file"
+      }
+    },
+    {
+      "label": "Folder name",
+      "description": "Enter name for your folder",
+      "group": "operationDetails",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "resource.name"
+      },
+      "constraints": {
+        "notEmpty": true,
+        "maxLength": 255
+      },
+      "condition": {
+        "property": "resourceType",
+        "equals": "folder"
+      }
+    },
+    {
+      "label": "Template ID",
+      "description": "Enter ID of the template you are creating a file from",
+      "group": "operationDetails",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "resource.template.id"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "resourceType",
+        "equals": "file"
+      }
+    },
+    {
+      "label": "Parent folder ID",
+      "description": "Enter ID of the parent folder where new folder will be created",
+      "group": "operationDetails",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "resource.parent"
+      },
+      "condition": {
+        "property": "resourceType",
+        "equals": "folder"
+      }
+    },
+    {
+      "label": "Parent folder ID",
+      "description": "Enter ID of the parent folder where new file will be created",
+      "group": "operationDetails",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "resource.parent"
+      },
+      "condition": {
+        "property": "resourceType",
+        "equals": "file"
+      }
+    },
+    {
+      "label": "Template variables",
+      "description": "Use this field to pass and update variables in your template as JSON",
+      "group": "operationDetails",
+      "type": "Text",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "resource.template.variables"
+      },
+      "condition": {
+        "property": "resourceType",
+        "equals": "file"
+      }
+    },
+    {
+      "label": "Additional properties or metadata",
+      "description": "Use this field to pass additional Google Drive parameters as JSON.",
+      "group": "operationDetails",
+      "type": "Text",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "resource.additionalGoogleDriveProperties",
+        "key": "resource.additionalGoogleDriveProperties"
+      }
+    },
+    {
+      "label": "Result Variable",
+      "description": "Enter name of variable to store the response in",
+      "group": "output",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultVariable"
+      }
+    },
+    {
+      "label": "Result Expression",
+      "description": "Expression to map the response into process variables",
+      "group": "output",
+      "type": "Text",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultExpression"
+      }
+    },
+    {
+      "label": "Error Expression",
+      "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
+      "group": "errors",
+      "type": "Text",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "errorExpression"
+      }
+    }
+  ],
+  "icon": {
+    "contents": "data:image/svg+xml;utf8,%3Csvg width='18' height='18' viewBox='0 0 87.3 78' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z' fill='%230066da'/%3E%3Cpath d='m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z' fill='%2300ac47'/%3E%3Cpath d='m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z' fill='%23ea4335'/%3E%3Cpath d='m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z' fill='%2300832d'/%3E%3Cpath d='m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z' fill='%232684fc'/%3E%3Cpath d='m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z' fill='%23ffba00'/%3E%3C/svg%3E"
+  }
+}

@@ -1,0 +1,124 @@
+[
+  {
+    "testDescription": "success request with 'credentials' auth type",
+    "authentication": {
+      "authType": "credentials",
+      "password": "password",
+      "userName": "userName"
+    },
+    "routing": {
+      "virtualHost": "virtualHost",
+      "hostName": "localhost",
+      "exchange": "exchangeName",
+      "routingKey": "routingKey",
+      "port": "5672"
+    },
+    "message": {
+      "body": "some plain text body",
+      "properties": {
+        "contentType":"text/plan",
+        "headers": {
+          "key": "value",
+          "key2":"demo value"
+        }
+      }
+    }
+  },
+  {
+    "testDescription": "success request with 'uri' auth type",
+    "authentication": {
+      "authType": "uri",
+      "uri": "amqp://userName:password@localhost:5672/vhost"
+    },
+    "routing": {
+      "virtualHost": "virtualHost",
+      "hostName": "localhost",
+      "exchange": "exchangeName",
+      "routingKey": "routingKey",
+      "port": "5672"
+    },
+    "message": {
+      "body": "true",
+      "properties": {
+        "contentType":"text/plan",
+        "headers": {
+          "key": "value",
+          "key2":"demo value"
+        }
+      }
+    }
+  },
+  {
+    "testDescription": "success request with 'credentials' auth type and secrets",
+    "authentication": {
+      "authType": "credentials",
+      "password": "secrets.PASSWORD_KEY",
+      "userName": "secrets.USERNAME_KEY"
+    },
+    "routing": {
+      "virtualHost": "secrets.VIRTUAL_HOST_KEY",
+      "hostName": "secrets.HOST_NAME_KEY",
+      "exchange": "secrets.EXCHANGE_NAME_KEY",
+      "routingKey": "secrets.ROUTING_SECRET_KEY",
+      "port": "secrets.PORT_KEY"
+    },
+    "message": {
+      "body": "secrets.TEXT_KEY",
+      "properties": {
+        "contentType": "secrets.CONTENT_TYPE_KEY",
+        "contentEncoding": "secrets.CONTENT_ENCODING_KEY",
+        "headers": {
+          "header1": "secrets.HEADER_VALUE_KEY"
+        }
+      }
+    }
+  },
+  {
+    "testDescription": "success request with 'uri' auth type and secrets",
+    "authentication": {
+      "authType": "uri",
+      "uri": "secrets.URI_KEY"
+    },
+    "routing": {
+      "virtualHost": "secrets.VIRTUAL_HOST_KEY",
+      "hostName": "secrets.HOST_NAME_KEY",
+      "exchange": "secrets.EXCHANGE_NAME_KEY",
+      "routingKey": "secrets.ROUTING_SECRET_KEY",
+      "port": "secrets.PORT_KEY"
+    },
+    "message": {
+      "body": "false",
+      "properties": {
+        "contentType": "secrets.CONTENT_TYPE_KEY",
+        "contentEncoding": "secrets.CONTENT_ENCODING_KEY",
+        "headers": {
+          "header1": "secrets.HEADER_VALUE_KEY"
+        }
+      }
+    }
+  },
+  {
+    "testDescription": "success request with 'uri' auth type and secrets with string in body",
+    "authentication": {
+      "authType": "uri",
+      "uri": "secrets.URI_KEY"
+    },
+    "routing": {
+      "virtualHost": "secrets.VIRTUAL_HOST_KEY",
+      "hostName": "secrets.HOST_NAME_KEY",
+      "exchange": "secrets.EXCHANGE_NAME_KEY",
+      "routingKey": "secrets.ROUTING_SECRET_KEY",
+      "port": "secrets.PORT_KEY"
+    },
+    "message": {
+      "body": "string text",
+      "properties": {
+        "contentType": "secrets.CONTENT_TYPE_KEY",
+        "contentEncoding": "secrets.CONTENT_ENCODING_KEY",
+        "headers": {
+          "header1": "secrets.HEADER_VALUE_KEY"
+        }
+      }
+    }
+  }
+]

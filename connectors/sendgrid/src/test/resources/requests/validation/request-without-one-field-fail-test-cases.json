@@ -1,0 +1,226 @@
+[
+  {
+    "from": {
+      "name": "John Doe",
+      "email": "john.doe@example.com"
+    },
+    "to": {
+      "name": "Jane Doe",
+      "email": "jane.doe@example.com"
+    },
+    "template": {
+      "id": "d-0b51e8f77bf8450fae379e0639ca0d11",
+      "data": {
+        "accountName": "Feuerwehrmann Sam",
+        "shipAddress": "Krossener Str. 24",
+        "shipZip": "10245",
+        "shipCity": "Berlin",
+        "total": 75.12
+      }
+    }
+  },
+  {
+    "apiKey": "secrets.SENDGRID_API_KEY",
+    "to": {
+      "name": "Jane Doe",
+      "email": "jane.doe@example.com"
+    },
+    "template": {
+      "id": "d-0b51e8f77bf8450fae379e0639ca0d11",
+      "data": {
+        "accountName": "Feuerwehrmann Sam",
+        "shipAddress": "Krossener Str. 24",
+        "shipZip": "10245",
+        "shipCity": "Berlin",
+        "total": 75.12
+      }
+    }
+  },
+  {
+    "apiKey": "secrets.SENDGRID_API_KEY",
+    "from": {
+      "email": "john.doe@example.com"
+    },
+    "to": {
+      "name": "Jane Doe",
+      "email": "jane.doe@example.com"
+    },
+    "template": {
+      "id": "d-0b51e8f77bf8450fae379e0639ca0d11",
+      "data": {
+        "accountName": "Feuerwehrmann Sam",
+        "shipAddress": "Krossener Str. 24",
+        "shipZip": "10245",
+        "shipCity": "Berlin",
+        "total": 75.12
+      }
+    }
+  },
+  {
+    "apiKey": "secrets.SENDGRID_API_KEY",
+    "from": {
+      "name": "John Doe"
+    },
+    "to": {
+      "name": "Jane Doe",
+      "email": "jane.doe@example.com"
+    },
+    "template": {
+      "id": "d-0b51e8f77bf8450fae379e0639ca0d11",
+      "data": {
+        "accountName": "Feuerwehrmann Sam",
+        "shipAddress": "Krossener Str. 24",
+        "shipZip": "10245",
+        "shipCity": "Berlin",
+        "total": 75.12
+      }
+    }
+  },
+  {
+    "apiKey": "secrets.SENDGRID_API_KEY",
+    "from": {
+      "name": "John Doe",
+      "email": "john.doe@example.com"
+    },
+    "template": {
+      "id": "d-0b51e8f77bf8450fae379e0639ca0d11",
+      "data": {
+        "accountName": "Feuerwehrmann Sam",
+        "shipAddress": "Krossener Str. 24",
+        "shipZip": "10245",
+        "shipCity": "Berlin",
+        "total": 75.12
+      }
+    }
+  },
+  {
+    "apiKey": "secrets.SENDGRID_API_KEY",
+    "from": {
+      "name": "John Doe",
+      "email": "john.doe@example.com"
+    },
+    "to": {
+      "email": "jane.doe@example.com"
+    },
+    "template": {
+      "id": "d-0b51e8f77bf8450fae379e0639ca0d11",
+      "data": {
+        "accountName": "Feuerwehrmann Sam",
+        "shipAddress": "Krossener Str. 24",
+        "shipZip": "10245",
+        "shipCity": "Berlin",
+        "total": 75.12
+      }
+    }
+  },
+  {
+    "apiKey": "secrets.SENDGRID_API_KEY",
+    "from": {
+      "name": "John Doe",
+      "email": "john.doe@example.com"
+    },
+    "to": {
+      "name": "Jane Doe"
+    },
+    "template": {
+      "id": "d-0b51e8f77bf8450fae379e0639ca0d11",
+      "data": {
+        "accountName": "Feuerwehrmann Sam",
+        "shipAddress": "Krossener Str. 24",
+        "shipZip": "10245",
+        "shipCity": "Berlin",
+        "total": 75.12
+      }
+    }
+  },
+  {
+    "apiKey": "secrets.SENDGRID_API_KEY",
+    "from": {
+      "name": "John Doe",
+      "email": "john.doe@example.com"
+    },
+    "to": {
+      "name": "Jane Doe",
+      "email": "jane.doe@example.com"
+    }
+  },
+  {
+    "apiKey": "secrets.SENDGRID_API_KEY",
+    "from": {
+      "name": "John Doe",
+      "email": "john.doe@example.com"
+    },
+    "to": {
+      "name": "Jane Doe",
+      "email": "jane.doe@example.com"
+    },
+    "template": {
+      "data": {
+        "accountName": "Feuerwehrmann Sam",
+        "shipAddress": "Krossener Str. 24",
+        "shipZip": "10245",
+        "shipCity": "Berlin",
+        "total": 75.12
+      }
+    }
+  },
+  {
+    "apiKey": "secrets.SENDGRID_API_KEY",
+    "from": {
+      "name": "John Doe",
+      "email": "john.doe@example.com"
+    },
+    "to": {
+      "name": "Jane Doe",
+      "email": "jane.doe@example.com"
+    },
+    "template": {
+      "id": "d-0b51e8f77bf8450fae379e0639ca0d11"
+    }
+  },
+  {
+    "apiKey": "secrets.SENDGRID_API_KEY",
+    "from": {
+      "name": "John Doe",
+      "email": "john.doe@example.com"
+    },
+    "to": {
+      "name": "Jane Doe",
+      "email": "jane.doe@example.com"
+    },
+    "content": {
+      "type": "text",
+      "value": "value_test"
+    }
+  },
+  {
+    "apiKey": "secrets.SENDGRID_API_KEY",
+    "from": {
+      "name": "John Doe",
+      "email": "john.doe@example.com"
+    },
+    "to": {
+      "name": "Jane Doe",
+      "email": "jane.doe@example.com"
+    },
+    "content": {
+      "subject": "Test subject",
+      "value": "value_test"
+    }
+  },
+  {
+    "apiKey": "secrets.SENDGRID_API_KEY",
+    "from": {
+      "name": "John Doe",
+      "email": "john.doe@example.com"
+    },
+    "to": {
+      "name": "Jane Doe",
+      "email": "jane.doe@example.com"
+    },
+    "content": {
+      "subject": "Test subject",
+      "type": "text"
+    }
+  }
+]

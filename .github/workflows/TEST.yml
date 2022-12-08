@@ -1,0 +1,41 @@
+name: Test branch
+
+on:
+  push:
+    branches:
+      - '**'
+      - '!main'
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+          cache: 'maven'
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+
+      - name: Build Connectors
+        run: mvn --batch-mode clean verify -PcheckFormat
+
+      - name: Lint Connector Bundle Dockerfile - bundle-bash
+        uses: hadolint/hadolint-action@v2.0.0
+        with:
+          dockerfile: bundle/bash/Dockerfile
+
+      - name: Lint Connector Bundle Dockerfile - SaaS
+        uses: hadolint/hadolint-action@v2.0.0
+        with:
+          dockerfile: bundle/mvn/camunda-saas-bundle/Dockerfile
+
+      - name: Lint Connector Bundle Dockerfile - default-bundle
+        uses: hadolint/hadolint-action@v2.0.0
+        with:
+          dockerfile: bundle/mvn/default-bundle/Dockerfile
