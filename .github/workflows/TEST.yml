@@ -25,11 +25,6 @@ jobs:
       - name: Build Connectors
         run: mvn --batch-mode clean verify -PcheckFormat
 
-      - name: Lint Connector Bundle Dockerfile - bundle-bash
-        uses: hadolint/hadolint-action@v2.0.0
-        with:
-          dockerfile: bundle/bash/Dockerfile
-
       - name: Lint Connector Bundle Dockerfile - SaaS
         uses: hadolint/hadolint-action@v2.0.0
         with:

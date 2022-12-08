@@ -50,11 +50,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Lint Connector Bundle Dockerfile - bundle-bash
-        uses: hadolint/hadolint-action@v2.0.0
-        with:
-          dockerfile: bundle/bash/Dockerfile
-
       - name: Lint Connector Bundle Dockerfile - SaaS
         uses: hadolint/hadolint-action@v2.0.0
         with:
@@ -99,13 +94,6 @@ jobs:
         with:
           username: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
           password: ${{ steps.secrets.outputs.DOCKERHUB_PASSWORD }}
-
-      - name: Build and Push Docker Image tag SNAPSHOT - bundle-bash
-        uses: docker/build-push-action@v3
-        with:
-          context: bundle/bash/
-          push: ${{ github.ref == 'refs/heads/main' }}
-          tags: camunda/connectors-bundle-bash:SNAPSHOT
 
       - name: Build and Push Docker Image tag SNAPSHOT - bundle-default
         uses: docker/build-push-action@v3

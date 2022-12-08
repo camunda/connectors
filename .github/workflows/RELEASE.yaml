@@ -144,14 +144,6 @@ jobs:
 
     # Build & push bundle docker images (with version tag)
 
-      - name: Build and Push Docker Image tag ${{ github.event.inputs.version }} - bundle-bash
-        if: github.event.inputs.release-bundle == 'true'
-        uses: docker/build-push-action@v3
-        with:
-          context: bundle/bash/
-          push: ${{ github.ref == 'refs/heads/main' }}
-          tags: camunda/connectors-bundle-bash:${{ github.event.inputs.version }}
-
       - name: Build and Push Docker Image tag ${{ github.event.inputs.version }} - bundle-default
         if: github.event.inputs.release-bundle == 'true'
         uses: docker/build-push-action@v3
@@ -169,14 +161,6 @@ jobs:
           tags: camunda/connectors-bundle-saas:${{ github.event.inputs.version }}
 
     # Build & push bundle docker images (with 'latest' tag)
-
-      - name: Build and Push Docker Image with tag latest - bundle-bash
-        if: github.event.inputs.release-bundle == 'true' && github.event.inputs.push-latest == 'true'
-        uses: docker/build-push-action@v3
-        with:
-          context: bundle/bash/
-          push: true
-          tags: camunda/connectors-bundle:latest
 
       - name: Build and Push Docker Image tag latest - bundle-default
         if: github.event.inputs.release-bundle == 'true' && github.event.inputs.push-latest == 'true'
