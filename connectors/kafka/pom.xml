@@ -3,16 +3,15 @@
 
   <parent>
     <groupId>io.camunda.connector</groupId>
-    <artifactId>connector-parent</artifactId>
-    <version>0.4.0-alpha1</version>
-    <relativePath></relativePath>    
+    <artifactId>connector-function-parent</artifactId>
+    <version>0.14.0-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
   </parent>
 
   <name>connector-kafka</name>
   <description>Camunda Kafka Connector</description>
   <artifactId>connector-kafka</artifactId>
   <packaging>jar</packaging>
-  <version>0.2.0-SNAPSHOT</version>
 
   <licenses>
     <license>
@@ -34,25 +33,9 @@ except in compliance with the proprietary license.</license.inlineheader>
 
   <dependencies>
     <dependency>
-      <groupId>io.camunda.connector</groupId>
-      <artifactId>connector-core</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.camunda.connector</groupId>
-      <artifactId>connector-validation</artifactId>
-      <scope>provided</scope>
-    </dependency>
-
-    <dependency>
       <groupId>org.apache.kafka</groupId>
       <artifactId>kafka-clients</artifactId>
       <version>${version.kafka-clients}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
     </dependency>
 
     <!-- test dependencies -->
@@ -60,24 +43,6 @@ except in compliance with the proprietary license.</license.inlineheader>
     <dependency>
       <groupId>com.google.code.gson</groupId>
       <artifactId>gson</artifactId>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter</artifactId>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.mockito</groupId>
-      <artifactId>mockito-junit-jupiter</artifactId>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.assertj</groupId>
-      <artifactId>assertj-core</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
