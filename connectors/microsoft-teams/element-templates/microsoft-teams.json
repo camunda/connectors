@@ -40,7 +40,7 @@
   "properties": [
     {
       "type": "Hidden",
-      "value": "io.camunda:microsoft-teams:1",
+      "value": "io.camunda:connector-microsoft-teams:1",
       "binding": {
         "type": "zeebe:taskDefinition:type"
       }
@@ -134,7 +134,7 @@
       },
       "binding": {
         "type": "zeebe:input",
-        "name": "authentication.clientCredentials"
+        "name": "authentication.clientSecret"
       }
     },
     {
@@ -198,7 +198,7 @@
       },
       "binding": {
         "type": "zeebe:input",
-        "name": "data.action"
+        "name": "data.method"
       }
     },
     {
@@ -248,7 +248,7 @@
       },
       "binding": {
         "type": "zeebe:input",
-        "name": "data.action"
+        "name": "data.method"
       }
     },
     {
@@ -462,7 +462,7 @@
       "type": "String",
       "binding": {
         "type": "zeebe:input",
-        "name": "data.teamId"
+        "name": "data.channelId"
       },
       "constraints": {
         "notEmpty": true
@@ -647,7 +647,7 @@
       ],
       "binding": {
         "type": "zeebe:input",
-        "name": "data.expand"
+        "name": "data.isExpand"
       },
       "constraints": {
         "notEmpty": false

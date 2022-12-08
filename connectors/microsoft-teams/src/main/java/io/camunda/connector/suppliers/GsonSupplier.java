@@ -35,7 +35,7 @@ public final class GsonSupplier {
           .registerTypeAdapterFactory(
               RuntimeTypeAdapterFactory.of(MSTeamsAuthentication.class, "type")
                   .registerSubtype(BearerAuthentication.class, "token")
-                  .registerSubtype(ClientSecretAuthentication.class, "clientSecret"))
+                  .registerSubtype(ClientSecretAuthentication.class, "clientCredentials"))
           .registerTypeAdapterFactory(
               RuntimeTypeAdapterFactory.of(MSTeamsRequestData.class, "method")
                   // channel
