@@ -68,6 +68,11 @@
         <artifactId>connector-http-json</artifactId>
         <version>${project.version}</version>
       </dependency>
+      <dependency>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>connector-microsoft-teams</artifactId>
+        <version>${project.version}</version>
+      </dependency>
 
       <!-- TODO: Connectors not yet transferred to mono repo -->
       <dependency>
