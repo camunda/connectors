@@ -173,6 +173,24 @@ jobs:
           push: ${{ github.ref == 'refs/heads/main' }}
           tags: camunda/connectors-bundle-saas:latest
 
+    # Update README in Dockerhub
+
+      - name: Push README to Dockerhub - bundle-default
+        if: ${{ steps.check_prerelease.outputs.isPreRelease == 'false' }}
+        uses: christian-korneck/update-container-description-action@v1
+        with:
+          destination_container_repo: camunda/connectors-bundle
+          provider: dockerhub
+          readme_file: bundle/README.md
+
+      - name: Push README to Dockerhub - bundle-saas
+        if: ${{ steps.check_prerelease.outputs.isPreRelease == 'false' }}
+        uses: christian-korneck/update-container-description-action@v1
+        with:
+          destination_container_repo: camunda/connectors-bundle-saas
+          provider: dockerhub
+          readme_file: bundle/README.md
+
     # Create GitHub release
 
       - name: Bundle element templates
