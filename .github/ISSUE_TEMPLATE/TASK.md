@@ -1,6 +1,7 @@
 ---
 name: Task
 about: Describe a generic activity we should carry out.
+labels: "kind:task"
 ---
 
 
