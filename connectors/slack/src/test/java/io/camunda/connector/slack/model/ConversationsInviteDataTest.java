@@ -65,6 +65,54 @@ public class ConversationsInviteDataTest {
         .contains("Unable to find user with name or email : test1@test.com");
   }
 
+  @Test
+  void invoke_shouldThrowExceptionWhenNumberInputForUsers() {
+    // Given number for users which is an invalid input type
+    ConversationsInviteData conversationsInviteData = new ConversationsInviteData();
+    conversationsInviteData.setChannelName(CHANNEL_NAME);
+    conversationsInviteData.setUsers(1);
+    // When and then
+    RuntimeException thrown =
+        assertThrows(
+            RuntimeException.class,
+            () -> conversationsInviteData.invoke(methodsClient),
+            "RuntimeException was expected");
+    assertThat(thrown.getMessage())
+        .contains("Invalid input type for users. Supported types are: List<String> and String");
+  }
+
+  @Test
+  void invoke_shouldThrowExceptionWhenBooleanInputForUsers() {
+    // Given boolean for users which is an invalid input type
+    ConversationsInviteData conversationsInviteData = new ConversationsInviteData();
+    conversationsInviteData.setChannelName(CHANNEL_NAME);
+    conversationsInviteData.setUsers(Boolean.TRUE);
+    // When and then
+    RuntimeException thrown =
+        assertThrows(
+            RuntimeException.class,
+            () -> conversationsInviteData.invoke(methodsClient),
+            "RuntimeException was expected");
+    assertThat(thrown.getMessage())
+        .contains("Invalid input type for users. Supported types are: List<String> and String");
+  }
+
+  @Test
+  void invoke_shouldThrowExceptionWhenNullInputForUsers() {
+    // Given NULL for users which is an invalid input type
+    ConversationsInviteData conversationsInviteData = new ConversationsInviteData();
+    conversationsInviteData.setChannelName(CHANNEL_NAME);
+    conversationsInviteData.setUsers(null);
+    // When and then
+    RuntimeException thrown =
+        assertThrows(
+            RuntimeException.class,
+            () -> conversationsInviteData.invoke(methodsClient),
+            "RuntimeException was expected");
+    assertThat(thrown.getMessage())
+        .contains("Invalid input type for users. Supported types are: List<String> and String");
+  }
+
   @ParameterizedTest
   @ValueSource(
       strings = {

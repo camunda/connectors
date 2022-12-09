@@ -24,6 +24,8 @@ import org.apache.commons.lang3.StringUtils;
 
 public class DataLookupService {
 
+  private DataLookupService() {}
+
   private static final String EMAIL_REGEX = "^.+[@].+[.].{2,4}$";
 
   public static List<String> convertStringToList(String string) {
@@ -162,39 +164,5 @@ public class DataLookupService {
     }
 
     return channelId;
-  }
-
-  public static String getUserIdByName(String userName, MethodsClient methodsClient) {
-    String userId = null;
-    String nextCursor = null;
-
-    do {
-      UsersListRequest request = UsersListRequest.builder().limit(100).cursor(nextCursor).build();
-
-      try {
-        UsersListResponse response = methodsClient.usersList(request);
-        if (response.isOk()) {
-          userId =
-              response.getMembers().stream()
-                  .filter(user -> userName.equals(user.getRealName()))
-                  .map(User::getId)
-                  .findFirst()
-                  .orElse(null);
-          nextCursor = response.getResponseMetadata().getNextCursor();
-        } else {
-          throw new RuntimeException(
-              "Unable to find user with name: " + userName + "; message: " + response.getError());
-        }
-      } catch (Exception e) {
-        throw new RuntimeException("Unable to find user with name: " + userName, e);
-      }
-
-    } while (userId == null && nextCursor != null && !nextCursor.isBlank());
-
-    if (userId == null) {
-      throw new RuntimeException("Unable to find user with name: " + userName);
-    }
-
-    return userId;
   }
 }

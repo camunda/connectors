@@ -200,7 +200,7 @@
     },
     {
       "label": "Users",
-      "description": "A single user, or comma separated list of users, or a valid list of strings as a FEEL expression",
+      "description": "Comma-separated list of users, e.g., '@user1,@user2' or '=[ \"@user1\", \"user2@company.com\"]'",
       "group": "invite",
       "type": "String",
       "feel": "optional",

@@ -7,7 +7,7 @@
 package io.camunda.connector.slack;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -108,7 +108,7 @@ public class SlackFunctionTest extends BaseTest {
     when(conversationsCreateResponse.isOk()).thenReturn(Boolean.TRUE);
     when(conversationsCreateResponse.getChannel()).thenReturn(new Conversation());
 
-    // invite tot channel
+    // invite to channel
     when(methodsClient.conversationsInvite(conversationsInviteRequestArgumentCaptor.capture()))
         .thenReturn(conversationsInviteResponse);
 
@@ -209,9 +209,10 @@ public class SlackFunctionTest extends BaseTest {
         .isEqualTo(ActualValue.ConversationsCreateData.NEW_CHANNEL_NAME);
 
     SlackRequest<ConversationsInviteData> request = gson.fromJson(input, SlackRequest.class);
-    assertThat(executeResponse).isInstanceOf(ConversationsInviteSlackResponse.class);
-    ConversationsInviteSlackResponse response = (ConversationsInviteSlackResponse) executeResponse;
-    assertThat(response.getChannel()).isNotNull();
+    assertThat(executeResponse)
+        .isInstanceOf(ConversationsInviteSlackResponse.class)
+        .extracting("channel")
+        .isNotNull();
   }
 
   @ParameterizedTest
@@ -226,7 +227,7 @@ public class SlackFunctionTest extends BaseTest {
             RuntimeException.class,
             () -> slackFunction.execute(context),
             "RuntimeException was expected");
-    assertThat(thrown.getMessage()).contains("Unable to find user with name: JohnDou");
+    assertThat(thrown.getMessage()).contains("Unable to find users by name");
   }
 
   @ParameterizedTest
@@ -241,7 +242,7 @@ public class SlackFunctionTest extends BaseTest {
             RuntimeException.class,
             () -> slackFunction.execute(context),
             "RuntimeException was expected");
-    assertThat(thrown.getMessage()).contains("Unable to find user with name: JohnDou");
+    assertThat(thrown.getMessage()).contains("Unable to find users by name");
   }
 
   @ParameterizedTest
@@ -256,7 +257,7 @@ public class SlackFunctionTest extends BaseTest {
             RuntimeException.class,
             () -> slackFunction.execute(context),
             "RuntimeException was expected");
-    assertThat(thrown.getMessage()).contains("Unable to find user with name: JohnDou");
+    assertThat(thrown.getMessage()).contains("Unable to find users by name");
   }
 
   @ParameterizedTest

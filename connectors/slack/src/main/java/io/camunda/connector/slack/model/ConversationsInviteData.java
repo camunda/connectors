@@ -32,9 +32,14 @@ public class ConversationsInviteData implements SlackRequestData {
     List<String> userInputAsList = null;
     if (users instanceof Collection<?>) {
       userInputAsList = (ArrayList<String>) users;
-    } else {
+    } else if (users instanceof String) {
       userInputAsList = DataLookupService.convertStringToList((String) users);
+    } else {
+      // We accept only List or String input for users
+      throw new RuntimeException(
+          "Invalid input type for users. Supported types are: List<String> and String");
     }
+
     List<String> userList =
         DataLookupService.getUserIdsFromNameOrEmail(userInputAsList, methodsClient);
     ConversationsInviteRequest request =
