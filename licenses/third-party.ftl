@@ -12,12 +12,16 @@
         <#return "https://opensource.org/licenses/Apache-2.0">
     <#elseif license == "MIT">
         <#return "https://opensource.org/licenses/MIT">
+    <#elseif license == "BSD-2-Clause">
+        <#return "https://opensource.org/licenses/BSD-2-Clause">
     <#elseif license == "BSD-3-Clause">
         <#return "https://opensource.org/licenses/BSD-3-Clause">
     <#elseif license == "EPL-2.0">
         <#return "https://www.eclipse.org/legal/epl-2.0/">
     <#elseif license == "EPL-1.0">
         <#return "https://www.eclipse.org/legal/epl-v10.html">
+    <#elseif license == "GPLv2">
+        <#return "https://www.gnu.org/licenses/old-licenses/gpl-2.0.html">
     <#elseif license == "GPLv2 with Classpath Exception">
         <#return "https://www.gnu.org/software/classpath/license.html">
     <#elseif license == "GNU Lesser General Public License, Version 2.1">
@@ -30,6 +34,10 @@
         <#return "https://www.bouncycastle.org/licence.html">
     <#elseif license == "Go License">
         <#return "https://go.dev/LICENSE">
+    <#elseif license == "MPL 2.0">
+        <#return "https://www.mozilla.org/en-US/MPL/2.0/">
+    <#elseif license == "Public Domain, per Creative Commons CC0">
+        <#return "https://creativecommons.org/publicdomain/zero/1.0/deed.en">
     <#else>
         <#return "no known URL">
     </#if>
