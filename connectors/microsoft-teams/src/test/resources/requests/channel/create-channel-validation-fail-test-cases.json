@@ -1,0 +1,100 @@
+[
+  {
+    "description": "create channel / groupId is blank",
+    "data": {
+      "method": "createChannel",
+      "groupId": "   ",
+      "name": "ChannelTest",
+      "channelType": "standard"
+    }
+  },
+  {
+    "description": "create channel / name is blank ",
+    "data": {
+      "method": "createChannel",
+      "groupId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "name": "    ",
+      "channelType": "standard",
+      "owner": "john.dou@mail.com"
+    }
+  },
+  {
+    "description": "create channel / channelType is blank",
+    "data": {
+      "method": "createChannel",
+      "groupId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "name": "ChannelTest",
+      "channelType": "   ",
+      "owner": "john.dou@mail.com"
+    }
+  },
+  {
+    "description": "create channel / groupId is null",
+    "data": {
+      "method": "createChannel",
+      "groupId": null,
+      "name": "ChannelTest",
+      "channelType": "standard"
+    }
+  },
+  {
+    "description": "create channel / name is null ",
+    "data": {
+      "method": "createChannel",
+      "groupId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "name": null,
+      "channelType": "standard",
+      "owner": "john.dou@mail.com"
+    }
+  },
+  {
+    "description": "create channel / channelType is null",
+    "data": {
+      "method": "createChannel",
+      "groupId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "name": "ChannelTest",
+      "channelType": null,
+      "owner": "john.dou@mail.com"
+    }
+  },
+  {
+    "description": "create private channel / owner is blank ",
+    "data": {
+      "method": "createChannel",
+      "groupId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "name": "ChannelTest",
+      "channelType": "private",
+      "owner": "   "
+    }
+  },
+  {
+    "description": "create private channel / owner is null ",
+    "data": {
+      "method": "createChannel",
+      "groupId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "name": "ChannelTest",
+      "channelType": "private",
+      "owner": null
+    }
+  },
+  {
+    "description": "create shared channel / owner is blank ",
+    "data": {
+      "method": "createChannel",
+      "groupId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "name": "ChannelTest",
+      "channelType": "shared",
+      "owner": "   "
+    }
+  },
+  {
+    "description": "create shared channel / owner is null ",
+    "data": {
+      "method": "createChannel",
+      "groupId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "name": "ChannelTest",
+      "channelType": "shared",
+      "owner": null
+    }
+  }
+]

@@ -1,0 +1,34 @@
+[
+  {
+    "description": "groupId is blank",
+    "data": {
+      "method": "listMembersInChannel",
+      "groupId": "    ",
+      "channelId": "abc01234-0c7f-012c-9876-testClientId"
+    }
+  },
+  {
+    "description": "groupId is null",
+    "data": {
+      "method": "listMembersInChannel",
+      "groupId": null,
+      "channelId": "abc01234-0c7f-012c-9876-testClientId"
+    }
+  },
+  {
+    "description": "channelId is null",
+    "data": {
+      "method": "listMembersInChannel",
+      "groupId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "channelId": null
+    }
+  },
+  {
+    "description": "channelId is blank",
+    "data": {
+      "method": "listMembersInChannel",
+      "groupId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "channelId": "   "
+    }
+  }
+]

@@ -1,0 +1,387 @@
+[
+  {
+    "authentication": {
+      "type": "clientCredentials"
+    },
+    "data": {
+      "method": "createChannel"
+    }
+  },
+  {
+    "authentication": {
+      "type": "clientCredentials"
+    },
+    "data": {
+      "method": "getChannel"
+    }
+  },
+  {
+    "authentication": {
+      "type": "clientCredentials"
+    },
+    "data": {
+      "method": "getMessageFromChannel"
+    }
+  },
+  {
+    "authentication": {
+      "type": "clientCredentials"
+    },
+    "data": {
+      "method": "getMessageFromChannel"
+    }
+  },
+  {
+    "authentication": {
+      "type": "clientCredentials"
+    },
+    "data": {
+      "method": "listMembersInChannel"
+    }
+  },
+  {
+    "authentication": {
+      "type": "clientCredentials"
+    },
+    "data": {
+      "method": "listChannelMessages"
+    }
+  },
+  {
+    "authentication": {
+      "type": "clientCredentials"
+    },
+    "data": {
+      "method": "listAllChannels"
+    }
+  },
+  {
+    "authentication": {
+      "type": "clientCredentials"
+    },
+    "data": {
+      "method": "listMessageRepliesInChannel"
+    }
+  },
+  {
+    "authentication": {
+      "type": "clientCredentials"
+    },
+    "data": {
+      "method": "listMessageRepliesInChannel"
+    }
+  },
+  {
+    "authentication": {
+      "type": "token"
+    },
+    "data": {
+      "method": "createChannel"
+    }
+  },
+  {
+    "authentication": {
+      "type": "token"
+    },
+    "data": {
+      "method": "getChannel"
+    }
+  },
+  {
+    "authentication": {
+      "type": "token"
+    },
+    "data": {
+      "method": "getMessageFromChannel"
+    }
+  },
+  {
+    "authentication": {
+      "type": "token"
+    },
+    "data": {
+      "method": "getMessageFromChannel"
+    }
+  },
+  {
+    "authentication": {
+      "type": "token"
+    },
+    "data": {
+      "method": "listMembersInChannel"
+    }
+  },
+  {
+    "authentication": {
+      "type": "token"
+    },
+    "data": {
+      "method": "listChannelMessages"
+    }
+  },
+  {
+    "authentication": {
+      "type": "token"
+    },
+    "data": {
+      "method": "listAllChannels"
+    }
+  },
+  {
+    "authentication": {
+      "type": "token"
+    },
+    "data": {
+      "method": "listMessageRepliesInChannel"
+    }
+  },
+  {
+    "authentication": {
+      "type": "token"
+    },
+    "data": {
+      "method": "listMessageRepliesInChannel"
+    }
+  },
+
+  {
+    "authentication": {
+      "type": "clientCredentials"
+    },
+    "data": {
+      "method": "createChannel"
+    }
+  },
+  {
+    "authentication": {
+      "type": "clientCredentials"
+    },
+    "data": {
+      "method": "getChannel"
+    }
+  },
+  {
+    "authentication": {
+      "type": "clientCredentials"
+    },
+    "data": {
+      "method": "getMessageFromChannel"
+    }
+  },
+  {
+    "authentication": {
+      "type": "clientCredentials"
+    },
+    "data": {
+      "method": "getMessageFromChannel"
+    }
+  },
+  {
+    "authentication": {
+      "type": "clientCredentials"
+    },
+    "data": {
+      "method": "listMembersInChannel"
+    }
+  },
+  {
+    "authentication": {
+      "type": "clientCredentials"
+    },
+    "data": {
+      "method": "listChannelMessages"
+    }
+  },
+  {
+    "authentication": {
+      "type": "clientCredentials"
+    },
+    "data": {
+      "method": "listAllChannels"
+    }
+  },
+  {
+    "authentication": {
+      "type": "clientCredentials"
+    },
+    "data": {
+      "method": "listMessageRepliesInChannel"
+    }
+  },
+  {
+    "authentication": {
+      "type": "clientCredentials"
+    },
+    "data": {
+      "method": "listMessageRepliesInChannel"
+    }
+  },
+  {
+    "authentication": {
+      "type": "token"
+    },
+    "data": {
+      "method": "createChannel"
+    }
+  },
+  {
+    "authentication": {
+      "type": "token"
+    },
+    "data": {
+      "method": "getChannel"
+    }
+  },
+  {
+    "authentication": {
+      "type": "token"
+    },
+    "data": {
+      "method": "getMessageFromChannel"
+    }
+  },
+  {
+    "authentication": {
+      "type": "token"
+    },
+    "data": {
+      "method": "getMessageFromChannel"
+    }
+  },
+  {
+    "authentication": {
+      "type": "token"
+    },
+    "data": {
+      "method": "listMembersInChannel"
+    }
+  },
+  {
+    "authentication": {
+      "type": "token"
+    },
+    "data": {
+      "method": "listChannelMessages"
+    }
+  },
+  {
+    "authentication": {
+      "type": "token"
+    },
+    "data": {
+      "method": "listAllChannels"
+    }
+  },
+  {
+    "authentication": {
+      "type": "token"
+    },
+    "data": {
+      "method": "listMessageRepliesInChannel"
+    }
+  },
+  {
+    "authentication": {
+      "type": "token"
+    },
+    "data": {
+      "method": "listMessageRepliesInChannel"
+    }
+  },
+  {
+    "authentication": {
+      "type": "clientCredentials"
+    },
+    "data": {
+      "method": "createChat"
+    }
+  },
+  {
+    "authentication": {
+      "type": "clientCredentials"
+    },
+    "data": {
+      "method": "getChat"
+    }
+  },
+  {
+    "authentication": {
+      "type": "clientCredentials"
+    },
+    "data": {
+      "method": "getMessageFromChat"
+    }
+  },
+  {
+    "authentication": {
+      "type": "clientCredentials"
+    },
+    "data": {
+      "method": "listMembersOfChat"
+    }
+  },
+  {
+    "authentication": {
+      "type": "clientCredentials"
+    },
+    "data": {
+      "method": "listMessagesInChat"
+    }
+  },
+  {
+    "authentication": {
+      "type": "clientCredentials"
+    },
+    "data": {
+      "method": "sendMessageToChat"
+    }
+  },
+  {
+    "authentication": {
+      "type": "token"
+    },
+    "data": {
+      "method": "createChat"
+    }
+  },
+  {
+    "authentication": {
+      "type": "token"
+    },
+    "data": {
+      "method": "getChat"
+    }
+  },
+  {
+    "authentication": {
+      "type": "token"
+    },
+    "data": {
+      "method": "getMessageFromChat"
+    }
+  },
+  {
+    "authentication": {
+      "type": "token"
+    },
+    "data": {
+      "method": "listMembersOfChat"
+    }
+  },
+  {
+    "authentication": {
+      "type": "token"
+    },
+    "data": {
+      "method": "listMessagesInChat"
+    }
+  },
+  {
+    "authentication": {
+      "type": "token"
+    },
+    "data": {
+      "method": "sendMessageToChat"
+    }
+  }
+]

@@ -1,0 +1,56 @@
+[
+  {
+    "description": "groupId is blank",
+    "data": {
+      "method": "sendMessageToChannel",
+      "groupId": "    ",
+      "channelId": "abc01234-0c7f-012c-9876-testClientId",
+       "content": "Hi Microsoft Teams channel from camunda!!!"
+    }
+  },
+  {
+    "description": "groupId is null",
+    "data": {
+      "method": "sendMessageToChannel",
+      "groupId": null,
+      "channelId": "abc01234-0c7f-012c-9876-testClientId",
+       "content": "Hi Microsoft Teams channel from camunda!!!"
+    }
+  },
+  {
+    "description": "channelId is null",
+    "data": {
+      "method": "sendMessageToChannel",
+      "groupId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "channelId": null,
+       "content": "Hi Microsoft Teams channel from camunda!!!"
+    }
+  },
+  {
+    "description": "channelId is blank",
+    "data": {
+      "method": "sendMessageToChannel",
+      "groupId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "channelId": "   ",
+       "content": "Hi Microsoft Teams channel from camunda!!!"
+    }
+  },
+  {
+    "description": "content is blank",
+    "data": {
+      "method": "sendMessageToChannel",
+      "groupId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "channelId": "abc01234-0c7f-012c-9876-testClientId",
+      "content": "    "
+    }
+  },
+  {
+    "description": "messageId is null",
+    "data": {
+      "method": "sendMessageToChannel",
+      "groupId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "channelId": "abc01234-0c7f-012c-9876-testClientId",
+      "content": null
+    }
+  }
+]
