@@ -1,0 +1,11 @@
+[
+  {
+    "description": "with null for users input",
+    "token": "secrets.TOKEN_KEY",
+    "method": "conversations.invite",
+    "data": {
+      "channelName": "secrets.NEW_CHANNEL_NAME_KEY",
+      "users": null
+    }
+  }
+]

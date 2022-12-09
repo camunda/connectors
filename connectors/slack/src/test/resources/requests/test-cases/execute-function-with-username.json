@@ -1,0 +1,29 @@
+[
+  {
+    "description": "with secrets keys without braces",
+    "token": "secrets.TOKEN_KEY",
+    "method": "chat.postMessage",
+    "data": {
+      "channel": "secrets.USERNAME_KEY",
+      "text": "secrets.TEXT_KEY"
+    }
+  },
+  {
+    "description": "with secrets keys with braces",
+    "token": "{{secrets.TOKEN_KEY}}",
+    "method": "chat.postMessage",
+    "data": {
+      "channel": "{{secrets.USERNAME_KEY}}",
+      "text": "{{secrets.TEXT_KEY}}"
+    }
+  },
+  {
+    "description": "without secrets",
+    "token": "xoxb-0123456789456-123467890987-thisIsTestToken",
+    "method": "chat.postMessage",
+    "data": {
+      "channel": "@JohnDou",
+      "text": "some text"
+    }
+  }
+]

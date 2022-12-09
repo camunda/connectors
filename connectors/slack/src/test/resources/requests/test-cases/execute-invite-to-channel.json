@@ -1,0 +1,29 @@
+[
+  {
+    "description": "with secrets keys without braces",
+    "token": "secrets.TOKEN_KEY",
+    "method": "conversations.invite",
+    "data": {
+      "channelName": "secrets.NEW_CHANNEL_NAME_KEY",
+      "users": "@JohnDou"
+    }
+  },
+  {
+    "description": "create channel; with braces ",
+    "token": "xoxb-0123456789456-123467890987-thisIsTestToken",
+    "method": "conversations.invite",
+    "data": {
+      "channelName": "{{secrets.NEW_CHANNEL_NAME_KEY}}",
+      "users": "[\"JohnDou\",\"@JohnDou\"]"
+    }
+  },
+  {
+    "description": "without secrets",
+    "token": "xoxb-0123456789456-123467890987-thisIsTestToken",
+    "method": "conversations.invite",
+    "data": {
+      "channelName": "_ new channel name _",
+      "users": "john.dou@camundamail.com,@JohnDou"
+    }
+  }
+]
