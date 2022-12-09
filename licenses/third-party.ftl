@@ -12,6 +12,8 @@
         <#return "https://opensource.org/licenses/Apache-2.0">
     <#elseif license == "MIT">
         <#return "https://opensource.org/licenses/MIT">
+    <#elseif license == "MIT-0">
+        <#return "https://github.com/aws/mit-0">
     <#elseif license == "BSD-2-Clause">
         <#return "https://opensource.org/licenses/BSD-2-Clause">
     <#elseif license == "BSD-3-Clause">
