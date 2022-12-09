@@ -147,36 +147,6 @@ mvn clean package
 
 See [Microsoft Graph API documentation](https://learn.microsoft.com/en-us/graph/api/resources/channel?view=graph-rest-1.0)
 
-## Test locally
-
-Run unit tests
-
-```bash
-mvn clean verify
-```
-
-### Test as local Job Worker
-
-Use the [Camunda Job Worker Connector Run-Time](https://github.com/camunda/connector-framework/tree/main/runtime-job-worker) to run your function as a local Job Worker.
-
-### :lock: Test as local Google Cloud Function
-
-> **Warning**
-> This is Camunda-internal only. The Maven profile `cloud-function` accesses an internal artifact.
-
-Build as Google Cloud Function
-
-```bash
-mvn function:run -Pcloud-function
-```
-
-See also the [:lock:Camunda Cloud Connector Run-Time](https://github.com/camunda/connector-runtime-cloud) on how your function
-is run as a Google Cloud Function.
-
 ## Element Template
 
 The element templates can be found in the [element-templates/microsoft-teams-connector.json](element-templates/microsoft-teams-connector.json) file.
-
-## Build a release
-
-Trigger the [release action](./.github/workflows/RELEASE.yml) manually with the version `x.y.z` you want to release and the next SNAPSHOT version.
