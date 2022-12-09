@@ -1,0 +1,208 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.camunda.connector</groupId>
+    <artifactId>connector-parent</artifactId>
+    <version>0.4.0-SNAPSHOT</version>
+    <relativePath/>
+  </parent>
+
+  <name>connector-slack</name>
+  <description>Camunda Cloud Slack Connector</description>
+  <groupId>io.camunda.connector</groupId>
+  <artifactId>connector-slack</artifactId>
+  <version>0.7.0-SNAPSHOT</version>
+  <packaging>jar</packaging>
+
+  <licenses>
+    <license>
+      <name>Camunda Platform Self-Managed Free Edition license</name>
+      <url>https://camunda.com/legal/terms/cloud-terms-and-conditions/camunda-cloud-self-managed-free-edition-terms/</url>
+    </license>
+    <license>
+      <name>Camunda Platform Self-Managed Enterprise Edition license</name>
+    </license>
+  </licenses>
+
+  <properties>
+    <!-- external libraries -->
+    <version.gson-extras>1.1.0</version.gson-extras>
+    <version.slack>1.27.2</version.slack>
+    <version.kotlin>1.7.22</version.kotlin>
+    <license.inlineheader>Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+under one or more contributor license agreements. Licensed under a proprietary license.
+See the License.txt file for more information. You may not use this file
+except in compliance with the proprietary license.</license.inlineheader>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.jetbrains.kotlin</groupId>
+        <artifactId>kotlin-stdlib</artifactId>
+        <version>${version.kotlin}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.jetbrains.kotlin</groupId>
+        <artifactId>kotlin-stdlib-common</artifactId>
+        <version>${version.kotlin}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-validation</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.google.code.gson</groupId>
+      <artifactId>gson</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.danilopianini</groupId>
+      <artifactId>gson-extras</artifactId>
+      <version>${version.gson-extras}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.slack.api</groupId>
+      <artifactId>slack-api-client</artifactId>
+      <version>${version.slack}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-core</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <!-- This dependency will be removed after camunda/zeebe#9859 is resolved. -->
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-text</artifactId>
+      <version>1.10.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda</groupId>
+      <artifactId>spring-zeebe-connector-runtime</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <repositories>
+    <repository>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+      <id>connectors</id>
+      <name>Connectors Repository</name>
+      <url>https://artifacts.camunda.com/artifactory/connectors/</url>
+    </repository>
+
+    <repository>
+      <releases>
+        <enabled>false</enabled>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+      <id>connectors-snapshots</id>
+      <name>Connectors Snapshot Repository</name>
+      <url>https://artifacts.camunda.com/artifactory/connectors-snapshots/</url>
+    </repository>
+  </repositories>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+
+  <profiles>
+    <profile>
+      <id>cloud-function</id>
+      <repositories>
+        <repository>
+          <releases>
+            <enabled>true</enabled>
+          </releases>
+          <snapshots>
+            <enabled>false</enabled>
+          </snapshots>
+          <id>connectors-internal</id>
+          <name>Connectors Internal Repository</name>
+          <url>https://artifacts.camunda.com/artifactory/connectors-internal/</url>
+        </repository>
+
+        <repository>
+          <releases>
+            <enabled>false</enabled>
+          </releases>
+          <snapshots>
+            <enabled>true</enabled>
+          </snapshots>
+          <id>connectors-internal-snapshots</id>
+          <name>Connectors Internal Snapshot Repository</name>
+          <url>https://artifacts.camunda.com/artifactory/connectors-internal-snapshots/</url>
+        </repository>
+      </repositories>
+      <dependencies>
+        <dependency>
+          <groupId>io.camunda.connector</groupId>
+          <artifactId>connector-runtime-cloud</artifactId>
+          <version>0.4.0-alpha2</version>
+        </dependency>
+        <dependency>
+          <groupId>io.camunda.connector</groupId>
+          <artifactId>connector-core</artifactId>
+        </dependency>
+        <dependency>
+          <groupId>io.camunda.connector</groupId>
+          <artifactId>connector-validation</artifactId>
+        </dependency>
+      </dependencies>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-shade-plugin</artifactId>
+            <configuration>
+              <outputFile>${project.build.directory}/deployment/${project.build.finalName}.jar</outputFile>
+            </configuration>
+          </plugin>
+          <plugin>
+            <groupId>com.google.cloud.functions</groupId>
+            <artifactId>function-maven-plugin</artifactId>
+            <configuration>
+              <functionTarget>io.camunda.connector.runtime.cloud.CloudConnectorFunction</functionTarget>
+              <port>9082</port>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+</project>
