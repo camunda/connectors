@@ -61,3 +61,6 @@ build/
 
 # License
 THIRD-PARTY.properties
+
+# MacOS indexes
+.DS_Store
