@@ -5,7 +5,6 @@
 set -o pipefail
 
 RELEASE_VERSION=${1:-SNAPSHOT}
-eval $(sed 's/ARG/export/gp;d' Dockerfile)
 
 ARTIFACT_DIR=${PWD}
 WORKING_DIR="$(mktemp -d)"
