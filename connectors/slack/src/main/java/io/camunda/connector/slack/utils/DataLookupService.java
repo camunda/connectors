@@ -39,17 +39,26 @@ public class DataLookupService {
     return str.matches(EMAIL_REGEX);
   }
 
-  public static List<String> getUserIdsFromNameOrEmail(
-      List<String> userList, MethodsClient methodsClient) {
+  public static List<String> getUserIdsFromUsers(
+      Collection<?> userList, MethodsClient methodsClient) {
     if (Objects.isNull(userList) || userList.isEmpty()) {
       return new ArrayList<>();
     }
 
+    Collection<String> validatedUserList =
+        userList.stream()
+            .filter(Objects::nonNull)
+            .filter(String.class::isInstance)
+            .map(String.class::cast)
+            .collect(Collectors.collectingAndThen(Collectors.toList(), Optional::of))
+            .filter(l -> !l.isEmpty())
+            .orElseThrow(() -> new IllegalArgumentException("No user provided in a valid format"));
+
     List<String> emails = new ArrayList<>();
     List<String> usernames = new ArrayList<>();
     List<String> userIds = new ArrayList<>();
-    userList.stream()
-        .filter(Objects::nonNull)
+
+    validatedUserList.stream()
         .forEach(
             user -> {
               if (isEmail(user)) {
@@ -96,6 +105,18 @@ public class DataLookupService {
                     "User with email "
                         + email
                         + " not found; or unable 'users:read.email' permission"));
+  }
+
+  public static String getUserIdByUserName(String userName, MethodsClient methodsClient) {
+    try {
+      List<String> userIds = getIdListByUserNameList(Arrays.asList(userName), methodsClient);
+      return Optional.ofNullable(userIds)
+          .filter(list -> !list.isEmpty())
+          .map(list -> list.get(0))
+          .orElseThrow(() -> new RuntimeException("Unable to find users by name: " + userName));
+    } catch (RuntimeException e) {
+      throw new RuntimeException("Unable to find users by name: " + userName, e);
+    }
   }
 
   public static List<String> getIdListByUserNameList(

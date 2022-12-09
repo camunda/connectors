@@ -15,10 +15,7 @@ import io.camunda.connector.slack.SlackRequestData;
 import io.camunda.connector.slack.SlackResponse;
 import io.camunda.connector.slack.utils.DataLookupService;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import javax.validation.constraints.NotBlank;
 import org.apache.commons.text.StringEscapeUtils;
 
@@ -30,14 +27,7 @@ public class ChatPostMessageData implements SlackRequestData {
   @Override
   public SlackResponse invoke(MethodsClient methodsClient) throws SlackApiException, IOException {
     if (channel.startsWith("@")) {
-      List<String> userIds =
-          DataLookupService.getIdListByUserNameList(
-              Arrays.asList(channel.substring(1)), methodsClient);
-      channel =
-          Optional.ofNullable(userIds)
-              .filter(list -> !list.isEmpty())
-              .map(list -> list.get(0))
-              .orElseThrow(() -> new RuntimeException("Unable to find users by name"));
+      channel = DataLookupService.getUserIdByUserName(channel.substring(1), methodsClient);
     } else if (DataLookupService.isEmail(channel)) {
       channel = DataLookupService.getUserIdByEmail(channel, methodsClient);
     }

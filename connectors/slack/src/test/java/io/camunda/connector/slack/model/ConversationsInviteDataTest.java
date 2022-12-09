@@ -7,6 +7,7 @@
 package io.camunda.connector.slack.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.catchThrowable;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -22,6 +23,7 @@ import com.slack.api.methods.response.users.UsersLookupByEmailResponse;
 import com.slack.api.model.*;
 import com.slack.api.model.Conversation;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -56,13 +58,10 @@ public class ConversationsInviteDataTest {
     conversationsInviteData.setUsers("test1@test.com, test2@test.com");
     when(methodsClient.usersLookupByEmail(any(UsersLookupByEmailRequest.class))).thenReturn(null);
     // When and then
-    RuntimeException thrown =
-        assertThrows(
-            RuntimeException.class,
-            () -> conversationsInviteData.invoke(methodsClient),
-            "RuntimeException was expected");
-    assertThat(thrown.getMessage())
-        .contains("Unable to find user with name or email : test1@test.com");
+    Throwable thrown = catchThrowable(() -> conversationsInviteData.invoke(methodsClient));
+    assertThat(thrown)
+        .isInstanceOf(RuntimeException.class)
+        .hasMessageContaining("Unable to find user with name or email : test1@test.com");
   }
 
   @Test
@@ -72,13 +71,11 @@ public class ConversationsInviteDataTest {
     conversationsInviteData.setChannelName(CHANNEL_NAME);
     conversationsInviteData.setUsers(1);
     // When and then
-    RuntimeException thrown =
-        assertThrows(
-            RuntimeException.class,
-            () -> conversationsInviteData.invoke(methodsClient),
-            "RuntimeException was expected");
-    assertThat(thrown.getMessage())
-        .contains("Invalid input type for users. Supported types are: List<String> and String");
+    Throwable thrown = catchThrowable(() -> conversationsInviteData.invoke(methodsClient));
+    assertThat(thrown)
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining(
+            "Invalid input type for users. Supported types are: List<String> and String");
   }
 
   @Test
@@ -88,29 +85,25 @@ public class ConversationsInviteDataTest {
     conversationsInviteData.setChannelName(CHANNEL_NAME);
     conversationsInviteData.setUsers(Boolean.TRUE);
     // When and then
-    RuntimeException thrown =
-        assertThrows(
-            RuntimeException.class,
-            () -> conversationsInviteData.invoke(methodsClient),
-            "RuntimeException was expected");
-    assertThat(thrown.getMessage())
-        .contains("Invalid input type for users. Supported types are: List<String> and String");
+    Throwable thrown = catchThrowable(() -> conversationsInviteData.invoke(methodsClient));
+    assertThat(thrown)
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining(
+            "Invalid input type for users. Supported types are: List<String> and String");
   }
 
   @Test
-  void invoke_shouldThrowExceptionWhenNullInputForUsers() {
-    // Given NULL for users which is an invalid input type
+  void invoke_shouldThrowExceptionWhenIntegerListInputForUsers() {
+    // Given List<Integer> for users which is an invalid input type
     ConversationsInviteData conversationsInviteData = new ConversationsInviteData();
     conversationsInviteData.setChannelName(CHANNEL_NAME);
-    conversationsInviteData.setUsers(null);
+    ArrayList<Integer> users = new ArrayList<>(Arrays.asList(1, 2));
+    conversationsInviteData.setUsers(users);
     // When and then
-    RuntimeException thrown =
-        assertThrows(
-            RuntimeException.class,
-            () -> conversationsInviteData.invoke(methodsClient),
-            "RuntimeException was expected");
-    assertThat(thrown.getMessage())
-        .contains("Invalid input type for users. Supported types are: List<String> and String");
+    Throwable thrown = catchThrowable(() -> conversationsInviteData.invoke(methodsClient));
+    assertThat(thrown)
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("No user provided in a valid format");
   }
 
   @ParameterizedTest

@@ -106,6 +106,10 @@ public abstract class BaseTest {
     return loadTestCasesFromResourceFile(TestCasesPath.EXECUTE_INVITE_TO_CHANNEL);
   }
 
+  protected static Stream<String> executeInviteToChannelTestCasesWrongInput() throws IOException {
+    return loadTestCasesFromResourceFile(TestCasesPath.EXECUTE_INVITE_TO_CHANNEL_WRONG_INPUT);
+  }
+
   protected static Stream<String> fromJsonFailTestCases() throws IOException {
     return loadTestCasesFromResourceFile(TestCasesPath.FROM_JSON_FAIL);
   }

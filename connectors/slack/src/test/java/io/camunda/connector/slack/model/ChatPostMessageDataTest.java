@@ -7,7 +7,7 @@
 package io.camunda.connector.slack.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.AssertionsForClassTypes.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -48,13 +48,10 @@ class ChatPostMessageDataTest {
     chatPostMessageData.setChannel("test@test.com");
     when(methodsClient.usersLookupByEmail(any(UsersLookupByEmailRequest.class))).thenReturn(null);
     // When and then
-    RuntimeException thrown =
-        assertThrows(
-            RuntimeException.class,
-            () -> chatPostMessageData.invoke(methodsClient),
-            "RuntimeException was expected");
-    assertThat(thrown.getMessage())
-        .contains(
+    Throwable thrown = catchThrowable(() -> chatPostMessageData.invoke(methodsClient));
+    assertThat(thrown)
+        .isInstanceOf(RuntimeException.class)
+        .hasMessageContaining(
             "User with email test@test.com not found; or unable 'users:read.email' permission");
   }
 

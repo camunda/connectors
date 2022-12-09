@@ -15,7 +15,6 @@ import io.camunda.connector.slack.SlackRequestData;
 import io.camunda.connector.slack.SlackResponse;
 import io.camunda.connector.slack.utils.DataLookupService;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
@@ -29,19 +28,18 @@ public class ConversationsInviteData implements SlackRequestData {
 
   @Override
   public SlackResponse invoke(MethodsClient methodsClient) throws SlackApiException, IOException {
-    List<String> userInputAsList = null;
+    Collection<?> userInput = null;
     if (users instanceof Collection<?>) {
-      userInputAsList = (ArrayList<String>) users;
+      userInput = (Collection<?>) users;
     } else if (users instanceof String) {
-      userInputAsList = DataLookupService.convertStringToList((String) users);
+      userInput = DataLookupService.convertStringToList((String) users);
     } else {
       // We accept only List or String input for users
-      throw new RuntimeException(
+      throw new IllegalArgumentException(
           "Invalid input type for users. Supported types are: List<String> and String");
     }
 
-    List<String> userList =
-        DataLookupService.getUserIdsFromNameOrEmail(userInputAsList, methodsClient);
+    List<String> userList = DataLookupService.getUserIdsFromUsers(userInput, methodsClient);
     ConversationsInviteRequest request =
         ConversationsInviteRequest.builder()
             .channel(DataLookupService.getChannelIdByName(channelName, methodsClient))

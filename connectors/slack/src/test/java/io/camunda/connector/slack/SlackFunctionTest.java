@@ -7,7 +7,7 @@
 package io.camunda.connector.slack;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.AssertionsForClassTypes.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -216,18 +216,30 @@ public class SlackFunctionTest extends BaseTest {
   }
 
   @ParameterizedTest
+  @MethodSource("executeInviteToChannelTestCasesWrongInput")
+  void execute_shouldThrowExceptionUsersInputIsWrongForInviteToChannel(String input)
+      throws Exception {
+    // Given
+    context = getContextBuilderWithSecrets().variables(input).build();
+    // When and then
+    Throwable thrown = catchThrowable(() -> slackFunction.execute(context));
+    assertThat(thrown)
+        .isInstanceOf(io.camunda.connector.impl.ConnectorInputException.class)
+        .hasMessageContaining(
+            "javax.validation.ValidationException: Found constraints violated while validating input");
+  }
+
+  @ParameterizedTest
   @MethodSource("executeWithUserNameTestCases")
   void execute_shouldThrowExceptionWhenUserListResponseIsFail(String input) {
     // Given
     context = getContextBuilderWithSecrets().variables(input).build();
     when(usersListResponse.isOk()).thenReturn(Boolean.FALSE);
     // When and then
-    RuntimeException thrown =
-        assertThrows(
-            RuntimeException.class,
-            () -> slackFunction.execute(context),
-            "RuntimeException was expected");
-    assertThat(thrown.getMessage()).contains("Unable to find users by name");
+    Throwable thrown = catchThrowable(() -> slackFunction.execute(context));
+    assertThat(thrown)
+        .isInstanceOf(RuntimeException.class)
+        .hasMessageContaining("Unable to find users by name: JohnDou");
   }
 
   @ParameterizedTest
@@ -237,12 +249,10 @@ public class SlackFunctionTest extends BaseTest {
     context = getContextBuilderWithSecrets().variables(input).build();
     when(user.getRealName()).thenReturn("");
     // When and then
-    RuntimeException thrown =
-        assertThrows(
-            RuntimeException.class,
-            () -> slackFunction.execute(context),
-            "RuntimeException was expected");
-    assertThat(thrown.getMessage()).contains("Unable to find users by name");
+    Throwable thrown = catchThrowable(() -> slackFunction.execute(context));
+    assertThat(thrown)
+        .isInstanceOf(RuntimeException.class)
+        .hasMessageContaining("Unable to find users by name: JohnDou");
   }
 
   @ParameterizedTest
@@ -252,12 +262,10 @@ public class SlackFunctionTest extends BaseTest {
     context = getContextBuilderWithSecrets().variables(input).build();
     when(user.getId()).thenReturn(null);
     // When and then
-    RuntimeException thrown =
-        assertThrows(
-            RuntimeException.class,
-            () -> slackFunction.execute(context),
-            "RuntimeException was expected");
-    assertThat(thrown.getMessage()).contains("Unable to find users by name");
+    Throwable thrown = catchThrowable(() -> slackFunction.execute(context));
+    assertThat(thrown)
+        .isInstanceOf(RuntimeException.class)
+        .hasMessageContaining("Unable to find users by name: JohnDou");
   }
 
   @ParameterizedTest
@@ -268,12 +276,8 @@ public class SlackFunctionTest extends BaseTest {
     when(conversationsCreateResponse.isOk()).thenReturn(Boolean.FALSE);
     when(conversationsCreateResponse.getError()).thenReturn("error string");
     // When and then
-    RuntimeException thrown =
-        assertThrows(
-            RuntimeException.class,
-            () -> slackFunction.execute(context),
-            "RuntimeException was expected");
-    assertThat(thrown.getMessage()).contains("error string");
+    Throwable thrown = catchThrowable(() -> slackFunction.execute(context));
+    assertThat(thrown).isInstanceOf(RuntimeException.class).hasMessageContaining("error string");
   }
 
   @ParameterizedTest
@@ -284,12 +288,8 @@ public class SlackFunctionTest extends BaseTest {
     when(chatPostMessageResponse.isOk()).thenReturn(Boolean.FALSE);
     when(chatPostMessageResponse.getError()).thenReturn("error string");
     // When and then
-    RuntimeException thrown =
-        assertThrows(
-            RuntimeException.class,
-            () -> slackFunction.execute(context),
-            "RuntimeException was expected");
-    assertThat(thrown.getMessage()).contains("error string");
+    Throwable thrown = catchThrowable(() -> slackFunction.execute(context));
+    assertThat(thrown).isInstanceOf(RuntimeException.class).hasMessageContaining("error string");
   }
 
   @ParameterizedTest
@@ -299,13 +299,10 @@ public class SlackFunctionTest extends BaseTest {
     context = getContextBuilderWithSecrets().variables(input).build();
     when(lookupByEmailResponse.getUser()).thenReturn(null);
     // When and then
-    RuntimeException thrown =
-        assertThrows(
-            RuntimeException.class,
-            () -> slackFunction.execute(context),
-            "RuntimeException was expected");
-    assertThat(thrown.getMessage())
-        .contains(
+    Throwable thrown = catchThrowable(() -> slackFunction.execute(context));
+    assertThat(thrown)
+        .isInstanceOf(RuntimeException.class)
+        .hasMessageContaining(
             "User with email john.dou@camundamail.com not found; or unable 'users:read.email' permission");
   }
 
@@ -316,11 +313,9 @@ public class SlackFunctionTest extends BaseTest {
     context = getContextBuilderWithSecrets().variables(input).build();
     when(lookupByEmailResponse.getUser()).thenReturn(null);
     // When and then
-    IllegalArgumentException thrown =
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> slackFunction.execute(context),
-            "IllegalArgumentException was expected");
-    assertThat(thrown.getMessage()).contains("The object to be validated must not be null");
+    Throwable thrown = catchThrowable(() -> slackFunction.execute(context));
+    assertThat(thrown)
+        .isInstanceOf(RuntimeException.class)
+        .hasMessageContaining("The object to be validated must not be null");
   }
 }
