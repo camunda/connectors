@@ -362,10 +362,11 @@ limitations under the License.</license.inlineheader>
             <deployMissingFile>false</deployMissingFile>
             <missingFileUrl>https://raw.githubusercontent.com/camunda/connector-sdk/main/licenses/THIRD-PARTY.properties</missingFileUrl>
             <licenseMerges>
-              <licenseMerge>Apache-2.0|Apache License 2.0|Apache License, Version 2.0|The Apache Software License, Version 2.0|Apache 2.0|Apache License, version 2.0|The Apache License, Version 2.0|Apache 2|Apache License|AL 2.0</licenseMerge>
+              <licenseMerge>Apache-2.0|Apache License 2.0|Apache License, Version 2.0|The Apache Software License, Version 2.0|Apache 2.0|Apache License, version 2.0|The Apache License, Version 2.0|Apache 2|Apache License|AL 2.0|Apache License v2.0</licenseMerge>
               <licenseMerge>MIT|MIT License|The MIT License|MIT license|The MIT License (MIT)</licenseMerge>
+              <licenseMerge>MIT-0</licenseMerge>
               <licenseMerge>BSD-2-Clause|BSD 2-Clause License</licenseMerge>
-              <licenseMerge>BSD-3-Clause|3-Clause BSD License|BSD|BSD New license|BSD 3-clause</licenseMerge>
+              <licenseMerge>BSD-3-Clause|3-Clause BSD License|BSD|BSD New license|BSD 3-clause|The BSD License</licenseMerge>
               <licenseMerge>EPL-1.0|Eclipse Public License - v 1.0|Eclipse Public License v. 1.0</licenseMerge>
               <licenseMerge>EPL-2.0|Eclipse Public License v. 2.0|EPL 2.0</licenseMerge>
               <licenseMerge>GPLv2|GPL v2</licenseMerge>
