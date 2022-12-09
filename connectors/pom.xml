@@ -27,6 +27,7 @@
     <module>kafka</module>
     <module>http-json</module>
     <module>microsoft-teams</module>
+    <module>slack</module>
   </modules>
 
   <properties>

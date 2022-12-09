@@ -73,12 +73,10 @@
         <artifactId>connector-microsoft-teams</artifactId>
         <version>${project.version}</version>
       </dependency>
-
-      <!-- TODO: Connectors not yet transferred to mono repo -->
       <dependency>
         <groupId>io.camunda.connector</groupId>
         <artifactId>connector-slack</artifactId>
-        <version>0.6.0</version>
+        <version>${project.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
