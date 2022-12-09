@@ -1,0 +1,61 @@
+[
+  {
+    "description": "groupId is blank",
+    "data": {
+      "method": "listChannelMessages",
+      "groupId": "    ",
+      "channelId": "abc01234-0c7f-012c-9876-testClientId"
+    }
+  },
+  {
+    "description": "groupId is null",
+    "data": {
+      "method": "listChannelMessages",
+      "groupId": null,
+      "channelId": "abc01234-0c7f-012c-9876-testClientId"
+    }
+  },
+  {
+    "description": "channelId is null",
+    "data": {
+      "method": "listChannelMessages",
+      "groupId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "channelId": null
+    }
+  },
+  {
+    "description": "channelId is blank",
+    "data": {
+      "method": "listChannelMessages",
+      "groupId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "channelId": "   "
+    }
+  },
+  {
+    "description": "top < 0",
+    "data": {
+      "method": "listChannelMessages",
+      "groupId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "channelId": " asfdf  ",
+      "top": "-1"
+    }
+  },
+  {
+    "description": "top is String",
+    "data": {
+      "method": "listChannelMessages",
+      "groupId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "channelId": " asfdf  ",
+      "top": "one"
+    }
+  },
+  {
+    "description": "top float",
+    "data": {
+      "method": "listChannelMessages",
+      "groupId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "channelId": " asfdf  ",
+      "top": "2.3"
+    }
+  }
+]

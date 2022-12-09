@@ -1,0 +1,16 @@
+[
+  {
+    "description": "groupId is blank",
+    "data": {
+      "method": "listAllChannels",
+      "groupId": "    "
+    }
+  },
+  {
+    "description": "groupId is null",
+    "data": {
+      "method": "listAllChannels",
+      "groupId": null
+    }
+  }
+]

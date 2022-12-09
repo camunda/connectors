@@ -26,6 +26,7 @@
     <module>sendgrid</module>
     <module>kafka</module>
     <module>http-json</module>
+    <module>microsoft-teams</module>
   </modules>
 
   <properties>
