@@ -8,8 +8,11 @@ package io.camunda.connector.model;
 
 import com.amazonaws.services.sqs.model.MessageAttributeValue;
 import io.camunda.connector.api.annotation.Secret;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 
@@ -21,7 +24,7 @@ public class QueueRequestData {
   @NotNull
   private Object messageBody; // we don't need to know the customer message as we will pass it as-is
 
-  private Map<String, MessageAttributeValue> messageAttributes;
+  private Map<String, SqsMessageAttribute> messageAttributes;
 
   public String getUrl() {
     return url;
@@ -47,12 +50,34 @@ public class QueueRequestData {
     this.messageBody = messageBody;
   }
 
-  public Map<String, MessageAttributeValue> getMessageAttributes() {
+  public Map<String, SqsMessageAttribute> getMessageAttributes() {
     return messageAttributes;
   }
 
-  public void setMessageAttributes(Map<String, MessageAttributeValue> messageAttributes) {
+  public Map<String, MessageAttributeValue> getAwsSqsNativeMessageAttributes() {
+    if (messageAttributes == null) {
+      return Collections.emptyMap();
+    }
+
+    final Map<String, MessageAttributeValue> sqsNativeMessageAttributes = new HashMap<>();
+    messageAttributes.forEach(
+        (key, value) ->
+            sqsNativeMessageAttributes.put(key, messageAttributeTransformer().apply(value)));
+
+    return sqsNativeMessageAttributes;
+  }
+
+  public void setMessageAttributes(Map<String, SqsMessageAttribute> messageAttributes) {
     this.messageAttributes = messageAttributes;
+  }
+
+  private Function<SqsMessageAttribute, MessageAttributeValue> messageAttributeTransformer() {
+    return snsMessageAttribute -> {
+      MessageAttributeValue msgAttr = new MessageAttributeValue();
+      msgAttr.setDataType(snsMessageAttribute.getDataType());
+      msgAttr.setStringValue(snsMessageAttribute.getStringValue());
+      return msgAttr;
+    };
   }
 
   @Override

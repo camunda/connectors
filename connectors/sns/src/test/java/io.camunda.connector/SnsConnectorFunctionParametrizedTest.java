@@ -29,8 +29,8 @@ import com.amazonaws.services.sns.model.PublishResult;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.model.SnsConnectorRequest;
 import io.camunda.connector.model.SnsConnectorResult;
-import io.camunda.connector.suppliers.GsonComponentSupplier;
 import io.camunda.connector.suppliers.SnsClientSupplier;
+import io.camunda.connector.suppliers.SnsGsonComponentSupplier;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import java.io.File;
 import java.io.IOException;
@@ -78,7 +78,7 @@ class SnsConnectorFunctionParametrizedTest {
 
   @BeforeEach
   void setup() {
-    function = new SnsConnectorFunction(snsClientSupplier, GsonComponentSupplier.gsonInstance());
+    function = new SnsConnectorFunction(snsClientSupplier, SnsGsonComponentSupplier.gsonInstance());
   }
 
   @ParameterizedTest

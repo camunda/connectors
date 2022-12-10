@@ -9,10 +9,13 @@ package io.camunda.connector;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.amazonaws.services.sns.model.MessageAttributeValue;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.impl.ConnectorInputException;
 import io.camunda.connector.model.SnsConnectorRequest;
+import io.camunda.connector.model.SnsMessageAttribute;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -95,5 +98,19 @@ class SnsConnectorRequestTest extends BaseTest {
     assertThat(request.getAuthentication().getAccessKey()).isEqualTo(AWS_ACCESS_KEY);
     assertThat(request.getTopic().getTopicArn()).isEqualTo(AWS_TOPIC_ARN);
     assertThat(request.getTopic().getRegion()).isEqualTo(AWS_TOPIC_REGION);
+  }
+
+  @Test
+  void execute_messageAttributesParsedCorrectly() {
+    // Given request is DEFAULT_REQUEST_BODY with message attributes
+    // When fetching native AWS SNS message attributes, they (native AWS SNS attributes) are mapped
+    // correctly
+    Map<String, SnsMessageAttribute> msgAttrsFromRequest =
+        request.getTopic().getMessageAttributes();
+    Map<String, MessageAttributeValue> msgAttrsRemapped =
+        request.getTopic().getAwsSnsNativeMessageAttributes();
+
+    assertThat(msgAttrsRemapped.size()).isNotZero();
+    assertThat(msgAttrsRemapped).hasSameSizeAs(msgAttrsFromRequest);
   }
 }

@@ -8,8 +8,11 @@ package io.camunda.connector.model;
 
 import com.amazonaws.services.sns.model.MessageAttributeValue;
 import io.camunda.connector.api.annotation.Secret;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
@@ -25,7 +28,7 @@ public class TopicRequestData {
   // we don't need to know the customer message as we will pass it as-is
   @NotNull private Object message;
 
-  private Map<String, MessageAttributeValue> messageAttributes;
+  private Map<String, SnsMessageAttribute> messageAttributes;
 
   public String getTopicArn() {
     return topicArn;
@@ -59,12 +62,34 @@ public class TopicRequestData {
     this.message = message;
   }
 
-  public Map<String, MessageAttributeValue> getMessageAttributes() {
+  public Map<String, SnsMessageAttribute> getMessageAttributes() {
     return messageAttributes;
   }
 
-  public void setMessageAttributes(Map<String, MessageAttributeValue> messageAttributes) {
+  public Map<String, MessageAttributeValue> getAwsSnsNativeMessageAttributes() {
+    if (messageAttributes == null) {
+      return Collections.emptyMap();
+    }
+
+    final Map<String, MessageAttributeValue> snsNativeMessageAttributes = new HashMap<>();
+    messageAttributes.forEach(
+        (key, value) ->
+            snsNativeMessageAttributes.put(key, messageAttributeTransformer().apply(value)));
+
+    return snsNativeMessageAttributes;
+  }
+
+  public void setMessageAttributes(Map<String, SnsMessageAttribute> messageAttributes) {
     this.messageAttributes = messageAttributes;
+  }
+
+  private Function<SnsMessageAttribute, MessageAttributeValue> messageAttributeTransformer() {
+    return snsMessageAttribute -> {
+      MessageAttributeValue msgAttr = new MessageAttributeValue();
+      msgAttr.setDataType(snsMessageAttribute.getDataType());
+      msgAttr.setStringValue(snsMessageAttribute.getStringValue());
+      return msgAttr;
+    };
   }
 
   @Override

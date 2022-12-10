@@ -7,7 +7,7 @@
 package io.camunda.connector;
 
 import com.google.gson.Gson;
-import io.camunda.connector.suppliers.GsonComponentSupplier;
+import io.camunda.connector.suppliers.SnsGsonComponentSupplier;
 
 public abstract class BaseTest {
 
@@ -48,5 +48,5 @@ public abstract class BaseTest {
           + "  }\n"
           + "}";
 
-  protected static final Gson GSON = GsonComponentSupplier.gsonInstance();
+  protected static final Gson GSON = SnsGsonComponentSupplier.gsonInstance();
 }
