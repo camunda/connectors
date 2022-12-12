@@ -58,13 +58,13 @@ docker build -t camunda/connectors-bundle:${VERSION} .
 The docker image contains Connectors licensed under [Camunda Platform Self-Managed Free Edition] license.
 
 [apache 2.0]: https://www.apache.org/licenses/LICENSE-2.0
-[aws lambda connector]: ../connectors/aws-lambda
+[aws lambda connector]: https://github.com/camunda/connectors-bundle/tree/main/connectors/aws-lambda
 [camunda platform self-managed free edition]: https://camunda.com/legal/terms/cloud-terms-and-conditions/camunda-cloud-self-managed-free-edition-terms/
-[google drive connector]: ../connectors/google-drive
-[http json connector (rest)]: ../connectors/http-json
-[rabbitmq connector]: ../connectors/rabbitmq
+[google drive connector]: https://github.com/camunda/connectors-bundle/tree/main/connectors/google-drive
+[http json connector (rest)]: https://github.com/camunda/connectors-bundle/tree/main/connectors/http-json
+[rabbitmq connector]: https://github.com/camunda/connectors-bundle/tree/main/connectors/rabbit-mq
 [connector runtime]: https://github.com/camunda/connectors-bundle/tree/main/runtime
-[sendgrid connector]: ../connectors/sendgrid
-[slack connector]: ../connectors/slack
-[sns connector]: ../connectors/sns
-[sqs connector]: ../connectors/sqs
+[sendgrid connector]: https://github.com/camunda/connectors-bundle/tree/main/connectors/sendgrid
+[slack connector]: https://github.com/camunda/connectors-bundle/tree/main/connectors/slack
+[sns connector]: https://github.com/camunda/connectors-bundle/tree/main/connectors/sns
+[sqs connector]: https://github.com/camunda/connectors-bundle/tree/main/connectors/sqs
