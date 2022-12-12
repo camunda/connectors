@@ -19,27 +19,28 @@ import io.camunda.connector.model.request.MSTeamsRequestData;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
+import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import okhttp3.Request;
 
 public class CreateChat extends MSTeamsRequestData {
 
-  @NotNull private ChatType chatType;
+  @NotBlank private String chatType;
   @NotNull @Secret private List<Member> members;
 
   @Override
   public Object invoke(final GraphServiceClient<Request> graphClient) {
 
     Chat chat = new Chat();
-    chat.chatType = chatType;
+    chat.chatType = ChatType.valueOf(chatType.toUpperCase());
     LinkedList<ConversationMember> membersList = new LinkedList<>();
 
-    for (int i = 0; i < members.size(); i++) {
+    for (Member member : members) {
       AadUserConversationMember conversationMembers = new AadUserConversationMember();
-      conversationMembers.roles = members.get(i).getRoles();
+      conversationMembers.roles = member.getRoles();
       conversationMembers
           .additionalDataManager()
-          .put(Member.USER_DATA_BIND, members.get(i).getAsGraphJsonPrimitive());
+          .put(Member.USER_DATA_BIND, member.getAsGraphJsonPrimitive());
       conversationMembers
           .additionalDataManager()
           .put(Member.USER_DATA_TYPE, Member.USER_CONVERSATION_MEMBER);
@@ -54,11 +55,11 @@ public class CreateChat extends MSTeamsRequestData {
     return graphClient.chats().buildRequest().post(chat);
   }
 
-  public ChatType getChatType() {
+  public String getChatType() {
     return chatType;
   }
 
-  public void setChatType(final ChatType chatType) {
+  public void setChatType(final String chatType) {
     this.chatType = chatType;
   }
 
@@ -79,7 +80,7 @@ public class CreateChat extends MSTeamsRequestData {
       return false;
     }
     final CreateChat that = (CreateChat) o;
-    return chatType == that.chatType && Objects.equals(members, that.members);
+    return Objects.equals(chatType, that.chatType) && Objects.equals(members, that.members);
   }
 
   @Override
@@ -89,6 +90,6 @@ public class CreateChat extends MSTeamsRequestData {
 
   @Override
   public String toString() {
-    return "CreateChat{" + "chatType=" + chatType + ", members=" + members + "}";
+    return "CreateChat{" + "chatType='" + chatType + "'" + ", members=" + members + "}";
   }
 }
