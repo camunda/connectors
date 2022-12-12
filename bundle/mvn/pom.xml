@@ -13,7 +13,7 @@
   </parent>
 
   <properties>
-    <spring-zeebe.version>8.1.9</spring-zeebe.version>
+    <spring-zeebe.version>8.1.10</spring-zeebe.version>
     <spring-boot.version>2.7.6</spring-boot.version>
     <connector.version>0.4.0</connector.version>
 
