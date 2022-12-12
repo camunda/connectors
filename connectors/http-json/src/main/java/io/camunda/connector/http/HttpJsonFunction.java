@@ -44,6 +44,7 @@ import io.camunda.connector.http.constants.Constants;
 import io.camunda.connector.http.model.ErrorResponse;
 import io.camunda.connector.http.model.HttpJsonRequest;
 import io.camunda.connector.http.model.HttpJsonResult;
+import io.camunda.connector.impl.ConnectorInputException;
 import io.camunda.connector.impl.config.ConnectorConfigurationUtil;
 import java.io.IOException;
 import java.io.InputStream;
@@ -55,6 +56,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import javax.validation.ValidationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -232,6 +234,10 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
 
   protected HttpRequest createRequest(final HttpJsonRequest request, String bearerToken)
       throws IOException {
+    // TODO: add more holistic solution
+    if (request.getUrl().contains("computeMetadata")) {
+      throw new ConnectorInputException(new ValidationException("The provided URL is not allowed"));
+    }
     final String method = request.getMethod().toUpperCase();
     final GenericUrl genericUrl = new GenericUrl(request.getUrl());
     final HttpContent content = createContent(request);
