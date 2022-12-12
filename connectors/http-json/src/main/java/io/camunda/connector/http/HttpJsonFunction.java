@@ -232,6 +232,10 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
 
   protected HttpRequest createRequest(final HttpJsonRequest request, String bearerToken)
       throws IOException {
+    // TODO: add more holistic solution
+    if (request.getUrl().contains("computeMetadata")) {
+      throw new ConnectorInputException(new ValidationException("The provided URL is not allowed"));
+    }
     final String method = request.getMethod().toUpperCase();
     final GenericUrl genericUrl = new GenericUrl(request.getUrl());
     final HttpContent content = createContent(request);
