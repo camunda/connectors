@@ -371,7 +371,7 @@ limitations under the License.</license.inlineheader>
               <licenseMerge>EPL-2.0|Eclipse Public License v. 2.0|EPL 2.0</licenseMerge>
               <licenseMerge>GPLv2|GPL v2</licenseMerge>
               <licenseMerge>GPLv2 with Classpath Exception|GPL2 w/ CPE|GNU General Public License, version 2 with the GNU Classpath Exception|CDDL + GPLv2 with classpath exception</licenseMerge>
-              <licenseMerge>GNU Lesser General Public License, Version 2.1|GNU Lesser General Public License</licenseMerge>
+              <licenseMerge>GNU Lesser General Public License, Version 2.1|GNU Lesser General Public License|LGPL, version 2.1</licenseMerge>
               <licenseMerge>CDDLv1.0|COMMON DEVELOPMENT AND DISTRIBUTION LICENSE (CDDL) Version 1.0</licenseMerge>
               <licenseMerge>Bouncy Castle|Bouncy Castle Licence</licenseMerge>
               <licenseMerge>Go Licence</licenseMerge>
