@@ -13,14 +13,14 @@ import javax.validation.constraints.NotNull;
 
 public class SnsConnectorRequest {
 
-  @Valid @NotNull @Secret private AuthenticationRequestData authentication;
+  @Valid @NotNull @Secret private SnsAuthenticationRequestData authentication;
   @Valid @NotNull @Secret private TopicRequestData topic;
 
-  public AuthenticationRequestData getAuthentication() {
+  public SnsAuthenticationRequestData getAuthentication() {
     return authentication;
   }
 
-  public void setAuthentication(final AuthenticationRequestData authentication) {
+  public void setAuthentication(final SnsAuthenticationRequestData authentication) {
     this.authentication = authentication;
   }
 

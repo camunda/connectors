@@ -13,14 +13,14 @@ import javax.validation.constraints.NotNull;
 
 public class SqsConnectorRequest {
 
-  @Valid @NotNull @Secret private AuthenticationRequestData authentication;
+  @Valid @NotNull @Secret private SqsAuthenticationRequestData authentication;
   @Valid @NotNull @Secret private QueueRequestData queue;
 
-  public AuthenticationRequestData getAuthentication() {
+  public SqsAuthenticationRequestData getAuthentication() {
     return authentication;
   }
 
-  public void setAuthentication(final AuthenticationRequestData authentication) {
+  public void setAuthentication(final SqsAuthenticationRequestData authentication) {
     this.authentication = authentication;
   }
 

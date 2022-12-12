@@ -15,8 +15,8 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.model.SqsConnectorRequest;
 import io.camunda.connector.model.SqsConnectorResult;
-import io.camunda.connector.suppliers.GsonComponentSupplier;
 import io.camunda.connector.suppliers.SqsClientSupplier;
+import io.camunda.connector.suppliers.SqsGsonComponentSupplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,7 +31,7 @@ public class SqsConnectorFunction implements OutboundConnectorFunction {
   private final Gson gson;
 
   public SqsConnectorFunction() {
-    this(new SqsClientSupplier(), GsonComponentSupplier.gsonInstance());
+    this(new SqsClientSupplier(), SqsGsonComponentSupplier.gsonInstance());
   }
 
   public SqsConnectorFunction(final SqsClientSupplier sqsClientSupplier, final Gson gson) {
@@ -61,7 +61,7 @@ public class SqsConnectorFunction implements OutboundConnectorFunction {
           new SendMessageRequest()
               .withQueueUrl(request.getQueue().getUrl())
               .withMessageBody(request.getQueue().getMessageBody().toString())
-              .withMessageAttributes(request.getQueue().getMessageAttributes());
+              .withMessageAttributes(request.getQueue().getAwsSqsNativeMessageAttributes());
       return sqsClient.sendMessage(message);
     } finally {
       if (sqsClient != null) {

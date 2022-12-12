@@ -9,10 +9,13 @@ package io.camunda.connector;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.amazonaws.services.sqs.model.MessageAttributeValue;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.impl.ConnectorInputException;
 import io.camunda.connector.model.SqsConnectorRequest;
+import io.camunda.connector.model.SqsMessageAttribute;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -89,5 +92,19 @@ class SqsConnectorRequestTest extends BaseTest {
     assertThat(request.getAuthentication().getSecretKey()).isEqualTo(AWS_SECRET_KEY);
     assertThat(request.getAuthentication().getAccessKey()).isEqualTo(AWS_ACCESS_KEY);
     assertThat(request.getQueue().getUrl()).isEqualTo(SQS_QUEUE_URL);
+  }
+
+  @Test
+  void execute_messageAttributesParsedCorrectly() {
+    // Given request is DEFAULT_REQUEST_BODY with message attributes
+    // When fetching native AWS SQS message attributes, they (native AWS SNS attributes) are mapped
+    // correctly
+    Map<String, SqsMessageAttribute> msgAttrsFromRequest =
+        request.getQueue().getMessageAttributes();
+    Map<String, MessageAttributeValue> msgAttrsRemapped =
+        request.getQueue().getAwsSqsNativeMessageAttributes();
+
+    assertThat(msgAttrsRemapped.size()).isNotZero();
+    assertThat(msgAttrsRemapped).hasSameSizeAs(msgAttrsFromRequest);
   }
 }

@@ -15,8 +15,8 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.model.SnsConnectorRequest;
 import io.camunda.connector.model.SnsConnectorResult;
-import io.camunda.connector.suppliers.GsonComponentSupplier;
 import io.camunda.connector.suppliers.SnsClientSupplier;
+import io.camunda.connector.suppliers.SnsGsonComponentSupplier;
 import org.apache.commons.text.StringEscapeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +32,7 @@ public class SnsConnectorFunction implements OutboundConnectorFunction {
   private final Gson gson;
 
   public SnsConnectorFunction() {
-    this(new SnsClientSupplier(), GsonComponentSupplier.gsonInstance());
+    this(new SnsClientSupplier(), SnsGsonComponentSupplier.gsonInstance());
   }
 
   public SnsConnectorFunction(final SnsClientSupplier snsClientSupplier, final Gson gson) {
@@ -65,7 +65,7 @@ public class SnsConnectorFunction implements OutboundConnectorFunction {
           new PublishRequest()
               .withTopicArn(request.getTopic().getTopicArn())
               .withMessage(topicMessage)
-              .withMessageAttributes(request.getTopic().getMessageAttributes())
+              .withMessageAttributes(request.getTopic().getAwsSnsNativeMessageAttributes())
               .withSubject(request.getTopic().getSubject());
       return snsClient.publish(message);
     } finally {

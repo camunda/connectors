@@ -28,8 +28,8 @@ import com.amazonaws.services.sqs.model.SendMessageResult;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.model.SqsConnectorRequest;
 import io.camunda.connector.model.SqsConnectorResult;
-import io.camunda.connector.suppliers.GsonComponentSupplier;
 import io.camunda.connector.suppliers.SqsClientSupplier;
+import io.camunda.connector.suppliers.SqsGsonComponentSupplier;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import java.io.File;
 import java.io.IOException;
@@ -62,7 +62,7 @@ class SqsConnectorFunctionParametrizedTest {
 
   @BeforeEach
   void setup() {
-    function = new SqsConnectorFunction(sqsClientSupplier, GsonComponentSupplier.gsonInstance());
+    function = new SqsConnectorFunction(sqsClientSupplier, SqsGsonComponentSupplier.gsonInstance());
   }
 
   @ParameterizedTest

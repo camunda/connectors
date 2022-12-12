@@ -10,7 +10,7 @@ import io.camunda.connector.api.annotation.Secret;
 import java.util.Objects;
 import javax.validation.constraints.NotEmpty;
 
-public class AuthenticationRequestData {
+public class SnsAuthenticationRequestData {
   @NotEmpty @Secret private String accessKey;
   @NotEmpty @Secret private String secretKey;
 
@@ -38,7 +38,7 @@ public class AuthenticationRequestData {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    AuthenticationRequestData that = (AuthenticationRequestData) o;
+    SnsAuthenticationRequestData that = (SnsAuthenticationRequestData) o;
     return accessKey.equals(that.accessKey) && secretKey.equals(that.secretKey);
   }
 
