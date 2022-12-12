@@ -9,14 +9,14 @@ The bundle contains the following components
 | [Connector Runtime]          | 0.3.2   | [Apache 2.0]                                 |
 | [AWS Lambda Connector]       | 0.14.0  | [Camunda Platform Self-Managed Free Edition] |
 | [Google Drive Connector]     | 0.14.0  | [Camunda Platform Self-Managed Free Edition] |
-| [HTTP JSON Connector (REST)] | 0.11.0  | [Apache 2.0]                                 |
+| [HTTP JSON Connector (REST)] | 0.14.0  | [Apache 2.0]                                 |
 | [RabbitMQ Connector]         | 0.14.0  | [Camunda Platform Self-Managed Free Edition] |
 | [SendGrid Connector]         | 0.14.0  | [Camunda Platform Self-Managed Free Edition] |
-| [Slack Connector]            | 0.6.0   | [Camunda Platform Self-Managed Free Edition] |
+| [Slack Connector]            | 0.14.0  | [Camunda Platform Self-Managed Free Edition] |
 | [SNS Connector]              | 0.14.0  | [Camunda Platform Self-Managed Free Edition] |
 | [SQS Connector]              | 0.14.0  | [Camunda Platform Self-Managed Free Edition] |
 
-The [`Dockerfile`](./Dockerfile) provides an image including the [Connector runtime]
+The [`Dockerfile`](./mvn/default-bundle/Dockerfile) provides an image including the [Connector runtime]
 and all [out-of-the-box Connectors](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/available-connectors-overview/)
 provided by Camunda. The image starts the Connector runtime with all `jar`
 files provided in the `/opt/app` directory as classpath.
@@ -51,15 +51,6 @@ to inject multiple secrets at once.
 docker build -t camunda/connectors-bundle:${VERSION} .
 ```
 
-All version can be overwritten as build args, i.e. to use a different runtime version and slack connector version run
-
-```bash
-docker build \
-         --build-arg RUNTIME_VERSION=8.1.6 \        # Overwrite Connector runtime version
-         --build-arg SLACK_VERSION=0.5.0  \         # Overwrite Slack Connector version
-         -t camunda/connectors-bundle:${VERSION} .
-```
-
 # License
 
 [Apache 2.0]
@@ -67,13 +58,13 @@ docker build \
 The docker image contains Connectors licensed under [Camunda Platform Self-Managed Free Edition] license.
 
 [apache 2.0]: https://www.apache.org/licenses/LICENSE-2.0
-[aws lambda connector]: https://github.com/camunda/connector-aws-lambda
+[aws lambda connector]: https://github.com/camunda/connectors-bundle/tree/main/connectors/aws-lambda
 [camunda platform self-managed free edition]: https://camunda.com/legal/terms/cloud-terms-and-conditions/camunda-cloud-self-managed-free-edition-terms/
-[google drive connector]: https://github.com/camunda/connector-google-drive
-[http json connector (rest)]: https://github.com/camunda/connector-http-json
-[rabbitmq connector]: https://github.com/camunda/connector-rabbitmq
-[connector runtime]: https://github.com/camunda/connectors-bundle/tree/main/runtime
-[sendgrid connector]: https://github.com/camunda/connector-sendgrid
-[slack connector]: https://github.com/camunda/connector-slack
-[sns connector]: https://github.com/camunda/connector-sns
-[sqs connector]: https://github.com/camunda/connector-sqs
+[google drive connector]: https://github.com/camunda/connectors-bundle/tree/main/connectors/google-drive
+[http json connector (rest)]: https://github.com/camunda/connectors-bundle/tree/main/connectors/http-json
+[rabbitmq connector]: https://github.com/camunda/connectors-bundle/tree/main/connectors/rabbit-mq
+[connector runtime]: https://github.com/camunda/connector-runtime-docker
+[sendgrid connector]: https://github.com/camunda/connectors-bundle/tree/main/connectors/sendgrid
+[slack connector]: https://github.com/camunda/connectors-bundle/tree/main/connectors/slack
+[sns connector]: https://github.com/camunda/connectors-bundle/tree/main/connectors/sns
+[sqs connector]: https://github.com/camunda/connectors-bundle/tree/main/connectors/sqs

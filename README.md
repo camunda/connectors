@@ -1,6 +1,6 @@
 # Camunda 8 out-of-the-box Connectors
 
-[![CI](https://github.com/camunda/connectors-bundle/actions/workflows/CI.yml/badge.svg)](https://github.com/camunda/connectors-bundle/actions/workflows/CI.yml)
+[![CI](https://github.com/camunda/connectors-bundle/actions/workflows/DEPLOY.yaml/badge.svg)](https://github.com/camunda/connectors-bundle/actions/workflows/CI.yml)
 
 This repository manages out-of-the-box Connectors available in Camunda Platform 8.
 
