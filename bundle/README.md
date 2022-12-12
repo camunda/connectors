@@ -63,7 +63,7 @@ The docker image contains Connectors licensed under [Camunda Platform Self-Manag
 [google drive connector]: https://github.com/camunda/connectors-bundle/tree/main/connectors/google-drive
 [http json connector (rest)]: https://github.com/camunda/connectors-bundle/tree/main/connectors/http-json
 [rabbitmq connector]: https://github.com/camunda/connectors-bundle/tree/main/connectors/rabbit-mq
-[connector runtime]: https://github.com/camunda/connectors-bundle/tree/main/runtime
+[connector runtime]: https://github.com/camunda/connector-runtime-docker
 [sendgrid connector]: https://github.com/camunda/connectors-bundle/tree/main/connectors/sendgrid
 [slack connector]: https://github.com/camunda/connectors-bundle/tree/main/connectors/slack
 [sns connector]: https://github.com/camunda/connectors-bundle/tree/main/connectors/sns
