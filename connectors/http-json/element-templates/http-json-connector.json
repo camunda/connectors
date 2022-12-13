@@ -232,6 +232,7 @@
       "group": "authentication",
       "type": "String",
       "feel": "optional",
+      "optional": true,
       "binding": {
         "type": "zeebe:input",
         "name": "authentication.scopes"
@@ -247,6 +248,7 @@
       "group": "authentication",
       "type": "String",
       "feel": "optional",
+      "optional": true,
       "binding": {
         "type": "zeebe:input",
         "name": "authentication.audience"
