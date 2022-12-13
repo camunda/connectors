@@ -46,12 +46,12 @@ jobs:
           MAVEN_PASSWORD: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
 
       - name: Lint Connector Bundle Dockerfile - SaaS
-        uses: hadolint/hadolint-action@v2.0.0
+        uses: hadolint/hadolint-action@v2.1.0
         with:
           dockerfile: bundle/mvn/camunda-saas-bundle/Dockerfile
 
       - name: Lint Connector Bundle Dockerfile - default-bundle
-        uses: hadolint/hadolint-action@v2.0.0
+        uses: hadolint/hadolint-action@v2.1.0
         with:
           dockerfile: bundle/mvn/default-bundle/Dockerfile
 
