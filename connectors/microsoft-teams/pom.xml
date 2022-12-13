@@ -26,7 +26,7 @@
   <properties>
     <version.gson-extras>1.1.0</version.gson-extras>
     <version.microsoft-graph>5.41.0</version.microsoft-graph>
-    <version.azure-identity>1.7.1</version.azure-identity>
+    <version.azure-identity>1.7.2</version.azure-identity>
   </properties>
 
   <dependencies>
