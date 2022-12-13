@@ -26,7 +26,7 @@ public class OAuthAuthentication extends Authentication {
   @NotEmpty @Secret private String oauthTokenEndpoint;
   @NotEmpty @Secret private String clientId;
   @NotEmpty @Secret private String clientSecret;
-  @NotEmpty @Secret private String audience;
+  @Secret private String audience;
   @NotEmpty private String clientAuthentication;
 
   private String scopes;

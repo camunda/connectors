@@ -223,31 +223,6 @@
     }
   },
   {
-    "descriptionOfTest": "oauth request without audience",
-    "method": "post",
-    "url": "https://abc/def",
-    "connectionTimeoutInSeconds": "30",
-    "headers": {
-      "X-Camunda-Cluster-ID": "abcdef",
-      "User-Agent": "http-connector-demo"
-    },
-    "authentication":{
-      "oauthTokenEndpoint":"https://abc.eu.auth0.com/api/v2/",
-      "scopes": "read:clients",
-      "clientId":"secrets.CLIENT_ID",
-      "clientSecret":"secrets.CLIENT_SECRET",
-      "type":"oauth-client-credentials-flow",
-      "clientAuthentication":"basicAuthHeader"
-    },
-    "body": {
-      "customer": {
-        "id": 1231231,
-        "name": "Jane Doe",
-        "email": "jane.doe@exampe.com"
-      }
-    }
-  },
-  {
     "descriptionOfTest": "oauth request without client authentication",
     "method": "post",
     "url": "https://abc/def",
