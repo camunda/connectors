@@ -18,6 +18,10 @@
       <!-- TODO: rm this dep from parent when all connectors are transferred to mono repo -->
       <scope>compile</scope>
     </dependency>
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-registry-prometheus</artifactId>
+    </dependency>
 
     <dependency>
       <groupId>io.camunda.connector</groupId>
