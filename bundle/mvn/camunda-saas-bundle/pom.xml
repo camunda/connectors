@@ -2,17 +2,13 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-        <groupId>io.camunda.connector</groupId>
-        <artifactId>connector-runtime-bundle-parent</artifactId>
-        <version>0.14.3-SNAPSHOT</version>
-        <relativePath>../pom.xml</relativePath>
+    <groupId>io.camunda.connector</groupId>
+    <artifactId>connector-runtime-bundle-parent</artifactId>
+    <version>0.14.3-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
   </parent>
   <artifactId>connector-runtime-bundle-saas</artifactId>
   <packaging>jar</packaging>
-
-  <properties>
-    <version.spring-cloud-gcp-starter-logging>3.4.1</version.spring-cloud-gcp-starter-logging>
-  </properties>
 
   <dependencies>
     <dependency>
@@ -20,37 +16,13 @@
       <artifactId>connector-runtime-bundle</artifactId>
       <version>${project.version}</version>
     </dependency>
-    <!-- Need to overwrite scope, as set to test by parent, which would take precedence -->
-    <dependency>
-      <groupId>io.camunda</groupId>
-      <artifactId>spring-zeebe-connector-runtime</artifactId>
-      <version>${spring-zeebe.version}</version>
-      <!-- TODO: rm this dep from parent when all connectors are transferred to mono repo -->
-      <scope>compile</scope>
-    </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-gcp-security-manager</artifactId>
-      <version>${connector.version}</version>
     </dependency>
     <dependency>
       <groupId>com.google.cloud</groupId>
       <artifactId>spring-cloud-gcp-starter-logging</artifactId>
-      <version>${version.spring-cloud-gcp-starter-logging}</version>
-    </dependency>
-    <!-- TODO: remove both logback version overrides here as soon as Spring BOM is used: https://github.com/camunda/connectors-bundle/pull/100 -->
-    <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-core</artifactId>
-      <version>1.2.11</version>
-      <!-- enforce logback version to avoid conflicts with GCP Logging.
-           Use Spring Boot version, see https://stackoverflow.com/questions/3737992/noclassdeffounderror-org-slf4j-impl-staticloggerbinder
-      -->
-    </dependency>
-    <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-classic</artifactId>
-      <version>1.2.11</version>
     </dependency>
 
     <!-- Testing -->
@@ -58,7 +30,6 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
       <scope>test</scope>
-      <version>${spring-boot.version}</version>
     </dependency>
   </dependencies>
 
@@ -78,7 +49,7 @@
             <dependency>
               <groupId>org.springframework.boot</groupId>
               <artifactId>spring-boot-maven-plugin</artifactId>
-              <version>${spring-boot.version}</version>
+              <version>${version.spring-boot}</version>
             </dependency>
           </dependencies>
           <configuration>

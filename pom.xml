@@ -6,7 +6,7 @@
   <parent>
     <groupId>io.camunda.connector</groupId>
     <artifactId>connector-parent</artifactId>
-    <version>0.4.0</version>
+    <version>0.5.0-SNAPSHOT</version>
     <relativePath/>
   </parent>
 
@@ -18,10 +18,178 @@
   <description>Parent POM for out-of-the-box Connectors</description>
   <inceptionYear>2022</inceptionYear>
 
+  <properties>
+    <version.spring-zeebe>8.1.13</version.spring-zeebe>
+
+    <version.spring-boot>2.7.6</version.spring-boot>
+    <version.spring-cloud-gcp-starter-logging>3.4.1</version.spring-cloud-gcp-starter-logging>
+
+    <version.aws-java-sdk>1.12.370</version.aws-java-sdk>
+
+    <version.google-api-client>2.1.1</version.google-api-client>
+    <version.google-api-services-drive>v3-rev20221023-2.0.0</version.google-api-services-drive>
+    <version.google-oauth-client-jetty>1.34.1</version.google-oauth-client-jetty>
+    <version.google-auth-library-oauth2-http>1.14.0</version.google-auth-library-oauth2-http>
+    <version.google-api-services-docs>v1-rev20221004-2.0.0</version.google-api-services-docs>
+
+    <version.google-libraries-bom>26.2.0</version.google-libraries-bom>
+    <version.gson-extras>1.1.0</version.gson-extras>
+
+    <version.httpcore>4.4.16</version.httpcore>
+
+    <version.kafka-clients>3.3.1</version.kafka-clients>
+
+    <version.microsoft-graph>5.42.0</version.microsoft-graph>
+    <version.azure-identity>1.7.2</version.azure-identity>
+
+    <version.bcprov-jdk15on>1.70</version.bcprov-jdk15on>
+    <version.sendGrid>4.9.3</version.sendGrid>
+
+    <version.slack>1.27.2</version.slack>
+    <version.kotlin>1.7.22</version.kotlin>
+  </properties>
+
   <modules>
     <module>connectors</module>
     <module>bundle/mvn</module>
   </modules>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-dependencies</artifactId>
+        <version>${version.spring-boot}</version>
+        <scope>import</scope>
+        <type>pom</type>
+      </dependency>
+      <dependency>
+        <groupId>com.google.cloud</groupId>
+        <artifactId>libraries-bom</artifactId>
+        <version>${version.google-libraries-bom}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>io.camunda</groupId>
+        <artifactId>spring-zeebe-connector-runtime</artifactId>
+        <version>${version.spring-zeebe}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.google.cloud</groupId>
+        <artifactId>spring-cloud-gcp-starter-logging</artifactId>
+        <version>${version.spring-cloud-gcp-starter-logging}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.amazonaws</groupId>
+        <artifactId>aws-java-sdk-lambda</artifactId>
+        <version>${version.aws-java-sdk}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.amazonaws</groupId>
+        <artifactId>aws-java-sdk-sns</artifactId>
+        <version>${version.aws-java-sdk}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.amazonaws</groupId>
+        <artifactId>aws-java-sdk-sqs</artifactId>
+        <version>${version.aws-java-sdk}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.google.api-client</groupId>
+        <artifactId>google-api-client</artifactId>
+        <version>${version.google-api-client}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.apis</groupId>
+        <artifactId>google-api-services-drive</artifactId>
+        <version>${version.google-api-services-drive}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.oauth-client</groupId>
+        <artifactId>google-oauth-client-jetty</artifactId>
+        <version>${version.google-oauth-client-jetty}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.auth</groupId>
+        <artifactId>google-auth-library-oauth2-http</artifactId>
+        <version>${version.google-auth-library-oauth2-http}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.apis</groupId>
+        <artifactId>google-api-services-docs</artifactId>
+        <version>${version.google-api-services-docs}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.danilopianini</groupId>
+        <artifactId>gson-extras</artifactId>
+        <version>${version.gson-extras}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.httpcomponents</groupId>
+        <artifactId>httpcore</artifactId>
+        <version>${version.httpcore}</version>
+      </dependency>
+      
+      <dependency>
+        <groupId>org.apache.kafka</groupId>
+        <artifactId>kafka-clients</artifactId>
+        <version>${version.kafka-clients}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.microsoft.graph</groupId>
+        <artifactId>microsoft-graph</artifactId>
+        <version>${version.microsoft-graph}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.azure</groupId>
+        <artifactId>azure-identity</artifactId>
+        <version>${version.azure-identity}</version>
+        <scope>compile</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcprov-jdk15on</artifactId>
+        <version>${version.bcprov-jdk15on}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.sendgrid</groupId>
+        <artifactId>sendgrid-java</artifactId>
+        <version>${version.sendGrid}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.jetbrains.kotlin</groupId>
+        <artifactId>kotlin-stdlib</artifactId>
+        <version>${version.kotlin}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.jetbrains.kotlin</groupId>
+        <artifactId>kotlin-stdlib-common</artifactId>
+        <version>${version.kotlin}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.slack.api</groupId>
+        <artifactId>slack-api-client</artifactId>
+        <version>${version.slack}</version>
+      </dependency>
+
+      <!-- This dependency will be removed after camunda/zeebe#9859 is resolved. -->
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-text</artifactId>
+        <version>1.10.0</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <repositories>
     <repository>

@@ -23,14 +23,6 @@
     </license>
   </licenses>
 
-  <properties>
-    <version.google-api-client>2.1.1</version.google-api-client>
-    <version.google-api-services-drive>v3-rev20221023-2.0.0</version.google-api-services-drive>
-    <version.google-oauth-client-jetty>1.34.1</version.google-oauth-client-jetty>
-    <version.google-auth-library-oauth2-http>1.14.0</version.google-auth-library-oauth2-http>
-    <version.google-api-services-docs>v1-rev20221004-2.0.0</version.google-api-services-docs>
-  </properties>
-
   <dependencies>
     <dependency>
       <groupId>com.google.code.gson</groupId>
@@ -41,68 +33,29 @@
     <dependency>
       <groupId>com.google.api-client</groupId>
       <artifactId>google-api-client</artifactId>
-      <version>${version.google-api-client}</version>
     </dependency>
     <dependency>
       <groupId>com.google.apis</groupId>
       <artifactId>google-api-services-drive</artifactId>
-      <version>${version.google-api-services-drive}</version>
     </dependency>
 
     <!-- GOOGLE AUTH API -->
     <dependency>
       <groupId>com.google.oauth-client</groupId>
       <artifactId>google-oauth-client-jetty</artifactId>
-      <version>${version.google-oauth-client-jetty}</version>
     </dependency>
     <dependency>
       <groupId>com.google.auth</groupId>
       <artifactId>google-auth-library-oauth2-http</artifactId>
-      <version>${version.google-auth-library-oauth2-http}</version>
     </dependency>
     <dependency>
       <groupId>com.google.apis</groupId>
       <artifactId>google-api-services-docs</artifactId>
-      <version>${version.google-api-services-docs}</version>
     </dependency>
   </dependencies>
 
-  <repositories>
-    <repository>
-      <releases>
-        <enabled>true</enabled>
-      </releases>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-      <id>connectors</id>
-      <name>Connectors Repository</name>
-      <url>https://artifacts.camunda.com/artifactory/connectors/</url>
-    </repository>
-
-    <repository>
-      <releases>
-        <enabled>false</enabled>
-      </releases>
-      <snapshots>
-        <enabled>true</enabled>
-      </snapshots>
-      <id>connectors-snapshots</id>
-      <name>Connectors Snapshot Repository</name>
-      <url>https://artifacts.camunda.com/artifactory/connectors-snapshots/</url>
-    </repository>
-  </repositories>
-
   <build>
     <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-enforcer-plugin</artifactId>
-      </plugin>
-      <plugin>
-        <groupId>com.diffplug.spotless</groupId>
-        <artifactId>spotless-maven-plugin</artifactId>
-      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
@@ -110,68 +63,4 @@
     </plugins>
   </build>
 
-  <profiles>
-    <profile>
-      <id>cloud-function</id>
-      <repositories>
-        <repository>
-          <releases>
-            <enabled>true</enabled>
-          </releases>
-          <snapshots>
-            <enabled>false</enabled>
-          </snapshots>
-          <id>connectors-internal</id>
-          <name>Connectors Internal Repository</name>
-          <url>https://artifacts.camunda.com/artifactory/connectors-internal/</url>
-        </repository>
-
-        <repository>
-          <releases>
-            <enabled>false</enabled>
-          </releases>
-          <snapshots>
-            <enabled>true</enabled>
-          </snapshots>
-          <id>connectors-internal-snapshots</id>
-          <name>Connectors Internal Snapshot Repository</name>
-          <url>https://artifacts.camunda.com/artifactory/connectors-internal-snapshots/</url>
-        </repository>
-      </repositories>
-      <dependencies>
-        <dependency>
-          <groupId>io.camunda.connector</groupId>
-          <artifactId>connector-runtime-cloud</artifactId>
-          <version>0.4.0</version>
-        </dependency>
-        <dependency>
-          <groupId>io.camunda.connector</groupId>
-          <artifactId>connector-core</artifactId>
-        </dependency>
-        <dependency>
-          <groupId>io.camunda.connector</groupId>
-          <artifactId>connector-validation</artifactId>
-        </dependency>
-      </dependencies>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-shade-plugin</artifactId>
-            <configuration>
-              <outputFile>${project.build.directory}/deployment/${project.build.finalName}.jar</outputFile>
-            </configuration>
-          </plugin>
-          <plugin>
-            <groupId>com.google.cloud.functions</groupId>
-            <artifactId>function-maven-plugin</artifactId>
-            <configuration>
-              <functionTarget>io.camunda.connector.runtime.cloud.CloudConnectorFunction</functionTarget>
-              <port>9082</port>
-            </configuration>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-  </profiles>
 </project>
