@@ -30,6 +30,7 @@ public class TestSpringContextStartup {
   public void contextLoaded() {
     // This test case just verifies that the runtime comes up without problems around
     // conflicting class files in logging or other wired behavior that can be observed
-    // when the Spring context is initialized (e.g. https://github.com/camunda/team-connectors/issues/251)
+    // when the Spring context is initialized (e.g.
+    // https://github.com/camunda/team-connectors/issues/251)
   }
 }
