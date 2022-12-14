@@ -16,19 +16,22 @@ The bundle contains the following components
 | [SNS Connector]              | 0.14.0  | [Camunda Platform Self-Managed Free Edition] |
 | [SQS Connector]              | 0.14.0  | [Camunda Platform Self-Managed Free Edition] |
 
-The [`Dockerfile`](./mvn/default-bundle/Dockerfile) provides an image including the [Connector runtime]
+The [`Dockerfile`](./mvn/default-bundle/Dockerfile) provides an image including the [Connector Runtime]
 and all [out-of-the-box Connectors](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/available-connectors-overview/)
-provided by Camunda. The image starts the Connector runtime with all `jar`
+provided by Camunda. The image starts the Connector Runtime with all `jar`
 files provided in the `/opt/app` directory as classpath.
 
 To add more connectors to the image, follow the examples in the [Connector Runtime].
 
+# Docker Compose
+
+The Connectors Bundle is also part of the Camunda Platform 8 [docker-compose resources](https://github.com/camunda/camunda-platform).
+
 # Secrets
 
-To inject secrets into the docker container during runtime, they have to be
-available in the environment of the docker container.
+To inject secrets into the Connector Runtime, they have to be available its environment.
 
-For example, you can inject secrets when running a container:
+For example, you can inject secrets when running it in a Docker container:
 
 ```bash
 docker run --rm --name=connectors -d \
@@ -44,6 +47,8 @@ whereas the `SECRET_FROM_SHELL` is injected based on the value in the
 current shell environment when `docker run` is executed. The `--env-file`
 option allows using a single file with the format `NAME=VALUE` per line
 to inject multiple secrets at once.
+
+Find further instructions in the [Connector Runtime].
 
 # Build
 
