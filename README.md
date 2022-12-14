@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/camunda/connectors-bundle/actions/workflows/DEPLOY.yaml/badge.svg)](https://github.com/camunda/connectors-bundle/actions/workflows/DEPLOY.yml)
 
-This repository manages the [out-of-the-box Connectors](./connectors) provided by Camunda. 
+This repository manages the [out-of-the-box Connectors](./connectors) provided by Camunda.
 For more information on those Connectors, refer to the
 [Camunda 8 documentation](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/available-connectors-overview/).
 
