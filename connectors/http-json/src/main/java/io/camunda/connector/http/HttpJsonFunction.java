@@ -142,7 +142,7 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
     if (oauthResponseStr != null && !oauthResponseStr.isEmpty()) {
       JsonObject jsonObject = gson.fromJson(oauthResponseStr, JsonObject.class);
       if (jsonObject.get(Constants.ACCESS_TOKEN) != null) {
-        return jsonObject.get(Constants.ACCESS_TOKEN).toString();
+        return jsonObject.get(Constants.ACCESS_TOKEN).getAsString();
       }
     }
     return null;
