@@ -16,13 +16,6 @@
 
   <dependencies>
     <dependency>
-        <!-- Workaround for https://github.com/camunda/team-connectors/issues/251 to enforce proper version
-        Can be removed as soon as spring-zeebe >= 8.1.9 is released
-        -->
-        <groupId>com.fasterxml.jackson.module</groupId>
-        <artifactId>jackson-module-scala_3</artifactId>
-    </dependency>
-    <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-runtime-bundle</artifactId>
       <version>${project.version}</version>
@@ -43,12 +36,28 @@
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-core</artifactId>
-      <version>1.4.5</version>
+      <version>1.2.11</version>
+      <!-- enforce logback version to avoid conflicts with GCP Logging.
+           Use Spring Boot version, see https://stackoverflow.com/questions/3737992/noclassdeffounderror-org-slf4j-impl-staticloggerbinder
+           -->
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <version>1.2.11</version>
     </dependency>
     <dependency>
       <groupId>com.google.cloud</groupId>
       <artifactId>spring-cloud-gcp-starter-logging</artifactId>
       <version>${version.spring-cloud-gcp-starter-logging}</version>
+    </dependency>
+
+    <!-- Testing -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+      <version>${spring-boot.version}</version>
     </dependency>
   </dependencies>
 

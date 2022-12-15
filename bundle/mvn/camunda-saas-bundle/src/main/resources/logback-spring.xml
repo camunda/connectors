@@ -1,12 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-    <include resource="com/google/cloud/spring/logging/logback-appender.xml"/>
-    <include resource="com/google/cloud/spring/logging/logback-json-appender.xml"/>
-    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
-    <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
-
-    <root level="INFO">
-        <!--   Use CONSOLE_JSON when running on GCP, for local testing use CONSOLE -->
-        <appender-ref ref="${CAMUNDA_SAAS_LOG_APPENDER:-CONSOLE_JSON}"/>
-    </root>
+    <springProfile name="!dev">
+        <include resource="com/google/cloud/spring/logging/logback-appender.xml"/>
+        <include resource="com/google/cloud/spring/logging/logback-json-appender.xml"/>
+        <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+        <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+        <root level="INFO">
+            <appender-ref ref="CONSOLE_JSON"/>
+        </root>
+    </springProfile>
+    <springProfile name="dev">
+        <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+        <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
 </configuration>
