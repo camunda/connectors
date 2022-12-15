@@ -22,7 +22,7 @@
       <groupId>io.micrometer</groupId>
       <artifactId>micrometer-registry-prometheus</artifactId>
       <!-- TODO: remove the version here as soon as Spring BOM is used: https://github.com/camunda/connectors-bundle/pull/100 -->
-      <version>1.9.6</version>
+      <version>1.10.2</version>
     </dependency>
 
     <dependency>
