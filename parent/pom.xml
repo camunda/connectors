@@ -70,7 +70,6 @@ limitations under the License.</license.inlineheader>
 
     <!-- Camunda internal libraries -->
     <version.zeebe>8.1.5</version.zeebe>
-    <version.spring-zeebe>8.1.10</version.spring-zeebe>
     <version.feel-engine>1.15.3</version.feel-engine>
 
     <!-- Third party dependencies -->
@@ -114,6 +113,12 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>io.camunda.connector</groupId>
         <artifactId>connector-runtime-util</artifactId>
+        <version>0.5.0-SNAPSHOT</version>
+      </dependency>
+
+      <dependency>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>connector-gcp-security-manager</artifactId>
         <version>0.5.0-SNAPSHOT</version>
       </dependency>
 
@@ -201,13 +206,6 @@ limitations under the License.</license.inlineheader>
         <scope>test</scope>
       </dependency>
 
-      <!-- for testing connectors locally in bundle with runtime -->
-      <dependency>
-        <groupId>io.camunda</groupId>
-        <artifactId>spring-zeebe-connector-runtime</artifactId>
-        <version>${version.spring-zeebe}</version>
-        <scope>test</scope>
-      </dependency>
     </dependencies>
   </dependencyManagement>
 
