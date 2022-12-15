@@ -28,6 +28,7 @@
 
   <dependencyManagement>
     <dependencies>
+      <!-- Removed for patch release, waiting for https://github.com/camunda/connectors-bundle/pull/100
       <dependency>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-dependencies</artifactId>
@@ -35,6 +36,7 @@
         <scope>import</scope>
         <type>pom</type>
       </dependency>
+      -->
       <dependency>
         <groupId>io.camunda.connector</groupId>
         <artifactId>connector-sqs</artifactId>
