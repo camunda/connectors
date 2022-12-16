@@ -6,15 +6,15 @@ The bundle contains the following components
 
 | Component                    | Version | License                                      |
 |------------------------------|---------|----------------------------------------------|
-| [Connector Runtime]          | 0.3.2   | [Apache 2.0]                                 |
-| [AWS Lambda Connector]       | 0.14.0  | [Camunda Platform Self-Managed Free Edition] |
-| [Google Drive Connector]     | 0.14.0  | [Camunda Platform Self-Managed Free Edition] |
-| [HTTP JSON Connector (REST)] | 0.14.0  | [Apache 2.0]                                 |
-| [RabbitMQ Connector]         | 0.14.0  | [Camunda Platform Self-Managed Free Edition] |
-| [SendGrid Connector]         | 0.14.0  | [Camunda Platform Self-Managed Free Edition] |
-| [Slack Connector]            | 0.14.0  | [Camunda Platform Self-Managed Free Edition] |
-| [SNS Connector]              | 0.14.0  | [Camunda Platform Self-Managed Free Edition] |
-| [SQS Connector]              | 0.14.0  | [Camunda Platform Self-Managed Free Edition] |
+| [Connector Runtime]          | 0.4.1   | [Apache 2.0]                                 |
+| [AWS Lambda Connector]       | 0.14.1  | [Camunda Platform Self-Managed Free Edition] |
+| [Google Drive Connector]     | 0.14.1  | [Camunda Platform Self-Managed Free Edition] |
+| [HTTP JSON Connector (REST)] | 0.14.1  | [Apache 2.0]                                 |
+| [RabbitMQ Connector]         | 0.14.1  | [Camunda Platform Self-Managed Free Edition] |
+| [SendGrid Connector]         | 0.14.1  | [Camunda Platform Self-Managed Free Edition] |
+| [Slack Connector]            | 0.14.1  | [Camunda Platform Self-Managed Free Edition] |
+| [SNS Connector]              | 0.14.1  | [Camunda Platform Self-Managed Free Edition] |
+| [SQS Connector]              | 0.14.1  | [Camunda Platform Self-Managed Free Edition] |
 
 The [`Dockerfile`](./mvn/default-bundle/Dockerfile) provides an image including the [Connector Runtime]
 and all [out-of-the-box Connectors](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/available-connectors-overview/)
