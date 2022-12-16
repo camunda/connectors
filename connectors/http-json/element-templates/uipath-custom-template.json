@@ -1,0 +1,580 @@
+{
+  "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name": "UIPath template",
+  "id": "io.camunda.connectors.HttpJson.UIPath.v1",
+  "description": "Invoke REST API for UIPath",
+  "icon": {
+    "contents": "data:image/svg+xml;utf8,%3Csvg%20width%3D%2218%22%20height%3D%2218%22%20viewBox%3D%220%200%2018%2018%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Cpath%20d%3D%22M17.0335%208.99997C17.0335%2013.4475%2013.4281%2017.0529%208.98065%2017.0529C4.53316%2017.0529%200.927765%2013.4475%200.927765%208.99997C0.927765%204.55248%204.53316%200.947083%208.98065%200.947083C13.4281%200.947083%2017.0335%204.55248%2017.0335%208.99997Z%22%20fill%3D%22%23505562%22%2F%3E%0A%3Cpath%20d%3D%22M4.93126%2014.1571L6.78106%203.71471H10.1375C11.1917%203.71471%2011.9824%203.98323%2012.5095%204.52027C13.0465%205.04736%2013.315%205.73358%2013.315%206.57892C13.315%207.44414%2013.0714%208.15522%2012.5841%208.71215C12.1067%209.25913%2011.4553%209.63705%2010.6298%209.8459L12.0619%2014.1571H10.3315L9.03364%2010.0249H7.24351L6.51254%2014.1571H4.93126ZM7.49711%208.59281H9.24248C9.99832%208.59281%2010.5901%208.42374%2011.0177%208.08561C11.4553%207.73753%2011.6741%207.26513%2011.6741%206.66842C11.6741%206.19106%2011.5249%205.81811%2011.2265%205.54959C10.9282%205.27113%2010.4558%205.1319%209.80936%205.1319H8.10874L7.49711%208.59281Z%22%20fill%3D%22white%22%2F%3E%0A%3C%2Fsvg%3E%0A"
+  },
+  "documentationRef": "https://docs.camunda.io/docs/components/modeler/web-modeler/connectors/available-connectors/rest/",
+  "category": {
+    "id": "connectors",
+    "name": "Connectors"
+  },
+  "appliesTo": [
+    "bpmn:Task"
+  ],
+  "elementType": {
+    "value": "bpmn:ServiceTask"
+  },
+  "groups": [
+    {
+      "id": "authentication",
+      "label": "Authentication"
+    },
+    {
+      "id": "endpoint",
+      "label": "HTTP Endpoint"
+    },
+    {
+      "id": "input",
+      "label": "Payload"
+    },
+    {
+      "id": "timeout",
+      "label": "Connect Timeout"
+    },
+    {
+      "id": "output",
+      "label": "Response Mapping"
+    },
+    {
+      "id": "errors",
+      "label": "Error Handling"
+    }
+  ],
+  "properties": [
+    {
+      "type": "Hidden",
+      "value": "io.camunda:http-json:1",
+      "binding": {
+        "type": "zeebe:taskDefinition:type"
+      }
+    },
+    {
+      "label": "Type",
+      "id": "authenticationType",
+      "group": "authentication",
+      "description": "Choose the authentication type. Select 'No Auth' if no authentication is necessary",
+      "value": "noAuth",
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "No Auth",
+          "value": "noAuth"
+        },
+        {
+          "name": "Basic Auth",
+          "value": "basic"
+        },
+        {
+          "name": "Bearer Token Auth",
+          "value": "bearer"
+        },
+        {
+          "name": "OAuth 2.0",
+          "value": "oauth-client-credentials-flow"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.type"
+      }
+    },
+    {
+      "id": "method",
+      "label": "Method",
+      "group": "endpoint",
+      "type": "Dropdown",
+      "value": "get",
+      "choices": [
+        {
+          "name": "GET",
+          "value": "get"
+        },
+        {
+          "name": "POST",
+          "value": "post"
+        },
+        {
+          "name": "PATCH",
+          "value": "patch"
+        },
+        {
+          "name": "PUT",
+          "value": "put"
+        },
+        {
+          "name": "DELETE",
+          "value": "delete"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "method"
+      }
+    },
+    {
+      "label": "Cloud Url",
+      "group": "endpoint",
+      "type": "String",
+      "value": "\"cloud.uipath.com\"",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "cloudUrl"
+      },
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
+      "label": "Cloud Org",
+      "group": "endpoint",
+      "type": "String",
+      "value": "\"testuwxzqtgw\"",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "cloudOrg"
+      },
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
+      "label": "Cloud Tenant",
+      "group": "endpoint",
+      "type": "String",
+      "value": "\"DefaultTenant\"",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "cloudTenant"
+      },
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
+      "label": "URL",
+      "group": "endpoint",
+      "type": "String",
+      "feel": "required",
+      "value": "=\"https://\"+cloudUrl+\"/\"+cloudOrg+\"/\"+cloudTenant+\"/odata/Queues/UiPathODataSvc.AddQueueItem\"",
+      "editable": false,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "url"
+      },
+      "constraints": {
+        "notEmpty": true,
+        "pattern": {
+          "value": "^(=|https?://).*",
+          "message": "Must be a http(s) URL."
+        }
+      },
+      "condition": {
+        "property": "method",
+        "oneOf": [
+          "post",
+          "put",
+          "patch",
+          "delete"
+        ]
+      }
+    },
+    {
+      "label": "Query Parameters",
+      "description": "Map of query parameters to add to the request URL",
+      "group": "endpoint",
+      "type": "Text",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "queryParameters"
+      },
+      "optional": true
+    },
+    {
+      "label": "HTTP Headers",
+      "description": "Map of HTTP headers to add to the request",
+      "group": "endpoint",
+      "type": "Text",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "headers"
+      },
+      "optional": true
+    },
+    {
+      "label": "DeferDate",
+      "description": "The earliest date and time at which the item is available for processing. If empty the item can be processed as soon as possible",
+      "group": "input",
+      "type": "Text",
+      "feel": "required",
+      "value": "=\"2022-12-07T14:19:56.4407392Z\"",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "deferDate0"
+      },
+      "condition": {
+        "property": "method",
+        "oneOf": [
+          "post",
+          "put",
+          "patch",
+          "delete"
+        ]
+      },
+      "optional": true
+    },
+    {
+      "label": "DueDate",
+      "description": "The latest date and time at which the item should be processed. If empty the item can be processed at any given time",
+      "group": "input",
+      "type": "Text",
+      "value": "=\"2022-12-12T14:19:56.4407392Z\"",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "dueDate0"
+      },
+      "condition": {
+        "property": "method",
+        "oneOf": [
+          "post",
+          "put",
+          "patch",
+          "delete"
+        ]
+      },
+      "optional": true
+    },
+    {
+      "id": "Priority",
+      "label": "Priority",
+      "description": "The priority to apply to the queue item",
+      "group": "input",
+      "type": "Text",
+      "value": "=\"Normal\"",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "priority0"
+      },
+      "condition": {
+        "property": "method",
+        "oneOf": [
+          "post",
+          "put",
+          "patch",
+          "delete"
+        ]
+      }
+    },
+    {
+      "label": "Name",
+      "description": "The name of the queue to which to submit the queue item",
+      "group": "input",
+      "type": "Text",
+      "feel": "required",
+      "value": "=\"testQ\"",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "name0"
+      },
+      "condition": {
+        "property": "method",
+        "oneOf": [
+          "post",
+          "put",
+          "patch",
+          "delete"
+        ]
+      },
+      "optional": false
+    },
+    {
+      "label": "SpecificContent",
+      "description": "Data that will be passed in to the job. It should be in the json format",
+      "group": "input",
+      "type": "Text",
+      "feel": "required",
+      "value": "={\"Type\":\"testType\",\"First_Name\":\"test1\"}",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "specificContent0"
+      },
+      "condition": {
+        "property": "method",
+        "oneOf": [
+          "post",
+          "put",
+          "patch",
+          "delete"
+        ]
+      },
+      "optional": false
+    },
+    {
+      "label": "Reference",
+      "description": "A string reference for the queue item",
+      "group": "input",
+      "value": "=\"testQ\"",
+      "type": "Text",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "reference0"
+      },
+      "condition": {
+        "property": "method",
+        "oneOf": [
+          "post",
+          "put",
+          "patch",
+          "delete"
+        ]
+      },
+      "optional": false
+    },
+    {
+      "label": "Request Body",
+      "description": "JSON payload to send with the request",
+      "group": "input",
+      "type": "Text",
+      "feel": "required",
+      "value": "{\"itemData\":{\"DeferDate\":deferDate0,\"DueDate\": dueDate0,\"Priority\":priority0,\"Name\":name0,\"SpecificContent\": specificContent0, \"Reference\":reference0}}",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body"
+      },
+      "condition": {
+        "property": "method",
+        "oneOf": [
+          "post",
+          "put",
+          "patch",
+          "delete"
+        ]
+      },
+      "optional": true
+    },
+    {
+      "label": "Bearer Token",
+      "group": "authentication",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.token"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "bearer"
+      }
+    },
+    {
+      "label": "OAuth Token Endpoint",
+      "description": "The OAuth token endpoint",
+      "group": "authentication",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.oauthTokenEndpoint"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "oauth-client-credentials-flow"
+      }
+    },
+    {
+      "label": "Client ID",
+      "description": "Your application's Client ID from the OAuth client",
+      "group": "authentication",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.clientId"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "oauth-client-credentials-flow"
+      }
+    },
+    {
+      "label": "Client secret",
+      "description": "Your application's Client secret from the OAuth client",
+      "group": "authentication",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.clientSecret"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "oauth-client-credentials-flow"
+      }
+    },
+    {
+      "label": "Scopes",
+      "description": "The scopes which you want to request authorization for (e.g.read:contacts)",
+      "group": "authentication",
+      "type": "Text",
+      "feel": "required",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.scopes"
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "oauth-client-credentials-flow"
+      }
+    },
+    {
+      "label": "Audience",
+      "description": "The unique identifier of the target API you want to access",
+      "group": "authentication",
+      "type": "Text",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.audience"
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "oauth-client-credentials-flow"
+      }
+    },
+    {
+      "label": "Client Authentication",
+      "id": "authenticationType",
+      "group": "authentication",
+      "description": "Send client id and client secret as Basic Auth request in the header, or as client credentials in the request body",
+      "value": "basicAuthHeader",
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Send client credentials in body",
+          "value": "credentialsBody"
+        },
+        {
+          "name": "Send as Basic Auth header",
+          "value": "basicAuthHeader"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.clientAuthentication"
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "oauth-client-credentials-flow"
+      }
+    },
+    {
+      "label": "Username",
+      "group": "authentication",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.username"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "basic"
+      }
+    },
+    {
+      "label": "Password",
+      "group": "authentication",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.password"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "basic"
+      }
+    },
+    {
+      "label": "Connection Timeout",
+      "description": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
+      "group": "timeout",
+      "type": "String",
+      "value": "20",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "connectionTimeoutInSeconds"
+      },
+      "optional": true,
+      "constraints": {
+        "notEmpty": false,
+        "pattern": {
+          "value": "^([0-9]*$)|(secrets.*$)",
+          "message": "Must be timeout in seconds (default value is 20 seconds)"
+        }
+      }
+    },
+    {
+      "label": "Result Variable",
+      "description": "Name of variable to store the response in",
+      "group": "output",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultVariable"
+      }
+    },
+    {
+      "label": "Result Expression",
+      "description": "Expression to map the response into process variables",
+      "group": "output",
+      "type": "Text",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultExpression"
+      }
+    },
+    {
+      "label": "Error Expression",
+      "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
+      "group": "errors",
+      "type": "Text",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "errorExpression"
+      }
+    }
+  ]
+}
