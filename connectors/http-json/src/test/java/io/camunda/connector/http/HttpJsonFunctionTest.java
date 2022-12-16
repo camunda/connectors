@@ -19,6 +19,10 @@ package io.camunda.connector.http;
 import static org.apache.http.entity.ContentType.APPLICATION_JSON;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchException;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.nullable;
@@ -36,7 +40,9 @@ import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpResponse;
 import com.google.api.client.http.HttpResponseException;
 import com.google.api.client.json.gson.GsonFactory;
+import com.google.api.client.testing.http.MockHttpTransport;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.http.constants.Constants;
 import io.camunda.connector.http.model.HttpJsonRequest;
 import io.camunda.connector.http.model.HttpJsonResult;
 import io.camunda.connector.impl.ConnectorInputException;
@@ -65,6 +71,8 @@ public class HttpJsonFunctionTest extends BaseTest {
       "src/test/resources/requests/success-test-cases-oauth.json";
   private static final String FAIL_CASES_RESOURCE_PATH =
       "src/test/resources/requests/fail-test-cases.json";
+  public static final String ACCESS_TOKEN =
+      "{\"access_token\": \"abcd\", \"scope\":\"read:clients\", \"expires_in\":86400,\"token_type\":\"Bearer\"}";
 
   @Mock private GsonFactory gsonFactory;
   @Mock private HttpRequestFactory requestFactory;
@@ -159,6 +167,55 @@ public class HttpJsonFunctionTest extends BaseTest {
             .getAsJsonObject();
     assertThat(asJsonObject.has("unknown")).isTrue();
     assertThat(asJsonObject.get("unknown").isJsonNull()).isTrue();
+  }
+
+  @ParameterizedTest(name = "Executing test case: {0}")
+  @MethodSource("successCasesOauth")
+  void checkOAuthBearerTokenFormat(final String input) throws IOException {
+    // given
+    final var context = OutboundConnectorContextBuilder.create().variables(input).build();
+    final var httpJsonRequest = gson.fromJson(context.getVariables(), HttpJsonRequest.class);
+
+    HttpRequestFactory factory = new MockHttpTransport().createRequestFactory();
+    HttpRequest httpRequest =
+        factory.buildRequest(Constants.POST, new GenericUrl("http://abc3241.com"), null);
+    when(requestFactory.buildRequest(any(), any(), any())).thenReturn(httpRequest);
+    when(httpResponse.parseAsString()).thenReturn(ACCESS_TOKEN);
+
+    // when
+    HttpRequest oAuthRequest = functionUnderTest.createOAuthRequest(httpJsonRequest);
+
+    // then
+    assertNotNull(oAuthRequest);
+    assertNotNull(oAuthRequest.getHeaders());
+    assertNotNull(oAuthRequest.getHeaders().getContentType());
+    // check if the correct header is added on the oauth request
+    assertEquals(
+        oAuthRequest.getHeaders().getContentType(), Constants.APPLICATION_X_WWW_FORM_URLENCODED);
+
+    // check if the bearer token has the correct format and doesn't contain quotes
+    assertFalse(functionUnderTest.extractAccessToken(httpResponse).contains("\""));
+  }
+
+  @ParameterizedTest(name = "Executing test case: {0}")
+  @MethodSource("successCasesOauth")
+  void checkIfOAuthBearerTokenIsAddedOnTheRequestHeader(final String input) throws IOException {
+    // given
+    final var context = OutboundConnectorContextBuilder.create().variables(input).build();
+    final var httpJsonRequest = gson.fromJson(context.getVariables(), HttpJsonRequest.class);
+
+    HttpRequestFactory factory = new MockHttpTransport().createRequestFactory();
+    HttpRequest httpRequest =
+        factory.buildRequest(Constants.POST, new GenericUrl("http://test.bearer.com"), null);
+    when(requestFactory.buildRequest(any(), any(), any())).thenReturn(httpRequest);
+    when(httpResponse.parseAsString()).thenReturn(ACCESS_TOKEN);
+
+    // when
+    String bearerToken = functionUnderTest.extractAccessToken(httpResponse);
+    HttpRequest request = functionUnderTest.createRequest(httpJsonRequest, bearerToken);
+    // check if the bearer token is correctly added on the header of the main request
+    assertEquals("Bearer " + bearerToken, request.getHeaders().getAuthorization());
+    assertNotEquals("Bearer abcde", request.getHeaders().getAuthorization());
   }
 
   @ParameterizedTest(name = "Executing test case: {0}")
