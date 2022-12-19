@@ -79,7 +79,7 @@ limitations under the License.</license.inlineheader>
     <version.mockito>4.10.0</version.mockito>
     <version.junit-jupiter>5.9.1</version.junit-jupiter>
     <version.assertj>3.23.1</version.assertj>
-    <version.jackson>2.14.1</version.jackson>
+    <version.jackson-bom>2.13.4.20221013</version.jackson-bom>
     <version.hibernate-validator>6.2.5.Final</version.hibernate-validator>
 
     <!-- maven plugins (not managed by parent) -->
@@ -97,6 +97,15 @@ limitations under the License.</license.inlineheader>
 
   <dependencyManagement>
     <dependencies>
+      <!-- Jackson BOM -->
+      <dependency>
+        <groupId>com.fasterxml.jackson</groupId>
+        <artifactId>jackson-bom</artifactId>
+        <version>${version.jackson-bom}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
       <!-- Camunda internal dependencies -->
       <dependency>
         <groupId>io.camunda.connector</groupId>
@@ -157,18 +166,6 @@ limitations under the License.</license.inlineheader>
         <groupId>com.google.code.gson</groupId>
         <artifactId>gson</artifactId>
         <version>${version.gson}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>com.fasterxml.jackson.core</groupId>
-        <artifactId>jackson-databind</artifactId>
-        <version>${version.jackson}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>com.fasterxml.jackson.module</groupId>
-        <artifactId>jackson-module-scala_3</artifactId>
-        <version>${version.jackson}</version>
       </dependency>
 
       <dependency>
