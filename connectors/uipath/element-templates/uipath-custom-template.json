@@ -1,8 +1,8 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "UIPath template",
-  "id": "io.camunda.connectors.HttpJson.UIPath.v1",
-  "description": "Invoke REST API for UIPath",
+  "id": "d0a32297-858b-4537-8465-16e9806d33d8",
+  "description": "Create UI Path Queue Item",
   "icon": {
     "contents": "data:image/svg+xml;utf8,%3Csvg%20width%3D%2218%22%20height%3D%2218%22%20viewBox%3D%220%200%2018%2018%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Cpath%20d%3D%22M17.0335%208.99997C17.0335%2013.4475%2013.4281%2017.0529%208.98065%2017.0529C4.53316%2017.0529%200.927765%2013.4475%200.927765%208.99997C0.927765%204.55248%204.53316%200.947083%208.98065%200.947083C13.4281%200.947083%2017.0335%204.55248%2017.0335%208.99997Z%22%20fill%3D%22%23505562%22%2F%3E%0A%3Cpath%20d%3D%22M4.93126%2014.1571L6.78106%203.71471H10.1375C11.1917%203.71471%2011.9824%203.98323%2012.5095%204.52027C13.0465%205.04736%2013.315%205.73358%2013.315%206.57892C13.315%207.44414%2013.0714%208.15522%2012.5841%208.71215C12.1067%209.25913%2011.4553%209.63705%2010.6298%209.8459L12.0619%2014.1571H10.3315L9.03364%2010.0249H7.24351L6.51254%2014.1571H4.93126ZM7.49711%208.59281H9.24248C9.99832%208.59281%2010.5901%208.42374%2011.0177%208.08561C11.4553%207.73753%2011.6741%207.26513%2011.6741%206.66842C11.6741%206.19106%2011.5249%205.81811%2011.2265%205.54959C10.9282%205.27113%2010.4558%205.1319%209.80936%205.1319H8.10874L7.49711%208.59281Z%22%20fill%3D%22white%22%2F%3E%0A%3C%2Fsvg%3E%0A"
   },
@@ -23,8 +23,12 @@
       "label": "Authentication"
     },
     {
-      "id": "endpoint",
-      "label": "HTTP Endpoint"
+      "id": "requiredData",
+      "label": "Required data"
+    },
+    {
+      "id": "optionalData",
+      "label": "Optional data"
     },
     {
       "id": "input",
@@ -36,7 +40,7 @@
     },
     {
       "id": "output",
-      "label": "Response Mapping"
+      "label": "Result Mapping"
     },
     {
       "id": "errors",
@@ -56,7 +60,7 @@
       "id": "authenticationType",
       "group": "authentication",
       "description": "Choose the authentication type. Select 'No Auth' if no authentication is necessary",
-      "value": "noAuth",
+      "value": "oauth-client-credentials-flow",
       "type": "Dropdown",
       "choices": [
         {
@@ -84,9 +88,9 @@
     {
       "id": "method",
       "label": "Method",
-      "group": "endpoint",
+      "group": "requiredData",
       "type": "Dropdown",
-      "value": "get",
+      "value": "post",
       "choices": [
         {
           "name": "GET",
@@ -116,7 +120,7 @@
     },
     {
       "label": "Cloud Url",
-      "group": "endpoint",
+      "group": "requiredData",
       "type": "String",
       "value": "\"cloud.uipath.com\"",
       "feel": "required",
@@ -130,9 +134,10 @@
     },
     {
       "label": "Cloud Org",
-      "group": "endpoint",
+      "description": "Your cloud organization ID",
+      "group": "requiredData",
       "type": "String",
-      "value": "\"testuwxzqtgw\"",
+      "value": "\"cloudOrgId\"",
       "feel": "required",
       "binding": {
         "type": "zeebe:input",
@@ -144,7 +149,8 @@
     },
     {
       "label": "Cloud Tenant",
-      "group": "endpoint",
+      "description": "Your cloud tenant name",
+      "group": "requiredData",
       "type": "String",
       "value": "\"DefaultTenant\"",
       "feel": "required",
@@ -158,9 +164,8 @@
     },
     {
       "label": "URL",
-      "group": "endpoint",
-      "type": "String",
-      "feel": "required",
+      "group": "requiredData",
+      "type": "Hidden",
       "value": "=\"https://\"+cloudUrl+\"/\"+cloudOrg+\"/\"+cloudTenant+\"/odata/Queues/UiPathODataSvc.AddQueueItem\"",
       "editable": false,
       "binding": {
@@ -173,6 +178,35 @@
           "value": "^(=|https?://).*",
           "message": "Must be a http(s) URL."
         }
+      }
+    },
+    {
+      "label": "Organization Unit Id",
+      "group": "requiredData",
+      "type": "String",
+      "value": "=\"196743\"",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "organizationUnitId"
+      },
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
+      "label": "Queue Name",
+      "description": "The name of the queue to which to submit the queue item",
+      "group": "requiredData",
+      "type": "String",
+      "feel": "required",
+      "value": "=\"testQ\"",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "queueName0"
+      },
+      "constraints": {
+        "notEmpty": true
       },
       "condition": {
         "property": "method",
@@ -185,36 +219,27 @@
       }
     },
     {
-      "label": "Query Parameters",
-      "description": "Map of query parameters to add to the request URL",
-      "group": "endpoint",
-      "type": "Text",
-      "feel": "required",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "queryParameters"
-      },
-      "optional": true
-    },
-    {
-      "label": "HTTP Headers",
+      "label": "Headers",
       "description": "Map of HTTP headers to add to the request",
-      "group": "endpoint",
-      "type": "Text",
-      "feel": "required",
+      "group": "requiredData",
+      "type": "Hidden",
+      "editable": false,
+      "value": "'{X-UIPATH-OrganizationUnitId:organizationUnitId, Content-Type:application/json}'",
       "binding": {
         "type": "zeebe:input",
         "name": "headers"
       },
-      "optional": true
+      "constraints": {
+        "notEmpty": true
+      }
     },
     {
       "label": "DeferDate",
       "description": "The earliest date and time at which the item is available for processing. If empty the item can be processed as soon as possible",
-      "group": "input",
-      "type": "Text",
+      "group": "optionalData",
+      "type": "String",
       "feel": "required",
-      "value": "=\"2022-12-07T14:19:56.4407392Z\"",
+      "value": "=\"2022-12-09\"",
       "binding": {
         "type": "zeebe:input",
         "name": "deferDate0"
@@ -233,9 +258,9 @@
     {
       "label": "DueDate",
       "description": "The latest date and time at which the item should be processed. If empty the item can be processed at any given time",
-      "group": "input",
-      "type": "Text",
-      "value": "=\"2022-12-12T14:19:56.4407392Z\"",
+      "group": "optionalData",
+      "type": "String",
+      "value": "=\"2022-12-12\"",
       "feel": "required",
       "binding": {
         "type": "zeebe:input",
@@ -255,9 +280,9 @@
     {
       "id": "Priority",
       "label": "Priority",
-      "description": "The priority to apply to the queue item",
-      "group": "input",
-      "type": "Text",
+      "description": "The priority to apply to the queue item. Possible values: Low, Normal or High",
+      "group": "optionalData",
+      "type": "String",
       "value": "=\"Normal\"",
       "feel": "required",
       "binding": {
@@ -272,37 +297,16 @@
           "patch",
           "delete"
         ]
-      }
-    },
-    {
-      "label": "Name",
-      "description": "The name of the queue to which to submit the queue item",
-      "group": "input",
-      "type": "Text",
-      "feel": "required",
-      "value": "=\"testQ\"",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "name0"
       },
-      "condition": {
-        "property": "method",
-        "oneOf": [
-          "post",
-          "put",
-          "patch",
-          "delete"
-        ]
-      },
-      "optional": false
+      "optional": true
     },
     {
       "label": "SpecificContent",
       "description": "Data that will be passed in to the job. It should be in the json format",
-      "group": "input",
-      "type": "Text",
+      "group": "optionalData",
+      "type": "String",
       "feel": "required",
-      "value": "={\"Type\":\"testType\",\"First_Name\":\"test1\"}",
+      "value": "{First_Name:\"test1\",Type:\"testType\"}",
       "binding": {
         "type": "zeebe:input",
         "name": "specificContent0"
@@ -316,14 +320,14 @@
           "delete"
         ]
       },
-      "optional": false
+      "optional": true
     },
     {
       "label": "Reference",
       "description": "A string reference for the queue item",
-      "group": "input",
+      "group": "optionalData",
       "value": "=\"testQ\"",
-      "type": "Text",
+      "type": "String",
       "feel": "required",
       "binding": {
         "type": "zeebe:input",
@@ -338,15 +342,15 @@
           "delete"
         ]
       },
-      "optional": false
+      "optional": true
     },
     {
       "label": "Request Body",
       "description": "JSON payload to send with the request",
-      "group": "input",
-      "type": "Text",
+      "group": "requiredData",
+      "type": "String",
       "feel": "required",
-      "value": "{\"itemData\":{\"DeferDate\":deferDate0,\"DueDate\": dueDate0,\"Priority\":priority0,\"Name\":name0,\"SpecificContent\": specificContent0, \"Reference\":reference0}}",
+      "value": "={\"itemData\":{\"DeferDate\":deferDate0, \"DueDate\":dueDate0,\"Priority\":priority0,\"Name\":queueName0,\"SpecificContent\":specificContent0,\"Reference\":reference0}}",
       "binding": {
         "type": "zeebe:input",
         "name": "body"
