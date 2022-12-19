@@ -119,6 +119,7 @@
       "description": "Message attributes metadata",
       "group": "input",
       "type": "Text",
+      "optional": true,
       "binding": {
         "type": "zeebe:input",
         "name": "queue.messageAttributes"
