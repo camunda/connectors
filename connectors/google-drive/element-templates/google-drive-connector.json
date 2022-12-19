@@ -261,6 +261,7 @@
       "description": "Use this field to pass additional Google Drive parameters as JSON.",
       "group": "operationDetails",
       "type": "Text",
+      "optional": true,
       "feel": "required",
       "binding": {
         "type": "zeebe:input",

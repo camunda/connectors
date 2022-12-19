@@ -100,6 +100,7 @@
       "description": "Provide additional Kafka producer properties in JSON",
       "group": "kafka",
       "type": "String",
+      "optional": true,
       "feel":"required",
       "binding": {
         "type": "zeebe:input",
