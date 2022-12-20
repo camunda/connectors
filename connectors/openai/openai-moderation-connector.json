@@ -94,7 +94,7 @@
         "group": "content",
         "type": "Text",
         "feel": "required",
-        "value": "{\"input\": \"Sample text goes here\"}",
+        "value": "={\"input\": \"Sample text goes here\"}",
         "binding": {
           "type": "zeebe:input",
           "name": "body"
