@@ -157,6 +157,9 @@
       "binding": {
         "type": "zeebe:input",
         "name": "data.type"
+      },
+      "constraints": {
+        "notEmpty": true
       }
     },
     {
@@ -192,6 +195,9 @@
           "value": "getMessageFromChat"
         }
       ],
+      "constraints": {
+        "notEmpty": true
+      },
       "condition": {
         "property": "operationType",
         "equals": "chat"
@@ -242,6 +248,9 @@
           "value": "listMembersInChannel"
         }
       ],
+      "constraints": {
+        "notEmpty": true
+      },
       "condition": {
         "property": "operationType",
         "equals": "channel"
@@ -283,6 +292,7 @@
       "description": "Set topic of chat (optional)",
       "group": "data",
       "type": "String",
+      "optional": true,
       "binding": {
         "type": "zeebe:input",
         "name": "data.topic"
@@ -372,6 +382,7 @@
       "description": "Controls the number of items per response. Maximum allowed $top value is 50",
       "group": "data",
       "type": "String",
+      "optional": true,
       "binding": {
         "type": "zeebe:input",
         "name": "data.top"
@@ -407,6 +418,7 @@
         "type": "zeebe:input",
         "name": "data.orderBy"
       },
+      "optional": true,
       "constraints": {
         "notEmpty": false
       },
@@ -417,9 +429,10 @@
     },
     {
       "label": "Filter",
-      "description": "Sets the date range filter for the lastModifiedDateTime and createdDateTime properties",
+      "description": "Sets the date range filter for the lastModifiedDateTime and createdDateTime properties. <a href='https://learn.microsoft.com/en-us/graph/filter-query-parameter'>Learn more about filtering</a>",
       "group": "data",
       "type": "String",
+      "optional": true,
       "binding": {
         "type": "zeebe:input",
         "name": "data.filter"
@@ -501,6 +514,7 @@
       "description": "Enter description",
       "group": "data",
       "type": "Text",
+      "optional": true,
       "binding": {
         "type": "zeebe:input",
         "name": "data.description"
@@ -535,6 +549,9 @@
         "type": "zeebe:input",
         "name": "data.channelType"
       },
+      "constraints": {
+        "notEmpty": true
+      },
       "condition": {
         "property": "channelMethod",
         "equals": "createChannel"
@@ -563,9 +580,10 @@
     },
     {
       "label": "Filter",
-      "description": "Sets the search filter",
+      "description": "Sets the search filter. <a href='https://learn.microsoft.com/en-us/graph/filter-query-parameter'>Learn more about filtering</a>",
       "group": "data",
       "type": "String",
+      "optional": true,
       "binding": {
         "type": "zeebe:input",
         "name": "data.filter"
@@ -583,6 +601,9 @@
       "binding": {
         "type": "zeebe:input",
         "name": "data.content"
+      },
+      "constraints": {
+        "notEmpty": true
       },
       "condition": {
         "property": "channelMethod",
@@ -614,6 +635,7 @@
       "description": "Controls the number of items per response",
       "group": "data",
       "type": "String",
+      "optional": true,
       "binding": {
         "type": "zeebe:input",
         "name": "data.top"
@@ -641,6 +663,7 @@
           "value": "false"
         }
       ],
+      "optional": true,
       "binding": {
         "type": "zeebe:input",
         "name": "data.isExpand"
@@ -676,7 +699,7 @@
     },
     {
       "label": "Error Expression",
-      "description": "Expression to define BPMN errors to throw",
+      "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
       "group": "errors",
       "type": "Text",
       "feel": "required",
