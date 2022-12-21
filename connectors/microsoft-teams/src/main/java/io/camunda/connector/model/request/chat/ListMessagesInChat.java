@@ -21,7 +21,7 @@ import okhttp3.Request;
 public class ListMessagesInChat extends MSTeamsRequestData {
 
   @NotBlank @Secret private String chatId;
-  @NotBlank @Secret private String filter;
+  @Secret private String filter;
   @NotNull private OrderBy orderBy;
 
   @Pattern(regexp = "^([1-9])|([1-4][0-9])|(50)$")
@@ -31,11 +31,11 @@ public class ListMessagesInChat extends MSTeamsRequestData {
   @Override
   public Object invoke(final GraphServiceClient<Request> graphClient) {
     ChatMessageCollectionRequest request = graphClient.chats(chatId).messages().buildRequest();
+    if (orderBy != OrderBy.withoutOrdering) {
+      request.orderBy(orderBy.getValue());
+    }
     if (filter != null) {
       request.filter(filter);
-    }
-    if (orderBy != null) {
-      request.orderBy(orderBy.getValue());
     }
     if (top != null) {
       request.top(Integer.parseInt(top));

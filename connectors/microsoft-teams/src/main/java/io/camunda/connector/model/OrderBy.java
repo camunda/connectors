@@ -7,6 +7,7 @@
 package io.camunda.connector.model;
 
 public enum OrderBy {
+  withoutOrdering("withoutOrdering"),
   lastModifiedDateTime("lastModifiedDateTime desc"),
   createdDateTime("createdDateTime desc");
 
