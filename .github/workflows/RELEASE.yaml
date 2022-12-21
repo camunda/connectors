@@ -83,7 +83,7 @@ jobs:
             </servers>
           </settings>
           EOF
-
+          
       - name: Configure git user
         run: |
           # https://github.com/actions/checkout/issues/13#issuecomment-724415212
@@ -174,31 +174,23 @@ jobs:
           push: ${{ github.ref == 'refs/heads/main' }}
           tags: camunda/connectors-bundle-saas:latest
 
-    # Update README in Dockerhub
+    # Update README in Dockerhub - LOGIN NOT WORKING YET (cannot reuse docker/login-action)
 
-      - name: Push README to Dockerhub - bundle-default
-        if: ${{ steps.check_prerelease.outputs.isPreRelease == 'false' }}
-        uses: christian-korneck/update-container-description-action@v1
-        env:
-          DOCKER_USER: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
-          DOCKER_PASS: ${{ steps.secrets.outputs.DOCKERHUB_PASSWORD }}
-        with:
-          destination_container_repo: camunda/connectors-bundle
-          provider: dockerhub
-          readme_file: bundle/README.md
-          short_description: 'Camunda 8 out-of-the-box Connectors Bundle'
+#      - name: Push README to Dockerhub - bundle-default
+#        if: ${{ steps.check_prerelease.outputs.isPreRelease == 'false' }}
+#        uses: christian-korneck/update-container-description-action@v1
+#        with:
+#          destination_container_repo: camunda/connectors-bundle
+#          provider: dockerhub
+#          readme_file: bundle/README.md
 
-      - name: Push README to Dockerhub - bundle-saas
-        if: ${{ steps.check_prerelease.outputs.isPreRelease == 'false' }}
-        uses: christian-korneck/update-container-description-action@v1
-        env:
-          DOCKER_USER: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
-          DOCKER_PASS: ${{ steps.secrets.outputs.DOCKERHUB_PASSWORD }}
-        with:
-          destination_container_repo: camunda/connectors-bundle-saas
-          provider: dockerhub
-          readme_file: bundle/README.md
-          short_description: 'Camunda 8 out-of-the-box Connectors Bundle for SaaS'
+#      - name: Push README to Dockerhub - bundle-saas
+#        if: ${{ steps.check_prerelease.outputs.isPreRelease == 'false' }}
+#        uses: christian-korneck/update-container-description-action@v1
+#        with:
+#          destination_container_repo: camunda/connectors-bundle-saas
+#          provider: dockerhub
+#          readme_file: bundle/README.md
 
     # Create GitHub release
 
