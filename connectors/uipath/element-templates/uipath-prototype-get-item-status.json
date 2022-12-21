@@ -1,0 +1,294 @@
+{
+  "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name": "Prototype Get Item Status Template",
+  "id": "18f95aa3-df32-42c9-80f8-6223971a5d0c",
+  "description": "Invoke REST API",
+  "icon": {
+    "contents": "data:image/svg+xml;utf8,%3C%3Fxml version='1.0' encoding='utf-8'%3F%3E%3Csvg version='1.1' id='Extra_Large' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' x='0px' y='0px' viewBox='0 0 3261 1200' style='enable-background:new 0 0 3261 1200;' xml:space='preserve'%3E%3Cstyle type='text/css'%3E .st0%7Bfill:%23FA4616;%7D%0A%3C/style%3E%3Cg%3E%3Cpath class='st0' d='M0,0h1200v1200H0V0z M124.2,1075.8h951.6V124.2H124.2V1075.8z M604,309.5h124.2v363.6 c0,164.3-93.2,263.4-250.4,263.4c-154.3,0-245.4-97.2-245.4-263.4V309.5h124.2v363.6c0,91.2,38.1,146.2,124.2,146.2 c83.1,0,123.2-52.1,123.2-146.2V309.5z M964.6,309.5c0,44.1-32.1,74.1-76.1,74.1c-44.1,0-76.1-30-76.1-74.1 c0-45.1,32.1-76.1,76.1-76.1C932.5,233.4,964.6,264.4,964.6,309.5z M826.4,442.7h124.2v487.8H826.4V442.7z M1784,517.9 c0,133.2-88.1,212.4-223.4,212.4h-112.2v200.3h-124.2v-621h236.4C1697.8,309.5,1784,389.6,1784,517.9z M1657.8,517.9 c0-68.1-39.1-108.2-110.2-108.2h-99.2v221.4h99.2C1618.7,631.1,1657.8,591,1657.8,517.9z M2201.7,442.7h124.2v487.8h-124.2v-55.1 c-33.1,39.1-85.1,61.1-158.3,61.1c-132.2,0-225.4-104.2-225.4-249.4c0-144.2,91.2-250.4,225.4-250.4c71.1,0,125.2,25,158.3,67.1 V442.7z M2201.7,687.1c0-84.1-50.1-142.2-129.2-142.2c-79.1,0-128.2,55.1-128.2,142.2c0,81.1,44.1,140.2,128.2,140.2 C2148.6,827.4,2201.7,772.3,2201.7,687.1z M2629.4,824.4h49.1v106.2h-65.1c-118.2,0-169.3-56.1-169.3-171.3V547.9H2386V442.7h58.1 V309.5h124.2v133.2h109.2v105.2h-109.2v212.3C2568.3,803.3,2581.3,824.4,2629.4,824.4z M3214.3,647.1v283.5h-124.2V661.1 c0-74.1-38.1-122.2-111.2-122.2s-117.2,50.1-117.2,133.2v258.4h-124.2V279.5h124.2v213.4c31.1-37.1,80.1-57.1,147.2-57.1 C3124.2,435.7,3214.3,518.9,3214.3,647.1z M3200,279.5h21.7v4.2h-8.5v25.8h-4.8v-25.8h-8.5V279.5z M3261,279.5v30h-4.8v-22.8 l-9.7,22.8h-3.6l-9.7-22.8v22.8h-4.8v-30h6l10.3,23.4l10.3-23.4H3261z'/%3E%3C/g%3E%3C/svg%3E%0A"
+  },
+  "documentationRef": "https://docs.camunda.io/docs/components/modeler/web-modeler/connectors/available-connectors/rest/",
+  "category": {
+    "id": "connectors",
+    "name": "Connectors"
+  },
+  "appliesTo": [
+    "bpmn:Task"
+  ],
+  "elementType": {
+    "value": "bpmn:ServiceTask"
+  },
+  "groups": [
+    {
+      "id": "authentication",
+      "label": "Authentication"
+    },
+    {
+      "id": "endpoint",
+      "label": "Endpoint Get Item Status"
+    },
+    {
+      "id": "timeout",
+      "label": "Connect Timeout"
+    },
+    {
+      "id": "output",
+      "label": "Response Mapping"
+    },
+    {
+      "id": "errors",
+      "label": "Error Handling"
+    }
+  ],
+  "properties": [
+    {
+      "type": "Hidden",
+      "value": "io.camunda:http-json:1",
+      "binding": {
+        "type": "zeebe:taskDefinition:type"
+      }
+    },
+    {
+      "label": "Type",
+      "id": "authenticationType",
+      "group": "authentication",
+      "description": "Choose the authentication type",
+      "value": "oauth-client-credentials-flow",
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Bearer Token Auth",
+          "value": "bearer"
+        },
+        {
+          "name": "OAuth 2.0",
+          "value": "oauth-client-credentials-flow"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.type"
+      }
+    },
+    {
+      "id": "method",
+      "label": "Method",
+      "group": "endpoint",
+      "type": "Hidden",
+      "value": "get",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "method"
+      }
+    },
+    {
+      "label": "URL",
+      "description": "Request URL to get the status of the task. Please, replace '{{cloudUrl}}', '{{cloudOrg}}' and '{{cloudTenant}}' with the the values from your uipath orchestrator.",
+      "group": "endpoint",
+      "type": "String",
+      "feel": "required",
+      "value": "=\"https://{{cloudUrl}}/{{cloudOrg}}/{{cloudTenant}}/orchestrator_/odata/QueueItems()",
+      "editable": false,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "url"
+      },
+      "constraints": {
+        "notEmpty": true,
+        "pattern": {
+          "value": "^(=|https?://).*",
+          "message": "Must be a http(s) URL."
+        }
+      }
+    },
+    {
+      "label": "Filters",
+      "description": "Map of query parameters to add to the request URL",
+      "group": "endpoint",
+      "type": "String",
+      "feel": "required",
+      "value": "{\"$Filter\":\"Id eq \"+itemId}",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "queryParameters"
+      },
+      "optional": true
+    },
+    {
+      "label": "Headers",
+      "description": "Map of headers to add to the request. Please, replace '{{organizationUnitId}}' and '{{tenantName}}' with the correct values from your UIPath orchestrator.",
+      "group": "endpoint",
+      "type": "String",
+      "value": "{\"X-UIPATH-OrganizationUnitId\": \n\"{{organizationUnitId}}\", \n\"X-UIPATH-TenantName\": \"{{tenantName}}\", \n \"Content-Type\": \"application/json\"}",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "headers"
+      },
+      "optional": true
+    },
+    {
+      "label": "Bearer Token",
+      "group": "authentication",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.token"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "bearer"
+      }
+    },
+    {
+      "label": "OAuth Token Endpoint",
+      "description": "The OAuth token endpoint",
+      "group": "authentication",
+      "type": "Hidden",
+      "value": "https://cloud.uipath.com/identity_/connect/token",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.oauthTokenEndpoint"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "oauth-client-credentials-flow"
+      }
+    },
+    {
+      "label": "Client ID",
+      "description": "Your application's Client ID from the OAuth client",
+      "group": "authentication",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.clientId"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "oauth-client-credentials-flow"
+      }
+    },
+    {
+      "label": "Client secret",
+      "description": "Your application's Client secret from the OAuth client",
+      "group": "authentication",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.clientSecret"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "oauth-client-credentials-flow"
+      }
+    },
+    {
+      "label": "Scopes",
+      "description": "The scopes which you want to request authorization for (e.g.read:contacts)",
+      "group": "authentication",
+      "type": "Hidden",
+      "value": "OR.Queues",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.scopes"
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "oauth-client-credentials-flow"
+      }
+    },
+    {
+      "label": "Client Authentication",
+      "id": "authenticationType",
+      "group": "authentication",
+      "description": "Send client id and client secret as Basic Auth request in the header, or as client credentials in the request body",
+      "value": "basicAuthHeader",
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Send client credentials in body",
+          "value": "credentialsBody"
+        },
+        {
+          "name": "Send as Basic Auth header",
+          "value": "basicAuthHeader"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.clientAuthentication"
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "oauth-client-credentials-flow"
+      }
+    },
+    {
+      "label": "Connection Timeout",
+      "description": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
+      "group": "timeout",
+      "type": "String",
+      "value": "20",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "connectionTimeoutInSeconds"
+      },
+      "optional": true,
+      "constraints": {
+        "notEmpty": false,
+        "pattern": {
+          "value": "^([0-9]*$)|(secrets.*$)",
+          "message": "Must be timeout in seconds (default value is 20 seconds)"
+        }
+      }
+    },
+    {
+      "label": "Result Variable",
+      "description": "Name of variable to store the response in",
+      "group": "output",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultVariable"
+      }
+    },
+    {
+      "label": "Result Expression",
+      "description": "Expression to map the response into process variables",
+      "group": "output",
+      "type": "Text",
+      "feel": "required",
+      "value": "{itemStatus: response.body.value[1].Status}",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultExpression"
+      }
+    },
+    {
+      "label": "Error Expression",
+      "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
+      "group": "errors",
+      "type": "Text",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "errorExpression"
+      }
+    }
+  ]
+}
