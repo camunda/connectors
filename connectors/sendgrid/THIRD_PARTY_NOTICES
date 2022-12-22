@@ -3,14 +3,13 @@ Do Not Translate or Localize
 
 This project incorporates components with the licenses under which Camunda received them as listed below.
 
-  * com.fasterxml.jackson.core:jackson-annotations (Version: 2.13.3, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
-  * com.fasterxml.jackson.core:jackson-core (Version: 2.13.3, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
-  * com.fasterxml.jackson.core:jackson-databind (Version: 2.14.1, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
+  * com.fasterxml.jackson.core:jackson-annotations (Version: 2.13.4, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
+  * com.fasterxml.jackson.core:jackson-core (Version: 2.13.4, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
+  * com.fasterxml.jackson.core:jackson-databind (Version: 2.13.4.2, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * com.google.code.gson:gson (Version: 2.10, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * com.sendgrid:java-http-client (Version: 4.5.0, License: MIT (URL: https://opensource.org/licenses/MIT))
   * com.sendgrid:sendgrid-java (Version: 4.9.3, License: MIT (URL: https://opensource.org/licenses/MIT))
-  * commons-codec:commons-codec (Version: 1.11, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
-  * commons-logging:commons-logging (Version: 1.2, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
+  * commons-codec:commons-codec (Version: 1.15, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * org.apache.httpcomponents:httpclient (Version: 4.5.13, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * org.apache.httpcomponents:httpcore (Version: 4.4.16, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * org.bouncycastle:bcprov-jdk15on (Version: 1.70, License: Bouncy Castle (URL: https://www.bouncycastle.org/licence.html))

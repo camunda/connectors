@@ -14,15 +14,10 @@
     <dependency>
       <groupId>io.camunda</groupId>
       <artifactId>spring-zeebe-connector-runtime</artifactId>
-      <version>${spring-zeebe.version}</version>
-      <!-- TODO: rm this dep from parent when all connectors are transferred to mono repo -->
-      <scope>compile</scope>
     </dependency>
     <dependency>
       <groupId>io.micrometer</groupId>
       <artifactId>micrometer-registry-prometheus</artifactId>
-      <!-- TODO: remove the version here as soon as Spring BOM is used: https://github.com/camunda/connectors-bundle/pull/100 -->
-      <version>1.10.2</version>
     </dependency>
 
     <dependency>
@@ -83,7 +78,7 @@
             <dependency>
               <groupId>org.springframework.boot</groupId>
               <artifactId>spring-boot-maven-plugin</artifactId>
-              <version>${spring-boot.version}</version>
+              <version>${version.spring-boot}</version>
             </dependency>
           </dependencies>
           <configuration>
@@ -144,51 +139,4 @@
     </plugins>
   </build>
 
-    <repositories>
-        <repository>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-            <id>connectors</id>
-            <name>Connectors Repository</name>
-            <url>https://artifacts.camunda.com/artifactory/connectors/</url>
-        </repository>
-        <repository>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-            <id>connectors-snapshots</id>
-            <name>Connectors Snapshot Repository</name>
-            <url>https://artifacts.camunda.com/artifactory/connectors-snapshots/</url>
-        </repository>
-
-        <repository>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-            <id>zeebe</id>
-            <name>Zeebe and Spring Zeebe Repository</name>
-            <url>https://artifacts.camunda.com/artifactory/zeebe-io/</url>
-        </repository>
-        <repository>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-            <id>zeebe-snapshots</id>
-            <name>Zeebe and Spring Zeebe Snapshot Repository</name>
-            <url>https://artifacts.camunda.com/artifactory/zeebe-io-snapshots/</url>
-        </repository>
-    </repositories>
 </project>

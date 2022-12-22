@@ -23,28 +23,6 @@
     </license>
   </licenses>
 
-  <properties>
-    <!-- external libraries -->
-    <version.gson-extras>1.1.0</version.gson-extras>
-    <version.slack>1.27.2</version.slack>
-    <version.kotlin>1.7.22</version.kotlin>
-  </properties>
-
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>org.jetbrains.kotlin</groupId>
-        <artifactId>kotlin-stdlib</artifactId>
-        <version>${version.kotlin}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.jetbrains.kotlin</groupId>
-        <artifactId>kotlin-stdlib-common</artifactId>
-        <version>${version.kotlin}</version>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
-
   <dependencies>
     <dependency>
       <groupId>com.google.code.gson</groupId>
@@ -54,47 +32,18 @@
     <dependency>
       <groupId>org.danilopianini</groupId>
       <artifactId>gson-extras</artifactId>
-      <version>${version.gson-extras}</version>
     </dependency>
 
     <dependency>
       <groupId>com.slack.api</groupId>
       <artifactId>slack-api-client</artifactId>
-      <version>${version.slack}</version>
     </dependency>
     <!-- This dependency will be removed after camunda/zeebe#9859 is resolved. -->
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-text</artifactId>
-      <version>1.10.0</version>
     </dependency>
   </dependencies>
-
-  <repositories>
-    <repository>
-      <releases>
-        <enabled>true</enabled>
-      </releases>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-      <id>connectors</id>
-      <name>Connectors Repository</name>
-      <url>https://artifacts.camunda.com/artifactory/connectors/</url>
-    </repository>
-
-    <repository>
-      <releases>
-        <enabled>false</enabled>
-      </releases>
-      <snapshots>
-        <enabled>true</enabled>
-      </snapshots>
-      <id>connectors-snapshots</id>
-      <name>Connectors Snapshot Repository</name>
-      <url>https://artifacts.camunda.com/artifactory/connectors-snapshots/</url>
-    </repository>
-  </repositories>
 
   <build>
     <plugins>
@@ -105,68 +54,4 @@
     </plugins>
   </build>
 
-  <profiles>
-    <profile>
-      <id>cloud-function</id>
-      <repositories>
-        <repository>
-          <releases>
-            <enabled>true</enabled>
-          </releases>
-          <snapshots>
-            <enabled>false</enabled>
-          </snapshots>
-          <id>connectors-internal</id>
-          <name>Connectors Internal Repository</name>
-          <url>https://artifacts.camunda.com/artifactory/connectors-internal/</url>
-        </repository>
-
-        <repository>
-          <releases>
-            <enabled>false</enabled>
-          </releases>
-          <snapshots>
-            <enabled>true</enabled>
-          </snapshots>
-          <id>connectors-internal-snapshots</id>
-          <name>Connectors Internal Snapshot Repository</name>
-          <url>https://artifacts.camunda.com/artifactory/connectors-internal-snapshots/</url>
-        </repository>
-      </repositories>
-      <dependencies>
-        <dependency>
-          <groupId>io.camunda.connector</groupId>
-          <artifactId>connector-runtime-cloud</artifactId>
-          <version>0.4.0</version>
-        </dependency>
-        <dependency>
-          <groupId>io.camunda.connector</groupId>
-          <artifactId>connector-core</artifactId>
-        </dependency>
-        <dependency>
-          <groupId>io.camunda.connector</groupId>
-          <artifactId>connector-validation</artifactId>
-        </dependency>
-      </dependencies>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-shade-plugin</artifactId>
-            <configuration>
-              <outputFile>${project.build.directory}/deployment/${project.build.finalName}.jar</outputFile>
-            </configuration>
-          </plugin>
-          <plugin>
-            <groupId>com.google.cloud.functions</groupId>
-            <artifactId>function-maven-plugin</artifactId>
-            <configuration>
-              <functionTarget>io.camunda.connector.runtime.cloud.CloudConnectorFunction</functionTarget>
-              <port>9082</port>
-            </configuration>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-  </profiles>
 </project>
