@@ -79,7 +79,7 @@ The response will contain the status code, the headers and the body of the respo
 }
 ```
 
-### Input (Basic Auth)
+### Input (Basic)
 
 ```json
 {
@@ -106,7 +106,7 @@ The response will contain the status code, the headers and the body of the respo
 }
 ```
 
-### Input (OAuth)
+### Input (OAuth 2.0)
 
 ```json
 {
