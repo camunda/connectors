@@ -55,20 +55,20 @@
       "label": "Type",
       "id": "authenticationType",
       "group": "authentication",
-      "description": "Choose the authentication type. Select 'No Auth' if no authentication is necessary",
+      "description": "Choose the authentication type. Select 'None' if no authentication is necessary",
       "value": "noAuth",
       "type": "Dropdown",
       "choices": [
         {
-          "name": "No Auth",
+          "name": "None",
           "value": "noAuth"
         },
         {
-          "name": "Basic Auth",
+          "name": "Basic",
           "value": "basic"
         },
         {
-          "name": "Bearer Token Auth",
+          "name": "Bearer Token",
           "value": "bearer"
         },
         {
