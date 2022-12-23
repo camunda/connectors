@@ -3,10 +3,10 @@ Do Not Translate or Localize
 
 This project incorporates components with the licenses under which Camunda received them as listed below.
 
-  * com.amazonaws:aws-java-sdk-core (Version: 1.12.367, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
-  * com.amazonaws:aws-java-sdk-sns (Version: 1.12.367, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
-  * com.amazonaws:aws-java-sdk-sqs (Version: 1.12.367, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
-  * com.amazonaws:jmespath-java (Version: 1.12.367, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
+  * com.amazonaws:aws-java-sdk-core (Version: 1.12.371, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
+  * com.amazonaws:aws-java-sdk-sns (Version: 1.12.371, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
+  * com.amazonaws:aws-java-sdk-sqs (Version: 1.12.371, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
+  * com.amazonaws:jmespath-java (Version: 1.12.371, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * com.fasterxml.jackson.core:jackson-annotations (Version: 2.13.4, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * com.fasterxml.jackson.core:jackson-core (Version: 2.13.4, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * com.fasterxml.jackson.core:jackson-databind (Version: 2.13.4.2, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
@@ -17,7 +17,7 @@ This project incorporates components with the licenses under which Camunda recei
   * joda-time:joda-time (Version: 2.8.1, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * org.apache.commons:commons-lang3 (Version: 3.12.0, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * org.apache.commons:commons-text (Version: 1.10.0, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
-  * org.apache.httpcomponents:httpclient (Version: 4.5.13, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
+  * org.apache.httpcomponents:httpclient (Version: 4.5.14, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * org.apache.httpcomponents:httpcore (Version: 4.4.16, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * org.slf4j:slf4j-api (Version: 1.7.36, License: MIT (URL: https://opensource.org/licenses/MIT))
   * software.amazon.ion:ion-java (Version: 1.0.2, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))

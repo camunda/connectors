@@ -10,7 +10,7 @@ This project incorporates components with the licenses under which Camunda recei
   * com.sendgrid:java-http-client (Version: 4.5.0, License: MIT (URL: https://opensource.org/licenses/MIT))
   * com.sendgrid:sendgrid-java (Version: 4.9.3, License: MIT (URL: https://opensource.org/licenses/MIT))
   * commons-codec:commons-codec (Version: 1.15, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
-  * org.apache.httpcomponents:httpclient (Version: 4.5.13, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
+  * org.apache.httpcomponents:httpclient (Version: 4.5.14, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * org.apache.httpcomponents:httpcore (Version: 4.4.16, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * org.bouncycastle:bcprov-jdk15on (Version: 1.70, License: Bouncy Castle (URL: https://www.bouncycastle.org/licence.html))
   * org.slf4j:slf4j-api (Version: 1.7.36, License: MIT (URL: https://opensource.org/licenses/MIT))

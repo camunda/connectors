@@ -21,7 +21,7 @@ This project incorporates components with the licenses under which Camunda recei
   * io.opencensus:opencensus-api (Version: 0.31.1, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * io.opencensus:opencensus-contrib-http-util (Version: 0.31.1, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * javax.annotation:jsr250-api (Version: 1.0, License: CDDLv1.0 (URL: https://opensource.org/licenses/CDDL-1.0))
-  * org.apache.httpcomponents:httpclient (Version: 4.5.13, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
+  * org.apache.httpcomponents:httpclient (Version: 4.5.14, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * org.apache.httpcomponents:httpcore (Version: 4.4.16, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * org.checkerframework:checker-qual (Version: 3.12.0, License: MIT (URL: https://opensource.org/licenses/MIT))
   * org.danilopianini:gson-extras (Version: 1.1.0, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
