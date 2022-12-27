@@ -1,9 +1,9 @@
 {
   "$schema":"https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name":"Github Webhook Connector",
+  "name":"GitHub Webhook Connector",
   "id":"io.camunda.connectors.webhook.GithubWebhookConnector.v1",
   "version":1,
-  "description":"Receive events from Github",
+  "description":"Receive events from GitHub",
   "category":{
     "id":"connectors",
     "name":"Connectors"
@@ -36,21 +36,21 @@
     },
     {
       "type":"Hidden",
-      "value":"GithubWebhook",
+      "value":"GitHubWebhook",
       "binding":{
         "type":"zeebe:property",
         "name":"inbound.subtype"
       }
     },
     {
-      "label":"Path",
+      "label":"Webhook ID",
       "type":"String",
       "group":"endpoint",
       "binding":{
         "type":"zeebe:property",
         "name":"inbound.context"
       },
-      "description":"Context path for this webhook"
+      "description":"The webhook ID is a part of the URL"
     },
     {
       "type":"Hidden",
@@ -61,7 +61,7 @@
       }
     },
     {
-      "label":"Github secret",
+      "label":"GitHub secret",
       "description":"Shared secret key",
       "type":"String",
       "group":"endpoint",

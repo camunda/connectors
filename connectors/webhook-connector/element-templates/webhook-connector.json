@@ -43,20 +43,20 @@
       }
     },
     {
-      "label": "Path",
+      "label": "Webhook ID",
       "type": "String",
       "group": "endpoint",
       "binding": {
         "type": "zeebe:property",
         "name": "inbound.context"
       },
-      "description": "Context path for this webhook"
+      "description": "The webhook ID is a part of the URL"
     },
     {
       "id": "shouldValidateHmac",
-      "label": "Should validate HMAC",
+      "label": "HMAC Authentication",
       "group": "endpoint",
-      "description": "Choose whether HMAC has to be validated",
+      "description": "Choose whether HMAC verification is enabled",
       "value": "disabled",
       "type": "Dropdown",
       "choices": [
