@@ -43,13 +43,13 @@ Example: [aws-lambda/element-templates](aws-lambda/element-templates/aws-lambda-
 
 ### Create a new Connector
 
-To create a new Connector, simply use the [script](add_new_connector.sh) or generate a new
+To create a new Connector, simply use the [script](../add_new_connector.sh) or generate a new
 project from the [Maven archetype](../connector-archetype-internal).
 
 Execute from the repository root directory:
 ```shell
-chmod +x connectors/add_new_connector.sh
-./connectors/add_new_connector.sh ${YOUR_CONNECTOR_NAME}
+chmod +x add_new_connector.sh
+./add_new_connector.sh ${YOUR_CONNECTOR_NAME}
 ```
 Substitute `${YOUR_CONNECTOR_NAME}` with the name of your new Connector.
 **Please provide the name in a short format:** e.g. use simply `slack`, **not** `connector-slack`.
