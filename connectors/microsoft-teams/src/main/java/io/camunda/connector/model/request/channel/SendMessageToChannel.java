@@ -14,6 +14,7 @@ import io.camunda.connector.model.request.MSTeamsRequestData;
 import java.util.Objects;
 import javax.validation.constraints.NotBlank;
 import okhttp3.Request;
+import org.apache.commons.text.StringEscapeUtils;
 
 public class SendMessageToChannel extends MSTeamsRequestData {
 
@@ -25,7 +26,7 @@ public class SendMessageToChannel extends MSTeamsRequestData {
   public Object invoke(final GraphServiceClient<Request> graphClient) {
     ChatMessage chatMessage = new ChatMessage();
     ItemBody body = new ItemBody();
-    body.content = content;
+    body.content = StringEscapeUtils.unescapeJson(content);
     chatMessage.body = body;
 
     return graphClient
