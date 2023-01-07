@@ -13,6 +13,6 @@ This project incorporates components with the licenses under which Camunda recei
   * org.apache.commons:commons-text (Version: 1.10.0, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * org.danilopianini:gson-extras (Version: 1.1.0, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * org.jetbrains:annotations (Version: 13.0, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
-  * org.jetbrains.kotlin:kotlin-stdlib (Version: 1.7.22, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
-  * org.jetbrains.kotlin:kotlin-stdlib-common (Version: 1.7.22, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
+  * org.jetbrains.kotlin:kotlin-stdlib (Version: 1.8.0, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
+  * org.jetbrains.kotlin:kotlin-stdlib-common (Version: 1.8.0, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * org.slf4j:slf4j-api (Version: 1.7.36, License: MIT (URL: https://opensource.org/licenses/MIT))

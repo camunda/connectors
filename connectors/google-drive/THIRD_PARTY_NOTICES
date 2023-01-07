@@ -3,7 +3,7 @@ Do Not Translate or Localize
 
 This project incorporates components with the licenses under which Camunda received them as listed below.
 
-  * com.google.api-client:google-api-client (Version: 2.1.1, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
+  * com.google.api-client:google-api-client (Version: 2.1.2, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * com.google.apis:google-api-services-docs (Version: v1-rev20221004-2.0.0, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * com.google.apis:google-api-services-drive (Version: v3-rev20221219-2.0.0, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * com.google.auth:google-auth-library-credentials (Version: 1.13.0, License: BSD-3-Clause (URL: https://opensource.org/licenses/BSD-3-Clause))
