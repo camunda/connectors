@@ -48,7 +48,6 @@ project from the [Maven archetype](../connector-archetype-internal).
 
 Execute from the repository root directory:
 ```shell
-chmod +x add_new_connector.sh
 ./add_new_connector.sh ${YOUR_CONNECTOR_NAME}
 ```
 Substitute `${YOUR_CONNECTOR_NAME}` with the name of your new Connector.
