@@ -1,0 +1,31 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.camunda.connector</groupId>
+    <artifactId>connector-function-parent</artifactId>
+    <version>${archetypeVersion}</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+
+  <name>${artifactId}</name>
+  <description>${connectorName} cnnector for Camunda 8</description>
+  <artifactId>${artifactId}</artifactId>
+  <packaging>jar</packaging>
+
+  <licenses>
+    <license>
+      <name>Camunda Platform Self-Managed Free Edition license</name>
+      <url>https://camunda.com/legal/terms/cloud-terms-and-conditions/camunda-cloud-self-managed-free-edition-terms/</url>
+    </license>
+    <license>
+      <name>Camunda Platform Self-Managed Enterprise Edition license</name>
+    </license>
+  </licenses>
+
+  <dependencies>
+  </dependencies>
+
+</project>

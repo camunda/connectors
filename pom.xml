@@ -52,6 +52,7 @@
   <modules>
     <module>connectors</module>
     <module>bundle/mvn</module>
+    <module>connector-archetype-internal</module>
   </modules>
 
   <dependencyManagement>
