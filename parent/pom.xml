@@ -78,7 +78,7 @@ limitations under the License.</license.inlineheader>
     <version.gson>2.10.1</version.gson>
     <version.mockito>4.11.0</version.mockito>
     <version.junit-jupiter>5.9.1</version.junit-jupiter>
-    <version.assertj>3.23.1</version.assertj>
+    <version.assertj>3.24.1</version.assertj>
     <version.jackson-bom>2.13.4.20221013</version.jackson-bom>
     <version.hibernate-validator>6.2.5.Final</version.hibernate-validator>
 
