@@ -6,19 +6,36 @@
  */
 package io.camunda.connector.model.request.chat;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.microsoft.graph.requests.ChatRequest;
 import com.microsoft.graph.requests.GraphServiceClient;
 import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.model.request.MSTeamsRequestData;
+import io.camunda.connector.suppliers.GsonSupplier;
+import java.util.List;
 import java.util.Objects;
 import javax.validation.constraints.NotBlank;
 import okhttp3.Request;
 
 public class GetChat extends MSTeamsRequestData {
-  @NotBlank @Secret protected String chatId;
+  @NotBlank @Secret private String chatId;
+  private String expand;
+
+  private static final List<String> availableExpandList = List.of("members", "lastMessagePreview");
 
   @Override
   public Object invoke(final GraphServiceClient<Request> graphClient) {
-    return graphClient.chats(chatId).buildRequest().get();
+    ChatRequest chatRequest = graphClient.chats(chatId).buildRequest();
+    if (expand != null && availableExpandList.contains(expand)) {
+      chatRequest.expand(expand);
+    }
+    return removeNullFieldsInObject(chatRequest.get());
+  }
+
+  private Object removeNullFieldsInObject(Object object) {
+    Gson gson = GsonSupplier.getGson();
+    return gson.fromJson(gson.toJson(object), JsonElement.class);
   }
 
   public String getChatId() {
@@ -27,6 +44,14 @@ public class GetChat extends MSTeamsRequestData {
 
   public void setChatId(final String chatId) {
     this.chatId = chatId;
+  }
+
+  public String getExpand() {
+    return expand;
+  }
+
+  public void setExpand(final String expand) {
+    this.expand = expand;
   }
 
   @Override
@@ -38,16 +63,16 @@ public class GetChat extends MSTeamsRequestData {
       return false;
     }
     final GetChat getChat = (GetChat) o;
-    return Objects.equals(chatId, getChat.chatId);
+    return Objects.equals(chatId, getChat.chatId) && Objects.equals(expand, getChat.expand);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(chatId);
+    return Objects.hash(chatId, expand);
   }
 
   @Override
   public String toString() {
-    return "GetChat{" + "chatId='" + chatId + "'" + "}";
+    return "GetChat{" + "chatId='" + chatId + "'" + ", expand='" + expand + "'" + "}";
   }
 }

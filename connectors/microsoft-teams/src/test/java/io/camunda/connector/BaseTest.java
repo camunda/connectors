@@ -140,6 +140,10 @@ public abstract class BaseTest {
     return loadTestCasesFromResourceFile(TestCasesPath.Channel.SEND_MESSAGE_VALIDATION_FAIL);
   }
 
+  protected static Stream<String> getChatValidationFailTestCases() throws IOException {
+    return loadTestCasesFromResourceFile(TestCasesPath.Chat.GET_VALIDATION_FAIL);
+  }
+
   @SuppressWarnings("unchecked")
   protected static Stream<String> loadTestCasesFromResourceFile(final String fileWithTestCasesUri)
       throws IOException {
