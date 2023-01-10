@@ -33,7 +33,7 @@
     <version.google-api-services-docs>v1-rev20221004-2.0.0</version.google-api-services-docs>
 
     <version.google-libraries-bom>26.3.0</version.google-libraries-bom>
-    <version.gson-extras>1.1.0</version.gson-extras>
+    <version.gson-extras>1.2.0</version.gson-extras>
 
     <version.httpcore>4.4.16</version.httpcore>
 
