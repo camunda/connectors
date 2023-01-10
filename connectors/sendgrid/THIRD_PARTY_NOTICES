@@ -6,7 +6,7 @@ This project incorporates components with the licenses under which Camunda recei
   * com.fasterxml.jackson.core:jackson-annotations (Version: 2.13.4, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * com.fasterxml.jackson.core:jackson-core (Version: 2.13.4, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * com.fasterxml.jackson.core:jackson-databind (Version: 2.13.4.2, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
-  * com.google.code.gson:gson (Version: 2.10, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
+  * com.google.code.gson:gson (Version: 2.10.1, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * com.sendgrid:java-http-client (Version: 4.5.0, License: MIT (URL: https://opensource.org/licenses/MIT))
   * com.sendgrid:sendgrid-java (Version: 4.9.3, License: MIT (URL: https://opensource.org/licenses/MIT))
   * commons-codec:commons-codec (Version: 1.15, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))

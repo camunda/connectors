@@ -10,7 +10,7 @@ This project incorporates components with the licenses under which Camunda recei
   * com.google.auth:google-auth-library-oauth2-http (Version: 1.14.0, License: BSD-3-Clause (URL: https://opensource.org/licenses/BSD-3-Clause))
   * com.google.auto.value:auto-value-annotations (Version: 1.10.1, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * com.google.code.findbugs:jsr305 (Version: 3.0.2, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
-  * com.google.code.gson:gson (Version: 2.10, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
+  * com.google.code.gson:gson (Version: 2.10.1, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * com.google.errorprone:error_prone_annotations (Version: 2.11.0, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * com.google.guava:failureaccess (Version: 1.0.1, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * com.google.guava:guava (Version: 31.1-jre, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
