@@ -41,6 +41,18 @@
       <artifactId>commons-text</artifactId>
     </dependency>
 
+    <!-- For locally running the connector only -->
+    <dependency>
+      <groupId>io.camunda</groupId>
+      <artifactId>spring-zeebe-connector-runtime</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda</groupId>
+      <artifactId>zeebe-client-java</artifactId>
+      <scope>provided</scope>
+    </dependency>
+
   </dependencies>
 
 </project>
