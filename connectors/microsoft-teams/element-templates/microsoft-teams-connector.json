@@ -265,6 +265,7 @@
       "description": "The type of a new chat",
       "group": "data",
       "type": "Dropdown",
+      "value": "one_on_one",
       "choices": [
         {
           "name": "One on one",
@@ -304,7 +305,7 @@
     },
     {
       "label": "Members",
-      "description": "Set array members of chat",
+      "description": "Set array members of chat. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-teams/#members-property'>Learn more about the required format</a>",
       "group": "data",
       "type": "Text",
       "feel": "required",
