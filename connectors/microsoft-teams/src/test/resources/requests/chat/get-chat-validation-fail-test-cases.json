@@ -1,0 +1,16 @@
+[
+  {
+    "description": "chatID is blank",
+    "data": {
+      "method": "getChat",
+      "chatId": "    "
+    }
+  },
+  {
+    "description": "chatID is null",
+    "data": {
+      "method": "getChat",
+      "chatId": null
+    }
+  }
+]

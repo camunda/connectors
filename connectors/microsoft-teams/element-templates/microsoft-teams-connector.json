@@ -345,6 +345,36 @@
       }
     },
     {
+      "label": "Expand response",
+      "description": "Choose expand type. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-teams/#expand-response'>Learn more about expanding chat response</a>",
+      "group": "data",
+      "type": "Dropdown",
+      "value": "withoutExpand",
+      "optional": true,
+      "choices": [
+        {
+          "name": "Without expand",
+          "value": "withoutExpand"
+        },
+        {
+          "name": "With the last message preview",
+          "value": "lastMessagePreview"
+        },
+        {
+          "name": "With chat members",
+          "value": "members"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "data.expand"
+      },
+      "condition": {
+        "property": "chatMethod",
+        "equals": "getChat"
+      }
+    },
+    {
       "label": "Content",
       "description": "Enter content",
       "group": "data",

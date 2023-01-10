@@ -28,4 +28,9 @@ interface TestCasesPath {
     String SEND_MESSAGE_VALIDATION_FAIL =
         CHANNEL_PATH + "send-message-to-channel-validation-fail-test-cases.json";
   }
+
+  interface Chat {
+    String CHAT_PATH = PATH + "chat/";
+    String GET_VALIDATION_FAIL = CHAT_PATH + "get-chat-validation-fail-test-cases.json";
+  }
 }
