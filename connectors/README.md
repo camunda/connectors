@@ -19,19 +19,11 @@ In your IDE you can also simply navigate to the
 class in test scope of the `default-bundle` module and run it via your IDE.
 
 
-### :lock: Test as local Google Cloud Function
+### :lock: Test the http-json connector locally with Google Cloud Function as a proxy
 
-> **Warning**
-> This is Camunda-internal only. The Maven profile `cloud-function` accesses an internal artifact.
+Run the [:lock:connector-proxy-saas](https://github.com/camunda/connector-proxy-saas) project locally as described in its [:lock:README](https://github.com/camunda/connector-proxy-saas#usage).
 
-Build as Google Cloud Function
-
-```bash
-mvn function:run -Pcloud-function
-```
-
-See also the [:lock:Camunda Cloud Connector Run-Time](https://github.com/camunda/connector-runtime-cloud) on how your function
-is run as a Google Cloud Function.
+Set the specific property or environment variable to enable proxy mode as described [here](https://github.com/camunda/connectors-bundle/tree/main/connectors/http-json#use-proxy-mechanism).
 
 ## Element Template
 
