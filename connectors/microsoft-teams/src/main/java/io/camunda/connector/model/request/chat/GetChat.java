@@ -6,13 +6,13 @@
  */
 package io.camunda.connector.model.request.chat;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonElement;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.graph.requests.ChatRequest;
 import com.microsoft.graph.requests.GraphServiceClient;
 import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.model.request.MSTeamsRequestData;
-import io.camunda.connector.suppliers.GsonSupplier;
+import io.camunda.connector.suppliers.ObjectMapperSupplier;
 import java.util.List;
 import java.util.Objects;
 import javax.validation.constraints.NotBlank;
@@ -34,8 +34,12 @@ public class GetChat extends MSTeamsRequestData {
   }
 
   private Object removeNullFieldsInObject(Object object) {
-    Gson gson = GsonSupplier.getGson();
-    return gson.fromJson(gson.toJson(object), JsonElement.class);
+    ObjectMapper objectMapper = ObjectMapperSupplier.nonNullObjectMapper();
+    try {
+      return objectMapper.readValue(objectMapper.writer().writeValueAsString(object), Object.class);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   public String getChatId() {

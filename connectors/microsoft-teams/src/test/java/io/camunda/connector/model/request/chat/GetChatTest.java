@@ -11,8 +11,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.microsoft.graph.models.Chat;
 import com.microsoft.graph.requests.ChatRequest;
 import com.microsoft.graph.requests.ChatRequestBuilder;
@@ -72,25 +73,26 @@ class GetChatTest extends BaseTest {
   }
 
   @Test
-  public void invoke_shouldReturnChatWithOutNullFieldsInResponse() {
+  public void invoke_shouldReturnChatWithOutNullFieldsInResponse() throws JsonProcessingException {
     // Given
-    Gson gsonWithNull = new GsonBuilder().serializeNulls().create();
     String chatStringResponse =
         "{\"oDataType\":null,\"id\":\"19:e37f90808e7748d7bbbb2029ed17f643@thread.v2\",\"chatType\":\"GROUP\",\"members\":null,\"messages\":null}";
-    Chat response = gsonWithNull.fromJson(chatStringResponse, Chat.class);
+
+    ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+    Chat chat = objectMapper.readValue(chatStringResponse, Chat.class);
 
     when(graphServiceClient.chats(ActualValue.Chat.CHAT_ID)).thenReturn(chatRequestBuilder);
     when(chatRequestBuilder.buildRequest()).thenReturn(chatRequest);
 
-    when(chatRequest.get()).thenReturn(response);
+    when(chatRequest.get()).thenReturn(chat);
     GetChat getChat = new GetChat();
     getChat.setChatId(ActualValue.Chat.CHAT_ID);
     // When
     Object invoke = getChat.invoke(graphServiceClient);
     // Then
     assertThat(invoke).isNotNull();
-    assertThat(gsonWithNull.toJson(invoke))
+    assertThat(objectMapper.writer().writeValueAsString(invoke))
         .isEqualTo(
-            "{\"chatType\":\"GROUP\",\"id\":\"19:e37f90808e7748d7bbbb2029ed17f643@thread.v2\"}");
+            "{\"id\":\"19:e37f90808e7748d7bbbb2029ed17f643@thread.v2\",\"chatType\":\"GROUP\"}");
   }
 }
