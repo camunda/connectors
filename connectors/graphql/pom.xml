@@ -6,13 +6,13 @@
   <parent>
     <groupId>io.camunda.connector</groupId>
     <artifactId>connector-function-parent</artifactId>
-    <version>${archetypeVersion}</version>
+    <version>0.15.0-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <name>${artifactId}</name>
-  <description>${connectorName} connector for Camunda 8</description>
-  <artifactId>${artifactId}</artifactId>
+  <name>connector-graphql</name>
+  <description>graphql connector for Camunda 8</description>
+  <artifactId>connector-graphql</artifactId>
   <packaging>jar</packaging>
 
   <licenses>

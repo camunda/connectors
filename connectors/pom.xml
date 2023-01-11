@@ -28,6 +28,7 @@
     <module>http-json</module>
     <module>microsoft-teams</module>
     <module>slack</module>
+    <module>graphql</module>
   </modules>
 
   <properties>
