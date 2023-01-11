@@ -171,6 +171,12 @@ If the other party requiring OAuth for authentication, you need to set the follo
 GOOGLE_APPLICATION_CREDENTIALS=...
 ```
 
+### :lock: Test the Connector locally with Google Cloud Function as a proxy
+
+Run the [:lock:connector-proxy-saas](https://github.com/camunda/connector-proxy-saas) project locally as described in its [:lock:README](https://github.com/camunda/connector-proxy-saas#usage).
+
+Set the specific property or environment variable to enable proxy mode as described above.
+
 ## Element Template
 
 The element templates can be found in

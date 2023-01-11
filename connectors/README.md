@@ -18,13 +18,6 @@ In your IDE you can also simply navigate to the
 [LocalContainerRuntime](../bundle/mvn/default-bundle/src/test/java/io/camunda/connector/bundle/LocalConnectorRuntime.java)
 class in test scope of the `default-bundle` module and run it via your IDE.
 
-
-### :lock: Test the http-json connector locally with Google Cloud Function as a proxy
-
-Run the [:lock:connector-proxy-saas](https://github.com/camunda/connector-proxy-saas) project locally as described in its [:lock:README](https://github.com/camunda/connector-proxy-saas#usage).
-
-Set the specific property or environment variable to enable proxy mode as described [here](https://github.com/camunda/connectors-bundle/tree/main/connectors/http-json#use-proxy-mechanism).
-
 ## Element Template
 
 The element templates can be found in the `element-templates` directory of each connector.
