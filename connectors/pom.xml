@@ -73,19 +73,54 @@ except in compliance with the proprietary license.</license.inlineheader>
 
   </dependencies>
 
+
   <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-shade-plugin</artifactId>
+          <executions>
+            <execution>
+              <!--This must be named-->
+              <id>shade</id>
+              <phase>package</phase>
+              <goals>
+                <goal>shade</goal>
+              </goals>
+            </execution>
+          </executions>
+          <configuration>
+            <skip>false</skip>
+            <relocations>
+              <!-- common relocation for all OOTB connectors -->
+              <relocation>
+                <pattern>com.fasterxml.jackson</pattern>
+                <shadedPattern>connector.com.fasterxml.jackson</shadedPattern>
+              </relocation>
+            </relocations>
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+
     <plugins>
       <plugin>
+        <!-- This declaration makes sure children get plugin in their lifecycle -->
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
+        <!-- Configuration won't be propagated to children -->
+        <inherited>false</inherited>
+        <executions>
+          <execution>
+            <!--This matches and thus overrides execution defined above -->
+            <id>shade</id>
+            <!-- Unbind from lifecycle for this POM -->
+            <phase>none</phase>
+          </execution>
+        </executions>
         <configuration>
-          <relocations>
-            <!-- common relocation for all OOTB connectors -->
-            <relocation>
-              <pattern>com.fasterxml.jackson</pattern>
-              <shadedPattern>connector.com.fasterxml.jackson</shadedPattern>
-            </relocation>
-          </relocations>
+          <skip>true</skip>
         </configuration>
       </plugin>
     </plugins>

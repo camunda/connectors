@@ -17,7 +17,7 @@
   <properties>
     <archetype-packaging.version>3.2.1</archetype-packaging.version>
     <!-- this archetype is for internal connectors only, so skip Maven Central release -->
-    <skip.central.release>false</skip.central.release>
+    <skip.central.release>true</skip.central.release>
   </properties>
 
   <build>
