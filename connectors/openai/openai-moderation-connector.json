@@ -90,11 +90,19 @@
       },
       {
         "label": "Evaluation input",
-        "description": "Provide the text to analyze",
+        "description": "Provide the text to analyze as static value or variable",
         "group": "content",
-        "type": "Text",
-        "feel": "required",
-        "value": "={\"input\": \"Sample text goes here\"}",
+        "type": "String",
+        "feel": "optional",
+        "value": "Sample text goes here",
+        "binding": {
+          "type": "zeebe:input",
+          "name": "internal_textToAnalyze"
+        }
+      },
+      {
+        "type": "Hidden",
+        "value": "={\"input\": internal_textToAnalyze}",
         "binding": {
           "type": "zeebe:input",
           "name": "body"
@@ -113,4 +121,4 @@
         }
       }
     ]
-  }
+  } 
