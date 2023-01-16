@@ -30,13 +30,14 @@ public abstract class BaseTest {
       String CLIENT_SECRET = "Wao8Q~yzXYfgdM_testClientSecret_RZyqPaET";
 
       String BEARER_TOKEN = "BEARER_TOKEN_Wao8Q~yzXYfgdM_RZyqPaET01696d2e4a179c292bc9cf04e63b";
+      String REFRESH_TOKEN =
+          "REFRESH_TOKEN_AgABAAEAAAD--DLA3VO7QrddgJg7WevrAgDs_wQA9P-P7wgV-lUKIE_JfYDJK912TTwhqJD7WmYcHfnNtlLgC-i9bG8_vmSYs1GLIYe4KnZ4KTOxNqh74kjnrwLdyuMnUrOYXtBBnT-p8RCqW8GefJpIM0mAJ7HVtD4ghBfFzrQBeS2QuYOvh_dcIQ9nET01696d2e4a179c292bc9cf04e63b";
     }
 
     interface Chat {
       String CHAT_ID = "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2";
       String CONTENT_PART_1 = "microsoft teams";
       String CONTENT_PART_2 = "camunda connector";
-      String CONTENT = "Hi " + CONTENT_PART_1 + " from " + CONTENT_PART_2 + "!!!";
     }
 
     interface Channel {
@@ -45,9 +46,7 @@ public abstract class BaseTest {
       String NAME = "ChannelTest";
       String MESSAGE_ID = "01234436675734";
       String DESCRIPTION = "Test channel description";
-      String CHANNEL_TYPE_PRIVATE = "private";
       String CHANNEL_TYPE_STANDARD = "standard";
-      String CHANNEL_TYPE_SHARED = "shared";
       String OWNER = "john.dou@mail.com";
       String FILTER = "createdDateTime desc";
       String CONTENT = "Hi Microsoft Teams channel from camunda!!!";
@@ -62,6 +61,7 @@ public abstract class BaseTest {
       String TENANT_ID = "TENANT_ID_KEY";
       String CLIENT_SECRET = "CLIENT_SECRET_KEY";
       String BEARER_TOKEN = "BEARER_TOKEN_KEY";
+      String REFRESH_TOKEN = "REFRESH_TOKEN_KEY";
     }
 
     interface Chat {
@@ -75,8 +75,6 @@ public abstract class BaseTest {
       String GROUP_ID = "GROUP_ID_KEY";
       String NAME = "CHANNEL_NAME_KEY";
       String MESSAGE_ID = "CHANNEL_MESSAGE_ID_KEY";
-      String DESCRIPTION = "DESCRIPTION";
-      String CHANNEL_TYPE = "CHANNEL_TYPE";
       String FILTER = "CHANNEL_FILTER_KEY";
       String CONTENT = "CHANNEL_MESSAGE_CONTENT_KEY";
     }
@@ -88,6 +86,7 @@ public abstract class BaseTest {
         .secret(Secrets.Authentication.TENANT_ID, ActualValue.Authentication.TENANT_ID)
         .secret(Secrets.Authentication.CLIENT_SECRET, ActualValue.Authentication.CLIENT_SECRET)
         .secret(Secrets.Authentication.BEARER_TOKEN, ActualValue.Authentication.BEARER_TOKEN)
+        .secret(Secrets.Authentication.REFRESH_TOKEN, ActualValue.Authentication.REFRESH_TOKEN)
         .secret(Secrets.Channel.CHANNEL_ID, ActualValue.Channel.CHANNEL_ID)
         .secret(Secrets.Channel.GROUP_ID, ActualValue.Channel.GROUP_ID)
         .secret(Secrets.Channel.NAME, ActualValue.Channel.NAME)

@@ -48,10 +48,10 @@
     {
       "label": "Type",
       "id": "authType",
-      "description": "Authentication type depends on your MS Teams account permission and operation with connector. See connector documentation",
+      "description": "Authentication type depends on your MS Teams account permission and operation with connector. See <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-teams/'>connector documentation</a>",
       "group": "authentication",
       "type": "Dropdown",
-      "value": "token",
+      "value": "refresh",
       "choices": [
         {
           "name": "Bearer token",
@@ -60,6 +60,10 @@
         {
           "name": "Client credentials",
           "value": "clientCredentials"
+        },
+        {
+          "name": "Refresh token",
+          "value": "refresh"
         }
       ],
       "constraints": {
@@ -87,6 +91,22 @@
       }
     },
     {
+      "label": "Refresh Token",
+      "group": "authentication",
+      "type": "String",
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authType",
+        "equals": "refresh"
+      },
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.token"
+      }
+    },
+    {
       "label": "Client ID",
       "description": "The client ID of the application",
       "group": "authentication",
@@ -96,7 +116,10 @@
       },
       "condition": {
         "property": "authType",
-        "equals": "clientCredentials"
+        "oneOf": [
+          "clientCredentials",
+          "refresh"
+        ]
       },
       "binding": {
         "type": "zeebe:input",
@@ -113,7 +136,10 @@
       },
       "condition": {
         "property": "authType",
-        "equals": "clientCredentials"
+        "oneOf": [
+          "clientCredentials",
+          "refresh"
+        ]
       },
       "binding": {
         "type": "zeebe:input",
@@ -130,7 +156,10 @@
       },
       "condition": {
         "property": "authType",
-        "equals": "clientCredentials"
+        "oneOf": [
+          "clientCredentials",
+          "refresh"
+        ]
       },
       "binding": {
         "type": "zeebe:input",

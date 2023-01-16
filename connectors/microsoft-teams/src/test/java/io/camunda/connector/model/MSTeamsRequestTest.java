@@ -13,6 +13,7 @@ import io.camunda.connector.BaseTest;
 import io.camunda.connector.model.authentication.BearerAuthentication;
 import io.camunda.connector.model.authentication.ClientSecretAuthentication;
 import io.camunda.connector.model.authentication.MSTeamsAuthentication;
+import io.camunda.connector.model.authentication.RefreshTokenAuthentication;
 import io.camunda.connector.model.request.MSTeamsRequestData;
 import io.camunda.connector.model.request.channel.CreateChannel;
 import io.camunda.connector.model.request.channel.GetChannel;
@@ -44,6 +45,7 @@ class MSTeamsRequestTest extends BaseTest {
     authMap = new HashMap<>();
     authMap.put("token", BearerAuthentication.class);
     authMap.put("clientCredentials", ClientSecretAuthentication.class);
+    authMap.put("refresh", RefreshTokenAuthentication.class);
 
     methodsMap = new HashMap<>();
     // channel
