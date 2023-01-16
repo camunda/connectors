@@ -26,6 +26,7 @@ import io.camunda.connector.model.request.chat.CreateChat;
 import io.camunda.connector.model.request.chat.GetChat;
 import io.camunda.connector.model.request.chat.GetMessageInChat;
 import io.camunda.connector.model.request.chat.ListChatMembers;
+import io.camunda.connector.model.request.chat.ListChats;
 import io.camunda.connector.model.request.chat.ListMessagesInChat;
 import io.camunda.connector.model.request.chat.SendMessageInChat;
 import java.util.HashMap;
@@ -58,6 +59,7 @@ class MSTeamsRequestTest extends BaseTest {
     // chat
     methodsMap.put("createChat", CreateChat.class);
     methodsMap.put("getChat", GetChat.class);
+    methodsMap.put("listChats", ListChats.class);
     methodsMap.put("getMessageFromChat", GetMessageInChat.class);
     methodsMap.put("listMembersOfChat", ListChatMembers.class);
     methodsMap.put("listMessagesInChat", ListMessagesInChat.class);

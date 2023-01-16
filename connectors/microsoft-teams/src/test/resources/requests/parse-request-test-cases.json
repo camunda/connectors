@@ -309,6 +309,14 @@
       "type": "clientCredentials"
     },
     "data": {
+      "method": "listChats"
+    }
+  },
+  {
+    "authentication": {
+      "type": "clientCredentials"
+    },
+    "data": {
       "method": "getMessageFromChat"
     }
   },
@@ -350,6 +358,14 @@
     },
     "data": {
       "method": "getChat"
+    }
+  },
+  {
+    "authentication": {
+      "type": "token"
+    },
+    "data": {
+      "method": "listChats"
     }
   },
   {

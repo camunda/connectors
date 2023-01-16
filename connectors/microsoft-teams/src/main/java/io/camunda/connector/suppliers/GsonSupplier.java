@@ -25,6 +25,7 @@ import io.camunda.connector.model.request.chat.CreateChat;
 import io.camunda.connector.model.request.chat.GetChat;
 import io.camunda.connector.model.request.chat.GetMessageInChat;
 import io.camunda.connector.model.request.chat.ListChatMembers;
+import io.camunda.connector.model.request.chat.ListChats;
 import io.camunda.connector.model.request.chat.ListMessagesInChat;
 import io.camunda.connector.model.request.chat.SendMessageInChat;
 
@@ -50,6 +51,7 @@ public final class GsonSupplier {
                   // chat
                   .registerSubtype(CreateChat.class, "createChat")
                   .registerSubtype(GetChat.class, "getChat")
+                  .registerSubtype(ListChats.class, "listChats")
                   .registerSubtype(GetMessageInChat.class, "getMessageFromChat")
                   .registerSubtype(ListChatMembers.class, "listMembersOfChat")
                   .registerSubtype(ListMessagesInChat.class, "listMessagesInChat")

@@ -179,6 +179,10 @@
           "value": "getChat"
         },
         {
+          "name": "List chats",
+          "value": "listChats"
+        },
+        {
           "name": "List chat members",
           "value": "listMembersOfChat"
         },
