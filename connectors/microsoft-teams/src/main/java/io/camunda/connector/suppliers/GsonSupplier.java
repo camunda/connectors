@@ -12,6 +12,7 @@ import com.google.gson.typeadapters.RuntimeTypeAdapterFactory;
 import io.camunda.connector.model.authentication.BearerAuthentication;
 import io.camunda.connector.model.authentication.ClientSecretAuthentication;
 import io.camunda.connector.model.authentication.MSTeamsAuthentication;
+import io.camunda.connector.model.authentication.RefreshTokenAuthentication;
 import io.camunda.connector.model.request.MSTeamsRequestData;
 import io.camunda.connector.model.request.channel.CreateChannel;
 import io.camunda.connector.model.request.channel.GetChannel;
@@ -36,7 +37,8 @@ public final class GsonSupplier {
           .registerTypeAdapterFactory(
               RuntimeTypeAdapterFactory.of(MSTeamsAuthentication.class, "type")
                   .registerSubtype(BearerAuthentication.class, "token")
-                  .registerSubtype(ClientSecretAuthentication.class, "clientCredentials"))
+                  .registerSubtype(ClientSecretAuthentication.class, "clientCredentials")
+                  .registerSubtype(RefreshTokenAuthentication.class, "refresh"))
           .registerTypeAdapterFactory(
               RuntimeTypeAdapterFactory.of(MSTeamsRequestData.class, "method")
                   // channel

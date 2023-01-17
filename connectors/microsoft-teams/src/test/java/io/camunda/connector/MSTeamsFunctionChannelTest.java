@@ -34,6 +34,7 @@ import com.microsoft.graph.requests.GraphServiceClient;
 import com.microsoft.graph.requests.TeamRequestBuilder;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.model.authentication.ClientSecretAuthentication;
+import io.camunda.connector.model.authentication.RefreshTokenAuthentication;
 import io.camunda.connector.suppliers.GraphServiceClientSupplier;
 import okhttp3.Request;
 import org.junit.jupiter.api.BeforeEach;
@@ -84,6 +85,9 @@ class MSTeamsFunctionChannelTest extends BaseTest {
         .thenReturn(graphServiceClient);
     when(graphServiceClientSupplier.buildAndGetGraphServiceClient(
             ActualValue.Authentication.BEARER_TOKEN))
+        .thenReturn(graphServiceClient);
+    when(graphServiceClientSupplier.buildAndGetGraphServiceClient(
+            any(RefreshTokenAuthentication.class)))
         .thenReturn(graphServiceClient);
 
     when(graphServiceClient.teams(ActualValue.Channel.GROUP_ID)).thenReturn(teamRequestBuilder);
