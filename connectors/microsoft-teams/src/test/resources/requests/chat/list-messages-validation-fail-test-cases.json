@@ -1,0 +1,33 @@
+[
+  {
+    "description": "chat id is null",
+    "data": {
+      "method": "listMessagesInChat",
+      "orderBy": "lastModifiedDateTime"
+    }
+  },
+  {
+    "description": "chat id is blank",
+    "data": {
+      "method": "listMessagesInChat",
+      "chatId": "    ",
+      "orderBy": "lastModifiedDateTime"
+    }
+  },
+  {
+    "description": "order by is null",
+    "data": {
+      "method": "listMessagesInChat",
+      "chatId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "orderBy": null
+    }
+  },
+  {
+    "description": "order by is wrong name",
+    "data": {
+      "method": "listMessagesInChat",
+      "chatId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "orderBy": "wrong name"
+    }
+  }
+]

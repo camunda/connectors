@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.model.request.chat;
 
-import com.microsoft.graph.requests.ChatMessageCollectionPage;
 import com.microsoft.graph.requests.ChatMessageCollectionRequest;
 import com.microsoft.graph.requests.GraphServiceClient;
 import io.camunda.connector.api.annotation.Secret;
@@ -40,9 +39,7 @@ public class ListMessagesInChat extends MSTeamsRequestData {
     if (top != null) {
       request.top(Integer.parseInt(top));
     }
-    ChatMessageCollectionPage chatMessageCollectionPage = request.get();
-    System.out.println(chatMessageCollectionPage);
-    return chatMessageCollectionPage;
+    return request.get();
   }
 
   public String getChatId() {

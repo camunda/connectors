@@ -1,0 +1,639 @@
+[
+  {
+    "description": "create chat / clientSecrets auth type ",
+    "authentication": {
+      "type": "clientCredentials",
+      "clientId": "abc01234-0c7f-012c-9876-testClientId",
+      "tenantId": "5357c0a8-4728-418b-8c41-testTenantId",
+      "clientSecret": "Wao8Q~yzXYfgdM_testClientSecret_RZyqPaET"
+    },
+    "data": {
+      "method": "createChat",
+      "chatType": "group",
+      "members": [
+        {
+          "principalName": "john.dou@mail.com",
+          "roles": [
+            "owner"
+          ]
+        },
+        {
+          "principalName": "jane.dou@mail.com",
+          "roles": [
+            "owner"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "description": "create chat with secrets / clientSecrets auth type",
+    "authentication": {
+      "type": "clientCredentials",
+      "clientId": "{{secrets.CLIENT_ID_KEY}}",
+      "tenantId": "{{secrets.TENANT_ID_KEY}}",
+      "clientSecret": "{{secrets.CLIENT_SECRET_KEY}}"
+    },
+    "data": {
+      "method": "createChat",
+      "chatType": "one_on_one",
+      "members": [
+        {
+          "principalName": "john.dou@mail.com",
+          "roles": [
+            "owner"
+          ]
+        },
+        {
+          "principalName": "jane.dou@mail.com",
+          "roles": [
+            "owner"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "description": "get chat / clientSecrets auth type ",
+    "authentication": {
+      "type": "clientCredentials",
+      "clientId": "abc01234-0c7f-012c-9876-testClientId",
+      "tenantId": "5357c0a8-4728-418b-8c41-testTenantId",
+      "clientSecret": "Wao8Q~yzXYfgdM_testClientSecret_RZyqPaET"
+    },
+    "data": {
+      "method": "getChat",
+      "chatId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2"
+    }
+  },
+  {
+    "description": "get chat with secrets / clientSecrets auth type",
+    "authentication": {
+      "type": "clientCredentials",
+      "clientId": "{{secrets.CLIENT_ID_KEY}}",
+      "tenantId": "{{secrets.TENANT_ID_KEY}}",
+      "clientSecret": "{{secrets.CLIENT_SECRET_KEY}}"
+    },
+    "data": {
+      "method": "getChat",
+      "chatId": "secrets.CHAT_ID_KEY",
+      "expand": "members"
+    }
+  },
+  {
+    "description": "list chats / clientSecrets auth type ",
+    "authentication": {
+      "type": "clientCredentials",
+      "clientId": "abc01234-0c7f-012c-9876-testClientId",
+      "tenantId": "5357c0a8-4728-418b-8c41-testTenantId",
+      "clientSecret": "Wao8Q~yzXYfgdM_testClientSecret_RZyqPaET"
+    },
+    "data": {
+      "method": "listChats"
+    }
+  },
+  {
+    "description": "list chats with secrets / clientSecrets auth type",
+    "authentication": {
+      "type": "clientCredentials",
+      "clientId": "{{secrets.CLIENT_ID_KEY}}",
+      "tenantId": "{{secrets.TENANT_ID_KEY}}",
+      "clientSecret": "{{secrets.CLIENT_SECRET_KEY}}"
+    },
+    "data": {
+      "method": "listChats"
+    }
+  },
+  {
+    "description": "Get message in chat / clientSecrets auth type ",
+    "authentication": {
+      "type": "clientCredentials",
+      "clientId": "abc01234-0c7f-012c-9876-testClientId",
+      "tenantId": "5357c0a8-4728-418b-8c41-testTenantId",
+      "clientSecret": "Wao8Q~yzXYfgdM_testClientSecret_RZyqPaET"
+    },
+    "data": {
+      "method": "getMessageFromChat",
+      "chatId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "messageId": "01223456789"
+    }
+  },
+  {
+    "description": "Get message in chat with secrets / clientSecrets auth type",
+    "authentication": {
+      "type": "clientCredentials",
+      "clientId": "{{secrets.CLIENT_ID_KEY}}",
+      "tenantId": "{{secrets.TENANT_ID_KEY}}",
+      "clientSecret": "{{secrets.CLIENT_SECRET_KEY}}"
+    },
+    "data": {
+      "method": "getMessageFromChat",
+      "chatId": "secrets.CHAT_ID_KEY",
+      "messageId": "secrets.MESSAGE_ID_KEY"
+    }
+  },
+  {
+    "description": "List members of chat / clientSecrets auth type ",
+    "authentication": {
+      "type": "clientCredentials",
+      "clientId": "abc01234-0c7f-012c-9876-testClientId",
+      "tenantId": "5357c0a8-4728-418b-8c41-testTenantId",
+      "clientSecret": "Wao8Q~yzXYfgdM_testClientSecret_RZyqPaET"
+    },
+    "data": {
+      "method": "listMembersOfChat",
+      "chatId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2"
+    }
+  },
+  {
+    "description": "List members of chat with secrets / clientSecrets auth type",
+    "authentication": {
+      "type": "clientCredentials",
+      "clientId": "{{secrets.CLIENT_ID_KEY}}",
+      "tenantId": "{{secrets.TENANT_ID_KEY}}",
+      "clientSecret": "{{secrets.CLIENT_SECRET_KEY}}"
+    },
+    "data": {
+      "method": "listMembersOfChat",
+      "chatId": "secrets.CHAT_ID_KEY"
+    }
+  },
+  {
+    "description": "List messages in chat / clientSecrets auth type ",
+    "authentication": {
+      "type": "clientCredentials",
+      "clientId": "abc01234-0c7f-012c-9876-testClientId",
+      "tenantId": "5357c0a8-4728-418b-8c41-testTenantId",
+      "clientSecret": "Wao8Q~yzXYfgdM_testClientSecret_RZyqPaET"
+    },
+    "data": {
+      "method": "listMessagesInChat",
+      "chatId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "orderBy": "lastModifiedDateTime",
+      "top": "5"
+    }
+  },
+  {
+    "description": "List messages in chat with secrets / clientSecrets auth type",
+    "authentication": {
+      "type": "clientCredentials",
+      "clientId": "{{secrets.CLIENT_ID_KEY}}",
+      "tenantId": "{{secrets.TENANT_ID_KEY}}",
+      "clientSecret": "{{secrets.CLIENT_SECRET_KEY}}"
+    },
+    "data": {
+      "method": "listMessagesInChat",
+      "chatId": "secrets.CHAT_ID_KEY",
+      "orderBy": "withoutOrdering",
+      "filter": "secrets.FILTER_KEY"
+    }
+  },
+  {
+    "description": "Send messages in chat / clientSecrets auth type ",
+    "authentication": {
+      "type": "clientCredentials",
+      "clientId": "abc01234-0c7f-012c-9876-testClientId",
+      "tenantId": "5357c0a8-4728-418b-8c41-testTenantId",
+      "clientSecret": "Wao8Q~yzXYfgdM_testClientSecret_RZyqPaET"
+    },
+    "data": {
+      "method": "sendMessageToChat",
+      "chatId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "content": "lastModifiedDateTime"
+    }
+  },
+  {
+    "description": "Send messages in chat with secrets / clientSecrets auth type",
+    "authentication": {
+      "type": "clientCredentials",
+      "clientId": "{{secrets.CLIENT_ID_KEY}}",
+      "tenantId": "{{secrets.TENANT_ID_KEY}}",
+      "clientSecret": "{{secrets.CLIENT_SECRET_KEY}}"
+    },
+    "data": {
+      "method": "sendMessageToChat",
+      "chatId": "secrets.CHAT_ID_KEY",
+      "content": "{{secrets.CONTENT_PART_1_KEY}}{{secrets.CONTENT_PART_2_KEY}}"
+    }
+  },
+  {
+    "description": "create chat / bearer token auth type ",
+    "authentication": {
+      "type": "token",
+      "token": "BEARER_TOKEN_Wao8Q~yzXYfgdM_RZyqPaET01696d2e4a179c292bc9cf04e63b"
+    },
+    "data": {
+      "method": "createChat",
+      "chatType": "group",
+      "members": [
+        {
+          "principalName": "john.dou@mail.com",
+          "roles": [
+            "owner"
+          ]
+        },
+        {
+          "principalName": "jane.dou@mail.com",
+          "roles": [
+            "owner"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "description": "create chat with secrets / bearer token auth type",
+    "authentication": {
+      "type": "token",
+      "token": "secrets.BEARER_TOKEN_KEY"
+    },
+    "data": {
+      "method": "createChat",
+      "chatType": "one_on_one",
+      "members": [
+        {
+          "principalName": "john.dou@mail.com",
+          "roles": [
+            "owner"
+          ]
+        },
+        {
+          "principalName": "jane.dou@mail.com",
+          "roles": [
+            "owner"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "description": "get chat / bearer token auth type ",
+    "authentication": {
+      "type": "token",
+      "token": "BEARER_TOKEN_Wao8Q~yzXYfgdM_RZyqPaET01696d2e4a179c292bc9cf04e63b"
+    },
+    "data": {
+      "method": "getChat",
+      "chatId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2"
+    }
+  },
+  {
+    "description": "get chat with secrets / bearer token auth type",
+    "authentication": {
+      "type": "token",
+      "token": "secrets.BEARER_TOKEN_KEY"
+    },
+    "data": {
+      "method": "getChat",
+      "chatId": "secrets.CHAT_ID_KEY",
+      "expand": "members"
+    }
+  },
+  {
+    "description": "list chats / bearer token auth type ",
+    "authentication": {
+      "type": "token",
+      "token": "BEARER_TOKEN_Wao8Q~yzXYfgdM_RZyqPaET01696d2e4a179c292bc9cf04e63b"
+    },
+    "data": {
+      "method": "listChats"
+    }
+  },
+  {
+    "description": "list chats with secrets / bearer token auth type",
+    "authentication": {
+      "type": "token",
+      "token": "secrets.BEARER_TOKEN_KEY"
+    },
+    "data": {
+      "method": "listChats"
+    }
+  },
+  {
+    "description": "Get message in chat / bearer token auth type ",
+    "authentication": {
+      "type": "token",
+      "token": "BEARER_TOKEN_Wao8Q~yzXYfgdM_RZyqPaET01696d2e4a179c292bc9cf04e63b"
+    },
+    "data": {
+      "method": "getMessageFromChat",
+      "chatId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "messageId": "01223456789"
+    }
+  },
+  {
+    "description": "Get message in chat with secrets / bearer token auth type",
+    "authentication": {
+      "type": "token",
+      "token": "secrets.BEARER_TOKEN_KEY"
+    },
+    "data": {
+      "method": "getMessageFromChat",
+      "chatId": "secrets.CHAT_ID_KEY",
+      "messageId": "secrets.MESSAGE_ID_KEY"
+    }
+  },
+  {
+    "description": "List members of chat / bearer token auth type ",
+    "authentication": {
+      "type": "token",
+      "token": "BEARER_TOKEN_Wao8Q~yzXYfgdM_RZyqPaET01696d2e4a179c292bc9cf04e63b"
+    },
+    "data": {
+      "method": "listMembersOfChat",
+      "chatId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2"
+    }
+  },
+  {
+    "description": "List members of chat with secrets / bearer token auth type",
+    "authentication": {
+      "type": "token",
+      "token": "secrets.BEARER_TOKEN_KEY"
+    },
+    "data": {
+      "method": "listMembersOfChat",
+      "chatId": "secrets.CHAT_ID_KEY"
+    }
+  },
+  {
+    "description": "List messages in chat / bearer token auth type ",
+    "authentication": {
+      "type": "token",
+      "token": "BEARER_TOKEN_Wao8Q~yzXYfgdM_RZyqPaET01696d2e4a179c292bc9cf04e63b"
+    },
+    "data": {
+      "method": "listMessagesInChat",
+      "chatId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "orderBy": "lastModifiedDateTime",
+      "top": "5"
+    }
+  },
+  {
+    "description": "List messages in chat with secrets / bearer token auth type",
+    "authentication": {
+      "type": "token",
+      "token": "secrets.BEARER_TOKEN_KEY"
+    },
+    "data": {
+      "method": "listMessagesInChat",
+      "chatId": "secrets.CHAT_ID_KEY",
+      "orderBy": "withoutOrdering",
+      "filter": "secrets.FILTER_KEY"
+    }
+  },
+  {
+    "description": "Send messages in chat / bearer token auth type ",
+    "authentication": {
+      "type": "token",
+      "token": "BEARER_TOKEN_Wao8Q~yzXYfgdM_RZyqPaET01696d2e4a179c292bc9cf04e63b"
+    },
+    "data": {
+      "method": "sendMessageToChat",
+      "chatId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "content": "lastModifiedDateTime"
+    }
+  },
+  {
+    "description": "Send messages in chat with secrets / bearer token auth type",
+    "authentication": {
+      "type": "token",
+      "token": "secrets.BEARER_TOKEN_KEY"
+    },
+    "data": {
+      "method": "sendMessageToChat",
+      "chatId": "secrets.CHAT_ID_KEY",
+      "content": "{{secrets.CONTENT_PART_1_KEY}}{{secrets.CONTENT_PART_2_KEY}}"
+    }
+  },
+  {
+    "description": "create chat / refresh token auth type ",
+    "authentication": {
+      "type": "refresh",
+      "token": "REFRESH_TOKEN_AgABAAEAAAD--DLA3VO7QrddgJg7WevrAgDs_wQA9P-P7wgV-lUKIE_JfYDJK912TTwhqJD7WmYcHfnNtlLgC-i9bG8_vmSYs1GLIYe4KnZ4KTOxNqh74kjnrwLdyuMnUrOYXtBBnT-p8RCqW8GefJpIM0mAJ7HVtD4ghBfFzrQBeS2QuYOvh_dcIQ9nET01696d2e4a179c292bc9cf04e63b",
+      "clientId": "abc01234-0c7f-012c-9876-testClientId",
+      "tenantId": "5357c0a8-4728-418b-8c41-testTenantId",
+      "clientSecret": "Wao8Q~yzXYfgdM_testClientSecret_RZyqPaET"
+    },
+    "data": {
+      "method": "createChat",
+      "chatType": "group",
+      "members": [
+        {
+          "principalName": "john.dou@mail.com",
+          "roles": [
+            "owner"
+          ]
+        },
+        {
+          "principalName": "jane.dou@mail.com",
+          "roles": [
+            "owner"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "description": "create chat with secrets / refresh token auth type",
+    "authentication": {
+      "type": "refresh",
+      "token": "secrets.REFRESH_TOKEN_KEY",
+      "clientId": "{{secrets.CLIENT_ID_KEY}}",
+      "tenantId": "{{secrets.TENANT_ID_KEY}}",
+      "clientSecret": "{{secrets.CLIENT_SECRET_KEY}}"
+    },
+    "data": {
+      "method": "createChat",
+      "chatType": "one_on_one",
+      "members": [
+        {
+          "principalName": "john.dou@mail.com",
+          "roles": [
+            "owner"
+          ]
+        },
+        {
+          "principalName": "jane.dou@mail.com",
+          "roles": [
+            "owner"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "description": "get chat / refresh token auth type ",
+    "authentication": {
+      "type": "refresh",
+      "token": "REFRESH_TOKEN_AgABAAEAAAD--DLA3VO7QrddgJg7WevrAgDs_wQA9P-P7wgV-lUKIE_JfYDJK912TTwhqJD7WmYcHfnNtlLgC-i9bG8_vmSYs1GLIYe4KnZ4KTOxNqh74kjnrwLdyuMnUrOYXtBBnT-p8RCqW8GefJpIM0mAJ7HVtD4ghBfFzrQBeS2QuYOvh_dcIQ9nET01696d2e4a179c292bc9cf04e63b",
+      "clientId": "abc01234-0c7f-012c-9876-testClientId",
+      "tenantId": "5357c0a8-4728-418b-8c41-testTenantId",
+      "clientSecret": "Wao8Q~yzXYfgdM_testClientSecret_RZyqPaET"
+    },
+    "data": {
+      "method": "getChat",
+      "chatId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2"
+    }
+  },
+  {
+    "description": "get chat with secrets / refresh token auth type",
+    "authentication": {
+      "type": "refresh",
+      "token": "secrets.REFRESH_TOKEN_KEY",
+      "clientId": "{{secrets.CLIENT_ID_KEY}}",
+      "tenantId": "{{secrets.TENANT_ID_KEY}}",
+      "clientSecret": "{{secrets.CLIENT_SECRET_KEY}}"
+    },
+    "data": {
+      "method": "getChat",
+      "chatId": "secrets.CHAT_ID_KEY",
+      "expand": "members"
+    }
+  },
+  {
+    "description": "list chats / refresh token auth type ",
+    "authentication": {
+      "type": "refresh",
+      "token": "REFRESH_TOKEN_AgABAAEAAAD--DLA3VO7QrddgJg7WevrAgDs_wQA9P-P7wgV-lUKIE_JfYDJK912TTwhqJD7WmYcHfnNtlLgC-i9bG8_vmSYs1GLIYe4KnZ4KTOxNqh74kjnrwLdyuMnUrOYXtBBnT-p8RCqW8GefJpIM0mAJ7HVtD4ghBfFzrQBeS2QuYOvh_dcIQ9nET01696d2e4a179c292bc9cf04e63b",
+      "clientId": "abc01234-0c7f-012c-9876-testClientId",
+      "tenantId": "5357c0a8-4728-418b-8c41-testTenantId",
+      "clientSecret": "Wao8Q~yzXYfgdM_testClientSecret_RZyqPaET"
+    },
+    "data": {
+      "method": "listChats"
+    }
+  },
+  {
+    "description": "list chats with secrets / refresh token auth type",
+    "authentication": {
+      "type": "refresh",
+      "token": "secrets.REFRESH_TOKEN_KEY",
+      "clientId": "{{secrets.CLIENT_ID_KEY}}",
+      "tenantId": "{{secrets.TENANT_ID_KEY}}",
+      "clientSecret": "{{secrets.CLIENT_SECRET_KEY}}"
+    },
+    "data": {
+      "method": "listChats"
+    }
+  },
+  {
+    "description": "Get message in chat / refresh token auth type ",
+    "authentication": {
+      "type": "refresh",
+      "token": "REFRESH_TOKEN_AgABAAEAAAD--DLA3VO7QrddgJg7WevrAgDs_wQA9P-P7wgV-lUKIE_JfYDJK912TTwhqJD7WmYcHfnNtlLgC-i9bG8_vmSYs1GLIYe4KnZ4KTOxNqh74kjnrwLdyuMnUrOYXtBBnT-p8RCqW8GefJpIM0mAJ7HVtD4ghBfFzrQBeS2QuYOvh_dcIQ9nET01696d2e4a179c292bc9cf04e63b",
+      "clientId": "abc01234-0c7f-012c-9876-testClientId",
+      "tenantId": "5357c0a8-4728-418b-8c41-testTenantId",
+      "clientSecret": "Wao8Q~yzXYfgdM_testClientSecret_RZyqPaET"
+    },
+    "data": {
+      "method": "getMessageFromChat",
+      "chatId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "messageId": "01223456789"
+    }
+  },
+  {
+    "description": "Get message in chat with secrets / refresh token auth type",
+    "authentication": {
+      "type": "refresh",
+      "token": "secrets.REFRESH_TOKEN_KEY",
+      "clientId": "{{secrets.CLIENT_ID_KEY}}",
+      "tenantId": "{{secrets.TENANT_ID_KEY}}",
+      "clientSecret": "{{secrets.CLIENT_SECRET_KEY}}"
+    },
+    "data": {
+      "method": "getMessageFromChat",
+      "chatId": "secrets.CHAT_ID_KEY",
+      "messageId": "secrets.MESSAGE_ID_KEY"
+    }
+  },
+  {
+    "description": "List members of chat / refresh token auth type ",
+    "authentication": {
+      "type": "refresh",
+      "token": "REFRESH_TOKEN_AgABAAEAAAD--DLA3VO7QrddgJg7WevrAgDs_wQA9P-P7wgV-lUKIE_JfYDJK912TTwhqJD7WmYcHfnNtlLgC-i9bG8_vmSYs1GLIYe4KnZ4KTOxNqh74kjnrwLdyuMnUrOYXtBBnT-p8RCqW8GefJpIM0mAJ7HVtD4ghBfFzrQBeS2QuYOvh_dcIQ9nET01696d2e4a179c292bc9cf04e63b",
+      "clientId": "abc01234-0c7f-012c-9876-testClientId",
+      "tenantId": "5357c0a8-4728-418b-8c41-testTenantId",
+      "clientSecret": "Wao8Q~yzXYfgdM_testClientSecret_RZyqPaET"
+    },
+    "data": {
+      "method": "listMembersOfChat",
+      "chatId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2"
+    }
+  },
+  {
+    "description": "List members of chat with secrets / refresh token auth type",
+    "authentication": {
+      "type": "refresh",
+      "token": "secrets.REFRESH_TOKEN_KEY",
+      "clientId": "{{secrets.CLIENT_ID_KEY}}",
+      "tenantId": "{{secrets.TENANT_ID_KEY}}",
+      "clientSecret": "{{secrets.CLIENT_SECRET_KEY}}"
+    },
+    "data": {
+      "method": "listMembersOfChat",
+      "chatId": "secrets.CHAT_ID_KEY"
+    }
+  },
+  {
+    "description": "List messages in chat / refresh token auth type ",
+    "authentication": {
+      "type": "refresh",
+      "token": "REFRESH_TOKEN_AgABAAEAAAD--DLA3VO7QrddgJg7WevrAgDs_wQA9P-P7wgV-lUKIE_JfYDJK912TTwhqJD7WmYcHfnNtlLgC-i9bG8_vmSYs1GLIYe4KnZ4KTOxNqh74kjnrwLdyuMnUrOYXtBBnT-p8RCqW8GefJpIM0mAJ7HVtD4ghBfFzrQBeS2QuYOvh_dcIQ9nET01696d2e4a179c292bc9cf04e63b",
+      "clientId": "abc01234-0c7f-012c-9876-testClientId",
+      "tenantId": "5357c0a8-4728-418b-8c41-testTenantId",
+      "clientSecret": "Wao8Q~yzXYfgdM_testClientSecret_RZyqPaET"
+    },
+    "data": {
+      "method": "listMessagesInChat",
+      "chatId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "orderBy": "lastModifiedDateTime",
+      "top": "5"
+    }
+  },
+  {
+    "description": "List messages in chat with secrets / refresh token auth type",
+    "authentication": {
+      "type": "refresh",
+      "token": "secrets.REFRESH_TOKEN_KEY",
+      "clientId": "{{secrets.CLIENT_ID_KEY}}",
+      "tenantId": "{{secrets.TENANT_ID_KEY}}",
+      "clientSecret": "{{secrets.CLIENT_SECRET_KEY}}"
+    },
+    "data": {
+      "method": "listMessagesInChat",
+      "chatId": "secrets.CHAT_ID_KEY",
+      "orderBy": "withoutOrdering",
+      "filter": "secrets.FILTER_KEY"
+    }
+  },
+  {
+    "description": "Send messages in chat / refresh token auth type ",
+    "authentication": {
+      "type": "refresh",
+      "token": "REFRESH_TOKEN_AgABAAEAAAD--DLA3VO7QrddgJg7WevrAgDs_wQA9P-P7wgV-lUKIE_JfYDJK912TTwhqJD7WmYcHfnNtlLgC-i9bG8_vmSYs1GLIYe4KnZ4KTOxNqh74kjnrwLdyuMnUrOYXtBBnT-p8RCqW8GefJpIM0mAJ7HVtD4ghBfFzrQBeS2QuYOvh_dcIQ9nET01696d2e4a179c292bc9cf04e63b",
+      "clientId": "abc01234-0c7f-012c-9876-testClientId",
+      "tenantId": "5357c0a8-4728-418b-8c41-testTenantId",
+      "clientSecret": "Wao8Q~yzXYfgdM_testClientSecret_RZyqPaET"
+    },
+    "data": {
+      "method": "sendMessageToChat",
+      "chatId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "content": "lastModifiedDateTime"
+    }
+  },
+  {
+    "description": "Send messages in chat with secrets / refresh token auth type",
+    "authentication": {
+      "type": "refresh",
+      "token": "secrets.REFRESH_TOKEN_KEY",
+      "clientId": "{{secrets.CLIENT_ID_KEY}}",
+      "tenantId": "{{secrets.TENANT_ID_KEY}}",
+      "clientSecret": "{{secrets.CLIENT_SECRET_KEY}}"
+    },
+    "data": {
+      "method": "sendMessageToChat",
+      "chatId": "secrets.CHAT_ID_KEY",
+      "content": "{{secrets.CONTENT_PART_1_KEY}}{{secrets.CONTENT_PART_2_KEY}}"
+    }
+  }
+]

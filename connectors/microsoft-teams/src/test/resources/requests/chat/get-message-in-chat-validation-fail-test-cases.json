@@ -1,0 +1,32 @@
+[
+  {
+    "description": "chatID is blank",
+    "data": {
+      "method": "getMessageFromChat",
+      "chatId": "    ",
+      "messageId": "01223456789"
+    }
+  },
+  {
+    "description": "messageId is blank",
+    "data": {
+      "method": "getMessageFromChat",
+      "chatId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "messageId": "     "
+    }
+  },
+  {
+    "description": "chatID is null",
+    "data": {
+      "method": "getMessageFromChat",
+      "messageId": "01223456789"
+    }
+  },
+  {
+    "description": "messageId is null",
+    "data": {
+      "method": "getMessageFromChat",
+      "chatId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2"
+    }
+  }
+]

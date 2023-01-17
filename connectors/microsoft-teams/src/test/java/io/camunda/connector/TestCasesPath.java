@@ -10,10 +10,10 @@ interface TestCasesPath {
   String PATH = "src/test/resources/requests/";
 
   String PARSE_REQUEST = PATH + "parse-request-test-cases.json";
-  String SUCCESS_EXECUTE = PATH + "success-channel-request-test-cases.json";
 
   interface Channel {
     String CHANNEL_PATH = PATH + "channel/";
+    String SUCCESS_EXECUTE = PATH + "success-channel-request-test-cases.json";
     String CREATE_VALIDATION_FAIL = CHANNEL_PATH + "create-channel-validation-fail-test-cases.json";
     String GET_VALIDATION_FAIL = CHANNEL_PATH + "get-channel-validation-fail-test-cases.json";
     String GET_MESSAGE_VALIDATION_FAIL =
@@ -31,6 +31,16 @@ interface TestCasesPath {
 
   interface Chat {
     String CHAT_PATH = PATH + "chat/";
+    String SUCCESS_EXECUTE = PATH + "success-chat-request-test-cases.json";
     String GET_VALIDATION_FAIL = CHAT_PATH + "get-chat-validation-fail-test-cases.json";
+    String CREATE_VALIDATION_FAIL = CHAT_PATH + "create-chat-validation-fail-test-cases.json";
+    String GET_MESSAGE_VALIDATION_FAIL =
+        CHAT_PATH + "get-message-in-chat-validation-fail-test-cases.json";
+    String LIST_MEMBERS_VALIDATION_FAIL =
+        CHAT_PATH + "list-chat-members-validation-fail-test-cases.json";
+    String LIST_MESSAGES_VALIDATION_FAIL =
+        CHAT_PATH + "list-messages-validation-fail-test-cases.json";
+    String SEND_MESSAGE_VALIDATION_FAIL =
+        CHAT_PATH + "send-message-validation-fail-test-cases.json";
   }
 }
