@@ -1,0 +1,34 @@
+[
+  {
+    "description": "chatId is null",
+    "data": {
+      "method": "sendMessageToChat",
+      "chatId": null,
+      "content": "lastModifiedDateTime"
+    }
+  },
+  {
+    "description": "chatId is blank",
+    "data": {
+      "method": "sendMessageToChat",
+      "chatId": "    ",
+      "content": "lastModifiedDateTime"
+    }
+  },
+  {
+    "description": "content is null",
+    "data": {
+      "method": "sendMessageToChat",
+      "chatId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "content": null
+    }
+  },
+  {
+    "description": "content is blank",
+    "data": {
+      "method": "sendMessageToChat",
+      "chatId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "content": "   "
+    }
+  }
+]
