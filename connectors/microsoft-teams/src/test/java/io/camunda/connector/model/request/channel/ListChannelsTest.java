@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.microsoft.graph.requests.ChannelCollectionReferenceRequest;
 import com.microsoft.graph.requests.ChannelCollectionResponse;
 import com.microsoft.graph.requests.ChannelCollectionWithReferencesPage;
@@ -43,9 +44,10 @@ class ListChannelsTest extends BaseTest {
 
   @ParameterizedTest
   @MethodSource("listChannelsValidationFailTestCases")
-  public void validate_shouldThrowExceptionWhenLeastOneRequiredFieldNotExist(String input) {
+  public void validate_shouldThrowExceptionWhenLeastOneRequiredFieldNotExist(String input)
+      throws JsonProcessingException {
     // Given request without one required field
-    MSTeamsRequest request = gson.fromJson(input, MSTeamsRequest.class);
+    MSTeamsRequest request = objectMapper.readValue(input, MSTeamsRequest.class);
     OutboundConnectorContext context = getContextBuilderWithSecrets().variables(input).build();
     // When context.validate;
     // Then expect exception that one required field not set

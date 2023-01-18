@@ -8,7 +8,7 @@ package io.camunda.connector.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.BaseTest;
 import io.camunda.connector.model.authentication.BearerAuthentication;
 import io.camunda.connector.model.authentication.ClientSecretAuthentication;
@@ -70,12 +70,14 @@ class MSTeamsRequestTest extends BaseTest {
 
   @ParameterizedTest
   @MethodSource("parseRequestTestCases")
-  public void test(String input) {
-    JsonObject jsonObject = gson.fromJson(input, JsonObject.class);
-    String authType = jsonObject.get("authentication").getAsJsonObject().get("type").getAsString();
-    String methodType = jsonObject.get("data").getAsJsonObject().get("method").getAsString();
+  public void test(String input) throws JsonProcessingException {
 
-    MSTeamsRequest request = gson.fromJson(input, MSTeamsRequest.class);
+    objectMapper.readTree(input).get("authentication").get("type").asText();
+
+    String authType = objectMapper.readTree(input).get("authentication").get("type").asText();
+    String methodType = objectMapper.readTree(input).get("data").get("method").asText();
+
+    MSTeamsRequest request = objectMapper.readValue(input, MSTeamsRequest.class);
 
     assertThat(request.getAuthentication()).isInstanceOf(authMap.get(authType));
     assertThat(request.getData()).isInstanceOf(methodsMap.get(methodType));
