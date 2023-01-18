@@ -4,6 +4,7 @@
   "id":"io.camunda.connectors.webhook.GithubWebhookConnector.v1",
   "version":1,
   "description":"Receive events from GitHub",
+  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/github-webhook/",
   "category":{
     "id":"connectors",
     "name":"Connectors"
@@ -62,7 +63,7 @@
     },
     {
       "label":"GitHub secret",
-      "description":"Shared secret key",
+      "description":"Shared secret key. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/github-webhook/' target='_blank'>See documentation</a> regarding GitHub secret",
       "type":"String",
       "group":"endpoint",
       "optional":true,
@@ -97,7 +98,7 @@
         "type":"zeebe:property",
         "name":"inbound.activationCondition"
       },
-      "description":"Condition under which the connector triggers"
+      "description":"Condition under which the connector triggers. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/github-webhook/' target='_blank'>See documentation</a>"
     },
     {
       "label":"Variables",
@@ -108,7 +109,7 @@
         "type":"zeebe:property",
         "name":"inbound.variableMapping"
       },
-      "description":"Variables extracted from the webhook payload (request) to start the process with"
+      "description":"Variables extracted from the webhook payload (request) to start the process with. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/github-webhook/' target='_blank'>See documentation</a>"
     }
   ],
   "icon":{
