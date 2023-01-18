@@ -36,8 +36,11 @@ public abstract class BaseTest {
 
     interface Chat {
       String CHAT_ID = "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2";
-      String CONTENT_PART_1 = "microsoft teams";
-      String CONTENT_PART_2 = "camunda connector";
+      String MESSAGE_ID = "01223456789";
+      String FILTER =
+          "lastModifiedDateTime ge 2022-09-22T00:00:00.000Z and lastModifiedDateTime le 2022-09-24T00:00:00.000Z";
+      String CONTENT_PART_1 = "Hi microsoft teams ";
+      String CONTENT_PART_2 = "from camunda connector";
     }
 
     interface Channel {
@@ -66,8 +69,10 @@ public abstract class BaseTest {
 
     interface Chat {
       String CHAT_ID = "CHAT_ID_KEY";
-      String CONTENT_PART_1 = "MICROSOFT_TEAMS_KEY";
-      String CONTENT_PART_2 = "CAMUNDA_CONNECTOR_KEY";
+      String MESSAGE_ID = "MESSAGE_ID_KEY";
+      String FILTER = "FILTER_KEY";
+      String CONTENT_PART_1 = "CONTENT_PART_1_KEY";
+      String CONTENT_PART_2 = "CONTENT_PART_2_KEY";
     }
 
     interface Channel {
@@ -94,12 +99,18 @@ public abstract class BaseTest {
         .secret(Secrets.Channel.FILTER, ActualValue.Channel.FILTER)
         .secret(Secrets.Channel.CONTENT, ActualValue.Channel.CONTENT)
         .secret(Secrets.Chat.CHAT_ID, ActualValue.Chat.CHAT_ID)
+        .secret(Secrets.Chat.MESSAGE_ID, ActualValue.Chat.MESSAGE_ID)
+        .secret(Secrets.Chat.FILTER, ActualValue.Chat.FILTER)
         .secret(Secrets.Chat.CONTENT_PART_1, ActualValue.Chat.CONTENT_PART_1)
         .secret(Secrets.Chat.CONTENT_PART_2, ActualValue.Chat.CONTENT_PART_2);
   }
 
   protected static Stream<String> executeSuccessWorkWithChannelTestCases() throws IOException {
-    return loadTestCasesFromResourceFile(TestCasesPath.SUCCESS_EXECUTE);
+    return loadTestCasesFromResourceFile(TestCasesPath.Channel.SUCCESS_EXECUTE);
+  }
+
+  protected static Stream<String> executeSuccessWorkWithChatTestCases() throws IOException {
+    return loadTestCasesFromResourceFile(TestCasesPath.Chat.SUCCESS_EXECUTE);
   }
 
   protected static Stream<String> parseRequestTestCases() throws IOException {
@@ -139,8 +150,28 @@ public abstract class BaseTest {
     return loadTestCasesFromResourceFile(TestCasesPath.Channel.SEND_MESSAGE_VALIDATION_FAIL);
   }
 
+  protected static Stream<String> createChatValidationFailTestCases() throws IOException {
+    return loadTestCasesFromResourceFile(TestCasesPath.Chat.CREATE_VALIDATION_FAIL);
+  }
+
   protected static Stream<String> getChatValidationFailTestCases() throws IOException {
     return loadTestCasesFromResourceFile(TestCasesPath.Chat.GET_VALIDATION_FAIL);
+  }
+
+  protected static Stream<String> getMessageInChatValidationFailTestCases() throws IOException {
+    return loadTestCasesFromResourceFile(TestCasesPath.Chat.GET_MESSAGE_VALIDATION_FAIL);
+  }
+
+  protected static Stream<String> listChatMembersValidationFailTestCases() throws IOException {
+    return loadTestCasesFromResourceFile(TestCasesPath.Chat.LIST_MEMBERS_VALIDATION_FAIL);
+  }
+
+  protected static Stream<String> listMessagesInChatValidationFailTestCases() throws IOException {
+    return loadTestCasesFromResourceFile(TestCasesPath.Chat.LIST_MESSAGES_VALIDATION_FAIL);
+  }
+
+  protected static Stream<String> sendMessageInChatValidationFailTestCases() throws IOException {
+    return loadTestCasesFromResourceFile(TestCasesPath.Chat.SEND_MESSAGE_VALIDATION_FAIL);
   }
 
   @SuppressWarnings("unchecked")
