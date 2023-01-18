@@ -39,7 +39,7 @@
 
     <version.kafka-clients>3.3.1</version.kafka-clients>
 
-    <version.microsoft-graph>5.42.0</version.microsoft-graph>
+    <version.microsoft-graph>5.44.0</version.microsoft-graph>
     <version.azure-identity>1.7.3</version.azure-identity>
 
     <version.bcprov-jdk15on>1.70</version.bcprov-jdk15on>
