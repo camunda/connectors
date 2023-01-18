@@ -10,6 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.microsoft.graph.models.Channel;
 import com.microsoft.graph.models.ChatMessage;
 import com.microsoft.graph.requests.ChannelCollectionReferenceRequest;
@@ -78,7 +79,7 @@ class MSTeamsFunctionChannelTest extends BaseTest {
 
   @BeforeEach
   public void init() {
-    function = new MSTeamsFunction(graphServiceClientSupplier, gson);
+    function = new MSTeamsFunction(graphServiceClientSupplier, objectMapper);
 
     when(graphServiceClientSupplier.buildAndGetGraphServiceClient(
             any(ClientSecretAuthentication.class)))
@@ -135,7 +136,7 @@ class MSTeamsFunctionChannelTest extends BaseTest {
 
   @ParameterizedTest
   @MethodSource("executeSuccessWorkWithChannelTestCases")
-  public void execute_shouldExecuteAndReturnResponse(String input) {
+  public void execute_shouldExecuteAndReturnResponse(String input) throws JsonProcessingException {
     context = getContextBuilderWithSecrets().variables(input).build();
     Object execute = function.execute(context);
     assertThat(execute).isNotNull();

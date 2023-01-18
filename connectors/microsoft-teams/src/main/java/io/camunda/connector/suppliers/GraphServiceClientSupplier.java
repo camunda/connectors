@@ -8,8 +8,7 @@ package io.camunda.connector.suppliers;
 
 import com.azure.identity.ClientSecretCredential;
 import com.azure.identity.ClientSecretCredentialBuilder;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParseException;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.microsoft.graph.authentication.IAuthenticationProvider;
 import com.microsoft.graph.authentication.TokenCredentialAuthProvider;
 import com.microsoft.graph.requests.GraphServiceClient;
@@ -93,15 +92,14 @@ public class GraphServiceClientSupplier {
   private String getAccessToken(final Request request) {
     try (Response execute = okHttpClient.newCall(request).execute()) {
       if (execute.isSuccessful()) {
-        return GsonSupplier.getGson()
-            .fromJson(execute.body().string(), JsonObject.class)
+        return ObjectMapperSupplier.objectMapper()
+            .readTree(execute.body().string())
             .get(ACCESS_TOKEN)
-            .getAsString();
-
+            .asText();
       } else {
         throw new RuntimeException(execute.message());
       }
-    } catch (JsonParseException e) {
+    } catch (JsonProcessingException e) {
       throw new RuntimeException("Error while parse refresh token response", e);
     } catch (IOException e) {
       throw new RuntimeException(e);

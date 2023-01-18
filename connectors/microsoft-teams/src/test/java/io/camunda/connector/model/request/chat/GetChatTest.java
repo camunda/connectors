@@ -39,9 +39,10 @@ class GetChatTest extends BaseTest {
 
   @ParameterizedTest
   @MethodSource("getChatValidationFailTestCases")
-  public void validate_shouldThrowExceptionWhenAtLeastOneRequiredFieldNotExist(String input) {
+  public void validate_shouldThrowExceptionWhenAtLeastOneRequiredFieldNotExist(String input)
+      throws JsonProcessingException {
     // Given request without one required field
-    MSTeamsRequest request = gson.fromJson(input, MSTeamsRequest.class);
+    MSTeamsRequest request = objectMapper.readValue(input, MSTeamsRequest.class);
     OutboundConnectorContext context = getContextBuilderWithSecrets().variables(input).build();
     // When context.validate;
     // Then expect exception that one required field not set

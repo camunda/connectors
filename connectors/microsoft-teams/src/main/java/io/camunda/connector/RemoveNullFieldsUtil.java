@@ -15,7 +15,7 @@ public class RemoveNullFieldsUtil {
   private RemoveNullFieldsUtil() {}
 
   public static Object removeNullFieldsInObject(Object object) {
-    ObjectMapper objectMapper = ObjectMapperSupplier.nonNullObjectMapper();
+    ObjectMapper objectMapper = ObjectMapperSupplier.objectMapper();
     try {
       return objectMapper.readValue(objectMapper.writer().writeValueAsString(object), Object.class);
     } catch (JsonProcessingException e) {

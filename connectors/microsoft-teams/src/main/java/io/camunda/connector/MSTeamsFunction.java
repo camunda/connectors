@@ -6,13 +6,14 @@
  */
 package io.camunda.connector;
 
-import com.google.gson.Gson;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.model.MSTeamsRequest;
 import io.camunda.connector.suppliers.GraphServiceClientSupplier;
-import io.camunda.connector.suppliers.GsonSupplier;
+import io.camunda.connector.suppliers.ObjectMapperSupplier;
 
 @OutboundConnector(
     name = "MSTEAMS",
@@ -20,23 +21,24 @@ import io.camunda.connector.suppliers.GsonSupplier;
     type = "io.camunda:connector-microsoft-teams:1")
 public class MSTeamsFunction implements OutboundConnectorFunction {
 
-  private final Gson gson;
+  private final ObjectMapper objectMapper;
   private final GraphServiceClientSupplier graphSupplier;
 
   public MSTeamsFunction() {
-    this(new GraphServiceClientSupplier(), GsonSupplier.getGson());
+    this(new GraphServiceClientSupplier(), ObjectMapperSupplier.objectMapper());
   }
 
-  public MSTeamsFunction(final GraphServiceClientSupplier graphSupplier, final Gson gson) {
+  public MSTeamsFunction(
+      final GraphServiceClientSupplier graphSupplier, final ObjectMapper objectMapper) {
     this.graphSupplier = graphSupplier;
-    this.gson = gson;
+    this.objectMapper = objectMapper;
   }
 
   @Override
-  public Object execute(OutboundConnectorContext context) {
+  public Object execute(OutboundConnectorContext context) throws JsonProcessingException {
 
     final var variables = context.getVariables();
-    final var msTeamsRequest = gson.fromJson(variables, MSTeamsRequest.class);
+    final var msTeamsRequest = objectMapper.readValue(variables, MSTeamsRequest.class);
 
     context.validate(msTeamsRequest);
     context.replaceSecrets(msTeamsRequest);

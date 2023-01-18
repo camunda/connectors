@@ -7,6 +7,7 @@
 package io.camunda.connector.suppliers;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
@@ -14,12 +15,13 @@ public final class ObjectMapperSupplier {
 
   private static final ObjectMapper objectMapper =
       new ObjectMapper()
+          .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
           .registerModule(new JavaTimeModule())
           .setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
   private ObjectMapperSupplier() {}
 
-  public static ObjectMapper nonNullObjectMapper() {
+  public static ObjectMapper objectMapper() {
     return objectMapper;
   }
 }
