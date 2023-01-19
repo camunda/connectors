@@ -128,7 +128,7 @@
     },
     {
       "label": "Result Variable",
-      "description": "Name of variable to store the response in",
+      "description": "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>",
       "group": "output",
       "type": "String",
       "binding": {
@@ -138,7 +138,7 @@
     },
     {
       "label": "Result Expression",
-      "description": "Expression to map the response into process variables",
+      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
       "group": "output",
       "type": "Text",
       "feel": "required",
