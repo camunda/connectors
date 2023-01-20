@@ -120,17 +120,85 @@
       }
     },
     {
-      "label": "Routing Data",
-      "description": "Include 'Virtual host', 'Host name', 'Port', 'Exchange', 'Routing key'.",
-      "feel": "required",
+      "label": "Host name",
+      "description": "Host name: get from RabbitMQ external app configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/#routing-data\"target=\"_blank\">documentation</a>",
+      "feel": "optional",
       "group": "routing",
       "type": "String",
       "binding": {
         "type": "zeebe:input",
-        "name": "routing"
+        "name": "routing.hostName"
       },
       "constraints": {
         "notEmpty": true
+      },
+      "condition": {
+        "property": "connectionType",
+        "equals": "credentials"
+      }
+    },
+    {
+      "label": "Virtual host",
+      "description": "Virtual name: get from RabbitMQ external app configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/#routing-data\"target=\"_blank\">documentation</a>",
+      "feel": "optional",
+      "group": "routing",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "routing.virtualHost"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "connectionType",
+        "equals": "credentials"
+      }
+    },
+    {
+      "label": "Exchange",
+      "description": "Topic exchange: get from RabbitMQ external app configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/#routing-data\"target=\"_blank\">documentation</a>",
+      "feel": "optional",
+      "group": "routing",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "routing.exchange"
+      },
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
+      "label": "Routing key",
+      "description": "Routing key: a binding is a \"link\" that was set up to bind a queue to an exchange. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/#routing-data\"target=\"_blank\">documentation</a>",
+      "feel": "optional",
+      "group": "routing",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "routing.routingKey"
+      },
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
+      "label": "Port",
+      "description": "Port: get from RabbitMQ external app configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/#routing-data\"target=\"_blank\">documentation</a>",
+      "feel": "optional",
+      "group": "routing",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "routing.port"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "connectionType",
+        "equals": "credentials"
       }
     },
     {
