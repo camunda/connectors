@@ -714,7 +714,7 @@
     },
     {
       "label": "With replies",
-      "description": "Return messages with replies",
+      "description": "Return message replies",
       "group": "data",
       "type": "Dropdown",
       "choices": [
