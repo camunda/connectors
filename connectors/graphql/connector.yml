@@ -1,0 +1,3 @@
+name: HTTPJSON
+type: io.camunda:connector-graphql:1
+variables: [ url, method, authentication, variables, query, connectionTimeoutInSeconds ]
