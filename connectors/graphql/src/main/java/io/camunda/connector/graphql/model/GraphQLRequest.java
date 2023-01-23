@@ -25,7 +25,7 @@ public class GraphQLRequest {
 
   @Valid @Secret private Authentication authentication;
   @NotBlank @Secret private String query;
-  @Secret private Map<String, String> variables;
+  @Secret private Object variables;
 
   @Pattern(regexp = "^([0-9]*$)|(secrets.*$)")
   @Secret
@@ -71,11 +71,11 @@ public class GraphQLRequest {
     this.query = query;
   }
 
-  public Map<String, String> getVariables() {
+  public Object getVariables() {
     return variables;
   }
 
-  public void setVariables(Map<String, String> variables) {
+  public void setVariables(Object variables) {
     this.variables = variables;
   }
 

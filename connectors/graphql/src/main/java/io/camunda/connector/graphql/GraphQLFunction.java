@@ -28,7 +28,6 @@ import io.camunda.connector.graphql.auth.OAuthAuthentication;
 import io.camunda.connector.graphql.components.GsonComponentSupplier;
 import io.camunda.connector.graphql.components.HttpTransportComponentSupplier;
 import io.camunda.connector.graphql.constants.Constants;
-import io.camunda.connector.graphql.model.ErrorResponse;
 import io.camunda.connector.graphql.model.GraphQLRequest;
 import io.camunda.connector.graphql.model.GraphQLResult;
 import java.io.IOException;
@@ -109,19 +108,18 @@ public class GraphQLFunction implements OutboundConnectorFunction {
     final GenericUrl genericUrl = new GenericUrl(request.getUrl());
     HttpContent content = null;
     final HttpHeaders headers = createHeaders(request, bearerToken);
-    final Map<String, String> query = new HashMap<>();
     String escapedQuery = request.getQuery()
-            //.replaceAll("\\s+","")
             .replace("\\n", "");
     if(Constants.POST.equalsIgnoreCase(method)) {
-      // TODO : make this GraphQL compliant and more sophisticated
-      content = new JsonHttpContent(gsonFactory, escapedQuery);
+      content = constructBodyForPost(escapedQuery, request.getVariables());
     } else {
-      // TODO : add variables
+      final Map<String, String> query = new HashMap<>();
       query.put("query", escapedQuery);
+      if(request.getVariables() != null) {
+        query.put("variables", gson.toJsonTree(request.getVariables()).toString());
+      }
+      genericUrl.putAll(query);
     }
-
-    genericUrl.putAll(query);
 
     final var httpRequest = requestFactory.buildRequest(method, genericUrl, content);
     httpRequest.setFollowRedirects(false);
@@ -129,6 +127,15 @@ public class GraphQLFunction implements OutboundConnectorFunction {
     httpRequest.setHeaders(headers);
 
     return httpRequest;
+  }
+
+  private JsonHttpContent constructBodyForPost(String escapedQuery, Object escapedVariables) {
+    final Map<String, Object> body = new HashMap<>();
+    body.put("query", escapedQuery);
+    if(escapedVariables != null) {
+      body.put("variables", escapedVariables);
+    }
+    return new JsonHttpContent(gsonFactory, body);
   }
 
   protected HttpHeaders createHeaders(final GraphQLRequest request, String bearerToken) {

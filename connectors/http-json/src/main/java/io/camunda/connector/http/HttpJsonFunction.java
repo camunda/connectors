@@ -80,7 +80,7 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
   private final GsonFactory gsonFactory;
   private final HttpRequestFactory requestFactory;
 
-  private String proxyFunctionUrl;
+  private final String proxyFunctionUrl;
   private final OAuth2Credentials proxyCredentials;
 
   public HttpJsonFunction() {
@@ -115,7 +115,6 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
     context.validate(request);
     context.replaceSecrets(request);
 
-    proxyFunctionUrl = null;
     if (proxyFunctionUrl != null) {
       return executeRequestViaProxy(request);
     } else {
