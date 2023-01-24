@@ -91,7 +91,7 @@ class SqsConnectorFunctionParametrizedTest {
     SqsConnectorResult connectorResult = (SqsConnectorResult) connectorResultObject;
     assertThat(connectorResult.getMessageId()).isEqualTo(MSG_ID);
     assertThat(initialRequest.getMessageBody())
-        .isEqualTo(expectedRequest.getQueue().getMessageBody().toString());
+        .isEqualTo(GSON.toJson(expectedRequest.getQueue().getMessageBody()));
     assertThat(initialRequest.getMessageAttributes().size())
         .isEqualTo(expectedRequest.getQueue().getMessageAttributes().size());
   }

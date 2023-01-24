@@ -26,7 +26,7 @@ class SqsConnectorRequestTest extends BaseTest {
 
   @BeforeEach
   public void beforeEach() {
-    request = GSON.fromJson(DEFAULT_REQUEST_BODY, SqsConnectorRequest.class);
+    request = GSON.fromJson(DEFAULT_REQUEST_BODY_WITH_JSON_PAYLOAD, SqsConnectorRequest.class);
 
     context =
         OutboundConnectorContextBuilder.create()
