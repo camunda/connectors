@@ -37,6 +37,9 @@ public class ConnectorJobHandler implements JobHandler {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ConnectorJobHandler.class);
 
+  // Protects Zeebe from enormously large messages it cannot handle
+  public static final int MAX_ERROR_MESSAGE_LENGTH = 6000;
+
   protected final OutboundConnectorFunction call;
   protected SecretProvider secretProvider;
 
@@ -125,14 +128,24 @@ public class ConnectorJobHandler implements JobHandler {
   }
 
   protected void failJob(JobClient client, ActivatedJob job, Exception exception) {
-    client.newFailCommand(job).retries(0).errorMessage(exception.getMessage()).send().join();
+    String message = exception.getMessage();
+    String truncatedMessage =
+        message != null
+            ? message.substring(0, Math.min(message.length(), MAX_ERROR_MESSAGE_LENGTH))
+            : null;
+    client.newFailCommand(job).retries(0).errorMessage(truncatedMessage).send().join();
   }
 
   protected void throwBpmnError(JobClient client, ActivatedJob job, BpmnError value) {
+    String message = value.getMessage();
+    String truncatedMessage =
+        message != null
+            ? message.substring(0, Math.min(message.length(), MAX_ERROR_MESSAGE_LENGTH))
+            : null;
     client
         .newThrowErrorCommand(job)
         .errorCode(value.getCode())
-        .errorMessage(value.getMessage())
+        .errorMessage(truncatedMessage)
         .send()
         .join();
   }
@@ -142,7 +155,8 @@ public class ConnectorJobHandler implements JobHandler {
     result.put("type", exception.getClass().getName());
     var message = exception.getMessage();
     if (message != null) {
-      result.put("message", message);
+      result.put(
+          "message", message.substring(0, Math.min(message.length(), MAX_ERROR_MESSAGE_LENGTH)));
     }
     if (exception instanceof ConnectorException) {
       var code = ((ConnectorException) exception).getErrorCode();
