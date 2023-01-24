@@ -427,6 +427,47 @@ class ConnectorJobHandlerTest {
       // then
       assertThat(result.getErrorMessage()).isEqualTo("expected");
     }
+
+    @Test
+    void shouldTruncateFailJobErrorMessage() {
+      // given
+      var veryLongMessage = "This is quite a long message".repeat(300); // 8400 chars
+      var jobHandler =
+          new ConnectorJobHandler(
+              context -> {
+                throw new IllegalArgumentException(veryLongMessage);
+              });
+
+      // when
+      var result = JobBuilder.create().execute(jobHandler, false);
+
+      // then
+      assertThat(result.getErrorMessage().length())
+          .isLessThanOrEqualTo(ConnectorJobHandler.MAX_ERROR_MESSAGE_LENGTH);
+    }
+
+    @Test
+    void shouldTruncateBpmnErrorMessage() {
+      // given
+      var veryLongMessage = "This is quite a long message".repeat(300); // 8400 chars
+      var errorExpression = "bpmnError(\"500\", testProperty)";
+      var jobHandler = new ConnectorJobHandler(context -> veryLongMessage);
+
+      // when
+      var result =
+          JobBuilder.create()
+              .withHeaders(
+                  Map.of(
+                      RESULT_VARIABLE_HEADER_NAME,
+                      "testProperty",
+                      ERROR_EXPRESSION_HEADER_NAME,
+                      errorExpression))
+              .execute(jobHandler, false, true);
+
+      // then
+      assertThat(result.getErrorMessage().length())
+          .isLessThanOrEqualTo(ConnectorJobHandler.MAX_ERROR_MESSAGE_LENGTH);
+    }
   }
 
   @Nested
