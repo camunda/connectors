@@ -1,7 +1,7 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Webhook Connector",
-  "id": "io.camunda.connectors.webhook.WebhookConnector.v1",
+  "id": "io.camunda.connectors.webhook.WebhookStartConnector.v1",
   "version": 1,
   "description": "Configure webhook to receive callbacks",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/",
