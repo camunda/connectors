@@ -8,7 +8,6 @@ package io.camunda.connector.graphql.model;
 
 import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.graphql.auth.Authentication;
-import java.util.Map;
 import java.util.Objects;
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;

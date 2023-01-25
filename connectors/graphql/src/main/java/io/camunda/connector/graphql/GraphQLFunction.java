@@ -76,7 +76,6 @@ public class GraphQLFunction implements OutboundConnectorFunction {
 
   @Override
   public Object execute(OutboundConnectorContext context) throws Exception {
-    //var connectorRequest = context.getVariablesAsType(GraphQLRequest.class);
     final var json = context.getVariables();
     final var connectorRequest = gson.fromJson(json, GraphQLRequest.class);
     context.validate(connectorRequest);
@@ -108,14 +107,13 @@ public class GraphQLFunction implements OutboundConnectorFunction {
     final GenericUrl genericUrl = new GenericUrl(request.getUrl());
     HttpContent content = null;
     final HttpHeaders headers = createHeaders(request, bearerToken);
-    String escapedQuery = request.getQuery()
-            .replace("\\n", "");
-    if(Constants.POST.equalsIgnoreCase(method)) {
+    String escapedQuery = request.getQuery().replace("\\n", "").replace("\\\"", "\"");
+    if (Constants.POST.equalsIgnoreCase(method)) {
       content = constructBodyForPost(escapedQuery, request.getVariables());
     } else {
       final Map<String, String> query = new HashMap<>();
       query.put("query", escapedQuery);
-      if(request.getVariables() != null) {
+      if (request.getVariables() != null) {
         query.put("variables", gson.toJsonTree(request.getVariables()).toString());
       }
       genericUrl.putAll(query);
@@ -129,11 +127,11 @@ public class GraphQLFunction implements OutboundConnectorFunction {
     return httpRequest;
   }
 
-  private JsonHttpContent constructBodyForPost(String escapedQuery, Object escapedVariables) {
+  private JsonHttpContent constructBodyForPost(String escapedQuery, Object variables) {
     final Map<String, Object> body = new HashMap<>();
     body.put("query", escapedQuery);
-    if(escapedVariables != null) {
-      body.put("variables", escapedVariables);
+    if (variables != null) {
+      body.put("variables", variables);
     }
     return new JsonHttpContent(gsonFactory, body);
   }
@@ -163,8 +161,7 @@ public class GraphQLFunction implements OutboundConnectorFunction {
     return null;
   }
 
-  protected HttpResponse executeHttpRequest(HttpRequest externalRequest)
-      throws IOException {
+  protected HttpResponse executeHttpRequest(HttpRequest externalRequest) throws IOException {
     try {
       return externalRequest.execute();
     } catch (HttpResponseException httpResponseException) {
