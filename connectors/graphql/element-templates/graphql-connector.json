@@ -100,7 +100,7 @@
       ],
       "binding": {
         "type": "zeebe:input",
-        "name": "method"
+        "name": "graphql.method"
       }
     },
     {
@@ -110,7 +110,7 @@
       "feel": "optional",
       "binding": {
         "type": "zeebe:input",
-        "name": "url"
+        "name": "graphql.url"
       },
       "constraints": {
         "notEmpty": true,
@@ -127,7 +127,7 @@
       "type": "Text",
       "binding": {
         "type": "zeebe:input",
-        "name": "query"
+        "name": "graphql.query"
       },
       "optional": false,
       "constraints": {
@@ -142,7 +142,7 @@
       "feel": "required",
       "binding": {
         "type": "zeebe:input",
-        "name": "variables"
+        "name": "graphql.variables"
       },
       "optional": true
     },
@@ -153,7 +153,7 @@
       "feel": "optional",
       "binding": {
         "type": "zeebe:input",
-        "name": "authentication.token"
+        "name": "graphql.authentication.token"
       },
       "constraints": {
         "notEmpty": true
@@ -317,7 +317,7 @@
       "value": "20",
       "binding": {
         "type": "zeebe:input",
-        "name": "connectionTimeoutInSeconds"
+        "name": "graphql.connectionTimeoutInSeconds"
       },
       "optional": true,
       "constraints": {

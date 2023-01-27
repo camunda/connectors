@@ -28,12 +28,12 @@ import org.slf4j.LoggerFactory;
 @OutboundConnector(
     name = "GRAPHQL",
     inputVariables = {
-      "url",
-      "method",
-      "authentication",
-      "query",
-      "variables",
-      "connectionTimeoutInSeconds"
+      "graphql.url",
+      "graphql.method",
+      "graphql.authentication",
+      "graphql.query",
+      "graphql.variables",
+      "graphql.connectionTimeoutInSeconds"
     },
     type = "io.camunda:connector-graphql:1")
 public class GraphQLFunction implements OutboundConnectorFunction {
@@ -59,7 +59,7 @@ public class GraphQLFunction implements OutboundConnectorFunction {
   }
 
   @Override
-  public Object execute(OutboundConnectorContext context) throws Exception {
+  public Object execute(OutboundConnectorContext context) throws IOException {
     final var json = context.getVariables();
     final var connectorRequest = gson.fromJson(json, GraphQLRequest.class);
     context.validate(connectorRequest);
