@@ -83,6 +83,23 @@
       }
     },
     {
+      "label": "URL",
+      "group": "endpoint",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "graphql.url"
+      },
+      "constraints": {
+        "notEmpty": true,
+        "pattern": {
+          "value": "^(=|https?://).*",
+          "message": "Must be a http(s) URL."
+        }
+      }
+    },
+    {
       "id": "method",
       "label": "Method",
       "group": "endpoint",
@@ -104,23 +121,6 @@
       }
     },
     {
-      "label": "URL",
-      "group": "endpoint",
-      "type": "String",
-      "feel": "optional",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "graphql.url"
-      },
-      "constraints": {
-        "notEmpty": true,
-        "pattern": {
-          "value": "^(=|https?://).*",
-          "message": "Must be a http(s) URL."
-        }
-      }
-    },
-    {
       "label": "Query/Mutation",
       "description": "See <a href=\"https://graphql.org/learn/queries/#fields\" target=\"_blank\">documentation</a>",
       "group": "graphql",
@@ -136,7 +136,7 @@
     },
     {
       "label": "Variables",
-      "description": "Variables to add to the query or mutation. See <a href=\"https://graphql.org/learn/queries/#variables\" target=\"_blank\">documentation</a>",
+      "description": "Learn how to <a href=\"https://graphql.org/learn/queries/#variables\" target=\"_blank\">define variables</a>",
       "group": "graphql",
       "type": "Text",
       "feel": "required",
