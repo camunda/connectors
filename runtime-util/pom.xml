@@ -15,7 +15,7 @@
   <packaging>jar</packaging>
 
   <properties>
-    <system-stubs.version>2.0.1</system-stubs.version>
+    <system-stubs.version>2.0.2</system-stubs.version>
   </properties>
 
   <dependencies>
