@@ -217,6 +217,7 @@
       "group": "operationDetails",
       "type": "String",
       "feel": "optional",
+      "optional": true,
       "binding": {
         "type": "zeebe:input",
         "name": "resource.parent"
@@ -232,6 +233,7 @@
       "group": "operationDetails",
       "type": "String",
       "feel": "optional",
+      "optional": true,
       "binding": {
         "type": "zeebe:input",
         "name": "resource.parent"
