@@ -21,7 +21,7 @@ import java.util.Objects;
 /**
  * Contains general information about the inbound correlation results.
  *
- * <p>This information is specific to the process correlation point type, e.g. subscription key &
+ * <p>This information is specific to the process correlation point type, e.g. subscription key and
  * message name in case of an IntermediateEvent target, or process definition key in case of a
  * StartEvent target.
  */
