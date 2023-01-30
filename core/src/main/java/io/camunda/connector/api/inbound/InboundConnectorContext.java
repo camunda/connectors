@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.api.inbound;
 
+import java.util.Map;
+
 /**
  * The context object provided to an inbound connector function. The context allows to fetch
  * information injected by the environment runtime.
@@ -35,4 +37,14 @@ public interface InboundConnectorContext {
    * @param input - the object to validate
    */
   void validate(Object input);
+
+  /**
+   * Correlates the inbound event to the matching process definition
+   *
+   * @param correlationPoint - information about the target process
+   * @param variables - variables to be passed to the process
+   * @return
+   */
+  InboundConnectorResult correlate(
+      ProcessCorrelationPoint correlationPoint, Map<String, Object> variables);
 }

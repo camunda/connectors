@@ -14,18 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.util.inbound;
+package io.camunda.connector.api.inbound;
 
-import static org.junit.jupiter.api.Assertions.assertThrowsExactly;
-
-import org.junit.jupiter.api.Test;
-
-class InboundJobHandlerContextTest {
-
-  private InboundJobHandlerContext testObject;
-
-  @Test
-  void shouldFailConstructor_WhenNullSecretProvider() {
-    assertThrowsExactly(RuntimeException.class, () -> new InboundJobHandlerContext(null));
-  }
-}
+/**
+ * Base class for a unique set of properties of a single inbound Connector usage in the business
+ * process definition.
+ *
+ * <p>Comparable interface defines the priorities among inbound connector execution (suitable
+ * inbound candidates are executed in the natural order).
+ */
+public abstract class ProcessCorrelationPoint implements Comparable<ProcessCorrelationPoint> {}
