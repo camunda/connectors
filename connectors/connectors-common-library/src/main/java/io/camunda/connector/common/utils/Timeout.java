@@ -4,15 +4,15 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.graphql.utils;
+package io.camunda.connector.common.utils;
 
 import com.google.api.client.http.HttpRequest;
-import io.camunda.connector.graphql.model.GraphQLRequest;
+import io.camunda.connector.common.model.CommonRequest;
 import java.util.concurrent.TimeUnit;
 
 public class Timeout {
 
-  public static void setTimeout(GraphQLRequest request, HttpRequest httpRequest) {
+  public static void setTimeout(CommonRequest request, HttpRequest httpRequest) {
     if (request.getConnectionTimeoutInSeconds() != null) {
       long connectionTimeout =
           TimeUnit.SECONDS.toMillis(Long.parseLong(request.getConnectionTimeoutInSeconds()));

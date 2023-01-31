@@ -11,11 +11,11 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.ToNumberPolicy;
 import com.google.gson.typeadapters.RuntimeTypeAdapterFactory;
-import io.camunda.connector.graphql.auth.Authentication;
-import io.camunda.connector.graphql.auth.BasicAuthentication;
-import io.camunda.connector.graphql.auth.BearerAuthentication;
-import io.camunda.connector.graphql.auth.NoAuthentication;
-import io.camunda.connector.graphql.auth.OAuthAuthentication;
+import io.camunda.connector.common.auth.Authentication;
+import io.camunda.connector.common.auth.BasicAuthentication;
+import io.camunda.connector.common.auth.BearerAuthentication;
+import io.camunda.connector.common.auth.NoAuthentication;
+import io.camunda.connector.common.auth.OAuthAuthentication;
 
 public class GsonComponentSupplier {
 

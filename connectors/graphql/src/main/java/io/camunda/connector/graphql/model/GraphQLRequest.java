@@ -7,59 +7,17 @@
 package io.camunda.connector.graphql.model;
 
 import io.camunda.connector.api.annotation.Secret;
-import io.camunda.connector.graphql.auth.Authentication;
+import io.camunda.connector.common.model.CommonRequest;
 import java.util.Objects;
-import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.Pattern;
 
-public class GraphQLRequest {
+public class GraphQLRequest extends CommonRequest {
 
-  @NotBlank @Secret private String method;
-
-  @NotBlank
-  @Pattern(regexp = "^(http://|https://|secrets).*$")
-  @Secret
-  private String url;
-
-  @Valid @Secret private Authentication authentication;
   @NotBlank @Secret private String query;
   @Secret private Object variables;
 
-  @Pattern(regexp = "^([0-9]*$)|(secrets.*$)")
-  @Secret
-  private String connectionTimeoutInSeconds;
-
-  public boolean hasAuthentication() {
-    return authentication != null;
-  }
-
   public boolean hasQuery() {
     return query != null;
-  }
-
-  public String getMethod() {
-    return method;
-  }
-
-  public void setMethod(String method) {
-    this.method = method;
-  }
-
-  public String getUrl() {
-    return url;
-  }
-
-  public void setUrl(String url) {
-    this.url = url;
-  }
-
-  public Authentication getAuthentication() {
-    return authentication;
-  }
-
-  public void setAuthentication(Authentication authentication) {
-    this.authentication = authentication;
   }
 
   public String getQuery() {
@@ -78,50 +36,21 @@ public class GraphQLRequest {
     this.variables = variables;
   }
 
-  public String getConnectionTimeoutInSeconds() {
-    return connectionTimeoutInSeconds;
-  }
-
-  public void setConnectionTimeoutInSeconds(String connectionTimeoutInSeconds) {
-    this.connectionTimeoutInSeconds = connectionTimeoutInSeconds;
-  }
-
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
     GraphQLRequest that = (GraphQLRequest) o;
-    return method.equals(that.method)
-        && url.equals(that.url)
-        && authentication.equals(that.authentication)
-        && query.equals(that.query)
-        && Objects.equals(variables, that.variables)
-        && Objects.equals(connectionTimeoutInSeconds, that.connectionTimeoutInSeconds);
+    return query.equals(that.query) && Objects.equals(variables, that.variables);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(method, url, authentication, query, variables, connectionTimeoutInSeconds);
+    return Objects.hash(query, variables);
   }
 
   @Override
   public String toString() {
-    return "GraphQLRequest{"
-        + "method='"
-        + method
-        + '\''
-        + ", url='"
-        + url
-        + '\''
-        + ", authentication="
-        + authentication
-        + ", query="
-        + query
-        + ", variables="
-        + variables
-        + ", connectionTimeoutInSeconds='"
-        + connectionTimeoutInSeconds
-        + '\''
-        + '}';
+    return "GraphQLRequest{" + "query='" + query + '\'' + ", variables=" + variables + '}';
   }
 }

@@ -4,9 +4,9 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.graphql.services;
+package io.camunda.connector.common.services;
 
-import static io.camunda.connector.graphql.utils.Timeout.setTimeout;
+import static io.camunda.connector.common.utils.Timeout.setTimeout;
 
 import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.HttpContent;
@@ -17,9 +17,9 @@ import com.google.api.client.http.HttpResponse;
 import com.google.api.client.http.UrlEncodedContent;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import io.camunda.connector.graphql.auth.OAuthAuthentication;
-import io.camunda.connector.graphql.constants.Constants;
-import io.camunda.connector.graphql.model.GraphQLRequest;
+import io.camunda.connector.common.auth.OAuthAuthentication;
+import io.camunda.connector.common.constants.Constants;
+import io.camunda.connector.common.model.CommonRequest;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -59,7 +59,7 @@ public class AuthenticationService {
     return null;
   }
 
-  public HttpRequest createOAuthRequest(GraphQLRequest request) throws IOException {
+  public HttpRequest createOAuthRequest(CommonRequest request) throws IOException {
     OAuthAuthentication authentication = (OAuthAuthentication) request.getAuthentication();
 
     final GenericUrl genericUrl = new GenericUrl(authentication.getOauthTokenEndpoint());

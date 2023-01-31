@@ -6,35 +6,40 @@
  */
 package io.camunda.connector.graphql;
 
+import static io.camunda.connector.common.utils.Timeout.setTimeout;
+
+import com.google.api.client.http.GenericUrl;
+import com.google.api.client.http.HttpContent;
+import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpResponse;
+import com.google.api.client.http.json.JsonHttpContent;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import io.camunda.connector.graphql.auth.OAuthAuthentication;
+import io.camunda.connector.common.auth.OAuthAuthentication;
+import io.camunda.connector.common.constants.Constants;
+import io.camunda.connector.common.services.AuthenticationService;
+import io.camunda.connector.common.services.HTTPService;
 import io.camunda.connector.graphql.components.GsonComponentSupplier;
 import io.camunda.connector.graphql.components.HttpTransportComponentSupplier;
 import io.camunda.connector.graphql.model.GraphQLRequest;
 import io.camunda.connector.graphql.model.GraphQLResult;
-import io.camunda.connector.graphql.services.AuthenticationService;
-import io.camunda.connector.graphql.services.HTTPService;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @OutboundConnector(
     name = "GRAPHQL",
-    inputVariables = {
-      "graphql.url",
-      "graphql.method",
-      "graphql.authentication",
-      "graphql.query",
-      "graphql.variables",
-      "graphql.connectionTimeoutInSeconds"
-    },
+    inputVariables = {"graphql", "authentication"},
     type = "io.camunda:connector-graphql:1")
 public class GraphQLFunction implements OutboundConnectorFunction {
 
@@ -59,19 +64,26 @@ public class GraphQLFunction implements OutboundConnectorFunction {
   }
 
   @Override
-  public Object execute(OutboundConnectorContext context) throws IOException {
+  public Object execute(OutboundConnectorContext context)
+      throws IOException, InstantiationException, IllegalAccessException {
     final var json = context.getVariables();
-    final var connectorRequest = gson.fromJson(json, GraphQLRequest.class);
+    JsonElement graphqlJsonElement =
+        Optional.ofNullable(gson.fromJson(json, JsonObject.class).get("graphql"))
+            .orElseThrow(
+                () ->
+                    new IllegalArgumentException(
+                        "graphql input variable is mandatory but was null! "));
+    final var connectorRequest = gson.fromJson(graphqlJsonElement.toString(), GraphQLRequest.class);
     context.validate(connectorRequest);
     context.replaceSecrets(connectorRequest);
     return executeGraphQLConnector(connectorRequest);
   }
 
   private GraphQLResult executeGraphQLConnector(final GraphQLRequest connectorRequest)
-      throws IOException {
+      throws IOException, InstantiationException, IllegalAccessException {
     // connector logic
     LOGGER.info("Executing graphql connector with request {}", connectorRequest);
-    HTTPService httpService = HTTPService.getInstance(gson, requestFactory, gsonFactory);
+    HTTPService httpService = HTTPService.getInstance(gson);
     AuthenticationService authService = AuthenticationService.getInstance(gson, requestFactory);
     String bearerToken = null;
     if (connectorRequest.getAuthentication() != null
@@ -81,8 +93,44 @@ public class GraphQLFunction implements OutboundConnectorFunction {
       bearerToken = authService.extractAccessToken(oauthResponse);
     }
 
-    final HttpRequest httpRequest = httpService.createRequest(connectorRequest, bearerToken);
+    final HttpRequest httpRequest = createRequest(httpService, connectorRequest, bearerToken);
     HttpResponse httpResponse = httpService.executeHttpRequest(httpRequest);
-    return httpService.toHttpJsonResponse(httpResponse);
+    return httpService.toHttpJsonResponse(httpResponse, GraphQLResult.class);
+  }
+
+  public HttpRequest createRequest(
+      final HTTPService httpService, final GraphQLRequest request, String bearerToken)
+      throws IOException {
+    final String method = request.getMethod().toUpperCase();
+    final GenericUrl genericUrl = new GenericUrl(request.getUrl());
+    HttpContent content = null;
+    final HttpHeaders headers = httpService.createHeaders(request, bearerToken);
+    String escapedQuery = request.getQuery().replace("\\n", "").replace("\\\"", "\"");
+    if (Constants.POST.equalsIgnoreCase(method)) {
+      content = constructBodyForPost(escapedQuery, request.getVariables());
+    } else {
+      final Map<String, String> query = new HashMap<>();
+      query.put("query", escapedQuery);
+      if (request.getVariables() != null) {
+        query.put("variables", gson.toJsonTree(request.getVariables()).toString());
+      }
+      genericUrl.putAll(query);
+    }
+
+    final var httpRequest = requestFactory.buildRequest(method, genericUrl, content);
+    httpRequest.setFollowRedirects(false);
+    setTimeout(request, httpRequest);
+    httpRequest.setHeaders(headers);
+
+    return httpRequest;
+  }
+
+  private JsonHttpContent constructBodyForPost(String escapedQuery, Object variables) {
+    final Map<String, Object> body = new HashMap<>();
+    body.put("query", escapedQuery);
+    if (variables != null) {
+      body.put("variables", variables);
+    }
+    return new JsonHttpContent(gsonFactory, body);
   }
 }

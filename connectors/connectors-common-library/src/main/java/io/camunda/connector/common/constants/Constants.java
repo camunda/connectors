@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.graphql.constants;
+package io.camunda.connector.common.constants;
 
 public class Constants {
   public static final String GRANT_TYPE = "grant_type";

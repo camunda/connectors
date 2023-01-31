@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.graphql.auth;
+package io.camunda.connector.common.auth;
 
 import com.google.api.client.http.HttpHeaders;
 

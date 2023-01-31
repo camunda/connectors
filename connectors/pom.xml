@@ -29,6 +29,7 @@
     <module>microsoft-teams</module>
     <module>slack</module>
     <module>graphql</module>
+    <module>connectors-common-library</module>
   </modules>
 
   <properties>
