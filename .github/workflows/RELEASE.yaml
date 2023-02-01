@@ -138,14 +138,14 @@ jobs:
     # Build & push bundle docker images (with version tag)
 
       - name: Build and Push Docker Image tag ${{ github.event.inputs.version }} - bundle-default
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v4
         with:
           context: bundle/mvn/default-bundle/
           push: ${{ github.ref == 'refs/heads/main' }}
           tags: camunda/connectors-bundle:${{ github.event.inputs.version }}
 
       - name: Build and Push Docker Image tag ${{ github.event.inputs.version }} - bundle-saas
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v4
         with:
           context: bundle/mvn/camunda-saas-bundle/
           push: ${{ github.ref == 'refs/heads/main' }}
@@ -155,7 +155,7 @@ jobs:
 
       - name: Build and Push Docker Image tag latest - bundle-default
         if: ${{ steps.check_prerelease.outputs.isPreRelease == 'false' }}
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v4
         with:
           context: bundle/mvn/default-bundle/
           push: ${{ github.ref == 'refs/heads/main' }}
@@ -163,7 +163,7 @@ jobs:
 
       - name: Build and Push Docker Image tag latest - bundle-saas
         if: ${{ steps.check_prerelease.outputs.isPreRelease == 'false' }}
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v4
         with:
           context: bundle/mvn/camunda-saas-bundle/
           push: ${{ github.ref == 'refs/heads/main' }}
