@@ -42,7 +42,7 @@ jobs:
                "username": "${{ steps.secrets.outputs.ARTIFACTORY_USR }}",
                "password": "${{ steps.secrets.outputs.ARTIFACTORY_PSW }}"
              }]
-          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "*", "name": "camunda Nexus"}]'
+          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "camunda-nexus", "name": "camunda Nexus"}]'
 
       - uses: actions/setup-node@v3
         with:
