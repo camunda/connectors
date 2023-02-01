@@ -25,9 +25,11 @@ import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ProxyOAuthHelper {
+public final class ProxyOAuthHelper {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ProxyOAuthHelper.class);
+
+  private ProxyOAuthHelper() {}
 
   public static OAuth2Credentials initializeCredentials(String proxyUrl) {
     if (proxyUrl == null) {
