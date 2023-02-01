@@ -56,33 +56,28 @@ jobs:
           java-version: '17'
           cache: 'maven'
 
-      - name: Create ~/.m2/settings.xml
-        shell: bash
-        run: |
-          cat <<EOF > ~/.m2/settings.xml
-          <?xml version="1.0" encoding="UTF-8"?>
-          <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
-            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-            xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">
-            <interactiveMode>false</interactiveMode>
-            <servers>
-              <server>
-                <id>camunda-nexus</id>
-                <username>\${env.NEXUS_USR}</username>
-                <password>\${env.NEXUS_PSW}</password>
-              </server>
-              <server>
-                <id>central</id>
-                <username>\${env.MAVEN_USR}</username>
-                <password>\${env.MAVEN_PSW}</password>
-              </server>
-              <server>
-                <id>gpg.passphrase</id>
-                <passphrase>\${env.MAVEN_GPG_PASSPHRASE}</passphrase>
-              </server>
-            </servers>
-          </settings>
-          EOF
+      # Use CI Nexus as co-located pull-through cache for Maven artifacts via ~/.m2/settings.xml
+      - name: 'Create settings.xml'
+        uses: s4u/maven-settings-action@v2.8.0
+        with:
+          githubServer: false
+          servers: |
+            [{
+               "id": "camunda-nexus",
+               "username": "${{ steps.secrets.outputs.ARTIFACTORY_USR }}",
+               "password": "${{ steps.secrets.outputs.ARTIFACTORY_PSW }}"
+             },
+            {
+               "id": "central",
+               "username": "${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_USR }}",
+               "password": "${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_PSW }}"
+             },
+            {
+               "id": "gpg.passphrase",
+               "passphrase": "${{ steps.secrets.outputs.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}",
+             }
+            ]
+          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "camunda-nexus", "name": "camunda Nexus"}]'
 
       - name: Configure git user
         run: |
