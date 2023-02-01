@@ -21,7 +21,9 @@ import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpResponse;
 import com.google.api.client.http.HttpResponseException;
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.http.auth.CustomAuthentication;
 import io.camunda.connector.http.auth.OAuthAuthentication;
 import io.camunda.connector.http.model.ErrorResponse;
 import io.camunda.connector.http.model.HttpJsonRequest;
@@ -30,10 +32,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.util.HashMap;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// todo split class, maybe delete, move logic in auth classes or in util classes
 public class HttpService {
   private static final Logger LOGGER = LoggerFactory.getLogger(HttpService.class);
 
@@ -54,17 +57,60 @@ public class HttpService {
         : executeRequestViaProxy(request);
   }
 
-  protected HttpJsonResult executeRequestDirectly(HttpJsonRequest request) throws IOException {
+  private HttpJsonResult executeRequestDirectly(HttpJsonRequest request) throws IOException {
     String bearerToken = null;
     if (request.getAuthentication() != null) {
       if (request.getAuthentication() instanceof OAuthAuthentication) {
         bearerToken = getTokenFromOAuthRequest(request);
+      } else if (request.getAuthentication() instanceof CustomAuthentication) {
+        final var authentication = (CustomAuthentication) request.getAuthentication();
+        final var httpRequest =
+            HttpRequestMapper.toHttpRequest(requestFactory, authentication.getRequest());
+        HttpResponse httpResponse = executeHttpRequest(httpRequest);
+        if (httpResponse.isSuccessStatusCode()) {
+          fillRequestFromCustomAuthResponseData(request, authentication, httpResponse);
+        } else {
+          throw new RuntimeException(
+              "Authenticate is fail; status code : ["
+                  + httpResponse.getStatusCode()
+                  + "], message : ["
+                  + httpResponse.getStatusMessage()
+                  + "]");
+        }
       }
     }
     HttpRequest httpRequest = HttpRequestMapper.toHttpRequest(requestFactory, request, bearerToken);
-
-    HttpResponse httpResponse = executeHttpRequest(httpRequest);
+    HttpResponse httpResponse = executeHttpRequest(httpRequest, false);
     return HttpResponseMapper.toHttpJsonResponse(httpResponse);
+  }
+
+  private void fillRequestFromCustomAuthResponseData(
+      final HttpJsonRequest request,
+      final CustomAuthentication authentication,
+      final HttpResponse httpResponse)
+      throws IOException {
+    String strResponse = httpResponse.parseAsString();
+    Map<String, String> headers =
+        ResponseParser.extractPropertiesFromBody(authentication.getOutputHeaders(), strResponse);
+    if (headers != null) {
+      if (!request.hasHeaders()) {
+        request.setHeaders(new HashMap<>());
+      }
+      request.getHeaders().putAll(headers);
+    }
+
+    Map<String, String> body =
+        ResponseParser.extractPropertiesFromBody(authentication.getOutputBody(), strResponse);
+    if (body != null) {
+      if (!request.hasBody()) {
+        request.setBody(new Object());
+      }
+      JsonObject requestBody = gson.toJsonTree(request.getBody()).getAsJsonObject();
+      // for now, we can add only string property to body, example of this object :
+      // "{"key":"value"}" but we can expand this method
+      body.forEach(requestBody::addProperty);
+      request.setBody(gson.fromJson(gson.toJson(requestBody), Object.class));
+    }
   }
 
   private String getTokenFromOAuthRequest(final HttpJsonRequest request) throws IOException {
@@ -73,11 +119,11 @@ public class HttpService {
     return ResponseParser.extractOAuthAccessToken(oauthResponse);
   }
 
-  protected HttpResponse executeHttpRequest(HttpRequest externalRequest) throws IOException {
+  private HttpResponse executeHttpRequest(HttpRequest externalRequest) throws IOException {
     return executeHttpRequest(externalRequest, false);
   }
 
-  protected HttpResponse executeHttpRequest(HttpRequest externalRequest, boolean isProxyCall)
+  private HttpResponse executeHttpRequest(HttpRequest externalRequest, boolean isProxyCall)
       throws IOException {
     try {
       return externalRequest.execute();
@@ -97,7 +143,7 @@ public class HttpService {
     }
   }
 
-  protected HttpJsonResult executeRequestViaProxy(HttpJsonRequest request) throws IOException {
+  private HttpJsonResult executeRequestViaProxy(HttpJsonRequest request) throws IOException {
     HttpRequest httpRequest =
         HttpRequestMapper.toRequestViaProxy(requestFactory, request, proxyFunctionUrl);
 

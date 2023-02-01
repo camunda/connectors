@@ -24,6 +24,7 @@ import com.google.gson.typeadapters.RuntimeTypeAdapterFactory;
 import io.camunda.connector.http.auth.Authentication;
 import io.camunda.connector.http.auth.BasicAuthentication;
 import io.camunda.connector.http.auth.BearerAuthentication;
+import io.camunda.connector.http.auth.CustomAuthentication;
 import io.camunda.connector.http.auth.NoAuthentication;
 import io.camunda.connector.http.auth.OAuthAuthentication;
 
@@ -39,7 +40,8 @@ public class GsonComponentSupplier {
                   .registerSubtype(NoAuthentication.class, "noAuth")
                   .registerSubtype(BasicAuthentication.class, "basic")
                   .registerSubtype(BearerAuthentication.class, "bearer")
-                  .registerSubtype(OAuthAuthentication.class, "oauth-client-credentials-flow"))
+                  .registerSubtype(OAuthAuthentication.class, "oauth-client-credentials-flow")
+                  .registerSubtype(CustomAuthentication.class, "credentialsInBody"))
           .create();
 
   private GsonComponentSupplier() {}

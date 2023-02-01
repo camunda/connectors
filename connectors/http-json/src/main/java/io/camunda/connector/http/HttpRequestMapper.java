@@ -97,6 +97,11 @@ public class HttpRequestMapper {
   }
 
   public static HttpRequest toHttpRequest(
+      final HttpRequestFactory requestFactory, final HttpJsonRequest request) throws IOException {
+    return toHttpRequest(requestFactory, request, null);
+  }
+
+  public static HttpRequest toHttpRequest(
       final HttpRequestFactory requestFactory,
       final HttpJsonRequest request,
       final String bearerToken)

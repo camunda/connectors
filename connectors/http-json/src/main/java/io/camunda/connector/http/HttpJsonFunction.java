@@ -57,7 +57,7 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
   }
 
   public HttpJsonFunction(
-      final Gson gson, final HttpRequestFactory requestFactory, String proxyFunctionUrl) {
+      final Gson gson, final HttpRequestFactory requestFactory, final String proxyFunctionUrl) {
     this.httpService = new HttpService(gson, requestFactory, proxyFunctionUrl);
     this.gson = gson;
   }
