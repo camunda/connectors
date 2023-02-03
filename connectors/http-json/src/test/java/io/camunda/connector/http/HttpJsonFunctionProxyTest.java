@@ -31,8 +31,8 @@ import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpResponse;
 import com.google.api.client.http.HttpResponseException;
-import com.google.api.client.json.gson.GsonFactory;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.http.constants.Constants;
 import io.camunda.connector.http.model.HttpJsonResult;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import java.io.ByteArrayInputStream;
@@ -51,12 +51,9 @@ public class HttpJsonFunctionProxyTest extends BaseTest {
 
   private static final String SUCCESS_CASES_RESOURCE_PATH =
       "src/test/resources/requests/success-test-cases.json";
-  private static final String FAIL_CASES_RESOURCE_PATH =
-      "src/test/resources/requests/fail-test-cases.json";
 
   private static final String PROXY_FUNCTION_URL = "http://localhost/my-proxy/";
 
-  @Mock private GsonFactory gsonFactory;
   @Mock private HttpRequestFactory requestFactory;
   @Mock private HttpRequest httpRequest;
   @Mock private HttpResponse httpResponse;
@@ -65,7 +62,7 @@ public class HttpJsonFunctionProxyTest extends BaseTest {
 
   @BeforeEach
   public void setup() {
-    functionUnderTest = new HttpJsonFunction(gson, requestFactory, gsonFactory, PROXY_FUNCTION_URL);
+    functionUnderTest = new HttpJsonFunction(gson, requestFactory, PROXY_FUNCTION_URL);
   }
 
   @ParameterizedTest(name = "Executing test case: {0}")
@@ -75,8 +72,10 @@ public class HttpJsonFunctionProxyTest extends BaseTest {
     final var context =
         OutboundConnectorContextBuilder.create().variables(input).secrets(name -> "foo").build();
 
-    when(requestFactory.buildPostRequest(
-            eq(new GenericUrl(PROXY_FUNCTION_URL)), nullable(HttpContent.class)))
+    when(requestFactory.buildRequest(
+            eq(Constants.POST),
+            eq(new GenericUrl(PROXY_FUNCTION_URL)),
+            nullable(HttpContent.class)))
         .thenReturn(httpRequest);
     String responseContent = "{ headers: { 'someHeader': 'someValue'}}";
     when(httpResponse.getContent())
@@ -104,8 +103,10 @@ public class HttpJsonFunctionProxyTest extends BaseTest {
     when(httpException.getContent()).thenReturn(errorResponseContent);
     when(httpException.getStatusCode()).thenReturn(500);
     when(httpException.getMessage()).thenReturn("my error message");
-    when(requestFactory.buildPostRequest(
-            eq(new GenericUrl(PROXY_FUNCTION_URL)), nullable(HttpContent.class)))
+    when(requestFactory.buildRequest(
+            eq(Constants.POST),
+            eq(new GenericUrl(PROXY_FUNCTION_URL)),
+            nullable(HttpContent.class)))
         .thenReturn(httpRequest);
     doThrow(httpException).when(httpRequest).execute();
     // when
@@ -131,8 +132,10 @@ public class HttpJsonFunctionProxyTest extends BaseTest {
     when(httpException.getContent()).thenReturn(errorResponseContent);
     when(httpException.getStatusCode()).thenReturn(500);
     when(httpException.getMessage()).thenReturn("my error message");
-    when(requestFactory.buildPostRequest(
-            eq(new GenericUrl(PROXY_FUNCTION_URL)), nullable(HttpContent.class)))
+    when(requestFactory.buildRequest(
+            eq(Constants.POST),
+            eq(new GenericUrl(PROXY_FUNCTION_URL)),
+            nullable(HttpContent.class)))
         .thenReturn(httpRequest);
     doThrow(httpException).when(httpRequest).execute();
     // when
@@ -156,8 +159,10 @@ public class HttpJsonFunctionProxyTest extends BaseTest {
     final var httpException = mock(HttpResponseException.class);
     when(httpException.getStatusCode()).thenReturn(500);
     when(httpException.getMessage()).thenReturn("my error message");
-    when(requestFactory.buildPostRequest(
-            eq(new GenericUrl(PROXY_FUNCTION_URL)), nullable(HttpContent.class)))
+    when(requestFactory.buildRequest(
+            eq(Constants.POST),
+            eq(new GenericUrl(PROXY_FUNCTION_URL)),
+            nullable(HttpContent.class)))
         .thenReturn(httpRequest);
     doThrow(httpException).when(httpRequest).execute();
     // when
