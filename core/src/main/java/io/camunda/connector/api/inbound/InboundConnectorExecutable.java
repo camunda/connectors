@@ -17,31 +17,27 @@
 package io.camunda.connector.api.inbound;
 
 /**
- * The context object provided to an inbound connector function. The context allows to fetch
- * information injected by the environment runtime.
+ * Base subscription interface for inbound connectors. This is an interface that
+ * environment-specific Connector Runtime uses to control the inbound Connectors.
+ *
+ * <p>NB: For custom inbound Connectors implementation, please consider extending a more specific
+ * type, such as {@link io.camunda.connector.impl.inbound.SubscriptionInboundConnector} rather than
+ * this interface.
  */
-public interface InboundConnectorContext {
+public interface InboundConnectorExecutable {
 
   /**
-   * Replaces the secrets in the input object by the defined secrets in the context's secret store.
+   * Activation trigger for the subscription
    *
-   * @param input - the object to replace secrets in
+   * @param properties Properties to be used by subscription
+   * @param context Runtime-specific information
    */
-  void replaceSecrets(Object input);
+  void activate(InboundConnectorProperties properties, InboundConnectorContext context)
+      throws Exception;
 
   /**
-   * Validates the input object
-   *
-   * @param input - the object to validate
+   * Gentle shutdown hook for inbound connectors. Must release all resources used by the
+   * subscription.
    */
-  void validate(Object input);
-
-  /**
-   * Correlates the inbound event to the matching process definition
-   *
-   * @param correlationPoint - information about the target process
-   * @param variables - variables to be passed to the process
-   * @return
-   */
-  InboundConnectorResult correlate(ProcessCorrelationPoint correlationPoint, Object variables);
+  void deactivate() throws Exception;
 }
