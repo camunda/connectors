@@ -6,10 +6,20 @@
  */
 package io.camunda.connector.model.authentication;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.microsoft.graph.requests.GraphServiceClient;
 import io.camunda.connector.suppliers.GraphServiceClientSupplier;
 import okhttp3.Request;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
+@JsonSubTypes({
+  @JsonSubTypes.Type(value = BearerAuthentication.class, name = "token"),
+  @JsonSubTypes.Type(value = ClientSecretAuthentication.class, name = "clientCredentials"),
+  @JsonSubTypes.Type(value = RefreshTokenAuthentication.class, name = "refresh")
+})
 public abstract class MSTeamsAuthentication {
   private transient String type;
 

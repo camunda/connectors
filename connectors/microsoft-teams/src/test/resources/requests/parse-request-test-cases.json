@@ -143,7 +143,6 @@
       "method": "listMessageRepliesInChannel"
     }
   },
-
   {
     "authentication": {
       "type": "clientCredentials"
@@ -302,6 +301,14 @@
     },
     "data": {
       "method": "getChat"
+    }
+  },
+  {
+    "authentication": {
+      "type": "clientCredentials"
+    },
+    "data": {
+      "method": "listChats"
     }
   },
   {
@@ -357,6 +364,14 @@
       "type": "token"
     },
     "data": {
+      "method": "listChats"
+    }
+  },
+  {
+    "authentication": {
+      "type": "token"
+    },
+    "data": {
       "method": "getMessageFromChat"
     }
   },
@@ -379,6 +394,174 @@
   {
     "authentication": {
       "type": "token"
+    },
+    "data": {
+      "method": "sendMessageToChat"
+    }
+  },
+  {
+    "authentication": {
+      "type": "refresh"
+    },
+    "data": {
+      "method": "createChannel"
+    }
+  },
+  {
+    "authentication": {
+      "type": "refresh"
+    },
+    "data": {
+      "method": "getChannel"
+    }
+  },
+  {
+    "authentication": {
+      "type": "refresh"
+    },
+    "data": {
+      "method": "getMessageFromChannel"
+    }
+  },
+  {
+    "authentication": {
+      "type": "refresh"
+    },
+    "data": {
+      "method": "getMessageFromChannel"
+    }
+  },
+  {
+    "authentication": {
+      "type": "refresh"
+    },
+    "data": {
+      "method": "listMembersInChannel"
+    }
+  },
+  {
+    "authentication": {
+      "type": "refresh"
+    },
+    "data": {
+      "method": "listChannelMessages"
+    }
+  },
+  {
+    "authentication": {
+      "type": "refresh"
+    },
+    "data": {
+      "method": "listAllChannels"
+    }
+  },
+  {
+    "authentication": {
+      "type": "refresh"
+    },
+    "data": {
+      "method": "listMessageRepliesInChannel"
+    }
+  },
+  {
+    "authentication": {
+      "type": "refresh"
+    },
+    "data": {
+      "method": "listMessageRepliesInChannel"
+    }
+  },
+  {
+    "authentication": {
+      "type": "clientCredentials"
+    },
+    "data": {
+      "method": "createChat"
+    }
+  },
+  {
+    "authentication": {
+      "type": "clientCredentials"
+    },
+    "data": {
+      "method": "getChat"
+    }
+  },
+  {
+    "authentication": {
+      "type": "clientCredentials"
+    },
+    "data": {
+      "method": "getMessageFromChat"
+    }
+  },
+  {
+    "authentication": {
+      "type": "clientCredentials"
+    },
+    "data": {
+      "method": "listMembersOfChat"
+    }
+  },
+  {
+    "authentication": {
+      "type": "clientCredentials"
+    },
+    "data": {
+      "method": "listMessagesInChat"
+    }
+  },
+  {
+    "authentication": {
+      "type": "clientCredentials"
+    },
+    "data": {
+      "method": "sendMessageToChat"
+    }
+  },
+  {
+    "authentication": {
+      "type": "refresh"
+    },
+    "data": {
+      "method": "createChat"
+    }
+  },
+  {
+    "authentication": {
+      "type": "refresh"
+    },
+    "data": {
+      "method": "getChat"
+    }
+  },
+  {
+    "authentication": {
+      "type": "refresh"
+    },
+    "data": {
+      "method": "getMessageFromChat"
+    }
+  },
+  {
+    "authentication": {
+      "type": "refresh"
+    },
+    "data": {
+      "method": "listMembersOfChat"
+    }
+  },
+  {
+    "authentication": {
+      "type": "refresh"
+    },
+    "data": {
+      "method": "listMessagesInChat"
+    }
+  },
+  {
+    "authentication": {
+      "type": "refresh"
     },
     "data": {
       "method": "sendMessageToChat"

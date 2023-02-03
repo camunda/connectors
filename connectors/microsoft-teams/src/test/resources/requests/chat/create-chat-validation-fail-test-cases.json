@@ -1,0 +1,52 @@
+[
+  {
+    "description" : "create chat chatType is null",
+    "data": {
+      "method": "createChat",
+      "chatType": null,
+      "members": [
+        {
+          "principalName": "john.dou@mail.com",
+          "roles": [
+            "owner"
+          ]
+        },
+        {
+          "principalName": "jane.dou@mail.com",
+          "roles": [
+            "owner"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "description" : "create chat chatType is blank",
+    "data": {
+      "method": "createChat",
+      "chatType": "    ",
+      "members": [
+        {
+          "principalName": "john.dou@mail.com",
+          "roles": [
+            "owner"
+          ]
+        },
+        {
+          "principalName": "jane.dou@mail.com",
+          "roles": [
+            "owner"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "description" : "create chat members is nul",
+    "data": {
+      "method": "createChat",
+      "chatType": "group",
+      "members": null
+    }
+  }
+]

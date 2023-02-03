@@ -1,0 +1,31 @@
+[{
+  "descriptionOfTest": "Normal request with custom auth",
+  "method": "post",
+  "url": "https://camunda.io/http-endpoint",
+  "connectionTimeoutInSeconds": "30",
+  "headers": {
+    "X-Camunda-Cluster-ID": "abcdef",
+    "User-Agent": "http-connector-demo"
+  },
+  "authentication":{
+    "type": "credentialsInBody",
+    "request": {
+      "method": "post",
+      "url": "https://camunda.io/http-endpoint"
+    },
+    "outputHeaders" : {
+      "customHeader": "asObject:user.asObject:permissions.asArray:1.asObject:id.asString"
+    },
+    "outputBody" : {
+      "customHeader": "asObject:user.asObject:id:asString"
+    }
+  },
+  "body": {
+    "customer": {
+      "id": 1231231,
+      "name": "Jane Doe",
+      "email": "jane.doe@exampe.com"
+    }
+  }
+}
+]

@@ -8,11 +8,12 @@ package io.camunda.connector.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.BaseTest;
 import io.camunda.connector.model.authentication.BearerAuthentication;
 import io.camunda.connector.model.authentication.ClientSecretAuthentication;
 import io.camunda.connector.model.authentication.MSTeamsAuthentication;
+import io.camunda.connector.model.authentication.RefreshTokenAuthentication;
 import io.camunda.connector.model.request.MSTeamsRequestData;
 import io.camunda.connector.model.request.channel.CreateChannel;
 import io.camunda.connector.model.request.channel.GetChannel;
@@ -26,6 +27,7 @@ import io.camunda.connector.model.request.chat.CreateChat;
 import io.camunda.connector.model.request.chat.GetChat;
 import io.camunda.connector.model.request.chat.GetMessageInChat;
 import io.camunda.connector.model.request.chat.ListChatMembers;
+import io.camunda.connector.model.request.chat.ListChats;
 import io.camunda.connector.model.request.chat.ListMessagesInChat;
 import io.camunda.connector.model.request.chat.SendMessageInChat;
 import java.util.HashMap;
@@ -44,6 +46,7 @@ class MSTeamsRequestTest extends BaseTest {
     authMap = new HashMap<>();
     authMap.put("token", BearerAuthentication.class);
     authMap.put("clientCredentials", ClientSecretAuthentication.class);
+    authMap.put("refresh", RefreshTokenAuthentication.class);
 
     methodsMap = new HashMap<>();
     // channel
@@ -58,6 +61,7 @@ class MSTeamsRequestTest extends BaseTest {
     // chat
     methodsMap.put("createChat", CreateChat.class);
     methodsMap.put("getChat", GetChat.class);
+    methodsMap.put("listChats", ListChats.class);
     methodsMap.put("getMessageFromChat", GetMessageInChat.class);
     methodsMap.put("listMembersOfChat", ListChatMembers.class);
     methodsMap.put("listMessagesInChat", ListMessagesInChat.class);
@@ -66,12 +70,14 @@ class MSTeamsRequestTest extends BaseTest {
 
   @ParameterizedTest
   @MethodSource("parseRequestTestCases")
-  public void test(String input) {
-    JsonObject jsonObject = gson.fromJson(input, JsonObject.class);
-    String authType = jsonObject.get("authentication").getAsJsonObject().get("type").getAsString();
-    String methodType = jsonObject.get("data").getAsJsonObject().get("method").getAsString();
+  public void test(String input) throws JsonProcessingException {
 
-    MSTeamsRequest request = gson.fromJson(input, MSTeamsRequest.class);
+    objectMapper.readTree(input).get("authentication").get("type").asText();
+
+    String authType = objectMapper.readTree(input).get("authentication").get("type").asText();
+    String methodType = objectMapper.readTree(input).get("data").get("method").asText();
+
+    MSTeamsRequest request = objectMapper.readValue(input, MSTeamsRequest.class);
 
     assertThat(request.getAuthentication()).isInstanceOf(authMap.get(authType));
     assertThat(request.getData()).isInstanceOf(methodsMap.get(methodType));

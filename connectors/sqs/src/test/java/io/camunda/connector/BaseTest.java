@@ -24,8 +24,7 @@ public abstract class BaseTest {
   protected static final String WRONG_MESSAGE_BODY = "its wrong msg";
   protected static final String MSG_ID = "f3f7ac8f-2ff8-48a0-bb30-f220654f6a5f";
 
-  // TODO: move to proper tests
-  protected static final String DEFAULT_REQUEST_BODY =
+  protected static final String DEFAULT_REQUEST_BODY_WITH_JSON_PAYLOAD =
       "{\n"
           + "    \"authentication\":{\n"
           + "      \"secretKey\":\"XXX\",\n"
@@ -45,6 +44,29 @@ public abstract class BaseTest {
           + "      \"messageBody\":{\n"
           + "        \"data\":\"ok\"\n"
           + "      },\n"
+          + "      \"region\":\"us-east-1\",\n"
+          + "      \"url\":\"https://sqs.us-east-1.amazonaws.com/0000000/test-test-test\"\n"
+          + "    }\n"
+          + "  }";
+
+  protected static final String DEFAULT_REQUEST_BODY_WITH_STRING_PAYLOAD =
+      "{\n"
+          + "    \"authentication\":{\n"
+          + "      \"secretKey\":\"XXX\",\n"
+          + "      \"accessKey\":\"YYY\"\n"
+          + "    },\n"
+          + "    \"queue\":{\n"
+          + "      \"messageAttributes\":{\n"
+          + "        \"description\":{\n"
+          + "          \"StringValue\":\"delivery receipt from transaction 001122334455\",\n"
+          + "          \"DataType\":\"String\"\n"
+          + "        },\n"
+          + "        \"size\":{\n"
+          + "          \"StringValue\":\"2 KiB\",\n"
+          + "          \"DataType\":\"String\"\n"
+          + "        }\n"
+          + "      },\n"
+          + "      \"messageBody\": \"I am a string value!\",\n"
           + "      \"region\":\"us-east-1\",\n"
           + "      \"url\":\"https://sqs.us-east-1.amazonaws.com/0000000/test-test-test\"\n"
           + "    }\n"

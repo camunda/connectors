@@ -16,7 +16,7 @@ jobs:
 
       - name: Import Secrets
         id: secrets # important to refer to it in later steps
-        uses: hashicorp/vault-action@v2.4.3
+        uses: hashicorp/vault-action@v2.5.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -39,6 +39,19 @@ jobs:
           server-username: MAVEN_USERNAME
           server-password: MAVEN_PASSWORD
 
+      # Use CI Nexus as co-located pull-through cache for Maven artifacts via ~/.m2/settings.xml
+      - name: 'Create settings.xml'
+        uses: s4u/maven-settings-action@v2.8.0
+        with:
+          githubServer: false
+          servers: |
+            [{
+               "id": "camunda-nexus",
+               "username": "${{ steps.secrets.outputs.ARTIFACTORY_USR }}",
+               "password": "${{ steps.secrets.outputs.ARTIFACTORY_PSW }}"
+             }]
+          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "camunda-nexus", "name": "camunda Nexus"}]'
+
       - name: Build Artifacts
         run: mvn -B compile generate-sources source:jar javadoc:jar deploy
         env:
@@ -46,12 +59,12 @@ jobs:
           MAVEN_PASSWORD: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
 
       - name: Lint Connector Bundle Dockerfile - SaaS
-        uses: hadolint/hadolint-action@v3.0.0
+        uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: bundle/mvn/camunda-saas-bundle/Dockerfile
 
       - name: Lint Connector Bundle Dockerfile - default-bundle
-        uses: hadolint/hadolint-action@v3.0.0
+        uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: bundle/mvn/default-bundle/Dockerfile
 

@@ -57,10 +57,14 @@ public class SqsConnectorFunction implements OutboundConnectorFunction {
               request.getAuthentication().getAccessKey(),
               request.getAuthentication().getSecretKey(),
               request.getQueue().getRegion());
+      String payload =
+          request.getQueue().getMessageBody() instanceof String
+              ? request.getQueue().getMessageBody().toString()
+              : gson.toJson(request.getQueue().getMessageBody());
       SendMessageRequest message =
           new SendMessageRequest()
               .withQueueUrl(request.getQueue().getUrl())
-              .withMessageBody(request.getQueue().getMessageBody().toString())
+              .withMessageBody(payload)
               .withMessageAttributes(request.getQueue().getAwsSqsNativeMessageAttributes());
       return sqsClient.sendMessage(message);
     } finally {

@@ -10,6 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.microsoft.graph.models.Channel;
 import com.microsoft.graph.models.ConversationMember;
 import com.microsoft.graph.requests.ChannelCollectionRequest;
@@ -102,9 +103,10 @@ class CreateChannelTest extends BaseTest {
 
   @ParameterizedTest
   @MethodSource("createChannelValidationFailTestCases")
-  public void validate_shouldThrowExceptionWhenLeastOneRequiredFieldNotExist(String input) {
+  public void validate_shouldThrowExceptionWhenLeastOneRequiredFieldNotExist(String input)
+      throws JsonProcessingException {
     // Given request without one required field
-    MSTeamsRequest request = gson.fromJson(input, MSTeamsRequest.class);
+    MSTeamsRequest request = objectMapper.readValue(input, MSTeamsRequest.class);
     OutboundConnectorContext context = getContextBuilderWithSecrets().variables(input).build();
     // When context.validate;
     // Then expect exception that one required field not set

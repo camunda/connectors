@@ -4,6 +4,7 @@
   "id": "io.camunda.connectors.webhook.WebhookConnector.v1",
   "version": 1,
   "description": "Configure webhook to receive callbacks",
+  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/",
   "category": {
     "id": "connectors",
     "name": "Connectors"
@@ -56,7 +57,7 @@
       "id": "shouldValidateHmac",
       "label": "HMAC Authentication",
       "group": "endpoint",
-      "description": "Choose whether HMAC verification is enabled",
+      "description": "Choose whether HMAC verification is enabled. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/#make-your-http-webhook-connector-for-receiving-messages-executable' target='_blank'>See documentation</a> and <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/#example' target='_blank'>example</a> that explains how to use HMAC-related fields",
       "value": "disabled",
       "type": "Dropdown",
       "choices": [
@@ -143,7 +144,7 @@
         "type": "zeebe:property",
         "name": "inbound.activationCondition"
       },
-      "description": "Condition under which the connector triggers. Leave empty to catch all events"
+      "description": "Condition under which the connector triggers. Leave empty to catch all events. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/#make-your-http-webhook-connector-for-receiving-messages-executable' target='_blank'>See documentation</a>"
     },
     {
       "label": "Variables",
@@ -154,7 +155,7 @@
         "type": "zeebe:property",
         "name": "inbound.variableMapping"
       },
-      "description": "Map variables from the webhook payload (request) to start the process with. When blank, entire payload is copied over"
+      "description": "Map variables from the webhook payload (request) to start the process with. When blank, entire payload is copied over. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/#make-your-http-webhook-connector-for-receiving-messages-executable' target='_blank'>See documentation</a>"
     }
   ],
   "icon": {

@@ -9,8 +9,9 @@ package io.camunda.connector;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.readString;
 
-import com.google.gson.Gson;
-import io.camunda.connector.suppliers.GsonSupplier;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.suppliers.ObjectMapperSupplier;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import java.io.File;
 import java.io.IOException;
@@ -20,7 +21,7 @@ import org.junit.jupiter.params.provider.Arguments;
 
 public abstract class BaseTest {
 
-  protected static final Gson gson = GsonSupplier.getGson();
+  protected static final ObjectMapper objectMapper = ObjectMapperSupplier.objectMapper();
 
   protected interface ActualValue {
 
@@ -30,13 +31,17 @@ public abstract class BaseTest {
       String CLIENT_SECRET = "Wao8Q~yzXYfgdM_testClientSecret_RZyqPaET";
 
       String BEARER_TOKEN = "BEARER_TOKEN_Wao8Q~yzXYfgdM_RZyqPaET01696d2e4a179c292bc9cf04e63b";
+      String REFRESH_TOKEN =
+          "REFRESH_TOKEN_AgABAAEAAAD--DLA3VO7QrddgJg7WevrAgDs_wQA9P-P7wgV-lUKIE_JfYDJK912TTwhqJD7WmYcHfnNtlLgC-i9bG8_vmSYs1GLIYe4KnZ4KTOxNqh74kjnrwLdyuMnUrOYXtBBnT-p8RCqW8GefJpIM0mAJ7HVtD4ghBfFzrQBeS2QuYOvh_dcIQ9nET01696d2e4a179c292bc9cf04e63b";
     }
 
     interface Chat {
       String CHAT_ID = "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2";
-      String CONTENT_PART_1 = "microsoft teams";
-      String CONTENT_PART_2 = "camunda connector";
-      String CONTENT = "Hi " + CONTENT_PART_1 + " from " + CONTENT_PART_2 + "!!!";
+      String MESSAGE_ID = "01223456789";
+      String FILTER =
+          "lastModifiedDateTime ge 2022-09-22T00:00:00.000Z and lastModifiedDateTime le 2022-09-24T00:00:00.000Z";
+      String CONTENT_PART_1 = "Hi microsoft teams ";
+      String CONTENT_PART_2 = "from camunda connector";
     }
 
     interface Channel {
@@ -45,9 +50,7 @@ public abstract class BaseTest {
       String NAME = "ChannelTest";
       String MESSAGE_ID = "01234436675734";
       String DESCRIPTION = "Test channel description";
-      String CHANNEL_TYPE_PRIVATE = "private";
       String CHANNEL_TYPE_STANDARD = "standard";
-      String CHANNEL_TYPE_SHARED = "shared";
       String OWNER = "john.dou@mail.com";
       String FILTER = "createdDateTime desc";
       String CONTENT = "Hi Microsoft Teams channel from camunda!!!";
@@ -62,12 +65,15 @@ public abstract class BaseTest {
       String TENANT_ID = "TENANT_ID_KEY";
       String CLIENT_SECRET = "CLIENT_SECRET_KEY";
       String BEARER_TOKEN = "BEARER_TOKEN_KEY";
+      String REFRESH_TOKEN = "REFRESH_TOKEN_KEY";
     }
 
     interface Chat {
       String CHAT_ID = "CHAT_ID_KEY";
-      String CONTENT_PART_1 = "MICROSOFT_TEAMS_KEY";
-      String CONTENT_PART_2 = "CAMUNDA_CONNECTOR_KEY";
+      String MESSAGE_ID = "MESSAGE_ID_KEY";
+      String FILTER = "FILTER_KEY";
+      String CONTENT_PART_1 = "CONTENT_PART_1_KEY";
+      String CONTENT_PART_2 = "CONTENT_PART_2_KEY";
     }
 
     interface Channel {
@@ -75,8 +81,6 @@ public abstract class BaseTest {
       String GROUP_ID = "GROUP_ID_KEY";
       String NAME = "CHANNEL_NAME_KEY";
       String MESSAGE_ID = "CHANNEL_MESSAGE_ID_KEY";
-      String DESCRIPTION = "DESCRIPTION";
-      String CHANNEL_TYPE = "CHANNEL_TYPE";
       String FILTER = "CHANNEL_FILTER_KEY";
       String CONTENT = "CHANNEL_MESSAGE_CONTENT_KEY";
     }
@@ -88,6 +92,7 @@ public abstract class BaseTest {
         .secret(Secrets.Authentication.TENANT_ID, ActualValue.Authentication.TENANT_ID)
         .secret(Secrets.Authentication.CLIENT_SECRET, ActualValue.Authentication.CLIENT_SECRET)
         .secret(Secrets.Authentication.BEARER_TOKEN, ActualValue.Authentication.BEARER_TOKEN)
+        .secret(Secrets.Authentication.REFRESH_TOKEN, ActualValue.Authentication.REFRESH_TOKEN)
         .secret(Secrets.Channel.CHANNEL_ID, ActualValue.Channel.CHANNEL_ID)
         .secret(Secrets.Channel.GROUP_ID, ActualValue.Channel.GROUP_ID)
         .secret(Secrets.Channel.NAME, ActualValue.Channel.NAME)
@@ -95,12 +100,18 @@ public abstract class BaseTest {
         .secret(Secrets.Channel.FILTER, ActualValue.Channel.FILTER)
         .secret(Secrets.Channel.CONTENT, ActualValue.Channel.CONTENT)
         .secret(Secrets.Chat.CHAT_ID, ActualValue.Chat.CHAT_ID)
+        .secret(Secrets.Chat.MESSAGE_ID, ActualValue.Chat.MESSAGE_ID)
+        .secret(Secrets.Chat.FILTER, ActualValue.Chat.FILTER)
         .secret(Secrets.Chat.CONTENT_PART_1, ActualValue.Chat.CONTENT_PART_1)
         .secret(Secrets.Chat.CONTENT_PART_2, ActualValue.Chat.CONTENT_PART_2);
   }
 
   protected static Stream<String> executeSuccessWorkWithChannelTestCases() throws IOException {
-    return loadTestCasesFromResourceFile(TestCasesPath.SUCCESS_EXECUTE);
+    return loadTestCasesFromResourceFile(TestCasesPath.Channel.SUCCESS_EXECUTE);
+  }
+
+  protected static Stream<String> executeSuccessWorkWithChatTestCases() throws IOException {
+    return loadTestCasesFromResourceFile(TestCasesPath.Chat.SUCCESS_EXECUTE);
   }
 
   protected static Stream<String> parseRequestTestCases() throws IOException {
@@ -140,16 +151,44 @@ public abstract class BaseTest {
     return loadTestCasesFromResourceFile(TestCasesPath.Channel.SEND_MESSAGE_VALIDATION_FAIL);
   }
 
+  protected static Stream<String> createChatValidationFailTestCases() throws IOException {
+    return loadTestCasesFromResourceFile(TestCasesPath.Chat.CREATE_VALIDATION_FAIL);
+  }
+
   protected static Stream<String> getChatValidationFailTestCases() throws IOException {
     return loadTestCasesFromResourceFile(TestCasesPath.Chat.GET_VALIDATION_FAIL);
+  }
+
+  protected static Stream<String> getMessageInChatValidationFailTestCases() throws IOException {
+    return loadTestCasesFromResourceFile(TestCasesPath.Chat.GET_MESSAGE_VALIDATION_FAIL);
+  }
+
+  protected static Stream<String> listChatMembersValidationFailTestCases() throws IOException {
+    return loadTestCasesFromResourceFile(TestCasesPath.Chat.LIST_MEMBERS_VALIDATION_FAIL);
+  }
+
+  protected static Stream<String> listMessagesInChatValidationFailTestCases() throws IOException {
+    return loadTestCasesFromResourceFile(TestCasesPath.Chat.LIST_MESSAGES_VALIDATION_FAIL);
+  }
+
+  protected static Stream<String> sendMessageInChatValidationFailTestCases() throws IOException {
+    return loadTestCasesFromResourceFile(TestCasesPath.Chat.SEND_MESSAGE_VALIDATION_FAIL);
   }
 
   @SuppressWarnings("unchecked")
   protected static Stream<String> loadTestCasesFromResourceFile(final String fileWithTestCasesUri)
       throws IOException {
     final String cases = readString(new File(fileWithTestCasesUri).toPath(), UTF_8);
-    final Gson testingGson = new Gson();
-    var array = testingGson.fromJson(cases, ArrayList.class);
-    return array.stream().map(testingGson::toJson).map(Arguments::of);
+    var array = objectMapper.readValue(cases, ArrayList.class);
+    return array.stream()
+        .map(
+            s -> {
+              try {
+                return objectMapper.writer().writeValueAsString(s);
+              } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+              }
+            })
+        .map(Arguments::of);
   }
 }

@@ -506,5 +506,333 @@
       "channelId": "{{secrets.CHANNEL_ID_KEY}}",
       "content": "{{secrets.CHANNEL_MESSAGE_CONTENT_KEY}}"
     }
+  },
+  {
+    "description": "listMessageRepliesInChannel with secrets / bearer token auth type",
+    "authentication": {
+      "type": "token",
+      "token": "{{secrets.BEARER_TOKEN_KEY}}"
+    },
+    "data": {
+      "method": "sendMessageToChannel",
+      "groupId": "{{secrets.GROUP_ID_KEY}}",
+      "channelId": "{{secrets.CHANNEL_ID_KEY}}",
+      "content": "{{secrets.CHANNEL_MESSAGE_CONTENT_KEY}}"
+    }
+  },
+  {
+    "description": "create channel / refresh token auth type / channelType private",
+    "authentication": {
+      "type": "refresh",
+      "token": "BEARER_TOKEN_Wao8Q~yzXYfgdM_RZyqPaET01696d2e4a179c292bc9cf04e63b",
+      "clientId": "abc01234-0c7f-012c-9876-testClientId",
+      "tenantId": "5357c0a8-4728-418b-8c41-testTenantId",
+      "clientSecret": "Wao8Q~yzXYfgdM_testClientSecret_RZyqPaET"
+    },
+    "data": {
+      "method": "createChannel",
+      "groupId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "name": "ChannelTest",
+      "channelType": "private",
+      "owner": "john.dou@mail.com"
+    }
+  },
+  {
+    "description": "create channel with secrets / refresh token auth type",
+    "authentication": {
+      "type": "refresh",
+      "token": "{{secrets.REFRESH_TOKEN_KEY}}",
+      "clientId": "{{secrets.CLIENT_ID_KEY}}",
+      "tenantId": "{{secrets.TENANT_ID_KEY}}",
+      "clientSecret": "{{secrets.CLIENT_SECRET_KEY}}"
+    },
+    "data": {
+      "method": "createChannel",
+      "groupId": "{{secrets.GROUP_ID_KEY}}",
+      "name": "{{secrets.CHANNEL_NAME_KEY}}",
+      "channelType": "standard",
+      "owner": "{{secrets.CHANNEL_OWNER_KEY}}"
+    }
+  },
+  {
+    "description": "create channel / refresh token auth type / channelType standard",
+    "authentication": {
+      "type": "refresh",
+      "token": "BEARER_TOKEN_Wao8Q~yzXYfgdM_RZyqPaET01696d2e4a179c292bc9cf04e63b",
+      "clientId": "abc01234-0c7f-012c-9876-testClientId",
+      "tenantId": "5357c0a8-4728-418b-8c41-testTenantId",
+      "clientSecret": "Wao8Q~yzXYfgdM_testClientSecret_RZyqPaET"
+    },
+    "data": {
+      "method": "createChannel",
+      "groupId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "name": "ChannelTest",
+      "channelType": "standard",
+      "owner": "john.dou@mail.com"
+    }
+  },
+  {
+    "description": "create channel with secrets / refresh token auth type / shared channel type",
+    "authentication": {
+      "type": "refresh",
+      "token": "{{secrets.REFRESH_TOKEN_KEY}}",
+      "clientId": "{{secrets.CLIENT_ID_KEY}}",
+      "tenantId": "{{secrets.TENANT_ID_KEY}}",
+      "clientSecret": "{{secrets.CLIENT_SECRET_KEY}}"
+    },
+    "data": {
+      "method": "createChannel",
+      "groupId": "{{secrets.GROUP_ID_KEY}}",
+      "name": "{{secrets.CHANNEL_NAME_KEY}}",
+      "channelType": "shared",
+      "owner": "{{secrets.CHANNEL_OWNER_KEY}}"
+    }
+  },
+  {
+    "description": "getChannel with secrets / refresh token auth type",
+    "authentication": {
+      "type": "refresh",
+      "token": "{{secrets.REFRESH_TOKEN_KEY}}",
+      "clientId": "{{secrets.CLIENT_ID_KEY}}",
+      "tenantId": "{{secrets.TENANT_ID_KEY}}",
+      "clientSecret": "{{secrets.CLIENT_SECRET_KEY}}"
+    },
+    "data": {
+      "method": "getChannel",
+      "groupId": "{{secrets.GROUP_ID_KEY}}",
+      "channelId": "{{secrets.CHANNEL_ID_KEY}}"
+    }
+  },
+  {
+    "description": "getChannel / refresh token auth type",
+    "authentication": {
+      "type": "refresh",
+      "token": "BEARER_TOKEN_Wao8Q~yzXYfgdM_RZyqPaET01696d2e4a179c292bc9cf04e63b",
+      "clientId": "abc01234-0c7f-012c-9876-testClientId",
+      "tenantId": "5357c0a8-4728-418b-8c41-testTenantId",
+      "clientSecret": "Wao8Q~yzXYfgdM_testClientSecret_RZyqPaET"
+    },
+    "data": {
+      "method": "getChannel",
+      "groupId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "channelId": "abc01234-0c7f-012c-9876-testClientId"
+    }
+  },
+  {
+    "description": "getChannel with secrets / refresh token auth type",
+    "authentication": {
+      "type": "refresh",
+      "token": "{{secrets.REFRESH_TOKEN_KEY}}",
+      "clientId": "{{secrets.CLIENT_ID_KEY}}",
+      "tenantId": "{{secrets.TENANT_ID_KEY}}",
+      "clientSecret": "{{secrets.CLIENT_SECRET_KEY}}"
+    },
+    "data": {
+      "method": "getChannel",
+      "groupId": "{{secrets.GROUP_ID_KEY}}",
+      "channelId": "{{secrets.CHANNEL_ID_KEY}}"
+    }
+  },
+  {
+    "description": "getMessageFromChannel with secrets / refresh token auth type",
+    "authentication": {
+      "type": "refresh",
+      "token": "{{secrets.REFRESH_TOKEN_KEY}}",
+      "clientId": "{{secrets.CLIENT_ID_KEY}}",
+      "tenantId": "{{secrets.TENANT_ID_KEY}}",
+      "clientSecret": "{{secrets.CLIENT_SECRET_KEY}}"
+    },
+    "data": {
+      "method": "getMessageFromChannel",
+      "groupId": "{{secrets.GROUP_ID_KEY}}",
+      "channelId": "{{secrets.CHANNEL_ID_KEY}}",
+      "messageId": "{{secrets.CHANNEL_MESSAGE_ID_KEY}}"
+    }
+  },
+  {
+    "description": "getMessageFromChannel / refresh token auth type",
+    "authentication": {
+      "type": "refresh",
+      "token": "BEARER_TOKEN_Wao8Q~yzXYfgdM_RZyqPaET01696d2e4a179c292bc9cf04e63b",
+      "clientId": "abc01234-0c7f-012c-9876-testClientId",
+      "tenantId": "5357c0a8-4728-418b-8c41-testTenantId",
+      "clientSecret": "Wao8Q~yzXYfgdM_testClientSecret_RZyqPaET"
+    },
+    "data": {
+      "method": "getMessageFromChannel",
+      "groupId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "channelId": "abc01234-0c7f-012c-9876-testClientId",
+      "messageId": "01234436675734"
+    }
+  },
+  {
+    "description": "listMembersInChannel / refresh token auth type",
+    "authentication": {
+      "type": "refresh",
+      "token": "BEARER_TOKEN_Wao8Q~yzXYfgdM_RZyqPaET01696d2e4a179c292bc9cf04e63b",
+      "clientId": "abc01234-0c7f-012c-9876-testClientId",
+      "tenantId": "5357c0a8-4728-418b-8c41-testTenantId",
+      "clientSecret": "Wao8Q~yzXYfgdM_testClientSecret_RZyqPaET"
+    },
+    "data": {
+      "method": "listMembersInChannel",
+      "groupId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "channelId": "abc01234-0c7f-012c-9876-testClientId"
+    }
+  },
+  {
+    "description": "listMembersInChannel with secrets / refresh token auth type",
+    "authentication": {
+      "type": "refresh",
+      "token": "{{secrets.REFRESH_TOKEN_KEY}}",
+      "clientId": "{{secrets.CLIENT_ID_KEY}}",
+      "tenantId": "{{secrets.TENANT_ID_KEY}}",
+      "clientSecret": "{{secrets.CLIENT_SECRET_KEY}}"
+    },
+    "data": {
+      "method": "listMembersInChannel",
+      "groupId": "{{secrets.GROUP_ID_KEY}}",
+      "channelId": "{{secrets.CHANNEL_ID_KEY}}"
+    }
+  },
+  {
+    "description": "listChannelMessages / refresh token auth type",
+    "authentication": {
+      "type": "refresh",
+      "token": "BEARER_TOKEN_Wao8Q~yzXYfgdM_RZyqPaET01696d2e4a179c292bc9cf04e63b",
+      "clientId": "abc01234-0c7f-012c-9876-testClientId",
+      "tenantId": "5357c0a8-4728-418b-8c41-testTenantId",
+      "clientSecret": "Wao8Q~yzXYfgdM_testClientSecret_RZyqPaET"
+    },
+    "data": {
+      "method": "listChannelMessages",
+      "groupId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "channelId": "abc01234-0c7f-012c-9876-testClientId"
+    }
+  },
+  {
+    "description": "listChannelMessages with secrets / refresh token auth type",
+    "authentication": {
+      "type": "refresh",
+      "token": "{{secrets.REFRESH_TOKEN_KEY}}",
+      "clientId": "{{secrets.CLIENT_ID_KEY}}",
+      "tenantId": "{{secrets.TENANT_ID_KEY}}",
+      "clientSecret": "{{secrets.CLIENT_SECRET_KEY}}"
+    },
+    "data": {
+      "method": "listChannelMessages",
+      "groupId": "{{secrets.GROUP_ID_KEY}}",
+      "channelId": "{{secrets.CHANNEL_ID_KEY}}"
+    }
+  },
+  {
+    "description": "listAllChannels / refresh token auth type",
+    "authentication": {
+      "type": "refresh",
+      "token": "BEARER_TOKEN_Wao8Q~yzXYfgdM_RZyqPaET01696d2e4a179c292bc9cf04e63b",
+      "clientId": "abc01234-0c7f-012c-9876-testClientId",
+      "tenantId": "5357c0a8-4728-418b-8c41-testTenantId",
+      "clientSecret": "Wao8Q~yzXYfgdM_testClientSecret_RZyqPaET"
+    },
+    "data": {
+      "method": "listAllChannels",
+      "groupId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "filter": "createdDateTime desc"
+    }
+  },
+  {
+    "description": "listAllChannels with secrets / refresh token auth type",
+    "authentication": {
+      "type": "refresh",
+      "token": "{{secrets.REFRESH_TOKEN_KEY}}",
+      "clientId": "{{secrets.CLIENT_ID_KEY}}",
+      "tenantId": "{{secrets.TENANT_ID_KEY}}",
+      "clientSecret": "{{secrets.CLIENT_SECRET_KEY}}"
+    },
+    "data": {
+      "method": "listAllChannels",
+      "groupId": "{{secrets.GROUP_ID_KEY}}",
+      "filter": "{{secrets.CHANNEL_FILTER_KEY}}"
+    }
+  },
+  {
+    "description": "listMessageRepliesInChannel / refresh token auth type",
+    "authentication": {
+      "type": "refresh",
+      "token": "BEARER_TOKEN_Wao8Q~yzXYfgdM_RZyqPaET01696d2e4a179c292bc9cf04e63b",
+      "clientId": "abc01234-0c7f-012c-9876-testClientId",
+      "tenantId": "5357c0a8-4728-418b-8c41-testTenantId",
+      "clientSecret": "Wao8Q~yzXYfgdM_testClientSecret_RZyqPaET"
+    },
+    "data": {
+      "method": "listMessageRepliesInChannel",
+      "groupId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "channelId": "abc01234-0c7f-012c-9876-testClientId",
+      "messageId": "01234436675734"
+    }
+  },
+  {
+    "description": "listMessageRepliesInChannel with secrets / refresh token auth type",
+    "authentication": {
+      "type": "refresh",
+      "token": "{{secrets.REFRESH_TOKEN_KEY}}",
+      "clientId": "{{secrets.CLIENT_ID_KEY}}",
+      "tenantId": "{{secrets.TENANT_ID_KEY}}",
+      "clientSecret": "{{secrets.CLIENT_SECRET_KEY}}"
+    },
+    "data": {
+      "method": "listMessageRepliesInChannel",
+      "groupId": "{{secrets.GROUP_ID_KEY}}",
+      "channelId": "{{secrets.CHANNEL_ID_KEY}}",
+      "messageId": "{{secrets.CHANNEL_MESSAGE_ID_KEY}}"
+    }
+  },
+  {
+    "description": "listMessageRepliesInChannel / refresh token auth type",
+    "authentication": {
+      "type": "refresh",
+      "token": "BEARER_TOKEN_Wao8Q~yzXYfgdM_RZyqPaET01696d2e4a179c292bc9cf04e63b",
+      "clientId": "abc01234-0c7f-012c-9876-testClientId",
+      "tenantId": "5357c0a8-4728-418b-8c41-testTenantId",
+      "clientSecret": "Wao8Q~yzXYfgdM_testClientSecret_RZyqPaET"
+    },
+    "data": {
+      "method": "sendMessageToChannel",
+      "groupId": "19:1c5b01696d2e4a179c292bc9cf04e63b@thread.v2",
+      "channelId": "abc01234-0c7f-012c-9876-testClientId",
+      "content": "Hi Microsoft Teams channel from camunda!!!"
+    }
+  },
+  {
+    "description": "listMessageRepliesInChannel with secrets / refresh token auth type",
+    "authentication": {
+      "type": "refresh",
+      "token": "{{secrets.REFRESH_TOKEN_KEY}}",
+      "clientId": "{{secrets.CLIENT_ID_KEY}}",
+      "tenantId": "{{secrets.TENANT_ID_KEY}}",
+      "clientSecret": "{{secrets.CLIENT_SECRET_KEY}}"
+    },
+    "data": {
+      "method": "sendMessageToChannel",
+      "groupId": "{{secrets.GROUP_ID_KEY}}",
+      "channelId": "{{secrets.CHANNEL_ID_KEY}}",
+      "content": "{{secrets.CHANNEL_MESSAGE_CONTENT_KEY}}"
+    }
+  },
+  {
+    "description": "listMessageRepliesInChannel with secrets / refresh token auth type",
+    "authentication": {
+      "type": "refresh",
+      "token": "{{secrets.REFRESH_TOKEN_KEY}}",
+      "clientId": "{{secrets.CLIENT_ID_KEY}}",
+      "tenantId": "{{secrets.TENANT_ID_KEY}}",
+      "clientSecret": "{{secrets.CLIENT_SECRET_KEY}}"
+    },
+    "data": {
+      "method": "sendMessageToChannel",
+      "groupId": "{{secrets.GROUP_ID_KEY}}",
+      "channelId": "{{secrets.CHANNEL_ID_KEY}}",
+      "content": "{{secrets.CHANNEL_MESSAGE_CONTENT_KEY}}"
+    }
   }
 ]

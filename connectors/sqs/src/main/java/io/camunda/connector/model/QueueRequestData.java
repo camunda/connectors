@@ -21,8 +21,7 @@ public class QueueRequestData {
   @NotEmpty @Secret private String url;
   @NotEmpty @Secret private String region;
 
-  @NotNull
-  private Object messageBody; // we don't need to know the customer message as we will pass it as-is
+  @NotNull private Object messageBody;
 
   private Map<String, SqsMessageAttribute> messageAttributes;
 
