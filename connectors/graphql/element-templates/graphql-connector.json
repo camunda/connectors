@@ -104,15 +104,15 @@
       "label": "Method",
       "group": "endpoint",
       "type": "Dropdown",
-      "value": "get",
+      "value": "post",
       "choices": [
-        {
-          "name": "GET",
-          "value": "get"
-        },
         {
           "name": "POST",
           "value": "post"
+        },
+        {
+          "name": "GET",
+          "value": "get"
         }
       ],
       "binding": {
