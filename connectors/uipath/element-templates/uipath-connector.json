@@ -56,7 +56,6 @@
       "label": "Operation type",
       "id": "operationType",
       "group": "operation",
-      "value": "addQueueItem",
       "type": "Dropdown",
       "choices": [
         {
@@ -65,7 +64,7 @@
         },
         {
           "name": "Get queue item result by ID",
-          "value": "getItemStatus"
+          "value": "getItemById"
         }
       ],
       "binding": {
@@ -78,7 +77,6 @@
       "id": "authenticationType",
       "group": "authentication",
       "description": "Choose the authentication type",
-      "value": "oauth-client-credentials-flow",
       "type": "Dropdown",
       "choices": [
         {
@@ -219,7 +217,7 @@
       "condition": {
         "property": "operationType",
         "oneOf": [
-          "getItemStatus"
+          "getItemById"
         ]
       }
     },
@@ -261,35 +259,6 @@
       },
       "constraints": {
         "notEmpty": true
-      }
-    },
-    {
-      "type": "Hidden",
-      "value": "=\"https:\"+\"//\"+cloudUrl+\"/\"+cloudOrg+\"/\"+cloudTenant+\"/orchestrator_/odata/Queues/UiPathODataSvc.AddQueueItem\"",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "url"
-      },
-      "condition": {
-        "property": "operationType",
-        "oneOf": [
-          "addQueueItem"
-        ]
-      }
-    },
-    {
-      "group": "configuration",
-      "type": "Hidden",
-      "value": "=\"https:\"+\"//\"+cloudUrl+\"/\"+cloudOrg+\"/\"+cloudTenant+\"/orchestrator_/odata/QueueItems()\"",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "url"
-      },
-      "condition": {
-        "property": "operationType",
-        "oneOf": [
-          "getItemStatus"
-        ]
       }
     },
     {
@@ -439,6 +408,26 @@
       "optional": true
     },
     {
+      "label": "Item ID",
+      "description": "The item ID to be fetched",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "itemId"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "getItemById"
+        ]
+      }
+    },
+    {
       "group": "input",
       "type": "Hidden",
       "value": "={\"itemData\":{\"DeferDate\":if deferDate = null then null else deferDate, \"DueDate\":if dueDate = null then null else dueDate,\"Priority\":if priority = null then null else priority,\"Name\":queueName,\"SpecificContent\":if specificContent = null then null else specificContent,\"Reference\":if reference = null then null else reference}}",
@@ -455,23 +444,6 @@
       "optional": true
     },
     {
-      "label": "Item ID name",
-      "description": "Name of variable to store the item ID in",
-      "group": "output",
-      "type": "String",
-      "optional": true,
-      "binding": {
-        "type": "zeebe:input",
-        "name": "resultVariableName"
-      },
-      "condition": {
-        "property": "operationType",
-        "oneOf": [
-          "addQueueItem"
-        ]
-      }
-    },
-    {
       "label": "Result variable",
       "description": "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>",
       "group": "output",
@@ -482,13 +454,13 @@
       }
     },
     {
-      "label": "Result expression",
-      "id": "resultExpressionAdd",
+      "label": "Result Expression",
+      "id": "resultExpressionGet",
       "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
       "group": "output",
       "type": "String",
       "feel": "required",
-      "value": "=if resultVariableName = null then {} else put({ }, resultVariableName, response.body.Id)",
+      "value": "={itemId: response.body.Id}",
       "binding": {
         "type": "zeebe:taskHeader",
         "key": "resultExpression"
@@ -507,7 +479,7 @@
       "group": "output",
       "type": "String",
       "feel": "required",
-      "value": "{itemStatus: response.body.value[1].Status}",
+      "value": "={itemStatus: response.body.value[1].Status}",
       "binding": {
         "type": "zeebe:taskHeader",
         "key": "resultExpression"
@@ -515,7 +487,7 @@
       "condition": {
         "property": "operationType",
         "oneOf": [
-          "getItemStatus"
+          "getItemById"
         ]
       }
     },
@@ -532,7 +504,7 @@
       "condition": {
         "property": "operationType",
         "oneOf": [
-          "getItemStatus"
+          "getItemById"
         ]
       }
     },
@@ -553,6 +525,35 @@
           "value": "^([0-9]*$)|(secrets.*$)",
           "message": "Must be timeout in seconds (default value is 20 seconds)"
         }
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "=\"https:\"+\"//\"+cloudUrl+\"/\"+cloudOrg+\"/\"+cloudTenant+\"/orchestrator_/odata/Queues/UiPathODataSvc.AddQueueItem\"",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "url"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "addQueueItem"
+        ]
+      }
+    },
+    {
+      "group": "configuration",
+      "type": "Hidden",
+      "value": "=\"https:\"+\"//\"+cloudUrl+\"/\"+cloudOrg+\"/\"+cloudTenant+\"/orchestrator_/odata/QueueItems()\"",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "url"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "getItemById"
+        ]
       }
     },
     {
