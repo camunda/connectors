@@ -1,0 +1,486 @@
+{
+  "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name": "Blue Prism Connector",
+  "id": "io.camunda.connectors.BluePrism.v1",
+  "version": 1,
+  "description": "Orchestrate your Blue Prism queue with Camunda. You can create new queue items and get the result from it",
+  "documentationRef": "https://docs.camunda.io/docs/components/modeler/web-modeler/connectors/available-connectors/blueprism/",
+  "category": {
+    "id": "connectors",
+    "name": "Connectors"
+  },
+  "appliesTo": [
+    "bpmn:Task"
+  ],
+  "elementType": {
+    "value": "bpmn:ServiceTask"
+  },
+  "groups": [
+    {
+      "id": "operation",
+      "label": "Operation"
+    },
+    {
+      "id": "authentication",
+      "label": "Authentication"
+    },
+    {
+      "id": "configuration",
+      "label": "Configuration"
+    },
+    {
+      "id": "input",
+      "label": "Input"
+    },
+    {
+      "id": "output",
+      "label": "Output"
+    },
+    {
+      "id": "errors",
+      "label": "Error Handling"
+    }
+  ],
+  "properties": [
+    {
+      "type": "Hidden",
+      "value": "io.camunda:http-json:1",
+      "binding": {
+        "type": "zeebe:taskDefinition:type"
+      }
+    },
+    {
+      "label": "Operation type",
+      "id": "operationType",
+      "group": "operation",
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Get item from a queue by ID",
+          "value": "getItemFromQueueById"
+        },
+        {
+          "name": "Create work queue item",
+          "value": "createItemInQueue"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "operationType"
+      }
+    },
+    {
+      "label": "Type",
+      "id": "authenticationType",
+      "group": "authentication",
+      "description": "Choose the authentication type",
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Bearer Token",
+          "value": "bearer"
+        },
+        {
+          "name": "OAuth 2.0 client credentials",
+          "value": "oauth-client-credentials-flow"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.type"
+      }
+    },
+    {
+      "label": "Bearer token",
+      "group": "authentication",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.token"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "bearer"
+      }
+    },
+    {
+      "label": "Identity token provider URL",
+      "type": "String",
+      "group": "authentication",
+      "value": "https://auth-server/connect/token",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.oauthTokenEndpoint"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "oauth-client-credentials-flow"
+      }
+    },
+    {
+      "label": "Client ID",
+      "description": "Blue Prism OAuth 2.0 client ID",
+      "group": "authentication",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.clientId"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "oauth-client-credentials-flow"
+      }
+    },
+    {
+      "label": "Client secret",
+      "description": "Blue Prism OAuth 2.0 client secret",
+      "group": "authentication",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.clientSecret"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "oauth-client-credentials-flow"
+      }
+    },
+    {
+      "group": "authentication",
+      "type": "Hidden",
+      "value": "bp-api",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.scopes"
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "oauth-client-credentials-flow"
+      }
+    },
+    {
+      "id": "authenticationType",
+      "group": "authentication",
+      "value": "basicAuthHeader",
+      "type": "Hidden",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.clientAuthentication"
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "oauth-client-credentials-flow"
+      }
+    },
+    {
+      "id": "methodPost",
+      "group": "configuration",
+      "type": "Hidden",
+      "value": "post",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "method"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createItemInQueue"
+        ]
+      }
+    },
+    {
+      "id": "methodGet",
+      "group": "configuration",
+      "type": "Hidden",
+      "value": "get",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "method"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "getItemFromQueueById"
+        ]
+      }
+    },
+    {
+      "group": "configuration",
+      "type": "Hidden",
+      "value": "={\"Content-Type\":\"application/json\"}",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "headers"
+      },
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
+      "label": "Blue Prism API base URL",
+      "group": "configuration",
+      "type": "String",
+      "value": "https://blueprism.myservice.com:5678",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "bluePrismBaseUrl"
+      },
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
+      "label": "Work Queue ID",
+      "group": "input",
+      "description": "The queue ID of the item",
+      "type": "String",
+      "optional": false,
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "bluePrismQueueId"
+      },
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
+      "label": "Queue item ID",
+      "description": "The queue item identifier to be fetched from queue",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "bluePrismItemId"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "getItemFromQueueById"
+        ]
+      },
+      "optional": true
+    },
+    {
+      "label": "Data",
+      "description": "Represents a Blue Prism collection.",
+      "group": "input",
+      "type": "String",
+      "feel": "required",
+      "value": "={\n  rows: [\n    {\n      \"valueType\":\"Text\",\n      \"value\":\"Hello, world!\"\n    }\n  ]\n}",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "bluePrismData"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createItemInQueue"
+        ]
+      },
+      "optional": true
+    },
+    {
+      "label": "Defer date",
+      "description": "The earliest time and date that this item is deferred until. Expected date format: yyyy-MM-dd",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "deferDate"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createItemInQueue"
+        ]
+      },
+      "optional": true
+    },
+    {
+      "label": "Priority",
+      "description": "The priority value assigned to the item",
+      "group": "input",
+      "type": "String",
+      "value": "3",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "priority"
+      },
+      "constraints": {
+        "pattern": {
+          "value": "^([0-9]*$)|(secrets.*$)",
+          "message": "Priority must be integer value"
+        },
+        "notEmpty": false
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createItemInQueue"
+        ]
+      },
+      "optional": true
+    },
+    {
+      "label": "Status",
+      "description": "Status value",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "status"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createItemInQueue"
+        ]
+      },
+      "optional": true
+    },
+    {
+      "group": "input",
+      "type": "Hidden",
+      "value": "=[{ \"data\":if bluePrismData = null then null else bluePrismData, \"deferredDate\":if deferDate = null then null else deferDate, \"priority\":if priority = null then null else priority, \"status\":if status = null then null else status }]",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createItemInQueue"
+        ]
+      },
+      "optional": true
+    },
+    {
+      "label": "Connection timeout",
+      "description": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
+      "group": "errors",
+      "type": "String",
+      "value": "20",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "connectionTimeoutInSeconds"
+      },
+      "optional": true,
+      "constraints": {
+        "notEmpty": false,
+        "pattern": {
+          "value": "^([0-9]*$)|(secrets.*$)",
+          "message": "Must be timeout in seconds (default value is 20 seconds)"
+        }
+      }
+    },
+    {
+      "label": "Result variable",
+      "description": "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>",
+      "group": "output",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultVariable"
+      }
+    },
+    {
+      "label": "Result Expression",
+      "id": "resultExpressionGet",
+      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "group": "output",
+      "type": "String",
+      "feel": "required",
+      "value": "={itemState:response.body.state}",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultExpression"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "getItemFromQueueById"
+        ]
+      }
+    },
+    {
+      "label": "Result Expression",
+      "id": "resultExpressionGet",
+      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "group": "output",
+      "type": "String",
+      "feel": "required",
+      "value": "={itemId:response.body.ids[1]}",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultExpression"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createItemInQueue"
+        ]
+      }
+    },
+    {
+      "label": "Error expression",
+      "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
+      "group": "errors",
+      "type": "Text",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "errorExpression"
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "=bluePrismBaseUrl+\"/api/v7/workqueues/\"+bluePrismQueueId+\"/items/\"+bluePrismItemId",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "url"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "getItemFromQueueById"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "=bluePrismBaseUrl+\"/api/v7/workqueues/\"+bluePrismQueueId+\"/items/batch\"",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "url"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createItemInQueue"
+        ]
+      }
+    }
+  ],
+  "icon": {
+    "contents": "data:image/x-icon;base64,AAABAAMAMDAAAAEAIACoJQAANgAAACAgAAABACAAqBAAAN4lAAAQEAAAAQAgAGgEAACGNgAAKAAAADAAAABgAAAAAQAgAAAAAAAAJAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADhwpYDzJhLI7pzDA4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA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AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP///////wAA////////AAD///////8AAP///////wAA///8f///AAD///gf//8AAP//4A///wAA//+AA///AAD//wAA//8AAP/8AAA//wAA//AAAB//AAD/wAAAB/8AAP+AAAAB/wAA/gAAAAB/AAD4AAAAAD8AAOAAAAAADwAAwAAAAAADAACAAAAAAAEAAIAAAAAAAwAAwAAAAAAHAADgAAAAAA8AAPAAAAAAHwAA+AAAAAAfAAD8AAAAAD8AAP4AAAAAfwAA/gAAAAD/AAD/AAAAAf8AAP+AAAAD/wAA/8AAAAf/AAD/4AAAB/8AAP/wAAAP/wAA//gAAB//AAD/+AAAP/8AAP/8AAB//wAA//4AAP//AAD//wAB//8AAP//gAP//wAA///AA///AAD//+AH//8AAP//8A///wAA///wH///AAD///g///8AAP///H///wAA///+////AAD///////8AAP///////wAA////////AAD///////8AACgAAAAgAAAAQAAAAAEAIAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA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"
+  }
+}
