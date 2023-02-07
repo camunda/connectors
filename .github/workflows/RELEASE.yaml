@@ -71,10 +71,6 @@ jobs:
                "id": "central",
                "username": "${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_USR }}",
                "password": "${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_PSW }}"
-             },
-            {
-               "id": "gpg.passphrase",
-               "passphrase": "${{ steps.secrets.outputs.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}",
              }
             ]
           mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "camunda-nexus", "name": "camunda Nexus"}]'
