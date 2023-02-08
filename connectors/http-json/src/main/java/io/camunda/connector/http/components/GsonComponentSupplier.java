@@ -21,12 +21,12 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.ToNumberPolicy;
 import com.google.gson.typeadapters.RuntimeTypeAdapterFactory;
-import io.camunda.connector.http.auth.Authentication;
-import io.camunda.connector.http.auth.BasicAuthentication;
-import io.camunda.connector.http.auth.BearerAuthentication;
-import io.camunda.connector.http.auth.CustomAuthentication;
-import io.camunda.connector.http.auth.NoAuthentication;
-import io.camunda.connector.http.auth.OAuthAuthentication;
+import io.camunda.connector.common.auth.Authentication;
+import io.camunda.connector.common.auth.BasicAuthentication;
+import io.camunda.connector.common.auth.BearerAuthentication;
+import io.camunda.connector.common.auth.CustomAuthentication;
+import io.camunda.connector.common.auth.NoAuthentication;
+import io.camunda.connector.common.auth.OAuthAuthentication;
 
 public class GsonComponentSupplier {
 

@@ -17,8 +17,6 @@ import com.google.api.client.http.HttpResponse;
 import com.google.api.client.http.json.JsonHttpContent;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.gson.Gson;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
@@ -30,10 +28,10 @@ import io.camunda.connector.graphql.components.GsonComponentSupplier;
 import io.camunda.connector.graphql.components.HttpTransportComponentSupplier;
 import io.camunda.connector.graphql.model.GraphQLRequest;
 import io.camunda.connector.graphql.model.GraphQLResult;
+import io.camunda.connector.graphql.utils.JsonSerializeHelper;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,13 +65,7 @@ public class GraphQLFunction implements OutboundConnectorFunction {
   public Object execute(OutboundConnectorContext context)
       throws IOException, InstantiationException, IllegalAccessException {
     final var json = context.getVariables();
-    JsonElement graphqlJsonElement =
-        Optional.ofNullable(gson.fromJson(json, JsonObject.class).get("graphql"))
-            .orElseThrow(
-                () ->
-                    new IllegalArgumentException(
-                        "graphql input variable is mandatory but was null! "));
-    final var connectorRequest = gson.fromJson(graphqlJsonElement.toString(), GraphQLRequest.class);
+    var connectorRequest = JsonSerializeHelper.serializeRequest(gson, json);
     context.validate(connectorRequest);
     context.replaceSecrets(connectorRequest);
     return executeGraphQLConnector(connectorRequest);
@@ -82,15 +74,15 @@ public class GraphQLFunction implements OutboundConnectorFunction {
   private GraphQLResult executeGraphQLConnector(final GraphQLRequest connectorRequest)
       throws IOException, InstantiationException, IllegalAccessException {
     // connector logic
-    LOGGER.info("Executing graphql connector with request {}", connectorRequest);
-    HTTPService httpService = HTTPService.getInstance(gson);
-    AuthenticationService authService = AuthenticationService.getInstance(gson, requestFactory);
+    LOGGER.debug("Executing graphql connector with request {}", connectorRequest);
+    HTTPService httpService = new HTTPService(gson);
+    AuthenticationService authService = new AuthenticationService(gson, requestFactory);
     String bearerToken = null;
     if (connectorRequest.getAuthentication() != null
         && connectorRequest.getAuthentication() instanceof OAuthAuthentication) {
       final HttpRequest oauthRequest = authService.createOAuthRequest(connectorRequest);
       final HttpResponse oauthResponse = httpService.executeHttpRequest(oauthRequest);
-      bearerToken = authService.extractAccessToken(oauthResponse);
+      bearerToken = authService.extractOAuthAccessToken(oauthResponse);
     }
 
     final HttpRequest httpRequest = createRequest(httpService, connectorRequest, bearerToken);

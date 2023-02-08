@@ -32,7 +32,7 @@ import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpResponse;
 import com.google.api.client.http.HttpResponseException;
 import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.http.constants.Constants;
+import io.camunda.connector.common.constants.Constants;
 import io.camunda.connector.http.model.HttpJsonResult;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import java.io.ByteArrayInputStream;
@@ -67,7 +67,8 @@ public class HttpJsonFunctionProxyTest extends BaseTest {
 
   @ParameterizedTest(name = "Executing test case: {0}")
   @MethodSource("successCases")
-  void shouldReturnResult_WhenExecuted(final String input) throws IOException {
+  void shouldReturnResult_WhenExecuted(final String input)
+      throws IOException, InstantiationException, IllegalAccessException {
     // given - minimal required entity
     final var context =
         OutboundConnectorContextBuilder.create().variables(input).secrets(name -> "foo").build();

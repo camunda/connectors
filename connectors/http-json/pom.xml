@@ -62,6 +62,13 @@ limitations under the License.</license.inlineheader>
       <groupId>org.slf4j</groupId>
       <artifactId>jcl-over-slf4j</artifactId>
     </dependency>
+
+    <!-- TODO : remove version later -->
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connectors-common-library</artifactId>
+      <version>0.16.0-SNAPSHOT</version>
+    </dependency>
   </dependencies>
 
   <profiles>

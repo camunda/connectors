@@ -16,13 +16,18 @@ import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpResponse;
 import com.google.api.client.http.UrlEncodedContent;
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import io.camunda.connector.common.auth.CustomAuthentication;
 import io.camunda.connector.common.auth.OAuthAuthentication;
 import io.camunda.connector.common.constants.Constants;
 import io.camunda.connector.common.model.CommonRequest;
+import io.camunda.connector.common.utils.JsonHelper;
+import io.camunda.connector.common.utils.ResponseParser;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,33 +35,50 @@ public class AuthenticationService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AuthenticationService.class);
 
-  private static AuthenticationService instance;
-
   private final Gson gson;
   private final HttpRequestFactory requestFactory;
 
-  private AuthenticationService(final Gson gson, final HttpRequestFactory requestFactory) {
+  public AuthenticationService(final Gson gson, final HttpRequestFactory requestFactory) {
     this.gson = gson;
     this.requestFactory = requestFactory;
   }
 
-  public static AuthenticationService getInstance(
-      final Gson gson, final HttpRequestFactory requestFactory) {
-    if (instance == null) {
-      instance = new AuthenticationService(gson, requestFactory);
-    }
-    return instance;
+  public String extractOAuthAccessToken(HttpResponse oauthResponse) throws IOException {
+    return Optional.ofNullable(JsonHelper.getAsJsonElement(oauthResponse.parseAsString(), gson))
+        .map(JsonElement::getAsJsonObject)
+        .map(jsonObject -> jsonObject.get(Constants.ACCESS_TOKEN))
+        .map(JsonElement::getAsString)
+        .orElse(null);
   }
 
-  public String extractAccessToken(HttpResponse oauthResponse) throws IOException {
-    String oauthResponseStr = oauthResponse.parseAsString();
-    if (oauthResponseStr != null && !oauthResponseStr.isEmpty()) {
-      JsonObject jsonObject = gson.fromJson(oauthResponseStr, JsonObject.class);
-      if (jsonObject.get(Constants.ACCESS_TOKEN) != null) {
-        return jsonObject.get(Constants.ACCESS_TOKEN).getAsString();
+  public void fillRequestFromCustomAuthResponseData(
+      final CommonRequest request,
+      final CustomAuthentication authentication,
+      final HttpResponse httpResponse)
+      throws IOException {
+    String strResponse = httpResponse.parseAsString();
+    Map<String, String> headers =
+        ResponseParser.extractPropertiesFromBody(
+            authentication.getOutputHeaders(), strResponse, gson);
+    if (headers != null) {
+      if (!request.hasHeaders()) {
+        request.setHeaders(new HashMap<>());
       }
+      request.getHeaders().putAll(headers);
     }
-    return null;
+
+    Map<String, String> body =
+        ResponseParser.extractPropertiesFromBody(authentication.getOutputBody(), strResponse, gson);
+    if (body != null) {
+      if (!request.hasBody()) {
+        request.setBody(new Object());
+      }
+      JsonObject requestBody = gson.toJsonTree(request.getBody()).getAsJsonObject();
+      // for now, we can add only string property to body, example of this object :
+      // "{"key":"value"}" but we can expand this method
+      body.forEach(requestBody::addProperty);
+      request.setBody(gson.fromJson(gson.toJson(requestBody), Object.class));
+    }
   }
 
   public HttpRequest createOAuthRequest(CommonRequest request) throws IOException {

@@ -8,6 +8,7 @@ package io.camunda.connector.common.model;
 
 import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.common.auth.Authentication;
+import java.util.Map;
 import java.util.Objects;
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
@@ -27,6 +28,48 @@ public class CommonRequest {
   @Pattern(regexp = "^([0-9]*$)|(secrets.*$)")
   @Secret
   private String connectionTimeoutInSeconds;
+
+  @Secret private Map<String, String> headers;
+
+  @Secret private Object body;
+
+  @Secret private Map<String, String> queryParameters;
+
+  public Object getBody() {
+    return body;
+  }
+
+  public void setBody(final Object body) {
+    this.body = body;
+  }
+
+  public boolean hasHeaders() {
+    return headers != null;
+  }
+
+  public boolean hasBody() {
+    return body != null;
+  }
+
+  public Map<String, String> getHeaders() {
+    return headers;
+  }
+
+  public void setHeaders(final Map<String, String> headers) {
+    this.headers = headers;
+  }
+
+  public boolean hasQueryParameters() {
+    return queryParameters != null;
+  }
+
+  public Map<String, String> getQueryParameters() {
+    return queryParameters;
+  }
+
+  public void setQueryParameters(Map<String, String> queryParameters) {
+    this.queryParameters = queryParameters;
+  }
 
   public boolean hasAuthentication() {
     return authentication != null;
@@ -72,12 +115,16 @@ public class CommonRequest {
     return url.equals(that.url)
         && method.equals(that.method)
         && Objects.equals(authentication, that.authentication)
-        && Objects.equals(connectionTimeoutInSeconds, that.connectionTimeoutInSeconds);
+        && Objects.equals(connectionTimeoutInSeconds, that.connectionTimeoutInSeconds)
+        && Objects.equals(headers, that.headers)
+        && Objects.equals(body, that.body)
+        && Objects.equals(queryParameters, that.queryParameters);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(url, method, authentication, connectionTimeoutInSeconds);
+    return Objects.hash(
+        url, method, authentication, connectionTimeoutInSeconds, headers, body, queryParameters);
   }
 
   @Override
@@ -94,6 +141,12 @@ public class CommonRequest {
         + ", connectionTimeoutInSeconds='"
         + connectionTimeoutInSeconds
         + '\''
+        + ", headers="
+        + headers
+        + ", body="
+        + body
+        + ", queryParameters="
+        + queryParameters
         + '}';
   }
 }

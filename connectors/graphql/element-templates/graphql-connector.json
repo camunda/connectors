@@ -125,6 +125,7 @@
       "description": "See <a href=\"https://graphql.org/learn/queries/#fields\" target=\"_blank\">documentation</a>",
       "group": "graphql",
       "type": "Text",
+      "language": "graphql",
       "binding": {
         "type": "zeebe:input",
         "name": "graphql.query"

@@ -27,16 +27,19 @@ import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.UrlEncodedContent;
 import com.google.api.client.http.json.JsonHttpContent;
 import com.google.gson.Gson;
-import io.camunda.connector.http.auth.OAuthAuthentication;
+import io.camunda.connector.common.auth.OAuthAuthentication;
+import io.camunda.connector.common.constants.Constants;
+import io.camunda.connector.common.model.CommonRequest;
 import io.camunda.connector.http.auth.ProxyOAuthHelper;
 import io.camunda.connector.http.components.GsonComponentSupplier;
-import io.camunda.connector.http.constants.Constants;
 import io.camunda.connector.http.model.HttpJsonRequest;
 import io.camunda.connector.http.model.HttpRequestBuilder;
 import io.camunda.connector.impl.ConnectorInputException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 import javax.validation.ValidationException;
 
 public class HttpRequestMapper {
@@ -89,21 +92,34 @@ public class HttpRequestMapper {
     return new HttpRequestBuilder()
         .method(Constants.POST)
         .genericUrl(new GenericUrl(authentication.getOauthTokenEndpoint()))
-        .content(new UrlEncodedContent(authentication.getDataForAuthRequestBody()))
+        .content(new UrlEncodedContent(getDataForAuthRequestBody(authentication)))
         .headers(headers)
         .connectionTimeoutInSeconds(request.getConnectionTimeoutInSeconds())
         .followRedirects(false)
         .build(requestFactory);
   }
 
+  public static Map<String, String> getDataForAuthRequestBody(OAuthAuthentication authentication) {
+    Map<String, String> data = new HashMap<>();
+    data.put(Constants.GRANT_TYPE, authentication.getGrantType());
+    data.put(Constants.AUDIENCE, authentication.getAudience());
+    data.put(Constants.SCOPE, authentication.getScopes());
+
+    if (Constants.CREDENTIALS_BODY.equals(authentication.getClientAuthentication())) {
+      data.put(Constants.CLIENT_ID, authentication.getClientId());
+      data.put(Constants.CLIENT_SECRET, authentication.getClientSecret());
+    }
+    return data;
+  }
+
   public static HttpRequest toHttpRequest(
-      final HttpRequestFactory requestFactory, final HttpJsonRequest request) throws IOException {
+      final HttpRequestFactory requestFactory, final CommonRequest request) throws IOException {
     return toHttpRequest(requestFactory, request, null);
   }
 
   public static HttpRequest toHttpRequest(
       final HttpRequestFactory requestFactory,
-      final HttpJsonRequest request,
+      final CommonRequest request,
       final String bearerToken)
       throws IOException {
     // TODO: add more holistic solution
@@ -131,7 +147,7 @@ public class HttpRequestMapper {
         .build(requestFactory);
   }
 
-  private static HttpHeaders createHeaders(final HttpJsonRequest request, String bearerToken) {
+  private static HttpHeaders createHeaders(final CommonRequest request, String bearerToken) {
     final HttpHeaders httpHeaders = new HttpHeaders();
     if (request.hasBody()) {
       httpHeaders.setContentType(APPLICATION_JSON.getMimeType());

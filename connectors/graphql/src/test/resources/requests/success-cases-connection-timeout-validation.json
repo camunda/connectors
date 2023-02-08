@@ -1,0 +1,53 @@
+[
+  {
+    "descriptionOfTest": "0 value",
+    "graphql": {
+      "method": "get",
+      "url": "https://camunda.io/http-endpoint",
+      "query": "query Root($id: ID) {\n  person (id: $id) {\n    id\n    name\n  }\n}",
+      "connectionTimeoutInSeconds": "0"
+    },
+    "authentication": {
+      "type": "noAuth"
+    }
+  },
+  {
+    "descriptionOfTest": "0 value with bearer auth",
+    "graphql": {
+      "method": "get",
+      "url": "https://camunda.io/http-endpoint",
+      "query": "query Root($id: ID) {\n  person (id: $id) {\n    id\n    name\n  }\n}",
+      "connectionTimeoutInSeconds": "0"
+    },
+    "authentication": {
+      "type": "bearer",
+      "token": "secrets.TOKEN_KEY"
+    }
+  },
+  {
+    "descriptionOfTest": "positive value",
+    "graphql": {
+      "method": "get",
+      "url": "https://camunda.io/http-endpoint",
+      "query": "query Root($id: ID) {\n  person (id: $id) {\n    id\n    name\n  }\n}",
+      "connectionTimeoutInSeconds": "99"
+    },
+    "authentication": {
+      "type": "bearer",
+      "token": "secrets.TOKEN_KEY"
+    }
+  },
+  {
+    "descriptionOfTest": "secrets value",
+    "graphql": {
+      "method": "get",
+      "url": "https://camunda.io/http-endpoint",
+      "query": "query Root($id: ID) {\n  person (id: $id) {\n    id\n    name\n  }\n}",
+      "connectionTimeoutInSeconds": "secrets.SOME_SECRET_KEY"
+    },
+    "authentication": {
+      "type": "bearer",
+      "token": "secrets.TOKEN_KEY"
+    }
+  }
+]

@@ -1,0 +1,88 @@
+[
+  {
+    "descriptionOfTest": "Normal request with no auth",
+    "authentication": {
+      "type": "noAuth"
+    },
+    "graphql": {
+      "method": "get",
+      "url": "https://camunda.io/http-endpoint",
+      "connectionTimeoutInSeconds": "20",
+      "query": "query Root($id: ID) {\n  person (id: $id) {\n    id\n    name\n  }\n}",
+      "variables": {
+        "id": "cGVvcGxlOjI="
+      }
+    }
+  },
+  {
+    "descriptionOfTest": "Normal request with basic auth",
+    "graphql": {
+      "method": "get",
+      "url": "https://camunda.io/http-endpoint",
+      "connectionTimeoutInSeconds": "0",
+      "query": "query Root($id: ID) {\n  person (id: $id) {\n    id\n    name\n  }\n}",
+      "variables": {
+        "id": "cGVvcGxlOjI="
+      }
+    }
+  },
+  {
+    "descriptionOfTest": "Normal request with bearer auth",
+    "authentication": {
+      "type": "bearer",
+      "token": "secrets.MY_TOKEN"
+    },
+    "graphql": {
+      "method": "get",
+      "url": "https://camunda.io/http-endpoint",
+      "connectionTimeoutInSeconds": "30",
+      "query": "query Root($id: ID) {\n  person (id: $id) {\n    id\n    name\n  }\n}",
+      "variables": {
+        "id": "cGVvcGxlOjI="
+      }
+    }
+  },
+  {
+    "descriptionOfTest": "Normal request with no variables",
+    "authentication": {
+      "type": "bearer",
+      "token": "secrets.MY_TOKEN"
+    },
+    "graphql": {
+      "method": "get",
+      "url": "https://camunda.io/http-endpoint",
+      "connectionTimeoutInSeconds": "200",
+      "query": "query Root($id: ID) {\n  person (id: $id) {\n    id\n    name\n  }\n}"
+    }
+  },
+  {
+    "descriptionOfTest": "Normal request with empty variables",
+    "authentication": {
+      "type": "bearer",
+      "token": "secrets.MY_TOKEN"
+    },
+    "graphql": {
+      "method": "get",
+      "url": "https://camunda.io/http-endpoint",
+      "connectionTimeoutInSeconds": "0",
+      "query": "query Root($id: ID) {\n  person (id: $id) {\n    id\n    name\n  }\n}",
+      "variables": {}
+    }
+  },
+  {
+    "descriptionOfTest": "Normal request with connectionTimeoutInSeconds",
+    "authentication": {
+      "type": "bearer",
+      "token": "secrets.MY_TOKEN"
+    },
+    "graphql": {
+      "method": "get",
+      "url": "https://camunda.io/http-endpoint",
+      "connectionTimeoutInSeconds": "50",
+      "query": "query Root($id: ID) {\n  person (id: $id) {\n    id\n    name\n  }\n}",
+      "variables": {
+        "id": "cGVvcGxlOjI="
+      }
+    }
+  }
+]

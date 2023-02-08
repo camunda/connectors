@@ -17,6 +17,7 @@ import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.common.constants.Constants;
 import io.camunda.connector.common.model.CommonRequest;
 import io.camunda.connector.common.model.CommonResult;
+import io.camunda.connector.common.model.ErrorResponse;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -33,17 +34,8 @@ public class HTTPService {
 
   private final Gson gson;
 
-  private static HTTPService instance;
-
-  private HTTPService(final Gson gson) {
+  public HTTPService(final Gson gson) {
     this.gson = gson;
-  }
-
-  public static HTTPService getInstance(final Gson gson) {
-    if (instance == null) {
-      instance = new HTTPService(gson);
-    }
-    return instance;
   }
 
   public HttpHeaders createHeaders(final CommonRequest request, String bearerToken) {
@@ -61,12 +53,26 @@ public class HTTPService {
   }
 
   public HttpResponse executeHttpRequest(HttpRequest externalRequest) throws IOException {
+    return executeHttpRequest(externalRequest, false);
+  }
+
+  public HttpResponse executeHttpRequest(HttpRequest externalRequest, boolean isProxyCall)
+      throws IOException {
     try {
       return externalRequest.execute();
-    } catch (HttpResponseException httpResponseException) {
-      var errorCode = String.valueOf(httpResponseException.getStatusCode());
-      var errorMessage = httpResponseException.getMessage();
-      throw new ConnectorException(errorCode, errorMessage, httpResponseException);
+    } catch (HttpResponseException hrex) {
+      var errorCode = String.valueOf(hrex.getStatusCode());
+      var errorMessage = hrex.getMessage();
+      if (isProxyCall && hrex.getContent() != null) {
+        try {
+          final var errorContent = gson.fromJson(hrex.getContent(), ErrorResponse.class);
+          errorCode = errorContent.getErrorCode();
+          errorMessage = errorContent.getError();
+        } catch (Exception e) {
+          // cannot be loaded as JSON, ignore and use plain message
+        }
+      }
+      throw new ConnectorException(errorCode, errorMessage, hrex);
     }
   }
 
