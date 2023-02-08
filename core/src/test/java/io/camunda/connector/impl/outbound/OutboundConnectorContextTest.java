@@ -454,6 +454,25 @@ class OutboundConnectorContextTest {
               s -> "plain".equals(s) || "plain".equals(((OutboundTestInput) s).getSecretField()));
     }
 
+    @Test
+    void shouldReplaceSecretsInSuperClass() {
+      // given
+      OutboundConnectorContext connectorContext =
+          OutboundConnectorContextBuilder.create()
+              .secret("s3cr3t", "plain")
+              .secret("s3cr3t2", "plain2")
+              .build();
+      final var testInput = new InputObjectMapChildClass();
+      // when
+      connectorContext.replaceSecrets(testInput);
+      // then
+      assertThat(testInput.inputMap)
+          .allSatisfy((key, value) -> assertThat(value.getSecretField()).isEqualTo("plain"));
+      assertThat(testInput.inputMapInChildClass)
+          .allSatisfy((key, value) -> assertThat(value.getSecretField()).isEqualTo("plain"));
+      assertThat(testInput.secretField).isEqualTo("plain2");
+    }
+
     @ParameterizedTest
     @ValueSource(
         strings = {
@@ -568,6 +587,23 @@ class OutboundConnectorContextTest {
   public static class InputObjectMap {
     @Secret
     public final Map<String, OutboundTestInput> inputMap = Map.of("bar", new OutboundTestInput());
+  }
+
+  public static class InputObjectMapChildClass extends InputObjectMap {
+
+    @Secret private String secretField = "secrets.s3cr3t2";
+
+    public String getSecretField() {
+      return secretField;
+    }
+
+    public void setSecretField(String secretField) {
+      this.secretField = secretField;
+    }
+
+    @Secret
+    public final Map<String, OutboundTestInput> inputMapInChildClass =
+        Map.of("bar", new OutboundTestInput());
   }
 
   public static class InputMultiplyObjectMap {
