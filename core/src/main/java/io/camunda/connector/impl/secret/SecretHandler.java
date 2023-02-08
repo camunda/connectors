@@ -23,6 +23,7 @@ import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.impl.ConnectorUtil;
 import io.camunda.connector.impl.ReflectionHelper;
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.ListIterator;
@@ -127,8 +128,16 @@ public class SecretHandler implements SecretElementHandler, SecretContainerHandl
     }
   }
 
+  private List<Field> getAllFields(Class<?> type) {
+    List<Field> fields = new ArrayList<>();
+    for (Class<?> c = type; c != null; c = c.getSuperclass()) {
+      fields.addAll(Arrays.asList(c.getDeclaredFields()));
+    }
+    return fields;
+  }
+
   protected void handleSecretsField(Object input) {
-    Arrays.stream(input.getClass().getDeclaredFields())
+    getAllFields(input.getClass()).stream()
         .filter(field -> field.isAnnotationPresent(Secret.class))
         .forEach(
             field -> {
