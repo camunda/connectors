@@ -18,19 +18,27 @@ import com.google.api.client.http.json.JsonHttpContent;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.gson.Gson;
 import io.camunda.connector.api.annotation.OutboundConnector;
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.common.auth.OAuthAuthentication;
 import io.camunda.connector.common.constants.Constants;
+import io.camunda.connector.common.model.CommonRequest;
+import io.camunda.connector.common.model.CommonResult;
 import io.camunda.connector.common.services.AuthenticationService;
+import io.camunda.connector.common.services.HTTPProxyService;
 import io.camunda.connector.common.services.HTTPService;
 import io.camunda.connector.graphql.components.GsonComponentSupplier;
 import io.camunda.connector.graphql.components.HttpTransportComponentSupplier;
 import io.camunda.connector.graphql.model.GraphQLRequest;
 import io.camunda.connector.graphql.model.GraphQLResult;
+import io.camunda.connector.graphql.utils.GraphQLRequestMapper;
 import io.camunda.connector.graphql.utils.JsonSerializeHelper;
+import io.camunda.connector.impl.config.ConnectorConfigurationUtil;
 import java.io.IOException;
-import java.util.HashMap;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,18 +55,29 @@ public class GraphQLFunction implements OutboundConnectorFunction {
   private final GsonFactory gsonFactory;
   private final HttpRequestFactory requestFactory;
 
+  private final String proxyFunctionUrl;
+
   public GraphQLFunction() {
+    this(ConnectorConfigurationUtil.getProperty(Constants.PROXY_FUNCTION_URL_ENV_NAME));
+  }
+
+  public GraphQLFunction(String proxyFunctionUrl) {
     this(
         GsonComponentSupplier.gsonInstance(),
         HttpTransportComponentSupplier.httpRequestFactoryInstance(),
-        GsonComponentSupplier.gsonFactoryInstance());
+        GsonComponentSupplier.gsonFactoryInstance(),
+        proxyFunctionUrl);
   }
 
   public GraphQLFunction(
-      final Gson gson, final HttpRequestFactory requestFactory, final GsonFactory gsonFactory) {
+      final Gson gson,
+      final HttpRequestFactory requestFactory,
+      final GsonFactory gsonFactory,
+      final String proxyFunctionUrl) {
     this.gson = gson;
     this.requestFactory = requestFactory;
     this.gsonFactory = gsonFactory;
+    this.proxyFunctionUrl = proxyFunctionUrl;
   }
 
   @Override
@@ -68,7 +87,10 @@ public class GraphQLFunction implements OutboundConnectorFunction {
     var connectorRequest = JsonSerializeHelper.serializeRequest(gson, json);
     context.validate(connectorRequest);
     context.replaceSecrets(connectorRequest);
-    return executeGraphQLConnector(connectorRequest);
+
+    return proxyFunctionUrl == null
+        ? executeGraphQLConnector(connectorRequest)
+        : executeGraphQLConnectorViaProxy(connectorRequest);
   }
 
   private GraphQLResult executeGraphQLConnector(final GraphQLRequest connectorRequest)
@@ -90,6 +112,26 @@ public class GraphQLFunction implements OutboundConnectorFunction {
     return httpService.toHttpJsonResponse(httpResponse, GraphQLResult.class);
   }
 
+  private CommonResult executeGraphQLConnectorViaProxy(GraphQLRequest request) throws IOException {
+    CommonRequest commonRequest = GraphQLRequestMapper.toCommonRequest(request);
+    HttpRequest httpRequest =
+        HTTPProxyService.toRequestViaProxy(gson, requestFactory, commonRequest, proxyFunctionUrl);
+
+    HTTPService httpService = new HTTPService(gson);
+
+    HttpResponse httpResponse = httpService.executeHttpRequest(httpRequest, true);
+
+    try (InputStream responseContentStream = httpResponse.getContent();
+        Reader reader = new InputStreamReader(responseContentStream)) {
+      final CommonResult jsonResult = gson.fromJson(reader, CommonResult.class);
+      LOGGER.debug("Proxy returned result: " + jsonResult);
+      return jsonResult;
+    } catch (final Exception e) {
+      LOGGER.debug("Failed to parse external response: {}", httpResponse, e);
+      throw new ConnectorException("Failed to parse result: " + e.getMessage(), e);
+    }
+  }
+
   public HttpRequest createRequest(
       final HTTPService httpService, final GraphQLRequest request, String bearerToken)
       throws IOException {
@@ -97,16 +139,12 @@ public class GraphQLFunction implements OutboundConnectorFunction {
     final GenericUrl genericUrl = new GenericUrl(request.getUrl());
     HttpContent content = null;
     final HttpHeaders headers = httpService.createHeaders(request, bearerToken);
-    String escapedQuery = request.getQuery().replace("\\n", "").replace("\\\"", "\"");
+    final Map<String, Object> queryAndVariablesMap =
+        JsonSerializeHelper.queryAndVariablesToMap(request);
     if (Constants.POST.equalsIgnoreCase(method)) {
-      content = constructBodyForPost(escapedQuery, request.getVariables());
+      content = new JsonHttpContent(gsonFactory, queryAndVariablesMap);
     } else {
-      final Map<String, String> query = new HashMap<>();
-      query.put("query", escapedQuery);
-      if (request.getVariables() != null) {
-        query.put("variables", gson.toJsonTree(request.getVariables()).toString());
-      }
-      genericUrl.putAll(query);
+      genericUrl.putAll(queryAndVariablesMap);
     }
 
     final var httpRequest = requestFactory.buildRequest(method, genericUrl, content);
@@ -115,14 +153,5 @@ public class GraphQLFunction implements OutboundConnectorFunction {
     httpRequest.setHeaders(headers);
 
     return httpRequest;
-  }
-
-  private JsonHttpContent constructBodyForPost(String escapedQuery, Object variables) {
-    final Map<String, Object> body = new HashMap<>();
-    body.put("query", escapedQuery);
-    if (variables != null) {
-      body.put("variables", variables);
-    }
-    return new JsonHttpContent(gsonFactory, body);
   }
 }

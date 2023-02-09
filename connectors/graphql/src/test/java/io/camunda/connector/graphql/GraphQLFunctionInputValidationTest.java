@@ -45,7 +45,7 @@ public class GraphQLFunctionInputValidationTest extends BaseTest {
 
   @BeforeEach
   void setup() {
-    functionUnderTest = new GraphQLFunction();
+    functionUnderTest = new GraphQLFunction(null);
   }
 
   @ParameterizedTest

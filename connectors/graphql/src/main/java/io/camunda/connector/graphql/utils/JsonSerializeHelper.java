@@ -9,12 +9,27 @@ package io.camunda.connector.graphql.utils;
 import com.google.gson.Gson;
 import io.camunda.connector.graphql.model.GraphQLRequest;
 import io.camunda.connector.graphql.model.GraphQLRequestWrapper;
+import java.util.HashMap;
+import java.util.Map;
 
-public class JsonSerializeHelper {
+public final class JsonSerializeHelper {
   public static GraphQLRequest serializeRequest(Gson gson, String input) {
     GraphQLRequestWrapper graphQLRequestWrapper = gson.fromJson(input, GraphQLRequestWrapper.class);
     GraphQLRequest graphQLRequest = graphQLRequestWrapper.getGraphql();
     graphQLRequest.setAuthentication(graphQLRequestWrapper.getAuthentication());
     return graphQLRequest;
+  }
+
+  public static Map<String, Object> queryAndVariablesToMap(GraphQLRequest graphQLRequest) {
+    final Map<String, Object> map = new HashMap<>();
+    map.put("query", getEscapedQuery(graphQLRequest));
+    if (graphQLRequest.getVariables() != null) {
+      map.put("variables", graphQLRequest.getVariables());
+    }
+    return map;
+  }
+
+  public static String getEscapedQuery(GraphQLRequest graphQLRequest) {
+    return graphQLRequest.getQuery().replace("\\n", "").replace("\\\"", "\"");
   }
 }

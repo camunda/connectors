@@ -61,7 +61,7 @@ public class GraphQLFunctionTest extends BaseTest {
 
   @BeforeEach
   public void setup() {
-    functionUnderTest = new GraphQLFunction(gson, requestFactory, gsonFactory);
+    functionUnderTest = new GraphQLFunction(gson, requestFactory, gsonFactory, null);
   }
 
   @ParameterizedTest(name = "Executing test case: {0}")

@@ -18,9 +18,7 @@ package io.camunda.connector.http;
 
 import static org.apache.http.entity.ContentType.APPLICATION_JSON;
 
-import com.google.api.client.http.AbstractHttpContent;
 import com.google.api.client.http.GenericUrl;
-import com.google.api.client.http.HttpContent;
 import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
@@ -30,14 +28,11 @@ import com.google.gson.Gson;
 import io.camunda.connector.common.auth.OAuthAuthentication;
 import io.camunda.connector.common.constants.Constants;
 import io.camunda.connector.common.model.CommonRequest;
-import io.camunda.connector.http.auth.ProxyOAuthHelper;
+import io.camunda.connector.common.model.HttpRequestBuilder;
 import io.camunda.connector.http.components.GsonComponentSupplier;
 import io.camunda.connector.http.model.HttpJsonRequest;
-import io.camunda.connector.http.model.HttpRequestBuilder;
 import io.camunda.connector.impl.ConnectorInputException;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import javax.validation.ValidationException;
@@ -47,35 +42,6 @@ public class HttpRequestMapper {
   private static final Gson gson = GsonComponentSupplier.gsonInstance();
 
   private HttpRequestMapper() {}
-
-  public static HttpRequest toRequestViaProxy(
-      final HttpRequestFactory requestFactory,
-      final HttpJsonRequest request,
-      final String proxyFunctionUrl)
-      throws IOException {
-    // Using the JsonHttpContent cannot work with an element on the root content,
-    // hence write it ourselves:
-    final String contentAsJson = gson.toJson(request);
-    HttpContent content =
-        new AbstractHttpContent(Constants.APPLICATION_JSON_CHARSET_UTF_8) {
-          public void writeTo(OutputStream outputStream) throws IOException {
-            outputStream.write(contentAsJson.getBytes(StandardCharsets.UTF_8));
-          }
-        };
-
-    HttpRequest httpRequest =
-        new HttpRequestBuilder()
-            .method(Constants.POST)
-            .genericUrl(new GenericUrl(proxyFunctionUrl))
-            .content(content)
-            .connectionTimeoutInSeconds(request.getConnectionTimeoutInSeconds())
-            .followRedirects(false)
-            .build(requestFactory);
-
-    ProxyOAuthHelper.addOauthHeaders(
-        httpRequest, ProxyOAuthHelper.initializeCredentials(proxyFunctionUrl));
-    return httpRequest;
-  }
 
   public static HttpRequest toOAuthHttpRequest(
       final HttpRequestFactory requestFactory, final HttpJsonRequest request) throws IOException {

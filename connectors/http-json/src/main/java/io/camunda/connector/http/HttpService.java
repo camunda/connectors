@@ -24,6 +24,7 @@ import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.common.auth.CustomAuthentication;
 import io.camunda.connector.common.auth.OAuthAuthentication;
 import io.camunda.connector.common.services.AuthenticationService;
+import io.camunda.connector.common.services.HTTPProxyService;
 import io.camunda.connector.common.services.HTTPService;
 import io.camunda.connector.http.model.HttpJsonRequest;
 import io.camunda.connector.http.model.HttpJsonResult;
@@ -97,7 +98,7 @@ public class HttpService {
 
   private HttpJsonResult executeRequestViaProxy(HttpJsonRequest request) throws IOException {
     HttpRequest httpRequest =
-        HttpRequestMapper.toRequestViaProxy(requestFactory, request, proxyFunctionUrl);
+        HTTPProxyService.toRequestViaProxy(gson, requestFactory, request, proxyFunctionUrl);
 
     HTTPService httpService = new HTTPService(gson);
 

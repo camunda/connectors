@@ -64,7 +64,7 @@
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-graphql</artifactId>
-      <version>0.15.0-SNAPSHOT</version>
+      <version>0.16.0-SNAPSHOT</version>
     </dependency>
   </dependencies>
 
