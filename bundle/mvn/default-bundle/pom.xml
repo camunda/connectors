@@ -60,11 +60,9 @@
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-microsoft-teams</artifactId>
     </dependency>
-    <!-- TODO : remove version -->
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-graphql</artifactId>
-      <version>0.16.0-SNAPSHOT</version>
     </dependency>
   </dependencies>
 
