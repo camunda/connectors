@@ -29,9 +29,8 @@ The response will contain the status code, the headers and the body of the respo
 {
   "body": {
     "data":{
-      "person":
-      {
-        "id":"cGVvcGxlOjI=", 
+      "person": {
+        "id":"cGVvcGxlOjI=",
         "name":"C-3PO"
       }
     }
