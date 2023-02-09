@@ -4,7 +4,7 @@ Do Not Translate or Localize
 This project incorporates components with the licenses under which Camunda received them as listed below.
 
   * com.github.luben:zstd-jni (Version: 1.5.2-1, License: BSD-2-Clause (URL: https://opensource.org/licenses/BSD-2-Clause))
-  * org.apache.kafka:kafka-clients (Version: 3.3.2, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
+  * org.apache.kafka:kafka-clients (Version: 3.4.0, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * org.lz4:lz4-java (Version: 1.8.0, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * org.slf4j:slf4j-api (Version: 1.7.36, License: MIT (URL: https://opensource.org/licenses/MIT))
   * org.xerial.snappy:snappy-java (Version: 1.1.8.4, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))

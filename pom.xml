@@ -24,7 +24,7 @@
     <version.spring-boot>2.7.8</version.spring-boot>
     <version.spring-cloud-gcp-starter-logging>3.4.3</version.spring-cloud-gcp-starter-logging>
 
-    <version.aws-java-sdk>1.12.399</version.aws-java-sdk>
+    <version.aws-java-sdk>1.12.403</version.aws-java-sdk>
 
     <version.google-api-client>2.2.0</version.google-api-client>
     <version.google-api-services-drive>v3-rev20221219-2.0.0</version.google-api-services-drive>
@@ -37,10 +37,10 @@
 
     <version.httpcore>4.4.16</version.httpcore>
 
-    <version.kafka-clients>3.3.2</version.kafka-clients>
+    <version.kafka-clients>3.4.0</version.kafka-clients>
 
-    <version.microsoft-graph>5.45.0</version.microsoft-graph>
-    <version.azure-identity>1.7.3</version.azure-identity>
+    <version.microsoft-graph>5.46.0</version.microsoft-graph>
+    <version.azure-identity>1.8.0</version.azure-identity>
 
     <version.bcprov-jdk15on>1.70</version.bcprov-jdk15on>
     <version.sendGrid>4.9.3</version.sendGrid>
