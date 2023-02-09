@@ -122,7 +122,7 @@
     },
     {
       "label": "Query/Mutation",
-      "description": "See <a href=\"https://graphql.org/learn/queries/#fields\" target=\"_blank\">documentation</a>",
+      "description": "See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/graphql/#querymutation\" target=\"_blank\">documentation</a>",
       "group": "graphql",
       "type": "Text",
       "language": "graphql",
@@ -137,7 +137,7 @@
     },
     {
       "label": "Variables",
-      "description": "Learn how to <a href=\"https://graphql.org/learn/queries/#variables\" target=\"_blank\">define variables</a>",
+      "description": "Learn how to <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/graphql/#variables\" target=\"_blank\">define variables</a>",
       "group": "graphql",
       "type": "Text",
       "feel": "required",
