@@ -19,21 +19,19 @@ package io.camunda.connector.http;
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpResponse;
-import com.google.api.client.http.HttpResponseException;
 import com.google.gson.Gson;
-import com.google.gson.JsonObject;
 import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.http.auth.CustomAuthentication;
-import io.camunda.connector.http.auth.OAuthAuthentication;
-import io.camunda.connector.http.model.ErrorResponse;
+import io.camunda.connector.common.auth.CustomAuthentication;
+import io.camunda.connector.common.auth.OAuthAuthentication;
+import io.camunda.connector.common.services.AuthenticationService;
+import io.camunda.connector.common.services.HTTPProxyService;
+import io.camunda.connector.common.services.HTTPService;
 import io.camunda.connector.http.model.HttpJsonRequest;
 import io.camunda.connector.http.model.HttpJsonResult;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.util.HashMap;
-import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,24 +49,28 @@ public class HttpService {
     this.proxyFunctionUrl = proxyFunctionUrl;
   }
 
-  public Object executeConnectorRequest(final HttpJsonRequest request) throws IOException {
+  public Object executeConnectorRequest(final HttpJsonRequest request)
+      throws IOException, InstantiationException, IllegalAccessException {
     return proxyFunctionUrl == null
         ? executeRequestDirectly(request)
         : executeRequestViaProxy(request);
   }
 
-  private HttpJsonResult executeRequestDirectly(HttpJsonRequest request) throws IOException {
+  private HttpJsonResult executeRequestDirectly(HttpJsonRequest request)
+      throws IOException, InstantiationException, IllegalAccessException {
     String bearerToken = null;
+    HTTPService httpService = new HTTPService(gson);
+    AuthenticationService authService = new AuthenticationService(gson, requestFactory);
     if (request.getAuthentication() != null) {
       if (request.getAuthentication() instanceof OAuthAuthentication) {
-        bearerToken = getTokenFromOAuthRequest(request);
+        bearerToken = getTokenFromOAuthRequest(request, httpService, authService);
       } else if (request.getAuthentication() instanceof CustomAuthentication) {
         final var authentication = (CustomAuthentication) request.getAuthentication();
         final var httpRequest =
             HttpRequestMapper.toHttpRequest(requestFactory, authentication.getRequest());
-        HttpResponse httpResponse = executeHttpRequest(httpRequest);
+        HttpResponse httpResponse = httpService.executeHttpRequest(httpRequest);
         if (httpResponse.isSuccessStatusCode()) {
-          fillRequestFromCustomAuthResponseData(request, authentication, httpResponse);
+          authService.fillRequestFromCustomAuthResponseData(request, authentication, httpResponse);
         } else {
           throw new RuntimeException(
               "Authenticate is fail; status code : ["
@@ -80,74 +82,27 @@ public class HttpService {
       }
     }
     HttpRequest httpRequest = HttpRequestMapper.toHttpRequest(requestFactory, request, bearerToken);
-    HttpResponse httpResponse = executeHttpRequest(httpRequest, false);
-    return HttpResponseMapper.toHttpJsonResponse(httpResponse);
+    HttpResponse httpResponse = httpService.executeHttpRequest(httpRequest, false);
+    return httpService.toHttpJsonResponse(httpResponse, HttpJsonResult.class);
   }
 
-  private void fillRequestFromCustomAuthResponseData(
-      final HttpJsonRequest request,
-      final CustomAuthentication authentication,
-      final HttpResponse httpResponse)
+  private String getTokenFromOAuthRequest(
+      final HttpJsonRequest connectorRequest,
+      final HTTPService httpService,
+      final AuthenticationService authService)
       throws IOException {
-    String strResponse = httpResponse.parseAsString();
-    Map<String, String> headers =
-        ResponseParser.extractPropertiesFromBody(authentication.getOutputHeaders(), strResponse);
-    if (headers != null) {
-      if (!request.hasHeaders()) {
-        request.setHeaders(new HashMap<>());
-      }
-      request.getHeaders().putAll(headers);
-    }
-
-    Map<String, String> body =
-        ResponseParser.extractPropertiesFromBody(authentication.getOutputBody(), strResponse);
-    if (body != null) {
-      if (!request.hasBody()) {
-        request.setBody(new Object());
-      }
-      JsonObject requestBody = gson.toJsonTree(request.getBody()).getAsJsonObject();
-      // for now, we can add only string property to body, example of this object :
-      // "{"key":"value"}" but we can expand this method
-      body.forEach(requestBody::addProperty);
-      request.setBody(gson.fromJson(gson.toJson(requestBody), Object.class));
-    }
-  }
-
-  private String getTokenFromOAuthRequest(final HttpJsonRequest request) throws IOException {
-    final HttpRequest httpRequest = HttpRequestMapper.toOAuthHttpRequest(requestFactory, request);
-    final HttpResponse oauthResponse = executeHttpRequest(httpRequest);
-    return ResponseParser.extractOAuthAccessToken(oauthResponse);
-  }
-
-  private HttpResponse executeHttpRequest(HttpRequest externalRequest) throws IOException {
-    return executeHttpRequest(externalRequest, false);
-  }
-
-  private HttpResponse executeHttpRequest(HttpRequest externalRequest, boolean isProxyCall)
-      throws IOException {
-    try {
-      return externalRequest.execute();
-    } catch (HttpResponseException hrex) {
-      var errorCode = String.valueOf(hrex.getStatusCode());
-      var errorMessage = hrex.getMessage();
-      if (isProxyCall && hrex.getContent() != null) {
-        try {
-          final var errorContent = gson.fromJson(hrex.getContent(), ErrorResponse.class);
-          errorCode = errorContent.getErrorCode();
-          errorMessage = errorContent.getError();
-        } catch (Exception e) {
-          // cannot be loaded as JSON, ignore and use plain message
-        }
-      }
-      throw new ConnectorException(errorCode, errorMessage, hrex);
-    }
+    final HttpRequest oauthRequest = authService.createOAuthRequest(connectorRequest);
+    final HttpResponse oauthResponse = httpService.executeHttpRequest(oauthRequest);
+    return authService.extractOAuthAccessToken(oauthResponse);
   }
 
   private HttpJsonResult executeRequestViaProxy(HttpJsonRequest request) throws IOException {
     HttpRequest httpRequest =
-        HttpRequestMapper.toRequestViaProxy(requestFactory, request, proxyFunctionUrl);
+        HTTPProxyService.toRequestViaProxy(gson, requestFactory, request, proxyFunctionUrl);
 
-    HttpResponse httpResponse = executeHttpRequest(httpRequest, true);
+    HTTPService httpService = new HTTPService(gson);
+
+    HttpResponse httpResponse = httpService.executeHttpRequest(httpRequest, true);
 
     try (InputStream responseContentStream = httpResponse.getContent();
         Reader reader = new InputStreamReader(responseContentStream)) {

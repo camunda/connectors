@@ -1,0 +1,178 @@
+[
+  {
+    "testDescription": "without method field",
+    "authentication": {
+      "type": "noAuth"
+    },
+    "graphql": {
+      "url": "testmail@testmail.com",
+      "query": "query Root($id: ID) {\n  person (id: $id) {\n    id\n    name\n  }\n}",
+      "variables": {
+        "id": "cGVvcGxlOjI="
+      }
+    }
+  },
+  {
+    "testDescription": "without URL field",
+    "authentication": {
+      "type": "noAuth"
+    },
+    "graphql": {
+      "method": "get",
+      "query": "query Root($id: ID) {\n  person (id: $id) {\n    id\n    name\n  }\n}",
+      "variables": {
+        "id": "cGVvcGxlOjI="
+      }
+    }
+  },
+  {
+    "testDescription": "bearer auth type without URL field",
+    "authentication": {
+      "type": "bearer"
+    },
+    "graphql": {
+      "method": "get",
+      "query": "query Root($id: ID) {\n  person (id: $id) {\n    id\n    name\n  }\n}",
+      "variables": {
+        "id": "cGVvcGxlOjI="
+      }
+    }
+  },
+  {
+    "testDescription": "basic auth type without URL field",
+    "authentication": {
+      "type": "basic"
+    },
+    "graphql": {
+      "method": "get",
+      "query": "query Root($id: ID) {\n  person (id: $id) {\n    id\n    name\n  }\n}",
+      "variables": {
+        "id": "cGVvcGxlOjI="
+      }
+    }
+  },
+  {
+    "testDescription": "bearer auth without token",
+    "authentication": {
+      "type": "bearer"
+    },
+    "graphql": {
+      "method": "get",
+      "url": "testmail@testmail.com",
+      "query": "query Root($id: ID) {\n  person (id: $id) {\n    id\n    name\n  }\n}",
+      "variables": {
+        "id": "cGVvcGxlOjI="
+      }
+    }
+  },
+  {
+    "testDescription": "basic auth without password",
+    "authentication": {
+      "type": "basic",
+      "username": "username"
+    },
+    "graphql": {
+      "method": "get",
+      "url": "testmail@testmail.com",
+      "query": "query Root($id: ID) {\n  person (id: $id) {\n    id\n    name\n  }\n}",
+      "variables": {
+        "id": "cGVvcGxlOjI="
+      }
+    }
+  },
+  {
+    "testDescription": "basic auth without username",
+    "authentication": {
+      "type": "basic",
+      "password": "password"
+    },
+    "graphql": {
+      "method": "get",
+      "url": "testmail@testmail.com",
+      "query": "query Root($id: ID) {\n  person (id: $id) {\n    id\n    name\n  }\n}",
+      "variables": {
+        "id": "cGVvcGxlOjI="
+      }
+    }
+  },
+  {
+    "descriptionOfTest": "oauth request without client id",
+    "authentication":{
+      "oauthTokenEndpoint":"https://abc.eu.auth0.com/api/v2/",
+      "scopes": "read:clients",
+      "audience":"https://abc.eu.auth0.com/api/v2/",
+      "clientSecret":"secrets.CLIENT_SECRET",
+      "type":"oauth-client-credentials-flow",
+      "clientAuthentication":"basicAuthHeader"
+    },
+    "graphql": {
+      "method": "post",
+      "url": "https://abc/def",
+      "connectionTimeoutInSeconds": "30",
+      "query": "query Root($id: ID) {\n  person (id: $id) {\n    id\n    name\n  }\n}",
+      "variables": {
+        "id": "cGVvcGxlOjI="
+      }
+    }
+  },
+  {
+    "descriptionOfTest": "oauth request without client secret",
+    "authentication":{
+      "oauthTokenEndpoint":"https://abc.eu.auth0.com/api/v2/",
+      "scopes": "read:clients",
+      "audience":"https://abc.eu.auth0.com/api/v2/",
+      "clientId":"secrets.CLIENT_ID",
+      "type":"oauth-client-credentials-flow",
+      "clientAuthentication":"basicAuthHeader"
+    },
+    "graphql": {
+      "method": "post",
+      "url": "https://abc/def",
+      "connectionTimeoutInSeconds": "30",
+      "query": "query Root($id: ID) {\n  person (id: $id) {\n    id\n    name\n  }\n}",
+      "variables": {
+        "id": "cGVvcGxlOjI="
+      }
+    }
+  },
+  {
+    "descriptionOfTest": "oauth request without oauth token endpoint",
+    "authentication":{
+      "scopes": "read:clients",
+      "audience":"https://abc.eu.auth0.com/api/v2/",
+      "clientId":"secrets.CLIENT_ID",
+      "clientSecret":"secrets.CLIENT_SECRET",
+      "type":"oauth-client-credentials-flow",
+      "clientAuthentication":"basicAuthHeader"
+    },
+    "graphql": {
+      "method": "post",
+      "url": "https://abc/def",
+      "connectionTimeoutInSeconds": "30",
+      "query": "query Root($id: ID) {\n  person (id: $id) {\n    id\n    name\n  }\n}",
+      "variables": {
+        "id": "cGVvcGxlOjI="
+      }
+    }
+  },
+  {
+    "descriptionOfTest": "oauth request without client authentication",
+    "authentication":{
+      "oauthTokenEndpoint":"https://abc.eu.auth0.com/api/v2/",
+      "scopes": "read:clients",
+      "audience":"https://abc.eu.auth0.com/api/v2/",
+      "clientId":"secrets.CLIENT_ID",
+      "clientSecret":"secrets.CLIENT_SECRET",
+      "type":"oauth-client-credentials-flow"
+    },
+    "graphql": {
+      "method": "post",
+      "url": "https://abc/def",
+      "connectionTimeoutInSeconds": "30",
+      "query": "query Root($id: ID) {\n  person (id: $id) {\n    id\n    name\n  }\n}",
+      "variables": {
+        "id": "cGVvcGxlOjI="
+      }
+    }
+  }
+]

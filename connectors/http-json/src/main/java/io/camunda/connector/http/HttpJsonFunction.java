@@ -21,9 +21,9 @@ import com.google.gson.Gson;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.common.constants.Constants;
 import io.camunda.connector.http.components.GsonComponentSupplier;
 import io.camunda.connector.http.components.HttpTransportComponentSupplier;
-import io.camunda.connector.http.constants.Constants;
 import io.camunda.connector.http.model.HttpJsonRequest;
 import io.camunda.connector.impl.config.ConnectorConfigurationUtil;
 import java.io.IOException;
@@ -63,7 +63,8 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
   }
 
   @Override
-  public Object execute(final OutboundConnectorContext context) throws IOException {
+  public Object execute(final OutboundConnectorContext context)
+      throws IOException, InstantiationException, IllegalAccessException {
     final var json = context.getVariables();
     final var request = gson.fromJson(json, HttpJsonRequest.class);
 

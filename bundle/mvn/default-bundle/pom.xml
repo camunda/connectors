@@ -60,6 +60,10 @@
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-microsoft-teams</artifactId>
     </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-graphql</artifactId>
+    </dependency>
   </dependencies>
 
   <build>

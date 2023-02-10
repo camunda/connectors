@@ -1,0 +1,22 @@
+[{
+  "descriptionOfTest": "Normal request with oauth",
+  "authentication":{
+    "oauthTokenEndpoint":"https://dev-test.eu.auth0.com/api/v2/",
+    "scopes": "read:clients",
+    "audience":"https://dev-test.eu.auth0.com/api/v2/",
+    "clientId":"secrets.CLIENT_ID",
+    "clientSecret":"secrets.CLIENT_SECRET",
+    "type":"oauth-client-credentials-flow",
+    "clientAuthentication":"basicAuthHeader"
+  },
+  "graphql": {
+    "method": "post",
+    "url": "https://camunda.io/http-endpoint",
+    "connectionTimeoutInSeconds": "30",
+    "query": "query Root($id: ID) {\n  person (id: $id) {\n    id\n    name\n  }\n}",
+    "variables": {
+      "id": "cGVvcGxlOjI="
+    }
+  }
+}
+]

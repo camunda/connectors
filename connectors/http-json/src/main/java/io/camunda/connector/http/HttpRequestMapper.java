@@ -18,25 +18,23 @@ package io.camunda.connector.http;
 
 import static org.apache.http.entity.ContentType.APPLICATION_JSON;
 
-import com.google.api.client.http.AbstractHttpContent;
 import com.google.api.client.http.GenericUrl;
-import com.google.api.client.http.HttpContent;
 import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.UrlEncodedContent;
 import com.google.api.client.http.json.JsonHttpContent;
 import com.google.gson.Gson;
-import io.camunda.connector.http.auth.OAuthAuthentication;
-import io.camunda.connector.http.auth.ProxyOAuthHelper;
+import io.camunda.connector.common.auth.OAuthAuthentication;
+import io.camunda.connector.common.constants.Constants;
+import io.camunda.connector.common.model.CommonRequest;
+import io.camunda.connector.common.model.HttpRequestBuilder;
 import io.camunda.connector.http.components.GsonComponentSupplier;
-import io.camunda.connector.http.constants.Constants;
 import io.camunda.connector.http.model.HttpJsonRequest;
-import io.camunda.connector.http.model.HttpRequestBuilder;
 import io.camunda.connector.impl.ConnectorInputException;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 import javax.validation.ValidationException;
 
 public class HttpRequestMapper {
@@ -44,35 +42,6 @@ public class HttpRequestMapper {
   private static final Gson gson = GsonComponentSupplier.gsonInstance();
 
   private HttpRequestMapper() {}
-
-  public static HttpRequest toRequestViaProxy(
-      final HttpRequestFactory requestFactory,
-      final HttpJsonRequest request,
-      final String proxyFunctionUrl)
-      throws IOException {
-    // Using the JsonHttpContent cannot work with an element on the root content,
-    // hence write it ourselves:
-    final String contentAsJson = gson.toJson(request);
-    HttpContent content =
-        new AbstractHttpContent(Constants.APPLICATION_JSON_CHARSET_UTF_8) {
-          public void writeTo(OutputStream outputStream) throws IOException {
-            outputStream.write(contentAsJson.getBytes(StandardCharsets.UTF_8));
-          }
-        };
-
-    HttpRequest httpRequest =
-        new HttpRequestBuilder()
-            .method(Constants.POST)
-            .genericUrl(new GenericUrl(proxyFunctionUrl))
-            .content(content)
-            .connectionTimeoutInSeconds(request.getConnectionTimeoutInSeconds())
-            .followRedirects(false)
-            .build(requestFactory);
-
-    ProxyOAuthHelper.addOauthHeaders(
-        httpRequest, ProxyOAuthHelper.initializeCredentials(proxyFunctionUrl));
-    return httpRequest;
-  }
 
   public static HttpRequest toOAuthHttpRequest(
       final HttpRequestFactory requestFactory, final HttpJsonRequest request) throws IOException {
@@ -89,21 +58,34 @@ public class HttpRequestMapper {
     return new HttpRequestBuilder()
         .method(Constants.POST)
         .genericUrl(new GenericUrl(authentication.getOauthTokenEndpoint()))
-        .content(new UrlEncodedContent(authentication.getDataForAuthRequestBody()))
+        .content(new UrlEncodedContent(getDataForAuthRequestBody(authentication)))
         .headers(headers)
         .connectionTimeoutInSeconds(request.getConnectionTimeoutInSeconds())
         .followRedirects(false)
         .build(requestFactory);
   }
 
+  public static Map<String, String> getDataForAuthRequestBody(OAuthAuthentication authentication) {
+    Map<String, String> data = new HashMap<>();
+    data.put(Constants.GRANT_TYPE, authentication.getGrantType());
+    data.put(Constants.AUDIENCE, authentication.getAudience());
+    data.put(Constants.SCOPE, authentication.getScopes());
+
+    if (Constants.CREDENTIALS_BODY.equals(authentication.getClientAuthentication())) {
+      data.put(Constants.CLIENT_ID, authentication.getClientId());
+      data.put(Constants.CLIENT_SECRET, authentication.getClientSecret());
+    }
+    return data;
+  }
+
   public static HttpRequest toHttpRequest(
-      final HttpRequestFactory requestFactory, final HttpJsonRequest request) throws IOException {
+      final HttpRequestFactory requestFactory, final CommonRequest request) throws IOException {
     return toHttpRequest(requestFactory, request, null);
   }
 
   public static HttpRequest toHttpRequest(
       final HttpRequestFactory requestFactory,
-      final HttpJsonRequest request,
+      final CommonRequest request,
       final String bearerToken)
       throws IOException {
     // TODO: add more holistic solution
@@ -131,7 +113,7 @@ public class HttpRequestMapper {
         .build(requestFactory);
   }
 
-  private static HttpHeaders createHeaders(final HttpJsonRequest request, String bearerToken) {
+  private static HttpHeaders createHeaders(final CommonRequest request, String bearerToken) {
     final HttpHeaders httpHeaders = new HttpHeaders();
     if (request.hasBody()) {
       httpHeaders.setContentType(APPLICATION_JSON.getMimeType());

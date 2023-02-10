@@ -27,10 +27,10 @@ import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpResponse;
 import com.google.api.client.testing.http.MockHttpTransport;
+import io.camunda.connector.common.constants.Constants;
+import io.camunda.connector.common.services.AuthenticationService;
 import io.camunda.connector.http.BaseTest;
 import io.camunda.connector.http.HttpRequestMapper;
-import io.camunda.connector.http.ResponseParser;
-import io.camunda.connector.http.constants.Constants;
 import io.camunda.connector.http.model.HttpJsonRequest;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import java.io.IOException;
@@ -81,7 +81,8 @@ class OAuthAuthenticationTest extends BaseTest {
 
     // check if the bearer token has the correct format and doesn't contain quotes
 
-    assertFalse(ResponseParser.extractOAuthAccessToken(httpResponse).contains("\""));
+    AuthenticationService authenticationService = new AuthenticationService(gson, requestFactory);
+    assertFalse(authenticationService.extractOAuthAccessToken(httpResponse).contains("\""));
   }
 
   private static Stream<String> successCasesOauth() throws IOException {

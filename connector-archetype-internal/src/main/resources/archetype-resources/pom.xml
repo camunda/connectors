@@ -11,7 +11,7 @@
   </parent>
 
   <name>${artifactId}</name>
-  <description>${connectorName} cnnector for Camunda 8</description>
+  <description>${connectorName} connector for Camunda 8</description>
   <artifactId>${artifactId}</artifactId>
   <packaging>jar</packaging>
 

@@ -33,7 +33,8 @@ import com.google.api.client.json.Json;
 import com.google.api.client.testing.http.MockHttpTransport;
 import com.google.api.client.testing.http.MockLowLevelHttpRequest;
 import com.google.api.client.testing.http.MockLowLevelHttpResponse;
-import io.camunda.connector.http.constants.Constants;
+import io.camunda.connector.common.constants.Constants;
+import io.camunda.connector.common.services.AuthenticationService;
 import io.camunda.connector.http.model.HttpJsonRequest;
 import io.camunda.connector.http.model.HttpJsonResult;
 import io.camunda.connector.impl.config.ConnectorConfigurationUtil;
@@ -78,7 +79,8 @@ class HttpServiceTest extends BaseTest {
     when(httpResponse.parseAsString()).thenReturn(ACCESS_TOKEN);
 
     // when
-    String bearerToken = ResponseParser.extractOAuthAccessToken(httpResponse);
+    AuthenticationService authenticationService = new AuthenticationService(gson, requestFactory);
+    String bearerToken = authenticationService.extractOAuthAccessToken(httpResponse);
     HttpRequest request =
         HttpRequestMapper.toHttpRequest(requestFactory, httpJsonRequest, bearerToken);
     // check if the bearer token is correctly added on the header of the main request
@@ -88,7 +90,8 @@ class HttpServiceTest extends BaseTest {
 
   @ParameterizedTest(name = "Executing test case: {0}")
   @MethodSource("successCasesCustomAuth")
-  void execute_shouldPassAllStepsAndParsing(final String input) throws IOException {
+  void execute_shouldPassAllStepsAndParsing(final String input)
+      throws IOException, InstantiationException, IllegalAccessException {
     // given
     final var context = OutboundConnectorContextBuilder.create().variables(input).build();
     final var httpJsonRequest = gson.fromJson(context.getVariables(), HttpJsonRequest.class);
