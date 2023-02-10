@@ -40,6 +40,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -88,7 +90,7 @@ public class GraphQLFunction implements OutboundConnectorFunction {
     context.validate(connectorRequest);
     context.replaceSecrets(connectorRequest);
 
-    return proxyFunctionUrl == null
+    return StringUtils.isBlank(proxyFunctionUrl)
         ? executeGraphQLConnector(connectorRequest)
         : executeGraphQLConnectorViaProxy(connectorRequest);
   }
