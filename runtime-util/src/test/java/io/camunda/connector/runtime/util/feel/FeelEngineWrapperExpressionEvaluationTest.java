@@ -174,22 +174,6 @@ class FeelEngineWrapperExpressionEvaluationTest {
         .hasMessageContaining("no function found with name 'camel case'");
   }
 
-  @Test
-  public void evaluateToJson_ShouldFail_WhenNonJsonResult() {
-    // given
-    final var resultExpression = "now()";
-    final var variables = Map.of();
-
-    // when
-    final var exception =
-        catchThrowable(() -> objectUnderTest.evaluateToJson(resultExpression, variables));
-
-    // then
-    assertThat(exception)
-        .isInstanceOf(FeelEngineWrapperException.class)
-        .hasMessageContaining("output expression result cannot be parsed as JSON");
-  }
-
   class TestPojo {
 
     private String value;

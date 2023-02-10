@@ -20,6 +20,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.scala.DefaultScalaModule$;
 import java.util.HashMap;
 import java.util.Map;
@@ -52,6 +53,7 @@ public class FeelEngineWrapper {
     this.objectMapper =
         new ObjectMapper()
             .registerModule(DefaultScalaModule$.MODULE$)
+            .registerModule(new JavaTimeModule())
             // deserialize unknown types as empty objects
             .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
   }
