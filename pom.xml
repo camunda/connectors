@@ -19,7 +19,7 @@
   <inceptionYear>2022</inceptionYear>
 
   <properties>
-    <version.spring-zeebe>8.1.16</version.spring-zeebe>
+    <version.spring-zeebe>8.1.17</version.spring-zeebe>
 
     <version.spring-boot>2.7.8</version.spring-boot>
     <version.spring-cloud-gcp-starter-logging>3.4.4</version.spring-cloud-gcp-starter-logging>
