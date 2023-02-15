@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.BpmnError;
 import io.camunda.connector.runtime.util.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.util.feel.FeelEngineWrapperException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -70,6 +71,20 @@ public class ConnectorHelper {
         .map(expression -> FEEL_ENGINE_WRAPPER.evaluateToJson(expression, responseContent))
         .map(json -> parseJsonVarsAsTypeOrThrow(json, BpmnError.class, errorExpression))
         .filter(BpmnError::hasCode);
+  }
+
+  public static <T> T instantiateConnector(Class<? extends T> connectorClass) {
+    try {
+      return connectorClass.getDeclaredConstructor().newInstance();
+
+    } catch (InvocationTargetException
+        | InstantiationException
+        | IllegalAccessException
+        | ClassCastException
+        | NoSuchMethodException e) {
+
+      throw new IllegalStateException("Failed to instantiate connector " + connectorClass, e);
+    }
   }
 
   private static <T> T parseJsonVarsAsTypeOrThrow(

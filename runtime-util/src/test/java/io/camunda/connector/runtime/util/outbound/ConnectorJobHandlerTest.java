@@ -17,7 +17,9 @@
 
 package io.camunda.connector.runtime.util.outbound;
 
-import static io.camunda.connector.runtime.util.ConnectorHelper.*;
+import static io.camunda.connector.runtime.util.ConnectorHelper.ERROR_EXPRESSION_HEADER_NAME;
+import static io.camunda.connector.runtime.util.ConnectorHelper.RESULT_EXPRESSION_HEADER_NAME;
+import static io.camunda.connector.runtime.util.ConnectorHelper.RESULT_VARIABLE_HEADER_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.api.annotation.Secret;

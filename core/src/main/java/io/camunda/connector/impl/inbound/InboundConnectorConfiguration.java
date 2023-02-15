@@ -14,28 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.impl.outbound;
+package io.camunda.connector.impl.inbound;
 
-import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import java.util.Arrays;
+import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import java.util.Objects;
 
-public class OutboundConnectorConfiguration {
+public class InboundConnectorConfiguration {
 
   private final String name;
   private final String type;
-  private final String[] inputVariables;
+  private final Class<? extends InboundConnectorExecutable> connectorClass;
 
-  private final Class<? extends OutboundConnectorFunction> connectorClass;
-
-  public OutboundConnectorConfiguration(
+  public InboundConnectorConfiguration(
       final String name,
-      final String[] inputVariables,
       final String type,
-      final Class<? extends OutboundConnectorFunction> connectorClass) {
+      final Class<? extends InboundConnectorExecutable> connectorClass) {
     this.name = name;
     this.type = type;
-    this.inputVariables = inputVariables;
     this.connectorClass = connectorClass;
   }
 
@@ -47,12 +42,12 @@ public class OutboundConnectorConfiguration {
     return type;
   }
 
-  public String[] getInputVariables() {
-    return inputVariables;
+  public Class<? extends InboundConnectorExecutable> getConnectorClass() {
+    return this.connectorClass;
   }
 
-  public Class<? extends OutboundConnectorFunction> getConnectorClass() {
-    return connectorClass;
+  public InboundConnectorConfiguration setConnector(SubscriptionInboundConnector connector) {
+    return this;
   }
 
   @Override
@@ -63,7 +58,7 @@ public class OutboundConnectorConfiguration {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    OutboundConnectorConfiguration that = (OutboundConnectorConfiguration) o;
+    InboundConnectorConfiguration that = (InboundConnectorConfiguration) o;
     return Objects.equals(type, that.type);
   }
 
@@ -74,15 +69,6 @@ public class OutboundConnectorConfiguration {
 
   @Override
   public String toString() {
-    return "OutboundConnectorConfiguration{"
-        + "name='"
-        + name
-        + '\''
-        + ", type='"
-        + type
-        + '\''
-        + ", inputVariables="
-        + Arrays.toString(inputVariables)
-        + '}';
+    return "InboundConnectorConfiguration{" + "name='" + name + '\'' + ", type='" + type + '}';
   }
 }

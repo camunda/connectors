@@ -18,7 +18,6 @@ package io.camunda.connector.impl.inbound;
 
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
-import io.camunda.connector.api.inbound.InboundConnectorProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

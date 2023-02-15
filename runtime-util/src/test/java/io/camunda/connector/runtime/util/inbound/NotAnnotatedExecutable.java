@@ -14,19 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.api.annotation;
+package io.camunda.connector.runtime.util.inbound;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import io.camunda.connector.api.inbound.InboundConnectorContext;
+import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import io.camunda.connector.impl.inbound.InboundConnectorProperties;
 
-@Target(value = {ElementType.TYPE})
-@Retention(RetentionPolicy.RUNTIME)
-public @interface InboundConnector {
-  /** Name of the connector */
-  String name();
+public class NotAnnotatedExecutable implements InboundConnectorExecutable {
 
-  /** Type the connector registers for */
-  String type();
+  @Override
+  public void activate(InboundConnectorProperties properties, InboundConnectorContext context) {}
+
+  @Override
+  public void deactivate(InboundConnectorProperties properties) {}
 }

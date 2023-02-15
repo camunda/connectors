@@ -16,7 +16,11 @@
  */
 package io.camunda.connector.impl;
 
+import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.annotation.OutboundConnector;
+import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.impl.inbound.InboundConnectorConfiguration;
 import io.camunda.connector.impl.outbound.OutboundConnectorConfiguration;
 import java.util.Optional;
 import java.util.function.Function;
@@ -28,12 +32,42 @@ public final class ConnectorUtil {
   private ConnectorUtil() {}
 
   public static Optional<OutboundConnectorConfiguration> getOutboundConnectorConfiguration(
-      Class<?> cls) {
+      Class<? extends OutboundConnectorFunction> cls) {
     return Optional.ofNullable(cls.getAnnotation(OutboundConnector.class))
         .map(
             annotation ->
                 new OutboundConnectorConfiguration(
-                    annotation.name(), annotation.inputVariables(), annotation.type()));
+                    annotation.name(), annotation.inputVariables(), annotation.type(), cls));
+  }
+
+  public static OutboundConnectorConfiguration getRequiredOutboundConnectorConfiguration(
+      Class<? extends OutboundConnectorFunction> cls) {
+    return getOutboundConnectorConfiguration(cls)
+        .orElseThrow(
+            () ->
+                new RuntimeException(
+                    String.format(
+                        "OutboundConnectorFunction %s is missing @OutboundConnector annotation",
+                        cls)));
+  }
+
+  public static Optional<InboundConnectorConfiguration> getInboundConnectorConfiguration(
+      Class<? extends InboundConnectorExecutable> cls) {
+    return Optional.ofNullable(cls.getAnnotation(InboundConnector.class))
+        .map(
+            annotation ->
+                new InboundConnectorConfiguration(annotation.name(), annotation.type(), cls));
+  }
+
+  public static InboundConnectorConfiguration getRequiredInboundConnectorConfiguration(
+      Class<? extends InboundConnectorExecutable> cls) {
+    return getInboundConnectorConfiguration(cls)
+        .orElseThrow(
+            () ->
+                new RuntimeException(
+                    String.format(
+                        "InboundConnectorExecutable %s is missing @InboundConnector annotation",
+                        cls)));
   }
 
   public static String replaceTokens(

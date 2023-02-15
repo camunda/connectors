@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.impl.inbound;
+package io.camunda.connector.impl.inbound.correlation;
 
 import io.camunda.connector.api.inbound.ProcessCorrelationPoint;
 import org.slf4j.Logger;
