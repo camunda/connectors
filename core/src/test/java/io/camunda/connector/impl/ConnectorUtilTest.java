@@ -19,6 +19,8 @@ package io.camunda.connector.impl;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.api.annotation.OutboundConnector;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.impl.outbound.OutboundConnectorConfiguration;
 import java.util.Optional;
 import org.junit.jupiter.api.Nested;
@@ -64,6 +66,17 @@ public class ConnectorUtilTest {
     name = "ANNOTATED",
     inputVariables = {"FOO"},
     type = "io.camunda.Annotated")
-class AnnotatedFunction {}
+class AnnotatedFunction implements OutboundConnectorFunction {
 
-class UnannotatedFunction {}
+  @Override
+  public Object execute(OutboundConnectorContext context) {
+    return null;
+  }
+}
+
+class UnannotatedFunction implements OutboundConnectorFunction {
+  @Override
+  public Object execute(OutboundConnectorContext context) {
+    return null;
+  }
+}

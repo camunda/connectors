@@ -14,19 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.api.annotation;
+package io.camunda.connector.runtime.util;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.util.concurrent.Callable;
+import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
 
-@Target(value = {ElementType.TYPE})
-@Retention(RetentionPolicy.RUNTIME)
-public @interface InboundConnector {
-  /** Name of the connector */
-  String name();
+public class TestUtil {
 
-  /** Type the connector registers for */
-  String type();
+  public static <T> T withEnvVars(Object[] vars, Callable<T> fn) throws Exception {
+    return new EnvironmentVariables().set(vars).execute(fn);
+  }
 }

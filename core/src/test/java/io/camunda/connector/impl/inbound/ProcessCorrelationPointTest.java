@@ -17,6 +17,8 @@
 package io.camunda.connector.impl.inbound;
 
 import io.camunda.connector.api.inbound.ProcessCorrelationPoint;
+import io.camunda.connector.impl.inbound.correlation.MessageCorrelationPoint;
+import io.camunda.connector.impl.inbound.correlation.StartEventCorrelationPoint;
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;

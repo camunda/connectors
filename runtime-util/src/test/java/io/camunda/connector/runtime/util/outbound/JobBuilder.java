@@ -16,7 +16,9 @@
  */
 package io.camunda.connector.runtime.util.outbound;
 
-import static io.camunda.connector.runtime.util.ConnectorHelper.*;
+import static io.camunda.connector.runtime.util.ConnectorHelper.ERROR_EXPRESSION_HEADER_NAME;
+import static io.camunda.connector.runtime.util.ConnectorHelper.RESULT_EXPRESSION_HEADER_NAME;
+import static io.camunda.connector.runtime.util.ConnectorHelper.RESULT_VARIABLE_HEADER_NAME;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
@@ -62,7 +64,7 @@ class JobBuilder {
       when(failCommand.retries(anyInt())).thenReturn(failCommandStep2);
       when(jobClient.newThrowErrorCommand(any())).thenReturn(throwCommand);
       when(throwCommand.errorCode(any())).thenReturn(throwCommandStep2);
-      when(job.getKey()).thenReturn(-1l);
+      when(job.getKey()).thenReturn(-1L);
     }
 
     public JobBuilderStep withHeaders(Map<String, String> headers) {

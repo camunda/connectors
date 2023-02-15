@@ -14,15 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.api.inbound;
+package io.camunda.connector.impl.inbound;
 
+import io.camunda.connector.api.inbound.ProcessCorrelationPoint;
 import java.util.Map;
 import java.util.Objects;
 
 public class InboundConnectorProperties {
-
-  public static String TYPE_WEBHOOK = "webhook";
-
   private final String type;
   private final Map<String, String> properties;
 

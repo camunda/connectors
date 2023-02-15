@@ -14,20 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.util.outbound;
+package io.camunda.connector.runtime.util.inbound;
 
-import io.camunda.connector.impl.outbound.OutboundConnectorConfiguration;
-import java.util.Arrays;
+import static io.camunda.connector.runtime.util.TestUtil.withEnvVars;
+
+import io.camunda.connector.impl.inbound.InboundConnectorConfiguration;
 import java.util.List;
-import java.util.concurrent.Callable;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
-import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
 
-public class OutboundConnectorRegistrationTest {
+public class InboundConnectorDiscoveryTest {
 
-  private static <T> T withEnvVars(Object[] vars, Callable<T> fn) throws Exception {
-    return new EnvironmentVariables().set(vars).execute(fn);
+  private static DefaultInboundConnectorFactory getFactory() {
+    return new DefaultInboundConnectorFactory();
   }
 
   @Test
@@ -37,31 +36,25 @@ public class OutboundConnectorRegistrationTest {
     var env =
         new Object[] {
           // shall be picked up with meta-data + overrides
-          "CONNECTOR_ANNOTATED_OVERRIDE_FUNCTION",
-          "io.camunda.connector.runtime.util.outbound.AnnotatedFunction",
+          "CONNECTOR_ANNOTATED_OVERRIDE_EXECUTABLE",
+          "io.camunda.connector.runtime.util.inbound.AnnotatedExecutable",
           "CONNECTOR_ANNOTATED_OVERRIDE_TYPE",
           "io.camunda:annotated-override",
 
           // shall be picked up with meta-data
-          "CONNECTOR_ANNOTATED_FUNCTION",
-          "io.camunda.connector.runtime.util.outbound.AnnotatedFunction",
+          "CONNECTOR_ANNOTATED_EXECUTABLE",
+          "io.camunda.connector.runtime.util.inbound.AnnotatedExecutable",
 
           // shall be picked up despite no meta-data
-          "CONNECTOR_NOT_ANNOTATED_FUNCTION",
-          "io.camunda.connector.runtime.util.outbound.NotAnnotatedFunction",
+          "CONNECTOR_NOT_ANNOTATED_EXECUTABLE",
+          "io.camunda.connector.runtime.util.inbound.NotAnnotatedExecutable",
           "CONNECTOR_NOT_ANNOTATED_TYPE",
-          "io.camunda:not-annotated",
-          "CONNECTOR_NOT_ANNOTATED_INPUT_VARIABLES",
-          "foo,bar"
+          "io.camunda:not-annotated"
         };
 
     // when
-    List<OutboundConnectorConfiguration> registrations =
-        withEnvVars(
-            env,
-            () -> {
-              return OutboundConnectorRegistrationHelper.parse();
-            });
+    List<InboundConnectorConfiguration> registrations =
+        withEnvVars(env, () -> getFactory().getConfigurations());
 
     // then
     Assertions.assertThat(registrations).hasSize(3);
@@ -70,22 +63,16 @@ public class OutboundConnectorRegistrationTest {
         registrations,
         "ANNOTATED_OVERRIDE",
         "io.camunda:annotated-override",
-        new String[] {"a", "b"},
-        AnnotatedFunction.class.getName());
+        AnnotatedExecutable.class.getName());
 
     assertRegistration(
-        registrations,
-        "ANNOTATED",
-        "io.camunda:annotated",
-        new String[] {"a", "b"},
-        AnnotatedFunction.class.getName());
+        registrations, "ANNOTATED", "io.camunda:annotated", AnnotatedExecutable.class.getName());
 
     assertRegistration(
         registrations,
         "NOT_ANNOTATED",
         "io.camunda:not-annotated",
-        new String[] {"foo", "bar"},
-        NotAnnotatedFunction.class.getName());
+        NotAnnotatedExecutable.class.getName());
   }
 
   @Test
@@ -94,15 +81,12 @@ public class OutboundConnectorRegistrationTest {
     // given
     var env =
         new Object[] {
-          "CONNECTOR_NOT_ANNOTATED_FUNCTION",
-          "io.camunda.connector.runtime.util.outbound.NotAnnotatedFunction",
-          "CONNECTOR_NOT_ANNOTATED_INPUT_VARIABLES",
-          "foo,bar"
+          "CONNECTOR_NOT_ANNOTATED_EXECUTABLE",
+          "io.camunda.connector.runtime.util.outbound.NotAnnotatedFunction"
         };
 
     // then
-    Assertions.assertThatThrownBy(
-            () -> withEnvVars(env, () -> OutboundConnectorRegistrationHelper.parse()))
+    Assertions.assertThatThrownBy(() -> withEnvVars(env, () -> getFactory().getConfigurations()))
         .hasMessage(
             "Type not specified: Please configure it via CONNECTOR_NOT_ANNOTATED_TYPE environment variable");
   }
@@ -113,13 +97,12 @@ public class OutboundConnectorRegistrationTest {
     // given
     var env =
         new Object[] {
-          "CONNECTOR_NOT_FOUND_FUNCTION",
+          "CONNECTOR_NOT_FOUND_EXECUTABLE",
           "io.camunda.connector.runtime.jobworker.impl.outbound.NotFound"
         };
 
     // then
-    Assertions.assertThatThrownBy(
-            () -> withEnvVars(env, () -> OutboundConnectorRegistrationHelper.parse()))
+    Assertions.assertThatThrownBy(() -> withEnvVars(env, () -> getFactory().getConfigurations()))
         .hasMessage("Failed to load io.camunda.connector.runtime.jobworker.impl.outbound.NotFound");
   }
 
@@ -127,34 +110,44 @@ public class OutboundConnectorRegistrationTest {
   public void shouldConfigureViaSPI() {
 
     // when
-    List<OutboundConnectorConfiguration> registrations =
-        OutboundConnectorRegistrationHelper.parse();
+    List<InboundConnectorConfiguration> registrations = getFactory().getConfigurations();
 
     // then
     Assertions.assertThat(registrations).hasSize(1);
 
     assertRegistration(
-        registrations,
-        "ANNOTATED",
-        "io.camunda:annotated",
-        new String[] {"a", "b"},
-        AnnotatedFunction.class.getName());
+        registrations, "ANNOTATED", "io.camunda:annotated", AnnotatedExecutable.class.getName());
+  }
+
+  @Test
+  public void shouldOverrideWhenRegisteredManually() {
+
+    // given SPI configuration
+    DefaultInboundConnectorFactory factory = getFactory();
+
+    // when
+    factory.registerConfiguration(
+        new InboundConnectorConfiguration(
+            "ANNOTATED", "io.camunda:annotated", NotAnnotatedExecutable.class));
+
+    // then
+    var registrations = factory.getConfigurations();
+    Assertions.assertThat(registrations).hasSize(1);
+    assertRegistration(
+        registrations, "ANNOTATED", "io.camunda:annotated", NotAnnotatedExecutable.class.getName());
   }
 
   private static void assertRegistration(
-      List<OutboundConnectorConfiguration> registrations,
+      List<InboundConnectorConfiguration> registrations,
       String name,
       String type,
-      String[] inputVariables,
       String functionCls) {
 
     Assertions.assertThatList(registrations)
         .anyMatch(
-            registration -> {
-              return (registration.getName().equals(name)
-                  && registration.getType().equals(type)
-                  && Arrays.equals(registration.getInputVariables(), inputVariables)
-                  && registration.getFunction().getClass().getName().equals(functionCls));
-            });
+            registration ->
+                (registration.getName().equals(name)
+                    && registration.getType().equals(type)
+                    && registration.getConnectorClass().getName().equals(functionCls)));
   }
 }
