@@ -68,6 +68,11 @@ jobs:
         with:
           dockerfile: bundle/mvn/default-bundle/Dockerfile
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: 'arm64,arm'
+
       - name: Set up Docker Build
         uses: docker/setup-buildx-action@v2
 
@@ -84,6 +89,7 @@ jobs:
           context: bundle/mvn/default-bundle/
           push: ${{ github.ref == 'refs/heads/main' }}
           tags: camunda/connectors-bundle:SNAPSHOT
+          platforms: linux/amd64,linux/arm64
 
       - name: Build and Push Docker Image tag SNAPSHOT - bundle-saas
         uses: docker/build-push-action@v4
@@ -91,3 +97,4 @@ jobs:
           context: bundle/mvn/camunda-saas-bundle/
           push: ${{ github.ref == 'refs/heads/main' }}
           tags: camunda/connectors-bundle-saas:SNAPSHOT
+          platforms: linux/amd64,linux/arm64

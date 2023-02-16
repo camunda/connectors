@@ -122,6 +122,11 @@ jobs:
         env:
           NEXT_VERSION: ${{ github.event.inputs.nextVersion }}
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: 'arm64,arm'
+
       - name: Set up Docker Build
         uses: docker/setup-buildx-action@v2
 
@@ -139,6 +144,7 @@ jobs:
           context: bundle/mvn/default-bundle/
           push: ${{ github.ref == 'refs/heads/main' }}
           tags: camunda/connectors-bundle:${{ github.event.inputs.version }}
+          platforms: linux/amd64,linux/arm64
 
       - name: Build and Push Docker Image tag ${{ github.event.inputs.version }} - bundle-saas
         uses: docker/build-push-action@v4
@@ -146,6 +152,7 @@ jobs:
           context: bundle/mvn/camunda-saas-bundle/
           push: ${{ github.ref == 'refs/heads/main' }}
           tags: camunda/connectors-bundle-saas:${{ github.event.inputs.version }}
+          platforms: linux/amd64,linux/arm64
 
     # Build & push bundle docker images (with 'latest' tag)
 
@@ -156,6 +163,7 @@ jobs:
           context: bundle/mvn/default-bundle/
           push: ${{ github.ref == 'refs/heads/main' }}
           tags: camunda/connectors-bundle:latest
+          platforms: linux/amd64,linux/arm64
 
       - name: Build and Push Docker Image tag latest - bundle-saas
         if: ${{ steps.check_prerelease.outputs.isPreRelease == 'false' }}
@@ -164,6 +172,7 @@ jobs:
           context: bundle/mvn/camunda-saas-bundle/
           push: ${{ github.ref == 'refs/heads/main' }}
           tags: camunda/connectors-bundle-saas:latest
+          platforms: linux/amd64,linux/arm64
 
     # Update README in Dockerhub
 
