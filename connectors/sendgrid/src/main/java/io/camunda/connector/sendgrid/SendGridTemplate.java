@@ -13,7 +13,7 @@ import javax.validation.constraints.NotEmpty;
 
 public class SendGridTemplate {
   @NotEmpty @Secret private String id;
-  @NotEmpty @Secret private Map<String, String> data;
+  @NotEmpty @Secret private Map<String, Object> data;
 
   public String getId() {
     return id;
@@ -23,11 +23,11 @@ public class SendGridTemplate {
     this.id = id;
   }
 
-  public Map<String, String> getData() {
+  public Map<String, Object> getData() {
     return data;
   }
 
-  public void setData(final Map<String, String> data) {
+  public void setData(final Map<String, Object> data) {
     this.data = data;
   }
 

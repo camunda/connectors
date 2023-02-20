@@ -18,7 +18,6 @@
       }
     }
   },
-
   {
     "apiKey": "send_grid_key",
     "from": {
@@ -36,6 +35,49 @@
         "shipAddress": "Krossener Str. 24",
         "shipZip": "10245"
       }
+    }
+  },
+  {
+    "to":{
+      "email":"jane.doe@wxample.com",
+      "name":"Jane Doe"
+    },
+    "from":{
+      "email":"jane.doe@wxample.com",
+      "name":"Jane Doe"
+    },
+    "apiKey":"secrets.SENDGRID_API_KEY",
+    "template":{
+      "data":{
+        "records":47336,
+        "userList":[
+          {
+            "name":"Developer 1",
+            "location":"USA",
+            "email":"Developer1@example.com",
+            "id":11133,
+            "profilepicture":"https://exampl.com/Media/Imagesuserimageicon.png",
+            "createdat":"0001-01-01T00:00:00"
+          },
+          {
+            "name":"Developer 2",
+            "location":"USA",
+            "email":"Developer2@example.com",
+            "id":11134,
+            "profilepicture":"https://exampl.com/Media/Imagesuserimageicon.png",
+            "createdat":"0001-01-01T00:00:00"
+          },
+          {
+            "name":"Developer 3",
+            "location":"USA",
+            "email":"Developer3@example.com",
+            "id":11135,
+            "profilepicture":"https://exampl.com/Media/Imagesuserimageicon.png",
+            "createdat":"0001-01-01T00:00:00"
+          }
+        ]
+      },
+      "id":"d-0b51e8f77bf8450fae379e0639ca0d11"
     }
   }
 ]
