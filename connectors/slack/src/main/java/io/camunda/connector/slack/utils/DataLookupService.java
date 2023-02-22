@@ -15,9 +15,15 @@ import com.slack.api.methods.response.conversations.ConversationsListResponse;
 import com.slack.api.methods.response.users.UsersListResponse;
 import com.slack.api.methods.response.users.UsersLookupByEmailResponse;
 import com.slack.api.model.Conversation;
+import com.slack.api.model.ConversationType;
 import com.slack.api.model.User;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
@@ -154,9 +160,17 @@ public class DataLookupService {
     String nextCursor = null;
 
     do {
+      List<ConversationType> allChannelType =
+          Arrays.asList(
+              ConversationType.PUBLIC_CHANNEL,
+              ConversationType
+                  .PRIVATE_CHANNEL); // we don't need IMs and MPIMs since they do not have a name
       ConversationsListRequest request =
-          ConversationsListRequest.builder().limit(100).cursor(nextCursor).build();
-
+          ConversationsListRequest.builder()
+              .types(allChannelType)
+              .limit(100)
+              .cursor(nextCursor)
+              .build();
       try {
         ConversationsListResponse response = methodsClient.conversationsList(request);
         if (response.isOk()) {
