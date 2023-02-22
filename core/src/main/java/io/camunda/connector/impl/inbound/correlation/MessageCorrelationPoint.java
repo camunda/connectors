@@ -46,12 +46,17 @@ public class MessageCorrelationPoint extends ProcessCorrelationPoint {
   }
 
   @Override
+  public String getExecutionId() {
+    return messageName + "-" + correlationKeyExpression.strip();
+  }
+
+  @Override
   public String toString() {
     return "MessageCorrelationPoint{"
         + "messageName='"
         + messageName
         + '\''
-        + ", correlationKeyMapping='"
+        + ", correlationKeyExpression='"
         + correlationKeyExpression
         + '}';
   }

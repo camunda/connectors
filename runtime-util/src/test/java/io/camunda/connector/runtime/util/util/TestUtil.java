@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.util;
+package io.camunda.connector.runtime.util.util;
 
 import java.util.concurrent.Callable;
 import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;

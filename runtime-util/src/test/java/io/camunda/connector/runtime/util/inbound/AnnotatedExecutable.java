@@ -19,14 +19,13 @@ package io.camunda.connector.runtime.util.inbound;
 import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
-import io.camunda.connector.impl.inbound.InboundConnectorProperties;
 
 @InboundConnector(name = "ANNOTATED", type = "io.camunda:annotated")
 public class AnnotatedExecutable implements InboundConnectorExecutable {
 
   @Override
-  public void activate(InboundConnectorProperties properties, InboundConnectorContext context) {}
+  public void activate(InboundConnectorContext context) {}
 
   @Override
-  public void deactivate(InboundConnectorProperties properties) {}
+  public void deactivate() {}
 }

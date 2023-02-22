@@ -14,16 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.util.inbound;
+package io.camunda.connector.runtime.util.util.response;
 
-import io.camunda.connector.api.inbound.InboundConnectorContext;
-import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import io.camunda.zeebe.client.api.response.ProcessInstanceEvent;
 
-public class NotAnnotatedExecutable implements InboundConnectorExecutable {
+public class ProcessInstanceEventDummy implements ProcessInstanceEvent {
+  public long getProcessDefinitionKey() {
+    return 0;
+  }
 
-  @Override
-  public void activate(InboundConnectorContext context) {}
+  public String getBpmnProcessId() {
+    return null;
+  }
 
-  @Override
-  public void deactivate() {}
+  public int getVersion() {
+    return 0;
+  }
+
+  public long getProcessInstanceKey() {
+    return 0;
+  }
 }

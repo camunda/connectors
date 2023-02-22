@@ -14,16 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.util.inbound;
+package io.camunda.connector.runtime.util.util.response;
 
-import io.camunda.connector.api.inbound.InboundConnectorContext;
-import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import io.camunda.zeebe.client.api.response.PublishMessageResponse;
 
-public class NotAnnotatedExecutable implements InboundConnectorExecutable {
-
+public class PublishMessageResponseDummy implements PublishMessageResponse {
   @Override
-  public void activate(InboundConnectorContext context) {}
-
-  @Override
-  public void deactivate() {}
+  public long getMessageKey() {
+    return 0;
+  }
 }

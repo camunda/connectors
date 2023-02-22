@@ -51,6 +51,11 @@ public class StartEventCorrelationPoint extends ProcessCorrelationPoint {
   }
 
   @Override
+  public String getExecutionId() {
+    return bpmnProcessId + "-" + version + "-" + processDefinitionKey;
+  }
+
+  @Override
   public String toString() {
     return "StartEventCorrelationPoint{"
         + "processDefinitionKey="

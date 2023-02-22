@@ -14,16 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.util.inbound;
+package io.camunda.connector.runtime.util.inbound.correlation;
 
-import io.camunda.connector.api.inbound.InboundConnectorContext;
-import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import io.camunda.connector.api.inbound.InboundConnectorResult;
+import io.camunda.connector.impl.inbound.correlation.MessageCorrelationPoint;
+import io.camunda.zeebe.client.api.response.PublishMessageResponse;
 
-public class NotAnnotatedExecutable implements InboundConnectorExecutable {
+public class MessageInboundConnectorResult extends InboundConnectorResult {
+  protected PublishMessageResponse responseData;
 
   @Override
-  public void activate(InboundConnectorContext context) {}
+  public PublishMessageResponse getResponseData() {
+    return responseData;
+  }
 
-  @Override
-  public void deactivate() {}
+  public MessageInboundConnectorResult(
+      PublishMessageResponse publishMessageResponse, String correlationKey) {
+    super(MessageCorrelationPoint.TYPE_NAME, correlationKey, publishMessageResponse);
+    this.responseData = publishMessageResponse;
+  }
 }

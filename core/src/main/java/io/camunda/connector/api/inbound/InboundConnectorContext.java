@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.api.inbound;
 
+import io.camunda.connector.impl.inbound.InboundConnectorProperties;
+
 /**
  * The context object provided to an inbound connector function. The context allows to fetch
  * information injected by the environment runtime.
@@ -36,12 +38,25 @@ public interface InboundConnectorContext {
    */
   void validate(Object input);
 
+  /** Correlates the inbound event to the matching process definition */
+  InboundConnectorResult correlate(Object variables);
+
   /**
-   * Correlates the inbound event to the matching process definition
+   * Low-level properties access method. Allows to perform custom deserialization, or access
+   * internal properties of the process correlation point.
    *
-   * @param correlationPoint - information about the target process
-   * @param variables - variables to be passed to the process
-   * @return
+   * <p>For a simpler property access, consider using {@link #getPropertiesAsType(Class)}
+   *
+   * @return - raw properties as an {@link InboundConnectorProperties} object
    */
-  InboundConnectorResult correlate(ProcessCorrelationPoint correlationPoint, Object variables);
+  InboundConnectorProperties getProperties();
+
+  /**
+   * High-level properties access method. Deserializes inbound Connector properties to the requested
+   * type. Deserialization logic is runtime-specific. If you need a lower-level access to properties
+   * (e.g. for custom deserialization), use {@link #getProperties()}
+   *
+   * @return - Connector-specific properties deserialized to a provided type
+   */
+  <T> T getPropertiesAsType(Class<T> cls);
 }
