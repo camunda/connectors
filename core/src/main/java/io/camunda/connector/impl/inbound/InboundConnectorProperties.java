@@ -44,6 +44,11 @@ public class InboundConnectorProperties {
     this.processDefinitionKey = processDefinitionKey;
   }
 
+  /** Shortcut to {@link ProcessCorrelationPoint#getExecutionId()} */
+  public String getExecutionId() {
+    return correlationPoint.getExecutionId();
+  }
+
   public String getType() {
     return type;
   }

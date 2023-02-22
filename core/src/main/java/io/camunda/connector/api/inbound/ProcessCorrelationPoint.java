@@ -23,4 +23,11 @@ package io.camunda.connector.api.inbound;
  * <p>Comparable interface defines the priorities among inbound connector execution (suitable
  * inbound candidates are executed in the natural order).
  */
-public abstract class ProcessCorrelationPoint implements Comparable<ProcessCorrelationPoint> {}
+public abstract class ProcessCorrelationPoint implements Comparable<ProcessCorrelationPoint> {
+
+  /**
+   * Returns the unique execution/deduplication ID of the correlation point. Correlation points with
+   * the same execution ID logically represent the same inbound connector execution.
+   */
+  public abstract String getExecutionId();
+}

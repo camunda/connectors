@@ -34,8 +34,7 @@ public abstract class SubscriptionInboundConnector implements InboundConnectorEx
   protected InboundConnectorContext context = null;
 
   @Override
-  public final void activate(InboundConnectorProperties properties, InboundConnectorContext context)
-      throws Exception {
+  public final void activate(InboundConnectorContext context) throws Exception {
 
     this.properties = properties;
     this.context = context;
@@ -66,6 +65,6 @@ public abstract class SubscriptionInboundConnector implements InboundConnectorEx
    * @param event Variables to be passed alongside with the inbound event
    */
   protected final void onEvent(Object event) {
-    context.correlate(properties.getCorrelationPoint(), event);
+    context.correlate(event);
   }
 }

@@ -14,16 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.util.inbound;
+package io.camunda.connector.runtime.util.inbound.correlation;
 
-import io.camunda.connector.api.inbound.InboundConnectorContext;
-import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import io.camunda.connector.api.inbound.InboundConnectorResult;
+import io.camunda.connector.impl.inbound.correlation.StartEventCorrelationPoint;
+import io.camunda.zeebe.client.api.response.ProcessInstanceEvent;
 
-public class NotAnnotatedExecutable implements InboundConnectorExecutable {
+public class StartEventInboundConnectorResult extends InboundConnectorResult {
+  protected ProcessInstanceEvent responseData;
 
   @Override
-  public void activate(InboundConnectorContext context) {}
+  public ProcessInstanceEvent getResponseData() {
+    return responseData;
+  }
 
-  @Override
-  public void deactivate() {}
+  public StartEventInboundConnectorResult(ProcessInstanceEvent processInstanceEvent) {
+    super(
+        StartEventCorrelationPoint.TYPE_NAME,
+        String.valueOf(processInstanceEvent.getProcessDefinitionKey()),
+        processInstanceEvent);
+    this.responseData = processInstanceEvent;
+  }
 }

@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.runtime.util.outbound;
 
-import static io.camunda.connector.runtime.util.TestUtil.withEnvVars;
+import static io.camunda.connector.runtime.util.util.TestUtil.withEnvVars;
 
 import io.camunda.connector.impl.outbound.OutboundConnectorConfiguration;
 import java.util.Arrays;

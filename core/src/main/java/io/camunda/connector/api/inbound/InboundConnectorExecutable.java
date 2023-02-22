@@ -16,8 +16,6 @@
  */
 package io.camunda.connector.api.inbound;
 
-import io.camunda.connector.impl.inbound.InboundConnectorProperties;
-
 /**
  * Base subscription interface for inbound connectors. This is an interface that
  * environment-specific Connector Runtime uses to control the inbound Connectors.
@@ -34,12 +32,11 @@ public interface InboundConnectorExecutable {
    * @param properties Properties to be used by subscription
    * @param context Runtime-specific information
    */
-  void activate(InboundConnectorProperties properties, InboundConnectorContext context)
-      throws Exception;
+  void activate(InboundConnectorContext context) throws Exception;
 
   /**
    * Gentle shutdown hook for inbound connectors. Must release all resources used by the
    * subscription.
    */
-  void deactivate(InboundConnectorProperties properties) throws Exception;
+  void deactivate() throws Exception;
 }
