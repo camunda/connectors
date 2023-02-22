@@ -29,7 +29,6 @@ public interface InboundConnectorExecutable {
   /**
    * Activation trigger for the subscription
    *
-   * @param properties Properties to be used by subscription
    * @param context Runtime-specific information
    */
   void activate(InboundConnectorContext context) throws Exception;
