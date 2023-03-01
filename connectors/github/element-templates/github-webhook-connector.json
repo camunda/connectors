@@ -12,6 +12,9 @@
   "appliesTo":[
     "bpmn:StartEvent"
   ],
+  "elementType": {
+    "value": "bpmn:StartEvent"
+  },
   "groups":[
     {
       "id":"endpoint",
