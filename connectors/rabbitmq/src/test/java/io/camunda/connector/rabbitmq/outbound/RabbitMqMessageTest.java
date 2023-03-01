@@ -4,12 +4,12 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.rabbitmq;
+package io.camunda.connector.rabbitmq.outbound;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.gson.JsonObject;
-import io.camunda.connector.rabbitmq.model.RabbitMqMessage;
+import io.camunda.connector.rabbitmq.common.model.RabbitMqMessage;
 import io.camunda.connector.rabbitmq.supplier.GsonSupplier;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;

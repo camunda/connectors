@@ -4,13 +4,13 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.rabbitmq;
+package io.camunda.connector.rabbitmq.outbound;
 
 import com.rabbitmq.client.Connection;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import io.camunda.connector.rabbitmq.model.RabbitMqRequest;
+import io.camunda.connector.rabbitmq.outbound.model.RabbitMqRequest;
 import io.camunda.connector.rabbitmq.supplier.ConnectionFactorySupplier;
 
 @OutboundConnector(
@@ -43,7 +43,7 @@ public class RabbitMqFunction implements OutboundConnectorFunction {
     final var messageProperties = request.getMessage().getPropertiesAsAmqpBasicProperties();
     final var messageInByteArray = request.getMessage().getBodyAsByteArray();
 
-    try (Connection connection = connectionFactorySupplier.createFactory(request).newConnection()) {
+    try (Connection connection = openConnection(request)) {
       final var channel = connection.createChannel();
       channel.basicPublish(
           request.getRouting().getExchange(),
@@ -52,5 +52,11 @@ public class RabbitMqFunction implements OutboundConnectorFunction {
           messageInByteArray);
       return RabbitMqResult.success();
     }
+  }
+
+  private Connection openConnection(RabbitMqRequest request) throws Exception {
+    return connectionFactorySupplier
+        .createFactory(request.getAuthentication(), request.getRouting())
+        .newConnection();
   }
 }

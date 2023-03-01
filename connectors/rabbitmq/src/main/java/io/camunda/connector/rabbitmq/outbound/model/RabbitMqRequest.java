@@ -4,9 +4,12 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.rabbitmq.model;
+package io.camunda.connector.rabbitmq.outbound.model;
 
 import io.camunda.connector.api.annotation.Secret;
+import io.camunda.connector.rabbitmq.common.model.RabbitMqAuthentication;
+import io.camunda.connector.rabbitmq.common.model.RabbitMqAuthenticationType;
+import io.camunda.connector.rabbitmq.common.model.RabbitMqMessage;
 import java.util.Objects;
 import javax.validation.Valid;
 import javax.validation.constraints.AssertFalse;
@@ -15,7 +18,7 @@ import javax.validation.constraints.NotNull;
 public class RabbitMqRequest {
 
   @Valid @NotNull @Secret private RabbitMqAuthentication authentication;
-  @Valid @NotNull @Secret private RabbitMqRouting routing;
+  @Valid @NotNull @Secret private RabbitMqOutboundRouting routing;
   @Valid @NotNull @Secret private RabbitMqMessage message;
 
   @AssertFalse
@@ -43,11 +46,11 @@ public class RabbitMqRequest {
     this.authentication = authentication;
   }
 
-  public RabbitMqRouting getRouting() {
+  public RabbitMqOutboundRouting getRouting() {
     return routing;
   }
 
-  public void setRouting(final RabbitMqRouting routing) {
+  public void setRouting(final RabbitMqOutboundRouting routing) {
     this.routing = routing;
   }
 

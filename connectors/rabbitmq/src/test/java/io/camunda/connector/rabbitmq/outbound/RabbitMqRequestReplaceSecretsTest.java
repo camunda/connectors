@@ -4,22 +4,22 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.rabbitmq;
+package io.camunda.connector.rabbitmq.outbound;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.gson.JsonObject;
 import com.rabbitmq.client.AMQP;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
-import io.camunda.connector.rabbitmq.model.RabbitMqAuthentication;
-import io.camunda.connector.rabbitmq.model.RabbitMqAuthenticationType;
-import io.camunda.connector.rabbitmq.model.RabbitMqRequest;
+import io.camunda.connector.rabbitmq.common.model.RabbitMqAuthentication;
+import io.camunda.connector.rabbitmq.common.model.RabbitMqAuthenticationType;
+import io.camunda.connector.rabbitmq.outbound.model.RabbitMqRequest;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
-public class RabbitMqRequestReplaceSecretsTest extends BaseTest {
+public class RabbitMqRequestReplaceSecretsTest extends OutboundBaseTest {
 
   private OutboundConnectorContext context;
 

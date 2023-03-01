@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.rabbitmq;
+package io.camunda.connector.rabbitmq.outbound;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
-class ValidationPropertiesUtilTest extends BaseTest {
+class ValidationPropertiesUtilTest extends OutboundBaseTest {
 
   @Test
   public void validateAmqpBasicPropertiesOrThrowException_shouldReturnSameObjectWithoutChanging() {
