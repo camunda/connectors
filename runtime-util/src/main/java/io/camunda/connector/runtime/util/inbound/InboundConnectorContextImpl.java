@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.util.inbound;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -47,7 +48,8 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
             .registerModule(DefaultScalaModule$.MODULE$)
             .registerModule(new JavaTimeModule())
             // deserialize unknown types as empty objects
-            .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
+            .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
+            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
   }
 
   public InboundConnectorContextImpl(
