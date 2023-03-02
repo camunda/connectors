@@ -137,7 +137,7 @@
         <artifactId>httpcore</artifactId>
         <version>${version.httpcore}</version>
       </dependency>
-      
+
       <dependency>
         <groupId>org.apache.kafka</groupId>
         <artifactId>kafka-clients</artifactId>
@@ -221,6 +221,12 @@
       <id>connectors-snapshots</id>
       <name>Connectors Snapshot Repository</name>
       <url>https://artifacts.camunda.com/artifactory/connectors-snapshots/</url>
+    </repository>
+    <repository>
+      <id>snapshots-repo</id>
+      <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+      <releases><enabled>false</enabled></releases>
+      <snapshots><enabled>true</enabled></snapshots>
     </repository>
   </repositories>
 
