@@ -278,15 +278,58 @@
       "optional": true
     },
     {
-      "label": "Data",
-      "description": "Represents a Blue Prism collection.",
+      "label": "Item type",
+      "description": "Represents a Blue Prism item type",
       "group": "input",
-      "type": "String",
-      "feel": "required",
-      "value": "={\n  rows: [\n    {\n      \"valueType\":\"Text\",\n      \"value\":\"Hello, world!\"\n    }\n  ]\n}",
+      "type": "Dropdown",
+      "value": "Text",
+      "choices": [
+        {
+          "name": "Text",
+          "value": "Text"
+        },
+        {
+          "name": "Number",
+          "value": "Number"
+        },
+        {
+          "name": "Date",
+          "value": "Date"
+        },
+        {
+          "name": "Flag",
+          "value": "Flag"
+        },
+        {
+          "name": "Password",
+          "value": "Password"
+        },
+        {
+          "name": "Collection",
+          "value": "Collection"
+        }
+      ],
       "binding": {
         "type": "zeebe:input",
-        "name": "bluePrismData"
+        "name": "bluePrismDataItemType"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createItemInQueue"
+        ]
+      },
+      "optional": true
+    },
+    {
+      "label": "Item value",
+      "description": "Represents a Blue Prism item value",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "bluePrismDataItemValue"
       },
       "condition": {
         "property": "operationType",
@@ -360,7 +403,7 @@
     {
       "group": "input",
       "type": "Hidden",
-      "value": "=[{ \"data\":if bluePrismData = null then null else bluePrismData, \"deferredDate\":if deferDate = null then null else deferDate, \"priority\":if priority = null then null else priority, \"status\":if status = null then null else status }]",
+      "value": "=[{ \"data\":if bluePrismDataItemValue = null then null else {rows: [{\"valueType\":bluePrismDataItemType,\"value\":bluePrismDataItemValue}]}, \"deferredDate\":if deferDate = null then null else deferDate, \"priority\":if priority = null then null else priority, \"status\":if status = null then null else status }]",
       "binding": {
         "type": "zeebe:input",
         "name": "body"
