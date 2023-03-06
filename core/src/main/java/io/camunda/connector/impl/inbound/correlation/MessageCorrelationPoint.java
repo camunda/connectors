@@ -46,7 +46,7 @@ public class MessageCorrelationPoint extends ProcessCorrelationPoint {
   }
 
   @Override
-  public String getExecutionId() {
+  public String getId() {
     return messageName + "-" + correlationKeyExpression.strip();
   }
 

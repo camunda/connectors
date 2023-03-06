@@ -26,8 +26,8 @@ package io.camunda.connector.api.inbound;
 public abstract class ProcessCorrelationPoint implements Comparable<ProcessCorrelationPoint> {
 
   /**
-   * Returns the unique execution/deduplication ID of the correlation point. Correlation points with
-   * the same execution ID logically represent the same inbound connector execution.
+   * Returns the ID of the correlation point, which also serves as a deduplication key. Correlation
+   * points with the same ID logically represent the same inbound connector execution.
    */
-  public abstract String getExecutionId();
+  public abstract String getId();
 }
