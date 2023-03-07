@@ -48,6 +48,8 @@ public class SecurityConfiguration {
         .authorizeRequests()
         .antMatchers(HttpMethod.POST, "/inbound/**")
         .permitAll()
+        .antMatchers("/actuator/health/**")
+        .permitAll()
         .antMatchers("/inbound")
         .hasAuthority("SCOPE_inbound:read")
         .anyRequest()
