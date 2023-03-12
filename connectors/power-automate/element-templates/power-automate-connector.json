@@ -1,0 +1,608 @@
+{
+  "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name": "Power Automate",
+  "id": "io.camunda.connectors.PowerAutomate.v1",
+  "version": 1,
+  "description": "Orchestrate your Power Automate flows with Camunda",
+  "icon": {
+    "contents": "data:image/svg+xml;utf8,%3Csvg width='96' height='96' viewBox='0 0 96 96' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cfilter id='filter0_f'%3E%3CfeFlood flood-opacity='0' result='BackgroundImageFix'/%3E%3CfeBlend mode='normal' in='SourceGraphic' in2='BackgroundImageFix' result='shape'/%3E%3CfeGaussianBlur stdDeviation='0.4' result='effect1_foregroundBlur'/%3E%3C/filter%3E%3Cfilter id='filter1_f'%3E%3CfeFlood flood-opacity='0' result='BackgroundImageFix'/%3E%3CfeBlend mode='normal' in='SourceGraphic' in2='BackgroundImageFix' result='shape'/%3E%3CfeGaussianBlur stdDeviation='4' result='effect1_foregroundBlur'/%3E%3C/filter%3E%3ClinearGradient id='paint0_linear' x1='43' y1='55' x2='29' y2='10' gradientUnits='userSpaceOnUse'%3E%3Cstop stop-color='%230D36A5'/%3E%3Cstop offset='1' stop-color='%231152D4'/%3E%3C/linearGradient%3E%3ClinearGradient id='paint1_linear' x1='46' y1='10' x2='46' y2='86' gradientUnits='userSpaceOnUse'%3E%3Cstop stop-color='%2384CAFF'/%3E%3Cstop offset='1' stop-color='%2361B1FB'/%3E%3C/linearGradient%3E%3ClinearGradient id='paint2_linear' x1='37.5' y1='10' x2='37.5' y2='86' gradientUnits='userSpaceOnUse'%3E%3Cstop stop-color='%233B90F5'/%3E%3Cstop offset='1' stop-color='%232A78EE'/%3E%3C/linearGradient%3E%3CclipPath id='clip0'%3E%3Crect width='96' height='96' fill='white'/%3E%3C/clipPath%3E%3CclipPath id='clip1'%3E%3Crect width='96' height='96' fill='white'/%3E%3C/clipPath%3E%3C/defs%3E%3Cg clip-path='url(%23clip0)'%3E%3Cg clip-path='url(%23clip1)'%3E%3Cmask id='mask0' mask-type='alpha' maskUnits='userSpaceOnUse' x='-1' y='10' width='97' height='76'%3E%3Cpath d='M61.2116 10C62.3496 10 63.4337 10.4847 64.1925 11.3328L94.6136 45.3328C95.9723 46.8514 95.9723 49.1486 94.6136 50.6672L64.1925 84.6672C63.4337 85.5153 62.3496 86 61.2116 86H3.94634C0.488777 86 -1.34012 81.9095 0.965366 79.3328L29 48L0.965366 16.6672C-1.34012 14.0905 0.488777 10 3.94634 10H61.2116Z' fill='white'/%3E%3C/mask%3E%3Cg mask='url(%23mask0)'%3E%3Cpath d='M63 10L29 48L-5 10H63Z' fill='url(%23paint0_linear)'/%3E%3Cg filter='url(%23filter0_f)'%3E%3Cpath d='M63 10.4L-5 86.4H63L97 48.4L63 10.4Z' fill='black' fill-opacity='0.24'/%3E%3C/g%3E%3Cg filter='url(%23filter1_f)'%3E%3Cpath d='M63 12L-5 88H63L97 50L63 12Z' fill='black' fill-opacity='0.32'/%3E%3C/g%3E%3Cpath d='M-5 86L63 10L97 48L63 86H-5Z' fill='url(%23paint1_linear)'/%3E%3Cpath d='M-5 86L63 10L80 29L29 86H-5Z' fill='url(%23paint2_linear)'/%3E%3C/g%3E%3C/g%3E%3C/g%3E%3C/svg%3E%0A"
+  },
+  "documentationRef": "https://docs.camunda.io/docs/components/modeler/web-modeler/connectors/available-connectors/power-automate/",
+  "category": {
+    "id": "connectors",
+    "name": "Connectors"
+  },
+  "appliesTo": [
+    "bpmn:Task"
+  ],
+  "elementType": {
+    "value": "bpmn:ServiceTask"
+  },
+  "groups": [
+    {
+      "id": "operation",
+      "label": "Operation"
+    },
+    {
+      "id": "authentication",
+      "label": "Authentication"
+    },
+    {
+      "id": "configuration",
+      "label": "Configuration"
+    },
+    {
+      "id": "input",
+      "label": "Input"
+    },
+    {
+      "id": "output",
+      "label": "Output"
+    },
+    {
+      "id": "errors",
+      "label": "Error Handling"
+    }
+  ],
+  "properties": [
+    {
+      "type": "Hidden",
+      "value": "io.camunda:http-json:1",
+      "binding": {
+        "type": "zeebe:taskDefinition:type"
+      }
+    },
+    {
+      "label": "Operation type",
+      "id": "operationType",
+      "group": "operation",
+      "type": "Dropdown",
+      "value": "getStatusOfFlowRun",
+      "choices": [
+        {
+          "name": "Get the status of a flow run",
+          "value": "getStatusOfFlowRun"
+        },
+        {
+          "name": "Get flow outputs",
+          "value": "getFlowOutputs"
+        },
+        {
+          "name": "Trigger a flow run",
+          "value": "triggerFlowRun"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "operationType"
+      }
+    },
+    {
+      "label": "Organization URI",
+      "description": "Dynamics 365 URL. <a href=\"https://learn.microsoft.com/en-us/power-apps/developer/data-platform/discovery-service\">Find your organization url</a>. See also <a href=\"https://learn.microsoft.com/en-us/power-automate/web-api#compose-http-requests\">this page</a>",
+      "group": "configuration",
+      "type": "String",
+      "value": "",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "organizationUri"
+      },
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "=organizationUri + \"/.default\"",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.scopes"
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "oauth-client-credentials-flow"
+      }
+    },
+    {
+      "label": "Type",
+      "id": "authenticationType",
+      "group": "authentication",
+      "description": "Choose the authentication type",
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Bearer Token",
+          "value": "bearer"
+        },
+        {
+          "name": "OAuth 2.0 client credentials",
+          "value": "oauth-client-credentials-flow"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.type"
+      }
+    },
+    {
+      "label": "Bearer token",
+      "group": "authentication",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.token"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "bearer"
+      }
+    },
+    {
+      "group": "authentication",
+      "label": "OAuth Token Endpoint",
+      "description": "Find out more <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/power-automate/#oauth-token-endpoint\">here</a>",
+      "type": "String",
+      "value": "",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.oauthTokenEndpoint"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "oauth-client-credentials-flow"
+      }
+    },
+    {
+      "label": "Client Id (Secret ID)",
+      "description": "Microsoft Azure Application Client id. <a href=\"https://learn.microsoft.com/en-us/azure/active-directory/develop/quickstart-register-app#register-an-application\">See where to find it.</a>",
+      "group": "authentication",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.clientId"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "oauth-client-credentials-flow"
+      }
+    },
+    {
+      "label": "Client secret (Client secret value)",
+      "description": "Microsoft Azure Application Client Secret value. <a href=\"https://learn.microsoft.com/en-us/azure/active-directory/develop/quickstart-register-app#register-an-application\">See where to find it.</a>",
+      "group": "authentication",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.clientSecret"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "oauth-client-credentials-flow"
+      }
+    },
+    {
+      "id": "authenticationType",
+      "group": "authentication",
+      "value": "basicAuthHeader",
+      "type": "Hidden",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.clientAuthentication"
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "oauth-client-credentials-flow"
+      }
+    },
+    {
+      "id": "methodPost",
+      "group": "configuration",
+      "type": "Hidden",
+      "value": "post",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "method"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "triggerFlowRun"
+        ]
+      }
+    },
+    {
+      "id": "methodGet",
+      "group": "configuration",
+      "type": "Hidden",
+      "value": "get",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "method"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "getStatusOfFlowRun",
+          "getFlowOutputs"
+        ]
+      }
+    },
+    {
+      "label": "Flow session ID",
+      "description": "Unique identifier for entity instances. You can find this in the response of the 'Trigger a flow run' method.",
+      "feel": "optional",
+      "group": "input",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "flowSessionId"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "getStatusOfFlowRun",
+          "getFlowOutputs"
+        ]
+      }
+    },
+    {
+      "label": "Workflow ID (Flow ID)",
+      "description": "The ID of the desktop flow that you want to run.",
+      "feel": "optional",
+      "group": "input",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "workflowId"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "triggerFlowRun"
+        ]
+      }
+    },
+    {
+      "label": "Connection Name",
+      "description": "Identifies the connection to be used with the desktop flow script.",
+      "feel": "optional",
+      "group": "input",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "connectionName"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "triggerFlowRun"
+        ]
+      }
+    },
+    {
+      "label": "Connection type",
+      "description": "Identifies which type of connection is used in the connectionName.",
+      "group": "input",
+      "type": "Dropdown",
+      "value": "1",
+      "choices": [
+        {
+          "name": "Connection type",
+          "value": "1"
+        },
+        {
+          "name": "Connection reference type",
+          "value": "2"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "connectionType"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "triggerFlowRun"
+        ]
+      }
+    },
+    {
+      "label": "Run mode",
+      "description": "Choose between attended or unattended",
+      "group": "input",
+      "type": "Dropdown",
+      "value": "attended",
+      "choices": [
+        {
+          "name": "Attended",
+          "value": "attended"
+        },
+        {
+          "name": "Unattended",
+          "value": "unattended"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "runMode"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "triggerFlowRun"
+        ]
+      }
+    },
+    {
+      "label": "Run priority",
+      "feel": "optional",
+      "description": "Choose an option (normal, high) or add your own.",
+      "group": "input",
+      "type": "String",
+      "value": "normal",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "runPriority"
+      },
+      "optional": true,
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "triggerFlowRun"
+        ]
+      }
+    },
+    {
+      "label": "Timeout",
+      "feel": "optional",
+      "description": "Timeout for Power Automate script execution in seconds (default = 3 hours, max = 24 hours).",
+      "group": "input",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "runTimeout"
+      },
+      "optional": true,
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "triggerFlowRun"
+        ]
+      }
+    },
+    {
+      "label": "Inputs",
+      "description": "The desktop flow script input parameters (json serialized string).",
+      "group": "input",
+      "type": "String",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "runInputs"
+      },
+      "optional": true,
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "triggerFlowRun"
+        ]
+      }
+    },
+    {
+      "label": "Callback URL",
+      "feel": "optional",
+      "description": "URL that will be called once the desktop flow script is complete. You can use the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/\">webhook connector</a> for this purpose.",
+      "group": "input",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "callbackUrl"
+      },
+      "optional": true,
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "triggerFlowRun"
+        ]
+      }
+    },
+    {
+      "group": "configuration",
+      "type": "Hidden",
+      "value": "={\"Content-Type\":\"application/json\"}",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "headers"
+      },
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
+      "group": "input",
+      "type": "Hidden",
+      "value": "={\"runMode\":if runMode = null then null else runMode, \"runPriority\":if runPriority = null then null else runPriority,\"connectionName\":if connectionName = null then null else connectionName,\"timeout\":if runTimeout = null then 7200 else runTimeout,\"inputs\":if runInputs = null then null else runInputs,\"connectionType\":if connectionType = null then 1 else connectionType,\"callbackUrl\":if callbackUrl = null then null else callbackUrl}",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "triggerFlowRun"
+        ]
+      },
+      "optional": true
+    },
+    {
+      "label": "Result variable",
+      "description": "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>",
+      "group": "output",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultVariable"
+      }
+    },
+    {
+      "label": "Result Expression",
+      "id": "resultExpressionGet",
+      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "group": "output",
+      "type": "String",
+      "feel": "required",
+      "value": "={flowSessionId: response.body.flowsessionId}",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultExpression"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "triggerFlowRun"
+        ]
+      }
+    },
+    {
+      "label": "Result Expression",
+      "id": "resultExpressionGet",
+      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "group": "output",
+      "type": "String",
+      "feel": "required",
+      "value": "={statusCode: response.body.statuscode}",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultExpression"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "getStatusOfFlowRun"
+        ]
+      }
+    },
+    {
+      "label": "Result Expression",
+      "id": "resultExpressionGet",
+      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "group": "output",
+      "type": "String",
+      "feel": "required",
+      "value": "={flowOutputs: response.body}",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultExpression"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "getFlowOutputs"
+        ]
+      }
+    },
+    {
+      "label": "Connection timeout",
+      "description": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
+      "group": "errors",
+      "type": "String",
+      "value": "20",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "connectionTimeoutInSeconds"
+      },
+      "optional": true,
+      "constraints": {
+        "notEmpty": false,
+        "pattern": {
+          "value": "^([0-9]*$)|(secrets.*$)",
+          "message": "Must be timeout in seconds (default value is 20 seconds)"
+        }
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "=organizationUri + \"/api/data/v9.2/flowsessions(\" + flowSessionId + \")?$select=statuscode,statecode,startedon,completedon\"",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "url"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "getStatusOfFlowRun"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "=organizationUri + \"/api/data/v9.2/flowsessions(\" + flowSessionId + \")/outputs/$value\"",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "url"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "getFlowOutputs"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "=organizationUri + \"/api/data/v9.2/workflows(\" + workflowId + \")/Microsoft.Dynamics.CRM.RunDesktopFlow\"",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "url"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "triggerFlowRun"
+        ]
+      }
+    },
+    {
+      "label": "Error expression",
+      "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
+      "group": "errors",
+      "type": "Text",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "errorExpression"
+      }
+    }
+  ]
+}
