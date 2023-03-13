@@ -4,17 +4,28 @@ The Connectors Bundle contains all out-of-the-box Connectors for Camunda 8. It's
 
 The bundle contains the following components
 
-| Component                    | Version | License                                      |
+| Component                    | Version | License                                      | 
 |------------------------------|---------|----------------------------------------------|
-| [Connector Runtime]          | 0.5.0   | [Apache 2.0]                                 |
-| [AWS Lambda Connector]       | 0.15.0  | [Camunda Platform Self-Managed Free Edition] |
-| [Google Drive Connector]     | 0.15.0  | [Camunda Platform Self-Managed Free Edition] |
-| [HTTP JSON Connector (REST)] | 0.15.0  | [Apache 2.0]                                 |
-| [RabbitMQ Connector]         | 0.15.0  | [Camunda Platform Self-Managed Free Edition] |
-| [SendGrid Connector]         | 0.15.0  | [Camunda Platform Self-Managed Free Edition] |
-| [Slack Connector]            | 0.15.0  | [Camunda Platform Self-Managed Free Edition] |
-| [SNS Connector]              | 0.15.0  | [Camunda Platform Self-Managed Free Edition] |
-| [SQS Connector]              | 0.15.0  | [Camunda Platform Self-Managed Free Edition] |
+| [Connector Runtime]          | 0.7.0   | [Apache 2.0]                                 | 
+| [AWS Lambda Connector]       | 0.17.0  | [Camunda Platform Self-Managed Free Edition] | 
+| [Google Drive Connector]     | 0.17.0  | [Camunda Platform Self-Managed Free Edition] |
+| [HTTP JSON Connector (REST)] | 0.17.0  | [Apache 2.0]                                 |
+| [GraphQL Connector]          | 0.17.0  | [Camunda Platform Self-Managed Free Edition] |
+| [RabbitMQ Connector]         | 0.17.0  | [Camunda Platform Self-Managed Free Edition] |
+| [Kafka Connector]            | 0.17.0  | [Camunda Platform Self-Managed Free Edition] |
+| [SendGrid Connector]         | 0.17.0  | [Camunda Platform Self-Managed Free Edition] |
+| [Slack Connector]            | 0.17.0  | [Camunda Platform Self-Managed Free Edition] |
+| [MS Teams Connector]         | 0.17.0  | [Camunda Platform Self-Managed Free Edition] |
+| [SNS Connector]              | 0.17.0  | [Camunda Platform Self-Managed Free Edition] |
+| [SQS Connector]              | 0.17.0  | [Camunda Platform Self-Managed Free Edition] |
+| [HTTP Webhook Connector]     | 0.17.0  | [Camunda Platform Self-Managed Free Edition] |
+
+**Note:** 
+- This list only includes Camunda 8 out-of-the-box Connectors that have their own implementation.
+Some of these Connectors are **Protocol Connectors**, which means they are compatible with more than one element template.
+- Some out-of-the-box Connectors in Camunda 8 only exist in the form of element-template for Protocol Connectors.
+Such template-only Connectors are also compatible with this bundle.
+
 
 The [`Dockerfile`](./mvn/default-bundle/Dockerfile) provides an image including the [Connector Runtime]
 and all [out-of-the-box Connectors](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/available-connectors-overview/)
@@ -63,13 +74,17 @@ docker build -t camunda/connectors-bundle:${VERSION} .
 The docker image contains Connectors licensed under [Camunda Platform Self-Managed Free Edition] license.
 
 [apache 2.0]: https://www.apache.org/licenses/LICENSE-2.0
-[aws lambda connector]: https://github.com/camunda/connectors-bundle/tree/main/connectors/aws-lambda
+[aws lambda connector]: ../connectors/aws-lambda
 [camunda platform self-managed free edition]: https://camunda.com/legal/terms/cloud-terms-and-conditions/camunda-cloud-self-managed-free-edition-terms/
-[google drive connector]: https://github.com/camunda/connectors-bundle/tree/main/connectors/google-drive
-[http json connector (rest)]: https://github.com/camunda/connectors-bundle/tree/main/connectors/http-json
-[rabbitmq connector]: https://github.com/camunda/connectors-bundle/tree/main/connectors/rabbit-mq
+[google drive connector]: ../connectors/google-drive
+[http json connector (rest)]: ../connectors/http-json
+[graphql connector]: ../connectors/graphql
+[rabbitmq connector]: ../connectors/rabbitmq
+[kafka connector]: ../connectors/kafka
 [connector runtime]: https://github.com/camunda/connector-runtime-docker
-[sendgrid connector]: https://github.com/camunda/connectors-bundle/tree/main/connectors/sendgrid
-[slack connector]: https://github.com/camunda/connectors-bundle/tree/main/connectors/slack
-[sns connector]: https://github.com/camunda/connectors-bundle/tree/main/connectors/sns
-[sqs connector]: https://github.com/camunda/connectors-bundle/tree/main/connectors/sqs
+[sendgrid connector]: ../connectors/sendgrid
+[slack connector]: ../connectors/slack
+[ms teams connector]: ../connectors/microsoft-teams
+[sns connector]: ../connectors/sns
+[sqs connector]: ../connectors/sqs
+[http webhook connector]: ../connectors/http-json

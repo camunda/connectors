@@ -179,5 +179,13 @@ Set the specific property or environment variable to enable proxy mode as descri
 
 ## Element Template
 
-The element templates can be found in
+This Connector is a **Protocol Connector**. It is used by multiple out-of-the-box Connector templates.
+
+The generic HTTP JSON Connector element template can be found in
 the [element-templates/http-json-connector.json](element-templates/http-json-connector.json) file.
+
+Additional Connector templates based on the HTTP JSON Connector:
+- [Automation Anywhere Connector](../automation-anywhere)
+- [Blue Prism Connector](../blue-prism)
+- [Power Automate Connector](../power-automate)
+- [UiPath Connector](../uipath)
