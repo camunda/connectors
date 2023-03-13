@@ -7,6 +7,9 @@ on:
       version:
         description: 'Semantic version number of release: ^[0-9]+.[0-9]+.[0-9]+(-[a-zA-Z0-9.-]+){0,1}$'
         required: true
+      prevVersion:
+        description: 'Previous release tag for correct changelog generation.'
+        required: true
       nextVersion:
         description: 'Semantic version number to use as next SNAPSHOT version: ^[0-9]+.[0-9]+.[0-9]+(-[a-zA-Z0-9.-]+){0,1}$'
         required: true
@@ -216,7 +219,8 @@ jobs:
         uses: Requarks/changelog-action@v1
         with:
           token: ${{ github.token }}
-          tag: ${{ github.event.inputs.version }}
+          fromTag: ${{ github.event.inputs.prevVersion }}
+          toTag: ${{ github.event.inputs.version }}
           writeToFile: false
           excludeTypes: build,docs,other,style,ci
 
