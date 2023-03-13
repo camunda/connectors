@@ -38,12 +38,8 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class AuthenticationService {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(AuthenticationService.class);
 
   private final Gson gson;
   private final HttpRequestFactory requestFactory;
@@ -95,7 +91,7 @@ public class AuthenticationService {
     OAuthAuthentication authentication = (OAuthAuthentication) request.getAuthentication();
 
     final GenericUrl genericUrl = new GenericUrl(authentication.getOauthTokenEndpoint());
-    Map<String, String> data = getDataForAuthRequestBody(authentication);
+    Map<String, String> data = authentication.getDataForAuthRequestBody();
     HttpContent content = new UrlEncodedContent(data);
     final String method = Constants.POST;
     final var httpRequest = requestFactory.buildRequest(method, genericUrl, content);
@@ -110,18 +106,5 @@ public class AuthenticationService {
     headers.setContentType(Constants.APPLICATION_X_WWW_FORM_URLENCODED);
     httpRequest.setHeaders(headers);
     return httpRequest;
-  }
-
-  private static Map<String, String> getDataForAuthRequestBody(OAuthAuthentication authentication) {
-    Map<String, String> data = new HashMap<>();
-    data.put(Constants.GRANT_TYPE, authentication.getGrantType());
-    data.put(Constants.AUDIENCE, authentication.getAudience());
-    data.put(Constants.SCOPE, authentication.getScopes());
-
-    if (Constants.CREDENTIALS_BODY.equals(authentication.getClientAuthentication())) {
-      data.put(Constants.CLIENT_ID, authentication.getClientId());
-      data.put(Constants.CLIENT_SECRET, authentication.getClientSecret());
-    }
-    return data;
   }
 }
