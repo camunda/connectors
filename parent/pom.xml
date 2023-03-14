@@ -116,7 +116,7 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>io.camunda.connector</groupId>
         <artifactId>connector-core</artifactId>
-        <version>0.7.0-SNAPSHOT</version>
+        <version>0.7.0</version>
       </dependency>
 
       <dependency>
