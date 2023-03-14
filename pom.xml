@@ -6,12 +6,12 @@
   <parent>
     <groupId>io.camunda.connector</groupId>
     <artifactId>connector-parent</artifactId>
-    <version>0.6.0</version>
+    <version>0.7.0</version>
     <relativePath/>
   </parent>
 
   <artifactId>connectors-bundle-parent</artifactId>
-  <version>0.17.0-SNAPSHOT</version>
+  <version>0.18.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>connectors-bundle</name>
@@ -19,12 +19,12 @@
   <inceptionYear>2022</inceptionYear>
 
   <properties>
-    <version.spring-zeebe>8.1.17</version.spring-zeebe>
+    <version.spring-zeebe>8.2.0-alpha1</version.spring-zeebe>
 
     <version.spring-boot>2.7.9</version.spring-boot>
     <version.spring-cloud-gcp-starter-logging>3.4.6</version.spring-cloud-gcp-starter-logging>
 
-    <version.aws-java-sdk>1.12.423</version.aws-java-sdk>
+    <version.aws-java-sdk>1.12.426</version.aws-java-sdk>
 
     <version.google-api-client>2.2.0</version.google-api-client>
     <version.google-api-services-drive>v3-rev20230212-2.0.0</version.google-api-services-drive>
@@ -221,6 +221,18 @@
       <id>connectors-snapshots</id>
       <name>Connectors Snapshot Repository</name>
       <url>https://artifacts.camunda.com/artifactory/connectors-snapshots/</url>
+    </repository>
+
+    <repository>
+      <releases>
+        <enabled>false</enabled>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+      <id>zeebe-snapshots</id>
+      <name>Zeebe Snapshot Repository</name>
+      <url>https://artifacts.camunda.com/artifactory/zeebe-io-snapshots/</url>
     </repository>
   </repositories>
 

@@ -693,6 +693,34 @@
       }
     },
     {
+      "label": "Content type",
+      "description": "The type of the content. Possible values are text and html.",
+      "group": "data",
+      "type": "Dropdown",
+      "value": "TEXT",
+      "choices": [
+        {
+          "name": "Text",
+          "value": "TEXT"
+        },
+        {
+          "name": "HTML",
+          "value": "HTML"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "data.bodyType"
+      },
+      "condition": {
+        "property": "channelMethod",
+        "oneOf": [
+          "sendMessageToChat",
+          "sendMessageToChannel"
+        ]
+      }
+    },
+    {
       "label": "Message ID",
       "description": "The message ID",
       "group": "data",

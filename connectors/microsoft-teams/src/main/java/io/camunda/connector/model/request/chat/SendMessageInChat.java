@@ -6,12 +6,14 @@
  */
 package io.camunda.connector.model.request.chat;
 
+import com.microsoft.graph.models.BodyType;
 import com.microsoft.graph.models.ChatMessage;
 import com.microsoft.graph.models.ItemBody;
 import com.microsoft.graph.requests.GraphServiceClient;
 import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.model.request.MSTeamsRequestData;
 import java.util.Objects;
+import java.util.Optional;
 import javax.validation.constraints.NotBlank;
 import okhttp3.Request;
 import org.apache.commons.text.StringEscapeUtils;
@@ -20,11 +22,16 @@ public class SendMessageInChat extends MSTeamsRequestData {
   @NotBlank @Secret private String chatId;
 
   @NotBlank @Secret private String content;
+  private String bodyType;
 
   @Override
   public Object invoke(final GraphServiceClient<Request> graphClient) {
     ChatMessage chatMessage = new ChatMessage();
     ItemBody body = new ItemBody();
+    body.contentType =
+        Optional.ofNullable(bodyType)
+            .map(type -> BodyType.valueOf(type.toUpperCase()))
+            .orElse(BodyType.TEXT);
     body.content = StringEscapeUtils.unescapeJson(content);
     chatMessage.body = body;
     return graphClient.chats(chatId).messages().buildRequest().post(chatMessage);
@@ -46,6 +53,14 @@ public class SendMessageInChat extends MSTeamsRequestData {
     this.content = content;
   }
 
+  public String getBodyType() {
+    return bodyType;
+  }
+
+  public void setBodyType(final String bodyType) {
+    this.bodyType = bodyType;
+  }
+
   @Override
   public boolean equals(final Object o) {
     if (this == o) {
@@ -55,16 +70,18 @@ public class SendMessageInChat extends MSTeamsRequestData {
       return false;
     }
     final SendMessageInChat that = (SendMessageInChat) o;
-    return Objects.equals(chatId, that.chatId) && Objects.equals(content, that.content);
+    return Objects.equals(chatId, that.chatId)
+        && Objects.equals(content, that.content)
+        && Objects.equals(bodyType, that.bodyType);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(chatId, content);
+    return Objects.hash(chatId, content, bodyType);
   }
 
   @Override
   public String toString() {
-    return "SendMessageInChat{" + "chatId='" + chatId + "'" + ", content='" + content + "'" + "}";
+    return "SendMessageInChat{" + "chatId='" + chatId + "'" + ", bodyType='" + bodyType + "'" + "}";
   }
 }
