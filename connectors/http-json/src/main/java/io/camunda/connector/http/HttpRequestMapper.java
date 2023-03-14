@@ -24,7 +24,6 @@ import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.UrlEncodedContent;
 import com.google.api.client.http.json.JsonHttpContent;
-import com.google.gson.Gson;
 import io.camunda.connector.common.auth.OAuthAuthentication;
 import io.camunda.connector.common.constants.Constants;
 import io.camunda.connector.common.model.CommonRequest;
@@ -33,13 +32,9 @@ import io.camunda.connector.http.components.GsonComponentSupplier;
 import io.camunda.connector.http.model.HttpJsonRequest;
 import io.camunda.connector.impl.ConnectorInputException;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 import javax.validation.ValidationException;
 
 public class HttpRequestMapper {
-
-  private static final Gson gson = GsonComponentSupplier.gsonInstance();
 
   private HttpRequestMapper() {}
 
@@ -58,24 +53,11 @@ public class HttpRequestMapper {
     return new HttpRequestBuilder()
         .method(Constants.POST)
         .genericUrl(new GenericUrl(authentication.getOauthTokenEndpoint()))
-        .content(new UrlEncodedContent(getDataForAuthRequestBody(authentication)))
+        .content(new UrlEncodedContent(authentication.getDataForAuthRequestBody()))
         .headers(headers)
         .connectionTimeoutInSeconds(request.getConnectionTimeoutInSeconds())
         .followRedirects(false)
         .build(requestFactory);
-  }
-
-  public static Map<String, String> getDataForAuthRequestBody(OAuthAuthentication authentication) {
-    Map<String, String> data = new HashMap<>();
-    data.put(Constants.GRANT_TYPE, authentication.getGrantType());
-    data.put(Constants.AUDIENCE, authentication.getAudience());
-    data.put(Constants.SCOPE, authentication.getScopes());
-
-    if (Constants.CREDENTIALS_BODY.equals(authentication.getClientAuthentication())) {
-      data.put(Constants.CLIENT_ID, authentication.getClientId());
-      data.put(Constants.CLIENT_SECRET, authentication.getClientSecret());
-    }
-    return data;
   }
 
   public static HttpRequest toHttpRequest(

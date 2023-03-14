@@ -22,7 +22,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-public class ResponseParser {
+public final class ResponseParser {
+
+  private ResponseParser() {}
 
   public static Map<String, String> extractPropertiesFromBody(
       final Map<String, String> requestedProperties, final String strResponse, final Gson gson) {
