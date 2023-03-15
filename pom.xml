@@ -19,7 +19,7 @@
   <inceptionYear>2022</inceptionYear>
 
   <properties>
-    <version.spring-zeebe>8.2.0-alpha1</version.spring-zeebe>
+    <version.spring-zeebe>8.2.0-alpha2</version.spring-zeebe>
 
     <version.spring-boot>2.7.9</version.spring-boot>
     <version.spring-cloud-gcp-starter-logging>3.4.6</version.spring-cloud-gcp-starter-logging>
@@ -73,7 +73,7 @@
       </dependency>
 
       <dependency>
-        <groupId>io.camunda</groupId>
+        <groupId>io.camunda.spring</groupId>
         <artifactId>spring-zeebe-connector-runtime</artifactId>
         <version>${version.spring-zeebe}</version>
       </dependency>
