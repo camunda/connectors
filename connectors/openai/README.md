@@ -2,7 +2,6 @@
 
 Camunda 8 Connector to integrate with [openAI moderation](https://beta.openai.com/docs/guides/moderation/overview)
 
-![openAI UseCase](./openAiDemo.gif)
 
 ## How to use
 
