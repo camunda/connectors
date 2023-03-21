@@ -1,124 +1,357 @@
 {
-    "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-    "name": "OpenAI Moderation Connector",
-    "id": "089876d4-ada1-4181-b80e-ffdd46c7c9dc",
-    "description": "Use openAI moderation to classify text content",
-    "icon": {
-      "contents": "data:image/png;base64,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"
+  "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name": "OpenAI Connector",
+  "id": "io.camunda.connectors.OpenAI.v1",
+  "description": "Interact with ChatGPT or Moderation API",
+  "icon": {
+    "contents": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB3aWR0aD0iMjU2cHgiIGhlaWdodD0iMjYwcHgiIHZpZXdCb3g9IjAgMCAyNTYgMjYwIiB2ZXJzaW9uPSIxLjEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHByZXNlcnZlQXNwZWN0UmF0aW89InhNaWRZTWlkIj4KICAgIDx0aXRsZT5PcGVuQUk8L3RpdGxlPgogICAgPGc+CiAgICAgICAgPHBhdGggZD0iTTIzOS4xODM5MTQsMTA2LjIwMjc4MyBDMjQ1LjA1NDMwNCw4OC41MjQyMDk2IDI0My4wMjIyOCw2OS4xNzMzODA1IDIzMy42MDc1OTksNTMuMDk5ODg2NCBDMjE5LjQ1MTY3OCwyOC40NTg4MDIxIDE5MC45OTk3MDMsMTUuNzgzNjEyOSAxNjMuMjEzMDA3LDIxLjczOTUwNSBDMTQ3LjU1NDA3Nyw0LjMyMTQ1ODgzIDEyMy43OTQ5MDksLTMuNDIzOTg1NTQgMTAwLjg3OTAxLDEuNDE4NzM4OTggQzc3Ljk2MzExMDUsNi4yNjE0NjM0OSA1OS4zNjkwMDkzLDIyLjk1NzI1MzYgNTIuMDk1OTYyMSw0NS4yMjE0MjE5IEMzMy44NDM2NDk0LDQ4Ljk2NDQ4NjcgMTguMDkwMTcyMSw2MC4zOTI3NDkgOC44NjY3MjUxMyw3Ni41ODE4MDMzIEMtNS40NDM0OTEsMTAxLjE4Mjk2MiAtMi4xOTU0NDQzMSwxMzIuMjE1MjU1IDE2Ljg5ODY2NjIsMTUzLjMyMDA5NCBDMTEuMDA2MDg2NSwxNzAuOTkwNjU2IDEzLjAxOTcyODMsMTkwLjM0Mzk5MSAyMi40MjM4MjMxLDIwNi40MjI5OTEgQzM2LjU5NzU1NTMsMjMxLjA3MjM0NCA2NS4wNjgwMzQyLDI0My43NDY1NjYgOTIuODY5NTczOCwyMzcuNzgzMzcyIEMxMDUuMjM1NjM5LDI1MS43MDgyNDkgMTIzLjAwMTExMywyNTkuNjMwOTQyIDE0MS42MjM5NjgsMjU5LjUyNjkyIEMxNzAuMTA1MzU5LDI1OS41NTIxNjkgMTk1LjMzNzYxMSwyNDEuMTY1NzE4IDIwNC4wMzc3NzcsMjE0LjA0NTY2MSBDMjIyLjI4NzM0LDIxMC4yOTYzNTYgMjM4LjAzODQ4OSwxOTguODY5NzgzIDI0Ny4yNjcwMTQsMTgyLjY4NTI4IEMyNjEuNDA0NDUzLDE1OC4xMjc1MTUgMjU4LjE0MjQ5NCwxMjcuMjYyNzc1IDIzOS4xODM5MTQsMTA2LjIwMjc4MyBMMjM5LjE4MzkxNCwxMDYuMjAyNzgzIFogTTE0MS42MjM5NjgsMjQyLjU0MTIwNyBDMTMwLjI1NTY4MiwyNDIuNTU5MTc3IDExOS4yNDM4NzYsMjM4LjU3NDY0MiAxMTAuNTE5MzgxLDIzMS4yODYxOTcgTDExMi4wNTQxNDYsMjMwLjQxNjQ5NiBMMTYzLjcyNDU5NSwyMDAuNTkwODgxIEMxNjYuMzQwNjQ4LDE5OS4wNTY0NDQgMTY3Ljk1NDMyMSwxOTYuMjU2ODE4IDE2Ny45NzA3ODEsMTkzLjIyNDAwNSBMMTY3Ljk3MDc4MSwxMjAuMzczNzg4IEwxODkuODE1NjE0LDEzMy4wMTAwMjYgQzE5MC4wMzQxMzIsMTMzLjEyMTQyMyAxOTAuMTg2MjM1LDEzMy4zMzA1NjQgMTkwLjIyNDg4NSwxMzMuNTcyNzc0IEwxOTAuMjI0ODg1LDE5My45NDAyMjkgQzE5MC4xNjg2MDMsMjIwLjc1ODQyNyAxNjguNDQyMTY2LDI0Mi40ODQ4NjQgMTQxLjYyMzk2OCwyNDIuNTQxMjA3IFogTTM3LjE1NzU3NDksMTk3LjkzMDYyIEMzMS40NTY0OTgsMTg4LjA4NjM1OSAyOS40MDk0ODE4LDE3Ni41NDY5ODQgMzEuMzc2NjIzNywxNjUuMzQyNDI2IEwzMi45MTEzODk1LDE2Ni4yNjMyODUgTDg0LjYzMjk5NzMsMTk2LjA4ODkwMSBDODcuMjM4OTM0OSwxOTcuNjE4MjA3IDkwLjQ2ODI3MTcsMTk3LjYxODIwNyA5My4wNzQyMDkzLDE5Ni4wODg5MDEgTDE1Ni4yNTU0MDIsMTU5LjY2Mzc5MyBMMTU2LjI1NTQwMiwxODQuODg1MTExIEMxNTYuMjQzNTU3LDE4NS4xNDk3NzEgMTU2LjExMTcyNSwxODUuMzk0NjAyIDE1NS44OTcyOSwxODUuNTUwMTc2IEwxMDMuNTYxNzc2LDIxNS43MzM5MDMgQzgwLjMwNTQ5NTMsMjI5LjEzMTYzMiA1MC41OTI0OTU0LDIyMS4xNjU0MzUgMzcuMTU3NTc0OSwxOTcuOTMwNjIgWiBNMjMuNTQ5MzE4MSw4NS4zODExMjczIEMyOS4yODk5ODYxLDc1LjQ3MzMwOTcgMzguMzUxMTkxMSw2Ny45MTYyNjQ4IDQ5LjEyODc0ODIsNjQuMDQ3ODgyNSBMNDkuMTI4NzQ4MiwxMjUuNDM4NTE1IEM0OS4wODkxNDkyLDEyOC40NTk0MjUgNTAuNjk2NTM4NiwxMzEuMjYyNTU2IDUzLjMyMzc3NDgsMTMyLjc1NDIzMiBMMTE2LjE5ODAxNCwxNjkuMDI1ODY0IEw5NC4zNTMxODA4LDE4MS42NjIxMDIgQzk0LjExMzIzMjUsMTgxLjc4OTQzNCA5My44MjU3NDYxLDE4MS43ODk0MzQgOTMuNTg1Nzk3OSwxODEuNjYyMTAyIEw0MS4zNTI2MDE1LDE1MS41Mjk1MzQgQzE4LjE0MTk0MjYsMTM4LjA3NjA5OCAxMC4xODE3NjgxLDEwOC4zODU1NjIgMjMuNTQ5MzE4MSw4NS4xMjUzMzMgTDIzLjU0OTMxODEsODUuMzgxMTI3MyBaIE0yMDMuMDE0NiwxMjcuMDc1NTk4IEwxMzkuOTM1NzI1LDkwLjQ0NTg1NDUgTDE2MS43Mjk0LDc3Ljg2MDc3NDggQzE2MS45NjkzNDgsNzcuNzMzNDQzNCAxNjIuMjU2ODM0LDc3LjczMzQ0MzQgMTYyLjQ5Njc4Myw3Ny44NjA3NzQ4IEwyMTQuNzI5OTc5LDEwOC4wNDQ1MDIgQzIzMS4wMzIzMjksMTE3LjQ1MTc0NyAyNDAuNDM3Mjk0LDEzNS40MjYxMDkgMjM4Ljg3MTUwNCwxNTQuMTgyNzM5IEMyMzcuMzA1NzE0LDE3Mi45MzkzNjggMjI1LjA1MDcxOSwxODkuMTA1NTcyIDIwNy40MTQyNjIsMTk1LjY3OTYzIEwyMDcuNDE0MjYyLDEzNC4yODg5OTggQzIwNy4zMjI1MjEsMTMxLjI3Njg2NyAyMDUuNjUwNjk3LDEyOC41MzU4NTMgMjAzLjAxNDYsMTI3LjA3NTU5OCBaIE0yMjQuNzU3MTE2LDk0LjM4NTA4NjcgTDIyMy4yMjIzNSw5My40NjQyMjcyIEwxNzEuNjAzMDYsNjMuMzgyODE3MyBDMTY4Ljk4MTI5Myw2MS44NDQzNzUxIDE2NS43MzI0NTYsNjEuODQ0Mzc1MSAxNjMuMTEwNjg5LDYzLjM4MjgxNzMgTDk5Ljk4MDY1NTQsOTkuODA3OTI1OSBMOTkuOTgwNjU1NCw3NC41ODY2MDc3IEM5OS45NTMzMDA0LDc0LjMyNTQwODggMTAwLjA3MTA5NSw3NC4wNzAxODY5IDEwMC4yODc2MDksNzMuOTIxNTQyNiBMMTUyLjUyMDgwNSw0My43ODg5NzM4IEMxNjguODYzMDk4LDM0LjM3NDM1MTggMTg5LjE3NDI1NiwzNS4yNTI5MDQzIDIwNC42NDI1NzksNDYuMDQzNDg0MSBDMjIwLjExMDkwMyw1Ni44MzQwNjM4IDIyNy45NDkyNjksNzUuNTkyMzk1OSAyMjQuNzU3MTE2LDk0LjE4MDQ1MTMgTDIyNC43NTcxMTYsOTQuMzg1MDg2NyBaIE04OC4wNjA2NDA5LDEzOS4wOTc5MzEgTDY2LjIxNTgwNzYsMTI2LjUxMjg1MSBDNjUuOTk1MDM5OSwxMjYuMzc5MDkxIDY1Ljg0NTA5NjUsMTI2LjE1NDE3NiA2NS44MDY1MzY3LDEyNS44OTg5NDUgTDY1LjgwNjUzNjcsNjUuNjg0OTY2IEM2NS44MzE0NDk1LDQ2LjgyODUzNjcgNzYuNzUwMDYwNSwyOS42ODQ2MDMyIDkzLjgyNzA4NTIsMjEuNjg4MzA1NSBDMTEwLjkwNDExLDEzLjY5MjAwNzkgMTMxLjA2MzgzMywxNi4yODM1NDYyIDE0NS41NjMyLDI4LjMzODk5OCBMMTQ0LjAyODQzNCwyOS4yMDg2OTg2IEw5Mi4zNTc5ODUyLDU5LjAzNDMxNDIgQzg5Ljc0MTkzMjcsNjAuNTY4NzUxMyA4OC4xMjgyNTk3LDYzLjM2ODM3NjcgODguMTExNzk5OCw2Ni40MDExOTAxIEw4OC4wNjA2NDA5LDEzOS4wOTc5MzEgWiBNOTkuOTI5NDk2NSwxMTMuNTE4NSBMMTI4LjA2Njg3LDk3LjMwMTE0MTcgTDE1Ni4yNTU0MDIsMTEzLjUxODUgTDE1Ni4yNTU0MDIsMTQ1Ljk1MzIxOCBMMTI4LjE2OTE4NywxNjIuMTcwNTc3IEw5OS45ODA2NTU0LDE0NS45NTMyMTggTDk5LjkyOTQ5NjUsMTEzLjUxODUgWiIgZmlsbD0iIzAwMDAwMCI+PC9wYXRoPgogICAgPC9nPgo8L3N2Zz4K"
+  },
+  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/openai/",
+  "category": {
+    "id": "connectors",
+    "name": "Connectors"
+  },
+  "appliesTo": [
+    "bpmn:Task"
+  ],
+  "elementType": {
+    "value": "bpmn:ServiceTask"
+  },
+  "groups": [
+    {
+      "id": "authentication",
+      "label": "Authentication"
     },
-    "documentationRef": "https://beta.openai.com/docs/guides/moderation/overview",
-    "category": {
-      "id": "connectors",
-      "name": "Connectors"
+    {
+      "id": "input",
+      "label": "Payload"
     },
-    "appliesTo": [
-      "bpmn:Task"
-    ],
-    "elementType": {
-      "value": "bpmn:ServiceTask"
+    {
+      "id": "input",
+      "label": "Payload"
     },
-    "groups": [
-      {
-        "id": "authentication",
-        "label": "Authentication"
-      },
-      {
-        "id": "content",
-        "label": "Input"
-      },
-      {
-        "id": "output",
-        "label": "Response Mapping"
+    {
+      "id": "output",
+      "label": "Response Mapping"
+    },
+    {
+      "id": "errors",
+      "label": "Error Handling"
+    }
+  ],
+  "properties": [
+    {
+      "type": "Hidden",
+      "value": "io.camunda:http-json:1",
+      "binding": {
+        "type": "zeebe:taskDefinition:type"
       }
-    ],
-    "properties": [
-      {
-        "type": "Hidden",
-        "value": "io.camunda:http-json:1",
-        "binding": {
-          "type": "zeebe:taskDefinition:type"
-        }
+    },
+    {
+      "id": "authenticationType",
+      "value": "bearer",
+      "type": "Hidden",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.type"
+      }
+    },
+    {
+      "label": "OpenAI API Key",
+      "group": "authentication",
+      "feel": "optional",
+      "description": "Your OpenAI API key",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.token"
       },
-      {
-        "label": "Type",
-        "id": "authenticationType",
-        "value": "bearer",
-        "type": "Hidden",
-        "binding": {
-          "type": "zeebe:input",
-          "name": "authentication.type"
-        }
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
+      "label": "Organization",
+      "group": "authentication",
+      "description": "For members of multiple organizations. Details in the <a href=\"https://platform.openai.com/docs/api-reference/requesting-organization\" target=\"_blank\">OpenAI documentation</a>",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "internal_organization"
       },
-      {
-        "id": "method",
-        "type": "Hidden",
-        "value": "post",
-        "binding": {
-          "type": "zeebe:input",
-          "name": "method"
-        }
-      },
-      {
-        "type": "Hidden",
-        "value": "https://api.openai.com/v1/moderations",
-        "binding": {
-          "type": "zeebe:input",
-          "name": "url"
-        }
-      },
-      {
-        "label": "HTTP Headers",
-        "type": "Hidden",
-        "value": "= {Content-Type: \"application/json\"}",
-        "binding": {
-          "type": "zeebe:input",
-          "name": "headers"
-        }
-      },
-      {
-        "label": "openAI API Key",
-        "group": "authentication",
-        "description": "Your openAI API Key stored as secret",
-        "type": "String",
-        "binding": {
-          "type": "zeebe:input",
-          "name": "authentication.token"
+      "optional": true
+    },
+    {
+      "group": "authentication",
+      "type": "Hidden",
+      "value": "=if is defined(internal_organization) and internal_organization != null then {\"Content-Type\":\"application/json\", \"OpenAI-Organization\":internal_organization} else {\"Content-Type\":\"application/json\"}",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "headers"
+      }
+    },
+    {
+      "label": "Operation",
+      "group": "input",
+      "description": "OpenAI API operation",
+      "type": "Dropdown",
+      "id": "operation",
+      "value": "chat",
+      "choices": [
+        {
+          "name": "Chat",
+          "value": "chat"
         },
-        "constraints": {
-          "notEmpty": true
+        {
+          "name": " Moderation",
+          "value": "moderation"
         }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "operation"
+      }
+    },
+    {
+      "id": "method",
+      "group": "endpoint",
+      "type": "Hidden",
+      "value": "post",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "method"
+      }
+    },
+    {
+      "group": "endpoint",
+      "type": "Hidden",
+      "value": "https://api.openai.com/v1/chat/completions",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "url"
       },
-      {
-        "label": "Evaluation input",
-        "description": "Provide the text to analyze as static value or variable",
-        "group": "content",
-        "type": "String",
-        "feel": "optional",
-        "value": "Sample text goes here",
-        "binding": {
-          "type": "zeebe:input",
-          "name": "internal_textToAnalyze"
+      "condition": {
+        "property": "operation",
+        "equals": "chat"
+      }
+    },
+    {
+      "group": "endpoint",
+      "type": "Hidden",
+      "value": "https://api.openai.com/v1/moderations",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "url"
+      },
+      "condition": {
+        "property": "operation",
+        "equals": "moderation"
+      }
+    },
+    {
+      "label": "Evaluation input",
+      "description": "Provide the text to analyze as static value or variable",
+      "group": "input",
+      "type": "Text",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "internal_textToAnalyze"
+      },
+      "condition": {
+        "property": "operation",
+        "equals": "moderation"
+      },
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
+      "label": "Model",
+      "description": "Select the model",
+      "group": "input",
+      "type": "Dropdown",
+      "value": "gpt-3.5-turbo",
+      "choices": [
+        {
+          "name": "GPT-3.5-turbo",
+          "value": "gpt-3.5-turbo"
+        },
+        {
+          "name": "GPT-4",
+          "value": "gpt-4"
         }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "internal_model"
       },
-      {
-        "type": "Hidden",
-        "value": "={\"input\": internal_textToAnalyze}",
-        "binding": {
-          "type": "zeebe:input",
-          "name": "body"
-        }
+      "condition": {
+        "property": "operation",
+        "equals": "chat"
+      }
+    },
+    {
+      "label": "System message",
+      "description": "Optional initial instructions for the model",
+      "group": "input",
+      "type": "Text",
+      "optional": true,
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "internal_systemMessage"
       },
-      {
-        "label": "Result Expression",
-        "description": "Expression to map the response into process variables",
-        "group": "output",
-        "type": "Text",
-        "feel": "required",
-        "value": "={\r flagged: response.body.results[1].flagged,\r hate: response.body.results[1].category_scores.hate,\r sexual: response.body.results[1].category_scores.sexual,\r violence: response.body.results[1].category_scores.violence\r}",
-        "binding": {
-          "type": "zeebe:taskHeader",
-          "key": "resultExpression"
+      "condition": {
+        "property": "operation",
+        "equals": "chat"
+      }
+    },
+    {
+      "label": "Chat history",
+      "description": "Optional chat history, or examples of the desired model behavior",
+      "feel": "required",
+      "optional": true,
+      "type": "String",
+      "group": "input",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "internal_chatHistory"
+      },
+      "condition": {
+        "property": "operation",
+        "equals": "chat"
+      }
+    },
+    {
+      "label": "Prompt",
+      "description": "Input to be evaluated",
+      "group": "input",
+      "type": "Text",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "internal_prompt"
+      },
+      "condition": {
+        "property": "operation",
+        "equals": "chat"
+      },
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
+      "label": "Choices to generate",
+      "description": "Amount of alternative responses the model will generate",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "optional": false,
+      "value": "1",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "internal_choices"
+      },
+      "condition": {
+        "property": "operation",
+        "equals": "chat"
+      },
+      "constraints": {
+        "notEmpty": true,
+        "pattern": {
+          "value": "^[1-9]\\d*$",
+          "message": "Must be a positive integer number"
         }
       }
-    ]
-  } 
+    },
+    {
+      "type": "Hidden",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "internal_messages"
+      },
+      "condition": {
+        "property": "operation",
+        "equals": "chat"
+      },
+      "value": "=append(concatenate(if is defined(internal_systemMessage) then [{\"role\": \"system\", \"content\": internal_systemMessage}] else [], if is defined(internal_chatHistory) then internal_chatHistory else []), {\"role\": \"user\", \"content\": internal_prompt})"
+    },
+    {
+      "type": "Hidden",
+      "value": "={\"model\": internal_model, \"messages\": internal_messages, \"n\": number(internal_choices)}",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body"
+      },
+      "condition": {
+        "property": "operation",
+        "equals": "chat"
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "={\"input\": internal_textToAnalyze}",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body"
+      },
+      "condition": {
+        "property": "operation",
+        "equals": "moderation"
+      }
+    },
+    {
+      "label": "Result Variable",
+      "description": "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>",
+      "group": "output",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultVariable"
+      }
+    },
+    {
+      "label": "Result Expression",
+      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "group": "output",
+      "type": "Text",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultExpression"
+      }
+    },
+    {
+      "label": "Connection Timeout",
+      "description": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
+      "group": "errors",
+      "type": "String",
+      "value": "30",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "connectionTimeoutInSeconds"
+      },
+      "optional": true,
+      "constraints": {
+        "notEmpty": false,
+        "pattern": {
+          "value": "^([0-9]*$)|(secrets.*$)",
+          "message": "Must be timeout in seconds (default value is 20 seconds)"
+        }
+      }
+    },
+    {
+      "label": "Error Expression",
+      "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
+      "group": "errors",
+      "type": "Text",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "errorExpression"
+      }
+    }
+  ]
+}

@@ -1,14 +1,24 @@
-# camunda-connector-openai-moderation
+# OpenAI Connector
 
-Camunda 8 Connector to integrate with [openAI moderation](https://beta.openai.com/docs/guides/moderation/overview)
+The **OpenAI Connector** allows you to use [ChatGPT](https://platform.openai.com/docs/guides/chat/chat-completions-beta)
+or [Moderation API](https://platform.openai.com/docs/guides/moderation/moderation) in your Camunda 8 processes.
 
+This Connector reuses the base implementation of [HTTP JSON Connector](../http-json) by providing a compatible element template.
 
-## How to use
+## What can I use it for?
 
-1. Download the [Connector Template configuration from this repository](https://github.com/MaxTru/camunda-connector-openai-moderation/blob/main/openai-moderation-connector.json)
-2. Add the Connector Template to your modeling tool of choice:
-   1. [How to add to Desktop Modeler](https://docs.camunda.io/docs/components/modeler/desktop-modeler/element-templates/configuring-templates/)
-   2. [How to add to Web Modeler](https://docs.camunda.io/docs/components/modeler/web-modeler/advanced-modeling/manage-connector-templates/)
-3. Create an account with [OpenAI and generate an API key](https://beta.openai.com/account/api-keys)
-4. (optionally - for Web Modeler only) Store the [API key as secret in Camunda Console](https://docs.camunda.io/docs/components/console/manage-clusters/manage-secrets/)
-5. You are now ready to use the Connector!
+Large language models like GPT-3 or GPT-4 can create and edit content, or respond to user prompt in an interactive manner.
+Please refer to the [example API use-cases](https://platform.openai.com/examples) provided by OpenAI.
+
+![process example](../openai/img/process_example.png)
+
+## Model selection
+
+Refer to the [Models](https://platform.openai.com/docs/models/models) section of OpenAI documentation.
+Selection of models is user-specific and depends on your account privileges. Therefore, some models (e.g. GPT-4 at the time of writing)
+may appear as non-existing when you attempt to use them, although they are defined in the element template.
+
+## Moderation
+
+It is recommended to use the Moderation API to sanitize both inputs and outputs of the language model.
+This way you will be able to prevent violation of OpenAI policies and displaying the potentially unsafe content in your system.
