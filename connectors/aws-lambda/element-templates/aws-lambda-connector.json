@@ -3,7 +3,7 @@
   "name": "AWS Lambda Connector",
   "id": "io.camunda.connectors.AWSLAMBDA.v1",
   "description": "Invoke a function",
-  "documentationRef": "https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/aws-lambda/",
+  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/",
   "category": {
     "id": "connectors",
     "name": "Connectors"
