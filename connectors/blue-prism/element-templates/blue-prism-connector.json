@@ -4,7 +4,7 @@
   "id": "io.camunda.connectors.BluePrism.v1",
   "version": 1,
   "description": "Orchestrate your Blue Prism queue with Camunda. You can create new queue items and get the result from it",
-  "documentationRef": "https://docs.camunda.io/docs/components/modeler/web-modeler/connectors/available-connectors/blueprism/",
+  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/blueprism/",
   "category": {
     "id": "connectors",
     "name": "Connectors"
