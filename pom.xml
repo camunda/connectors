@@ -21,7 +21,7 @@
   <properties>
     <version.spring-zeebe>8.2.0-alpha2</version.spring-zeebe>
 
-    <version.spring-boot>2.7.9</version.spring-boot>
+    <version.spring-boot>2.7.10</version.spring-boot>
     <version.spring-cloud-gcp-starter-logging>3.4.6</version.spring-cloud-gcp-starter-logging>
 
     <version.aws-java-sdk>1.12.433</version.aws-java-sdk>
