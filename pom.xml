@@ -22,7 +22,7 @@
     <version.spring-zeebe>8.2.0-alpha2</version.spring-zeebe>
 
     <version.spring-boot>2.7.10</version.spring-boot>
-    <version.spring-cloud-gcp-starter-logging>3.4.6</version.spring-cloud-gcp-starter-logging>
+    <version.spring-cloud-gcp-starter-logging>3.4.7</version.spring-cloud-gcp-starter-logging>
 
     <version.aws-java-sdk>1.12.434</version.aws-java-sdk>
 
