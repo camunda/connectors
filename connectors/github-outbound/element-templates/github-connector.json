@@ -281,7 +281,7 @@
       }
     },
     {
-      "label": "Github Personal Token",
+      "label": "GitHub Personal Token",
       "group": "authentication",
       "description": "GitHub Personal Token, needs repository and workflow scope.",
       "type": "String",
@@ -382,7 +382,7 @@
     },
     {
       "label": "Owner",
-      "description": "Repo owner",
+      "description": "Repository owner",
       "group": "configuration",
       "type": "String",
       "feel": "optional",
@@ -418,8 +418,8 @@
       }
     },
     {
-      "label": "Repo",
-      "description": "Name of the repo",
+      "label": "Repository",
+      "description": "Name of the repository",
       "group": "configuration",
       "type": "String",
       "feel": "optional",
