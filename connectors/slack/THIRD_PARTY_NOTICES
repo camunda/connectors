@@ -4,8 +4,8 @@ Do Not Translate or Localize
 This project incorporates components with the licenses under which Camunda received them as listed below.
 
   * com.google.code.gson:gson (Version: 2.10.1, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
-  * com.slack.api:slack-api-client (Version: 1.28.0, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
-  * com.slack.api:slack-api-model (Version: 1.28.0, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
+  * com.slack.api:slack-api-client (Version: 1.28.1, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
+  * com.slack.api:slack-api-model (Version: 1.28.1, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * com.squareup.okhttp3:okhttp (Version: 4.9.3, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * com.squareup.okio:okio (Version: 2.8.0, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * javax.annotation:jsr250-api (Version: 1.0, License: CDDLv1.0 (URL: https://opensource.org/licenses/CDDL-1.0))
