@@ -237,8 +237,68 @@
         "notEmpty": true
       },
       "condition": {
-        "property": "operationType",
-        "equals": "chat"
+        "allMatch": [
+          {
+            "property": "operationType",
+            "equals": "chat"
+          },
+          {
+            "property": "authType",
+            "oneOf": [
+              "token",
+              "refresh"
+            ]
+          }
+        ]
+      },
+      "binding": {
+        "type": "zeebe:input",
+        "name": "data.method"
+      }
+    },
+    {
+      "label": "Method",
+      "id": "chatMethod",
+      "group": "operation",
+      "description": "Select method for chat interaction",
+      "value": "createChat",
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Create a new chat",
+          "value": "createChat"
+        },
+        {
+          "name": "Get chat by ID",
+          "value": "getChat"
+        },
+        {
+          "name": "List chat members",
+          "value": "listMembersOfChat"
+        },
+        {
+          "name": "List messages in chat",
+          "value": "listMessagesInChat"
+        },
+        {
+          "name": "Get message in chat",
+          "value": "getMessageFromChat"
+        }
+      ],
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "allMatch": [
+          {
+            "property": "operationType",
+            "equals": "chat"
+          },
+          {
+            "property": "authType",
+            "equals": "clientCredentials"
+          }
+        ]
       },
       "binding": {
         "type": "zeebe:input",
@@ -290,8 +350,76 @@
         "notEmpty": true
       },
       "condition": {
-        "property": "operationType",
-        "equals": "channel"
+        "allMatch": [
+          {
+            "property": "operationType",
+            "equals": "channel"
+          },
+          {
+            "property": "authType",
+            "oneOf": [
+              "token",
+              "refresh"
+            ]
+          }
+        ]
+      },
+      "binding": {
+        "type": "zeebe:input",
+        "name": "data.method"
+      }
+    },
+    {
+      "label": "Method",
+      "id": "channelMethod",
+      "group": "operation",
+      "description": "Select method for channel interaction",
+      "value": "createChannel",
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Create channel",
+          "value": "createChannel"
+        },
+        {
+          "name": "Get channel",
+          "value": "getChannel"
+        },
+        {
+          "name": "List channels",
+          "value": "listAllChannels"
+        },
+        {
+          "name": "Get channel message",
+          "value": "getMessageFromChannel"
+        },
+        {
+          "name": "List channel messages",
+          "value": "listChannelMessages"
+        },
+        {
+          "name": "List message replies",
+          "value": "listMessageRepliesInChannel"
+        },
+        {
+          "name": "List members",
+          "value": "listMembersInChannel"
+        }
+      ],
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "allMatch": [
+          {
+            "property": "operationType",
+            "equals": "channel"
+          },
+          {
+            "property": "authType",
+            "equals": "clientCredentials"
+          }
+        ]
       },
       "binding": {
         "type": "zeebe:input",
