@@ -462,6 +462,7 @@
       "label": "Result Expression",
       "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
       "group": "output",
+      "value": "={operateResponse: response.body}",
       "type": "Text",
       "feel": "required",
       "binding": {
