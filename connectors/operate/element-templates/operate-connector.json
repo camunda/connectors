@@ -1,0 +1,507 @@
+{
+  "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name": "Camunda Operate Connector",
+  "id": "io.camunda.connector.CamundaOperate.v1",
+  "description": "Fetch data from Camunda Operate API",
+  "appliesTo": [
+    "bpmn:Task"
+  ],
+  "elementType": {
+    "value": "bpmn:ServiceTask"
+  },
+  "groups": [
+    {
+      "id": "cluster",
+      "label": "Cluster"
+    },
+    {
+      "id": "authentication",
+      "label": "Authentication"
+    },
+    {
+      "id": "input",
+      "label": "Endpoint"
+    },
+    {
+      "id": "parameters",
+      "label": "Parameters"
+    },
+    {
+      "id": "output",
+      "label": "Response Mapping"
+    },
+    {
+      "id": "errors",
+      "label": "Error Handling"
+    }
+  ],
+  "properties": [
+    {
+      "type": "Hidden",
+      "value": "io.camunda:http-json:1",
+      "binding": {
+        "type": "zeebe:taskDefinition:type"
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "={\"Content-Type\":\"application/json\"}",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "headers"
+      }
+    },
+    {
+      "label": "Type",
+      "id": "authentication.internal_deployment_type",
+      "group": "cluster",
+      "type": "Dropdown",
+      "value": "saas",
+      "choices": [
+        {
+          "name": "Camunda 8 SaaS",
+          "value": "saas"
+        },
+        {
+          "name": "Camunda 8 Self-Managed",
+          "value": "sm"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.internal_deployment_type"
+      }
+    },
+    {
+      "label": "OAuth Token Endpoint",
+      "description": "Token endpoint of your authentication server",
+      "group": "cluster",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.oauthTokenEndpoint"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authentication.internal_deployment_type",
+        "equals": "sm"
+      }
+    },
+    {
+      "label": "Operate base URL",
+      "description": "Base URL of Operate in your C8 cluster",
+      "type": "String",
+      "feel": "optional",
+      "id": "authentication.operate_base_url",
+      "group": "cluster",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.operate_base_url"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authentication.internal_deployment_type",
+        "equals": "sm"
+      }
+    },
+    {
+      "label": "Region",
+      "group": "cluster",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.internal_region"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authentication.internal_deployment_type",
+        "equals": "saas"
+      }
+    },
+    {
+      "label": "Cluster ID",
+      "description": "SaaS cluster region and ID.<br>Lean more about <a href=\"https://docs.camunda.io/docs/next/guides/setup-client-connection-credentials\" target=\"_blank\">creating API client credentials</a>",
+      "group": "cluster",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.internal_cluster"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authentication.internal_deployment_type",
+        "equals": "saas"
+      }
+    },
+    {
+      "type": "Hidden",
+      "id": "authenticationType",
+      "value": "oauth-client-credentials-flow",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.type"
+      }
+    },
+    {
+      "value": "credentialsBody",
+      "type": "Hidden",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.clientAuthentication"
+      }
+    },
+    {
+      "description": "The OAuth token endpoint (SaaS)",
+      "group": "authentication",
+      "type": "Hidden",
+      "value": "https://login.cloud.camunda.io/oauth/token",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.oauthTokenEndpoint"
+      },
+      "condition": {
+        "property": "authentication.internal_deployment_type",
+        "equals": "saas"
+      }
+    },
+    {
+      "label": "Client ID",
+      "group": "authentication",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.clientId"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "oauth-client-credentials-flow"
+      }
+    },
+    {
+      "label": "Client secret",
+      "description": "Client ID and secret for the Operate OAuth client",
+      "group": "authentication",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.clientSecret"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "oauth-client-credentials-flow"
+      }
+    },
+    {
+      "label": "Operate audience",
+      "description": "API Audience",
+      "type": "String",
+      "group": "authentication",
+      "value": "operate-api",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.audience"
+      },
+      "condition": {
+        "property": "authentication.internal_deployment_type",
+        "equals": "sm"
+      },
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "operate.camunda.io",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.audience"
+      },
+      "condition": {
+        "property": "authentication.internal_deployment_type",
+        "equals": "saas"
+      }
+    },
+    {
+      "label": "Endpoint",
+      "description": "Operate API entity",
+      "group": "input",
+      "id": "input.internal_endpoint",
+      "type": "Dropdown",
+      "value": "/v1/process-instances",
+      "choices": [
+        {
+          "name": "Process instances",
+          "value": "/v1/process-instances"
+        },
+        {
+          "name": "Incidents",
+          "value": "/v1/incidents"
+        },
+        {
+          "name": "Variables",
+          "value": "/v1/variables"
+        },
+        {
+          "name": "Process definitions",
+          "value": "/v1/process-definitions"
+        },
+        {
+          "name": "Flownode instances",
+          "value": "/v1/flownode-instances"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "input.internal_endpoint"
+      }
+    },
+    {
+      "label": "Operation",
+      "description": "Operation to execute against the selected entity",
+      "group": "input",
+      "id": "input.internal_operation",
+      "type": "Dropdown",
+      "value": "/search",
+      "choices": [
+        {
+          "name": "Search",
+          "value": "/search"
+        },
+        {
+          "name": "Get by key",
+          "value": "/"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "input.internal_operation"
+      }
+    },
+    {
+      "type": "Hidden",
+      "description": "Get by key operation method (GET)",
+      "value": "get",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "method"
+      },
+      "condition": {
+        "property": "input.internal_operation",
+        "equals": "/"
+      }
+    },
+    {
+      "type": "Hidden",
+      "description": "Search operation method (POST)",
+      "value": "post",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "method"
+      },
+      "condition": {
+        "property": "input.internal_operation",
+        "equals": "/search"
+      }
+    },
+    {
+      "type": "Hidden",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "url"
+      },
+      "value": "=\"https://\" + authentication.internal_region + \".operate.camunda.io/\" + authentication.internal_cluster + input.internal_endpoint + input.internal_operation + (if is defined(input.internal_key) then input.internal_key else \"\")",
+      "condition": {
+        "property": "authentication.internal_deployment_type",
+        "equals": "saas"
+      }
+    },
+    {
+      "type": "Hidden",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "url"
+      },
+      "value": "=authentication.operate_base_url + input.internal_endpoint + input.internal_operation + (if is defined(input.internal_key) then input.internal_key else \"\")",
+      "condition": {
+        "property": "authentication.internal_deployment_type",
+        "equals": "sm"
+      }
+    },
+    {
+      "label": "Key",
+      "description": "Entity key",
+      "group": "parameters",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "input.internal_key"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "input.internal_operation",
+        "equals": "/"
+      }
+    },
+    {
+      "label": "Filter",
+      "description": "Search filter in <a href=\"https://docs.camunda.io/docs/apis-clients/operate-api/#filter\" target=\"_blank\">Operate format</a>",
+      "group": "parameters",
+      "type": "String",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "input.internal_filter"
+      },
+      "optional": true,
+      "condition": {
+        "property": "input.internal_operation",
+        "equals": "/search"
+      }
+    },
+    {
+      "label": "Sort",
+      "description": "Sorting properties in <a href=\"https://docs.camunda.io/docs/apis-clients/operate-api/#sort\" target=\"_blank\">Operate format</a><br>Please provide a list of sort objects",
+      "group": "parameters",
+      "type": "String",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "input.internal_sort"
+      },
+      "optional": true,
+      "condition": {
+        "property": "input.internal_operation",
+        "equals": "/search"
+      }
+    },
+    {
+      "label": "Results",
+      "description": "Number of results to return",
+      "group": "parameters",
+      "type": "String",
+      "value": "20",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "input.internal_results"
+      },
+      "condition": {
+        "property": "input.internal_operation",
+        "equals": "/search"
+      },
+      "constraints": {
+        "notEmpty": true,
+        "pattern": {
+          "value": "^[1-9]\\d*$",
+          "message": "Must be a positive integer number"
+        }
+      }
+    },
+    {
+      "label": "Pagination",
+      "description": "Identifier of item from which the search should start. <br>Hint: Copy the <code>sortValues</code> field from the previous search result, or leave blank for no pagination",
+      "group": "parameters",
+      "type": "String",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "input.internal_pagination"
+      },
+      "optional": true,
+      "condition": {
+        "property": "input.internal_operation",
+        "equals": "/search"
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "={filter: if is defined(input.internal_filter) then input.internal_filter else null, sort: if is defined(input.internal_sort) then input.internal_sort else null, searchAfter: if is defined(input.internal_pagination) then input.internal_pagination else null, size: number(input.internal_results)}",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body"
+      },
+      "condition": {
+        "property": "input.internal_operation",
+        "equals": "/search"
+      }
+    },
+    {
+      "label": "Result Variable",
+      "description": "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>",
+      "group": "output",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultVariable"
+      }
+    },
+    {
+      "label": "Result Expression",
+      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "group": "output",
+      "value": "={operateResponse: response.body}",
+      "type": "Text",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultExpression"
+      }
+    },
+    {
+      "label": "Connection Timeout",
+      "description": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
+      "group": "errors",
+      "type": "String",
+      "value": "20",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "connectionTimeoutInSeconds"
+      },
+      "optional": true,
+      "constraints": {
+        "notEmpty": false,
+        "pattern": {
+          "value": "^([0-9]*$)|(secrets.*$)",
+          "message": "Must be timeout in seconds (default value is 20 seconds)"
+        }
+      }
+    },
+    {
+      "label": "Error Expression",
+      "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
+      "group": "errors",
+      "type": "Text",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "errorExpression"
+      }
+    }
+  ],
+  "icon": {
+    "contents": "data:image/png;base64,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"
+  }
+}
