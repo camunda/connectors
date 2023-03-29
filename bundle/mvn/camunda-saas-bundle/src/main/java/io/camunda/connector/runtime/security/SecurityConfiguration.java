@@ -44,20 +44,25 @@ public class SecurityConfiguration {
   @Bean
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
     http.csrf(csrf -> csrf.ignoringRequestMatchers("/inbound/**"))
-        .authorizeRequests(auth -> {
-          try {
-            auth//.anyRequest().permitAll();
-                    .requestMatchers(HttpMethod.POST,"/inbound/**").permitAll()
-                    .requestMatchers("/actuator/**").permitAll()
-                    .requestMatchers("/inbound").hasAuthority("SCOPE_inbound:read")
-                    .anyRequest().authenticated()
+        .authorizeRequests(
+            auth -> {
+              try {
+                auth // .anyRequest().permitAll();
+                    .requestMatchers(HttpMethod.POST, "/inbound/**")
+                    .permitAll()
+                    .requestMatchers("/actuator/**")
+                    .permitAll()
+                    .requestMatchers("/inbound")
+                    .hasAuthority("SCOPE_inbound:read")
+                    .anyRequest()
+                    .authenticated()
                     .and()
                     .oauth2ResourceServer()
                     .jwt();
-          } catch (Exception e) {
-            throw new RuntimeException(e);
-          }
-        });
+              } catch (Exception e) {
+                throw new RuntimeException(e);
+              }
+            });
     return http.build();
   }
 

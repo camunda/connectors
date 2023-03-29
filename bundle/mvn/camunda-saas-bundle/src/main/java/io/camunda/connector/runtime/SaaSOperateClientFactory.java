@@ -17,18 +17,20 @@
 package io.camunda.connector.runtime;
 
 import io.camunda.connector.api.secret.SecretProvider;
-import io.camunda.connector.runtime.inbound.operate.OperateClientFactory;
-import io.camunda.operate.auth.AuthInterface;
+import io.camunda.operate.CamundaOperateClient;
 import io.camunda.operate.auth.SaasAuthentication;
+import io.camunda.operate.exception.OperateException;
+import io.camunda.zeebe.spring.client.properties.OperateClientConfigurationProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 
 @Configuration
 @Primary
-public class SaaSOperateClientFactory extends OperateClientFactory {
+public class SaaSOperateClientFactory {
 
   private static final Logger LOG = LoggerFactory.getLogger(SaaSOperateClientFactory.class);
   public static String SECRET_NAME_CLIENT_ID = "M2MClientId";
@@ -40,14 +42,15 @@ public class SaaSOperateClientFactory extends OperateClientFactory {
     this.internalSecretProvider = saaSConfiguration.getInternalSecretProvider();
   }
 
-  public AuthInterface getAuthentication(String operateUrl) {
-    LOG.debug(
-        "Authenticating with Camunda Operate using client id and secret resolved from Secret Store");
-
+  @Bean
+  @Primary
+  public CamundaOperateClient camundaOperateClient(OperateClientConfigurationProperties properties)
+      throws OperateException {
     String operateClientId = internalSecretProvider.getSecret(SECRET_NAME_CLIENT_ID);
     String operateClientSecret = internalSecretProvider.getSecret(SECRET_NAME_SECRET);
-
-    return new SaasAuthentication(
-        getAuthUrl(), getAudience(), operateClientId, operateClientSecret);
+    return new CamundaOperateClient.Builder()
+        .operateUrl(properties.getOperateUrl())
+        .authentication(new SaasAuthentication(operateClientId, operateClientSecret))
+        .build();
   }
 }
