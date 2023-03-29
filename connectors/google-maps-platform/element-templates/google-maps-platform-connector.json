@@ -1,0 +1,525 @@
+{
+  "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name": "Google Maps Platform Connector",
+  "id": "io.camunda.connectors.GoogleMapsPlatform.v1",
+  "description": "The Google Maps connector validates addresses, retrieves postal addresses and calculates distances",
+  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-maps-platform/",
+  "category": {
+    "id": "connectors",
+    "name": "Connectors"
+  },
+  "appliesTo": [
+    "bpmn:Task"
+  ],
+  "elementType": {
+    "value": "bpmn:ServiceTask"
+  },
+  "groups": [
+    {
+      "id": "operation",
+      "label": "Operation"
+    },
+    {
+      "id": "authentication",
+      "label": "Authentication"
+    },
+    {
+      "id": "configuration",
+      "label": "Configuration"
+    },
+    {
+      "id": "input",
+      "label": "Input"
+    },
+    {
+      "id": "output",
+      "label": "Output"
+    },
+    {
+      "id": "errors",
+      "label": "Error Handling"
+    }
+  ],
+  "properties": [
+    {
+      "type": "Hidden",
+      "value": "io.camunda:http-json:1",
+      "binding": {
+        "type": "zeebe:taskDefinition:type"
+      }
+    },
+    {
+      "label": "Operation type",
+      "id": "operationType",
+      "group": "operation",
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Validate address",
+          "value": "validateAddress"
+        },
+        {
+          "name": "Get place ID",
+          "value": "getPlaceID"
+        },
+        {
+          "name": "Calculate distance",
+          "value": "calculateDistance"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "operationType"
+      }
+    },
+    {
+      "type": "Hidden",
+      "optional": false,
+      "value": "post",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "method"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "validateAddress"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "optional": false,
+      "value": "get",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "method"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "getPlaceID",
+          "calculateDistance"
+        ]
+      }
+    },
+    {
+      "label": "API key",
+      "description": "Google Maps Platform API key. Details in the <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-maps-platform/'>connector documentation</a>",
+      "group": "authentication",
+      "type": "String",
+      "feel": "optional",
+      "optional": false,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "apiKeyValue"
+      },
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
+      "label": "Region code",
+      "description": "You can find supported regions here <a href='https://developers.google.com/maps/documentation/address-validation/coverage'>supported regions</a>",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body.address.regionCode"
+      },
+      "constraints": {
+        "notEmpty": false
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "validateAddress"
+        ]
+      }
+    },
+    {
+      "label": "Locality",
+      "description": "An incorporated city or town political entity",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body.address.locality"
+      },
+      "constraints": {
+        "notEmpty": false
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "validateAddress"
+        ]
+      }
+    },
+    {
+      "label": "Address",
+      "description": "Unstructured address. Details in a <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-maps-platform/'> connector documentation</a>",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "optional": false,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "addressValue"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "validateAddress"
+        ]
+      }
+    },
+    {
+      "label": "Address",
+      "description": "Complete address. Details in a <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-maps-platform/'> connector documentation</a>",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "optional": false,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "addressValue"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "getPlaceID"
+        ]
+      }
+    },
+    {
+      "label": "Destination",
+      "description": "The place ID value that you want to use as the destination for calculating distance",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "optional": false,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "destinationValue"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "calculateDistance"
+        ]
+      }
+    },
+    {
+      "label": "Origin",
+      "description": "The place ID value that you want to use as the starting point for calculating distance",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "optional": false,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "originValue"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "calculateDistance"
+        ]
+      }
+    },
+    {
+      "label": "Units",
+      "description": "Specifies the unit system to use when displaying results",
+      "group": "input",
+      "value": "metric",
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Metric",
+          "value": "metric"
+        },
+        {
+          "name": "Imperial",
+          "value": "imperial"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "unitsValue"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "calculateDistance"
+        ]
+      }
+    },
+    {
+      "label": "Mode",
+      "description": "You can specify the transportation mode to use when calculating distances and directions",
+      "group": "input",
+      "value": "driving",
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Driving",
+          "value": "driving"
+        },
+        {
+          "name": "Walking",
+          "value": "walking"
+        },
+        {
+          "name": "Bicycling",
+          "value": "bicycling"
+        },
+        {
+          "name": "Transit",
+          "value": "transit"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "modeValue"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "calculateDistance"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "optional": false,
+      "value": "={\"input\":addressValue, \"inputtype\":\"textquery\", \"language\":\"en\", \"key\": apiKeyValue}",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "queryParameters"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "getPlaceID"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "optional": false,
+      "value": "={\"destination\":\"place_id:\"+destinationValue, \"origin\":\"place_id:\"+originValue, \"units\": unitsValue, \"language\":\"en\", \"mode\": modeValue, \"key\": apiKeyValue}",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "queryParameters"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "calculateDistance"
+        ]
+      }
+    },
+    {
+      "group": "input",
+      "type": "Hidden",
+      "optional": false,
+      "value": "=\"[\"+addressValue+\"]\"",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body.address.addressLines"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "validateAddress"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "optional": false,
+      "value": "=\"https://addressvalidation.googleapis.com/v1:validateAddress?key=\"+apiKeyValue",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "url"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "validateAddress"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "optional": false,
+      "value": "https://maps.googleapis.com/maps/api/place/findplacefromtext/json",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "url"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "getPlaceID"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "optional": false,
+      "value": "https://maps.googleapis.com/maps/api/directions/json",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "url"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "calculateDistance"
+        ]
+      }
+    },
+    {
+      "label": "Connection timeout",
+      "description": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
+      "group": "errors",
+      "type": "String",
+      "value": "20",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "connectionTimeoutInSeconds"
+      },
+      "optional": true,
+      "constraints": {
+        "notEmpty": false,
+        "pattern": {
+          "value": "^([0-9]*$)|(secrets.*$)",
+          "message": "Must be timeout in seconds (default value is 20 seconds)"
+        }
+      }
+    },
+    {
+      "label": "Result variable",
+      "description": "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>",
+      "group": "output",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultVariable"
+      }
+    },
+    {
+      "label": "Result Expression",
+      "id": "resultExpressionGet",
+      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "group": "output",
+      "type": "String",
+      "feel": "required",
+      "value": "={\n addressComplete: if response.body.result.verdict.addressComplete = null then false else response.body.result.verdict.addressComplete, \n hasUnconfirmedComponents: if response.body.result.verdict.hasUnconfirmedComponents = null then false else true, \n formattedAddress: response.body.result.address.formattedAddress, \n postalAddress: response.body.result.address.postalAddress\n}",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultExpression"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "validateAddress"
+        ]
+      }
+    },
+    {
+      "label": "Result Expression",
+      "id": "resultExpressionGet",
+      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "group": "output",
+      "type": "String",
+      "feel": "required",
+      "value": "={placeId: response.body.candidates[1].place_id}",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultExpression"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "getPlaceID"
+        ]
+      }
+    },
+    {
+      "label": "Result Expression",
+      "id": "resultExpressionGet",
+      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "group": "output",
+      "type": "String",
+      "feel": "required",
+      "value": "={\n duration: response.body.routes[1].legs[1].duration.text,\n distance: response.body.routes[1].legs[1].distance.text \n}",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultExpression"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "calculateDistance"
+        ]
+      }
+    },
+    {
+      "label": "Error expression",
+      "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
+      "group": "errors",
+      "type": "Text",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "errorExpression"
+      }
+    }
+  ],
+  "icon": {
+    "contents": "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' version='1.1' width='18' height='18' viewBox='0 0 1000 1000' xml:space='preserve'%3E%3Cdesc%3ECreated with Fabric.js 3.5.0%3C/desc%3E%3Cdefs%3E%3C/defs%3E%3Crect x='0' y='0' width='100%25' height='100%25' fill='rgba(255,255,255,0)'/%3E%3Cg transform='matrix(7.8865 0 0 7.4288 492.2894 500.0022)' id='954022'%3E%3Cg style='' vector-effect='non-scaling-stroke'%3E%3Cg transform='matrix(1 0 0 1 -10.65 -48.75)'%3E%3Cpath style='stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; is-custom-font: none; font-file-url: none; fill: rgb(26,115,232); fill-rule: nonzero; opacity: 1;' transform=' translate(-35.5, -17.4)' d='M 60.2 2.2 C 55.8 0.8 51 0 46.1 0 C 32 0 19.3 6.4 10.8 16.5 l 21.8 18.3 L 60.2 2.2 z' stroke-linecap='round'/%3E%3C/g%3E%3Cg transform='matrix(1 0 0 1 -29.85 -23.85)'%3E%3Cpath style='stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; is-custom-font: none; font-file-url: none; fill: rgb(234,67,53); fill-rule: nonzero; opacity: 1;' transform=' translate(-16.3, -42.3)' d='M 10.8 16.5 C 4.1 24.5 0 34.9 0 46.1 c 0 8.7 1.7 15.7 4.6 22 l 28 -33.3 l -21.8 -18.3 z' stroke-linecap='round'/%3E%3C/g%3E%3Cg transform='matrix(1 0 0 1 13.75 -36.25)'%3E%3Cpath style='stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; is-custom-font: none; font-file-url: none; fill: rgb(66,133,244); fill-rule: nonzero; opacity: 1;' transform=' translate(-59.9, -29.9)' d='M 46.2 28.5 c 9.8 0 17.7 7.9 17.7 17.7 c 0 4.3 -1.6 8.3 -4.2 11.4 c 0 0 13.9 -16.6 27.5 -32.7 c -5.6 -10.8 -15.3 -19 -27 -22.7 L 32.6 34.8 c 3.3 -3.8 8.1 -6.3 13.6 -6.3' stroke-linecap='round'/%3E%3C/g%3E%3Cg transform='matrix(1 0 0 1 -14 0.25)'%3E%3Cpath style='stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; is-custom-font: none; font-file-url: none; fill: rgb(251,188,4); fill-rule: nonzero; opacity: 1;' transform=' translate(-32.15, -66.4)' d='M 46.2 63.8 c -9.8 0 -17.7 -7.9 -17.7 -17.7 c 0 -4.3 1.5 -8.3 4.1 -11.3 l -28 33.3 c 4.8 10.6 12.8 19.2 21 29.9 l 34.1 -40.5 c -3.3 3.9 -8.1 6.3 -13.5 6.3' stroke-linecap='round'/%3E%3C/g%3E%3Cg transform='matrix(1 0 0 1 12.85 12.5)'%3E%3Cpath style='stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; is-custom-font: none; font-file-url: none; fill: rgb(52,168,83); fill-rule: nonzero; opacity: 1;' transform=' translate(-59, -78.65)' d='M 59.1 109.2 c 15.4 -24.1 33.3 -35 33.3 -63 c 0 -7.7 -1.9 -14.9 -5.2 -21.3 L 25.6 98 c 2.6 3.4 5.3 7.3 7.9 11.3 c 9.4 14.5 6.8 23.1 12.8 23.1 s 3.4 -8.7 12.8 -23.2' stroke-linecap='round'/%3E%3C/g%3E%3C/g%3E%3C/g%3E%3C/svg%3E"
+  }
+}
