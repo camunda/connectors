@@ -1,3 +1,3 @@
-# UIPath Connector
+# UiPath Connector
 
-The **UIPath Connector** allows you to orchestrate an UIPath bot from your BPMN process with [UIPath](https://cloud.uipath.com).
+The **UiPath Connector** allows you to orchestrate an UiPath bot from your BPMN process with [UiPath](https://cloud.uipath.com).
