@@ -90,7 +90,7 @@ public class HttpJsonFunctionInputValidationTest extends BaseTest {
     assertThat(exception.getMessage())
         .contains(
             "Found constraints violated while validating input",
-            "must match \"^(http://|https://|secrets).*$\"");
+            "must match \"^(http://|https://|secrets|\\{\\{).*$\"");
   }
 
   @ParameterizedTest(name = "Validate null field # {index}")
