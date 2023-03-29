@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Google Drive Connector",
   "id": "io.camunda.connectors.GoogleDrive.v1",
-  "documentationRef": "https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/googledrive/",
+  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/googledrive/",
   "description": "Create folder or a file from template",
   "category": {
     "id": "connectors",

@@ -3,7 +3,7 @@
   "name": "Amazon SQS Connector",
   "id": "io.camunda.connectors.AWSSQS.v1",
   "description": "Send message to queue",
-  "documentationRef": "https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/aws-sqs/",
+  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-sqs/",
   "appliesTo": [
     "bpmn:Task"
   ],

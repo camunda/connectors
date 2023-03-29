@@ -3,7 +3,7 @@
   "name": "Microsoft Teams Connector",
   "id": "io.camunda.connectors.MSTeams.v1",
   "description": "Create, update, and send a message to your Microsoft Teams",
-  "documentationRef": "https://docs.camunda.io/docs/components/integration-framework/connectors/out-of-the-box-connectors/microsoft-teams/",
+  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-teams/",
   "version": 1,
   "category": {
     "id": "connectors",
