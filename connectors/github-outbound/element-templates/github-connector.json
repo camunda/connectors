@@ -477,7 +477,7 @@
       }
     },
     {
-      "label": "Release id",
+      "label": "Release ID",
       "description": "The unique identifier of the release.",
       "feel": "optional",
       "group": "input",
