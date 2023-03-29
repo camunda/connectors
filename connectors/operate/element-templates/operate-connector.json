@@ -1,11 +1,14 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Camunda Operate Connector",
-  "id": "io.camunda.connector.CamundaOperate.v1",
+  "id": "io.camunda.connectors.CamundaOperate.v1",
   "description": "Fetch data from Camunda Operate API",
-  "appliesTo": [
-    "bpmn:Task"
-  ],
+  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/operate/",
+  "category": {
+    "id": "connectors",
+    "name": "Connectors"
+  },
+  "appliesTo": ["bpmn:Task"],
   "elementType": {
     "value": "bpmn:ServiceTask"
   },

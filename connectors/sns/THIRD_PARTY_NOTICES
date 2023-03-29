@@ -3,10 +3,10 @@ Do Not Translate or Localize
 
 This project incorporates components with the licenses under which Camunda received them as listed below.
 
-  * com.amazonaws:aws-java-sdk-core (Version: 1.12.436, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
-  * com.amazonaws:aws-java-sdk-sns (Version: 1.12.436, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
-  * com.amazonaws:aws-java-sdk-sqs (Version: 1.12.436, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
-  * com.amazonaws:jmespath-java (Version: 1.12.436, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
+  * com.amazonaws:aws-java-sdk-core (Version: 1.12.437, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
+  * com.amazonaws:aws-java-sdk-sns (Version: 1.12.437, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
+  * com.amazonaws:aws-java-sdk-sqs (Version: 1.12.437, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
+  * com.amazonaws:jmespath-java (Version: 1.12.437, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * com.fasterxml.jackson.core:jackson-annotations (Version: 2.13.5, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * com.fasterxml.jackson.core:jackson-core (Version: 2.13.5, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * com.fasterxml.jackson.core:jackson-databind (Version: 2.13.5, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))

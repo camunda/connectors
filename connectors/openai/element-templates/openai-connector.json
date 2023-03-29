@@ -11,9 +11,7 @@
     "id": "connectors",
     "name": "Connectors"
   },
-  "appliesTo": [
-    "bpmn:Task"
-  ],
+  "appliesTo": ["bpmn:Task"],
   "elementType": {
     "value": "bpmn:ServiceTask"
   },
@@ -318,6 +316,7 @@
       "group": "output",
       "type": "Text",
       "feel": "required",
+      "value": "={openAiResponse: response.body}",
       "binding": {
         "type": "zeebe:taskHeader",
         "key": "resultExpression"
