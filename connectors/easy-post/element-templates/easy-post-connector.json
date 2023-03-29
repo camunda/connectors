@@ -586,7 +586,7 @@
       }
     },
     {
-      "label": "Shipment id",
+      "label": "Shipment ID",
       "description": "ID of the shipment",
       "group": "input",
       "type": "String",
