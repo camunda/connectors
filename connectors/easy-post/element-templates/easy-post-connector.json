@@ -1,0 +1,937 @@
+{
+  "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name": "Easy Post Connector",
+  "id": "io.camunda.connectors.EasyPost.v1",
+  "version": 1,
+  "description": "Allows you to create addresses, parcels, and shipments, as well as purchase and verify shipments",
+  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/easypost/",
+  "category": {
+    "id": "connectors",
+    "name": "Connectors"
+  },
+  "appliesTo": [
+    "bpmn:Task"
+  ],
+  "elementType": {
+    "value": "bpmn:ServiceTask"
+  },
+  "groups": [
+    {
+      "id": "operation",
+      "label": "Operation"
+    },
+    {
+      "id": "authentication",
+      "label": "Authentication"
+    },
+    {
+      "id": "input",
+      "label": "Input"
+    },
+    {
+      "id": "output",
+      "label": "Output"
+    },
+    {
+      "id": "errors",
+      "label": "Error Handling"
+    }
+  ],
+  "properties": [
+    {
+      "type": "Hidden",
+      "value": "io.camunda:http-json:1",
+      "binding": {
+        "type": "zeebe:taskDefinition:type"
+      }
+    },
+    {
+      "label": "Operation type",
+      "id": "operationType",
+      "group": "operation",
+      "type": "Dropdown",
+      "optional": false,
+      "choices": [
+        {
+          "name": "Create an address",
+          "value": "createAddress"
+        },
+        {
+          "name": "Create a parcel",
+          "value": "createParcel"
+        },
+        {
+          "name": "Create a shipment",
+          "value": "createShipment"
+        },
+        {
+          "name": "Buy a shipment",
+          "value": "buyShipment"
+        },
+        {
+          "name": "Verify a created address",
+          "value": "verifyAddresById"
+        },
+        {
+          "name": "Retrieve a tracker by ID",
+          "value": "retrieveTracker"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "operationType"
+      }
+    },
+    {
+      "description": "Authentication type",
+      "group": "authentication",
+      "type": "Hidden",
+      "optional": false,
+      "value": "basic",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.type"
+      },
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
+      "label": "API Key",
+      "group": "authentication",
+      "type": "String",
+      "feel": "optional",
+      "optional": false,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.username"
+      },
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
+      "description": "This field will replace to empty string. EasyPost API use only username field for put API Key",
+      "group": "authentication",
+      "type": "Hidden",
+      "optional": true,
+      "value": "SPEC_PASSWORD_EMPTY_PATTERN",
+      "constraints": {
+        "notEmpty": false
+      },
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.password"
+      }
+    },
+    {
+      "description": "post method",
+      "type": "Hidden",
+      "optional": false,
+      "value": "post",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "method"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createAddress",
+          "createParcel",
+          "createShipment",
+          "buyShipment"
+        ]
+      }
+    },
+    {
+      "description": "get method",
+      "type": "Hidden",
+      "optional": false,
+      "value": "get",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "method"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "verifyAddresById",
+          "retrieveTracker"
+        ]
+      }
+    },
+    {
+      "label": "Name",
+      "description": "Name of the person. Both name and company can be included",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body.address.name"
+      },
+      "constraints": {
+        "notEmpty": false
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createAddress"
+        ]
+      }
+    },
+    {
+      "label": "Company",
+      "description": "Name of the organization. Both name and company can be included",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body.address.company"
+      },
+      "constraints": {
+        "notEmpty": false
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createAddress"
+        ]
+      }
+    },
+    {
+      "label": "Phone",
+      "description": "Phone number to reach the person or organization",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body.address.phone"
+      },
+      "constraints": {
+        "notEmpty": false
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createAddress"
+        ]
+      }
+    },
+    {
+      "label": "Address line 1",
+      "description": "First line of the address",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body.address.street1"
+      },
+      "constraints": {
+        "notEmpty": false
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createAddress"
+        ]
+      }
+    },
+    {
+      "label": "Address line 2",
+      "description": "Second line of the address",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body.address.street2"
+      },
+      "constraints": {
+        "notEmpty": false
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createAddress"
+        ]
+      }
+    },
+    {
+      "label": "City",
+      "description": "City the address is located in",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body.address.city"
+      },
+      "constraints": {
+        "notEmpty": false
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createAddress"
+        ]
+      }
+    },
+    {
+      "label": "State or province",
+      "description": "State or province the address is located in",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body.address.state"
+      },
+      "constraints": {
+        "notEmpty": false
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createAddress"
+        ]
+      }
+    },
+    {
+      "label": "Email",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body.address.email"
+      },
+      "constraints": {
+        "notEmpty": false
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createAddress"
+        ]
+      }
+    },
+    {
+      "label": "ZIP or postal code",
+      "description": "The ZIP or postal code where the address is located",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body.address.zip"
+      },
+      "constraints": {
+        "notEmpty": false
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createAddress"
+        ]
+      }
+    },
+    {
+      "label": "Country",
+      "description": "The country code of the address location",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body.address.country"
+      },
+      "constraints": {
+        "notEmpty": false
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createAddress"
+        ]
+      }
+    },
+    {
+      "label": "Federal tax ID",
+      "description": "Federal tax identifier of the person or organization",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body.address.federal_tax_id"
+      },
+      "constraints": {
+        "notEmpty": false
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createAddress"
+        ]
+      }
+    },
+    {
+      "label": "State tax ID",
+      "description": "State tax identifier of the person or organization",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body.address.state_tax_id"
+      },
+      "constraints": {
+        "notEmpty": false
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createAddress"
+        ]
+      }
+    },
+    {
+      "label": "Weight",
+      "description": "Weight of parcel in oz",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "optional": false,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body.parcel.weight"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createParcel"
+        ]
+      }
+    },
+    {
+      "label": "Length",
+      "description": "Required if width and/or height are present (inches)",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body.parcel.length"
+      },
+      "constraints": {
+        "notEmpty": false
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createParcel"
+        ]
+      }
+    },
+    {
+      "label": "Width",
+      "description": "Required if length and/or height are present (inches)",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body.parcel.width"
+      },
+      "constraints": {
+        "notEmpty": false
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createParcel"
+        ]
+      }
+    },
+    {
+      "label": "Height",
+      "description": "Required if length and/or width are present (inches)",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body.parcel.height"
+      },
+      "constraints": {
+        "notEmpty": false
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createParcel"
+        ]
+      }
+    },
+    {
+      "label": "Predefined package",
+      "description": "Optional, one of <a href=\"https://www.easypost.com/service-levels-and-parcels\" target=\"_blank\">predefined packages</a>",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body.parcel.predefined_package"
+      },
+      "constraints": {
+        "notEmpty": false
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createParcel"
+        ]
+      }
+    },
+    {
+      "label": "To address",
+      "description": "ID of the destination address",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "optional": false,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body.shipment.to_address.id"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createShipment"
+        ]
+      }
+    },
+    {
+      "label": "From address",
+      "description": "ID of the origin address",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "optional": false,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body.shipment.from_address.id"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createShipment"
+        ]
+      }
+    },
+    {
+      "label": "Parcel",
+      "description": "ID of the parcel",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "optional": false,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body.shipment.parcel.id"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createShipment"
+        ]
+      }
+    },
+    {
+      "label": "Shipment ID",
+      "description": "ID of the shipment",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "optional": false,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "shipmentIdValue"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "buyShipment"
+        ]
+      }
+    },
+    {
+      "label": "Rate ID",
+      "description": "ID of the actual rate quote for this service",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "optional": false,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body.rate.id"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "buyShipment"
+        ]
+      }
+    },
+    {
+      "label": "Address ID",
+      "description": "The ID of the address that has already been created",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "optional": false,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "addressIdValue"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "verifyAddresById"
+        ]
+      }
+    },
+    {
+      "label": "Tracker ID",
+      "description": "ID of tracker",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "optional": false,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "trackerIdValue"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "retrieveTracker"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "optional": false,
+      "value": "https://api.easypost.com/v2/addresses",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "url"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createAddress"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "optional": false,
+      "value": "https://api.easypost.com/v2/parcels",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "url"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createParcel"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "optional": false,
+      "value": "https://api.easypost.com/v2/shipments",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "url"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createShipment"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "optional": false,
+      "value": "=\"https://api.easypost.com/v2/shipments/\"+shipmentIdValue+\"/buy\"",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "url"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "buyShipment"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "optional": false,
+      "value": "=\"https://api.easypost.com/v2/addresses/\"+addressIdValue+\"/verify\"",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "url"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "verifyAddresById"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "optional": false,
+      "value": "=\"https://api.easypost.com/v2/trackers/\"+trackerIdValue",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "url"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "retrieveTracker"
+        ]
+      }
+    },
+    {
+      "label": "Connection timeout",
+      "description": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
+      "group": "errors",
+      "type": "String",
+      "value": "20",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "connectionTimeoutInSeconds"
+      },
+      "optional": true,
+      "constraints": {
+        "notEmpty": false,
+        "pattern": {
+          "value": "^([0-9]*$)|(secrets.*$)",
+          "message": "Must be timeout in seconds (default value is 20 seconds)"
+        }
+      }
+    },
+    {
+      "label": "Result variable",
+      "description": "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>",
+      "group": "output",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultVariable"
+      }
+    },
+    {
+      "label": "Result Expression",
+      "id": "resultExpressionGet",
+      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "group": "output",
+      "type": "String",
+      "feel": "required",
+      "value": "={addressId:response.body.id}",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultExpression"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createAddress"
+        ]
+      }
+    },
+    {
+      "label": "Result Expression",
+      "id": "resultExpressionGet",
+      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "group": "output",
+      "type": "String",
+      "feel": "required",
+      "value": "={parcelId:response.body.id}",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultExpression"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createParcel"
+        ]
+      }
+    },
+    {
+      "label": "Result Expression",
+      "id": "resultExpressionGet",
+      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "group": "output",
+      "type": "String",
+      "feel": "required",
+      "value": "={priorityRate: response.body.rates[item.service = \"Priority\"], shipmentId: priorityRate[1].shipment_id, rateId: priorityRate[1].id}",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultExpression"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createShipment"
+        ]
+      }
+    },
+    {
+      "label": "Result Expression",
+      "id": "resultExpressionGet",
+      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "group": "output",
+      "type": "String",
+      "feel": "required",
+      "value": "={trackerId: response.body.tracker.id, trackingCode: response.body.tracking_code, shipmentstatus:response.body.status}",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultExpression"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "buyShipment"
+        ]
+      }
+    },
+    {
+      "label": "Result Expression",
+      "id": "resultExpressionGet",
+      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "group": "output",
+      "type": "String",
+      "feel": "required",
+      "value": "={trackerStatus: response.body.status}",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultExpression"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "retrieveTracker"
+        ]
+      }
+    },
+    {
+      "label": "Result Expression",
+      "id": "resultExpression",
+      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "group": "output",
+      "type": "String",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultExpression"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "verifyAddresById"
+        ]
+      }
+    },
+    {
+      "label": "Error expression",
+      "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
+      "group": "errors",
+      "type": "Text",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "errorExpression"
+      }
+    }
+  ],
+  "icon": {
+    "contents": "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' version='1.1' width='18' height='18' viewBox='0 0 1000 1000' xml:space='preserve'%3E%3Cdesc%3ECreated with Fabric.js 3.5.0%3C/desc%3E%3Cdefs%3E%3C/defs%3E%3Crect x='0' y='0' width='18' height='100%25' fill='%23ffffff'/%3E%3Cg transform='matrix(0.2007 0 0 -0.1895 500.0727 500.0583)' id='344493'%3E%3Cpath style='stroke: none; stroke-width: 0; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; is-custom-font: none; font-file-url: none; fill: rgb(17,90,241); fill-rule: nonzero; opacity: 1;' vector-effect='non-scaling-stroke' transform=' translate(-2549.75, -2559.5281)' d='M 2475 5110 c -22 -5 -59 -17 -81 -27 c -23 -10 -470 -265 -994 -568 c -682 -394 -966 -563 -999 -595 c -54 -52 -96 -131 -111 -209 c -14 -73 -14 -2229 0 -2302 c 14 -76 54 -152 108 -207 c 37 -37 257 -168 1023 -610 c 901 -519 982 -564 1050 -578 c 74 -15 130 -13 199 8 c 19 6 474 263 1010 572 c 1044 601 1047 603 1096 710 c 37 80 45 146 42 338 l -3 176 l -980 -565 c -539 -310 -1007 -578 -1040 -595 c -70 -36 -160 -47 -221 -28 c -21 7 -265 145 -541 308 l -503 296 l 0 229 l 0 229 l 33 -20 c 17 -11 244 -142 503 -291 c 517 -298 534 -306 639 -284 c 45 10 262 132 1085 610 l 1029 598 l 1 258 l 0 258 l -22 -12 c -13 -7 -473 -271 -1023 -587 c -550 -317 -1020 -582 -1045 -589 c -60 -19 -145 -11 -202 18 c -25 13 -260 150 -522 304 l -475 280 l -1 228 l 0 228 l 23 -12 c 12 -7 229 -131 482 -277 c 253 -146 480 -274 505 -285 c 52 -23 146 -28 200 -9 c 19 7 494 279 1055 605 l 1020 594 l 3 183 c 2 140 -1 197 -13 244 c -19 74 -68 158 -117 200 c -50 44 -1962 1146 -2015 1162 c -59 18 -150 24 -198 14 z' stroke-linecap='round'/%3E%3C/g%3E%3C/svg%3E"
+  }
+}
