@@ -17,17 +17,21 @@
 package io.camunda.connector.api.inbound;
 
 /**
- * Base subscription interface for inbound connectors. This is an interface that
- * environment-specific Connector Runtime uses to control the inbound Connectors.
- *
- * <p>NB: For custom inbound Connectors implementation, please consider extending a more specific
- * type, such as {@link io.camunda.connector.impl.inbound.SubscriptionInboundConnector} rather than
- * this interface.
+ * Base interface for inbound connectors. The environment-specific Connector Runtime uses this
+ * interface to control the execution inbound Connectors.
  */
 public interface InboundConnectorExecutable {
 
   /**
-   * Activation trigger for the subscription
+   * Activation trigger for the inbound Connector executable.
+   *
+   * <p>Implementation <b>must be asynchronous</b> and must not block the calling thread. Therefore,
+   * any blocking calls triggered within this method must happen in a separate thread instantiated
+   * in this method.
+   *
+   * <p>Once activated, the inbound Connector execution is considered active and running. From this
+   * point, it should use the respective methods of {@link InboundConnectorContext} to communicate
+   * with the Connector runtime (e.g. to correlate the inbound event or signal the interrupt).
    *
    * @param context Runtime-specific information
    */

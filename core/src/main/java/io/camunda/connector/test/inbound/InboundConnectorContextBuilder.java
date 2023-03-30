@@ -28,13 +28,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+/** Test helper class for creating an {@link InboundConnectorContext} with a fluent API. */
 public class InboundConnectorContextBuilder {
 
   protected final Map<String, String> secrets = new HashMap<>();
   protected SecretProvider secretProvider = secrets::get;
   protected InboundConnectorProperties properties;
   protected Object propertiesAsType;
-  protected InboundConnectorResult result;
+  protected InboundConnectorResult<?> result;
   protected ValidationProvider validationProvider;
 
   public static InboundConnectorContextBuilder create() {
@@ -110,7 +111,7 @@ public class InboundConnectorContextBuilder {
    * @param result - correlation result
    * @return builder for fluent API
    */
-  public InboundConnectorContextBuilder correlationHandler(InboundConnectorResult result) {
+  public InboundConnectorContextBuilder correlationHandler(InboundConnectorResult<?> result) {
     this.result = result;
     return this;
   }
@@ -156,8 +157,13 @@ public class InboundConnectorContextBuilder {
     }
 
     @Override
-    public InboundConnectorResult correlate(Object variables) {
+    public InboundConnectorResult<?> correlate(Object variables) {
       return result;
+    }
+
+    @Override
+    public void cancel(Throwable exception) {
+      // do nothing
     }
 
     @Override
