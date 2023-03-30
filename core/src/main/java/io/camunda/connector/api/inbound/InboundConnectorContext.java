@@ -17,6 +17,9 @@
 package io.camunda.connector.api.inbound;
 
 import io.camunda.connector.impl.inbound.InboundConnectorProperties;
+import io.camunda.connector.impl.inbound.ProcessCorrelationPoint;
+import io.camunda.connector.impl.inbound.result.MessageCorrelationResult;
+import io.camunda.connector.impl.inbound.result.StartEventCorrelationResult;
 
 /**
  * The context object provided to an inbound connector function. The context allows to fetch
@@ -38,8 +41,27 @@ public interface InboundConnectorContext {
    */
   void validate(Object input);
 
-  /** Correlates the inbound event to the matching process definition */
-  InboundConnectorResult correlate(Object variables);
+  /**
+   * Correlates the inbound event to the matching process definition
+   *
+   * <p>Correlation may not succeed due to Connector configuration (e.g. if activation condition
+   * specified by user is not met). In this case, the response will contain error details.
+   *
+   * <p>In case of an unexpected runtime error, an unchecked {@link
+   * io.camunda.connector.api.error.ConnectorException} will be thrown.
+   *
+   * @param variables - an object containing inbound connector variables
+   * @return either {@link MessageCorrelationResult} or {@link StartEventCorrelationResult},
+   *     depending on the type of the underlying {@link ProcessCorrelationPoint}.
+   */
+  InboundConnectorResult<?> correlate(Object variables);
+
+  /**
+   * Signals to the Connector runtime that inbound Connector execution was interrupted. As a result
+   * of this call, the runtime may attempt to retry the execution or provide the user with an
+   * appropriate alert.
+   */
+  void cancel(Throwable exception);
 
   /**
    * Low-level properties access method. Allows to perform custom deserialization, or access

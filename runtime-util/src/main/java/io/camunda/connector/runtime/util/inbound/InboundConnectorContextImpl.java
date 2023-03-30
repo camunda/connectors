@@ -28,21 +28,30 @@ import io.camunda.connector.impl.context.AbstractConnectorContext;
 import io.camunda.connector.impl.inbound.InboundConnectorProperties;
 import io.camunda.connector.runtime.util.inbound.correlation.InboundCorrelationHandler;
 import java.util.Objects;
+import java.util.function.Consumer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class InboundConnectorContextImpl extends AbstractConnectorContext
     implements InboundConnectorContext {
+  private final Logger LOG = LoggerFactory.getLogger(InboundConnectorContextImpl.class);
 
   private final InboundConnectorProperties properties;
   private final InboundCorrelationHandler correlationHandler;
   private final ObjectMapper objectMapper;
 
+  private final Consumer<Throwable> cancellationCallback;
+
   public InboundConnectorContextImpl(
       SecretProvider secretProvider,
       InboundConnectorProperties properties,
-      InboundCorrelationHandler correlationHandler) {
+      InboundCorrelationHandler correlationHandler,
+      Consumer<Throwable> cancellationCallback,
+      Consumer<Throwable> cancellationCallback1) {
     super(secretProvider);
     this.correlationHandler = correlationHandler;
     this.properties = properties;
+    this.cancellationCallback = cancellationCallback1;
     this.objectMapper =
         new ObjectMapper()
             .registerModule(DefaultScalaModule$.MODULE$)
@@ -56,16 +65,27 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       SecretProvider secretProvider,
       InboundConnectorProperties properties,
       InboundCorrelationHandler correlationHandler,
-      ObjectMapper objectMapper) {
+      ObjectMapper objectMapper,
+      Consumer<Throwable> cancellationCallback) {
     super(secretProvider);
     this.correlationHandler = correlationHandler;
     this.properties = properties;
     this.objectMapper = objectMapper;
+    this.cancellationCallback = cancellationCallback;
   }
 
   @Override
-  public InboundConnectorResult correlate(Object variables) {
+  public InboundConnectorResult<?> correlate(Object variables) {
     return correlationHandler.correlate(properties.getCorrelationPoint(), variables);
+  }
+
+  @Override
+  public void cancel(Throwable exception) {
+    try {
+      cancellationCallback.accept(exception);
+    } catch (Throwable e) {
+      LOG.error("Failed to deliver the cancellation signal to the runtime", e);
+    }
   }
 
   @Override
