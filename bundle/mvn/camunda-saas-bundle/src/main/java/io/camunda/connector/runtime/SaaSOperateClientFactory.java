@@ -44,8 +44,8 @@ public class SaaSOperateClientFactory {
 
   @Bean
   @Primary
-  public CamundaOperateClient camundaOperateClient(OperateClientConfigurationProperties properties)
-      throws OperateException {
+  public CamundaOperateClient camundaOperateClientBundle(
+      OperateClientConfigurationProperties properties) throws OperateException {
     String operateClientId = internalSecretProvider.getSecret(SECRET_NAME_CLIENT_ID);
     String operateClientSecret = internalSecretProvider.getSecret(SECRET_NAME_SECRET);
     return new CamundaOperateClient.Builder()
