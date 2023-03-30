@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.api.inbound;
+package io.camunda.connector.impl.inbound;
 
 /**
  * Base class for a unique set of properties of a single inbound Connector usage in the business

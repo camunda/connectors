@@ -46,12 +46,11 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       SecretProvider secretProvider,
       InboundConnectorProperties properties,
       InboundCorrelationHandler correlationHandler,
-      Consumer<Throwable> cancellationCallback,
-      Consumer<Throwable> cancellationCallback1) {
+      Consumer<Throwable> cancellationCallback) {
     super(secretProvider);
     this.correlationHandler = correlationHandler;
     this.properties = properties;
-    this.cancellationCallback = cancellationCallback1;
+    this.cancellationCallback = cancellationCallback;
     this.objectMapper =
         new ObjectMapper()
             .registerModule(DefaultScalaModule$.MODULE$)
@@ -76,7 +75,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   @Override
   public InboundConnectorResult<?> correlate(Object variables) {
-    return correlationHandler.correlate(properties.getCorrelationPoint(), variables);
+    return correlationHandler.correlate(properties, variables);
   }
 
   @Override

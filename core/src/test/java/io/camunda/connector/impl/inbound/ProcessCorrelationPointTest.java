@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.impl.inbound;
 
-import io.camunda.connector.api.inbound.ProcessCorrelationPoint;
 import io.camunda.connector.impl.inbound.correlation.MessageCorrelationPoint;
 import io.camunda.connector.impl.inbound.correlation.StartEventCorrelationPoint;
 import java.util.Iterator;
@@ -33,12 +32,11 @@ public class ProcessCorrelationPointTest {
     ProcessCorrelationPoint p1 = new StartEventCorrelationPoint(0, "process1", 0);
     ProcessCorrelationPoint p2 = new StartEventCorrelationPoint(2, "process1", 1);
     ProcessCorrelationPoint p3 = new StartEventCorrelationPoint(1, "process2", 0);
-    ProcessCorrelationPoint p4 = new MessageCorrelationPoint("jobCompleted", "=key");
-    ProcessCorrelationPoint p5 = new MessageCorrelationPoint("jobCompleted1", "=key");
-    ProcessCorrelationPoint p6 = new MessageCorrelationPoint("jobCompleted1", "=key1");
+    ProcessCorrelationPoint p4 = new MessageCorrelationPoint("jobCompleted");
+    ProcessCorrelationPoint p5 = new MessageCorrelationPoint("jobCompleted1");
 
     // when
-    List<ProcessCorrelationPoint> sortedPoints = List.of(p6, p5, p1, p2, p3, p4);
+    List<ProcessCorrelationPoint> sortedPoints = List.of(p5, p1, p2, p3, p4);
     sortedPoints = sortedPoints.stream().sorted().collect(Collectors.toList());
 
     // then
@@ -49,7 +47,6 @@ public class ProcessCorrelationPointTest {
     Assertions.assertThat(iter.next()).isSameAs(p3);
     Assertions.assertThat(iter.next()).isSameAs(p4);
     Assertions.assertThat(iter.next()).isSameAs(p5);
-    Assertions.assertThat(iter.next()).isSameAs(p6);
     Assertions.assertThat(iter.hasNext()).isFalse();
   }
 }

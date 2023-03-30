@@ -16,7 +16,8 @@
  */
 package io.camunda.connector.impl.inbound;
 
-import io.camunda.connector.api.inbound.ProcessCorrelationPoint;
+import static io.camunda.connector.impl.Constants.INBOUND_TYPE_KEYWORD;
+
 import java.util.Map;
 import java.util.Objects;
 
@@ -36,7 +37,7 @@ public class InboundConnectorProperties {
       String bpmnProcessId,
       int version,
       long processDefinitionKey) {
-    this.type = properties.get("inbound.type");
+    this.type = properties.get(INBOUND_TYPE_KEYWORD);
     this.properties = properties;
     this.correlationPoint = correlationPoint;
     this.bpmnProcessId = bpmnProcessId;
@@ -71,6 +72,19 @@ public class InboundConnectorProperties {
 
   public long getProcessDefinitionKey() {
     return processDefinitionKey;
+  }
+
+  public String getProperty(String propertyName) {
+    return properties.get(propertyName);
+  }
+
+  public String getRequiredProperty(String propertyName) {
+    final String property = getProperty(propertyName);
+    if (property == null) {
+      throw new IllegalStateException(
+          "Required inbound connector property '" + propertyName + "' is missing.");
+    }
+    return property;
   }
 
   @Override

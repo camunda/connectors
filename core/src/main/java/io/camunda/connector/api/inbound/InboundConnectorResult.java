@@ -16,7 +16,8 @@
  */
 package io.camunda.connector.api.inbound;
 
-import java.util.Objects;
+import io.camunda.connector.impl.inbound.result.CorrelationErrorData;
+import java.util.Optional;
 
 /**
  * Contains general information about the inbound correlation results.
@@ -25,63 +26,26 @@ import java.util.Objects;
  * message name in case of an IntermediateEvent target, or process definition key in case of a
  * StartEvent target.
  */
-public abstract class InboundConnectorResult {
-
-  protected String type;
-  protected String id;
-  protected Object responseData;
-
-  protected InboundConnectorResult(String type, String id, Object responseData) {
-    this.type = type;
-    this.id = id;
-    this.responseData = responseData;
-  }
+public interface InboundConnectorResult<T> {
 
   /** Type of process correlation point, e.g. StartEvent or Message */
-  public String getType() {
-    return type;
-  }
+  String getType();
 
   /** ID of a process correlation point (unique within its type, see {@link #getType()} */
-  public String getId() {
-    return id;
-  }
+  String getCorrelationPointId();
 
-  /** Additional information related to Inbound Connector correlation result */
-  public Object getResponseData() {
-    return this.responseData;
-  }
+  /** Whether connector was activated */
+  boolean isActivated();
 
-  @Override
-  public String toString() {
-    return "InboundConnectorResult{"
-        + "type='"
-        + type
-        + '\''
-        + ", id='"
-        + id
-        + '\''
-        + ", responseData="
-        + responseData
-        + '}';
-  }
+  /**
+   * Additional information related to Inbound Connector correlation result. Only present when
+   * {@link #isActivated()} returns true.
+   */
+  Optional<T> getResponseData();
 
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    InboundConnectorResult result = (InboundConnectorResult) o;
-    return Objects.equals(type, result.type)
-        && Objects.equals(id, result.id)
-        && Objects.equals(responseData, result.responseData);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(type, id, responseData);
-  }
+  /**
+   * Additional information about correlation failure reasons. Only present when {@link
+   * #isActivated()} returns false.
+   */
+  Optional<CorrelationErrorData> getErrorData();
 }

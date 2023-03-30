@@ -16,14 +16,12 @@
  */
 package io.camunda.connector.impl.inbound.correlation;
 
-import io.camunda.connector.api.inbound.ProcessCorrelationPoint;
+import io.camunda.connector.impl.inbound.ProcessCorrelationPoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** Properties of a StartEvent triggered by an Inbound Connector */
 public class StartEventCorrelationPoint extends ProcessCorrelationPoint {
-
-  public static final String TYPE_NAME = "START_EVENT";
 
   private final String bpmnProcessId;
   private final int version;
@@ -58,13 +56,14 @@ public class StartEventCorrelationPoint extends ProcessCorrelationPoint {
   @Override
   public String toString() {
     return "StartEventCorrelationPoint{"
-        + "processDefinitionKey="
-        + processDefinitionKey
-        + ", bpmnProcessId='"
+        + "bpmnProcessId='"
         + bpmnProcessId
         + '\''
         + ", version="
         + version
+        + ", processDefinitionKey="
+        + processDefinitionKey
+        + '\''
         + '}';
   }
 

@@ -14,23 +14,40 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.util.inbound.correlation;
+package io.camunda.connector.impl.inbound.result;
 
-import io.camunda.connector.api.inbound.InboundConnectorResult;
-import io.camunda.connector.impl.inbound.correlation.MessageCorrelationPoint;
-import io.camunda.zeebe.client.api.response.PublishMessageResponse;
+import java.util.Objects;
 
-public class MessageInboundConnectorResult extends InboundConnectorResult {
-  protected PublishMessageResponse responseData;
+public class CorrelatedMessage {
+  private final long messageKey;
 
-  @Override
-  public PublishMessageResponse getResponseData() {
-    return responseData;
+  public CorrelatedMessage(long messageKey) {
+    this.messageKey = messageKey;
   }
 
-  public MessageInboundConnectorResult(
-      PublishMessageResponse publishMessageResponse, String correlationKey) {
-    super(MessageCorrelationPoint.TYPE_NAME, correlationKey, publishMessageResponse);
-    this.responseData = publishMessageResponse;
+  public long getMessageKey() {
+    return messageKey;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    CorrelatedMessage that = (CorrelatedMessage) o;
+    return messageKey == that.messageKey;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(messageKey);
+  }
+
+  @Override
+  public String toString() {
+    return "CorrelatedMessage{" + "messageKey=" + messageKey + '}';
   }
 }

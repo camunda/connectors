@@ -16,9 +16,15 @@
  */
 package io.camunda.connector.runtime.util;
 
+import static io.camunda.connector.impl.Constants.ERROR_EXPRESSION_KEYWORD;
+import static io.camunda.connector.impl.Constants.RESULT_EXPRESSION_KEYWORD;
+import static io.camunda.connector.impl.Constants.RESULT_VARIABLE_KEYWORD;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.BpmnError;
+import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.runtime.util.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.util.feel.FeelEngineWrapperException;
 import java.lang.reflect.InvocationTargetException;
@@ -35,20 +41,16 @@ public class ConnectorHelper {
 
   private static final String ERROR_CANNOT_PARSE_VARIABLES = "Cannot parse '%s' as '%s'.";
 
-  public static final String RESULT_VARIABLE_HEADER_NAME = "resultVariable";
-  public static final String RESULT_EXPRESSION_HEADER_NAME = "resultExpression";
-  public static final String ERROR_EXPRESSION_HEADER_NAME = "errorExpression";
-
   /**
    * @return a map with output process variables for a given response from an {@link
-   *     io.camunda.connector.api.outbound.OutboundConnectorFunction} conigured with headers from a
-   *     Zeebe Job.
+   *     OutboundConnectorFunction} or an {@link InboundConnectorExecutable}. configured with
+   *     headers from a Zeebe Job or inbound Connector properties.
    */
   public static Map<String, Object> createOutputVariables(
       final Object responseContent, final Map<String, String> jobHeaders) {
     final Map<String, Object> outputVariables = new HashMap<>();
-    final String resultVariableName = jobHeaders.get(RESULT_VARIABLE_HEADER_NAME);
-    final String resultExpression = jobHeaders.get(RESULT_EXPRESSION_HEADER_NAME);
+    final String resultVariableName = jobHeaders.get(RESULT_VARIABLE_KEYWORD);
+    final String resultExpression = jobHeaders.get(RESULT_EXPRESSION_KEYWORD);
 
     if (resultVariableName != null && !resultVariableName.isBlank()) {
       outputVariables.put(resultVariableName, responseContent);
@@ -65,7 +67,7 @@ public class ConnectorHelper {
 
   public static Optional<BpmnError> examineErrorExpression(
       final Object responseContent, final Map<String, String> jobHeaders) {
-    final var errorExpression = jobHeaders.get(ERROR_EXPRESSION_HEADER_NAME);
+    final var errorExpression = jobHeaders.get(ERROR_EXPRESSION_KEYWORD);
     return Optional.ofNullable(errorExpression)
         .filter(s -> !s.isBlank())
         .map(expression -> FEEL_ENGINE_WRAPPER.evaluateToJson(expression, responseContent))

@@ -14,36 +14,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.impl.inbound;
+package io.camunda.connector.impl.inbound.result;
 
-import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import java.util.Objects;
 
-public class InboundConnectorConfiguration {
+public class CorrelationErrorData {
 
-  private final String name;
-  private final String type;
-  private final Class<? extends InboundConnectorExecutable> connectorClass;
+  private final CorrelationErrorReason reason;
+  private final String message;
 
-  public InboundConnectorConfiguration(
-      final String name,
-      final String type,
-      final Class<? extends InboundConnectorExecutable> connectorClass) {
-    this.name = name;
-    this.type = type;
-    this.connectorClass = connectorClass;
+  public enum CorrelationErrorReason {
+    ACTIVATION_CONDITION_NOT_MET
   }
 
-  public String getName() {
-    return name;
+  public CorrelationErrorData(CorrelationErrorReason reason, String message) {
+    this.reason = reason;
+    this.message = message;
   }
 
-  public String getType() {
-    return type;
+  public CorrelationErrorData(CorrelationErrorReason reason) {
+    this.reason = reason;
+    this.message = null;
   }
 
-  public Class<? extends InboundConnectorExecutable> getConnectorClass() {
-    return this.connectorClass;
+  public CorrelationErrorReason getReason() {
+    return reason;
+  }
+
+  public String getMessage() {
+    return message;
   }
 
   @Override
@@ -54,17 +53,17 @@ public class InboundConnectorConfiguration {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    InboundConnectorConfiguration that = (InboundConnectorConfiguration) o;
-    return Objects.equals(type, that.type);
+    CorrelationErrorData that = (CorrelationErrorData) o;
+    return reason == that.reason && Objects.equals(message, that.message);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(type);
+    return Objects.hash(reason, message);
   }
 
   @Override
   public String toString() {
-    return "InboundConnectorConfiguration{" + "name='" + name + '\'' + ", type='" + type + '}';
+    return "CorrelationErrorData{" + "reason=" + reason + ", message='" + message + '\'' + '}';
   }
 }
