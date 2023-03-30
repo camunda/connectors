@@ -27,7 +27,7 @@ import javax.validation.constraints.Pattern;
 public class CommonRequest {
 
   @NotBlank
-  @Pattern(regexp = "^(http://|https://|secrets).*$")
+  @Pattern(regexp = "^(http://|https://|secrets|\\{\\{).*$")
   @Secret
   private String url;
 
