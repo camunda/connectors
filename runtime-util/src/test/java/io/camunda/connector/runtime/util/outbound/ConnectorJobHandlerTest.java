@@ -17,9 +17,9 @@
 
 package io.camunda.connector.runtime.util.outbound;
 
-import static io.camunda.connector.runtime.util.ConnectorHelper.ERROR_EXPRESSION_HEADER_NAME;
-import static io.camunda.connector.runtime.util.ConnectorHelper.RESULT_EXPRESSION_HEADER_NAME;
-import static io.camunda.connector.runtime.util.ConnectorHelper.RESULT_VARIABLE_HEADER_NAME;
+import static io.camunda.connector.impl.Constants.ERROR_EXPRESSION_KEYWORD;
+import static io.camunda.connector.impl.Constants.RESULT_EXPRESSION_KEYWORD;
+import static io.camunda.connector.impl.Constants.RESULT_VARIABLE_KEYWORD;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.api.annotation.Secret;
@@ -398,8 +398,8 @@ class ConnectorJobHandlerTest {
             JobBuilder.create()
                 .withHeaders(
                     Map.of(
-                        RESULT_VARIABLE_HEADER_NAME, resultVariable,
-                        RESULT_EXPRESSION_HEADER_NAME, resultExpression))
+                        RESULT_VARIABLE_KEYWORD, resultVariable,
+                        RESULT_EXPRESSION_KEYWORD, resultExpression))
                 .execute(jobHandler);
 
         // then
@@ -460,9 +460,9 @@ class ConnectorJobHandlerTest {
           JobBuilder.create()
               .withHeaders(
                   Map.of(
-                      RESULT_VARIABLE_HEADER_NAME,
+                      RESULT_VARIABLE_KEYWORD,
                       "testProperty",
-                      ERROR_EXPRESSION_HEADER_NAME,
+                      ERROR_EXPRESSION_KEYWORD,
                       errorExpression))
               .execute(jobHandler, false, true);
 
@@ -737,9 +737,9 @@ class ConnectorJobHandlerTest {
           JobBuilder.create()
               .withHeaders(
                   Map.of(
-                      RESULT_VARIABLE_HEADER_NAME,
+                      RESULT_VARIABLE_KEYWORD,
                       "testProperty",
-                      ERROR_EXPRESSION_HEADER_NAME,
+                      ERROR_EXPRESSION_KEYWORD,
                       errorExpression))
               .execute(jobHandler, false, true);
       // then

@@ -16,24 +16,18 @@
  */
 package io.camunda.connector.impl.inbound.correlation;
 
-import io.camunda.connector.api.inbound.ProcessCorrelationPoint;
+import io.camunda.connector.impl.inbound.ProcessCorrelationPoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** Properties of a message published by an Inbound Connector */
 public class MessageCorrelationPoint extends ProcessCorrelationPoint {
 
-  public static final String TYPE_NAME = "MESSAGE";
-
   private static final Logger LOG = LoggerFactory.getLogger(MessageCorrelationPoint.class);
   private final String messageName;
 
-  /** FEEL expression */
-  private final String correlationKeyExpression;
-
-  public MessageCorrelationPoint(String messageName, String correlationKeyExpression) {
+  public MessageCorrelationPoint(String messageName) {
     this.messageName = messageName;
-    this.correlationKeyExpression = correlationKeyExpression;
     LOG.debug("Created inbound correlation point: " + this);
   }
 
@@ -41,24 +35,14 @@ public class MessageCorrelationPoint extends ProcessCorrelationPoint {
     return messageName;
   }
 
-  public String getCorrelationKeyExpression() {
-    return correlationKeyExpression;
-  }
-
   @Override
   public String getId() {
-    return messageName + "-" + correlationKeyExpression.strip();
+    return messageName;
   }
 
   @Override
   public String toString() {
-    return "MessageCorrelationPoint{"
-        + "messageName='"
-        + messageName
-        + '\''
-        + ", correlationKeyExpression='"
-        + correlationKeyExpression
-        + '}';
+    return "MessageCorrelationPoint{" + "messageName='" + messageName + '\'' + '}';
   }
 
   @Override
@@ -67,9 +51,6 @@ public class MessageCorrelationPoint extends ProcessCorrelationPoint {
       return 1;
     }
     MessageCorrelationPoint other = (MessageCorrelationPoint) o;
-    if (!messageName.equals(other.messageName)) {
-      return messageName.compareTo(other.messageName);
-    }
-    return correlationKeyExpression.compareTo(other.correlationKeyExpression);
+    return messageName.compareTo(other.messageName);
   }
 }

@@ -14,25 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.util.inbound.correlation;
+package io.camunda.connector.impl.inbound.result;
 
-import io.camunda.connector.api.inbound.InboundConnectorResult;
-import io.camunda.connector.impl.inbound.correlation.StartEventCorrelationPoint;
-import io.camunda.zeebe.client.api.response.ProcessInstanceEvent;
+public class StartEventCorrelationResult extends AbstractInboundConnectorResult<ProcessInstance> {
 
-public class StartEventInboundConnectorResult extends InboundConnectorResult {
-  protected ProcessInstanceEvent responseData;
+  public static final String TYPE_NAME = "START_EVENT";
 
-  @Override
-  public ProcessInstanceEvent getResponseData() {
-    return responseData;
+  public StartEventCorrelationResult(long processDefinitionKey, ProcessInstance responseData) {
+    super(TYPE_NAME, String.valueOf(processDefinitionKey), true, responseData, null);
   }
 
-  public StartEventInboundConnectorResult(ProcessInstanceEvent processInstanceEvent) {
-    super(
-        StartEventCorrelationPoint.TYPE_NAME,
-        String.valueOf(processInstanceEvent.getProcessDefinitionKey()),
-        processInstanceEvent);
-    this.responseData = processInstanceEvent;
+  public StartEventCorrelationResult(long processDefinitionKey, CorrelationErrorData errorData) {
+    super(TYPE_NAME, String.valueOf(processDefinitionKey), false, null, errorData);
   }
 }

@@ -16,9 +16,6 @@
  */
 package io.camunda.connector.runtime.util.outbound;
 
-import static io.camunda.connector.runtime.util.ConnectorHelper.ERROR_EXPRESSION_HEADER_NAME;
-import static io.camunda.connector.runtime.util.ConnectorHelper.RESULT_EXPRESSION_HEADER_NAME;
-import static io.camunda.connector.runtime.util.ConnectorHelper.RESULT_VARIABLE_HEADER_NAME;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
@@ -26,6 +23,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.impl.Constants;
 import io.camunda.zeebe.client.api.command.CompleteJobCommandStep1;
 import io.camunda.zeebe.client.api.command.FailJobCommandStep1;
 import io.camunda.zeebe.client.api.command.ThrowErrorCommandStep1;
@@ -74,15 +72,15 @@ class JobBuilder {
     }
 
     public JobBuilderStep withResultVariableHeader(final String value) {
-      return withHeader(RESULT_VARIABLE_HEADER_NAME, value);
+      return withHeader(Constants.RESULT_VARIABLE_KEYWORD, value);
     }
 
     public JobBuilderStep withResultExpressionHeader(final String value) {
-      return withHeader(RESULT_EXPRESSION_HEADER_NAME, value);
+      return withHeader(Constants.RESULT_EXPRESSION_KEYWORD, value);
     }
 
     public JobBuilderStep withErrorExpressionHeader(final String value) {
-      return withHeader(ERROR_EXPRESSION_HEADER_NAME, value);
+      return withHeader(Constants.ERROR_EXPRESSION_KEYWORD, value);
     }
 
     public JobBuilderStep withHeader(String key, String value) {

@@ -93,6 +93,18 @@ public class InboundConnectorContextBuilder {
   }
 
   /**
+   * Provides multiple properties using a {@link InboundConnectorPropertiesBuilder}
+   *
+   * @param properties - new properties
+   * @return builder for fluent API
+   */
+  public InboundConnectorContextBuilder properties(InboundConnectorPropertiesBuilder properties) {
+    assertNoProperties();
+    this.properties = properties.build();
+    return this;
+  }
+
+  /**
    * Provides properties as object
    *
    * @param obj - properties as object
@@ -142,7 +154,7 @@ public class InboundConnectorContextBuilder {
 
   private InboundConnectorProperties getGenericProperties() {
     return new InboundConnectorProperties(
-        new MessageCorrelationPoint("msgName", "=body.corrKey"),
+        new MessageCorrelationPoint("msgName"),
         new HashMap<>(),
         UUID.randomUUID().toString(),
         0,
