@@ -22,7 +22,12 @@ import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest(
     classes = SaaSConnectorRuntimeApplication.class,
-    properties = {"camunda.saas.secrets.projectId=42", "camunda.connector.polling.enabled=false"})
+    properties = {
+      "camunda.saas.secrets.projectId=42",
+      "camunda.connector.polling.enabled=false",
+      "operate.client.enabled=false",
+      "zeebe.client.security.plaintext=true"
+    })
 @ActiveProfiles("dev")
 public class TestSpringContextStartup {
 
