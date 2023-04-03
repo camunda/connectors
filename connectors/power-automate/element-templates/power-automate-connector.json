@@ -162,7 +162,7 @@
     },
     {
       "label": "Client Id (Secret ID)",
-      "description": "Microsoft Azure Application Client id. <a href=\"https://learn.microsoft.com/en-us/azure/active-directory/develop/quickstart-register-app#register-an-application\">See where to find it.</a>",
+      "description": "Microsoft Azure Application Client id. <a href=\"https://learn.microsoft.com/en-us/azure/active-directory/develop/quickstart-register-app#register-an-application\">See where to find it</a>",
       "group": "authentication",
       "type": "String",
       "feel": "optional",
@@ -180,7 +180,7 @@
     },
     {
       "label": "Client secret (Client secret value)",
-      "description": "Microsoft Azure Application Client Secret value. <a href=\"https://learn.microsoft.com/en-us/azure/active-directory/develop/quickstart-register-app#register-an-application\">See where to find it.</a>",
+      "description": "Microsoft Azure Application Client Secret value. <a href=\"https://learn.microsoft.com/en-us/azure/active-directory/develop/quickstart-register-app#register-an-application\">See where to find it</a>",
       "group": "authentication",
       "type": "String",
       "feel": "optional",
@@ -245,7 +245,7 @@
     },
     {
       "label": "Flow session ID",
-      "description": "Unique identifier for entity instances. You can find this in the response of the 'Trigger a flow run' method.",
+      "description": "Unique identifier for entity instances. You can find this in the response of the 'Trigger a flow run' method",
       "feel": "optional",
       "group": "input",
       "type": "String",
@@ -266,7 +266,7 @@
     },
     {
       "label": "Workflow ID (Flow ID)",
-      "description": "The ID of the desktop flow that you want to run.",
+      "description": "The ID of the desktop flow that you want to run",
       "feel": "optional",
       "group": "input",
       "type": "String",
@@ -286,7 +286,7 @@
     },
     {
       "label": "Connection Name",
-      "description": "Identifies the connection to be used with the desktop flow script.",
+      "description": "Identifies the connection to be used with the desktop flow script",
       "feel": "optional",
       "group": "input",
       "type": "String",
@@ -306,7 +306,7 @@
     },
     {
       "label": "Connection type",
-      "description": "Identifies which type of connection is used in the connectionName.",
+      "description": "Identifies which type of connection is used in the connectionName",
       "group": "input",
       "type": "Dropdown",
       "value": "1",
@@ -367,7 +367,7 @@
     {
       "label": "Run priority",
       "feel": "optional",
-      "description": "Choose an option (normal, high) or add your own.",
+      "description": "Choose an option (normal, high) or add your own",
       "group": "input",
       "type": "String",
       "value": "normal",
@@ -386,7 +386,7 @@
     {
       "label": "Timeout",
       "feel": "optional",
-      "description": "Timeout for Power Automate script execution in seconds (default = 3 hours, max = 24 hours).",
+      "description": "Timeout for Power Automate script execution in seconds (default = 3 hours, max = 24 hours)",
       "group": "input",
       "type": "String",
       "binding": {
@@ -403,7 +403,7 @@
     },
     {
       "label": "Inputs",
-      "description": "The desktop flow script input parameters (json serialized string).",
+      "description": "The desktop flow script input parameters (json serialized string)",
       "group": "input",
       "type": "String",
       "feel": "required",
@@ -422,7 +422,7 @@
     {
       "label": "Callback URL",
       "feel": "optional",
-      "description": "URL that will be called once the desktop flow script is complete. You can use the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/\">webhook connector</a> for this purpose.",
+      "description": "URL that will be called once the desktop flow script is complete. You can use the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/\">webhook connector</a> for this purpose",
       "group": "input",
       "type": "String",
       "binding": {
