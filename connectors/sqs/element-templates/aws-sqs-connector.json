@@ -119,7 +119,7 @@
         }
       ],
       "binding": {
-        "type": "property",
+        "type": "zeebe:input",
         "name": "queue.type"
       },
       "constraints": {
