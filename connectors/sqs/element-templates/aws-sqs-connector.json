@@ -127,8 +127,8 @@
       }
     },
     {
-      "label": "Message Group Id",
-      "description": "Message Group Id (FIFO only). See also <a href=\"https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/using-messagegroupid-property.html\">using the MessageGroupId Property</a> in the Amazon SQS Developer Guide.",
+      "label": "Message Group ID",
+      "description": "Message Group ID (FIFO only). See also <a href=\"https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/using-messagegroupid-property.html\">using the MessageGroupId Property</a> in the Amazon SQS Developer Guide.",
       "group": "input",
       "type": "String",
       "binding": {
@@ -143,8 +143,8 @@
       "feel": "optional"
     },
     {
-      "label": "Message Deduplication Id",
-      "description": "Message Deduplication Id (FIFO only). See also <a href=\"https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/using-messagededuplicationid-property.html\">using the MessageDeduplicationId Property</a> in the Amazon SQS Developer Guide.",
+      "label": "Message Deduplication ID",
+      "description": "Message Deduplication ID (FIFO only). See also <a href=\"https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/using-messagededuplicationid-property.html\">using the MessageDeduplicationId Property</a> in the Amazon SQS Developer Guide.",
       "group": "input",
       "type": "String",
       "binding": {
