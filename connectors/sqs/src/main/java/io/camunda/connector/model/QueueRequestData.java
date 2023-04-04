@@ -7,12 +7,14 @@
 package io.camunda.connector.model;
 
 import com.amazonaws.services.sqs.model.MessageAttributeValue;
+import com.amazonaws.util.StringUtils;
 import io.camunda.connector.api.annotation.Secret;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
+import javax.validation.constraints.AssertTrue;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 
@@ -23,7 +25,13 @@ public class QueueRequestData {
 
   @NotNull private Object messageBody;
 
+  @NotNull private QueueType type = QueueType.standard;
+
   private Map<String, SqsMessageAttribute> messageAttributes;
+
+  private String messageGroupId;
+
+  private String messageDeduplicationId;
 
   public String getUrl() {
     return url;
@@ -79,24 +87,55 @@ public class QueueRequestData {
     };
   }
 
+  public QueueType getType() {
+    return type;
+  }
+
+  public void setType(QueueType type) {
+    this.type = type;
+  }
+
+  public String getMessageGroupId() {
+    return messageGroupId;
+  }
+
+  public void setMessageGroupId(String messageGroupId) {
+    this.messageGroupId = messageGroupId;
+  }
+
+  public String getMessageDeduplicationId() {
+    return messageDeduplicationId;
+  }
+
+  public void setMessageDeduplicationId(String messageDeduplicationId) {
+    this.messageDeduplicationId = messageDeduplicationId;
+  }
+
+  @AssertTrue
+  public boolean hasValidFifoQueueProperties() {
+    if (QueueType.fifo == type) {
+      return StringUtils.hasValue(messageDeduplicationId) && StringUtils.hasValue(messageGroupId);
+    } else return true;
+  }
+
   @Override
   public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
     QueueRequestData that = (QueueRequestData) o;
-    return url.equals(that.url)
-        && region.equals(that.region)
-        && messageBody.equals(that.messageBody)
-        && Objects.equals(messageAttributes, that.messageAttributes);
+    return Objects.equals(url, that.url)
+        && Objects.equals(region, that.region)
+        && Objects.equals(messageBody, that.messageBody)
+        && Objects.equals(type, that.type)
+        && Objects.equals(messageAttributes, that.messageAttributes)
+        && Objects.equals(messageGroupId, that.messageGroupId)
+        && Objects.equals(messageDeduplicationId, that.messageDeduplicationId);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(url, region, messageBody, messageAttributes);
+    return Objects.hash(
+        url, region, messageBody, type, messageAttributes, messageGroupId, messageDeduplicationId);
   }
 
   @Override
@@ -110,8 +149,16 @@ public class QueueRequestData {
         + '\''
         + ", messageBody="
         + messageBody
+        + ", type="
+        + type
         + ", messageAttributes="
         + messageAttributes
+        + ", messageGroupId='"
+        + messageGroupId
+        + '\''
+        + ", messageDeduplicationId='"
+        + messageDeduplicationId
+        + '\''
         + '}';
   }
 }

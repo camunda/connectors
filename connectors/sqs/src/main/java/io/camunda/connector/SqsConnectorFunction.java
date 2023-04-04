@@ -65,7 +65,9 @@ public class SqsConnectorFunction implements OutboundConnectorFunction {
           new SendMessageRequest()
               .withQueueUrl(request.getQueue().getUrl())
               .withMessageBody(payload)
-              .withMessageAttributes(request.getQueue().getAwsSqsNativeMessageAttributes());
+              .withMessageAttributes(request.getQueue().getAwsSqsNativeMessageAttributes())
+              .withMessageGroupId(request.getQueue().getMessageGroupId())
+              .withMessageDeduplicationId(request.getQueue().getMessageDeduplicationId());
       return sqsClient.sendMessage(message);
     } finally {
       if (sqsClient != null) {

@@ -84,5 +84,57 @@
       "secretKey":"secrets.AWS_SECRET_KEY",
       "accessKey":"secrets.AWS_ACCESS_KEY"
     }
+  },
+  {
+    "testDescription": "No messageGroupId for FIFO queue",
+    "authentication": {
+      "secretKey": "secrets.AWS_SECRET_KEY",
+      "accessKey": "secrets.AWS_ACCESS_KEY"
+    },
+    "queue": {
+      "type": "fifo",
+      "messageDeduplicationId": "messageDeduplicationId",
+      "messageAttributes": {},
+      "messageBody": {
+        "data": "ok"
+      },
+      "region": "us-east-1",
+      "url": "secrets.SQS_QUEUE_URL"
+    }
+  },
+  {
+    "testDescription": "No messageDeduplicationId for FIFO queue",
+    "authentication": {
+      "secretKey": "secrets.AWS_SECRET_KEY",
+      "accessKey": "secrets.AWS_ACCESS_KEY"
+    },
+    "queue": {
+      "type": "fifo",
+      "messageGroupId": "messageGroupId",
+      "messageAttributes": {},
+      "messageBody": {
+        "data": "ok"
+      },
+      "region": "us-east-1",
+      "url": "secrets.SQS_QUEUE_URL"
+    }
+  },
+  {
+    "testDescription": "Invalid queue type",
+    "authentication": {
+      "secretKey": "secrets.AWS_SECRET_KEY",
+      "accessKey": "secrets.AWS_ACCESS_KEY"
+    },
+    "queue": {
+      "type": "test",
+      "messageGroupId": "messageGroupId",
+      "messageDeduplicationId": "messageDeduplicationId",
+      "messageAttributes": {},
+      "messageBody": {
+        "data": "ok"
+      },
+      "region": "us-east-1",
+      "url": "secrets.SQS_QUEUE_URL"
+    }
   }
 ]
