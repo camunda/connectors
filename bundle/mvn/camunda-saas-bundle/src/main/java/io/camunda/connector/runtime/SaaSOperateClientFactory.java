@@ -52,7 +52,12 @@ public class SaaSOperateClientFactory {
     String operateClientSecret = internalSecretProvider.getSecret(SECRET_NAME_SECRET);
     return new CamundaOperateClient.Builder()
         .operateUrl(properties.getOperateUrl())
-        .authentication(new SaasAuthentication(operateClientId, operateClientSecret))
+        .authentication(
+            new SaasAuthentication(
+                properties.getAuthUrl(),
+                properties.getAudience(),
+                operateClientId,
+                operateClientSecret))
         .build();
   }
 }
