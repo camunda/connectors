@@ -27,6 +27,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.HttpContent;
+import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpResponse;
@@ -44,9 +45,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class HttpJsonFunctionProxyTest extends BaseTest {
 
   private static final String SUCCESS_CASES_RESOURCE_PATH =
@@ -63,6 +68,7 @@ public class HttpJsonFunctionProxyTest extends BaseTest {
   @BeforeEach
   public void setup() {
     functionUnderTest = new HttpJsonFunction(gson, requestFactory, PROXY_FUNCTION_URL);
+    when(httpRequest.getHeaders()).thenReturn(Mockito.mock(HttpHeaders.class));
   }
 
   @ParameterizedTest(name = "Executing test case: {0}")
