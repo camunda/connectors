@@ -112,10 +112,12 @@ public class QueueRequestData {
   }
 
   @AssertTrue
-  public boolean hasValidFifoQueueProperties() {
-    if (QueueType.fifo == type) {
-      return StringUtils.hasValue(messageDeduplicationId) && StringUtils.hasValue(messageGroupId);
-    } else return true;
+  public boolean hasValidQueueProperties() {
+    if (QueueType.standard == type) {
+      return StringUtils.isNullOrEmpty(messageGroupId);
+    } else if (QueueType.fifo == type) {
+      return StringUtils.hasValue(messageGroupId);
+    } else throw new IllegalArgumentException("No valid type value " + type);
   }
 
   @Override

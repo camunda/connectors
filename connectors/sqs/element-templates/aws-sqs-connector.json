@@ -151,7 +151,7 @@
         "type": "zeebe:input",
         "name": "queue.messageDeduplicationId"
       },
-      "optional": false,
+      "optional": true,
       "condition": {
         "property": "queue.type",
         "equals": "fifo"
