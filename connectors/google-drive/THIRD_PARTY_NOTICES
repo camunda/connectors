@@ -29,4 +29,4 @@ This project incorporates components with the licenses under which Camunda recei
   * org.apache.httpcomponents:httpclient (Version: 4.5.14, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * org.apache.httpcomponents:httpcore (Version: 4.4.16, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * org.checkerframework:checker-qual (Version: 3.12.0, License: MIT (URL: https://opensource.org/licenses/MIT))
-  * org.slf4j:slf4j-api (Version: 1.7.36, License: MIT (URL: https://opensource.org/licenses/MIT))
+  * org.slf4j:slf4j-api (Version: 2.0.6, License: MIT (URL: https://opensource.org/licenses/MIT))
