@@ -43,20 +43,25 @@ public class SecurityConfiguration {
 
   @Bean
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-    http.csrf()
-        .disable()
-        .authorizeRequests()
-        .antMatchers(HttpMethod.POST, "/inbound/**")
-        .permitAll()
-        .antMatchers("/actuator/**")
-        .permitAll()
-        .antMatchers("/inbound")
-        .hasAuthority("SCOPE_inbound:read")
-        .anyRequest()
-        .authenticated()
-        .and()
-        .oauth2ResourceServer()
-        .jwt();
+    http.csrf(csrf -> csrf.ignoringRequestMatchers("/inbound/**"))
+        .authorizeRequests(
+            auth -> {
+              try {
+                auth.requestMatchers(HttpMethod.POST, "/inbound/**")
+                    .permitAll()
+                    .requestMatchers("/actuator/**")
+                    .permitAll()
+                    .requestMatchers("/inbound")
+                    .hasAuthority("SCOPE_inbound:read")
+                    .anyRequest()
+                    .authenticated()
+                    .and()
+                    .oauth2ResourceServer()
+                    .jwt();
+              } catch (Exception e) {
+                throw new RuntimeException(e);
+              }
+            });
     return http.build();
   }
 

@@ -19,9 +19,9 @@
   <inceptionYear>2022</inceptionYear>
 
   <properties>
-    <version.spring-zeebe>8.2.0-alpha2</version.spring-zeebe>
+    <version.spring-zeebe>8.2.0-alpha3</version.spring-zeebe>
 
-    <version.spring-boot>2.7.10</version.spring-boot>
+    <version.spring-boot>3.0.5</version.spring-boot>
     <version.spring-cloud-gcp-starter-logging>3.4.7</version.spring-cloud-gcp-starter-logging>
 
     <version.aws-java-sdk>1.12.442</version.aws-java-sdk>
@@ -57,6 +57,11 @@
 
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-api</artifactId>
+        <version>2.0.6</version>
+      </dependency>
       <dependency>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-dependencies</artifactId>
