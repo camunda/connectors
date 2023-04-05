@@ -24,14 +24,16 @@ import io.camunda.zeebe.spring.client.properties.OperateClientConfigurationPrope
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.context.annotation.Profile;
 
 @Configuration
 @Primary
-@ConditionalOnProperty(value = "operate.client.enabled", havingValue = "true")
+@Profile("!dev")
+@EnableConfigurationProperties(OperateClientConfigurationProperties.class)
 public class SaaSOperateClientFactory {
 
   private static final Logger LOG = LoggerFactory.getLogger(SaaSOperateClientFactory.class);
