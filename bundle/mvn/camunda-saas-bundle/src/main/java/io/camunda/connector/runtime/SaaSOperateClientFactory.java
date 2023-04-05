@@ -31,7 +31,6 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 
 @Configuration
-@Primary
 @Profile("!test")
 @EnableConfigurationProperties(OperateClientConfigurationProperties.class)
 public class SaaSOperateClientFactory {

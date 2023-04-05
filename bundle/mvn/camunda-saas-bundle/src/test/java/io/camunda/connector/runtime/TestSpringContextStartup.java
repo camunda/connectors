@@ -25,7 +25,6 @@ import org.springframework.test.context.ActiveProfiles;
     properties = {
       "camunda.saas.secrets.projectId=42",
       "camunda.connector.polling.enabled=false",
-      "operate.client.enabled=false",
       "zeebe.client.security.plaintext=true"
     })
 @ActiveProfiles("test")
