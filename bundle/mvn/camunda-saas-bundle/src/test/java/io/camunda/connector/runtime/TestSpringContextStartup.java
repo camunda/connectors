@@ -28,7 +28,7 @@ import org.springframework.test.context.ActiveProfiles;
       "operate.client.enabled=false",
       "zeebe.client.security.plaintext=true"
     })
-@ActiveProfiles("dev")
+@ActiveProfiles("test")
 public class TestSpringContextStartup {
 
   @Test
