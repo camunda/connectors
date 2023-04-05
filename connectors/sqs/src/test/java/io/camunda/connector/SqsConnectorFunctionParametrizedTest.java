@@ -44,6 +44,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 @ExtendWith(MockitoExtension.class)
 class SqsConnectorFunctionParametrizedTest {
@@ -98,9 +100,15 @@ class SqsConnectorFunctionParametrizedTest {
 
   @ParameterizedTest
   @MethodSource("failRequestCases")
+  @MockitoSettings(strictness = Strictness.LENIENT)
   void execute_ShouldThrowExceptionOnMalformedRequests(final String incomingJson) {
     // given
-    SqsConnectorRequest expectedRequest = GSON.fromJson(incomingJson, SqsConnectorRequest.class);
+    when(sqsClientSupplier.sqsClient(ACTUAL_ACCESS_KEY, ACTUAL_SECRET_KEY, ACTUAL_QUEUE_REGION))
+        .thenReturn(sqsClient);
+    SendMessageResult sendMessageResult = mock(SendMessageResult.class);
+    when(sendMessageResult.getMessageId()).thenReturn(MSG_ID);
+    when(sqsClient.sendMessage(sendMessageRequest.capture())).thenReturn(sendMessageResult);
+
     OutboundConnectorContext ctx =
         OutboundConnectorContextBuilder.create()
             .variables(incomingJson)

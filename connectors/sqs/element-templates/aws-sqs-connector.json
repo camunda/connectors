@@ -101,6 +101,64 @@
       }
     },
     {
+      "id": "queue.type",
+      "label": "Queue type",
+      "description": "Specify whether the queue is a <a href=\"https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/standard-queues.html\">standard</a> or <a href=\"https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queues.html\">FIFO</a> queue",
+      "group": "queueProperties",
+      "type": "Dropdown",
+      "optional": false,
+      "value": "standard",
+      "choices": [
+        {
+          "name": "Standard",
+          "value": "standard"
+        },
+        {
+          "name": "FIFO",
+          "value": "fifo"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "queue.type"
+      },
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
+      "label": "Message Group ID",
+      "description": "Message Group ID (FIFO only). See also <a href=\"https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/using-messagegroupid-property.html\">using the MessageGroupId Property</a> in the Amazon SQS Developer Guide.",
+      "group": "input",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "queue.messageGroupId"
+      },
+      "optional": false,
+      "condition": {
+        "property": "queue.type",
+        "equals": "fifo"
+      },
+      "feel": "optional"
+    },
+    {
+      "label": "Message Deduplication ID",
+      "description": "Message Deduplication ID (FIFO only). See also <a href=\"https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/using-messagededuplicationid-property.html\">using the MessageDeduplicationId Property</a> in the Amazon SQS Developer Guide.",
+      "group": "input",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "queue.messageDeduplicationId"
+      },
+      "optional": true,
+      "condition": {
+        "property": "queue.type",
+        "equals": "fifo"
+      },
+      "feel": "optional"
+    },
+    {
       "label": "Message body",
       "description": "Data to send to the SQS queue",
       "group": "input",
