@@ -47,7 +47,7 @@ public class SecurityConfiguration {
         .authorizeRequests(
             auth -> {
               try {
-                auth // .anyRequest().permitAll();
+                auth
                     .requestMatchers(HttpMethod.POST, "/inbound/**")
                     .permitAll()
                     .requestMatchers("/actuator/**")
