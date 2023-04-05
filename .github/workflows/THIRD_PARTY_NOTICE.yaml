@@ -54,7 +54,7 @@ jobs:
         run: mvn org.codehaus.mojo:license-maven-plugin:aggregate-add-third-party -Dlicense.excludedGroups=io.camunda -Dlicense.fileTemplate="licenses/third-party.ftl"
 
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v4
+        uses: peter-evans/create-pull-request@v5
         with:
           branch: update-third-party-notice
           delete-branch: true
