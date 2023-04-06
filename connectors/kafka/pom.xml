@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.camunda.connector</groupId>
     <artifactId>connector-function-parent</artifactId>
-    <version>0.18.0-SNAPSHOT</version>
+    <version>0.18.0-alpha5</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
