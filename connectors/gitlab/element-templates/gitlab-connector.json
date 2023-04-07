@@ -527,7 +527,7 @@
     },
     {
       "type": "Hidden",
-      "value": "=baseUrl + \"/api/v4/projects/\"+ projectId +\"/issues/\" + issueId + \"notes\"",
+      "value": "=baseUrl + \"/api/v4/projects/\"+ projectId +\"/issues/\" + issueId + \"/notes\"",
       "binding": {
         "type": "zeebe:input",
         "name": "url"
