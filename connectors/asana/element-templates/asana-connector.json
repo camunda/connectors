@@ -1,0 +1,693 @@
+{
+  "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name": "Asana Connector",
+  "id": "io.camunda.connectors.Asana.v1",
+  "version": 1,
+  "description": "Manage your Asana project with Camunda",
+  "icon": {
+    "contents": "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='781.361 0 944.893 873.377'%3E%3CradialGradient id='a' cx='943.992' cy='1221.416' r='.663' gradientTransform='matrix(944.8934 0 0 -873.3772 -890717.875 1067234.75)' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%23ffb900'/%3E%3Cstop offset='.6' stop-color='%23f95d8f'/%3E%3Cstop offset='.999' stop-color='%23f95353'/%3E%3C/radialGradient%3E%3Cpath fill='url(%23a)' d='M1520.766 462.371c-113.508 0-205.508 92-205.508 205.488 0 113.499 92 205.518 205.508 205.518 113.489 0 205.488-92.019 205.488-205.518 0-113.488-91.999-205.488-205.488-205.488zm-533.907.01c-113.489.01-205.498 91.99-205.498 205.488 0 113.489 92.009 205.498 205.498 205.498 113.498 0 205.508-92.009 205.508-205.498 0-113.499-92.01-205.488-205.518-205.488h.01zm472.447-256.883c0 113.489-91.999 205.518-205.488 205.518-113.508 0-205.508-92.029-205.508-205.518S1140.31 0 1253.817 0c113.489 0 205.479 92.009 205.479 205.498h.01z'/%3E%3C/svg%3E"
+  },
+  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/asana/",
+  "category": {
+    "id": "connectors",
+    "name": "Connectors"
+  },
+  "appliesTo": [
+    "bpmn:Task"
+  ],
+  "elementType": {
+    "value": "bpmn:ServiceTask"
+  },
+  "groups": [
+    {
+      "id": "operation",
+      "label": "Operation"
+    },
+    {
+      "id": "authentication",
+      "label": "Authentication"
+    },
+    {
+      "id": "operation",
+      "label": "Operation"
+    },
+    {
+      "id": "output",
+      "label": "Output"
+    },
+    {
+      "id": "errors",
+      "label": "Error Handling"
+    }
+  ],
+  "properties": [
+    {
+      "type": "Hidden",
+      "value": "io.camunda:http-json:1",
+      "binding": {
+        "type": "zeebe:taskDefinition:type"
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "bearer",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.type"
+      }
+    },
+    {
+      "label": "Personal access token",
+      "group": "authentication",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.token"
+      },
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "https://app.asana.com",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "asanaBaseUrl"
+      }
+    },
+    {
+      "label": "Operation group",
+      "id": "operationGroup",
+      "group": "operation",
+      "description": "Choose operation group",
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Tasks",
+          "value": "tasks"
+        },
+        {
+          "name": "Projects",
+          "value": "projects"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "operationGroup"
+      }
+    },
+    {
+      "label": "Operation",
+      "id": "operation",
+      "group": "operation",
+      "description": "Choose operation to perform",
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Get tasks from a project",
+          "value": "getTasksFromProject"
+        },
+        {
+          "name": "Get a task by ID",
+          "value": "getTaskById"
+        },
+        {
+          "name": "Create a task",
+          "value": "createTask"
+        },
+        {
+          "name": "Delete a task",
+          "value": "deleteTask"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "operation"
+      },
+      "condition": {
+        "property": "operationGroup",
+        "equals": "tasks"
+      }
+    },
+    {
+      "label": "Operation",
+      "id": "operation",
+      "group": "operation",
+      "description": "Choose operation to perform",
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Get projects",
+          "value": "getProjects"
+        },
+        {
+          "name": "Get a project by ID",
+          "value": "getProjectById"
+        },
+        {
+          "name": "Create a project in a workspace",
+          "value": "createProjectInWorkspace"
+        },
+        {
+          "name": "Delete a project",
+          "value": "deleteProject"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "operation"
+      },
+      "condition": {
+        "property": "operationGroup",
+        "equals": "projects"
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "get",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "method"
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "getTasksFromProject",
+          "getTaskById",
+          "getProjects",
+          "getProjectById"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "post",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "method"
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "createTask",
+          "createProject"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "delete",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "method"
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "deleteTask",
+          "deleteProject"
+        ]
+      }
+    },
+    {
+      "label": "Project ID",
+      "description": "Globally unique identifier for the project",
+      "group": "operation",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "projectId"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "getTasksFromProject"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "=asanaBaseUrl + \"/api/1.0/tasks\"",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "url"
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "getTasksFromProject"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "={\"project\":projectId}",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "queryParameters"
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "getTasksFromProject"
+        ]
+      }
+    },
+    {
+      "label": "Task ID",
+      "description": "The task to operate on",
+      "group": "operation",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "taskId"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "getTaskById"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "=asanaBaseUrl + \"/api/1.0/tasks/\" + taskId",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "url"
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "getTaskById"
+        ]
+      }
+    },
+    {
+      "label": "Task ID",
+      "description": "The task to operate on",
+      "group": "operation",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "taskId"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "deleteTask"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "=asanaBaseUrl + \"/api/1.0/tasks/\" + taskId",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "url"
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "deleteTask"
+        ]
+      }
+    },
+    {
+      "label": "Task name",
+      "description": "The name of the task",
+      "group": "operation",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "taskName"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "createTask"
+        ]
+      }
+    },
+    {
+      "label": "Project ID",
+      "description": "Globally unique identifier for the project",
+      "group": "operation",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "projectId"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "createTask"
+        ]
+      }
+    },
+    {
+      "label": "Parent task ID",
+      "description": "Globally unique identifier for the parent task",
+      "group": "operation",
+      "type": "String",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "parentTaskId"
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "createTask"
+        ]
+      }
+    },
+    {
+      "label": "Notes",
+      "description": "Free-form textual information associated with the task (i.e. its description)",
+      "group": "operation",
+      "type": "String",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "taskNotes"
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "createTask"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "=asanaBaseUrl + \"/api/1.0/tasks/\"",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "url"
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "createTask"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "={\"data\":{\"projects\":[ projectId ], \"name\": taskName, \"parent\": if parentTaskId = null then null else parentTaskId, \"notes\": if taskNotes = null then null else taskNotes }}",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body"
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "createTask"
+        ]
+      }
+    },
+    {
+      "label": "Workspace ID",
+      "description": "The workspace or organization to filter projects on",
+      "group": "operation",
+      "type": "String",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "workspaceId"
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "getProjects"
+        ]
+      }
+    },
+    {
+      "label": "Team ID",
+      "description": "The team to filter projects on",
+      "group": "operation",
+      "type": "String",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "teamId"
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "getProjects"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "=asanaBaseUrl + \"/api/1.0/projects\"",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "url"
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "getProjects"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "={\"workspace\":if workspaceId = null then null else workspaceId, \"team\":if teamId = null then null else teamId}",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "queryParameters"
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "getProjects"
+        ]
+      }
+    },
+    {
+      "label": "Project ID",
+      "description": "Globally unique identifier for the project",
+      "group": "operation",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "projectId"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "getProjectById"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "=asanaBaseUrl + \"/api/1.0/projects/\" + projectId",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "url"
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "getProjectById"
+        ]
+      }
+    },
+    {
+      "label": "Workspace ID",
+      "description": "Globally unique identifier for the workspace or organization",
+      "group": "operation",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "workspaceId"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "createProjectInWorkspace"
+        ]
+      }
+    },
+    {
+      "label": "Project name",
+      "description": "Name of the project. This is generally a short sentence fragment that fits on a line in the UI for maximum readability",
+      "group": "operation",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "projectName"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "createProjectInWorkspace"
+        ]
+      }
+    },
+    {
+      "label": "Project note",
+      "description": "Free-form textual information associated with the project (ie., its description)",
+      "group": "operation",
+      "type": "Text",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "projectNote"
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "createProjectInWorkspace"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "=asanaBaseUrl + \"/api/1.0/workspaces/\" + workspaceId + \"/projects\"",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "url"
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "createProjectInWorkspace"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "={\"data\":{\"name\": projectName,\"notes\": if projectNote = null then null else projectNote }}",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body"
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "createProjectInWorkspace"
+        ]
+      }
+    },
+    {
+      "label": "Project ID",
+      "description": "Globally unique identifier for the project",
+      "group": "operation",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "projectId"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "deleteProject"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "=asanaBaseUrl + \"/api/1.0/projects/\" + projectId",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "url"
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "deleteProject"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "20",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "connectionTimeoutInSeconds"
+      }
+    },
+    {
+      "label": "Result Variable",
+      "description": "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>",
+      "group": "output",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultVariable"
+      }
+    },
+    {
+      "label": "Result Expression",
+      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "group": "output",
+      "type": "Text",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultExpression"
+      }
+    },
+    {
+      "label": "Error Expression",
+      "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
+      "group": "errors",
+      "type": "Text",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "errorExpression"
+      }
+    }
+  ]
+}
