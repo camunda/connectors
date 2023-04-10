@@ -6,7 +6,7 @@
   <parent>
     <groupId>io.camunda.connector</groupId>
     <artifactId>connector-parent</artifactId>
-    <version>0.8.0-alpha2</version>
+    <version>0.8.0</version>
     <relativePath/>
   </parent>
 
@@ -19,7 +19,7 @@
   <inceptionYear>2022</inceptionYear>
 
   <properties>
-    <version.spring-zeebe>8.2.0-alpha6-SNAPSHOT</version.spring-zeebe>
+    <version.spring-zeebe>8.2.0</version.spring-zeebe>
 
     <version.spring-boot>3.0.5</version.spring-boot>
     <version.spring-cloud-gcp-starter-logging>3.4.8</version.spring-cloud-gcp-starter-logging>
@@ -199,6 +199,13 @@
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-text</artifactId>
         <version>1.10.0</version>
+      </dependency>
+
+      <!-- FIXME: maven resolves protobuf to 3.21.x while zeebe-client is compiled for 3.22.2. This is a temporary fix to be reassessed later. -->
+      <dependency>
+        <groupId>com.google.protobuf</groupId>
+        <artifactId>protobuf-java</artifactId>
+        <version>3.22.2</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

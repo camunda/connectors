@@ -50,7 +50,10 @@ class RabbitMqFunctionTest extends BaseTest {
 
   @BeforeEach
   public void init()
-      throws URISyntaxException, NoSuchAlgorithmException, KeyManagementException, IOException,
+      throws URISyntaxException,
+          NoSuchAlgorithmException,
+          KeyManagementException,
+          IOException,
           TimeoutException {
     function = new RabbitMqFunction(connectionFactorySupplier);
     when(connectionFactorySupplier.createFactory(any(RabbitMqRequest.class)))
