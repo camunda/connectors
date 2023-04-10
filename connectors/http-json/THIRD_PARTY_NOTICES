@@ -4,7 +4,7 @@ Do Not Translate or Localize
 This project incorporates components with the licenses under which Camunda received them as listed below.
 
   * com.google.auth:google-auth-library-credentials (Version: 1.16.0, License: BSD-3-Clause (URL: https://opensource.org/licenses/BSD-3-Clause))
-  * com.google.auth:google-auth-library-oauth2-http (Version: 1.16.0, License: BSD-3-Clause (URL: https://opensource.org/licenses/BSD-3-Clause))
+  * com.google.auth:google-auth-library-oauth2-http (Version: 1.16.1, License: BSD-3-Clause (URL: https://opensource.org/licenses/BSD-3-Clause))
   * com.google.auto.value:auto-value-annotations (Version: 1.10.1, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * com.google.code.findbugs:jsr305 (Version: 3.0.2, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * com.google.code.gson:gson (Version: 2.10.1, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
