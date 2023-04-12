@@ -17,6 +17,7 @@
 package io.camunda.connector.http;
 
 import static org.apache.http.entity.ContentType.APPLICATION_JSON;
+import static org.apache.http.entity.ContentType.TEXT_PLAIN;
 
 import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.HttpHeaders;
@@ -33,6 +34,7 @@ import io.camunda.connector.http.model.HttpJsonRequest;
 import io.camunda.connector.impl.ConnectorInputException;
 import java.io.IOException;
 import javax.validation.ValidationException;
+import org.apache.commons.text.StringEscapeUtils;
 
 public class HttpRequestMapper {
 
@@ -79,6 +81,10 @@ public class HttpRequestMapper {
 
     if (request.hasQueryParameters()) {
       genericUrl.putAll(request.getQueryParameters());
+    }
+    if (request.hasBody() && headers.getContentType().equalsIgnoreCase(TEXT_PLAIN.getMimeType())) {
+      String unescapeBody = StringEscapeUtils.unescapeJson((String) request.getBody());
+      request.setBody(unescapeBody);
     }
 
     return new HttpRequestBuilder()

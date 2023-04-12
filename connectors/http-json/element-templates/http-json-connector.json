@@ -151,7 +151,7 @@
       "feel": "required",
       "binding": {
         "type": "zeebe:input",
-        "name": "headers"
+        "name": "headersValue"
       },
       "optional": true
     },
@@ -338,6 +338,52 @@
       }
     },
     {
+      "label": "Content type",
+      "id": "contentType",
+      "group": "input",
+      "type": "Dropdown",
+      "value": "application/json",
+      "choices": [
+        {
+          "name": "application/json",
+          "value": "application/json"
+        },
+        {
+          "name": "text/plain",
+          "value": "text/plain"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "contentTypeValue"
+      },
+      "optional": true,
+      "constraints": {
+        "notEmpty": false
+      },
+      "condition": {
+        "property": "method",
+        "oneOf": [
+          "post",
+          "put",
+          "patch",
+          "delete"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "= if headersValue = null then {\"content-type\":contentTypeValue} else put all( headersValue, {\"content-type\":contentTypeValue})",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "headers"
+      },
+      "optional": false,
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
       "label": "Request Body",
       "description": "JSON payload to send with the request",
       "group": "input",
@@ -348,12 +394,53 @@
         "name": "body"
       },
       "condition": {
-        "property": "method",
-        "oneOf": [
-          "post",
-          "put",
-          "patch",
-          "delete"
+        "allMatch": [
+          {
+            "property": "method",
+            "oneOf": [
+              "post",
+              "put",
+              "patch",
+              "delete"
+            ]
+          },
+          {
+            "property": "contentType",
+            "oneOf": [
+              "application/json"
+            ]
+          }
+        ]
+      },
+      "optional": true
+    },
+    {
+      "label": "Request Body",
+      "description": "Text plain payload to send with the request",
+      "group": "input",
+      "type": "Text",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body"
+      },
+      "condition": {
+        "allMatch": [
+          {
+            "property": "method",
+            "oneOf": [
+              "post",
+              "put",
+              "patch",
+              "delete"
+            ]
+          },
+          {
+            "property": "contentType",
+            "oneOf": [
+              "text/plain"
+            ]
+          }
         ]
       },
       "optional": true
