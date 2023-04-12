@@ -1,5 +1,5 @@
-name: [FOCAL] Release a new version
-run-name: [FOCAL] Release a new version ${{ inputs.version }}
+name: Focal: Release a new version
+run-name: Focal: Release a new version ${{ inputs.version }}
 
 on:
   workflow_dispatch:
@@ -88,7 +88,7 @@ jobs:
           provenance: false
           file: Dockerfile-focal
           
-      - name: [FOCAL] Build and Push Docker Image tag latest - bundle-default
+      - name: Focal: Build and Push Docker Image tag latest - bundle-default
         if: ${{ steps.check_prerelease.outputs.isPreRelease == 'false' }}
         uses: docker/build-push-action@v4
         with:
