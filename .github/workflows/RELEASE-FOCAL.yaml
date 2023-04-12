@@ -1,5 +1,5 @@
-name: Focal: Release a new version
-run-name: Focal: Release a new version ${{ inputs.version }}
+name: Focal Release a new version
+run-name: Focal Release a new version ${{ inputs.version }}
 
 on:
   workflow_dispatch:
@@ -78,7 +78,7 @@ jobs:
           username: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
           password: ${{ steps.secrets.outputs.DOCKERHUB_PASSWORD }}
           
-      - name: [FOCAL] Build and Push Docker Image tag ${{ github.event.inputs.version }} - bundle-default
+      - name: Focal Build and Push Docker Image tag ${{ github.event.inputs.version }} - bundle-default
         uses: docker/build-push-action@v4
         with:
           context: bundle/mvn/default-bundle/
@@ -88,7 +88,7 @@ jobs:
           provenance: false
           file: Dockerfile-focal
           
-      - name: Focal: Build and Push Docker Image tag latest - bundle-default
+      - name: Focal Build and Push Docker Image tag latest - bundle-default
         if: ${{ steps.check_prerelease.outputs.isPreRelease == 'false' }}
         uses: docker/build-push-action@v4
         with:
