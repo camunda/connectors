@@ -45,7 +45,7 @@
     <version.bcprov-jdk15on>1.70</version.bcprov-jdk15on>
     <version.sendGrid>4.9.3</version.sendGrid>
 
-    <version.slack>1.29.1</version.slack>
+    <version.slack>1.29.2</version.slack>
     <version.kotlin>1.8.20</version.kotlin>
   </properties>
 
