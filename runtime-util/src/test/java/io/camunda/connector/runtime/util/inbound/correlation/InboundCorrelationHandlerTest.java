@@ -25,6 +25,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.api.inbound.InboundConnectorResult;
+import io.camunda.connector.impl.Constants;
 import io.camunda.connector.impl.inbound.correlation.MessageCorrelationPoint;
 import io.camunda.connector.impl.inbound.correlation.StartEventCorrelationPoint;
 import io.camunda.connector.impl.inbound.result.CorrelationErrorData.CorrelationErrorReason;
@@ -386,6 +387,36 @@ public class InboundCorrelationHandlerTest {
                       "testKey", "testValue"),
                   "otherKeyAlias",
                   "otherValue"));
+    }
+
+    @Test
+    void legacyVariableMappingProvided_shouldNotExtractVariables() {
+      // given
+      var point = new StartEventCorrelationPoint(0, "process1", 0);
+      // no resultVariable or resultExpression, but legacy inbound.variableMapping
+      var properties =
+          InboundConnectorPropertiesBuilder.create()
+              .correlationPoint(point)
+              .bpmnProcessId("process1")
+              .processDefinitionKey(0)
+              .version(0)
+              .property(Constants.LEGACY_VARIABLE_MAPPING_KEYWORD, "={otherKeyAlias: otherKey}")
+              .build();
+
+      Map<String, Object> variables = Map.of("otherKeyAlias", "otherValue");
+
+      var dummyCommand = spy(new CreateCommandDummy());
+      when(zeebeClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
+
+      // when
+      handler.correlate(properties, variables);
+
+      // then
+      ArgumentCaptor<Map> argumentsCaptured = ArgumentCaptor.forClass(Map.class);
+      verify(dummyCommand).variables((Map<String, String>) argumentsCaptured.capture());
+
+      assertThat(argumentsCaptured.getValue())
+          .containsExactlyInAnyOrderEntriesOf(Map.of("otherKeyAlias", "otherValue"));
     }
   }
 }
