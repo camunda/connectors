@@ -94,7 +94,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   @Override
   public <T> T getPropertiesAsType(Class<T> cls) {
-    return objectMapper.convertValue(properties.getProperties(), cls);
+    return objectMapper.convertValue(properties.getPropertiesAsObjectMap(), cls);
   }
 
   @Override
