@@ -18,6 +18,7 @@ package io.camunda.connector.impl.inbound;
 
 import static io.camunda.connector.impl.Constants.INBOUND_TYPE_KEYWORD;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
@@ -54,8 +55,27 @@ public class InboundConnectorProperties {
     return type;
   }
 
+  /**
+   * Returns raw properties as a map.
+   *
+   * <p>NB: this method returns flat properties, e.g. it can contain occurences like {"foo.bar":
+   * "value"} instead of {"foo": {"bar": "value"}}.
+   *
+   * <p>See also {@link #getPropertiesAsObjectMap()}.
+   */
   public Map<String, String> getProperties() {
     return properties;
+  }
+
+  /**
+   * Returns properties as object map.
+   *
+   * <p>Example: {"foo.bar": "value"} gets transformed into {"foo": {"bar": "value"}}
+   *
+   * <p>See also {@link #getProperties()}
+   */
+  public Map<String, Object> getPropertiesAsObjectMap() {
+    return parsePropertiesToObjectMap(properties);
   }
 
   public ProcessCorrelationPoint getCorrelationPoint() {
@@ -128,5 +148,27 @@ public class InboundConnectorProperties {
         + ", processDefinitionKey="
         + processDefinitionKey
         + '}';
+  }
+
+  // if the property has a nested property, it will be treated as a map
+  // e.g. "foo.bar = 1" will be treated as "foo": {"bar": "1"}
+  private Map<String, Object> parsePropertiesToObjectMap(Map<String, String> properties) {
+    final Map<String, Object> result = new HashMap<>();
+    properties.forEach((key, value) -> handleProperty(result, key, value));
+    return result;
+  }
+
+  @SuppressWarnings("unchecked")
+  private void handleProperty(Map<String, Object> result, String key, String value) {
+    final String[] split = key.split("\\.");
+    if (split.length == 1) {
+      result.put(key, value);
+    } else {
+      final String firstKey = split[0];
+      final String nestedKey = key.substring(firstKey.length() + 1);
+      final Map<String, Object> nestedMap =
+          (Map<String, Object>) result.computeIfAbsent(firstKey, k -> new HashMap<>());
+      nestedMap.put(nestedKey, value);
+    }
   }
 }
