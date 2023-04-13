@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.util.inbound.correlation;
 
 import static io.camunda.connector.impl.Constants.ACTIVATION_CONDITION_KEYWORD;
 import static io.camunda.connector.impl.Constants.CORRELATION_KEY_EXPRESSION_KEYWORD;
+import static io.camunda.connector.impl.Constants.LEGACY_VARIABLE_MAPPING_KEYWORD;
 
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.inbound.InboundConnectorResult;
@@ -78,8 +79,7 @@ public class InboundCorrelationHandler {
           correlationPoint.getProcessDefinitionKey(),
           new CorrelationErrorData(CorrelationErrorReason.ACTIVATION_CONDITION_NOT_MET));
     }
-    Object extractedVariables =
-        ConnectorHelper.createOutputVariables(variables, properties.getProperties());
+    Object extractedVariables = extractVariables(variables, properties);
 
     try {
       ProcessInstanceEvent result =
@@ -118,8 +118,7 @@ public class InboundCorrelationHandler {
           new CorrelationErrorData(CorrelationErrorReason.ACTIVATION_CONDITION_NOT_MET));
     }
 
-    Object extractedVariables =
-        ConnectorHelper.createOutputVariables(variables, properties.getProperties());
+    Object extractedVariables = extractVariables(variables, properties);
 
     try {
       PublishMessageResponse response =
@@ -161,5 +160,17 @@ public class InboundCorrelationHandler {
       throw new ConnectorException(
           "Failed to evaluate correlation key expression: " + correlationKeyExpression, e);
     }
+  }
+
+  private Object extractVariables(Object rawVariables, InboundConnectorProperties properties) {
+    if (properties.getProperty(LEGACY_VARIABLE_MAPPING_KEYWORD) != null) {
+      // if legacy variable mapping is used, we don't need to extract variables
+      // because they are already extracted by the webhook connector
+      LOG.debug(
+          "Legacy variable mapping is used for connector {}. Skipping variable extraction",
+          properties.getCorrelationPoint());
+      return rawVariables;
+    }
+    return ConnectorHelper.createOutputVariables(rawVariables, properties.getProperties());
   }
 }

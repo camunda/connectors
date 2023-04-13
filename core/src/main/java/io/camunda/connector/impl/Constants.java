@@ -73,4 +73,6 @@ public class Constants {
    * identifies the specific inbound Connector implementation.
    */
   public static final String INBOUND_TYPE_KEYWORD = "inbound.type";
+
+  public static final String LEGACY_VARIABLE_MAPPING_KEYWORD = "inbound.variableMapping";
 }
