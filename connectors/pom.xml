@@ -31,7 +31,6 @@
     <module>slack</module>
     <module>graphql</module>
     <module>connectors-common-library</module>
-    <module>kafka-inbound</module>
   </modules>
 
   <properties>

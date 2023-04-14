@@ -1,1 +1,1 @@
-io.camunda.connector.KafkaConnectorFunction
+io.camunda.connector.kafka.outbound.KafkaConnectorFunction

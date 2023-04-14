@@ -4,14 +4,14 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector;
+package io.camunda.connector.kafka.outbound;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.gson.Gson;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.impl.ConnectorInputException;
-import io.camunda.connector.model.KafkaConnectorRequest;
+import io.camunda.connector.kafka.outbound.model.KafkaConnectorRequest;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import java.io.File;
 import java.io.IOException;
