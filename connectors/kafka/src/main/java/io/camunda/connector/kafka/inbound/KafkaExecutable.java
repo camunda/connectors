@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.kafka.inbound;
 
-import com.google.gson.JsonParser;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonSyntaxException;
 import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
@@ -14,10 +14,12 @@ import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.InboundConnectorResult;
 import io.camunda.connector.impl.ConnectorInputException;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorRequest;
+import io.camunda.connector.kafka.supplier.GsonSupplier;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
+import org.apache.commons.text.StringEscapeUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -125,7 +127,10 @@ public class KafkaExecutable implements InboundConnectorExecutable {
     kafkaInboundMessage.setKey(consumerRecord.key());
     kafkaInboundMessage.setRawValue(consumerRecord.value());
     try {
-      kafkaInboundMessage.setValue(JsonParser.parseString(consumerRecord.value()));
+      JsonElement bodyAsJsonElement =
+          GsonSupplier.gson()
+              .fromJson(StringEscapeUtils.unescapeJson(consumerRecord.value()), JsonElement.class);
+      kafkaInboundMessage.setValue(GsonSupplier.gson().fromJson(bodyAsJsonElement, Object.class));
     } catch (JsonSyntaxException e) {
       LOG.debug("Cannot parse value to json object -> use the raw value");
       kafkaInboundMessage.setValue(kafkaInboundMessage.getRawValue());
