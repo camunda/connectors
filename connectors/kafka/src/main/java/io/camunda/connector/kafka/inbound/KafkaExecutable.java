@@ -11,6 +11,8 @@ import com.google.gson.JsonSyntaxException;
 import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import io.camunda.connector.api.inbound.InboundConnectorResult;
+import io.camunda.connector.impl.ConnectorInputException;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorRequest;
 import java.time.Duration;
 import java.util.Arrays;
@@ -31,10 +33,17 @@ public class KafkaExecutable implements InboundConnectorExecutable {
 
   private static final Logger LOG = LoggerFactory.getLogger(KafkaExecutable.class);
 
+  private KafkaConsumer<String, String> consumer;
+
   private CompletableFuture<?> future;
+
+  private InboundConnectorContext context;
+
+  private boolean shouldLoop = true;
 
   @Override
   public void activate(InboundConnectorContext connectorContext) {
+    this.context = connectorContext;
     KafkaConnectorProperties props =
         connectorContext.getPropertiesAsType(KafkaConnectorProperties.class);
     connectorContext.replaceSecrets(props);
@@ -45,26 +54,53 @@ public class KafkaExecutable implements InboundConnectorExecutable {
     this.future =
         CompletableFuture.supplyAsync(
             () -> {
-              KafkaConsumer<String, String> consumer = new KafkaConsumer<>(kafkaProps);
-              consumer.subscribe(
-                  Arrays.asList(
-                      props.getTopic().getTopicName())); // TODO : should we allow multiple topics?
-              LOG.trace("Kafka inbound connector initialized");
-              while (true) {
-                ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(500));
-                for (ConsumerRecord<String, String> record : records) {
-                  LOG.trace(
-                      "Kafka message received: key = %s, value = %s%n",
-                      record.key(), record.value());
-                  connectorContext.correlate(convertConsumerRecordToKafkaInboundMessage(record));
+              try {
+                this.consumer = new KafkaConsumer<>(kafkaProps);
+                this.consumer.subscribe(
+                    Arrays.asList(
+                        props
+                            .getTopic()
+                            .getTopicName())); // TODO : should we allow multiple topics?
+                LOG.debug("Kafka inbound connector initialized");
+                while (shouldLoop) {
+                  ConsumerRecords<String, String> records =
+                      this.consumer.poll(Duration.ofMillis(500));
+                  for (ConsumerRecord<String, String> record : records) {
+                    LOG.trace(
+                        "Kafka message received: key = %s, value = %s%n",
+                        record.key(), record.value());
+                    InboundConnectorResult<?> result =
+                        connectorContext.correlate(
+                            convertConsumerRecordToKafkaInboundMessage(record));
+                    if (result.isActivated()) {
+                      LOG.debug(
+                          "Inbound event correlated successfully: {}", result.getResponseData());
+                    } else {
+                      LOG.debug("Inbound event not correlated: {}", result.getErrorData());
+                    }
+                  }
                 }
+              } catch (ConnectorInputException e) {
+                LOG.warn("Failed to parse message body: {}", e.getMessage());
+              } catch (Exception ex) {
+                LOG.error("Failed to execute connector: {}", ex.getMessage());
               }
+              LOG.debug("Kafka inbound loop finished");
+              return null;
             });
   }
 
   @Override
   public void deactivate() {
-    this.future.cancel(true);
+    try {
+      this.shouldLoop = false;
+      if (!this.future.isDone()) {
+        this.future.get();
+      }
+      this.shouldLoop = true;
+    } catch (Exception e) {
+      LOG.error("Failed to cancel Connector execution: {}", e.getMessage());
+    }
   }
 
   private Properties getKafkaProperties(KafkaConnectorProperties props) {
