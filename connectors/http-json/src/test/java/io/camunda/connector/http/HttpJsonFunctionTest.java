@@ -52,8 +52,11 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class HttpJsonFunctionTest extends BaseTest {
 
   private static final String SUCCESS_CASES_RESOURCE_PATH =
@@ -242,6 +245,7 @@ public class HttpJsonFunctionTest extends BaseTest {
         .thenReturn(httpRequest);
     when(httpException.getStatusCode()).thenReturn(500);
     when(httpException.getMessage()).thenReturn("message");
+    when(httpException.getHeaders()).thenReturn(null);
     doThrow(httpException).when(httpRequest).execute();
     // when
     final var result = catchException(() -> functionUnderTest.execute(context));

@@ -83,7 +83,7 @@ public class HttpService {
     }
     HttpRequest httpRequest = HttpRequestMapper.toHttpRequest(requestFactory, request, bearerToken);
     HttpResponse httpResponse = httpService.executeHttpRequest(httpRequest, false);
-    return httpService.toHttpJsonResponse(httpResponse, HttpJsonResult.class);
+    return httpService.toHttpResponse(httpResponse, HttpJsonResult.class);
   }
 
   private String getTokenFromOAuthRequest(

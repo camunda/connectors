@@ -339,10 +339,10 @@
     },
     {
       "label": "Request Body",
-      "description": "JSON payload to send with the request",
+      "description": "Payload to send with the request",
       "group": "input",
       "type": "Text",
-      "feel": "required",
+      "feel": "optional",
       "binding": {
         "type": "zeebe:input",
         "name": "body"

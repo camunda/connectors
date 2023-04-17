@@ -16,9 +16,11 @@
  */
 package io.camunda.connector.http;
 
+import static org.apache.http.entity.ContentType.APPLICATION_FORM_URLENCODED;
 import static org.apache.http.entity.ContentType.APPLICATION_JSON;
 
 import com.google.api.client.http.GenericUrl;
+import com.google.api.client.http.HttpContent;
 import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
@@ -32,7 +34,9 @@ import io.camunda.connector.http.components.GsonComponentSupplier;
 import io.camunda.connector.http.model.HttpJsonRequest;
 import io.camunda.connector.impl.ConnectorInputException;
 import java.io.IOException;
+import java.util.Optional;
 import javax.validation.ValidationException;
+import org.apache.commons.text.StringEscapeUtils;
 
 public class HttpRequestMapper {
 
@@ -80,15 +84,25 @@ public class HttpRequestMapper {
     if (request.hasQueryParameters()) {
       genericUrl.putAll(request.getQueryParameters());
     }
+    if (request.hasBody() && request.getBody() instanceof String) {
+      String unescapeBody = StringEscapeUtils.unescapeJson((String) request.getBody());
+      request.setBody(unescapeBody);
+    }
+    HttpContent content;
+
+    if (APPLICATION_FORM_URLENCODED.getMimeType().equalsIgnoreCase(headers.getContentType())) {
+      content = new UrlEncodedContent(request.getBody());
+    } else {
+      content =
+          request.hasBody()
+              ? new JsonHttpContent(GsonComponentSupplier.gsonFactoryInstance(), request.getBody())
+              : null;
+    }
 
     return new HttpRequestBuilder()
         .method(request.getMethod().toUpperCase())
         .genericUrl(genericUrl)
-        .content(
-            request.hasBody()
-                ? new JsonHttpContent(
-                    GsonComponentSupplier.gsonFactoryInstance(), request.getBody())
-                : null)
+        .content(content)
         .headers(headers)
         .connectionTimeoutInSeconds(request.getConnectionTimeoutInSeconds())
         .followRedirects(false)
@@ -98,7 +112,18 @@ public class HttpRequestMapper {
   private static HttpHeaders createHeaders(final CommonRequest request, String bearerToken) {
     final HttpHeaders httpHeaders = new HttpHeaders();
     if (request.hasBody()) {
-      httpHeaders.setContentType(APPLICATION_JSON.getMimeType());
+      // set 'application/json' contentType if content type not exist in request
+      boolean isContentTypeNotSet =
+          Optional.ofNullable(request.getHeaders())
+              .map(
+                  headers ->
+                      headers.entrySet().stream()
+                          .noneMatch(header -> header.getKey().equalsIgnoreCase("content-type")))
+              .orElse(true);
+
+      if (isContentTypeNotSet) {
+        httpHeaders.setContentType(APPLICATION_JSON.getMimeType());
+      }
     }
     if (request.hasAuthentication()) {
       if (bearerToken != null && !bearerToken.isEmpty()) {
