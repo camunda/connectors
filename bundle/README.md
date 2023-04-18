@@ -4,32 +4,32 @@ The Connectors Bundle contains all out-of-the-box Connectors for Camunda 8. It's
 
 The bundle contains the following components
 
-| Component                        | Version | License                                      | 
-|----------------------------------|---------|----------------------------------------------|
-| [Connector Runtime]              | 0.8.1   | [Apache 2.0]                                 |
-| [Asana Connector]                | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
-| [Automation Anywhere Connector]  | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
-| [Amazon SNS Connector]           | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
-| [Amazon SQS Connector]           | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
-| [AWS Lambda Connector]           | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
-| [Camunda Operate Connector]      | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
-| [Easy Post Connector]            | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
-| [GitHub Connector]               | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
-| [GitHub Webhook Connector]       | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
-| [GitLab Connector]               | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
-| [Google Drive Connector]         | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
-| [Google Maps Platform Connector] | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
-| [GraphQL Connector]              | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
-| [HTTP Webhook Connector]         | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
-| [Kafka Producer Connector]       | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
-| [Microsoft Teams Connector]      | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
-| [OpenAI Connector]               | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
-| [Power Automate Connector]       | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
-| [RabbitMQ Connector]             | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
-| [REST Connector]                 | 0.18.2  | [Apache 2.0]                                 |
-| [SendGrid Connector]             | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
-| [Slack Connector]                | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
-| [UiPath Connector]               | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
+| Component                      | Version | License                                      | 
+|--------------------------------|---------|----------------------------------------------|
+| [Connector Runtime]            | 0.8.1   | [Apache 2.0]                                 |
+| Asana Connector                | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
+| Automation Anywhere Connector  | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
+| Amazon SNS Connector           | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
+| Amazon SQS Connector           | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
+| AWS Lambda Connector           | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
+| Camunda Operate Connector      | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
+| Easy Post Connector            | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
+| GitHub Connector               | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
+| GitHub Webhook Connector       | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
+| GitLab Connector               | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
+| Google Drive Connector         | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
+| Google Maps Platform Connector | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
+| GraphQL Connector              | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
+| HTTP Webhook Connector         | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
+| Kafka Producer Connector       | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
+| Microsoft Teams Connector      | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
+| OpenAI Connector               | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
+| Power Automate Connector       | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
+| RabbitMQ Connector             | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
+| REST Connector                 | 0.18.2  | [Apache 2.0]                                 |
+| SendGrid Connector             | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
+| Slack Connector                | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
+| UiPath Connector               | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
 
 **Note:** 
 - This list only includes Camunda 8 out-of-the-box Connectors that have their own implementation.
