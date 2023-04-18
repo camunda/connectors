@@ -7,6 +7,7 @@
 package io.camunda.connector.aws.dynamodb.operation.item;
 
 import com.amazonaws.services.dynamodbv2.document.DynamoDB;
+import com.amazonaws.services.dynamodbv2.document.Item;
 import com.amazonaws.services.dynamodbv2.document.PrimaryKey;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
@@ -27,7 +28,10 @@ public class GetItemOperation implements AwsDynamoDbOperation {
 
   @Override
   public Object invoke(final DynamoDB dynamoDB) {
-    return dynamoDB.getTable(getItemModel.getTableName()).getItem(createPrimaryKey()).attributes();
+    return Optional.ofNullable(
+            dynamoDB.getTable(getItemModel.getTableName()).getItem(createPrimaryKey()))
+        .map(Item::attributes)
+        .orElse(null);
   }
 
   private PrimaryKey createPrimaryKey() {
