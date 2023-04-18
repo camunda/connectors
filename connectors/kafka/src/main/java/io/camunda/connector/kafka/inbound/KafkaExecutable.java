@@ -35,13 +35,15 @@ public class KafkaExecutable implements InboundConnectorExecutable {
 
   private static final Logger LOG = LoggerFactory.getLogger(KafkaExecutable.class);
 
-  private KafkaConsumer<String, String> consumer;
+  static final String DEFAULT_GROUP_ID = "kafka-inbound-connector";
 
-  private CompletableFuture<?> future;
+  KafkaConsumer<String, String> consumer;
+
+  CompletableFuture<?> future;
 
   private InboundConnectorContext context;
 
-  private boolean shouldLoop = true;
+  boolean shouldLoop = true;
 
   @Override
   public void activate(InboundConnectorContext connectorContext) {
@@ -58,11 +60,16 @@ public class KafkaExecutable implements InboundConnectorExecutable {
             () -> {
               try {
                 this.consumer = new KafkaConsumer<>(kafkaProps);
-                this.consumer.subscribe(
-                    Arrays.asList(
-                        props
-                            .getTopic()
-                            .getTopicName())); // TODO : should we allow multiple topics?
+                //                // Set partition
+                //                TopicPartition partitionToReadFrom = new
+                // TopicPartition(props.getTopic().getTopicName(), 0);
+                //                this.consumer.assign(Arrays.asList(partitionToReadFrom));
+                //                //
+                //                // Set offset
+                //                long offsetToReadFrom = 7L;
+                //                consumer.seek(partitionToReadFrom, offsetToReadFrom);
+                //                //
+                this.consumer.subscribe(Arrays.asList(props.getTopic().getTopicName()));
                 LOG.debug("Kafka inbound connector initialized");
                 while (shouldLoop) {
                   ConsumerRecords<String, String> records =
@@ -74,6 +81,7 @@ public class KafkaExecutable implements InboundConnectorExecutable {
                     InboundConnectorResult<?> result =
                         connectorContext.correlate(
                             convertConsumerRecordToKafkaInboundMessage(record));
+                    this.consumer.commitSync();
                     if (result.isActivated()) {
                       LOG.debug(
                           "Inbound event correlated successfully: {}", result.getResponseData());
@@ -113,9 +121,9 @@ public class KafkaExecutable implements InboundConnectorExecutable {
     final Properties kafkaProps = connectorRequest.assembleKafkaClientProperties();
     if (kafkaProps.getProperty(ConsumerConfig.GROUP_ID_CONFIG) == null) {
       kafkaProps.put(
-          ConsumerConfig.GROUP_ID_CONFIG,
-          "kafka-inbound-connector"); // GROUP_ID_CONFIG is mandatory
+          ConsumerConfig.GROUP_ID_CONFIG, DEFAULT_GROUP_ID); // GROUP_ID_CONFIG is mandatory
     }
+    kafkaProps.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
     kafkaProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, DEFAULT_KEY_DESERIALIZER);
     kafkaProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, DEFAULT_KEY_DESERIALIZER);
     return kafkaProps;
