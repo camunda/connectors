@@ -26,6 +26,10 @@
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-aws</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
       <artifactId>connector-aws-lambda</artifactId>
     </dependency>
     <dependency>
