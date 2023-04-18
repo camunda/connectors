@@ -25,6 +25,8 @@ import com.google.gson.Gson;
 import io.camunda.connector.common.constants.Constants;
 import io.camunda.connector.common.model.CommonRequest;
 import io.camunda.connector.common.model.HttpRequestBuilder;
+import org.apache.http.protocol.HttpService;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
@@ -54,6 +56,7 @@ public final class HTTPProxyService {
             .content(content)
             .connectionTimeoutInSeconds(request.getConnectionTimeoutInSeconds())
             .followRedirects(false)
+            .headers(HTTPService.extractRequestHeaders(request))
             .build(requestFactory);
 
     ProxyOAuthHelper.addOauthHeaders(

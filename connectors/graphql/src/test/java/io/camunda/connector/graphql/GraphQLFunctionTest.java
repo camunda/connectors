@@ -11,6 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchException;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -27,6 +28,7 @@ import com.google.api.client.http.HttpResponse;
 import com.google.api.client.http.HttpResponseException;
 import com.google.gson.JsonObject;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.common.services.HTTPService;
 import io.camunda.connector.graphql.model.GraphQLRequest;
 import io.camunda.connector.graphql.model.GraphQLResult;
 import io.camunda.connector.impl.ConnectorInputException;
@@ -196,6 +198,36 @@ public class GraphQLFunctionTest extends BaseTest {
         .hasMessage("message")
         .extracting("errorCode")
         .isEqualTo("500");
+  }
+
+  @ParameterizedTest(name = "Executing test case: {0}")
+  @MethodSource("successCases")
+  void execute_shouldContainCustomHeaders(final String input)
+          throws IOException, InstantiationException, IllegalAccessException {
+    // given - minimal required entity
+    final var context =
+            OutboundConnectorContextBuilder.create().variables(input).secrets(name -> "foo").build();
+    HttpHeaders headers = HTTPService.extractRequestHeaders(
+            gson.fromJson(
+                    gson.fromJson(input, JsonObject.class).get("graphql").toString(),
+                    GraphQLRequest.class));
+
+    when(requestFactory.buildRequest(
+            anyString(), any(GenericUrl.class), nullable(HttpContent.class)))
+            .thenReturn(httpRequest);
+    when(httpResponse.getHeaders())
+            .thenReturn(new HttpHeaders().setContentType(APPLICATION_JSON.getMimeType()));
+    when(httpRequest.execute()).thenReturn(httpResponse);
+    // when
+    functionUnderTest.execute(context);
+    // then
+    verify(httpRequest).setHeaders(
+            argThat(httpHeaders ->
+                    headers.entrySet()
+                            .stream()
+                            .allMatch(
+                                    entry -> httpHeaders.containsKey(entry.getKey()) &&
+                                            httpHeaders.containsValue(entry.getValue()))));
   }
 
   private static Stream<String> successCases() throws IOException {

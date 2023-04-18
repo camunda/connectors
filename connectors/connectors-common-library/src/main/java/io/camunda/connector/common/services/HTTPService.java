@@ -22,6 +22,7 @@ import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpResponse;
 import com.google.api.client.http.HttpResponseException;
+import com.google.common.collect.Collections2;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParseException;
@@ -36,6 +37,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -63,7 +65,18 @@ public class HTTPService {
       }
       request.getAuthentication().setHeaders(httpHeaders);
     }
+    httpHeaders.putAll(extractRequestHeaders(request));
     return httpHeaders;
+  }
+
+  public static HttpHeaders extractRequestHeaders(final CommonRequest commonRequest) {
+    if (commonRequest.hasHeaders()) {
+      final HttpHeaders httpHeaders = new HttpHeaders();
+      commonRequest.getHeaders().forEach(httpHeaders::set);
+      return httpHeaders;
+    }
+
+    return new HttpHeaders();
   }
 
   public HttpResponse executeHttpRequest(HttpRequest externalRequest) throws IOException {
