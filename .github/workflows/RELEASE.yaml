@@ -136,7 +136,7 @@ jobs:
           username: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
           password: ${{ steps.secrets.outputs.DOCKERHUB_PASSWORD }}
 
-    # Build & push bundle docker images (with version tag)
+      # Build & push bundle docker images (with version tag)
 
       - name: Build and Push Docker Image tag ${{ github.event.inputs.version }} - bundle-default
         uses: docker/build-push-action@v4
@@ -146,6 +146,16 @@ jobs:
           tags: camunda/connectors-bundle:${{ github.event.inputs.version }}
           platforms: linux/amd64,linux/arm64
           provenance: false
+          
+      - name: Build and Push Docker Image tag ${{ github.event.inputs.version }}-focal - bundle-default
+        uses: docker/build-push-action@v4
+        with:
+          context: bundle/mvn/default-bundle/
+          push: ${{ github.ref == 'refs/heads/main' }}
+          tags: camunda/connectors-bundle:${{ github.event.inputs.version }}-focal
+          platforms: linux/amd64,linux/arm64
+          provenance: false
+          file: bundle/mvn/default-bundle/Dockerfile-focal
 
       - name: Build and Push Docker Image tag ${{ github.event.inputs.version }} - bundle-saas
         uses: docker/build-push-action@v4
@@ -156,7 +166,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           provenance: false
 
-    # Build & push bundle docker images (with 'latest' tag)
+      # Build & push bundle docker images (with 'latest' tag)
 
       - name: Build and Push Docker Image tag latest - bundle-default
         if: ${{ steps.check_prerelease.outputs.isPreRelease == 'false' }}
@@ -178,7 +188,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           provenance: false
 
-    # Update README in Dockerhub
+      # Update README in Dockerhub
 
       - name: Push README to Dockerhub - bundle-default
         if: ${{ steps.check_prerelease.outputs.isPreRelease == 'false' }}
