@@ -20,6 +20,7 @@
   <modules>
     <module>sns</module>
     <module>sqs</module>
+    <module>aws</module>
     <module>aws-lambda</module>
     <module>google-drive</module>
     <module>rabbitmq</module>
