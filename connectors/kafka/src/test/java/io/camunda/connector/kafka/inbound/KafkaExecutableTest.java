@@ -43,6 +43,7 @@ public class KafkaExecutableTest {
   public void testActivate() throws Exception {
     String topic = "my-topic";
     KafkaConnectorProperties props = new KafkaConnectorProperties();
+    props.setAutoOffsetReset("earliest");
     KafkaTopic kafkaTopic = new KafkaTopic();
     kafkaTopic.setBootstrapServers("localhost:9092");
     kafkaTopic.setTopicName(topic);

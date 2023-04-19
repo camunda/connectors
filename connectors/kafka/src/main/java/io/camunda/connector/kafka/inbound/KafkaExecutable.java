@@ -18,12 +18,14 @@ import io.camunda.connector.kafka.supplier.GsonSupplier;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,16 +62,18 @@ public class KafkaExecutable implements InboundConnectorExecutable {
             () -> {
               try {
                 this.consumer = new KafkaConsumer<>(kafkaProps);
-                //                // Set partition
-                //                TopicPartition partitionToReadFrom = new
-                // TopicPartition(props.getTopic().getTopicName(), 0);
-                //                this.consumer.assign(Arrays.asList(partitionToReadFrom));
-                //                //
-                //                // Set offset
-                //                long offsetToReadFrom = 7L;
-                //                consumer.seek(partitionToReadFrom, offsetToReadFrom);
-                //                //
-                this.consumer.subscribe(Arrays.asList(props.getTopic().getTopicName()));
+                this.consumer.subscribe(
+                    Arrays.asList(
+                        props
+                            .getTopic()
+                            .getTopicName())); // Subscribe to the given list of topics to get
+                // dynamically assigned partitions.
+
+                if (props.getOffset() != null) {
+                  Set<TopicPartition> partitions = consumer.assignment();
+                  partitions.forEach(partition -> consumer.seek(partition, props.getOffset()));
+                }
+
                 LOG.debug("Kafka inbound connector initialized");
                 while (shouldLoop) {
                   ConsumerRecords<String, String> records =
@@ -123,6 +127,7 @@ public class KafkaExecutable implements InboundConnectorExecutable {
       kafkaProps.put(
           ConsumerConfig.GROUP_ID_CONFIG, DEFAULT_GROUP_ID); // GROUP_ID_CONFIG is mandatory
     }
+    kafkaProps.put(ConsumerConfig.AUTO_OFFSET_RESET_DOC, props.getAutoOffsetReset());
     kafkaProps.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
     kafkaProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, DEFAULT_KEY_DESERIALIZER);
     kafkaProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, DEFAULT_KEY_DESERIALIZER);

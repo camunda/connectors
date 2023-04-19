@@ -15,6 +15,9 @@ import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
 public class KafkaConnectorProperties {
+
+  @NotNull private String authenticationType;
+
   @Valid @Secret private KafkaAuthentication authentication;
 
   @Valid @NotNull @Secret private KafkaTopic topic;
@@ -22,6 +25,34 @@ public class KafkaConnectorProperties {
   private Map<String, Object> additionalProperties = new HashMap<>();
 
   @Secret private String activationCondition;
+
+  private Long offset;
+
+  @NotNull private String autoOffsetReset;
+
+  public String getAuthenticationType() {
+    return authenticationType;
+  }
+
+  public void setAuthenticationType(String authenticationType) {
+    this.authenticationType = authenticationType;
+  }
+
+  public String getAutoOffsetReset() {
+    return autoOffsetReset;
+  }
+
+  public Long getOffset() {
+    return offset;
+  }
+
+  public void setOffset(Long offset) {
+    this.offset = offset;
+  }
+
+  public void setAutoOffsetReset(String autoOffsetReset) {
+    this.autoOffsetReset = autoOffsetReset;
+  }
 
   public String getActivationCondition() {
     return activationCondition;
@@ -58,7 +89,10 @@ public class KafkaConnectorProperties {
   @Override
   public String toString() {
     return "KafkaConnectorProperties{"
-        + "authentication="
+        + "authenticationType='"
+        + authenticationType
+        + '\''
+        + ", authentication="
         + authentication
         + ", topic="
         + topic
@@ -66,6 +100,11 @@ public class KafkaConnectorProperties {
         + additionalProperties
         + ", activationCondition='"
         + activationCondition
+        + '\''
+        + ", offset="
+        + offset
+        + ", autoOffsetReset='"
+        + autoOffsetReset
         + '\''
         + '}';
   }

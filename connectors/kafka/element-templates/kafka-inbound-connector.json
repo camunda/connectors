@@ -43,14 +43,41 @@
       }
     },
     {
+      "label": "Authentication type",
+      "description": "Username/password or custom.",
+      "id": "authenticationType",
+      "group": "authentication",
+      "type": "Dropdown",
+      "value": "credentials",
+      "choices": [
+        {
+          "name": "Credentials",
+          "value": "credentials"
+        },
+        {
+          "name": "Custom",
+          "value": "custom"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:property",
+        "name": "authenticationType"
+      }
+    },
+    {
       "label": "Username",
       "description": "Provide the username (must have permissions to produce message to the topic)",
       "group": "authentication",
       "type": "String",
+      "feel":"optional",
       "optional": true,
       "binding": {
         "type": "zeebe:property",
         "name": "authentication.username"
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "credentials"
       }
     },
     {
@@ -58,10 +85,15 @@
       "description": "Provide a password for the user",
       "group": "authentication",
       "type": "String",
+      "feel":"optional",
       "optional": true,
       "binding": {
         "type": "zeebe:property",
         "name": "authentication.password"
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "credentials"
       }
     },
     {
@@ -102,6 +134,43 @@
       "binding": {
         "type": "zeebe:property",
         "name": "additionalProperties"
+      }
+    },
+    {
+      "label": "Offset",
+      "description": "Partition offset",
+      "group": "kafka",
+      "type": "String",
+      "feel":"optional",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "topic.offset"
+      }
+    },
+    {
+      "label": "Auto offset reset",
+      "description": "What to do when there is no initial offset in Kafka or if the current offset does not exist any more on the server",
+      "id": "autoOffsetReset",
+      "group": "kafka",
+      "type": "Dropdown",
+      "value": "earliest",
+      "choices": [
+        {
+          "name": "Earliest",
+          "value": "earliest"
+        },
+        {
+          "name": "Latest",
+          "value": "latest"
+        },
+        {
+          "name": "none",
+          "value": "none"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:property",
+        "name": "autoOffsetReset"
       }
     },
     {
