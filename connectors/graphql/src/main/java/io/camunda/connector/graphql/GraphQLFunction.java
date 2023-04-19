@@ -110,7 +110,7 @@ public class GraphQLFunction implements OutboundConnectorFunction {
 
     final HttpRequest httpRequest = createRequest(httpService, connectorRequest, bearerToken);
     HttpResponse httpResponse = httpService.executeHttpRequest(httpRequest);
-    return httpService.toHttpJsonResponse(httpResponse, GraphQLResult.class);
+    return httpService.toHttpResponse(httpResponse, GraphQLResult.class);
   }
 
   private CommonResult executeGraphQLConnectorViaProxy(GraphQLRequest request) throws IOException {

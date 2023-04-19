@@ -23,6 +23,10 @@ import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpResponse;
 import com.google.api.client.http.HttpResponseException;
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonParser;
+import com.google.gson.stream.JsonReader;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.common.constants.Constants;
 import io.camunda.connector.common.model.CommonRequest;
@@ -30,8 +34,8 @@ import io.camunda.connector.common.model.CommonResult;
 import io.camunda.connector.common.model.ErrorResponse;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
+import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -87,7 +91,7 @@ public class HTTPService {
     }
   }
 
-  public <T extends CommonResult> T toHttpJsonResponse(
+  public <T extends CommonResult> T toHttpResponse(
       final HttpResponse externalResponse, final Class<T> resultClass)
       throws InstantiationException, IllegalAccessException {
     T connectorResult = resultClass.newInstance();
@@ -104,15 +108,32 @@ public class HTTPService {
               }
             });
     connectorResult.setHeaders(headers);
-    try (InputStream content = externalResponse.getContent();
-        Reader reader = new InputStreamReader(content)) {
-      final Object body = gson.fromJson(reader, Object.class);
-      if (body != null) {
-        connectorResult.setBody(body);
+    try (InputStream content = externalResponse.getContent()) {
+      String bodyString = null;
+      if (content != null) {
+        bodyString = new String(content.readAllBytes(), StandardCharsets.UTF_8);
+      }
+
+      if (bodyString != null) {
+        if (isJSONValid(bodyString)) {
+          Object body = gson.fromJson(bodyString, Object.class);
+          connectorResult.setBody(body);
+        } else {
+          connectorResult.setBody(bodyString);
+        }
       }
     } catch (final Exception e) {
       LOGGER.error("Failed to parse external response: {}", externalResponse, e);
     }
     return connectorResult;
+  }
+
+  protected static boolean isJSONValid(String jsonInString) {
+    try (JsonReader reader = new JsonReader(new StringReader(jsonInString))) {
+      final JsonElement jsonElement = JsonParser.parseReader(reader);
+      return jsonElement.isJsonObject() || jsonElement.isJsonArray();
+    } catch (JsonParseException | IOException e) {
+      return false;
+    }
   }
 }
