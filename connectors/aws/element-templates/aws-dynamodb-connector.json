@@ -53,7 +53,7 @@
       "value": "dynamoDb",
       "binding": {
         "type": "zeebe:input",
-        "name": "type"
+        "name": "service.type"
       },
       "constraints": {
         "notEmpty": true
@@ -635,8 +635,6 @@
       "condition": {
         "property": "itemOperationType",
         "oneOf": [
-          "deleteItem",
-          "getItem",
           "updateItem"
         ]
       }
