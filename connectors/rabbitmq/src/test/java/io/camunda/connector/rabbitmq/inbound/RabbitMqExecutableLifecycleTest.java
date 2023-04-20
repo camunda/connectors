@@ -1,3 +1,9 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
+ */
 package io.camunda.connector.rabbitmq.inbound;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -35,7 +41,11 @@ public class RabbitMqExecutableLifecycleTest extends InboundBaseTest {
 
   @BeforeEach
   void init()
-      throws URISyntaxException, NoSuchAlgorithmException, KeyManagementException, IOException, TimeoutException {
+      throws URISyntaxException,
+          NoSuchAlgorithmException,
+          KeyManagementException,
+          IOException,
+          TimeoutException {
     channel = mock(Channel.class);
     connectionFactorySupplier = mock(ConnectionFactorySupplier.class);
     ConnectionFactory connectionFactoryMock = mock(ConnectionFactory.class);
@@ -59,9 +69,7 @@ public class RabbitMqExecutableLifecycleTest extends InboundBaseTest {
   void executable_shouldHandleActivation() throws Exception {
     // Given
 
-    InboundConnectorContext context = getContextBuilderWithSecrets()
-        .properties(properties)
-        .build();
+    InboundConnectorContext context = getContextBuilderWithSecrets().properties(properties).build();
 
     var spyContext = spy(context);
     RabbitMqExecutable executable = new RabbitMqExecutable(connectionFactorySupplier);
@@ -74,22 +82,21 @@ public class RabbitMqExecutableLifecycleTest extends InboundBaseTest {
     verify(spyContext).validate(context.getPropertiesAsType(RabbitMqInboundProperties.class));
     verify(spyContext).replaceSecrets(context.getPropertiesAsType(RabbitMqInboundProperties.class));
 
-    verify(channel).basicConsume(
-        eq(properties.getQueueName()),
-        eq(false),
-        eq(properties.getConsumerTag()),
-        eq(false),
-        eq(properties.isExclusive()),
-        eq(properties.getArguments()),
-        any());
+    verify(channel)
+        .basicConsume(
+            eq(properties.getQueueName()),
+            eq(false),
+            eq(properties.getConsumerTag()),
+            eq(false),
+            eq(properties.isExclusive()),
+            eq(properties.getArguments()),
+            any());
   }
 
   @Test
   void executable_shouldHandleDeactivation() throws Exception {
     // Given
-    InboundConnectorContext context = getContextBuilderWithSecrets()
-        .properties(properties)
-        .build();
+    InboundConnectorContext context = getContextBuilderWithSecrets().properties(properties).build();
     RabbitMqExecutable executable = new RabbitMqExecutable(connectionFactorySupplier);
 
     // When

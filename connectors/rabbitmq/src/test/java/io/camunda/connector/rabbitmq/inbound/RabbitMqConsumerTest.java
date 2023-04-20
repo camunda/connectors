@@ -42,9 +42,8 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
   @BeforeEach
   void initConsumer() {
     mockChannel = mock(Channel.class);
-    InboundConnectorContext ctx = getContextBuilderWithSecrets()
-        .result(new MessageCorrelationResult("", 0))
-        .build();
+    InboundConnectorContext ctx =
+        getContextBuilderWithSecrets().result(new MessageCorrelationResult("", 0)).build();
     spyContext = spy(ctx);
 
     consumer = new RabbitMqConsumer(mockChannel, spyContext);
@@ -190,8 +189,8 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
   @Test
   void consumer_shouldNackAndNoRequeue_ConnectorInputException() throws IOException {
     // Given that correlation error is wrapped into ConnectorInputException
-    when(spyContext.correlate(any())).thenThrow(
-        new ConnectorInputException(new RuntimeException("Payload is invalid")));
+    when(spyContext.correlate(any()))
+        .thenThrow(new ConnectorInputException(new RuntimeException("Payload is invalid")));
 
     ArgumentCaptor<RabbitMqInboundResult> captor =
         ArgumentCaptor.forClass(RabbitMqInboundResult.class);
