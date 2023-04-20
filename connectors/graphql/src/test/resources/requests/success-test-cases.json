@@ -84,5 +84,24 @@
         "id": "cGVvcGxlOjI="
       }
     }
+  },
+  {
+    "descriptionOfTest": "Normal request with custom headers",
+    "authentication": {
+      "type": "noAuth"
+    },
+    "graphql": {
+      "method": "get",
+      "url": "https://camunda.io/http-endpoint",
+      "connectionTimeoutInSeconds": "50",
+      "query": "query Root($id: ID) {\n  person (id: $id) {\n    id\n    name\n  }\n}",
+      "variables": {
+        "id": "cGVvcGxlOjI="
+      },
+      "headers": {
+        "custom-header-1": "custom-header-value-1",
+        "custom-header-2": "custom-header-value-2"
+      }
+    }
   }
 ]
