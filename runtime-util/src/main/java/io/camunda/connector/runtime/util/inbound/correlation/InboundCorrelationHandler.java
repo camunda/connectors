@@ -22,6 +22,7 @@ import static io.camunda.connector.impl.Constants.LEGACY_VARIABLE_MAPPING_KEYWOR
 
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.inbound.InboundConnectorResult;
+import io.camunda.connector.impl.ConnectorInputException;
 import io.camunda.connector.impl.inbound.InboundConnectorProperties;
 import io.camunda.connector.impl.inbound.ProcessCorrelationPoint;
 import io.camunda.connector.impl.inbound.correlation.MessageCorrelationPoint;
@@ -34,6 +35,7 @@ import io.camunda.connector.impl.inbound.result.ProcessInstance;
 import io.camunda.connector.impl.inbound.result.StartEventCorrelationResult;
 import io.camunda.connector.runtime.util.ConnectorHelper;
 import io.camunda.connector.runtime.util.feel.FeelEngineWrapper;
+import io.camunda.connector.runtime.util.feel.FeelEngineWrapperException;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.client.api.response.ProcessInstanceEvent;
 import io.camunda.zeebe.client.api.response.PublishMessageResponse;
@@ -147,8 +149,12 @@ public class InboundCorrelationHandler {
       LOG.debug("No activation condition specified for {}", properties.getCorrelationPoint());
       return true;
     }
-    Object shouldActivate = feelEngine.evaluate(activationCondition, context);
-    return Boolean.TRUE.equals(shouldActivate);
+    try {
+      Object shouldActivate = feelEngine.evaluate(activationCondition, context);
+      return Boolean.TRUE.equals(shouldActivate);
+    } catch (FeelEngineWrapperException e) {
+      throw new ConnectorInputException(e);
+    }
   }
 
   private String extractCorrelationKey(InboundConnectorProperties properties, Object context) {
@@ -157,8 +163,7 @@ public class InboundCorrelationHandler {
     try {
       return feelEngine.evaluate(correlationKeyExpression, context);
     } catch (Exception e) {
-      throw new ConnectorException(
-          "Failed to evaluate correlation key expression: " + correlationKeyExpression, e);
+      throw new ConnectorInputException(e);
     }
   }
 

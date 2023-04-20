@@ -110,7 +110,7 @@ public class InboundConnectorContextBuilder {
    * @param obj - properties as object
    * @return builder for fluent API
    */
-  public InboundConnectorContextBuilder propertiesAsType(Object obj) {
+  public InboundConnectorContextBuilder properties(Object obj) {
     assertNoProperties();
     this.propertiesAsType = obj;
     return this;
@@ -123,7 +123,7 @@ public class InboundConnectorContextBuilder {
    * @param result - correlation result
    * @return builder for fluent API
    */
-  public InboundConnectorContextBuilder correlationHandler(InboundConnectorResult<?> result) {
+  public InboundConnectorContextBuilder result(InboundConnectorResult<?> result) {
     this.result = result;
     return this;
   }
@@ -170,6 +170,9 @@ public class InboundConnectorContextBuilder {
 
     @Override
     public InboundConnectorResult<?> correlate(Object variables) {
+      if (result == null) {
+        throw new IllegalStateException("Mock result not provided during test context creation");
+      }
       return result;
     }
 
