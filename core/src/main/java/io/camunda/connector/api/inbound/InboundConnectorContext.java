@@ -53,6 +53,10 @@ public interface InboundConnectorContext {
    * @param variables - an object containing inbound connector variables
    * @return either {@link MessageCorrelationResult} or {@link StartEventCorrelationResult},
    *     depending on the type of the underlying {@link ProcessCorrelationPoint}.
+   * @throws io.camunda.connector.impl.ConnectorInputException if the correlation fails due to
+   *     invalid input. In this case, correlation should not be retried.
+   * @throws io.camunda.connector.api.error.ConnectorException if the correlation fails due to
+   *     unexpected runtime error. Such errors may be temporary and can be retried.
    */
   InboundConnectorResult<?> correlate(Object variables);
 

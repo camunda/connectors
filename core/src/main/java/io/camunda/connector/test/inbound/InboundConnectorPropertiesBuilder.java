@@ -111,6 +111,17 @@ public class InboundConnectorPropertiesBuilder {
     return this;
   }
 
+  public InboundConnectorPropertiesBuilder properties(Map<String, String> newProperties) {
+    if (newProperties == null) {
+      throw new IllegalArgumentException("Properties must not be null");
+    }
+    if (properties.keySet().stream().anyMatch(newProperties::containsKey)) {
+      throw new IllegalArgumentException("Property already set");
+    }
+    properties.putAll(newProperties);
+    return this;
+  }
+
   public InboundConnectorProperties build() {
     if (!properties.containsKey(INBOUND_TYPE_KEYWORD)) {
       properties.put(INBOUND_TYPE_KEYWORD, "io.camunda:test-inbound-connector:1");
