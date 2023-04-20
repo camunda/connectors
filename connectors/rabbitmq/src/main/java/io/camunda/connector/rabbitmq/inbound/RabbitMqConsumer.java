@@ -21,7 +21,6 @@ import io.camunda.connector.rabbitmq.inbound.model.RabbitMqInboundResult.RabbitM
 import io.camunda.connector.rabbitmq.supplier.GsonSupplier;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
 import org.apache.commons.text.StringEscapeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -95,7 +94,14 @@ public class RabbitMqConsumer extends DefaultConsumer {
 
       Object bodyAsObject;
       if (bodyAsJsonElement instanceof JsonPrimitive) {
-        bodyAsObject = Map.of("payload", bodyAsString);
+        JsonPrimitive bodyAsPrimitive = (JsonPrimitive) bodyAsJsonElement;
+        if (bodyAsPrimitive.isBoolean()) {
+          bodyAsObject = bodyAsPrimitive.getAsBoolean();
+        } else if (bodyAsPrimitive.isNumber()) {
+          bodyAsObject = bodyAsPrimitive.getAsNumber();
+        } else {
+          bodyAsObject = bodyAsPrimitive.getAsString();
+        }
       } else {
         bodyAsObject = GsonSupplier.gson().fromJson(bodyAsJsonElement, Object.class);
       }
