@@ -52,11 +52,19 @@ public abstract class BaseTest {
         }
       }
     }
+
+    String QUEUE_NAME = "testQueueName";
+    String CONSUMER_TAG = "testConsumerTag";
+    String QUEUE_TYPE = "quorum";
   }
 
   protected interface SecretsConstant {
 
     String SECRETS = "secrets.";
+
+    String QUEUE_NAME = "QUEUE_NAME";
+    String CONSUMER_TAG = "CONSUMER_TAG";
+    String QUEUE_TYPE = "QUEUE_TYPE";
 
     interface Authentication {
       String USERNAME = "USERNAME_KEY";

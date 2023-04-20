@@ -14,22 +14,22 @@ import java.util.stream.Stream;
 public class OutboundBaseTest extends BaseTest {
 
   private static final String FAIL_REQUEST_VALIDATE_REQUIRED_FIELD_CASES_PATH =
-      "src/test/resources/requests/fail-test-cases-validation-required-fields.json";
+      "src/test/resources/requests/outbound/fail-test-cases-validation-required-fields.json";
 
   private static final String FAIL_REQUEST_WITH_WRONG_PROPERTIES_FIELDS_CASES_PATH =
-      "src/test/resources/requests/fail-test-cases-bad-message-properties.json";
+      "src/test/resources/requests/outbound/fail-test-cases-bad-message-properties.json";
 
   private static final String FAIL_PROPERTIES_FIELDS_VALIDATION_TEST_CASES_PATH =
-      "src/test/resources/requests/fail-test-cases-properties-object-validation.json";
+      "src/test/resources/requests/outbound/fail-test-cases-properties-object-validation.json";
 
   private static final String SUCCESS_REQUEST_EXECUTE_CASES_PATH =
-      "src/test/resources/requests/success-test-cases-execute-function.json";
+      "src/test/resources/requests/outbound/success-test-cases-execute-function.json";
 
   private static final String SUCCESS_REQUEST_WITH_PLAIN_TEXT_EXECUTE_CASES_PATH =
-      "src/test/resources/requests/success-test-cases-with-plain-text-execute-function.json";
+      "src/test/resources/requests/outbound/success-test-cases-with-plain-text-execute-function.json";
 
   private static final String SUCCESS_REPLACE_SECRETS_TEST_CASES_PATH =
-      "src/test/resources/requests/success-test-cases-replace-secrets.json";
+      "src/test/resources/requests/outbound/success-test-cases-replace-secrets.json";
 
   public static OutboundConnectorContextBuilder getContextBuilderWithSecrets() {
     return OutboundConnectorContextBuilder.create()

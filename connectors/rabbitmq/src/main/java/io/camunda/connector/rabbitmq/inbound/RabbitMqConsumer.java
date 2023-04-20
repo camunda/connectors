@@ -47,7 +47,7 @@ public class RabbitMqConsumer extends DefaultConsumer {
       RabbitMqInboundResult variables = prepareVariables(consumerTag, envelope, properties, body);
       InboundConnectorResult<?> result = context.correlate(variables);
 
-      if (result.isActivated()) {
+      if (result != null && result.isActivated()) {
         LOGGER.debug("ACK - inbound event correlated successfully: {}", result.getResponseData());
         getChannel().basicAck(envelope.getDeliveryTag(), false);
       } else {
