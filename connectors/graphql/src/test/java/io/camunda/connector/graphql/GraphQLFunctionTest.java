@@ -203,31 +203,34 @@ public class GraphQLFunctionTest extends BaseTest {
   @ParameterizedTest(name = "Executing test case: {0}")
   @MethodSource("successCases")
   void execute_shouldContainCustomHeaders(final String input)
-          throws IOException, InstantiationException, IllegalAccessException {
+      throws IOException, InstantiationException, IllegalAccessException {
     // given - minimal required entity
     final var context =
-            OutboundConnectorContextBuilder.create().variables(input).secrets(name -> "foo").build();
-    HttpHeaders headers = HTTPService.extractRequestHeaders(
+        OutboundConnectorContextBuilder.create().variables(input).secrets(name -> "foo").build();
+    HttpHeaders headers =
+        HTTPService.extractRequestHeaders(
             gson.fromJson(
-                    gson.fromJson(input, JsonObject.class).get("graphql").toString(),
-                    GraphQLRequest.class));
+                gson.fromJson(input, JsonObject.class).get("graphql").toString(),
+                GraphQLRequest.class));
 
     when(requestFactory.buildRequest(
             anyString(), any(GenericUrl.class), nullable(HttpContent.class)))
-            .thenReturn(httpRequest);
+        .thenReturn(httpRequest);
     when(httpResponse.getHeaders())
-            .thenReturn(new HttpHeaders().setContentType(APPLICATION_JSON.getMimeType()));
+        .thenReturn(new HttpHeaders().setContentType(APPLICATION_JSON.getMimeType()));
     when(httpRequest.execute()).thenReturn(httpResponse);
     // when
     functionUnderTest.execute(context);
     // then
-    verify(httpRequest).setHeaders(
-            argThat(httpHeaders ->
-                    headers.entrySet()
-                            .stream()
-                            .allMatch(
-                                    entry -> httpHeaders.containsKey(entry.getKey()) &&
-                                            httpHeaders.containsValue(entry.getValue()))));
+    verify(httpRequest)
+        .setHeaders(
+            argThat(
+                httpHeaders ->
+                    headers.entrySet().stream()
+                        .allMatch(
+                            entry ->
+                                httpHeaders.containsKey(entry.getKey())
+                                    && httpHeaders.containsValue(entry.getValue()))));
   }
 
   private static Stream<String> successCases() throws IOException {
