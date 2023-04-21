@@ -9,7 +9,6 @@ package io.camunda.connector.rabbitmq.inbound;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -57,36 +56,29 @@ public class RabbitMqExecutableLifecycleTest extends InboundBaseTest {
     when(connectionMock.createChannel()).thenReturn(channel);
 
     properties = new RabbitMqInboundProperties();
-    properties.setQueueName("test-queue");
+    properties.setQueueName(SecretsConstant.SECRETS + SecretsConstant.QUEUE_NAME);
     var auth = new RabbitMqAuthentication();
     auth.setAuthType(RabbitMqAuthenticationType.uri);
-    auth.setUri("amqp://guest:guest@localhost:5672");
+    auth.setUri(SecretsConstant.SECRETS + SecretsConstant.Authentication.URI);
     properties.setAuthentication(auth);
-    properties.setConsumerTag("test-consumer");
+    properties.setConsumerTag(SecretsConstant.SECRETS + SecretsConstant.CONSUMER_TAG);
   }
 
   @Test
   void executable_shouldHandleActivation() throws Exception {
     // Given
-
     InboundConnectorContext context = getContextBuilderWithSecrets().properties(properties).build();
-
-    var spyContext = spy(context);
     RabbitMqExecutable executable = new RabbitMqExecutable(connectionFactorySupplier);
 
     // When
-    executable.activate(spyContext);
+    executable.activate(context);
 
     // Then
-    verify(spyContext).getPropertiesAsType(RabbitMqInboundProperties.class);
-    verify(spyContext).validate(context.getPropertiesAsType(RabbitMqInboundProperties.class));
-    verify(spyContext).replaceSecrets(context.getPropertiesAsType(RabbitMqInboundProperties.class));
-
     verify(channel)
         .basicConsume(
-            eq(properties.getQueueName()),
+            eq(ActualValue.QUEUE_NAME),
             eq(false),
-            eq(properties.getConsumerTag()),
+            eq(ActualValue.CONSUMER_TAG),
             eq(false),
             eq(properties.isExclusive()),
             eq(properties.getArguments()),
