@@ -23,7 +23,9 @@ import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.impl.context.AbstractConnectorContext;
 import io.camunda.connector.impl.inbound.InboundConnectorProperties;
 import io.camunda.connector.impl.inbound.correlation.MessageCorrelationPoint;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -164,6 +166,8 @@ public class InboundConnectorContextBuilder {
   public class TestInboundConnectorContext extends AbstractConnectorContext
       implements InboundConnectorContext {
 
+    private final List<Object> correlatedEvents = new ArrayList<>();
+
     protected TestInboundConnectorContext(SecretProvider secretProvider) {
       super(secretProvider);
     }
@@ -173,6 +177,7 @@ public class InboundConnectorContextBuilder {
       if (result == null) {
         throw new IllegalStateException("Mock result not provided during test context creation");
       }
+      correlatedEvents.add(variables);
       return result;
     }
 
@@ -203,6 +208,10 @@ public class InboundConnectorContextBuilder {
     @Override
     public ValidationProvider getValidationProvider() {
       return Optional.ofNullable(validationProvider).orElseGet(super::getValidationProvider);
+    }
+
+    public List<Object> getCorrelations() {
+      return correlatedEvents;
     }
   }
 }
