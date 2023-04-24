@@ -20,6 +20,7 @@
 
   <properties>
     <version.spring-zeebe>8.2.0</version.spring-zeebe>
+    <version.operate-client>8.1.7.2</version.operate-client>
 
     <version.spring-boot>3.0.6</version.spring-boot>
     <version.spring-cloud-gcp-starter-logging>4.2.0</version.spring-cloud-gcp-starter-logging>
@@ -54,7 +55,8 @@
   <modules>
     <module>connector-archetype-internal</module>
     <module>connectors</module>
-    <module>bundle/mvn</module>
+    <module>bundle</module>
+    <module>connector-runtime</module>
   </modules>
 
   <dependencyManagement>
@@ -81,8 +83,23 @@
 
       <dependency>
         <groupId>io.camunda.spring</groupId>
-        <artifactId>spring-zeebe-connector-runtime</artifactId>
+        <artifactId>spring-boot-starter-camunda</artifactId>
         <version>${version.spring-zeebe}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.camunda.spring</groupId>
+        <artifactId>spring-boot-starter-camunda-test</artifactId>
+        <version>${version.spring-zeebe}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.camunda</groupId>
+        <artifactId>zeebe-process-test-extension</artifactId>
+        <version>${version.spring-zeebe}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.camunda</groupId>
+        <artifactId>camunda-operate-client-java</artifactId>
+        <version>${version.operate-client}</version>
       </dependency>
 
       <dependency>
@@ -144,7 +161,7 @@
         <artifactId>httpcore</artifactId>
         <version>${version.httpcore}</version>
       </dependency>
-      
+
       <dependency>
         <groupId>org.apache.kafka</groupId>
         <artifactId>kafka-clients</artifactId>

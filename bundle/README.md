@@ -4,7 +4,7 @@ The Connectors Bundle contains all out-of-the-box Connectors for Camunda 8. It's
 
 The bundle contains the following components
 
-| Component                      | Version | License                                      | 
+| Component                      | Version | License                                      |
 |--------------------------------|---------|----------------------------------------------|
 | [Connector Runtime]            | 0.8.1   | [Apache 2.0]                                 |
 | Asana Connector                | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
@@ -31,14 +31,14 @@ The bundle contains the following components
 | Slack Connector                | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
 | UiPath Connector               | 0.18.2  | [Camunda Platform Self-Managed Free Edition] |
 
-**Note:** 
+**Note:**
 - This list only includes Camunda 8 out-of-the-box Connectors that have their own implementation.
 Some of these Connectors are **Protocol Connectors**, which means they are compatible with more than one element template.
 - Some out-of-the-box Connectors in Camunda 8 only exist in the form of element-template for Protocol Connectors.
 Such template-only Connectors are also compatible with this bundle.
 
 
-The [`Dockerfile`](./mvn/default-bundle/Dockerfile) provides an image including the [Connector Runtime]
+The [`Dockerfile`](./default-bundle/Dockerfile) provides an image including the [Connector Runtime]
 and all [out-of-the-box Connectors](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/available-connectors-overview/)
 provided by Camunda. The image starts the Connector Runtime with all `jar`
 files provided in the `/opt/app` directory as classpath.

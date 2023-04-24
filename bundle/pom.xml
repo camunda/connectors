@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.camunda.connector</groupId>
     <artifactId>connectors-bundle-parent</artifactId>
-    <relativePath>../../pom.xml</relativePath>
+    <relativePath>../pom.xml</relativePath>
     <version>0.19.0-SNAPSHOT</version>
   </parent>
 
@@ -24,6 +24,11 @@
 
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>spring-zeebe-connector-runtime</artifactId>
+        <version>${project.version}</version>
+      </dependency>
       <dependency>
         <groupId>io.camunda.connector</groupId>
         <artifactId>connector-sqs</artifactId>

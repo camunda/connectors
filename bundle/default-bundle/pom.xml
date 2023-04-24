@@ -12,7 +12,7 @@
 
   <dependencies>
     <dependency>
-      <groupId>io.camunda.spring</groupId>
+      <groupId>io.camunda.connector</groupId>
       <artifactId>spring-zeebe-connector-runtime</artifactId>
     </dependency>
     <dependency>

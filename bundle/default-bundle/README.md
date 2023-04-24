@@ -1,4 +1,3 @@
-
 Run via Maven / IDE:
 
 Run `LocalConnectorRuntime` class via your favorite IDE.
