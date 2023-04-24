@@ -80,7 +80,7 @@
         "notEmpty": true,
         "pattern": {
           "value": "^(amqps?://)|(secrets).*",
-          "message": "Must start with amqp(s)://"
+          "message": "Must start with amqp(s):// or contain a secret reference"
         }
       },
       "condition": {
@@ -122,7 +122,7 @@
     },
     {
       "label": "Host name",
-      "description": "Host name: get from RabbitMQ external app configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/#routing-data\"target=\"_blank\">documentation</a>",
+      "description": "Host name: get from RabbitMQ external applocation configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/#routing-data\"target=\"_blank\">documentation</a>",
       "group": "routing",
       "type": "String",
       "binding": {
@@ -139,7 +139,7 @@
     },
     {
       "label": "Virtual host",
-      "description": "Virtual name: get from RabbitMQ external app configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/#routing-data\"target=\"_blank\">documentation</a>",
+      "description": "Virtual name: get from RabbitMQ external application configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/#routing-data\"target=\"_blank\">documentation</a>",
       "group": "routing",
       "type": "String",
       "binding": {
@@ -156,7 +156,7 @@
     },
     {
       "label": "Port",
-      "description": "Port: get from RabbitMQ external app configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/#routing-data\"target=\"_blank\">documentation</a>",
+      "description": "Port: get from RabbitMQ external application configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/#routing-data\"target=\"_blank\">documentation</a>",
       "group": "routing",
       "type": "String",
       "binding": {

@@ -1,3 +1,9 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
+ */
 package io.camunda.connector.rabbitmq.integration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -49,7 +55,13 @@ public class RabbitMqIntegrationTest extends BaseTest {
           .withPermission(Routing.VIRTUAL_HOST, Authentication.USERNAME, ".*", ".*", ".*")
           .withQueue(Routing.VIRTUAL_HOST, ActualValue.QUEUE_NAME)
           .withExchange(Routing.VIRTUAL_HOST, Routing.EXCHANGE, "direct")
-          .withBinding(Routing.VIRTUAL_HOST, Routing.EXCHANGE, ActualValue.QUEUE_NAME, Map.of(), Routing.ROUTING_KEY, "queue");
+          .withBinding(
+              Routing.VIRTUAL_HOST,
+              Routing.EXCHANGE,
+              ActualValue.QUEUE_NAME,
+              Map.of(),
+              Routing.ROUTING_KEY,
+              "queue");
 
   @BeforeAll
   public static void init() {
@@ -75,9 +87,8 @@ public class RabbitMqIntegrationTest extends BaseTest {
     message.setBody("{\"value\": \"Hello World\"}");
     request.setMessage(message);
 
-    OutboundConnectorContext context = OutboundConnectorContextBuilder.create()
-        .variables(request)
-        .build();
+    OutboundConnectorContext context =
+        OutboundConnectorContextBuilder.create().variables(request).build();
 
     // When
     var result = function.execute(context);
@@ -103,10 +114,11 @@ public class RabbitMqIntegrationTest extends BaseTest {
     routing.setVirtualHost(Routing.VIRTUAL_HOST);
     properties.setRouting(routing);
 
-    TestInboundConnectorContext context = InboundConnectorContextBuilder.create()
-        .result(new MessageCorrelationResult("", 0))
-        .properties(properties)
-        .build();
+    TestInboundConnectorContext context =
+        InboundConnectorContextBuilder.create()
+            .result(new MessageCorrelationResult("", 0))
+            .properties(properties)
+            .build();
 
     // When
     executable.activate(context);

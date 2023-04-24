@@ -20,7 +20,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@InboundConnector(name = "RABBITMQ", type = "io.camunda:connector-rabbitmq-inbound:1")
+@InboundConnector(name = "RABBITMQ_INBOUND", type = "io.camunda:connector-rabbitmq-inbound:1")
 public class RabbitMqExecutable implements InboundConnectorExecutable {
   private static final Logger LOGGER = LoggerFactory.getLogger(RabbitMqExecutable.class);
   private static final int CLOSE_TIMEOUT_MILLIS = 3000;
