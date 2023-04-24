@@ -20,7 +20,7 @@ public abstract class BaseTest {
 
   protected Gson gson = new Gson();
 
-  protected interface ActualValue {
+  public interface ActualValue {
 
     interface Authentication {
       String USERNAME = "testUserName";
