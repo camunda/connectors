@@ -46,7 +46,7 @@
     <version.sendGrid>4.9.3</version.sendGrid>
 
     <version.slack>1.29.2</version.slack>
-    <version.kotlin>1.8.20</version.kotlin>
+    <version.kotlin>1.8.21</version.kotlin>
   </properties>
 
   <modules>
