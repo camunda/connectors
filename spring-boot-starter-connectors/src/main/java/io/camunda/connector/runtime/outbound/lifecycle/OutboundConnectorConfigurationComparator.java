@@ -14,15 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime;
+package io.camunda.connector.runtime.outbound.lifecycle;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+import io.camunda.connector.impl.outbound.OutboundConnectorConfiguration;
+import java.util.Comparator;
 
-@SpringBootApplication
-public class SaaSConnectorRuntimeApplication {
+public class OutboundConnectorConfigurationComparator
+    implements Comparator<OutboundConnectorConfiguration> {
 
-  public static void main(String[] args) {
-    SpringApplication.run(SaaSConnectorRuntimeApplication.class, args);
+  @Override
+  public int compare(OutboundConnectorConfiguration o1, OutboundConnectorConfiguration o2) {
+    if (o1 == o2) return 0;
+    if (o1 == null) return -1;
+
+    return o1.getType().compareTo(o2.getType());
   }
 }

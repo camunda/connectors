@@ -26,7 +26,7 @@
     <dependencies>
       <dependency>
         <groupId>io.camunda.connector</groupId>
-        <artifactId>spring-zeebe-connector-runtime</artifactId>
+        <artifactId>spring-boot-starter-connectors</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

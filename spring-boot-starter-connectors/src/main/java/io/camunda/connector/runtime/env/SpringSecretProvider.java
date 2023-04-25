@@ -14,15 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime;
+package io.camunda.connector.runtime.env;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+import io.camunda.connector.api.secret.SecretProvider;
+import org.springframework.core.env.Environment;
 
-@SpringBootApplication
-public class SaaSConnectorRuntimeApplication {
+/**
+ * USes Spring {@link Environment} to resolve secrets (will look into properties files as well as
+ * system properties)
+ */
+public class SpringSecretProvider implements SecretProvider {
 
-  public static void main(String[] args) {
-    SpringApplication.run(SaaSConnectorRuntimeApplication.class, args);
+  private final Environment environment;
+
+  public SpringSecretProvider(Environment environment) {
+    this.environment = environment;
+  }
+
+  @Override
+  public String getSecret(String s) {
+    return environment.getProperty(s);
   }
 }

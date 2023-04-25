@@ -20,9 +20,9 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class SaaSConnectorRuntimeApplication {
+public class ConnectorRuntimeApplication {
 
   public static void main(String[] args) {
-    SpringApplication.run(SaaSConnectorRuntimeApplication.class, args);
+    SpringApplication.run(ConnectorRuntimeApplication.class, args);
   }
 }

@@ -14,15 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime;
+package io.camunda.connector.runtime.inbound.configs;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+import io.camunda.connector.runtime.util.feel.FeelEngineWrapper;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
-@SpringBootApplication
-public class SaaSConnectorRuntimeApplication {
+@Configuration
+public class FeelConfiguration {
 
-  public static void main(String[] args) {
-    SpringApplication.run(SaaSConnectorRuntimeApplication.class, args);
+  /**
+   * Provides a {@link FeelEngineWrapper} unless already present in the Spring Context (as also used
+   * by other applications - as soon as we switch to use the one from util
+   */
+  @Bean
+  @ConditionalOnMissingBean(FeelEngineWrapper.class)
+  public FeelEngineWrapper feelEngine() {
+    return new FeelEngineWrapper();
   }
 }

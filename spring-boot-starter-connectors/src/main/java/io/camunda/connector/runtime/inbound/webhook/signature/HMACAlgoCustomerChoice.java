@@ -14,15 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime;
+package io.camunda.connector.runtime.inbound.webhook.signature;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+public enum HMACAlgoCustomerChoice {
+  sha_1("HmacSHA1", "sha1"),
+  sha_256("HmacSHA256", "sha256"),
+  sha_512("HmacSHA512", "sha512");
 
-@SpringBootApplication
-public class SaaSConnectorRuntimeApplication {
+  private final String algoReference;
+  private final String tag;
 
-  public static void main(String[] args) {
-    SpringApplication.run(SaaSConnectorRuntimeApplication.class, args);
+  HMACAlgoCustomerChoice(final String algoReference, final String tag) {
+    this.algoReference = algoReference;
+    this.tag = tag;
+  }
+
+  public String getAlgoReference() {
+    return algoReference;
+  }
+
+  public String getTag() {
+    return tag;
   }
 }

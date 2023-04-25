@@ -14,15 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+package io.camunda.connector.runtime.inbound.webhook.signature;
 
-@SpringBootApplication
-public class SaaSConnectorRuntimeApplication {
-
-  public static void main(String[] args) {
-    SpringApplication.run(SaaSConnectorRuntimeApplication.class, args);
-  }
+public enum HMACSwitchCustomerChoice {
+  enabled,
+  disabled
 }
