@@ -4,18 +4,18 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.rabbitmq;
+package io.camunda.connector.rabbitmq.outbound;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.impl.ConnectorInputException;
-import io.camunda.connector.rabbitmq.model.RabbitMqRequest;
+import io.camunda.connector.rabbitmq.outbound.model.RabbitMqRequest;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
-class RabbitMqRequestValidationTest extends BaseTest {
+class RabbitMqRequestValidationTest extends OutboundBaseTest {
 
   private RabbitMqRequest request;
   private OutboundConnectorContext context;

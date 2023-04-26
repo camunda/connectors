@@ -4,13 +4,13 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.rabbitmq.model;
+package io.camunda.connector.rabbitmq.common.model;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonSyntaxException;
 import com.rabbitmq.client.AMQP;
 import io.camunda.connector.api.annotation.Secret;
-import io.camunda.connector.rabbitmq.ValidationPropertiesUtil;
+import io.camunda.connector.rabbitmq.outbound.ValidationPropertiesUtil;
 import io.camunda.connector.rabbitmq.supplier.GsonSupplier;
 import java.util.Objects;
 import java.util.Optional;

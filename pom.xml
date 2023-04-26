@@ -6,7 +6,7 @@
   <parent>
     <groupId>io.camunda.connector</groupId>
     <artifactId>connector-parent</artifactId>
-    <version>0.8.1</version>
+    <version>0.9.0-SNAPSHOT</version>
     <relativePath/>
   </parent>
 
@@ -47,6 +47,8 @@
 
     <version.slack>1.29.2</version.slack>
     <version.kotlin>1.8.21</version.kotlin>
+
+    <version.testcontainers>1.18.0</version.testcontainers>
   </properties>
 
   <modules>
@@ -186,6 +188,16 @@
         <groupId>com.slack.api</groupId>
         <artifactId>slack-api-client</artifactId>
         <version>${version.slack}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>testcontainers</artifactId>
+        <version>${version.testcontainers}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>junit-jupiter</artifactId>
+        <version>${version.testcontainers}</version>
       </dependency>
 
       <dependency>

@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.rabbitmq;
+package io.camunda.connector.rabbitmq.outbound;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -19,7 +19,9 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
-import io.camunda.connector.rabbitmq.model.RabbitMqRequest;
+import io.camunda.connector.rabbitmq.common.model.RabbitMqAuthentication;
+import io.camunda.connector.rabbitmq.common.model.RabbitMqRouting;
+import io.camunda.connector.rabbitmq.outbound.model.RabbitMqRequest;
 import io.camunda.connector.rabbitmq.supplier.ConnectionFactorySupplier;
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -39,7 +41,7 @@ import org.mockito.quality.Strictness;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-class RabbitMqFunctionTest extends BaseTest {
+class RabbitMqFunctionTest extends OutboundBaseTest {
 
   private RabbitMqFunction function;
   @Mock private ConnectionFactorySupplier connectionFactorySupplier;
@@ -56,7 +58,8 @@ class RabbitMqFunctionTest extends BaseTest {
           IOException,
           TimeoutException {
     function = new RabbitMqFunction(connectionFactorySupplier);
-    when(connectionFactorySupplier.createFactory(any(RabbitMqRequest.class)))
+    when(connectionFactorySupplier.createFactory(
+            any(RabbitMqAuthentication.class), any(RabbitMqRouting.class)))
         .thenReturn(connectionFactoryMock);
     when(connectionFactoryMock.newConnection()).thenReturn(connectionMock);
     when(connectionMock.createChannel()).thenReturn(channel);
@@ -72,7 +75,8 @@ class RabbitMqFunctionTest extends BaseTest {
     Object connectorResultObject = function.execute(context);
 
     // then expected passing all needed methods and return 'success' result
-    verify(connectionFactorySupplier).createFactory(any(RabbitMqRequest.class));
+    verify(connectionFactorySupplier)
+        .createFactory(any(RabbitMqAuthentication.class), any(RabbitMqRouting.class));
     verify(connectionFactoryMock, times(1)).newConnection();
     verify(connectionMock, times(1)).createChannel();
     verify(channel).basicPublish(anyString(), anyString(), any(AMQP.BasicProperties.class), any());

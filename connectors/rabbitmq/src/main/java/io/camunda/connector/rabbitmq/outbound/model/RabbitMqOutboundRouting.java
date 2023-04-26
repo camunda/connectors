@@ -4,43 +4,18 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.rabbitmq.model;
+package io.camunda.connector.rabbitmq.outbound.model;
 
 import io.camunda.connector.api.annotation.Secret;
+import io.camunda.connector.rabbitmq.common.model.RabbitMqRouting;
 import java.util.Objects;
 import javax.validation.constraints.NotBlank;
 
-public class RabbitMqRouting {
+public class RabbitMqOutboundRouting extends RabbitMqRouting {
 
-  @Secret private String virtualHost;
-  @Secret private String hostName;
-  @Secret private String port;
   @NotBlank @Secret private String exchange;
+
   @NotBlank @Secret private String routingKey;
-
-  public String getVirtualHost() {
-    return virtualHost;
-  }
-
-  public void setVirtualHost(final String virtualHost) {
-    this.virtualHost = virtualHost;
-  }
-
-  public String getHostName() {
-    return hostName;
-  }
-
-  public void setHostName(final String hostName) {
-    this.hostName = hostName;
-  }
-
-  public String getPort() {
-    return port;
-  }
-
-  public void setPort(final String port) {
-    this.port = port;
-  }
 
   public String getExchange() {
     return exchange;
@@ -66,7 +41,7 @@ public class RabbitMqRouting {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final RabbitMqRouting routing = (RabbitMqRouting) o;
+    final RabbitMqOutboundRouting routing = (RabbitMqOutboundRouting) o;
     return Objects.equals(virtualHost, routing.virtualHost)
         && Objects.equals(hostName, routing.hostName)
         && Objects.equals(port, routing.port)

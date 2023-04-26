@@ -7,24 +7,24 @@
 package io.camunda.connector.rabbitmq.supplier;
 
 import com.rabbitmq.client.ConnectionFactory;
-import io.camunda.connector.rabbitmq.model.RabbitMqAuthenticationType;
-import io.camunda.connector.rabbitmq.model.RabbitMqRequest;
+import io.camunda.connector.rabbitmq.common.model.RabbitMqAuthentication;
+import io.camunda.connector.rabbitmq.common.model.RabbitMqAuthenticationType;
+import io.camunda.connector.rabbitmq.common.model.RabbitMqRouting;
 import java.net.URISyntaxException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 
 public class ConnectionFactorySupplier {
 
-  public ConnectionFactory createFactory(final RabbitMqRequest request)
+  public ConnectionFactory createFactory(
+      final RabbitMqAuthentication authentication, final RabbitMqRouting routing)
       throws URISyntaxException, NoSuchAlgorithmException, KeyManagementException {
-    final var auth = request.getAuthentication();
-    final var routing = request.getRouting();
     final var factory = new ConnectionFactory();
-    if (auth.getAuthType() == RabbitMqAuthenticationType.uri) {
-      factory.setUri(auth.getUri());
+    if (authentication.getAuthType() == RabbitMqAuthenticationType.uri) {
+      factory.setUri(authentication.getUri());
     } else {
-      factory.setUsername(auth.getUserName());
-      factory.setPassword(auth.getPassword());
+      factory.setUsername(authentication.getUserName());
+      factory.setPassword(authentication.getPassword());
       factory.setVirtualHost(routing.getVirtualHost());
       factory.setHost(routing.getHostName());
       factory.setPort(Integer.parseInt(routing.getPort()));
