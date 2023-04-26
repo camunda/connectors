@@ -36,6 +36,10 @@ public class OutboundConnectorContextBuilder {
 
   private Object variablesAsObject;
 
+  protected final Map<String, String> customHeaders = new HashMap<>();
+
+  protected String activatedJobAsJson;
+
   /**
    * @return a new instance of the {@link OutboundConnectorContextBuilder}
    */
@@ -109,6 +113,29 @@ public class OutboundConnectorContextBuilder {
   }
 
   /**
+   * Provides the custom header value with given key/value pair
+   *
+   * @param headerKey - custom header key
+   * @param headerValue - custom header value
+   * @return builder for fluent API
+   */
+  public OutboundConnectorContextBuilder customHeader(String headerKey, String headerValue) {
+    customHeaders.put(headerKey, headerValue);
+    return this;
+  }
+
+  /**
+   * Provides a JSON representation of the underlying activated job
+   *
+   * @param activatedJobAsJson - custom header key
+   * @return builder for fluent API
+   */
+  public OutboundConnectorContextBuilder asJson(String activatedJobAsJson) {
+    this.activatedJobAsJson = activatedJobAsJson;
+    return this;
+  }
+
+  /**
    * @return the {@link OutboundConnectorContext} including all previously defined properties
    */
   public TestConnectorContext build() {
@@ -133,7 +160,7 @@ public class OutboundConnectorContextBuilder {
     }
 
     @Override
-    public <T extends Object> T getVariablesAsType(Class<T> cls) {
+    public <T> T getVariablesAsType(Class<T> cls) {
 
       if (variablesAsObject == null) {
         throw new IllegalStateException("variablesAsObject not provided");
@@ -145,6 +172,16 @@ public class OutboundConnectorContextBuilder {
         throw new IllegalStateException(
             "no variablesAsObject of type " + cls.getName() + " provided", ex);
       }
+    }
+
+    @Override
+    public Map<String, String> getCustomHeaders() {
+      return customHeaders;
+    }
+
+    @Override
+    public String asJson() {
+      return activatedJobAsJson;
     }
 
     @Override

@@ -155,4 +155,29 @@ public class OutboundConnectorContextBuilderTest {
     // then
     assertThat(exception).hasMessage("Secret with name 'foo' is not available");
   }
+
+  @Test
+  public void shouldProvideCustomHeaders() {
+    // given
+    var myCustomHeaderKey = "myCustomHeader";
+    var myCustomHeaderVal = "myCustomValue";
+    var context =
+        OutboundConnectorContextBuilder.create()
+            .customHeader(myCustomHeaderKey, myCustomHeaderVal)
+            .build();
+
+    // when & then
+    assertThat(context.getCustomHeaders())
+        .hasSize(1)
+        .containsEntry(myCustomHeaderKey, myCustomHeaderVal);
+  }
+
+  @Test
+  public void shouldProvideEmptyMapWhenNoCustomHeaders() {
+    // given
+    var context = OutboundConnectorContextBuilder.create().build();
+
+    // when & then
+    assertThat(context.getCustomHeaders()).isNotNull().hasSize(0);
+  }
 }

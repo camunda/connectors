@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.api.outbound;
 
+import java.util.Map;
+
 /**
  * The context object provided to a connector function. The context allows to fetch information
  * injected by the environment runtime.
@@ -37,7 +39,14 @@ public interface OutboundConnectorContext {
    * @param cls - the class representing the type to map the variables to
    * @return the mapped object containing the variable values
    */
-  <T extends Object> T getVariablesAsType(Class<T> cls);
+  <T> T getVariablesAsType(Class<T> cls);
+
+  /**
+   * Custom headers found under zeebe:taskHeaders.
+   *
+   * @return custom job headers.
+   */
+  Map<String, String> getCustomHeaders();
 
   /**
    * Replaces the secrets in the input object by the defined secrets in the context's secret store.
@@ -52,4 +61,12 @@ public interface OutboundConnectorContext {
    * @param input - the object to validate
    */
   void validate(Object input);
+
+  /**
+   * A method intended for users who need to activated job in its complete JSON representation.
+   * Should be used as a final option when other APIs cannot supply a necessary data.
+   *
+   * @return JSON representation of an activated job.
+   */
+  String asJson();
 }
