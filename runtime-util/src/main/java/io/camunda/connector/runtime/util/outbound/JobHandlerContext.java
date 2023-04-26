@@ -20,7 +20,10 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.impl.context.AbstractConnectorContext;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
+import java.util.Collections;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Implementation of {@link io.camunda.connector.api.outbound.OutboundConnectorContext} passed on to
@@ -45,6 +48,16 @@ public class JobHandlerContext extends AbstractConnectorContext
   @Override
   public String getVariables() {
     return job.getVariables();
+  }
+
+  @Override
+  public Map<String, String> getCustomHeaders() {
+    return Optional.ofNullable(job.getCustomHeaders()).orElse(Collections.emptyMap());
+  }
+
+  @Override
+  public String asJson() {
+    return job.toJson();
   }
 
   @Override
