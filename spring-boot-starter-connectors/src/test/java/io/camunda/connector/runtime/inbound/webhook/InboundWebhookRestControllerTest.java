@@ -29,6 +29,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.impl.inbound.InboundConnectorProperties;
 import io.camunda.connector.impl.inbound.correlation.StartEventCorrelationPoint;
+import io.camunda.connector.impl.inbound.result.MessageCorrelationResult;
 import io.camunda.connector.runtime.inbound.webhook.signature.HMACSwitchCustomerChoice;
 import io.camunda.connector.runtime.util.feel.FeelEngineWrapper;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
@@ -78,7 +79,11 @@ class InboundWebhookRestControllerTest {
             2,
             1);
     InboundConnectorContext connectorContext =
-        spy(new InboundConnectorContextBuilder().properties(connectorProps).build());
+        spy(
+            new InboundConnectorContextBuilder()
+                .properties(connectorProps)
+                .result(new MessageCorrelationResult("", 0))
+                .build());
 
     WebhookConnectorProperties props = new WebhookConnectorProperties(connectorProps);
     when(registry.containsContextPath(DEFAULT_CONTEXT)).thenReturn(true);
@@ -126,7 +131,11 @@ class InboundWebhookRestControllerTest {
             2,
             1);
     InboundConnectorContext connectorContext =
-        spy(new InboundConnectorContextBuilder().properties(connectorProps).build());
+        spy(
+            new InboundConnectorContextBuilder()
+                .properties(connectorProps)
+                .result(new MessageCorrelationResult("", 0))
+                .build());
 
     WebhookConnectorProperties props = new WebhookConnectorProperties(connectorProps);
     when(registry.containsContextPath(DEFAULT_CONTEXT)).thenReturn(true);
@@ -165,7 +174,11 @@ class InboundWebhookRestControllerTest {
             2,
             1);
     InboundConnectorContext connectorContext =
-        spy(new InboundConnectorContextBuilder().properties(connectorProps).build());
+        spy(
+            new InboundConnectorContextBuilder()
+                .properties(connectorProps)
+                .result(new MessageCorrelationResult("", 0))
+                .build());
 
     WebhookConnectorProperties props = new WebhookConnectorProperties(connectorProps);
     when(registry.containsContextPath(DEFAULT_CONTEXT)).thenReturn(true);
@@ -206,7 +219,11 @@ class InboundWebhookRestControllerTest {
             2,
             1);
     InboundConnectorContext connectorContext =
-        spy(new InboundConnectorContextBuilder().properties(connectorProps).build());
+        spy(
+            new InboundConnectorContextBuilder()
+                .properties(connectorProps)
+                .result(new MessageCorrelationResult("", 0))
+                .build());
 
     WebhookConnectorProperties props = new WebhookConnectorProperties(connectorProps);
     when(registry.containsContextPath(DEFAULT_CONTEXT)).thenReturn(true);
@@ -248,7 +265,11 @@ class InboundWebhookRestControllerTest {
             1);
 
     InboundConnectorContext connectorContext =
-        spy(new InboundConnectorContextBuilder().properties(connectorProps).build());
+        spy(
+            new InboundConnectorContextBuilder()
+                .properties(connectorProps)
+                .result(new MessageCorrelationResult("", 0))
+                .build());
 
     WebhookConnectorProperties props = new WebhookConnectorProperties(connectorProps);
 
@@ -286,7 +307,11 @@ class InboundWebhookRestControllerTest {
             1);
 
     InboundConnectorContext connectorContext =
-        spy(new InboundConnectorContextBuilder().properties(connectorProps).build());
+        spy(
+            new InboundConnectorContextBuilder()
+                .properties(connectorProps)
+                .result(new MessageCorrelationResult("", 0))
+                .build());
 
     WebhookConnectorProperties props = new WebhookConnectorProperties(connectorProps);
 

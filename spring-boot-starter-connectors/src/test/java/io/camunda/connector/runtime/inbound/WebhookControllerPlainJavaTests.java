@@ -25,6 +25,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.impl.inbound.InboundConnectorProperties;
 import io.camunda.connector.impl.inbound.correlation.StartEventCorrelationPoint;
+import io.camunda.connector.impl.inbound.result.MessageCorrelationResult;
 import io.camunda.connector.runtime.inbound.webhook.InboundWebhookRestController;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.connector.runtime.inbound.webhook.WebhookResponse;
@@ -64,12 +65,14 @@ public class WebhookControllerPlainJavaTests {
         new InboundConnectorContextBuilder()
             .properties(webhookProperties("processA", 1, "myPath"))
             .secret(CONNECTOR_SECRET_NAME, CONNECTOR_SECRET_VALUE)
+            .result(new MessageCorrelationResult("", 0))
             .build();
 
     InboundConnectorContext webhookB =
         new InboundConnectorContextBuilder()
             .properties(webhookProperties("processB", 1, "myPath"))
             .secret(CONNECTOR_SECRET_NAME, CONNECTOR_SECRET_VALUE)
+            .result(new MessageCorrelationResult("", 0))
             .build();
 
     InboundWebhookRestController controller =

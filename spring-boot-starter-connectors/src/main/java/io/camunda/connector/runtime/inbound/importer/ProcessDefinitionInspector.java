@@ -42,13 +42,11 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 
 /**
  * Inspects the imported process definitions and extracts Inbound Connector definitions as {@link
  * ProcessCorrelationPoint}.
  */
-@Component
 public class ProcessDefinitionInspector {
 
   private static final Logger LOG = LoggerFactory.getLogger(ProcessDefinitionInspector.class);

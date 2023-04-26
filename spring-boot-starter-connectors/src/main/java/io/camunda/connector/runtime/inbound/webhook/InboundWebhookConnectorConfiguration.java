@@ -14,26 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.security;
+package io.camunda.connector.runtime.inbound.webhook;
 
-import org.springframework.security.oauth2.core.OAuth2Error;
-import org.springframework.security.oauth2.core.OAuth2TokenValidator;
-import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
-import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 
-public class AudienceValidator implements OAuth2TokenValidator<Jwt> {
-  private final String audience;
+@Configuration
+@ConditionalOnProperty(
+    prefix = "camunda.connector.webhook",
+    name = "enabled",
+    havingValue = "true",
+    matchIfMissing = true)
+@Import(InboundWebhookRestController.class)
+public class InboundWebhookConnectorConfiguration {
 
-  AudienceValidator(String audience) {
-    this.audience = audience;
-  }
-
-  public OAuth2TokenValidatorResult validate(Jwt jwt) {
-    OAuth2Error error = new OAuth2Error("invalid_token", "The required audience is missing", null);
-
-    if (jwt.getAudience().contains(audience)) {
-      return OAuth2TokenValidatorResult.success();
-    }
-    return OAuth2TokenValidatorResult.failure(error);
+  @Bean
+  public WebhookConnectorRegistry webhookConnectorRegistry() {
+    return new WebhookConnectorRegistry();
   }
 }

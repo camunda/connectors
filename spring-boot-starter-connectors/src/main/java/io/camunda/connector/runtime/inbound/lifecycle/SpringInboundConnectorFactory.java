@@ -24,14 +24,12 @@ import io.camunda.connector.runtime.util.inbound.DefaultInboundConnectorFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 /**
  * {@link io.camunda.connector.runtime.util.inbound.InboundConnectorFactory} implementation that
  * supports discovering Connectors defined as Spring beans. Connectors that are defined as Spring
  * beans are created by Spring.
  */
-@Component
 public class SpringInboundConnectorFactory extends DefaultInboundConnectorFactory {
 
   private static final Logger LOG = LoggerFactory.getLogger(SpringInboundConnectorFactory.class);

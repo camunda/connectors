@@ -14,12 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime;
+package io.camunda.connector.runtime.saas;
 
-import io.camunda.connector.runtime.saas.SaaSConnectorRuntimeApplication;
 import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-public class LocalConnectorRuntime {
+@SpringBootApplication
+public class SaaSConnectorRuntimeApplication {
 
   public static void main(String[] args) {
     SpringApplication.run(SaaSConnectorRuntimeApplication.class, args);

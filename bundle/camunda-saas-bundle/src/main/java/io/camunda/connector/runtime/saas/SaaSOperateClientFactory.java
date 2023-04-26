@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime;
+package io.camunda.connector.runtime.saas;
 
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.operate.CamundaOperateClient;

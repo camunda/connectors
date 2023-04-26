@@ -14,24 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.inbound;
+package io.camunda.connector.runtime.inbound.importer;
 
-import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionImportConfiguration;
-import io.camunda.connector.runtime.inbound.lifecycle.InboundConnectorLifecycleConfiguration;
-import io.camunda.connector.runtime.inbound.webhook.InboundWebhookConnectorConfiguration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import io.camunda.connector.runtime.inbound.lifecycle.InboundConnectorManager;
+import io.camunda.operate.CamundaOperateClient;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
 
 @Configuration
-@ConditionalOnProperty(
-    prefix = "camunda.connector.polling",
-    name = "enabled",
-    havingValue = "true",
-    matchIfMissing = true)
-@Import({
-  InboundConnectorLifecycleConfiguration.class,
-  InboundWebhookConnectorConfiguration.class,
-  ProcessDefinitionImportConfiguration.class
-})
-public class InboundConnectorRuntimeConfiguration {}
+public class ProcessDefinitionImportConfiguration {
+
+  @Bean
+  public ProcessDefinitionImporter processDefinitionImporter(
+      CamundaOperateClient client, InboundConnectorManager manager) {
+    return new ProcessDefinitionImporter(client, manager);
+  }
+
+  @Bean
+  public ProcessDefinitionInspector processDefinitionInspector(CamundaOperateClient client) {
+    return new ProcessDefinitionInspector(client);
+  }
+}

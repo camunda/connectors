@@ -9,4 +9,4 @@ Needs:
 
 Run
 
-* io.camunda.connector.runtime.SaaSConnectorRuntimeApplication
+* io.camunda.connector.runtime.saas.SaaSConnectorRuntimeApplication

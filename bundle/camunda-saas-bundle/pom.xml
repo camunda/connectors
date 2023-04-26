@@ -43,7 +43,7 @@
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
         <configuration>
-          <mainClass>io.camunda.connector.runtime.SaaSConnectorRuntimeApplication</mainClass>
+          <mainClass>io.camunda.connector.runtime.saas.SaaSConnectorRuntimeApplication</mainClass>
         </configuration>
       </plugin>
        <plugin>
@@ -98,7 +98,7 @@
                   <resource>META-INF/io.netty.versions.properties</resource>
               </transformer>
               <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                <mainClass>io.camunda.connector.runtime.SaaSConnectorRuntimeApplication</mainClass>
+                <mainClass>io.camunda.connector.runtime.saas.SaaSConnectorRuntimeApplication</mainClass>
               </transformer>
             </transformers>
           </configuration>
