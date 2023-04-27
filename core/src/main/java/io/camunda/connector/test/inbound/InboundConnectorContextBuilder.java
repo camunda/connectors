@@ -119,6 +119,17 @@ public class InboundConnectorContextBuilder {
   }
 
   /**
+   * Provides propertiesAsType as object
+   *
+   * @param obj - propertiesAsType as object
+   * @return builder for fluent API
+   */
+  public InboundConnectorContextBuilder propertiesAsType(Object obj) {
+    this.propertiesAsType = obj;
+    return this;
+  }
+
+  /**
    * Assigns correlation result that will be returned on {@link InboundConnectorContext#correlate}
    * call
    *
@@ -144,13 +155,8 @@ public class InboundConnectorContextBuilder {
   }
 
   private void assertNoProperties() {
-
-    if (propertiesAsType != null) {
-      throw new IllegalStateException("propertiesAsType already set");
-    }
-
     if (properties != null) {
-      throw new IllegalStateException("propertiesAsType already set");
+      throw new IllegalStateException("properties already set");
     }
   }
 
