@@ -77,7 +77,7 @@
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
         <configuration>
-          <mainClass>io.camunda.connector.runtime.ConnectorRuntimeApplication</mainClass>
+          <mainClass>io.camunda.connector.runtime.app.TestConnectorRuntimeApplication</mainClass>
         </configuration>
       </plugin>
       <plugin>
@@ -147,7 +147,7 @@
             </transformer>
             <transformer
               implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-              <mainClass>io.camunda.connector.runtime.ConnectorRuntimeApplication</mainClass>
+              <mainClass>io.camunda.connector.runtime.app.TestConnectorRuntimeApplication</mainClass>
             </transformer>
           </transformers>
         </configuration>

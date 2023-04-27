@@ -27,8 +27,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * {@link io.camunda.connector.runtime.util.inbound.InboundConnectorFactory} implementation that
- * supports discovering Connectors defined as Spring beans. Connectors that are defined as Spring
- * beans are created by Spring.
+ * adds webhook inbound connector to the default connector discovery mechanisms.
  */
 public class SpringInboundConnectorFactory extends DefaultInboundConnectorFactory {
 

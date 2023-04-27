@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.util.discovery.EnvVarsConnectorDiscovery;
 import io.camunda.zeebe.spring.client.annotation.value.ZeebeWorkerValue;
 import io.camunda.zeebe.spring.client.jobhandling.JobWorkerManager;
@@ -35,7 +36,8 @@ import org.springframework.test.context.event.annotation.BeforeTestClass;
     properties = {
       "spring.main.allow-bean-definition-overriding=true",
       "camunda.connector.polling.enabled=false"
-    })
+    },
+    classes = {TestConnectorRuntimeApplication.class})
 @ZeebeSpringTest
 /*
 @TestPropertySource(properties = {
@@ -48,7 +50,7 @@ class RuntimeStartupWithConnectorsFromEnvVarsTests {
   @Autowired private JobWorkerManager jobWorkerManager;
 
   @BeforeTestClass
-  public static void prepare() throws Exception {
+  public void prepare() throws Exception {
     EnvVarsConnectorDiscovery.addHardwiredEnvironmentVariable(
         "CONNECTOR_TEST2_FUNCTION", "io.camunda.connector.http.HttpJsonFunction");
     EnvVarsConnectorDiscovery.addHardwiredEnvironmentVariable(

@@ -22,8 +22,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.camunda.connector.impl.ConnectorUtil;
 import io.camunda.connector.impl.inbound.InboundConnectorConfiguration;
-import io.camunda.connector.runtime.ConnectorRuntimeApplication;
-import io.camunda.connector.runtime.inbound.TestInboundConnector;
+import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
+import io.camunda.connector.runtime.app.TestInboundConnector;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorExecutable;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -33,7 +33,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest(
-    classes = {ConnectorRuntimeApplication.class},
+    classes = {TestConnectorRuntimeApplication.class},
     properties = {
       "spring.main.allow-bean-definition-overriding=true",
       "camunda.connector.webhook.enabled=true",

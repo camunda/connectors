@@ -14,15 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime;
+package io.camunda.connector.runtime.app;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+import io.camunda.connector.api.annotation.OutboundConnector;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 
-@SpringBootApplication
-public class ConnectorRuntimeApplication {
+@OutboundConnector(
+    name = "TEST",
+    type = "org:test:1",
+    inputVariables = {})
+public class TestOutboundConnector implements OutboundConnectorFunction {
 
-  public static void main(String[] args) {
-    SpringApplication.run(ConnectorRuntimeApplication.class, args);
+  @Override
+  public Object execute(OutboundConnectorContext context) {
+    return null;
   }
 }

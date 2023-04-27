@@ -1,1 +1,1 @@
-io.camunda.connector.runtime.outbound.TestOutboundConnector
+io.camunda.connector.runtime.app.TestOutboundConnector

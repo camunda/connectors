@@ -14,20 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.outbound;
+package io.camunda.connector.runtime.app;
 
-import io.camunda.connector.api.annotation.OutboundConnector;
-import io.camunda.connector.api.outbound.OutboundConnectorContext;
-import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.api.annotation.InboundConnector;
+import io.camunda.connector.api.inbound.InboundConnectorContext;
+import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 
-@OutboundConnector(
-    name = "TEST",
-    type = "org:test:1",
-    inputVariables = {})
-public class TestOutboundConnector implements OutboundConnectorFunction {
+@InboundConnector(name = "TEST_INBOUND", type = "io.camunda:test-inbound:1")
+public class TestInboundConnector implements InboundConnectorExecutable {
+
+  private InboundConnectorContext context;
 
   @Override
-  public Object execute(OutboundConnectorContext context) throws Exception {
-    return null;
+  public void activate(InboundConnectorContext context) {
+    this.context = context;
+  }
+
+  @Override
+  public void deactivate() {}
+
+  public InboundConnectorContext getProvidedContext() {
+    if (context == null) {
+      throw new IllegalStateException(
+          "Connector has not been activated yet. No context available.");
+    }
+    return context;
   }
 }

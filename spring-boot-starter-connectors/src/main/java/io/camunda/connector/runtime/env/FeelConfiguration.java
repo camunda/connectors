@@ -14,34 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.inbound.configs;
+package io.camunda.connector.runtime.env;
 
-import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.util.feel.FeelEngineWrapper;
-import io.camunda.connector.runtime.util.inbound.correlation.InboundCorrelationHandler;
-import io.camunda.zeebe.client.ZeebeClient;
-import java.util.Iterator;
-import java.util.ServiceLoader;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-public class LocalContextBeanConfiguration {
+public class FeelConfiguration {
 
+  /**
+   * Provides a {@link FeelEngineWrapper} unless already present in the Spring Context (as also used
+   * by other applications - as soon as we switch to use the one from util
+   */
   @Bean
-  @ConditionalOnMissingBean
-  protected SecretProvider getSecretProvider() {
-    Iterator<SecretProvider> secretProviders = ServiceLoader.load(SecretProvider.class).iterator();
-    if (!secretProviders.hasNext()) {
-      return System::getenv; // Fallback to environment variables loading
-    }
-    return secretProviders.next();
-  }
-
-  @Bean
-  public InboundCorrelationHandler inboundCorrelationHandler(
-      final ZeebeClient zeebeClient, final FeelEngineWrapper feelEngine) {
-    return new InboundCorrelationHandler(zeebeClient, feelEngine);
+  @ConditionalOnMissingBean(FeelEngineWrapper.class)
+  public FeelEngineWrapper feelEngine() {
+    return new FeelEngineWrapper();
   }
 }

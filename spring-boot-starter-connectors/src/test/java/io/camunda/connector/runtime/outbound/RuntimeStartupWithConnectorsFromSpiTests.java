@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.outbound;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
 import io.camunda.zeebe.spring.client.annotation.value.ZeebeWorkerValue;
 import io.camunda.zeebe.spring.client.jobhandling.JobWorkerManager;
 import io.camunda.zeebe.spring.test.ZeebeSpringTest;
@@ -30,7 +31,8 @@ import org.springframework.boot.test.context.SpringBootTest;
     properties = {
       "spring.main.allow-bean-definition-overriding=true",
       "camunda.connector.polling.enabled=false"
-    })
+    },
+    classes = {TestConnectorRuntimeApplication.class})
 @ZeebeSpringTest
 class RuntimeStartupWithConnectorsFromSpiTests {
 

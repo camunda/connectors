@@ -14,23 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.inbound.configs;
+package io.camunda.connector.runtime.app;
 
-import io.camunda.connector.runtime.util.feel.FeelEngineWrapper;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import io.camunda.connector.runtime.ConnectorsAutoConfiguration;
+import io.camunda.operate.CamundaOperateClient;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.test.mock.mockito.MockBean;
 
-@Configuration
-public class FeelConfiguration {
+@SpringBootApplication
+@ImportAutoConfiguration(ConnectorsAutoConfiguration.class)
+@MockBean(CamundaOperateClient.class)
+public class TestConnectorRuntimeApplication {
 
-  /**
-   * Provides a {@link FeelEngineWrapper} unless already present in the Spring Context (as also used
-   * by other applications - as soon as we switch to use the one from util
-   */
-  @Bean
-  @ConditionalOnMissingBean(FeelEngineWrapper.class)
-  public FeelEngineWrapper feelEngine() {
-    return new FeelEngineWrapper();
+  public static void main(String[] args) {
+    SpringApplication.run(TestConnectorRuntimeApplication.class, args);
   }
 }

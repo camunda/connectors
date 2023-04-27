@@ -16,10 +16,15 @@
  */
 package io.camunda.connector.runtime.inbound;
 
+import io.camunda.connector.runtime.env.FeelConfiguration;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionImportConfiguration;
 import io.camunda.connector.runtime.inbound.lifecycle.InboundConnectorLifecycleConfiguration;
 import io.camunda.connector.runtime.inbound.webhook.InboundWebhookConnectorConfiguration;
+import io.camunda.connector.runtime.util.feel.FeelEngineWrapper;
+import io.camunda.connector.runtime.util.inbound.correlation.InboundCorrelationHandler;
+import io.camunda.zeebe.client.ZeebeClient;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
@@ -32,6 +37,14 @@ import org.springframework.context.annotation.Import;
 @Import({
   InboundConnectorLifecycleConfiguration.class,
   InboundWebhookConnectorConfiguration.class,
-  ProcessDefinitionImportConfiguration.class
+  ProcessDefinitionImportConfiguration.class,
+  FeelConfiguration.class
 })
-public class InboundConnectorRuntimeConfiguration {}
+public class InboundConnectorRuntimeConfiguration {
+
+  @Bean
+  public InboundCorrelationHandler inboundCorrelationHandler(
+      final ZeebeClient zeebeClient, final FeelEngineWrapper feelEngine) {
+    return new InboundCorrelationHandler(zeebeClient, feelEngine);
+  }
+}
