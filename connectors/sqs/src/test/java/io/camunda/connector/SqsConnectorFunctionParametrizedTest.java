@@ -18,7 +18,7 @@ import static io.camunda.connector.BaseTest.SQS_QUEUE_URL;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.readString;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -26,10 +26,11 @@ import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.amazonaws.services.sqs.model.SendMessageResult;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
-import io.camunda.connector.model.SqsConnectorRequest;
-import io.camunda.connector.model.SqsConnectorResult;
-import io.camunda.connector.suppliers.SqsClientSupplier;
-import io.camunda.connector.suppliers.SqsGsonComponentSupplier;
+import io.camunda.connector.common.suppliers.AmazonSQSClientSupplier;
+import io.camunda.connector.common.suppliers.SqsGsonComponentSupplier;
+import io.camunda.connector.outbound.SqsConnectorFunction;
+import io.camunda.connector.outbound.model.SqsConnectorRequest;
+import io.camunda.connector.outbound.model.SqsConnectorResult;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import java.io.File;
 import java.io.IOException;
@@ -56,7 +57,7 @@ class SqsConnectorFunctionParametrizedTest {
   private static final String FAIL_CASES_RESOURCE_PATH =
       "src/test/resources/requests/fail-test-cases.json";
 
-  @Mock private SqsClientSupplier sqsClientSupplier;
+  @Mock private AmazonSQSClientSupplier sqsClientSupplier;
   @Mock private AmazonSQS sqsClient;
   @Captor private ArgumentCaptor<SendMessageRequest> sendMessageRequest;
 
