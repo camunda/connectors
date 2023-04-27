@@ -26,7 +26,7 @@ public class KafkaConnectorProperties {
 
   @Secret private String activationCondition;
 
-  private Long offset;
+  private Object offsets;
 
   @NotNull private String autoOffsetReset;
 
@@ -42,12 +42,12 @@ public class KafkaConnectorProperties {
     return autoOffsetReset;
   }
 
-  public Long getOffset() {
-    return offset;
+  public Object getOffsets() {
+    return offsets;
   }
 
-  public void setOffset(Long offset) {
-    this.offset = offset;
+  public void setOffsets(Object offsets) {
+    this.offsets = offsets;
   }
 
   public void setAutoOffsetReset(String autoOffsetReset) {
@@ -101,8 +101,8 @@ public class KafkaConnectorProperties {
         + ", activationCondition='"
         + activationCondition
         + '\''
-        + ", offset="
-        + offset
+        + ", offsets="
+        + offsets
         + ", autoOffsetReset='"
         + autoOffsetReset
         + '\''

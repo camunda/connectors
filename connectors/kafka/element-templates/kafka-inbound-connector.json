@@ -137,14 +137,15 @@
       }
     },
     {
-      "label": "Offset",
-      "description": "Partition offset",
+      "label": "Offsets",
+      "description": "Comma-separated list of offsets, e.g., '10,23' or '=[ \"10\", \"23\"]'. If specified, it has to have the same number of values as the number of partitions.",
       "group": "kafka",
       "type": "String",
-      "feel":"optional",
+      "feel": "optional",
+      "optional": true,
       "binding": {
         "type": "zeebe:property",
-        "name": "topic.offset"
+        "name": "offsets"
       }
     },
     {
@@ -153,19 +154,19 @@
       "id": "autoOffsetReset",
       "group": "kafka",
       "type": "Dropdown",
-      "value": "earliest",
+      "value": "none",
       "choices": [
         {
-          "name": "Earliest",
-          "value": "earliest"
+          "name": "None",
+          "value": "none"
         },
         {
           "name": "Latest",
           "value": "latest"
         },
         {
-          "name": "none",
-          "value": "none"
+          "name": "Earliest",
+          "value": "earliest"
         }
       ],
       "binding": {
