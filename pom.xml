@@ -24,7 +24,7 @@
     <version.spring-boot>3.0.6</version.spring-boot>
     <version.spring-cloud-gcp-starter-logging>4.2.0</version.spring-cloud-gcp-starter-logging>
 
-    <version.aws-java-sdk>1.12.457</version.aws-java-sdk>
+    <version.aws-java-sdk>1.12.458</version.aws-java-sdk>
 
     <version.google-api-client>2.2.0</version.google-api-client>
     <version.google-api-services-drive>v3-rev20230423-2.0.0</version.google-api-services-drive>
