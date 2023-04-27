@@ -12,7 +12,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -41,6 +43,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
+import org.mockito.internal.stubbing.answers.AnswersWithDelay;
+import org.mockito.internal.stubbing.answers.Returns;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -93,7 +97,9 @@ public class KafkaExecutableTest {
     // Given
     when(mockConsumer.partitionsFor(topic)).thenReturn(topicPartitions);
     doNothing().when(mockConsumer).assign(any());
-    when(mockConsumer.poll(any())).thenReturn(new ConsumerRecords<>(new HashMap<>()));
+    doAnswer(new AnswersWithDelay(100, new Returns(new ConsumerRecords<>(new HashMap<>()))))
+        .when(mockConsumer)
+        .poll(any());
     KafkaExecutable kafkaExecutable = getConsumerMock();
 
     // When
@@ -105,6 +111,7 @@ public class KafkaExecutableTest {
     assertEquals(originalContext, context);
     verify(mockConsumer, times(1)).partitionsFor(topic);
     verify(mockConsumer, times(1)).assign(argThat(list -> list.size() == topicPartitions.size()));
+    verify(mockConsumer, timeout(100)).poll(any());
     assertNotNull(kafkaExecutable.future);
     kafkaExecutable.shouldLoop = false;
     kafkaExecutable.future.get(3, TimeUnit.SECONDS);
