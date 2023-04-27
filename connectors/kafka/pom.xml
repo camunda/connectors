@@ -37,11 +37,6 @@ except in compliance with the proprietary license.</license.inlineheader>
     </dependency>
 
     <dependency>
-      <groupId>org.danilopianini</groupId>
-      <artifactId>gson-extras</artifactId>
-    </dependency>
-
-    <dependency>
       <groupId>org.apache.kafka</groupId>
       <artifactId>kafka-clients</artifactId>
     </dependency>

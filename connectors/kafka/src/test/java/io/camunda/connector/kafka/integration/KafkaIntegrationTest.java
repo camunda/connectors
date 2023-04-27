@@ -120,7 +120,7 @@ public class KafkaIntegrationTest {
     kafkaTopic.setTopicName(TOPIC);
     kafkaTopic.setBootstrapServers(BOOTSTRAP_SERVERS);
     KafkaConnectorProperties kafkaConnectorProperties = new KafkaConnectorProperties();
-    kafkaConnectorProperties.setAutoOffsetReset("none");
+    kafkaConnectorProperties.setAutoOffsetReset(KafkaConnectorProperties.AutoOffsetReset.NONE);
     kafkaConnectorProperties.setAuthenticationType("custom");
     kafkaConnectorProperties.setOffsets("9999,8888");
     kafkaConnectorProperties.setTopic(kafkaTopic);
@@ -175,7 +175,7 @@ public class KafkaIntegrationTest {
     kafkaTopic.setTopicName(TOPIC);
     kafkaTopic.setBootstrapServers(BOOTSTRAP_SERVERS);
     KafkaConnectorProperties kafkaConnectorProperties = new KafkaConnectorProperties();
-    kafkaConnectorProperties.setAutoOffsetReset("earliest");
+    kafkaConnectorProperties.setAutoOffsetReset(KafkaConnectorProperties.AutoOffsetReset.EARLIEST);
     kafkaConnectorProperties.setAuthenticationType("custom");
     kafkaConnectorProperties.setTopic(kafkaTopic);
     String jsonString =
@@ -225,7 +225,7 @@ public class KafkaIntegrationTest {
     kafkaTopic.setTopicName(TOPIC);
     kafkaTopic.setBootstrapServers(BOOTSTRAP_SERVERS);
     KafkaConnectorProperties kafkaConnectorProperties = new KafkaConnectorProperties();
-    kafkaConnectorProperties.setAutoOffsetReset("earliest");
+    kafkaConnectorProperties.setAutoOffsetReset(KafkaConnectorProperties.AutoOffsetReset.EARLIEST);
     kafkaConnectorProperties.setAuthenticationType("custom");
     kafkaConnectorProperties.setOffsets("0,0");
     kafkaConnectorProperties.setTopic(kafkaTopic);

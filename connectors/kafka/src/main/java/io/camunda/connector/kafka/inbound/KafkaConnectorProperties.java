@@ -28,7 +28,19 @@ public class KafkaConnectorProperties {
 
   private Object offsets;
 
-  @NotNull private String autoOffsetReset;
+  @NotNull private AutoOffsetReset autoOffsetReset = AutoOffsetReset.NONE;
+
+  public enum AutoOffsetReset {
+    NONE("none"),
+    LATEST("latest"),
+    EARLIEST("earliest");
+
+    public final String label;
+
+    private AutoOffsetReset(String label) {
+      this.label = label;
+    }
+  }
 
   public String getAuthenticationType() {
     return authenticationType;
@@ -38,7 +50,7 @@ public class KafkaConnectorProperties {
     this.authenticationType = authenticationType;
   }
 
-  public String getAutoOffsetReset() {
+  public AutoOffsetReset getAutoOffsetReset() {
     return autoOffsetReset;
   }
 
@@ -50,7 +62,7 @@ public class KafkaConnectorProperties {
     this.offsets = offsets;
   }
 
-  public void setAutoOffsetReset(String autoOffsetReset) {
+  public void setAutoOffsetReset(AutoOffsetReset autoOffsetReset) {
     this.autoOffsetReset = autoOffsetReset;
   }
 

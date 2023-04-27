@@ -93,8 +93,7 @@ public class KafkaExecutable implements InboundConnectorExecutable {
                         record.key(), record.value());
                     InboundConnectorResult<?> result =
                         connectorContext.correlate(
-                            convertConsumerRecordToKafkaInboundMessage(
-                                record));
+                            convertConsumerRecordToKafkaInboundMessage(record));
                     if (result.isActivated()) {
                       LOG.debug(
                           "Inbound event correlated successfully: {}", result.getResponseData());
@@ -201,9 +200,12 @@ public class KafkaExecutable implements InboundConnectorExecutable {
           ConsumerConfig.GROUP_ID_CONFIG,
           DEFAULT_GROUP_ID_PREFIX
               + "-"
-              + context.getProperties().getCorrelationPointId()); // GROUP_ID_CONFIG is mandatory. It will be used to assign a clint id
+              + context
+                  .getProperties()
+                  .getCorrelationPointId()); // GROUP_ID_CONFIG is mandatory. It will be used to
+      // assign a client id
     }
-    kafkaProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, props.getAutoOffsetReset());
+    kafkaProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, props.getAutoOffsetReset().toString());
     kafkaProps.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
     kafkaProps.put(TopicConfig.RETENTION_MS_CONFIG, -1);
     kafkaProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, DEFAULT_KEY_DESERIALIZER);

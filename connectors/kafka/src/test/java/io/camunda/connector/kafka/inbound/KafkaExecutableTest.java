@@ -64,7 +64,7 @@ public class KafkaExecutableTest {
     kafkaTopic.setTopicName(topic);
     kafkaTopic.setBootstrapServers("localhost:9092");
     kafkaConnectorProperties = new KafkaConnectorProperties();
-    kafkaConnectorProperties.setAutoOffsetReset("none");
+    kafkaConnectorProperties.setAutoOffsetReset(KafkaConnectorProperties.AutoOffsetReset.NONE);
     kafkaConnectorProperties.setAuthenticationType("custom");
     kafkaConnectorProperties.setTopic(kafkaTopic);
     String jsonString =
