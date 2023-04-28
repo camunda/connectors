@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.kafka.inbound;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.kafka.outbound.model.KafkaAuthentication;
 import io.camunda.connector.kafka.outbound.model.KafkaTopic;
@@ -31,14 +32,22 @@ public class KafkaConnectorProperties {
   @NotNull private AutoOffsetReset autoOffsetReset = AutoOffsetReset.NONE;
 
   public enum AutoOffsetReset {
+    @JsonProperty("none")
     NONE("none"),
+    @JsonProperty("latest")
     LATEST("latest"),
+    @JsonProperty("earliest")
     EARLIEST("earliest");
 
     public final String label;
 
     private AutoOffsetReset(String label) {
       this.label = label;
+    }
+
+    @Override
+    public String toString() {
+      return this.label;
     }
   }
 

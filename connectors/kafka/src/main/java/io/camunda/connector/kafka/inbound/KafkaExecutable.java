@@ -101,7 +101,9 @@ public class KafkaExecutable implements InboundConnectorExecutable {
                       LOG.debug("Inbound event not correlated: {}", result.getErrorData());
                     }
                   }
-                  this.consumer.commitSync();
+                  if (!records.isEmpty()) {
+                    this.consumer.commitSync();
+                  }
                 }
               } catch (ConnectorInputException e) {
                 LOG.warn("Failed to parse message body: {}", e.getMessage());

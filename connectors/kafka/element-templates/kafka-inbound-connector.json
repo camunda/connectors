@@ -66,7 +66,7 @@
     },
     {
       "label": "Username",
-      "description": "Provide the username (must have permissions to produce message to the topic)",
+      "description": "Provide the username (must have permissions to produce message to the topic).",
       "group": "authentication",
       "type": "String",
       "feel":"optional",
@@ -82,7 +82,7 @@
     },
     {
       "label": "Password",
-      "description": "Provide a password for the user",
+      "description": "Provide a password for the user.",
       "group": "authentication",
       "type": "String",
       "feel":"optional",
@@ -98,7 +98,7 @@
     },
     {
       "label": "Bootstrap Servers",
-      "description": "Provide bootstrap server(s), comma-delimited if there are multiple",
+      "description": "Provide bootstrap server(s), comma-delimited if there are multiple.",
       "group": "kafka",
       "type": "String",
       "feel":"optional",
@@ -112,7 +112,7 @@
     },
     {
       "label": "Topic",
-      "description": "Provide topic name",
+      "description": "Provide the topic name.",
       "group": "kafka",
       "type": "String",
       "feel":"optional",
@@ -126,7 +126,7 @@
     },
     {
       "label": "Additional Properties",
-      "description": "Provide additional Kafka producer properties in JSON",
+      "description": "Provide additional Kafka consumer properties in JSON.",
       "group": "kafka",
       "type": "String",
       "optional": true,
@@ -150,16 +150,12 @@
     },
     {
       "label": "Auto offset reset",
-      "description": "What to do when there is no initial offset in Kafka or if the current offset does not exist any more on the server",
+      "description": "What to do when there is no initial offset in Kafka or if the current offset does not exist any more on the server. You should only select none if you specified the offsets.",
       "id": "autoOffsetReset",
       "group": "kafka",
       "type": "Dropdown",
-      "value": "none",
+      "value": "latest",
       "choices": [
-        {
-          "name": "None",
-          "value": "none"
-        },
         {
           "name": "Latest",
           "value": "latest"
@@ -167,6 +163,10 @@
         {
           "name": "Earliest",
           "value": "earliest"
+        },
+        {
+          "name": "None",
+          "value": "none"
         }
       ],
       "binding": {
@@ -184,7 +184,7 @@
         "type": "zeebe:property",
         "name": "activationCondition"
       },
-      "description": "Condition under which the Connector triggers. Leave empty to catch all events"
+      "description": "Condition under which the Connector triggers. Leave empty to catch all events."
     },
     {
       "label": "Result Variable",
@@ -195,11 +195,11 @@
         "type": "zeebe:property",
         "name": "resultVariable"
       },
-      "description": "Name of variable to store the result of the Connector in"
+      "description": "Name of variable to store the result of the Connector in."
     },
     {
       "label": "Result Expression",
-      "description": "Expression to map the inbound payload to process variables",
+      "description": "Expression to map the inbound payload to process variables.",
       "group": "variable-mapping",
       "type": "Text",
       "feel": "required",
@@ -210,7 +210,7 @@
     },
     {
       "label": "Error Expression",
-      "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
+      "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>.",
       "group": "errors",
       "type": "Text",
       "feel": "required",
