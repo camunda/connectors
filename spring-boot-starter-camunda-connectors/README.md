@@ -53,7 +53,7 @@ For example:
   <dependencies>
     <dependency>
       <groupId>io.camunda</groupId>
-      <artifactId>spring-zeebe-connector-runtime</artifactId>
+      <artifactId>spring-boot-starter-camunda-connectors</artifactId>
       <version>${version.spring-zeebe}</version>
     </dependency>
     <dependency>
