@@ -367,12 +367,12 @@ limitations under the License.</license.inlineheader>
               <licenseMerge>MIT|MIT License|The MIT License|MIT license|The MIT License (MIT)</licenseMerge>
               <licenseMerge>MIT-0</licenseMerge>
               <licenseMerge>BSD-2-Clause|BSD 2-Clause License</licenseMerge>
-              <licenseMerge>BSD-3-Clause|3-Clause BSD License|BSD|BSD New license|BSD 3-clause|The BSD License</licenseMerge>
-              <licenseMerge>EPL-1.0|Eclipse Public License - v 1.0|Eclipse Public License v. 1.0</licenseMerge>
+              <licenseMerge>BSD-3-Clause|3-Clause BSD License|BSD|BSD New license|BSD 3-clause|The BSD License|BSD License 3</licenseMerge>
+              <licenseMerge>EPL-1.0|Eclipse Public License - v 1.0|Eclipse Public License v. 1.0|Eclipse Public License 1.0</licenseMerge>
               <licenseMerge>EPL-2.0|Eclipse Public License v. 2.0|EPL 2.0</licenseMerge>
               <licenseMerge>GPLv2|GPL v2</licenseMerge>
               <licenseMerge>GPLv2 with Classpath Exception|GPL2 w/ CPE|GNU General Public License, version 2 with the GNU Classpath Exception|CDDL + GPLv2 with classpath exception</licenseMerge>
-              <licenseMerge>GNU Lesser General Public License, Version 2.1|GNU Lesser General Public License|LGPL, version 2.1</licenseMerge>
+              <licenseMerge>GNU Lesser General Public License, Version 2.1|GNU Lesser General Public License|LGPL, version 2.1|GNU LESSER GENERAL PUBLIC LICENSE, Version 2.1|LGPL-2.1-or-later</licenseMerge>
               <licenseMerge>CDDLv1.0|COMMON DEVELOPMENT AND DISTRIBUTION LICENSE (CDDL) Version 1.0</licenseMerge>
               <licenseMerge>Bouncy Castle|Bouncy Castle Licence</licenseMerge>
               <licenseMerge>Go Licence</licenseMerge>
