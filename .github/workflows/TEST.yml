@@ -54,9 +54,9 @@ jobs:
       - name: Lint Connector Bundle Dockerfile - SaaS
         uses: hadolint/hadolint-action@v3.1.0
         with:
-          dockerfile: bundle/mvn/camunda-saas-bundle/Dockerfile
+          dockerfile: bundle/camunda-saas-bundle/Dockerfile
 
       - name: Lint Connector Bundle Dockerfile - default-bundle
         uses: hadolint/hadolint-action@v3.1.0
         with:
-          dockerfile: bundle/mvn/default-bundle/Dockerfile
+          dockerfile: bundle/default-bundle/Dockerfile

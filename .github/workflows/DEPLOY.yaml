@@ -61,12 +61,12 @@ jobs:
       - name: Lint Connector Bundle Dockerfile - SaaS
         uses: hadolint/hadolint-action@v3.1.0
         with:
-          dockerfile: bundle/mvn/camunda-saas-bundle/Dockerfile
+          dockerfile: bundle/camunda-saas-bundle/Dockerfile
 
       - name: Lint Connector Bundle Dockerfile - default-bundle
         uses: hadolint/hadolint-action@v3.1.0
         with:
-          dockerfile: bundle/mvn/default-bundle/Dockerfile
+          dockerfile: bundle/default-bundle/Dockerfile
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -86,7 +86,7 @@ jobs:
       - name: Build and Push Docker Image tag SNAPSHOT - bundle-default
         uses: docker/build-push-action@v4
         with:
-          context: bundle/mvn/default-bundle/
+          context: bundle/default-bundle/
           push: ${{ github.ref == 'refs/heads/main' }}
           tags: camunda/connectors-bundle:SNAPSHOT
           platforms: linux/amd64,linux/arm64
@@ -95,7 +95,7 @@ jobs:
       - name: Build and Push Docker Image tag SNAPSHOT - bundle-saas
         uses: docker/build-push-action@v4
         with:
-          context: bundle/mvn/camunda-saas-bundle/
+          context: bundle/camunda-saas-bundle/
           push: ${{ github.ref == 'refs/heads/main' }}
           tags: camunda/connectors-bundle-saas:SNAPSHOT
           platforms: linux/amd64,linux/arm64
