@@ -13,7 +13,7 @@
   <dependencies>
     <dependency>
       <groupId>io.camunda.connector</groupId>
-      <artifactId>spring-boot-starter-connectors</artifactId>
+      <artifactId>spring-boot-starter-camunda-connectors</artifactId>
     </dependency>
     <dependency>
       <groupId>io.micrometer</groupId>

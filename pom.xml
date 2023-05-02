@@ -56,7 +56,7 @@
     <module>connector-archetype-internal</module>
     <module>connectors</module>
     <module>bundle</module>
-    <module>spring-boot-starter-connectors</module>
+    <module>spring-boot-starter-camunda-connectors</module>
   </modules>
 
   <dependencyManagement>

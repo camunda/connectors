@@ -10,7 +10,7 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <artifactId>spring-boot-starter-connectors</artifactId>
+  <artifactId>spring-boot-starter-camunda-connectors</artifactId>
 
   <description>
     An implementation of the Camunda 8 Connectors Runtime based on Spring Zeebe.
