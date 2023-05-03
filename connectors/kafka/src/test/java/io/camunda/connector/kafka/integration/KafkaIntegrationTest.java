@@ -20,7 +20,6 @@ import io.camunda.connector.impl.inbound.result.MessageCorrelationResult;
 import io.camunda.connector.kafka.inbound.KafkaConnectorProperties;
 import io.camunda.connector.kafka.inbound.KafkaExecutable;
 import io.camunda.connector.kafka.inbound.KafkaInboundMessage;
-import io.camunda.connector.kafka.inbound.ProcessCorrelationPointTest;
 import io.camunda.connector.kafka.outbound.KafkaConnectorFunction;
 import io.camunda.connector.kafka.outbound.model.KafkaAuthentication;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorRequest;
@@ -54,6 +53,8 @@ public class KafkaIntegrationTest {
 
   private static final String TOPIC = "my-topic";
   private static String BOOTSTRAP_SERVERS;
+
+  private final String processId = "Process_id";
 
   @ClassRule
   private static final KafkaContainer kafkaContainer =
@@ -143,7 +144,7 @@ public class KafkaIntegrationTest {
             .properties(
                 InboundConnectorPropertiesBuilder.create()
                     .properties(propertiesMap)
-                    .correlationPoint(new ProcessCorrelationPointTest()))
+                    .bpmnProcessId(processId))
             .build();
     KafkaExecutable executable = new KafkaExecutable();
 
@@ -154,7 +155,7 @@ public class KafkaIntegrationTest {
             () -> {
               try {
                 executable.activate(context);
-                executable.future.get();
+                executable.kafkaConnectorConsumer.future.get();
               } catch (Exception ex) {
                 throw ex.getCause();
               }
@@ -196,7 +197,7 @@ public class KafkaIntegrationTest {
             .properties(
                 InboundConnectorPropertiesBuilder.create()
                     .properties(propertiesMap)
-                    .correlationPoint(new ProcessCorrelationPointTest()))
+                    .bpmnProcessId(processId))
             .build();
     KafkaExecutable executable = new KafkaExecutable();
 
@@ -248,7 +249,7 @@ public class KafkaIntegrationTest {
             .properties(
                 InboundConnectorPropertiesBuilder.create()
                     .properties(propertiesMap)
-                    .correlationPoint(new ProcessCorrelationPointTest()))
+                    .bpmnProcessId(processId))
             .build();
     KafkaExecutable executable = new KafkaExecutable();
 

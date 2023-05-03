@@ -6,10 +6,10 @@
  */
 package io.camunda.connector.kafka.inbound;
 
-import static io.camunda.connector.kafka.inbound.KafkaExecutable.DEFAULT_KEY_DESERIALIZER;
+import static io.camunda.connector.kafka.inbound.KafkaPropertyTransformer.DEFAULT_KEY_DESERIALIZER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doAnswer;
@@ -57,6 +57,8 @@ public class KafkaExecutableTest {
 
   private String topic;
 
+  private final String processId = "Process_id";
+
   @BeforeEach
   public void setUp() {
     topic = "my-topic";
@@ -87,7 +89,7 @@ public class KafkaExecutableTest {
             .properties(
                 InboundConnectorPropertiesBuilder.create()
                     .properties(propertiesMap)
-                    .correlationPoint(new ProcessCorrelationPointTest()))
+                    .bpmnProcessId(processId))
             .build();
     originalContext = context;
   }
@@ -106,15 +108,15 @@ public class KafkaExecutableTest {
     kafkaExecutable.activate(context);
 
     // Then
-    assertNotNull(kafkaExecutable.consumer);
-    assertEquals(mockConsumer, kafkaExecutable.consumer);
+    assertNotNull(kafkaExecutable.kafkaConnectorConsumer.consumer);
+    assertEquals(mockConsumer, kafkaExecutable.kafkaConnectorConsumer.consumer);
     assertEquals(originalContext, context);
     verify(mockConsumer, times(1)).partitionsFor(topic);
     verify(mockConsumer, times(1)).assign(argThat(list -> list.size() == topicPartitions.size()));
     verify(mockConsumer, timeout(100)).poll(any());
-    assertNotNull(kafkaExecutable.future);
-    kafkaExecutable.shouldLoop = false;
-    kafkaExecutable.future.get(3, TimeUnit.SECONDS);
+    assertNotNull(kafkaExecutable.kafkaConnectorConsumer.future);
+    kafkaExecutable.kafkaConnectorConsumer.shouldLoop = false;
+    kafkaExecutable.kafkaConnectorConsumer.future.get(3, TimeUnit.SECONDS);
   }
 
   @Test
@@ -130,18 +132,16 @@ public class KafkaExecutableTest {
 
     // Then
     assertEquals(originalContext, context);
-    assertNotNull(kafkaExecutable.consumer);
-    assertTrue(kafkaExecutable.shouldLoop);
-    kafkaExecutable.future.get(3, TimeUnit.SECONDS);
+    assertNotNull(kafkaExecutable.kafkaConnectorConsumer.consumer);
+    assertFalse(kafkaExecutable.kafkaConnectorConsumer.shouldLoop);
+    kafkaExecutable.kafkaConnectorConsumer.future.get(3, TimeUnit.SECONDS);
   }
 
   @Test
   void testGetKafkaProperties() throws Exception {
-    // Given
-    KafkaExecutable kafkaExecutable = getConsumerMock();
-
     // When
-    Properties properties = kafkaExecutable.getKafkaProperties(kafkaConnectorProperties, context);
+    Properties properties =
+        KafkaPropertyTransformer.getKafkaProperties(kafkaConnectorProperties, context);
 
     // Then
     assertEquals("localhost:9092", properties.get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG));
@@ -151,18 +151,14 @@ public class KafkaExecutableTest {
         DEFAULT_KEY_DESERIALIZER, properties.get(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG));
     assertEquals(false, properties.get(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG));
     assertEquals(
-        "kafka-inbound-connector-test-correlation-id",
-        properties.get(ConsumerConfig.GROUP_ID_CONFIG));
+        "kafka-inbound-connector-" + processId, properties.get(ConsumerConfig.GROUP_ID_CONFIG));
   }
 
   @ParameterizedTest
   @MethodSource("provideStringsForGetOffsets")
   public void testGetOffsets(Object input, List<Long> expected) {
-    // Given
-    KafkaExecutable kafkaExecutable = getConsumerMock();
-
     // When
-    var result = kafkaExecutable.getOffsets(input);
+    var result = KafkaPropertyTransformer.getOffsets(input);
 
     // Then
     assertEquals(expected, result);
@@ -178,12 +174,9 @@ public class KafkaExecutableTest {
 
   @Test
   public void testConvertConsumerRecordToKafkaInboundMessage() {
-    // Given
-    KafkaExecutable kafkaExecutable = getConsumerMock();
-
     // When
     KafkaInboundMessage kafkaInboundMessage =
-        kafkaExecutable.convertConsumerRecordToKafkaInboundMessage(
+        KafkaPropertyTransformer.convertConsumerRecordToKafkaInboundMessage(
             new ConsumerRecord<>("my-topic", 0, 0, "my-key", "{\"foo\": \"bar\"}"));
 
     // Then
