@@ -45,7 +45,9 @@ public class KafkaPropertyTransformer {
     } else {
       // We accept only List or String input for offsets
       throw new IllegalArgumentException(
-          "Invalid input type for offsets. Supported types are: List<Long> and String. Got " +  offsets.getClass() + " instead.");
+          "Invalid input type for offsets. Supported types are: List<Long> and String. Got "
+              + offsets.getClass()
+              + " instead.");
     }
     return offsetCollection;
   }

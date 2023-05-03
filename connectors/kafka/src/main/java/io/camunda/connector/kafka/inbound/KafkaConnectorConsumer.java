@@ -123,8 +123,8 @@ public class KafkaConnectorConsumer {
     if (offsets != null) {
       if (partitions.size() != offsets.size()) {
         throw new ConnectorInputException(
-                new IllegalArgumentException(
-                        "Number of offsets provided is not equal the number of partitions!"));
+            new IllegalArgumentException(
+                "Number of offsets provided is not equal the number of partitions!"));
       }
       for (int i = 0; i < offsets.size(); i++) {
         consumer.seek(topicPartitions.get(i), offsets.get(i));
