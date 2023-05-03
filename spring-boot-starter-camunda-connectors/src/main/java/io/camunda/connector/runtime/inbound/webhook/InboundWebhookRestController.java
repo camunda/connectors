@@ -25,12 +25,17 @@ import io.camunda.connector.runtime.inbound.webhook.signature.HMACSwitchCustomer
 import io.camunda.connector.runtime.util.feel.FeelEngineWrapper;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -71,7 +76,8 @@ public class InboundWebhookRestController {
   public ResponseEntity<WebhookResponse> inbound(
       @PathVariable String context,
       @RequestBody(required = false) byte[] bodyAsByteArray, // raw form required to calculate HMAC
-      @RequestHeader Map<String, String> headers)
+      @RequestHeader Map<String, String> headers,
+      @RequestHeader(value = "Content-type", required = false) String contentType)
       throws IOException {
 
     LOG.debug("Received inbound hook on {}", context);
@@ -87,10 +93,28 @@ public class InboundWebhookRestController {
 
     // TODO(nikku): what context do we expose?
     // TODO(igpetrov): handling exceptions? Throw or fail? Maybe spring controller advice?
-    Map bodyAsMap =
-        bodyAsByteArray == null
-            ? Collections.emptyMap()
-            : jsonMapper.readValue(bodyAsByteArray, Map.class);
+    boolean isURLFormContentType =
+        Optional.ofNullable(contentType)
+            .map(
+                contentHeaderType ->
+                    contentHeaderType.equalsIgnoreCase("application/x-www-form-urlencoded"))
+            .orElse(false);
+
+    Map<String, String> bodyAsMap;
+    if (isURLFormContentType && bodyAsByteArray != null) {
+      String bodyAsString = new String(bodyAsByteArray, StandardCharsets.UTF_8);
+      bodyAsMap =
+          Arrays.stream(bodyAsString.split("&"))
+              .filter(Objects::nonNull)
+              .map(param -> param.split("="))
+              .filter(param -> param.length > 1)
+              .collect(Collectors.toMap(param -> param[0], param -> param[1]));
+    } else {
+      bodyAsMap =
+          bodyAsByteArray == null
+              ? Collections.emptyMap()
+              : jsonMapper.readValue(bodyAsByteArray, Map.class);
+    }
 
     HashMap<String, Object> request = new HashMap<>();
     request.put("body", bodyAsMap);
