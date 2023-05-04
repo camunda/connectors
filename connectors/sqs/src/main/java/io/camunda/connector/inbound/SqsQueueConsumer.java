@@ -14,31 +14,56 @@ import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorResult;
 import io.camunda.connector.inbound.model.SqsInboundProperties;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SqsQueueConsumer {
+public class SqsQueueConsumer implements Runnable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(SqsQueueConsumer.class);
 
   private final AmazonSQS sqsClient;
   private final SqsInboundProperties properties;
   private final InboundConnectorContext context;
+  private final AtomicBoolean isActivated;
 
   public SqsQueueConsumer(
-      AmazonSQS sqsClient, SqsInboundProperties properties, InboundConnectorContext context) {
+      AmazonSQS sqsClient,
+      SqsInboundProperties properties,
+      InboundConnectorContext context,
+      AtomicBoolean isActivated) {
     this.sqsClient = sqsClient;
     this.properties = properties;
     this.context = context;
+    this.isActivated = isActivated;
   }
 
-  public void consumeQueueUntilActivated() {
+  @Override
+  public void run() {
     LOGGER.info("Started SQS consumer for queue {}", properties.getQueue().getName());
-    boolean isNotActivated = true;
+    final ReceiveMessageRequest receiveMessageRequest = createReceiveMessageRequest();
+    ReceiveMessageResult receiveMessageResult;
+    do {
+      receiveMessageResult = sqsClient.receiveMessage(receiveMessageRequest);
+      List<Message> messages = receiveMessageResult.getMessages();
+      for (Message message : messages) {
+        InboundConnectorResult<?> correlate = context.correlate(message);
+        if (correlate.isActivated()) {
+          LOGGER.debug("Inbound event correlated successfully: {}", correlate.getResponseData());
+        } else {
+          LOGGER.debug("Inbound event not correlated: {}", correlate.getErrorData());
+        }
+      }
+    } while (isActivated.get());
+    LOGGER.info("Stopping SQS consumer for queue {}", properties.getQueue().getName());
+  }
+
+  private ReceiveMessageRequest createReceiveMessageRequest() {
     ReceiveMessageRequest receiveMessageRequest =
         new ReceiveMessageRequest()
             .withWaitTimeSeconds(1)
             .withQueueUrl(properties.getQueue().getName());
+
     if (properties.getQueue().isContainAttributeNames()) {
       receiveMessageRequest.withAttributeNames(properties.getQueue().getAttributeNames());
     }
@@ -46,17 +71,7 @@ public class SqsQueueConsumer {
       receiveMessageRequest.withMessageAttributeNames(
           properties.getQueue().getMessageAttributeNames());
     }
-    do {
-      ReceiveMessageResult receiveMessageResult = sqsClient.receiveMessage(receiveMessageRequest);
 
-      List<Message> messages = receiveMessageResult.getMessages();
-      for (Message message : messages) {
-        InboundConnectorResult<?> correlate = context.correlate(message);
-        if (correlate.isActivated()) {
-          isNotActivated = false;
-          break;
-        }
-      }
-    } while (isNotActivated);
+    return receiveMessageRequest;
   }
 }

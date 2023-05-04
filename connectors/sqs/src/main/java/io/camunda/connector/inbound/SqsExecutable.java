@@ -13,28 +13,40 @@ import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.common.suppliers.AmazonSQSClientSupplier;
 import io.camunda.connector.common.suppliers.DefaultAmazonSQSClientSupplier;
 import io.camunda.connector.inbound.model.SqsInboundProperties;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@InboundConnector(name = "AWSSQS_INBOUND", type = "io.camunda:connector-aws-sqs-inbound:1")
+@InboundConnector(name = "AWSSQS_POLLING", type = "io.camunda:connector-aws-sqs-polling:1")
 public class SqsExecutable implements InboundConnectorExecutable {
   private static final Logger LOGGER = LoggerFactory.getLogger(SqsExecutable.class);
 
   private final AmazonSQSClientSupplier sqsClientSupplier;
+  private final ExecutorService executorService;
   private AmazonSQS amazonSQS;
+  private final AtomicBoolean isActivated;
 
   public SqsExecutable() {
     this.sqsClientSupplier = new DefaultAmazonSQSClientSupplier();
+    this.executorService = Executors.newSingleThreadExecutor();
+    this.isActivated = new AtomicBoolean(false);
   }
 
-  public SqsExecutable(final AmazonSQSClientSupplier sqsClientSupplier) {
+  public SqsExecutable(
+      final AmazonSQSClientSupplier sqsClientSupplier,
+      final ExecutorService executorService,
+      final AtomicBoolean isActivated) {
     this.sqsClientSupplier = sqsClientSupplier;
+    this.executorService = executorService;
+    this.isActivated = isActivated;
   }
 
   @Override
   public void activate(final InboundConnectorContext context) {
     SqsInboundProperties properties = context.getPropertiesAsType(SqsInboundProperties.class);
-
     LOGGER.info("Subscription activation requested by the Connector runtime: {}", properties);
 
     context.replaceSecrets(properties);
@@ -45,16 +57,35 @@ public class SqsExecutable implements InboundConnectorExecutable {
             properties.getAuthentication().getAccessKey(),
             properties.getAuthentication().getSecretKey(),
             properties.getQueue().getRegion());
+    LOGGER.debug("SQS client created successfully");
 
-    SqsQueueConsumer sqsQueueConsumer = new SqsQueueConsumer(amazonSQS, properties, context);
-
-    sqsQueueConsumer.consumeQueueUntilActivated();
+    isActivated.set(true);
+    executorService.execute(new SqsQueueConsumer(amazonSQS, properties, context, isActivated));
+    LOGGER.debug("SQS queue consumer started successfully");
   }
 
   @Override
   public void deactivate() {
+    isActivated.set(false);
+    LOGGER.debug("Deactivating subscription");
+    if (executorService != null) {
+      LOGGER.debug("Shutting down executor service");
+      executorService.shutdown();
+      try {
+        if (!executorService.awaitTermination(800, TimeUnit.MILLISECONDS)) {
+          LOGGER.debug("Executor service did not terminate gracefully, forcing shutdown");
+          executorService.shutdownNow();
+        }
+      } catch (InterruptedException e) {
+        LOGGER.debug(
+            "Interrupted while waiting for executor service to terminate, forcing shutdown");
+        executorService.shutdownNow();
+      }
+    }
     if (amazonSQS != null) {
+      LOGGER.debug("Shutting down SQS client");
       amazonSQS.shutdown();
+      LOGGER.debug("SQS client shut down successfully");
     }
   }
 }
