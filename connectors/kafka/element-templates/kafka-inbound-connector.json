@@ -125,7 +125,7 @@
       }
     },
     {
-      "label": "Additional Properties",
+      "label": "Additional properties",
       "description": "Provide additional Kafka consumer properties in JSON",
       "group": "kafka",
       "type": "String",
@@ -187,7 +187,7 @@
       "description": "Condition under which the Connector triggers. Leave empty to catch all events"
     },
     {
-      "label": "Result Variable",
+      "label": "Result variable",
       "type": "String",
       "group": "variable-mapping",
       "optional": true,
@@ -198,7 +198,7 @@
       "description": "Name of variable to store the result of the Connector in"
     },
     {
-      "label": "Result Expression",
+      "label": "Result expression",
       "description": "Expression to map the inbound payload to process variables",
       "group": "variable-mapping",
       "type": "Text",
@@ -209,7 +209,7 @@
       }
     },
     {
-      "label": "Error Expression",
+      "label": "Error expression",
       "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
       "group": "errors",
       "type": "Text",

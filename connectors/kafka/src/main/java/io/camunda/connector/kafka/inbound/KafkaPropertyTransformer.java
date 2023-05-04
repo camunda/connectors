@@ -27,11 +27,12 @@ import org.slf4j.LoggerFactory;
 
 public class KafkaPropertyTransformer {
 
+  private static final Logger LOG = LoggerFactory.getLogger(KafkaPropertyTransformer.class);
+
   static final String DEFAULT_GROUP_ID_PREFIX = "kafka-inbound-connector";
 
   protected static final String DEFAULT_KEY_DESERIALIZER =
       "org.apache.kafka.common.serialization.StringDeserializer";
-  private static final Logger LOG = LoggerFactory.getLogger(KafkaPropertyTransformer.class);
 
   public static List<Long> getOffsets(Object offsets) {
     if (offsets == null) {

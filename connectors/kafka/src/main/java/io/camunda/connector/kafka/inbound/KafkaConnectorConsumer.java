@@ -32,7 +32,7 @@ public class KafkaConnectorConsumer {
 
   private static final Logger LOG = LoggerFactory.getLogger(KafkaConnectorConsumer.class);
 
-  private InboundConnectorContext context;
+  private final InboundConnectorContext context;
 
   public CompletableFuture<?> future;
 
@@ -40,14 +40,14 @@ public class KafkaConnectorConsumer {
 
   boolean shouldLoop = true;
 
-  private KafkaConnectorProperties elementProps;
+  private final KafkaConnectorProperties elementProps;
 
   private final Function<Properties, Consumer<String, String>> consumerCreatorFunction;
 
   public KafkaConnectorConsumer(
       final Function<Properties, Consumer<String, String>> consumerCreatorFunction,
-      InboundConnectorContext connectorContext,
-      KafkaConnectorProperties elementProps) {
+      final InboundConnectorContext connectorContext,
+      final KafkaConnectorProperties elementProps) {
     this.consumerCreatorFunction = consumerCreatorFunction;
     this.context = connectorContext;
     this.elementProps = elementProps;
