@@ -70,7 +70,7 @@
     },
     {
       "id": "shouldValidateHmac",
-      "label": "HMAC Authentication",
+      "label": "HMAC authentication",
       "group": "endpoint",
       "description": "Choose whether HMAC verification is enabled. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/#make-your-http-webhook-connector-for-receiving-messages-executable' target='_blank'>See documentation</a> and <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/#example' target='_blank'>example</a> that explains how to use HMAC-related fields",
       "value": "disabled",
@@ -91,7 +91,7 @@
       }
     },
     {
-      "label": "HMAC Secret Key",
+      "label": "HMAC secret key",
       "description": "Shared secret key",
       "type": "String",
       "group": "endpoint",
@@ -106,7 +106,7 @@
       }
     },
     {
-      "label": "HMAC Header",
+      "label": "HMAC header",
       "description": "Name of header attribute that will contain the HMAC value",
       "type": "String",
       "group": "endpoint",
@@ -121,7 +121,7 @@
       }
     },
     {
-      "label": "HMAC Algorithm",
+      "label": "HMAC algorithm",
       "group": "endpoint",
       "description": "Choose HMAC algorithm",
       "value": "sha_256",
@@ -153,8 +153,8 @@
       "label": "Correlation key (process)",
       "type": "String",
       "group": "activation",
-      "feel": "optional",
-      "description": "Sets up the correlation key from process variables.",
+      "feel": "required",
+      "description": "Sets up the correlation key from process variables",
       "binding": {
         "type": "bpmn:Message#zeebe:subscription#property",
         "name": "correlationKey"
@@ -172,7 +172,7 @@
         "type": "zeebe:property",
         "name": "correlationKeyExpression"
       },
-      "description": "Extracts the correlation key from the incoming message payload.",
+      "description": "Extracts the correlation key from the incoming message payload",
       "constraints": {
         "notEmpty": true
       }
