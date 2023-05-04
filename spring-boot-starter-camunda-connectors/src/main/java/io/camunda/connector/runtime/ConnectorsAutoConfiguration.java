@@ -23,6 +23,7 @@ import io.camunda.connector.runtime.env.SpringSecretProvider;
 import io.camunda.connector.runtime.inbound.InboundConnectorRuntimeConfiguration;
 import io.camunda.connector.runtime.outbound.OutboundConnectorRuntimeConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.env.Environment;
@@ -34,11 +35,13 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 public class ConnectorsAutoConfiguration {
 
   @Bean
+  @ConditionalOnMissingBean
   public SecretProvider springSecretProvider(Environment environment) {
     return new SpringSecretProvider(environment);
   }
 
   @Bean
+  @ConditionalOnMissingBean
   public ConnectorPropertyResolver springConnectorPropertyResolver(Environment environment) {
     return new SpringConnectorPropertyResolver(environment);
   }

@@ -167,14 +167,14 @@ It uses the default configuration specified through the `@OutboundConnector` ann
 
 ```bash
 java -cp 'connector-runtime-VERSION-with-dependencies.jar:connector-http-json-VERSION-with-dependencies.jar' \
-    io.camunda.connector.runtime.ConnectorRuntimeApplication
+    io.camunda.connector.bundle.ConnectorRuntimeApplication
 ```
 
 Note that you need to use `;` instead of `:` on Windows machines:
 
 ```bash
 java -cp 'connector-runtime-VERSION-with-dependencies.jar;connector-http-json-VERSION-with-dependencies.jar' \
-    io.camunda.connector.runtime.ConnectorRuntimeApplication
+    io.camunda.connector.bundle.ConnectorRuntimeApplication
 ```
 
 #### Manual Discovery
@@ -195,7 +195,7 @@ CONNECTOR_HTTPJSON_FUNCTION=io.camunda.connector.http.HttpJsonFunction
 CONNECTOR_HTTPJSON_TYPE=non-default-httpjson-task-type
 
 java -cp 'connector-runtime-VERSION-with-dependencies.jar:connector-http-json-VERSION-with-dependencies.jar' \
-    io.camunda.connector.runtime.ConnectorRuntimeApplication
+    io.camunda.connector.bundle.ConnectorRuntimeApplication
 ```
 
 ### Secrets

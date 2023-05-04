@@ -22,6 +22,7 @@ import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.impl.outbound.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.util.outbound.ConnectorJobHandler;
 import io.camunda.connector.runtime.util.outbound.ConnectorResult;
+import io.camunda.zeebe.client.api.command.CompleteJobCommandStep1;
 import io.camunda.zeebe.client.api.command.FinalCommandStep;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import io.camunda.zeebe.client.api.worker.JobClient;
@@ -97,7 +98,8 @@ public class SpringConnectorJobHandler extends ConnectorJobHandler {
         MetricsRecorder.METRIC_NAME_OUTBOUND_CONNECTOR,
         MetricsRecorder.ACTION_COMPLETED,
         connectorConfiguration.getType());
-    FinalCommandStep commandStep = client.newCompleteCommand(job.getKey());
-    new CommandWrapper(commandStep, job, commandExceptionHandlingStrategy).executeAsync();
+    CompleteJobCommandStep1 commandStep = client.newCompleteCommand(job.getKey());
+    FinalCommandStep finalCommandStep = commandStep.variables(result.getVariables());
+    new CommandWrapper(finalCommandStep, job, commandExceptionHandlingStrategy).executeAsync();
   }
 }

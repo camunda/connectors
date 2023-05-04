@@ -1,7 +1,7 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Webhook Connector",
-  "id": "io.camunda.connectors.webhook.WebhookConnector.v1",
+  "id": "io.camunda.connectors.webhook.WebhookConnectorIntermediate.v1",
   "version": 1,
   "description": "Configure webhook to receive callbacks",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/",
@@ -10,10 +10,12 @@
     "name": "Connectors"
   },
   "appliesTo": [
-    "bpmn:StartEvent"
+    "bpmn:IntermediateCatchEvent",
+    "bpmn:IntermediateThrowEvent"
   ],
   "elementType": {
-    "value": "bpmn:StartEvent"
+    "value": "bpmn:IntermediateCatchEvent",
+    "eventDefinition": "bpmn:MessageEventDefinition"
   },
   "groups": [
     {
@@ -36,6 +38,16 @@
       "binding": {
         "type": "zeebe:property",
         "name": "inbound.type"
+      }
+    },
+    {
+      "type": "Hidden",
+      "generatedValue": {
+        "type": "uuid"
+      },
+      "binding": {
+        "type": "bpmn:Message#property",
+        "name": "name"
       }
     },
     {
@@ -135,6 +147,34 @@
       "condition": {
         "property": "shouldValidateHmac",
         "equals": "enabled"
+      }
+    },
+    {
+      "label": "Correlation key (process)",
+      "type": "String",
+      "group": "activation",
+      "feel": "required",
+      "description": "Sets up the correlation key from process variables",
+      "binding": {
+        "type": "bpmn:Message#zeebe:subscription#property",
+        "name": "correlationKey"
+      },
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
+      "label": "Correlation key expression (payload)",
+      "type": "String",
+      "group": "activation",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "correlationKeyExpression"
+      },
+      "description": "Extracts the correlation key from the incoming message payload",
+      "constraints": {
+        "notEmpty": true
       }
     },
     {

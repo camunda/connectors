@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.model;
+package io.camunda.connector.kafka.outbound.model;
 
 import io.camunda.connector.api.annotation.Secret;
 import java.util.HashMap;
@@ -76,8 +76,10 @@ public class KafkaConnectorRequest {
     Properties topicProps = this.topic.produceTopicProperties();
     props.putAll(topicProps);
 
-    Properties messageProps = this.message.produceMessageProperties();
-    props.putAll(messageProps);
+    if (this.message != null) { // can be valid in case of inbound
+      Properties messageProps = this.message.produceMessageProperties();
+      props.putAll(messageProps);
+    }
 
     // Step 2: set default recommended properties
     // See the list of possible values at org.apache.kafka.clients.producer.ProducerConfig
