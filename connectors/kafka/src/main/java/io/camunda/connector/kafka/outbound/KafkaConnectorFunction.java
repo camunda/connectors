@@ -4,14 +4,14 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector;
+package io.camunda.connector.kafka.outbound;
 
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import io.camunda.connector.model.KafkaConnectorRequest;
-import io.camunda.connector.model.KafkaConnectorResponse;
+import io.camunda.connector.kafka.outbound.model.KafkaConnectorRequest;
+import io.camunda.connector.kafka.outbound.model.KafkaConnectorResponse;
 import java.util.Properties;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
