@@ -17,6 +17,7 @@ public class SqsInboundQueueProperties {
   @NotEmpty @Secret private String url;
   @Secret private List<String> attributeNames;
   @Secret private List<String> messageAttributeNames;
+  private boolean deleteAfterReceipt;
 
   @Pattern(regexp = "(^[1-9][0-9]?$|^[1][0-1][0-9]$|^120$)|(^secrets\\\\..+)")
   @Secret
@@ -70,6 +71,14 @@ public class SqsInboundQueueProperties {
     this.pollingWaitTime = pollingWaitTime;
   }
 
+  public boolean isDeleteAfterReceipt() {
+    return deleteAfterReceipt;
+  }
+
+  public void setDeleteAfterReceipt(final boolean deleteAfterReceipt) {
+    this.deleteAfterReceipt = deleteAfterReceipt;
+  }
+
   @Override
   public boolean equals(final Object o) {
     if (this == o) {
@@ -79,7 +88,8 @@ public class SqsInboundQueueProperties {
       return false;
     }
     final SqsInboundQueueProperties that = (SqsInboundQueueProperties) o;
-    return Objects.equals(region, that.region)
+    return deleteAfterReceipt == that.deleteAfterReceipt
+        && Objects.equals(region, that.region)
         && Objects.equals(url, that.url)
         && Objects.equals(attributeNames, that.attributeNames)
         && Objects.equals(messageAttributeNames, that.messageAttributeNames)
@@ -88,7 +98,8 @@ public class SqsInboundQueueProperties {
 
   @Override
   public int hashCode() {
-    return Objects.hash(region, url, attributeNames, messageAttributeNames, pollingWaitTime);
+    return Objects.hash(
+        region, url, attributeNames, messageAttributeNames, deleteAfterReceipt, pollingWaitTime);
   }
 
   @Override
@@ -104,6 +115,8 @@ public class SqsInboundQueueProperties {
         + attributeNames
         + ", messageAttributeNames="
         + messageAttributeNames
+        + ", deleteAfterReceipt="
+        + deleteAfterReceipt
         + ", pollingWaitTime='"
         + pollingWaitTime
         + "'"
