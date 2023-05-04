@@ -1,0 +1,542 @@
+{
+  "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name": "GoogleSheets demo connector",
+  "id": "6845432f-5487-42a1-b13c-d60dea6d29b8",
+  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/googlesheets/",
+  "description": "Work with spreadsheets",
+  "category": {
+    "id": "connectors",
+    "name": "Connectors"
+  },
+  "appliesTo": [
+    "bpmn:Task"
+  ],
+  "elementType": {
+    "value": "bpmn:ServiceTask"
+  },
+  "groups": [
+    {
+      "id": "authentication",
+      "label": "Authentication"
+    },
+    {
+      "id": "operation",
+      "label": "Select Operation"
+    },
+    {
+      "id": "operationDetails",
+      "label": "Operation Details"
+    },
+    {
+      "id": "output",
+      "label": "Output Mapping"
+    },
+    {
+      "id": "errors",
+      "label": "Error Handling"
+    }
+  ],
+  "properties": [
+    {
+      "type": "Hidden",
+      "value": "io.camunda:google-sheets:1",
+      "binding": {
+        "type": "zeebe:taskDefinition:type"
+      }
+    },
+    {
+      "id": "authenticationType",
+      "label": "Type",
+      "group": "authentication",
+      "type": "Dropdown",
+      "value": "bearer",
+      "choices": [
+        {
+          "name": "Bearer Token",
+          "value": "bearer"
+        },
+        {
+          "name": "Refresh Token",
+          "value": "refresh"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.authType",
+        "key": "authentication.authType"
+      }
+    },
+    {
+      "label": "Bearer Token",
+      "description": "Enter Google API Bearer token that is authorized to interact with desired Drive",
+      "group": "authentication",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.bearerToken"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "bearer"
+      }
+    },
+    {
+      "label": "Client Id",
+      "description": "Enter Google API Client Id",
+      "group": "authentication",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.oauthClientId"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "refresh"
+      }
+    },
+    {
+      "label": "Client Secret",
+      "description": "Enter Google API Client Secret",
+      "group": "authentication",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.oauthClientSecret"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "refresh"
+      }
+    },
+    {
+      "label": "Refresh Token",
+      "description": "Enter Google API Refresh token that is authorized to interact with desired Drive",
+      "group": "authentication",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.oauthRefreshToken"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "refresh"
+      }
+    },
+    {
+      "id": "resourceType",
+      "group": "operation",
+      "type": "Dropdown",
+      "value": "createSpreadsheet",
+      "choices": [
+        {
+          "name": "Create spreadsheet",
+          "value": "createSpreadsheet"
+        },
+        {
+          "name": "Add values to spreadsheet",
+          "value": "folder"
+        },
+        {
+          "name": "Get spreadsheet details",
+          "value": "file"
+        },
+        {
+          "name": "Create worksheet",
+          "value": "createWorksheet"
+        },
+        {
+          "name": "Get worksheet data",
+          "value": "file"
+        },
+        {
+          "name": "Delete worksheet",
+          "value": "deleteWorkSheet"
+        },
+        {
+          "name": "Create column headers for sheet",
+          "value": "file"
+        },
+        {
+          "name": "Create empty column or row",
+          "value": "addEmptyColumnOrRow"
+        },
+        {
+          "name": "Create row",
+          "value": "file"
+        },
+        {
+          "name": "Delete column",
+          "value": "deleteColumn"
+        },
+        {
+          "name": "Get row by index",
+          "value": "getRowByIndex"
+        },
+        {
+          "name": "Get total active rows",
+          "value": "getTotalActiveRows"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "resource.type",
+        "key": "resource.type"
+      }
+    },
+    {
+      "label": "Spreadsheet name",
+      "description": "Enter name for your spreadsheet",
+      "group": "operationDetails",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "resource.name"
+      },
+      "constraints": {
+        "notEmpty": true,
+        "maxLength": 255
+      },
+      "condition": {
+        "property": "resourceType",
+        "equals": "createSpreadsheet"
+      }
+    },
+    {
+      "label": "Spreadsheet ID",
+      "description": "Enter ID of the spreadsheet where new worksheet will be created",
+      "group": "operationDetails",
+      "type": "String",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "resource.spreadsheet"
+      },
+      "condition": {
+        "property": "resourceType",
+        "equals": "createWorksheet"
+      }
+    },
+    {
+      "label": "Worksheet name",
+      "description": "Enter name for your worksheet",
+      "group": "operationDetails",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "resource.name"
+      },
+      "constraints": {
+        "notEmpty": true,
+        "maxLength": 100
+      },
+      "condition": {
+        "property": "resourceType",
+        "equals": "createWorksheet"
+      }
+    },
+    {
+      "label": "Worksheet number",
+      "description": "Enter number for your worksheet",
+      "group": "operationDetails",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "resource.name"
+      },
+      "constraints": {
+        "notEmpty": false,
+        "maxLength": 100,
+        "pattern": {
+          "value": "^([0-9]*$)|(secrets.*$)",
+          "message": "Must be a number."
+        }
+      },
+      "condition": {
+        "property": "resourceType",
+        "equals": "createWorksheet"
+      }
+    },
+    {
+      "label": "Spreadsheet ID",
+      "description": "Enter the ID of the spreadsheet where You need to get a row",
+      "group": "operationDetails",
+      "type": "String",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "resource.spreadsheet"
+      },
+      "condition": {
+        "property": "resourceType",
+        "equals": "getRowByIndex"
+      }
+    },
+    {
+      "label": "Worksheet name",
+      "description": "Enter the name of the worksheet where You need to get a row",
+      "group": "operationDetails",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "resource.name"
+      },
+      "constraints": {
+        "maxLength": 100
+      },
+      "condition": {
+        "property": "resourceType",
+        "equals": "getRowByIndex"
+      }
+    },
+    {
+      "label": "Row index",
+      "description": "Enter row index",
+      "group": "operationDetails",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "resource.name"
+      },
+      "constraints": {
+        "notEmpty": false,
+        "maxLength": 100,
+        "pattern": {
+          "value": "^([0-9]*$)|(secrets.*$)",
+          "message": "Must be a number."
+        }
+      },
+      "condition": {
+        "property": "resourceType",
+        "equals": "getRowByIndex"
+      }
+    },
+    {
+      "label": "Spreadsheet ID",
+      "description": "Enter the ID of the spreadsheet where You want to add empty row or column",
+      "group": "operationDetails",
+      "type": "String",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "resource.spreadsheet"
+      },
+      "condition": {
+        "property": "resourceType",
+        "equals": "addEmptyColumnOrRow"
+      }
+    },
+    {
+      "label": "Worksheet id",
+      "description": "Enter the id of the worksheet where You need to add empty row or column",
+      "group": "operationDetails",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "resource.name"
+      },
+      "constraints": {
+        "maxLength": 100
+      },
+      "condition": {
+        "property": "resourceType",
+        "equals": "addEmptyColumnOrRow"
+      }
+    },
+    {
+      "label": "Dimension",
+      "description": "Enter what You want to add: column or row",
+      "group": "operationDetails",
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Column",
+          "value": "COLUMNS"
+        },
+        {
+          "name": "Row",
+          "value": "ROWS"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "resource.name"
+      },
+      "condition": {
+        "property": "resourceType",
+        "equals": "addEmptyColumnOrRow"
+      }
+    },
+    {
+      "label": "Start index",
+      "description": "Enter start index",
+      "group": "operationDetails",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "resource.name"
+      },
+      "constraints": {
+        "notEmpty": true,
+        "maxLength": 100,
+        "pattern": {
+          "value": "^([0-9]*$)|(secrets.*$)",
+          "message": "Must be a number."
+        }
+      },
+      "condition": {
+        "property": "resourceType",
+        "equals": "addEmptyColumnOrRow"
+      }
+    },
+    {
+      "label": "End index",
+      "description": "Enter End index",
+      "group": "operationDetails",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "resource.name"
+      },
+      "constraints": {
+        "notEmpty": true,
+        "maxLength": 100,
+        "pattern": {
+          "value": "^([0-9]*$)|(secrets.*$)",
+          "message": "Must be a number."
+        }
+      },
+      "condition": {
+        "property": "resourceType",
+        "equals": "addEmptyColumnOrRow"
+      }
+    },
+    {
+      "label": "Spreadsheet ID",
+      "description": "Enter the ID of the spreadsheet where You want to add empty row or column",
+      "group": "operationDetails",
+      "type": "String",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "resource.spreadsheet"
+      },
+      "condition": {
+        "property": "resourceType",
+        "equals": "deleteWorkSheet"
+      }
+    },
+    {
+      "label": "Worksheet id",
+      "description": "Enter the id of the worksheet where You need to add empty row or column",
+      "group": "operationDetails",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "resource.name"
+      },
+      "constraints": {
+        "notEmpty": true,
+        "maxLength": 100
+      },
+      "condition": {
+        "property": "resourceType",
+        "equals": "deleteWorkSheet"
+      }
+    },
+    {
+      "label": "Spreadsheet ID",
+      "description": "Enter the ID of the spreadsheet where You want to get total active rows",
+      "group": "operationDetails",
+      "type": "String",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "resource.spreadsheet"
+      },
+      "condition": {
+        "property": "resourceType",
+        "equals": "getTotalActiveRows"
+      }
+    },
+    {
+      "label": "Spreadsheet ID",
+      "description": "Enter the ID of the spreadsheet where You want to delete column",
+      "group": "operationDetails",
+      "type": "String",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "resource.spreadsheet"
+      },
+      "condition": {
+        "property": "resourceType",
+        "equals": "deleteColumn"
+      }
+    },
+    {
+      "label": "Worksheet id",
+      "description": "Enter the id of the worksheet where You want to delete column",
+      "group": "operationDetails",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "resource.name"
+      },
+      "constraints": {
+        "maxLength": 100
+      },
+      "condition": {
+        "property": "resourceType",
+        "equals": "deleteColumn"
+      }
+    },
+    {
+      "label": "Column index",
+      "description": "Enter the index of the column, which You want to delete",
+      "group": "operationDetails",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "resource.name"
+      },
+      "constraints": {
+        "notEmpty": true,
+        "maxLength": 100,
+        "pattern": {
+          "value": "[A-Z]+",
+          "message": "Must contains only capital letters."
+        }
+      },
+      "condition": {
+        "property": "resourceType",
+        "equals": "deleteColumn"
+      }
+    }
+  ],
+  "icon": {
+    "contents": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBzdGFuZGFsb25lPSJubyI/Pgo8IURPQ1RZUEUgc3ZnIFBVQkxJQyAiLS8vVzNDLy9EVEQgU1ZHIDEuMC8vRU4iICJodHRwOi8vd3d3LnczLm9yZy9UUi8yMDAxL1JFQy1TVkctMjAwMTA5MDQvRFREL3N2ZzEwLmR0ZCI+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgaWQ9ImJvZHlfMSIgd2lkdGg9IjE4IiBoZWlnaHQ9IjE0Ij4KCjxnIHRyYW5zZm9ybT0ibWF0cml4KDAuMTU5MDkwOSAwIDAgMC4xNTkwOTA5IDMuOTA5MDkxIC0wKSI+CiAgICA8cGF0aCBkPSJNNDIgMEw2NCAyMkw1MyAyNEw0MiAyMkw0MCAxMUw0MiAweiIgc3Ryb2tlPSJub25lIiBmaWxsPSIjMTg4MDM4IiBmaWxsLXJ1bGU9Im5vbnplcm8iIC8+CiAgICA8cGF0aCBkPSJNNDIgMjJMNDIgMEw2IDBDIDIuNjg1IDAgMCAyLjY4NSAwIDZMMCA2TDAgODJDIDAgODUuMzE1IDIuNjg1IDg4IDYgODhMNiA4OEw1OCA4OEMgNjEuMzE1IDg4IDY0IDg1LjMxNSA2NCA4Mkw2NCA4Mkw2NCAyMkw0MiAyMnoiIHN0cm9rZT0ibm9uZSIgZmlsbD0iIzM0QTg1MyIgZmlsbC1ydWxlPSJub256ZXJvIiAvPgogICAgPHBhdGggZD0iTTEyIDM0TDEyIDYzTDUyIDYzTDUyIDM0TDEyIDM0ek0yOS41IDU4TDE3IDU4TDE3IDUxTDI5LjUgNTF6TTI5LjUgNDZMMTcgNDZMMTcgMzlMMjkuNSAzOXpNNDcgNThMMzQuNSA1OEwzNC41IDUxTDQ3IDUxek00NyA0NkwzNC41IDQ2TDM0LjUgMzlMNDcgMzl6IiBzdHJva2U9Im5vbmUiIGZpbGw9IiNGRkZGRkYiIGZpbGwtcnVsZT0ibm9uemVybyIgLz4KPC9nPgo8L3N2Zz4="
+  }
+}
