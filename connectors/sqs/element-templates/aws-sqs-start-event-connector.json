@@ -79,7 +79,7 @@
       "type": "String",
       "binding": {
         "type": "zeebe:property",
-        "name": "queue.name"
+        "name": "queue.url"
       },
       "constraints": {
         "notEmpty": true,
@@ -100,6 +100,24 @@
       },
       "constraints": {
         "notEmpty": true
+      }
+    },
+    {
+      "label": "Polling wait time",
+      "description": "The duration (in seconds) for which the call waits for a message to arrive in the queue before returning. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-sqs/\" target=\"_blank\">documentation</a> for details",
+      "group": "queueProperties",
+      "type": "String",
+      "value": "1",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "queue.pollingWaitTime"
+      },
+      "constraints": {
+        "notEmpty": true,
+        "pattern": {
+          "value": "(^[1-9][0-9]?$|^[1][0-1][0-9]$|^120$)|(^secrets\\..+)",
+          "message": "Must be an http(s) URL or a secret.XYZ"
+        }
       }
     },
     {

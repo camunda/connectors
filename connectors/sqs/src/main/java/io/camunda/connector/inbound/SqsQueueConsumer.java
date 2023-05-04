@@ -40,7 +40,7 @@ public class SqsQueueConsumer implements Runnable {
 
   @Override
   public void run() {
-    LOGGER.info("Started SQS consumer for queue {}", properties.getQueue().getName());
+    LOGGER.info("Started SQS consumer for queue {}", properties.getQueue().getUrl());
     final ReceiveMessageRequest receiveMessageRequest = createReceiveMessageRequest();
     ReceiveMessageResult receiveMessageResult;
     do {
@@ -55,14 +55,14 @@ public class SqsQueueConsumer implements Runnable {
         }
       }
     } while (isActivated.get());
-    LOGGER.info("Stopping SQS consumer for queue {}", properties.getQueue().getName());
+    LOGGER.info("Stopping SQS consumer for queue {}", properties.getQueue().getUrl());
   }
 
   private ReceiveMessageRequest createReceiveMessageRequest() {
     ReceiveMessageRequest receiveMessageRequest =
         new ReceiveMessageRequest()
-            .withWaitTimeSeconds(1)
-            .withQueueUrl(properties.getQueue().getName());
+            .withWaitTimeSeconds(Integer.valueOf(properties.getQueue().getPollingWaitTime()))
+            .withQueueUrl(properties.getQueue().getUrl());
 
     if (properties.getQueue().isContainAttributeNames()) {
       receiveMessageRequest.withAttributeNames(properties.getQueue().getAttributeNames());

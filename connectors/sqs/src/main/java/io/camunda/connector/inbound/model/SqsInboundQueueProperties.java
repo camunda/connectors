@@ -10,12 +10,17 @@ import io.camunda.connector.api.annotation.Secret;
 import java.util.List;
 import java.util.Objects;
 import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.Pattern;
 
 public class SqsInboundQueueProperties {
   @NotEmpty @Secret private String region;
-  @NotEmpty @Secret private String name;
+  @NotEmpty @Secret private String url;
   @Secret private List<String> attributeNames;
   @Secret private List<String> messageAttributeNames;
+
+  @Pattern(regexp = "(^[1-9][0-9]?$|^[1][0-1][0-9]$|^120$)|(^secrets\\\\..+)")
+  @Secret
+  private String pollingWaitTime;
 
   public String getRegion() {
     return region;
@@ -25,12 +30,12 @@ public class SqsInboundQueueProperties {
     this.region = region;
   }
 
-  public String getName() {
-    return name;
+  public String getUrl() {
+    return url;
   }
 
-  public void setName(final String name) {
-    this.name = name;
+  public void setUrl(final String url) {
+    this.url = url;
   }
 
   public boolean isContainAttributeNames() {
@@ -57,6 +62,14 @@ public class SqsInboundQueueProperties {
     this.messageAttributeNames = messageAttributeNames;
   }
 
+  public String getPollingWaitTime() {
+    return pollingWaitTime;
+  }
+
+  public void setPollingWaitTime(final String pollingWaitTime) {
+    this.pollingWaitTime = pollingWaitTime;
+  }
+
   @Override
   public boolean equals(final Object o) {
     if (this == o) {
@@ -67,14 +80,15 @@ public class SqsInboundQueueProperties {
     }
     final SqsInboundQueueProperties that = (SqsInboundQueueProperties) o;
     return Objects.equals(region, that.region)
-        && Objects.equals(name, that.name)
+        && Objects.equals(url, that.url)
         && Objects.equals(attributeNames, that.attributeNames)
-        && Objects.equals(messageAttributeNames, that.messageAttributeNames);
+        && Objects.equals(messageAttributeNames, that.messageAttributeNames)
+        && Objects.equals(pollingWaitTime, that.pollingWaitTime);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(region, name, attributeNames, messageAttributeNames);
+    return Objects.hash(region, url, attributeNames, messageAttributeNames, pollingWaitTime);
   }
 
   @Override
@@ -83,13 +97,16 @@ public class SqsInboundQueueProperties {
         + "region='"
         + region
         + "'"
-        + ", name='"
-        + name
+        + ", url='"
+        + url
         + "'"
         + ", attributeNames="
         + attributeNames
         + ", messageAttributeNames="
         + messageAttributeNames
+        + ", pollingWaitTime='"
+        + pollingWaitTime
+        + "'"
         + "}";
   }
 }
