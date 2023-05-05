@@ -164,7 +164,7 @@
       }
     },
     {
-      "label": "Correlation key expression (payload)",
+      "label": "Correlation key (payload)",
       "type": "String",
       "group": "activation",
       "feel": "required",
