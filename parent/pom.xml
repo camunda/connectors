@@ -134,7 +134,7 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>io.camunda.connector</groupId>
         <artifactId>connector-gcp-security-manager</artifactId>
-        <version>0.9.0-SNAPSHOT</version>
+        <version>0.9.0</version>
       </dependency>
 
       <dependency>
