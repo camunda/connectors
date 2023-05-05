@@ -19,7 +19,7 @@ public class SqsInboundQueueProperties {
   @Secret private List<String> messageAttributeNames;
   private boolean deleteAfterReceipt;
 
-  @Pattern(regexp = "(^[1-9][0-9]?$|^[1][0-1][0-9]$|^120$)|(^secrets\\\\..+)")
+  @Pattern(regexp = "(^[0-9]?$|^1[0-9]$|^20$)|(^secrets\\\\..+)")
   @Secret
   private String pollingWaitTime;
 
@@ -69,14 +69,6 @@ public class SqsInboundQueueProperties {
 
   public void setPollingWaitTime(final String pollingWaitTime) {
     this.pollingWaitTime = pollingWaitTime;
-  }
-
-  public boolean isDeleteAfterReceipt() {
-    return deleteAfterReceipt;
-  }
-
-  public void setDeleteAfterReceipt(final boolean deleteAfterReceipt) {
-    this.deleteAfterReceipt = deleteAfterReceipt;
   }
 
   @Override

@@ -13,9 +13,7 @@ import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorResult;
 import io.camunda.connector.inbound.model.SqsInboundProperties;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +26,6 @@ public class SqsQueueConsumer implements Runnable {
   private final SqsInboundProperties properties;
   private final InboundConnectorContext context;
   private final AtomicBoolean isQueueConsumerActive;
-  private final Set<String> activatedMessageIds;
 
   public SqsQueueConsumer(
       AmazonSQS sqsClient,
@@ -39,7 +36,6 @@ public class SqsQueueConsumer implements Runnable {
     this.properties = properties;
     this.context = context;
     this.isQueueConsumerActive = isQueueConsumerActive;
-    this.activatedMessageIds = new HashSet<>();
   }
 
   @Override
@@ -51,10 +47,15 @@ public class SqsQueueConsumer implements Runnable {
       receiveMessageResult = sqsClient.receiveMessage(receiveMessageRequest);
       List<Message> messages = receiveMessageResult.getMessages();
       for (Message message : messages) {
-        if (activatedMessageIds.contains(message.getMessageId())) {
-          LOGGER.debug("Ignoring already activated message with ID: {}", message.getMessageId());
+        InboundConnectorResult<?> correlate = context.correlate(message);
+        if (correlate.isActivated()) {
+          sqsClient.deleteMessage(properties.getQueue().getUrl(), message.getReceiptHandle());
+          LOGGER.debug(
+              "Inbound event correlated successfully: {}, and message with ID {} was deleted",
+              correlate.getResponseData(),
+              message.getMessageId());
         } else {
-          correlateMessage(message);
+          LOGGER.debug("Inbound event not correlated: {}", correlate.getErrorData());
         }
       }
     } while (isQueueConsumerActive.get());
@@ -76,19 +77,5 @@ public class SqsQueueConsumer implements Runnable {
     }
 
     return receiveMessageRequest;
-  }
-
-  private void correlateMessage(final Message message) {
-    InboundConnectorResult<?> correlate = context.correlate(message);
-    if (correlate.isActivated()) {
-      LOGGER.debug("Inbound event correlated successfully: {}", correlate.getResponseData());
-      if (properties.getQueue().isDeleteAfterReceipt()) {
-        sqsClient.deleteMessage(properties.getQueue().getUrl(), message.getReceiptHandle());
-      } else {
-        activatedMessageIds.add(message.getMessageId());
-      }
-    } else {
-      LOGGER.debug("Inbound event not correlated: {}", correlate.getErrorData());
-    }
   }
 }

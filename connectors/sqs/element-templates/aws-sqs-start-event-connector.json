@@ -88,8 +88,8 @@
       "constraints": {
         "notEmpty": true,
         "pattern": {
-          "value": "(^https?://.+)|(^secrets\\..+)",
-          "message": "Must be an http(s) URL or a secret.XYZ"
+          "value": "(^https?://.+)|(^arn:.+)(^secrets\\..+)",
+          "message": "Must be an queue URL or ARN or a secret.XYZ"
         }
       }
     },
@@ -119,27 +119,9 @@
       "constraints": {
         "notEmpty": true,
         "pattern": {
-          "value": "(^[1-9][0-9]?$|^[1][0-1][0-9]$|^120$)|(^secrets\\..+)",
-          "message": "Must be an http(s) URL or a secret.XYZ"
+          "value": "(^[0-9]?$|^1[0-9]$|^20$)|(^secrets\\..+)",
+          "message": "Must be >= 0 and <= 20 or a secret.XYZ"
         }
-      }
-    },
-    {
-      "label": "Delete after receipt",
-      "description": "Delete message after receipt",
-      "group": "messagePollingProperties",
-      "type": "Dropdown",
-      "value": "false",
-      "choices": [
-        {"name": "TRUE", "value": "true"},
-        {"name": "FALSE", "value": "false"}
-      ],
-      "binding": {
-        "type": "zeebe:property",
-        "name": "queue.deleteAfterReceipt"
-      },
-      "constraints": {
-        "notEmpty": true
       }
     },
     {
