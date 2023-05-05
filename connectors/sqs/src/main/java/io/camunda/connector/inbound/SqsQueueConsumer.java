@@ -27,18 +27,18 @@ public class SqsQueueConsumer implements Runnable {
   private final AmazonSQS sqsClient;
   private final SqsInboundProperties properties;
   private final InboundConnectorContext context;
-  private final AtomicBoolean isActivated;
+  private final AtomicBoolean isQueueConsumerActive;
   private final Set<String> activatedMessageIds;
 
   public SqsQueueConsumer(
       AmazonSQS sqsClient,
       SqsInboundProperties properties,
       InboundConnectorContext context,
-      AtomicBoolean isActivated) {
+      AtomicBoolean isQueueConsumerActive) {
     this.sqsClient = sqsClient;
     this.properties = properties;
     this.context = context;
-    this.isActivated = isActivated;
+    this.isQueueConsumerActive = isQueueConsumerActive;
     this.activatedMessageIds = new HashSet<>();
   }
 
@@ -57,7 +57,7 @@ public class SqsQueueConsumer implements Runnable {
           correlateMessage(message);
         }
       }
-    } while (isActivated.get());
+    } while (isQueueConsumerActive.get());
     LOGGER.info("Stopping SQS consumer for queue {}", properties.getQueue().getUrl());
   }
 

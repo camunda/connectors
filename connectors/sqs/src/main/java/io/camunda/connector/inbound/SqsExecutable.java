@@ -27,21 +27,21 @@ public class SqsExecutable implements InboundConnectorExecutable {
   private final AmazonSQSClientSupplier sqsClientSupplier;
   private final ExecutorService executorService;
   private AmazonSQS amazonSQS;
-  private final AtomicBoolean isActivated;
+  private final AtomicBoolean isQueueConsumerActive;
 
   public SqsExecutable() {
     this.sqsClientSupplier = new DefaultAmazonSQSClientSupplier();
     this.executorService = Executors.newSingleThreadExecutor();
-    this.isActivated = new AtomicBoolean(false);
+    this.isQueueConsumerActive = new AtomicBoolean(false);
   }
 
   public SqsExecutable(
       final AmazonSQSClientSupplier sqsClientSupplier,
       final ExecutorService executorService,
-      final AtomicBoolean isActivated) {
+      final AtomicBoolean isQueueConsumerActive) {
     this.sqsClientSupplier = sqsClientSupplier;
     this.executorService = executorService;
-    this.isActivated = isActivated;
+    this.isQueueConsumerActive = isQueueConsumerActive;
   }
 
   @Override
@@ -59,14 +59,15 @@ public class SqsExecutable implements InboundConnectorExecutable {
             properties.getQueue().getRegion());
     LOGGER.debug("SQS client created successfully");
 
-    isActivated.set(true);
-    executorService.execute(new SqsQueueConsumer(amazonSQS, properties, context, isActivated));
+    isQueueConsumerActive.set(true);
+    executorService.execute(
+        new SqsQueueConsumer(amazonSQS, properties, context, isQueueConsumerActive));
     LOGGER.debug("SQS queue consumer started successfully");
   }
 
   @Override
   public void deactivate() {
-    isActivated.set(false);
+    isQueueConsumerActive.set(false);
     LOGGER.debug("Deactivating subscription");
     if (executorService != null) {
       LOGGER.debug("Shutting down executor service");
