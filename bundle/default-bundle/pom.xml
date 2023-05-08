@@ -26,7 +26,7 @@
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
-      <artifactId>connector-aws</artifactId>
+      <artifactId>connector-aws-dynamodb</artifactId>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>

@@ -1,3 +1,0 @@
-name: AWS
-type: io.camunda:aws:1
-variables: [ authentication, configuration, input, service ]
