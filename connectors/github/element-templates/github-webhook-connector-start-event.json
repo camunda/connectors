@@ -2,7 +2,7 @@
   "$schema":"https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name":"GitHub Webhook Connector",
   "id":"io.camunda.connectors.webhook.GithubWebhookConnector.v1",
-  "version":1,
+  "version":2,
   "description":"Receive events from GitHub",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/github-webhook/",
   "category":{
@@ -104,15 +104,27 @@
       "description":"Condition under which the connector triggers. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/github-webhook/' target='_blank'>See documentation</a>"
     },
     {
-      "label":"Variables",
-      "type":"String",
-      "group":"variable-mapping",
-      "feel":"required",
-      "binding":{
-        "type":"zeebe:property",
-        "name":"inbound.variableMapping"
+      "label": "Result variable",
+      "type": "String",
+      "group": "variable-mapping",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:property",
+        "name": "resultVariable"
       },
-      "description":"Variables extracted from the webhook payload (request) to start the process with. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/github-webhook/' target='_blank'>See documentation</a>"
+      "description": "Name of variable to store the result of the Connector in"
+    },
+    {
+      "label":"Result expression",
+      "type": "String",
+      "group": "variable-mapping",
+      "feel": "required",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:property",
+        "name": "resultExpression"
+      },
+      "description": "Expression to map the inbound payload to process variables"
     }
   ],
   "icon":{
