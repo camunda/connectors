@@ -70,6 +70,6 @@ public class CommonResult {
 
   @Override
   public String toString() {
-    return "GraphQLResult{" + "status=" + status + ", headers=" + headers + ", body=" + body + '}';
+    return "CommonResult{" + "status=" + status + ", headers=" + headers + ", body=" + body + '}';
   }
 }
