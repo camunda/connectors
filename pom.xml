@@ -19,7 +19,7 @@
   <inceptionYear>2022</inceptionYear>
 
   <properties>
-    <version.spring-zeebe>8.2.1-SNAPSHOT</version.spring-zeebe>
+    <version.spring-zeebe>8.2.1</version.spring-zeebe>
     <version.operate-client>8.1.8</version.operate-client>
 
     <version.spring-boot>3.0.6</version.spring-boot>
