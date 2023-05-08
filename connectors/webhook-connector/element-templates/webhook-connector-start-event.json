@@ -54,7 +54,10 @@
         "type": "zeebe:property",
         "name": "inbound.context"
       },
-      "description": "The webhook ID is a part of the URL"
+      "description": "The webhook ID is a part of the URL",
+      "constraints": {
+        "notEmpty": true
+      }
     },
     {
       "id": "shouldValidateHmac",
