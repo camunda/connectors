@@ -1,0 +1,597 @@
+{
+  "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name": "Google Sheets Connector",
+  "id": "io.camunda.connectors.GoogleSheets.v1",
+  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/googlesheets/",
+  "description": "Work with spreadsheets",
+  "category": {
+    "id": "connectors",
+    "name": "Connectors"
+  },
+  "appliesTo": [
+    "bpmn:Task"
+  ],
+  "elementType": {
+    "value": "bpmn:ServiceTask"
+  },
+  "groups": [
+    {
+      "id": "authentication",
+      "label": "Authentication"
+    },
+    {
+      "id": "operation",
+      "label": "Select Operation"
+    },
+    {
+      "id": "operationDetails",
+      "label": "Operation Details"
+    },
+    {
+      "id": "output",
+      "label": "Output Mapping"
+    },
+    {
+      "id": "errors",
+      "label": "Error Handling"
+    }
+  ],
+  "properties": [
+    {
+      "type": "Hidden",
+      "value": "io.camunda:google-sheets:1",
+      "binding": {
+        "type": "zeebe:taskDefinition:type"
+      }
+    },
+    {
+      "id": "authenticationType",
+      "label": "Type",
+      "group": "authentication",
+      "type": "Dropdown",
+      "value": "bearer",
+      "choices": [
+        {
+          "name": "Bearer token",
+          "value": "bearer"
+        },
+        {
+          "name": "Refresh token",
+          "value": "refresh"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.authType",
+        "key": "authentication.authType"
+      }
+    },
+    {
+      "label": "Bearer token",
+      "description": "Enter Google API Bearer token that is authorized to interact with desired Drive",
+      "group": "authentication",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.bearerToken"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "bearer"
+      }
+    },
+    {
+      "label": "Client ID",
+      "description": "Enter Google API Client ID",
+      "group": "authentication",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.oauthClientId"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "refresh"
+      }
+    },
+    {
+      "label": "Client secret",
+      "description": "Enter Google API client Secret",
+      "group": "authentication",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.oauthClientSecret"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "refresh"
+      }
+    },
+    {
+      "label": "Refresh token",
+      "description": "Enter Google API refresh token that is authorized to interact with desired Drive",
+      "group": "authentication",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.oauthRefreshToken"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "refresh"
+      }
+    },
+    {
+      "id": "operationType",
+      "group": "operation",
+      "type": "Dropdown",
+      "value": "createSpreadsheet",
+      "choices": [
+        {
+          "name": "Create Spreadsheet",
+          "value": "createSpreadsheet"
+        },
+        {
+          "name": "Add values to Spreadsheet",
+          "value": "addValues"
+        },
+        {
+          "name": "Get Spreadsheet details",
+          "value": "spreadsheetsDetails"
+        },
+        {
+          "name": "Create Worksheet",
+          "value": "createWorksheet"
+        },
+        {
+          "name": "Get Worksheet data",
+          "value": "worksheetData"
+        },
+        {
+          "name": "Delete Worksheet",
+          "value": "deleteWorkSheet"
+        },
+        {
+          "name": "Create empty Column or Row",
+          "value": "addEmptyColumnOrRow"
+        },
+        {
+          "name": "Create Row",
+          "value": "createRow"
+        },
+        {
+          "name": "Delete Column",
+          "value": "deleteColumn"
+        },
+        {
+          "name": "Get Row by index",
+          "value": "getRowByIndex"
+        },
+        {
+          "name": "Get total active Rows",
+          "value": "getTotalActiveRows"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "operation.type",
+        "key": "operation.type"
+      }
+    },
+    {
+      "label": "Parent folder ID",
+      "description": "Enter ID of the parent folder where new spreadsheet will be created",
+      "group": "operationDetails",
+      "type": "String",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "operation.parent"
+      },
+      "condition": {
+        "property": "operationType",
+        "equals": "createSpreadsheet"
+      }
+    },
+    {
+      "label": "Spreadsheet ID",
+      "description": "Enter the ID of the spreadsheet",
+      "group": "operationDetails",
+      "type": "String",
+      "feel": "optional",
+      "optional": false,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "operation.spreadsheetId"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createWorksheet",
+          "getRowByIndex",
+          "addEmptyColumnOrRow",
+          "deleteWorkSheet",
+          "getTotalActiveRows",
+          "deleteColumn",
+          "worksheetData",
+          "spreadsheetsDetails",
+          "createRow",
+          "addValues"
+        ]
+      },
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
+      "label": "Spreadsheet name",
+      "description": "Enter name for the new spreadsheet",
+      "group": "operationDetails",
+      "type": "String",
+      "feel": "optional",
+      "optional": false,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "operation.spreadsheetName"
+      },
+      "constraints": {
+        "notEmpty": true,
+        "maxLength": 255
+      },
+      "condition": {
+        "property": "operationType",
+        "equals": "createSpreadsheet"
+      }
+    },
+    {
+      "label": "Worksheet ID",
+      "description": "Enter the ID of the worksheet",
+      "group": "operationDetails",
+      "type": "String",
+      "feel": "optional",
+      "optional": false,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "operation.worksheetId"
+      },
+      "constraints": {
+        "notEmpty": true,
+        "maxLength": 100
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "deleteWorkSheet",
+          "addEmptyColumnOrRow"
+        ]
+      }
+    },
+    {
+      "label": "Worksheet ID",
+      "description": "Enter the ID of the worksheet",
+      "group": "operationDetails",
+      "type": "String",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "operation.worksheetId"
+      },
+      "constraints": {
+        "notEmpty": false,
+        "maxLength": 100
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "deleteColumn"
+        ]
+      }
+    },
+    {
+      "label": "Worksheet name",
+      "description": "Enter name for the worksheet",
+      "group": "operationDetails",
+      "type": "String",
+      "feel": "optional",
+      "optional": false,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "operation.worksheetName"
+      },
+      "constraints": {
+        "notEmpty": true,
+        "maxLength": 100
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createWorksheet",
+          "getTotalActiveRows",
+          "worksheetData"
+        ]
+      }
+    },
+    {
+      "label": "Worksheet name",
+      "description": "Enter the name of the worksheet",
+      "group": "operationDetails",
+      "type": "String",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "operation.worksheetName"
+      },
+      "constraints": {
+        "notEmpty": false,
+        "maxLength": 100
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "getRowByIndex",
+          "createRow",
+          "addValues"
+        ]
+      }
+    },
+    {
+      "label": "Dimension",
+      "description": "Choose what to add: column or row",
+      "group": "operationDetails",
+      "type": "Dropdown",
+      "optional": false,
+      "choices": [
+        {
+          "name": "Column",
+          "value": "COLUMNS"
+        },
+        {
+          "name": "Row",
+          "value": "ROWS"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "operation.dimension"
+      },
+      "condition": {
+        "property": "operationType",
+        "equals": "addEmptyColumnOrRow"
+      },
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
+      "label": "Row index",
+      "description": "Enter row index. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors\" target=\"_blank\">documentation</a>",
+      "group": "operationDetails",
+      "type": "String",
+      "feel": "optional",
+      "optional": false,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "operation.index"
+      },
+      "constraints": {
+        "notEmpty": true,
+        "maxLength": 100,
+        "pattern": {
+          "value": "^([0-9]*$)",
+          "message": "Must be a number."
+        }
+      },
+      "condition": {
+        "property": "operationType",
+        "equals": "getRowByIndex"
+      }
+    },
+    {
+      "label": "Row index",
+      "description": "Enter the index of the row to add . Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors\" target=\"_blank\">documentation</a>",
+      "group": "operationDetails",
+      "type": "String",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "operation.index"
+      },
+      "constraints": {
+        "notEmpty": false,
+        "maxLength": 100,
+        "pattern": {
+          "value": "^([0-9]*$)",
+          "message": "Must contains only numbers."
+        }
+      },
+      "condition": {
+        "property": "operationType",
+        "equals": "createRow"
+      }
+    },
+    {
+      "label": "Column index",
+      "description": "Enter the index of the column. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors\" target=\"_blank\">documentation</a>",
+      "group": "operationDetails",
+      "type": "String",
+      "feel": "optional",
+      "optional": false,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "operation.index"
+      },
+      "constraints": {
+        "notEmpty": true,
+        "maxLength": 100,
+        "pattern": {
+          "value": "[A-Z]+",
+          "message": "Must contains only capital letters."
+        }
+      },
+      "condition": {
+        "property": "operationType",
+        "equals": "deleteColumn"
+      }
+    },
+    {
+      "label": "Start index",
+      "description": "Enter start index (leave empty if add to the end of the sheet). Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors\" target=\"_blank\">documentation</a>",
+      "group": "operationDetails",
+      "type": "String",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "operation.startIndex"
+      },
+      "constraints": {
+        "notEmpty": false,
+        "maxLength": 100,
+        "pattern": {
+          "value": "^([0-9]*$)",
+          "message": "Must be a number."
+        }
+      },
+      "condition": {
+        "property": "operationType",
+        "equals": "addEmptyColumnOrRow"
+      }
+    },
+    {
+      "label": "End index",
+      "description": "Enter End index (leave empty if add to the end of the sheet) Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors\" target=\"_blank\">documentation</a>",
+      "group": "operationDetails",
+      "type": "String",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "operation.endIndex"
+      },
+      "constraints": {
+        "notEmpty": false,
+        "maxLength": 100,
+        "pattern": {
+          "value": "^([0-9]*$)",
+          "message": "Must be a number."
+        }
+      },
+      "condition": {
+        "property": "operationType",
+        "equals": "addEmptyColumnOrRow"
+      }
+    },
+    {
+      "label": "Cell ID",
+      "description": "Enter the ID of the cell. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>",
+      "group": "operationDetails",
+      "type": "String",
+      "feel": "optional",
+      "optional": false,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "operation.cellId"
+      },
+      "constraints": {
+        "notEmpty": true,
+        "maxLength": 100
+      },
+      "condition": {
+        "property": "operationType",
+        "equals": "addValues"
+      }
+    },
+    {
+      "label": "Enter values",
+      "description": "Enter the array of values. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">Learn more about the required format</a>",
+      "group": "operationDetails",
+      "type": "Text",
+      "feel": "required",
+      "optional": false,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "operation.values"
+      },
+      "constraints": {
+        "notEmpty": true,
+        "maxLength": 100
+      },
+      "condition": {
+        "property": "operationType",
+        "equals": "createRow"
+      }
+    },
+    {
+      "label": "Value",
+      "description": "Enter the value",
+      "group": "operationDetails",
+      "type": "String",
+      "feel": "optional",
+      "optional": false,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "operation.value"
+      },
+      "constraints": {
+        "notEmpty": true,
+        "maxLength": 200
+      },
+      "condition": {
+        "property": "operationType",
+        "equals": "addValues"
+      }
+    },
+    {
+      "label": "Result variable",
+      "description": "Enter name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>",
+      "group": "output",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultVariable"
+      }
+    },
+    {
+      "label": "Result expression",
+      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "group": "output",
+      "type": "Text",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultExpression"
+      }
+    },
+    {
+      "label": "Error expression",
+      "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
+      "group": "errors",
+      "type": "Text",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "errorExpression"
+      }
+    }
+  ],
+  "icon": {
+    "contents": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBzdGFuZGFsb25lPSJubyI/Pgo8IURPQ1RZUEUgc3ZnIFBVQkxJQyAiLS8vVzNDLy9EVEQgU1ZHIDEuMC8vRU4iICJodHRwOi8vd3d3LnczLm9yZy9UUi8yMDAxL1JFQy1TVkctMjAwMTA5MDQvRFREL3N2ZzEwLmR0ZCI+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgaWQ9ImJvZHlfMSIgd2lkdGg9IjE4IiBoZWlnaHQ9IjE0Ij4KCjxnIHRyYW5zZm9ybT0ibWF0cml4KDAuMTU5MDkwOSAwIDAgMC4xNTkwOTA5IDMuOTA5MDkxIC0wKSI+CiAgICA8cGF0aCBkPSJNNDIgMEw2NCAyMkw1MyAyNEw0MiAyMkw0MCAxMUw0MiAweiIgc3Ryb2tlPSJub25lIiBmaWxsPSIjMTg4MDM4IiBmaWxsLXJ1bGU9Im5vbnplcm8iIC8+CiAgICA8cGF0aCBkPSJNNDIgMjJMNDIgMEw2IDBDIDIuNjg1IDAgMCAyLjY4NSAwIDZMMCA2TDAgODJDIDAgODUuMzE1IDIuNjg1IDg4IDYgODhMNiA4OEw1OCA4OEMgNjEuMzE1IDg4IDY0IDg1LjMxNSA2NCA4Mkw2NCA4Mkw2NCAyMkw0MiAyMnoiIHN0cm9rZT0ibm9uZSIgZmlsbD0iIzM0QTg1MyIgZmlsbC1ydWxlPSJub256ZXJvIiAvPgogICAgPHBhdGggZD0iTTEyIDM0TDEyIDYzTDUyIDYzTDUyIDM0TDEyIDM0ek0yOS41IDU4TDE3IDU4TDE3IDUxTDI5LjUgNTF6TTI5LjUgNDZMMTcgNDZMMTcgMzlMMjkuNSAzOXpNNDcgNThMMzQuNSA1OEwzNC41IDUxTDQ3IDUxek00NyA0NkwzNC41IDQ2TDM0LjUgMzlMNDcgMzl6IiBzdHJva2U9Im5vbmUiIGZpbGw9IiNGRkZGRkYiIGZpbGwtcnVsZT0ibm9uemVybyIgLz4KPC9nPgo8L3N2Zz4="
+  }
+}
