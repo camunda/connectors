@@ -104,7 +104,7 @@
       "description":"Condition under which the connector triggers. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/github-webhook/' target='_blank'>See documentation</a>"
     },
     {
-      "label": "Result Variable",
+      "label": "Result variable",
       "type": "String",
       "group": "variable-mapping",
       "optional": true,
@@ -115,7 +115,7 @@
       "description": "Name of variable to store the result of the Connector in"
     },
     {
-      "label":"Result Expression",
+      "label":"Result expression",
       "type": "String",
       "group": "variable-mapping",
       "feel": "required",
