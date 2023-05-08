@@ -1,1 +1,1 @@
-io.camunda.connector.SqsConnectorFunction
+io.camunda.connector.outbound.SqsConnectorFunction

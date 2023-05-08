@@ -4,14 +4,14 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.suppliers;
+package io.camunda.connector.common.suppliers;
 
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
 
-public class SqsClientSupplier {
+public class DefaultAmazonSQSClientSupplier implements AmazonSQSClientSupplier {
 
   public AmazonSQS sqsClient(final String accessKey, final String secretKey, final String region) {
     return AmazonSQSClientBuilder.standard()

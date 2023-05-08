@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector;
+package io.camunda.connector.outbound;
 
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
@@ -13,10 +13,11 @@ import com.google.gson.Gson;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import io.camunda.connector.model.SqsConnectorRequest;
-import io.camunda.connector.model.SqsConnectorResult;
-import io.camunda.connector.suppliers.SqsClientSupplier;
-import io.camunda.connector.suppliers.SqsGsonComponentSupplier;
+import io.camunda.connector.common.suppliers.AmazonSQSClientSupplier;
+import io.camunda.connector.common.suppliers.DefaultAmazonSQSClientSupplier;
+import io.camunda.connector.common.suppliers.SqsGsonComponentSupplier;
+import io.camunda.connector.outbound.model.SqsConnectorRequest;
+import io.camunda.connector.outbound.model.SqsConnectorResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,14 +28,14 @@ import org.slf4j.LoggerFactory;
 public class SqsConnectorFunction implements OutboundConnectorFunction {
   private static final Logger LOGGER = LoggerFactory.getLogger(SqsConnectorFunction.class);
 
-  private final SqsClientSupplier sqsClientSupplier;
+  private final AmazonSQSClientSupplier sqsClientSupplier;
   private final Gson gson;
 
   public SqsConnectorFunction() {
-    this(new SqsClientSupplier(), SqsGsonComponentSupplier.gsonInstance());
+    this(new DefaultAmazonSQSClientSupplier(), SqsGsonComponentSupplier.gsonInstance());
   }
 
-  public SqsConnectorFunction(final SqsClientSupplier sqsClientSupplier, final Gson gson) {
+  public SqsConnectorFunction(final AmazonSQSClientSupplier sqsClientSupplier, final Gson gson) {
     this.sqsClientSupplier = sqsClientSupplier;
     this.gson = gson;
   }

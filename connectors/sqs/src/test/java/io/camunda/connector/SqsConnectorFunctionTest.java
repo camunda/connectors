@@ -13,8 +13,9 @@ import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.amazonaws.services.sqs.model.SendMessageResult;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
-import io.camunda.connector.model.SqsConnectorResult;
-import io.camunda.connector.suppliers.SqsClientSupplier;
+import io.camunda.connector.common.suppliers.AmazonSQSClientSupplier;
+import io.camunda.connector.outbound.SqsConnectorFunction;
+import io.camunda.connector.outbound.model.SqsConnectorResult;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -59,7 +60,7 @@ public class SqsConnectorFunctionTest extends BaseTest {
     AmazonSQS sqsClient = Mockito.mock(AmazonSQS.class);
     Mockito.when(sqsClient.sendMessage(ArgumentMatchers.any(SendMessageRequest.class)))
         .thenReturn(sendMessageResult);
-    SqsClientSupplier sqsClientSupplier = Mockito.mock(SqsClientSupplier.class);
+    AmazonSQSClientSupplier sqsClientSupplier = Mockito.mock(AmazonSQSClientSupplier.class);
     Mockito.when(
             sqsClientSupplier.sqsClient(
                 ArgumentMatchers.anyString(),
@@ -85,7 +86,7 @@ public class SqsConnectorFunctionTest extends BaseTest {
     AmazonSQS sqsClient = Mockito.mock(AmazonSQS.class);
     Mockito.when(sqsClient.sendMessage(ArgumentMatchers.any(SendMessageRequest.class)))
         .thenReturn(sendMessageResult);
-    SqsClientSupplier sqsClientSupplier = Mockito.mock(SqsClientSupplier.class);
+    AmazonSQSClientSupplier sqsClientSupplier = Mockito.mock(AmazonSQSClientSupplier.class);
     Mockito.when(
             sqsClientSupplier.sqsClient(
                 ArgumentMatchers.anyString(),
@@ -118,7 +119,7 @@ public class SqsConnectorFunctionTest extends BaseTest {
     AmazonSQS sqsClient = Mockito.mock(AmazonSQS.class);
     Mockito.when(sqsClient.sendMessage(ArgumentMatchers.any(SendMessageRequest.class)))
         .thenReturn(sendMessageResult);
-    SqsClientSupplier sqsClientSupplier = Mockito.mock(SqsClientSupplier.class);
+    AmazonSQSClientSupplier sqsClientSupplier = Mockito.mock(AmazonSQSClientSupplier.class);
     Mockito.when(
             sqsClientSupplier.sqsClient(
                 ArgumentMatchers.anyString(),

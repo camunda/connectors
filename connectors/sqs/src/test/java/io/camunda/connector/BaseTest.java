@@ -7,7 +7,7 @@
 package io.camunda.connector;
 
 import com.google.gson.Gson;
-import io.camunda.connector.suppliers.SqsGsonComponentSupplier;
+import io.camunda.connector.common.suppliers.SqsGsonComponentSupplier;
 
 public abstract class BaseTest {
 

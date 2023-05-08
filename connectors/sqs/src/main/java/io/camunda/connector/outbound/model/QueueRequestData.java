@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.model;
+package io.camunda.connector.outbound.model;
 
 import com.amazonaws.services.sqs.model.MessageAttributeValue;
 import com.amazonaws.util.StringUtils;
