@@ -82,18 +82,6 @@ public class RabbitMqAuthentication {
 
   @Override
   public String toString() {
-    return "RabbitMqAuthentication{"
-        + "authType="
-        + authType
-        + ", userName='"
-        + userName
-        + "'"
-        + ", password='"
-        + password
-        + "'"
-        + ", uri='"
-        + uri
-        + "'"
-        + "}";
+    return "RabbitMqAuthentication{" + "authType=" + authType + "}";
   }
 }
