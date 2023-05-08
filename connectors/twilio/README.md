@@ -9,6 +9,7 @@ The Twilio Connector for Camunda is a powerful integration tool that enables bus
 ## Features
 
 - Outbound: Send an SMS, Get Message, List Messages
+- Inbound: Receive incoming message with Twilio service
 
 ## Usage
 
