@@ -41,7 +41,7 @@
     <version.kafka-clients>3.4.0</version.kafka-clients>
 
     <version.microsoft-graph>5.56.0</version.microsoft-graph>
-    <version.azure-identity>1.8.3</version.azure-identity>
+    <version.azure-identity>1.9.0</version.azure-identity>
 
     <version.bcprov-jdk15on>1.70</version.bcprov-jdk15on>
     <version.sendGrid>4.9.3</version.sendGrid>
