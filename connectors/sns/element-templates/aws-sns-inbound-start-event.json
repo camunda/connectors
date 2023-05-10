@@ -1,0 +1,140 @@
+{
+  "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name": "SNS HTTPS Subscription",
+  "id": "io.camunda.connectors.inbound.AWSSNS.StartEvent.v1",
+  "description": "Receive events from AWS SNS",
+  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-sns/",
+  "category": {
+    "id": "connectors",
+    "name": "Connectors"
+  },
+  "appliesTo": [
+    "bpmn:StartEvent"
+  ],
+  "elementType": {
+    "value": "bpmn:StartEvent"
+  },
+  "groups": [
+    {
+      "id": "subscription",
+      "label": "Subscription Configuration"
+    },
+    {
+      "id": "activation",
+      "label": "Activation"
+    },
+    {
+      "id": "variable-mapping",
+      "label": "Variable Mapping"
+    }
+  ],
+  "properties": [
+    {
+      "type":"Hidden",
+      "value":"io.camunda:connector-sns-inbound:1",
+      "binding":{
+        "type":"zeebe:property",
+        "name":"inbound.type"
+      }
+    },
+    {
+      "type":"Hidden",
+      "value":"SnsHttpsSubscription",
+      "binding":{
+        "type":"zeebe:property",
+        "name":"inbound.subtype"
+      }
+    },
+    {
+      "label":"Subscription ID",
+      "type":"String",
+      "group":"subscription",
+      "binding":{
+        "type":"zeebe:property",
+        "name":"inbound.context"
+      },
+      "description":"The subscription ID is a part of the URL endpoint",
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
+      "id": "securitySubscriptionAllowedFor",
+      "label": "Allow to receive messages from topic(s)",
+      "group": "subscription",
+      "description": "Control which topic(s) is allowed to start a process",
+      "value": "any",
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Any",
+          "value": "any"
+        },
+        {
+          "name": "Specific topic(s)",
+          "value": "specific"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.securitySubscriptionAllowedFor"
+      }
+    },
+    {
+      "label": "Topic ARN(s)",
+      "description": "Topics that allow to publish messages",
+      "type": "String",
+      "group": "subscription",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.topicsAllowList"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "securitySubscriptionAllowedFor",
+        "equals": "specific"
+      }
+    },
+    {
+      "label": "Condition",
+      "type": "String",
+      "group": "activation",
+      "feel": "required",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.activationCondition"
+      },
+      "description": "Condition under which the connector triggers. Leave empty to catch all events"
+    },
+    {
+      "label": "Result variable",
+      "type": "String",
+      "group": "variable-mapping",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:property",
+        "name": "resultVariable"
+      },
+      "description": "Name of variable to store the result of the Connector in"
+    },
+    {
+      "label":"Result expression",
+      "type": "String",
+      "group": "variable-mapping",
+      "feel": "required",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:property",
+        "name": "resultExpression"
+      },
+      "description": "Expression to map the inbound payload to process variables"
+    }
+  ],
+  "icon": {
+    "contents": "data:image/svg+xml,%3Csvg width='18' height='18' viewBox='0 0 80 80' version='1.1' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink'%3E%3C!-- Generator: Sketch 64 (93537) - https://sketch.com --%3E%3Ctitle%3EIcon-Architecture/64/Arch_AWS-Simple-Notification-Service_64%3C/title%3E%3Cdesc%3ECreated with Sketch.%3C/desc%3E%3Cdefs%3E%3ClinearGradient x1='0%25' y1='100%25' x2='100%25' y2='0%25' id='linearGradient-1'%3E%3Cstop stop-color='%23B0084D' offset='0%25'%3E%3C/stop%3E%3Cstop stop-color='%23FF4F8B' offset='100%25'%3E%3C/stop%3E%3C/linearGradient%3E%3C/defs%3E%3Cg id='Icon-Architecture/64/Arch_AWS-Simple-Notification-Service_64' stroke='none' stroke-width='1' fill='none' fill-rule='evenodd'%3E%3Cg id='Icon-Architecture-BG/64/Application-Integration' fill='url(%23linearGradient-1)'%3E%3Crect id='Rectangle' x='0' y='0' width='80' height='80'%3E%3C/rect%3E%3C/g%3E%3Cpath d='M17,38 C18.103,38 19,38.897 19,40 C19,41.103 18.103,42 17,42 C15.897,42 15,41.103 15,40 C15,38.897 15.897,38 17,38 L17,38 Z M41,64 C29.314,64 19.289,55.466 17.194,43.98 C18.965,43.894 20.427,42.659 20.857,41 L27,41 L27,39 L20.857,39 C20.427,37.342 18.966,36.107 17.195,36.02 C19.285,24.71 29.511,16 41,16 C45.313,16 49.832,17.622 54.429,20.821 L55.571,19.179 C50.633,15.743 45.73,14 41,14 C28.27,14 16.949,23.865 15.063,36.521 C13.839,37.207 13,38.5 13,40 C13,41.5 13.839,42.793 15.063,43.478 C16.97,56.341 28.056,66 41,66 C46.407,66 51.942,64.157 56.585,60.811 L55.415,59.189 C51.11,62.292 45.991,64 41,64 L41,64 Z M30.101,36.442 C31.955,36.895 34.275,37 36,37 C37.642,37 39.823,36.905 41.629,36.506 L37.105,45.553 C37.036,45.691 37,45.845 37,46 L37,50.453 C36.199,50.964 34.833,51.812 34,51.986 L34,46 C34,45.868 33.974,45.737 33.923,45.615 L30.101,36.442 Z M36,33 C40.025,33 42.174,33.604 42.841,34 C42.174,34.396 40.025,35 36,35 C31.975,35 29.826,34.396 29.159,34 C29.826,33.604 31.975,33 36,33 L36,33 Z M33,54 L34,54 C34.043,54 34.086,53.997 34.128,53.992 C35.352,53.833 36.909,52.887 38.272,52.013 L38.535,51.845 C38.824,51.661 39,51.342 39,51 L39,46.236 L44.559,35.12 C44.833,34.801 45,34.434 45,34 C45,31.39 39.361,31 36,31 C32.639,31 27,31.39 27,34 C27,34.366 27.12,34.684 27.32,34.967 L32,46.2 L32,53 C32,53.552 32.447,54 33,54 L33,54 Z M62,53 C63.103,53 64,53.897 64,55 C64,56.103 63.103,57 62,57 C60.897,57 60,56.103 60,55 C60,53.897 60.897,53 62,53 L62,53 Z M62,23 C63.103,23 64,23.897 64,25 C64,26.103 63.103,27 62,27 C60.897,27 60,26.103 60,25 C60,23.897 60.897,23 62,23 L62,23 Z M64,38 C65.103,38 66,38.897 66,40 C66,41.103 65.103,42 64,42 C62.897,42 62,41.103 62,40 C62,38.897 62.897,38 64,38 L64,38 Z M54,41 L60.143,41 C60.589,42.72 62.142,44 64,44 C66.206,44 68,42.206 68,40 C68,37.794 66.206,36 64,36 C62.142,36 60.589,37.28 60.143,39 L54,39 L54,26 L58.143,26 C58.589,27.72 60.142,29 62,29 C64.206,29 66,27.206 66,25 C66,22.794 64.206,21 62,21 C60.142,21 58.589,22.28 58.143,24 L53,24 C52.447,24 52,24.448 52,25 L52,39 L45,39 L45,41 L52,41 L52,55 C52,55.552 52.447,56 53,56 L58.143,56 C58.589,57.72 60.142,59 62,59 C64.206,59 66,57.206 66,55 C66,52.794 64.206,51 62,51 C60.142,51 58.589,52.28 58.143,54 L54,54 L54,41 Z' id='AWS-Simple-Notification-Service_Icon_64_Squid' fill='%23FFFFFF'%3E%3C/path%3E%3C/g%3E%3C/svg%3E"
+  }
+}
