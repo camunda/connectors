@@ -6,17 +6,18 @@
  */
 package io.camunda.connector.aws.dynamodb.model.table;
 
+import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.aws.model.AwsInput;
 import java.util.Objects;
 import javax.validation.constraints.NotBlank;
 
 public class CreateTable implements AwsInput {
 
-  @NotBlank private String tableName;
-  @NotBlank private String partitionKey;
+  @NotBlank @Secret private String tableName;
+  @NotBlank @Secret private String partitionKey;
   @NotBlank private String partitionKeyRole;
   @NotBlank private String partitionKeyType;
-  private String sortKey;
+  @Secret private String sortKey;
   private String sortKeyRole;
   private String sortKeyType;
   private Long readCapacityUnits;

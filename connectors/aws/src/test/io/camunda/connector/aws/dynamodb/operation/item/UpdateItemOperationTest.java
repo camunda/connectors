@@ -10,8 +10,11 @@ import com.amazonaws.services.dynamodbv2.document.AttributeUpdate;
 import com.amazonaws.services.dynamodbv2.document.KeyAttribute;
 import com.amazonaws.services.dynamodbv2.document.PrimaryKey;
 import com.amazonaws.services.dynamodbv2.document.UpdateItemOutcome;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.aws.dynamodb.BaseDynamoDbOperationTest;
+import io.camunda.connector.aws.dynamodb.TestDynamoDBData;
 import io.camunda.connector.aws.dynamodb.model.item.UpdateItem;
+import io.camunda.connector.aws.model.AwsInput;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -46,7 +49,7 @@ class UpdateItemOperationTest extends BaseDynamoDbOperationTest {
         Map<String, Object> attributeUpdates = Map.of(attributeUpdate.getAttributeName(), "John Doe");
 
         updateItem = new UpdateItem();
-        updateItem.setTableName(TestData.Table.NAME);
+        updateItem.setTableName(TestDynamoDBData.ActualValue.TABLE_NAME);
         updateItem.setAttributeAction("PUT");
         updateItem.setKeyAttributes(attributeUpdates);
         updateItem.setPrimaryKeyComponents(primaryKey);
@@ -83,5 +86,27 @@ class UpdateItemOperationTest extends BaseDynamoDbOperationTest {
                         "IllegalArgumentException was expected");
         assertThat(thrown.getMessage()).contains("Unsupported action [ADD]");
 
+    }
+
+    @Test
+    public void replaceSecrets_shouldReplaceSecrets() {
+        // Given
+        String input = """
+                     {
+                     "type": "updateItem",
+                     "tableName": "secrets.TABLE_NAME_KEY",
+                     "primaryKeyComponents":{"id":"secrets.KEY_ATTRIBUTE_VALUE"},
+                     "keyAttributes":{"keyAttribute":"secrets.KEY_ATTRIBUTE_VALUE"}
+                     }""";
+        OutboundConnectorContext context = getContextWithSecrets();
+        AwsInput request = GSON.fromJson(input, AwsInput.class);
+        // When
+        context.replaceSecrets(request);
+        // Then
+        assertThat(request).isInstanceOf(UpdateItem.class);
+        UpdateItem castedRequest = (UpdateItem) request;
+        assertThat(castedRequest.getTableName()).isEqualTo(TestDynamoDBData.ActualValue.TABLE_NAME);
+        assertThat(castedRequest.getPrimaryKeyComponents()).isEqualTo( GSON.fromJson("{\"id\":\"1234\"}", Object.class));
+        assertThat(castedRequest.getKeyAttributes()).isEqualTo( GSON.fromJson("{\"keyAttribute\":\"1234\"}", Object.class));
     }
 }

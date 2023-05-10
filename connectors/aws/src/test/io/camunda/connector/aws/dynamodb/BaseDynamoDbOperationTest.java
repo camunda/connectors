@@ -9,6 +9,9 @@ package io.camunda.connector.aws.dynamodb;
 import com.amazonaws.services.dynamodbv2.document.DynamoDB;
 import com.amazonaws.services.dynamodbv2.document.Table;
 import com.amazonaws.services.dynamodbv2.model.TableDescription;
+import com.google.gson.Gson;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -16,13 +19,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
-import java.util.Map;
-
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 public abstract class BaseDynamoDbOperationTest {
+    protected final static Gson GSON = GsonDynamoDbComponentSupplier.gsonInstance();
     @Mock
     protected DynamoDB dynamoDB;
     @Mock
@@ -30,24 +32,23 @@ public abstract class BaseDynamoDbOperationTest {
 
     @BeforeEach
     public void beforeEach() {
-        when(dynamoDB.getTable(TestData.Table.NAME)).thenReturn(table);
-        when(table.describe()).thenReturn(new TableDescription().withTableName(TestData.Table.NAME));
+        when(dynamoDB.getTable(TestDynamoDBData.ActualValue.TABLE_NAME)).thenReturn(table);
+        when(table.describe()).thenReturn(new TableDescription().withTableName(TestDynamoDBData.ActualValue.TABLE_NAME));
     }
 
-    public interface TestData {
-        interface Table {
-            String NAME = "my_table";
-            String PARTITION_KEY = "ID";
-            String PARTITION_KEY_ROLE_HASH = "HASH";
-            String PARTITION_KEY_TYPE_NUMBER = "N";
-            String SORT_KEY = "sortKey";
-            String SORT_KEY_ROLE_RANGE = "RANGE";
-            String SORT_KEY_TYPE_STRING = "S";
-            Long READ_CAPACITY = 4L;
-            Long WRITE_CAPACITY = 5L;
-            String FILTER_EXPRESSION = "age >= :ageVal";
-            Map<String, String> EXPRESSION_ATTRIBUTE_NAMES = Map.of("#name", "name");
-            Map<String, Object> EXPRESSION_ATTRIBUTE_VALUES = Map.of(":ageVal", 30);
-        }
+    public OutboundConnectorContext getContextWithSecrets(){
+        return OutboundConnectorContextBuilder.create()
+                .secret(TestDynamoDBData.Secrets.TABLE_NAME, TestDynamoDBData.ActualValue.TABLE_NAME)
+                .secret(TestDynamoDBData.Secrets.ITEM_KEY, TestDynamoDBData.ActualValue.ITEM_KEY)
+                .secret(TestDynamoDBData.Secrets.ITEM_VALUE, TestDynamoDBData.ActualValue.ITEM_VALUE)
+                .secret(TestDynamoDBData.Secrets.KEY_ATTRIBUTE_VALUE, TestDynamoDBData.ActualValue.KEY_ATTRIBUTE_VALUE)
+                .secret(TestDynamoDBData.Secrets.PARTITION_KEY, TestDynamoDBData.ActualValue.PARTITION_KEY)
+                .secret(TestDynamoDBData.Secrets.SORT_KEY, TestDynamoDBData.ActualValue.SORT_KEY)
+                .secret(TestDynamoDBData.Secrets.FILTER_EXPRESSION, TestDynamoDBData.ActualValue.FILTER_EXPRESSION)
+                .secret(TestDynamoDBData.Secrets.PROJECTION_EXPRESSION, TestDynamoDBData.ActualValue.PROJECTION_EXPRESSION)
+                .secret(TestDynamoDBData.Secrets.EXPRESSION_ATTRIBUTE_NAME, TestDynamoDBData.ActualValue.EXPRESSION_ATTRIBUTE_NAME)
+                .secret(TestDynamoDBData.Secrets.EXPRESSION_ATTRIBUTE_VALUE, TestDynamoDBData.ActualValue.EXPRESSION_ATTRIBUTE_VALUE)
+                .build();
     }
+
 }

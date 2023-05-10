@@ -6,12 +6,13 @@
  */
 package io.camunda.connector.aws.model.impl;
 
+import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.aws.model.AwsConfiguration;
 import java.util.Objects;
 import javax.validation.constraints.NotBlank;
 
 public class AwsBaseConfiguration implements AwsConfiguration {
-  @NotBlank private String region;
+  @NotBlank @Secret private String region;
 
   public String getRegion() {
     return region;

@@ -6,17 +6,18 @@
  */
 package io.camunda.connector.aws.dynamodb.model.table;
 
+import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.aws.model.AwsInput;
 import java.util.Map;
 import java.util.Objects;
 import javax.validation.constraints.NotBlank;
 
 public class ScanTable implements AwsInput {
-  @NotBlank private String tableName;
-  private String filterExpression;
-  private String projectionExpression;
-  private Map<String, String> expressionAttributeNames;
-  private Map<String, Object> expressionAttributeValues;
+  @NotBlank @Secret private String tableName;
+  @Secret private String filterExpression;
+  @Secret private String projectionExpression;
+  @Secret private Map<String, String> expressionAttributeNames;
+  @Secret private Map<String, Object> expressionAttributeValues;
   private transient String type;
 
   public String getTableName() {

@@ -6,9 +6,12 @@
  */
 package io.camunda.connector.aws.dynamodb.operation.table;
 
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.aws.dynamodb.BaseDynamoDbOperationTest;
+import io.camunda.connector.aws.dynamodb.TestDynamoDBData;
 import io.camunda.connector.aws.dynamodb.model.AwsDynamoDbResult;
 import io.camunda.connector.aws.dynamodb.model.table.DeleteTable;
+import io.camunda.connector.aws.model.AwsInput;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -21,7 +24,7 @@ class DeleteTableOperationTest extends BaseDynamoDbOperationTest {
     public void invoke_shouldDeleteDynamoDbTableAndReturnStatusOk() throws InterruptedException {
         //Given
         DeleteTable deleteTable = new DeleteTable();
-        deleteTable.setTableName(TestData.Table.NAME);
+        deleteTable.setTableName(TestDynamoDBData.ActualValue.TABLE_NAME);
         DeleteTableOperation operation = new DeleteTableOperation(deleteTable);
         //When
         Object invoke = operation.invoke(dynamoDB);
@@ -31,8 +34,27 @@ class DeleteTableOperationTest extends BaseDynamoDbOperationTest {
 
         assertThat(invoke).isNotNull();
         AwsDynamoDbResult result = (AwsDynamoDbResult) invoke;
-        assertThat(result.getAction()).isEqualTo("delete Table [" + TestData.Table.NAME + "]");
+        assertThat(result.getAction()).isEqualTo("delete Table [" + TestDynamoDBData.ActualValue.TABLE_NAME + "]");
         assertThat(result.getStatus()).isEqualTo("OK");
+    }
+
+    @Test
+    public void replaceSecrets_shouldReplaceSecrets() {
+        // Given
+        String input = """
+                {
+                  "type": "deleteTable",
+                  "tableName": "secrets.TABLE_NAME_KEY"
+                }
+                """;
+        OutboundConnectorContext context = getContextWithSecrets();
+        AwsInput request = GSON.fromJson(input, AwsInput.class);
+        // When
+        context.replaceSecrets(request);
+        // Then
+        assertThat(request).isInstanceOf(DeleteTable.class);
+        DeleteTable castedRequest = (DeleteTable) request;
+        assertThat(castedRequest.getTableName()).isEqualTo(TestDynamoDBData.ActualValue.TABLE_NAME);
     }
 
 }
