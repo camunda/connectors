@@ -49,7 +49,7 @@
     <version.slack>1.29.2</version.slack>
     <version.kotlin>1.8.21</version.kotlin>
 
-    <version.testcontainers>1.18.0</version.testcontainers>
+    <version.testcontainers>1.18.1</version.testcontainers>
   </properties>
 
   <modules>
