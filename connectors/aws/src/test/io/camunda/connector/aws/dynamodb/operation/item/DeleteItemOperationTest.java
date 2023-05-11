@@ -8,8 +8,11 @@ package io.camunda.connector.aws.dynamodb.operation.item;
 
 import com.amazonaws.services.dynamodbv2.document.DeleteItemOutcome;
 import com.amazonaws.services.dynamodbv2.document.KeyAttribute;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.aws.dynamodb.BaseDynamoDbOperationTest;
+import io.camunda.connector.aws.dynamodb.TestDynamoDBData;
 import io.camunda.connector.aws.dynamodb.model.item.DeleteItem;
+import io.camunda.connector.aws.model.AwsInput;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -36,7 +39,7 @@ class DeleteItemOperationTest extends BaseDynamoDbOperationTest {
         Map<String, Object> primaryKeyComponents = new HashMap<>();
         primaryKeyComponents.put("id", "1234");
         DeleteItem deleteItem = new DeleteItem();
-        deleteItem.setTableName(TestData.Table.NAME);
+        deleteItem.setTableName(TestDynamoDBData.ActualValue.TABLE_NAME);
         deleteItem.setPrimaryKeyComponents(primaryKeyComponents);
         this.deleteItemOperation = new DeleteItemOperation(deleteItem);
     }
@@ -53,6 +56,26 @@ class DeleteItemOperationTest extends BaseDynamoDbOperationTest {
         assertThat(keyAttribute.getName()).isEqualTo("id");
         assertThat(keyAttribute.getValue()).isEqualTo("1234");
 
+    }
+
+    @Test
+    public void replaceSecrets_shouldReplaceSecrets() {
+        // Given
+        String input = """
+                     {
+                     "type": "deleteItem",
+                     "tableName": "secrets.TABLE_NAME_KEY",
+                     "primaryKeyComponents":{"id":"secrets.KEY_ATTRIBUTE_VALUE"}
+                     }""";
+        OutboundConnectorContext context = getContextWithSecrets();
+        AwsInput request = GSON.fromJson(input, AwsInput.class);
+        // When
+        context.replaceSecrets(request);
+        // Then
+        assertThat(request).isInstanceOf(DeleteItem.class);
+        DeleteItem castedRequest = (DeleteItem) request;
+        assertThat(castedRequest.getTableName()).isEqualTo(TestDynamoDBData.ActualValue.TABLE_NAME);
+        assertThat(castedRequest.getPrimaryKeyComponents()).isEqualTo( GSON.fromJson("{\"id\":\"1234\"}", Object.class));
     }
 
 }

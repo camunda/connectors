@@ -6,16 +6,17 @@
  */
 package io.camunda.connector.aws.dynamodb.model.item;
 
+import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.aws.model.AwsInput;
 import java.util.Objects;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
 public class UpdateItem implements AwsInput {
-  @NotBlank private String tableName;
-  @NotNull private Object primaryKeyComponents;
-  @NotNull private Object keyAttributes;
-  @NotBlank private String attributeAction;
+  @NotBlank @Secret private String tableName;
+  @NotNull @Secret private Object primaryKeyComponents;
+  @NotNull @Secret private Object keyAttributes;
+  @NotBlank @Secret private String attributeAction;
   private transient String type;
 
   public String getTableName() {

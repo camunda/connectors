@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.aws.model.impl;
 
+import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.aws.model.AwsService;
 import java.util.Objects;
 import javax.validation.Valid;
@@ -13,8 +14,8 @@ import javax.validation.constraints.NotNull;
 
 public class AwsBaseRequest {
 
-  @Valid @NotNull private AwsBaseAuthentication authentication;
-  @Valid @NotNull private AwsBaseConfiguration configuration;
+  @Valid @NotNull @Secret private AwsBaseAuthentication authentication;
+  @Valid @NotNull @Secret private AwsBaseConfiguration configuration;
   @NotNull private AwsService service;
 
   public AwsBaseAuthentication getAuthentication() {

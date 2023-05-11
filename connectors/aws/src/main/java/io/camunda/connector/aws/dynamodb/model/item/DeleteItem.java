@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.aws.dynamodb.model.item;
 
+import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.aws.model.AwsInput;
 import java.util.Objects;
 import javax.validation.constraints.NotBlank;
@@ -13,8 +14,8 @@ import javax.validation.constraints.NotNull;
 
 public class DeleteItem implements AwsInput {
 
-  @NotBlank private String tableName;
-  @NotNull private Object primaryKeyComponents;
+  @NotBlank @Secret private String tableName;
+  @NotNull @Secret private Object primaryKeyComponents;
   private transient String type;
 
   public String getTableName() {

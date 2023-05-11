@@ -6,13 +6,14 @@
  */
 package io.camunda.connector.aws.model.impl;
 
+import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.aws.model.AwsAuthentication;
 import java.util.Objects;
 import javax.validation.constraints.NotBlank;
 
 public class AwsBaseAuthentication implements AwsAuthentication {
-  @NotBlank private String accessKey;
-  @NotBlank private String secretKey;
+  @NotBlank @Secret private String accessKey;
+  @NotBlank @Secret private String secretKey;
 
   public String getAccessKey() {
     return accessKey;
