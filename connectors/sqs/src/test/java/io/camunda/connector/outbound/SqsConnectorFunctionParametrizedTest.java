@@ -4,17 +4,17 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector;
+package io.camunda.connector.outbound;
 
-import static io.camunda.connector.BaseTest.ACTUAL_ACCESS_KEY;
-import static io.camunda.connector.BaseTest.ACTUAL_QUEUE_REGION;
-import static io.camunda.connector.BaseTest.ACTUAL_QUEUE_URL;
-import static io.camunda.connector.BaseTest.ACTUAL_SECRET_KEY;
-import static io.camunda.connector.BaseTest.AWS_ACCESS_KEY;
-import static io.camunda.connector.BaseTest.AWS_SECRET_KEY;
-import static io.camunda.connector.BaseTest.GSON;
-import static io.camunda.connector.BaseTest.MSG_ID;
-import static io.camunda.connector.BaseTest.SQS_QUEUE_URL;
+import static io.camunda.connector.outbound.BaseTest.ACTUAL_ACCESS_KEY;
+import static io.camunda.connector.outbound.BaseTest.ACTUAL_QUEUE_REGION;
+import static io.camunda.connector.outbound.BaseTest.ACTUAL_QUEUE_URL;
+import static io.camunda.connector.outbound.BaseTest.ACTUAL_SECRET_KEY;
+import static io.camunda.connector.outbound.BaseTest.AWS_ACCESS_KEY;
+import static io.camunda.connector.outbound.BaseTest.AWS_SECRET_KEY;
+import static io.camunda.connector.outbound.BaseTest.GSON;
+import static io.camunda.connector.outbound.BaseTest.MSG_ID;
+import static io.camunda.connector.outbound.BaseTest.SQS_QUEUE_URL;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.readString;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -28,7 +28,6 @@ import com.amazonaws.services.sqs.model.SendMessageResult;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.common.suppliers.AmazonSQSClientSupplier;
 import io.camunda.connector.common.suppliers.SqsGsonComponentSupplier;
-import io.camunda.connector.outbound.SqsConnectorFunction;
 import io.camunda.connector.outbound.model.SqsConnectorRequest;
 import io.camunda.connector.outbound.model.SqsConnectorResult;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
@@ -52,10 +51,10 @@ import org.mockito.quality.Strictness;
 class SqsConnectorFunctionParametrizedTest {
 
   private static final String SUCCESS_CASES_RESOURCE_PATH =
-      "src/test/resources/requests/success-test-cases.json";
+      "src/test/resources/requests/outbound/success-test-cases.json";
 
   private static final String FAIL_CASES_RESOURCE_PATH =
-      "src/test/resources/requests/fail-test-cases.json";
+      "src/test/resources/requests/outbound/fail-test-cases.json";
 
   @Mock private AmazonSQSClientSupplier sqsClientSupplier;
   @Mock private AmazonSQS sqsClient;

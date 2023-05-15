@@ -17,7 +17,6 @@ public class SqsInboundQueueProperties {
   @NotEmpty @Secret private String url;
   @Secret private List<String> attributeNames;
   @Secret private List<String> messageAttributeNames;
-  private boolean deleteAfterReceipt;
 
   @Pattern(regexp = "(^[0-9]?$|^1[0-9]$|^20$)|(^secrets\\\\..+)")
   @Secret
@@ -80,8 +79,7 @@ public class SqsInboundQueueProperties {
       return false;
     }
     final SqsInboundQueueProperties that = (SqsInboundQueueProperties) o;
-    return deleteAfterReceipt == that.deleteAfterReceipt
-        && Objects.equals(region, that.region)
+    return Objects.equals(region, that.region)
         && Objects.equals(url, that.url)
         && Objects.equals(attributeNames, that.attributeNames)
         && Objects.equals(messageAttributeNames, that.messageAttributeNames)
@@ -90,8 +88,7 @@ public class SqsInboundQueueProperties {
 
   @Override
   public int hashCode() {
-    return Objects.hash(
-        region, url, attributeNames, messageAttributeNames, deleteAfterReceipt, pollingWaitTime);
+    return Objects.hash(region, url, attributeNames, messageAttributeNames, pollingWaitTime);
   }
 
   @Override
@@ -107,8 +104,6 @@ public class SqsInboundQueueProperties {
         + attributeNames
         + ", messageAttributeNames="
         + messageAttributeNames
-        + ", deleteAfterReceipt="
-        + deleteAfterReceipt
         + ", pollingWaitTime='"
         + pollingWaitTime
         + "'"
