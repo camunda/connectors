@@ -52,11 +52,11 @@
       "value": "bearer",
       "choices": [
         {
-          "name": "Bearer Token",
+          "name": "Bearer token",
           "value": "bearer"
         },
         {
-          "name": "Refresh Token",
+          "name": "Refresh token",
           "value": "refresh"
         }
       ],
@@ -67,7 +67,7 @@
       }
     },
     {
-      "label": "Bearer Token",
+      "label": "Bearer token",
       "description": "Enter Google API Bearer token that is authorized to interact with desired Drive",
       "group": "authentication",
       "type": "String",
@@ -84,8 +84,8 @@
       }
     },
     {
-      "label": "Client Id",
-      "description": "Enter Google API Client Id",
+      "label": "Client ID",
+      "description": "Enter Google API Client ID",
       "group": "authentication",
       "type": "String",
       "binding": {
@@ -101,8 +101,8 @@
       }
     },
     {
-      "label": "Client Secret",
-      "description": "Enter Google API Client Secret",
+      "label": "Client secret",
+      "description": "Enter Google API client Secret",
       "group": "authentication",
       "type": "String",
       "binding": {
@@ -118,8 +118,8 @@
       }
     },
     {
-      "label": "Refresh Token",
-      "description": "Enter Google API Refresh token that is authorized to interact with desired Drive",
+      "label": "Refresh token",
+      "description": "Enter Google API refresh token that is authorized to interact with desired Drive",
       "group": "authentication",
       "type": "String",
       "binding": {
@@ -272,7 +272,7 @@
       }
     },
     {
-      "label": "Result Variable",
+      "label": "Result variable",
       "description": "Enter name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>",
       "group": "output",
       "type": "String",
@@ -282,7 +282,7 @@
       }
     },
     {
-      "label": "Result Expression",
+      "label": "Result expression",
       "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
       "group": "output",
       "type": "Text",
@@ -293,7 +293,7 @@
       }
     },
     {
-      "label": "Error Expression",
+      "label": "Error expression",
       "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
       "group": "errors",
       "type": "Text",
