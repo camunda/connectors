@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory;
 @OutboundConnector(
     name = "AWSLambda",
     inputVariables = {"authentication", "configuration", "awsFunction"},
-    type = "io.camunda:aws:lambda:1")
+    type = "io.camunda:aws-lambda:1")
 public class LambdaConnectorFunction implements OutboundConnectorFunction {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(LambdaConnectorFunction.class);

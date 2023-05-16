@@ -44,7 +44,7 @@
   "properties": [
     {
       "type": "Hidden",
-      "value": "io.camunda:aws:lambda:1",
+      "value": "io.camunda:aws-lambda:1",
       "binding": {
         "type": "zeebe:taskDefinition:type"
       }
