@@ -7,7 +7,6 @@
 package io.camunda.connector.aws.model.impl;
 
 import io.camunda.connector.api.annotation.Secret;
-import io.camunda.connector.aws.model.AwsService;
 import java.util.Objects;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;

@@ -7,7 +7,6 @@
 package io.camunda.connector.aws.dynamodb.model.table;
 
 import io.camunda.connector.api.annotation.Secret;
-import io.camunda.connector.aws.model.AwsInput;
 import io.camunda.connector.aws.dynamodb.model.AwsInput;
 import java.util.Map;
 import java.util.Objects;
