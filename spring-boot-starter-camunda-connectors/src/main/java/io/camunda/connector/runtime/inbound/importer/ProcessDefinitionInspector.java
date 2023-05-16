@@ -128,7 +128,8 @@ public class ProcessDefinitionInspector {
                       HashMap::putAll),
               definition.getBpmnProcessId(),
               definition.getVersion().intValue(),
-              definition.getKey());
+              definition.getKey(),
+              element.getId());
 
       discoveredConnectors.add(properties);
     }

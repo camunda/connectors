@@ -207,6 +207,7 @@ public class InboundConnectorManagerTest {
         Map.of(Constants.INBOUND_TYPE_KEYWORD, connectorConfig.getType()),
         procDef.getBpmnProcessId(),
         procDef.getVersion().intValue(),
-        procDef.getKey());
+        procDef.getKey(),
+        "test-element");
   }
 }
