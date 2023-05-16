@@ -1,1 +1,2 @@
 io.camunda.connector.aws.dynamodb.AwsDynamoDbServiceConnectorFunction
+io.camunda.connector.aws.dynamodb.AwsDynamoDbServiceConnectorFunctionDeprecated
