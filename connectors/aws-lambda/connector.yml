@@ -1,3 +1,0 @@
-name: AWSLambda
-type: io.camunda:aws-lambda:1
-variables: [ authentication, awsFunction ]
