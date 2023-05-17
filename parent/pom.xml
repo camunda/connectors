@@ -79,7 +79,7 @@ limitations under the License.</license.inlineheader>
     <version.mockito>5.3.1</version.mockito>
     <version.junit-jupiter>5.9.3</version.junit-jupiter>
     <version.assertj>3.24.2</version.assertj>
-    <version.jackson-bom>2.15.0</version.jackson-bom>
+    <version.jackson-bom>2.15.1</version.jackson-bom>
     <version.jackson-datatype-jsr310>2.15.1</version.jackson-datatype-jsr310>
     <version.hibernate-validator>6.2.5.Final</version.hibernate-validator>
 
