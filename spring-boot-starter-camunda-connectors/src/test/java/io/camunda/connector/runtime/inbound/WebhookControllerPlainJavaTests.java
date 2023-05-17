@@ -194,6 +194,7 @@ public class WebhookControllerPlainJavaTests {
             "inbound.variableMapping", "={}"),
         bpmnProcessId,
         version,
-        processDefinitionKey);
+        processDefinitionKey,
+        "testElement");
   }
 }

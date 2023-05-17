@@ -41,21 +41,24 @@ public class InboundConnectorRestController {
 
   @GetMapping("/inbound")
   public List<ActiveInboundConnectorResponse> getActiveInboundConnectors(
+      @RequestParam(required = false) String bpmnProcessId,
       @RequestParam(required = false) String type,
-      @RequestParam(required = false) String bpmnProcessId) {
+      @RequestParam(required = false) String elementId) {
 
     var activeConnectors = inboundManager.getActiveConnectorsByBpmnId();
     var filteredByBpmnProcessId = filterByBpmnProcessId(activeConnectors, bpmnProcessId);
     var filteredByType = filterByConnectorType(filteredByBpmnProcessId, type);
+    var filteredByElementId = filterByElementId(filteredByType, elementId);
 
     // TODO: replace this with a general solution
     // e.g. consider an optional method in InboundConnectorExecutable that returns data to be shown
     // in Modeler
-    return filteredByType.stream()
+    return filteredByElementId.stream()
         .map(
             properties ->
                 new ActiveInboundConnectorResponse(
                     properties.getBpmnProcessId(),
+                    properties.getElementId(),
                     properties.getType(),
                     extractPublicConnectorData(properties)))
         .collect(Collectors.toList());
@@ -80,6 +83,17 @@ public class InboundConnectorRestController {
     }
     return properties.stream()
         .filter(props -> type.equals(props.getType()))
+        .collect(Collectors.toList());
+  }
+
+  private List<InboundConnectorProperties> filterByElementId(
+      List<InboundConnectorProperties> properties, String elementId) {
+
+    if (elementId == null) {
+      return properties;
+    }
+    return properties.stream()
+        .filter(props -> elementId.equals(props.getElementId()))
         .collect(Collectors.toList());
   }
 

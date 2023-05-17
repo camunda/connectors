@@ -20,20 +20,30 @@ import java.util.Map;
 import java.util.Objects;
 
 public class ActiveInboundConnectorResponse {
+
   private final String bpmnProcessId;
+  private final String elementId;
   private final String type;
   private final Map<String, Object> data;
 
   public ActiveInboundConnectorResponse(
-      final String bpmnProcessId, final String type, final Map<String, Object> data) {
+      final String bpmnProcessId,
+      final String elementId,
+      final String type,
+      final Map<String, Object> data) {
 
     this.bpmnProcessId = bpmnProcessId;
+    this.elementId = elementId;
     this.type = type;
     this.data = data;
   }
 
   public String getBpmnProcessId() {
     return bpmnProcessId;
+  }
+
+  public String getElementId() {
+    return elementId;
   }
 
   public String getType() {
@@ -55,12 +65,13 @@ public class ActiveInboundConnectorResponse {
     ActiveInboundConnectorResponse that = (ActiveInboundConnectorResponse) o;
     return Objects.equals(bpmnProcessId, that.bpmnProcessId)
         && Objects.equals(type, that.type)
-        && Objects.equals(data, that.data);
+        && Objects.equals(data, that.data)
+        && Objects.equals(elementId, that.elementId);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(bpmnProcessId, type, data);
+    return Objects.hash(bpmnProcessId, elementId, type, data);
   }
 
   @Override
@@ -74,6 +85,8 @@ public class ActiveInboundConnectorResponse {
         + '\''
         + ", data="
         + data
+        + ", elementId='"
+        + elementId
         + '}';
   }
 }
