@@ -21,7 +21,6 @@
     <module>aws</module>
     <module>sns</module>
     <module>sqs</module>
-    <module>google-drive</module>
     <module>rabbitmq</module>
     <module>sendgrid</module>
     <module>kafka</module>
@@ -30,7 +29,7 @@
     <module>slack</module>
     <module>graphql</module>
     <module>connectors-common-library</module>
-    <module>google-sheets</module>
+    <module>google</module>
   </modules>
 
   <properties>
