@@ -16,10 +16,13 @@
  */
 package io.camunda.connector.runtime.inbound.lifecycle;
 
+import static io.camunda.connector.runtime.inbound.lifecycle.InboundConnectorManager.WEBHOOK_CONTEXT_BPMN_FIELD;
+
 import io.camunda.connector.api.inbound.Health;
-import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorProperties;
-import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -46,13 +49,12 @@ public class InboundConnectorRestController {
 
   private ActiveInboundConnectorResponse mapToResponse(ActiveInboundConnector connector) {
     var properties = connector.properties();
-    if (WebhookConnectorRegistry.TYPE_WEBHOOK.equals(properties.getType())) {
-      WebhookConnectorProperties webhookProps = new WebhookConnectorProperties(properties);
+    if (properties.getProperties().containsKey(WEBHOOK_CONTEXT_BPMN_FIELD)) {
       return new ActiveInboundConnectorResponse(
           properties.getBpmnProcessId(),
           properties.getElementId(),
           properties.getType(),
-          Map.of("path", webhookProps.getContext()),
+          Map.of("path", properties.getProperties().get(WEBHOOK_CONTEXT_BPMN_FIELD)),
           Health.Status.UP);
     } else {
       var health = Optional.ofNullable(connector.context().getHealth());

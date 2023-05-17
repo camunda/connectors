@@ -72,6 +72,10 @@
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-google-sheets</artifactId>
     </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-webhook</artifactId>
+    </dependency>
   </dependencies>
 
   <build>
