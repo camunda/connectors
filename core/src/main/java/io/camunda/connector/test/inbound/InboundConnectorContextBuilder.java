@@ -166,7 +166,8 @@ public class InboundConnectorContextBuilder {
         new HashMap<>(),
         UUID.randomUUID().toString(),
         0,
-        0);
+        0,
+        "defaultElementId");
   }
 
   public class TestInboundConnectorContext extends AbstractConnectorContext

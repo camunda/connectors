@@ -35,6 +35,7 @@ public class InboundConnectorPropertiesBuilder {
   private String bpmnProcessId = "test-process";
   private int version = 1;
   private long processDefinitionKey = 1;
+  private String elementId = "test-element";
   private ProcessCorrelationPoint correlationPoint =
       new StartEventCorrelationPoint(processDefinitionKey, bpmnProcessId, version);
 
@@ -62,6 +63,11 @@ public class InboundConnectorPropertiesBuilder {
 
   public InboundConnectorPropertiesBuilder processDefinitionKey(long processDefinitionKey) {
     this.processDefinitionKey = processDefinitionKey;
+    return this;
+  }
+
+  public InboundConnectorPropertiesBuilder elementId(String elementId) {
+    this.elementId = elementId;
     return this;
   }
 
@@ -127,6 +133,6 @@ public class InboundConnectorPropertiesBuilder {
       properties.put(INBOUND_TYPE_KEYWORD, "io.camunda:test-inbound-connector:1");
     }
     return new InboundConnectorProperties(
-        correlationPoint, properties, bpmnProcessId, version, processDefinitionKey);
+        correlationPoint, properties, bpmnProcessId, version, processDefinitionKey, elementId);
   }
 }

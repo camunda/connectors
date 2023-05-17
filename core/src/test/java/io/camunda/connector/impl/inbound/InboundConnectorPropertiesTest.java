@@ -35,7 +35,8 @@ public class InboundConnectorPropertiesTest {
                 "bar", "gamma"),
             "process1",
             0,
-            0);
+            0,
+            "defaultElementId");
 
     // when
     Map<String, Object> objectMap = properties.getPropertiesAsObjectMap();

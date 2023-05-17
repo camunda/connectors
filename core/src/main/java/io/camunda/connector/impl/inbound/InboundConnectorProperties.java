@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Objects;
 
 public class InboundConnectorProperties {
+
   private final String type;
   private final Map<String, String> properties;
 
@@ -31,19 +32,22 @@ public class InboundConnectorProperties {
   private final String bpmnProcessId;
   private final int version;
   private final long processDefinitionKey;
+  private final String elementId;
 
   public InboundConnectorProperties(
       ProcessCorrelationPoint correlationPoint,
       Map<String, String> properties,
       String bpmnProcessId,
       int version,
-      long processDefinitionKey) {
+      long processDefinitionKey,
+      String elementId) {
     this.type = properties.get(INBOUND_TYPE_KEYWORD);
     this.properties = properties;
     this.correlationPoint = correlationPoint;
     this.bpmnProcessId = bpmnProcessId;
     this.version = version;
     this.processDefinitionKey = processDefinitionKey;
+    this.elementId = elementId;
   }
 
   /** Shortcut to {@link ProcessCorrelationPoint#getId()} */
@@ -94,6 +98,10 @@ public class InboundConnectorProperties {
     return processDefinitionKey;
   }
 
+  public String getElementId() {
+    return elementId;
+  }
+
   public String getProperty(String propertyName) {
     return properties.get(propertyName);
   }
@@ -121,13 +129,20 @@ public class InboundConnectorProperties {
         && Objects.equals(type, that.type)
         && Objects.equals(properties, that.properties)
         && Objects.equals(correlationPoint, that.correlationPoint)
-        && Objects.equals(bpmnProcessId, that.bpmnProcessId);
+        && Objects.equals(bpmnProcessId, that.bpmnProcessId)
+        && Objects.equals(elementId, that.elementId);
   }
 
   @Override
   public int hashCode() {
     return Objects.hash(
-        type, properties, correlationPoint, bpmnProcessId, version, processDefinitionKey);
+        type,
+        properties,
+        correlationPoint,
+        bpmnProcessId,
+        version,
+        processDefinitionKey,
+        elementId);
   }
 
   @Override
@@ -147,6 +162,8 @@ public class InboundConnectorProperties {
         + version
         + ", processDefinitionKey="
         + processDefinitionKey
+        + ", elementId='"
+        + elementId
         + '}';
   }
 
