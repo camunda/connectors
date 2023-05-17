@@ -16,10 +16,13 @@
  */
 package io.camunda.connector.runtime.inbound.lifecycle;
 
+import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import io.camunda.connector.api.inbound.WebhookConnectorExecutable;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.impl.inbound.InboundConnectorProperties;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionInspector;
+import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.connector.runtime.util.inbound.InboundConnectorContextImpl;
 import io.camunda.connector.runtime.util.inbound.InboundConnectorFactory;
 import io.camunda.connector.runtime.util.inbound.correlation.InboundCorrelationHandler;
@@ -36,6 +39,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 public class InboundConnectorManager {
   private static final Logger LOG = LoggerFactory.getLogger(InboundConnectorManager.class);
@@ -44,6 +48,7 @@ public class InboundConnectorManager {
   private final InboundCorrelationHandler correlationHandler;
   private final ProcessDefinitionInspector processDefinitionInspector;
   private final SecretProvider secretProvider;
+  private final WebhookConnectorRegistry webhookConnectorRegistry;
 
   // TODO: consider using external storage instead of these collections to allow multi-instance
   // setup
@@ -57,11 +62,13 @@ public class InboundConnectorManager {
       InboundConnectorFactory connectorFactory,
       InboundCorrelationHandler correlationHandler,
       ProcessDefinitionInspector processDefinitionInspector,
-      SecretProvider secretProvider) {
+      SecretProvider secretProvider,
+      @Autowired(required = false) WebhookConnectorRegistry webhookConnectorRegistry) {
     this.connectorFactory = connectorFactory;
     this.correlationHandler = correlationHandler;
     this.processDefinitionInspector = processDefinitionInspector;
     this.secretProvider = secretProvider;
+    this.webhookConnectorRegistry = webhookConnectorRegistry;
   }
 
   /** Check whether process definition with provided key is already registered */
@@ -132,9 +139,12 @@ public class InboundConnectorManager {
     }
   }
 
+  // TODO: deactivate as well
   private void activateConnector(InboundConnectorProperties newProperties) {
-
     InboundConnectorExecutable executable = connectorFactory.getInstance(newProperties.getType());
+    
+    LOG.error("IGPETROV: Registering " + newProperties.getType());
+    
     Consumer<Throwable> cancellationCallback =
         throwable -> {
           LOG.error(
@@ -147,9 +157,9 @@ public class InboundConnectorManager {
         };
 
     try {
-      executable.activate(
-          new InboundConnectorContextImpl(
-              secretProvider, newProperties, correlationHandler, cancellationCallback));
+      InboundConnectorContext inboundConnectorContext = 
+              new InboundConnectorContextImpl(secretProvider, newProperties, correlationHandler, cancellationCallback);
+      executable.activate(inboundConnectorContext);
 
       activeConnectorsByCorrelationPointId.put(newProperties.getCorrelationPointId(), executable);
       activeConnectorsByBpmnId.compute(
@@ -163,6 +173,12 @@ public class InboundConnectorManager {
             connectorPropertiesSet.add(newProperties);
             return connectorPropertiesSet;
           });
+
+      if (executable instanceof WebhookConnectorExecutable wh) {
+        webhookConnectorRegistry.registerWebhookFunction(newProperties.getType(), wh);
+        webhookConnectorRegistry.activateEndpoint(inboundConnectorContext);
+        LOG.error("IGPETROV: Registering webhook " + newProperties.getType());
+      }
     } catch (Exception e) {
       // log and continue with other connectors anyway
       LOG.error("Failed to activate inbound connector " + newProperties, e);

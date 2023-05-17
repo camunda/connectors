@@ -68,6 +68,10 @@
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-graphql</artifactId>
     </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-inbound-webhook</artifactId>
+    </dependency>
   </dependencies>
 
   <build>

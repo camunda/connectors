@@ -30,6 +30,7 @@
     <module>microsoft-teams</module>
     <module>slack</module>
     <module>graphql</module>
+    <module>webhook-connector</module>
     <module>connectors-common-library</module>
   </modules>
 

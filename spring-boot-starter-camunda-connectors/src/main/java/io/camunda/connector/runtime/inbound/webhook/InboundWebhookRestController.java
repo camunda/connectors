@@ -19,6 +19,9 @@ package io.camunda.connector.runtime.inbound.webhook;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorResult;
+import io.camunda.connector.api.inbound.WebhookConnectorExecutable;
+import io.camunda.connector.impl.inbound.WebhookRequestPayload;
+import io.camunda.connector.runtime.inbound.webhook.model.HttpServletRequestWebhookRequestPayload;
 import io.camunda.connector.runtime.inbound.webhook.signature.HMACAlgoCustomerChoice;
 import io.camunda.connector.runtime.inbound.webhook.signature.HMACSignatureValidator;
 import io.camunda.connector.runtime.inbound.webhook.signature.HMACSwitchCustomerChoice;
@@ -36,18 +39,19 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+
+import static org.springframework.web.bind.annotation.RequestMethod.*;
 
 @RestController
 @ConditionalOnProperty("camunda.connector.webhook.enabled")
@@ -71,13 +75,15 @@ public class InboundWebhookRestController {
     this.jsonMapper = jsonMapper;
     this.metricsRecorder = metricsRecorder;
   }
-
-  @PostMapping("/inbound/{context}")
+  
+  // Review: should we support all methods? (PATCH, HEAD, etc)
+  @RequestMapping(method = {GET, POST, PUT, DELETE}, path = "/inbound/{context}")
   public ResponseEntity<WebhookResponse> inbound(
       @PathVariable String context,
-      @RequestBody(required = false) byte[] bodyAsByteArray, // raw form required to calculate HMAC
       @RequestHeader Map<String, String> headers,
-      @RequestHeader(value = "Content-type", required = false) String contentType)
+      @RequestBody(required = false) byte[] bodyAsByteArray,
+      @RequestParam Map<String,String> params,
+      HttpServletRequest httpServletRequest)
       throws IOException {
 
     LOG.debug("Received inbound hook on {}", context);
@@ -94,7 +100,7 @@ public class InboundWebhookRestController {
     // TODO(nikku): what context do we expose?
     // TODO(igpetrov): handling exceptions? Throw or fail? Maybe spring controller advice?
     boolean isURLFormContentType =
-        Optional.ofNullable(contentType)
+        Optional.ofNullable(httpServletRequest.getHeader(HttpHeaders.CONTENT_TYPE))
             .map(
                 contentHeaderType ->
                     contentHeaderType.equalsIgnoreCase("application/x-www-form-urlencoded"))
@@ -120,47 +126,69 @@ public class InboundWebhookRestController {
     request.put("body", bodyAsMap);
     request.put("headers", headers);
     final Map<String, Object> webhookContext = Collections.singletonMap("request", request);
+    
+    // TODO: pack all incoming data here - body, headers, request params
+    WebhookRequestPayload payload = 
+            new HttpServletRequestWebhookRequestPayload(httpServletRequest, params, headers, bodyAsByteArray);
 
     WebhookResponse response = new WebhookResponse();
     Collection<InboundConnectorContext> connectors =
         webhookConnectorRegistry.getWebhookConnectorByContextPath(context);
+    
     for (InboundConnectorContext connectorContext : connectors) {
+      WebhookConnectorExecutable executable = 
+              webhookConnectorRegistry.getByType(connectorContext.getProperties().getType());
       WebhookConnectorProperties connectorProperties =
-          new WebhookConnectorProperties(connectorContext.getProperties());
-
+              new WebhookConnectorProperties(connectorContext.getProperties());
       connectorContext.replaceSecrets(connectorProperties);
-
       try {
-        if (!isValidHmac(connectorProperties, bodyAsByteArray, headers)) {
-          LOG.debug("HMAC validation failed {} :: {}", context, webhookContext);
-          response.addUnauthorizedConnector(connectorProperties);
-        } else { // Authorized
-          if (!activationConditionTriggered(connectorProperties, webhookContext)) {
-            LOG.debug("Should not activate {} :: {}", context, webhookContext);
-            response.addUnactivatedConnector(connectorProperties);
-          } else {
-            Map<String, Object> variables = extractVariables(connectorProperties, webhookContext);
-            InboundConnectorResult<?> result = connectorContext.correlate(variables);
-
-            LOG.debug("Webhook {} created process instance {}", connectorProperties, result);
-
-            response.addExecutedConnector(connectorProperties, result);
-          }
-        }
-      } catch (Exception exception) {
-        LOG.error("Webhook {} failed to create process instance", connectorProperties, exception);
-        metricsRecorder.increase(
-            MetricsRecorder.METRIC_NAME_INBOUND_CONNECTOR,
-            MetricsRecorder.ACTION_FAILED,
-            WebhookConnectorRegistry.TYPE_WEBHOOK);
-        response.addException(connectorProperties, exception);
+        // TODO: make use of webhook result
+        // TODO: maybe have headers or payload returned by response entity
+        var webhookResult = executable.triggerWebhook(connectorContext, payload);
+        Map<String, Object> variables = extractVariables(connectorProperties, webhookContext);
+        InboundConnectorResult<?> result = connectorContext.correlate(variables);
+        response.addExecutedConnector(connectorProperties, result);
+      } catch (Exception e) {
+        response.addException(connectorProperties, e);
       }
     }
-
-    metricsRecorder.increase(
-        MetricsRecorder.METRIC_NAME_INBOUND_CONNECTOR,
-        MetricsRecorder.ACTION_COMPLETED,
-        WebhookConnectorRegistry.TYPE_WEBHOOK);
+      
+//      WebhookConnectorProperties connectorProperties =
+//          new WebhookConnectorProperties(connectorContext.getProperties());
+//
+//      connectorContext.replaceSecrets(connectorProperties);
+//
+//      try {
+//        if (!isValidHmac(connectorProperties, bodyAsByteArray, headers)) {
+//          LOG.debug("HMAC validation failed {} :: {}", context, webhookContext);
+//          response.addUnauthorizedConnector(connectorProperties);
+//        } else { // Authorized
+//          if (!activationConditionTriggered(connectorProperties, webhookContext)) {
+//            LOG.debug("Should not activate {} :: {}", context, webhookContext);
+//            response.addUnactivatedConnector(connectorProperties);
+//          } else {
+//            Map<String, Object> variables = extractVariables(connectorProperties, webhookContext);
+//            InboundConnectorResult<?> result = connectorContext.correlate(variables);
+//
+//            LOG.debug("Webhook {} created process instance {}", connectorProperties, result);
+//
+//            response.addExecutedConnector(connectorProperties, result);
+//          }
+//        }
+//      } catch (Exception exception) {
+//        LOG.error("Webhook {} failed to create process instance", connectorProperties, exception);
+//        metricsRecorder.increase(
+//            MetricsRecorder.METRIC_NAME_INBOUND_CONNECTOR,
+//            MetricsRecorder.ACTION_FAILED,
+//            WebhookConnectorRegistry.TYPE_WEBHOOK);
+//        response.addException(connectorProperties, exception);
+//      }
+//  }
+//
+//    metricsRecorder.increase(
+//        MetricsRecorder.METRIC_NAME_INBOUND_CONNECTOR,
+//        MetricsRecorder.ACTION_COMPLETED,
+//        WebhookConnectorRegistry.TYPE_WEBHOOK);
     return ResponseEntity.ok(response);
   }
 

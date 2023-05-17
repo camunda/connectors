@@ -73,7 +73,8 @@ public class InboundConnectorManagerTest {
 
     ProcessDefinitionInspector inspector = mock(ProcessDefinitionInspector.class);
 
-    manager = new InboundConnectorManager(factory, correlationHandler, inspector, secretProvider);
+    // FIXME: webhook not null
+    manager = new InboundConnectorManager(factory, correlationHandler, inspector, secretProvider, null);
     procDefUtil = new ProcessDefinitionTestUtil(manager, inspector);
   }
 

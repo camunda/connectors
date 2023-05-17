@@ -19,8 +19,10 @@ package io.camunda.connector.runtime.inbound.lifecycle;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionInspector;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
+import io.camunda.connector.runtime.util.inbound.DefaultInboundConnectorFactory;
 import io.camunda.connector.runtime.util.inbound.InboundConnectorFactory;
 import io.camunda.connector.runtime.util.inbound.correlation.InboundCorrelationHandler;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -30,9 +32,8 @@ import org.springframework.context.annotation.Import;
 public class InboundConnectorLifecycleConfiguration {
 
   @Bean
-  public InboundConnectorFactory springInboundConnectorFactory(
-      WebhookConnectorRegistry webhookConnectorRegistry) {
-    return new SpringInboundConnectorFactory(webhookConnectorRegistry);
+  public InboundConnectorFactory springInboundConnectorFactory() {
+    return new DefaultInboundConnectorFactory();
   }
 
   @Bean
@@ -40,8 +41,9 @@ public class InboundConnectorLifecycleConfiguration {
       InboundConnectorFactory connectorFactory,
       InboundCorrelationHandler correlationHandler,
       ProcessDefinitionInspector processDefinitionInspector,
-      SecretProvider secretProvider) {
+      SecretProvider secretProvider,
+      @Autowired(required = false) WebhookConnectorRegistry webhookConnectorRegistry) {
     return new InboundConnectorManager(
-        connectorFactory, correlationHandler, processDefinitionInspector, secretProvider);
+        connectorFactory, correlationHandler, processDefinitionInspector, secretProvider, webhookConnectorRegistry);
   }
 }

@@ -24,7 +24,7 @@ import io.camunda.connector.impl.ConnectorUtil;
 import io.camunda.connector.impl.inbound.InboundConnectorConfiguration;
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.app.TestInboundConnector;
-import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorExecutable;
+import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorExecutableInternal;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -48,7 +48,7 @@ public class SpringInboundConnectorFactoryTest {
   void shouldDiscoverConnectorsAndActivateWebhook() {
 
     var webhookConfig =
-        ConnectorUtil.getRequiredInboundConnectorConfiguration(WebhookConnectorExecutable.class);
+        ConnectorUtil.getRequiredInboundConnectorConfiguration(WebhookConnectorExecutableInternal.class);
     var spiConnectorConfig =
         ConnectorUtil.getRequiredInboundConnectorConfiguration(TestInboundConnector.class);
 

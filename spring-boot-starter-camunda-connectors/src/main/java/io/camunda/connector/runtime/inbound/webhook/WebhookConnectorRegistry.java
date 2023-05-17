@@ -17,6 +17,8 @@
 package io.camunda.connector.runtime.inbound.webhook;
 
 import io.camunda.connector.api.inbound.InboundConnectorContext;
+import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import io.camunda.connector.api.inbound.WebhookConnectorExecutable;
 import io.camunda.connector.impl.inbound.InboundConnectorProperties;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -35,6 +37,7 @@ public class WebhookConnectorRegistry {
   // lookup)
   private final Map<String, Map<String, InboundConnectorContext>> activeEndpointsByContext =
       new HashMap<>();
+  private final Map<String, WebhookConnectorExecutable> webhookExecsByType = new HashMap<>();
 
   public boolean containsContextPath(String context) {
     return activeEndpointsByContext.containsKey(context)
@@ -80,5 +83,13 @@ public class WebhookConnectorRegistry {
           endpoints.remove(inboundConnectorProperties.getCorrelationPointId());
           return endpoints;
         });
+  }
+  
+  public WebhookConnectorExecutable getByType(String type) {
+      return webhookExecsByType.get(type);
+  }
+  
+  public void registerWebhookFunction(String type, WebhookConnectorExecutable function) {
+      webhookExecsByType.put(type, function);
   }
 }
