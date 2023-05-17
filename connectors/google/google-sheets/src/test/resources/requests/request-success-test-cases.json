@@ -1,0 +1,198 @@
+[
+  {
+    "testDescription": "Bearer token given as plain text",
+    "authentication": {
+      "authType": "bearer",
+      "bearerToken": "MyRealToken"
+    },
+    "operation":{
+      "spreadsheetName":"secrets.SPREADSHEET_NAME",
+      "parent":"secrets.PARENT_ID",
+      "type":"createSpreadsheet"
+    }
+  },
+  {
+    "testDescription": "Refresh token given as plain text",
+    "authentication": {
+      "authType": "refresh",
+      "oauthClientId": "MyRealOauthClientValue",
+      "oauthClientSecret": "MyRealOauthSecretValue",
+      "oauthRefreshToken": "MyRealRefreshTokenValue"
+    },
+    "operation":{
+      "spreadsheetName":"secrets.SPREADSHEET_NAME",
+      "parent":"secrets.PARENT_ID",
+      "type":"createSpreadsheet"
+    }
+  },
+  {
+    "testDescription": "Bearer token given as secret",
+    "authentication": {
+      "authType": "bearer",
+      "bearerToken": "secrets.MyToken"
+    },
+    "operation":{
+      "spreadsheetName":"secrets.SPREADSHEET_NAME",
+      "parent":"secrets.PARENT_ID",
+      "type":"createSpreadsheet"
+    }
+  },
+  {
+    "testDescription": "Refresh token given as secret",
+    "authentication": {
+      "authType": "refresh",
+      "oauthClientId": "secrets.MyOauthClient",
+      "oauthClientSecret": "secrets.MyOauthSecret",
+      "oauthRefreshToken": "secrets.MyOauthRefresh"
+    },
+    "operation":{
+      "spreadsheetName":"secrets.SPREADSHEET_NAME",
+      "parent":"secrets.PARENT_ID",
+      "type":"createSpreadsheet"
+    }
+  },
+  {
+    "testDescription": "Create spreadsheet with a parent folder",
+    "authentication": {
+      "authType": "bearer",
+      "bearerToken": "secrets.MyToken"
+    },
+    "operation":{
+      "spreadsheetName":"secrets.SPREADSHEET_NAME",
+      "parent":"secrets.PARENT_ID",
+      "type":"createSpreadsheet"
+    }
+  },
+  {
+    "testDescription": "Create worksheet",
+    "authentication": {
+      "authType": "bearer",
+      "bearerToken": "secrets.MyToken"
+    },
+    "operation": {
+      "worksheetName": "secrets.WORKSHEET_NAME",
+      "spreadsheetId": "secrets.SPREADSHEET_ID",
+      "index": "0",
+      "type": "createWorksheet"
+    }
+  },
+  {
+    "testDescription": "Get spreadsheet details",
+    "authentication": {
+      "authType": "bearer",
+      "bearerToken": "secrets.MyToken"
+    },
+    "operation": {
+      "spreadsheetId": "secrets.SPREADSHEET_ID",
+      "type": "spreadsheetsDetails"
+    }
+  },
+  {
+    "testDescription": "Delete worksheet",
+    "authentication": {
+      "authType": "bearer",
+      "bearerToken": "secrets.MyToken"
+    },
+    "operation": {
+      "worksheetId": "0",
+      "spreadsheetId": "secrets.SPREADSHEET_ID",
+      "type": "deleteWorksheet"
+    }
+  },
+  {
+    "testDescription": "Add values to Spreadsheet",
+    "authentication": {
+      "authType": "bearer",
+      "bearerToken": "secrets.MyToken"
+    },
+    "operation": {
+      "worksheetName": "secrets.WORKSHEET_NAME",
+      "spreadsheetId": "secrets.SPREADSHEET_ID",
+      "cellId": "secrets.CELL_ID",
+      "type": "addValues",
+      "value": "secrets.VALUE"
+    }
+  },
+  {
+    "testDescription": "Create empty column or row",
+    "authentication": {
+      "authType": "bearer",
+      "bearerToken": "secrets.MyToken"
+    },
+    "operation": {
+      "spreadsheetId": "secrets.SPREADSHEET_ID",
+      "startIndex": null,
+      "endIndex": null,
+      "worksheetId": "0",
+      "type": "createEmptyColumnOrRow",
+      "dimension": "COLUMNS"
+    }
+  },
+  {
+    "testDescription": "Create row",
+    "authentication": {
+      "authType": "bearer",
+      "bearerToken": "secrets.MyToken"
+    },
+    "operation": {
+      "values": ["secrets.ROW"],
+      "rowIndex": "1",
+      "spreadsheetId": "secrets.SPREADSHEET_ID",
+      "worksheetName": "secrets.WORKSHEET_NAME",
+      "type": "createRow"
+    }
+  },
+  {
+    "testDescription": "Delete column by index as number",
+    "authentication": {
+      "authType": "bearer",
+      "bearerToken": "secrets.MyToken"
+    },
+    "operation": {
+      "spreadsheetId": "secrets.SPREADSHEET_ID",
+      "columnIndexType": "NUMBERS",
+      "worksheetId": "0",
+      "type": "deleteColumn",
+      "columnNumberIndex": "1"
+    }
+  },
+  {
+    "testDescription": "Delete column by index as letters",
+    "authentication": {
+      "authType": "bearer",
+      "bearerToken": "secrets.MyToken"
+    },
+    "operation": {
+      "columnLetterIndex": "A",
+      "spreadsheetId": "secrets.SPREADSHEET_ID",
+      "columnIndexType": "LETTERS",
+      "worksheetId": "0",
+      "type": "deleteColumn"
+    }
+  },
+  {
+    "testDescription": "Get row by index",
+    "authentication": {
+      "authType": "bearer",
+      "bearerToken": "secrets.MyToken"
+    },
+    "operation": {
+      "rowIndex": "1",
+      "spreadsheetId": "secrets.SPREADSHEET_ID",
+      "worksheetName": "secrets.WORKSHEET_NAME",
+      "type": "getRowByIndex"
+    }
+  },
+  {
+    "testDescription": "Get worksheet data",
+    "authentication": {
+      "authType": "bearer",
+      "bearerToken": "secrets.MyToken"
+    },
+    "operation":  {
+      "worksheetName": "secrets.WORKSHEET_NAME",
+      "spreadsheetId": "secrets.SPREADSHEET_ID",
+      "type": "getWorksheetData"
+    }
+  }
+]

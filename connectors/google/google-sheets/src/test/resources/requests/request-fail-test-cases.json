@@ -1,0 +1,331 @@
+[
+  {
+    "testDescription": "Request without a token",
+    "operation":{
+      "spreadsheetName":"newSpreadsheet",
+      "parent":"secrets.PARENT_ID",
+      "type":"createSpreadsheet"
+    }
+  },
+  {
+    "testDescription": "Request with refresh token without client id",
+    "authentication": {
+      "authType": "refresh",
+      "oauthClientSecret": "secrets.MyOauthSecret",
+      "oauthRefreshToken": "secrets.MyOauthRefresh"
+    },
+    "operation":{
+      "spreadsheetName":"newSpreadsheet",
+      "parent":"secrets.PARENT_ID",
+      "type":"createSpreadsheet"
+    }
+  },
+  {
+    "testDescription": "Request with refresh token without secret",
+    "authentication": {
+      "authType": "refresh",
+      "oauthClientId": "secrets.MyOauthClient",
+      "oauthRefreshToken": "secrets.MyOauthRefresh"
+    },
+    "operation":{
+      "spreadsheetName":"newSpreadsheet",
+      "parent":"secrets.PARENT_ID",
+      "type":"createSpreadsheet"
+    }
+  },
+  {
+    "testDescription": "Request with refresh token without refresh token",
+    "authentication": {
+      "authType": "refresh",
+      "oauthClientId": "secrets.MyOauthClient",
+      "oauthClientSecret": "secrets.MyOauthSecret"
+    },
+    "operation":{
+      "spreadsheetName":"newSpreadsheet",
+      "parent":"secrets.PARENT_ID",
+      "type":"createSpreadsheet"
+    }
+  },
+  {
+    "testDescription": "CreateSpreadsheet without a name",
+    "authentication": {
+      "authType": "bearer",
+      "bearerToken": "MyRealToken"
+    },
+    "operation":{
+      "parent":"secrets.PARENT_ID",
+      "type":"createSpreadsheet"
+    }
+  },
+  {
+    "testDescription": "Create worksheet without a spreadsheet id",
+    "authentication": {
+      "authType": "bearer",
+      "bearerToken": "MyRealToken"
+    },
+    "operation": {
+      "worksheetName": "some name",
+      "type": "createWorksheet"
+    }
+  },
+  {
+    "testDescription": "Create worksheet without name",
+    "authentication": {
+      "authType": "bearer",
+      "bearerToken": "MyRealToken"
+    },
+    "operation": {
+      "spreadsheetId": "id123",
+      "type": "createWorksheet"
+    }
+  },
+  {
+    "testDescription": "Get spreadsheet details without id",
+    "authentication": {
+      "authType": "bearer",
+      "bearerToken": "MyRealToken"
+    },
+    "operation": {
+      "type": "spreadsheetsDetails"
+    }
+  },
+  {
+    "testDescription": "Delete worksheet without id",
+    "authentication": {
+      "authType": "bearer",
+      "bearerToken": "MyRealToken"
+    },
+    "operation": {
+      "spreadsheetId": "spreadsheet id",
+      "type": "deleteWorksheet"
+    }
+  },
+  {
+    "testDescription": "Delete worksheet without spreadsheet id",
+    "authentication": {
+      "authType": "bearer",
+      "bearerToken": "MyRealToken"
+    },
+    "operation": {
+      "worksheetId": "0",
+      "type": "deleteWorksheet"
+    }
+  },
+  {
+    "testDescription": "Add values to Spreadsheet without spreadsheet id",
+    "authentication": {
+      "authType": "bearer",
+      "bearerToken": "MyRealToken"
+    },
+    "operation": {
+      "worksheetName": "name",
+      "cellId": "cell",
+      "type": "addValues",
+      "value": "value"
+    }
+  },
+  {
+    "testDescription": "Add values to Spreadsheet without cell id",
+    "authentication": {
+      "authType": "bearer",
+      "bearerToken": "MyRealToken"
+    },
+    "operation": {
+      "worksheetName": "name",
+      "spreadsheetId": "id",
+      "type": "addValues",
+      "value": "value"
+    }
+  },
+  {
+    "testDescription": "Add values to Spreadsheet without value",
+    "authentication": {
+      "authType": "bearer",
+      "bearerToken": "MyRealToken"
+    },
+    "operation": {
+      "worksheetName": "name",
+      "spreadsheetId": "id",
+      "cellId": "cell",
+      "type": "addValues"
+    }
+  },
+  {
+    "testDescription": "Create empty column or row without spreadsheet id",
+    "authentication": {
+      "authType": "bearer",
+      "bearerToken": "MyRealToken"
+    },
+    "operation": {
+      "worksheetId": "0",
+      "type": "createEmptyColumnOrRow",
+      "dimension": "COLUMNS"
+    }
+  },
+  {
+    "testDescription": "Create empty column or row without worksheet id",
+    "authentication": {
+      "authType": "bearer",
+      "bearerToken": "MyRealToken"
+    },
+    "operation": {
+      "spreadsheetId": "id",
+      "type": "createEmptyColumnOrRow",
+      "dimension": "COLUMNS"
+    }
+  },
+  {
+    "testDescription": "Create empty column or row without dimesion",
+    "authentication": {
+      "authType": "bearer",
+      "bearerToken": "MyRealToken"
+    },
+    "operation": {
+      "spreadsheetId": "id",
+      "startIndex": null,
+      "endIndex": null,
+      "worksheetId": "0",
+      "type": "createEmptyColumnOrRow"
+    }
+  },
+  {
+    "testDescription": "Create row without spreadsheet id",
+    "authentication": {
+      "authType": "bearer",
+      "bearerToken": "MyRealToken"
+    },
+    "operation": {
+      "values": [1],
+      "rowIndex": "1",
+      "worksheetName": "name",
+      "type": "createRow"
+    }
+  },
+  {
+    "testDescription": "Create row without row index",
+    "authentication": {
+      "authType": "bearer",
+      "bearerToken": "MyRealToken"
+    },
+    "operation": {
+      "values": [1],
+      "spreadsheetId": "id",
+      "worksheetName": "name",
+      "type": "createRow"
+    }
+  },
+  {
+    "testDescription": "Create row without row values",
+    "authentication": {
+      "authType": "bearer",
+      "bearerToken": "MyRealToken"
+    },
+    "operation": {
+      "rowIndex": "1",
+      "spreadsheetId": "id",
+      "worksheetName": "name",
+      "type": "createRow"
+    }
+  },
+  {
+    "testDescription": "Delete column by index without spreadsheet id",
+    "authentication": {
+      "authType": "bearer",
+      "bearerToken": "myRealToken"
+    },
+    "operation": {
+      "columnIndexType": "NUMBERS",
+      "worksheetId": "0",
+      "type": "deleteColumn",
+      "columnNumberIndex": "1"
+    }
+  },
+  {
+    "testDescription": "Delete column by index without worksheet id",
+    "authentication": {
+      "authType": "bearer",
+      "bearerToken": "myRealToken"
+    },
+    "operation": {
+      "spreadsheetId": "id",
+      "columnIndexType": "NUMBERS",
+      "type": "deleteColumn",
+      "columnNumberIndex": "1"
+    }
+  },
+  {
+    "testDescription": "Delete column by index without index type",
+    "authentication": {
+      "authType": "bearer",
+      "bearerToken": "myRealToken"
+    },
+    "operation": {
+      "spreadsheetId": "id",
+      "worksheetId": "0",
+      "type": "deleteColumn",
+      "columnNumberIndex": "1"
+    }
+  },
+  {
+    "testDescription": "Delete column by number index without index value",
+    "authentication": {
+      "authType": "bearer",
+      "bearerToken": "myRealToken"
+    },
+    "operation": {
+      "spreadsheetId": "id",
+      "worksheetId": "0",
+      "columnIndexType": "NUMBERS",
+      "type": "deleteColumn"
+    }
+  },
+  {
+    "testDescription": "Delete column by letter index without index value",
+    "authentication": {
+      "authType": "bearer",
+      "bearerToken": "myRealToken"
+    },
+    "operation": {
+      "spreadsheetId": "id",
+      "columnIndexType": "LETTERS",
+      "worksheetId": "0",
+      "type": "deleteColumn"
+    }
+  },
+  {
+    "testDescription": "Delete column by letter index with blank value",
+    "authentication": {
+      "authType": "bearer",
+      "bearerToken": "myRealToken"
+    },
+    "operation": {
+      "columnLetterIndex": "   ",
+      "spreadsheetId": "id",
+      "columnIndexType": "LETTERS",
+      "worksheetId": "0",
+      "type": "deleteColumn"
+    }
+  },
+  {
+    "testDescription": "Get worksheet data without worksheet name",
+    "authentication": {
+      "authType": "bearer",
+      "bearerToken": "My real token"
+    },
+    "operation":  {
+      "spreadsheetId": "id",
+      "type": "getWorksheetData"
+    }
+  },
+  {
+    "testDescription": "Get worksheet data without spreadsheet id",
+    "authentication": {
+      "authType": "bearer",
+      "bearerToken": "My real token"
+    },
+    "operation":  {
+      "worksheetName": "name",
+      "type": "getWorksheetData"
+    }
+  }
+]
