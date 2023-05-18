@@ -29,6 +29,7 @@ public class WebhookResponse {
   private List<String> unactivatedConnectors = new ArrayList<>();
   private Map<String, InboundConnectorResult> executedConnectors = new HashMap<>();
   private List<String> errors = new ArrayList<>();
+  private Object webhookData;
 
   public void addUnauthorizedConnector(WebhookConnectorProperties connectorProperties) {
     unauthorizedConnectors.add(connectorProperties.getConnectorIdentifier());
@@ -61,5 +62,13 @@ public class WebhookResponse {
 
   public List<String> getErrors() {
     return errors;
+  }
+
+  public Object getWebhookData() {
+    return webhookData;
+  }
+
+  public void setWebhookData(Object webhookData) {
+    this.webhookData = webhookData;
   }
 }

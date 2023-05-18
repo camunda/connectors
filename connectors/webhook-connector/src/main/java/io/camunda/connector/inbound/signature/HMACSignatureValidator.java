@@ -14,22 +14,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.inbound.webhook.signature;
+package io.camunda.connector.inbound.signature;
 
+import org.apache.commons.codec.binary.Hex;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Map;
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
-import org.apache.commons.codec.binary.Hex;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 // TODO: add URL signing and Base64 format
 public class HMACSignatureValidator {
 
   private static final Logger LOG = LoggerFactory.getLogger(HMACSignatureValidator.class);
+  
+  public static final String HMAC_VALIDATION_ENABLED_PROPERTY = "inbound.shouldValidateHmac";
+  public static final String HMAC_VALIDATION_ENABLED = "enabled";
+  public static final String HMAC_VALIDATION_DISABLED = "disabled";
+  public static final String HMAC_HEADER_PROPERTY = "inbound.hmacHeader";
+  public static final String HMAC_SECRET_KEY_PROPERTY = "inbound.hmacSecret";
+  public static final String HMAC_ALGO_PROPERTY = "inbound.hmacAlgorithm";
+  public static final String HMAC_VALIDATION_FAILED_KEY = "HMACFailedReason";
+  public static final String HMAC_VALIDATION_FAILED_REASON_DIDNT_MATCH = "DigitalSignatureDidntMatch";
 
   private final byte[] requestBody;
   private final Map<String, String> headers;

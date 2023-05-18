@@ -22,15 +22,10 @@ import io.camunda.connector.api.inbound.InboundConnectorResult;
 import io.camunda.connector.api.inbound.WebhookConnectorExecutable;
 import io.camunda.connector.impl.inbound.WebhookRequestPayload;
 import io.camunda.connector.runtime.inbound.webhook.model.HttpServletRequestWebhookRequestPayload;
-import io.camunda.connector.runtime.inbound.webhook.signature.HMACAlgoCustomerChoice;
-import io.camunda.connector.runtime.inbound.webhook.signature.HMACSignatureValidator;
-import io.camunda.connector.runtime.inbound.webhook.signature.HMACSwitchCustomerChoice;
 import io.camunda.connector.runtime.util.feel.FeelEngineWrapper;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -142,9 +137,10 @@ public class InboundWebhookRestController {
               new WebhookConnectorProperties(connectorContext.getProperties());
       connectorContext.replaceSecrets(connectorProperties);
       try {
-        // TODO: make use of webhook result
-        // TODO: maybe have headers or payload returned by response entity
+        // TODO: think of how to put headers, considering the fact there's a single response for all
+        // executed connectors
         var webhookResult = executable.triggerWebhook(connectorContext, payload);
+        response.setWebhookData(webhookResult.body());
         Map<String, Object> variables = extractVariables(connectorProperties, webhookContext);
         InboundConnectorResult<?> result = connectorContext.correlate(variables);
         response.addExecutedConnector(connectorProperties, result);
@@ -190,28 +186,6 @@ public class InboundWebhookRestController {
 //        MetricsRecorder.ACTION_COMPLETED,
 //        WebhookConnectorRegistry.TYPE_WEBHOOK);
     return ResponseEntity.ok(response);
-  }
-
-  private boolean isValidHmac(
-      final WebhookConnectorProperties connectorProperties,
-      final byte[] bodyAsByteArray,
-      final Map<String, String> headers)
-      throws NoSuchAlgorithmException, InvalidKeyException {
-    if (HMACSwitchCustomerChoice.disabled
-        .name()
-        .equals(connectorProperties.getShouldValidateHmac())) {
-      return true;
-    }
-
-    HMACSignatureValidator validator =
-        new HMACSignatureValidator(
-            bodyAsByteArray,
-            headers,
-            connectorProperties.getHmacHeader(),
-            connectorProperties.getHmacSecret(),
-            HMACAlgoCustomerChoice.valueOf(connectorProperties.getHmacAlgorithm()));
-
-    return validator.isRequestValid();
   }
 
   @Deprecated

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.inbound.webhook.signature;
+package io.camunda.connector.inbound.signature;
 
 public enum HMACAlgoCustomerChoice {
   sha_1("HmacSHA1", "sha1"),
