@@ -19,9 +19,9 @@ package io.camunda.connector.runtime.inbound.webhook;
 import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.impl.inbound.InboundConnectorProperties;
 import io.camunda.connector.impl.inbound.ProcessCorrelationPoint;
-import io.camunda.connector.runtime.inbound.webhook.signature.HMACSwitchCustomerChoice;
 import java.util.Objects;
 
+// TODO: remove this as well ?
 public class WebhookConnectorProperties {
 
   private final InboundConnectorProperties genericProperties;
@@ -39,9 +39,7 @@ public class WebhookConnectorProperties {
     this.context = readPropertyRequired("inbound.context");
     this.activationCondition = readPropertyNullable("inbound.activationCondition");
     this.variableMapping = readPropertyNullable("inbound.variableMapping");
-    this.shouldValidateHmac =
-        readPropertyWithDefault(
-            "inbound.shouldValidateHmac", HMACSwitchCustomerChoice.disabled.name());
+    this.shouldValidateHmac = readPropertyWithDefault("inbound.shouldValidateHmac", "disabled");
     this.hmacSecret = readPropertyNullable("inbound.hmacSecret");
     this.hmacHeader = readPropertyNullable("inbound.hmacHeader");
     this.hmacAlgorithm = readPropertyNullable("inbound.hmacAlgorithm");
