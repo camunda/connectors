@@ -33,7 +33,10 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
   public HttpWebhookExecutable() {}
 
   @Override
-  public WebhookResponsePayload triggerWebhook(InboundConnectorContext context, WebhookRequestPayload webhookRequestPayload) {
+  public WebhookResponsePayload triggerWebhook(
+          InboundConnectorContext context, 
+          WebhookRequestPayload webhookRequestPayload) 
+          throws NoSuchAlgorithmException, InvalidKeyException {
     WebhookResponsePayloadImpl response = new WebhookResponsePayloadImpl();
     context.replaceSecrets(context.getProperties());
     final String shouldValidateHmac = Optional.ofNullable(context.getProperties()
@@ -48,22 +51,12 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
               context.getProperties().getProperty(HMAC_SECRET_KEY_PROPERTY),
               HMACAlgoCustomerChoice.valueOf(context.getProperties().getProperty(HMAC_ALGO_PROPERTY))
       );
-      try {
-        if (!hmacSignatureValidator.isRequestValid()) {
-          response.setBody(Map.of(
-                  DEFAULT_RESPONSE_STATUS_KEY, DEFAULT_RESPONSE_STATUS_VALUE_FAIL,
-                  HMAC_VALIDATION_FAILED_KEY, HMAC_VALIDATION_FAILED_REASON_DIDNT_MATCH
-          ));
-          return response;
-        }
-      } catch (NoSuchAlgorithmException | InvalidKeyException e) {
+      if (!hmacSignatureValidator.isRequestValid()) {
         response.setBody(Map.of(
                 DEFAULT_RESPONSE_STATUS_KEY, DEFAULT_RESPONSE_STATUS_VALUE_FAIL,
-                HMAC_VALIDATION_FAILED_KEY, e.getMessage()
+                HMAC_VALIDATION_FAILED_KEY, HMAC_VALIDATION_FAILED_REASON_DIDNT_MATCH
         ));
         return response;
-        // ... or maybe thrown an exception? 🤔
-        //throw new RuntimeException(e);
       }
     }
     LOGGER.error("IGPETROV: webhook triggered");
