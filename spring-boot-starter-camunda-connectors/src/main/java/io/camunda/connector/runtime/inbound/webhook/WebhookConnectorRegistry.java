@@ -17,7 +17,6 @@
 package io.camunda.connector.runtime.inbound.webhook;
 
 import io.camunda.connector.api.inbound.InboundConnectorContext;
-import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.WebhookConnectorExecutable;
 import io.camunda.connector.impl.inbound.InboundConnectorProperties;
 import java.util.ArrayList;
@@ -28,8 +27,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class WebhookConnectorRegistry {
-
-  public static final String TYPE_WEBHOOK = "io.camunda:webhook:1";
 
   private final Logger LOG = LoggerFactory.getLogger(WebhookConnectorRegistry.class);
 

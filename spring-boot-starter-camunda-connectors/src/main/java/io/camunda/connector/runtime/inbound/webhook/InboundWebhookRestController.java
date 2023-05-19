@@ -90,7 +90,7 @@ public class InboundWebhookRestController {
     metricsRecorder.increase(
         MetricsRecorder.METRIC_NAME_INBOUND_CONNECTOR,
         MetricsRecorder.ACTION_ACTIVATED,
-        WebhookConnectorRegistry.TYPE_WEBHOOK);
+        "WEBHOOK"); // TODO: make a nice constant
 
     // TODO(nikku): what context do we expose?
     // TODO(igpetrov): handling exceptions? Throw or fail? Maybe spring controller advice?
@@ -130,6 +130,8 @@ public class InboundWebhookRestController {
     Collection<InboundConnectorContext> connectors =
         webhookConnectorRegistry.getWebhookConnectorByContextPath(context);
     
+    LOG.error("IGPETROV: pulled connectors by context: " + connectors);
+    
     for (InboundConnectorContext connectorContext : connectors) {
       WebhookConnectorExecutable executable = 
               webhookConnectorRegistry.getByType(connectorContext.getProperties().getType());
@@ -139,52 +141,29 @@ public class InboundWebhookRestController {
       try {
         // TODO: think of how to put headers, considering the fact there's a single response for all
         // executed connectors
-        var webhookResult = executable.triggerWebhook(connectorContext, payload);
-        response.setWebhookData(webhookResult.body());
-        Map<String, Object> variables = extractVariables(connectorProperties, webhookContext);
-        InboundConnectorResult<?> result = connectorContext.correlate(variables);
-        response.addExecutedConnector(connectorProperties, result);
+        if (!activationConditionTriggered(connectorProperties, webhookContext)) {
+          LOG.debug("Should not activate {} :: {}", context, webhookContext);
+          response.addUnactivatedConnector(connectorProperties);
+        } else {
+          var webhookResult = executable.triggerWebhook(connectorContext, payload);
+          response.setWebhookData(webhookResult.body());
+          Map<String, Object> variables = extractVariables(connectorProperties, webhookContext);
+          InboundConnectorResult<?> result = connectorContext.correlate(variables);
+          response.addExecutedConnector(connectorProperties, result);
+        }
       } catch (Exception e) {
         response.addException(connectorProperties, e);
+        metricsRecorder.increase(
+                MetricsRecorder.METRIC_NAME_INBOUND_CONNECTOR, 
+                MetricsRecorder.ACTION_FAILED, 
+                "WEBHOOK");
       }
     }
-      
-//      WebhookConnectorProperties connectorProperties =
-//          new WebhookConnectorProperties(connectorContext.getProperties());
-//
-//      connectorContext.replaceSecrets(connectorProperties);
-//
-//      try {
-//        if (!isValidHmac(connectorProperties, bodyAsByteArray, headers)) {
-//          LOG.debug("HMAC validation failed {} :: {}", context, webhookContext);
-//          response.addUnauthorizedConnector(connectorProperties);
-//        } else { // Authorized
-//          if (!activationConditionTriggered(connectorProperties, webhookContext)) {
-//            LOG.debug("Should not activate {} :: {}", context, webhookContext);
-//            response.addUnactivatedConnector(connectorProperties);
-//          } else {
-//            Map<String, Object> variables = extractVariables(connectorProperties, webhookContext);
-//            InboundConnectorResult<?> result = connectorContext.correlate(variables);
-//
-//            LOG.debug("Webhook {} created process instance {}", connectorProperties, result);
-//
-//            response.addExecutedConnector(connectorProperties, result);
-//          }
-//        }
-//      } catch (Exception exception) {
-//        LOG.error("Webhook {} failed to create process instance", connectorProperties, exception);
-//        metricsRecorder.increase(
-//            MetricsRecorder.METRIC_NAME_INBOUND_CONNECTOR,
-//            MetricsRecorder.ACTION_FAILED,
-//            WebhookConnectorRegistry.TYPE_WEBHOOK);
-//        response.addException(connectorProperties, exception);
-//      }
-//  }
-//
-//    metricsRecorder.increase(
-//        MetricsRecorder.METRIC_NAME_INBOUND_CONNECTOR,
-//        MetricsRecorder.ACTION_COMPLETED,
-//        WebhookConnectorRegistry.TYPE_WEBHOOK);
+
+    metricsRecorder.increase(
+        MetricsRecorder.METRIC_NAME_INBOUND_CONNECTOR,
+        MetricsRecorder.ACTION_COMPLETED,
+        "WEBHOOK");
     return ResponseEntity.ok(response);
   }
 

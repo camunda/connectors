@@ -17,8 +17,10 @@
 package io.camunda.connector.runtime.inbound.lifecycle;
 
 import io.camunda.connector.impl.inbound.InboundConnectorProperties;
-import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorProperties;
-import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -26,9 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 public class InboundConnectorRestController {
@@ -84,9 +83,9 @@ public class InboundConnectorRestController {
   }
 
   private Map<String, Object> extractPublicConnectorData(InboundConnectorProperties properties) {
-    if (WebhookConnectorRegistry.TYPE_WEBHOOK.equals(properties.getType())) {
-      WebhookConnectorProperties webhookProps = new WebhookConnectorProperties(properties);
-      return Map.of("path", webhookProps.getContext());
+    // TODO: need to get rid of referencing inbound.context directly
+    if (properties.getProperties().containsKey("inbound.context")) {
+      return Map.of("path", properties.getProperty("inbound.context"));
     }
     return null;
   }
