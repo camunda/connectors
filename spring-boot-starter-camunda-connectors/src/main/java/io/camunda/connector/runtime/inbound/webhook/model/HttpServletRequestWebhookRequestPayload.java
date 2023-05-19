@@ -33,12 +33,12 @@ public class HttpServletRequestWebhookRequestPayload implements WebhookRequestPa
     }
 
     @Override
-    public Map<String, String> headers() {
+    public Map<String, Object> headers() {
         return Collections.unmodifiableMap(Optional.ofNullable(headers).orElse(Collections.emptyMap()));
     }
 
     @Override
-    public Map<String, String> params() {
+    public Map<String, Object> params() {
         return Collections.unmodifiableMap(Optional.ofNullable(params).orElse(Collections.emptyMap()));
     }
 

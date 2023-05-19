@@ -76,8 +76,7 @@ public class WebhookControllerPlainJavaTests {
             .build();
 
     InboundWebhookRestController controller =
-        new InboundWebhookRestController(
-            new FeelEngineWrapper(), webhook, new ObjectMapper(), metrics);
+        new InboundWebhookRestController(webhook, metrics);
 
     webhook.activateEndpoint(webhookA);
     webhook.activateEndpoint(webhookB);

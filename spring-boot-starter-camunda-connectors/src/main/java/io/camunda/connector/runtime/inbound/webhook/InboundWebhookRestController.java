@@ -16,25 +16,11 @@
  */
 package io.camunda.connector.runtime.inbound.webhook;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
-import io.camunda.connector.api.inbound.InboundConnectorResult;
 import io.camunda.connector.api.inbound.WebhookConnectorExecutable;
 import io.camunda.connector.impl.inbound.WebhookRequestPayload;
 import io.camunda.connector.runtime.inbound.webhook.model.HttpServletRequestWebhookRequestPayload;
-import io.camunda.connector.runtime.util.feel.FeelEngineWrapper;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,35 +29,42 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-import static org.springframework.web.bind.annotation.RequestMethod.*;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Optional;
+
+import static org.springframework.web.bind.annotation.RequestMethod.DELETE;
+import static org.springframework.web.bind.annotation.RequestMethod.GET;
+import static org.springframework.web.bind.annotation.RequestMethod.POST;
+import static org.springframework.web.bind.annotation.RequestMethod.PUT;
 
 @RestController
 @ConditionalOnProperty("camunda.connector.webhook.enabled")
 public class InboundWebhookRestController {
 
   private static final Logger LOG = LoggerFactory.getLogger(InboundWebhookRestController.class);
-
-  private final FeelEngineWrapper feelEngine;
+  
+  protected static final String METRIC_WEBHOOK_VALUE = "WEBHOOK";
   private final WebhookConnectorRegistry webhookConnectorRegistry;
-  private final ObjectMapper jsonMapper;
   private final MetricsRecorder metricsRecorder;
 
   @Autowired
   public InboundWebhookRestController(
-      final FeelEngineWrapper feelEngine,
       final WebhookConnectorRegistry webhookConnectorRegistry,
-      final ObjectMapper jsonMapper,
       MetricsRecorder metricsRecorder) {
-    this.feelEngine = feelEngine;
     this.webhookConnectorRegistry = webhookConnectorRegistry;
-    this.jsonMapper = jsonMapper;
     this.metricsRecorder = metricsRecorder;
   }
   
-  // Review: should we support all methods? (PATCH, HEAD, etc)
   @RequestMapping(method = {GET, POST, PUT, DELETE}, path = "/inbound/{context}")
   public ResponseEntity<WebhookResponse> inbound(
       @PathVariable String context,
@@ -81,7 +74,7 @@ public class InboundWebhookRestController {
       HttpServletRequest httpServletRequest)
       throws IOException {
 
-    LOG.debug("Received inbound hook on {}", context);
+    LOG.trace("Received inbound hook on {}", context);
 
     if (!webhookConnectorRegistry.containsContextPath(context)) {
       throw new ResponseStatusException(
@@ -89,38 +82,16 @@ public class InboundWebhookRestController {
     }
     metricsRecorder.increase(
         MetricsRecorder.METRIC_NAME_INBOUND_CONNECTOR,
-        MetricsRecorder.ACTION_ACTIVATED,
-        "WEBHOOK"); // TODO: make a nice constant
-
-    // TODO(nikku): what context do we expose?
-    // TODO(igpetrov): handling exceptions? Throw or fail? Maybe spring controller advice?
+        MetricsRecorder.ACTION_ACTIVATED, 
+        METRIC_WEBHOOK_VALUE);
+    
+    // TODO: remove to own twilio inbound or rest
     boolean isURLFormContentType =
         Optional.ofNullable(httpServletRequest.getHeader(HttpHeaders.CONTENT_TYPE))
             .map(
                 contentHeaderType ->
                     contentHeaderType.equalsIgnoreCase("application/x-www-form-urlencoded"))
             .orElse(false);
-
-    Map<String, String> bodyAsMap;
-    if (isURLFormContentType && bodyAsByteArray != null) {
-      String bodyAsString = new String(bodyAsByteArray, StandardCharsets.UTF_8);
-      bodyAsMap =
-          Arrays.stream(bodyAsString.split("&"))
-              .filter(Objects::nonNull)
-              .map(param -> param.split("="))
-              .filter(param -> param.length > 1)
-              .collect(Collectors.toMap(param -> param[0], param -> param[1]));
-    } else {
-      bodyAsMap =
-          bodyAsByteArray == null
-              ? Collections.emptyMap()
-              : jsonMapper.readValue(bodyAsByteArray, Map.class);
-    }
-
-    HashMap<String, Object> request = new HashMap<>();
-    request.put("body", bodyAsMap);
-    request.put("headers", headers);
-    final Map<String, Object> webhookContext = Collections.singletonMap("request", request);
     
     // TODO: pack all incoming data here - body, headers, request params
     WebhookRequestPayload payload = 
@@ -139,19 +110,12 @@ public class InboundWebhookRestController {
               new WebhookConnectorProperties(connectorContext.getProperties());
       connectorContext.replaceSecrets(connectorProperties);
       try {
-        // TODO: think of how to put headers, considering the fact there's a single response for all
-        // executed connectors
-        if (!activationConditionTriggered(connectorProperties, webhookContext)) {
-          LOG.debug("Should not activate {} :: {}", context, webhookContext);
-          response.addUnactivatedConnector(connectorProperties);
-        } else {
-          var webhookResult = executable.triggerWebhook(connectorContext, payload);
-          response.setWebhookData(webhookResult.body());
-          Map<String, Object> variables = extractVariables(connectorProperties, webhookContext);
-          InboundConnectorResult<?> result = connectorContext.correlate(variables);
-          response.addExecutedConnector(connectorProperties, result);
-        }
+        var webhookResult = executable.triggerWebhook(connectorContext, payload);
+        response.setWebhookData(webhookResult.body());
+        response.addExecutedConnector(connectorProperties, webhookResult.executionResult());
       } catch (Exception e) {
+        // TODO: handle response.addUnactivatedConnector(connectorProperties);
+        LOG.error("IGPETROV: got exception " + e);
         response.addException(connectorProperties, e);
         metricsRecorder.increase(
                 MetricsRecorder.METRIC_NAME_INBOUND_CONNECTOR, 
@@ -165,41 +129,5 @@ public class InboundWebhookRestController {
         MetricsRecorder.ACTION_COMPLETED,
         "WEBHOOK");
     return ResponseEntity.ok(response);
-  }
-
-  @Deprecated
-  private Map<String, Object> extractVariables(
-      WebhookConnectorProperties connectorProperties, Map<String, Object> context) {
-
-    String variableMapping = connectorProperties.getVariableMapping();
-    if (variableMapping == null) {
-      return context;
-    }
-    // Variable mapping is now supported on the Connector SDK level (see
-    // InboundConnectorProperties).
-    // We still support the old property for backwards compatibility.
-    LOG.warn(
-        "Usage of deprecated property `inbound.variableMapping`. "
-            + "Use `resultVariable` and `resultExpression` properties instead.");
-
-    return feelEngine.evaluate(variableMapping, context);
-  }
-
-  @Deprecated
-  private boolean activationConditionTriggered(
-      WebhookConnectorProperties connectorProperties, Map<String, Object> context) {
-
-    // at this point we assume secrets exist / had been specified
-    String activationCondition = connectorProperties.getActivationCondition();
-    if (activationCondition == null || activationCondition.trim().length() == 0) {
-      return true;
-    }
-    // Activation condition is now supported on the Connector SDK level (see
-    // InboundConnectorProperties).
-    // We still support the old property for backwards compatibility.
-    LOG.warn(
-        "Usage of deprecated property `inbound.activationCondition`. Use `activationCondition` instead.");
-    Object shouldActivate = feelEngine.evaluate(activationCondition, context);
-    return Boolean.TRUE.equals(shouldActivate);
   }
 }
