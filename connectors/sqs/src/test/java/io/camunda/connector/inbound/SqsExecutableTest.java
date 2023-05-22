@@ -74,7 +74,7 @@ class SqsExecutableTest {
 
   @ParameterizedTest
   @MethodSource("successRequestCases")
-  public void activateTest(String input) {
+  public void activateTest(String input) throws InterruptedException {
     // given
     SqsInboundProperties properties = GSON.fromJson(input, SqsInboundProperties.class);
     InboundConnectorProperties connectorProps = createConnectorProperties();
@@ -92,6 +92,7 @@ class SqsExecutableTest {
     sqsExecutable.activate(spyContext);
     // then
     assertThat(consumer.isQueueConsumerActive()).isTrue();
+    Thread.sleep(200);
     consumer.setQueueConsumerActive(false);
     verify(spyContext).replaceSecrets(properties);
     verify(spyContext).validate(properties);
