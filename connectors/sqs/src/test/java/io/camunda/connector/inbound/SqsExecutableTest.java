@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -92,8 +93,9 @@ class SqsExecutableTest {
     sqsExecutable.activate(spyContext);
     // then
     assertThat(consumer.isQueueConsumerActive()).isTrue();
-    Thread.sleep(200);
     consumer.setQueueConsumerActive(false);
+    executorService.shutdown();
+    executorService.awaitTermination(1, TimeUnit.SECONDS);
     verify(spyContext).replaceSecrets(properties);
     verify(spyContext).validate(properties);
     verify(spyContext, atLeast(1)).correlate(message);
