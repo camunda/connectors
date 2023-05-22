@@ -35,7 +35,6 @@ public class WebhookConnectorProperties {
 
   public WebhookConnectorProperties(InboundConnectorProperties properties) {
     this.genericProperties = properties;
-
     this.context = readPropertyRequired("inbound.context");
     this.activationCondition = readPropertyNullable("inbound.activationCondition");
     this.variableMapping = readPropertyNullable("inbound.variableMapping");
