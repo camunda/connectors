@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.scala.DefaultScalaModule$;
+import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorResult;
 import io.camunda.connector.api.secret.SecretProvider;
@@ -41,6 +42,8 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   private final ObjectMapper objectMapper;
 
   private final Consumer<Throwable> cancellationCallback;
+
+  private Health health = Health.unknown();
 
   public InboundConnectorContextImpl(
       SecretProvider secretProvider,
@@ -107,6 +110,15 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
     }
     InboundConnectorContextImpl that = (InboundConnectorContextImpl) o;
     return Objects.equals(properties, that.properties);
+  }
+
+  @Override
+  public void reportHealth(Health health) {
+    this.health = health;
+  }
+
+  public Health getHealth() {
+    return health;
   }
 
   @Override

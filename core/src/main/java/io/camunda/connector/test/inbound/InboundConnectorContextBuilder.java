@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.test.inbound;
 
+import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorResult;
 import io.camunda.connector.api.secret.SecretProvider;
@@ -175,6 +176,8 @@ public class InboundConnectorContextBuilder {
 
     private final List<Object> correlatedEvents = new ArrayList<>();
 
+    private Health health = Health.unknown();
+
     protected TestInboundConnectorContext(SecretProvider secretProvider) {
       super(secretProvider);
     }
@@ -219,6 +222,11 @@ public class InboundConnectorContextBuilder {
 
     public List<Object> getCorrelations() {
       return correlatedEvents;
+    }
+
+    @Override
+    public void reportHealth(Health health) {
+      this.health = health;
     }
   }
 }
