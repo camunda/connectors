@@ -88,14 +88,11 @@ public interface InboundConnectorContext {
 
   /**
    * Report the health to allow other components to process the current status of the Connector. The
-   * data can be used to report data on connectiveness, liveliness and whether the Connector is
-   * running successfully.
+   * data can be used to report data on liveliness and whether the Connector is running
+   * successfully.
    *
    * <p>This method can be called as often as needed and the internal state of the inbound Connector
    * implementation requires it.
-   *
-   * @param @{@link Health} health of the inbound connector including optional details about the
-   *     status.
    */
   void reportHealth(Health health);
 }
