@@ -96,7 +96,7 @@
       </dependency>
       <dependency>
         <groupId>io.camunda.connector</groupId>
-        <artifactId>connector-aws-lambda</artifactId>
+        <artifactId>connector-google-sheets</artifactId>
         <version>${project.version}</version>
       </dependency>
     </dependencies>
