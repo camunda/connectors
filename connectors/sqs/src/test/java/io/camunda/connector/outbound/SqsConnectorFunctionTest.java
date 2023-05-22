@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector;
+package io.camunda.connector.outbound;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -14,7 +14,6 @@ import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.amazonaws.services.sqs.model.SendMessageResult;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.common.suppliers.AmazonSQSClientSupplier;
-import io.camunda.connector.outbound.SqsConnectorFunction;
 import io.camunda.connector.outbound.model.SqsConnectorResult;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import org.assertj.core.api.Assertions;
