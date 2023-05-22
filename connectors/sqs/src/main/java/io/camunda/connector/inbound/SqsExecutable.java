@@ -16,7 +16,6 @@ import io.camunda.connector.inbound.model.SqsInboundProperties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,21 +26,20 @@ public class SqsExecutable implements InboundConnectorExecutable {
   private final AmazonSQSClientSupplier sqsClientSupplier;
   private final ExecutorService executorService;
   private AmazonSQS amazonSQS;
-  private final AtomicBoolean isQueueConsumerActive;
+  private SqsQueueConsumer sqsQueueConsumer;
 
   public SqsExecutable() {
     this.sqsClientSupplier = new DefaultAmazonSQSClientSupplier();
     this.executorService = Executors.newSingleThreadExecutor();
-    this.isQueueConsumerActive = new AtomicBoolean(false);
   }
 
   public SqsExecutable(
       final AmazonSQSClientSupplier sqsClientSupplier,
       final ExecutorService executorService,
-      final AtomicBoolean isQueueConsumerActive) {
+      final SqsQueueConsumer sqsQueueConsumer) {
     this.sqsClientSupplier = sqsClientSupplier;
     this.executorService = executorService;
-    this.isQueueConsumerActive = isQueueConsumerActive;
+    this.sqsQueueConsumer = sqsQueueConsumer;
   }
 
   @Override
@@ -59,15 +57,17 @@ public class SqsExecutable implements InboundConnectorExecutable {
             properties.getQueue().getRegion());
     LOGGER.debug("SQS client created successfully");
 
-    isQueueConsumerActive.set(true);
     executorService.execute(
-        new SqsQueueConsumer(amazonSQS, properties, context, isQueueConsumerActive));
+        sqsQueueConsumer == null
+            ? new SqsQueueConsumer(amazonSQS, properties, context)
+            : sqsQueueConsumer);
+
     LOGGER.debug("SQS queue consumer started successfully");
   }
 
   @Override
   public void deactivate() {
-    isQueueConsumerActive.set(false);
+    sqsQueueConsumer.setQueueConsumerActive(false);
     LOGGER.debug("Deactivating subscription");
     if (executorService != null) {
       LOGGER.debug("Shutting down executor service");

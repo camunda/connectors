@@ -32,11 +32,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -68,17 +65,16 @@ class SqsExecutableTest {
   @Mock private AmazonSQS sqsClient;
   @Mock private AmazonSQSClientSupplier supplier;
   private ExecutorService executorService;
-  private AtomicBoolean isQueueConsumerActive;
+  private SqsQueueConsumer consumer;
 
   @BeforeEach
   public void setUp() {
     executorService = Executors.newSingleThreadExecutor();
-    isQueueConsumerActive = new AtomicBoolean(true);
   }
 
   @ParameterizedTest
   @MethodSource("successRequestCases")
-  public void activateTest(String input) throws InterruptedException {
+  public void activateTest(String input) {
     // given
     SqsInboundProperties properties = GSON.fromJson(input, SqsInboundProperties.class);
     InboundConnectorProperties connectorProps = createConnectorProperties();
@@ -90,16 +86,13 @@ class SqsExecutableTest {
         .thenReturn(sqsClient);
     when(sqsClient.receiveMessage(any(ReceiveMessageRequest.class)))
         .thenReturn(new ReceiveMessageResult().withMessages(message1));
+    consumer = new SqsQueueConsumer(sqsClient, properties, spyContext);
     // when
-    SqsExecutable sqsExecutable =
-        new SqsExecutable(supplier, executorService, isQueueConsumerActive);
+    SqsExecutable sqsExecutable = new SqsExecutable(supplier, executorService, consumer);
     sqsExecutable.activate(spyContext);
     // then
-    assertThat(isQueueConsumerActive).isTrue();
-    isQueueConsumerActive.set(false);
-
-    CountDownLatch waiter = new CountDownLatch(2);
-    waiter.await(1, TimeUnit.SECONDS);
+    assertThat(consumer.isQueueConsumerActive()).isTrue();
+    consumer.setQueueConsumerActive(false);
     verify(spyContext).replaceSecrets(properties);
     verify(spyContext).validate(properties);
     verify(spyContext, atLeast(1)).correlate(message);
@@ -108,13 +101,13 @@ class SqsExecutableTest {
   @Test
   public void deactivateTest() {
     // Given
-    isQueueConsumerActive.set(true);
-    SqsExecutable sqsExecutable =
-        new SqsExecutable(supplier, executorService, isQueueConsumerActive);
+    consumer = new SqsQueueConsumer(sqsClient, null, null);
+    consumer.setQueueConsumerActive(true);
+    SqsExecutable sqsExecutable = new SqsExecutable(supplier, executorService, consumer);
     // When
     sqsExecutable.deactivate();
     // Then
-    assertThat(isQueueConsumerActive.get()).isFalse();
+    assertThat(consumer.isQueueConsumerActive()).isFalse();
     assertThat(executorService.isShutdown()).isTrue();
   }
 
@@ -124,7 +117,8 @@ class SqsExecutableTest {
         Map.of("inbound.context", "context"),
         "proc-id",
         2,
-        1);
+        1,
+        "element-id");
   }
 
   private InboundConnectorContext createConnectorContext(

@@ -22,9 +22,6 @@ import io.camunda.connector.inbound.model.SqsInboundProperties;
 import io.camunda.connector.inbound.model.SqsInboundQueueProperties;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -44,7 +41,6 @@ public class SqsQueueConsumerTest {
   @Mock private List<Message> messages;
   @Mock private Message message;
   @Mock private InboundConnectorResult result;
-  @Mock private AtomicBoolean isQueueConsumerActive;
   @Captor private ArgumentCaptor<ReceiveMessageRequest> requestArgumentCaptor;
 
   private SqsQueueConsumer consumer;
@@ -61,9 +57,7 @@ public class SqsQueueConsumerTest {
 
     properties.setQueue(queue);
 
-    isQueueConsumerActive = new AtomicBoolean(true);
-
-    consumer = new SqsQueueConsumer(sqsClient, properties, context, isQueueConsumerActive);
+    consumer = new SqsQueueConsumer(sqsClient, properties, context);
   }
 
   @Test
@@ -82,7 +76,7 @@ public class SqsQueueConsumerTest {
               consumer.run();
             });
     thread.start();
-    isQueueConsumerActive.set(false);
+    consumer.setQueueConsumerActive(false);
     thread.join();
     // then
     verify(sqsClient).receiveMessage(any(ReceiveMessageRequest.class));
@@ -109,7 +103,7 @@ public class SqsQueueConsumerTest {
               consumer.run();
             });
     thread.start();
-    isQueueConsumerActive.set(false);
+    consumer.setQueueConsumerActive(false);
     thread.join();
     // then
     verify(sqsClient).receiveMessage(any(ReceiveMessageRequest.class));
@@ -133,10 +127,9 @@ public class SqsQueueConsumerTest {
               verify(sqsClient).receiveMessage(any(ReceiveMessageRequest.class));
             });
     thread.start();
+    consumer.setQueueConsumerActive(false);
+    thread.join();
     // then
-    CountDownLatch waiter = new CountDownLatch(1);
-    waiter.await(1, TimeUnit.SECONDS);
     verifyNoInteractions(context);
-    isQueueConsumerActive.set(false);
   }
 }
