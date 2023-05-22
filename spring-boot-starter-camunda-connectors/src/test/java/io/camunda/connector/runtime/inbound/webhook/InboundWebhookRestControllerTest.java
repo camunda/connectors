@@ -77,7 +77,8 @@ class InboundWebhookRestControllerTest {
                 "inbound.shouldValidateHmac", HMACSwitchCustomerChoice.disabled.name()),
             "proc-id",
             2,
-            1);
+            1,
+            "elementId");
     InboundConnectorContext connectorContext =
         spy(
             new InboundConnectorContextBuilder()
@@ -122,7 +123,8 @@ class InboundWebhookRestControllerTest {
                 HMACSwitchCustomerChoice.disabled.name()),
             "proc-id",
             2,
-            1);
+            1,
+            "elementId");
     InboundConnectorContext connectorContext =
         spy(
             new InboundConnectorContextBuilder()
@@ -177,7 +179,8 @@ class InboundWebhookRestControllerTest {
                 "inbound.hmacAlgorithm", "sha_256"),
             "proc-id",
             2,
-            1);
+            1,
+            "elementId");
     InboundConnectorContext connectorContext =
         spy(
             new InboundConnectorContextBuilder()
@@ -221,7 +224,8 @@ class InboundWebhookRestControllerTest {
                 HMACSwitchCustomerChoice.disabled.name()),
             "proc-id",
             2,
-            1);
+            1,
+            "elementId");
     InboundConnectorContext connectorContext =
         spy(
             new InboundConnectorContextBuilder()
@@ -267,7 +271,8 @@ class InboundWebhookRestControllerTest {
                 HMACSwitchCustomerChoice.disabled.name()),
             "proc-id",
             2,
-            1);
+            1,
+            "elementId");
     InboundConnectorContext connectorContext =
         spy(
             new InboundConnectorContextBuilder()
@@ -313,7 +318,8 @@ class InboundWebhookRestControllerTest {
                 HMACSwitchCustomerChoice.disabled.name()),
             "proc-id",
             2,
-            1);
+            1,
+            "elementId");
 
     InboundConnectorContext connectorContext =
         spy(
@@ -355,7 +361,8 @@ class InboundWebhookRestControllerTest {
                 "inbound.hmacAlgorithm", "sha_256"),
             "proc-id",
             2,
-            1);
+            1,
+            "elementId");
 
     InboundConnectorContext connectorContext =
         spy(

@@ -18,10 +18,9 @@
   <inceptionYear>2022</inceptionYear>
 
   <modules>
+    <module>aws</module>
     <module>sns</module>
     <module>sqs</module>
-    <module>aws</module>
-    <module>aws-lambda</module>
     <module>google-drive</module>
     <module>rabbitmq</module>
     <module>sendgrid</module>
@@ -31,6 +30,7 @@
     <module>slack</module>
     <module>graphql</module>
     <module>connectors-common-library</module>
+    <module>google-sheets</module>
   </modules>
 
   <properties>
@@ -41,7 +41,6 @@ except in compliance with the proprietary license.</license.inlineheader>
   </properties>
 
   <dependencies>
-
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-validation</artifactId>
