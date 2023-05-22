@@ -25,17 +25,31 @@ import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorResult;
 import io.camunda.connector.api.secret.SecretProvider;
+import io.camunda.connector.impl.Constants;
 import io.camunda.connector.impl.context.AbstractConnectorContext;
 import io.camunda.connector.impl.inbound.InboundConnectorProperties;
+import io.camunda.connector.runtime.util.feel.FeelParserWrapper;
 import io.camunda.connector.runtime.util.inbound.correlation.InboundCorrelationHandler;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class InboundConnectorContextImpl extends AbstractConnectorContext
     implements InboundConnectorContext {
   private final Logger LOG = LoggerFactory.getLogger(InboundConnectorContextImpl.class);
+  private static final Set<String> reservedKeys =
+      Set.of(
+          Constants.ACTIVATION_CONDITION_KEYWORD,
+          Constants.LEGACY_VARIABLE_MAPPING_KEYWORD,
+          Constants.INBOUND_TYPE_KEYWORD,
+          Constants.RESULT_VARIABLE_KEYWORD,
+          Constants.RESULT_EXPRESSION_KEYWORD,
+          Constants.ERROR_EXPRESSION_KEYWORD,
+          Constants.CORRELATION_KEY_EXPRESSION_KEYWORD);
 
   private final InboundConnectorProperties properties;
   private final InboundCorrelationHandler correlationHandler;
@@ -97,7 +111,21 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   @Override
   public <T> T getPropertiesAsType(Class<T> cls) {
-    return objectMapper.convertValue(properties.getPropertiesAsObjectMap(), cls);
+    Map<String, Object> result =
+        properties.getPropertiesAsObjectMap().entrySet().stream()
+            .collect(
+                Collectors.toMap(
+                    Map.Entry::getKey,
+                    entry ->
+                        isReservedKey(entry.getKey())
+                            ? entry.getValue()
+                            : FeelParserWrapper.parseIfIsFeelExpressionOrGetOriginal(
+                                entry.getValue())));
+    return objectMapper.convertValue(result, cls);
+  }
+
+  private static boolean isReservedKey(final String value) {
+    return reservedKeys.contains(value);
   }
 
   @Override
