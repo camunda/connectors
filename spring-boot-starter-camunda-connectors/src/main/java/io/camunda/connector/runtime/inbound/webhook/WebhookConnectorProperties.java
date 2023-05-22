@@ -21,7 +21,6 @@ import io.camunda.connector.impl.inbound.InboundConnectorProperties;
 import io.camunda.connector.impl.inbound.ProcessCorrelationPoint;
 import java.util.Objects;
 
-// TODO: remove this as well ?
 public class WebhookConnectorProperties {
 
   private final InboundConnectorProperties genericProperties;

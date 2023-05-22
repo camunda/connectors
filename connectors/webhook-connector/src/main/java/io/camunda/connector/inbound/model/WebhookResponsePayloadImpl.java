@@ -42,11 +42,11 @@ public class WebhookResponsePayloadImpl implements WebhookResponsePayload {
   }
 
   @Override
-  public InboundConnectorResult executionResult() {
+  public InboundConnectorResult<?> executionResult() {
     return executionResult;
   }
 
-  public void setExecutionResult(InboundConnectorResult executionResult) {
+  public void setExecutionResult(InboundConnectorResult<?> executionResult) {
     this.executionResult = executionResult;
   }
 

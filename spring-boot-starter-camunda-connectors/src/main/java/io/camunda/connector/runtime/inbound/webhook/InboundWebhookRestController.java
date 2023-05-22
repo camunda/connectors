@@ -26,7 +26,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -40,8 +39,10 @@ import org.springframework.web.server.ResponseStatusException;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
-import java.util.Optional;
 
+import static io.camunda.zeebe.spring.client.metrics.MetricsRecorder.ACTION_ACTIVATED;
+import static io.camunda.zeebe.spring.client.metrics.MetricsRecorder.ACTION_COMPLETED;
+import static io.camunda.zeebe.spring.client.metrics.MetricsRecorder.METRIC_NAME_INBOUND_CONNECTOR;
 import static org.springframework.web.bind.annotation.RequestMethod.DELETE;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
@@ -60,7 +61,7 @@ public class InboundWebhookRestController {
   @Autowired
   public InboundWebhookRestController(
       final WebhookConnectorRegistry webhookConnectorRegistry,
-      MetricsRecorder metricsRecorder) {
+      final MetricsRecorder metricsRecorder) {
     this.webhookConnectorRegistry = webhookConnectorRegistry;
     this.metricsRecorder = metricsRecorder;
   }
@@ -80,20 +81,8 @@ public class InboundWebhookRestController {
       throw new ResponseStatusException(
           HttpStatus.NOT_FOUND.value(), "No webhook found for context: " + context, null);
     }
-    metricsRecorder.increase(
-        MetricsRecorder.METRIC_NAME_INBOUND_CONNECTOR,
-        MetricsRecorder.ACTION_ACTIVATED, 
-        METRIC_WEBHOOK_VALUE);
+    incrementMetric(ACTION_ACTIVATED);
     
-    // TODO: remove to own twilio inbound or rest
-    boolean isURLFormContentType =
-        Optional.ofNullable(httpServletRequest.getHeader(HttpHeaders.CONTENT_TYPE))
-            .map(
-                contentHeaderType ->
-                    contentHeaderType.equalsIgnoreCase("application/x-www-form-urlencoded"))
-            .orElse(false);
-    
-    // TODO: pack all incoming data here - body, headers, request params
     WebhookRequestPayload payload = 
             new HttpServletRequestWebhookRequestPayload(httpServletRequest, params, headers, bodyAsByteArray);
 
@@ -101,33 +90,33 @@ public class InboundWebhookRestController {
     Collection<InboundConnectorContext> connectors =
         webhookConnectorRegistry.getWebhookConnectorByContextPath(context);
     
-    LOG.error("IGPETROV: pulled connectors by context: " + connectors);
-    
     for (InboundConnectorContext connectorContext : connectors) {
       WebhookConnectorExecutable executable = 
               webhookConnectorRegistry.getByType(connectorContext.getProperties().getType());
-      WebhookConnectorProperties connectorProperties =
+      WebhookConnectorProperties connectorProperties = 
               new WebhookConnectorProperties(connectorContext.getProperties());
-      connectorContext.replaceSecrets(connectorProperties);
       try {
         var webhookResult = executable.triggerWebhook(connectorContext, payload);
-        response.setWebhookData(webhookResult.body());
-        response.addExecutedConnector(connectorProperties, webhookResult.executionResult());
+        
+        if (webhookResult.executionResult() != null && webhookResult.executionResult().isActivated()) {
+          response.setWebhookData(webhookResult.body());
+          response.addExecutedConnector(connectorProperties, webhookResult.executionResult());
+        } else {
+          response.addUnactivatedConnector(connectorProperties);
+        }
+        
       } catch (Exception e) {
-        // TODO: handle response.addUnactivatedConnector(connectorProperties);
-        LOG.error("IGPETROV: got exception " + e);
         response.addException(connectorProperties, e);
-        metricsRecorder.increase(
-                MetricsRecorder.METRIC_NAME_INBOUND_CONNECTOR, 
-                MetricsRecorder.ACTION_FAILED, 
-                "WEBHOOK");
+        incrementMetric(METRIC_NAME_INBOUND_CONNECTOR);
       }
     }
 
-    metricsRecorder.increase(
-        MetricsRecorder.METRIC_NAME_INBOUND_CONNECTOR,
-        MetricsRecorder.ACTION_COMPLETED,
-        "WEBHOOK");
+    incrementMetric(ACTION_COMPLETED);
     return ResponseEntity.ok(response);
   }
+  
+  private void incrementMetric(final String action) {
+    metricsRecorder.increase(METRIC_NAME_INBOUND_CONNECTOR, action, METRIC_WEBHOOK_VALUE);
+  }
+  
 }

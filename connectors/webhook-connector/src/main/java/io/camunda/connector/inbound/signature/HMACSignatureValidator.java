@@ -6,10 +6,13 @@
  */
 package io.camunda.connector.inbound.signature;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Map;
+import java.util.Objects;
+import java.util.TreeMap;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import org.apache.commons.codec.binary.Hex;
@@ -48,9 +51,20 @@ public class HMACSignatureValidator {
     this.hmacHeader = hmacHeader;
     this.hmacSecretKey = hmacSecretKey;
     this.hmacAlgo = hmacAlgo;
+    Objects.requireNonNull(requestBody, "Request body must not be null");
+    Objects.requireNonNull(headers, "Headers must not be null");
+    Objects.requireNonNull(hmacHeader, "HMAC header must not be null");
+    Objects.requireNonNull(hmacSecretKey, "HMAC secret key must not be null");
+    Objects.requireNonNull(hmacAlgo, "HMAC algorithm must not be null");
   }
 
-  public boolean isRequestValid() throws NoSuchAlgorithmException, InvalidKeyException {
+  public boolean isRequestValid() throws NoSuchAlgorithmException, InvalidKeyException, IOException {
+    var caseInsensitiveHeaders = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+    caseInsensitiveHeaders.putAll(headers);
+    
+    if (!caseInsensitiveHeaders.containsKey(hmacHeader)) {
+      throw new IOException("Expected HMAC header " + hmacHeader + ", but was not present");
+    }
     final String providedHmac = headers.get(hmacHeader.toLowerCase()).toString();
     LOG.debug("Given HMAC from webhook call: {}", providedHmac);
 
@@ -58,14 +72,12 @@ public class HMACSignatureValidator {
       return false;
     }
 
-    byte[] signedEntity = requestBody;
-
     Mac sha256_HMAC = Mac.getInstance(hmacAlgo.getAlgoReference());
     SecretKeySpec secret_key =
         new SecretKeySpec(
             hmacSecretKey.getBytes(StandardCharsets.UTF_8), hmacAlgo.getAlgoReference());
     sha256_HMAC.init(secret_key);
-    byte[] expectedHmac = sha256_HMAC.doFinal(signedEntity);
+    byte[] expectedHmac = sha256_HMAC.doFinal(requestBody);
 
     // Some webhooks produce short HMAC message, e.g. aabbcc...
     String expectedShortHmacString = Hex.encodeHexString(expectedHmac);
