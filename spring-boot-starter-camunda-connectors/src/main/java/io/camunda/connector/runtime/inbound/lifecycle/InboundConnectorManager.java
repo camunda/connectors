@@ -104,32 +104,35 @@ public class InboundConnectorManager {
 
   private void activateConnector(InboundConnectorProperties newProperties) {
     InboundConnectorExecutable executable = connectorFactory.getInstance(newProperties.getType());
-    Consumer<Throwable> cancellationCallback =
-        throwable -> {
-          deactivateConnector(newProperties);
-        };
+    Consumer<Throwable> cancellationCallback = throwable -> deactivateConnector(newProperties);
+
     var inboundContext =
         new InboundConnectorContextImpl(
             secretProvider, newProperties, correlationHandler, cancellationCallback);
+
     var connector = new ActiveInboundConnector(executable, newProperties, inboundContext);
 
     try {
       executable.activate(inboundContext);
-      activeConnectorsByBpmnId.compute(
-          newProperties.getBpmnProcessId(),
-          (bpmnId, connectors) -> {
-            if (connectors == null) {
-              Set<ActiveInboundConnector> set = new HashSet<>();
-              set.add(connector);
-              return set;
-            }
-            connectors.add(connector);
-            return connectors;
-          });
+      addActiveConnector(connector);
     } catch (Exception e) {
       // log and continue with other connectors anyway
       LOG.error("Failed to activate inbound connector " + newProperties, e);
     }
+  }
+
+  private void addActiveConnector(ActiveInboundConnector connector) {
+    activeConnectorsByBpmnId.compute(
+        connector.properties().getBpmnProcessId(),
+        (bpmnId, connectors) -> {
+          if (connectors == null) {
+            Set<ActiveInboundConnector> set = new HashSet<>();
+            set.add(connector);
+            return set;
+          }
+          connectors.add(connector);
+          return connectors;
+        });
   }
 
   private void deactivateConnector(InboundConnectorProperties properties) {
@@ -162,15 +165,13 @@ public class InboundConnectorManager {
 
   private List<ActiveInboundConnector> filterByBpmnProcessId(String bpmnProcessId) {
     if (bpmnProcessId != null) {
-      Set<ActiveInboundConnector> connectorsForBpmnId = activeConnectorsByBpmnId.get(bpmnProcessId);
-      if (connectorsForBpmnId == null) {
-        return Collections.emptyList();
-      }
-      return new ArrayList<>(activeConnectorsByBpmnId.get(bpmnProcessId));
+      return new ArrayList<>(
+          activeConnectorsByBpmnId.getOrDefault(bpmnProcessId, Collections.emptySet()));
+    } else {
+      return activeConnectorsByBpmnId.values().stream()
+          .flatMap(Collection::stream)
+          .collect(Collectors.toList());
     }
-    return activeConnectorsByBpmnId.values().stream()
-        .flatMap(Collection::stream)
-        .collect(Collectors.toList());
   }
 
   private List<ActiveInboundConnector> filterByConnectorType(
