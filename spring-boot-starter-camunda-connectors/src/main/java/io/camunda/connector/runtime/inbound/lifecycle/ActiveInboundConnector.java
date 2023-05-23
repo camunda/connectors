@@ -16,12 +16,11 @@
  */
 package io.camunda.connector.runtime.inbound.lifecycle;
 
-import io.camunda.connector.api.inbound.Health;
-import java.util.Map;
+import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import io.camunda.connector.impl.inbound.InboundConnectorProperties;
+import io.camunda.connector.runtime.util.inbound.InboundConnectorContextImpl;
 
-public record ActiveInboundConnectorResponse(
-    String bpmnProcessId,
-    String elementId,
-    String type,
-    Map<String, Object> data,
-    Health.Status status) {}
+public record ActiveInboundConnector(
+    InboundConnectorExecutable executable,
+    InboundConnectorProperties properties,
+    InboundConnectorContextImpl context) {}

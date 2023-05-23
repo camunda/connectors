@@ -187,7 +187,10 @@ public class InboundConnectorManagerTest {
 
     // then
     assertTrue(manager.isProcessDefinitionRegistered(process.getKey()));
-    assertTrue(manager.getActiveConnectorsByBpmnId().get(process.getBpmnProcessId()).isEmpty());
+    assertTrue(
+        manager
+            .query(new ActiveInboundConnectorQuery(process.getBpmnProcessId(), null, null))
+            .isEmpty());
 
     verify(mockExecutable, times(1)).activate(eq(inboundContext(connector)));
     verify(mockExecutable, times(1)).deactivate();
