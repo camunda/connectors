@@ -14,20 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.api.secret;
+package io.camunda.connector.runtime.util.discovery;
 
-/**
- * Provider of secrets for an environment. This class will be instantiated from an environment
- * runtime according to the <a
- * href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/ServiceLoader.html">Service
- * Provider Interface (SPI)</a> documentation.
- */
-public interface SecretProvider {
+import static org.assertj.core.api.Assertions.assertThat;
 
-  /**
-   * @param name - the secret's name to find a value for
-   * @return the secret's value for the given name, if it exists. Otherwise, <code>null</code> is
-   *     returned.
-   */
-  String getSecret(String name);
+import io.camunda.connector.api.secret.SecretProvider;
+import io.camunda.connector.runtime.util.FooBarSecretProvider;
+import io.camunda.connector.runtime.util.NoOpSecretProvider;
+import java.util.List;
+import org.junit.jupiter.api.Test;
+
+public class SPISecretProviderDiscoveryTest {
+
+  @Test
+  public void multipleSecretProvidersCanBeResolved() {
+    // given 2 secret providers in the classpath
+    // when
+    List<SecretProvider> providers = SPISecretProviderDiscovery.discover();
+    // then
+    assertThat(providers).hasSize(2);
+    assertThat(providers.get(0)).isInstanceOf(FooBarSecretProvider.class);
+    assertThat(providers.get(1)).isInstanceOf(NoOpSecretProvider.class);
+  }
 }

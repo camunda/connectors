@@ -33,5 +33,6 @@ import java.lang.annotation.Target;
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Secret {
+
   Class<? extends SecretContainerHandler> handler() default SecretHandler.class;
 }
