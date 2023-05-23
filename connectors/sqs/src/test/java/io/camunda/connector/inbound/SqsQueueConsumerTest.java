@@ -20,6 +20,7 @@ import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorResult;
 import io.camunda.connector.inbound.model.SqsInboundProperties;
 import io.camunda.connector.inbound.model.SqsInboundQueueProperties;
+import io.camunda.connector.inbound.model.message.SqsInboundMessage;
 import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,7 +40,7 @@ public class SqsQueueConsumerTest {
   @Mock private InboundConnectorContext context;
   @Mock private ReceiveMessageResult receiveMessageResult;
   @Mock private List<Message> messages;
-  @Mock private Message message;
+  private Message message;
   @Mock private InboundConnectorResult result;
   @Captor private ArgumentCaptor<ReceiveMessageRequest> requestArgumentCaptor;
 
@@ -48,6 +49,8 @@ public class SqsQueueConsumerTest {
   @BeforeEach
   void setUp() {
     properties = new SqsInboundProperties();
+
+    message = new Message().withMessageId("message id").withBody("body msg");
 
     queue = new SqsInboundQueueProperties();
     queue.setUrl("my-queue");
@@ -67,7 +70,7 @@ public class SqsQueueConsumerTest {
         .thenReturn(receiveMessageResult);
     when(receiveMessageResult.getMessages()).thenReturn(messages);
     when(messages.iterator()).thenReturn(Collections.singletonList(message).iterator());
-    when(context.correlate(message)).thenReturn(result);
+    when(context.correlate(MessageMapper.toSqsInboundMessage(message))).thenReturn(result);
     when(result.isActivated()).thenReturn(true);
     // when
     Thread thread =
@@ -80,7 +83,7 @@ public class SqsQueueConsumerTest {
     thread.join();
     // then
     verify(sqsClient).receiveMessage(any(ReceiveMessageRequest.class));
-    verify(context).correlate(message);
+    verify(context).correlate(any(SqsInboundMessage.class));
   }
 
   @Test
@@ -94,7 +97,7 @@ public class SqsQueueConsumerTest {
         .thenReturn(receiveMessageResult);
     when(receiveMessageResult.getMessages()).thenReturn(messages);
     when(messages.iterator()).thenReturn(Collections.singletonList(message).iterator());
-    when(context.correlate(message)).thenReturn(result);
+    when(context.correlate(MessageMapper.toSqsInboundMessage(message))).thenReturn(result);
     when(result.isActivated()).thenReturn(true);
     // when
     Thread thread =
@@ -107,7 +110,7 @@ public class SqsQueueConsumerTest {
     thread.join();
     // then
     verify(sqsClient).receiveMessage(any(ReceiveMessageRequest.class));
-    verify(context).correlate(message);
+    verify(context).correlate(MessageMapper.toSqsInboundMessage(message));
     ReceiveMessageRequest receiveMessageRequest = requestArgumentCaptor.getValue();
     assertThat(receiveMessageRequest.getAttributeNames()).isEqualTo(attributeNames);
     assertThat(receiveMessageRequest.getMessageAttributeNames()).isEqualTo(messageAttributeNames);

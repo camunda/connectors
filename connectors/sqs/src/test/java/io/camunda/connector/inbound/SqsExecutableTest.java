@@ -98,7 +98,7 @@ class SqsExecutableTest {
     executorService.awaitTermination(1, TimeUnit.SECONDS);
     verify(spyContext).replaceSecrets(properties);
     verify(spyContext).validate(properties);
-    verify(spyContext, atLeast(1)).correlate(message);
+    verify(spyContext, atLeast(1)).correlate(MessageMapper.toSqsInboundMessage(message));
   }
 
   @Test
