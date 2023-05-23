@@ -54,7 +54,7 @@ public class InboundConnectorRestController {
           properties.getElementId(),
           properties.getType(),
           Map.of("path", webhookProps.getContext()),
-          health.map(Health::getStatus).orElse(Health.Status.UNKNOWN));
+          health.map(Health::getStatus).orElse(Health.Status.UP));
     } else {
       return new ActiveInboundConnectorResponse(
           properties.getBpmnProcessId(),
