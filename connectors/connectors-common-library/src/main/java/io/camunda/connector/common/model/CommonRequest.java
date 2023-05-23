@@ -35,7 +35,7 @@ public class CommonRequest {
 
   @Valid @Secret private Authentication authentication;
 
-  @Pattern(regexp = "^([0-9]*$)|(secrets.*$)")
+  @Pattern(regexp = "^([0-9]+|secrets\\..+)$")
   @Secret
   private String connectionTimeoutInSeconds;
 

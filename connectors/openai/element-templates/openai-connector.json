@@ -333,11 +333,12 @@
         "name": "connectionTimeoutInSeconds"
       },
       "optional": true,
+      "feel": "optional",
       "constraints": {
         "notEmpty": false,
         "pattern": {
-          "value": "^([0-9]*$)|(secrets.*$)",
-          "message": "Must be timeout in seconds (default value is 20 seconds)"
+          "value": "^(=.+|[0-9]+|secrets\\..+)$",
+          "message": "Must be a timeout in seconds (default value is 30 seconds) or a FEEL expression"
         }
       }
     },
