@@ -26,6 +26,7 @@ import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.secret.SecretProvider;
+import io.camunda.connector.runtime.util.FooBarSecretProvider;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -47,7 +48,7 @@ class ConnectorJobHandlerTest {
       var jobHandler =
           new ConnectorJobHandler(
               (context) -> {
-                var input = new TestInput("secrets." + TestSecretProvider.SECRET_NAME);
+                var input = new TestInput("secrets." + FooBarSecretProvider.SECRET_NAME);
                 context.replaceSecrets(input);
                 return input;
               });
@@ -58,7 +59,7 @@ class ConnectorJobHandlerTest {
       // then
       assertThat(result.getVariable("result"))
           .extracting("value")
-          .isEqualTo(TestSecretProvider.SECRET_VALUE);
+          .isEqualTo(FooBarSecretProvider.SECRET_VALUE);
     }
 
     @Test
@@ -67,7 +68,7 @@ class ConnectorJobHandlerTest {
       var jobHandler =
           new TestConnectorJobHandler(
               (context) -> {
-                var input = new TestInput("secrets." + TestSecretProvider.SECRET_NAME);
+                var input = new TestInput("secrets." + FooBarSecretProvider.SECRET_NAME);
                 context.replaceSecrets(input);
                 return input;
               });
@@ -772,7 +773,7 @@ class ConnectorJobHandlerTest {
 
     @Override
     public SecretProvider getSecretProvider() {
-      return name -> TestSecretProvider.SECRET_NAME.equals(name) ? "baz" : null;
+      return name -> FooBarSecretProvider.SECRET_NAME.equals(name) ? "baz" : null;
     }
   }
 

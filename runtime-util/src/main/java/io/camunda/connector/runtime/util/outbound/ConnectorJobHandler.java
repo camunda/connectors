@@ -22,13 +22,12 @@ import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.util.ConnectorHelper;
+import io.camunda.connector.runtime.util.secret.SecretProviderAggregator;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import io.camunda.zeebe.client.api.worker.JobClient;
 import io.camunda.zeebe.client.api.worker.JobHandler;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.ServiceLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,6 +51,11 @@ public class ConnectorJobHandler implements JobHandler {
     this.call = call;
   }
 
+  /**
+   * Create a handler wrapper for the specified connector function.
+   *
+   * @param call - the connector function to call
+   */
   public ConnectorJobHandler(
       final OutboundConnectorFunction call, final SecretProvider secretProvider) {
     this.call = call;
@@ -70,7 +74,7 @@ public class ConnectorJobHandler implements JobHandler {
           ConnectorHelper.createOutputVariables(result.getResponseValue(), job.getCustomHeaders()));
 
     } catch (Exception ex) {
-      LOGGER.debug("Exception while processing job {}, error: {}", job.getKey(), ex);
+      LOGGER.debug("Exception while processing job {}", job.getKey(), ex);
       result.setResponseValue(Map.of("error", toMap(ex)));
       result.setException(ex);
     }
@@ -99,28 +103,16 @@ public class ConnectorJobHandler implements JobHandler {
   }
 
   protected SecretProvider getSecretProvider() {
+    // if custom provider / aggregator is provided by the runtime, use it
     if (secretProvider != null) {
       return secretProvider;
     }
-    // Initialize in legacy scenario where this is not provided by the environment with every call
-    // to not break former behavior
-    return loadOrCreateSecretProvider();
-  }
-
-  protected SecretProvider loadOrCreateSecretProvider() {
-    Iterator<SecretProvider> secretProviders = ServiceLoader.load(SecretProvider.class).iterator();
-    if (!secretProviders.hasNext()) {
-      getEnvSecretProvider();
-    }
-    return secretProviders.next();
-  }
-
-  protected SecretProvider getEnvSecretProvider() {
-    return System::getenv;
+    // otherwise fall back to default implementation (SPI discovery or environment variables)
+    return new SecretProviderAggregator();
   }
 
   protected void logError(ActivatedJob job, Exception ex) {
-    LOGGER.error("Exception while processing job {}, error: {}", job.getKey(), ex);
+    LOGGER.error("Exception while processing job {}", job.getKey(), ex);
   }
 
   protected void completeJob(JobClient client, ActivatedJob job, ConnectorResult result) {

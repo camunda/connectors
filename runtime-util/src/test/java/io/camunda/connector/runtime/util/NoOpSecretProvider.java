@@ -14,20 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.api.secret;
+package io.camunda.connector.runtime.util;
 
-/**
- * Provider of secrets for an environment. This class will be instantiated from an environment
- * runtime according to the <a
- * href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/ServiceLoader.html">Service
- * Provider Interface (SPI)</a> documentation.
- */
-public interface SecretProvider {
+import io.camunda.connector.api.secret.SecretProvider;
 
-  /**
-   * @param name - the secret's name to find a value for
-   * @return the secret's value for the given name, if it exists. Otherwise, <code>null</code> is
-   *     returned.
-   */
-  String getSecret(String name);
+public class NoOpSecretProvider implements SecretProvider {
+
+  @Override
+  public String getSecret(String value) {
+    return null;
+  }
 }

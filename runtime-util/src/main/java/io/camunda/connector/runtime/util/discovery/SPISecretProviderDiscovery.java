@@ -14,22 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.util.outbound;
-
-import static java.util.Collections.singletonMap;
+package io.camunda.connector.runtime.util.discovery;
 
 import io.camunda.connector.api.secret.SecretProvider;
-import java.util.Map;
+import java.util.List;
+import java.util.ServiceLoader;
+import java.util.stream.Collectors;
 
-public class TestSecretProvider implements SecretProvider {
+/** Static utility class for discovering {@link SecretProvider} implementations via SPI. */
+public class SPISecretProviderDiscovery {
 
-  public static final String SECRET_NAME = "FOO";
-  public static final String SECRET_VALUE = "bar";
-
-  private static final Map<String, String> SECRETS = singletonMap(SECRET_NAME, SECRET_VALUE);
-
-  @Override
-  public String getSecret(String value) {
-    return SECRETS.get(value);
+  /**
+   * Discovers the {@link SecretProvider} implementations via SPI.
+   *
+   * @return the discovered {@link SecretProvider} implementations
+   */
+  public static List<SecretProvider> discover() {
+    return ServiceLoader.load(SecretProvider.class).stream()
+        .map(ServiceLoader.Provider::get)
+        .collect(Collectors.toList());
   }
 }

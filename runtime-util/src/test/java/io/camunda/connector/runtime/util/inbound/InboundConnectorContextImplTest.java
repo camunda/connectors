@@ -22,14 +22,14 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.impl.inbound.InboundConnectorProperties;
 import io.camunda.connector.impl.inbound.correlation.MessageCorrelationPoint;
-import io.camunda.connector.runtime.util.outbound.TestSecretProvider;
+import io.camunda.connector.runtime.util.FooBarSecretProvider;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import org.junit.jupiter.api.Test;
 
 class InboundConnectorContextImplTest {
-  private final SecretProvider secretProvider = new TestSecretProvider();
+  private final SecretProvider secretProvider = new FooBarSecretProvider();
 
   @Test
   void getPropertiesAsType_shouldThrowExceptionWhenWrongFormat() {
