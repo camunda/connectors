@@ -46,7 +46,6 @@ public class InboundConnectorRestController {
 
   private ActiveInboundConnectorResponse mapToResponse(ActiveInboundConnector connector) {
     var properties = connector.properties();
-    var health = Optional.ofNullable(connector.context().getHealth());
     if (WebhookConnectorRegistry.TYPE_WEBHOOK.equals(properties.getType())) {
       WebhookConnectorProperties webhookProps = new WebhookConnectorProperties(properties);
       return new ActiveInboundConnectorResponse(
@@ -54,8 +53,9 @@ public class InboundConnectorRestController {
           properties.getElementId(),
           properties.getType(),
           Map.of("path", webhookProps.getContext()),
-          health.map(Health::getStatus).orElse(Health.Status.UP));
+          Health.Status.UP);
     } else {
+      var health = Optional.ofNullable(connector.context().getHealth());
       return new ActiveInboundConnectorResponse(
           properties.getBpmnProcessId(),
           properties.getElementId(),
