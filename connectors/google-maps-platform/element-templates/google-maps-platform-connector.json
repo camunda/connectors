@@ -436,7 +436,7 @@
         "notEmpty": false,
         "pattern": {
           "value": "^([0-9]*$)|(secrets.*$)",
-          "message": "Must be timeout in seconds (default value is 20 seconds)"
+          "message": "Must be a timeout in seconds (default value is 20 seconds) or a FEEL expression"
         }
       }
     },
