@@ -7,6 +7,7 @@
 package io.camunda.connector.kafka.inbound;
 
 import io.camunda.connector.api.annotation.InboundConnector;
+import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import java.util.Properties;
@@ -35,16 +36,19 @@ public class KafkaExecutable implements InboundConnectorExecutable {
 
   @Override
   public void activate(InboundConnectorContext connectorContext) {
-    KafkaConnectorProperties elementProps =
-        connectorContext.getPropertiesAsType(KafkaConnectorProperties.class);
-    LOG.info("Subscription activation requested by the Connector runtime: {}", elementProps);
-
-    connectorContext.replaceSecrets(elementProps);
-    connectorContext.validate(elementProps);
-
-    this.kafkaConnectorConsumer =
-        new KafkaConnectorConsumer(consumerCreatorFunction, connectorContext, elementProps);
-    this.kafkaConnectorConsumer.startConsumer();
+    try {
+      KafkaConnectorProperties elementProps =
+          connectorContext.getPropertiesAsType(KafkaConnectorProperties.class);
+      LOG.info("Subscription activation requested by the Connector runtime: {}", elementProps);
+      connectorContext.replaceSecrets(elementProps);
+      connectorContext.validate(elementProps);
+      this.kafkaConnectorConsumer =
+          new KafkaConnectorConsumer(consumerCreatorFunction, connectorContext, elementProps);
+      this.kafkaConnectorConsumer.startConsumer();
+    } catch (Exception ex) {
+      connectorContext.reportHealth(Health.down(ex));
+      throw ex;
+    }
   }
 
   @Override
