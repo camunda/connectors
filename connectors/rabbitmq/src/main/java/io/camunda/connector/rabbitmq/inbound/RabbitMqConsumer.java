@@ -13,6 +13,7 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.ShutdownSignalException;
+import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorResult;
 import io.camunda.connector.impl.ConnectorInputException;
@@ -69,6 +70,7 @@ public class RabbitMqConsumer extends DefaultConsumer {
     try {
       context.cancel(null);
     } catch (Exception e) {
+      context.reportHealth(Health.down(e));
       LOGGER.error("Failed to cancel Connector execution: {}", e.getMessage());
     }
   }

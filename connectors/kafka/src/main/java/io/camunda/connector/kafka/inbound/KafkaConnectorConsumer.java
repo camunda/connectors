@@ -10,10 +10,12 @@ import static io.camunda.connector.kafka.inbound.KafkaPropertyTransformer.conver
 import static io.camunda.connector.kafka.inbound.KafkaPropertyTransformer.getKafkaProperties;
 import static io.camunda.connector.kafka.inbound.KafkaPropertyTransformer.getOffsets;
 
+import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorResult;
 import io.camunda.connector.impl.ConnectorInputException;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
@@ -54,16 +56,23 @@ public class KafkaConnectorConsumer {
   }
 
   public void startConsumer() {
-    this.consumer =
-        createConsumer(
-            this.consumerCreatorFunction,
-            getKafkaProperties(elementProps, this.context),
-            elementProps,
-            getOffsets(elementProps.getOffsets()));
-    LOG.info("Kafka inbound connector initialized");
     this.future =
         CompletableFuture.supplyAsync(
             () -> {
+              try {
+                this.consumer =
+                    createConsumer(
+                        this.consumerCreatorFunction,
+                        getKafkaProperties(elementProps, this.context),
+                        elementProps,
+                        getOffsets(elementProps.getOffsets()));
+                reportUp();
+              } catch (Exception ex) {
+                LOG.error("Failed to initialize connector: {}", ex.getMessage());
+                context.reportHealth(Health.down(ex));
+                throw ex;
+              }
+
               try {
                 while (shouldLoop) {
                   ConsumerRecords<String, String> records =
@@ -74,9 +83,11 @@ public class KafkaConnectorConsumer {
                   if (!records.isEmpty()) {
                     this.consumer.commitSync();
                   }
+                  reportUp();
                 }
               } catch (Exception ex) {
                 LOG.error("Failed to execute connector: {}", ex.getMessage());
+                context.reportHealth(Health.down(ex));
                 throw ex;
               }
               LOG.debug("Kafka inbound loop finished");
@@ -85,7 +96,7 @@ public class KafkaConnectorConsumer {
   }
 
   private void handleMessage(ConsumerRecord<String, String> record) {
-    LOG.trace("Kafka message received: key = %s, value = %s%n", record.key(), record.value());
+    LOG.trace("Kafka message received: key = {}, value = {}", record.key(), record.value());
     InboundConnectorResult<?> result =
         this.context.correlate(convertConsumerRecordToKafkaInboundMessage(record));
     if (result.isActivated()) {
@@ -130,6 +141,15 @@ public class KafkaConnectorConsumer {
         consumer.seek(topicPartitions.get(i), offsets.get(i));
       }
     }
+    LOG.info("Kafka inbound connector initialized");
     return consumer;
+  }
+
+  private void reportUp() {
+    var details = new HashMap<String, Object>();
+    details.put("group-id", consumer.groupMetadata().groupId());
+    details.put("group-instance-id", consumer.groupMetadata().groupInstanceId().orElse("unknown"));
+    details.put("group-generation-id", consumer.groupMetadata().generationId());
+    context.reportHealth(Health.up(details));
   }
 }

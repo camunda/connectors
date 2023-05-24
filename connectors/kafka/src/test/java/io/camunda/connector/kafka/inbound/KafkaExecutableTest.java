@@ -12,9 +12,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -23,17 +22,10 @@ import com.google.gson.Gson;
 import io.camunda.connector.kafka.outbound.model.KafkaTopic;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
 import io.camunda.connector.test.inbound.InboundConnectorPropertiesBuilder;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.PartitionInfo;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,8 +35,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
-import org.mockito.internal.stubbing.answers.AnswersWithDelay;
-import org.mockito.internal.stubbing.answers.Returns;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -96,27 +86,36 @@ public class KafkaExecutableTest {
 
   @Test
   public void testActivateMainFunctionality() throws Exception {
-    // Given
-    when(mockConsumer.partitionsFor(topic)).thenReturn(topicPartitions);
-    doNothing().when(mockConsumer).assign(any());
-    doAnswer(new AnswersWithDelay(100, new Returns(new ConsumerRecords<>(new HashMap<>()))))
-        .when(mockConsumer)
-        .poll(any());
     KafkaExecutable kafkaExecutable = getConsumerMock();
+
+    when(mockConsumer.partitionsFor(any())).thenReturn(topicPartitions);
+
+    // Return and stop looping
+    when(mockConsumer.poll(any()))
+        .then(
+            invocationOnMock -> {
+              kafkaExecutable.kafkaConnectorConsumer.shouldLoop = false;
+              return new ConsumerRecords<>(new HashMap<>());
+            });
+
+    var groupMetadataMock = mock(ConsumerGroupMetadata.class);
+    when(groupMetadataMock.groupId()).thenReturn("groupId");
+    when(groupMetadataMock.groupInstanceId()).thenReturn(Optional.of("groupInstanceId"));
+    when(groupMetadataMock.generationId()).thenReturn(1);
+    when(mockConsumer.groupMetadata()).thenReturn(groupMetadataMock);
 
     // When
     kafkaExecutable.activate(context);
 
     // Then
+    assertNotNull(kafkaExecutable.kafkaConnectorConsumer.future);
+    kafkaExecutable.kafkaConnectorConsumer.future.get(3, TimeUnit.SECONDS);
     assertNotNull(kafkaExecutable.kafkaConnectorConsumer.consumer);
     assertEquals(mockConsumer, kafkaExecutable.kafkaConnectorConsumer.consumer);
     assertEquals(originalContext, context);
     verify(mockConsumer, times(1)).partitionsFor(topic);
     verify(mockConsumer, times(1)).assign(argThat(list -> list.size() == topicPartitions.size()));
-    verify(mockConsumer, timeout(100)).poll(any());
-    assertNotNull(kafkaExecutable.kafkaConnectorConsumer.future);
-    kafkaExecutable.kafkaConnectorConsumer.shouldLoop = false;
-    kafkaExecutable.kafkaConnectorConsumer.future.get(3, TimeUnit.SECONDS);
+    verify(mockConsumer, times(1)).poll(any());
   }
 
   @Test
@@ -134,7 +133,6 @@ public class KafkaExecutableTest {
     assertEquals(originalContext, context);
     assertNotNull(kafkaExecutable.kafkaConnectorConsumer.consumer);
     assertFalse(kafkaExecutable.kafkaConnectorConsumer.shouldLoop);
-    kafkaExecutable.kafkaConnectorConsumer.future.get(3, TimeUnit.SECONDS);
   }
 
   @Test
