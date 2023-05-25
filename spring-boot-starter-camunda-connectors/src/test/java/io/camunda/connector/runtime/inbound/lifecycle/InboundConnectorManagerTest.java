@@ -30,7 +30,6 @@ import static org.mockito.Mockito.when;
 
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
-import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.impl.ConnectorUtil;
 import io.camunda.connector.impl.Constants;
 import io.camunda.connector.impl.inbound.InboundConnectorConfiguration;
@@ -42,6 +41,7 @@ import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionInspector;
 import io.camunda.connector.runtime.util.inbound.InboundConnectorContextImpl;
 import io.camunda.connector.runtime.util.inbound.InboundConnectorFactory;
 import io.camunda.connector.runtime.util.inbound.correlation.InboundCorrelationHandler;
+import io.camunda.connector.runtime.util.secret.SecretProviderAggregator;
 import io.camunda.operate.dto.ProcessDefinition;
 import java.util.Collections;
 import java.util.List;
@@ -58,7 +58,7 @@ public class InboundConnectorManagerTest {
   private ProcessDefinitionTestUtil procDefUtil;
   private InboundConnectorFactory factory;
   private InboundConnectorExecutable mockExecutable;
-  private SecretProvider secretProvider;
+  private SecretProviderAggregator secretProviderAggregator;
   private InboundCorrelationHandler correlationHandler;
 
   @BeforeEach
@@ -69,11 +69,13 @@ public class InboundConnectorManagerTest {
     factory = mock(InboundConnectorFactory.class);
     when(factory.getInstance(any())).thenReturn(mockExecutable);
 
-    secretProvider = mock(SecretProvider.class);
+    secretProviderAggregator = mock(SecretProviderAggregator.class);
 
     ProcessDefinitionInspector inspector = mock(ProcessDefinitionInspector.class);
 
-    manager = new InboundConnectorManager(factory, correlationHandler, inspector, secretProvider);
+    manager =
+        new InboundConnectorManager(
+            factory, correlationHandler, inspector, secretProviderAggregator);
     procDefUtil = new ProcessDefinitionTestUtil(manager, inspector);
   }
 
@@ -198,7 +200,7 @@ public class InboundConnectorManagerTest {
 
   private InboundConnectorContext inboundContext(InboundConnectorProperties properties) {
     return new InboundConnectorContextImpl(
-        secretProvider, properties, correlationHandler, (event) -> {});
+        secretProviderAggregator, properties, correlationHandler, (event) -> {});
   }
 
   private static final InboundConnectorConfiguration connectorConfig =

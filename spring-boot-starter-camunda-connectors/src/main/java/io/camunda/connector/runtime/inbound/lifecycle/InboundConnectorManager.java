@@ -17,12 +17,12 @@
 package io.camunda.connector.runtime.inbound.lifecycle;
 
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
-import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.impl.inbound.InboundConnectorProperties;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionInspector;
 import io.camunda.connector.runtime.util.inbound.InboundConnectorContextImpl;
 import io.camunda.connector.runtime.util.inbound.InboundConnectorFactory;
 import io.camunda.connector.runtime.util.inbound.correlation.InboundCorrelationHandler;
+import io.camunda.connector.runtime.util.secret.SecretProviderAggregator;
 import io.camunda.operate.dto.ProcessDefinition;
 import java.util.*;
 import java.util.function.Consumer;
@@ -36,7 +36,7 @@ public class InboundConnectorManager {
   private final InboundConnectorFactory connectorFactory;
   private final InboundCorrelationHandler correlationHandler;
   private final ProcessDefinitionInspector processDefinitionInspector;
-  private final SecretProvider secretProvider;
+  private final SecretProviderAggregator secretProviderAggregator;
 
   // TODO: consider using external storage instead of these collections to allow multi-instance
   // setup
@@ -48,11 +48,11 @@ public class InboundConnectorManager {
       InboundConnectorFactory connectorFactory,
       InboundCorrelationHandler correlationHandler,
       ProcessDefinitionInspector processDefinitionInspector,
-      SecretProvider secretProvider) {
+      SecretProviderAggregator secretProviderAggregator) {
     this.connectorFactory = connectorFactory;
     this.correlationHandler = correlationHandler;
     this.processDefinitionInspector = processDefinitionInspector;
-    this.secretProvider = secretProvider;
+    this.secretProviderAggregator = secretProviderAggregator;
   }
 
   /** Process a batch of process definitions */
@@ -108,7 +108,7 @@ public class InboundConnectorManager {
 
     var inboundContext =
         new InboundConnectorContextImpl(
-            secretProvider, newProperties, correlationHandler, cancellationCallback);
+            secretProviderAggregator, newProperties, correlationHandler, cancellationCallback);
 
     var connector = new ActiveInboundConnector(executable, newProperties, inboundContext);
 
