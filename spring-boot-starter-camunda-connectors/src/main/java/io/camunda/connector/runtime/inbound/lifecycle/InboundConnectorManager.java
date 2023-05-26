@@ -17,26 +17,41 @@
 package io.camunda.connector.runtime.inbound.lifecycle;
 
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.impl.inbound.InboundConnectorProperties;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionInspector;
+import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.connector.runtime.util.inbound.InboundConnectorContextImpl;
 import io.camunda.connector.runtime.util.inbound.InboundConnectorFactory;
 import io.camunda.connector.runtime.util.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.util.secret.SecretProviderAggregator;
 import io.camunda.operate.dto.ProcessDefinition;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 public class InboundConnectorManager {
   private static final Logger LOG = LoggerFactory.getLogger(InboundConnectorManager.class);
+
+  public static final String WEBHOOK_CONTEXT_BPMN_FIELD = "inbound.context";
 
   private final InboundConnectorFactory connectorFactory;
   private final InboundCorrelationHandler correlationHandler;
   private final ProcessDefinitionInspector processDefinitionInspector;
   private final SecretProviderAggregator secretProviderAggregator;
+  private final WebhookConnectorRegistry webhookConnectorRegistry;
 
   // TODO: consider using external storage instead of these collections to allow multi-instance
   // setup
@@ -48,11 +63,13 @@ public class InboundConnectorManager {
       InboundConnectorFactory connectorFactory,
       InboundCorrelationHandler correlationHandler,
       ProcessDefinitionInspector processDefinitionInspector,
-      SecretProviderAggregator secretProviderAggregator) {
+      SecretProviderAggregator secretProviderAggregator,
+      @Autowired(required = false) WebhookConnectorRegistry webhookConnectorRegistry) {
     this.connectorFactory = connectorFactory;
     this.correlationHandler = correlationHandler;
     this.processDefinitionInspector = processDefinitionInspector;
     this.secretProviderAggregator = secretProviderAggregator;
+    this.webhookConnectorRegistry = webhookConnectorRegistry;
   }
 
   /** Process a batch of process definitions */
@@ -113,8 +130,20 @@ public class InboundConnectorManager {
     var connector = new ActiveInboundConnector(executable, newProperties, inboundContext);
 
     try {
+      if (webhookConnectorRegistry == null && executable instanceof WebhookConnectorExecutable) {
+        throw new Exception(
+            "Cannot activate webhook connector. "
+                + "Check whether property camunda.connector.webhook.enabled is set to true.");
+      }
+
       executable.activate(inboundContext);
       addActiveConnector(connector);
+
+      if (webhookConnectorRegistry != null && executable instanceof WebhookConnectorExecutable wh) {
+        webhookConnectorRegistry.registerWebhookFunction(newProperties.getType(), wh);
+        webhookConnectorRegistry.activateEndpoint(inboundContext);
+        LOG.trace("Registering webhook: " + newProperties.getType());
+      }
     } catch (Exception e) {
       // log and continue with other connectors anyway
       LOG.error("Failed to activate inbound connector " + newProperties, e);

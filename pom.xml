@@ -51,6 +51,9 @@
     <version.kotlin>1.8.21</version.kotlin>
 
     <version.testcontainers>1.18.1</version.testcontainers>
+    
+    <version.commons-codec>1.15</version.commons-codec>
+    <version.guava>31.1-jre</version.guava>
   </properties>
 
   <modules>

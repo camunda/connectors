@@ -30,14 +30,17 @@ import static org.mockito.Mockito.when;
 
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.impl.ConnectorUtil;
 import io.camunda.connector.impl.Constants;
 import io.camunda.connector.impl.inbound.InboundConnectorConfiguration;
 import io.camunda.connector.impl.inbound.InboundConnectorProperties;
 import io.camunda.connector.impl.inbound.correlation.MessageCorrelationPoint;
 import io.camunda.connector.runtime.app.TestInboundConnector;
+import io.camunda.connector.runtime.app.TestWebhookConnector;
 import io.camunda.connector.runtime.inbound.ProcessDefinitionTestUtil;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionInspector;
+import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.connector.runtime.util.inbound.InboundConnectorContextImpl;
 import io.camunda.connector.runtime.util.inbound.InboundConnectorFactory;
 import io.camunda.connector.runtime.util.inbound.correlation.InboundCorrelationHandler;
@@ -58,6 +61,8 @@ public class InboundConnectorManagerTest {
   private ProcessDefinitionTestUtil procDefUtil;
   private InboundConnectorFactory factory;
   private InboundConnectorExecutable mockExecutable;
+  private WebhookConnectorExecutable mockWebhook;
+  private WebhookConnectorRegistry webhookRegistry;
   private SecretProviderAggregator secretProviderAggregator;
   private InboundCorrelationHandler correlationHandler;
 
@@ -66,6 +71,8 @@ public class InboundConnectorManagerTest {
     correlationHandler = mock(InboundCorrelationHandler.class);
 
     mockExecutable = spy(new TestInboundConnector());
+    mockWebhook = spy(new TestWebhookConnector());
+    webhookRegistry = mock(WebhookConnectorRegistry.class);
     factory = mock(InboundConnectorFactory.class);
     when(factory.getInstance(any())).thenReturn(mockExecutable);
 
@@ -75,7 +82,7 @@ public class InboundConnectorManagerTest {
 
     manager =
         new InboundConnectorManager(
-            factory, correlationHandler, inspector, secretProviderAggregator);
+            factory, correlationHandler, inspector, secretProviderAggregator, webhookRegistry);
     procDefUtil = new ProcessDefinitionTestUtil(manager, inspector);
   }
 
@@ -198,6 +205,41 @@ public class InboundConnectorManagerTest {
     verify(mockExecutable, times(1)).deactivate();
   }
 
+  @Test
+  void shouldActivateAndRegisterWebhook() throws Exception {
+    when(factory.getInstance("io.camunda:test-webhook:1")).thenReturn(mockWebhook);
+    var process = processDefinition("webhook1", 1);
+    var webhook = webhookConnector(process);
+
+    procDefUtil.deployProcessDefinition(process, webhook);
+
+    verify(mockWebhook, times(1)).activate(eq(inboundContext(webhook)));
+    verify(webhookRegistry, times(1)).registerWebhookFunction(webhookConfig.getType(), mockWebhook);
+    verify(webhookRegistry, times(1)).activateEndpoint(eq(inboundContext(webhook)));
+  }
+
+  @Test
+  void shouldNotActivateWebhookWhenDisabled() throws Exception {
+    // Given
+    ProcessDefinitionInspector inspector = mock(ProcessDefinitionInspector.class);
+    // webhook connector registry is set to null,
+    // emulating camunda.connector.webhook.enabled=false
+    manager =
+        new InboundConnectorManager(
+            factory, correlationHandler, inspector, secretProviderAggregator, null);
+    procDefUtil = new ProcessDefinitionTestUtil(manager, inspector);
+
+    when(factory.getInstance("io.camunda:test-webhook:1")).thenReturn(mockWebhook);
+    var process = processDefinition("webhook1", 1);
+    var webhook = webhookConnector(process);
+
+    // When
+    procDefUtil.deployProcessDefinition(process, webhook);
+
+    // Then
+    verify(mockWebhook, times(0)).activate(eq(inboundContext(webhook)));
+  }
+
   private InboundConnectorContext inboundContext(InboundConnectorProperties properties) {
     return new InboundConnectorContextImpl(
         secretProviderAggregator, properties, correlationHandler, (event) -> {});
@@ -206,10 +248,27 @@ public class InboundConnectorManagerTest {
   private static final InboundConnectorConfiguration connectorConfig =
       ConnectorUtil.getRequiredInboundConnectorConfiguration(TestInboundConnector.class);
 
+  private static final InboundConnectorConfiguration webhookConfig =
+      ConnectorUtil.getRequiredInboundConnectorConfiguration(TestWebhookConnector.class);
+
   private static InboundConnectorProperties inboundConnector(ProcessDefinition procDef) {
     return new InboundConnectorProperties(
         new MessageCorrelationPoint(""),
         Map.of(Constants.INBOUND_TYPE_KEYWORD, connectorConfig.getType()),
+        procDef.getBpmnProcessId(),
+        procDef.getVersion().intValue(),
+        procDef.getKey(),
+        "test-element");
+  }
+
+  private static InboundConnectorProperties webhookConnector(ProcessDefinition procDef) {
+    return new InboundConnectorProperties(
+        new MessageCorrelationPoint(""),
+        Map.of(
+            Constants.INBOUND_TYPE_KEYWORD,
+            webhookConfig.getType(),
+            InboundConnectorManager.WEBHOOK_CONTEXT_BPMN_FIELD,
+            "myWebhookEndpoint"),
         procDef.getBpmnProcessId(),
         procDef.getVersion().intValue(),
         procDef.getKey(),

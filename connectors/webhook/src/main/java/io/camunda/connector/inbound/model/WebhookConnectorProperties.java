@@ -1,25 +1,16 @@
 /*
  * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
- * under one or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information regarding copyright
- * ownership. Camunda licenses this file to you under the Apache License,
- * Version 2.0; you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
  */
-package io.camunda.connector.runtime.inbound.webhook;
+package io.camunda.connector.inbound.model;
+
+import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.disabled;
 
 import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.impl.inbound.InboundConnectorProperties;
 import io.camunda.connector.impl.inbound.ProcessCorrelationPoint;
-import io.camunda.connector.runtime.inbound.webhook.signature.HMACSwitchCustomerChoice;
 import java.util.Objects;
 
 public class WebhookConnectorProperties {
@@ -35,12 +26,12 @@ public class WebhookConnectorProperties {
 
   public WebhookConnectorProperties(InboundConnectorProperties properties) {
     this.genericProperties = properties;
+
     this.context = readPropertyRequired("inbound.context");
     this.activationCondition = readPropertyNullable("inbound.activationCondition");
     this.variableMapping = readPropertyNullable("inbound.variableMapping");
     this.shouldValidateHmac =
-        readPropertyWithDefault(
-            "inbound.shouldValidateHmac", HMACSwitchCustomerChoice.disabled.name());
+        readPropertyWithDefault("inbound.shouldValidateHmac", disabled.name());
     this.hmacSecret = readPropertyNullable("inbound.hmacSecret");
     this.hmacHeader = readPropertyNullable("inbound.hmacHeader");
     this.hmacAlgorithm = readPropertyNullable("inbound.hmacAlgorithm");

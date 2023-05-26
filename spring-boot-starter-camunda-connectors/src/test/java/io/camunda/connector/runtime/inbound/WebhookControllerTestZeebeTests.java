@@ -22,8 +22,12 @@ import static io.camunda.zeebe.spring.test.ZeebeTestThreadSupport.waitForProcess
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 
 import io.camunda.connector.api.inbound.InboundConnectorResult;
+import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
+import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
+import io.camunda.connector.api.inbound.webhook.WebhookProcessingResult;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.impl.inbound.result.ProcessInstance;
 import io.camunda.connector.impl.inbound.result.StartEventCorrelationResult;
@@ -37,16 +41,17 @@ import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.process.test.inspections.model.InspectedProcessInstance;
 import io.camunda.zeebe.spring.test.ZeebeSpringTest;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mock.web.MockHttpServletRequest;
 
 @SpringBootTest(
     classes = TestConnectorRuntimeApplication.class,
@@ -74,7 +79,14 @@ class WebhookControllerTestZeebeTests {
   // This test is wired by Spring - but this is not really giving us any advantage
   // Better move to plain Java as shown in InboundWebhookRestControllerTests
   @Test
-  public void multipleWebhooksOnSameContextPath() throws IOException {
+  public void multipleWebhooksOnSameContextPath() throws Exception {
+    WebhookConnectorExecutable executable = Mockito.mock(WebhookConnectorExecutable.class);
+    Mockito.when(executable.triggerWebhook(any(WebhookProcessingPayload.class)))
+        .thenReturn(Mockito.mock(WebhookProcessingResult.class));
+
+    // Register webhook function 'implementation'
+    webhook.registerWebhookFunction("webhook", executable);
+
     deployProcess("processA");
     deployProcess("processB");
 
@@ -96,10 +108,14 @@ class WebhookControllerTestZeebeTests {
     webhook.activateEndpoint(webhookB);
 
     ResponseEntity<WebhookResponse> responseEntity =
-        controller.inbound("myPath", "{}".getBytes(), new HashMap<>(), "application/json");
+        controller.inbound(
+            "myPath",
+            new HashMap<>(),
+            "{}".getBytes(),
+            new HashMap<>(),
+            new MockHttpServletRequest());
 
     assertEquals(200, responseEntity.getStatusCode().value());
-    assertTrue(responseEntity.getBody().getUnauthorizedConnectors().isEmpty());
     assertTrue(responseEntity.getBody().getUnactivatedConnectors().isEmpty());
     assertEquals(2, responseEntity.getBody().getExecutedConnectors().size());
     assertEquals(

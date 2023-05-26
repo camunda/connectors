@@ -16,7 +16,10 @@
  */
 package io.camunda.connector.runtime.inbound.webhook;
 
+import static io.camunda.connector.runtime.inbound.lifecycle.InboundConnectorManager.WEBHOOK_CONTEXT_BPMN_FIELD;
+
 import io.camunda.connector.api.inbound.InboundConnectorContext;
+import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.impl.inbound.InboundConnectorProperties;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -27,14 +30,13 @@ import org.slf4j.LoggerFactory;
 
 public class WebhookConnectorRegistry {
 
-  public static final String TYPE_WEBHOOK = "io.camunda:webhook:1";
-
   private final Logger LOG = LoggerFactory.getLogger(WebhookConnectorRegistry.class);
 
   // active endpoints grouped by context path (additionally indexed by correlationPointId for faster
   // lookup)
   private final Map<String, Map<String, InboundConnectorContext>> activeEndpointsByContext =
       new HashMap<>();
+  private final Map<String, WebhookConnectorExecutable> webhookExecsByType = new HashMap<>();
 
   public boolean containsContextPath(String context) {
     return activeEndpointsByContext.containsKey(context)
@@ -46,12 +48,9 @@ public class WebhookConnectorRegistry {
   }
 
   public void activateEndpoint(InboundConnectorContext connectorContext) {
-
     InboundConnectorProperties properties = connectorContext.getProperties();
-    WebhookConnectorProperties webhookProperties = new WebhookConnectorProperties(properties);
-
     activeEndpointsByContext.compute(
-        webhookProperties.getContext(),
+        properties.getRequiredProperty(WEBHOOK_CONTEXT_BPMN_FIELD),
         (context, endpoints) -> {
           if (endpoints == null) {
             Map<String, InboundConnectorContext> newEndpoints = new HashMap<>();
@@ -64,11 +63,8 @@ public class WebhookConnectorRegistry {
   }
 
   public void deactivateEndpoint(InboundConnectorProperties inboundConnectorProperties) {
-    WebhookConnectorProperties webhookProperties =
-        new WebhookConnectorProperties(inboundConnectorProperties);
-
     activeEndpointsByContext.compute(
-        webhookProperties.getContext(),
+        inboundConnectorProperties.getRequiredProperty(WEBHOOK_CONTEXT_BPMN_FIELD),
         (context, endpoints) -> {
           if (endpoints == null
               || !endpoints.containsKey(inboundConnectorProperties.getCorrelationPointId())) {
@@ -80,5 +76,13 @@ public class WebhookConnectorRegistry {
           endpoints.remove(inboundConnectorProperties.getCorrelationPointId());
           return endpoints;
         });
+  }
+
+  public WebhookConnectorExecutable getByType(String type) {
+    return webhookExecsByType.get(type);
+  }
+
+  public void registerWebhookFunction(String type, WebhookConnectorExecutable function) {
+    webhookExecsByType.put(type, function);
   }
 }

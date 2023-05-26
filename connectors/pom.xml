@@ -28,6 +28,7 @@
     <module>microsoft-teams</module>
     <module>slack</module>
     <module>graphql</module>
+    <module>webhook</module>
     <module>connectors-common-library</module>
     <module>google</module>
   </modules>
