@@ -14,25 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.env;
+package io.camunda.connector.runtime.secret.providers;
 
 import io.camunda.connector.api.secret.SecretProvider;
-import org.springframework.core.env.Environment;
 
-/**
- * USes Spring {@link Environment} to resolve secrets (will look into properties files as well as
- * system properties)
- */
-public class SpringSecretProvider implements SecretProvider {
-
-  private final Environment environment;
-
-  public SpringSecretProvider(Environment environment) {
-    this.environment = environment;
-  }
+// note this is not defined as a Spring bean
+public class SpiSecretProvider implements SecretProvider {
 
   @Override
   public String getSecret(String s) {
-    return environment.getProperty(s);
+    if ("SPI".equals(s)) {
+      return "SPI";
+    } else {
+      return null;
+    }
   }
 }

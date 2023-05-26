@@ -16,11 +16,11 @@
  */
 package io.camunda.connector.runtime.inbound.lifecycle;
 
-import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionInspector;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.connector.runtime.util.inbound.InboundConnectorFactory;
 import io.camunda.connector.runtime.util.inbound.correlation.InboundCorrelationHandler;
+import io.camunda.connector.runtime.util.secret.SecretProviderAggregator;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -40,8 +40,8 @@ public class InboundConnectorLifecycleConfiguration {
       InboundConnectorFactory connectorFactory,
       InboundCorrelationHandler correlationHandler,
       ProcessDefinitionInspector processDefinitionInspector,
-      SecretProvider secretProvider) {
+      SecretProviderAggregator secretProviderAggregator) {
     return new InboundConnectorManager(
-        connectorFactory, correlationHandler, processDefinitionInspector, secretProvider);
+        connectorFactory, correlationHandler, processDefinitionInspector, secretProviderAggregator);
   }
 }

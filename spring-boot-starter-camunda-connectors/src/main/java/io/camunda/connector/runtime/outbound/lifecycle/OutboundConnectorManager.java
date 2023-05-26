@@ -17,10 +17,10 @@
 package io.camunda.connector.runtime.outbound.lifecycle;
 
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.impl.outbound.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.outbound.jobhandling.SpringConnectorJobHandler;
 import io.camunda.connector.runtime.util.outbound.OutboundConnectorFactory;
+import io.camunda.connector.runtime.util.secret.SecretProviderAggregator;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.client.api.worker.JobHandler;
 import io.camunda.zeebe.spring.client.annotation.value.ZeebeWorkerValue;
@@ -38,19 +38,19 @@ public class OutboundConnectorManager {
   private final JobWorkerManager jobWorkerManager;
   private final OutboundConnectorFactory connectorFactory;
   private final CommandExceptionHandlingStrategy commandExceptionHandlingStrategy;
-  private final SecretProvider secretProvider;
+  private final SecretProviderAggregator secretProviderAggregator;
   private final MetricsRecorder metricsRecorder;
 
   public OutboundConnectorManager(
       JobWorkerManager jobWorkerManager,
       OutboundConnectorFactory connectorFactory,
       CommandExceptionHandlingStrategy commandExceptionHandlingStrategy,
-      SecretProvider secretProvider,
+      SecretProviderAggregator secretProviderAggregator,
       MetricsRecorder metricsRecorder) {
     this.jobWorkerManager = jobWorkerManager;
     this.connectorFactory = connectorFactory;
     this.commandExceptionHandlingStrategy = commandExceptionHandlingStrategy;
-    this.secretProvider = secretProvider;
+    this.secretProviderAggregator = secretProviderAggregator;
     this.metricsRecorder = metricsRecorder;
   }
 
@@ -86,7 +86,7 @@ public class OutboundConnectorManager {
         new SpringConnectorJobHandler(
             metricsRecorder,
             commandExceptionHandlingStrategy,
-            secretProvider,
+            secretProviderAggregator,
             connectorFunction,
             connector);
 
