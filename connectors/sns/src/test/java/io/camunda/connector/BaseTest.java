@@ -48,5 +48,29 @@ public abstract class BaseTest {
           + "  }\n"
           + "}";
 
+  protected static final String REQUEST_WITH_JSON_MSG_BODY =
+      "{\n"
+          + "  \"authentication\":{\n"
+          + "    \"secretKey\":\"abc\",\n"
+          + "    \"accessKey\":\"def\"\n"
+          + "  },\n"
+          + "  \"topic\":{\n"
+          + "    \"message\":{\"key\":\"value\"},\n"
+          + "    \"messageAttributes\":{\n"
+          + "      \"attribute2\":{\n"
+          + "        \"StringValue\":\"attribute 2 value\",\n"
+          + "        \"DataType\":\"String\"\n"
+          + "      },\n"
+          + "      \"attribute1\":{\n"
+          + "        \"StringValue\":\"attribute 1 value\",\n"
+          + "        \"DataType\":\"String\"\n"
+          + "      }\n"
+          + "    },\n"
+          + "    \"subject\":\"MySubject\",\n"
+          + "    \"region\":\"us-east-1\",\n"
+          + "    \"topicArn\":\"arn:aws:sns:us-east-1:000000000000:test\"\n"
+          + "  }\n"
+          + "}";
+
   protected static final Gson GSON = SnsGsonComponentSupplier.gsonInstance();
 }
