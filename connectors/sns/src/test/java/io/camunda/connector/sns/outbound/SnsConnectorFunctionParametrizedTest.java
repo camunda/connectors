@@ -4,18 +4,18 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector;
+package io.camunda.connector.sns.outbound;
 
-import static io.camunda.connector.BaseTest.ACTUAL_ACCESS_KEY;
-import static io.camunda.connector.BaseTest.ACTUAL_SECRET_KEY;
-import static io.camunda.connector.BaseTest.ACTUAL_TOPIC_ARN;
-import static io.camunda.connector.BaseTest.ACTUAL_TOPIC_REGION;
-import static io.camunda.connector.BaseTest.AWS_ACCESS_KEY;
-import static io.camunda.connector.BaseTest.AWS_SECRET_KEY;
-import static io.camunda.connector.BaseTest.AWS_TOPIC_ARN;
-import static io.camunda.connector.BaseTest.AWS_TOPIC_REGION;
-import static io.camunda.connector.BaseTest.GSON;
-import static io.camunda.connector.BaseTest.MSG_ID;
+import static io.camunda.connector.sns.outbound.BaseTest.ACTUAL_ACCESS_KEY;
+import static io.camunda.connector.sns.outbound.BaseTest.ACTUAL_SECRET_KEY;
+import static io.camunda.connector.sns.outbound.BaseTest.ACTUAL_TOPIC_ARN;
+import static io.camunda.connector.sns.outbound.BaseTest.ACTUAL_TOPIC_REGION;
+import static io.camunda.connector.sns.outbound.BaseTest.AWS_ACCESS_KEY;
+import static io.camunda.connector.sns.outbound.BaseTest.AWS_SECRET_KEY;
+import static io.camunda.connector.sns.outbound.BaseTest.AWS_TOPIC_ARN;
+import static io.camunda.connector.sns.outbound.BaseTest.AWS_TOPIC_REGION;
+import static io.camunda.connector.sns.outbound.BaseTest.GSON;
+import static io.camunda.connector.sns.outbound.BaseTest.MSG_ID;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.readString;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,10 +27,10 @@ import com.amazonaws.services.sns.AmazonSNS;
 import com.amazonaws.services.sns.model.PublishRequest;
 import com.amazonaws.services.sns.model.PublishResult;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
-import io.camunda.connector.model.SnsConnectorRequest;
-import io.camunda.connector.model.SnsConnectorResult;
-import io.camunda.connector.suppliers.SnsClientSupplier;
-import io.camunda.connector.suppliers.SnsGsonComponentSupplier;
+import io.camunda.connector.sns.outbound.model.SnsConnectorRequest;
+import io.camunda.connector.sns.outbound.model.SnsConnectorResult;
+import io.camunda.connector.sns.suppliers.SnsClientSupplier;
+import io.camunda.connector.sns.suppliers.SnsGsonComponentSupplier;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import java.io.File;
 import java.io.IOException;

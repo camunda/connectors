@@ -4,10 +4,10 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector;
+package io.camunda.connector.sns.outbound;
 
 import com.google.gson.Gson;
-import io.camunda.connector.suppliers.SnsGsonComponentSupplier;
+import io.camunda.connector.sns.suppliers.SnsGsonComponentSupplier;
 
 public abstract class BaseTest {
 

@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector;
+package io.camunda.connector.sns.outbound;
 
 import com.amazonaws.services.sns.AmazonSNS;
 import com.amazonaws.services.sns.model.PublishRequest;
@@ -13,10 +13,10 @@ import com.google.gson.Gson;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import io.camunda.connector.model.SnsConnectorRequest;
-import io.camunda.connector.model.SnsConnectorResult;
-import io.camunda.connector.suppliers.SnsClientSupplier;
-import io.camunda.connector.suppliers.SnsGsonComponentSupplier;
+import io.camunda.connector.sns.outbound.model.SnsConnectorRequest;
+import io.camunda.connector.sns.outbound.model.SnsConnectorResult;
+import io.camunda.connector.sns.suppliers.SnsClientSupplier;
+import io.camunda.connector.sns.suppliers.SnsGsonComponentSupplier;
 import org.apache.commons.text.StringEscapeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
