@@ -19,7 +19,7 @@ package io.camunda.connector.api.secret;
 /**
  * Provider of secrets for an environment. This class will be instantiated from an environment
  * runtime according to the <a
- * href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/ServiceLoader.html">Service
+ * href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/ServiceLoader.html">Service
  * Provider Interface (SPI)</a> documentation.
  */
 public interface SecretProvider {

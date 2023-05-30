@@ -32,7 +32,7 @@
     <system>GitHub</system>
     <url>https://github.com/camunda/connector-sdk/issues</url>
   </issueManagement>
-  
+
   <licenses>
     <license>
       <name>The Apache Software License, Version 2.0</name>
@@ -41,7 +41,7 @@
   </licenses>
 
   <properties>
-    <version.java>11</version.java>
+    <version.java>17</version.java>
 
     <!-- an inline header will allow usage in downstream connectors -->
     <license.inlineheader>Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
@@ -155,7 +155,7 @@ limitations under the License.</license.inlineheader>
         <artifactId>slf4j-api</artifactId>
         <version>${version.slf4j}</version>
       </dependency>
-      
+
       <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-jdk14</artifactId>
