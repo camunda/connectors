@@ -53,7 +53,7 @@
     <version.testcontainers>1.18.2</version.testcontainers>
     
     <version.commons-codec>1.15</version.commons-codec>
-    <version.guava>31.1-jre</version.guava>
+    <version.guava>32.0.0-jre</version.guava>
   </properties>
 
   <modules>
