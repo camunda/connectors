@@ -50,7 +50,7 @@
     <version.slack>1.29.2</version.slack>
     <version.kotlin>1.8.21</version.kotlin>
 
-    <version.testcontainers>1.18.1</version.testcontainers>
+    <version.testcontainers>1.18.2</version.testcontainers>
     
     <version.commons-codec>1.15</version.commons-codec>
     <version.guava>31.1-jre</version.guava>
