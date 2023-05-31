@@ -1,176 +1,138 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "Amazon SNS Connector",
-  "id": "io.camunda.connectors.AWSSNS.v1",
-  "description": "Send message to topic",
-  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-sns/",
+  "name": "SNS HTTPS Subscription",
+  "id": "io.camunda.connectors.inbound.AWSSNS.StartEvent.v1",
+  "description": "Receive events from AWS SNS",
   "version": 1,
-  "appliesTo": [
-    "bpmn:Task"
-  ],
-  "elementType": {
-    "value": "bpmn:ServiceTask"
-  },
+  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-sns/",
   "category": {
     "id": "connectors",
     "name": "Connectors"
   },
+  "appliesTo": [
+    "bpmn:StartEvent"
+  ],
+  "elementType": {
+    "value": "bpmn:StartEvent"
+  },
   "groups": [
     {
-      "id": "authentication",
-      "label": "Authentication"
+      "id": "subscription",
+      "label": "Subscription Configuration"
     },
     {
-      "id": "topicProperties",
-      "label": "Topic properties"
+      "id": "activation",
+      "label": "Activation"
     },
     {
-      "id": "output",
-      "label": "Output"
-    },
-    {
-      "id": "input",
-      "label": "Input message data"
-    },
-    {
-      "id": "errors",
-      "label": "Error Handling"
+      "id": "variable-mapping",
+      "label": "Variable Mapping"
     }
   ],
   "properties": [
     {
-      "type": "Hidden",
-      "value": "io.camunda:aws-sns:1",
-      "binding": {
-        "type": "zeebe:taskDefinition:type"
+      "type":"Hidden",
+      "value":"io.camunda:aws-sns-inbound:1",
+      "binding":{
+        "type":"zeebe:property",
+        "name":"inbound.type"
       }
     },
     {
-      "label": "Access Key",
-      "description": "Provide AWS IAM access key that has permission to publish to desired SNS topic",
-      "group": "authentication",
-      "type": "String",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "authentication.accessKey"
+      "type":"Hidden",
+      "value":"SnsHttpsSubscription",
+      "binding":{
+        "type":"zeebe:property",
+        "name":"inbound.subtype"
+      }
+    },
+    {
+      "label":"Subscription ID",
+      "type":"String",
+      "group":"subscription",
+      "binding":{
+        "type":"zeebe:property",
+        "name":"inbound.context"
       },
+      "description":"The subscription ID is a part of the URL endpoint",
       "constraints": {
         "notEmpty": true
       }
     },
     {
-      "label": "Secret Key",
-      "description": "Provide AWS IAM secret key that has permission to publish to desired SNS topic",
-      "group": "authentication",
-      "type": "String",
+      "id": "securitySubscriptionAllowedFor",
+      "label": "Allow to receive messages from topic(s)",
+      "group": "subscription",
+      "description": "Control which topic(s) is allowed to start a process",
+      "value": "any",
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Any",
+          "value": "any"
+        },
+        {
+          "name": "Specific topic(s)",
+          "value": "specific"
+        }
+      ],
       "binding": {
-        "type": "zeebe:input",
-        "name": "authentication.secretKey"
-      },
-      "constraints": {
-        "notEmpty": true
+        "type": "zeebe:property",
+        "name": "inbound.securitySubscriptionAllowedFor"
       }
     },
     {
-      "label": "Topic ARN",
-      "description": "Specify the topic you want to publish to",
-      "group": "topicProperties",
+      "label": "Topic ARN(s)",
+      "description": "Topics that allow to publish messages",
       "type": "String",
+      "group": "subscription",
+      "feel": "optional",
       "binding": {
-        "type": "zeebe:input",
-        "name": "topic.topicArn"
+        "type": "zeebe:property",
+        "name": "inbound.topicsAllowList"
       },
       "constraints": {
         "notEmpty": true
+      },
+      "condition": {
+        "property": "securitySubscriptionAllowedFor",
+        "equals": "specific"
       }
     },
     {
-      "label": "Region",
-      "description": "Specify the AWS region of your topic",
-      "group": "topicProperties",
+      "label": "Condition",
       "type": "String",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "topic.region"
-      },
-      "constraints": {
-        "notEmpty": true
-      },
-      "feel": "optional"
-    },
-    {
-      "label": "Subject",
-      "description": "Specify the subject of the message you want to publish in the SNS topic",
-      "group": "input",
-      "type": "String",
+      "group": "activation",
+      "feel": "required",
       "optional": true,
       "binding": {
-        "type": "zeebe:input",
-        "name": "topic.subject"
+        "type": "zeebe:property",
+        "name": "activationCondition"
       },
-      "constraints": {
-        "notEmpty": false,
-        "maxLength": 99
-      },
-      "feel": "optional"
+      "description": "Condition under which the connector triggers. Leave empty to catch all events"
     },
     {
-      "label": "Message",
-      "description": "Data to publish in the SNS topic",
-      "group": "input",
-      "type": "Text",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "topic.message"
-      },
-      "constraints": {
-        "notEmpty": true
-      },
-      "feel": "optional"
-    },
-    {
-      "label": "Message attributes",
-      "description": "Message attributes metadata",
-      "group": "input",
-      "type": "Text",
+      "label": "Result variable",
+      "type": "String",
+      "group": "variable-mapping",
       "optional": true,
       "binding": {
-        "type": "zeebe:input",
-        "name": "topic.messageAttributes"
+        "type": "zeebe:property",
+        "name": "resultVariable"
       },
-      "feel": "required"
+      "description": "Name of variable to store the result of the Connector in"
     },
     {
-      "label": "Result Variable",
-      "description": "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>",
-      "group": "output",
+      "label":"Result expression",
       "type": "String",
-      "binding": {
-        "type": "zeebe:taskHeader",
-        "key": "resultVariable"
-      }
-    },
-    {
-      "label": "Result Expression",
-      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
-      "group": "output",
-      "type": "Text",
+      "group": "variable-mapping",
       "feel": "required",
+      "optional": true,
       "binding": {
-        "type": "zeebe:taskHeader",
-        "key": "resultExpression"
-      }
-    },
-    {
-      "label": "Error Expression",
-      "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
-      "group": "errors",
-      "type": "Text",
-      "feel": "required",
-      "binding": {
-        "type": "zeebe:taskHeader",
-        "key": "errorExpression"
-      }
+        "type": "zeebe:property",
+        "name": "resultExpression"
+      },
+      "description": "Expression to map the inbound payload to process variables"
     }
   ],
   "icon": {

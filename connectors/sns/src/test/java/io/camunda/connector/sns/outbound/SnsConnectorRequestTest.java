@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector;
+package io.camunda.connector.sns.outbound;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -12,8 +12,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.amazonaws.services.sns.model.MessageAttributeValue;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.impl.ConnectorInputException;
-import io.camunda.connector.model.SnsConnectorRequest;
-import io.camunda.connector.model.SnsMessageAttribute;
+import io.camunda.connector.sns.outbound.model.SnsConnectorRequest;
+import io.camunda.connector.sns.outbound.model.SnsMessageAttribute;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;

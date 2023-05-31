@@ -4,12 +4,13 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.suppliers;
+package io.camunda.connector.sns.suppliers;
 
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.sns.AmazonSNS;
 import com.amazonaws.services.sns.AmazonSNSClientBuilder;
+import com.amazonaws.services.sns.message.SnsMessageManager;
 
 public class SnsClientSupplier {
 
@@ -19,5 +20,9 @@ public class SnsClientSupplier {
             new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKey, secretKey)))
         .withRegion(region)
         .build();
+  }
+
+  public SnsMessageManager messageManager(final String region) {
+    return new SnsMessageManager(region);
   }
 }

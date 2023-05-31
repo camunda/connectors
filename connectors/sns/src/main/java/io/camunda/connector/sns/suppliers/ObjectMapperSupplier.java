@@ -4,18 +4,17 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.suppliers;
+package io.camunda.connector.sns.suppliers;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
-public final class SnsGsonComponentSupplier {
+public final class ObjectMapperSupplier {
 
-  private static final Gson GSON = new GsonBuilder().create();
+  private static final ObjectMapper MAPPER = new ObjectMapper();
 
-  private SnsGsonComponentSupplier() {}
+  private ObjectMapperSupplier() {}
 
-  public static Gson gsonInstance() {
-    return GSON;
+  public static ObjectMapper getMapperInstance() {
+    return MAPPER;
   }
 }

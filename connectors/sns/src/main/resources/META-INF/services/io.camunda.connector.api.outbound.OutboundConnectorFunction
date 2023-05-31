@@ -1,1 +1,1 @@
-io.camunda.connector.SnsConnectorFunction
+io.camunda.connector.sns.outbound.SnsConnectorFunction
