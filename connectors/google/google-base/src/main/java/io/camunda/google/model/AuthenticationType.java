@@ -10,11 +10,11 @@ import com.google.api.client.util.Value;
 import com.google.gson.annotations.SerializedName;
 
 public enum AuthenticationType {
-  @Value("bearer")
+  //@Value("bearer")
   @SerializedName("bearer")
   BEARER,
 
-  @Value("refresh")
+  //@Value("refresh")
   @SerializedName("refresh")
   REFRESH
 }

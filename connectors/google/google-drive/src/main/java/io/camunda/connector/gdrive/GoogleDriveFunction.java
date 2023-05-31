@@ -8,6 +8,7 @@ package io.camunda.connector.gdrive;
 
 import com.google.api.client.json.JsonParser;
 import com.google.api.client.json.gson.GsonFactory;
+import com.google.gson.Gson;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
@@ -49,6 +50,7 @@ public class GoogleDriveFunction implements OutboundConnectorFunction {
   }
 
   private GoogleDriveRequest parseVariablesToRequest(final String requestAsJson) {
+    GoogleDriveRequest googleDriveRequest = new Gson().fromJson(requestAsJson, GoogleDriveRequest.class);
     try {
       JsonParser jsonParser = gsonFactory.createJsonParser(requestAsJson);
       return jsonParser.parseAndClose(GoogleDriveRequest.class);
