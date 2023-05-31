@@ -43,31 +43,26 @@ public class RabbitMqExecutable implements InboundConnectorExecutable {
 
   @Override
   public void activate(InboundConnectorContext context) throws Exception {
-    try {
-      RabbitMqInboundProperties properties =
-          context.getPropertiesAsType(RabbitMqInboundProperties.class);
+    RabbitMqInboundProperties properties =
+        context.getPropertiesAsType(RabbitMqInboundProperties.class);
 
-      LOGGER.info("Subscription activation requested by the Connector runtime: {}", properties);
-      context.replaceSecrets(properties);
-      context.validate(properties);
+    LOGGER.info("Subscription activation requested by the Connector runtime: {}", properties);
+    context.replaceSecrets(properties);
+    context.validate(properties);
 
-      connection = openConnection(properties);
-      channel = connection.createChannel();
-      Consumer consumer = new RabbitMqConsumer(channel, context);
+    connection = openConnection(properties);
+    channel = connection.createChannel();
+    Consumer consumer = new RabbitMqConsumer(channel, context);
 
-      var data = new HashMap<String, Object>();
-      data.put("connection-id", connection.getId());
-      data.put("connection-name", connection.getClientProvidedName());
-      data.put("connection-address", connection.getAddress());
-      data.put("connection-port", connection.getPort());
-      context.reportHealth(Health.up(data));
+    var data = new HashMap<String, Object>();
+    data.put("connection-id", connection.getId());
+    data.put("connection-name", connection.getClientProvidedName());
+    data.put("connection-address", connection.getAddress());
+    data.put("connection-port", connection.getPort());
+    context.reportHealth(Health.up(data));
 
-      consumerTag = startConsumer(properties, consumer);
-      LOGGER.info("Started RabbitMQ consumer for queue {}", properties.getQueueName());
-    } catch (Exception ex) {
-      context.reportHealth(Health.down(ex));
-      throw ex;
-    }
+    consumerTag = startConsumer(properties, consumer);
+    LOGGER.info("Started RabbitMQ consumer for queue {}", properties.getQueueName());
   }
 
   @Override

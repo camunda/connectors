@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.inbound.lifecycle;
 
+import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.impl.inbound.InboundConnectorProperties;
@@ -130,21 +131,21 @@ public class InboundConnectorManager {
     var connector = new ActiveInboundConnector(executable, newProperties, inboundContext);
 
     try {
+      addActiveConnector(connector);
       if (webhookConnectorRegistry == null && executable instanceof WebhookConnectorExecutable) {
         throw new Exception(
             "Cannot activate webhook connector. "
                 + "Check whether property camunda.connector.webhook.enabled is set to true.");
       }
-
       executable.activate(inboundContext);
-      addActiveConnector(connector);
-
       if (webhookConnectorRegistry != null && executable instanceof WebhookConnectorExecutable wh) {
         webhookConnectorRegistry.registerWebhookFunction(newProperties.getType(), wh);
         webhookConnectorRegistry.activateEndpoint(inboundContext);
         LOG.trace("Registering webhook: " + newProperties.getType());
       }
+      inboundContext.reportHealth(Health.up());
     } catch (Exception e) {
+      inboundContext.reportHealth(Health.down(e));
       // log and continue with other connectors anyway
       LOG.error("Failed to activate inbound connector " + newProperties, e);
     }

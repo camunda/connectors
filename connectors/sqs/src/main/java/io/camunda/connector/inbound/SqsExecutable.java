@@ -22,7 +22,6 @@ import org.slf4j.LoggerFactory;
 @InboundConnector(name = "AWSSQS_POLLING", type = "io.camunda:aws-sqs-inbound:1")
 public class SqsExecutable implements InboundConnectorExecutable {
   private static final Logger LOGGER = LoggerFactory.getLogger(SqsExecutable.class);
-
   private final AmazonSQSClientSupplier sqsClientSupplier;
   private final ExecutorService executorService;
   private AmazonSQS amazonSQS;
