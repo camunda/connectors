@@ -44,7 +44,7 @@
   "properties": [
     {
       "type": "Hidden",
-      "value": "io.camunda:connector-aws-sqs-polling:1",
+      "value": "io.camunda:aws-sqs-inbound:1",
       "binding": {
         "type": "zeebe:property",
         "name": "inbound.type"
