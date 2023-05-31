@@ -18,8 +18,9 @@ package io.camunda.connector.runtime.inbound.lifecycle;
 
 import static io.camunda.connector.runtime.inbound.lifecycle.InboundConnectorManager.WEBHOOK_CONTEXT_BPMN_FIELD;
 
-import io.camunda.connector.api.inbound.Health;
+import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -49,21 +50,21 @@ public class InboundConnectorRestController {
 
   private ActiveInboundConnectorResponse mapToResponse(ActiveInboundConnector connector) {
     var properties = connector.properties();
-    if (properties.getProperties().containsKey(WEBHOOK_CONTEXT_BPMN_FIELD)) {
-      return new ActiveInboundConnectorResponse(
-          properties.getBpmnProcessId(),
-          properties.getElementId(),
-          properties.getType(),
-          Map.of("path", properties.getProperties().get(WEBHOOK_CONTEXT_BPMN_FIELD)),
-          Health.Status.UP);
+    var health = connector.context().getHealth();
+    Map<String, Object> details;
+    if (connector.executable() instanceof WebhookConnectorExecutable) {
+      details =
+          new HashMap<>(Optional.ofNullable(health.getDetails()).orElse(Collections.emptyMap()));
+      var path = Optional.ofNullable(properties.getProperties().get(WEBHOOK_CONTEXT_BPMN_FIELD));
+      details.put("path", path.orElse(""));
     } else {
-      var health = Optional.ofNullable(connector.context().getHealth());
-      return new ActiveInboundConnectorResponse(
-          properties.getBpmnProcessId(),
-          properties.getElementId(),
-          properties.getType(),
-          health.map(Health::getDetails).orElse(Collections.emptyMap()),
-          health.map(Health::getStatus).orElse(Health.Status.UNKNOWN));
+      details = health.getDetails();
     }
+    return new ActiveInboundConnectorResponse(
+        properties.getBpmnProcessId(),
+        properties.getElementId(),
+        properties.getType(),
+        details,
+        health.getStatus());
   }
 }

@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.inbound.lifecycle;
 
 import static io.camunda.connector.runtime.inbound.ProcessDefinitionTestUtil.processDefinition;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -238,6 +239,10 @@ public class InboundConnectorManagerTest {
 
     // Then
     verify(mockWebhook, times(0)).activate(eq(inboundContext(webhook)));
+
+    var query = new ActiveInboundConnectorQuery("webhook1", null, null);
+    var activeInboundConnectors = manager.query(query);
+    assertEquals("webhook1", activeInboundConnectors.get(0).properties().getBpmnProcessId());
   }
 
   private InboundConnectorContext inboundContext(InboundConnectorProperties properties) {
