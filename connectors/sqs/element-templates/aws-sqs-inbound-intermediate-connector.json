@@ -1,15 +1,17 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Amazon SQS connector",
-  "id": "io.camunda.connectors.AWSSQS.StartEvent.v1",
+  "id": "io.camunda.connectors.AWSSQS.intermediate.v1",
   "version": 1,
   "description": "Receive message from a queue",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-sqs/",
   "appliesTo": [
-    "bpmn:StartEvent"
+    "bpmn:IntermediateCatchEvent",
+    "bpmn:IntermediateThrowEvent"
   ],
   "elementType": {
-    "value": "bpmn:StartEvent"
+    "value": "bpmn:IntermediateCatchEvent",
+    "eventDefinition": "bpmn:MessageEventDefinition"
   },
   "category": {
     "id": "connectors",
@@ -48,6 +50,16 @@
       "binding": {
         "type": "zeebe:property",
         "name": "inbound.type"
+      }
+    },
+    {
+      "type": "Hidden",
+      "generatedValue": {
+        "type": "uuid"
+      },
+      "binding": {
+        "type": "bpmn:Message#property",
+        "name": "name"
       }
     },
     {
@@ -149,6 +161,34 @@
         "name": "queue.messageAttributeNames"
       },
       "feel": "required"
+    },
+    {
+      "label": "Correlation key (process)",
+      "type": "String",
+      "group": "activation",
+      "feel": "required",
+      "description": "Sets up the correlation key from process variables",
+      "binding": {
+        "type": "bpmn:Message#zeebe:subscription#property",
+        "name": "correlationKey"
+      },
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
+      "label": "Correlation key (payload)",
+      "type": "String",
+      "group": "activation",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "correlationKeyExpression"
+      },
+      "description": "Extracts the correlation key from the incoming message payload",
+      "constraints": {
+        "notEmpty": true
+      }
     },
     {
       "label": "Activation condition",

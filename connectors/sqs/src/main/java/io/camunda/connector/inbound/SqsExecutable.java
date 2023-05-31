@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@InboundConnector(name = "AWSSQS_POLLING", type = "io.camunda:connector-aws-sqs-polling:1")
+@InboundConnector(name = "AWSSQS_POLLING", type = "io.camunda:aws-sqs-inbound:1")
 public class SqsExecutable implements InboundConnectorExecutable {
   private static final Logger LOGGER = LoggerFactory.getLogger(SqsExecutable.class);
 
