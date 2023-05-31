@@ -123,6 +123,8 @@
       "description": "The duration (in seconds) for which the call waits for a message to arrive in the queue before returning. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-sqs/\" target=\"_blank\">documentation</a> for details",
       "group": "messagePollingProperties",
       "type": "String",
+      "optional":false,
+      "feel":"optional",
       "value": "1",
       "binding": {
         "type": "zeebe:property",
@@ -131,8 +133,8 @@
       "constraints": {
         "notEmpty": true,
         "pattern": {
-          "value": "(^[0-9]?$|^1[0-9]$|^20$)|(^secrets\\..+)",
-          "message": "Must be >= 0 and <= 20 or a secret.XYZ"
+          "value": "^([0-9]?|1[0-9]|20|secrets\\..+)$",
+          "message": "Must be >= 0 and <= 20 or a FEEL expression"
         }
       }
     },
