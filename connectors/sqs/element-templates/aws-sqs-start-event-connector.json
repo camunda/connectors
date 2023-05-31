@@ -4,7 +4,7 @@
   "id": "io.camunda.connectors.AWSSQS.StartEvent.v1",
   "version": 1,
   "description": "Receive message from a queue",
-  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-sqs/",
+  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-sqs-start-event/",
   "appliesTo": [
     "bpmn:StartEvent"
   ],
@@ -108,7 +108,7 @@
     },
     {
       "label": "Polling wait time",
-      "description": "The duration (in seconds) for which the call waits for a message to arrive in the queue before returning. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-sqs/\" target=\"_blank\">documentation</a> for details",
+      "description": "The duration (in seconds) for which the call waits for a message to arrive in the queue before returning. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-sqs-start-event/\" target=\"_blank\">documentation</a> for details",
       "group": "messagePollingProperties",
       "type": "String",
       "optional":false,
@@ -128,7 +128,7 @@
     },
     {
       "label": "Attribute names",
-      "description": "Queue attribute names. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-sqs/\" target=\"_blank\">documentation</a> for details",
+      "description": "Queue attribute names. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-sqs-start-event/\" target=\"_blank\">documentation</a> for details",
       "group": "input",
       "type": "String",
       "optional": true,
@@ -140,7 +140,7 @@
     },
     {
       "label": "Message attribute names",
-      "description": "Message attribute names. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-sqs/\" target=\"_blank\">documentation</a> for details",
+      "description": "Message attribute names. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-sqs-start-event/\" target=\"_blank\">documentation</a> for details",
       "group": "input",
       "type": "String",
       "optional": true,
