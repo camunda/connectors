@@ -10,11 +10,13 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.Consumer;
 import io.camunda.connector.api.annotation.InboundConnector;
+import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.rabbitmq.inbound.model.RabbitMqInboundProperties;
 import io.camunda.connector.rabbitmq.supplier.ConnectionFactorySupplier;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -41,19 +43,31 @@ public class RabbitMqExecutable implements InboundConnectorExecutable {
 
   @Override
   public void activate(InboundConnectorContext context) throws Exception {
-    RabbitMqInboundProperties properties =
-        context.getPropertiesAsType(RabbitMqInboundProperties.class);
+    try {
+      RabbitMqInboundProperties properties =
+          context.getPropertiesAsType(RabbitMqInboundProperties.class);
 
-    LOGGER.info("Subscription activation requested by the Connector runtime: {}", properties);
-    context.replaceSecrets(properties);
-    context.validate(properties);
+      LOGGER.info("Subscription activation requested by the Connector runtime: {}", properties);
+      context.replaceSecrets(properties);
+      context.validate(properties);
 
-    connection = openConnection(properties);
-    channel = connection.createChannel();
-    Consumer consumer = new RabbitMqConsumer(channel, context);
+      connection = openConnection(properties);
+      channel = connection.createChannel();
+      Consumer consumer = new RabbitMqConsumer(channel, context);
 
-    consumerTag = startConsumer(properties, consumer);
-    LOGGER.info("Started RabbitMQ consumer for queue {}", properties.getQueueName());
+      var data = new HashMap<String, Object>();
+      data.put("connection-id", connection.getId());
+      data.put("connection-name", connection.getClientProvidedName());
+      data.put("connection-address", connection.getAddress());
+      data.put("connection-port", connection.getPort());
+      context.reportHealth(Health.up(data));
+
+      consumerTag = startConsumer(properties, consumer);
+      LOGGER.info("Started RabbitMQ consumer for queue {}", properties.getQueueName());
+    } catch (Exception ex) {
+      context.reportHealth(Health.down(ex));
+      throw ex;
+    }
   }
 
   @Override

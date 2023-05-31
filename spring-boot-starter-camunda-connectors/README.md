@@ -198,9 +198,38 @@ java -cp 'connector-runtime-VERSION-with-dependencies.jar:connector-http-json-VE
     io.camunda.connector.bundle.ConnectorRuntimeApplication
 ```
 
-### Secrets
+## Secrets
 
-#### Local secrets
+You can define a custom secret provider by implementing the [`SecretProvider`](https://github.com/camunda/connector-sdk/blob/main/core/src/main/java/io/camunda/connector/api/secret/SecretProvider.java) interface.
+This secret provider is used by the Runtime to resolve secrets. You can also define multiple secret providers.
+
+### Secret Provider Discoverability
+
+You can make your custom secret provider discoverable in 2 ways:
+- Using the Java `SeviceLoader` pattern
+  - Add a file `META-INF/services/io.camunda.connector.api.secret.SecretProvider` to the classpath
+  - The file should contain the fully qualified name of your secret provider class
+  - This method is implemented in the [Connector SDK](https://github.com/camunda/connector-sdk) and is also supported in custom Connector Runtimes out of the box
+- By defining your `SecretProvider` as a Spring bean
+  - All Spring beans implementing the `SecretProvider` interface are automatically discovered by the Runtime
+  - Note that if you define a custom secret provider as a Spring bean, other providers defined using the `ServiceLoader` pattern will not be discovered
+
+When using `spring-boot-starter-camunda-connectors`, the secret providers are discovered in the following order:
+1. Secret providers defined as Spring beans have the highest priority. If they are discovered, the `ServiceLoader` pattern is not used.
+2. Secret providers defined using the `ServiceLoader` pattern have the second priority.
+3. If no secret provider is discovered, the default secret provider is used. It uses the environment variables to resolve secrets.
+
+Therefore, a combination of 2 ways of defining secret providers is **not possible**.
+If you want to define multiple secret providers, make sure that all of them are defined using the same method (e.g. all of them are Spring beans).
+
+### Secret Provider priority
+
+If multiple secret providers are discovered, all of them can be used to resolve secrets.
+The default strategy is to use the first secret provider that returns a non-null value for a given secret name. The order of lookup is non-deterministic.
+
+You can change this behavior by implementing the `SecretProviderAggregator` interface. Define your custom aggregator as a Spring bean, and it will be used instead of the default one.
+
+### Secrets as environment variables
 
 To inject secrets during connector function execution, export them as environment variables
 
@@ -210,6 +239,6 @@ export MY_SECRET='foo'
 
 Reference the secret in the request payload prefixed with `secrets.MY_SECRET`.
 
-#### Docker Image Secrets
+### Docker Image Secrets
 
 Refer to the [Connector Runtime Docker image documentation](https://github.com/camunda/connector-runtime-docker/blob/main/README.md#secrets) for further details.

@@ -59,8 +59,9 @@ public class SnsConnectorFunction implements OutboundConnectorFunction {
               request.getAuthentication().getSecretKey(),
               request.getTopic().getRegion());
       String topicMessage =
-          StringEscapeUtils.unescapeJson(request.getTopic().getMessage().toString());
-
+          request.getTopic().getMessage() instanceof String
+              ? StringEscapeUtils.unescapeJson(request.getTopic().getMessage().toString())
+              : gson.toJson(request.getTopic().getMessage());
       PublishRequest message =
           new PublishRequest()
               .withTopicArn(request.getTopic().getTopicArn())

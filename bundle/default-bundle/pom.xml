@@ -26,7 +26,7 @@
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
-      <artifactId>connector-aws</artifactId>
+      <artifactId>connector-aws-dynamodb</artifactId>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
@@ -67,6 +67,14 @@
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-graphql</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-google-sheets</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-webhook</artifactId>
     </dependency>
   </dependencies>
 

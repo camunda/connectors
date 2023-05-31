@@ -19,14 +19,23 @@ import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
+import org.mockito.Captor;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 public class SnsConnectorFunctionTest extends BaseTest {
 
   private SnsConnectorFunction connector;
   private OutboundConnectorContext context;
   private PublishResult publishResult;
+
+  @Mock private AmazonSNS snsClient;
+  @Captor private ArgumentCaptor<PublishRequest> requestArgumentCaptor;
 
   @BeforeEach
   public void init() {
@@ -55,7 +64,6 @@ public class SnsConnectorFunctionTest extends BaseTest {
   @Test
   public void execute_shouldExecuteRequestAndReturnResultWithMsgId() {
     // Given
-    AmazonSNS snsClient = Mockito.mock(AmazonSNS.class);
     Mockito.when(snsClient.publish(ArgumentMatchers.any(PublishRequest.class)))
         .thenReturn(publishResult);
     SnsClientSupplier snsClientSupplier = Mockito.mock(SnsClientSupplier.class);
@@ -76,5 +84,33 @@ public class SnsConnectorFunctionTest extends BaseTest {
     Assertions.assertThat(execute).isInstanceOf(SnsConnectorResult.class);
     var result = (SnsConnectorResult) execute;
     Assertions.assertThat(result.getMessageId()).isEqualTo(MSG_ID);
+  }
+
+  @Test
+  public void execute_shouldExecuteRequestWithJsonTypeMsg() {
+    // Given
+    Mockito.when(snsClient.publish(requestArgumentCaptor.capture())).thenReturn(publishResult);
+    SnsClientSupplier snsClientSupplier = Mockito.mock(SnsClientSupplier.class);
+    Mockito.when(
+            snsClientSupplier.snsClient(
+                ArgumentMatchers.anyString(),
+                ArgumentMatchers.anyString(),
+                ArgumentMatchers.anyString()))
+        .thenReturn(snsClient);
+    connector = new SnsConnectorFunction(snsClientSupplier, GSON);
+    context =
+        OutboundConnectorContextBuilder.create()
+            .secret(AWS_ACCESS_KEY, ACTUAL_ACCESS_KEY)
+            .secret(AWS_SECRET_KEY, ACTUAL_SECRET_KEY)
+            .variables(REQUEST_WITH_JSON_MSG_BODY)
+            .build();
+
+    // When
+    connector.execute(context);
+
+    // Then
+    Mockito.verify(snsClient, Mockito.times(1)).shutdown();
+    String message = requestArgumentCaptor.getValue().getMessage();
+    Assertions.assertThat(message).isEqualTo("{\"key\":\"value\"}");
   }
 }

@@ -20,20 +20,21 @@ package io.camunda.connector.runtime.inbound;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
+import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
+import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
+import io.camunda.connector.api.inbound.webhook.WebhookProcessingResult;
 import io.camunda.connector.impl.inbound.InboundConnectorProperties;
 import io.camunda.connector.impl.inbound.correlation.StartEventCorrelationPoint;
 import io.camunda.connector.impl.inbound.result.MessageCorrelationResult;
 import io.camunda.connector.runtime.inbound.webhook.InboundWebhookRestController;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.connector.runtime.inbound.webhook.WebhookResponse;
-import io.camunda.connector.runtime.util.feel.FeelEngineWrapper;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
 import io.camunda.zeebe.spring.client.metrics.SimpleMetricsRecorder;
-import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -41,8 +42,10 @@ import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mock.web.MockHttpServletRequest;
 
 @ExtendWith(MockitoExtension.class)
 public class WebhookControllerPlainJavaTests {
@@ -58,8 +61,15 @@ public class WebhookControllerPlainJavaTests {
   }
 
   @Test
-  public void multipleWebhooksOnSameContextPath() throws IOException {
+  public void multipleWebhooksOnSameContextPath() throws Exception {
     WebhookConnectorRegistry webhook = new WebhookConnectorRegistry();
+
+    WebhookConnectorExecutable executable = Mockito.mock(WebhookConnectorExecutable.class);
+    Mockito.when(executable.triggerWebhook(any(WebhookProcessingPayload.class)))
+        .thenReturn(Mockito.mock(WebhookProcessingResult.class));
+
+    // Register webhook function 'implementation'
+    webhook.registerWebhookFunction("webhook", executable);
 
     InboundConnectorContext webhookA =
         new InboundConnectorContextBuilder()
@@ -75,18 +85,21 @@ public class WebhookControllerPlainJavaTests {
             .result(new MessageCorrelationResult("", 0))
             .build();
 
-    InboundWebhookRestController controller =
-        new InboundWebhookRestController(
-            new FeelEngineWrapper(), webhook, new ObjectMapper(), metrics);
+    InboundWebhookRestController controller = new InboundWebhookRestController(webhook, metrics);
 
+    // Register processes
     webhook.activateEndpoint(webhookA);
     webhook.activateEndpoint(webhookB);
 
     ResponseEntity<WebhookResponse> responseEntity =
-        controller.inbound("myPath", "{}".getBytes(), new HashMap<>(), "application/json");
+        controller.inbound(
+            "myPath",
+            new HashMap<>(),
+            "{}".getBytes(),
+            new HashMap<>(),
+            new MockHttpServletRequest());
 
     assertEquals(200, responseEntity.getStatusCode().value());
-    assertTrue(responseEntity.getBody().getUnauthorizedConnectors().isEmpty());
     assertTrue(responseEntity.getBody().getUnactivatedConnectors().isEmpty());
     assertEquals(2, responseEntity.getBody().getExecutedConnectors().size());
     assertEquals(
@@ -97,19 +110,19 @@ public class WebhookControllerPlainJavaTests {
         metrics.getCount(
             MetricsRecorder.METRIC_NAME_INBOUND_CONNECTOR,
             MetricsRecorder.ACTION_ACTIVATED,
-            WebhookConnectorRegistry.TYPE_WEBHOOK));
+            InboundWebhookRestController.METRIC_WEBHOOK_VALUE));
     assertEquals(
         1,
         metrics.getCount(
             MetricsRecorder.METRIC_NAME_INBOUND_CONNECTOR,
             MetricsRecorder.ACTION_COMPLETED,
-            WebhookConnectorRegistry.TYPE_WEBHOOK));
+            InboundWebhookRestController.METRIC_WEBHOOK_VALUE));
     assertEquals(
         0,
         metrics.getCount(
             MetricsRecorder.METRIC_NAME_INBOUND_CONNECTOR,
             MetricsRecorder.ACTION_FAILED,
-            WebhookConnectorRegistry.TYPE_WEBHOOK));
+            InboundWebhookRestController.METRIC_WEBHOOK_VALUE));
   }
 
   @Test
@@ -194,6 +207,7 @@ public class WebhookControllerPlainJavaTests {
             "inbound.variableMapping", "={}"),
         bpmnProcessId,
         version,
-        processDefinitionKey);
+        processDefinitionKey,
+        "testElement");
   }
 }

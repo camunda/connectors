@@ -16,7 +16,10 @@
  */
 package io.camunda.connector.runtime.inbound.webhook;
 
+import static io.camunda.connector.runtime.inbound.lifecycle.InboundConnectorManager.WEBHOOK_CONTEXT_BPMN_FIELD;
+
 import io.camunda.connector.api.inbound.InboundConnectorResult;
+import io.camunda.connector.impl.inbound.InboundConnectorProperties;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -25,30 +28,21 @@ import java.util.Map;
 // TODO: Define how much information we want to expose as result
 public class WebhookResponse {
 
-  private List<String> unauthorizedConnectors = new ArrayList<>();
   private List<String> unactivatedConnectors = new ArrayList<>();
   private Map<String, InboundConnectorResult> executedConnectors = new HashMap<>();
   private List<String> errors = new ArrayList<>();
 
-  public void addUnauthorizedConnector(WebhookConnectorProperties connectorProperties) {
-    unauthorizedConnectors.add(connectorProperties.getConnectorIdentifier());
-  }
-
-  public void addUnactivatedConnector(WebhookConnectorProperties connectorProperties) {
-    unactivatedConnectors.add(connectorProperties.getConnectorIdentifier());
+  public void addUnactivatedConnector(InboundConnectorProperties connectorProperties) {
+    unactivatedConnectors.add(webhookIdentifier(connectorProperties));
   }
 
   public void addExecutedConnector(
-      WebhookConnectorProperties connectorProperties, InboundConnectorResult result) {
-    executedConnectors.put(connectorProperties.getConnectorIdentifier(), result);
+      InboundConnectorProperties connectorProperties, InboundConnectorResult result) {
+    executedConnectors.put(webhookIdentifier(connectorProperties), result);
   }
 
-  public void addException(WebhookConnectorProperties connectorProperties, Exception exception) {
-    errors.add(connectorProperties.getConnectorIdentifier() + ">" + exception.getMessage());
-  }
-
-  public List<String> getUnauthorizedConnectors() {
-    return unauthorizedConnectors;
+  public void addException(InboundConnectorProperties connectorProperties, Exception exception) {
+    errors.add(webhookIdentifier(connectorProperties) + ">" + exception.getMessage());
   }
 
   public List<String> getUnactivatedConnectors() {
@@ -61,5 +55,13 @@ public class WebhookResponse {
 
   public List<String> getErrors() {
     return errors;
+  }
+
+  private String webhookIdentifier(InboundConnectorProperties properties) {
+    return properties.getRequiredProperty(WEBHOOK_CONTEXT_BPMN_FIELD)
+        + "-"
+        + properties.getBpmnProcessId()
+        + "-"
+        + properties.getVersion();
   }
 }

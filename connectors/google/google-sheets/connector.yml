@@ -1,0 +1,3 @@
+name: GOOGLESHEETS
+type: io.camunda:google-sheets:1
+variables: [ authentication, operation ]

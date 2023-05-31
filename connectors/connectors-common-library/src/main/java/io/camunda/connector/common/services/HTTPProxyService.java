@@ -22,14 +22,19 @@ import com.google.api.client.http.HttpContent;
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
 import com.google.gson.Gson;
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.common.constants.Constants;
 import io.camunda.connector.common.model.CommonRequest;
 import io.camunda.connector.common.model.HttpRequestBuilder;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class HTTPProxyService {
+
+  private static final Logger LOG = LoggerFactory.getLogger(HTTPProxyService.class);
 
   public static HttpRequest toRequestViaProxy(
       final Gson gson,
@@ -57,8 +62,15 @@ public final class HTTPProxyService {
             .headers(HTTPService.extractRequestHeaders(request))
             .build(requestFactory);
 
-    ProxyOAuthHelper.addOauthHeaders(
-        httpRequest, ProxyOAuthHelper.initializeCredentials(proxyFunctionUrl));
-    return httpRequest;
+    try {
+      ProxyOAuthHelper.addOauthHeaders(
+          httpRequest, ProxyOAuthHelper.initializeCredentials(proxyFunctionUrl));
+      return httpRequest;
+    } catch (Exception e) {
+      LOG.error("Failure during OAuth authentication attempt for HTTP proxy function", e);
+      // this will be visible in Operate, so should hide the internal exception
+      throw new ConnectorException(
+          "Failure during OAuth authentication attempt for HTTP proxy function");
+    }
   }
 }

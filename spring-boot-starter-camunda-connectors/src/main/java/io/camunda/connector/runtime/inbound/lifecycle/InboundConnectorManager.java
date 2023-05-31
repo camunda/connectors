@@ -17,56 +17,59 @@
 package io.camunda.connector.runtime.inbound.lifecycle;
 
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
-import io.camunda.connector.api.secret.SecretProvider;
+import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.impl.inbound.InboundConnectorProperties;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionInspector;
+import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.connector.runtime.util.inbound.InboundConnectorContextImpl;
 import io.camunda.connector.runtime.util.inbound.InboundConnectorFactory;
 import io.camunda.connector.runtime.util.inbound.correlation.InboundCorrelationHandler;
+import io.camunda.connector.runtime.util.secret.SecretProviderAggregator;
 import io.camunda.operate.dto.ProcessDefinition;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 public class InboundConnectorManager {
   private static final Logger LOG = LoggerFactory.getLogger(InboundConnectorManager.class);
 
+  public static final String WEBHOOK_CONTEXT_BPMN_FIELD = "inbound.context";
+
   private final InboundConnectorFactory connectorFactory;
   private final InboundCorrelationHandler correlationHandler;
   private final ProcessDefinitionInspector processDefinitionInspector;
-  private final SecretProvider secretProvider;
+  private final SecretProviderAggregator secretProviderAggregator;
+  private final WebhookConnectorRegistry webhookConnectorRegistry;
 
   // TODO: consider using external storage instead of these collections to allow multi-instance
   // setup
   private final Set<Long> registeredProcessDefinitionKeys = new HashSet<>();
-  private final Map<String, InboundConnectorExecutable> activeConnectorsByCorrelationPointId =
-      new ConcurrentHashMap<>();
-  private final Map<String, Set<InboundConnectorProperties>> activeConnectorsByBpmnId =
-      new HashMap<>();
+
+  private final Map<String, Set<ActiveInboundConnector>> activeConnectorsByBpmnId = new HashMap<>();
 
   public InboundConnectorManager(
       InboundConnectorFactory connectorFactory,
       InboundCorrelationHandler correlationHandler,
       ProcessDefinitionInspector processDefinitionInspector,
-      SecretProvider secretProvider) {
+      SecretProviderAggregator secretProviderAggregator,
+      @Autowired(required = false) WebhookConnectorRegistry webhookConnectorRegistry) {
     this.connectorFactory = connectorFactory;
     this.correlationHandler = correlationHandler;
     this.processDefinitionInspector = processDefinitionInspector;
-    this.secretProvider = secretProvider;
-  }
-
-  /** Check whether process definition with provided key is already registered */
-  public boolean isProcessDefinitionRegistered(long processDefinitionKey) {
-    return registeredProcessDefinitionKeys.contains(processDefinitionKey);
+    this.secretProviderAggregator = secretProviderAggregator;
+    this.webhookConnectorRegistry = webhookConnectorRegistry;
   }
 
   /** Process a batch of process definitions */
@@ -86,7 +89,7 @@ public class InboundConnectorManager {
     var relevantProcDefs =
         newProcDefs.values().stream()
             .map(list -> Collections.max(list, Comparator.comparing(ProcessDefinition::getVersion)))
-            .collect(Collectors.toList());
+            .toList();
 
     for (ProcessDefinition procDef : relevantProcDefs) {
       try {
@@ -102,70 +105,122 @@ public class InboundConnectorManager {
     }
   }
 
-  public Map<String, Set<InboundConnectorProperties>> getActiveConnectorsByBpmnId() {
-    return activeConnectorsByBpmnId;
+  /** Check whether process definition with provided key is already registered */
+  protected boolean isProcessDefinitionRegistered(long processDefinitionKey) {
+    return registeredProcessDefinitionKeys.contains(processDefinitionKey);
   }
 
   private void handleLatestBpmnVersion(String bpmnId, List<InboundConnectorProperties> connectors) {
     var alreadyActiveConnectors = activeConnectorsByBpmnId.get(bpmnId);
     if (alreadyActiveConnectors != null) {
-      alreadyActiveConnectors.forEach(this::deactivateConnector);
+      var connectorsToDeactivate = alreadyActiveConnectors.stream().toList();
+      connectorsToDeactivate.forEach(this::deactivateConnector);
     }
     connectors.forEach(this::activateConnector);
   }
 
-  private void deactivateConnector(InboundConnectorProperties properties) {
-    InboundConnectorExecutable executable =
-        activeConnectorsByCorrelationPointId.get(properties.getCorrelationPointId());
-
-    if (executable == null) {
-      throw new IllegalStateException(
-          "Connector executable not found for properties " + properties);
-    }
-    try {
-      executable.deactivate();
-      activeConnectorsByCorrelationPointId.remove(properties.getCorrelationPointId());
-      activeConnectorsByBpmnId.get(properties.getBpmnProcessId()).remove(properties);
-    } catch (Exception e) {
-      // log and continue with other connectors anyway
-      LOG.error("Failed to deactivate inbound connector " + properties, e);
-    }
-  }
-
   private void activateConnector(InboundConnectorProperties newProperties) {
-
     InboundConnectorExecutable executable = connectorFactory.getInstance(newProperties.getType());
-    Consumer<Throwable> cancellationCallback =
-        throwable -> {
-          LOG.error(
-              "Inbound connector failed at correlation point "
-                  + newProperties.getCorrelationPointId(),
-              throwable);
-          // TODO: store error for user's convenience
-          // (see https://github.com/camunda-community-hub/spring-zeebe/issues/401)
-          deactivateConnector(newProperties);
-        };
+    Consumer<Throwable> cancellationCallback = throwable -> deactivateConnector(newProperties);
+
+    var inboundContext =
+        new InboundConnectorContextImpl(
+            secretProviderAggregator, newProperties, correlationHandler, cancellationCallback);
+
+    var connector = new ActiveInboundConnector(executable, newProperties, inboundContext);
 
     try {
-      executable.activate(
-          new InboundConnectorContextImpl(
-              secretProvider, newProperties, correlationHandler, cancellationCallback));
+      if (webhookConnectorRegistry == null && executable instanceof WebhookConnectorExecutable) {
+        throw new Exception(
+            "Cannot activate webhook connector. "
+                + "Check whether property camunda.connector.webhook.enabled is set to true.");
+      }
 
-      activeConnectorsByCorrelationPointId.put(newProperties.getCorrelationPointId(), executable);
-      activeConnectorsByBpmnId.compute(
-          newProperties.getBpmnProcessId(),
-          (bpmnId, connectorPropertiesSet) -> {
-            if (connectorPropertiesSet == null) {
-              Set<InboundConnectorProperties> set = new HashSet<>();
-              set.add(newProperties);
-              return set;
-            }
-            connectorPropertiesSet.add(newProperties);
-            return connectorPropertiesSet;
-          });
+      executable.activate(inboundContext);
+      addActiveConnector(connector);
+
+      if (webhookConnectorRegistry != null && executable instanceof WebhookConnectorExecutable wh) {
+        webhookConnectorRegistry.registerWebhookFunction(newProperties.getType(), wh);
+        webhookConnectorRegistry.activateEndpoint(inboundContext);
+        LOG.trace("Registering webhook: " + newProperties.getType());
+      }
     } catch (Exception e) {
       // log and continue with other connectors anyway
       LOG.error("Failed to activate inbound connector " + newProperties, e);
     }
+  }
+
+  private void addActiveConnector(ActiveInboundConnector connector) {
+    activeConnectorsByBpmnId.compute(
+        connector.properties().getBpmnProcessId(),
+        (bpmnId, connectors) -> {
+          if (connectors == null) {
+            Set<ActiveInboundConnector> set = new HashSet<>();
+            set.add(connector);
+            return set;
+          }
+          connectors.add(connector);
+          return connectors;
+        });
+  }
+
+  private void deactivateConnector(InboundConnectorProperties properties) {
+    findActiveConnector(properties).ifPresent(this::deactivateConnector);
+  }
+
+  private void deactivateConnector(ActiveInboundConnector connector) {
+    try {
+      connector.executable().deactivate();
+      activeConnectorsByBpmnId.get(connector.properties().getBpmnProcessId()).remove(connector);
+    } catch (Exception e) {
+      // log and continue with other connectors anyway
+      LOG.error("Failed to deactivate inbound connector " + connector, e);
+    }
+  }
+
+  private Optional<ActiveInboundConnector> findActiveConnector(
+      InboundConnectorProperties properties) {
+    return Optional.ofNullable(activeConnectorsByBpmnId.get(properties.getBpmnProcessId()))
+        .flatMap(
+            connectors ->
+                connectors.stream().filter(c -> c.properties().equals(properties)).findFirst());
+  }
+
+  public List<ActiveInboundConnector> query(ActiveInboundConnectorQuery request) {
+    var filteredByBpmnProcessId = filterByBpmnProcessId(request.bpmnProcessId());
+    var filteredByType = filterByConnectorType(filteredByBpmnProcessId, request.type());
+    return filterByElementId(filteredByType, request.elementId());
+  }
+
+  private List<ActiveInboundConnector> filterByBpmnProcessId(String bpmnProcessId) {
+    if (bpmnProcessId != null) {
+      return new ArrayList<>(
+          activeConnectorsByBpmnId.getOrDefault(bpmnProcessId, Collections.emptySet()));
+    } else {
+      return activeConnectorsByBpmnId.values().stream()
+          .flatMap(Collection::stream)
+          .collect(Collectors.toList());
+    }
+  }
+
+  private List<ActiveInboundConnector> filterByConnectorType(
+      List<ActiveInboundConnector> connectors, String type) {
+    if (type == null) {
+      return connectors;
+    }
+    return connectors.stream()
+        .filter(props -> type.equals(props.properties().getType()))
+        .collect(Collectors.toList());
+  }
+
+  private List<ActiveInboundConnector> filterByElementId(
+      List<ActiveInboundConnector> connectors, String elementId) {
+
+    if (elementId == null) {
+      return connectors;
+    }
+    return connectors.stream()
+        .filter(connector -> elementId.equals(connector.properties().getElementId()))
+        .collect(Collectors.toList());
   }
 }

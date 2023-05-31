@@ -81,5 +81,23 @@
       "type": "bearer",
       "token": "secrets.TOKEN_KEY"
     }
+  },
+  {
+    "descriptionOfTest": "Value with 'secrets.' token in the middle",
+    "method": "get",
+    "url": "https://camunda.io/http-endpoint",
+    "connectionTimeoutInSeconds": "bad secrets.TOKEN_KEY value",
+    "authentication": {
+      "type": "noAuth"
+    }
+  },
+  {
+    "descriptionOfTest": "Value with a numeric token in the middle",
+    "method": "get",
+    "url": "https://camunda.io/http-endpoint",
+    "connectionTimeoutInSeconds": "bad 123 value",
+    "authentication": {
+      "type": "noAuth"
+    }
   }
 ]
