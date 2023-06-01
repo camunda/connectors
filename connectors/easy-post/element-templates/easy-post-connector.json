@@ -34,7 +34,7 @@
     },
     {
       "id": "errors",
-      "label": "Error Handling"
+      "label": "Error handling"
     }
   ],
   "properties": [
@@ -97,7 +97,7 @@
       }
     },
     {
-      "label": "API Key",
+      "label": "API key",
       "group": "authentication",
       "type": "String",
       "feel": "optional",
@@ -111,7 +111,7 @@
       }
     },
     {
-      "description": "This field will replace to empty string. EasyPost API use only username field for put API Key",
+      "description": "This field will replace to empty string. EasyPost API use only username field for put API key",
       "group": "authentication",
       "type": "Hidden",
       "optional": true,
@@ -808,7 +808,7 @@
       }
     },
     {
-      "label": "Result Expression",
+      "label": "Result expression",
       "id": "resultExpressionGet",
       "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
       "group": "output",
@@ -827,7 +827,7 @@
       }
     },
     {
-      "label": "Result Expression",
+      "label": "Result expression",
       "id": "resultExpressionGet",
       "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
       "group": "output",
@@ -846,7 +846,7 @@
       }
     },
     {
-      "label": "Result Expression",
+      "label": "Result expression",
       "id": "resultExpressionGet",
       "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
       "group": "output",
@@ -865,7 +865,7 @@
       }
     },
     {
-      "label": "Result Expression",
+      "label": "Result expression",
       "id": "resultExpressionGet",
       "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
       "group": "output",
@@ -884,7 +884,7 @@
       }
     },
     {
-      "label": "Result Expression",
+      "label": "Result expression",
       "id": "resultExpressionGet",
       "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
       "group": "output",
@@ -903,7 +903,7 @@
       }
     },
     {
-      "label": "Result Expression",
+      "label": "Result expression",
       "id": "resultExpression",
       "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
       "group": "output",

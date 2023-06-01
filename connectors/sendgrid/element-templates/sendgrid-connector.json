@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "SendGrid Connector",
   "id": "io.camunda.connectors.SendGrid.v2",
-  "description": "Send an Email via SendGrid",
+  "description": "Send an email via SendGrid",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/sendgrid/",
   "icon": {
     "contents": "data:image/svg+xml;utf8,%3Csvg%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Cpath%20d%3D%22M0.285706%205.40847H5.43837V10.5611H0.285706V5.40847Z%22%20fill%3D%22white%22%2F%3E%0A%3Cpath%20d%3D%22M0.285706%205.40847H5.43837V10.5611H0.285706V5.40847Z%22%20fill%3D%22%2399E1F4%22%2F%3E%0A%3Cpath%20d%3D%22M5.43837%2010.5611L10.5611%2010.5616V15.6844H5.43837V10.5611Z%22%20fill%3D%22white%22%2F%3E%0A%3Cpath%20d%3D%22M5.43837%2010.5611L10.5611%2010.5616V15.6844H5.43837V10.5611Z%22%20fill%3D%22%2399E1F4%22%2F%3E%0A%3Cpath%20d%3D%22M0.285706%2015.6846L5.43837%2015.6844V15.7143H0.285706V15.6846ZM0.285706%2010.5619H5.43837V15.6844L0.285706%2015.6846V10.5619Z%22%20fill%3D%22%231A82E2%22%2F%3E%0A%3Cpath%20d%3D%22M5.43837%200.285706H10.5611V5.40847H5.43837V0.285706ZM10.5616%205.43837H15.7143V10.5611H10.5616V5.43837Z%22%20fill%3D%22%2300B3E3%22%2F%3E%0A%3Cpath%20d%3D%22M5.43837%2010.5611L10.5611%2010.5616V5.40847H5.43837V10.5611Z%22%20fill%3D%22%23009DD9%22%2F%3E%0A%3Cpath%20d%3D%22M10.5611%200.285706H15.7143V5.40847H10.5611V0.285706Z%22%20fill%3D%22%231A82E2%22%2F%3E%0A%3Cpath%20d%3D%22M10.5611%205.40847H15.7143V5.43837H10.5616L10.5611%205.40847Z%22%20fill%3D%22%231A82E2%22%2F%3E%0A%3C%2Fsvg%3E"
@@ -32,11 +32,11 @@
     },
     {
       "id": "content",
-      "label": "Compose Email"
+      "label": "Compose email"
     },
     {
       "id": "errors",
-      "label": "Error Handling"
+      "label": "Error handling"
     }
   ],
   "properties": [
@@ -48,7 +48,7 @@
       }
     },
     {
-      "label": "SendGrid API Key",
+      "label": "SendGrid API key",
       "group": "authentication",
       "type": "String",
       "feel": "optional",
@@ -74,7 +74,7 @@
       }
     },
     {
-      "label": "Email Address",
+      "label": "Email address",
       "group": "sender",
       "type": "String",
       "feel": "optional",
@@ -100,7 +100,7 @@
       }
     },
     {
-      "label": "Email Address",
+      "label": "Email address",
       "group": "receiver",
       "type": "String",
       "feel": "optional",
@@ -150,7 +150,7 @@
       }
     },
     {
-      "label": "Content Type",
+      "label": "Content type",
       "group": "content",
       "type": "String",
       "feel": "optional",
@@ -202,7 +202,7 @@
       }
     },
     {
-      "label": "Template Data",
+      "label": "Template data",
       "group": "content",
       "type": "Text",
       "feel": "required",
@@ -219,7 +219,7 @@
       }
     },
     {
-      "label": "Error Expression",
+      "label": "Error expression",
       "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
       "group": "errors",
       "type": "Text",

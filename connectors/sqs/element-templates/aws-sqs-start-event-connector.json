@@ -38,7 +38,7 @@
     },
     {
       "id": "variable-mapping",
-      "label": "Variable Mapping"
+      "label": "Variable mapping"
     }
   ],
   "properties": [
@@ -160,7 +160,7 @@
         "type": "zeebe:property",
         "name": "activationCondition"
       },
-      "description": "Condition under which the Connector triggers. Leave empty to catch all events"
+      "description": "Condition under which the connector triggers. Leave empty to catch all events"
     },
     {
       "label": "Result variable",
@@ -171,7 +171,7 @@
         "type": "zeebe:property",
         "name": "resultVariable"
       },
-      "description": "Name of variable to store the result of the Connector in"
+      "description": "Name of variable to store the result of the connector in"
     },
     {
       "label": "Result expression",

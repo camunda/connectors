@@ -30,11 +30,11 @@
     },
     {
       "id": "output",
-      "label": "Output Mapping"
+      "label": "Output mapping"
     },
     {
       "id": "errors",
-      "label": "Error Handling"
+      "label": "Error handling"
     }
   ],
   "properties": [
@@ -75,7 +75,7 @@
       }
     },
     {
-      "label": "Bearer Token",
+      "label": "Bearer token",
       "group": "authentication",
       "type": "String",
       "feel": "optional",
@@ -92,7 +92,7 @@
       }
     },
     {
-      "label": "Refresh Token",
+      "label": "Refresh token",
       "group": "authentication",
       "type": "String",
       "feel": "optional",
@@ -151,7 +151,7 @@
       }
     },
     {
-      "label": "Client Secret",
+      "label": "Client secret",
       "description": " The secret value of the Azure AD application",
       "group": "authentication",
       "type": "String",
@@ -698,7 +698,7 @@
       }
     },
     {
-      "label": "Display Name",
+      "label": "Display name",
       "description": "Enter name of a channel",
       "group": "data",
       "type": "String",
@@ -918,7 +918,7 @@
       }
     },
     {
-      "label": "Result Variable",
+      "label": "Result variable",
       "description": "Enter the name of the variable where the response should be stored. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>",
       "group": "output",
       "type": "String",
@@ -929,7 +929,7 @@
       }
     },
     {
-      "label": "Result Expression",
+      "label": "Result expression",
       "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
       "group": "output",
       "type": "Text",
@@ -940,7 +940,7 @@
       }
     },
     {
-      "label": "Error Expression",
+      "label": "Error expression",
       "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
       "group": "errors",
       "type": "Text",

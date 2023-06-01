@@ -31,11 +31,11 @@
     },
     {
       "id": "output",
-      "label": "Response Mapping"
+      "label": "Response mapping"
     },
     {
       "id": "errors",
-      "label": "Error Handling"
+      "label": "Error handling"
     }
   ],
   "properties": [
@@ -76,7 +76,7 @@
       }
     },
     {
-      "label": "OAuth Token Endpoint",
+      "label": "OAuth token endpoint",
       "description": "Token endpoint of your authentication server",
       "group": "cluster",
       "type": "String",
@@ -215,7 +215,7 @@
     },
     {
       "label": "Operate audience",
-      "description": "API Audience",
+      "description": "API audience",
       "type": "String",
       "group": "authentication",
       "value": "operate-api",
@@ -452,7 +452,7 @@
       }
     },
     {
-      "label": "Result Variable",
+      "label": "Result variable",
       "description": "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>",
       "group": "output",
       "type": "String",
@@ -462,7 +462,7 @@
       }
     },
     {
-      "label": "Result Expression",
+      "label": "Result expression",
       "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
       "group": "output",
       "value": "={operateResponse: response.body}",
@@ -474,7 +474,7 @@
       }
     },
     {
-      "label": "Connection Timeout",
+      "label": "Connection timeout",
       "description": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
       "group": "errors",
       "type": "String",
@@ -494,7 +494,7 @@
       }
     },
     {
-      "label": "Error Expression",
+      "label": "Error expression",
       "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
       "group": "errors",
       "type": "Text",

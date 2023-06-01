@@ -37,11 +37,11 @@
     },
     {
       "id": "output",
-      "label": "Response Mapping"
+      "label": "Response mapping"
     },
     {
       "id": "errors",
-      "label": "Error Handling"
+      "label": "Error handling"
     }
   ],
   "properties": [
@@ -260,7 +260,7 @@
       "optional": false
     },
     {
-      "label": "Message Text",
+      "label": "Message text",
       "description": "The content of the message that will be sent",
       "group": "input",
       "type": "Text",
@@ -281,7 +281,7 @@
       "optional": false
     },
     {
-      "label": "From Number",
+      "label": "From number",
       "description": "The originating Twilio phone number used for sending the message",
       "group": "input",
       "type": "String",
@@ -302,7 +302,7 @@
       "optional": false
     },
     {
-      "label": "To Number",
+      "label": "To number",
       "description": "The recipient's phone number",
       "group": "input",
       "type": "String",
@@ -494,7 +494,7 @@
       }
     },
     {
-      "label": "Result Variable",
+      "label": "Result variable",
       "description": "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>",
       "group": "output",
       "type": "String",
@@ -504,7 +504,7 @@
       }
     },
     {
-      "label": "Result Expression",
+      "label": "Result expression",
       "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
       "group": "output",
       "type": "Text",
@@ -515,7 +515,7 @@
       }
     },
     {
-      "label": "Connection Timeout",
+      "label": "Connection timeout",
       "description": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
       "group": "errors",
       "type": "String",
@@ -535,7 +535,7 @@
       }
     },
     {
-      "label": "Error Expression",
+      "label": "Error expression",
       "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
       "group": "errors",
       "type": "Text",
