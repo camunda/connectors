@@ -16,12 +16,12 @@
  */
 package io.camunda.connector.runtime.inbound.lifecycle;
 
+import io.camunda.connector.runtime.core.inbound.DefaultInboundConnectorFactory;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
+import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
+import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionInspector;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
-import io.camunda.connector.runtime.util.inbound.DefaultInboundConnectorFactory;
-import io.camunda.connector.runtime.util.inbound.InboundConnectorFactory;
-import io.camunda.connector.runtime.util.inbound.correlation.InboundCorrelationHandler;
-import io.camunda.connector.runtime.util.secret.SecretProviderAggregator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

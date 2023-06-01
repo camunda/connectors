@@ -22,7 +22,7 @@
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
-      <artifactId>connector-gcp-security-manager</artifactId>
+      <artifactId>connector-gcp-secret-provider</artifactId>
     </dependency>
     <dependency>
       <groupId>com.google.cloud</groupId>

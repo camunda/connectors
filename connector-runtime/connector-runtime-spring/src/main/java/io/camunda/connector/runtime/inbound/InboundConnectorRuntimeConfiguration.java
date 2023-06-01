@@ -16,10 +16,10 @@
  */
 package io.camunda.connector.runtime.inbound;
 
+import io.camunda.connector.runtime.core.feel.FeelEngineWrapper;
+import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionImportConfiguration;
 import io.camunda.connector.runtime.inbound.lifecycle.InboundConnectorLifecycleConfiguration;
-import io.camunda.connector.runtime.util.feel.FeelEngineWrapper;
-import io.camunda.connector.runtime.util.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.zeebe.client.ZeebeClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

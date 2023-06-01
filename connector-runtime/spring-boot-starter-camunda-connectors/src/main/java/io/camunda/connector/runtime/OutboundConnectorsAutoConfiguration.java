@@ -18,10 +18,10 @@ package io.camunda.connector.runtime;
 
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.impl.config.ConnectorPropertyResolver;
+import io.camunda.connector.runtime.core.feel.FeelEngineWrapper;
+import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.env.SpringConnectorPropertyResolver;
 import io.camunda.connector.runtime.outbound.OutboundConnectorRuntimeConfiguration;
-import io.camunda.connector.runtime.util.feel.FeelEngineWrapper;
-import io.camunda.connector.runtime.util.secret.SecretProviderAggregator;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
