@@ -22,19 +22,19 @@
     },
     {
       "id": "operation",
-      "label": "Select Operation"
+      "label": "Select operation"
     },
     {
       "id": "operationDetails",
-      "label": "Operation Details"
+      "label": "Operation details"
     },
     {
       "id": "output",
-      "label": "Output Mapping"
+      "label": "Output mapping"
     },
     {
       "id": "errors",
-      "label": "Error Handling"
+      "label": "Error handling"
     }
   ],
   "properties": [

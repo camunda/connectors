@@ -26,19 +26,19 @@
     },
     {
       "id": "operation",
-      "label": "Select Operation"
+      "label": "Select operation"
     },
     {
       "id": "operationDetails",
-      "label": "Operation Details"
+      "label": "Operation details"
     },
     {
       "id": "output",
-      "label": "Output Mapping"
+      "label": "Output mapping"
     },
     {
       "id": "errors",
-      "label": "Error Handling"
+      "label": "Error handling"
     }
   ],
   "properties": [
@@ -50,8 +50,8 @@
       }
     },
     {
-      "label": "Access Key",
-      "description": "Provide an access key of a user with permissions to invoke specified AWS Lambda Function",
+      "label": "Access key",
+      "description": "Provide an access key of a user with permissions to invoke specified AWS Lambda function",
       "group": "authentication",
       "type": "String",
       "binding": {
@@ -63,8 +63,8 @@
       }
     },
     {
-      "label": "Secret Key",
-      "description": "Provide a secret key of a user with permissions to invoke specified AWS Lambda Function",
+      "label": "Secret key",
+      "description": "Provide a secret key of a user with permissions to invoke specified AWS Lambda function",
       "group": "authentication",
       "type": "String",
       "binding": {
@@ -142,7 +142,7 @@
       }
     },
     {
-      "label": "Result Variable",
+      "label": "Result variable",
       "description": "Enter name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>",
       "group": "output",
       "type": "String",
@@ -152,7 +152,7 @@
       }
     },
     {
-      "label": "Result Expression",
+      "label": "Result expression",
       "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
       "group": "output",
       "type": "Text",
@@ -163,7 +163,7 @@
       }
     },
     {
-      "label": "Error Expression",
+      "label": "Error expression",
       "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
       "group": "errors",
       "type": "Text",

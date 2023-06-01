@@ -34,7 +34,7 @@
     },
     {
       "id": "errors",
-      "label": "Error Handling"
+      "label": "Error handling"
     }
   ],
   "properties": [
@@ -46,7 +46,7 @@
       }
     },
     {
-      "label": "Access Key",
+      "label": "Access key",
       "description": "Provide AWS IAM access key that has permission to publish to desired SNS topic",
       "group": "authentication",
       "type": "String",
@@ -59,7 +59,7 @@
       }
     },
     {
-      "label": "Secret Key",
+      "label": "Secret key",
       "description": "Provide AWS IAM secret key that has permission to publish to desired SNS topic",
       "group": "authentication",
       "type": "String",
@@ -141,7 +141,7 @@
       "feel": "required"
     },
     {
-      "label": "Result Variable",
+      "label": "Result variable",
       "description": "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>",
       "group": "output",
       "type": "String",
@@ -151,7 +151,7 @@
       }
     },
     {
-      "label": "Result Expression",
+      "label": "Result expression",
       "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
       "group": "output",
       "type": "Text",
@@ -162,7 +162,7 @@
       }
     },
     {
-      "label": "Error Expression",
+      "label": "Error expression",
       "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
       "group": "errors",
       "type": "Text",

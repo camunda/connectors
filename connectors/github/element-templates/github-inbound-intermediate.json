@@ -20,7 +20,7 @@
   "groups":[
     {
       "id":"endpoint",
-      "label":"Webhook Configuration"
+      "label":"Webhook configuration"
     },
     {
       "id":"activation",
@@ -28,7 +28,7 @@
     },
     {
       "id":"variable-mapping",
-      "label":"Variable Mapping"
+      "label":"Variable mapping"
     }
   ],
   "properties":[
@@ -155,7 +155,7 @@
         "type": "zeebe:property",
         "name": "resultVariable"
       },
-      "description": "Name of variable to store the result of the Connector in"
+      "description": "Name of variable to store the result of the connector in"
     },
     {
       "label":"Result expression",

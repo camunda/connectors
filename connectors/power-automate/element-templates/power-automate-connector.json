@@ -41,7 +41,7 @@
     },
     {
       "id": "errors",
-      "label": "Error Handling"
+      "label": "Error handling"
     }
   ],
   "properties": [
@@ -143,7 +143,7 @@
     },
     {
       "group": "authentication",
-      "label": "OAuth Token Endpoint",
+      "label": "OAuth token endpoint",
       "description": "Find out more <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/power-automate/#oauth-token-endpoint\">here</a>",
       "type": "String",
       "value": "",
@@ -161,7 +161,7 @@
       }
     },
     {
-      "label": "Client Id (Secret ID)",
+      "label": "Client Id (secret ID)",
       "description": "Microsoft Azure Application Client id. <a href=\"https://learn.microsoft.com/en-us/azure/active-directory/develop/quickstart-register-app#register-an-application\">See where to find it</a>",
       "group": "authentication",
       "type": "String",
@@ -265,7 +265,7 @@
       }
     },
     {
-      "label": "Workflow ID (Flow ID)",
+      "label": "Workflow ID (flow ID)",
       "description": "The ID of the desktop flow that you want to run",
       "feel": "optional",
       "group": "input",
@@ -285,7 +285,7 @@
       }
     },
     {
-      "label": "Connection Name",
+      "label": "Connection name",
       "description": "Identifies the connection to be used with the desktop flow script",
       "feel": "optional",
       "group": "input",
@@ -476,7 +476,7 @@
       }
     },
     {
-      "label": "Result Expression",
+      "label": "Result expression",
       "id": "resultExpressionGet",
       "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
       "group": "output",
@@ -495,7 +495,7 @@
       }
     },
     {
-      "label": "Result Expression",
+      "label": "Result expression",
       "id": "resultExpressionGet",
       "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
       "group": "output",
@@ -514,7 +514,7 @@
       }
     },
     {
-      "label": "Result Expression",
+      "label": "Result expression",
       "id": "resultExpressionGet",
       "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
       "group": "output",

@@ -3,7 +3,7 @@
   "name": "Kafka Consumer Connector",
   "id": "io.camunda.connectors.inbound.KAFKA.v1",
   "version": 1,
-  "description": "Consume Kafka Message",
+  "description": "Consume Kafka message",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/",
   "category": {
     "id": "connectors",
@@ -30,7 +30,7 @@
     },
     {
       "id": "variable-mapping",
-      "label": "Variable Mapping"
+      "label": "Variable mapping"
     }
   ],
   "properties": [
@@ -195,7 +195,7 @@
         "type": "zeebe:property",
         "name": "resultVariable"
       },
-      "description": "Name of variable to store the result of the Connector in"
+      "description": "Name of variable to store the result of the connector in"
     },
     {
       "label": "Result expression",

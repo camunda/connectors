@@ -38,7 +38,7 @@
     },
     {
       "id": "errors",
-      "label": "Error Handling"
+      "label": "Error handling"
     }
   ],
   "properties": [
@@ -245,7 +245,7 @@
       }
     },
     {
-      "label": "Work Queue ID",
+      "label": "Work queue ID",
       "group": "input",
       "description": "The queue ID of the item",
       "type": "String",
@@ -447,7 +447,7 @@
       }
     },
     {
-      "label": "Result Expression",
+      "label": "Result expression",
       "id": "resultExpressionGet",
       "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
       "group": "output",
@@ -466,7 +466,7 @@
       }
     },
     {
-      "label": "Result Expression",
+      "label": "Result expression",
       "id": "resultExpressionGet",
       "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
       "group": "output",
