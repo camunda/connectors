@@ -60,7 +60,9 @@
     <module>connector-archetype-internal</module>
     <module>connectors</module>
     <module>bundle</module>
-    <module>spring-boot-starter-camunda-connectors</module>
+    <module>connector-runtime/connector-runtime-core</module>
+    <module>connector-runtime/connector-runtime-spring</module>
+    <module>connector-runtime/spring-boot-starter-camunda-connectors</module>
   </modules>
 
   <dependencyManagement>
@@ -85,6 +87,22 @@
         <scope>import</scope>
       </dependency>
 
+      <dependency>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>connector-runtime-core</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>connector-runtime-spring</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>io.camunda.spring</groupId>
+        <artifactId>spring-client-zeebe</artifactId>
+        <version>${version.spring-zeebe}</version>
+      </dependency>
       <dependency>
         <groupId>io.camunda.spring</groupId>
         <artifactId>spring-boot-starter-camunda</artifactId>

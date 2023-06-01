@@ -1,0 +1,3 @@
+io.camunda.connector.runtime.OutboundConnectorsAutoConfiguration
+io.camunda.connector.runtime.InboundConnectorsAutoConfiguration
+io.camunda.connector.runtime.WebhookConnectorAutoConfiguration
