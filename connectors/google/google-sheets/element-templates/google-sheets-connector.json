@@ -2,6 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Google Sheets Connector",
   "id": "io.camunda.connectors.GoogleSheets.v1",
+  "version": 1,
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/googlesheets/",
   "description": "Work with spreadsheets",
   "category": {
@@ -158,15 +159,15 @@
         },
         {
           "name": "Get Worksheet data",
-          "value": "worksheetData"
+          "value": "getWorksheetData"
         },
         {
           "name": "Delete Worksheet",
-          "value": "deleteWorkSheet"
+          "value": "deleteWorksheet"
         },
         {
           "name": "Create empty Column or Row",
-          "value": "addEmptyColumnOrRow"
+          "value": "createEmptyColumnOrRow"
         },
         {
           "name": "Create Row",
@@ -179,10 +180,6 @@
         {
           "name": "Get Row by index",
           "value": "getRowByIndex"
-        },
-        {
-          "name": "Get total active Rows",
-          "value": "getTotalActiveRows"
         }
       ],
       "binding": {
@@ -223,11 +220,10 @@
         "oneOf": [
           "createWorksheet",
           "getRowByIndex",
-          "addEmptyColumnOrRow",
-          "deleteWorkSheet",
-          "getTotalActiveRows",
+          "createEmptyColumnOrRow",
+          "deleteWorksheet",
           "deleteColumn",
-          "worksheetData",
+          "getWorksheetData",
           "spreadsheetsDetails",
           "createRow",
           "addValues"
@@ -275,29 +271,8 @@
       "condition": {
         "property": "operationType",
         "oneOf": [
-          "deleteWorkSheet",
-          "addEmptyColumnOrRow"
-        ]
-      }
-    },
-    {
-      "label": "Worksheet ID",
-      "description": "Enter the ID of the worksheet",
-      "group": "operationDetails",
-      "type": "String",
-      "feel": "optional",
-      "optional": true,
-      "binding": {
-        "type": "zeebe:input",
-        "name": "operation.worksheetId"
-      },
-      "constraints": {
-        "notEmpty": false,
-        "maxLength": 100
-      },
-      "condition": {
-        "property": "operationType",
-        "oneOf": [
+          "deleteWorksheet",
+          "createEmptyColumnOrRow",
           "deleteColumn"
         ]
       }
@@ -321,8 +296,7 @@
         "property": "operationType",
         "oneOf": [
           "createWorksheet",
-          "getTotalActiveRows",
-          "worksheetData"
+          "getWorksheetData"
         ]
       }
     },
@@ -351,6 +325,30 @@
       }
     },
     {
+      "label": "Worksheet index",
+      "description": "Enter index of the place where to add worksheet (leave empty if add to the end of sheet list) Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors\" target=\"_blank\">documentation</a>",
+      "group": "operationDetails",
+      "type": "String",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "operation.worksheetIndex"
+      },
+      "constraints": {
+        "notEmpty": false,
+        "maxLength": 5,
+        "pattern": {
+          "value": "^([0-9]*$)",
+          "message": "Must be a number."
+        }
+      },
+      "condition": {
+        "property": "operationType",
+        "equals": "createWorksheet"
+      }
+    },
+    {
       "label": "Dimension",
       "description": "Choose what to add: column or row",
       "group": "operationDetails",
@@ -372,7 +370,7 @@
       },
       "condition": {
         "property": "operationType",
-        "equals": "addEmptyColumnOrRow"
+        "equals": "createEmptyColumnOrRow"
       },
       "constraints": {
         "notEmpty": true
@@ -387,7 +385,7 @@
       "optional": false,
       "binding": {
         "type": "zeebe:input",
-        "name": "operation.index"
+        "name": "operation.rowIndex"
       },
       "constraints": {
         "notEmpty": true,
@@ -411,7 +409,7 @@
       "optional": true,
       "binding": {
         "type": "zeebe:input",
-        "name": "operation.index"
+        "name": "operation.rowIndex"
       },
       "constraints": {
         "notEmpty": false,
@@ -427,7 +425,36 @@
       }
     },
     {
-      "label": "Column index",
+      "id": "columnIndexFormat",
+      "label": "Index format",
+      "description": "Choose the type of the index. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors\" target=\"_blank\">documentation</a>",
+      "group": "operationDetails",
+      "type": "Dropdown",
+      "optional": false,
+      "choices": [
+        {
+          "name": "Letters",
+          "value": "LETTERS"
+        },
+        {
+          "name": "Numbers",
+          "value": "NUMBERS"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "operation.columnIndexType"
+      },
+      "condition": {
+        "property": "operationType",
+        "equals": "deleteColumn"
+      },
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
+      "label": "Column letter index",
       "description": "Enter the index of the column. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors\" target=\"_blank\">documentation</a>",
       "group": "operationDetails",
       "type": "String",
@@ -435,7 +462,7 @@
       "optional": false,
       "binding": {
         "type": "zeebe:input",
-        "name": "operation.index"
+        "name": "operation.columnLetterIndex"
       },
       "constraints": {
         "notEmpty": true,
@@ -446,8 +473,32 @@
         }
       },
       "condition": {
-        "property": "operationType",
-        "equals": "deleteColumn"
+        "property": "columnIndexFormat",
+        "equals": "LETTERS"
+      }
+    },
+    {
+      "label": "Column number index",
+      "description": "Enter the index of the column. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors\" target=\"_blank\">documentation</a>",
+      "group": "operationDetails",
+      "type": "String",
+      "feel": "optional",
+      "optional": false,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "operation.columnNumberIndex"
+      },
+      "constraints": {
+        "notEmpty": true,
+        "maxLength": 100,
+        "pattern": {
+          "value": "^([0-9]*$)",
+          "message": "Must contains only numbers."
+        }
+      },
+      "condition": {
+        "property": "columnIndexFormat",
+        "equals": "NUMBERS"
       }
     },
     {
@@ -471,7 +522,7 @@
       },
       "condition": {
         "property": "operationType",
-        "equals": "addEmptyColumnOrRow"
+        "equals": "createEmptyColumnOrRow"
       }
     },
     {
@@ -495,7 +546,7 @@
       },
       "condition": {
         "property": "operationType",
-        "equals": "addEmptyColumnOrRow"
+        "equals": "createEmptyColumnOrRow"
       }
     },
     {
