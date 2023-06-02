@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "Template: Some Function",
+  "name": "Template: some function",
   "id": "io.camunda.connectors.Template.v1",
   "description": "Describe this connector",
   "version": 1,

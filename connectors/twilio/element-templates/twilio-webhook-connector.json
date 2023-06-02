@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "Twilio Connector",
+  "name": "Twilio connector",
   "id": "io.camunda.connectors.TwilioWebhook.v1",
   "version": 1,
   "description": "Receive incoming message with Twilio service",

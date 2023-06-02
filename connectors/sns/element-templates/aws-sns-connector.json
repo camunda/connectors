@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "Amazon SNS Connector",
+  "name": "Amazon SNS connector",
   "id": "io.camunda.connectors.AWSSNS.v1",
   "description": "Send message to topic",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-sns/",

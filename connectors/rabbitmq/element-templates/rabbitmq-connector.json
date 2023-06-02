@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "RabbitMQ Connector",
+  "name": "RabbitMQ connector",
   "id": "io.camunda.connectors.RabbitMQ.v1",
   "description": "Send message to RabbitMQ",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/",

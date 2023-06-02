@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "Easy Post Connector",
+  "name": "Easy Post connector",
   "id": "io.camunda.connectors.EasyPost.v1",
   "version": 1,
   "description": "Allows you to create addresses, parcels, and shipments, as well as purchase and verify shipments",

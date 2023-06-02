@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "UiPath Connector",
+  "name": "UiPath connector",
   "id": "io.camunda.connectors.UIPath.v1",
   "version": 2,
   "description": "Orchestrate your UiPath bots with Camunda. You can create new queue items and get the result from it",
@@ -80,7 +80,7 @@
       "type": "Dropdown",
       "choices": [
         {
-          "name": "Bearer Token",
+          "name": "Bearer token",
           "value": "bearer"
         },
         {

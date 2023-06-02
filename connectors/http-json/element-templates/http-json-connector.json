@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "REST Connector",
+  "name": "REST connector",
   "id": "io.camunda.connectors.HttpJson.v2",
   "description": "Invoke REST API",
   "icon": {
@@ -68,7 +68,7 @@
           "value": "basic"
         },
         {
-          "name": "Bearer Token",
+          "name": "Bearer token",
           "value": "bearer"
         },
         {

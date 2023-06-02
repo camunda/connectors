@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "Microsoft Teams Connector",
+  "name": "Microsoft Teams connector",
   "id": "io.camunda.connectors.MSTeams.v1",
   "description": "Create, update, and send a message to your Microsoft Teams",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-teams/",

@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "GraphQL Connector",
+  "name": "GraphQL connector",
   "id": "io.camunda.connectors.GraphQL.v1",
   "description": "Execute GraphQL query",
   "version": 1,
@@ -69,7 +69,7 @@
           "value": "basic"
         },
         {
-          "name": "Bearer Token",
+          "name": "Bearer token",
           "value": "bearer"
         },
         {

@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "OpenAI Connector",
+  "name": "OpenAI connector",
   "id": "io.camunda.connectors.OpenAI.v1",
   "description": "Interact with ChatGPT or moderation API",
   "icon": {
@@ -102,7 +102,7 @@
           "value": "chat"
         },
         {
-          "name": " Moderation",
+          "name": "Moderation",
           "value": "moderation"
         }
       ],
