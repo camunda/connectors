@@ -25,7 +25,7 @@
     <version.spring-boot>3.1.0</version.spring-boot>
     <version.spring-cloud-gcp-starter-logging>4.3.1</version.spring-cloud-gcp-starter-logging>
 
-    <version.aws-java-sdk>1.12.479</version.aws-java-sdk>
+    <version.aws-java-sdk>1.12.480</version.aws-java-sdk>
 
     <version.google-api-client>2.2.0</version.google-api-client>
     <version.google-api-services-drive>v3-rev20230520-2.0.0</version.google-api-services-drive>
@@ -34,7 +34,7 @@
     <version.google-api-services-docs>v1-rev20230227-2.0.0</version.google-api-services-docs>
     <version.google-api-services-sheets>v4-rev20230526-2.0.0</version.google-api-services-sheets>
 
-    <version.google-libraries-bom>26.15.0</version.google-libraries-bom>
+    <version.google-libraries-bom>26.16.0</version.google-libraries-bom>
     <version.gson-extras>1.2.0</version.gson-extras>
 
     <version.httpcore>4.4.16</version.httpcore>
@@ -60,7 +60,9 @@
     <module>connector-archetype-internal</module>
     <module>connectors</module>
     <module>bundle</module>
-    <module>spring-boot-starter-camunda-connectors</module>
+    <module>connector-runtime/connector-runtime-core</module>
+    <module>connector-runtime/connector-runtime-spring</module>
+    <module>connector-runtime/spring-boot-starter-camunda-connectors</module>
   </modules>
 
   <dependencyManagement>
@@ -85,6 +87,22 @@
         <scope>import</scope>
       </dependency>
 
+      <dependency>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>connector-runtime-core</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>connector-runtime-spring</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>io.camunda.spring</groupId>
+        <artifactId>spring-client-zeebe</artifactId>
+        <version>${version.spring-zeebe}</version>
+      </dependency>
       <dependency>
         <groupId>io.camunda.spring</groupId>
         <artifactId>spring-boot-starter-camunda</artifactId>
