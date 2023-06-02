@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "Twilio Connector",
+  "name": "Twilio connector",
   "id": "io.camunda.connectors.Twilio.v1",
   "version": 1,
   "description": "Send SMS messages or retrieve message information using the Twilio API",
@@ -68,7 +68,7 @@
           "value": "getMessage"
         },
         {
-          "name": "List Messages",
+          "name": "List messages",
           "value": "listMessages"
         }
       ],
@@ -85,11 +85,11 @@
       "value": "get",
       "choices": [
         {
-          "name": "Account SID and Auth Token",
+          "name": "Account SID and Auth token",
           "value": "accountSidAuthToken"
         },
         {
-          "name": "API Key and Secret",
+          "name": "API key and secret",
           "value": "apiKeySecret"
         }
       ],

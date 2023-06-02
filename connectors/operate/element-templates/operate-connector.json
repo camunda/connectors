@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "Camunda Operate Connector",
+  "name": "Camunda Operate connector",
   "id": "io.camunda.connectors.CamundaOperate.v1",
   "description": "Fetch data from Camunda Operate API",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/operate/",
@@ -66,7 +66,7 @@
           "value": "saas"
         },
         {
-          "name": "Camunda 8 Self-Managed",
+          "name": "Camunda 8 self-managed",
           "value": "sm"
         }
       ],

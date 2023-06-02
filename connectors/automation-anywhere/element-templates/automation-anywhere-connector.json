@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "Automation Anywhere Connector",
+  "name": "Automation Anywhere connector",
   "id": "io.camunda.connectors.AutomationAnywhere.v1",
   "version": 1,
   "description": "Orchestrate your Automation Anywhere bots with Camunda. You can create new queue items and get the result from it",

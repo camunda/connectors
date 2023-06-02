@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "Power Automate",
+  "name": "Power Automate connector",
   "id": "io.camunda.connectors.PowerAutomate.v1",
   "version": 1,
   "description": "Orchestrate your Power Automate flows with Camunda",
@@ -111,7 +111,7 @@
       "type": "Dropdown",
       "choices": [
         {
-          "name": "Bearer Token",
+          "name": "Bearer token",
           "value": "bearer"
         },
         {

@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "Google Sheets Connector",
+  "name": "Google Sheets connector",
   "id": "io.camunda.connectors.GoogleSheets.v1",
   "version": 1,
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/googlesheets/",
@@ -142,43 +142,43 @@
       "value": "createSpreadsheet",
       "choices": [
         {
-          "name": "Create Spreadsheet",
+          "name": "Create spreadsheet",
           "value": "createSpreadsheet"
         },
         {
-          "name": "Add values to Spreadsheet",
+          "name": "Add values to spreadsheet",
           "value": "addValues"
         },
         {
-          "name": "Get Spreadsheet details",
+          "name": "Get spreadsheet details",
           "value": "spreadsheetsDetails"
         },
         {
-          "name": "Create Worksheet",
+          "name": "Create worksheet",
           "value": "createWorksheet"
         },
         {
-          "name": "Get Worksheet data",
+          "name": "Get worksheet data",
           "value": "getWorksheetData"
         },
         {
-          "name": "Delete Worksheet",
+          "name": "Delete worksheet",
           "value": "deleteWorksheet"
         },
         {
-          "name": "Create empty Column or Row",
+          "name": "Create empty column or row",
           "value": "createEmptyColumnOrRow"
         },
         {
-          "name": "Create Row",
+          "name": "Create row",
           "value": "createRow"
         },
         {
-          "name": "Delete Column",
+          "name": "Delete column",
           "value": "deleteColumn"
         },
         {
-          "name": "Get Row by index",
+          "name": "Get row by index",
           "value": "getRowByIndex"
         }
       ],

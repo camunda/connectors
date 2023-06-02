@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "Asana Connector",
+  "name": "Asana connector",
   "id": "io.camunda.connectors.Asana.v1",
   "version": 1,
   "description": "Manage your Asana project with Camunda",

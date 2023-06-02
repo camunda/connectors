@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "GitLab Connector",
+  "name": "GitLab connector",
   "id": "io.camunda.connectors.GitLab.v1",
   "version": 1,
   "description": "Administer and work with issues and releases",

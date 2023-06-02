@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "SNS HTTPS Subscription",
+  "name": "SNS HTTPS subscription",
   "id": "io.camunda.connectors.inbound.AWSSNS.StartEvent.v1",
   "description": "Receive events from AWS SNS",
   "version": 1,

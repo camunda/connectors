@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "Slack Connector",
+  "name": "Slack connector",
   "id": "io.camunda.connectors.Slack.v1",
   "description": "Create a channel or send a message to a channel or user",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/slack/",
@@ -63,15 +63,15 @@
       "value": "chat.postMessage",
       "choices": [
         {
-          "name": "Post Message",
+          "name": "Post message",
           "value": "chat.postMessage"
         },
         {
-          "name": "Create Channel",
+          "name": "Create channel",
           "value": "conversations.create"
         },
         {
-          "name": "Invite to Channel",
+          "name": "Invite to channel",
           "value": "conversations.invite"
         }
       ],
