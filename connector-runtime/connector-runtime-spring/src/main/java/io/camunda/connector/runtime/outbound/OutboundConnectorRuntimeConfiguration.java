@@ -16,11 +16,11 @@
  */
 package io.camunda.connector.runtime.outbound;
 
+import io.camunda.connector.runtime.core.outbound.DefaultOutboundConnectorFactory;
+import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
+import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.outbound.lifecycle.OutboundConnectorAnnotationProcessor;
 import io.camunda.connector.runtime.outbound.lifecycle.OutboundConnectorManager;
-import io.camunda.connector.runtime.util.outbound.DefaultOutboundConnectorFactory;
-import io.camunda.connector.runtime.util.outbound.OutboundConnectorFactory;
-import io.camunda.connector.runtime.util.secret.SecretProviderAggregator;
 import io.camunda.zeebe.spring.client.jobhandling.CommandExceptionHandlingStrategy;
 import io.camunda.zeebe.spring.client.jobhandling.JobWorkerManager;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;

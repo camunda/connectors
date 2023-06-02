@@ -17,7 +17,7 @@
 package io.camunda.connector.runtime.secret;
 
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
-import io.camunda.connector.runtime.util.secret.SecretProviderAggregator;
+import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

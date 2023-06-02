@@ -19,7 +19,7 @@ package io.camunda.connector.runtime.outbound.lifecycle;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.impl.outbound.OutboundConnectorConfiguration;
-import io.camunda.connector.runtime.util.outbound.OutboundConnectorFactory;
+import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.spring.client.annotation.processor.AbstractZeebeAnnotationProcessor;
 import io.camunda.zeebe.spring.client.bean.ClassInfo;

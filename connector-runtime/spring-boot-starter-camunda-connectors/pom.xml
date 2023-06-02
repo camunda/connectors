@@ -39,6 +39,12 @@
     <dependency>
       <groupId>io.camunda.spring</groupId>
       <artifactId>spring-boot-starter-camunda</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>org.springframework.boot</groupId>
+          <artifactId>spring-boot-starter</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>io.camunda</groupId>

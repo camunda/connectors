@@ -10,6 +10,10 @@
   <artifactId>connector-runtime-bundle-saas</artifactId>
   <packaging>jar</packaging>
 
+  <properties>
+    <version.gcp-secret-provider>0.10.0-rc1</version.gcp-secret-provider>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>io.camunda.connector</groupId>
@@ -22,7 +26,8 @@
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
-      <artifactId>connector-gcp-security-manager</artifactId>
+      <artifactId>connector-gcp-secret-provider</artifactId>
+      <version>${version.gcp-secret-provider}</version>
     </dependency>
     <dependency>
       <groupId>com.google.cloud</groupId>
