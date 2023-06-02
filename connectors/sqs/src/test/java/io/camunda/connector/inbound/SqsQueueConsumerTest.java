@@ -43,6 +43,7 @@ public class SqsQueueConsumerTest {
   private Message message;
   @Mock private InboundConnectorResult result;
   @Captor private ArgumentCaptor<ReceiveMessageRequest> requestArgumentCaptor;
+  private List<Message> emptyMessageList;
 
   private SqsQueueConsumer consumer;
 
@@ -61,6 +62,7 @@ public class SqsQueueConsumerTest {
     properties.setQueue(queue);
 
     consumer = new SqsQueueConsumer(sqsClient, properties, context);
+    emptyMessageList = Collections.emptyList();
   }
 
   @Test
@@ -69,10 +71,9 @@ public class SqsQueueConsumerTest {
     when(sqsClient.receiveMessage(any(ReceiveMessageRequest.class)))
         .thenReturn(receiveMessageResult);
     when(receiveMessageResult.getMessages()).thenReturn(messages);
-    List<Message> emptyList = Collections.emptyList();
     when(messages.iterator())
-            .thenReturn(Collections.singletonList(message).iterator())
-            .thenReturn(emptyList.iterator());
+        .thenReturn(Collections.singletonList(message).iterator())
+        .thenReturn(emptyMessageList.iterator());
     when(context.correlate(MessageMapper.toSqsInboundMessage(message))).thenReturn(result);
     when(result.isActivated()).thenReturn(true);
     // when
@@ -99,7 +100,9 @@ public class SqsQueueConsumerTest {
     when(sqsClient.receiveMessage(requestArgumentCaptor.capture()))
         .thenReturn(receiveMessageResult);
     when(receiveMessageResult.getMessages()).thenReturn(messages);
-    when(messages.iterator()).thenReturn(Collections.singletonList(message).iterator());
+    when(messages.iterator())
+        .thenReturn(Collections.singletonList(message).iterator())
+        .thenReturn(emptyMessageList.iterator());
     when(context.correlate(MessageMapper.toSqsInboundMessage(message))).thenReturn(result);
     when(result.isActivated()).thenReturn(true);
     // when
