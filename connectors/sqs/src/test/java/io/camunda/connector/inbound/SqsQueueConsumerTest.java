@@ -69,7 +69,10 @@ public class SqsQueueConsumerTest {
     when(sqsClient.receiveMessage(any(ReceiveMessageRequest.class)))
         .thenReturn(receiveMessageResult);
     when(receiveMessageResult.getMessages()).thenReturn(messages);
-    when(messages.iterator()).thenReturn(Collections.singletonList(message).iterator());
+    List<Message> emptyList = Collections.emptyList();
+    when(messages.iterator())
+            .thenReturn(Collections.singletonList(message).iterator())
+            .thenReturn(emptyList.iterator());
     when(context.correlate(MessageMapper.toSqsInboundMessage(message))).thenReturn(result);
     when(result.isActivated()).thenReturn(true);
     // when
