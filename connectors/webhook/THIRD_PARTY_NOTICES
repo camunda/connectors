@@ -5,7 +5,7 @@ This project incorporates components with the licenses under which Camunda recei
 
   * com.fasterxml.jackson.core:jackson-annotations (Version: 2.15.0, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * com.fasterxml.jackson.core:jackson-core (Version: 2.15.0, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
-  * com.fasterxml.jackson.core:jackson-databind (Version: 2.15.1, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
+  * com.fasterxml.jackson.core:jackson-databind (Version: 2.15.2, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * com.google.code.findbugs:jsr305 (Version: 3.0.2, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * com.google.errorprone:error_prone_annotations (Version: 2.18.0, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * com.google.guava:failureaccess (Version: 1.0.1, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))

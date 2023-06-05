@@ -23,7 +23,7 @@ This project incorporates components with the licenses under which Camunda recei
   * com.google.oauth-client:google-oauth-client-jetty (Version: 1.34.1, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * commons-codec:commons-codec (Version: 1.15, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * commons-logging:commons-logging (Version: 1.2, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
-  * io.grpc:grpc-context (Version: 1.54.0, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
+  * io.grpc:grpc-context (Version: 1.55.1, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * io.opencensus:opencensus-api (Version: 0.31.1, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * io.opencensus:opencensus-contrib-http-util (Version: 0.31.1, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * org.apache.httpcomponents:httpclient (Version: 4.5.14, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
