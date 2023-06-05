@@ -21,6 +21,7 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Import;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 @AutoConfiguration
 @AutoConfigureBefore(OutboundConnectorsAutoConfiguration.class)
@@ -30,4 +31,5 @@ import org.springframework.context.annotation.Import;
     havingValue = "true",
     matchIfMissing = true)
 @Import(InboundConnectorRuntimeConfiguration.class)
+@EnableScheduling
 public class InboundConnectorsAutoConfiguration {}
