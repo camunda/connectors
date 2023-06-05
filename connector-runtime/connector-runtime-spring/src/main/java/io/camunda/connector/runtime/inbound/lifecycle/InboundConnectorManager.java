@@ -138,9 +138,9 @@ public class InboundConnectorManager {
                 + "Check whether property camunda.connector.webhook.enabled is set to true.");
       }
       executable.activate(inboundContext);
-      if (webhookConnectorRegistry != null && executable instanceof WebhookConnectorExecutable wh) {
-        webhookConnectorRegistry.registerWebhookFunction(newProperties.getType(), wh);
-        webhookConnectorRegistry.activateEndpoint(inboundContext);
+      if (webhookConnectorRegistry != null
+          && connector.executable() instanceof WebhookConnectorExecutable) {
+        webhookConnectorRegistry.register(connector);
         LOG.trace("Registering webhook: " + newProperties.getType());
       }
       inboundContext.reportHealth(Health.up());
@@ -173,6 +173,11 @@ public class InboundConnectorManager {
     try {
       connector.executable().deactivate();
       activeConnectorsByBpmnId.get(connector.properties().getBpmnProcessId()).remove(connector);
+      if (webhookConnectorRegistry != null
+          && connector.executable() instanceof WebhookConnectorExecutable) {
+        webhookConnectorRegistry.deregister(connector);
+        LOG.trace("Unregistering webhook: " + connector.properties().getType());
+      }
     } catch (Exception e) {
       // log and continue with other connectors anyway
       LOG.error("Failed to deactivate inbound connector " + connector, e);
