@@ -18,13 +18,11 @@ package io.camunda.connector.runtime.inbound.webhook;
 
 import static io.camunda.connector.runtime.inbound.lifecycle.InboundConnectorManager.WEBHOOK_CONTEXT_BPMN_FIELD;
 
-import io.camunda.connector.api.inbound.InboundConnectorContext;
-import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.impl.inbound.InboundConnectorProperties;
-import java.util.ArrayList;
+import io.camunda.connector.runtime.inbound.lifecycle.ActiveInboundConnector;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,57 +30,28 @@ public class WebhookConnectorRegistry {
 
   private final Logger LOG = LoggerFactory.getLogger(WebhookConnectorRegistry.class);
 
-  // active endpoints grouped by context path (additionally indexed by correlationPointId for faster
-  // lookup)
-  private final Map<String, Map<String, InboundConnectorContext>> activeEndpointsByContext =
-      new HashMap<>();
-  private final Map<String, WebhookConnectorExecutable> webhookExecsByType = new HashMap<>();
+  private final Map<String, ActiveInboundConnector> activeEndpointsByContext = new HashMap<>();
 
-  public boolean containsContextPath(String context) {
-    return activeEndpointsByContext.containsKey(context)
-        && !activeEndpointsByContext.get(context).isEmpty();
+  public Optional<ActiveInboundConnector> getWebhookConnectorByContextPath(String context) {
+    return Optional.ofNullable(activeEndpointsByContext.get(context));
   }
 
-  public List<InboundConnectorContext> getWebhookConnectorByContextPath(String context) {
-    return new ArrayList<>(activeEndpointsByContext.get(context).values());
+  public void register(ActiveInboundConnector connector) {
+    InboundConnectorProperties properties = connector.properties();
+    var context = properties.getRequiredProperty(WEBHOOK_CONTEXT_BPMN_FIELD);
+    var existingEndpoint = activeEndpointsByContext.putIfAbsent(context, connector);
+    if (existingEndpoint != null) {
+      var bpmnProcessId = existingEndpoint.properties().getBpmnProcessId();
+      var elementId = existingEndpoint.properties().getElementId();
+      var logMessage =
+          "Context: " + context + " already in use by " + bpmnProcessId + "/" + elementId + ".";
+      LOG.debug(logMessage);
+      throw new RuntimeException(logMessage);
+    }
   }
 
-  public void activateEndpoint(InboundConnectorContext connectorContext) {
-    InboundConnectorProperties properties = connectorContext.getProperties();
-    activeEndpointsByContext.compute(
-        properties.getRequiredProperty(WEBHOOK_CONTEXT_BPMN_FIELD),
-        (context, endpoints) -> {
-          if (endpoints == null) {
-            Map<String, InboundConnectorContext> newEndpoints = new HashMap<>();
-            newEndpoints.put(properties.getCorrelationPointId(), connectorContext);
-            return newEndpoints;
-          }
-          endpoints.put(properties.getCorrelationPointId(), connectorContext);
-          return endpoints;
-        });
-  }
-
-  public void deactivateEndpoint(InboundConnectorProperties inboundConnectorProperties) {
-    activeEndpointsByContext.compute(
-        inboundConnectorProperties.getRequiredProperty(WEBHOOK_CONTEXT_BPMN_FIELD),
-        (context, endpoints) -> {
-          if (endpoints == null
-              || !endpoints.containsKey(inboundConnectorProperties.getCorrelationPointId())) {
-            LOG.warn(
-                "Attempted to disable non-existing webhook endpoint. "
-                    + "This indicates a potential error in the connector lifecycle.");
-            return endpoints;
-          }
-          endpoints.remove(inboundConnectorProperties.getCorrelationPointId());
-          return endpoints;
-        });
-  }
-
-  public WebhookConnectorExecutable getByType(String type) {
-    return webhookExecsByType.get(type);
-  }
-
-  public void registerWebhookFunction(String type, WebhookConnectorExecutable function) {
-    webhookExecsByType.put(type, function);
+  public void deregister(ActiveInboundConnector connector) {
+    var context = connector.properties().getRequiredProperty(WEBHOOK_CONTEXT_BPMN_FIELD);
+    activeEndpointsByContext.remove(context);
   }
 }

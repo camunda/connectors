@@ -61,8 +61,8 @@ public class InboundConnectorManagerTest {
   private InboundConnectorManager manager;
   private ProcessDefinitionTestUtil procDefUtil;
   private InboundConnectorFactory factory;
-  private InboundConnectorExecutable mockExecutable;
-  private WebhookConnectorExecutable mockWebhook;
+  private InboundConnectorExecutable inboundConnectorExecutable;
+  private WebhookConnectorExecutable webhookConnectorExecutable;
   private WebhookConnectorRegistry webhookRegistry;
   private SecretProviderAggregator secretProviderAggregator;
   private InboundCorrelationHandler correlationHandler;
@@ -71,11 +71,11 @@ public class InboundConnectorManagerTest {
   void resetMocks() {
     correlationHandler = mock(InboundCorrelationHandler.class);
 
-    mockExecutable = spy(new TestInboundConnector());
-    mockWebhook = spy(new TestWebhookConnector());
-    webhookRegistry = mock(WebhookConnectorRegistry.class);
+    inboundConnectorExecutable = spy(new TestInboundConnector());
+    webhookConnectorExecutable = spy(new TestWebhookConnector());
+    webhookRegistry = new WebhookConnectorRegistry();
     factory = mock(InboundConnectorFactory.class);
-    when(factory.getInstance(any())).thenReturn(mockExecutable);
+    when(factory.getInstance(any())).thenReturn(inboundConnectorExecutable);
 
     secretProviderAggregator = mock(SecretProviderAggregator.class);
 
@@ -99,7 +99,7 @@ public class InboundConnectorManagerTest {
     // then
     assertTrue(manager.isProcessDefinitionRegistered(process.getKey()));
     verify(factory, times(1)).getInstance(connector.getType());
-    verify(mockExecutable, times(1)).activate(eq(inboundContext(connector)));
+    verify(inboundConnectorExecutable, times(1)).activate(eq(inboundContext(connector)));
   }
 
   @Test
@@ -115,7 +115,7 @@ public class InboundConnectorManagerTest {
     assertTrue(manager.isProcessDefinitionRegistered(process.getKey()));
     verify(factory, times(2)).getInstance(connectors.get(0).getType());
     for (var connector : connectors) {
-      verify(mockExecutable, times(1)).activate(eq(inboundContext(connector)));
+      verify(inboundConnectorExecutable, times(1)).activate(eq(inboundContext(connector)));
     }
   }
 
@@ -137,10 +137,10 @@ public class InboundConnectorManagerTest {
 
     verify(factory, times(2)).getInstance(connector1.getType());
 
-    verify(mockExecutable, times(1)).activate(eq(inboundContext(connector1)));
-    verify(mockExecutable, times(1)).deactivate();
-    verify(mockExecutable, times(1)).activate(eq(inboundContext(connector2)));
-    verifyNoMoreInteractions(mockExecutable);
+    verify(inboundConnectorExecutable, times(1)).activate(eq(inboundContext(connector1)));
+    verify(inboundConnectorExecutable, times(1)).deactivate();
+    verify(inboundConnectorExecutable, times(1)).activate(eq(inboundContext(connector2)));
+    verifyNoMoreInteractions(inboundConnectorExecutable);
   }
 
   @Test
@@ -154,7 +154,7 @@ public class InboundConnectorManagerTest {
     // then
     assertTrue(manager.isProcessDefinitionRegistered(process.getKey()));
     verifyNoInteractions(factory);
-    verifyNoInteractions(mockExecutable);
+    verifyNoInteractions(inboundConnectorExecutable);
   }
 
   @Test
@@ -178,10 +178,10 @@ public class InboundConnectorManagerTest {
 
     assertTrue(manager.isProcessDefinitionRegistered(process2.getKey()));
     verify(factory, times(1)).getInstance(connector2.getType());
-    verify(mockExecutable, times(1)).activate(inboundContext(connector2));
+    verify(inboundConnectorExecutable, times(1)).activate(inboundContext(connector2));
 
     verifyNoMoreInteractions(factory);
-    verifyNoMoreInteractions(mockExecutable);
+    verifyNoMoreInteractions(inboundConnectorExecutable);
   }
 
   @Test
@@ -192,7 +192,7 @@ public class InboundConnectorManagerTest {
 
     // when
     procDefUtil.deployProcessDefinition(process, connector);
-    var context = ((TestInboundConnector) mockExecutable).getProvidedContext();
+    var context = ((TestInboundConnector) inboundConnectorExecutable).getProvidedContext();
     context.cancel(new RuntimeException("subscription interrupted"));
 
     // then
@@ -202,21 +202,42 @@ public class InboundConnectorManagerTest {
             .query(new ActiveInboundConnectorQuery(process.getBpmnProcessId(), null, null))
             .isEmpty());
 
-    verify(mockExecutable, times(1)).activate(eq(inboundContext(connector)));
-    verify(mockExecutable, times(1)).deactivate();
+    verify(inboundConnectorExecutable, times(1)).activate(eq(inboundContext(connector)));
+    verify(inboundConnectorExecutable, times(1)).deactivate();
   }
 
   @Test
   void shouldActivateAndRegisterWebhook() throws Exception {
-    when(factory.getInstance("io.camunda:test-webhook:1")).thenReturn(mockWebhook);
+    when(factory.getInstance("io.camunda:test-webhook:1")).thenReturn(webhookConnectorExecutable);
     var process = processDefinition("webhook1", 1);
     var webhook = webhookConnector(process);
-
     procDefUtil.deployProcessDefinition(process, webhook);
+    verify(webhookConnectorExecutable, times(1)).activate(eq(inboundContext(webhook)));
+  }
 
-    verify(mockWebhook, times(1)).activate(eq(inboundContext(webhook)));
-    verify(webhookRegistry, times(1)).registerWebhookFunction(webhookConfig.getType(), mockWebhook);
-    verify(webhookRegistry, times(1)).activateEndpoint(eq(inboundContext(webhook)));
+  @Test
+  void shouldActivateAndRegisterWebhookWithANewVersion() throws Exception {
+    when(factory.getInstance(webhookConfig.getType())).thenReturn(webhookConnectorExecutable);
+
+    // Deploy one process with a webhook
+    var pv1 = processDefinition("webhook1", 1);
+    var wh1 = webhookConnector(pv1);
+    procDefUtil.deployProcessDefinition(pv1, wh1);
+
+    // Deploy a new version of the process
+    var pv2 = processDefinition("webhook1", 2);
+    var wh2 = webhookConnector(pv2);
+    procDefUtil.deployProcessDefinition(pv2, wh2);
+
+    verify(factory, times(2)).getInstance(webhookConfig.getType());
+    verify(webhookConnectorExecutable, times(1)).activate(eq(inboundContext(wh1)));
+    verify(webhookConnectorExecutable).deactivate();
+    verify(webhookConnectorExecutable, times(1)).activate(eq(inboundContext(wh2)));
+    verifyNoMoreInteractions(inboundConnectorExecutable);
+
+    // New version should be active
+    var connector = webhookRegistry.getWebhookConnectorByContextPath("myWebhookEndpoint");
+    assertEquals(2, connector.get().properties().getVersion());
   }
 
   @Test
@@ -230,7 +251,7 @@ public class InboundConnectorManagerTest {
             factory, correlationHandler, inspector, secretProviderAggregator, null);
     procDefUtil = new ProcessDefinitionTestUtil(manager, inspector);
 
-    when(factory.getInstance("io.camunda:test-webhook:1")).thenReturn(mockWebhook);
+    when(factory.getInstance("io.camunda:test-webhook:1")).thenReturn(webhookConnectorExecutable);
     var process = processDefinition("webhook1", 1);
     var webhook = webhookConnector(process);
 
@@ -238,7 +259,7 @@ public class InboundConnectorManagerTest {
     procDefUtil.deployProcessDefinition(process, webhook);
 
     // Then
-    verify(mockWebhook, times(0)).activate(eq(inboundContext(webhook)));
+    verify(webhookConnectorExecutable, times(0)).activate(eq(inboundContext(webhook)));
 
     var query = new ActiveInboundConnectorQuery("webhook1", null, null);
     var activeInboundConnectors = manager.query(query);

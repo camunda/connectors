@@ -19,35 +19,32 @@ package io.camunda.connector.runtime.inbound;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrowsExactly;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 
-import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingResult;
+import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.impl.inbound.InboundConnectorProperties;
 import io.camunda.connector.impl.inbound.correlation.StartEventCorrelationPoint;
-import io.camunda.connector.impl.inbound.result.MessageCorrelationResult;
-import io.camunda.connector.runtime.inbound.webhook.InboundWebhookRestController;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
+import io.camunda.connector.runtime.inbound.lifecycle.ActiveInboundConnector;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
-import io.camunda.connector.runtime.inbound.webhook.WebhookResponse;
-import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
-import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
 import io.camunda.zeebe.spring.client.metrics.SimpleMetricsRecorder;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.ResponseEntity;
-import org.springframework.mock.web.MockHttpServletRequest;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class WebhookControllerPlainJavaTests {
 
   private static final String CONNECTOR_SECRET_NAME = "DUMMY_SECRET";
@@ -61,110 +58,39 @@ public class WebhookControllerPlainJavaTests {
   }
 
   @Test
-  public void multipleWebhooksOnSameContextPath() throws Exception {
-    WebhookConnectorRegistry webhook = new WebhookConnectorRegistry();
+  public void multipleWebhooksOnSameContextPathAreNotSupported() throws Exception {
+    WebhookConnectorRegistry webhookConnectorRegistry = new WebhookConnectorRegistry();
+    var connectorA = buildConnector(webhookProperties("processA", 1, "myPath"));
+    webhookConnectorRegistry.register(connectorA);
 
-    WebhookConnectorExecutable executable = Mockito.mock(WebhookConnectorExecutable.class);
-    Mockito.when(executable.triggerWebhook(any(WebhookProcessingPayload.class)))
-        .thenReturn(Mockito.mock(WebhookProcessingResult.class));
-
-    // Register webhook function 'implementation'
-    webhook.registerWebhookFunction("webhook", executable);
-
-    InboundConnectorContext webhookA =
-        new InboundConnectorContextBuilder()
-            .properties(webhookProperties("processA", 1, "myPath"))
-            .secret(CONNECTOR_SECRET_NAME, CONNECTOR_SECRET_VALUE)
-            .result(new MessageCorrelationResult("", 0))
-            .build();
-
-    InboundConnectorContext webhookB =
-        new InboundConnectorContextBuilder()
-            .properties(webhookProperties("processB", 1, "myPath"))
-            .secret(CONNECTOR_SECRET_NAME, CONNECTOR_SECRET_VALUE)
-            .result(new MessageCorrelationResult("", 0))
-            .build();
-
-    InboundWebhookRestController controller = new InboundWebhookRestController(webhook, metrics);
-
-    // Register processes
-    webhook.activateEndpoint(webhookA);
-    webhook.activateEndpoint(webhookB);
-
-    ResponseEntity<WebhookResponse> responseEntity =
-        controller.inbound(
-            "myPath",
-            new HashMap<>(),
-            "{}".getBytes(),
-            new HashMap<>(),
-            new MockHttpServletRequest());
-
-    assertEquals(200, responseEntity.getStatusCode().value());
-    assertTrue(responseEntity.getBody().getUnactivatedConnectors().isEmpty());
-    assertEquals(2, responseEntity.getBody().getExecutedConnectors().size());
-    assertEquals(
-        Set.of("myPath-processA-1", "myPath-processB-1"),
-        responseEntity.getBody().getExecutedConnectors().keySet());
-    assertEquals(
-        1,
-        metrics.getCount(
-            MetricsRecorder.METRIC_NAME_INBOUND_CONNECTOR,
-            MetricsRecorder.ACTION_ACTIVATED,
-            InboundWebhookRestController.METRIC_WEBHOOK_VALUE));
-    assertEquals(
-        1,
-        metrics.getCount(
-            MetricsRecorder.METRIC_NAME_INBOUND_CONNECTOR,
-            MetricsRecorder.ACTION_COMPLETED,
-            InboundWebhookRestController.METRIC_WEBHOOK_VALUE));
-    assertEquals(
-        0,
-        metrics.getCount(
-            MetricsRecorder.METRIC_NAME_INBOUND_CONNECTOR,
-            MetricsRecorder.ACTION_FAILED,
-            InboundWebhookRestController.METRIC_WEBHOOK_VALUE));
+    var connectorB = buildConnector(webhookProperties("processA", 1, "myPath"));
+    assertThrowsExactly(
+        RuntimeException.class, () -> webhookConnectorRegistry.register(connectorB));
   }
 
   @Test
-  public void webhookMultipleVersionsDisableWebhook() {
+  public void webhookMultipleVersionsDisableWebhook() throws Exception {
     WebhookConnectorRegistry webhook = new WebhookConnectorRegistry();
 
-    var processA1 =
-        new InboundConnectorContextBuilder()
-            .properties(webhookProperties("processA", 1, "myPath"))
-            .secret(CONNECTOR_SECRET_NAME, CONNECTOR_SECRET_VALUE)
-            .build();
+    var processA1 = buildConnector(webhookProperties("processA", 1, "myPath"));
+    var processA2 = buildConnector(webhookProperties("processA", 2, "myPath"));
+    var processB1 = buildConnector(webhookProperties("processB", 1, "myPath2"));
 
-    var processA2 =
-        new InboundConnectorContextBuilder()
-            .properties(webhookProperties("processA", 2, "myPath"))
-            .secret(CONNECTOR_SECRET_NAME, CONNECTOR_SECRET_VALUE)
-            .build();
+    webhook.register(processA1);
+    webhook.deregister(processA1);
 
-    var processB1 =
-        new InboundConnectorContextBuilder()
-            .properties(webhookProperties("processB", 1, "myPath2"))
-            .secret(CONNECTOR_SECRET_NAME, CONNECTOR_SECRET_VALUE)
-            .build();
+    webhook.register(processA2);
 
-    webhook.activateEndpoint(processA1);
-    webhook.deactivateEndpoint(processA1.getProperties());
+    webhook.register(processB1);
+    webhook.deregister(processB1);
 
-    webhook.activateEndpoint(processA2);
+    var connectorForPath1 = webhook.getWebhookConnectorByContextPath("myPath");
 
-    webhook.activateEndpoint(processB1);
-    webhook.deactivateEndpoint(processB1.getProperties());
+    assertTrue(connectorForPath1.isPresent(), "Connector is present");
+    assertEquals(2, connectorForPath1.get().properties().getVersion(), "The newest one");
 
-    Collection<InboundConnectorContext> connectors1 =
-        webhook.getWebhookConnectorByContextPath("myPath");
-
-    assertEquals(1, connectors1.size()); // only one
-    assertEquals(
-        2, connectors1.iterator().next().getProperties().getVersion()); // And the newest one
-
-    Collection<InboundConnectorContext> connectors2 =
-        webhook.getWebhookConnectorByContextPath("myPath2");
-    assertEquals(0, connectors2.size()); // No one - as it was disabled
+    var connectorForPath2 = webhook.getWebhookConnectorByContextPath("myPath2");
+    assertTrue(connectorForPath2.isEmpty(), "No one - as it was deleted.");
   }
 
   @Test
@@ -172,21 +98,34 @@ public class WebhookControllerPlainJavaTests {
     WebhookConnectorRegistry webhook = new WebhookConnectorRegistry();
 
     // given
-    var processA1 =
-        new InboundConnectorContextBuilder()
-            .properties(webhookProperties("processA", 1, "myPath"))
-            .secret(CONNECTOR_SECRET_NAME, CONNECTOR_SECRET_VALUE)
-            .build();
+    var processA1 = buildConnector(webhookProperties("processA", 1, "myPath"));
 
     // when
-    webhook.activateEndpoint(processA1);
-    webhook.deactivateEndpoint(processA1.getProperties());
+    webhook.register(processA1);
+    webhook.deregister(processA1);
 
     // then
-    assertFalse(webhook.containsContextPath("myPath"));
+    assertFalse(webhook.getWebhookConnectorByContextPath("myPath").isPresent());
   }
 
   private static long nextProcessDefinitionKey = 0L;
+
+  public static ActiveInboundConnector buildConnector(InboundConnectorProperties properties) {
+    WebhookConnectorExecutable executable = Mockito.mock(WebhookConnectorExecutable.class);
+    try {
+      Mockito.when(executable.triggerWebhook(any(WebhookProcessingPayload.class)))
+          .thenReturn(Mockito.mock(WebhookProcessingResult.class));
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+    return new ActiveInboundConnector(executable, properties, buildContext(properties));
+  }
+
+  public static InboundConnectorContextImpl buildContext(InboundConnectorProperties properties) {
+    final Map<String, String> secrets = new HashMap<>();
+    SecretProvider secretProvider = secrets::get;
+    return new InboundConnectorContextImpl(secretProvider, properties, null, (x) -> {});
+  }
 
   public static InboundConnectorProperties webhookProperties(
       String bpmnProcessId, int version, String contextPath) {
