@@ -54,10 +54,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class InboundConnectorManagerTest {
-  /*
-  see https://github.com/camunda/connector-sdk-inbound-webhook/issues/24#issue-1416083859
-  */
-
   private InboundConnectorManager manager;
   private ProcessDefinitionTestUtil procDefUtil;
   private InboundConnectorFactory factory;
