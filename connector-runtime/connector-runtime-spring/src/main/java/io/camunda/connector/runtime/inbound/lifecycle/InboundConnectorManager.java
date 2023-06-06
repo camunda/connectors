@@ -79,9 +79,7 @@ public class InboundConnectorManager {
     this.webhookConnectorRegistry = webhookConnectorRegistry;
   }
 
-  /**
-   * Process a batch of process definitions
-   */
+  /** Process a batch of process definitions */
   public void registerProcessDefinitions(List<ProcessDefinition> processDefinitions) {
     if (processDefinitions == null || processDefinitions.isEmpty()) {
       return;
@@ -114,9 +112,7 @@ public class InboundConnectorManager {
     }
   }
 
-  /**
-   * Check whether process definition with provided key is already registered
-   */
+  /** Check whether process definition with provided key is already registered */
   protected boolean isProcessDefinitionRegistered(long processDefinitionKey) {
     return registeredProcessDefinitionKeys.contains(processDefinitionKey);
   }
@@ -155,9 +151,7 @@ public class InboundConnectorManager {
       }
       inboundContext.reportHealth(Health.up());
       metricsRecorder.increase(
-          Inbound.METRIC_NAME_ACTIVATIONS,
-          Inbound.ACTION_ACTIVATED,
-          newProperties.getType());
+          Inbound.METRIC_NAME_ACTIVATIONS, Inbound.ACTION_ACTIVATED, newProperties.getType());
     } catch (Exception e) {
       inboundContext.reportHealth(Health.down(e));
       // log and continue with other connectors anyway
@@ -186,9 +180,7 @@ public class InboundConnectorManager {
   private void deactivateConnector(InboundConnectorProperties properties) {
     findActiveConnector(properties).ifPresent(this::deactivateConnector);
     metricsRecorder.increase(
-        Inbound.METRIC_NAME_ACTIVATIONS,
-        Inbound.ACTION_DEACTIVATED,
-        properties.getType());
+        Inbound.METRIC_NAME_ACTIVATIONS, Inbound.ACTION_DEACTIVATED, properties.getType());
   }
 
   private void deactivateConnector(ActiveInboundConnector connector) {

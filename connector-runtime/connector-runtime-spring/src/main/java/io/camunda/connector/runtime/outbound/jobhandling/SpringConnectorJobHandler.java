@@ -71,9 +71,7 @@ public class SpringConnectorJobHandler extends ConnectorJobHandler {
   @Override
   protected void failJob(JobClient client, ActivatedJob job, Exception exception) {
     metricsRecorder.increase(
-        Outbound.METRIC_NAME_INVOCATIONS,
-        Outbound.ACTION_FAILED,
-        connectorConfiguration.getType());
+        Outbound.METRIC_NAME_INVOCATIONS, Outbound.ACTION_FAILED, connectorConfiguration.getType());
     // rethrowing the exception enables retries (handled by JobRunnableFactory)
     throw new RuntimeException(exception);
   }
@@ -85,12 +83,12 @@ public class SpringConnectorJobHandler extends ConnectorJobHandler {
         Outbound.ACTION_BPMN_ERROR,
         connectorConfiguration.getType());
     new CommandWrapper(
-        client
-            .newThrowErrorCommand(job.getKey())
-            .errorCode(value.getCode())
-            .errorMessage(value.getMessage()),
-        job,
-        commandExceptionHandlingStrategy)
+            client
+                .newThrowErrorCommand(job.getKey())
+                .errorCode(value.getCode())
+                .errorMessage(value.getMessage()),
+            job,
+            commandExceptionHandlingStrategy)
         .executeAsync();
   }
 

@@ -27,7 +27,8 @@ public class ProcessDefinitionImportConfiguration {
 
   @Bean
   public ProcessDefinitionImporter processDefinitionImporter(
-      CamundaOperateClient client, InboundConnectorManager manager,
+      CamundaOperateClient client,
+      InboundConnectorManager manager,
       MetricsRecorder metricsRecorder) {
     return new ProcessDefinitionImporter(client, manager, metricsRecorder);
   }

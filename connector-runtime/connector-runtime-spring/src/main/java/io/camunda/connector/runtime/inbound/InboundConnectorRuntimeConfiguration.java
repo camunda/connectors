@@ -33,7 +33,8 @@ public class InboundConnectorRuntimeConfiguration {
 
   @Bean
   public InboundCorrelationHandler inboundCorrelationHandler(
-      final ZeebeClient zeebeClient, final FeelEngineWrapper feelEngine,
+      final ZeebeClient zeebeClient,
+      final FeelEngineWrapper feelEngine,
       final MetricsRecorder metricsRecorder) {
     return new MeteredInboundCorrelationHandler(zeebeClient, feelEngine, metricsRecorder);
   }

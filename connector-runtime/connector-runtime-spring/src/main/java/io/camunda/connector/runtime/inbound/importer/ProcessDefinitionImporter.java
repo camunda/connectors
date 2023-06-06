@@ -43,7 +43,8 @@ public class ProcessDefinitionImporter {
 
   @Autowired
   public ProcessDefinitionImporter(
-      CamundaOperateClient camundaOperateClient, InboundConnectorManager inboundManager,
+      CamundaOperateClient camundaOperateClient,
+      InboundConnectorManager inboundManager,
       @Autowired(required = false) MetricsRecorder metricsRecorder) {
     this.camundaOperateClient = camundaOperateClient;
     this.inboundManager = inboundManager;
@@ -87,8 +88,7 @@ public class ProcessDefinitionImporter {
   private void meter(int count) {
     if (metricsRecorder != null) {
       metricsRecorder.increase(
-          Inbound.METRIC_NAME_INBOUND_PROCESS_DEFINITIONS_CHECKED,
-          null, null, count);
+          Inbound.METRIC_NAME_INBOUND_PROCESS_DEFINITIONS_CHECKED, null, null, count);
     }
   }
 }

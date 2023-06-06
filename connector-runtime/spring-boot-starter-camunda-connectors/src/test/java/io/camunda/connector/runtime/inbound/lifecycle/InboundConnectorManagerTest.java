@@ -47,6 +47,7 @@ import io.camunda.connector.runtime.inbound.ProcessDefinitionTestUtil;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionInspector;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.operate.dto.ProcessDefinition;
+import io.camunda.zeebe.spring.client.metrics.DefaultNoopMetricsRecorder;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -54,6 +55,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class InboundConnectorManagerTest {
+
   private InboundConnectorManager manager;
   private ProcessDefinitionTestUtil procDefUtil;
   private InboundConnectorFactory factory;
@@ -79,7 +81,12 @@ public class InboundConnectorManagerTest {
 
     manager =
         new InboundConnectorManager(
-            factory, correlationHandler, inspector, secretProviderAggregator, webhookRegistry);
+            factory,
+            correlationHandler,
+            inspector,
+            secretProviderAggregator,
+            new DefaultNoopMetricsRecorder(),
+            webhookRegistry);
     procDefUtil = new ProcessDefinitionTestUtil(manager, inspector);
   }
 
@@ -244,7 +251,12 @@ public class InboundConnectorManagerTest {
     // emulating camunda.connector.webhook.enabled=false
     manager =
         new InboundConnectorManager(
-            factory, correlationHandler, inspector, secretProviderAggregator, null);
+            factory,
+            correlationHandler,
+            inspector,
+            secretProviderAggregator,
+            new DefaultNoopMetricsRecorder(),
+            null);
     procDefUtil = new ProcessDefinitionTestUtil(manager, inspector);
 
     when(factory.getInstance("io.camunda:test-webhook:1")).thenReturn(webhookConnectorExecutable);

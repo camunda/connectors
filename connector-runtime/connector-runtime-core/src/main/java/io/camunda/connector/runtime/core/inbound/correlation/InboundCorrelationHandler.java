@@ -142,7 +142,8 @@ public class InboundCorrelationHandler {
     }
   }
 
-  protected boolean isActivationConditionMet(InboundConnectorProperties properties, Object context) {
+  protected boolean isActivationConditionMet(
+      InboundConnectorProperties properties, Object context) {
 
     String activationCondition = properties.getProperty(ACTIVATION_CONDITION_KEYWORD);
     if (activationCondition == null || activationCondition.trim().length() == 0) {
