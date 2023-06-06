@@ -35,7 +35,7 @@ public class DeleteWorksheetOperation extends GoogleSheetOperation {
     try {
       this.batchUpdate(auth, model.getSpreadsheetId(), updateRequest);
 
-      return new GoogleSheetsResult("Delete Worksheet", "OK");
+      return new GoogleSheetsResult("Delete worksheet", "OK");
     } catch (IOException e) {
       throw new RuntimeException(e);
     }

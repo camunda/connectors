@@ -3,7 +3,7 @@
   "name": "Google Sheets connector",
   "id": "io.camunda.connectors.GoogleSheets.v1",
   "version": 1,
-  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/googlesheets/",
+  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/",
   "description": "Work with spreadsheets",
   "category": {
     "id": "connectors",
@@ -69,7 +69,7 @@
     },
     {
       "label": "Bearer token",
-      "description": "Enter Google API Bearer token that is authorized to interact with desired Drive",
+      "description": "Enter Google API Bearer token that is authorized to interact with desired spreadsheet",
       "group": "authentication",
       "type": "String",
       "binding": {
@@ -120,7 +120,7 @@
     },
     {
       "label": "Refresh token",
-      "description": "Enter Google API refresh token that is authorized to interact with desired Drive",
+      "description": "Enter Google API refresh token that is authorized to interact with desired spreadsheet",
       "group": "authentication",
       "type": "String",
       "binding": {
@@ -266,7 +266,11 @@
       },
       "constraints": {
         "notEmpty": true,
-        "maxLength": 100
+        "maxLength": 100,
+        "pattern": {
+          "value": "^([0-9]*$)",
+          "message": "Must be a number."
+        }
       },
       "condition": {
         "property": "operationType",
@@ -326,7 +330,7 @@
     },
     {
       "label": "Worksheet index",
-      "description": "Enter index of the place where to add worksheet (leave empty if add to the end of sheet list) Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors\" target=\"_blank\">documentation</a>",
+      "description": "Enter index of the place where to add worksheet (leave empty if add to the end of sheet list) Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#what-is-a-worksheet-index\" target=\"_blank\">documentation</a>",
       "group": "operationDetails",
       "type": "String",
       "feel": "optional",
@@ -378,7 +382,7 @@
     },
     {
       "label": "Row index",
-      "description": "Enter row index. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors\" target=\"_blank\">documentation</a>",
+      "description": "Enter row index. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#what-is-a-row-index\" target=\"_blank\">documentation</a>",
       "group": "operationDetails",
       "type": "String",
       "feel": "optional",
@@ -402,7 +406,7 @@
     },
     {
       "label": "Row index",
-      "description": "Enter the index of the row to add . Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors\" target=\"_blank\">documentation</a>",
+      "description": "Enter the index of the row to add . Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#what-is-a-row-index\" target=\"_blank\">documentation</a>",
       "group": "operationDetails",
       "type": "String",
       "feel": "optional",
@@ -427,7 +431,7 @@
     {
       "id": "columnIndexFormat",
       "label": "Index format",
-      "description": "Choose the type of the index. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors\" target=\"_blank\">documentation</a>",
+      "description": "Choose the type of the index. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#how-can-i-define-which-column-will-be-deleted\" target=\"_blank\">documentation</a>",
       "group": "operationDetails",
       "type": "Dropdown",
       "optional": false,
@@ -455,7 +459,7 @@
     },
     {
       "label": "Column letter index",
-      "description": "Enter the index of the column. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors\" target=\"_blank\">documentation</a>",
+      "description": "Enter the index of the column. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#how-can-i-define-which-column-will-be-deleted\" target=\"_blank\">documentation</a>",
       "group": "operationDetails",
       "type": "String",
       "feel": "optional",
@@ -478,8 +482,8 @@
       }
     },
     {
-      "label": "Column number index",
-      "description": "Enter the index of the column. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors\" target=\"_blank\">documentation</a>",
+      "label": "Column numeric index",
+      "description": "Enter the index of the column. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#how-can-i-define-which-column-will-be-deleted\" target=\"_blank\">documentation</a>",
       "group": "operationDetails",
       "type": "String",
       "feel": "optional",
@@ -503,7 +507,7 @@
     },
     {
       "label": "Start index",
-      "description": "Enter start index (leave empty if add to the end of the sheet). Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors\" target=\"_blank\">documentation</a>",
+      "description": "Enter start index (leave empty if add to the end of the sheet). Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#create-empty-column-or-row\" target=\"_blank\">documentation</a>",
       "group": "operationDetails",
       "type": "String",
       "feel": "optional",
@@ -527,7 +531,7 @@
     },
     {
       "label": "End index",
-      "description": "Enter End index (leave empty if add to the end of the sheet) Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors\" target=\"_blank\">documentation</a>",
+      "description": "Enter End index (leave empty if add to the end of the sheet) Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#create-empty-column-or-row\" target=\"_blank\">documentation</a>",
       "group": "operationDetails",
       "type": "String",
       "feel": "optional",
@@ -551,7 +555,7 @@
     },
     {
       "label": "Cell ID",
-      "description": "Enter the ID of the cell. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>",
+      "description": "Enter the ID of the cell. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#add-values-to-spreadsheet\" target=\"_blank\">documentation</a>",
       "group": "operationDetails",
       "type": "String",
       "feel": "optional",
@@ -571,7 +575,7 @@
     },
     {
       "label": "Enter values",
-      "description": "Enter the array of values. <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">Learn more about the required format</a>",
+      "description": "Enter the array of values. <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#create-row\" target=\"_blank\">Learn more about the required format</a>",
       "group": "operationDetails",
       "type": "Text",
       "feel": "required",

@@ -30,7 +30,7 @@ public class CreateRowOperation extends GoogleSheetOperation {
     try {
       this.update(auth, model.getSpreadsheetId(), range, valueRange);
 
-      return new GoogleSheetsResult("Create Row", "OK");
+      return new GoogleSheetsResult("Create row", "OK");
     } catch (IOException e) {
       throw new RuntimeException(e);
     }

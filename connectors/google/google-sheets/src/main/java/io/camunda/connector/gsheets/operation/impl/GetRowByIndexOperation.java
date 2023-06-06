@@ -29,10 +29,10 @@ public class GetRowByIndexOperation extends GoogleSheetOperation {
       List<List<Object>> values = this.get(auth, model.getSpreadsheetId(), range);
 
       if (values == null || values.isEmpty()) {
-        return new GoogleSheetsResult("Get Row by ID", "OK", null);
+        return new GoogleSheetsResult("Get row by index", "OK", null);
       }
 
-      return new GoogleSheetsResult("Get Row by index", "OK", values.get(0));
+      return new GoogleSheetsResult("Get row by index", "OK", values.get(0));
     } catch (IOException e) {
       throw new RuntimeException(e);
     }

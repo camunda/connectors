@@ -41,7 +41,7 @@ public class CreateWorksheetOperation extends GoogleSheetOperation {
     try {
       this.batchUpdate(auth, model.getSpreadsheetId(), updateRequest);
 
-      return new GoogleSheetsResult("Create Worksheet", "OK");
+      return new GoogleSheetsResult("Create worksheet", "OK");
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
