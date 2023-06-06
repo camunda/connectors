@@ -1,7 +1,7 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "RabbitMQ connector",
-  "id": "io.camunda.connectors.inbound.RabbitMQ.StartEvent.v1",
+  "id": "io.camunda.connectors.inbound.RabbitMQ.Intermediate.v1",
   "version": 1,
   "description": "Receive a message from RabbitMQ",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq-inbound",
@@ -10,10 +10,12 @@
     "name": "Connectors"
   },
   "appliesTo": [
-    "bpmn:StartEvent"
+    "bpmn:IntermediateCatchEvent",
+    "bpmn:IntermediateThrowEvent"
   ],
   "elementType": {
-    "value": "bpmn:StartEvent"
+    "value": "bpmn:IntermediateCatchEvent",
+    "eventDefinition": "bpmn:MessageEventDefinition"
   },
   "groups": [
     {
@@ -44,6 +46,16 @@
       "binding": {
         "type": "zeebe:property",
         "name": "inbound.type"
+      }
+    },
+    {
+      "type": "Hidden",
+      "generatedValue": {
+        "type": "uuid"
+      },
+      "binding": {
+        "type": "bpmn:Message#property",
+        "name": "name"
       }
     },
     {
