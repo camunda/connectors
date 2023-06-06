@@ -22,6 +22,7 @@ import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationH
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionInspector;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
+import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -42,12 +43,14 @@ public class InboundConnectorLifecycleConfiguration {
       InboundCorrelationHandler correlationHandler,
       ProcessDefinitionInspector processDefinitionInspector,
       SecretProviderAggregator secretProviderAggregator,
+      MetricsRecorder metricsRecorder,
       @Autowired(required = false) WebhookConnectorRegistry webhookConnectorRegistry) {
     return new InboundConnectorManager(
         connectorFactory,
         correlationHandler,
         processDefinitionInspector,
         secretProviderAggregator,
+        metricsRecorder,
         webhookConnectorRegistry);
   }
 }

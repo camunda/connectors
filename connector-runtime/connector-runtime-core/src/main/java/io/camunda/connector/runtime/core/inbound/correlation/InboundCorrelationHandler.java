@@ -70,7 +70,7 @@ public class InboundCorrelationHandler {
             + " is not supported by Runtime");
   }
 
-  private InboundConnectorResult<ProcessInstance> triggerStartEvent(
+  protected InboundConnectorResult<ProcessInstance> triggerStartEvent(
       InboundConnectorProperties properties, Object variables) {
     StartEventCorrelationPoint correlationPoint =
         (StartEventCorrelationPoint) properties.getCorrelationPoint();
@@ -106,7 +106,7 @@ public class InboundCorrelationHandler {
     }
   }
 
-  private InboundConnectorResult<CorrelatedMessage> triggerMessage(
+  protected InboundConnectorResult<CorrelatedMessage> triggerMessage(
       InboundConnectorProperties properties, Object variables) {
 
     MessageCorrelationPoint correlationPoint =
@@ -142,7 +142,8 @@ public class InboundCorrelationHandler {
     }
   }
 
-  private boolean isActivationConditionMet(InboundConnectorProperties properties, Object context) {
+  protected boolean isActivationConditionMet(
+      InboundConnectorProperties properties, Object context) {
 
     String activationCondition = properties.getProperty(ACTIVATION_CONDITION_KEYWORD);
     if (activationCondition == null || activationCondition.trim().length() == 0) {
@@ -157,7 +158,7 @@ public class InboundCorrelationHandler {
     }
   }
 
-  private String extractCorrelationKey(InboundConnectorProperties properties, Object context) {
+  protected String extractCorrelationKey(InboundConnectorProperties properties, Object context) {
     String correlationKeyExpression =
         properties.getRequiredProperty(CORRELATION_KEY_EXPRESSION_KEYWORD);
     try {
@@ -167,7 +168,7 @@ public class InboundCorrelationHandler {
     }
   }
 
-  private Object extractVariables(Object rawVariables, InboundConnectorProperties properties) {
+  protected Object extractVariables(Object rawVariables, InboundConnectorProperties properties) {
     if (properties.getProperty(LEGACY_VARIABLE_MAPPING_KEYWORD) != null) {
       // if legacy variable mapping is used, we don't need to extract variables
       // because they are already extracted by the webhook connector

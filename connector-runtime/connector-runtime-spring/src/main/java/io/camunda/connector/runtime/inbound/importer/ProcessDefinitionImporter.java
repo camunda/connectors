@@ -17,11 +17,13 @@
 package io.camunda.connector.runtime.inbound.importer;
 
 import io.camunda.connector.runtime.inbound.lifecycle.InboundConnectorManager;
+import io.camunda.connector.runtime.metrics.ConnectorMetrics.Inbound;
 import io.camunda.operate.CamundaOperateClient;
 import io.camunda.operate.dto.ProcessDefinition;
 import io.camunda.operate.dto.SearchResult;
 import io.camunda.operate.exception.OperateException;
 import io.camunda.operate.search.SearchQuery;
+import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,14 +37,18 @@ public class ProcessDefinitionImporter {
 
   private final CamundaOperateClient camundaOperateClient;
   private final InboundConnectorManager inboundManager;
+  private final MetricsRecorder metricsRecorder;
 
   private List<Object> paginationIndex;
 
   @Autowired
   public ProcessDefinitionImporter(
-      CamundaOperateClient camundaOperateClient, InboundConnectorManager inboundManager) {
+      CamundaOperateClient camundaOperateClient,
+      InboundConnectorManager inboundManager,
+      @Autowired(required = false) MetricsRecorder metricsRecorder) {
     this.camundaOperateClient = camundaOperateClient;
     this.inboundManager = inboundManager;
+    this.metricsRecorder = metricsRecorder;
   }
 
   @Scheduled(fixedDelayString = "${camunda.connector.polling.interval:5000}")
@@ -67,15 +73,22 @@ public class ProcessDefinitionImporter {
     } while (result.getItems().size() > 0);
   }
 
-  private void handleImportedDefinitions(List<ProcessDefinition> processDefinitions)
-      throws OperateException {
+  private void handleImportedDefinitions(List<ProcessDefinition> processDefinitions) {
 
-    if (processDefinitions == null) {
+    if (processDefinitions == null || processDefinitions.isEmpty()) {
       LOG.trace("... returned no process definitions.");
       return;
     }
     LOG.trace("... returned " + processDefinitions.size() + " process definitions.");
+    meter(processDefinitions.size());
 
     inboundManager.registerProcessDefinitions(processDefinitions);
+  }
+
+  private void meter(int count) {
+    if (metricsRecorder != null) {
+      metricsRecorder.increase(
+          Inbound.METRIC_NAME_INBOUND_PROCESS_DEFINITIONS_CHECKED, null, null, count);
+    }
   }
 }

@@ -16,9 +16,6 @@
  */
 package io.camunda.connector.runtime.inbound.webhook;
 
-import static io.camunda.zeebe.spring.client.metrics.MetricsRecorder.ACTION_ACTIVATED;
-import static io.camunda.zeebe.spring.client.metrics.MetricsRecorder.ACTION_COMPLETED;
-import static io.camunda.zeebe.spring.client.metrics.MetricsRecorder.METRIC_NAME_INBOUND_CONNECTOR;
 import static java.util.Collections.emptyMap;
 import static org.springframework.web.bind.annotation.RequestMethod.DELETE;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
@@ -31,7 +28,6 @@ import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingResult;
 import io.camunda.connector.runtime.inbound.lifecycle.ActiveInboundConnector;
 import io.camunda.connector.runtime.inbound.webhook.model.HttpServletRequestWebhookProcessingPayload;
-import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.util.Map;
@@ -58,17 +54,11 @@ public class InboundWebhookRestController {
   protected static final String CONNECTOR_CTX_VAR_PARAMS = "requestParams";
   protected static final String CONNECTOR_CTX_VAR_CONNECTOR_DATA = "connectorData";
 
-  public static final String METRIC_WEBHOOK_VALUE = "WEBHOOK";
-
   private final WebhookConnectorRegistry webhookConnectorRegistry;
-  private final MetricsRecorder metricsRecorder;
 
   @Autowired
-  public InboundWebhookRestController(
-      final WebhookConnectorRegistry webhookConnectorRegistry,
-      final MetricsRecorder metricsRecorder) {
+  public InboundWebhookRestController(final WebhookConnectorRegistry webhookConnectorRegistry) {
     this.webhookConnectorRegistry = webhookConnectorRegistry;
-    this.metricsRecorder = metricsRecorder;
   }
 
   @RequestMapping(
@@ -91,12 +81,10 @@ public class InboundWebhookRestController {
       response = ResponseEntity.notFound().build();
     } else {
       var connector = connectorByContextPath.get();
-      incrementMetric(ACTION_ACTIVATED);
       WebhookProcessingPayload payload =
           new HttpServletRequestWebhookProcessingPayload(
               httpServletRequest, params, headers, bodyAsByteArray);
       response = processWebhook(connector, payload);
-      incrementMetric(ACTION_COMPLETED);
     }
     return response;
   }
@@ -105,20 +93,16 @@ public class InboundWebhookRestController {
       ActiveInboundConnector connector, WebhookProcessingPayload payload) {
     ResponseEntity<InboundConnectorResult<?>> connectorResponse;
     try {
-      incrementMetric(METRIC_NAME_INBOUND_CONNECTOR);
       var webhookResult =
           ((WebhookConnectorExecutable) connector.executable()).triggerWebhook(payload);
       Map<String, Object> ctxData = toConnectorVariablesContext(webhookResult);
       InboundConnectorResult<?> result = connector.context().correlate(ctxData);
       connectorResponse = ResponseEntity.ok(result);
     } catch (Exception e) {
+      LOG.error("Webhook failed with exception", e);
       connectorResponse = ResponseEntity.internalServerError().build();
     }
     return connectorResponse;
-  }
-
-  private void incrementMetric(final String action) {
-    metricsRecorder.increase(METRIC_NAME_INBOUND_CONNECTOR, action, METRIC_WEBHOOK_VALUE);
   }
 
   private Map<String, Object> toConnectorVariablesContext(WebhookProcessingResult processedResult) {

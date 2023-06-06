@@ -26,7 +26,9 @@ import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationH
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionInspector;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
+import io.camunda.connector.runtime.metrics.ConnectorMetrics.Inbound;
 import io.camunda.operate.dto.ProcessDefinition;
+import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -44,6 +46,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class InboundConnectorManager {
+
   private static final Logger LOG = LoggerFactory.getLogger(InboundConnectorManager.class);
 
   public static final String WEBHOOK_CONTEXT_BPMN_FIELD = "inbound.context";
@@ -53,6 +56,7 @@ public class InboundConnectorManager {
   private final ProcessDefinitionInspector processDefinitionInspector;
   private final SecretProviderAggregator secretProviderAggregator;
   private final WebhookConnectorRegistry webhookConnectorRegistry;
+  private final MetricsRecorder metricsRecorder;
 
   // TODO: consider using external storage instead of these collections to allow multi-instance
   // setup
@@ -65,11 +69,13 @@ public class InboundConnectorManager {
       InboundCorrelationHandler correlationHandler,
       ProcessDefinitionInspector processDefinitionInspector,
       SecretProviderAggregator secretProviderAggregator,
+      MetricsRecorder metricsRecorder,
       @Autowired(required = false) WebhookConnectorRegistry webhookConnectorRegistry) {
     this.connectorFactory = connectorFactory;
     this.correlationHandler = correlationHandler;
     this.processDefinitionInspector = processDefinitionInspector;
     this.secretProviderAggregator = secretProviderAggregator;
+    this.metricsRecorder = metricsRecorder;
     this.webhookConnectorRegistry = webhookConnectorRegistry;
   }
 
@@ -144,10 +150,16 @@ public class InboundConnectorManager {
         LOG.trace("Registering webhook: " + newProperties.getType());
       }
       inboundContext.reportHealth(Health.up());
+      metricsRecorder.increase(
+          Inbound.METRIC_NAME_ACTIVATIONS, Inbound.ACTION_ACTIVATED, newProperties.getType());
     } catch (Exception e) {
       inboundContext.reportHealth(Health.down(e));
       // log and continue with other connectors anyway
       LOG.error("Failed to activate inbound connector " + newProperties, e);
+      metricsRecorder.increase(
+          Inbound.METRIC_NAME_ACTIVATIONS,
+          Inbound.ACTION_ACTIVATION_FAILED,
+          newProperties.getType());
     }
   }
 
@@ -167,6 +179,8 @@ public class InboundConnectorManager {
 
   private void deactivateConnector(InboundConnectorProperties properties) {
     findActiveConnector(properties).ifPresent(this::deactivateConnector);
+    metricsRecorder.increase(
+        Inbound.METRIC_NAME_ACTIVATIONS, Inbound.ACTION_DEACTIVATED, properties.getType());
   }
 
   private void deactivateConnector(ActiveInboundConnector connector) {
@@ -178,6 +192,10 @@ public class InboundConnectorManager {
         webhookConnectorRegistry.deregister(connector);
         LOG.trace("Unregistering webhook: " + connector.properties().getType());
       }
+      metricsRecorder.increase(
+          Inbound.METRIC_NAME_ACTIVATIONS,
+          Inbound.ACTION_DEACTIVATED,
+          connector.properties().getType());
     } catch (Exception e) {
       // log and continue with other connectors anyway
       LOG.error("Failed to deactivate inbound connector " + connector, e);
