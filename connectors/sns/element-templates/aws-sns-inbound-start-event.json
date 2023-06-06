@@ -32,7 +32,7 @@
   "properties": [
     {
       "type":"Hidden",
-      "value":"io.camunda:aws-sns-inbound:1",
+      "value":"io.camunda:aws-sns-webhook:1",
       "binding":{
         "type":"zeebe:property",
         "name":"inbound.type"
