@@ -151,35 +151,6 @@ class WebhookControllerTestZeebeTests {
   }
 
   @Test
-  public void testFailedCorrelationDueToEmptyResult() throws Exception {
-    WebhookConnectorExecutable webhookConnectorExecutable = mock(WebhookConnectorExecutable.class);
-    when(webhookConnectorExecutable.triggerWebhook(any(WebhookProcessingPayload.class)))
-        .thenReturn(mock(WebhookProcessingResult.class));
-
-    var correlationHandlerMock = mock(InboundCorrelationHandler.class);
-    when(correlationHandlerMock.correlate(any(), any())).thenReturn(null);
-
-    var webhookProperties = webhookProperties("processA", 1, "myPath");
-    var webhookContext =
-        new InboundConnectorContextImpl(
-            secretProvider, webhookProperties, correlationHandlerMock, (e) -> {});
-
-    // Register webhook function 'implementation'
-    webhookConnectorRegistry.register(
-        new ActiveInboundConnector(webhookConnectorExecutable, webhookProperties, webhookContext));
-
-    ResponseEntity<InboundConnectorResult<?>> responseEntity =
-        controller.inbound(
-            "myPath",
-            new HashMap<>(),
-            "{}".getBytes(),
-            new HashMap<>(),
-            new MockHttpServletRequest());
-
-    assertEquals(422, responseEntity.getStatusCode().value());
-  }
-
-  @Test
   public void testSuccessfulProcessingWithErrorDuringActivation() throws Exception {
     WebhookConnectorExecutable webhookConnectorExecutable = mock(WebhookConnectorExecutable.class);
     when(webhookConnectorExecutable.triggerWebhook(any(WebhookProcessingPayload.class)))

@@ -110,11 +110,7 @@ public class InboundWebhookRestController {
           ((WebhookConnectorExecutable) connector.executable()).triggerWebhook(payload);
       Map<String, Object> ctxData = toConnectorVariablesContext(webhookResult);
       InboundConnectorResult<?> result = connector.context().correlate(ctxData);
-      if (result != null) {
-        connectorResponse = ResponseEntity.ok(result);
-      } else {
-        connectorResponse = ResponseEntity.unprocessableEntity().build();
-      }
+      connectorResponse = ResponseEntity.ok(result);
     } catch (Exception e) {
       connectorResponse = ResponseEntity.internalServerError().build();
     }
@@ -129,7 +125,6 @@ public class InboundWebhookRestController {
     if (processedResult == null) {
       return emptyMap();
     }
-
     return Map.of(
         CONNECTOR_CTX_VAR_REQUEST,
         Map.of(
