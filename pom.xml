@@ -39,7 +39,7 @@
 
     <version.httpcore>4.4.16</version.httpcore>
 
-    <version.kafka-clients>3.4.0</version.kafka-clients>
+    <version.kafka-clients>3.4.1</version.kafka-clients>
 
     <version.microsoft-graph>5.59.0</version.microsoft-graph>
     <version.azure-identity>1.9.1</version.azure-identity>
