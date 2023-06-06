@@ -42,7 +42,7 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
   private static final Logger LOGGER = LoggerFactory.getLogger(HttpWebhookExecutable.class);
   private final ObjectMapper objectMapper;
 
-  private InboundConnectorContext context;
+  private WebhookConnectorProperties props;
 
   public HttpWebhookExecutable() {
     this(ObjectMapperSupplier.getMapperInstance());
@@ -55,13 +55,11 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
   @Override
   public WebhookProcessingResult triggerWebhook(WebhookProcessingPayload payload)
       throws NoSuchAlgorithmException, InvalidKeyException, IOException {
-    LOGGER.trace("Triggered webhook with context " + context + " and payload " + payload);
+    LOGGER.trace(
+        "Triggered webhook with context " + props.getContext() + " and payload " + payload);
     WebhookProcessingResultImpl response = new WebhookProcessingResultImpl();
-    WebhookConnectorProperties webhookProperties =
-        new WebhookConnectorProperties(context.getProperties());
-    context.replaceSecrets(webhookProperties);
 
-    if (!webhookSignatureIsValid(webhookProperties, payload)) {
+    if (!webhookSignatureIsValid(props, payload)) {
       throw new IOException("Webhook failed: HMAC signature check didn't pass");
     }
 
@@ -120,6 +118,7 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
     if (context == null) {
       throw new Exception("Inbound connector context cannot be null");
     }
-    this.context = context;
+    props = new WebhookConnectorProperties(context.getProperties());
+    context.replaceSecrets(props);
   }
 }
