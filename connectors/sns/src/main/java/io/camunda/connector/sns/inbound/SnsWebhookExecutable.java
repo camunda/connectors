@@ -28,7 +28,7 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@InboundConnector(name = "SNS_INBOUND", type = "io.camunda:aws-sns-inbound:1")
+@InboundConnector(name = "SNS_INBOUND", type = "io.camunda:aws-sns-webhook:1")
 public class SnsWebhookExecutable implements WebhookConnectorExecutable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(SnsWebhookExecutable.class);
