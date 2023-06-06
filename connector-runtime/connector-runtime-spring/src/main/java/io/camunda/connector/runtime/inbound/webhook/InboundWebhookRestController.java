@@ -110,7 +110,7 @@ public class InboundWebhookRestController {
           ((WebhookConnectorExecutable) connector.executable()).triggerWebhook(payload);
       Map<String, Object> ctxData = toConnectorVariablesContext(webhookResult);
       InboundConnectorResult<?> result = connector.context().correlate(ctxData);
-      if (result != null && result.isActivated()) {
+      if (result != null) {
         connectorResponse = ResponseEntity.ok(result);
       } else {
         connectorResponse = ResponseEntity.unprocessableEntity().build();

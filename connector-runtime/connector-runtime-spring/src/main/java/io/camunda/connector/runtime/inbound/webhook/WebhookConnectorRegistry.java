@@ -54,4 +54,8 @@ public class WebhookConnectorRegistry {
     var context = connector.properties().getRequiredProperty(WEBHOOK_CONTEXT_BPMN_FIELD);
     activeEndpointsByContext.remove(context);
   }
+
+  public void reset() {
+    activeEndpointsByContext.clear();
+  }
 }
