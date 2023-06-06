@@ -72,7 +72,7 @@ public class ProcessDefinitionImporterTest {
         .thenReturn(firstOperateResponse)
         .thenReturn(secondOperateResponse);
 
-    var importer = new ProcessDefinitionImporter(operate, manager);
+    var importer = new ProcessDefinitionImporter(operate, manager, null);
 
     // when
     importer.scheduleImport();

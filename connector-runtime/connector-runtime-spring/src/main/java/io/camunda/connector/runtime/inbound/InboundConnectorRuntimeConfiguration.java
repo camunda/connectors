@@ -20,7 +20,9 @@ import io.camunda.connector.runtime.core.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionImportConfiguration;
 import io.camunda.connector.runtime.inbound.lifecycle.InboundConnectorLifecycleConfiguration;
+import io.camunda.connector.runtime.inbound.lifecycle.MeteredInboundCorrelationHandler;
 import io.camunda.zeebe.client.ZeebeClient;
+import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -31,7 +33,8 @@ public class InboundConnectorRuntimeConfiguration {
 
   @Bean
   public InboundCorrelationHandler inboundCorrelationHandler(
-      final ZeebeClient zeebeClient, final FeelEngineWrapper feelEngine) {
-    return new InboundCorrelationHandler(zeebeClient, feelEngine);
+      final ZeebeClient zeebeClient, final FeelEngineWrapper feelEngine,
+      final MetricsRecorder metricsRecorder) {
+    return new MeteredInboundCorrelationHandler(zeebeClient, feelEngine, metricsRecorder);
   }
 }
