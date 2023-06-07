@@ -111,7 +111,7 @@
     },
     {
       "label": "API key",
-      "description": "Google Maps Platform API key. Details in the <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-maps-platform/'>connector documentation</a>",
+      "description": "Google Maps Platform API key. Details in the <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-maps-platform/' target='_blank'>connector documentation</a>",
       "group": "authentication",
       "type": "String",
       "feel": "optional",
@@ -126,7 +126,7 @@
     },
     {
       "label": "Region code",
-      "description": "You can find supported regions here <a href='https://developers.google.com/maps/documentation/address-validation/coverage'>supported regions</a>",
+      "description": "You can find supported regions here <a href='https://developers.google.com/maps/documentation/address-validation/coverage' target='_blank'>supported regions</a>",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -168,7 +168,7 @@
     },
     {
       "label": "Address",
-      "description": "Unstructured address. Details in a <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-maps-platform/'> connector documentation</a>",
+      "description": "Unstructured address. Details in a <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-maps-platform/' target='_blank'> connector documentation</a>",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -189,7 +189,7 @@
     },
     {
       "label": "Address",
-      "description": "Complete address. Details in a <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-maps-platform/'> connector documentation</a>",
+      "description": "Complete address. Details in a <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-maps-platform/' target='_blank'> connector documentation</a>",
       "group": "input",
       "type": "String",
       "feel": "optional",
