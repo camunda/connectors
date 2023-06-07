@@ -28,10 +28,10 @@ public class GetWorksheetDataOperation extends GoogleSheetOperation {
           this.get(auth, model.getSpreadsheetId(), model.getWorksheetName());
 
       if (values == null || values.isEmpty()) {
-        return new GoogleSheetsResult("Get Worksheet data", "OK", null);
+        return new GoogleSheetsResult("Get worksheet data", "OK", null);
       }
 
-      return new GoogleSheetsResult("Get Worksheet data", "OK", values);
+      return new GoogleSheetsResult("Get worksheet data", "OK", values);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }

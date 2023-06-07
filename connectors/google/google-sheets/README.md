@@ -97,7 +97,7 @@ mvn clean package
 
 ```json
 {
-  "action": "Create Worksheet",
+  "action": "Create worksheet",
   "status": "OK",
   "response": null
 }
@@ -313,7 +313,7 @@ mvn clean package
 
 ```json
 {
-  "action": "Delete Worksheet",
+  "action": "Delete worksheet",
   "status": "OK",
   "response": null
 }
@@ -467,7 +467,7 @@ mvn clean package
 ```json
 
 {
-  "action": "Create Row",
+  "action": "Create row",
   "status": "OK",
   "response": null
 }
@@ -602,7 +602,7 @@ mvn clean package
 
 ```json
 {
-  "action": "Get Row by index",
+  "action": "Get row by index",
   "status": "OK",
   "response": []
 }
@@ -648,7 +648,7 @@ mvn clean package
 
 ```json
 {
-  "action": "Get Worksheet data",
+  "action": "Get worksheet data",
   "status": "OK",
   "response": [
     []
