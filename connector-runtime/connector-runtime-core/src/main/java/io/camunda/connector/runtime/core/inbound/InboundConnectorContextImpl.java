@@ -40,6 +40,7 @@ import org.slf4j.LoggerFactory;
 
 public class InboundConnectorContextImpl extends AbstractConnectorContext
     implements InboundConnectorContext {
+
   private final Logger LOG = LoggerFactory.getLogger(InboundConnectorContextImpl.class);
   private static final Set<String> reservedKeys =
       Set.of(
@@ -113,18 +114,16 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   public <T> T getPropertiesAsType(Class<T> cls) {
 
     Map<String, Object> result =
-        properties
-            .getPropertiesAsObjectMap()
-            .entrySet()
-            .stream()
+        properties.getPropertiesAsObjectMap().entrySet().stream()
             .filter(entry -> entry.getValue() != null)
             .collect(
                 Collectors.toMap(
                     Map.Entry::getKey,
-                    entry -> isReservedKey(entry.getKey())
-                        ? entry.getValue()
-                        : FeelParserWrapper.parseIfIsFeelExpressionOrGetOriginal(
-                            entry.getValue())));
+                    entry ->
+                        isReservedKey(entry.getKey())
+                            ? entry.getValue()
+                            : FeelParserWrapper.parseIfIsFeelExpressionOrGetOriginal(
+                                entry.getValue())));
 
     return objectMapper.convertValue(result, cls);
   }
