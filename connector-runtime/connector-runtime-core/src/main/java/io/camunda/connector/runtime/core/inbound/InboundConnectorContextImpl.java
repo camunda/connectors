@@ -111,16 +111,21 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   @Override
   public <T> T getPropertiesAsType(Class<T> cls) {
+
     Map<String, Object> result =
-        properties.getPropertiesAsObjectMap().entrySet().stream()
+        properties
+            .getPropertiesAsObjectMap()
+            .entrySet()
+            .stream()
+            .filter(entry -> entry.getValue() != null)
             .collect(
                 Collectors.toMap(
                     Map.Entry::getKey,
-                    entry ->
-                        isReservedKey(entry.getKey())
-                            ? entry.getValue()
-                            : FeelParserWrapper.parseIfIsFeelExpressionOrGetOriginal(
-                                entry.getValue())));
+                    entry -> isReservedKey(entry.getKey())
+                        ? entry.getValue()
+                        : FeelParserWrapper.parseIfIsFeelExpressionOrGetOriginal(
+                            entry.getValue())));
+
     return objectMapper.convertValue(result, cls);
   }
 
