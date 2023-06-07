@@ -89,7 +89,7 @@ limitations under the License.</license.inlineheader>
     <plugin.version.maven-exec-plugin>3.1.0</plugin.version.maven-exec-plugin>
     <plugin.version.maven-install-plugin>3.1.1</plugin.version.maven-install-plugin>
     <plugin.version.license>4.2</plugin.version.license>
-    <plugin.version.license.codehaus>2.0.1</plugin.version.license.codehaus>
+    <plugin.version.license.codehaus>2.1.0</plugin.version.license.codehaus>
     <plugin.version.maven-resources-plugin>3.2.0</plugin.version.maven-resources-plugin>
     <plugin.version.maven-shade-plugin>3.4.1</plugin.version.maven-shade-plugin>
     <plugin.version.maven-surefire-plugin>3.1.2</plugin.version.maven-surefire-plugin>
