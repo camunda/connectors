@@ -62,6 +62,7 @@ public class InboundConnectorRestController {
     }
     return new ActiveInboundConnectorResponse(
         properties.getBpmnProcessId(),
+        properties.getVersion(),
         properties.getElementId(),
         properties.getType(),
         details,

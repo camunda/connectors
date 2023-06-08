@@ -21,6 +21,7 @@ import java.util.Map;
 
 public record ActiveInboundConnectorResponse(
     String bpmnProcessId,
+    int version,
     String elementId,
     String type,
     Map<String, Object> data,
