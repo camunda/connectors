@@ -55,12 +55,10 @@ public class SqsExecutable implements InboundConnectorExecutable {
             properties.getAuthentication().getSecretKey(),
             properties.getQueue().getRegion());
     LOGGER.debug("SQS client created successfully");
-
-    executorService.execute(
-        sqsQueueConsumer == null
-            ? new SqsQueueConsumer(amazonSQS, properties, context)
-            : sqsQueueConsumer);
-
+    if (sqsQueueConsumer == null) {
+      sqsQueueConsumer = new SqsQueueConsumer(amazonSQS, properties, context);
+    }
+    executorService.execute(sqsQueueConsumer);
     LOGGER.debug("SQS queue consumer started successfully");
   }
 
