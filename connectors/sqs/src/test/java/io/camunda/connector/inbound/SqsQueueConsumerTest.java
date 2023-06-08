@@ -8,6 +8,7 @@ package io.camunda.connector.inbound;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -86,7 +87,7 @@ public class SqsQueueConsumerTest {
     consumer.setQueueConsumerActive(false);
     thread.join();
     // then
-    verify(sqsClient).receiveMessage(any(ReceiveMessageRequest.class));
+    verify(sqsClient, atLeast(1)).receiveMessage(any(ReceiveMessageRequest.class));
     verify(context).correlate(any(SqsInboundMessage.class));
   }
 
@@ -115,7 +116,7 @@ public class SqsQueueConsumerTest {
     consumer.setQueueConsumerActive(false);
     thread.join();
     // then
-    verify(sqsClient).receiveMessage(any(ReceiveMessageRequest.class));
+    verify(sqsClient, atLeast(1)).receiveMessage(any(ReceiveMessageRequest.class));
     verify(context).correlate(MessageMapper.toSqsInboundMessage(message));
     ReceiveMessageRequest receiveMessageRequest = requestArgumentCaptor.getValue();
     assertThat(receiveMessageRequest.getAttributeNames()).isEqualTo(attributeNames);
