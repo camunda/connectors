@@ -12,7 +12,7 @@
 
   <groupId>io.camunda.connector</groupId>
   <artifactId>connector-parent</artifactId>
-  <version>0.9.0-SNAPSHOT</version>
+  <version>0.11.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>Camunda Connector Parent</name>
@@ -116,25 +116,25 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>io.camunda.connector</groupId>
         <artifactId>connector-core</artifactId>
-        <version>0.9.0</version>
+        <version>0.11.0-SNAPSHOT</version>
       </dependency>
 
       <dependency>
         <groupId>io.camunda.connector</groupId>
         <artifactId>connector-validation</artifactId>
-        <version>0.9.0</version>
+        <version>0.11.0-SNAPSHOT</version>
       </dependency>
 
       <dependency>
         <groupId>io.camunda.connector</groupId>
         <artifactId>connector-runtime-util</artifactId>
-        <version>0.9.0</version>
+        <version>0.10.0-SNAPSHOT</version>
       </dependency>
 
       <dependency>
         <groupId>io.camunda.connector</groupId>
         <artifactId>connector-gcp-security-manager</artifactId>
-        <version>0.9.0</version>
+        <version>0.10.0-SNAPSHOT</version>
       </dependency>
 
       <dependency>
