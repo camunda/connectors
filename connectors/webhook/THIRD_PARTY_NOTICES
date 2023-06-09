@@ -9,7 +9,7 @@ This project incorporates components with the licenses under which Camunda recei
   * com.google.code.findbugs:jsr305 (Version: 3.0.2, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * com.google.errorprone:error_prone_annotations (Version: 2.18.0, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * com.google.guava:failureaccess (Version: 1.0.1, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
-  * com.google.guava:guava (Version: 32.0.0-jre, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
+  * com.google.guava:guava (Version: 32.0.1-jre, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * com.google.guava:listenablefuture (Version: 9999.0-empty-to-avoid-conflict-with-guava, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * com.google.j2objc:j2objc-annotations (Version: 2.8, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * commons-codec:commons-codec (Version: 1.15, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
