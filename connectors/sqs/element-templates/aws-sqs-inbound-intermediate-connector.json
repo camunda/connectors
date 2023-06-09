@@ -140,7 +140,7 @@
     },
     {
       "label": "Attribute names",
-      "description": "Queue attribute names. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-sqs-inbound/\" target=\"_blank\">documentation</a> for details",
+      "description": "Array of queue attribute names. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-sqs-inbound/\" target=\"_blank\">documentation</a> for details",
       "group": "input",
       "type": "String",
       "optional": true,
@@ -152,7 +152,7 @@
     },
     {
       "label": "Message attribute names",
-      "description": "Message attribute names. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-sqs-inbound/\" target=\"_blank\">documentation</a> for details",
+      "description": "Array of message attribute names. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-sqs-inbound/\" target=\"_blank\">documentation</a> for details",
       "group": "input",
       "type": "String",
       "optional": true,
