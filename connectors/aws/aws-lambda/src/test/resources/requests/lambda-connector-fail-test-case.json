@@ -46,15 +46,5 @@
     "awsFunction": {
       "payload": "secrets.PAYLOAD_KEY"
     }
-  },
-  {
-    "authentication": {
-      "secretKey": "secrets.SECRET_KEY",
-      "accessKey": "secrets.ACCESS_KEY"
-    },
-    "awsFunction": {
-      "payload": "secrets.PAYLOAD_KEY",
-      "functionName": "secrets.FUNCTION_NAME"
-    }
   }
 ]

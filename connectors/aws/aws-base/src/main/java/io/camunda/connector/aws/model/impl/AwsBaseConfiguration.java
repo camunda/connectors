@@ -9,10 +9,9 @@ package io.camunda.connector.aws.model.impl;
 import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.aws.model.AwsConfiguration;
 import java.util.Objects;
-import javax.validation.constraints.NotBlank;
 
 public class AwsBaseConfiguration implements AwsConfiguration {
-  @NotBlank @Secret private String region;
+  @Secret private String region;
 
   public String getRegion() {
     return region;
@@ -41,6 +40,6 @@ public class AwsBaseConfiguration implements AwsConfiguration {
 
   @Override
   public String toString() {
-    return "AwsDynamoDbConfiguration{" + "region='" + region + "'" + "}";
+    return "AwsBaseConfiguration{" + "region='" + region + "'" + "}";
   }
 }
