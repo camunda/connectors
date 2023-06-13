@@ -39,6 +39,7 @@ import io.camunda.connector.runtime.core.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.inbound.lifecycle.ActiveInboundConnector;
+import io.camunda.connector.runtime.inbound.webhook.FeelExpressionErrorResponse;
 import io.camunda.connector.runtime.inbound.webhook.InboundWebhookRestController;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.zeebe.client.ZeebeClient;
@@ -46,7 +47,6 @@ import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.process.test.inspections.model.InspectedProcessInstance;
 import io.camunda.zeebe.spring.test.ZeebeSpringTest;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -226,18 +226,18 @@ class WebhookControllerTestZeebeTests {
 
     deployProcess("processA");
 
-    ResponseEntity<?> responseEntity =
-        controller.inbound(
-            "myPath",
-            new HashMap<>(),
-            "{}".getBytes(),
-            new HashMap<>(),
-            new MockHttpServletRequest());
+    ResponseEntity<FeelExpressionErrorResponse> responseEntity =
+        (ResponseEntity<FeelExpressionErrorResponse>)
+            controller.inbound(
+                "myPath",
+                new HashMap<>(),
+                "{}".getBytes(),
+                new HashMap<>(),
+                new MockHttpServletRequest());
 
     assertEquals(422, responseEntity.getStatusCode().value());
-    Map<String, String> body = (Map<String, String>) responseEntity.getBody();
-    assertEquals("reason", body.get("reason"));
-    assertEquals("expression", body.get("expression"));
+    assertEquals("reason", responseEntity.getBody().reason());
+    assertEquals("expression", responseEntity.getBody().expression());
   }
 
   public void deployProcess(String bpmnProcessId) {
