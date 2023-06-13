@@ -17,6 +17,7 @@ public class FunctionRequestData {
   @NotNull private Object payload;
   private OperationType operationType; // this is not use and not implemented yet
 
+  @Secret
   private String region;
 
   public String getFunctionName() {
