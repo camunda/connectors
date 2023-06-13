@@ -26,10 +26,12 @@ import io.camunda.connector.api.inbound.InboundConnectorResult;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingResult;
+import io.camunda.connector.runtime.core.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.inbound.lifecycle.ActiveInboundConnector;
 import io.camunda.connector.runtime.inbound.webhook.model.HttpServletRequestWebhookProcessingPayload;
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -64,7 +66,7 @@ public class InboundWebhookRestController {
   @RequestMapping(
       method = {GET, POST, PUT, DELETE},
       path = "/inbound/{context}")
-  public ResponseEntity<InboundConnectorResult<?>> inbound(
+  public ResponseEntity<?> inbound(
       @PathVariable String context,
       @RequestHeader Map<String, String> headers,
       @RequestBody(required = false) byte[] bodyAsByteArray,
@@ -72,53 +74,51 @@ public class InboundWebhookRestController {
       HttpServletRequest httpServletRequest)
       throws IOException {
     LOG.trace("Received inbound hook on {}", context);
-
-    Optional<ActiveInboundConnector> connectorByContextPath =
-        webhookConnectorRegistry.getWebhookConnectorByContextPath(context);
-
-    ResponseEntity<InboundConnectorResult<?>> response = null;
-    if (connectorByContextPath.isEmpty()) {
-      response = ResponseEntity.notFound().build();
-    } else {
-      var connector = connectorByContextPath.get();
-      WebhookProcessingPayload payload =
-          new HttpServletRequestWebhookProcessingPayload(
-              httpServletRequest, params, headers, bodyAsByteArray);
-      response = processWebhook(connector, payload);
-    }
-    return response;
+    return webhookConnectorRegistry
+        .getWebhookConnectorByContextPath(context)
+        .map(
+            connector -> {
+              WebhookProcessingPayload payload =
+                  new HttpServletRequestWebhookProcessingPayload(
+                      httpServletRequest, params, headers, bodyAsByteArray);
+              return processWebhook(connector, payload);
+            })
+        .orElseGet(() -> ResponseEntity.notFound().build());
   }
 
-  private ResponseEntity<InboundConnectorResult<?>> processWebhook(
+  private ResponseEntity<?> processWebhook(
       ActiveInboundConnector connector, WebhookProcessingPayload payload) {
-    ResponseEntity<InboundConnectorResult<?>> connectorResponse;
+    ResponseEntity<?> connectorResponse;
     try {
       var webhookResult =
           ((WebhookConnectorExecutable) connector.executable()).triggerWebhook(payload);
-      Map<String, Object> ctxData = toConnectorVariablesContext(webhookResult);
+      var ctxData = toConnectorVariablesContext(webhookResult);
       InboundConnectorResult<?> result = connector.context().correlate(ctxData);
       connectorResponse = ResponseEntity.ok(result);
     } catch (Exception e) {
       LOG.error("Webhook failed with exception", e);
-      connectorResponse = ResponseEntity.internalServerError().build();
+      if (e instanceof FeelEngineWrapperException feelEngineWrapperException) {
+        var error = new HashMap<>();
+        error.put("reason", feelEngineWrapperException.getReason());
+        error.put("expression", feelEngineWrapperException.getExpression());
+        connectorResponse = ResponseEntity.unprocessableEntity().body(error);
+      } else {
+        connectorResponse = ResponseEntity.internalServerError().build();
+      }
     }
     return connectorResponse;
   }
 
-  private Map<String, Object> toConnectorVariablesContext(WebhookProcessingResult processedResult) {
+  private WebhookResultContext toConnectorVariablesContext(
+      WebhookProcessingResult processedResult) {
     if (processedResult == null) {
-      return emptyMap();
+      return new WebhookResultContext(null);
     }
-    return Map.of(
-        CONNECTOR_CTX_VAR_REQUEST,
-        Map.of(
-            CONNECTOR_CTX_VAR_BODY,
+    return new WebhookResultContext(
+        new WebhookResultContext.Request(
             Optional.ofNullable(processedResult.body()).orElse(emptyMap()),
-            CONNECTOR_CTX_VAR_HEADERS,
             Optional.ofNullable(processedResult.headers()).orElse(emptyMap()),
-            CONNECTOR_CTX_VAR_PARAMS,
             Optional.ofNullable(processedResult.params()).orElse(emptyMap()),
-            CONNECTOR_CTX_VAR_CONNECTOR_DATA,
             Optional.ofNullable(processedResult.connectorData()).orElse(emptyMap())));
   }
 }

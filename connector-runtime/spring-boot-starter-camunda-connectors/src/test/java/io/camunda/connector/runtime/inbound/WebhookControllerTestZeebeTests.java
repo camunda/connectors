@@ -35,6 +35,7 @@ import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.impl.inbound.result.ProcessInstance;
 import io.camunda.connector.impl.inbound.result.StartEventCorrelationResult;
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
+import io.camunda.connector.runtime.core.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.inbound.lifecycle.ActiveInboundConnector;
@@ -45,6 +46,7 @@ import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.process.test.inspections.model.InspectedProcessInstance;
 import io.camunda.zeebe.spring.test.ZeebeSpringTest;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -99,12 +101,13 @@ class WebhookControllerTestZeebeTests {
     deployProcess("processA");
 
     ResponseEntity<InboundConnectorResult<?>> responseEntity =
-        controller.inbound(
-            "myPath",
-            new HashMap<>(),
-            "{}".getBytes(),
-            new HashMap<>(),
-            new MockHttpServletRequest());
+        (ResponseEntity<InboundConnectorResult<?>>)
+            controller.inbound(
+                "myPath",
+                new HashMap<>(),
+                "{}".getBytes(),
+                new HashMap<>(),
+                new MockHttpServletRequest());
 
     assertEquals(200, responseEntity.getStatusCode().value());
     assertTrue(Objects.requireNonNull(responseEntity.getBody()).isActivated());
@@ -139,12 +142,13 @@ class WebhookControllerTestZeebeTests {
         new ActiveInboundConnector(webhookConnectorExecutable, webhookProperties, webhookContext));
 
     ResponseEntity<InboundConnectorResult<?>> responseEntity =
-        controller.inbound(
-            "myPath",
-            new HashMap<>(),
-            "{}".getBytes(),
-            new HashMap<>(),
-            new MockHttpServletRequest());
+        (ResponseEntity<InboundConnectorResult<?>>)
+            controller.inbound(
+                "myPath",
+                new HashMap<>(),
+                "{}".getBytes(),
+                new HashMap<>(),
+                new MockHttpServletRequest());
 
     assertEquals(200, responseEntity.getStatusCode().value());
     assertFalse(Objects.requireNonNull(responseEntity.getBody()).isActivated());
@@ -167,7 +171,7 @@ class WebhookControllerTestZeebeTests {
 
     deployProcess("processB");
 
-    ResponseEntity<InboundConnectorResult<?>> responseEntity =
+    ResponseEntity<?> responseEntity =
         controller.inbound(
             "myPath",
             new HashMap<>(),
@@ -194,7 +198,7 @@ class WebhookControllerTestZeebeTests {
 
     deployProcess("processA");
 
-    ResponseEntity<InboundConnectorResult<?>> responseEntity =
+    ResponseEntity<?> responseEntity =
         controller.inbound(
             "myPath",
             new HashMap<>(),
@@ -203,6 +207,37 @@ class WebhookControllerTestZeebeTests {
             new MockHttpServletRequest());
 
     assertEquals(500, responseEntity.getStatusCode().value());
+  }
+
+  @Test
+  public void testFeelExpressionErrorDuringProcessing() throws Exception {
+    WebhookConnectorExecutable webhookConnectorExecutable = mock(WebhookConnectorExecutable.class);
+    when(webhookConnectorExecutable.triggerWebhook(any(WebhookProcessingPayload.class)))
+        .thenThrow(new FeelEngineWrapperException("reason", "expression", null));
+
+    var webhookProperties = webhookProperties("processA", 1, "myPath");
+    var webhookContext =
+        new InboundConnectorContextImpl(
+            secretProvider, webhookProperties, correlationHandler, (e) -> {});
+
+    // Register webhook function 'implementation'
+    webhookConnectorRegistry.register(
+        new ActiveInboundConnector(webhookConnectorExecutable, webhookProperties, webhookContext));
+
+    deployProcess("processA");
+
+    ResponseEntity<?> responseEntity =
+        controller.inbound(
+            "myPath",
+            new HashMap<>(),
+            "{}".getBytes(),
+            new HashMap<>(),
+            new MockHttpServletRequest());
+
+    assertEquals(422, responseEntity.getStatusCode().value());
+    Map<String, String> body = (Map<String, String>) responseEntity.getBody();
+    assertEquals("reason", body.get("reason"));
+    assertEquals("expression", body.get("expression"));
   }
 
   public void deployProcess(String bpmnProcessId) {
