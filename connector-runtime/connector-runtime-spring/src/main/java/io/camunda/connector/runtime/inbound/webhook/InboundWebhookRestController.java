@@ -31,7 +31,6 @@ import io.camunda.connector.runtime.inbound.lifecycle.ActiveInboundConnector;
 import io.camunda.connector.runtime.inbound.webhook.model.HttpServletRequestWebhookProcessingPayload;
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -49,12 +48,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class InboundWebhookRestController {
 
   private static final Logger LOG = LoggerFactory.getLogger(InboundWebhookRestController.class);
-
-  protected static final String CONNECTOR_CTX_VAR_REQUEST = "request";
-  protected static final String CONNECTOR_CTX_VAR_BODY = "body";
-  protected static final String CONNECTOR_CTX_VAR_HEADERS = "headers";
-  protected static final String CONNECTOR_CTX_VAR_PARAMS = "requestParams";
-  protected static final String CONNECTOR_CTX_VAR_CONNECTOR_DATA = "connectorData";
 
   private final WebhookConnectorRegistry webhookConnectorRegistry;
 
@@ -98,9 +91,9 @@ public class InboundWebhookRestController {
     } catch (Exception e) {
       LOG.error("Webhook failed with exception", e);
       if (e instanceof FeelEngineWrapperException feelEngineWrapperException) {
-        var error = new HashMap<>();
-        error.put("reason", feelEngineWrapperException.getReason());
-        error.put("expression", feelEngineWrapperException.getExpression());
+        var error =
+            new FeelExpressionErrorResponse(
+                feelEngineWrapperException.getReason(), feelEngineWrapperException.getExpression());
         connectorResponse = ResponseEntity.unprocessableEntity().body(error);
       } else {
         connectorResponse = ResponseEntity.internalServerError().build();
