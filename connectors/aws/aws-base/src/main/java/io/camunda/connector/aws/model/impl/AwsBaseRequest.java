@@ -14,7 +14,7 @@ import javax.validation.constraints.NotNull;
 public class AwsBaseRequest {
 
   @Valid @NotNull @Secret private AwsBaseAuthentication authentication;
-  @Valid @NotNull @Secret private AwsBaseConfiguration configuration;
+  @Secret private AwsBaseConfiguration configuration;
 
   public AwsBaseAuthentication getAuthentication() {
     return authentication;

@@ -17,6 +17,8 @@ public class FunctionRequestData {
   @NotNull private Object payload;
   private OperationType operationType; // this is not use and not implemented yet
 
+  private String region;
+
   public String getFunctionName() {
     return functionName;
   }
@@ -42,30 +44,42 @@ public class FunctionRequestData {
   }
 
   @Override
-  public boolean equals(final Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    final FunctionRequestData that = (FunctionRequestData) o;
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    FunctionRequestData that = (FunctionRequestData) o;
     return Objects.equals(functionName, that.functionName)
         && Objects.equals(payload, that.payload)
-        && operationType == that.operationType;
+        && operationType == that.operationType
+        && Objects.equals(region, that.region);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(functionName, payload, operationType);
+    return Objects.hash(functionName, payload, operationType, region);
   }
 
   @Override
   public String toString() {
-    return "FunctionRequestData{functionName=[REDACTED], "
-        + "payload=[REDACTED]}, "
-        + "operationType="
+    return "FunctionRequestData{"
+        + "functionName='"
+        + functionName
+        + '\''
+        + ", payload="
+        + payload
+        + ", operationType="
         + operationType
-        + "}";
+        + ", region='"
+        + region
+        + '\''
+        + '}';
+  }
+
+  public String getRegion() {
+    return region;
+  }
+
+  public void setRegion(String region) {
+    this.region = region;
   }
 }
