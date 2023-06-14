@@ -34,7 +34,7 @@
     <version.google-api-services-docs>v1-rev20230227-2.0.0</version.google-api-services-docs>
     <version.google-api-services-sheets>v4-rev20230526-2.0.0</version.google-api-services-sheets>
 
-    <version.google-libraries-bom>26.16.0</version.google-libraries-bom>
+    <version.google-libraries-bom>26.17.0</version.google-libraries-bom>
     <version.gson-extras>1.2.0</version.gson-extras>
 
     <version.httpcore>4.4.16</version.httpcore>
