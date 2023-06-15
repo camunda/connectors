@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" id="Definitions_1no15pe" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.11.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.2.0" camunda:diagramRelationId="67080420-b315-4705-b7f0-5222f538cdfa">
   <bpmn:collaboration id="Collaboration_1fkq2ek">
-    <bpmn:participant id="Participant_14ueoe7" processRef="process_1" />
-    <bpmn:participant id="Participant_0iq8omk" processRef="process_2" />
+    <bpmn:participant id="Participant_14ueoe7" processRef="process1" />
+    <bpmn:participant id="Participant_0iq8omk" processRef="process2" />
     <bpmn:messageFlow id="Flow_0v8mcd7" sourceRef="Activity_0bbhjnc" targetRef="Activity_0wgjxnj" />
     <bpmn:messageFlow id="Flow_1w42yir" sourceRef="Activity_1svog89" targetRef="Activity_1up34yp" />
   </bpmn:collaboration>
-  <bpmn:process id="process_1" isExecutable="true">
+  <bpmn:process id="process1" isExecutable="true">
     <bpmn:task id="Activity_0wgjxnj">
       <bpmn:incoming>Flow_0zr9y78</bpmn:incoming>
       <bpmn:outgoing>Flow_1c6ej6l</bpmn:outgoing>
@@ -34,7 +34,7 @@
     <bpmn:sequenceFlow id="Flow_0oawvuc" sourceRef="start_1" targetRef="Activity_1svog89" />
     <bpmn:sequenceFlow id="Flow_0zr9y78" sourceRef="Activity_1svog89" targetRef="Activity_0wgjxnj" />
   </bpmn:process>
-  <bpmn:process id="process_2" isExecutable="false">
+  <bpmn:process id="process2" isExecutable="false">
     <bpmn:task id="Activity_0bbhjnc">
       <bpmn:incoming>Flow_15vkx4q</bpmn:incoming>
     </bpmn:task>
