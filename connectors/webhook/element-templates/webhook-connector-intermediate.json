@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Webhook connector",
   "id": "io.camunda.connectors.webhook.WebhookConnectorIntermediate.v1",
-  "version": 2,
+  "version": 3,
   "description": "Configure webhook to receive callbacks",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/",
   "category": {
@@ -56,6 +56,40 @@
       "binding": {
         "type": "zeebe:property",
         "name": "inbound.subtype"
+      }
+    },
+    {
+      "id": "webhookMethod",
+      "label": "Webhook method",
+      "group": "endpoint",
+      "description": "Select HTTP method",
+      "value": "any",
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Any",
+          "value": "any"
+        },
+        {
+          "name": "Get",
+          "value": "get"
+        },
+        {
+          "name": "Post",
+          "value": "post"
+        },
+        {
+          "name": "Put",
+          "value": "put"
+        },
+        {
+          "name": "Delete",
+          "value": "delete"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.method"
       }
     },
     {

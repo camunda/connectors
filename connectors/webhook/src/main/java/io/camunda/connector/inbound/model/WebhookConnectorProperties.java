@@ -11,12 +11,14 @@ import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.di
 import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.impl.inbound.InboundConnectorProperties;
 import io.camunda.connector.impl.inbound.ProcessCorrelationPoint;
+import io.camunda.connector.inbound.utils.HttpMethods;
 import java.util.Objects;
 
 public class WebhookConnectorProperties {
 
   private final InboundConnectorProperties genericProperties;
   @Secret private String context;
+  private String method;
   private String activationCondition;
   private String variableMapping;
   private String shouldValidateHmac;
@@ -28,6 +30,11 @@ public class WebhookConnectorProperties {
     this.genericProperties = properties;
 
     this.context = readPropertyRequired("inbound.context");
+
+    // If method is not specified - allow all. This will ensure backwards compatibility,
+    // and ease up writing custom protocol webhook connectors.
+    this.method = readPropertyWithDefault("inbound.method", HttpMethods.any.name());
+
     this.activationCondition = readPropertyNullable("inbound.activationCondition");
     this.variableMapping = readPropertyNullable("inbound.variableMapping");
     this.shouldValidateHmac =
@@ -68,6 +75,14 @@ public class WebhookConnectorProperties {
 
   public void setContext(String context) {
     this.context = context;
+  }
+
+  public String getMethod() {
+    return method;
+  }
+
+  public void setMethod(String method) {
+    this.method = method;
   }
 
   public String getActivationCondition() {
@@ -154,6 +169,7 @@ public class WebhookConnectorProperties {
     }
     WebhookConnectorProperties that = (WebhookConnectorProperties) o;
     return Objects.equals(genericProperties, that.genericProperties)
+        && Objects.equals(method, that.method)
         && Objects.equals(context, that.context)
         && Objects.equals(activationCondition, that.activationCondition)
         && Objects.equals(variableMapping, that.variableMapping)
@@ -168,6 +184,7 @@ public class WebhookConnectorProperties {
     return Objects.hash(
         genericProperties,
         context,
+        method,
         activationCondition,
         variableMapping,
         shouldValidateHmac,
