@@ -35,9 +35,7 @@ import io.camunda.zeebe.model.bpmn.instance.StartEvent;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeProperties;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeProperty;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -68,13 +66,12 @@ public class ProcessDefinitionInspector {
 
   public List<InboundConnectorProperties> findInboundConnectors(ProcessDefinition processDefinition)
       throws OperateException {
-
     LOG.debug("Check " + processDefinition + " for connectors.");
-
     BpmnModelInstance modelInstance = operate.getProcessDefinitionModel(processDefinition.getKey());
-
-    Map<String, List<InboundConnectorProperties>> connectorDefinitions =
-        modelInstance.getDefinitions().getChildElementsByType(Process.class).stream()
+    var processes =
+        modelInstance.getDefinitions().getChildElementsByType(Process.class).stream().toList();
+    var connectorDefinitions =
+        processes.stream()
             .flatMap(process -> inspectBpmnProcess(process, processDefinition).stream())
             .collect(Collectors.groupingBy(InboundConnectorProperties::getCorrelationPointId));
 
@@ -107,26 +104,24 @@ public class ProcessDefinitionInspector {
       if (zeebeProperties == null) {
         continue;
       }
-      Optional<ProcessCorrelationPoint> maybeTarget = handleElement(element, definition);
+
+      Optional<ProcessCorrelationPoint> maybeTarget = handleElement(element, process, definition);
       if (maybeTarget.isEmpty()) {
         continue;
       }
+
       ProcessCorrelationPoint target = maybeTarget.get();
+
+      var inboundZeebeProperties =
+          zeebeProperties.getProperties().stream()
+              .filter(p -> p.getValue() != null)
+              .collect(Collectors.toMap(ZeebeProperty::getName, ZeebeProperty::getValue));
 
       InboundConnectorProperties properties =
           new InboundConnectorProperties(
               target,
-              zeebeProperties.getProperties().stream()
-                  // Avoid issue with OpenJDK when collecting null values
-                  // -->
-                  // https://stackoverflow.com/questions/24630963/nullpointerexception-in-collectors-tomap-with-null-entry-values
-                  // .collect(Collectors.toMap(ZeebeProperty::getName, ZeebeProperty::getValue)));
-                  .collect(
-                      HashMap::new,
-                      (m, zeebeProperty) ->
-                          m.put(zeebeProperty.getName(), zeebeProperty.getValue()),
-                      HashMap::putAll),
-              definition.getBpmnProcessId(),
+              inboundZeebeProperties,
+              process.getId(),
               definition.getVersion().intValue(),
               definition.getKey(),
               element.getId());
@@ -137,10 +132,10 @@ public class ProcessDefinitionInspector {
   }
 
   private Optional<ProcessCorrelationPoint> handleElement(
-      BaseElement element, ProcessDefinition definition) {
+      BaseElement element, Process process, ProcessDefinition definition) {
 
     if (element instanceof StartEvent) {
-      return handleStartEvent(definition);
+      return handleStartEvent(process, definition);
     } else if (element instanceof IntermediateCatchEvent) {
       return handleIntermediateCatchEvent((IntermediateCatchEvent) element);
     } else if (element instanceof ReceiveTask) {
@@ -172,13 +167,12 @@ public class ProcessDefinitionInspector {
     return Optional.of(new MessageCorrelationPoint(name));
   }
 
-  private Optional<ProcessCorrelationPoint> handleStartEvent(ProcessDefinition definition) {
+  private Optional<ProcessCorrelationPoint> handleStartEvent(
+      Process process, ProcessDefinition definition) {
 
     return Optional.of(
         new StartEventCorrelationPoint(
-            definition.getKey(),
-            definition.getBpmnProcessId(),
-            definition.getVersion().intValue()));
+            definition.getKey(), process.getId(), definition.getVersion().intValue()));
   }
 
   private Optional<ProcessCorrelationPoint> handleReceiveTask(ReceiveTask receiveTask) {

@@ -25,6 +25,7 @@ import io.camunda.operate.CamundaOperateClient;
 import io.camunda.operate.dto.ProcessDefinition;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import java.io.FileInputStream;
+import java.util.Comparator;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.util.ResourceUtils;
@@ -44,6 +45,15 @@ public class ProcessDefinitionInspectorUtilTests {
     assertEquals(inboundConnectors.size(), 2);
     assertEquals(inboundConnectors.get(0).getElementId(), "start_event");
     assertEquals(inboundConnectors.get(1).getElementId(), "intermediate_event");
+  }
+
+  @Test
+  public void testMultipleWebhookStartEventsInCollaboration() throws Exception {
+    var inboundConnectors = fromModel("multi-webhook-start-collaboration.bpmn");
+    inboundConnectors.sort(Comparator.comparing(InboundConnectorProperties::getElementId));
+    assertEquals(inboundConnectors.size(), 2);
+    assertEquals(inboundConnectors.get(0).getElementId(), "start_1");
+    assertEquals(inboundConnectors.get(1).getElementId(), "start_2");
   }
 
   private List<InboundConnectorProperties> fromModel(String fileName) {

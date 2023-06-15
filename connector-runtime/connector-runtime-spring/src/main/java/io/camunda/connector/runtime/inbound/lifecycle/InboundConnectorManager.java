@@ -100,8 +100,8 @@ public class InboundConnectorManager {
 
     for (ProcessDefinition procDef : relevantProcDefs) {
       try {
-        handleLatestBpmnVersion(
-            procDef.getBpmnProcessId(), processDefinitionInspector.findInboundConnectors(procDef));
+        var connectors = processDefinitionInspector.findInboundConnectors(procDef);
+        handleLatestBpmnVersion(procDef.getBpmnProcessId(), connectors);
       } catch (Exception e) {
         // log and continue with other process definitions anyway
         LOG.error(
