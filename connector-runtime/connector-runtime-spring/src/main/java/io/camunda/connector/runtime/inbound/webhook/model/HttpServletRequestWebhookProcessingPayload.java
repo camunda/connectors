@@ -25,6 +25,7 @@ import java.util.Optional;
 
 public class HttpServletRequestWebhookProcessingPayload implements WebhookProcessingPayload {
 
+  private final String requestURL;
   private final String method;
   private final Map<String, String> headers;
   private final Map<String, String> params;
@@ -35,10 +36,16 @@ public class HttpServletRequestWebhookProcessingPayload implements WebhookProces
       final Map<String, String> params,
       final Map<String, String> headers,
       byte[] bodyAsByteArray) {
+    this.requestURL = httpServletRequest.getRequestURL().toString();
     this.method = httpServletRequest.getMethod();
     this.headers = headers;
     this.params = params;
     this.rawBody = bodyAsByteArray;
+  }
+
+  @Override
+  public String requestURL() {
+    return requestURL;
   }
 
   @Override
@@ -63,16 +70,19 @@ public class HttpServletRequestWebhookProcessingPayload implements WebhookProces
 
   @Override
   public String toString() {
-    return "SpringRequestWebhookRequestPayload{"
-        + "method='"
+    return "HttpServletRequestWebhookProcessingPayload{"
+        + "requestURL='"
+        + requestURL
+        + "'"
+        + ", method='"
         + method
-        + '\''
+        + "'"
         + ", headers="
         + headers
         + ", params="
         + params
         + ", rawBody="
         + Arrays.toString(rawBody)
-        + '}';
+        + "}";
   }
 }

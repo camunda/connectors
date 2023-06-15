@@ -175,6 +175,22 @@
       }
     },
     {
+      "label": "HMAC scopes",
+      "group": "endpoint",
+      "description": "Set HMAC scopes for calculating signature data. See <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/' target='_blank'>documentation</a>",
+      "feel": "required",
+      "type": "String",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.hmacScopes"
+      },
+      "condition": {
+        "property": "shouldValidateHmac",
+        "equals": "enabled"
+      }
+    },
+    {
       "label": "Condition",
       "type": "String",
       "group": "activation",
@@ -198,7 +214,7 @@
       "description": "Name of variable to store the result of the connector in"
     },
     {
-      "label":"Result expression",
+      "label": "Result expression",
       "type": "String",
       "group": "variable-mapping",
       "feel": "required",

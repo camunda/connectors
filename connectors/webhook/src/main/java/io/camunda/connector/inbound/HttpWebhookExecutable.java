@@ -10,8 +10,6 @@ import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.di
 import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.enabled;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.net.HttpHeaders;
-import com.google.common.net.MediaType;
 import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
@@ -22,18 +20,12 @@ import io.camunda.connector.inbound.model.WebhookProcessingResultImpl;
 import io.camunda.connector.inbound.signature.HMACAlgoCustomerChoice;
 import io.camunda.connector.inbound.signature.HMACSignatureValidator;
 import io.camunda.connector.inbound.utils.HttpMethods;
+import io.camunda.connector.inbound.utils.HttpWebhookUtil;
 import io.camunda.connector.inbound.utils.ObjectMapperSupplier;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.TreeMap;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,55 +61,42 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
     if (!webhookSignatureIsValid(props, payload)) {
       throw new IOException("Webhook failed: HMAC signature check didn't pass");
     }
-
     response.setBody(
-        transformRawBodyToMap(payload.rawBody(), extractContentType(payload.headers())));
+        HttpWebhookUtil.transformRawBodyToMap(
+            payload.rawBody(), HttpWebhookUtil.extractContentType(payload.headers())));
     response.setHeaders(payload.headers());
     response.setParams(payload.params());
 
     return response;
   }
 
-  private String extractContentType(Map<String, String> headers) {
-    var caseInsensitiveMap = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-    caseInsensitiveMap.putAll(headers);
-    return caseInsensitiveMap.get(HttpHeaders.CONTENT_TYPE).toString();
-  }
-
-  private Map transformRawBodyToMap(byte[] rawBody, String contentTypeHeader) throws IOException {
-    if (rawBody == null) {
-      return Collections.emptyMap();
-    }
-
-    if (MediaType.FORM_DATA.toString().equalsIgnoreCase(contentTypeHeader)) {
-      String bodyAsString = new String(rawBody, StandardCharsets.UTF_8);
-      return Arrays.stream(bodyAsString.split("&"))
-          .filter(Objects::nonNull)
-          .map(param -> param.split("="))
-          .filter(param -> param.length > 1)
-          .collect(Collectors.toMap(param -> param[0], param -> param[1]));
-    } else {
-      // Do our best to parse to JSON (throws exception otherwise)
-      return objectMapper.readValue(rawBody, Map.class);
-    }
-  }
-
   private boolean webhookSignatureIsValid(
       WebhookConnectorProperties context, WebhookProcessingPayload payload)
       throws NoSuchAlgorithmException, InvalidKeyException, IOException {
-    final String shouldValidateHmac =
-        Optional.ofNullable(context.getShouldValidateHmac()).orElse(disabled.name());
-    if (enabled.name().equals(shouldValidateHmac)) {
-      final HMACSignatureValidator hmacSignatureValidator =
-          new HMACSignatureValidator(
-              payload.rawBody(),
-              payload.headers(),
-              context.getHmacHeader(),
-              context.getHmacSecret(),
-              HMACAlgoCustomerChoice.valueOf(context.getHmacAlgorithm()));
-      return hmacSignatureValidator.isRequestValid();
+    if (shouldValidateHmac(context)) {
+      return validateHmacSignature(
+          HttpWebhookUtil.extractSignatureData(payload, context.getHmacScopes()), payload, context);
     }
     return true;
+  }
+
+  private boolean shouldValidateHmac(WebhookConnectorProperties context) {
+    final String shouldValidateHmac =
+        Optional.ofNullable(context.getShouldValidateHmac()).orElse(disabled.name());
+    return enabled.name().equals(shouldValidateHmac);
+  }
+
+  private boolean validateHmacSignature(
+      byte[] signatureData, WebhookProcessingPayload payload, WebhookConnectorProperties context)
+      throws NoSuchAlgorithmException, InvalidKeyException, IOException {
+    final HMACSignatureValidator hmacSignatureValidator =
+        new HMACSignatureValidator(
+            signatureData,
+            payload.headers(),
+            context.getHmacHeader(),
+            context.getHmacSecret(),
+            HMACAlgoCustomerChoice.valueOf(context.getHmacAlgorithm()));
+    return hmacSignatureValidator.isRequestValid();
   }
 
   @Override
