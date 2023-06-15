@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_1no15pe" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.11.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.2.0">
   <bpmn:collaboration id="Collaboration_1fkq2ek">
-    <bpmn:participant id="Participant_14ueoe7" processRef="Process_11sdck4" />
+    <bpmn:participant id="Participant_14ueoe7" processRef="process" />
     <bpmn:participant id="Participant_0iq8omk" processRef="Process_1jqzy4q" />
     <bpmn:messageFlow id="Flow_0v8mcd7" sourceRef="Activity_0bbhjnc" targetRef="Activity_0wgjxnj" />
     <bpmn:messageFlow id="Flow_1w42yir" sourceRef="Activity_1svog89" targetRef="Activity_1up34yp" />
   </bpmn:collaboration>
-  <bpmn:process id="Process_11sdck4" isExecutable="true">
+  <bpmn:process id="process" isExecutable="true">
     <bpmn:task id="Activity_0wgjxnj" name="yo">
       <bpmn:outgoing>Flow_1c6ej6l</bpmn:outgoing>
     </bpmn:task>

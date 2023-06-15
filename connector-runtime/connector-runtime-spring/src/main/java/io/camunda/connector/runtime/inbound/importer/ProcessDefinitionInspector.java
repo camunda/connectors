@@ -68,8 +68,12 @@ public class ProcessDefinitionInspector {
       throws OperateException {
     LOG.debug("Check " + processDefinition + " for connectors.");
     BpmnModelInstance modelInstance = operate.getProcessDefinitionModel(processDefinition.getKey());
+
     var processes =
-        modelInstance.getDefinitions().getChildElementsByType(Process.class).stream().toList();
+        modelInstance.getDefinitions().getChildElementsByType(Process.class).stream()
+            .filter(p -> p.getId().equals(processDefinition.getBpmnProcessId()))
+            .findFirst();
+
     var connectorDefinitions =
         processes.stream()
             .flatMap(process -> inspectBpmnProcess(process, processDefinition).stream())
