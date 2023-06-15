@@ -21,6 +21,7 @@ import io.camunda.connector.inbound.model.WebhookConnectorProperties;
 import io.camunda.connector.inbound.model.WebhookProcessingResultImpl;
 import io.camunda.connector.inbound.signature.HMACAlgoCustomerChoice;
 import io.camunda.connector.inbound.signature.HMACSignatureValidator;
+import io.camunda.connector.inbound.utils.HttpMethods;
 import io.camunda.connector.inbound.utils.ObjectMapperSupplier;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -57,6 +58,12 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
       throws NoSuchAlgorithmException, InvalidKeyException, IOException {
     LOGGER.trace(
         "Triggered webhook with context " + props.getContext() + " and payload " + payload);
+
+    if (!HttpMethods.any.name().equalsIgnoreCase(props.getMethod())
+        && !payload.method().equalsIgnoreCase(props.getMethod())) {
+      throw new IOException("Webhook failed: method not supported");
+    }
+
     WebhookProcessingResultImpl response = new WebhookProcessingResultImpl();
 
     if (!webhookSignatureIsValid(props, payload)) {

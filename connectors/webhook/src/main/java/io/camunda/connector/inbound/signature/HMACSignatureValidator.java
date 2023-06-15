@@ -49,13 +49,13 @@ public class HMACSignatureValidator {
 
   public boolean isRequestValid()
       throws NoSuchAlgorithmException, InvalidKeyException, IOException {
-    var caseInsensitiveHeaders = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+    var caseInsensitiveHeaders = new TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER);
     caseInsensitiveHeaders.putAll(headers);
 
     if (!caseInsensitiveHeaders.containsKey(hmacHeader)) {
       throw new IOException("Expected HMAC header " + hmacHeader + ", but was not present");
     }
-    final String providedHmac = headers.get(hmacHeader.toLowerCase());
+    final String providedHmac = caseInsensitiveHeaders.get(hmacHeader);
     LOG.debug("Given HMAC from webhook call: {}", providedHmac);
 
     if (providedHmac == null || providedHmac.length() == 0) {
