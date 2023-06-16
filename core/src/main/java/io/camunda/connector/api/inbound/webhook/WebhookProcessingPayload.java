@@ -22,6 +22,11 @@ import java.util.Map;
 public interface WebhookProcessingPayload {
 
   /**
+   * @return HTTP Request URL as {@link String}
+   */
+  String requestURL();
+
+  /**
    * @return HTTP Request method as {@link String}
    */
   String method();
