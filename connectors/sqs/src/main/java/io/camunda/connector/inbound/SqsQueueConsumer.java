@@ -15,6 +15,7 @@ import io.camunda.connector.api.inbound.InboundConnectorResult;
 import io.camunda.connector.impl.ConnectorInputException;
 import io.camunda.connector.inbound.model.SqsInboundProperties;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +23,8 @@ import org.slf4j.LoggerFactory;
 public class SqsQueueConsumer implements Runnable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(SqsQueueConsumer.class);
+
+  private static final List<String> ALL_ATTRIBUTES_KEY = List.of("All");
 
   private final AmazonSQS sqsClient;
   private final SqsInboundProperties properties;
@@ -72,20 +75,17 @@ public class SqsQueueConsumer implements Runnable {
   }
 
   private ReceiveMessageRequest createReceiveMessageRequest() {
-    ReceiveMessageRequest receiveMessageRequest =
-        new ReceiveMessageRequest()
-            .withWaitTimeSeconds(Integer.valueOf(properties.getQueue().getPollingWaitTime()))
-            .withQueueUrl(properties.getQueue().getUrl());
-
-    if (properties.getQueue().isContainAttributeNames()) {
-      receiveMessageRequest.withAttributeNames(properties.getQueue().getAttributeNames());
-    }
-    if (properties.getQueue().isContainMessageAttributeNames()) {
-      receiveMessageRequest.withMessageAttributeNames(
-          properties.getQueue().getMessageAttributeNames());
-    }
-
-    return receiveMessageRequest;
+    return new ReceiveMessageRequest()
+        .withWaitTimeSeconds(Integer.valueOf(properties.getQueue().getPollingWaitTime()))
+        .withQueueUrl(properties.getQueue().getUrl())
+        .withMessageAttributeNames(
+            Optional.ofNullable(properties.getQueue().getMessageAttributeNames())
+                .filter(list -> !list.isEmpty())
+                .orElse(ALL_ATTRIBUTES_KEY))
+        .withAttributeNames(
+            Optional.ofNullable(properties.getQueue().getAttributeNames())
+                .filter(list -> !list.isEmpty())
+                .orElse(ALL_ATTRIBUTES_KEY));
   }
 
   public boolean isQueueConsumerActive() {
