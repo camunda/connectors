@@ -51,7 +51,7 @@
     <version.kotlin>1.8.22</version.kotlin>
 
     <version.testcontainers>1.18.3</version.testcontainers>
-
+    <version.snappy-java>1.1.10.1</version.snappy-java>
     <version.commons-codec>1.15</version.commons-codec>
     <version.guava>32.0.1-jre</version.guava>
     <version.javax.xml.bind>2.4.0-b180830.0359</version.javax.xml.bind>
@@ -257,7 +257,7 @@
       <dependency>
         <groupId>com.google.protobuf</groupId>
         <artifactId>protobuf-java</artifactId>
-        <version>3.23.3</version>
+        <version>3.23.2</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
