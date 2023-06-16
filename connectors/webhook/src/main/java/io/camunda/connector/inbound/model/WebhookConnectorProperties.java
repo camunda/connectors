@@ -11,7 +11,10 @@ import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.di
 import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.impl.inbound.InboundConnectorProperties;
 import io.camunda.connector.impl.inbound.ProcessCorrelationPoint;
+import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class WebhookConnectorProperties {
 
@@ -23,6 +26,9 @@ public class WebhookConnectorProperties {
   @Secret private String hmacSecret;
   @Secret private String hmacHeader;
   private String hmacAlgorithm;
+  private String jwkUrl;
+  private String jwtRolePath; // e.g.: roles or role
+  private List<String> requiredPermissions;
 
   public WebhookConnectorProperties(InboundConnectorProperties properties) {
     this.genericProperties = properties;
@@ -35,6 +41,9 @@ public class WebhookConnectorProperties {
     this.hmacSecret = readPropertyNullable("inbound.hmacSecret");
     this.hmacHeader = readPropertyNullable("inbound.hmacHeader");
     this.hmacAlgorithm = readPropertyNullable("inbound.hmacAlgorithm");
+    this.jwkUrl = readPropertyNullable("inbound.jwkUrl");
+    this.jwtRolePath = readPropertyNullable("inbound.jwtRolePath");
+    this.requiredPermissions = readListPropertyNullable("inbound.requiredPermissions");
   }
 
   public String getConnectorIdentifier() {
@@ -51,6 +60,13 @@ public class WebhookConnectorProperties {
 
   protected String readPropertyNullable(String propertyName) {
     return genericProperties.getProperties().get(propertyName);
+  }
+
+  protected List<String> readListPropertyNullable(String propertyName) {
+    // TODO : get list by default, not string!
+    return Stream.of(genericProperties.getProperties().get(propertyName).split(","))
+        .map(String::trim)
+        .collect(Collectors.toList());
   }
 
   protected String readPropertyRequired(String propertyName) {
@@ -142,6 +158,30 @@ public class WebhookConnectorProperties {
 
   public long getProcessDefinitionKey() {
     return genericProperties.getProcessDefinitionKey();
+  }
+
+  public String getJwkUrl() {
+    return jwkUrl;
+  }
+
+  public void setJwkUrl(String jwkUrl) {
+    this.jwkUrl = jwkUrl;
+  }
+
+  public String getJwtRolePath() {
+    return jwtRolePath;
+  }
+
+  public void setJwtRolePath(String jwtRolePath) {
+    this.jwtRolePath = jwtRolePath;
+  }
+
+  public List<String> getRequiredPermissions() {
+    return requiredPermissions;
+  }
+
+  public void setRequiredPermissions(List<String> requiredPermissions) {
+    this.requiredPermissions = requiredPermissions;
   }
 
   @Override

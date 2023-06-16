@@ -141,6 +141,76 @@
       }
     },
     {
+      "id": "shouldValidateJwt",
+      "label": "JWT authentication",
+      "group": "endpoint",
+      "description": "Choose whether JWT verification is enabled.",
+      "value": "disabled",
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Enabled",
+          "value": "enabled"
+        },
+        {
+          "name": "Disabled",
+          "value": "disabled"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.shouldValidateJwt"
+      }
+    },
+    {
+      "label": "JWK url",
+      "description": "Well-known url of JWKs",
+      "type": "String",
+      "group": "endpoint",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.jwkUrl"
+      },
+      "condition": {
+        "property": "shouldValidateJwt",
+        "equals": "enabled"
+      }
+    },
+    {
+      "label": "JWT role property name",
+      "description": "Property name of the roles inside the JWT token",
+      "type": "String",
+      "group": "endpoint",
+      "feel": "required",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.jwtRoleName"
+      },
+      "condition": {
+        "property": "shouldValidateJwt",
+        "equals": "enabled"
+      }
+    },
+    {
+      "label": "Required roles",
+      "description": "List of roles to test JWT roles against",
+      "type": "String",
+      "group": "endpoint",
+      "feel": "required",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.requiredPermissions"
+      },
+      "condition": {
+        "property": "shouldValidateJwt",
+        "equals": "enabled"
+      }
+    },
+    {
       "label": "Condition",
       "type": "String",
       "group": "activation",
