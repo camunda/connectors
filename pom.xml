@@ -6,7 +6,7 @@
   <parent>
     <groupId>io.camunda.connector</groupId>
     <artifactId>connector-parent</artifactId>
-    <version>0.10.0</version>
+    <version>0.11.0-SNAPSHOT</version>
     <relativePath/>
   </parent>
 
@@ -51,9 +51,10 @@
     <version.kotlin>1.8.22</version.kotlin>
 
     <version.testcontainers>1.18.3</version.testcontainers>
-    
+
     <version.commons-codec>1.15</version.commons-codec>
     <version.guava>32.0.1-jre</version.guava>
+    <version.javax.xml.bind>2.4.0-b180830.0359</version.javax.xml.bind>
   </properties>
 
   <modules>

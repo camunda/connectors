@@ -39,6 +39,32 @@
       }
     },
     {
+      "id": "webhookMethod",
+      "label": "Webhook method",
+      "group": "endpoint",
+      "description": "Select HTTP method",
+      "value": "any",
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Any",
+          "value": "any"
+        },
+        {
+          "name": "Get",
+          "value": "get"
+        },
+        {
+          "name": "Post",
+          "value": "post"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.method"
+      }
+    },
+    {
       "label": "Webhook ID",
       "type": "String",
       "group": "endpoint",
@@ -61,18 +87,83 @@
     },
     {
       "type": "Hidden",
-      "group": "endpoint",
+      "value": "=[\"url\",\"body\",\"parameters\"]",
       "binding": {
         "type": "zeebe:property",
-        "name": "inbound.context"
+        "name": "inbound.hmacScopes"
+      },
+      "condition": {
+        "property": "shouldValidateHmac",
+        "equals": "enabled"
+      }
+    },
+    {
+      "id": "shouldValidateHmac",
+      "label": "HMAC authentication",
+      "group": "endpoint",
+      "description": "Choose whether HMAC verification is enabled. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/#make-your-http-webhook-connector-for-receiving-messages-executable' target='_blank'>See documentation</a> and <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/#example' target='_blank'>example</a> that explains how to use HMAC-related fields",
+      "value": "disabled",
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Enabled",
+          "value": "enabled"
+        },
+        {
+          "name": "Disabled",
+          "value": "disabled"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.shouldValidateHmac"
+      }
+    },
+    {
+      "label": "HMAC secret key",
+      "description": "Shared secret key",
+      "type": "String",
+      "group": "endpoint",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.hmacSecret"
+      },
+      "condition": {
+        "property": "shouldValidateHmac",
+        "equals": "enabled"
       }
     },
     {
       "type": "Hidden",
-      "value": "disabled",
+      "value": "x-twilio-signature",
       "binding": {
         "type": "zeebe:property",
-        "name": "inbound.shouldValidateHmac"
+        "name": "inbound.hmacHeader"
+      },
+      "condition": {
+        "property": "shouldValidateHmac",
+        "equals": "enabled"
+      }
+    },
+    {
+      "value": "sha_1",
+      "type": "Hidden",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.hmacAlgorithm"
+      },
+      "condition": {
+        "property": "shouldValidateHmac",
+        "equals": "enabled"
+      }
+    },
+    {
+      "type": "Hidden",
+      "group": "endpoint",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.context"
       }
     },
     {

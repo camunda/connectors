@@ -15,6 +15,7 @@ import java.util.Objects;
 import java.util.TreeMap;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import javax.xml.bind.DatatypeConverter;
 import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,10 +74,12 @@ public class HMACSignatureValidator {
     String expectedShortHmacString = Hex.encodeHexString(expectedHmac);
     // The other produce longer version, like sha256=aabbcc...
     String expectedLongHmacString = hmacAlgo.getTag() + "=" + expectedShortHmacString;
+    // The Twilio produce base64 version
+    String expectedBase64HmacString = DatatypeConverter.printBase64Binary(expectedHmac);
     LOG.debug(
         "Computed HMAC from webhook body: {}, {}", expectedShortHmacString, expectedLongHmacString);
-
     return providedHmac.equals(expectedShortHmacString)
-        || providedHmac.equals(expectedLongHmacString);
+        || providedHmac.equals(expectedLongHmacString)
+        || providedHmac.equals(expectedBase64HmacString);
   }
 }

@@ -1,0 +1,50 @@
+[
+  {
+    "requestURL": "https://localhost/inbound/test",
+    "method": "POST",
+    "headers": {
+      "connection": "close",
+      "user-agent": "TwilioProxy/1.1",
+      "x-home-region": "us1",
+      "accept": "*/*",
+      "i-twilio-idempotency-token": "64cdaab9-95eb-aaaa-bbbb-a015b806e39e",
+      "x-twilio-signature": "oQcZ09COEb3H2hSeuhhNtjYwln4=",
+      "content-type": "application/x-www-form-urlencoded"
+    },
+    "body": "ToCountry=US&ToState=OH&SmsMessageSid=SMfa733bbf2e8763atest24a01c91586d66&NumMedia=0&ToCity=&FromZip=&SmsSid=SMfa733bbf2e8763atest34591586d66&FromState=&SmsStatus=received&FromCity=&Body=Test&FromCountry=UA&To=%2B14407379876&MessagingServiceSid=MGb09b0d9189f73df082594646d6694f85&ToZip=&NumSegments=1&MessageSid=SMfa733bbf2e8763a993ada01c91586d66&AccountSid=AC8a91ea411db4test2345a45468ee9&From=%2B38067846257&ApiVersion=2010-04-01"
+  },
+  {
+    "requestURL": "https://localhost/inbound/test",
+    "method": "GET",
+    "headers": {
+      "connection": "close",
+      "user-agent": "TwilioProxy/1.1",
+      "x-home-region": "us1",
+      "accept": "*/*",
+      "i-twilio-idempotency-token": "64cdaab9-95eb-aaaa-bbbb-a015b806e39e",
+      "x-twilio-signature": "pChaccf8iGc936y5I+aWzeOj6Ns="
+    },
+    "params": {
+      "ToCountry": "US",
+      "ToState": "OH",
+      "SmsMessageSid": "SMfa733bbf2e8763atest24a01c91586d66",
+      "NumMedia": "0",
+      "ToCity": "",
+      "FromZip": "",
+      "SmsSid": "SMfa733bbf2e8763atest34591586d66",
+      "FromState": "",
+      "SmsStatus": "received",
+      "FromCity": "",
+      "Body": "Test",
+      "FromCountry": "UA",
+      "To": "%2B14407379876",
+      "MessagingServiceSid": "MGb09b0d9189f73df082594646d6694f85",
+      "ToZip": "",
+      "NumSegments": "1",
+      "MessageSid": "SMfa733bbf2e8763a993ada01c91586d66",
+      "AccountSid": "AC8a91ea411db4test2345a45468ee9",
+      "From": "%2B38067846257",
+      "ApiVersion": "2010-04-01"
+    }
+  }
+]

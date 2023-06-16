@@ -12,7 +12,11 @@ import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.impl.inbound.InboundConnectorProperties;
 import io.camunda.connector.impl.inbound.ProcessCorrelationPoint;
 import io.camunda.connector.inbound.utils.HttpMethods;
+import io.camunda.connector.inbound.utils.ObjectMapperSupplier;
+import io.camunda.connector.runtime.core.feel.FeelParserWrapper;
+import java.util.Arrays;
 import java.util.Objects;
+import java.util.Optional;
 
 public class WebhookConnectorProperties {
 
@@ -25,6 +29,7 @@ public class WebhookConnectorProperties {
   @Secret private String hmacSecret;
   @Secret private String hmacHeader;
   private String hmacAlgorithm;
+  private HMACScope[] hmacScopes;
 
   public WebhookConnectorProperties(InboundConnectorProperties properties) {
     this.genericProperties = properties;
@@ -42,6 +47,9 @@ public class WebhookConnectorProperties {
     this.hmacSecret = readPropertyNullable("inbound.hmacSecret");
     this.hmacHeader = readPropertyNullable("inbound.hmacHeader");
     this.hmacAlgorithm = readPropertyNullable("inbound.hmacAlgorithm");
+    this.hmacScopes =
+        readPropertyAsTypeWithDefault(
+            "inbound.hmacScopes", HMACScope[].class, new HMACScope[] {HMACScope.BODY});
   }
 
   public String getConnectorIdentifier() {
@@ -50,6 +58,18 @@ public class WebhookConnectorProperties {
         + genericProperties.getBpmnProcessId()
         + "-"
         + genericProperties.getVersion();
+  }
+
+  protected <T> T readPropertyAsTypeWithDefault(
+      String propertyName, Class<T> type, T defaultValue) {
+    return Optional.ofNullable(readPropertyAsTypeNullable(propertyName, type)).orElse(defaultValue);
+  }
+
+  protected <T> T readPropertyAsTypeNullable(String propertyName, Class<T> type) {
+    Object parsedExpression =
+        FeelParserWrapper.parseIfIsFeelExpressionOrGetOriginal(
+            genericProperties.getProperties().get(propertyName));
+    return ObjectMapperSupplier.getMapperInstance().convertValue(parsedExpression, type);
   }
 
   protected String readPropertyWithDefault(String propertyName, String defaultValue) {
@@ -159,6 +179,14 @@ public class WebhookConnectorProperties {
     return genericProperties.getProcessDefinitionKey();
   }
 
+  public HMACScope[] getHmacScopes() {
+    return hmacScopes;
+  }
+
+  public void setHmacScopes(final HMACScope[] hmacScopes) {
+    this.hmacScopes = hmacScopes;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {
@@ -176,7 +204,8 @@ public class WebhookConnectorProperties {
         && Objects.equals(shouldValidateHmac, that.shouldValidateHmac)
         && Objects.equals(hmacSecret, that.hmacSecret)
         && Objects.equals(hmacHeader, that.hmacHeader)
-        && Objects.equals(hmacAlgorithm, that.hmacAlgorithm);
+        && Objects.equals(hmacAlgorithm, that.hmacAlgorithm)
+        && Arrays.equals(hmacScopes, that.hmacScopes);
   }
 
   @Override
@@ -190,7 +219,8 @@ public class WebhookConnectorProperties {
         shouldValidateHmac,
         hmacSecret,
         hmacHeader,
-        hmacAlgorithm);
+        hmacAlgorithm,
+        Arrays.hashCode(hmacScopes));
   }
 
   @Override
