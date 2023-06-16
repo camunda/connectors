@@ -69,7 +69,7 @@ public class SqsQueueConsumerTest {
   @Test
   void run_shouldActivate() throws InterruptedException {
     // given
-    when(sqsClient.receiveMessage(any(ReceiveMessageRequest.class)))
+    when(sqsClient.receiveMessage(requestArgumentCaptor.capture()))
         .thenReturn(receiveMessageResult);
     when(receiveMessageResult.getMessages()).thenReturn(messages);
     when(messages.iterator())
@@ -89,6 +89,10 @@ public class SqsQueueConsumerTest {
     // then
     verify(sqsClient, atLeast(1)).receiveMessage(any(ReceiveMessageRequest.class));
     verify(context).correlate(any(SqsInboundMessage.class));
+
+    ReceiveMessageRequest receiveMessageRequest = requestArgumentCaptor.getValue();
+    assertThat(receiveMessageRequest.getAttributeNames()).isEqualTo(List.of("All"));
+    assertThat(receiveMessageRequest.getMessageAttributeNames()).isEqualTo(List.of("All"));
   }
 
   @Test
