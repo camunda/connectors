@@ -11,6 +11,8 @@ import com.google.common.net.MediaType;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.inbound.model.HMACScope;
 import java.io.IOException;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -37,14 +39,12 @@ public class HttpWebhookUtil {
     }
 
     if (MediaType.FORM_DATA.toString().equalsIgnoreCase(contentTypeHeader)) {
-      String bodyAsString = new String(rawBody, StandardCharsets.UTF_8);
+      String bodyAsString =
+          URLDecoder.decode(new String(rawBody, StandardCharsets.UTF_8), StandardCharsets.UTF_8);
       return Arrays.stream(bodyAsString.split("&"))
           .filter(Objects::nonNull)
           .map(param -> param.split("="))
-          .collect(
-              Collectors.toMap(
-                  param -> param[0],
-                  param -> param.length == 1 ? "" : param[1].replace("%2B", "+")));
+          .collect(Collectors.toMap(param -> param[0], param -> param.length == 1 ? "" : param[1]));
     } else {
       // Do our best to parse to JSON (throws exception otherwise)
       return ObjectMapperSupplier.getMapperInstance().readValue(rawBody, Map.class);
@@ -87,13 +87,14 @@ public class HttpWebhookUtil {
   }
 
   private static String extractSignatureDataFromParams(final Map<String, String> params) {
-    return String.join(
-        "&",
-        params.entrySet().stream()
-            .map(
-                (Map.Entry<String, String> entry) ->
-                    String.format("%s=%s", entry.getKey(), entry.getValue()))
-            .toArray(String[]::new));
+    return params.entrySet().stream()
+        .map(
+            entry ->
+                String.format(
+                    "%s=%s",
+                    URLEncoder.encode(entry.getKey(), StandardCharsets.UTF_8),
+                    URLEncoder.encode(entry.getValue(), StandardCharsets.UTF_8)))
+        .collect(Collectors.joining("&"));
   }
 
   private static String extractSignatureDataFromBody(final WebhookProcessingPayload payload)

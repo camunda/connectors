@@ -37,13 +37,13 @@
       "FromCity": "",
       "Body": "Test",
       "FromCountry": "UA",
-      "To": "%2B14407379876",
+      "To": "+14407379876",
       "MessagingServiceSid": "MGb09b0d9189f73df082594646d6694f85",
       "ToZip": "",
       "NumSegments": "1",
       "MessageSid": "SMfa733bbf2e8763a993ada01c91586d66",
       "AccountSid": "AC8a91ea411db4test2345a45468ee9",
-      "From": "%2B38067846257",
+      "From": "+38067846257",
       "ApiVersion": "2010-04-01"
     }
   }
