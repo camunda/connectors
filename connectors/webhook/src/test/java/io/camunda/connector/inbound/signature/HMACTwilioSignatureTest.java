@@ -88,6 +88,20 @@ public class HMACTwilioSignatureTest {
     assertThat(webhookProcessingResult).isNotNull();
   }
 
+  @ParameterizedTest
+  @MethodSource("successCases")
+  public void hmacSignatureVerificationParametrizedTest_shouldPassHMACValidationWithMultiScopes(
+      final WebhookProcessingPayload webhookProcessingPayload) throws Exception {
+    // Given
+    mapOfProperties.put("inbound.hmacScopes", "=[\"url\",\"body\",\"parameters\"]");
+    httpWebhookExecutable.activate(inboundConnectorContext);
+    // When
+    WebhookProcessingResult webhookProcessingResult =
+        httpWebhookExecutable.triggerWebhook(webhookProcessingPayload);
+    // Then assert that result not null, and validation pass done, without exceptions
+    assertThat(webhookProcessingResult).isNotNull();
+  }
+
   private static Stream<WebhookProcessingPayloadTest> successCases() throws IOException {
     return loadTestCasesFromResourceFile(SUCCESS_CASES_RESOURCE_PATH);
   }
