@@ -75,6 +75,11 @@ public class HttpWebhookUtil {
             return (payload.requestURL() + "?" + extractSignatureDataFromParams(payload.params()))
                 .getBytes();
           }
+        case 3:
+          // case for method 'any' and 'post for hmac scopes 'url' and 'body' or 'parameters'
+          if (hmacScopeHashSet.containsAll(List.of(HMACScope.URL, HMACScope.BODY))) {
+            return (payload.requestURL() + extractSignatureDataFromBody(payload)).getBytes();
+          }
       }
     }
     throw new UnsupportedOperationException(
