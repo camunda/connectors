@@ -11,7 +11,7 @@ import static java.nio.file.Files.readString;
 
 import com.google.gson.Gson;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
-import io.camunda.connector.slack.suppliers.GsonSupplier;
+import io.camunda.connector.slack.outbound.suppliers.GsonSupplier;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import java.io.File;
 import java.io.IOException;

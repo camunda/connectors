@@ -4,14 +4,14 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.slack;
+package io.camunda.connector.slack.outbound;
 
 import com.google.gson.Gson;
 import com.slack.api.Slack;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import io.camunda.connector.slack.suppliers.GsonSupplier;
+import io.camunda.connector.slack.outbound.suppliers.GsonSupplier;
 
 @OutboundConnector(
     name = "SLACK",

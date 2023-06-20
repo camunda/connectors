@@ -4,15 +4,15 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.slack.suppliers;
+package io.camunda.connector.slack.outbound.suppliers;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import io.camunda.connector.slack.SlackRequest;
-import io.camunda.connector.slack.model.ChatPostMessageData;
-import io.camunda.connector.slack.model.ConversationsCreateData;
-import io.camunda.connector.slack.model.ConversationsInviteData;
-import io.camunda.connector.slack.utils.SlackRequestDeserializer;
+import io.camunda.connector.slack.outbound.SlackRequest;
+import io.camunda.connector.slack.outbound.model.ChatPostMessageData;
+import io.camunda.connector.slack.outbound.model.ConversationsCreateData;
+import io.camunda.connector.slack.outbound.model.ConversationsInviteData;
+import io.camunda.connector.slack.outbound.utils.SlackRequestDeserializer;
 
 public final class GsonSupplier {
 

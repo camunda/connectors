@@ -17,6 +17,8 @@
 package io.camunda.connector.runtime.inbound.webhook;
 
 import static java.util.Collections.emptyMap;
+import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toMap;
 import static org.springframework.web.bind.annotation.RequestMethod.DELETE;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
@@ -37,6 +39,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -87,7 +90,19 @@ public class InboundWebhookRestController {
           ((WebhookConnectorExecutable) connector.executable()).triggerWebhook(payload);
       var ctxData = toConnectorVariablesContext(webhookResult);
       InboundConnectorResult<?> result = connector.context().correlate(ctxData);
-      connectorResponse = ResponseEntity.ok(result);
+
+      // if strict response required, we need to respect runtime specifics,
+      // in such case, Spring requires headers to be a multi-value map.
+      connectorResponse =
+          webhookResult.strict()
+              ? new ResponseEntity<>(
+                  webhookResult.body(),
+                  // Re-maps regular Map into MultiValueMap
+                  new LinkedMultiValueMap<>(
+                      webhookResult.headers().entrySet().stream()
+                          .collect(toMap(Map.Entry::getKey, e -> singletonList(e.getValue())))),
+                  webhookResult.statusCode())
+              : ResponseEntity.ok(result);
     } catch (Exception e) {
       LOG.error("Webhook failed with exception", e);
       if (e instanceof FeelEngineWrapperException feelEngineWrapperException) {
