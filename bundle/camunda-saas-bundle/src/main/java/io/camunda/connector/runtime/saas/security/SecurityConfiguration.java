@@ -49,6 +49,12 @@ public class SecurityConfiguration {
               try {
                 auth.requestMatchers(HttpMethod.POST, "/inbound/**")
                     .permitAll()
+                    .requestMatchers(HttpMethod.GET, "/inbound/**")
+                    .permitAll()
+                    .requestMatchers(HttpMethod.PUT, "/inbound/**")
+                    .permitAll()
+                    .requestMatchers(HttpMethod.DELETE, "/inbound/**")
+                    .permitAll()
                     .requestMatchers("/actuator/**")
                     .permitAll()
                     .requestMatchers("/inbound")
