@@ -20,6 +20,7 @@
     <module>aws-base</module>
     <module>aws-lambda</module>
     <module>aws-dynamodb</module>
+    <module>aws-eventbridge</module>
   </modules>
 
   <properties>
