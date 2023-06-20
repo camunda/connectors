@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.slack.utils;
+package io.camunda.connector.slack.outbound.utils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 

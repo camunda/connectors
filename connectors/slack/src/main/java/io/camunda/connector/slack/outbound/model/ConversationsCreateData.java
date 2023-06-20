@@ -4,15 +4,15 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.slack.model;
+package io.camunda.connector.slack.outbound.model;
 
 import com.slack.api.methods.MethodsClient;
 import com.slack.api.methods.SlackApiException;
 import com.slack.api.methods.request.conversations.ConversationsCreateRequest;
 import com.slack.api.methods.response.conversations.ConversationsCreateResponse;
 import io.camunda.connector.api.annotation.Secret;
-import io.camunda.connector.slack.SlackRequestData;
-import io.camunda.connector.slack.SlackResponse;
+import io.camunda.connector.slack.outbound.SlackRequestData;
+import io.camunda.connector.slack.outbound.SlackResponse;
 import java.io.IOException;
 import java.util.Objects;
 import javax.validation.constraints.NotBlank;
