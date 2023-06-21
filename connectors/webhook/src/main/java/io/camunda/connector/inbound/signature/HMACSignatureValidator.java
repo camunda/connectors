@@ -63,6 +63,13 @@ public class HMACSignatureValidator {
       return false;
     }
 
+    // Some webhooks produce longer version, like sha256=aabbcc...; hmac-sha1=aabbcc...; etc
+    var providedHmacWithoutTag = providedHmac;
+    var split = providedHmacWithoutTag.split("=");
+    if (split.length == 2) {
+      providedHmacWithoutTag = split[1];
+    }
+
     Mac sha256_HMAC = Mac.getInstance(hmacAlgo.getAlgoReference());
     SecretKeySpec secret_key =
         new SecretKeySpec(
@@ -71,15 +78,13 @@ public class HMACSignatureValidator {
     byte[] expectedHmac = sha256_HMAC.doFinal(requestBody);
 
     // Some webhooks produce short HMAC message, e.g. aabbcc...
-    String expectedShortHmacString = Hex.encodeHexString(expectedHmac);
-    // The other produce longer version, like sha256=aabbcc...
-    String expectedLongHmacString = hmacAlgo.getTag() + "=" + expectedShortHmacString;
+    String expectedHmacString = Hex.encodeHexString(expectedHmac);
+
     // The Twilio produce base64 version
     String expectedBase64HmacString = DatatypeConverter.printBase64Binary(expectedHmac);
-    LOG.debug(
-        "Computed HMAC from webhook body: {}, {}", expectedShortHmacString, expectedLongHmacString);
-    return providedHmac.equals(expectedShortHmacString)
-        || providedHmac.equals(expectedLongHmacString)
+    LOG.debug("Computed HMAC from webhook body: {}", expectedHmacString);
+    return providedHmac.equals(expectedHmacString)
+        || providedHmacWithoutTag.equals(expectedHmacString)
         || providedHmac.equals(expectedBase64HmacString);
   }
 }
