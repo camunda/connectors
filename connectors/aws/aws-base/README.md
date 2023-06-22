@@ -106,3 +106,5 @@ public final class GsonComponentSupplier {
 ## Implemented services :
 ### AWS DynamoDB Connector
 The [AWS DynamoDB Connector](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/) allows you to connect your BPMN service with [Amazon Web Service's DynamoDB Service](https://aws.amazon.com/dynamodb/). This can be useful for performing CRUD operations on AWS DynamoDB tables from within a BPMN process.
+### AWS EventBridge Connector
+The [AWS EventBridge Connector](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-eventbridge/) allows you to send events from your BPMN service to [Amazon Web Service's EventBridge Service](https://aws.amazon.com/eventbridge/).
