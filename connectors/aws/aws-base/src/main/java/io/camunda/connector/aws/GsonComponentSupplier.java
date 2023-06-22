@@ -10,6 +10,8 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.ToNumberPolicy;
 
+@Deprecated
+// deprecated because was consent to use ObjectMapper
 public final class GsonComponentSupplier {
 
   private static final Gson GSON =

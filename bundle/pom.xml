@@ -96,6 +96,11 @@
       </dependency>
       <dependency>
         <groupId>io.camunda.connector</groupId>
+        <artifactId>connector-aws-eventbridge</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.camunda.connector</groupId>
         <artifactId>connector-google-sheets</artifactId>
         <version>${project.version}</version>
       </dependency>

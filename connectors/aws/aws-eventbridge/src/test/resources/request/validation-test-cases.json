@@ -1,0 +1,216 @@
+[
+  {
+    "description": "secretKey is Blank",
+    "authentication": {
+      "secretKey": " ",
+      "accessKey": "my-aws-access-key"
+    },
+    "configuration": {
+      "region": "ua-east-1"
+    },
+    "input": {
+      "detailType": "detail-type",
+      "eventBusName": "event-bus-name",
+      "source": "event-source",
+      "detail": {
+        "key1": {
+          "innerKey": "innerValue"
+        }
+      }
+    }
+  },
+  {
+    "description": "without secretKey",
+    "authentication": {
+      "accessKey": "my-aws-access-key"
+    },
+    "configuration": {
+      "region": "ua-east-1"
+    },
+    "input": {
+      "detailType": "detail-type",
+      "eventBusName": "event-bus-name",
+      "source": "event-source",
+      "detail": {
+        "key1": {
+          "innerKey": "innerValue"
+        }
+      }
+    }
+  },
+  {
+    "description": "without accessKey",
+    "authentication": {
+      "secretKey": "my-aws-secret-key"
+    },
+    "configuration": {
+      "region": "ua-east-1"
+    },
+    "input": {
+      "detailType": "detail-type",
+      "eventBusName": "event-bus-name",
+      "source": "event-source",
+      "detail": {
+        "key1": {
+          "innerKey": "innerValue"
+        }
+      }
+    }
+  },
+  {
+    "description": "mpty accessKey",
+    "authentication": {
+      "secretKey": "my-aws-secret-key",
+      "accessKey": "  "
+    },
+    "configuration": {
+      "region": "ua-east-1"
+    },
+    "input": {
+      "detailType": "detail-type",
+      "eventBusName": "event-bus-name",
+      "source": "event-source",
+      "detail": {
+        "key1": {
+          "innerKey": "innerValue"
+        }
+      }
+    }
+  },
+  {
+    "description": "detailType is blank",
+    "authentication": {
+      "secretKey": "my-aws-secret-key",
+      "accessKey": "my-aws-access-key"
+    },
+    "configuration": {
+      "region": "ua-east-1"
+    },
+    "input": {
+      "detailType": " ",
+      "eventBusName": "event-bus-name",
+      "source": "event-source",
+      "detail": {
+        "key1": {
+          "innerKey": "innerValue"
+        }
+      }
+    }
+  },
+  {
+    "description": "eventBusName is blank",
+    "authentication": {
+      "secretKey": "my-aws-secret-key",
+      "accessKey": "my-aws-access-key"
+    },
+    "configuration": {
+      "region": "ua-east-1"
+    },
+    "input": {
+      "detailType": "detail-type",
+      "eventBusName": " ",
+      "source": "event-source",
+      "detail": {
+        "key1": {
+          "innerKey": "innerValue"
+        }
+      }
+    }
+  },
+  {
+    "description": "source is blank",
+    "authentication": {
+      "secretKey": "my-aws-secret-key",
+      "accessKey": "my-aws-access-key"
+    },
+    "configuration": {
+      "region": "ua-east-1"
+    },
+    "input": {
+      "detailType": "detail-type",
+      "eventBusName": "event-bus-name",
+      "source": "  ",
+      "detail": {
+        "key1": {
+          "innerKey": "innerValue"
+        }
+      }
+    }
+  },
+  {
+    "description": "detail is null",
+    "authentication": {
+      "secretKey": "my-aws-secret-key",
+      "accessKey": "my-aws-access-key"
+    },
+    "configuration": {
+      "region": "ua-east-1"
+    },
+    "input": {
+      "detailType": "detail-type",
+      "eventBusName": "event-bus-name",
+      "source": "event-source",
+      "detail": null
+    }
+  },
+  {
+    "description": "detailType is null",
+    "authentication": {
+      "secretKey": "my-aws-secret-key",
+      "accessKey": "my-aws-access-key"
+    },
+    "configuration": {
+      "region": "ua-east-1"
+    },
+    "input": {
+      "detailType": null,
+      "eventBusName": "event-bus-name",
+      "source": "event-source",
+      "detail": {
+        "key1": {
+          "innerKey": "innerValue"
+        }
+      }
+    }
+  },
+  {
+    "description": "eventBusName is null",
+    "authentication": {
+      "secretKey": "my-aws-secret-key",
+      "accessKey": "my-aws-access-key"
+    },
+    "configuration": {
+      "region": "ua-east-1"
+    },
+    "input": {
+      "detailType": "detail-type",
+      "eventBusName": null,
+      "source": "event-source",
+      "detail": {
+        "key1": {
+          "innerKey": "innerValue"
+        }
+      }
+    }
+  },
+  {
+    "description": "source is null",
+    "authentication": {
+      "secretKey": "my-aws-secret-key",
+      "accessKey": "my-aws-access-key"
+    },
+    "configuration": {
+      "region": "ua-east-1"
+    },
+    "input": {
+      "detailType": "detail-type",
+      "eventBusName": "event-bus-name",
+      "source": null,
+      "detail": {
+        "key1": {
+          "innerKey": "innerValue"
+        }
+      }
+    }
+  }
+]

@@ -1,0 +1,32 @@
+[
+  {
+    "authentication": {
+      "secretKey": "my-aws-secret-key",
+      "accessKey": "my-aws-access-key"
+    },
+    "configuration": {
+      "region": "ua-east-1"
+    },
+    "input": {
+      "detailType": "detail-type",
+      "eventBusName": "event-bus-name",
+      "source": "event-source",
+      "detail": {"key1": {"innerKey": "innerValue"}}
+    }
+  },
+  {
+    "authentication": {
+      "secretKey": "secrets.SECRET_KEY",
+      "accessKey": "secrets.ACCESS_KEY"
+    },
+    "configuration": {
+      "region": "secrets.REGION"
+    },
+    "input": {
+      "detailType": "secrets.DETAIL_TYPE",
+      "eventBusName": "secrets.EVENT_BUS_NAME",
+      "source": "secrets.SOURCE",
+      "detail": {"key1": {"innerKey": "secrets.INNER_DETAIL_VALUE"}}
+    }
+  }
+]
