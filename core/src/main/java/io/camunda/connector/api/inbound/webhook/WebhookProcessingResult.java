@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.api.inbound.webhook;
 
+import java.util.Collections;
 import java.util.Map;
 
 /**
@@ -38,7 +39,9 @@ public interface WebhookProcessingResult {
   /**
    * @return processed HTTP request URL parameters
    */
-  Map<String, String> params();
+  default Map<String, String> params() {
+    return Collections.emptyMap();
+  }
 
   /**
    * @return additional connector data that can be computed during webhook {@link
@@ -46,5 +49,24 @@ public interface WebhookProcessingResult {
    *     implementer wants to preserve that data and use it during the {@link
    *     io.camunda.connector.api.inbound.InboundConnectorContext#correlate(Object)} phase.
    */
-  Map<String, Object> connectorData();
+  default Map<String, Object> connectorData() {
+    return Collections.emptyMap();
+  }
+
+  /**
+   * @return HTTP status code in response
+   */
+  default int statusCode() {
+    return -1;
+  }
+
+  /**
+   * Flag that indicates whether response has to be returned "as-is". In this case, body, headers,
+   * and status will be set as defined in current interface method implementation.
+   *
+   * @return boolean flag that indicates whether response is strict
+   */
+  default boolean strict() {
+    return false;
+  }
 }
