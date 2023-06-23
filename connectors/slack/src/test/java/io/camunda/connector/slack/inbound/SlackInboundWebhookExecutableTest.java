@@ -6,8 +6,6 @@
  */
 package io.camunda.connector.slack.inbound;
 
-import static io.camunda.connector.slack.inbound.SlackInboundWebhookExecutable.FIELD_CHALLENGE;
-import static io.camunda.connector.slack.inbound.SlackInboundWebhookExecutable.FIELD_TYPE;
 import static io.camunda.connector.slack.inbound.SlackInboundWebhookExecutable.HEADER_SLACK_REQUEST_TIMESTAMP;
 import static io.camunda.connector.slack.inbound.SlackInboundWebhookExecutable.HEADER_SLACK_SIGNATURE;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -42,6 +40,8 @@ class SlackInboundWebhookExecutableTest {
       "{\"token\":\"qQqQqQqQqQqQqQqQqQ\",\"type\":\"myType\",\"event\":{\"user\":{\"id\":\"aAaAaAaAaAaAaA\"}}}";
 
   private static final String SLACK_SIGNING_KEY = "mySecretValue";
+  protected static final String FIELD_TYPE = "type";
+  protected static final String FIELD_CHALLENGE = "challenge";
 
   @Mock private InboundConnectorContext ctx;
   @Mock private InboundConnectorProperties props;
