@@ -7,9 +7,6 @@
 package io.camunda.connector.slack.inbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.net.HttpHeaders;
-import com.google.common.net.MediaType;
-import com.slack.api.app_backend.events.payload.UrlVerificationPayload;
 import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
@@ -27,8 +24,6 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
 
   protected static final String HEADER_SLACK_REQUEST_TIMESTAMP = "x-slack-request-timestamp";
   protected static final String HEADER_SLACK_SIGNATURE = "x-slack-signature";
-  protected static final String FIELD_TYPE = "type";
-  protected static final String FIELD_CHALLENGE = "challenge";
 
   private final ObjectMapper objectMapper;
   private SlackWebhookProperties props;
@@ -55,14 +50,7 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
       throw new Exception("HMAC signature did not match");
     }
 
-    // Step 2: if URL verification, force return token
     Map bodyAsMap = objectMapper.readValue(webhookProcessingPayload.rawBody(), Map.class);
-    if (UrlVerificationPayload.TYPE.equalsIgnoreCase((String) bodyAsMap.get(FIELD_TYPE))) {
-      return new SlackWebhookProcessingResult(
-          Map.of(FIELD_CHALLENGE, bodyAsMap.get(FIELD_CHALLENGE)),
-          Map.of(HttpHeaders.CONTENT_TYPE, MediaType.JSON_UTF_8.toString()),
-          200);
-    }
     return new SlackWebhookProcessingResult(bodyAsMap, webhookProcessingPayload.headers(), 200);
   }
 
