@@ -7,6 +7,8 @@
 package io.camunda.connector.slack.inbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.net.HttpHeaders;
+import com.google.common.net.MediaType;
 import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
@@ -15,9 +17,15 @@ import io.camunda.connector.api.inbound.webhook.WebhookProcessingResult;
 import io.camunda.connector.slack.inbound.model.SlackWebhookProcessingResult;
 import io.camunda.connector.slack.inbound.model.SlackWebhookProperties;
 import io.camunda.connector.slack.inbound.suppliers.ObjectMapperSupplier;
+import java.io.IOException;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.ZonedDateTime;
+import java.util.Arrays;
 import java.util.Map;
+import java.util.Objects;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 @InboundConnector(name = "SLACK_INBOUND", type = "io.camunda:slack-webhook:1")
 public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable {
@@ -39,7 +47,6 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
   @Override
   public WebhookProcessingResult triggerWebhook(WebhookProcessingPayload webhookProcessingPayload)
       throws Exception {
-    // Step 1: check message authenticity and integrity
     if (!props
         .signatureVerifier()
         .isValid(
@@ -50,7 +57,8 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
       throw new Exception("HMAC signature did not match");
     }
 
-    Map bodyAsMap = objectMapper.readValue(webhookProcessingPayload.rawBody(), Map.class);
+    Map bodyAsMap =
+        bodyAsMap(webhookProcessingPayload.headers(), webhookProcessingPayload.rawBody());
     return new SlackWebhookProcessingResult(bodyAsMap, webhookProcessingPayload.headers(), 200);
   }
 
@@ -61,5 +69,23 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
     }
     props = new SlackWebhookProperties(context.getProperties());
     context.replaceSecrets(props);
+  }
+
+  private Map bodyAsMap(Map<String, String> headers, byte[] rawBody) throws IOException {
+    var caseInsensitiveMap = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+    caseInsensitiveMap.putAll(headers);
+    String contentTypeHeader =
+        caseInsensitiveMap.getOrDefault(HttpHeaders.CONTENT_TYPE, "").toString();
+    if (MediaType.FORM_DATA.toString().equalsIgnoreCase(contentTypeHeader)) {
+      String bodyAsString =
+          URLDecoder.decode(new String(rawBody, StandardCharsets.UTF_8), StandardCharsets.UTF_8);
+      return Arrays.stream(bodyAsString.split("&"))
+          .filter(Objects::nonNull)
+          .map(param -> param.split("="))
+          .collect(Collectors.toMap(param -> param[0], param -> param.length == 1 ? "" : param[1]));
+    } else {
+      // Do our best to parse to JSON (throws exception otherwise)
+      return objectMapper.readValue(rawBody, Map.class);
+    }
   }
 }
