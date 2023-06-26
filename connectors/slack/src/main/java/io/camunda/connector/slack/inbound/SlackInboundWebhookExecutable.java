@@ -59,7 +59,14 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
 
     Map bodyAsMap =
         bodyAsMap(webhookProcessingPayload.headers(), webhookProcessingPayload.rawBody());
-    return new SlackWebhookProcessingResult(bodyAsMap, webhookProcessingPayload.headers(), 200);
+
+    // Command detected
+    if (bodyAsMap.containsKey("command")) {
+      return new SlackWebhookProcessingResult(
+          Map.of(), webhookProcessingPayload.headers(), bodyAsMap, 200);
+    }
+    return new SlackWebhookProcessingResult(
+        bodyAsMap, webhookProcessingPayload.headers(), Map.of(), 200);
   }
 
   @Override
