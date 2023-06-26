@@ -179,8 +179,8 @@ class SlackInboundWebhookExecutableTest {
 
     assertNotNull(result);
     assertThat(result.body()).isInstanceOf(Map.class);
-    assertThat((Map) result.body()).containsEntry("command", "/test123");
-    assertThat((Map) result.body()).containsEntry("text", "hello world");
+    assertThat((Map) result.connectorData()).containsEntry("command", "/test123");
+    assertThat((Map) result.connectorData()).containsEntry("text", "hello world");
   }
 
   @Test
@@ -210,8 +210,8 @@ class SlackInboundWebhookExecutableTest {
 
     assertNotNull(result);
     assertThat(result.body()).isInstanceOf(Map.class);
-    assertThat((Map) result.body()).containsEntry("command", "/test123");
-    assertThat((Map) result.body()).containsEntry("text", "hello world");
+    assertThat((Map) result.connectorData()).containsEntry("command", "/test123");
+    assertThat((Map) result.connectorData()).containsEntry("text", "hello world");
   }
 
   // generate fresh signature because it expires fast
