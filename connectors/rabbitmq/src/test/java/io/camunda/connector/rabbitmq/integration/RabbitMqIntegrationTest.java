@@ -129,9 +129,9 @@ public class RabbitMqIntegrationTest extends BaseTest {
     assertEquals(1, context.getCorrelations().size());
     assertInstanceOf(RabbitMqInboundResult.class, context.getCorrelations().get(0));
     RabbitMqInboundResult castedResult = (RabbitMqInboundResult) context.getCorrelations().get(0);
-    RabbitMqInboundMessage message = castedResult.getMessage();
-    assertInstanceOf(Map.class, message.getBody());
-    Map<String, Object> body = (Map<String, Object>) message.getBody();
+    RabbitMqInboundMessage message = castedResult.message();
+    assertInstanceOf(Map.class, message.body());
+    Map<String, Object> body = (Map<String, Object>) message.body();
     assertEquals("Hello World", body.get("value"));
   }
 

@@ -19,6 +19,7 @@ import io.camunda.connector.api.inbound.InboundConnectorResult;
 import io.camunda.connector.impl.ConnectorInputException;
 import io.camunda.connector.rabbitmq.inbound.model.RabbitMqInboundResult;
 import io.camunda.connector.rabbitmq.inbound.model.RabbitMqInboundResult.RabbitMqInboundMessage;
+import io.camunda.connector.rabbitmq.inbound.model.RabbitMqMessageProperties;
 import io.camunda.connector.rabbitmq.supplier.GsonSupplier;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -44,7 +45,7 @@ public class RabbitMqConsumer extends DefaultConsumer {
 
     LOGGER.debug("Received AMQP message with delivery tag {}", envelope.getDeliveryTag());
     try {
-      RabbitMqInboundResult variables = prepareVariables(consumerTag, envelope, properties, body);
+      RabbitMqInboundResult variables = prepareVariables(consumerTag, properties, body);
       InboundConnectorResult<?> result = context.correlate(variables);
 
       if (result != null && result.isActivated()) {
@@ -86,7 +87,7 @@ public class RabbitMqConsumer extends DefaultConsumer {
   }
 
   private RabbitMqInboundResult prepareVariables(
-      String consumerTag, Envelope envelope, BasicProperties properties, byte[] body) {
+      String consumerTag, BasicProperties rawProperties, byte[] body) {
 
     try {
       String bodyAsString = new String(body, StandardCharsets.UTF_8);
@@ -95,8 +96,7 @@ public class RabbitMqConsumer extends DefaultConsumer {
               .fromJson(StringEscapeUtils.unescapeJson(bodyAsString), JsonElement.class);
 
       Object bodyAsObject;
-      if (bodyAsJsonElement instanceof JsonPrimitive) {
-        JsonPrimitive bodyAsPrimitive = (JsonPrimitive) bodyAsJsonElement;
+      if (bodyAsJsonElement instanceof JsonPrimitive bodyAsPrimitive) {
         if (bodyAsPrimitive.isBoolean()) {
           bodyAsObject = bodyAsPrimitive.getAsBoolean();
         } else if (bodyAsPrimitive.isNumber()) {
@@ -108,7 +108,10 @@ public class RabbitMqConsumer extends DefaultConsumer {
         bodyAsObject = GsonSupplier.gson().fromJson(bodyAsJsonElement, Object.class);
       }
       RabbitMqInboundMessage message =
-          new RabbitMqInboundMessage(consumerTag, bodyAsObject, properties);
+          new RabbitMqInboundMessage(
+              consumerTag,
+              bodyAsObject,
+              new RabbitMqMessageProperties(rawProperties));
       return new RabbitMqInboundResult(message);
 
     } catch (Exception e) {
