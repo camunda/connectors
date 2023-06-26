@@ -144,7 +144,7 @@ jobs:
           context: bundle/default-bundle/
           push: ${{ github.ref == 'refs/heads/main' }}
           tags: camunda/connectors-bundle:${{ github.event.inputs.version }}
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64,linux/arm64/v8
           provenance: false
           
       - name: Build and Push Docker Image tag ${{ github.event.inputs.version }}-focal - bundle-default
@@ -153,7 +153,7 @@ jobs:
           context: bundle/default-bundle/
           push: ${{ github.ref == 'refs/heads/main' }}
           tags: camunda/connectors-bundle:${{ github.event.inputs.version }}-focal
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64,linux/arm64/v8
           provenance: false
           file: bundle/default-bundle/Dockerfile-focal
 
@@ -163,7 +163,7 @@ jobs:
           context: bundle/camunda-saas-bundle/
           push: ${{ github.ref == 'refs/heads/main' }}
           tags: camunda/connectors-bundle-saas:${{ github.event.inputs.version }}
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64,linux/arm64/v8
           provenance: false
 
       # Build & push bundle docker images (with 'latest' tag)
@@ -175,7 +175,7 @@ jobs:
           context: bundle/default-bundle/
           push: ${{ github.ref == 'refs/heads/main' }}
           tags: camunda/connectors-bundle:latest
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64,linux/arm64/v8
           provenance: false
 
       - name: Build and Push Docker Image tag latest - bundle-saas
@@ -185,7 +185,7 @@ jobs:
           context: bundle/camunda-saas-bundle/
           push: ${{ github.ref == 'refs/heads/main' }}
           tags: camunda/connectors-bundle-saas:latest
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64,linux/arm64/v8
           provenance: false
 
       # Update README in Dockerhub
