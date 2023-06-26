@@ -3,14 +3,14 @@ Do Not Translate or Localize
 
 This project incorporates components with the licenses under which Camunda received them as listed below.
 
-  * com.amazonaws:aws-java-sdk-core (Version: 1.12.488, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
-  * com.amazonaws:aws-java-sdk-sns (Version: 1.12.488, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
-  * com.amazonaws:aws-java-sdk-sqs (Version: 1.12.488, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
-  * com.amazonaws:jmespath-java (Version: 1.12.488, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
-  * com.fasterxml.jackson.core:jackson-annotations (Version: 2.15.0, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
-  * com.fasterxml.jackson.core:jackson-core (Version: 2.15.0, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
-  * com.fasterxml.jackson.core:jackson-databind (Version: 2.15.0, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
-  * com.fasterxml.jackson.dataformat:jackson-dataformat-cbor (Version: 2.15.0, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
+  * com.amazonaws:aws-java-sdk-core (Version: 1.12.495, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
+  * com.amazonaws:aws-java-sdk-sns (Version: 1.12.495, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
+  * com.amazonaws:aws-java-sdk-sqs (Version: 1.12.495, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
+  * com.amazonaws:jmespath-java (Version: 1.12.495, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
+  * com.fasterxml.jackson.core:jackson-annotations (Version: 2.15.2, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
+  * com.fasterxml.jackson.core:jackson-core (Version: 2.15.2, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
+  * com.fasterxml.jackson.core:jackson-databind (Version: 2.15.2, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
+  * com.fasterxml.jackson.dataformat:jackson-dataformat-cbor (Version: 2.15.2, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * com.google.code.gson:gson (Version: 2.10.1, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * commons-codec:commons-codec (Version: 1.15, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * commons-logging:commons-logging (Version: 1.1.3, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
