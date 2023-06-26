@@ -10,8 +10,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.MessageAttributeValue;
-import com.google.gson.JsonElement;
-import io.camunda.connector.common.suppliers.SqsGsonComponentSupplier;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.common.suppliers.ObjectMapperSupplier;
 import io.camunda.connector.inbound.model.message.SqsInboundMessage;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
@@ -31,6 +32,7 @@ class MessageMapperTest {
   private final String ATTRIBUTE_KEY = "attributeKey";
   private final ByteBuffer ATTRIBUTE_BINARY_TYPE = ByteBuffer.wrap("binary value".getBytes());
 
+  private static final ObjectMapper objectMapper = ObjectMapperSupplier.getMapperInstance();
   private final Map<String, String> ATTRIBUTES = Map.of(ATTRIBUTE_KEY, "attributeValue");
   private Map<String, MessageAttributeValue> messageAttributes;
   private Message awsMessage;
@@ -89,10 +91,8 @@ class MessageMapperTest {
     // When
     SqsInboundMessage sqsInboundMessage = MessageMapper.toSqsInboundMessage(awsMessage);
     // then
-    JsonElement jsonElement =
-        SqsGsonComponentSupplier.gsonInstance().toJsonTree(sqsInboundMessage.getBody());
-    String actualValue =
-        jsonElement.getAsJsonObject().get("key").getAsJsonObject().get("innerKey").getAsString();
+    JsonNode jsonNode = objectMapper.convertValue(sqsInboundMessage.getBody(), JsonNode.class);
+    String actualValue = jsonNode.get("key").get("innerKey").asText();
     assertThat(actualValue).isEqualTo("value");
   }
 

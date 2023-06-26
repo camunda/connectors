@@ -109,7 +109,7 @@
       "accessKey": "secrets.AWS_ACCESS_KEY"
     },
     "queue": {
-      "type": "test",
+      "type": null,
       "messageGroupId": "messageGroupId",
       "messageDeduplicationId": "messageDeduplicationId",
       "messageAttributes": {},

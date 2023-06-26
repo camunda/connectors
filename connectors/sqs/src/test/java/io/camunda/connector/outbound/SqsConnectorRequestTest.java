@@ -10,6 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.amazonaws.services.sqs.model.MessageAttributeValue;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.impl.ConnectorInputException;
 import io.camunda.connector.outbound.model.SqsConnectorRequest;
@@ -25,8 +26,9 @@ class SqsConnectorRequestTest extends BaseTest {
   private OutboundConnectorContext context;
 
   @BeforeEach
-  public void beforeEach() {
-    request = GSON.fromJson(DEFAULT_REQUEST_BODY_WITH_JSON_PAYLOAD, SqsConnectorRequest.class);
+  public void beforeEach() throws JsonProcessingException {
+    request =
+        objectMapper.readValue(DEFAULT_REQUEST_BODY_WITH_JSON_PAYLOAD, SqsConnectorRequest.class);
 
     context =
         OutboundConnectorContextBuilder.create()

@@ -19,10 +19,11 @@ import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
-import com.google.gson.Gson;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.common.suppliers.AmazonSQSClientSupplier;
-import io.camunda.connector.common.suppliers.SqsGsonComponentSupplier;
+import io.camunda.connector.common.suppliers.ObjectMapperSupplier;
 import io.camunda.connector.impl.inbound.InboundConnectorProperties;
 import io.camunda.connector.impl.inbound.correlation.StartEventCorrelationPoint;
 import io.camunda.connector.impl.inbound.result.MessageCorrelationResult;
@@ -30,7 +31,7 @@ import io.camunda.connector.inbound.model.SqsInboundProperties;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -40,7 +41,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -59,7 +59,7 @@ class SqsExecutableTest {
   private static final String MESSAGE_ATTRIBUTE_NAME = "MESSAGE_ATTRIBUTE_NAME_KEY";
   private static final String ACTUAL_MESSAGE_ATTRIBUTE_NAME = "message attribute";
 
-  private static final Gson GSON = SqsGsonComponentSupplier.gsonInstance();
+  private static final ObjectMapper objectMapper = ObjectMapperSupplier.getMapperInstance();
   private static final String SUCCESS_CASES_RESOURCE_PATH =
       "src/test/resources/requests/inbound/success-test-cases.json";
 
@@ -75,9 +75,8 @@ class SqsExecutableTest {
 
   @ParameterizedTest
   @MethodSource("successRequestCases")
-  public void activateTest(String input) throws InterruptedException {
+  public void activateTest(SqsInboundProperties properties) throws InterruptedException {
     // given
-    SqsInboundProperties properties = GSON.fromJson(input, SqsInboundProperties.class);
     InboundConnectorProperties connectorProps = createConnectorProperties();
     InboundConnectorContext context = createConnectorContext(properties, connectorProps);
     InboundConnectorContext spyContext = spy(context);
@@ -142,14 +141,11 @@ class SqsExecutableTest {
     return new Message().withMessageId("1").withBody("{\"a\":\"c\"}");
   }
 
-  private static Stream<String> successRequestCases() throws IOException {
-    return loadRequestCasesFromFile(SUCCESS_CASES_RESOURCE_PATH);
-  }
-
-  @SuppressWarnings("unchecked")
-  private static Stream<String> loadRequestCasesFromFile(final String fileName) throws IOException {
-    final String cases = readString(new File(fileName).toPath(), UTF_8);
-    var array = GSON.fromJson(cases, ArrayList.class);
-    return array.stream().map(GSON::toJson).map(Arguments::of);
+  private static Stream<SqsInboundProperties> successRequestCases() throws IOException {
+    final String cases =
+        readString(new File(SqsExecutableTest.SUCCESS_CASES_RESOURCE_PATH).toPath(), UTF_8);
+    return objectMapper
+        .readValue(cases, new TypeReference<List<SqsInboundProperties>>() {})
+        .stream();
   }
 }
