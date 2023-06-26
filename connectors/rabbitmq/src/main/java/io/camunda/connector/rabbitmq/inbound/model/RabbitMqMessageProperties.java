@@ -1,3 +1,9 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
+ */
 package io.camunda.connector.rabbitmq.inbound.model;
 
 import com.rabbitmq.client.AMQP;
@@ -9,9 +15,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * Model of the RabbitMQ message properties. Mirrors the {@link AMQP.BasicProperties}.
- */
+/** Model of the RabbitMQ message properties. Mirrors the {@link AMQP.BasicProperties}. */
 public record RabbitMqMessageProperties(
     String contentType,
     String contentEncoding,
@@ -31,7 +35,8 @@ public record RabbitMqMessageProperties(
   private static final Logger LOG = LoggerFactory.getLogger(RabbitMqMessageProperties.class);
 
   public RabbitMqMessageProperties(AMQP.BasicProperties properties) {
-    this(properties.getContentType(),
+    this(
+        properties.getContentType(),
         properties.getContentEncoding(),
         parseHeaders(properties.getHeaders()),
         properties.getDeliveryMode(),
@@ -65,13 +70,11 @@ public record RabbitMqMessageProperties(
     if (value instanceof LongString longString) {
       return longString.toString();
     } else if (value instanceof List<?> list) {
-      return list.stream()
-          .map(RabbitMqMessageProperties::handleHeaderValue)
-          .toList();
+      return list.stream().map(RabbitMqMessageProperties::handleHeaderValue).toList();
     } else {
       // long, boolean are represented as their respective types, so we don't need to do anything
-      LOG.debug("Unhandled header value type: {}. Original value will be returned",
-          value.getClass());
+      LOG.debug(
+          "Unhandled header value type: {}. Original value will be returned", value.getClass());
       return value;
     }
   }

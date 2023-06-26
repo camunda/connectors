@@ -51,9 +51,12 @@ public class RabbitMqConsumer extends DefaultConsumer {
       if (result != null && result.isActivated()) {
         LOGGER.debug("ACK - inbound event correlated successfully: {}", result.getResponseData());
         getChannel().basicAck(envelope.getDeliveryTag(), false);
-      } else {
+      } else if (result != null) {
         LOGGER.debug("NACK (no requeue) - inbound event not correlated: {}", result.getErrorData());
         getChannel().basicReject(envelope.getDeliveryTag(), false);
+      } else {
+        LOGGER.error("NACK (requeue) - no response from correlation");
+        getChannel().basicReject(envelope.getDeliveryTag(), true);
       }
 
     } catch (ConnectorInputException e) {
@@ -109,9 +112,7 @@ public class RabbitMqConsumer extends DefaultConsumer {
       }
       RabbitMqInboundMessage message =
           new RabbitMqInboundMessage(
-              consumerTag,
-              bodyAsObject,
-              new RabbitMqMessageProperties(rawProperties));
+              consumerTag, bodyAsObject, new RabbitMqMessageProperties(rawProperties));
       return new RabbitMqInboundResult(message);
 
     } catch (Exception e) {

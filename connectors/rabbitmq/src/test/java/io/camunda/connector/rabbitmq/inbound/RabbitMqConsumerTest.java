@@ -70,8 +70,7 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
       var correlatedEvents = context.getCorrelations();
       assertThat(correlatedEvents).hasSize(1);
       assertThat(correlatedEvents.get(0)).isInstanceOf(RabbitMqInboundResult.class);
-      RabbitMqInboundMessage message =
-          ((RabbitMqInboundResult) correlatedEvents.get(0)).message();
+      RabbitMqInboundMessage message = ((RabbitMqInboundResult) correlatedEvents.get(0)).message();
 
       assertThat(message.body()).isInstanceOf(Map.class);
       Map<String, Object> body = (Map<String, Object>) message.body();
@@ -97,8 +96,7 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
       var correlatedEvents = context.getCorrelations();
       assertThat(correlatedEvents).hasSize(1);
       assertThat(correlatedEvents.get(0)).isInstanceOf(RabbitMqInboundResult.class);
-      RabbitMqInboundMessage message =
-          ((RabbitMqInboundResult) correlatedEvents.get(0)).message();
+      RabbitMqInboundMessage message = ((RabbitMqInboundResult) correlatedEvents.get(0)).message();
 
       assertThat(message.body()).isInstanceOf(String.class);
       assertThat(message.body()).isEqualTo(body);
@@ -123,8 +121,7 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
       var correlatedEvents = context.getCorrelations();
       assertThat(correlatedEvents).hasSize(1);
       assertThat(correlatedEvents.get(0)).isInstanceOf(RabbitMqInboundResult.class);
-      RabbitMqInboundMessage message =
-          ((RabbitMqInboundResult) correlatedEvents.get(0)).message();
+      RabbitMqInboundMessage message = ((RabbitMqInboundResult) correlatedEvents.get(0)).message();
 
       assertThat(message.body()).isInstanceOf(Number.class);
       assertThat(((Number) message.body()).intValue()).isEqualTo(Integer.parseInt(body));
@@ -149,8 +146,7 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
       var correlatedEvents = context.getCorrelations();
       assertThat(correlatedEvents).hasSize(1);
       assertThat(correlatedEvents.get(0)).isInstanceOf(RabbitMqInboundResult.class);
-      RabbitMqInboundMessage message =
-          ((RabbitMqInboundResult) correlatedEvents.get(0)).message();
+      RabbitMqInboundMessage message = ((RabbitMqInboundResult) correlatedEvents.get(0)).message();
 
       assertThat(message.body()).isInstanceOf(Boolean.class);
       assertThat(message.body()).isEqualTo(Boolean.parseBoolean(body));
@@ -165,8 +161,10 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
     void consumer_shouldHandleByteArrayHeaders() throws IOException {
       // Given headers provided as bytes
       Envelope envelope = new Envelope(1, false, "exchange", "routingKey");
-      BasicProperties properties = new BasicProperties.Builder()
-          .headers(Map.of("key", LongStringHelper.asLongString("value"))).build();
+      BasicProperties properties =
+          new BasicProperties.Builder()
+              .headers(Map.of("key", LongStringHelper.asLongString("value")))
+              .build();
 
       // When
       consumer.handleDelivery("consumerTag", envelope, properties, "body".getBytes());
@@ -175,8 +173,7 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
       var correlatedEvents = context.getCorrelations();
       assertThat(correlatedEvents).hasSize(1);
       assertThat(correlatedEvents.get(0)).isInstanceOf(RabbitMqInboundResult.class);
-      RabbitMqInboundMessage message =
-          ((RabbitMqInboundResult) correlatedEvents.get(0)).message();
+      RabbitMqInboundMessage message = ((RabbitMqInboundResult) correlatedEvents.get(0)).message();
 
       assertThat(message.properties().headers().get("key")).isEqualTo("value");
     }

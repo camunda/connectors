@@ -6,13 +6,9 @@
  */
 package io.camunda.connector.rabbitmq.inbound.model;
 
-/**
- * Model of the Connector output
- */
+/** Model of the Connector output */
 public record RabbitMqInboundResult(RabbitMqInboundMessage message) {
 
   public record RabbitMqInboundMessage(
-      String consumerTag,
-      Object body,
-      RabbitMqMessageProperties properties) {}
+      String consumerTag, Object body, RabbitMqMessageProperties properties) {}
 }
