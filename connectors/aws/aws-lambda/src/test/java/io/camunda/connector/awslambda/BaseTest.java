@@ -9,20 +9,21 @@ package io.camunda.connector.awslambda;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.readString;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.aws.ObjectMapperSupplier;
+import io.camunda.connector.awslambda.model.AwsLambdaRequest;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Stream;
-import org.junit.jupiter.params.provider.Arguments;
 
 public abstract class BaseTest {
 
-  protected static final Gson gson = new GsonBuilder().create();
+  protected static final ObjectMapper objectMapper = ObjectMapperSupplier.getMapperInstance();
 
   protected static final String SECRET_KEY = "SECRET_KEY";
   protected static final String ACTUAL_SECRET_KEY = "testSecretKey";
@@ -36,7 +37,8 @@ public abstract class BaseTest {
 
   protected static final String ACTUAL_STRING_PAYLOAD = "{\"event\":{\"key\":\"value\"}}";
   protected static final Object ACTUAL_PAYLOAD =
-      gson.fromJson(ACTUAL_STRING_PAYLOAD, Object.class); // toObject(ACTUAL_STRING_PAYLOAD);
+      objectMapper.convertValue(
+          ACTUAL_STRING_PAYLOAD, Object.class); // toObject(ACTUAL_STRING_PAYLOAD);
   protected static final ByteBuffer ACTUAL_BYTEBUFFER_PAYLOAD =
       ByteBuffer.wrap(ACTUAL_STRING_PAYLOAD.getBytes(StandardCharsets.UTF_8));
 
@@ -51,15 +53,15 @@ public abstract class BaseTest {
   protected static final String FAIL_REQUEST_CASE_PATH =
       "src/test/resources/requests/lambda-connector-fail-test-case.json";
 
-  protected static Stream<String> successRequestCases() throws IOException {
+  protected static Stream<AwsLambdaRequest> successRequestCases() throws IOException {
     return BaseTest.loadTestCasesFromResourceFile(SUCCESS_REQUEST_CASE_PATH);
   }
 
-  protected static Stream<String> successSecretsRequestCases() throws IOException {
+  protected static Stream<AwsLambdaRequest> successSecretsRequestCases() throws IOException {
     return BaseTest.loadTestCasesFromResourceFile(SUCCESS_REQUEST_WITH_SECRETS_CASE_PATH);
   }
 
-  protected static Stream<String> failRequestCases() throws IOException {
+  protected static Stream<AwsLambdaRequest> failRequestCases() throws IOException {
     return BaseTest.loadTestCasesFromResourceFile(FAIL_REQUEST_CASE_PATH);
   }
 
@@ -71,12 +73,9 @@ public abstract class BaseTest {
         .secret(FUNCTION_NAME_KEY, ACTUAL_FUNCTION_NAME);
   }
 
-  @SuppressWarnings("unchecked")
-  protected static Stream<String> loadTestCasesFromResourceFile(final String fileWithTestCasesUri)
-      throws IOException {
+  protected static Stream<AwsLambdaRequest> loadTestCasesFromResourceFile(
+      final String fileWithTestCasesUri) throws IOException {
     final String cases = readString(new File(fileWithTestCasesUri).toPath(), UTF_8);
-    final Gson testingGson = new Gson();
-    var array = testingGson.fromJson(cases, ArrayList.class);
-    return array.stream().map(testingGson::toJson).map(Arguments::of);
+    return objectMapper.readValue(cases, new TypeReference<List<AwsLambdaRequest>>() {}).stream();
   }
 }

@@ -35,9 +35,8 @@ class AwsLambdaRequestTest extends BaseTest {
 
   @ParameterizedTest(name = "Should throw exception when validate null field # {index}")
   @MethodSource("failRequestCases")
-  void validate_shouldThrowExceptionWhenLeastOneNotExistRequestField(String input) {
+  void validate_shouldThrowExceptionWhenLeastOneNotExistRequestField(AwsLambdaRequest request) {
     // Given request , where one field is null
-    request = gson.fromJson(input, AwsLambdaRequest.class);
     // When request validate
     // Then we except exception with message
     ConnectorInputException thrown =
@@ -50,9 +49,8 @@ class AwsLambdaRequestTest extends BaseTest {
 
   @ParameterizedTest(name = "Should replace secrets")
   @MethodSource("successSecretsRequestCases")
-  void replaceSecrets_shouldReplaceSecrets(String input) {
+  void replaceSecrets_shouldReplaceSecrets(AwsLambdaRequest request) {
     // Given request with secrets. all secrets look like 'secrets.KEY'
-    request = gson.fromJson(input, AwsLambdaRequest.class);
     // When replace secrets
     context.replaceSecrets(request);
     // Then
