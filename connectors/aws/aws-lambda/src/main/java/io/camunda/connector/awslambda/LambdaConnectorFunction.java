@@ -9,12 +9,13 @@ package io.camunda.connector.awslambda;
 import com.amazonaws.services.lambda.AWSLambda;
 import com.amazonaws.services.lambda.model.InvokeRequest;
 import com.amazonaws.services.lambda.model.InvokeResult;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.aws.CredentialsProviderSupport;
+import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.aws.model.impl.AwsBaseConfiguration;
 import io.camunda.connector.awslambda.model.AwsLambdaRequest;
 import io.camunda.connector.awslambda.model.AwsLambdaResult;
@@ -31,27 +32,29 @@ public class LambdaConnectorFunction implements OutboundConnectorFunction {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(LambdaConnectorFunction.class);
   private final AwsLambdaSupplier awsLambdaSupplier;
-  private final Gson gson;
+  private final ObjectMapper objectMapper;
 
   public LambdaConnectorFunction() {
-    this(new AwsLambdaSupplier(), new GsonBuilder().create());
+    this(new AwsLambdaSupplier(), ObjectMapperSupplier.getMapperInstance());
   }
 
-  public LambdaConnectorFunction(final AwsLambdaSupplier awsLambdaSupplier, final Gson gson) {
+  public LambdaConnectorFunction(
+      final AwsLambdaSupplier awsLambdaSupplier, final ObjectMapper objectMapper) {
     this.awsLambdaSupplier = awsLambdaSupplier;
-    this.gson = gson;
+    this.objectMapper = objectMapper;
   }
 
   @Override
-  public Object execute(OutboundConnectorContext context) {
+  public Object execute(OutboundConnectorContext context) throws JsonProcessingException {
     var request = context.getVariablesAsType(AwsLambdaRequest.class);
     LOGGER.info("Executing my connector with request {}", request);
     context.validate(request);
     context.replaceSecrets(request);
-    return new AwsLambdaResult(invokeLambdaFunction(request), gson);
+    return new AwsLambdaResult(invokeLambdaFunction(request), objectMapper);
   }
 
-  private InvokeResult invokeLambdaFunction(AwsLambdaRequest request) {
+  private InvokeResult invokeLambdaFunction(AwsLambdaRequest request)
+      throws JsonProcessingException {
     var region =
         Optional.ofNullable(request.getConfiguration())
             .map(AwsBaseConfiguration::getRegion)
@@ -67,7 +70,7 @@ public class LambdaConnectorFunction implements OutboundConnectorFunction {
     final InvokeRequest invokeRequest =
         new InvokeRequest()
             .withFunctionName(request.getAwsFunction().getFunctionName())
-            .withPayload(gson.toJson(request.getAwsFunction().getPayload()));
+            .withPayload(objectMapper.writeValueAsString(request.getAwsFunction().getPayload()));
     try {
       return awsLambda.invoke(invokeRequest);
     } finally {
