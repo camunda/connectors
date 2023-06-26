@@ -64,10 +64,7 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
     if (bodyAsMap.containsKey("command")) {
       // FIXME: hard coded values will be removed. For SaaS testing only
       return new SlackWebhookProcessingResult(
-          Map.of("response_type", "in_channel", "text", "OK"),
-          webhookProcessingPayload.headers(),
-          bodyAsMap,
-          200);
+          Map.of("response_type", "in_channel", "text", "OK"), Map.of(), bodyAsMap, 200);
     }
     return new SlackWebhookProcessingResult(
         bodyAsMap, webhookProcessingPayload.headers(), Map.of(), 200);
