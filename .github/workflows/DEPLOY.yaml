@@ -89,7 +89,7 @@ jobs:
           context: bundle/default-bundle/
           push: ${{ github.ref == 'refs/heads/main' }}
           tags: camunda/connectors-bundle:SNAPSHOT
-          platforms: linux/amd64,linux/arm64/v8
+          platforms: linux/amd64,linux/arm64
           provenance: false
 
       - name: Build and Push Docker Image tag SNAPSHOT - bundle-saas
@@ -98,5 +98,5 @@ jobs:
           context: bundle/camunda-saas-bundle/
           push: ${{ github.ref == 'refs/heads/main' }}
           tags: camunda/connectors-bundle-saas:SNAPSHOT
-          platforms: linux/amd64,linux/arm64/v8
+          platforms: linux/amd64,linux/arm64
           provenance: false
