@@ -19,7 +19,6 @@ import io.camunda.connector.api.inbound.InboundConnectorResult;
 import io.camunda.connector.impl.ConnectorInputException;
 import io.camunda.connector.rabbitmq.inbound.model.RabbitMqInboundResult;
 import io.camunda.connector.rabbitmq.inbound.model.RabbitMqInboundResult.RabbitMqInboundMessage;
-import io.camunda.connector.rabbitmq.inbound.model.RabbitMqMessageProperties;
 import io.camunda.connector.rabbitmq.supplier.GsonSupplier;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -112,7 +111,7 @@ public class RabbitMqConsumer extends DefaultConsumer {
       }
       RabbitMqInboundMessage message =
           new RabbitMqInboundMessage(
-              consumerTag, bodyAsObject, new RabbitMqMessageProperties(rawProperties));
+              consumerTag, bodyAsObject, AMQPPropertyUtil.toProperties(rawProperties));
       return new RabbitMqInboundResult(message);
 
     } catch (Exception e) {

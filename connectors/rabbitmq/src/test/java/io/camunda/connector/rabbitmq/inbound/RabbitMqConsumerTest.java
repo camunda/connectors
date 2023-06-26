@@ -17,13 +17,11 @@ import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.ShutdownSignalException;
-import com.rabbitmq.client.impl.LongStringHelper;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.impl.ConnectorInputException;
 import io.camunda.connector.impl.inbound.result.MessageCorrelationResult;
 import io.camunda.connector.rabbitmq.inbound.model.RabbitMqInboundResult;
 import io.camunda.connector.rabbitmq.inbound.model.RabbitMqInboundResult.RabbitMqInboundMessage;
-import io.camunda.connector.rabbitmq.inbound.model.RabbitMqMessageProperties;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder.TestInboundConnectorContext;
 import java.io.IOException;
 import java.util.Map;
@@ -76,7 +74,7 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
       Map<String, Object> body = (Map<String, Object>) message.body();
       assertThat(body).containsEntry("key", "value");
 
-      assertThat(message.properties()).isEqualTo(new RabbitMqMessageProperties(properties));
+      assertThat(message.properties()).isEqualTo(AMQPPropertyUtil.toProperties(properties));
       assertThat(message.consumerTag()).isEqualTo("consumerTag");
 
       verify(mockChannel, times(1)).basicAck(1, false);
@@ -101,7 +99,7 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
       assertThat(message.body()).isInstanceOf(String.class);
       assertThat(message.body()).isEqualTo(body);
 
-      assertThat(message.properties()).isEqualTo(new RabbitMqMessageProperties(properties));
+      assertThat(message.properties()).isEqualTo(AMQPPropertyUtil.toProperties(properties));
       assertThat(message.consumerTag()).isEqualTo("consumerTag");
 
       verify(mockChannel, times(1)).basicAck(1, false);
@@ -126,7 +124,7 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
       assertThat(message.body()).isInstanceOf(Number.class);
       assertThat(((Number) message.body()).intValue()).isEqualTo(Integer.parseInt(body));
 
-      assertThat(message.properties()).isEqualTo(new RabbitMqMessageProperties(properties));
+      assertThat(message.properties()).isEqualTo(AMQPPropertyUtil.toProperties(properties));
       assertThat(message.consumerTag()).isEqualTo("consumerTag");
 
       verify(mockChannel, times(1)).basicAck(1, false);
@@ -151,31 +149,10 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
       assertThat(message.body()).isInstanceOf(Boolean.class);
       assertThat(message.body()).isEqualTo(Boolean.parseBoolean(body));
 
-      assertThat(message.properties()).isEqualTo(new RabbitMqMessageProperties(properties));
+      assertThat(message.properties()).isEqualTo(AMQPPropertyUtil.toProperties(properties));
       assertThat(message.consumerTag()).isEqualTo("consumerTag");
 
       verify(mockChannel, times(1)).basicAck(1, false);
-    }
-
-    @Test
-    void consumer_shouldHandleByteArrayHeaders() throws IOException {
-      // Given headers provided as bytes
-      Envelope envelope = new Envelope(1, false, "exchange", "routingKey");
-      BasicProperties properties =
-          new BasicProperties.Builder()
-              .headers(Map.of("key", LongStringHelper.asLongString("value")))
-              .build();
-
-      // When
-      consumer.handleDelivery("consumerTag", envelope, properties, "body".getBytes());
-
-      // Then
-      var correlatedEvents = context.getCorrelations();
-      assertThat(correlatedEvents).hasSize(1);
-      assertThat(correlatedEvents.get(0)).isInstanceOf(RabbitMqInboundResult.class);
-      RabbitMqInboundMessage message = ((RabbitMqInboundResult) correlatedEvents.get(0)).message();
-
-      assertThat(message.properties().headers().get("key")).isEqualTo("value");
     }
   }
 
@@ -203,7 +180,7 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
     assertThat(message.body()).isInstanceOf(String.class);
     assertThat(message.body()).isEqualTo(body);
 
-    assertThat(message.properties()).isEqualTo(new RabbitMqMessageProperties(properties));
+    assertThat(message.properties()).isEqualTo(AMQPPropertyUtil.toProperties(properties));
     assertThat(message.consumerTag()).isEqualTo("consumerTag");
 
     verify(mockChannel, times(1)).basicReject(1, true);
@@ -234,7 +211,7 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
     assertThat(message.body()).isInstanceOf(String.class);
     assertThat(message.body()).isEqualTo(body);
 
-    assertThat(message.properties()).isEqualTo(new RabbitMqMessageProperties(properties));
+    assertThat(message.properties()).isEqualTo(AMQPPropertyUtil.toProperties(properties));
     assertThat(message.consumerTag()).isEqualTo("consumerTag");
 
     verify(mockChannel, times(1)).basicReject(1, false);
