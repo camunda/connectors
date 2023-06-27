@@ -21,7 +21,7 @@ import io.camunda.connector.aws.ObjectMapperSupplier;
 @OutboundConnector(
     name = "AWSEventBridge",
     inputVariables = {"authentication", "configuration", "input"},
-    type = "io.camunda:aws:eventbridge:1")
+    type = "io.camunda:aws-eventbridge:1")
 public class EventBridgeFunction implements OutboundConnectorFunction {
 
   private final AwsEventBridgeClientSupplier awsEventBridgeClientSupplier;
