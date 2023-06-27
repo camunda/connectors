@@ -9,11 +9,12 @@ package io.camunda.connector.aws.dynamodb.operation.item;
 import com.amazonaws.services.dynamodbv2.document.Item;
 import com.amazonaws.services.dynamodbv2.document.KeyAttribute;
 import com.amazonaws.services.dynamodbv2.document.PrimaryKey;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.aws.dynamodb.BaseDynamoDbOperationTest;
 import io.camunda.connector.aws.dynamodb.TestDynamoDBData;
+import io.camunda.connector.aws.dynamodb.model.AwsInput;
 import io.camunda.connector.aws.dynamodb.model.item.GetItem;
-import io.camunda.connector.aws.model.AwsInput;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -77,7 +78,7 @@ class GetItemOperationTest extends BaseDynamoDbOperationTest {
     }
 
     @Test
-    public void replaceSecrets_shouldReplaceSecrets() {
+    public void replaceSecrets_shouldReplaceSecrets() throws JsonProcessingException {
         // Given
         String input = """
                      {
@@ -86,14 +87,14 @@ class GetItemOperationTest extends BaseDynamoDbOperationTest {
                      "primaryKeyComponents":{"id":"secrets.KEY_ATTRIBUTE_VALUE"}
                      }""";
         OutboundConnectorContext context = getContextWithSecrets();
-        AwsInput request = GSON.fromJson(input, AwsInput.class);
+        AwsInput request = objectMapper.readValue(input, AwsInput.class);
         // When
         context.replaceSecrets(request);
         // Then
         assertThat(request).isInstanceOf(GetItem.class);
         GetItem castedRequest = (GetItem) request;
         assertThat(castedRequest.getTableName()).isEqualTo(TestDynamoDBData.ActualValue.TABLE_NAME);
-        assertThat(castedRequest.getPrimaryKeyComponents()).isEqualTo( GSON.fromJson("{\"id\":\"1234\"}", Object.class));
+        assertThat(castedRequest.getPrimaryKeyComponents()).isEqualTo(objectMapper.readValue("{\"id\":\"1234\"}", Object.class));
     }
 
 }

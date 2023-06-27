@@ -19,8 +19,6 @@
 
   <modules>
     <module>aws</module>
-    <module>sns</module>
-    <module>sqs</module>
     <module>rabbitmq</module>
     <module>sendgrid</module>
     <module>kafka</module>

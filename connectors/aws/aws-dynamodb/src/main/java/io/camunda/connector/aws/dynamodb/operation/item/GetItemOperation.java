@@ -9,21 +9,22 @@ package io.camunda.connector.aws.dynamodb.operation.item;
 import com.amazonaws.services.dynamodbv2.document.DynamoDB;
 import com.amazonaws.services.dynamodbv2.document.Item;
 import com.amazonaws.services.dynamodbv2.document.PrimaryKey;
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
-import io.camunda.connector.aws.dynamodb.GsonDynamoDbComponentSupplier;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.aws.dynamodb.model.item.GetItem;
 import io.camunda.connector.aws.dynamodb.operation.AwsDynamoDbOperation;
+import java.util.HashMap;
 import java.util.Optional;
 
 public class GetItemOperation implements AwsDynamoDbOperation {
 
   private final GetItem getItemModel;
-  private final Gson gson;
+  private final ObjectMapper objectMapper;
 
   public GetItemOperation(final GetItem getItemModel) {
     this.getItemModel = getItemModel;
-    this.gson = GsonDynamoDbComponentSupplier.gsonInstance();
+    this.objectMapper = ObjectMapperSupplier.getMapperInstance();
   }
 
   @Override
@@ -35,20 +36,11 @@ public class GetItemOperation implements AwsDynamoDbOperation {
   }
 
   private PrimaryKey createPrimaryKey() {
-    JsonObject primaryKeyJson =
-        gson.toJsonTree(getItemModel.getPrimaryKeyComponents()).getAsJsonObject();
-
     PrimaryKey primaryKey = new PrimaryKey();
-    primaryKeyJson
-        .entrySet()
-        .forEach(
-            entry -> {
-              Object value =
-                  Optional.ofNullable(entry.getValue())
-                      .map(jsonElement -> gson.fromJson(jsonElement, Object.class))
-                      .orElse(null);
-              primaryKey.addComponent(entry.getKey(), value);
-            });
+    objectMapper
+        .convertValue(
+            getItemModel.getPrimaryKeyComponents(), new TypeReference<HashMap<String, Object>>() {})
+        .forEach(primaryKey::addComponent);
     return primaryKey;
   }
 }

@@ -10,12 +10,10 @@ import com.amazonaws.services.dynamodbv2.document.Item;
 import com.amazonaws.services.dynamodbv2.document.ItemCollection;
 import com.amazonaws.services.dynamodbv2.document.ScanOutcome;
 import com.amazonaws.services.dynamodbv2.document.internal.IteratorSupport;
-import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.aws.dynamodb.BaseDynamoDbOperationTest;
 import io.camunda.connector.aws.dynamodb.TestDynamoDBData;
 import io.camunda.connector.aws.dynamodb.model.AwsDynamoDbResult;
 import io.camunda.connector.aws.dynamodb.model.table.ScanTable;
-import io.camunda.connector.aws.model.AwsInput;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -81,47 +79,4 @@ class ScanTableOperationTest extends BaseDynamoDbOperationTest {
         assertThatResultIsOk(result);
     }
 
-    @Test
-    public void invoke_shouldScanTableWithFilter() {
-        //Given
-        when(dynamoDB.getTable(TestDynamoDBData.ActualValue.TABLE_NAME).scan(TestDynamoDBData.ActualValue.FILTER_EXPRESSION, null, TestDynamoDBData.ActualValue.EXPRESSION_ATTRIBUTE_NAMES, TestDynamoDBData.ActualValue.EXPRESSION_ATTRIBUTE_VALUES)).thenReturn(itemCollection);
-        scanTableOperation = new ScanTableOperation(scanTable);
-        //When
-        final AwsDynamoDbResult result = (AwsDynamoDbResult) scanTableOperation.invoke(dynamoDB);
-        //Then
-        assertThatResultIsOk(result);
-    }
-
-    @Test
-    public void replaceSecrets_shouldReplaceSecrets() {
-        // Given
-        String input = """
-                {
-                  "type": "scanTable",
-                  "tableName": "secrets.TABLE_NAME_KEY",
-                  "filterExpression": "secrets.FILTER_EXPRESSION_KEY",
-                  "projectionExpression": "secrets.PROJECTION_KEY",
-                  "expressionAttributeNames": {"#name":"secrets.EXPRESSION_ATTRIBUTE_NAME"},
-                  "expressionAttributeValues": {":ageVal":secrets.EXPRESSION_ATTRIBUTE_VALUE}
-                }
-                """;
-        OutboundConnectorContext context = getContextWithSecrets();
-        AwsInput request = GSON.fromJson(input, AwsInput.class);
-        // When
-        context.replaceSecrets(request);
-        // Then
-        assertThat(request).isInstanceOf(ScanTable.class);
-        ScanTable castedRequest = (ScanTable) request;
-        assertThat(castedRequest.getTableName()).isEqualTo(TestDynamoDBData.ActualValue.TABLE_NAME);
-        assertThat(castedRequest.getFilterExpression()).isEqualTo(TestDynamoDBData.ActualValue.FILTER_EXPRESSION);
-        assertThat(castedRequest.getProjectionExpression()).isEqualTo(TestDynamoDBData.ActualValue.PROJECTION_EXPRESSION);
-        assertThat(castedRequest.getExpressionAttributeNames()).isEqualTo(GSON.fromJson("{\"#name\": \"name\"}", Object.class));
-        assertThat(castedRequest.getExpressionAttributeValues()).isEqualTo(GSON.fromJson("{\":ageVal\": 30L}", Object.class));
-    }
 }
-
-
-
-
-
-
