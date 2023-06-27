@@ -1,20 +1,6 @@
 [
   {
-    "testDescription": "Request with secrets",
-    "authentication":{
-      "secretKey":"secrets.AWS_SECRET_KEY",
-      "accessKey":"secrets.AWS_ACCESS_KEY"
-    },
-    "queue":{
-      "attributeNames":["{{secrets.ATTRIBUTE_NAME_KEY}}"],
-      "messageAttributeNames": ["{{secrets.MESSAGE_ATTRIBUTE_NAME_KEY}"],
-      "region":"us-east-1",
-      "url":"secrets.SQS_QUEUE_URL",
-      "pollingWaitTime": "1"
-    }
-  },
-  {
-    "testDescription": "Request without secrets and attributes",
+    "testDescription": "Deprecated test, should support region in queue",
     "authentication":{
       "secretKey":"AAAABBBBCCCDDD",
       "accessKey":"4W553CR3TK3Y"
@@ -29,13 +15,48 @@
     }
   },
   {
+    "testDescription": "Request with secrets",
+    "authentication":{
+      "secretKey":"secrets.AWS_SECRET_KEY",
+      "accessKey":"secrets.AWS_ACCESS_KEY"
+    },
+    "configuration": {
+      "region":"us-east-1"
+    },
+    "queue":{
+      "attributeNames":["{{secrets.ATTRIBUTE_NAME_KEY}}"],
+      "messageAttributeNames": ["{{secrets.MESSAGE_ATTRIBUTE_NAME_KEY}"],
+      "url":"secrets.SQS_QUEUE_URL",
+      "pollingWaitTime": "1"
+    }
+  },
+  {
+    "testDescription": "Request without secrets and attributes",
+    "authentication":{
+      "secretKey":"AAAABBBBCCCDDD",
+      "accessKey":"4W553CR3TK3Y"
+    },
+    "configuration": {
+      "region":"us-east-1"
+    },
+    "queue":{
+      "messageAttributes":{},
+      "attributeNames":["attribute"],
+      "messageAttributeNames": ["messageAttributeName"],
+      "url":"https://my.queue.url",
+      "pollingWaitTime": "1"
+    }
+  },
+  {
     "testDescription": "Request with secrets, without attributes",
     "authentication":{
       "secretKey":"secrets.AWS_SECRET_KEY",
       "accessKey":"secrets.AWS_ACCESS_KEY"
     },
+    "configuration": {
+      "region":"us-east-1"
+    },
     "queue":{
-      "region":"us-east-1",
       "url":"secrets.SQS_QUEUE_URL",
       "pollingWaitTime": "1"
     }
@@ -46,8 +67,10 @@
       "secretKey":"AAAABBBBCCCDDD",
       "accessKey":"4W553CR3TK3Y"
     },
+    "configuration": {
+      "region":"us-east-1"
+    },
     "queue":{
-      "region":"us-east-1",
       "url":"https://my.queue.url",
       "pollingWaitTime": "1"
     }

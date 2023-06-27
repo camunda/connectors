@@ -4,7 +4,7 @@
   "id": "io.camunda.connectors.AWSSNS.v1",
   "description": "Send message to topic",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-sns/",
-  "version": 1,
+  "version": 2,
   "appliesTo": [
     "bpmn:Task"
   ],
@@ -91,7 +91,7 @@
       "type": "String",
       "binding": {
         "type": "zeebe:input",
-        "name": "topic.region"
+        "name": "configuration.region"
       },
       "constraints": {
         "notEmpty": true

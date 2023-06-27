@@ -15,6 +15,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.aws.AwsUtils;
 import io.camunda.connector.aws.CredentialsProviderSupport;
 import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.sns.outbound.model.SnsConnectorRequest;
@@ -52,9 +53,10 @@ public class SnsConnectorFunction implements OutboundConnectorFunction {
     final var request = objectMapper.readValue(variables, SnsConnectorRequest.class);
     context.validate(request);
     context.replaceSecrets(request);
-
+    var region =
+        AwsUtils.extractRegionOrDefault(request.getConfiguration(), request.getTopic().getRegion());
     AWSCredentialsProvider provider = CredentialsProviderSupport.credentialsProvider(request);
-    AmazonSNS snsClient = snsClientSupplier.getSnsClient(provider, request.getTopic().getRegion());
+    AmazonSNS snsClient = snsClientSupplier.getSnsClient(provider, region);
     return new SnsConnectorResult(sendMsgToSns(snsClient, request.getTopic()).getMessageId());
   }
 

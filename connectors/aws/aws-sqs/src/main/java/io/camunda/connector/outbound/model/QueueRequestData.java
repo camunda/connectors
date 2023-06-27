@@ -21,7 +21,7 @@ import javax.validation.constraints.NotNull;
 public class QueueRequestData {
 
   @NotEmpty @Secret private String url;
-  @NotEmpty @Secret private String region;
+  @Deprecated @Secret private String region;
 
   @NotNull private Object messageBody;
 
@@ -41,10 +41,12 @@ public class QueueRequestData {
     this.url = url;
   }
 
+  @Deprecated
   public String getRegion() {
     return region;
   }
 
+  @Deprecated
   public void setRegion(String region) {
     this.region = region;
   }

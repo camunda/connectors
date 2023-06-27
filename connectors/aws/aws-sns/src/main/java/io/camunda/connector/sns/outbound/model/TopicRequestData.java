@@ -20,7 +20,7 @@ import javax.validation.constraints.Size;
 public class TopicRequestData {
 
   @NotBlank @Secret private String topicArn;
-  @NotBlank @Secret private String region;
+  @Deprecated @Secret private String region;
 
   @Size(max = 99)
   private String subject;
@@ -38,10 +38,12 @@ public class TopicRequestData {
     this.topicArn = topicArn;
   }
 
+  @Deprecated
   public String getRegion() {
     return region;
   }
 
+  @Deprecated
   public void setRegion(String region) {
     this.region = region;
   }

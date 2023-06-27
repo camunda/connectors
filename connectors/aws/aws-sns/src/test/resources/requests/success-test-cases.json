@@ -1,6 +1,6 @@
 [
   {
-    "testDescription": "Request with secrets",
+    "testDescription": "Deprecated case where region in topic, but must be supported",
     "authentication":{
       "secretKey":"secrets.AWS_SECRET_KEY",
       "accessKey":"secrets.AWS_ACCESS_KEY"
@@ -14,10 +14,29 @@
     }
   },
   {
+    "testDescription": "Request with secrets",
+    "authentication":{
+      "secretKey":"secrets.AWS_SECRET_KEY",
+      "accessKey":"secrets.AWS_ACCESS_KEY"
+    },
+    "configuration": {
+      "region":"us-east-1"
+    },
+    "topic":{
+      "message":"Hello",
+      "messageAttributes":{},
+      "subject":"MySubject",
+      "topicArn":"arn:aws:sns:us-east-1:036433529947:MyCamundaDemo"
+    }
+  },
+  {
     "testDescription": "Request with attributes",
     "authentication":{
       "secretKey":"secrets.AWS_SECRET_KEY",
       "accessKey":"secrets.AWS_ACCESS_KEY"
+    },
+    "configuration": {
+      "region":"us-east-1"
     },
     "topic":{
       "message":"Hello",
@@ -32,7 +51,6 @@
         }
       },
       "subject":"MySubject",
-      "region":"us-east-1",
       "topicArn":"secrets.AWS_TOPIC_ARN"
     }
   },
@@ -42,10 +60,12 @@
       "secretKey":"secrets.AWS_SECRET_KEY",
       "accessKey":"secrets.AWS_ACCESS_KEY"
     },
+    "configuration": {
+      "region":"us-east-1"
+    },
     "topic":{
       "message":"Hello",
       "subject":"MySubject",
-      "region":"us-east-1",
       "topicArn":"secrets.AWS_TOPIC_ARN"
     }
   },
@@ -55,11 +75,13 @@
       "secretKey":"AAAABBBBCCCDDD",
       "accessKey":"4W553CR3TK3Y"
     },
+    "configuration": {
+      "region":"us-east-1"
+    },
     "topic":{
       "message":"Hello",
       "messageAttributes":{},
       "subject":"MySubject",
-      "region":"us-east-1",
       "topicArn":"arn:aws:sns:us-east-1:036433529947:MyCamundaDemo"
     }
   },
@@ -69,11 +91,13 @@
       "secretKey":"secrets.AWS_SECRET_KEY",
       "accessKey":"secrets.AWS_ACCESS_KEY"
     },
+    "configuration": {
+      "region":"us-east-1"
+    },
     "topic":{
       "message":"Hello",
       "messageAttributes":{},
       "subject":"MySubject",
-      "region":"us-east-1",
       "topicArn":"secrets.AWS_TOPIC_ARN"
     }
   },
@@ -83,11 +107,13 @@
       "secretKey":"secrets.AWS_SECRET_KEY",
       "accessKey":"secrets.AWS_ACCESS_KEY"
     },
+    "configuration": {
+      "region":"secrets.AWS_TOPIC_REGION"
+    },
     "topic":{
       "message":"Hello",
       "messageAttributes":{},
       "subject":"MySubject",
-      "region":"secrets.AWS_TOPIC_REGION",
       "topicArn":"arn:aws:sns:us-east-1:036433529947:MyCamundaDemo"
     }
   },
@@ -97,10 +123,12 @@
       "secretKey":"secrets.AWS_SECRET_KEY",
       "accessKey":"secrets.AWS_ACCESS_KEY"
     },
+    "configuration": {
+      "region":"us-east-1"
+    },
     "topic":{
       "message":"Hello",
       "messageAttributes":{},
-      "region":"us-east-1",
       "topicArn":"arn:aws:sns:us-east-1:036433529947:MyCamundaDemo"
     }
   }

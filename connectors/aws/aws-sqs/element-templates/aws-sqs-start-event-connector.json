@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Amazon SQS connector",
   "id": "io.camunda.connectors.AWSSQS.StartEvent.v1",
-  "version": 1,
+  "version": 2,
   "description": "Receive message from a queue",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-sqs-inbound/",
   "appliesTo": [
@@ -100,7 +100,7 @@
       "type": "String",
       "binding": {
         "type": "zeebe:property",
-        "name": "queue.region"
+        "name": "configuration.region"
       },
       "constraints": {
         "notEmpty": true

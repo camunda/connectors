@@ -14,13 +14,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.aws.AwsUtils;
 import io.camunda.connector.aws.CredentialsProviderSupport;
 import io.camunda.connector.aws.ObjectMapperSupplier;
-import io.camunda.connector.aws.model.impl.AwsBaseConfiguration;
 import io.camunda.connector.awslambda.model.AwsLambdaRequest;
 import io.camunda.connector.awslambda.model.AwsLambdaResult;
-import io.camunda.connector.impl.ConnectorInputException;
-import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,14 +54,8 @@ public class LambdaConnectorFunction implements OutboundConnectorFunction {
   private InvokeResult invokeLambdaFunction(AwsLambdaRequest request)
       throws JsonProcessingException {
     var region =
-        Optional.ofNullable(request.getConfiguration())
-            .map(AwsBaseConfiguration::getRegion)
-            .or(() -> Optional.ofNullable(request.getAwsFunction().getRegion()))
-            .orElseThrow(
-                () ->
-                    new ConnectorInputException(
-                        new RuntimeException(
-                            "Found constraints violated while validating input: Region is missing.")));
+        AwsUtils.extractRegionOrDefault(
+            request.getConfiguration(), request.getAwsFunction().getRegion());
     final AWSLambda awsLambda =
         awsLambdaSupplier.awsLambdaService(
             CredentialsProviderSupport.credentialsProvider(request), region);

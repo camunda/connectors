@@ -1,6 +1,9 @@
 [
   {
     "testDescription": "No authentication",
+    "configuration": {
+      "region":"us-east-1"
+    },
     "queue":{
       "messageAttributes":{},
       "messageBody":{
@@ -14,6 +17,9 @@
     "testDescription": "No access key",
     "authentication":{
       "secretKey":"secrets.AWS_SECRET_KEY"
+    },
+    "configuration": {
+      "region":"us-east-1"
     },
     "queue":{
       "messageAttributes":{},
@@ -29,6 +35,9 @@
     "authentication":{
       "accessKey":"secrets.AWS_ACCESS_KEY"
     },
+    "configuration": {
+      "region":"us-east-1"
+    },
     "queue":{
       "messageAttributes":{},
       "messageBody":{
@@ -43,6 +52,9 @@
     "authentication":{
       "secretKey":"secrets.AWS_SECRET_KEY",
       "accessKey":"secrets.AWS_ACCESS_KEY"
+    },
+    "configuration": {
+      "region":"us-east-1"
     },
     "queue":{
       "messageAttributes":{},
@@ -72,6 +84,9 @@
       "secretKey":"secrets.AWS_SECRET_KEY",
       "accessKey":"secrets.AWS_ACCESS_KEY"
     },
+    "configuration": {
+      "region":"us-east-1"
+    },
     "queue":{
       "messageAttributes":{},
       "region":"us-east-1",
@@ -91,6 +106,9 @@
       "secretKey": "secrets.AWS_SECRET_KEY",
       "accessKey": "secrets.AWS_ACCESS_KEY"
     },
+    "configuration": {
+      "region":"us-east-1"
+    },
     "queue": {
       "type": "fifo",
       "messageDeduplicationId": "messageDeduplicationId",
@@ -107,6 +125,9 @@
     "authentication": {
       "secretKey": "secrets.AWS_SECRET_KEY",
       "accessKey": "secrets.AWS_ACCESS_KEY"
+    },
+    "configuration": {
+      "region":"us-east-1"
     },
     "queue": {
       "type": null,
@@ -125,6 +146,9 @@
     "authentication": {
       "secretKey": "secrets.AWS_SECRET_KEY",
       "accessKey": "secrets.AWS_ACCESS_KEY"
+    },
+    "configuration": {
+      "region":"us-east-1"
     },
     "queue": {
       "type": "standard",

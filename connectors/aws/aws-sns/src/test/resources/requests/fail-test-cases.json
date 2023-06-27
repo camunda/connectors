@@ -1,11 +1,13 @@
 [
   {
     "testDescription": "No authentication",
+    "configuration": {
+      "region":"us-east-1"
+    },
     "topic":{
       "message":"Hello",
       "messageAttributes":{},
       "subject":"MySubject",
-      "region":"us-east-1",
       "topicArn":"arn:aws:sns:us-east-1:036433529947:MyCamundaDemo"
     }
   },
@@ -14,11 +16,13 @@
     "authentication":{
       "secretKey":"secrets.AWS_SECRET_KEY"
     },
+    "configuration": {
+      "region":"us-east-1"
+    },
     "topic":{
       "message":"Hello",
       "messageAttributes":{},
       "subject":"MySubject",
-      "region":"us-east-1",
       "topicArn":"arn:aws:sns:us-east-1:036433529947:MyCamundaDemo"
     }
   },
@@ -27,11 +31,13 @@
     "authentication":{
       "accessKey":"secrets.AWS_ACCESS_KEY"
     },
+    "configuration": {
+      "region":"us-east-1"
+    },
     "topic":{
       "message":"Hello",
       "messageAttributes":{},
       "subject":"MySubject",
-      "region":"us-east-1",
       "topicArn":"arn:aws:sns:us-east-1:036433529947:MyCamundaDemo"
     }
   },
@@ -41,11 +47,13 @@
       "secretKey":"secrets.AWS_SECRET_KEY",
       "accessKey":"secrets.AWS_ACCESS_KEY"
     },
+    "configuration": {
+      "region":"us-east-1"
+    },
     "topic":{
       "message":"Hello",
       "messageAttributes":{},
-      "subject":"MySubject",
-      "region":"us-east-1"
+      "subject":"MySubject"
     }
   },
   {
@@ -67,10 +75,12 @@
       "secretKey":"secrets.AWS_SECRET_KEY",
       "accessKey":"secrets.AWS_ACCESS_KEY"
     },
+    "configuration": {
+      "region":"us-east-1"
+    },
     "topic":{
       "subject":"MySubject",
       "messageAttributes":{},
-      "region":"us-east-1",
       "topicArn":"arn:aws:sns:us-east-1:036433529947:MyCamundaDemo"
     }
   },
@@ -87,11 +97,13 @@
       "secretKey":"secrets.AWS_SECRET_KEY",
       "accessKey":"secrets.AWS_ACCESS_KEY"
     },
+    "configuration": {
+      "region":""
+    },
     "topic":{
       "message":"Hello",
       "messageAttributes":{},
       "subject":"MySubject",
-      "region":"",
       "topicArn":"arn:aws:sns:us-east-1:036433529947:MyCamundaDemo"
     }
   },
@@ -101,11 +113,13 @@
       "secretKey":"secrets.AWS_SECRET_KEY",
       "accessKey":"secrets.AWS_ACCESS_KEY"
     },
+    "configuration": {
+      "region":"   "
+    },
     "topic":{
       "message":"Hello",
       "messageAttributes":{},
       "subject":"MySubject",
-      "region":"  ",
       "topicArn":"arn:aws:sns:us-east-1:036433529947:MyCamundaDemo"
 
     }
@@ -116,11 +130,13 @@
       "secretKey":"secrets.AWS_SECRET_KEY",
       "accessKey":"secrets.AWS_ACCESS_KEY"
     },
+    "configuration": {
+      "region":"us-east-1"
+    },
     "topic":{
       "message":"Hello",
       "messageAttributes":{},
-      "subject":"MySubject",
-      "region":"us-east-1"
+      "subject":"MySubject"
     }
   },
   {
@@ -129,12 +145,14 @@
       "secretKey":"secrets.AWS_SECRET_KEY",
       "accessKey":"secrets.AWS_ACCESS_KEY"
     },
+    "configuration": {
+      "region":"us-east-1"
+    },
     "topic":{
       "subject":"Test: the proprietary license can be either the Camunda Platform Self-Managed Free Edition license",
       "message":"Hello",
       "messageAttributes":{},
-      "topicArn":"arn:aws:sns:us-east-1:036433529947:MyCamundaDemo",
-      "region":"us-east-1"
+      "topicArn":"arn:aws:sns:us-east-1:036433529947:MyCamundaDemo"
     }
   }
 ]
