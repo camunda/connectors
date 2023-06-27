@@ -7,11 +7,12 @@
 package io.camunda.connector.aws.dynamodb.operation.table;
 
 import com.amazonaws.services.dynamodbv2.model.TableDescription;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.aws.dynamodb.BaseDynamoDbOperationTest;
 import io.camunda.connector.aws.dynamodb.TestDynamoDBData;
+import io.camunda.connector.aws.dynamodb.model.AwsInput;
 import io.camunda.connector.aws.dynamodb.model.table.DescribeTable;
-import io.camunda.connector.aws.model.AwsInput;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -33,7 +34,7 @@ class DescribeTableOperationTest extends BaseDynamoDbOperationTest {
     }
 
     @Test
-    public void replaceSecrets_shouldReplaceSecrets() {
+    public void replaceSecrets_shouldReplaceSecrets() throws JsonProcessingException {
         // Given
         String input = """
                 {
@@ -42,7 +43,7 @@ class DescribeTableOperationTest extends BaseDynamoDbOperationTest {
                 }
                 """;
         OutboundConnectorContext context = getContextWithSecrets();
-        AwsInput request = GSON.fromJson(input, AwsInput.class);
+        AwsInput request = objectMapper.readValue(input, AwsInput.class);
         // When
         context.replaceSecrets(request);
         // Then

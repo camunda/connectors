@@ -6,11 +6,12 @@
  */
 package io.camunda.connector.aws.dynamodb;
 
-import com.google.gson.Gson;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.aws.CredentialsProviderSupport;
+import io.camunda.connector.aws.ObjectMapperSupplier;
 
 @OutboundConnector(
     name = "AWS",
@@ -20,10 +21,10 @@ public class AwsDynamoDbServiceConnectorFunction implements OutboundConnectorFun
 
   @Override
   public Object execute(OutboundConnectorContext context) throws Exception {
-    final Gson gson = GsonDynamoDbComponentSupplier.gsonInstance();
+    final ObjectMapper objectMapper = ObjectMapperSupplier.getMapperInstance();
     final AwsDynamoDbOperationFactory operationFactory = AwsDynamoDbOperationFactory.getInstance();
     final AwsDynamoDbRequest dynamoDbRequest =
-        gson.fromJson(context.getVariables(), AwsDynamoDbRequest.class);
+        objectMapper.readValue(context.getVariables(), AwsDynamoDbRequest.class);
     context.validate(dynamoDbRequest);
     context.replaceSecrets(dynamoDbRequest);
     return operationFactory

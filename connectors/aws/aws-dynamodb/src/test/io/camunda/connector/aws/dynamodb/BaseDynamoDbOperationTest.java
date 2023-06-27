@@ -9,8 +9,9 @@ package io.camunda.connector.aws.dynamodb;
 import com.amazonaws.services.dynamodbv2.document.DynamoDB;
 import com.amazonaws.services.dynamodbv2.document.Table;
 import com.amazonaws.services.dynamodbv2.model.TableDescription;
-import com.google.gson.Gson;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,7 +25,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 public abstract class BaseDynamoDbOperationTest {
-    protected final static Gson GSON = GsonDynamoDbComponentSupplier.gsonInstance();
+    protected final static ObjectMapper objectMapper = ObjectMapperSupplier.getMapperInstance();
     @Mock
     protected DynamoDB dynamoDB;
     @Mock

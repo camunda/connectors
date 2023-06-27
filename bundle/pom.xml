@@ -31,7 +31,7 @@
       </dependency>
       <dependency>
         <groupId>io.camunda.connector</groupId>
-        <artifactId>connector-sqs</artifactId>
+        <artifactId>connector-aws-sqs</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -61,7 +61,7 @@
       </dependency>
       <dependency>
         <groupId>io.camunda.connector</groupId>
-        <artifactId>connector-sns</artifactId>
+        <artifactId>connector-aws-sns</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

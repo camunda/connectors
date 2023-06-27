@@ -8,22 +8,23 @@ package io.camunda.connector.aws.dynamodb.operation.item;
 
 import com.amazonaws.services.dynamodbv2.document.DynamoDB;
 import com.amazonaws.services.dynamodbv2.document.KeyAttribute;
-import com.google.gson.Gson;
-import io.camunda.connector.aws.dynamodb.GsonDynamoDbComponentSupplier;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.aws.dynamodb.model.item.DeleteItem;
 import io.camunda.connector.aws.dynamodb.operation.AwsDynamoDbOperation;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Optional;
 
 public class DeleteItemOperation implements AwsDynamoDbOperation {
 
   private final DeleteItem deleteItemModel;
-  private final Gson gson;
+  private final ObjectMapper objectMapper;
 
   public DeleteItemOperation(final DeleteItem deleteItemModel) {
     this.deleteItemModel = deleteItemModel;
-    this.gson = GsonDynamoDbComponentSupplier.gsonInstance();
+    this.objectMapper = ObjectMapperSupplier.getMapperInstance();
   }
 
   @Override
@@ -33,18 +34,11 @@ public class DeleteItemOperation implements AwsDynamoDbOperation {
 
   private KeyAttribute[] createKeyAttributes() {
     List<KeyAttribute> keyAttributeList = new ArrayList<>();
-    gson.toJsonTree(deleteItemModel.getPrimaryKeyComponents())
-        .getAsJsonObject()
-        .entrySet()
-        .forEach(
-            (entry) -> {
-              Object attributeValue =
-                  Optional.ofNullable(entry.getValue())
-                      .map(obj -> gson.fromJson(obj, Object.class))
-                      .orElse(null);
-              KeyAttribute keyAttribute = new KeyAttribute(entry.getKey(), attributeValue);
-              keyAttributeList.add(keyAttribute);
-            });
+    objectMapper
+        .convertValue(
+            deleteItemModel.getPrimaryKeyComponents(),
+            new TypeReference<HashMap<String, Object>>() {})
+        .forEach((key, value) -> keyAttributeList.add(new KeyAttribute(key, value)));
     return keyAttributeList.toArray(KeyAttribute[]::new);
   }
 }
