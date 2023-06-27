@@ -1,4 +1,4 @@
-FROM eclipse-temurin:17.0.7_7-jre-alpine
+FROM eclipse-temurin:17.0.7_7-jre
 
 RUN mkdir /opt/app
 # Download connectors from maven central
