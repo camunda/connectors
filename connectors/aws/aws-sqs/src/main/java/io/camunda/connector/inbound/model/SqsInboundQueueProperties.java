@@ -13,7 +13,7 @@ import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.Pattern;
 
 public class SqsInboundQueueProperties {
-  @NotEmpty @Secret private String region;
+  @Deprecated @Secret private String region;
   @NotEmpty @Secret private String url;
   @Secret private List<String> attributeNames;
   @Secret private List<String> messageAttributeNames;
@@ -22,10 +22,12 @@ public class SqsInboundQueueProperties {
   @Secret
   private String pollingWaitTime;
 
+  @Deprecated
   public String getRegion() {
     return region;
   }
 
+  @Deprecated
   public void setRegion(final String region) {
     this.region = region;
   }

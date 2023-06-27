@@ -17,7 +17,7 @@ public class FunctionRequestData {
   @NotNull private Object payload;
   private OperationType operationType; // this is not use and not implemented yet
 
-  @Secret private String region;
+  @Deprecated @Secret private String region;
 
   public String getFunctionName() {
     return functionName;
@@ -75,10 +75,12 @@ public class FunctionRequestData {
         + '}';
   }
 
+  @Deprecated
   public String getRegion() {
     return region;
   }
 
+  @Deprecated
   public void setRegion(String region) {
     this.region = region;
   }

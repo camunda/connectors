@@ -10,6 +10,7 @@ import com.amazonaws.services.sqs.AmazonSQS;
 import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import io.camunda.connector.aws.AwsUtils;
 import io.camunda.connector.aws.CredentialsProviderSupport;
 import io.camunda.connector.common.suppliers.AmazonSQSClientSupplier;
 import io.camunda.connector.common.suppliers.DefaultAmazonSQSClientSupplier;
@@ -49,11 +50,12 @@ public class SqsExecutable implements InboundConnectorExecutable {
 
     context.replaceSecrets(properties);
     context.validate(properties);
-
+    var region =
+        AwsUtils.extractRegionOrDefault(
+            properties.getConfiguration(), properties.getQueue().getRegion());
     amazonSQS =
         sqsClientSupplier.sqsClient(
-            CredentialsProviderSupport.credentialsProvider(properties),
-            properties.getQueue().getRegion());
+            CredentialsProviderSupport.credentialsProvider(properties), region);
     LOGGER.debug("SQS client created successfully");
     if (sqsQueueConsumer == null) {
       sqsQueueConsumer = new SqsQueueConsumer(amazonSQS, properties, context);

@@ -15,6 +15,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.aws.AwsUtils;
 import io.camunda.connector.aws.CredentialsProviderSupport;
 import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.common.suppliers.AmazonSQSClientSupplier;
@@ -54,7 +55,10 @@ public class SqsConnectorFunction implements OutboundConnectorFunction {
     context.replaceSecrets(request);
 
     AWSCredentialsProvider provider = CredentialsProviderSupport.credentialsProvider(request);
-    AmazonSQS sqsClient = sqsClientSupplier.sqsClient(provider, request.getQueue().getRegion());
+
+    var region =
+        AwsUtils.extractRegionOrDefault(request.getConfiguration(), request.getQueue().getRegion());
+    AmazonSQS sqsClient = sqsClientSupplier.sqsClient(provider, region);
     return new SqsConnectorResult(sendMsgToSqs(sqsClient, request.getQueue()).getMessageId());
   }
 
