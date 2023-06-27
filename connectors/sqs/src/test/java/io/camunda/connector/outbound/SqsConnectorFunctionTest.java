@@ -12,6 +12,7 @@ import com.amazonaws.SdkClientException;
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.amazonaws.services.sqs.model.SendMessageResult;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.common.suppliers.AmazonSQSClientSupplier;
 import io.camunda.connector.outbound.model.SqsConnectorResult;
@@ -54,7 +55,8 @@ public class SqsConnectorFunctionTest extends BaseTest {
   }
 
   @Test
-  public void execute_shouldExecuteRequestAndReturnResultWithMsgId() {
+  public void execute_shouldExecuteRequestAndReturnResultWithMsgId()
+      throws JsonProcessingException {
     // Given
     AmazonSQS sqsClient = Mockito.mock(AmazonSQS.class);
     Mockito.when(sqsClient.sendMessage(ArgumentMatchers.any(SendMessageRequest.class)))
@@ -66,7 +68,7 @@ public class SqsConnectorFunctionTest extends BaseTest {
                 ArgumentMatchers.anyString(),
                 ArgumentMatchers.anyString()))
         .thenReturn(sqsClient);
-    connector = new SqsConnectorFunction(sqsClientSupplier, GSON);
+    connector = new SqsConnectorFunction(sqsClientSupplier, objectMapper);
 
     // When
     Object execute = connector.execute(context);
@@ -80,7 +82,8 @@ public class SqsConnectorFunctionTest extends BaseTest {
   }
 
   @Test
-  public void execute_shouldPassPayloadAsJsonWhenJsonArrivesFromForm() {
+  public void execute_shouldPassPayloadAsJsonWhenJsonArrivesFromForm()
+      throws JsonProcessingException {
     // Given
     AmazonSQS sqsClient = Mockito.mock(AmazonSQS.class);
     Mockito.when(sqsClient.sendMessage(ArgumentMatchers.any(SendMessageRequest.class)))
@@ -94,7 +97,7 @@ public class SqsConnectorFunctionTest extends BaseTest {
         .thenReturn(sqsClient);
     ArgumentCaptor<SendMessageRequest> captor = ArgumentCaptor.forClass(SendMessageRequest.class);
     Mockito.when(sqsClient.sendMessage(captor.capture())).thenReturn(new SendMessageResult());
-    connector = new SqsConnectorFunction(sqsClientSupplier, GSON);
+    connector = new SqsConnectorFunction(sqsClientSupplier, objectMapper);
 
     // When
     connector.execute(context);
@@ -105,7 +108,8 @@ public class SqsConnectorFunctionTest extends BaseTest {
   }
 
   @Test
-  public void execute_shouldPassPayloadAsStringWhenStringArrivesFromForm() {
+  public void execute_shouldPassPayloadAsStringWhenStringArrivesFromForm()
+      throws JsonProcessingException {
     // Given
     context =
         OutboundConnectorContextBuilder.create()
@@ -127,7 +131,7 @@ public class SqsConnectorFunctionTest extends BaseTest {
         .thenReturn(sqsClient);
     ArgumentCaptor<SendMessageRequest> captor = ArgumentCaptor.forClass(SendMessageRequest.class);
     Mockito.when(sqsClient.sendMessage(captor.capture())).thenReturn(new SendMessageResult());
-    connector = new SqsConnectorFunction(sqsClientSupplier, GSON);
+    connector = new SqsConnectorFunction(sqsClientSupplier, objectMapper);
 
     // When
     connector.execute(context);

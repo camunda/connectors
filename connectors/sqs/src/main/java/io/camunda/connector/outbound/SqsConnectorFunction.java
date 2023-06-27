@@ -9,13 +9,14 @@ package io.camunda.connector.outbound;
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.amazonaws.services.sqs.model.SendMessageResult;
-import com.google.gson.Gson;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.common.suppliers.AmazonSQSClientSupplier;
 import io.camunda.connector.common.suppliers.DefaultAmazonSQSClientSupplier;
-import io.camunda.connector.common.suppliers.SqsGsonComponentSupplier;
+import io.camunda.connector.common.suppliers.ObjectMapperSupplier;
 import io.camunda.connector.outbound.model.SqsConnectorRequest;
 import io.camunda.connector.outbound.model.SqsConnectorResult;
 import org.slf4j.Logger;
@@ -29,28 +30,30 @@ public class SqsConnectorFunction implements OutboundConnectorFunction {
   private static final Logger LOGGER = LoggerFactory.getLogger(SqsConnectorFunction.class);
 
   private final AmazonSQSClientSupplier sqsClientSupplier;
-  private final Gson gson;
+  private final ObjectMapper objectMapper;
 
   public SqsConnectorFunction() {
-    this(new DefaultAmazonSQSClientSupplier(), SqsGsonComponentSupplier.gsonInstance());
+    this(new DefaultAmazonSQSClientSupplier(), ObjectMapperSupplier.getMapperInstance());
   }
 
-  public SqsConnectorFunction(final AmazonSQSClientSupplier sqsClientSupplier, final Gson gson) {
+  public SqsConnectorFunction(
+      final AmazonSQSClientSupplier sqsClientSupplier, final ObjectMapper objectMapper) {
     this.sqsClientSupplier = sqsClientSupplier;
-    this.gson = gson;
+    this.objectMapper = objectMapper;
   }
 
   @Override
-  public Object execute(final OutboundConnectorContext context) {
+  public Object execute(final OutboundConnectorContext context) throws JsonProcessingException {
     final var variables = context.getVariables();
     LOGGER.debug("Executing SQS connector with variables : {}", variables);
-    final var request = gson.fromJson(variables, SqsConnectorRequest.class);
+    final var request = objectMapper.readValue(variables, SqsConnectorRequest.class);
     context.validate(request);
     context.replaceSecrets(request);
     return new SqsConnectorResult(sendMsgToSqs(request).getMessageId());
   }
 
-  private SendMessageResult sendMsgToSqs(SqsConnectorRequest request) {
+  private SendMessageResult sendMsgToSqs(SqsConnectorRequest request)
+      throws JsonProcessingException {
     AmazonSQS sqsClient = null;
     try {
       sqsClient =
@@ -61,7 +64,7 @@ public class SqsConnectorFunction implements OutboundConnectorFunction {
       String payload =
           request.getQueue().getMessageBody() instanceof String
               ? request.getQueue().getMessageBody().toString()
-              : gson.toJson(request.getQueue().getMessageBody());
+              : objectMapper.writeValueAsString(request.getQueue().getMessageBody());
       SendMessageRequest message =
           new SendMessageRequest()
               .withQueueUrl(request.getQueue().getUrl())

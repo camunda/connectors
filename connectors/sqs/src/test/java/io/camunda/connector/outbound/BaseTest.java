@@ -6,8 +6,8 @@
  */
 package io.camunda.connector.outbound;
 
-import com.google.gson.Gson;
-import io.camunda.connector.common.suppliers.SqsGsonComponentSupplier;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.common.suppliers.ObjectMapperSupplier;
 
 public abstract class BaseTest {
 
@@ -25,52 +25,54 @@ public abstract class BaseTest {
   protected static final String MSG_ID = "f3f7ac8f-2ff8-48a0-bb30-f220654f6a5f";
 
   protected static final String DEFAULT_REQUEST_BODY_WITH_JSON_PAYLOAD =
-      "{\n"
-          + "    \"authentication\":{\n"
-          + "      \"secretKey\":\"XXX\",\n"
-          + "      \"accessKey\":\"YYY\"\n"
-          + "    },\n"
-          + "    \"queue\":{\n"
-          + "      \"messageAttributes\":{\n"
-          + "        \"description\":{\n"
-          + "          \"StringValue\":\"delivery receipt from transaction 001122334455\",\n"
-          + "          \"DataType\":\"String\"\n"
-          + "        },\n"
-          + "        \"size\":{\n"
-          + "          \"StringValue\":\"2 KiB\",\n"
-          + "          \"DataType\":\"String\"\n"
-          + "        }\n"
-          + "      },\n"
-          + "      \"messageBody\":{\n"
-          + "        \"data\":\"ok\"\n"
-          + "      },\n"
-          + "      \"region\":\"us-east-1\",\n"
-          + "      \"url\":\"https://sqs.us-east-1.amazonaws.com/0000000/test-test-test\"\n"
-          + "    }\n"
-          + "  }";
+      """
+                  {
+                      "authentication":{
+                        "secretKey":"XXX",
+                        "accessKey":"YYY"
+                      },
+                      "queue":{
+                        "messageAttributes":{
+                          "description":{
+                            "StringValue":"delivery receipt from transaction 001122334455",
+                            "DataType":"String"
+                          },
+                          "size":{
+                            "StringValue":"2 KiB",
+                            "DataType":"String"
+                          }
+                        },
+                        "messageBody":{
+                          "data":"ok"
+                        },
+                        "region":"us-east-1",
+                        "url":"https://sqs.us-east-1.amazonaws.com/0000000/test-test-test"
+                      }
+                    }""";
 
   protected static final String DEFAULT_REQUEST_BODY_WITH_STRING_PAYLOAD =
-      "{\n"
-          + "    \"authentication\":{\n"
-          + "      \"secretKey\":\"XXX\",\n"
-          + "      \"accessKey\":\"YYY\"\n"
-          + "    },\n"
-          + "    \"queue\":{\n"
-          + "      \"messageAttributes\":{\n"
-          + "        \"description\":{\n"
-          + "          \"StringValue\":\"delivery receipt from transaction 001122334455\",\n"
-          + "          \"DataType\":\"String\"\n"
-          + "        },\n"
-          + "        \"size\":{\n"
-          + "          \"StringValue\":\"2 KiB\",\n"
-          + "          \"DataType\":\"String\"\n"
-          + "        }\n"
-          + "      },\n"
-          + "      \"messageBody\": \"I am a string value!\",\n"
-          + "      \"region\":\"us-east-1\",\n"
-          + "      \"url\":\"https://sqs.us-east-1.amazonaws.com/0000000/test-test-test\"\n"
-          + "    }\n"
-          + "  }";
+      """
+                  {
+                      "authentication":{
+                        "secretKey":"XXX",
+                        "accessKey":"YYY"
+                      },
+                      "queue":{
+                        "messageAttributes":{
+                          "description":{
+                            "StringValue":"delivery receipt from transaction 001122334455",
+                            "DataType":"String"
+                          },
+                          "size":{
+                            "StringValue":"2 KiB",
+                            "DataType":"String"
+                          }
+                        },
+                        "messageBody": "I am a string value!",
+                        "region":"us-east-1",
+                        "url":"https://sqs.us-east-1.amazonaws.com/0000000/test-test-test"
+                      }
+                    }""";
 
-  protected static final Gson GSON = SqsGsonComponentSupplier.gsonInstance();
+  protected static final ObjectMapper objectMapper = ObjectMapperSupplier.getMapperInstance();
 }

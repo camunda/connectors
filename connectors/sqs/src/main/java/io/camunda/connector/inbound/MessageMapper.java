@@ -8,8 +8,8 @@ package io.camunda.connector.inbound;
 
 import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.MessageAttributeValue;
-import com.google.gson.JsonSyntaxException;
-import io.camunda.connector.common.suppliers.SqsGsonComponentSupplier;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import io.camunda.connector.common.suppliers.ObjectMapperSupplier;
 import io.camunda.connector.inbound.model.message.SqsInboundMessage;
 import java.util.HashMap;
 import java.util.Map;
@@ -45,8 +45,8 @@ public class MessageMapper {
 
   private static Object toObjectIfPossible(final String body) {
     try {
-      return SqsGsonComponentSupplier.gsonInstance().fromJson(body, Object.class);
-    } catch (JsonSyntaxException e) {
+      return ObjectMapperSupplier.getMapperInstance().readValue(body, Object.class);
+    } catch (JsonProcessingException e) {
       LOGGER.debug("Cannot parse value to JSON object -> using the raw value");
     }
     return body;
