@@ -16,4 +16,6 @@ if [[ -n ${DEBUG_JVM_PRINT_JAVA_OPTS} ]]; then
   echo "Applied JVM options: $JAVA_OPTS"
 fi
 
-exec java "${JAVA_OPTS}" -cp '/opt/app/*' io.camunda.connector.bundle.ConnectorRuntimeApplication
+unzip -l /opt/app/connector-runtime-application-0.21.0-SNAPSHOT-with-dependencies.jar | grep ConnectorRuntimeApplication
+
+exec java ${JAVA_OPTS} -cp '/opt/app/*' "io.camunda.connector.runtime.app.ConnectorRuntimeApplication"

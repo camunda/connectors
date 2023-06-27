@@ -64,6 +64,7 @@
     <module>connector-runtime/connector-runtime-core</module>
     <module>connector-runtime/connector-runtime-spring</module>
     <module>connector-runtime/spring-boot-starter-camunda-connectors</module>
+    <module>connector-runtime/connector-runtime-application</module>
   </modules>
 
   <dependencyManagement>

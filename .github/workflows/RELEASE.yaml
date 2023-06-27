@@ -138,6 +138,15 @@ jobs:
 
       # Build & push bundle docker images (with version tag)
 
+      - name: Build and Push Docker Image tag ${{ github.event.inputs.version }} - connector-runtime
+        uses: docker/build-push-action@v4
+        with:
+          context: connector-runtime/connector-runtime-application/
+          push: ${{ github.ref == 'refs/heads/main' }}
+          tags: camunda/connectors:${{ github.event.inputs.version }}
+          platforms: linux/amd64,linux/arm64
+          provenance: false
+
       - name: Build and Push Docker Image tag ${{ github.event.inputs.version }} - bundle-default
         uses: docker/build-push-action@v4
         with:
@@ -167,6 +176,15 @@ jobs:
           provenance: false
 
       # Build & push bundle docker images (with 'latest' tag)
+
+      - name: Build and Push Docker Image tag latest - connector-runtime
+        uses: docker/build-push-action@v4
+        with:
+          context: connector-runtime/connector-runtime-application/
+          push: ${{ github.ref == 'refs/heads/main' }}
+          tags: camunda/connectors:latest
+          platforms: linux/amd64,linux/arm64
+          provenance: false
 
       - name: Build and Push Docker Image tag latest - bundle-default
         if: ${{ steps.check_prerelease.outputs.isPreRelease == 'false' }}
