@@ -6,6 +6,11 @@
  */
 package io.camunda.connector.slack.inbound;
 
+import static io.camunda.connector.slack.inbound.SlackInboundWebhookExecutable.COMMAND_RESPONSE_TEXT_DEFAULT_VALUE;
+import static io.camunda.connector.slack.inbound.SlackInboundWebhookExecutable.COMMAND_RESPONSE_TEXT_KEY;
+import static io.camunda.connector.slack.inbound.SlackInboundWebhookExecutable.COMMAND_RESPONSE_TYPE_DEFAULT_VALUE;
+import static io.camunda.connector.slack.inbound.SlackInboundWebhookExecutable.COMMAND_RESPONSE_TYPE_KEY;
+import static io.camunda.connector.slack.inbound.SlackInboundWebhookExecutable.FORM_VALUE_COMMAND;
 import static io.camunda.connector.slack.inbound.SlackInboundWebhookExecutable.HEADER_SLACK_REQUEST_TIMESTAMP;
 import static io.camunda.connector.slack.inbound.SlackInboundWebhookExecutable.HEADER_SLACK_SIGNATURE;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -179,7 +184,11 @@ class SlackInboundWebhookExecutableTest {
 
     assertNotNull(result);
     assertThat(result.body()).isInstanceOf(Map.class);
-    assertThat((Map) result.connectorData()).containsEntry("command", "/test123");
+    assertThat((Map) result.body())
+        .containsEntry(COMMAND_RESPONSE_TYPE_KEY, COMMAND_RESPONSE_TYPE_DEFAULT_VALUE);
+    assertThat((Map) result.body())
+        .containsEntry(COMMAND_RESPONSE_TEXT_KEY, COMMAND_RESPONSE_TEXT_DEFAULT_VALUE);
+    assertThat((Map) result.connectorData()).containsEntry(FORM_VALUE_COMMAND, "/test123");
     assertThat((Map) result.connectorData()).containsEntry("text", "hello world");
   }
 
@@ -210,7 +219,11 @@ class SlackInboundWebhookExecutableTest {
 
     assertNotNull(result);
     assertThat(result.body()).isInstanceOf(Map.class);
-    assertThat((Map) result.connectorData()).containsEntry("command", "/test123");
+    assertThat((Map) result.body())
+        .containsEntry(COMMAND_RESPONSE_TYPE_KEY, COMMAND_RESPONSE_TYPE_DEFAULT_VALUE);
+    assertThat((Map) result.body())
+        .containsEntry(COMMAND_RESPONSE_TEXT_KEY, COMMAND_RESPONSE_TEXT_DEFAULT_VALUE);
+    assertThat((Map) result.connectorData()).containsEntry(FORM_VALUE_COMMAND, "/test123");
     assertThat((Map) result.connectorData()).containsEntry("text", "hello world");
   }
 
