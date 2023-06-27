@@ -33,6 +33,12 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
   protected static final String HEADER_SLACK_REQUEST_TIMESTAMP = "x-slack-request-timestamp";
   protected static final String HEADER_SLACK_SIGNATURE = "x-slack-signature";
 
+  protected static final String FORM_VALUE_COMMAND = "command";
+  protected static final String COMMAND_RESPONSE_TYPE_KEY = "response_type";
+  protected static final String COMMAND_RESPONSE_TYPE_DEFAULT_VALUE = "ephemeral";
+  protected static final String COMMAND_RESPONSE_TEXT_KEY = "text";
+  protected static final String COMMAND_RESPONSE_TEXT_DEFAULT_VALUE = "Command executed";
+
   private final ObjectMapper objectMapper;
   private SlackWebhookProperties props;
 
@@ -61,11 +67,15 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
         bodyAsMap(webhookProcessingPayload.headers(), webhookProcessingPayload.rawBody());
 
     // Command detected
-    if (bodyAsMap.containsKey("command")) {
-      // FIXME: hard coded values will be removed. For SaaS testing only
+    if (bodyAsMap.containsKey(FORM_VALUE_COMMAND)) {
       return new SlackWebhookProcessingResult(
-          Map.of("response_type", "in_channel", "text", "OK"), Map.of(), bodyAsMap, 200);
+          defaultCommandResponse(),
+          Map.of(HttpHeaders.CONTENT_TYPE, MediaType.JSON_UTF_8.toString()),
+          bodyAsMap,
+          200);
     }
+
+    // Other requests, e.g. events
     return new SlackWebhookProcessingResult(
         bodyAsMap, webhookProcessingPayload.headers(), Map.of(), 200);
   }
@@ -95,5 +105,13 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
       // Do our best to parse to JSON (throws exception otherwise)
       return objectMapper.readValue(rawBody, Map.class);
     }
+  }
+
+  private Map<String, Object> defaultCommandResponse() {
+    return Map.of(
+        COMMAND_RESPONSE_TYPE_KEY,
+        COMMAND_RESPONSE_TYPE_DEFAULT_VALUE,
+        COMMAND_RESPONSE_TEXT_KEY,
+        COMMAND_RESPONSE_TEXT_DEFAULT_VALUE);
   }
 }
