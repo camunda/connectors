@@ -15,10 +15,6 @@
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-runtime-application</artifactId>
     </dependency>
-    <dependency>
-      <groupId>io.micrometer</groupId>
-      <artifactId>micrometer-registry-prometheus</artifactId>
-    </dependency>
 
     <dependency>
       <groupId>io.camunda.connector</groupId>

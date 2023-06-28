@@ -1,10 +1,11 @@
 # This Dockerfile illustrates how you can bundle your own connectors with the connector runtime
 
 # Step 1. Configure the connector runtime version & out-of-the-box connectors version
-ARG CAMUNDA_CONNECTORS_VERSION=0.20.0
+# Replace the version placeholder with the version of the connector runtime you want to use
+ARG CAMUNDA_CONNECTORS_VERSION=${version_placeholder}
 
 # Step 2. Use the Connector runtime as base image
-FROM camunda/connectors:${RUNTIME_VERSION}
+FROM camunda/connectors:${CAMUNDA_CONNECTORS_VERSION}
 
 # Step 3. Download some connectors from maven central (or copy from local build)
 # This example uses some of the out-of-the-box connectors developed by Camunda.
