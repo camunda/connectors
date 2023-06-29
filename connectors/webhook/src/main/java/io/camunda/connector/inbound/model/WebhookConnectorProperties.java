@@ -42,7 +42,7 @@ public class WebhookConnectorProperties {
     this.hmacHeader = readPropertyNullable("inbound.hmacHeader");
     this.hmacAlgorithm = readPropertyNullable("inbound.hmacAlgorithm");
     this.jwkUrl = readPropertyNullable("inbound.jwkUrl");
-    this.jwtRolePath = readPropertyNullable("inbound.jwtRolePath");
+    this.jwtRolePath = readPropertyNullable("inbound.jwtRoleExpression");
     this.requiredPermissions = readListPropertyNullable("inbound.requiredPermissions");
   }
 

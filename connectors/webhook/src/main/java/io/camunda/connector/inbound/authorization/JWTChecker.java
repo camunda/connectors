@@ -45,12 +45,10 @@ public class JWTChecker {
     if (verifiedJWT == null) {
       return false;
     }
-    // parse this as json and expose this FEEL to extract roles, and test that against the
-    // expression
+
     byte[] decodedBytes = Base64.getDecoder().decode(verifiedJWT.getPayload());
     String decodedPayload = new String(decodedBytes);
     JsonNode jsonNode = objectMapper.readTree(decodedPayload);
-    // FeelParserWrapper.parseIfIsFeelExpressionOrGetOriginal(jsonNode);
     FeelEngineWrapper feelEngine = new FeelEngineWrapper();
     List<String> roles = new ArrayList<>();
     try {
@@ -77,6 +75,8 @@ public class JWTChecker {
       DecodedJWT decodedJWT = JWT.decode(jwtToken);
 
       Jwk jwk = jwkProvider.get(decodedJWT.getKeyId());
+      // ?
+      // jwk.getAlgorithm()
       RSAPublicKey publicKey =
           (RSAPublicKey)
               jwk.getPublicKey(); // TODO: RSAPublicKey assumes that we use RS256 encoding, but it

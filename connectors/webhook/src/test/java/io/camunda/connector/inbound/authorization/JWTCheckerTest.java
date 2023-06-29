@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.inbound.signature;
+package io.camunda.connector.inbound.authorization;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -78,7 +78,7 @@ public class JWTCheckerTest {
   @Test
   public void jwtCheckSuccessTest() throws Exception {
     // given
-    WebhookProcessingPayload payload = new TestWebhookProcessingPayload();
+    WebhookProcessingPayload payload = new TestWebhookProcessingPayload(JWT_TOKEN);
     WebhookConnectorProperties webhookConnectorProperties =
         generateWebhookConnectorProperties("if admin = true then [\"admin\"] else roles");
     JwkProvider jwkProvider = new TestJwkProvider();
@@ -94,7 +94,7 @@ public class JWTCheckerTest {
   @Test
   public void jwtCheckWrongTokenTest() throws Exception {
     // given
-    TestWebhookProcessingPayloadWrongToken payload = new TestWebhookProcessingPayloadWrongToken();
+    TestWebhookProcessingPayload payload = new TestWebhookProcessingPayload(WRONG_JWT_TOKEN);
     WebhookConnectorProperties webhookConnectorProperties =
         generateWebhookConnectorProperties("if admin = true then [\"admin\"] else roles");
     JwkProvider jwkProvider = new TestJwkProvider();
@@ -110,8 +110,8 @@ public class JWTCheckerTest {
   @Test
   public void jwtCheckTokenExpiredTest() throws Exception {
     // given
-    TestWebhookProcessingPayloadExpiredToken payload =
-        new TestWebhookProcessingPayloadExpiredToken();
+    TestWebhookProcessingPayload payload =
+        new TestWebhookProcessingPayload(EXPIRED_JWT_TOKEN);
     WebhookConnectorProperties webhookConnectorProperties =
         generateWebhookConnectorProperties("if admin = true then [\"admin\"] else roles");
     JwkProvider jwkProvider = new TestJwkProvider();
@@ -127,8 +127,8 @@ public class JWTCheckerTest {
   @Test
   public void jwtCheckTokenNotEnoughPermissionTest() throws Exception {
     // given
-    TestWebhookProcessingPayloadNotEnoughPermission payload =
-        new TestWebhookProcessingPayloadNotEnoughPermission();
+    TestWebhookProcessingPayload payload =
+        new TestWebhookProcessingPayload(NOT_ENOUGH_PERMISSION_JWT_TOKEN);
     WebhookConnectorProperties webhookConnectorProperties =
         generateWebhookConnectorProperties("if admin = true then [\"admin\"] else roles");
     JwkProvider jwkProvider = new TestJwkProvider();
@@ -193,61 +193,6 @@ public class JWTCheckerTest {
       jwkMap.put("crv", "P-256");
 
       return Jwk.fromValues(jwkMap);
-    }
-  }
-
-  class TestWebhookProcessingPayload implements WebhookProcessingPayload {
-
-    @Override
-    public String method() {
-      // omitted intentionally
-      return null;
-    }
-
-    @Override
-    public Map<String, String> headers() {
-      Map<String, String> headers = new HashMap<>();
-      headers.put("Authorization", "Bearer " + JWT_TOKEN);
-      return headers;
-    }
-
-    @Override
-    public Map<String, String> params() {
-      // omitted intentionally
-      return null;
-    }
-
-    @Override
-    public byte[] rawBody() {
-      // omitted intentionally
-      return new byte[0];
-    }
-  }
-
-  class TestWebhookProcessingPayloadWrongToken extends TestWebhookProcessingPayload {
-    @Override
-    public Map<String, String> headers() {
-      Map<String, String> headers = new HashMap<>();
-      headers.put("Authorization", "Bearer " + WRONG_JWT_TOKEN);
-      return headers;
-    }
-  }
-
-  class TestWebhookProcessingPayloadExpiredToken extends TestWebhookProcessingPayload {
-    @Override
-    public Map<String, String> headers() {
-      Map<String, String> headers = new HashMap<>();
-      headers.put("Authorization", "Bearer " + EXPIRED_JWT_TOKEN);
-      return headers;
-    }
-  }
-
-  class TestWebhookProcessingPayloadNotEnoughPermission extends TestWebhookProcessingPayload {
-    @Override
-    public Map<String, String> headers() {
-      Map<String, String> headers = new HashMap<>();
-      headers.put("Authorization", "Bearer " + NOT_ENOUGH_PERMISSION_JWT_TOKEN);
-      return headers;
     }
   }
 }

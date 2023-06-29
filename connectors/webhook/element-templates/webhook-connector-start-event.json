@@ -21,6 +21,10 @@
       "label": "Webhook configuration"
     },
     {
+      "id": "authentication",
+      "label": "Authentication"
+    },
+    {
       "id": "activation",
       "label": "Activation"
     },
@@ -62,7 +66,7 @@
     {
       "id": "shouldValidateHmac",
       "label": "HMAC authentication",
-      "group": "endpoint",
+      "group": "authentication",
       "description": "Choose whether HMAC verification is enabled. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/#make-your-http-webhook-connector-for-receiving-messages-executable' target='_blank'>See documentation</a> and <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/#example' target='_blank'>example</a> that explains how to use HMAC-related fields",
       "value": "disabled",
       "type": "Dropdown",
@@ -85,7 +89,7 @@
       "label": "HMAC secret key",
       "description": "Shared secret key",
       "type": "String",
-      "group": "endpoint",
+      "group": "authentication",
       "optional": true,
       "binding": {
         "type": "zeebe:property",
@@ -100,7 +104,7 @@
       "label": "HMAC header",
       "description": "Name of header attribute that will contain the HMAC value",
       "type": "String",
-      "group": "endpoint",
+      "group": "authentication",
       "optional": true,
       "binding": {
         "type": "zeebe:property",
@@ -113,7 +117,7 @@
     },
     {
       "label": "HMAC algorithm",
-      "group": "endpoint",
+      "group": "authentication",
       "description": "Choose HMAC algorithm",
       "value": "sha_256",
       "type": "Dropdown",
@@ -143,7 +147,7 @@
     {
       "id": "shouldValidateJwt",
       "label": "JWT authentication",
-      "group": "endpoint",
+      "group": "authentication",
       "description": "Choose whether JWT verification is enabled.",
       "value": "disabled",
       "type": "Dropdown",
@@ -166,7 +170,7 @@
       "label": "JWK url",
       "description": "Well-known url of JWKs",
       "type": "String",
-      "group": "endpoint",
+      "group": "authentication",
       "feel": "optional",
       "optional": true,
       "binding": {
@@ -179,15 +183,15 @@
       }
     },
     {
-      "label": "JWT role property name",
-      "description": "Property name of the roles inside the JWT token",
+      "label": "JWT role property expression",
+      "description": "Expression to extract the roles from the JWT token",
       "type": "String",
-      "group": "endpoint",
+      "group": "authentication",
       "feel": "required",
       "optional": true,
       "binding": {
         "type": "zeebe:property",
-        "name": "inbound.jwtRoleName"
+        "name": "inbound.jwtRoleExpression"
       },
       "condition": {
         "property": "shouldValidateJwt",
@@ -198,7 +202,7 @@
       "label": "Required roles",
       "description": "List of roles to test JWT roles against",
       "type": "String",
-      "group": "endpoint",
+      "group": "authentication",
       "feel": "required",
       "optional": true,
       "binding": {
