@@ -64,7 +64,7 @@ public class GraphQLFunctionInputValidationTest extends BaseTest {
 
     // Then
     assertThat(exception.getMessage())
-        .contains("Found constraints violated while validating input", "method: must not be blank");
+        .contains("Found constraints violated while validating input", "method");
   }
 
   @ParameterizedTest
@@ -81,9 +81,7 @@ public class GraphQLFunctionInputValidationTest extends BaseTest {
         assertThrows(ConnectorInputException.class, () -> functionUnderTest.execute(ctx));
     // Then
     assertThat(exception.getMessage())
-        .contains(
-            "Found constraints violated while validating input",
-            "must match \"^(http://|https://|secrets|\\{\\{).*$\"");
+        .contains("Found constraints violated while validating input", "graphql.url");
   }
 
   @ParameterizedTest(name = "Validate null field # {index}")

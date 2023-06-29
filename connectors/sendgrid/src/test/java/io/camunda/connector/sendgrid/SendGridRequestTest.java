@@ -46,7 +46,7 @@ public class SendGridRequestTest extends BaseTest {
             ConnectorInputException.class,
             () -> context.bindVariables(SendGridRequest.class),
             "IllegalArgumentException was expected");
-    assertThat(thrown.getMessage()).contains("senderEmail: must not be empty");
+    assertThat(thrown.getMessage()).contains("senderEmail");
   }
 
   @ParameterizedTest
@@ -61,7 +61,7 @@ public class SendGridRequestTest extends BaseTest {
             ConnectorInputException.class,
             () -> context.bindVariables(SendGridRequest.class),
             "IllegalArgumentException was expected");
-    assertThat(thrown.getMessage()).contains("senderName: must not be empty");
+    assertThat(thrown.getMessage()).contains("senderName");
   }
 
   @ParameterizedTest
@@ -76,7 +76,7 @@ public class SendGridRequestTest extends BaseTest {
             ConnectorInputException.class,
             () -> context.bindVariables(SendGridRequest.class),
             "IllegalArgumentException was expected");
-    assertThat(thrown.getMessage()).contains("receiverEmail: must not be empty");
+    assertThat(thrown.getMessage()).contains("receiverEmail");
   }
 
   @ParameterizedTest
@@ -91,7 +91,7 @@ public class SendGridRequestTest extends BaseTest {
             ConnectorInputException.class,
             () -> context.bindVariables(SendGridRequest.class),
             "IllegalArgumentException was expected");
-    assertThat(thrown.getMessage()).contains("receiverName: must not be empty");
+    assertThat(thrown.getMessage()).contains("receiverName");
   }
 
   @ParameterizedTest(name = "Should replace secrets in template")

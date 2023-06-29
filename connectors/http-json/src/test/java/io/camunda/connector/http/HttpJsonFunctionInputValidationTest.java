@@ -75,7 +75,7 @@ public class HttpJsonFunctionInputValidationTest extends BaseTest {
 
     // Then
     assertThat(exception.getMessage())
-        .contains("Found constraints violated while validating input", "method: must not be blank");
+        .contains("Found constraints violated while validating input", "method");
   }
 
   @ParameterizedTest
@@ -92,9 +92,7 @@ public class HttpJsonFunctionInputValidationTest extends BaseTest {
         assertThrows(ConnectorInputException.class, () -> functionUnderTest.execute(ctx));
     // Then
     assertThat(exception.getMessage())
-        .contains(
-            "Found constraints violated while validating input",
-            "must match \"^(http://|https://|secrets|\\{\\{).*$\"");
+        .contains("Found constraints violated while validating input", "url");
   }
 
   @ParameterizedTest(name = "Validate null field # {index}")

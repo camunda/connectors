@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.outbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.validation.ValidationProvider;
+import io.camunda.connector.api.validation.ValidationUtil;
 import io.camunda.connector.runtime.core.outbound.DefaultOutboundConnectorFactory;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
@@ -26,7 +27,6 @@ import io.camunda.connector.runtime.outbound.lifecycle.OutboundConnectorManager;
 import io.camunda.zeebe.spring.client.jobhandling.CommandExceptionHandlingStrategy;
 import io.camunda.zeebe.spring.client.jobhandling.JobWorkerManager;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
-import java.util.ServiceLoader;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -65,13 +65,6 @@ public class OutboundConnectorRuntimeConfiguration {
 
   @Bean
   public ValidationProvider validationProvider() {
-    return ServiceLoader.load(ValidationProvider.class)
-        .findFirst()
-        .orElseThrow(
-            () ->
-                new IllegalStateException(
-                    "Please bind an implementation to "
-                        + ValidationProvider.class.getName()
-                        + " via SPI"));
+    return ValidationUtil.discoverValidationProvider();
   }
 }
