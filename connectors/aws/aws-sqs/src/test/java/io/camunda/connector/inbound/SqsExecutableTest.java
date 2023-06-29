@@ -31,6 +31,7 @@ import io.camunda.connector.impl.inbound.correlation.StartEventCorrelationPoint;
 import io.camunda.connector.impl.inbound.result.MessageCorrelationResult;
 import io.camunda.connector.inbound.model.SqsInboundProperties;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
+import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
@@ -135,6 +136,7 @@ class SqsExecutableTest {
         .secret(MESSAGE_ATTRIBUTE_NAME, ACTUAL_MESSAGE_ATTRIBUTE_NAME)
         .propertiesAsType(properties)
         .properties(connectorProps)
+        .validation(new DefaultValidationProvider())
         .result(new MessageCorrelationResult("", 0))
         .build();
   }

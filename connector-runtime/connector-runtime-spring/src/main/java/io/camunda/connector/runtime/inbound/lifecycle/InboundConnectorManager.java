@@ -19,6 +19,7 @@ package io.camunda.connector.runtime.inbound.lifecycle;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
+import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.impl.inbound.InboundConnectorProperties;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
@@ -55,6 +56,8 @@ public class InboundConnectorManager {
   private final InboundCorrelationHandler correlationHandler;
   private final ProcessDefinitionInspector processDefinitionInspector;
   private final SecretProviderAggregator secretProviderAggregator;
+  private final ValidationProvider validationProvider;
+
   private final WebhookConnectorRegistry webhookConnectorRegistry;
   private final MetricsRecorder metricsRecorder;
 
@@ -69,12 +72,14 @@ public class InboundConnectorManager {
       InboundCorrelationHandler correlationHandler,
       ProcessDefinitionInspector processDefinitionInspector,
       SecretProviderAggregator secretProviderAggregator,
+      ValidationProvider validationProvider,
       MetricsRecorder metricsRecorder,
       @Autowired(required = false) WebhookConnectorRegistry webhookConnectorRegistry) {
     this.connectorFactory = connectorFactory;
     this.correlationHandler = correlationHandler;
     this.processDefinitionInspector = processDefinitionInspector;
     this.secretProviderAggregator = secretProviderAggregator;
+    this.validationProvider = validationProvider;
     this.metricsRecorder = metricsRecorder;
     this.webhookConnectorRegistry = webhookConnectorRegistry;
   }
@@ -132,7 +137,11 @@ public class InboundConnectorManager {
 
     var inboundContext =
         new InboundConnectorContextImpl(
-            secretProviderAggregator, newProperties, correlationHandler, cancellationCallback);
+            secretProviderAggregator,
+            validationProvider,
+            newProperties,
+            correlationHandler,
+            cancellationCallback);
 
     var connector = new ActiveInboundConnector(executable, newProperties, inboundContext);
 

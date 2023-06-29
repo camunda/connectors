@@ -18,11 +18,9 @@ import io.camunda.connector.common.auth.BasicAuthentication;
 import io.camunda.connector.common.auth.BearerAuthentication;
 import io.camunda.connector.common.auth.NoAuthentication;
 import io.camunda.connector.common.auth.OAuthAuthentication;
-import io.camunda.connector.graphql.model.GraphQLRequest;
-import io.camunda.connector.graphql.utils.JsonSerializeHelper;
+import io.camunda.connector.graphql.model.GraphQLRequestWrapper;
 import java.io.IOException;
 import java.util.stream.Stream;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -36,29 +34,12 @@ public class GraphQLFunctionSecretsTest extends BaseTest {
     return loadTestCasesFromResourceFile(SUCCESS_REPLACE_SECRETS_CASES_PATH);
   }
 
-  @ParameterizedTest(name = "Should replace request secrets")
-  @MethodSource("successReplaceSecretsCases")
-  void replaceSecrets_shouldReplaceRequestSecrets(String input) {
-    // Given request with secrets
-    GraphQLRequest graphQLRequest = JsonSerializeHelper.serializeRequest(gson, input);
-    context = getContextBuilderWithSecrets().variables(graphQLRequest).build();
-    // When
-    context.replaceSecrets(graphQLRequest);
-    // Then should replace secrets
-    assertThat(graphQLRequest.getUrl()).isEqualTo(ActualValue.URL);
-    assertThat(graphQLRequest.getMethod()).isEqualTo(ActualValue.METHOD);
-    assertThat(graphQLRequest.getConnectionTimeoutInSeconds())
-        .isEqualTo(ActualValue.CONNECT_TIMEOUT);
-  }
-
   @ParameterizedTest(name = "Should replace auth secrets")
   @MethodSource("successReplaceSecretsCases")
   void replaceSecrets_shouldReplaceAuthSecrets(String input) {
     // Given request with secrets
-    GraphQLRequest graphQLRequest = JsonSerializeHelper.serializeRequest(gson, input);
-    context = getContextBuilderWithSecrets().variables(graphQLRequest).build();
-    // When
-    context.replaceSecrets(graphQLRequest);
+    context = getContextBuilderWithSecrets().variables(input).build();
+    var graphQLRequest = context.bindVariables(GraphQLRequestWrapper.class);
     // Then should replace secrets
     Authentication authentication = graphQLRequest.getAuthentication();
     if (authentication instanceof NoAuthentication) {
@@ -86,50 +67,22 @@ public class GraphQLFunctionSecretsTest extends BaseTest {
   @ParameterizedTest(name = "Should replace variables secrets")
   @MethodSource("successReplaceSecretsCases")
   void replaceSecrets_shouldReplaceVariablesSecrets(String input) {
-    // Given request with secrets
-    // GraphQLRequestWrapper graphQLRequest = gson.fromJson(input, GraphQLRequestWrapper.class);
-    GraphQLRequest graphQLRequest = JsonSerializeHelper.serializeRequest(gson, input);
-    context = getContextBuilderWithSecrets().variables(graphQLRequest).build();
-    // When
-    context.replaceSecrets(graphQLRequest);
+    context = getContextBuilderWithSecrets().variables(input).build();
+    var graphQLRequest = context.bindVariables(GraphQLRequestWrapper.class);
     // Then should replace secrets
-    JsonObject variables = gson.toJsonTree(graphQLRequest.getVariables()).getAsJsonObject();
-
+    JsonObject variables =
+        gson.toJsonTree(graphQLRequest.getGraphql().getVariables()).getAsJsonObject();
     assertThat(variables.get(JsonKeys.ID).getAsString()).isEqualTo(ActualValue.Variables.ID);
   }
 
   @ParameterizedTest(name = "Should replace query secrets")
   @MethodSource("successReplaceSecretsCases")
   void replaceSecrets_shouldReplaceQuerySecrets(String input) {
-    // Given request with secrets
-    GraphQLRequest graphQLRequest = JsonSerializeHelper.serializeRequest(gson, input);
-    context = getContextBuilderWithSecrets().variables(graphQLRequest).build();
-    // When
-    context.replaceSecrets(graphQLRequest);
+    context = getContextBuilderWithSecrets().variables(input).build();
+    var graphQLRequest = context.bindVariables(GraphQLRequestWrapper.class);
     // Then should replace secrets
-    String query = graphQLRequest.getQuery();
+    String query = graphQLRequest.getGraphql().getQuery();
     assertFalse(query.contains("{{secrets.QUERY_ID}}"));
     assertTrue(query.contains(ActualValue.Query.ID));
-  }
-
-  @Test
-  void replaceSecrets_shouldReplaceQueryWhenQueryIsString() {
-    // Given request with secrets
-    GraphQLRequest request = new GraphQLRequest();
-    request.setQuery(
-        "{{secrets."
-            + SecretsConstant.Query.TEXT_PART_1
-            + "}}"
-            + "{{secrets."
-            + SecretsConstant.Query.TEXT_PART_2
-            + "}}"
-            + "{{secrets."
-            + SecretsConstant.Query.TEXT_PART_3
-            + "}}");
-    context = getContextBuilderWithSecrets().variables(request).build();
-    // When
-    context.replaceSecrets(request);
-    // Then should replace secrets
-    assertThat(request.getQuery().toString()).isEqualTo(ActualValue.Query.TEXT);
   }
 }

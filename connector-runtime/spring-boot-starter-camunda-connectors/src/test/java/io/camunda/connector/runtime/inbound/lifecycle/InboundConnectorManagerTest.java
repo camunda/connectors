@@ -85,6 +85,7 @@ public class InboundConnectorManagerTest {
             correlationHandler,
             inspector,
             secretProviderAggregator,
+            v -> {},
             new DefaultNoopMetricsRecorder(),
             webhookRegistry);
     procDefUtil = new ProcessDefinitionTestUtil(manager, inspector);
@@ -255,6 +256,7 @@ public class InboundConnectorManagerTest {
             correlationHandler,
             inspector,
             secretProviderAggregator,
+            v -> {},
             new DefaultNoopMetricsRecorder(),
             null);
     procDefUtil = new ProcessDefinitionTestUtil(manager, inspector);
@@ -276,7 +278,7 @@ public class InboundConnectorManagerTest {
 
   private InboundConnectorContext inboundContext(InboundConnectorProperties properties) {
     return new InboundConnectorContextImpl(
-        secretProviderAggregator, properties, correlationHandler, (event) -> {});
+        secretProviderAggregator, v -> {}, properties, correlationHandler, (event) -> {});
   }
 
   private static final InboundConnectorConfiguration connectorConfig =

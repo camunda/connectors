@@ -13,68 +13,68 @@
   {
     "descriptionOfTest": "Negative value",
     "graphql": {
-    "method": "get",
-    "url": "https://camunda.io/http-endpoint",
-    "connectionTimeoutInSeconds": "-99",
-    "authentication": {
-      "type": "noAuth"
-    }
+      "method": "get",
+      "url": "https://camunda.io/http-endpoint",
+      "connectionTimeoutInSeconds": "-99",
+      "authentication": {
+        "type": "noAuth"
+      }
     }
   },
   {
     "descriptionOfTest": "String value",
     "graphql": {
-    "method": "get",
-    "url": "https://camunda.io/http-endpoint",
-    "connectionTimeoutInSeconds": "bad value",
-    "authentication": {
-      "type": "noAuth"
-    }
+      "method": "get",
+      "url": "https://camunda.io/http-endpoint",
+      "connectionTimeoutInSeconds": "bad value",
+      "authentication": {
+        "type": "noAuth"
+      }
     }
   },
   {
     "descriptionOfTest": "Normal value with space",
     "graphql": {
-    "method": "get",
-    "url": "https://camunda.io/http-endpoint",
-    "connectionTimeoutInSeconds": "23 ",
-    "authentication": {
-      "type": "noAuth"
-    }
+      "method": "get",
+      "url": "https://camunda.io/http-endpoint",
+      "connectionTimeoutInSeconds": "23 ",
+      "authentication": {
+        "type": "noAuth"
+      }
     }
   },
   {
     "descriptionOfTest": "Blank value",
     "graphql": {
-    "method": "get",
-    "url": "https://camunda.io/http-endpoint",
-    "connectionTimeoutInSeconds": " ",
-    "authentication": {
-      "type": "noAuth"
-    }
-    }
-  },
-  {
-    "descriptionOfTest": "Float value",
-    "graphql": {
-    "method": "get",
-    "url": "https://camunda.io/http-endpoint",
-    "connectionTimeoutInSeconds": "1.56",
-    "authentication": {
-      "type": "bearer",
-      "token": "secrets.TOKEN_KEY"
-    }
+      "method": "get",
+      "url": "https://camunda.io/http-endpoint",
+      "connectionTimeoutInSeconds": " ",
+      "authentication": {
+        "type": "noAuth"
+      }
     }
   },
   {
     "descriptionOfTest": "Float value",
     "graphql": {
-    "method": "get",
-    "url": "https://camunda.io/http-endpoint",
-    "connectionTimeoutInSeconds": "0.1",
-    "authentication": {
-      "type": "noAuth"
+      "method": "get",
+      "url": "https://camunda.io/http-endpoint",
+      "connectionTimeoutInSeconds": "1.56",
+      "authentication": {
+        "type": "bearer",
+        "token": "secrets.TOKEN_KEY"
+      }
     }
+  },
+  {
+    "descriptionOfTest": "Float value",
+    "graphql": {
+      "method": "get",
+      "url": "https://camunda.io/http-endpoint",
+      "connectionTimeoutInSeconds": "0.1",
+      "authentication": {
+        "type": "noAuth"
+      }
     }
   },
   {

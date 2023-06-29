@@ -23,6 +23,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.http.model.HttpJsonRequest;
 import io.camunda.connector.impl.ConnectorInputException;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
+import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.IOException;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -58,12 +59,14 @@ public class HttpJsonFunctionInputValidationTest extends BaseTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"", " ", "\r\n"})
+  @ValueSource(strings = {"", " "})
   void shouldRaiseException_WhenExecuted_MethodMalformed(final String input) {
+    var json = String.format(REQUEST_METHOD_OBJECT_PLACEHOLDER, input);
     // Given
     OutboundConnectorContext ctx =
         OutboundConnectorContextBuilder.create()
-            .variables(String.format(REQUEST_METHOD_OBJECT_PLACEHOLDER, input))
+            .variables(json)
+            .validation(new DefaultValidationProvider())
             .build();
 
     // When
@@ -82,6 +85,7 @@ public class HttpJsonFunctionInputValidationTest extends BaseTest {
     OutboundConnectorContext ctx =
         OutboundConnectorContextBuilder.create()
             .variables(String.format(REQUEST_ENDPOINT_OBJECT_PLACEHOLDER, input))
+            .validation(new DefaultValidationProvider())
             .build();
     // When
     Throwable exception =
@@ -97,15 +101,17 @@ public class HttpJsonFunctionInputValidationTest extends BaseTest {
   @MethodSource("failRequestCases")
   void validate_shouldThrowExceptionWhenLeastOneNotExistRequestField(String input) {
     // Given request without one required field
-    HttpJsonRequest httpJsonRequest = gson.fromJson(input, HttpJsonRequest.class);
     OutboundConnectorContext context =
-        OutboundConnectorContextBuilder.create().variables(httpJsonRequest).build();
+        OutboundConnectorContextBuilder.create()
+            .variables(input)
+            .validation(new DefaultValidationProvider())
+            .build();
     // When context.validate(request);
     // Then expect exception that one required field not set
     ConnectorInputException thrown =
         assertThrows(
             ConnectorInputException.class,
-            () -> context.validate(httpJsonRequest),
+            () -> context.bindVariables(HttpJsonRequest.class),
             "ConnectorInputException was expected");
     assertThat(thrown.getMessage()).contains("Found constraints violated while validating input");
   }
@@ -114,15 +120,17 @@ public class HttpJsonFunctionInputValidationTest extends BaseTest {
   @MethodSource("failTimeOutConnectionCases")
   void validate_shouldThrowExceptionConnectionTimeoutIsWrong(String input) {
     // Given request without one required field
-    HttpJsonRequest httpJsonRequest = gson.fromJson(input, HttpJsonRequest.class);
     OutboundConnectorContext context =
-        OutboundConnectorContextBuilder.create().variables(httpJsonRequest).build();
+        OutboundConnectorContextBuilder.create()
+            .variables(input)
+            .validation(new DefaultValidationProvider())
+            .build();
     // When context.validate(request);
     // Then expect exception
     ConnectorInputException thrown =
         assertThrows(
             ConnectorInputException.class,
-            () -> context.validate(httpJsonRequest),
+            () -> context.bindVariables(HttpJsonRequest.class),
             "ConnectorInputException was expected");
     assertThat(thrown.getMessage()).contains("Found constraints violated while validating input");
   }
@@ -131,12 +139,14 @@ public class HttpJsonFunctionInputValidationTest extends BaseTest {
   @MethodSource("successTimeOutConnectionCases")
   void validate_shouldValidateWithoutException(String input) {
     // Given request without one required field
-    HttpJsonRequest httpJsonRequest = gson.fromJson(input, HttpJsonRequest.class);
     OutboundConnectorContext context =
-        OutboundConnectorContextBuilder.create().variables(httpJsonRequest).build();
+        OutboundConnectorContextBuilder.create()
+            .variables(input)
+            .validation(new DefaultValidationProvider())
+            .build();
     // When context.validate(request);
     // Then expect normal validate without exception
-    context.validate(httpJsonRequest);
+    context.bindVariables(HttpJsonRequest.class);
   }
 
   protected static Stream<String> failRequestCases() throws IOException {

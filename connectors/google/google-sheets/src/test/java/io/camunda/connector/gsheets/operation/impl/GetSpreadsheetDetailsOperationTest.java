@@ -45,7 +45,7 @@ class GetSpreadsheetDetailsOperationTest extends BaseTest {
   @Test
   void getSpreadsheetDetails_shouldGetDetailsById() throws IOException {
     // Given
-    GetSpreadsheetDetails model = new GetSpreadsheetDetails(SPREADSHEET_ID, null);
+    GetSpreadsheetDetails model = new GetSpreadsheetDetails(SPREADSHEET_ID);
 
     Spreadsheet spreadsheet = new Spreadsheet();
 

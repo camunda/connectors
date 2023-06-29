@@ -16,6 +16,7 @@ import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.aws.AwsUtils;
+import io.camunda.connector.aws.AwsUtils;
 import io.camunda.connector.aws.CredentialsProviderSupport;
 import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.sns.outbound.model.SnsConnectorRequest;
@@ -48,13 +49,9 @@ public class SnsConnectorFunction implements OutboundConnectorFunction {
 
   @Override
   public Object execute(final OutboundConnectorContext context) throws JsonProcessingException {
-    final var variables = context.getVariables();
-    LOGGER.debug("Executing SNS connector with variables : {}", variables);
-    final var request = objectMapper.readValue(variables, SnsConnectorRequest.class);
-    context.validate(request);
-    context.replaceSecrets(request);
+    final var request = context.bindVariables(SnsConnectorRequest.class);
     var region =
-        AwsUtils.extractRegionOrDefault(request.getConfiguration(), request.getTopic().getRegion());
+            AwsUtils.extractRegionOrDefault(request.getConfiguration(), request.getTopic().getRegion());
     AWSCredentialsProvider provider = CredentialsProviderSupport.credentialsProvider(request);
     AmazonSNS snsClient = snsClientSupplier.getSnsClient(provider, region);
     return new SnsConnectorResult(sendMsgToSns(snsClient, request.getTopic()).getMessageId());

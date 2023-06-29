@@ -8,17 +8,16 @@ package io.camunda.connector.gsheets.model.request.impl;
 
 import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.gsheets.model.request.Input;
-import java.util.Objects;
 import javax.validation.constraints.NotBlank;
 
-public class GetSpreadsheetDetails implements Input {
+public class GetSpreadsheetDetails extends Input {
 
   @NotBlank @Secret private String spreadsheetId;
-  private String type;
 
-  public GetSpreadsheetDetails(String spreadsheetId, String type) {
+  public GetSpreadsheetDetails() {}
+
+  public GetSpreadsheetDetails(String spreadsheetId) {
     this.spreadsheetId = spreadsheetId;
-    this.type = type;
   }
 
   public String getSpreadsheetId() {
@@ -27,44 +26,5 @@ public class GetSpreadsheetDetails implements Input {
 
   public void setSpreadsheetId(String spreadsheetId) {
     this.spreadsheetId = spreadsheetId;
-  }
-
-  @Override
-  public String getType() {
-    return type;
-  }
-
-  @Override
-  public void setType(String type) {
-    this.type = type;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    GetSpreadsheetDetails that = (GetSpreadsheetDetails) o;
-    return Objects.equals(spreadsheetId, that.spreadsheetId) && Objects.equals(type, that.type);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(spreadsheetId, type);
-  }
-
-  @Override
-  public String toString() {
-    return "GetSpreadsheetDetails{"
-        + "spreadsheetId='"
-        + spreadsheetId
-        + '\''
-        + ", type='"
-        + type
-        + '\''
-        + '}';
   }
 }

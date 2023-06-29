@@ -8,19 +8,18 @@ package io.camunda.connector.gsheets.model.request.impl;
 
 import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.gsheets.model.request.Input;
-import java.util.Objects;
 import javax.validation.constraints.NotBlank;
 
-public class GetWorksheetData implements Input {
+public class GetWorksheetData extends Input {
 
   @NotBlank @Secret private String spreadsheetId;
   @NotBlank @Secret private String worksheetName;
-  private String type;
 
-  public GetWorksheetData(String spreadsheetId, String worksheetName, String type) {
+  public GetWorksheetData() {}
+
+  public GetWorksheetData(String spreadsheetId, String worksheetName) {
     this.spreadsheetId = spreadsheetId;
     this.worksheetName = worksheetName;
-    this.type = type;
   }
 
   public String getSpreadsheetId() {
@@ -37,49 +36,5 @@ public class GetWorksheetData implements Input {
 
   public void setWorksheetName(String worksheetName) {
     this.worksheetName = worksheetName;
-  }
-
-  @Override
-  public String getType() {
-    return type;
-  }
-
-  @Override
-  public void setType(String type) {
-    this.type = type;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    GetWorksheetData that = (GetWorksheetData) o;
-    return Objects.equals(spreadsheetId, that.spreadsheetId)
-        && Objects.equals(worksheetName, that.worksheetName)
-        && Objects.equals(type, that.type);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(spreadsheetId, worksheetName, type);
-  }
-
-  @Override
-  public String toString() {
-    return "GetWorksheetData{"
-        + "spreadsheetId='"
-        + spreadsheetId
-        + '\''
-        + ", worksheetName='"
-        + worksheetName
-        + '\''
-        + ", type='"
-        + type
-        + '\''
-        + '}';
   }
 }

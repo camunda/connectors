@@ -16,14 +16,14 @@
  */
 package io.camunda.connector.runtime.core.outbound;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.secret.SecretProvider;
+import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.impl.context.AbstractConnectorContext;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
-import java.util.Collections;
-import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 /**
  * Implementation of {@link io.camunda.connector.api.outbound.OutboundConnectorContext} passed on to
@@ -35,29 +35,39 @@ public class JobHandlerContext extends AbstractConnectorContext
 
   private final ActivatedJob job;
 
-  public JobHandlerContext(final ActivatedJob job, final SecretProvider secretProvider) {
-    super(secretProvider);
+  private final ObjectMapper objectMapper;
+
+  public JobHandlerContext(
+      final ActivatedJob job,
+      final SecretProvider secretProvider,
+      final ValidationProvider validationProvider,
+      final ObjectMapper objectMapper) {
+    super(secretProvider, validationProvider);
     this.job = job;
+    this.objectMapper = objectMapper;
   }
 
   @Override
-  public <T> T getVariablesAsType(Class<T> cls) {
-    return job.getVariablesAsType(cls);
+  public <T> T bindVariables(Class<T> cls) {
+    String jsonWithSecrets;
+    try {
+      jsonWithSecrets = getSecretHandler().replaceSecrets(job.getVariables());
+    } catch (Exception e) {
+      throw new ConnectorException("SECRETS", "Error during secret mapping.");
+    }
+    T mappedObject;
+    try {
+      mappedObject = objectMapper.readValue(jsonWithSecrets, cls);
+    } catch (Exception e) {
+      throw new ConnectorException("JSON_MAPPING", "Error during json mapping.");
+    }
+    getValidationProvider().validate(mappedObject);
+    return mappedObject;
   }
 
   @Override
   public String getVariables() {
     return job.getVariables();
-  }
-
-  @Override
-  public Map<String, String> getCustomHeaders() {
-    return Optional.ofNullable(job.getCustomHeaders()).orElse(Collections.emptyMap());
-  }
-
-  @Override
-  public String asJson() {
-    return job.toJson();
   }
 
   @Override

@@ -43,7 +43,6 @@ public class GoogleDriveFunction implements OutboundConnectorFunction {
   public Object execute(final OutboundConnectorContext context) {
     final GoogleDriveRequest request = parseVariablesToRequest(context.getVariables());
     context.validate(request);
-    context.replaceSecrets(request);
     LOGGER.debug("Request verified successfully and all required secrets replaced");
     return executeConnector(request);
   }

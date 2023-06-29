@@ -48,16 +48,9 @@ public class SqsConnectorFunction implements OutboundConnectorFunction {
 
   @Override
   public Object execute(final OutboundConnectorContext context) throws JsonProcessingException {
-    final var variables = context.getVariables();
-    LOGGER.debug("Executing SQS connector with variables : {}", variables);
-    final var request = objectMapper.readValue(variables, SqsConnectorRequest.class);
-    context.validate(request);
-    context.replaceSecrets(request);
-
+    var request = context.bindVariables(SqsConnectorRequest.class);
+    var region = AwsUtils.extractRegionOrDefault(request.getConfiguration(), request.getQueue().getRegion());
     AWSCredentialsProvider provider = CredentialsProviderSupport.credentialsProvider(request);
-
-    var region =
-        AwsUtils.extractRegionOrDefault(request.getConfiguration(), request.getQueue().getRegion());
     AmazonSQS sqsClient = sqsClientSupplier.sqsClient(provider, region);
     return new SqsConnectorResult(sendMsgToSqs(sqsClient, request.getQueue()).getMessageId());
   }

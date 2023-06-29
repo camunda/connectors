@@ -57,7 +57,7 @@ class CreateSpreadsheetOperationTest extends BaseTest {
   @Test
   void createSpreadsheet_shouldCreateSpreadsheetInRootFolder() throws IOException {
     // Given
-    CreateSpreadsheet model = new CreateSpreadsheet(SPREADSHEET_NAME, null, null);
+    CreateSpreadsheet model = new CreateSpreadsheet(SPREADSHEET_NAME, null);
 
     try (MockedStatic<GoogleSheetsServiceSupplier> mockedSheetsServiceSupplier =
             mockStatic(GoogleSheetsServiceSupplier.class);
@@ -88,7 +88,7 @@ class CreateSpreadsheetOperationTest extends BaseTest {
   @Test
   void createSpreadsheet_shouldCreateSpreadsheetInDefinedFolder() throws IOException {
     // Given
-    CreateSpreadsheet model = new CreateSpreadsheet(SPREADSHEET_NAME, PARENT, null);
+    CreateSpreadsheet model = new CreateSpreadsheet(SPREADSHEET_NAME, PARENT);
 
     try (MockedStatic<GoogleSheetsServiceSupplier> mockedSheetsServiceSupplier =
             mockStatic(GoogleSheetsServiceSupplier.class);

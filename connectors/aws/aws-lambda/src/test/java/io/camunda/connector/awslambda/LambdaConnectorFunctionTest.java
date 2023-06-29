@@ -14,11 +14,10 @@ import static org.mockito.Mockito.when;
 
 import com.amazonaws.services.lambda.AWSLambda;
 import com.amazonaws.services.lambda.model.InvokeResult;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
-import io.camunda.connector.awslambda.model.AwsLambdaRequest;
 import io.camunda.connector.awslambda.model.AwsLambdaResult;
 import io.camunda.connector.impl.ConnectorInputException;
+import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -44,11 +43,9 @@ class LambdaConnectorFunctionTest extends BaseTest {
 
   @ParameterizedTest(name = "execute connector with valid data")
   @MethodSource("successRequestCases")
-  public void execute_shouldExecuteAndReturnStatusOkAndActualPayload(
-      AwsLambdaRequest connectorRequest) throws JsonProcessingException {
+  public void execute_shouldExecuteAndReturnStatusOkAndActualPayload(String input) {
     // Given valid data
-    OutboundConnectorContext context =
-        getContextBuilderWithSecrets().variables(connectorRequest).build();
+    OutboundConnectorContext context = getContextBuilderWithSecrets().variables(input).build();
     when(supplier.awsLambdaService(any(), any())).thenReturn(awsLambda);
     when(awsLambda.invoke(any())).thenReturn(invokeResult);
     // When connector execute
@@ -62,10 +59,13 @@ class LambdaConnectorFunctionTest extends BaseTest {
 
   @ParameterizedTest(name = "execute connector with invalid data # {index}")
   @MethodSource("failRequestCases")
-  public void execute_shouldThrowExceptionWhenDataNotValid(AwsLambdaRequest connectorRequest) {
+  public void execute_shouldThrowExceptionWhenDataNotValid(String input) {
     // Given invalid data (without all required fields)
     OutboundConnectorContext context =
-        getContextBuilderWithSecrets().variables(connectorRequest).build();
+        getContextBuilderWithSecrets()
+            .variables(input)
+            .validation(new DefaultValidationProvider())
+            .build();
     when(supplier.awsLambdaService(any(), any())).thenReturn(awsLambda);
     when(awsLambda.invoke(any())).thenReturn(invokeResult);
     // When connector execute

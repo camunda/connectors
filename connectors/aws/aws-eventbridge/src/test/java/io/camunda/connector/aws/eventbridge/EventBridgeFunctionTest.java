@@ -21,19 +21,21 @@ import com.amazonaws.services.eventbridge.model.PutEventsRequestEntry;
 import com.amazonaws.services.eventbridge.model.PutEventsResult;
 import com.amazonaws.services.eventbridge.model.PutEventsResultEntry;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.impl.ConnectorInputException;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
+import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
+import java.util.ArrayList;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
@@ -82,10 +84,13 @@ class EventBridgeFunctionTest {
 
   @ParameterizedTest(name = "execute connector with valid data")
   @MethodSource("successCases")
-  public void execute_shouldExecuteRequest(AwsEventBridgeRequest request)
-      throws JsonProcessingException {
+  public void execute_shouldExecuteRequest(String input) throws JsonProcessingException {
     // Given valid data
-    OutboundConnectorContext context = getContextBuilderWithSecrets().variables(request).build();
+    OutboundConnectorContext context =
+        getContextBuilderWithSecrets()
+            .variables(input)
+            .validation(new DefaultValidationProvider())
+            .build();
     when(clientSupplier.getAmazonEventBridgeClient(
             credentialsProviderArgumentCaptor.capture(), eq(REGION)))
         .thenReturn(client);
@@ -102,6 +107,8 @@ class EventBridgeFunctionTest {
     assertThat(credentials.getAWSAccessKeyId()).isEqualTo(ACCESS_KEY);
     assertThat(credentials.getAWSSecretKey()).isEqualTo(SECRET_KEY);
 
+    var request = context.bindVariables(AwsEventBridgeRequest.class);
+
     PutEventsRequestEntry entry = putEventsRequestArgumentCaptor.getValue().getEntries().get(0);
     assertThat(entry.getDetail())
         .isEqualTo(
@@ -116,9 +123,13 @@ class EventBridgeFunctionTest {
 
   @ParameterizedTest()
   @MethodSource("validationTestCases")
-  public void execute_shouldThrowExceptionWhenDataNotValid(AwsEventBridgeRequest request) {
+  public void execute_shouldThrowExceptionWhenDataNotValid(String input) {
     // Given invalid data (without all required fields)
-    OutboundConnectorContext context = getContextBuilderWithSecrets().variables(request).build();
+    OutboundConnectorContext context =
+        getContextBuilderWithSecrets()
+            .variables(input)
+            .validation(new DefaultValidationProvider())
+            .build();
     // When connector execute
     // Then throw ConnectorInputException
     ConnectorInputException thrown =
@@ -141,20 +152,19 @@ class EventBridgeFunctionTest {
         .secret(SECRETS_INNER_DETAIL_VALUE, INNER_DETAIL_VALUE);
   }
 
-  private static Stream<AwsEventBridgeRequest> successCases() throws IOException {
+  private static Stream<String> successCases() throws IOException {
     return loadTestCasesFromResourceFile(SUCCESS_CASES_RESOURCE_PATH);
   }
 
-  private static Stream<AwsEventBridgeRequest> validationTestCases() throws IOException {
+  private static Stream<String> validationTestCases() throws IOException {
     return loadTestCasesFromResourceFile(VALIDATION_TEST_CASES_RESOURCE_PATH);
   }
 
-  private static Stream<AwsEventBridgeRequest> loadTestCasesFromResourceFile(
-      final String fileWithTestCasesUri) throws IOException {
+  protected static Stream<String> loadTestCasesFromResourceFile(final String fileWithTestCasesUri)
+      throws IOException {
     final String cases = readString(new File(fileWithTestCasesUri).toPath(), UTF_8);
-    final ObjectMapper objectMapper = ObjectMapperSupplier.getMapperInstance();
-    return objectMapper
-        .readValue(cases, new TypeReference<List<AwsEventBridgeRequest>>() {})
-        .stream();
+    final Gson testingGson = new Gson();
+    var array = testingGson.fromJson(cases, ArrayList.class);
+    return array.stream().map(testingGson::toJson).map(Arguments::of);
   }
 }

@@ -29,7 +29,6 @@ import io.camunda.connector.common.auth.OAuthAuthentication;
 import io.camunda.connector.http.model.HttpJsonRequest;
 import java.io.IOException;
 import java.util.stream.Stream;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -47,10 +46,8 @@ public class HttpJsonFunctionSecretsTest extends BaseTest {
   @MethodSource("successReplaceSecretsCases")
   void replaceSecrets_shouldReplaceRequestSecrets(String input) {
     // Given request with secrets
-    HttpJsonRequest httpJsonRequest = gson.fromJson(input, HttpJsonRequest.class);
-    context = getContextBuilderWithSecrets().variables(httpJsonRequest).build();
-    // When
-    context.replaceSecrets(httpJsonRequest);
+    context = getContextBuilderWithSecrets().variables(input).build();
+    HttpJsonRequest httpJsonRequest = context.bindVariables(HttpJsonRequest.class);
     // Then should replace secrets
     assertThat(httpJsonRequest.getUrl()).isIn(ActualValue.URL, ActualValue.URL_WITH_PATH);
     assertThat(httpJsonRequest.getMethod()).isEqualTo(ActualValue.METHOD);
@@ -62,10 +59,8 @@ public class HttpJsonFunctionSecretsTest extends BaseTest {
   @MethodSource("successReplaceSecretsCases")
   void replaceSecrets_shouldReplaceAuthSecrets(String input) {
     // Given request with secrets
-    HttpJsonRequest httpJsonRequest = gson.fromJson(input, HttpJsonRequest.class);
-    context = getContextBuilderWithSecrets().variables(httpJsonRequest).build();
-    // When
-    context.replaceSecrets(httpJsonRequest);
+    context = getContextBuilderWithSecrets().variables(input).build();
+    HttpJsonRequest httpJsonRequest = context.bindVariables(HttpJsonRequest.class);
     // Then should replace secrets
     Authentication authentication = httpJsonRequest.getAuthentication();
     if (authentication instanceof NoAuthentication) {
@@ -94,10 +89,8 @@ public class HttpJsonFunctionSecretsTest extends BaseTest {
   @MethodSource("successReplaceSecretsCases")
   void replaceSecrets_shouldReplaceQueryParametersSecrets(String input) {
     // Given request with secrets
-    HttpJsonRequest httpJsonRequest = gson.fromJson(input, HttpJsonRequest.class);
-    context = getContextBuilderWithSecrets().variables(httpJsonRequest).build();
-    // When
-    context.replaceSecrets(httpJsonRequest);
+    context = getContextBuilderWithSecrets().variables(input).build();
+    HttpJsonRequest httpJsonRequest = context.bindVariables(HttpJsonRequest.class);
     // Then should replace secrets
     JsonObject queryParams =
         gson.toJsonTree(httpJsonRequest.getQueryParameters()).getAsJsonObject();
@@ -112,10 +105,8 @@ public class HttpJsonFunctionSecretsTest extends BaseTest {
   @MethodSource("successReplaceSecretsCases")
   void replaceSecrets_shouldReplaceHeadersSecrets(String input) {
     // Given request with secrets
-    HttpJsonRequest httpJsonRequest = gson.fromJson(input, HttpJsonRequest.class);
-    context = getContextBuilderWithSecrets().variables(httpJsonRequest).build();
-    // When
-    context.replaceSecrets(httpJsonRequest);
+    context = getContextBuilderWithSecrets().variables(input).build();
+    HttpJsonRequest httpJsonRequest = context.bindVariables(HttpJsonRequest.class);
     // Then should replace secrets
     JsonObject headers = gson.toJsonTree(httpJsonRequest.getHeaders()).getAsJsonObject();
 
@@ -129,10 +120,8 @@ public class HttpJsonFunctionSecretsTest extends BaseTest {
   @MethodSource("successReplaceSecretsCases")
   void replaceSecrets_shouldReplaceBodySecrets(String input) {
     // Given request with secrets
-    HttpJsonRequest httpJsonRequest = gson.fromJson(input, HttpJsonRequest.class);
-    context = getContextBuilderWithSecrets().variables(httpJsonRequest).build();
-    // When
-    context.replaceSecrets(httpJsonRequest);
+    context = getContextBuilderWithSecrets().variables(input).build();
+    HttpJsonRequest httpJsonRequest = context.bindVariables(HttpJsonRequest.class);
     // Then should replace secrets
     JsonObject body = gson.toJsonTree(httpJsonRequest.getBody()).getAsJsonObject();
     JsonObject customer = body.get(JsonKeys.CUSTOMER).getAsJsonObject();
@@ -145,26 +134,5 @@ public class HttpJsonFunctionSecretsTest extends BaseTest {
         .isEqualTo(ActualValue.Body.CUSTOMER_EMAIL_REAL);
 
     assertThat(body.get(JsonKeys.TEXT).getAsString()).isEqualTo(ActualValue.Body.TEXT);
-  }
-
-  @Test
-  void replaceSecrets_shouldReplaceBodyWhenBodyIsString() {
-    // Given request with secrets
-    HttpJsonRequest request = new HttpJsonRequest();
-    request.setBody(
-        "{{secrets."
-            + SecretsConstant.Body.TEXT_PART_1
-            + "}}"
-            + "{{secrets."
-            + SecretsConstant.Body.TEXT_PART_2
-            + "}}"
-            + "{{secrets."
-            + SecretsConstant.Body.TEXT_PART_3
-            + "}}");
-    context = getContextBuilderWithSecrets().variables(request).build();
-    // When
-    context.replaceSecrets(request);
-    // Then should replace secrets
-    assertThat(request.getBody().toString()).isEqualTo(ActualValue.Body.TEXT);
   }
 }

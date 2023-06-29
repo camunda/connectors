@@ -16,7 +16,9 @@
  */
 package io.camunda.connector.runtime.outbound.lifecycle;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.impl.outbound.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
@@ -39,6 +41,8 @@ public class OutboundConnectorManager {
   private final OutboundConnectorFactory connectorFactory;
   private final CommandExceptionHandlingStrategy commandExceptionHandlingStrategy;
   private final SecretProviderAggregator secretProviderAggregator;
+  private final ValidationProvider validationProvider;
+  private final ObjectMapper objectMapper;
   private final MetricsRecorder metricsRecorder;
 
   public OutboundConnectorManager(
@@ -46,11 +50,15 @@ public class OutboundConnectorManager {
       OutboundConnectorFactory connectorFactory,
       CommandExceptionHandlingStrategy commandExceptionHandlingStrategy,
       SecretProviderAggregator secretProviderAggregator,
+      ValidationProvider validationProvider,
+      ObjectMapper objectMapper,
       MetricsRecorder metricsRecorder) {
     this.jobWorkerManager = jobWorkerManager;
     this.connectorFactory = connectorFactory;
     this.commandExceptionHandlingStrategy = commandExceptionHandlingStrategy;
     this.secretProviderAggregator = secretProviderAggregator;
+    this.validationProvider = validationProvider;
+    this.objectMapper = objectMapper;
     this.metricsRecorder = metricsRecorder;
   }
 
@@ -87,6 +95,8 @@ public class OutboundConnectorManager {
             metricsRecorder,
             commandExceptionHandlingStrategy,
             secretProviderAggregator,
+            validationProvider,
+            objectMapper,
             connectorFunction,
             connector);
 

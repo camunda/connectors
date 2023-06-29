@@ -22,6 +22,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.impl.ConnectorInputException;
 import io.camunda.connector.model.MSTeamsRequest;
 import io.camunda.connector.model.OrderBy;
+import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.util.ArrayList;
 import okhttp3.Request;
 import org.junit.jupiter.api.Test;
@@ -66,16 +67,15 @@ class ListMessagesInChatTest extends BaseTest {
   @MethodSource("listMessagesInChatValidationFailTestCases")
   public void validate_shouldThrowExceptionWhenAtLeastOneRequiredFieldNotExist(String input)
       throws JsonProcessingException {
-    // Given request without one required field
-    MSTeamsRequest request = objectMapper.readValue(input, MSTeamsRequest.class);
-    OutboundConnectorContext context = getContextBuilderWithSecrets().variables(input).build();
-    // When context.validate;
-    // Then expect exception that one required field not set
-    assertThat(request.getData()).isInstanceOf(ListMessagesInChat.class);
+    OutboundConnectorContext context =
+        getContextBuilderWithSecrets()
+            .validation(new DefaultValidationProvider())
+            .variables(input)
+            .build();
     ConnectorInputException thrown =
         assertThrows(
             ConnectorInputException.class,
-            () -> context.validate(request.getData()),
+            () -> context.bindVariables(MSTeamsRequest.class),
             "IllegalArgumentException was expected");
     assertThat(thrown.getMessage()).contains("Found constraints violated while validating input");
   }

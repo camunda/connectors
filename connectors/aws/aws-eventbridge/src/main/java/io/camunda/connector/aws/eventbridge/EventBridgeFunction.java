@@ -40,11 +40,7 @@ public class EventBridgeFunction implements OutboundConnectorFunction {
 
   @Override
   public Object execute(OutboundConnectorContext context) throws JsonProcessingException {
-    var eventBridgeRequest = context.getVariablesAsType(AwsEventBridgeRequest.class);
-
-    context.validate(eventBridgeRequest);
-    context.replaceSecrets(eventBridgeRequest);
-
+    var eventBridgeRequest = context.bindVariables(AwsEventBridgeRequest.class);
     AmazonEventBridge amazonEventBridgeClient =
         awsEventBridgeClientSupplier.getAmazonEventBridgeClient(
             CredentialsProviderSupport.credentialsProvider(eventBridgeRequest),

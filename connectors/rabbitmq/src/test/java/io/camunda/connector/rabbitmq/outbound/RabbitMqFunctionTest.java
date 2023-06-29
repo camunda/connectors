@@ -23,6 +23,7 @@ import io.camunda.connector.rabbitmq.common.model.RabbitMqAuthentication;
 import io.camunda.connector.rabbitmq.common.model.RabbitMqRouting;
 import io.camunda.connector.rabbitmq.outbound.model.RabbitMqRequest;
 import io.camunda.connector.rabbitmq.supplier.ConnectionFactorySupplier;
+import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.KeyManagementException;
@@ -69,8 +70,7 @@ class RabbitMqFunctionTest extends OutboundBaseTest {
   @MethodSource("successExecuteConnectorTest")
   void execute_shouldSucceedSuccessCases(final String input) throws Exception {
     // given
-    RabbitMqRequest request = gson.fromJson(input, RabbitMqRequest.class);
-    OutboundConnectorContext context = getContextBuilderWithSecrets().variables(request).build();
+    OutboundConnectorContext context = getContextBuilderWithSecrets().variables(input).build();
     // when
     Object connectorResultObject = function.execute(context);
 
@@ -90,8 +90,11 @@ class RabbitMqFunctionTest extends OutboundBaseTest {
   @MethodSource("successExecuteConnectorTest")
   void execute_shouldCorrectParseMessageBodyToByteArray(final String input) throws Exception {
     // given
-    RabbitMqRequest request = gson.fromJson(input, RabbitMqRequest.class);
-    OutboundConnectorContext context = getContextBuilderWithSecrets().variables(request).build();
+    OutboundConnectorContext context =
+        getContextBuilderWithSecrets()
+            .validation(new DefaultValidationProvider())
+            .variables(input)
+            .build();
     // when
     function.execute(context);
     // then
@@ -101,8 +104,9 @@ class RabbitMqFunctionTest extends OutboundBaseTest {
             anyString(),
             any(AMQP.BasicProperties.class),
             messageInByteArrayRequest.capture());
-    assertThat(new String(messageInByteArrayRequest.getValue()))
-        .isEqualTo(gson.toJson(request.getMessage().getBody()));
+    var message = messageInByteArrayRequest.getValue();
+    var body = context.bindVariables(RabbitMqRequest.class).getMessage().getBodyAsByteArray();
+    assertThat(message).isEqualTo(body);
   }
 
   @ParameterizedTest
@@ -110,8 +114,7 @@ class RabbitMqFunctionTest extends OutboundBaseTest {
   void execute_shouldCorrectParseMessageBodyToByteArrayWithPlainText(final String input)
       throws Exception {
     // given
-    RabbitMqRequest request = gson.fromJson(input, RabbitMqRequest.class);
-    OutboundConnectorContext context = getContextBuilderWithSecrets().variables(request).build();
+    OutboundConnectorContext context = getContextBuilderWithSecrets().variables(input).build();
     // when
     function.execute(context);
     // then
@@ -122,15 +125,14 @@ class RabbitMqFunctionTest extends OutboundBaseTest {
             any(AMQP.BasicProperties.class),
             messageInByteArrayRequest.capture());
     assertThat(new String(messageInByteArrayRequest.getValue()))
-        .isEqualTo(request.getMessage().getBody());
+        .isEqualTo(context.bindVariables(RabbitMqRequest.class).getMessage().getBody());
   }
 
   @ParameterizedTest
   @MethodSource("failExecuteConnectorWithWrongPropertiesFields")
   void execute_shouldTrowExceptionWhenPropertiesFieldUnsupported(final String input) {
     // given
-    RabbitMqRequest request = gson.fromJson(input, RabbitMqRequest.class);
-    OutboundConnectorContext context = getContextBuilderWithSecrets().variables(request).build();
+    OutboundConnectorContext context = getContextBuilderWithSecrets().variables(input).build();
     // when and then
     IllegalArgumentException thrown =
         assertThrows(

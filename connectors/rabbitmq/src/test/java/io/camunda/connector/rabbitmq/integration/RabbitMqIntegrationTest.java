@@ -28,9 +28,11 @@ import io.camunda.connector.rabbitmq.outbound.RabbitMqFunction;
 import io.camunda.connector.rabbitmq.outbound.RabbitMqResult;
 import io.camunda.connector.rabbitmq.outbound.model.RabbitMqOutboundRouting;
 import io.camunda.connector.rabbitmq.outbound.model.RabbitMqRequest;
+import io.camunda.connector.rabbitmq.supplier.GsonSupplier;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder.TestInboundConnectorContext;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
+import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
@@ -87,8 +89,12 @@ public class RabbitMqIntegrationTest extends BaseTest {
     message.setBody("{\"value\": \"Hello World\"}");
     request.setMessage(message);
 
+    var json = GsonSupplier.gson().toJson(request);
     OutboundConnectorContext context =
-        OutboundConnectorContextBuilder.create().variables(request).build();
+        OutboundConnectorContextBuilder.create()
+            .validation(new DefaultValidationProvider())
+            .variables(json)
+            .build();
 
     // When
     var result = function.execute(context);

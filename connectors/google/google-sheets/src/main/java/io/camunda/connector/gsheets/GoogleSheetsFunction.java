@@ -33,10 +33,7 @@ public class GoogleSheetsFunction implements OutboundConnectorFunction {
 
   @Override
   public Object execute(OutboundConnectorContext context) {
-    String variables = context.getVariables();
-    final GoogleSheetsRequest request = gson.fromJson(variables, GoogleSheetsRequest.class);
-    context.validate(request);
-    context.replaceSecrets(request);
+    var request = context.bindVariables(GoogleSheetsRequest.class);
     LOGGER.debug("Request verified successfully and all required secrets replaced");
     GoogleSheetOperation operation = operationFactory.createOperation(request.getOperation());
     return operation.execute(request.getAuthentication());

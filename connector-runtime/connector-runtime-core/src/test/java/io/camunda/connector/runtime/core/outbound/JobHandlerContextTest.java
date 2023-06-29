@@ -16,13 +16,14 @@
  */
 package io.camunda.connector.runtime.core.outbound;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.secret.SecretProvider;
+import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
-import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -34,40 +35,23 @@ class JobHandlerContextTest {
 
   @Mock private ActivatedJob activatedJob;
   @Mock private SecretProvider secretProvider;
+  @Mock private ObjectMapper objectMapper;
+
+  @Mock private ValidationProvider validationProvider;
 
   @InjectMocks private JobHandlerContext jobHandlerContext;
 
   @Test
-  void getVariablesAsType() {
+  void getVariablesAsType() throws JsonProcessingException {
     Class<Integer> integerClass = Integer.class;
-    jobHandlerContext.getVariablesAsType(integerClass);
-    verify(activatedJob).getVariablesAsType(integerClass);
+    when(activatedJob.getVariables()).thenReturn("");
+    jobHandlerContext.bindVariables(integerClass);
+    verify(objectMapper).readValue("", Integer.class);
   }
 
   @Test
   void getVariables() {
     jobHandlerContext.getVariables();
     verify(activatedJob).getVariables();
-  }
-
-  @Test
-  void getCustomHeaders_HappyCase() {
-    when(activatedJob.getCustomHeaders()).thenReturn(Map.of("headerKey", "headerVal"));
-    Map<String, String> headers = jobHandlerContext.getCustomHeaders();
-    assertThat(headers).isNotNull().hasSize(1);
-  }
-
-  @Test
-  void getCustomHeaders_NoCustomHeaders_ReturnEmptyMap() {
-    when(activatedJob.getCustomHeaders()).thenReturn(null);
-    Map<String, String> headers = jobHandlerContext.getCustomHeaders();
-    verify(activatedJob).getCustomHeaders();
-    assertThat(headers).isNotNull().isEmpty();
-  }
-
-  @Test
-  void asJson() {
-    jobHandlerContext.asJson();
-    verify(activatedJob).toJson();
   }
 }

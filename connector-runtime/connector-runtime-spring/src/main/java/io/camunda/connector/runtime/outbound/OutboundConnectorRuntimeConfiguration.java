@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.runtime.outbound;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.outbound.DefaultOutboundConnectorFactory;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
@@ -24,6 +26,7 @@ import io.camunda.connector.runtime.outbound.lifecycle.OutboundConnectorManager;
 import io.camunda.zeebe.spring.client.jobhandling.CommandExceptionHandlingStrategy;
 import io.camunda.zeebe.spring.client.jobhandling.JobWorkerManager;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
+import java.util.ServiceLoader;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -41,12 +44,16 @@ public class OutboundConnectorRuntimeConfiguration {
       OutboundConnectorFactory connectorFactory,
       CommandExceptionHandlingStrategy commandExceptionHandlingStrategy,
       SecretProviderAggregator secretProviderAggregator,
+      ValidationProvider validationProvider,
+      ObjectMapper objectMapper,
       MetricsRecorder metricsRecorder) {
     return new OutboundConnectorManager(
         jobWorkerManager,
         connectorFactory,
         commandExceptionHandlingStrategy,
         secretProviderAggregator,
+        validationProvider,
+        objectMapper,
         metricsRecorder);
   }
 
@@ -54,5 +61,17 @@ public class OutboundConnectorRuntimeConfiguration {
   public OutboundConnectorAnnotationProcessor annotationProcessor(
       OutboundConnectorManager manager, OutboundConnectorFactory factory) {
     return new OutboundConnectorAnnotationProcessor(manager, factory);
+  }
+
+  @Bean
+  public ValidationProvider validationProvider() {
+    return ServiceLoader.load(ValidationProvider.class)
+        .findFirst()
+        .orElseThrow(
+            () ->
+                new IllegalStateException(
+                    "Please bind an implementation to "
+                        + ValidationProvider.class.getName()
+                        + " via SPI"));
   }
 }

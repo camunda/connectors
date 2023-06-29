@@ -43,11 +43,8 @@ public class LambdaConnectorFunction implements OutboundConnectorFunction {
   }
 
   @Override
-  public Object execute(OutboundConnectorContext context) throws JsonProcessingException {
-    var request = context.getVariablesAsType(AwsLambdaRequest.class);
-    LOGGER.info("Executing my connector with request {}", request);
-    context.validate(request);
-    context.replaceSecrets(request);
+  public Object execute(OutboundConnectorContext context) {
+    var request = context.bindVariables(AwsLambdaRequest.class);
     return new AwsLambdaResult(invokeLambdaFunction(request), objectMapper);
   }
 

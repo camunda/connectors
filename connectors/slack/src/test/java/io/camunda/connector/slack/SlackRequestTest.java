@@ -26,10 +26,10 @@ class SlackRequestTest extends BaseTest {
   @MethodSource("replaceSecretsSuccessTestCases")
   public void replaceSecrets_shouldReplaceSecrets(String input) {
     // Given
-    SlackRequest<ChatPostMessageData> requestData = gson.fromJson(input, SlackRequest.class);
-    context = getContextBuilderWithSecrets().build();
+    context = getContextBuilderWithSecrets().variables(input).build();
     // When
-    context.replaceSecrets(requestData);
+    SlackRequest<ChatPostMessageData> requestData =
+        gson.fromJson(context.getVariables(), SlackRequest.class);
     // Then
     assertThat(requestData.getToken()).isEqualTo(ActualValue.TOKEN);
     assertThat(requestData.getMethod()).isEqualTo(ActualValue.METHOD);
@@ -41,7 +41,7 @@ class SlackRequestTest extends BaseTest {
   @MethodSource("validateRequiredFieldsFailTestCases")
   void validate_shouldThrowExceptionWhenLeastRequestFieldOneNotExist(String input) {
     SlackRequest requestData = gson.fromJson(input, SlackRequest.class);
-    context = getContextBuilderWithSecrets().build();
+    context = getContextBuilderWithSecrets().variables(input).build();
     // When context validate request
     // Then expect ConnectorInputException
     ConnectorInputException thrown =
@@ -66,7 +66,7 @@ class SlackRequestTest extends BaseTest {
         });
     slackRequest.setMethod(input);
     slackRequest.setToken(ActualValue.TOKEN);
-    context = getContextBuilderWithSecrets().build();
+    context = getContextBuilderWithSecrets().variables("{}").build();
     // When context validate request
     // Then expect ConnectorInputException
     assertThrows(

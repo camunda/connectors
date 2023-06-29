@@ -36,6 +36,7 @@ import io.camunda.connector.common.suppliers.AmazonSQSClientSupplier;
 import io.camunda.connector.outbound.model.SqsConnectorRequest;
 import io.camunda.connector.outbound.model.SqsConnectorResult;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
+import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
@@ -85,7 +86,7 @@ class SqsConnectorFunctionParametrizedTest {
     when(sqsClient.sendMessage(sendMessageRequest.capture())).thenReturn(sendMessageResult);
     OutboundConnectorContext ctx =
         OutboundConnectorContextBuilder.create()
-            .variables(objectMapper.writeValueAsString(request))
+            .variables(incomingJson)
             .secret(AWS_SECRET_KEY, ACTUAL_SECRET_KEY)
             .secret(AWS_ACCESS_KEY, ACTUAL_ACCESS_KEY)
             .secret(SQS_QUEUE_URL, ACTUAL_QUEUE_URL)
@@ -107,10 +108,9 @@ class SqsConnectorFunctionParametrizedTest {
   @ParameterizedTest
   @MethodSource("failRequestCases")
   @MockitoSettings(strictness = Strictness.LENIENT)
-  void execute_ShouldThrowExceptionOnMalformedRequests(final SqsConnectorRequest request)
-      throws JsonProcessingException {
+  void execute_ShouldThrowExceptionOnMalformedRequests(final String incomingJson) {
     // given
-    when(sqsClientSupplier.sqsClient(any(AWSCredentialsProvider.class), eq(ACTUAL_QUEUE_REGION)))
+    when(sqsClientSupplier.sqsClient(ACTUAL_ACCESS_KEY, ACTUAL_SECRET_KEY, ACTUAL_QUEUE_REGION))
         .thenReturn(sqsClient);
     SendMessageResult sendMessageResult = mock(SendMessageResult.class);
     when(sendMessageResult.getMessageId()).thenReturn(MSG_ID);
@@ -118,7 +118,8 @@ class SqsConnectorFunctionParametrizedTest {
 
     OutboundConnectorContext ctx =
         OutboundConnectorContextBuilder.create()
-            .variables(objectMapper.writeValueAsString(request))
+            .variables(incomingJson)
+            .validation(new DefaultValidationProvider())
             .secret(AWS_SECRET_KEY, ACTUAL_SECRET_KEY)
             .secret(AWS_ACCESS_KEY, ACTUAL_ACCESS_KEY)
             .secret(SQS_QUEUE_URL, ACTUAL_QUEUE_URL)
@@ -128,16 +129,16 @@ class SqsConnectorFunctionParametrizedTest {
     assertThrows(Exception.class, () -> function.execute(ctx));
   }
 
-  private static Stream<SqsConnectorRequest> successRequestCases() throws IOException {
+  private static Stream<String> successRequestCases() throws IOException {
     return loadRequestCasesFromFile(SUCCESS_CASES_RESOURCE_PATH);
   }
 
-  private static Stream<SqsConnectorRequest> failRequestCases() throws IOException {
+  private static Stream<String> failRequestCases() throws IOException {
     return loadRequestCasesFromFile(FAIL_CASES_RESOURCE_PATH);
   }
 
-  private static Stream<SqsConnectorRequest> loadRequestCasesFromFile(final String fileName)
-      throws IOException {
+  @SuppressWarnings("unchecked")
+  private static Stream<String> loadRequestCasesFromFile(final String fileName) throws IOException {
     final String cases = readString(new File(fileName).toPath(), UTF_8);
     return objectMapper
         .readValue(cases, new TypeReference<List<SqsConnectorRequest>>() {})

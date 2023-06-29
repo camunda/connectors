@@ -22,6 +22,7 @@ import com.google.gson.Gson;
 import io.camunda.connector.kafka.outbound.model.KafkaTopic;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
 import io.camunda.connector.test.inbound.InboundConnectorPropertiesBuilder;
+import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
@@ -80,6 +81,7 @@ public class KafkaExecutableTest {
                 InboundConnectorPropertiesBuilder.create()
                     .properties(propertiesMap)
                     .bpmnProcessId(processId))
+            .validation(new DefaultValidationProvider())
             .build();
     originalContext = context;
   }

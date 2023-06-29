@@ -20,13 +20,6 @@ import com.google.api.client.json.gson.GsonFactory;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.ToNumberPolicy;
-import com.google.gson.typeadapters.RuntimeTypeAdapterFactory;
-import io.camunda.connector.common.auth.Authentication;
-import io.camunda.connector.common.auth.BasicAuthentication;
-import io.camunda.connector.common.auth.BearerAuthentication;
-import io.camunda.connector.common.auth.CustomAuthentication;
-import io.camunda.connector.common.auth.NoAuthentication;
-import io.camunda.connector.common.auth.OAuthAuthentication;
 
 public class GsonComponentSupplier {
 
@@ -35,13 +28,6 @@ public class GsonComponentSupplier {
       new GsonBuilder()
           .serializeNulls()
           .setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
-          .registerTypeAdapterFactory(
-              RuntimeTypeAdapterFactory.of(Authentication.class, "type")
-                  .registerSubtype(NoAuthentication.class, "noAuth")
-                  .registerSubtype(BasicAuthentication.class, "basic")
-                  .registerSubtype(BearerAuthentication.class, "bearer")
-                  .registerSubtype(OAuthAuthentication.class, "oauth-client-credentials-flow")
-                  .registerSubtype(CustomAuthentication.class, "credentialsInBody"))
           .create();
 
   private GsonComponentSupplier() {}

@@ -20,6 +20,7 @@ import io.camunda.connector.rabbitmq.common.model.RabbitMqAuthentication;
 import io.camunda.connector.rabbitmq.common.model.RabbitMqAuthenticationType;
 import io.camunda.connector.rabbitmq.inbound.model.RabbitMqInboundProperties;
 import io.camunda.connector.rabbitmq.supplier.ConnectionFactorySupplier;
+import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.KeyManagementException;
@@ -67,7 +68,11 @@ public class RabbitMqExecutableLifecycleTest extends InboundBaseTest {
   @Test
   void executable_shouldHandleActivation() throws Exception {
     // Given
-    InboundConnectorContext context = getContextBuilderWithSecrets().properties(properties).build();
+    InboundConnectorContext context =
+        getContextBuilderWithSecrets()
+            .validation(new DefaultValidationProvider())
+            .properties(properties)
+            .build();
     RabbitMqExecutable executable = new RabbitMqExecutable(connectionFactorySupplier);
 
     // When
@@ -88,7 +93,11 @@ public class RabbitMqExecutableLifecycleTest extends InboundBaseTest {
   @Test
   void executable_shouldHandleDeactivation() throws Exception {
     // Given
-    InboundConnectorContext context = getContextBuilderWithSecrets().properties(properties).build();
+    InboundConnectorContext context =
+        getContextBuilderWithSecrets()
+            .validation(new DefaultValidationProvider())
+            .properties(properties)
+            .build();
     RabbitMqExecutable executable = new RabbitMqExecutable(connectionFactorySupplier);
 
     // When

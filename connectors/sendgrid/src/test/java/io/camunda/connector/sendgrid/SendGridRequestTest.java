@@ -23,14 +23,13 @@ public class SendGridRequestTest extends BaseTest {
   @MethodSource("failRequestCases")
   void validate_shouldThrowExceptionWhenLeastOneNotExistRequestField(String input) {
     // Given request without one required field
-    sendGridRequest = gson.fromJson(input, SendGridRequest.class);
-    context = getContextBuilderWithSecrets().variables(sendGridRequest).build();
+    context = getContextBuilderWithSecrets().variables(input).build();
     // When context.validate(sendGridRequest);
     // Then expect exception that one required field not set
     ConnectorInputException thrown =
         assertThrows(
             ConnectorInputException.class,
-            () -> context.validate(sendGridRequest),
+            () -> context.bindVariables(SendGridRequest.class),
             "IllegalArgumentException was expected");
     assertThat(thrown.getMessage()).contains("Found constraints violated while validating input");
   }
@@ -39,14 +38,13 @@ public class SendGridRequestTest extends BaseTest {
   @MethodSource("failTestWithWrongSenderEmail")
   public void validate_shouldThrowExceptionWhenSenderEmailIsBlankOrNull(String input) {
     // Given request without one required field
-    sendGridRequest = gson.fromJson(input, SendGridRequest.class);
-    context = getContextBuilderWithSecrets().variables(sendGridRequest).build();
+    context = getContextBuilderWithSecrets().variables(input).build();
     // When context.validate(sendGridRequest);
     // Then expect exception that one required field not set
     ConnectorInputException thrown =
         assertThrows(
             ConnectorInputException.class,
-            () -> context.validate(sendGridRequest),
+            () -> context.bindVariables(SendGridRequest.class),
             "IllegalArgumentException was expected");
     assertThat(thrown.getMessage()).contains("senderEmail: must not be empty");
   }
@@ -55,14 +53,13 @@ public class SendGridRequestTest extends BaseTest {
   @MethodSource("failTestWithWrongSenderName")
   public void validate_shouldThrowExceptionWhenSenderNameIsBlankOrNull(String input) {
     // Given request without one required field
-    sendGridRequest = gson.fromJson(input, SendGridRequest.class);
-    context = getContextBuilderWithSecrets().variables(sendGridRequest).build();
+    context = getContextBuilderWithSecrets().variables(input).build();
     // When context.validate(sendGridRequest);
     // Then expect exception that one required field not set
     ConnectorInputException thrown =
         assertThrows(
             ConnectorInputException.class,
-            () -> context.validate(sendGridRequest),
+            () -> context.bindVariables(SendGridRequest.class),
             "IllegalArgumentException was expected");
     assertThat(thrown.getMessage()).contains("senderName: must not be empty");
   }
@@ -71,14 +68,13 @@ public class SendGridRequestTest extends BaseTest {
   @MethodSource("failTestWithWrongReceiverEmail")
   public void validate_shouldThrowExceptionWhenReceiverEmailIsBlankOrNull(String input) {
     // Given request without one required field
-    sendGridRequest = gson.fromJson(input, SendGridRequest.class);
-    context = getContextBuilderWithSecrets().variables(sendGridRequest).build();
+    context = getContextBuilderWithSecrets().variables(input).build();
     // When context.validate(sendGridRequest);
     // Then expect exception that one required field not set
     ConnectorInputException thrown =
         assertThrows(
             ConnectorInputException.class,
-            () -> context.validate(sendGridRequest),
+            () -> context.bindVariables(SendGridRequest.class),
             "IllegalArgumentException was expected");
     assertThat(thrown.getMessage()).contains("receiverEmail: must not be empty");
   }
@@ -87,56 +83,24 @@ public class SendGridRequestTest extends BaseTest {
   @MethodSource("failTestWithWrongReceiverName")
   public void validate_shouldThrowExceptionWhenReceiverNameIsBlankOrNull(String input) {
     // Given request without one required field
-    sendGridRequest = gson.fromJson(input, SendGridRequest.class);
-    context = getContextBuilderWithSecrets().variables(sendGridRequest).build();
+    context = getContextBuilderWithSecrets().variables(input).build();
     // When context.validate(sendGridRequest);
     // Then expect exception that one required field not set
     ConnectorInputException thrown =
         assertThrows(
             ConnectorInputException.class,
-            () -> context.validate(sendGridRequest),
+            () -> context.bindVariables(SendGridRequest.class),
             "IllegalArgumentException was expected");
     assertThat(thrown.getMessage()).contains("receiverName: must not be empty");
-  }
-
-  @ParameterizedTest(name = "Should replace secrets in request")
-  @MethodSource("successReplaceSecretsRequestCases")
-  void replaceSecrets_shouldReplaceSecretsWhenExistRequest(String input) {
-    // Given request with secrets
-    sendGridRequest = gson.fromJson(input, SendGridRequest.class);
-    context = getContextBuilderWithSecrets().variables(sendGridRequest).build();
-    // When
-    context.replaceSecrets(sendGridRequest);
-    // Then should replace secrets
-    assertThat(sendGridRequest.getApiKey()).isEqualTo(ActualValue.API_KEY);
-    assertThat(sendGridRequest.getFrom().getEmail()).isEqualTo(ActualValue.SENDER_EMAIL);
-    assertThat(sendGridRequest.getFrom().getName()).isEqualTo(ActualValue.SENDER_NAME);
-    assertThat(sendGridRequest.getTo().getEmail()).isEqualTo(ActualValue.RECEIVER_EMAIL);
-    assertThat(sendGridRequest.getTo().getName()).isEqualTo(ActualValue.RECEIVER_NAME);
-  }
-
-  @ParameterizedTest(name = "Should replace secrets in content")
-  @MethodSource("successReplaceSecretsContentRequestCases")
-  void replaceSecrets_shouldReplaceSecretsWhenExistContentRequest(String input) {
-    // Given request with secrets
-    sendGridRequest = gson.fromJson(input, SendGridRequest.class);
-    context = getContextBuilderWithSecrets().variables(sendGridRequest).build();
-    // When
-    context.replaceSecrets(sendGridRequest);
-    // Then should replace secrets
-    assertThat(sendGridRequest.getContent().getSubject()).isEqualTo(ActualValue.Content.SUBJECT);
-    assertThat(sendGridRequest.getContent().getType()).isEqualTo(ActualValue.Content.TYPE);
-    assertThat(sendGridRequest.getContent().getValue()).isEqualTo(ActualValue.Content.VALUE);
   }
 
   @ParameterizedTest(name = "Should replace secrets in template")
   @MethodSource("successReplaceSecretsTemplateRequestCases")
   void replaceSecrets_shouldReplaceSecretsWhenExistTemplateRequest(String input) {
     // Given request with secrets
-    sendGridRequest = gson.fromJson(input, SendGridRequest.class);
-    context = getContextBuilderWithSecrets().variables(sendGridRequest).build();
+    context = getContextBuilderWithSecrets().variables(input).build();
     // When
-    context.replaceSecrets(sendGridRequest);
+    var sendGridRequest = context.bindVariables(SendGridRequest.class);
     // Then should replace secrets
     assertThat(sendGridRequest.getTemplate().getId()).isEqualTo(ActualValue.Template.ID);
     assertThat(

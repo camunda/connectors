@@ -31,10 +31,8 @@ public class RabbitMqFunction implements OutboundConnectorFunction {
 
   @Override
   public Object execute(final OutboundConnectorContext context) throws Exception {
-    final var connectorRequest = context.getVariablesAsType(RabbitMqRequest.class);
-    context.validate(connectorRequest);
-    context.replaceSecrets(connectorRequest);
-    return executeConnector(connectorRequest);
+    var request = context.bindVariables(RabbitMqRequest.class);
+    return executeConnector(request);
   }
 
   private RabbitMqResult executeConnector(final RabbitMqRequest request) throws Exception {
