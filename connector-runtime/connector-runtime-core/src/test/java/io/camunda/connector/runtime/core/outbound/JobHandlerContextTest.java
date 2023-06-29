@@ -51,6 +51,7 @@ class JobHandlerContextTest {
 
   @Test
   void getVariables() {
+    when(activatedJob.getVariables()).thenReturn("{}");
     jobHandlerContext.getVariables();
     verify(activatedJob).getVariables();
   }

@@ -37,6 +37,8 @@ public class JobHandlerContext extends AbstractConnectorContext
 
   private final ObjectMapper objectMapper;
 
+  private String jsonWithSecrets = null;
+
   public JobHandlerContext(
       final ActivatedJob job,
       final SecretProvider secretProvider,
@@ -49,25 +51,33 @@ public class JobHandlerContext extends AbstractConnectorContext
 
   @Override
   public <T> T bindVariables(Class<T> cls) {
-    String jsonWithSecrets;
-    try {
-      jsonWithSecrets = getSecretHandler().replaceSecrets(job.getVariables());
-    } catch (Exception e) {
-      throw new ConnectorException("SECRETS", "Error during secret mapping.");
-    }
-    T mappedObject;
-    try {
-      mappedObject = objectMapper.readValue(jsonWithSecrets, cls);
-    } catch (Exception e) {
-      throw new ConnectorException("JSON_MAPPING", "Error during json mapping.");
-    }
+    var mappedObject = mapJson(getJsonReplacedWithSecrets(), cls);
     getValidationProvider().validate(mappedObject);
     return mappedObject;
   }
 
+  private String getJsonReplacedWithSecrets() {
+    if (jsonWithSecrets == null) {
+      try {
+        jsonWithSecrets = getSecretHandler().replaceSecrets(job.getVariables());
+      } catch (Exception e) {
+        throw new ConnectorException("SECRET_MAPPING", "Error during secret mapping.");
+      }
+    }
+    return jsonWithSecrets;
+  }
+
+  private <T> T mapJson(String json, Class<T> cls) {
+    try {
+      return objectMapper.readValue(getJsonReplacedWithSecrets(), cls);
+    } catch (Exception e) {
+      throw new ConnectorException("JSON_MAPPING", "Error during json mapping.");
+    }
+  }
+
   @Override
   public String getVariables() {
-    return job.getVariables();
+    return getJsonReplacedWithSecrets();
   }
 
   @Override
