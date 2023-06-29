@@ -16,7 +16,6 @@ import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.impl.inbound.InboundConnectorProperties;
 import io.camunda.connector.impl.inbound.ProcessCorrelationPoint;
 import io.camunda.connector.impl.inbound.correlation.StartEventCorrelationPoint;
-import io.camunda.connector.inbound.authorization.JWTChecker;
 import io.camunda.connector.inbound.model.WebhookConnectorProperties;
 import io.camunda.connector.inbound.utils.ObjectMapperSupplier;
 import java.util.Arrays;
@@ -110,8 +109,7 @@ public class JWTCheckerTest {
   @Test
   public void jwtCheckTokenExpiredTest() throws Exception {
     // given
-    TestWebhookProcessingPayload payload =
-        new TestWebhookProcessingPayload(EXPIRED_JWT_TOKEN);
+    TestWebhookProcessingPayload payload = new TestWebhookProcessingPayload(EXPIRED_JWT_TOKEN);
     WebhookConnectorProperties webhookConnectorProperties =
         generateWebhookConnectorProperties("if admin = true then [\"admin\"] else roles");
     JwkProvider jwkProvider = new TestJwkProvider();

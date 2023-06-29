@@ -134,7 +134,7 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
     context.replaceSecrets(props);
 
     // jwk url must be specified in the element template for this to work
-    if(props.getJwkUrl() != null) {
+    if (props.getJwkUrl() != null) {
       this.jwkProvider =
           new JwkProviderBuilder(new URL(props.getJwkUrl()))
               .cached(10, 10, TimeUnit.MINUTES) // Cache JWKs for 10 minutes
