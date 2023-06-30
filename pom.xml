@@ -58,7 +58,6 @@
   </properties>
 
   <modules>
-    <module>connector-archetype-internal</module>
     <module>connectors</module>
     <module>bundle</module>
     <module>connector-runtime/connector-runtime-core</module>
