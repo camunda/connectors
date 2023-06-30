@@ -52,4 +52,8 @@ public record InboundConnectorDefinitionImpl(
   public String activationCondition() {
     return rawProperties.get(Keywords.ACTIVATION_CONDITION_KEYWORD);
   }
+
+  public String responseBodyExpression() {
+    return rawProperties.get(Keywords.RESPONSE_BODY_EXPRESSION_KEYWORD);
+  }
 }

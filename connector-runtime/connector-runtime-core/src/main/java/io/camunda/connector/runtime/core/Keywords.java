@@ -70,6 +70,9 @@ public class Keywords {
    */
   public static final String ACTIVATION_CONDITION_KEYWORD = "activationCondition";
 
+  /** */
+  public static final String RESPONSE_BODY_EXPRESSION_KEYWORD = "responseBodyExpression";
+
   /**
    * The keyword that identifies the source of `type` property of an inbound Connector. Type
    * identifies the specific inbound Connector implementation.
@@ -83,5 +86,6 @@ public class Keywords {
           ERROR_EXPRESSION_KEYWORD,
           CORRELATION_KEY_EXPRESSION_KEYWORD,
           ACTIVATION_CONDITION_KEYWORD,
-          INBOUND_TYPE_KEYWORD);
+          INBOUND_TYPE_KEYWORD,
+          RESPONSE_BODY_EXPRESSION_KEYWORD);
 }

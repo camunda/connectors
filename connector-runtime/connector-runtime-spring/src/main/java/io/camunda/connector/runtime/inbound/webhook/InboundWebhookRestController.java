@@ -50,10 +50,14 @@ public class InboundWebhookRestController {
   private static final Logger LOG = LoggerFactory.getLogger(InboundWebhookRestController.class);
 
   private final WebhookConnectorRegistry webhookConnectorRegistry;
+  private final WebhookResponseMapper webhookResponseMapper;
 
   @Autowired
-  public InboundWebhookRestController(final WebhookConnectorRegistry webhookConnectorRegistry) {
+  public InboundWebhookRestController(
+      final WebhookConnectorRegistry webhookConnectorRegistry,
+      final WebhookResponseMapper webhookResponseMapper) {
     this.webhookConnectorRegistry = webhookConnectorRegistry;
+    this.webhookResponseMapper = webhookResponseMapper;
   }
 
   @RequestMapping(
@@ -87,7 +91,8 @@ public class InboundWebhookRestController {
           ((WebhookConnectorExecutable) connector.executable()).triggerWebhook(payload);
       var ctxData = toConnectorVariablesContext(webhookResult);
       InboundConnectorResult<?> result = connector.context().correlate(ctxData);
-      connectorResponse = ResponseEntity.ok(result);
+      connectorResponse =
+          webhookResponseMapper.mapResponse(result, connector.context().getProperties(), ctxData);
     } catch (Exception e) {
       LOG.error("Webhook failed with exception", e);
       if (e instanceof FeelEngineWrapperException feelEngineWrapperException) {

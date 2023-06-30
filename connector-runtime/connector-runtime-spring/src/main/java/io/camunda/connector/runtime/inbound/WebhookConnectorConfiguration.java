@@ -16,8 +16,10 @@
  */
 package io.camunda.connector.runtime.inbound;
 
+import io.camunda.connector.impl.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.inbound.webhook.InboundWebhookRestController;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
+import io.camunda.connector.runtime.inbound.webhook.WebhookResponseMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -29,5 +31,10 @@ public class WebhookConnectorConfiguration {
   @Bean
   public WebhookConnectorRegistry webhookConnectorRegistry() {
     return new WebhookConnectorRegistry();
+  }
+
+  @Bean
+  public WebhookResponseMapper webhookResponseManager(FeelEngineWrapper feelEngine) {
+    return new WebhookResponseMapper(feelEngine);
   }
 }

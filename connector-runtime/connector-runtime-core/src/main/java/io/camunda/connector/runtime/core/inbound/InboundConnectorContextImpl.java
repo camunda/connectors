@@ -24,6 +24,7 @@ import io.camunda.connector.api.inbound.InboundConnectorResult;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.impl.context.AbstractConnectorContext;
+import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.connector.runtime.core.feel.FeelParserWrapper;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import java.util.HashMap;
@@ -111,6 +112,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
     if (propertiesWithFeel == null) {
       propertiesWithFeel =
           properties.entrySet().stream()
+              .filter(p -> !p.getKey().equals(Keywords.RESPONSE_BODY_EXPRESSION_KEYWORD))
               .map(
                   entry ->
                       Map.entry(
