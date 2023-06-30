@@ -51,12 +51,17 @@ jobs:
       - name: Build Connectors
         run: mvn --batch-mode clean verify -PcheckFormat
 
-      - name: Lint Connector Bundle Dockerfile - SaaS
+      - name: Lint Dockerfile - connector-runtime
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: connector-runtime/connector-runtime-application/Dockerfile
+
+      - name: Lint Dockerfile - SaaS
         uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: bundle/camunda-saas-bundle/Dockerfile
 
-      - name: Lint Connector Bundle Dockerfile - default-bundle
+      - name: Lint Dockerfile - default-bundle
         uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: bundle/default-bundle/Dockerfile
