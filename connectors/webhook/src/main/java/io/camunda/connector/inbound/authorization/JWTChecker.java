@@ -20,12 +20,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.inbound.model.WebhookConnectorProperties;
-import io.camunda.connector.runtime.core.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.core.feel.FeelEngineWrapperException;
 import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,10 +49,9 @@ public class JWTChecker {
     byte[] decodedBytes = Base64.getDecoder().decode(verifiedJWT.getPayload());
     String decodedPayload = new String(decodedBytes);
     JsonNode jsonNode = objectMapper.readTree(decodedPayload);
-    FeelEngineWrapper feelEngine = new FeelEngineWrapper();
     List<String> roles = new ArrayList<>();
     try {
-      roles = feelEngine.evaluate(webhookConnectorProperties.getJwtRolePath(), jsonNode);
+      roles = webhookConnectorProperties.getJwtRoleExpression().apply(jsonNode);
     } catch (FeelEngineWrapperException ex) {
       LOGGER.warn("Failed to evaluate FEEL expression! Reason: " + ex.getReason());
     }
@@ -63,11 +62,11 @@ public class JWTChecker {
   }
 
   public static String extractJWTFomHeader(final WebhookProcessingPayload payload) {
-    final String jwtToken = payload.headers().get("Authorization");
-    if (jwtToken == null) {
-      return null;
-    }
-    return jwtToken.replace("Bearer", "").trim();
+    return Optional.ofNullable(
+            Optional.ofNullable(payload.headers().get("Authorization"))
+                .orElse(payload.headers().get("authorization")))
+        .map(authorizationHeader -> authorizationHeader.replace("Bearer", "").trim())
+        .orElse(null);
   }
 
   public static DecodedJWT verifyJWT(String jwtToken, JwkProvider jwkProvider) {

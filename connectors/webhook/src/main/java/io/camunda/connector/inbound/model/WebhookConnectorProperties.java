@@ -11,10 +11,11 @@ import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.di
 import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.impl.inbound.InboundConnectorProperties;
 import io.camunda.connector.impl.inbound.ProcessCorrelationPoint;
+import io.camunda.connector.runtime.core.feel.FeelEngineWrapper;
+import io.camunda.connector.runtime.core.feel.FeelParserWrapper;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.function.Function;
 
 public class WebhookConnectorProperties {
 
@@ -27,10 +28,13 @@ public class WebhookConnectorProperties {
   @Secret private String hmacHeader;
   private String hmacAlgorithm;
   private String jwkUrl;
-  private String jwtRolePath; // e.g.: roles or role
+  private Function<Object, List<String>> jwtRoleExpression; // e.g.: if admin = true then ["admin"] else roles
   private List<String> requiredPermissions;
 
+  private FeelEngineWrapper feelEngine;
+
   public WebhookConnectorProperties(InboundConnectorProperties properties) {
+    this.feelEngine = new FeelEngineWrapper();
     this.genericProperties = properties;
 
     this.context = readPropertyRequired("inbound.context");
@@ -42,8 +46,11 @@ public class WebhookConnectorProperties {
     this.hmacHeader = readPropertyNullable("inbound.hmacHeader");
     this.hmacAlgorithm = readPropertyNullable("inbound.hmacAlgorithm");
     this.jwkUrl = readPropertyNullable("inbound.jwkUrl");
-    this.jwtRolePath = readPropertyNullable("inbound.jwtRoleExpression");
-    this.requiredPermissions = readListPropertyNullable("inbound.requiredPermissions");
+    this.jwtRoleExpression =
+        readFeelFunctionPropertyNullable(
+            "inbound.jwtRoleExpression");
+    this.requiredPermissions =
+        (List<String>) readParsedFeelObjectPropertyNullable("inbound.requiredPermissions");
   }
 
   public String getConnectorIdentifier() {
@@ -62,11 +69,17 @@ public class WebhookConnectorProperties {
     return genericProperties.getProperties().get(propertyName);
   }
 
-  protected List<String> readListPropertyNullable(String propertyName) {
-    // TODO : get list by default, not string!
-    return Stream.of(genericProperties.getProperties().get(propertyName).split(","))
-        .map(String::trim)
-        .collect(Collectors.toList());
+  protected Object readParsedFeelObjectPropertyNullable(String propertyName) {
+    return FeelParserWrapper.parseIfIsFeelExpressionOrGetOriginal(
+        genericProperties.getProperties().get(propertyName));
+  }
+
+  protected Function<Object, List<String>> readFeelFunctionPropertyNullable(String propertyName) {
+    String rawFeelExpression = genericProperties.getProperties().get(propertyName);
+    if (!FeelParserWrapper.isFeelExpression(rawFeelExpression)) {
+      throw new IllegalArgumentException(propertyName + " should be a FEEL expression!");
+    }
+    return variables -> this.feelEngine.evaluate(rawFeelExpression, variables);
   }
 
   protected String readPropertyRequired(String propertyName) {
@@ -168,12 +181,12 @@ public class WebhookConnectorProperties {
     this.jwkUrl = jwkUrl;
   }
 
-  public String getJwtRolePath() {
-    return jwtRolePath;
+  public Function<Object, List<String>> getJwtRoleExpression() {
+    return jwtRoleExpression;
   }
 
-  public void setJwtRolePath(String jwtRolePath) {
-    this.jwtRolePath = jwtRolePath;
+  public void setJwtRoleExpression(Function<Object, List<String>> jwtRoleExpression) {
+    this.jwtRoleExpression = jwtRoleExpression;
   }
 
   public List<String> getRequiredPermissions() {

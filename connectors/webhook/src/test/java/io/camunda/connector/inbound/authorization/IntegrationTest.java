@@ -99,9 +99,8 @@ public class IntegrationTest {
     String propertiesJsonString =
         "{\"inbound.shouldValidateHmac\":\"disabled\", "
             + "\"inbound.shouldValidateJwt\":\"enabled\", "
-            + "\"inbound.requiredPermissions\":\"admin\", "
-            + // because we will skip feel type conversion
-            "\"inbound.type\":\"io.camunda:webhook:1\", "
+            + "\"inbound.requiredPermissions\":\"=[\\\"admin\\\"]\", "
+            + "\"inbound.type\":\"io.camunda:webhook:1\", "
             + "\"inbound.subtype\":\"ConfigurableInboundWebhook\", "
             + "\"inbound.jwkUrl\":\""
             + JWK_FULL_URL
@@ -129,9 +128,8 @@ public class IntegrationTest {
     String propertiesJsonString =
         "{\"inbound.shouldValidateHmac\":\"disabled\", "
             + "\"inbound.shouldValidateJwt\":\"enabled\", "
-            + "\"inbound.requiredPermissions\":\"admin\", "
-            + // because we will skip feel type conversion
-            "\"inbound.type\":\"io.camunda:webhook:1\", "
+            + "\"inbound.requiredPermissions\":\"=[\\\"admin\\\"]\", "
+            + "\"inbound.type\":\"io.camunda:webhook:1\", "
             + "\"inbound.subtype\":\"ConfigurableInboundWebhook\", "
             + "\"inbound.jwkUrl\":\""
             + JWK_FULL_URL
@@ -159,9 +157,8 @@ public class IntegrationTest {
     String propertiesJsonString =
         "{\"inbound.shouldValidateHmac\":\"disabled\", "
             + "\"inbound.shouldValidateJwt\":\"enabled\", "
-            + "\"inbound.requiredPermissions\":\"admin\", "
-            + // because we will skip feel type conversion
-            "\"inbound.type\":\"io.camunda:webhook:1\", "
+            + "\"inbound.requiredPermissions\":\"=[\\\"admin\\\"]\", "
+            + "\"inbound.type\":\"io.camunda:webhook:1\", "
             + "\"inbound.subtype\":\"ConfigurableInboundWebhook\", "
             + "\"inbound.jwkUrl\":\""
             + JWK_FULL_URL
@@ -191,9 +188,8 @@ public class IntegrationTest {
     String propertiesJsonString =
         "{\"inbound.shouldValidateHmac\":\"disabled\", "
             + "\"inbound.shouldValidateJwt\":\"enabled\", "
-            + "\"inbound.requiredPermissions\":\"admin\", "
-            + // because we will skip feel type conversion
-            "\"inbound.type\":\"io.camunda:webhook:1\", "
+            + "\"inbound.requiredPermissions\":\"=[\\\"admin\\\"]\", "
+            + "\"inbound.type\":\"io.camunda:webhook:1\", "
             + "\"inbound.subtype\":\"ConfigurableInboundWebhook\", "
             + "\"inbound.jwkUrl\":\""
             + JWK_FULL_URL
@@ -223,9 +219,8 @@ public class IntegrationTest {
     String propertiesJsonString =
         "{\"inbound.shouldValidateHmac\":\"disabled\", "
             + "\"inbound.shouldValidateJwt\":\"enabled\", "
-            + "\"inbound.requiredPermissions\":\"admin\", "
-            + // because we will skip feel type conversion
-            "\"inbound.type\":\"io.camunda:webhook:1\", "
+            + "\"inbound.requiredPermissions\":\"=[\\\"admin\\\"]\", "
+            + "\"inbound.type\":\"io.camunda:webhook:1\", "
             + "\"inbound.subtype\":\"ConfigurableInboundWebhook\", "
             + "\"inbound.jwkUrl\":\"https://google.com\", "
             + "\"inbound.context\":\"test\", "
