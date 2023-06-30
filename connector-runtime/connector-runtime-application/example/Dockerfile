@@ -10,6 +10,7 @@ FROM camunda/connectors:${CAMUNDA_CONNECTORS_VERSION}
 # Step 3. Download some connectors from maven central (or copy from local build)
 # This example uses some of the out-of-the-box connectors developed by Camunda.
 # Add your own connectors to the /opt/app/ directory of the image
+ARG CAMUNDA_CONNECTORS_VERSION
 ADD https://repo1.maven.org/maven2/io/camunda/connector/connector-http-json/${CAMUNDA_CONNECTORS_VERSION}/connector-http-json-${CAMUNDA_CONNECTORS_VERSION}-with-dependencies.jar /opt/app/
 ADD https://repo1.maven.org/maven2/io/camunda/connector/connector-graphql/${CAMUNDA_CONNECTORS_VERSION}/connector-graphql-${CAMUNDA_CONNECTORS_VERSION}-with-dependencies.jar /opt/app/
 ADD https://repo1.maven.org/maven2/io/camunda/connector/connector-rabbitmq/${CAMUNDA_CONNECTORS_VERSION}/connector-rabbitmq-${CAMUNDA_CONNECTORS_VERSION}-with-dependencies.jar /opt/app/
@@ -19,3 +20,7 @@ ADD https://repo1.maven.org/maven2/io/camunda/connector/connector-sns/${CAMUNDA_
 ADD https://repo1.maven.org/maven2/io/camunda/connector/connector-sqs/${CAMUNDA_CONNECTORS_VERSION}/connector-sqs-${CAMUNDA_CONNECTORS_VERSION}-with-dependencies.jar /opt/app/
 ADD https://repo1.maven.org/maven2/io/camunda/connector/connector-kafka/${CAMUNDA_CONNECTORS_VERSION}/connector-kafka-${CAMUNDA_CONNECTORS_VERSION}-with-dependencies.jar /opt/app/
 ADD https://repo1.maven.org/maven2/io/camunda/connector/connector-microsoft-teams/${CAMUNDA_CONNECTORS_VERSION}/connector-microsoft-teams-${CAMUNDA_CONNECTORS_VERSION}-with-dependencies.jar /opt/app/
+ADD https://repo1.maven.org/maven2/io/camunda/connector/connector-aws-dynamodb/${CAMUNDA_CONNECTORS_VERSION}/connector-aws-dynamodb-${CAMUNDA_CONNECTORS_VERSION}-with-dependencies.jar /opt/app/
+ADD https://repo1.maven.org/maven2/io/camunda/connector/connector-aws-lambda/${CAMUNDA_CONNECTORS_VERSION}/connector-aws-lambda-${CAMUNDA_CONNECTORS_VERSION}-with-dependencies.jar /opt/app/
+ADD https://repo1.maven.org/maven2/io/camunda/connector/connector-google-sheets/${CAMUNDA_CONNECTORS_VERSION}/connector-google-sheets-${CAMUNDA_CONNECTORS_VERSION}-with-dependencies.jar /opt/app/
+ADD https://repo1.maven.org/maven2/io/camunda/connector/connector-webhook/${CAMUNDA_CONNECTORS_VERSION}/connector-webhook-${CAMUNDA_CONNECTORS_VERSION}-with-dependencies.jar /opt/app/
