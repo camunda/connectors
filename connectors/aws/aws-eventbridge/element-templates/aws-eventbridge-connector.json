@@ -51,7 +51,7 @@
     },
     {
       "label": "Access key",
-      "description": "Provide an access key of a user with permissions to send events to AWS EventBridge",
+      "description": "Provide an access key of a user with permissions. Details in the <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/aws-eventbridge/\" target=\"_blank\">documentation</a>",
       "group": "authentication",
       "type": "String",
       "binding": {
@@ -64,7 +64,7 @@
     },
     {
       "label": "Secret key",
-      "description": "Provide a secret key of a user with permissions to send events to AWS EventBridge",
+      "description": "Provide a secret key of a user with permissions. Details in the <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/aws-eventbridge/\" target=\"_blank\">documentation</a>",
       "group": "authentication",
       "type": "String",
       "binding": {
