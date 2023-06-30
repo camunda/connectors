@@ -53,7 +53,7 @@
     <version.testcontainers>1.18.3</version.testcontainers>
     <version.snappy-java>1.1.10.1</version.snappy-java>
     <version.commons-codec>1.16.0</version.commons-codec>
-    <version.guava>32.0.1-jre</version.guava>
+    <version.guava>32.1.0-jre</version.guava>
     <version.javax.xml.bind>2.4.0-b180830.0359</version.javax.xml.bind>
   </properties>
 
