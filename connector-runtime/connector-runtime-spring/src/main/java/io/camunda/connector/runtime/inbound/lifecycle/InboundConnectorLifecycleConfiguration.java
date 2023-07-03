@@ -44,7 +44,7 @@ public class InboundConnectorLifecycleConfiguration {
       InboundCorrelationHandler correlationHandler,
       ProcessDefinitionInspector processDefinitionInspector,
       SecretProviderAggregator secretProviderAggregator,
-      ValidationProvider validationProvider,
+      @Autowired(required = false) ValidationProvider validationProvider,
       MetricsRecorder metricsRecorder,
       @Autowired(required = false) WebhookConnectorRegistry webhookConnectorRegistry) {
     return new InboundConnectorManager(

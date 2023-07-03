@@ -66,7 +66,6 @@ public class OutboundConnectorManager {
     // Currently, existing Spring beans have a higher priority
     // One result is that you will not disable Spring Bean Connectors by providing environment
     // variables for a specific connector
-
     Set<OutboundConnectorConfiguration> outboundConnectors =
         new TreeSet<>(new OutboundConnectorConfigurationComparator());
 

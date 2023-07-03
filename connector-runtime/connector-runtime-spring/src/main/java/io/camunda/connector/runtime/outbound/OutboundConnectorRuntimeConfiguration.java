@@ -27,6 +27,7 @@ import io.camunda.connector.runtime.outbound.lifecycle.OutboundConnectorManager;
 import io.camunda.zeebe.spring.client.jobhandling.CommandExceptionHandlingStrategy;
 import io.camunda.zeebe.spring.client.jobhandling.JobWorkerManager;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -44,7 +45,7 @@ public class OutboundConnectorRuntimeConfiguration {
       OutboundConnectorFactory connectorFactory,
       CommandExceptionHandlingStrategy commandExceptionHandlingStrategy,
       SecretProviderAggregator secretProviderAggregator,
-      ValidationProvider validationProvider,
+      @Autowired(required = false) ValidationProvider validationProvider,
       ObjectMapper objectMapper,
       MetricsRecorder metricsRecorder) {
     return new OutboundConnectorManager(
@@ -63,8 +64,4 @@ public class OutboundConnectorRuntimeConfiguration {
     return new OutboundConnectorAnnotationProcessor(manager, factory);
   }
 
-  @Bean
-  public ValidationProvider validationProvider() {
-    return ValidationUtil.discoverValidationProvider();
-  }
 }
