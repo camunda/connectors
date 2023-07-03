@@ -6,25 +6,18 @@
  */
 package io.camunda.connector.gsheets.model.request.impl;
 
-import io.camunda.connector.api.annotation.Secret;
-import io.camunda.connector.gsheets.model.request.Input;
-import javax.validation.constraints.NotBlank;
+import io.camunda.connector.gsheets.model.request.SpreadsheetInput;
 
-public class GetSpreadsheetDetails extends Input {
-
-  @NotBlank @Secret private String spreadsheetId;
+public class GetSpreadsheetDetails extends SpreadsheetInput {
 
   public GetSpreadsheetDetails() {}
 
   public GetSpreadsheetDetails(String spreadsheetId) {
-    this.spreadsheetId = spreadsheetId;
+    super(spreadsheetId);
   }
 
-  public String getSpreadsheetId() {
-    return spreadsheetId;
-  }
-
-  public void setSpreadsheetId(String spreadsheetId) {
-    this.spreadsheetId = spreadsheetId;
+  @Override
+  public String toString() {
+    return "GetSpreadsheetDetails{} " + super.toString();
   }
 }

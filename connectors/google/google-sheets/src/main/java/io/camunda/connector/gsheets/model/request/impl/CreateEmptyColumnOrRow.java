@@ -6,15 +6,13 @@
  */
 package io.camunda.connector.gsheets.model.request.impl;
 
-import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.gsheets.model.request.Dimension;
-import io.camunda.connector.gsheets.model.request.Input;
-import javax.validation.constraints.NotBlank;
+import io.camunda.connector.gsheets.model.request.SpreadsheetInput;
+import java.util.Objects;
 import javax.validation.constraints.NotNull;
 
-public class CreateEmptyColumnOrRow extends Input {
+public class CreateEmptyColumnOrRow extends SpreadsheetInput {
 
-  @NotBlank @Secret private String spreadsheetId;
   @NotNull private Integer worksheetId;
   @NotNull private Dimension dimension;
   private Integer startIndex;
@@ -29,19 +27,11 @@ public class CreateEmptyColumnOrRow extends Input {
       Integer startIndex,
       Integer endIndex,
       String type) {
-    this.spreadsheetId = spreadsheetId;
+    super(spreadsheetId);
     this.worksheetId = worksheetId;
     this.dimension = dimension;
     this.startIndex = startIndex;
     this.endIndex = endIndex;
-  }
-
-  public String getSpreadsheetId() {
-    return spreadsheetId;
-  }
-
-  public void setSpreadsheetId(String spreadsheetId) {
-    this.spreadsheetId = spreadsheetId;
   }
 
   public Integer getWorksheetId() {
@@ -74,5 +64,36 @@ public class CreateEmptyColumnOrRow extends Input {
 
   public void setEndIndex(Integer endIndex) {
     this.endIndex = endIndex;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    CreateEmptyColumnOrRow that = (CreateEmptyColumnOrRow) o;
+    return Objects.equals(worksheetId, that.worksheetId)
+        && dimension == that.dimension
+        && Objects.equals(startIndex, that.startIndex)
+        && Objects.equals(endIndex, that.endIndex);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(worksheetId, dimension, startIndex, endIndex);
+  }
+
+  @Override
+  public String toString() {
+    return "CreateEmptyColumnOrRow{"
+        + "worksheetId="
+        + worksheetId
+        + ", dimension="
+        + dimension
+        + ", startIndex="
+        + startIndex
+        + ", endIndex="
+        + endIndex
+        + "} "
+        + super.toString();
   }
 }

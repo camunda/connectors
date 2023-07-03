@@ -6,14 +6,14 @@
  */
 package io.camunda.connector.gsheets.model.request.impl;
 
-import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.gsheets.model.request.Input;
+import java.util.Objects;
 import javax.validation.constraints.NotBlank;
 
 public class CreateSpreadsheet extends Input {
 
-  @NotBlank @Secret private String spreadsheetName;
-  @Secret private String parent;
+  @NotBlank private String spreadsheetName;
+  private String parent;
 
   public CreateSpreadsheet() {}
 
@@ -36,5 +36,32 @@ public class CreateSpreadsheet extends Input {
 
   public void setParent(String parent) {
     this.parent = parent;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    CreateSpreadsheet that = (CreateSpreadsheet) o;
+    return Objects.equals(spreadsheetName, that.spreadsheetName)
+        && Objects.equals(parent, that.parent);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(spreadsheetName, parent);
+  }
+
+  @Override
+  public String toString() {
+    return "CreateSpreadsheet{"
+        + "spreadsheetName='"
+        + spreadsheetName
+        + '\''
+        + ", parent='"
+        + parent
+        + '\''
+        + "} "
+        + super.toString();
   }
 }

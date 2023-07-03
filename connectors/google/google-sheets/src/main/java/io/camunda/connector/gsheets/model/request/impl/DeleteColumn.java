@@ -6,20 +6,18 @@
  */
 package io.camunda.connector.gsheets.model.request.impl;
 
-import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.gsheets.model.request.ColumnIndexType;
-import io.camunda.connector.gsheets.model.request.Input;
+import io.camunda.connector.gsheets.model.request.SpreadsheetInput;
+import java.util.Objects;
 import javax.validation.constraints.AssertTrue;
-import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
-public class DeleteColumn extends Input {
+public class DeleteColumn extends SpreadsheetInput {
 
-  @NotBlank @Secret private String spreadsheetId;
   @NotNull private Integer worksheetId;
   @NotNull private ColumnIndexType columnIndexType;
   private Integer columnNumberIndex;
-  @Secret private String columnLetterIndex;
+  private String columnLetterIndex;
 
   public DeleteColumn() {}
 
@@ -29,7 +27,7 @@ public class DeleteColumn extends Input {
       ColumnIndexType columnIndexType,
       Integer columnNumberIndex,
       String columnLetterIndex) {
-    this.spreadsheetId = spreadsheetId;
+    super(spreadsheetId);
     this.worksheetId = worksheetId;
     this.columnIndexType = columnIndexType;
     this.columnNumberIndex = columnNumberIndex;
@@ -45,14 +43,6 @@ public class DeleteColumn extends Input {
     }
 
     return null != this.columnNumberIndex;
-  }
-
-  public String getSpreadsheetId() {
-    return spreadsheetId;
-  }
-
-  public void setSpreadsheetId(String spreadsheetId) {
-    this.spreadsheetId = spreadsheetId;
   }
 
   public Integer getWorksheetId() {
@@ -85,5 +75,37 @@ public class DeleteColumn extends Input {
 
   public void setColumnLetterIndex(String columnLetterIndex) {
     this.columnLetterIndex = columnLetterIndex;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    DeleteColumn that = (DeleteColumn) o;
+    return Objects.equals(worksheetId, that.worksheetId)
+        && columnIndexType == that.columnIndexType
+        && Objects.equals(columnNumberIndex, that.columnNumberIndex)
+        && Objects.equals(columnLetterIndex, that.columnLetterIndex);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(worksheetId, columnIndexType, columnNumberIndex, columnLetterIndex);
+  }
+
+  @Override
+  public String toString() {
+    return "DeleteColumn{"
+        + "worksheetId="
+        + worksheetId
+        + ", columnIndexType="
+        + columnIndexType
+        + ", columnNumberIndex="
+        + columnNumberIndex
+        + ", columnLetterIndex='"
+        + columnLetterIndex
+        + '\''
+        + "} "
+        + super.toString();
   }
 }

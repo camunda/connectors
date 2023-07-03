@@ -6,28 +6,19 @@
  */
 package io.camunda.connector.gsheets.model.request.impl;
 
-import io.camunda.connector.api.annotation.Secret;
-import io.camunda.connector.gsheets.model.request.Input;
+import io.camunda.connector.gsheets.model.request.SpreadsheetInput;
+import java.util.Objects;
 import javax.validation.constraints.NotBlank;
 
-public class GetWorksheetData extends Input {
+public class GetWorksheetData extends SpreadsheetInput {
 
-  @NotBlank @Secret private String spreadsheetId;
-  @NotBlank @Secret private String worksheetName;
+  @NotBlank private String worksheetName;
 
   public GetWorksheetData() {}
 
   public GetWorksheetData(String spreadsheetId, String worksheetName) {
-    this.spreadsheetId = spreadsheetId;
+    super(spreadsheetId);
     this.worksheetName = worksheetName;
-  }
-
-  public String getSpreadsheetId() {
-    return spreadsheetId;
-  }
-
-  public void setSpreadsheetId(String spreadsheetId) {
-    this.spreadsheetId = spreadsheetId;
   }
 
   public String getWorksheetName() {
@@ -36,5 +27,23 @@ public class GetWorksheetData extends Input {
 
   public void setWorksheetName(String worksheetName) {
     this.worksheetName = worksheetName;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    GetWorksheetData that = (GetWorksheetData) o;
+    return Objects.equals(worksheetName, that.worksheetName);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(worksheetName);
+  }
+
+  @Override
+  public String toString() {
+    return "GetWorksheetData{" + "worksheetName='" + worksheetName + '\'' + "} " + super.toString();
   }
 }

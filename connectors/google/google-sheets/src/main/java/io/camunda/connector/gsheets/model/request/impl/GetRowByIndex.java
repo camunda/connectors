@@ -6,31 +6,21 @@
  */
 package io.camunda.connector.gsheets.model.request.impl;
 
-import io.camunda.connector.api.annotation.Secret;
-import io.camunda.connector.gsheets.model.request.Input;
-import javax.validation.constraints.NotBlank;
+import io.camunda.connector.gsheets.model.request.SpreadsheetInput;
+import java.util.Objects;
 import javax.validation.constraints.NotNull;
 
-public class GetRowByIndex extends Input {
+public class GetRowByIndex extends SpreadsheetInput {
 
-  @NotBlank @Secret private String spreadsheetId;
-  @Secret private String worksheetName;
+  private String worksheetName;
   @NotNull private Integer rowIndex;
 
   public GetRowByIndex() {}
 
   public GetRowByIndex(String spreadsheetId, String worksheetName, Integer rowIndex) {
-    this.spreadsheetId = spreadsheetId;
+    super(spreadsheetId);
     this.worksheetName = worksheetName;
     this.rowIndex = rowIndex;
-  }
-
-  public String getSpreadsheetId() {
-    return spreadsheetId;
-  }
-
-  public void setSpreadsheetId(String spreadsheetId) {
-    this.spreadsheetId = spreadsheetId;
   }
 
   public String getWorksheetName() {
@@ -47,5 +37,31 @@ public class GetRowByIndex extends Input {
 
   public void setRowIndex(Integer rowIndex) {
     this.rowIndex = rowIndex;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    GetRowByIndex that = (GetRowByIndex) o;
+    return Objects.equals(worksheetName, that.worksheetName)
+        && Objects.equals(rowIndex, that.rowIndex);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(worksheetName, rowIndex);
+  }
+
+  @Override
+  public String toString() {
+    return "GetRowByIndex{"
+        + "worksheetName='"
+        + worksheetName
+        + '\''
+        + ", rowIndex="
+        + rowIndex
+        + "} "
+        + super.toString();
   }
 }

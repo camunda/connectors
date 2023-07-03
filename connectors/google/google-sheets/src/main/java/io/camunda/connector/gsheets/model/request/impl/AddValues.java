@@ -6,33 +6,23 @@
  */
 package io.camunda.connector.gsheets.model.request.impl;
 
-import io.camunda.connector.api.annotation.Secret;
-import io.camunda.connector.gsheets.model.request.Input;
+import io.camunda.connector.gsheets.model.request.SpreadsheetInput;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
-public class AddValues extends Input {
+public class AddValues extends SpreadsheetInput {
 
-  @NotBlank @Secret private String spreadsheetId;
-  @Secret private String worksheetName;
-  @NotBlank @Secret private String cellId;
-  @NotNull @Secret private Object value;
+  private String worksheetName;
+  @NotBlank private String cellId;
+  @NotNull private Object value;
 
   public AddValues() {}
 
   public AddValues(String spreadsheetId, String worksheetName, String cellId, Object value) {
-    this.spreadsheetId = spreadsheetId;
+    super(spreadsheetId);
     this.worksheetName = worksheetName;
     this.cellId = cellId;
     this.value = value;
-  }
-
-  public String getSpreadsheetId() {
-    return spreadsheetId;
-  }
-
-  public void setSpreadsheetId(String spreadsheetId) {
-    this.spreadsheetId = spreadsheetId;
   }
 
   public String getWorksheetName() {

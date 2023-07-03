@@ -6,36 +6,26 @@
  */
 package io.camunda.connector.gsheets.model.request.impl;
 
-import io.camunda.connector.api.annotation.Secret;
-import io.camunda.connector.gsheets.model.request.Input;
+import io.camunda.connector.gsheets.model.request.SpreadsheetInput;
 import java.util.List;
-import javax.validation.constraints.NotBlank;
+import java.util.Objects;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 
-public class CreateRow extends Input {
+public class CreateRow extends SpreadsheetInput {
 
-  @NotBlank @Secret private String spreadsheetId;
-  @Secret private String worksheetName;
+  private String worksheetName;
   @NotNull private Integer rowIndex;
-  @NotEmpty @Secret private List<Object> values;
+  @NotEmpty private List<Object> values;
 
   public CreateRow() {}
 
   public CreateRow(
       String spreadsheetId, String worksheetName, Integer rowIndex, List<Object> values) {
-    this.spreadsheetId = spreadsheetId;
+    super(spreadsheetId);
     this.worksheetName = worksheetName;
     this.rowIndex = rowIndex;
     this.values = values;
-  }
-
-  public String getSpreadsheetId() {
-    return spreadsheetId;
-  }
-
-  public void setSpreadsheetId(String spreadsheetId) {
-    this.spreadsheetId = spreadsheetId;
   }
 
   public String getWorksheetName() {
@@ -60,5 +50,34 @@ public class CreateRow extends Input {
 
   public void setValues(List<Object> values) {
     this.values = values;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    CreateRow createRow = (CreateRow) o;
+    return Objects.equals(worksheetName, createRow.worksheetName)
+        && Objects.equals(rowIndex, createRow.rowIndex)
+        && Objects.equals(values, createRow.values);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(worksheetName, rowIndex, values);
+  }
+
+  @Override
+  public String toString() {
+    return "CreateRow{"
+        + "worksheetName='"
+        + worksheetName
+        + '\''
+        + ", rowIndex="
+        + rowIndex
+        + ", values="
+        + values
+        + "} "
+        + super.toString();
   }
 }
