@@ -18,7 +18,6 @@ package io.camunda.connector.runtime.outbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.validation.ValidationProvider;
-import io.camunda.connector.api.validation.ValidationUtil;
 import io.camunda.connector.runtime.core.outbound.DefaultOutboundConnectorFactory;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
@@ -63,5 +62,4 @@ public class OutboundConnectorRuntimeConfiguration {
       OutboundConnectorManager manager, OutboundConnectorFactory factory) {
     return new OutboundConnectorAnnotationProcessor(manager, factory);
   }
-
 }
