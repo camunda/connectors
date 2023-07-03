@@ -52,15 +52,15 @@ public class LambdaConnectorFunction implements OutboundConnectorFunction {
     final AWSLambda awsLambda =
         awsLambdaSupplier.awsLambdaService(
             CredentialsProviderSupport.credentialsProvider(request), region);
-   try {
-     final InvokeRequest invokeRequest =
-             new InvokeRequest()
-                     .withFunctionName(request.getAwsFunction().getFunctionName())
-                     .withPayload(objectMapper.writeValueAsString(request.getAwsFunction().getPayload()));
-     return awsLambda.invoke(invokeRequest);
+    try {
+      final InvokeRequest invokeRequest =
+          new InvokeRequest()
+              .withFunctionName(request.getAwsFunction().getFunctionName())
+              .withPayload(objectMapper.writeValueAsString(request.getAwsFunction().getPayload()));
+      return awsLambda.invoke(invokeRequest);
     } catch (JsonProcessingException e) {
-     throw new RuntimeException("Error mapping payload to json.");
-   } finally {
+      throw new RuntimeException("Error mapping payload to json.");
+    } finally {
       if (awsLambda != null) {
         awsLambda.shutdown();
       }

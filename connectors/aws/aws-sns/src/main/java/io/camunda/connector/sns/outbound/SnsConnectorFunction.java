@@ -48,7 +48,8 @@ public class SnsConnectorFunction implements OutboundConnectorFunction {
   @Override
   public Object execute(final OutboundConnectorContext context) {
     final var request = context.bindVariables(SnsConnectorRequest.class);
-    var region = AwsUtils.extractRegionOrDefault(request.getConfiguration(), request.getTopic().getRegion());
+    var region =
+        AwsUtils.extractRegionOrDefault(request.getConfiguration(), request.getTopic().getRegion());
     AWSCredentialsProvider provider = CredentialsProviderSupport.credentialsProvider(request);
     AmazonSNS snsClient = snsClientSupplier.getSnsClient(provider, region);
     return new SnsConnectorResult(sendMsgToSns(snsClient, request).getMessageId());
