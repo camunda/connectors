@@ -29,6 +29,7 @@ import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.amazonaws.services.sqs.model.SendMessageResult;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.aws.ObjectMapperSupplier;
@@ -76,8 +77,7 @@ class SqsConnectorFunctionParametrizedTest {
 
   @ParameterizedTest
   @MethodSource("successRequestCases")
-  void execute_ShouldSucceedSuccessCases(final SqsConnectorRequest request)
-      throws JsonProcessingException {
+  void execute_ShouldSucceedSuccessCases(final String input) throws JsonProcessingException {
     // given
     when(sqsClientSupplier.sqsClient(any(AWSCredentialsProvider.class), eq(ACTUAL_QUEUE_REGION)))
         .thenReturn(sqsClient);
@@ -86,12 +86,13 @@ class SqsConnectorFunctionParametrizedTest {
     when(sqsClient.sendMessage(sendMessageRequest.capture())).thenReturn(sendMessageResult);
     OutboundConnectorContext ctx =
         OutboundConnectorContextBuilder.create()
-            .variables(incomingJson)
+            .variables(input)
             .secret(AWS_SECRET_KEY, ACTUAL_SECRET_KEY)
             .secret(AWS_ACCESS_KEY, ACTUAL_ACCESS_KEY)
             .secret(SQS_QUEUE_URL, ACTUAL_QUEUE_URL)
             .build();
     // when
+    var request = ctx.bindVariables(SqsConnectorRequest.class);
     Object connectorResultObject = function.execute(ctx);
     SendMessageRequest initialRequest = sendMessageRequest.getValue();
 
@@ -110,7 +111,7 @@ class SqsConnectorFunctionParametrizedTest {
   @MockitoSettings(strictness = Strictness.LENIENT)
   void execute_ShouldThrowExceptionOnMalformedRequests(final String incomingJson) {
     // given
-    when(sqsClientSupplier.sqsClient(ACTUAL_ACCESS_KEY, ACTUAL_SECRET_KEY, ACTUAL_QUEUE_REGION))
+    when(sqsClientSupplier.sqsClient(any(AWSCredentialsProvider.class), eq(ACTUAL_QUEUE_REGION)))
         .thenReturn(sqsClient);
     SendMessageResult sendMessageResult = mock(SendMessageResult.class);
     when(sendMessageResult.getMessageId()).thenReturn(MSG_ID);
@@ -140,8 +141,7 @@ class SqsConnectorFunctionParametrizedTest {
   @SuppressWarnings("unchecked")
   private static Stream<String> loadRequestCasesFromFile(final String fileName) throws IOException {
     final String cases = readString(new File(fileName).toPath(), UTF_8);
-    return objectMapper
-        .readValue(cases, new TypeReference<List<SqsConnectorRequest>>() {})
-        .stream();
+    return objectMapper.readValue(cases, new TypeReference<List<JsonNode>>() {}).stream()
+        .map(JsonNode::toString);
   }
 }

@@ -10,36 +10,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.amazonaws.services.sns.model.MessageAttributeValue;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.impl.ConnectorInputException;
 import io.camunda.connector.sns.outbound.model.SnsConnectorRequest;
 import io.camunda.connector.sns.outbound.model.SnsMessageAttribute;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
-import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.util.Map;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class SnsConnectorRequestTest extends BaseTest {
 
   private OutboundConnectorContext context;
-
-  @BeforeEach
-  public void beforeEach() throws JsonProcessingException {
-    request = objectMapper.readValue(DEFAULT_REQUEST_BODY, SnsConnectorRequest.class);
-
-  public void beforeEach() {
-    context =
-        OutboundConnectorContextBuilder.create()
-            .validation(new DefaultValidationProvider())
-            .secret(AWS_SECRET_KEY, ACTUAL_SECRET_KEY)
-            .secret(AWS_ACCESS_KEY, ACTUAL_ACCESS_KEY)
-            .secret(AWS_TOPIC_ARN, ACTUAL_TOPIC_ARN)
-            .secret(AWS_TOPIC_REGION, ACTUAL_TOPIC_REGION)
-            .variables("{}")
-            .build();
-  }
 
   @Test
   void validate_shouldThrowExceptionWhenLeastOneNotExistRequestField() {
@@ -47,7 +28,11 @@ class SnsConnectorRequestTest extends BaseTest {
     ConnectorInputException thrown =
         assertThrows(
             ConnectorInputException.class,
-            () -> context.bindVariables(SnsConnectorRequest.class),
+            () ->
+                OutboundConnectorContextBuilder.create()
+                    .variables("{}")
+                    .build()
+                    .bindVariables(SnsConnectorRequest.class),
             "ConnectorInputException was expected");
     // Then we except exception with message
     assertThat(thrown.getMessage()).contains("Found constraints violated while validating input:");
@@ -58,13 +43,13 @@ class SnsConnectorRequestTest extends BaseTest {
     // Given request with message body
     var context =
         OutboundConnectorContextBuilder.create()
-            .variables("{\"topic\": {\"message\":\"" + SECRETS + SNS_MESSAGE_BODY + "\"}}")
+            .variables("\"" + SECRETS + SNS_MESSAGE_BODY + "\"")
             .secret(SNS_MESSAGE_BODY, WRONG_MESSAGE_BODY)
             .build();
     // When replace secrets
-    var request = context.bindVariables(SnsConnectorRequest.class);
+    var request = context.bindVariables(String.class);
     // Then expect that message body will be same as was
-    assertThat(request.getTopic().getMessage()).isEqualTo(SECRETS + SNS_MESSAGE_BODY);
+    assertThat(request).isEqualTo(SECRETS + SNS_MESSAGE_BODY);
   }
 
   @Test

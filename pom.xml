@@ -93,6 +93,7 @@
         <artifactId>connector-runtime-core</artifactId>
         <version>${project.version}</version>
       </dependency>
+
       <dependency>
         <groupId>io.camunda.connector</groupId>
         <artifactId>connector-runtime-spring</artifactId>

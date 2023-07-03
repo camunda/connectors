@@ -34,6 +34,12 @@ limitations under the License.</license.inlineheader>
 
     <dependencies>
         <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
             <groupId>org.danilopianini</groupId>
             <artifactId>gson-extras</artifactId>
         </dependency>
