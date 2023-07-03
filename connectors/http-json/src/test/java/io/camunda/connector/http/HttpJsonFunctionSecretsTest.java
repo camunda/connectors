@@ -65,15 +65,12 @@ public class HttpJsonFunctionSecretsTest extends BaseTest {
     Authentication authentication = httpJsonRequest.getAuthentication();
     if (authentication instanceof NoAuthentication) {
       // nothing check in this case
-    } else if (authentication instanceof BearerAuthentication) {
-      BearerAuthentication bearerAuth = (BearerAuthentication) authentication;
+    } else if (authentication instanceof BearerAuthentication bearerAuth) {
       assertThat(bearerAuth.getToken()).isEqualTo(ActualValue.Authentication.TOKEN);
-    } else if (authentication instanceof BasicAuthentication) {
-      BasicAuthentication basicAuth = (BasicAuthentication) authentication;
+    } else if (authentication instanceof BasicAuthentication basicAuth) {
       assertThat(basicAuth.getPassword()).isEqualTo(ActualValue.Authentication.PASSWORD);
       assertThat(basicAuth.getUsername()).isEqualTo(ActualValue.Authentication.USERNAME);
-    } else if (authentication instanceof OAuthAuthentication) {
-      OAuthAuthentication oAuthAuthentication = (OAuthAuthentication) authentication;
+    } else if (authentication instanceof OAuthAuthentication oAuthAuthentication) {
       assertThat(oAuthAuthentication.getOauthTokenEndpoint())
           .isEqualTo(ActualValue.Authentication.OAUTH_TOKEN_ENDPOINT);
       assertThat(oAuthAuthentication.getClientId()).isEqualTo(ActualValue.Authentication.CLIENT_ID);

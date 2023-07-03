@@ -18,9 +18,9 @@ import java.util.Optional;
 public class SlackRequestDeserializer
     implements JsonDeserializer<SlackRequest<? extends SlackRequestData>> {
 
-  private String typeElementName;
-  private Gson gson;
-  private Map<String, Class<? extends SlackRequestData>> typeRegistry;
+  private final String typeElementName;
+  private final Gson gson;
+  private final Map<String, Class<? extends SlackRequestData>> typeRegistry;
 
   public SlackRequestDeserializer(String typeElementName) {
     this.typeElementName = typeElementName;

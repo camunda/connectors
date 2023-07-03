@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -115,7 +116,8 @@ public class DataLookupService {
 
   public static String getUserIdByUserName(String userName, MethodsClient methodsClient) {
     try {
-      List<String> userIds = getIdListByUserNameList(Arrays.asList(userName), methodsClient);
+      List<String> userIds =
+          getIdListByUserNameList(Collections.singletonList(userName), methodsClient);
       return Optional.ofNullable(userIds)
           .filter(list -> !list.isEmpty())
           .map(list -> list.get(0))
