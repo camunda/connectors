@@ -29,9 +29,13 @@ import java.lang.annotation.Target;
  * String} or a container type like Array, Map, List, Iterable, or a custom class. For
  * container-type fields, a container <code>handler</code> can be defined. Otherwise, the SDK's
  * default {@link SecretHandler} is used.
+ *
+ * <p><b>Deprecated:</b> Secret support is now available all fields during the binding process
+ * without the need to annotate individual fields.
  */
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)
+@Deprecated(forRemoval = true)
 public @interface Secret {
 
   Class<? extends SecretContainerHandler> handler() default SecretHandler.class;

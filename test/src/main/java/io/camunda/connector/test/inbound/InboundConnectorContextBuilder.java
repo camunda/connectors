@@ -152,7 +152,7 @@ public class InboundConnectorContextBuilder {
    *     previously defined properties
    */
   public TestInboundConnectorContext build() {
-    return new TestInboundConnectorContext(secretProvider);
+    return new TestInboundConnectorContext(secretProvider, validationProvider);
   }
 
   private void assertNoProperties() {
@@ -178,8 +178,9 @@ public class InboundConnectorContextBuilder {
 
     private Health health = Health.unknown();
 
-    protected TestInboundConnectorContext(SecretProvider secretProvider) {
-      super(secretProvider);
+    protected TestInboundConnectorContext(
+        SecretProvider secretProvider, ValidationProvider validationProvider) {
+      super(secretProvider, validationProvider);
     }
 
     @Override

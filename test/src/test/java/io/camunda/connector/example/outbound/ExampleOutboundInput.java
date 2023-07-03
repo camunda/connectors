@@ -16,13 +16,20 @@
  */
 package io.camunda.connector.example.outbound;
 
-import io.camunda.connector.api.annotation.Secret;
+import java.util.List;
 
 public class ExampleOutboundInput {
 
-  @Secret private String foo;
+  private String foo;
+
+  private List<String> foos;
 
   public ExampleOutboundInput() {}
+
+  public ExampleOutboundInput(String foo, List<String> foos) {
+    this.foo = foo;
+    this.foos = foos;
+  }
 
   public ExampleOutboundInput(String foo) {
     this.foo = foo;
@@ -34,5 +41,13 @@ public class ExampleOutboundInput {
 
   public void setFoo(String foo) {
     this.foo = foo;
+  }
+
+  public List<String> getFoos() {
+    return foos;
+  }
+
+  public void setFoos(List<String> foos) {
+    this.foos = foos;
   }
 }

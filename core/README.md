@@ -19,13 +19,8 @@ public class PingConnector implements OutboundConnectorFunction {
 
   @Override
   public Object execute(OutboundConnectorContext context) throws Exception {
-
-    var request = context.getVariablesAsType(PingRequest.class);
-
-    context.replaceSecrets(request);
-
+    var request = context.bindVariables(PingRequest.class);
     var caller = request.getCaller();
-
     return new PingResponse("Pong to " + caller);
   }
 }

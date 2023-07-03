@@ -19,7 +19,11 @@ package io.camunda.connector.api.secret;
 /**
  * Handler for secret containers. This allows to define a strategy for traversing the elements in a
  * secret container, e.g. using an iterator or for loop to handle all elements.
+ *
+ * <p><b>Deprecated:</b> Secret support is now available all fields during the binding process
+ * without the need to annotate individual fields.
  */
+@Deprecated(forRemoval = true)
 public interface SecretContainerHandler {
 
   /**

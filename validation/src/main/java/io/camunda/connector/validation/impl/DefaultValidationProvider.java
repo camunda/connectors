@@ -70,7 +70,11 @@ public class DefaultValidationProvider implements ValidationProvider {
         + violations.stream().map(this::buildValidationMessage).collect(Collectors.joining(LF));
   }
 
+  /**
+   * We explicitly don't make use of the violation.getMessage() to avoid potential leakage of any
+   * property values.
+   */
   protected String buildValidationMessage(ConstraintViolation<Object> violation) {
-    return " - " + violation.getPropertyPath().toString() + ": " + violation.getMessage();
+    return " - Property: " + violation.getPropertyPath().toString() + ": Validation failed.";
   }
 }
