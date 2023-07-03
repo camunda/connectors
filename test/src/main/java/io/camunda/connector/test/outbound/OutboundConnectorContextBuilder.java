@@ -16,13 +16,15 @@
  */
 package io.camunda.connector.test.outbound;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.impl.context.AbstractConnectorContext;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
 /** Test helper class for creating a {@link OutboundConnectorContext} with a fluent API. */
 public class OutboundConnectorContextBuilder {
@@ -32,13 +34,12 @@ public class OutboundConnectorContextBuilder {
 
   protected ValidationProvider validationProvider;
 
-  protected String variablesAsJSON;
+  protected String variablesAsJson;
 
-  private Object variablesAsObject;
+  protected final Map<String, String> headers = new HashMap<>();
 
-  protected final Map<String, String> customHeaders = new HashMap<>();
-
-  protected String activatedJobAsJson;
+  private final ObjectMapper objectMapper =
+      new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
   /**
    * @return a new instance of the {@link OutboundConnectorContextBuilder}
@@ -48,13 +49,8 @@ public class OutboundConnectorContextBuilder {
   }
 
   private void assertNoVariables() {
-
-    if (this.variablesAsJSON != null) {
+    if (this.variablesAsJson != null) {
       throw new IllegalStateException("variablesAsJSON already set");
-    }
-
-    if (this.variablesAsObject != null) {
-      throw new IllegalStateException("variablesAsObject already set");
     }
   }
 
@@ -66,21 +62,19 @@ public class OutboundConnectorContextBuilder {
    */
   public OutboundConnectorContextBuilder variables(String variablesAsJSON) {
     this.assertNoVariables();
-
-    this.variablesAsJSON = variablesAsJSON;
+    this.variablesAsJson = variablesAsJSON;
     return this;
   }
 
   /**
-   * Provides the variables as an object.
+   * Provides the custom header value with given key/value pair
    *
-   * @param variablesAsObject - the variables as a mapped object
+   * @param key - custom header key
+   * @param value - custom header key
    * @return builder for fluent API
    */
-  public OutboundConnectorContextBuilder variables(Object variablesAsObject) {
-    this.assertNoVariables();
-
-    this.variablesAsObject = variablesAsObject;
+  public OutboundConnectorContextBuilder header(String key, String value) {
+    headers.put(key, value);
     return this;
   }
 
@@ -113,80 +107,42 @@ public class OutboundConnectorContextBuilder {
   }
 
   /**
-   * Provides the custom header value with given key/value pair
-   *
-   * @param headerKey - custom header key
-   * @param headerValue - custom header value
-   * @return builder for fluent API
-   */
-  public OutboundConnectorContextBuilder customHeader(String headerKey, String headerValue) {
-    customHeaders.put(headerKey, headerValue);
-    return this;
-  }
-
-  /**
-   * Provides a JSON representation of the underlying activated job
-   *
-   * @param activatedJobAsJson - custom header key
-   * @return builder for fluent API
-   */
-  public OutboundConnectorContextBuilder asJson(String activatedJobAsJson) {
-    this.activatedJobAsJson = activatedJobAsJson;
-    return this;
-  }
-
-  /**
    * @return the {@link OutboundConnectorContext} including all previously defined properties
    */
   public TestConnectorContext build() {
-    return new TestConnectorContext(secretProvider);
+    return new TestConnectorContext(secretProvider, validationProvider);
   }
 
   public class TestConnectorContext extends AbstractConnectorContext
       implements OutboundConnectorContext {
 
-    protected TestConnectorContext(SecretProvider secretProvider) {
-      super(secretProvider);
+    protected TestConnectorContext(
+        SecretProvider secretProvider, ValidationProvider validationProvider) {
+      super(secretProvider, validationProvider);
+      variablesAsJson = getSecretHandler().replaceSecrets(variablesAsJson);
+    }
+
+    @Override
+    public Map<String, String> getCustomerHeaders() {
+      return headers;
     }
 
     @Override
     public String getVariables() {
-
-      if (variablesAsJSON == null) {
-        throw new IllegalStateException("variablesAsJSON not provided");
-      }
-
-      return variablesAsJSON;
+      return variablesAsJson;
     }
 
     @Override
-    public <T> T getVariablesAsType(Class<T> cls) {
-
-      if (variablesAsObject == null) {
-        throw new IllegalStateException("variablesAsObject not provided");
-      }
-
+    public <T> T bindVariables(Class<T> cls) {
       try {
-        return cls.cast(variablesAsObject);
-      } catch (ClassCastException ex) {
-        throw new IllegalStateException(
-            "no variablesAsObject of type " + cls.getName() + " provided", ex);
+        var mappedObject = objectMapper.readValue(variablesAsJson, cls);
+        if (validationProvider != null) {
+          getValidationProvider().validate(mappedObject);
+        }
+        return mappedObject;
+      } catch (JsonProcessingException e) {
+        throw new RuntimeException(e);
       }
-    }
-
-    @Override
-    public Map<String, String> getCustomHeaders() {
-      return customHeaders;
-    }
-
-    @Override
-    public String asJson() {
-      return activatedJobAsJson;
-    }
-
-    @Override
-    public ValidationProvider getValidationProvider() {
-      return Optional.ofNullable(validationProvider).orElseGet(super::getValidationProvider);
     }
   }
 }

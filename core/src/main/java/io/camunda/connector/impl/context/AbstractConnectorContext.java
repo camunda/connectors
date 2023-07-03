@@ -18,19 +18,28 @@ package io.camunda.connector.impl.context;
 
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
+import io.camunda.connector.api.validation.ValidationUtil;
 import io.camunda.connector.impl.secret.SecretHandler;
-import java.util.ServiceLoader;
 
 public abstract class AbstractConnectorContext {
 
   protected SecretHandler secretHandler;
   protected final SecretProvider secretProvider;
 
-  protected AbstractConnectorContext(final SecretProvider secretProvider) {
+  protected final ValidationProvider validationProvider;
+
+  protected AbstractConnectorContext(
+      final SecretProvider secretProvider, final ValidationProvider validationProvider) {
     if (secretProvider == null) {
       throw new RuntimeException("Secret provider required in Connector context but was null");
     }
     this.secretProvider = secretProvider;
+
+    if (validationProvider == null) {
+      this.validationProvider = ValidationUtil.discoverDefaultValidationProviderImplementation();
+    } else {
+      this.validationProvider = validationProvider;
+    }
   }
 
   public void replaceSecrets(final Object input) {
@@ -45,7 +54,7 @@ public abstract class AbstractConnectorContext {
   }
 
   public void validate(Object input) {
-    getValidationProvider().validate(input);
+    validationProvider.validate(input);
   }
 
   /**
@@ -55,13 +64,6 @@ public abstract class AbstractConnectorContext {
    * @return the desired validation provider implementation
    */
   protected ValidationProvider getValidationProvider() {
-    return ServiceLoader.load(ValidationProvider.class)
-        .findFirst()
-        .orElseThrow(
-            () ->
-                new IllegalStateException(
-                    "Please bind an implementation to "
-                        + ValidationProvider.class.getName()
-                        + " via SPI"));
+    return validationProvider;
   }
 }

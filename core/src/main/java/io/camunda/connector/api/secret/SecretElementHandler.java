@@ -21,7 +21,11 @@ import java.util.function.Consumer;
 /**
  * Handler for secret elements. This allows to define a strategy for handling single elements in a
  * secret container, e.g. differentiating between nested container objects and primitive types.
+ *
+ * <p><b>Deprecated:</b> Secret support is now available all fields during the binding process
+ * without the need to annotate individual fields.
  */
+@Deprecated(forRemoval = true)
 public interface SecretElementHandler {
 
   /**

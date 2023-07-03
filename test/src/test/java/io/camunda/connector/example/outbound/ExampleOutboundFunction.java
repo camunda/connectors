@@ -23,18 +23,10 @@ public class ExampleOutboundFunction implements OutboundConnectorFunction {
 
   @Override
   public Object execute(OutboundConnectorContext context) throws Exception {
-
-    var input = context.getVariablesAsType(ExampleOutboundInput.class);
-
-    if ("foo".equals(input.getFoo())) {
-      context.validate(input);
-    }
-    context.replaceSecrets(input);
-
+    var input = context.bindVariables(ExampleOutboundInput.class);
     if ("BOOM!".equals(input.getFoo())) {
       throw new UnsupportedOperationException("expected BOOM!");
     }
-
-    return input.getFoo();
+    return input;
   }
 }

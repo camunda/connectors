@@ -212,4 +212,8 @@ public class SecretHandler implements SecretElementHandler, SecretContainerHandl
   protected static boolean isPrimitive(Class<?> clazz) {
     return clazz.isPrimitive() || PRIMITIVE_TYPES.stream().anyMatch(c -> c.isAssignableFrom(clazz));
   }
+
+  public String replaceSecrets(String input) {
+    return SecretUtil.replaceSecrets(input, secretProvider::getSecret);
+  }
 }

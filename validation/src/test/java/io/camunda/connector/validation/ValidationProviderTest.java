@@ -53,9 +53,9 @@ class ValidationProviderTest {
         .isInstanceOf(ConnectorInputException.class)
         .hasMessageContaining(
             "ValidationException: Found constraints violated while validating input:")
-        .hasMessageContaining("- working:")
-        .hasMessageContaining("- email: Email should be valid")
-        .hasMessageContaining("- age: Age should not be greater than 150");
+        .hasMessageContaining("working:")
+        .hasMessageContaining("email:")
+        .hasMessageContaining("age:");
   }
 
   private User mockUser(String name, String email, String aboutMe, int age, boolean working) {

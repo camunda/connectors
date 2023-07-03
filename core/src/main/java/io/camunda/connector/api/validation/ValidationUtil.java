@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.validation;
+package io.camunda.connector.api.validation;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import java.util.ServiceLoader;
 
-import io.camunda.connector.api.validation.ValidationUtil;
-import io.camunda.connector.validation.impl.DefaultValidationProvider;
-import org.junit.jupiter.api.Test;
-
-class ValidatorServiceLoaderTest {
-
-  @Test
-  public void shouldDiscoverValidator() {
-    assertThat(ValidationUtil.discoverDefaultValidationProviderImplementation())
-        .isOfAnyClassIn(DefaultValidationProvider.class);
+public class ValidationUtil {
+  public static ValidationProvider discoverDefaultValidationProviderImplementation() {
+    return ServiceLoader.load(ValidationProvider.class)
+        .findFirst()
+        .orElseThrow(
+            () ->
+                new IllegalStateException(
+                    "Please bind an implementation to "
+                        + ValidationProvider.class.getName()
+                        + " via SPI"));
   }
 }
