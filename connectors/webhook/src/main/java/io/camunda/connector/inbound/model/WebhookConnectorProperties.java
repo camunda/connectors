@@ -28,7 +28,8 @@ public class WebhookConnectorProperties {
   @Secret private String hmacHeader;
   private String hmacAlgorithm;
   private String jwkUrl;
-  private Function<Object, List<String>> jwtRoleExpression; // e.g.: if admin = true then ["admin"] else roles
+  private Function<Object, List<String>>
+      jwtRoleExpression; // e.g.: if admin = true then ["admin"] else roles
   private List<String> requiredPermissions;
 
   private FeelEngineWrapper feelEngine;
@@ -46,9 +47,7 @@ public class WebhookConnectorProperties {
     this.hmacHeader = readPropertyNullable("inbound.hmacHeader");
     this.hmacAlgorithm = readPropertyNullable("inbound.hmacAlgorithm");
     this.jwkUrl = readPropertyNullable("inbound.jwkUrl");
-    this.jwtRoleExpression =
-        readFeelFunctionPropertyNullable(
-            "inbound.jwtRoleExpression");
+    this.jwtRoleExpression = readFeelFunctionPropertyNullable("inbound.jwtRoleExpression");
     this.requiredPermissions =
         (List<String>) readParsedFeelObjectPropertyNullable("inbound.requiredPermissions");
   }

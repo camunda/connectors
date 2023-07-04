@@ -30,6 +30,9 @@ public class JWTCheckerTest {
   private static final String JWT_TOKEN =
       "eyJ0eXAiOiJhdCtqd3QiLCJhbGciOiJSUzI1NiIsImtpZCI6ImM2ZjgzODZkMzFiOThiNzdkODNiYmEzNWE0NTdhZWY0In0.eyJpc3MiOiJodHRwczovL2lkcC5sb2NhbCIsImF1ZCI6ImFwaTEiLCJzdWIiOiI1YmU4NjM1OTA3M2M0MzRiYWQyZGEzOTMyMjIyZGFiZSIsImNsaWVudF9pZCI6Im15X2NsaWVudF9hcHAiLCJleHAiOjE3ODY4MjI2MTYsImlhdCI6MTY4NjgxOTAxNiwianRpIjoiMTE0ZjhjODRjNTM3MDNhYzIxMjBkMzAyNjExZTM1OGMiLCJyb2xlcyI6WyJhZG1pbiIsInN1cGVyYWRtaW4iXSwiYWRtaW4iOnRydWV9.KsjyrTJdpJnnji3c57wkc6REMl-501n2Nn98xd_2wZSGwpzHtf1ocsouudJ7hm-4W1dLUHJTLYJAO9thzWtH1Yomyq029ffz5CU8B7gtcrqg9OP_QuVCOcb9KPzjA_Lc5s4SELzDrJoedR90W-nL_7BYPvhrhu9dZcH3NbcaeU_531Yqc-YhVByBX_f6MwnpXYJECNGIx9F70SHrEI58paa8KLCvDu5Kcps480YsYHKCo9k5LoSmcDBGG_-n0riWfei0wGCFcHdhdI6ag08-C109oh7Po-PQ7GVTkEJ4pFmQ7dxBxsq_X39jh8w_9XynqbTaQhbwfNZ5u0SLWEp-n2yzxYFMLONI0VtSxw4zUfMUMJFW4iZvduxe_Ui4Jlj4ZmVxa60l7Wb3k4fi6C5-3hXOvb1XngFElSdFvIC2WGlaIfDfb82Bzq41PJc8Fqm3VRVWN7y5gpADT_Y9PYvZWP98AmogEMR_-l7gCr5ICDRlDpoNcCv3vVbJ6rTLvkAC";
 
+  private static final String JWT_WITH_ES512_ALGORITHM_TOKEN =
+      "eyJ0eXAiOiJhdCtqd3QiLCJhbGciOiJFUzUxMiIsImtpZCI6ImZjYWYxMGJlMzdhZDhiNzQ2MWY4ZGFhYjZkMzkwYzcwIn0.eyJpc3MiOiJodHRwczovL2lkcC5sb2NhbCIsImF1ZCI6ImFwaTEiLCJzdWIiOiI1YmU4NjM1OTA3M2M0MzRiYWQyZGEzOTMyMjIyZGFiZSIsImNsaWVudF9pZCI6Im15X2NsaWVudF9hcHAiLCJleHAiOjE3ODY4MjI2MTYsImlhdCI6MTY4NjgxOTAxNiwianRpIjoiMTE0ZjhjODRjNTM3MDNhYzIxMjBkMzAyNjExZTM1OGMiLCJyb2xlcyI6WyJhZG1pbiIsInN1cGVyYWRtaW4iXSwiYWRtaW4iOnRydWV9.AGpm312EBWHyjLDh3nd6hyKQ3xQDJCpTwYYbufQ_ZQzT0URFC24TeR_8Rc-ITrCIv6sSc1JoNFUdEt1PEpiiZ1mZAN0X4LGlrDUVvIgAR2YJbc9vFSCn7rGHvN6gQjKXYB8ZTjYefgqSusGugdKwTolpKQP-Zm_C3vp-S5cUG0oGWejX";
+
   private static final String WRONG_JWT_TOKEN =
       "eyJ0eXAiOiJhdCtqd3QiLCJhbGciOiJSUzI1NiIsImtpZCI6IjNjZDljMWM4NDU3ZjRkMDhiNDlkMDI2OGNhNWYwMDhiIn0.eyJpc3MiOiJodHRwczovL2lkcC5sb2NhbCIsImF1ZCI6ImFwaTEiLCJzdWIiOiI1YmU4NjM1OTA3M2M0MzRiYWQyZGEzOTMyMjIyZGFiZSIsImNsaWVudF9pZCI6Im15X2NsaWVudF9hcHAiLCJleHAiOjE2ODc3OTM4MzUsImlhdCI6MTY4Nzc5MDIzNSwianRpIjoiNmE3ZDllNDljNWViZjYzNWM2MjVjNWQwZDAxOGNmYjIiLCJyb2xlcyI6WyJhZG1pbiIsInN1cGVyYWRtaW4iXSwiYWRtaW4iOnRydWV9.YP4Zw8graOY5wMJpxIZzYNN01xtOquWzT74boxMkhCdKMU_35PCoufZqUbyvNTD5YLltBe_dYe-sLuN4s-ZjeivL4ySSDtaeCd60D5JnjLq7vuC6MUd9nBHo2fIbIAwkEiWi_flCCiyzNa3Ir4KPCWxEL2cdibnjxeovUKBhnjRdf3tq4ADWrczHpf4wxZXL8aLEHzM6I5nSV6I3R9Arb6Cie-gHDfwxjGB_PoD3L5syB7izdNAMJPLlv4XHwIZ_5Pdsle546cwaZqJhmEjjHgsRJ_JEa_Xpm1zfmShHCDixkEKGfQ0JN5nYqE2JCnhlpjyWNrkqMmnAxb1AsDzwrA";
 
@@ -79,8 +82,25 @@ public class JWTCheckerTest {
     // given
     WebhookProcessingPayload payload = new TestWebhookProcessingPayload(JWT_TOKEN);
     WebhookConnectorProperties webhookConnectorProperties =
-        generateWebhookConnectorProperties("if admin = true then [\"admin\"] else roles");
+        generateWebhookConnectorProperties("=if admin = true then [\"admin\"] else roles");
     JwkProvider jwkProvider = new TestJwkProvider();
+
+    // when
+    boolean verificationResult =
+        JWTChecker.verify(payload, webhookConnectorProperties, jwkProvider, objectMapper);
+
+    // then
+    assertTrue(verificationResult);
+  }
+
+  @Test
+  public void jwtCheckSuccessWithDifferentAlgorithmTest() throws Exception {
+    // given
+    WebhookProcessingPayload payload =
+        new TestWebhookProcessingPayload(JWT_WITH_ES512_ALGORITHM_TOKEN);
+    WebhookConnectorProperties webhookConnectorProperties =
+        generateWebhookConnectorProperties("=if admin = true then [\"admin\"] else roles");
+    JwkProvider jwkProvider = new TestES512JwkProvider();
 
     // when
     boolean verificationResult =
@@ -95,7 +115,7 @@ public class JWTCheckerTest {
     // given
     TestWebhookProcessingPayload payload = new TestWebhookProcessingPayload(WRONG_JWT_TOKEN);
     WebhookConnectorProperties webhookConnectorProperties =
-        generateWebhookConnectorProperties("if admin = true then [\"admin\"] else roles");
+        generateWebhookConnectorProperties("=if admin = true then [\"admin\"] else roles");
     JwkProvider jwkProvider = new TestJwkProvider();
 
     // when
@@ -111,7 +131,7 @@ public class JWTCheckerTest {
     // given
     TestWebhookProcessingPayload payload = new TestWebhookProcessingPayload(EXPIRED_JWT_TOKEN);
     WebhookConnectorProperties webhookConnectorProperties =
-        generateWebhookConnectorProperties("if admin = true then [\"admin\"] else roles");
+        generateWebhookConnectorProperties("=if admin = true then [\"admin\"] else roles");
     JwkProvider jwkProvider = new TestJwkProvider();
 
     // when
@@ -128,7 +148,7 @@ public class JWTCheckerTest {
     TestWebhookProcessingPayload payload =
         new TestWebhookProcessingPayload(NOT_ENOUGH_PERMISSION_JWT_TOKEN);
     WebhookConnectorProperties webhookConnectorProperties =
-        generateWebhookConnectorProperties("if admin = true then [\"admin\"] else roles");
+        generateWebhookConnectorProperties("=if admin = true then [\"admin\"] else roles");
     JwkProvider jwkProvider = new TestJwkProvider();
 
     // when
@@ -189,6 +209,28 @@ public class JWTCheckerTest {
           "qi",
           "LbaKGEPI8OvEiDYFSam3UMwqSdRiYrr7GV3_heN6ak_cz_YP5TiavZJm-rQzzB4mm-CUllqDCDqOgfq7FdLCl3c4_N88xU5j7rkI5cA5FwispyI-WTSgtpW9CvCATCJJchx2PC2H8--EfDzBMaZtqLs1rtIPPYKMQRIIkoFw5tIBodagSKbb1Aiwib1Zp5QY9POIL6G-iYRFuTG03gbWYh3T7C5NjFcF_Uvl_GL6dwzsc7MyOWdIdfrxu87thN_H");
       jwkMap.put("crv", "P-256");
+
+      return Jwk.fromValues(jwkMap);
+    }
+  }
+
+  class TestES512JwkProvider implements JwkProvider {
+
+    @Override
+    public Jwk get(String keyId) {
+      Map<String, Object> jwkMap = new HashMap<>();
+      jwkMap.put("kid", "fcaf10be37ad8b7461f8daab6d390c70");
+      jwkMap.put("use", "sig");
+      jwkMap.put("alg", "ES512");
+      jwkMap.put("kty", "EC");
+      jwkMap.put("key_ops", Arrays.asList("sign"));
+      jwkMap.put(
+          "x",
+          "AKbVN_7jvuvwwC4AwG5-ZswrTqhRJg-TfSfiU6eQ7N13Cr8WpnrgZZu0_4xKRKPaRExABT8-IgqtXItFhLSz5IWO");
+      jwkMap.put(
+          "y",
+          "ATgwQMO8XghJ7gi7XpoUpjzl73B0r2lsEDewljK7pi__yZB-TBa3sixngFVLVpAw9tEYnQbPvCcqZ2PNfpE5ZDs-");
+      jwkMap.put("crv", "P-521");
 
       return Jwk.fromValues(jwkMap);
     }

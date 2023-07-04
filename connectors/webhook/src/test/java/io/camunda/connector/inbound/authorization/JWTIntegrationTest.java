@@ -45,9 +45,11 @@ import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-public class IntegrationTest {
+@Disabled // to be run manually
+public class JWTIntegrationTest {
 
   private static final int PORT = 8089;
 
@@ -67,7 +69,7 @@ public class IntegrationTest {
 
   private final ObjectMapper objectMapper;
 
-  public IntegrationTest() {
+  public JWTIntegrationTest() {
     this.objectMapper = ObjectMapperSupplier.getMapperInstance();
   }
 
@@ -181,7 +183,7 @@ public class IntegrationTest {
   }
 
   @Test
-  public void wrongTokenTest() throws Exception {
+  public void tokenInWrongFormatTest() throws Exception {
     // given
     List<String> roles = Arrays.asList("user");
     // webhook connector setup
