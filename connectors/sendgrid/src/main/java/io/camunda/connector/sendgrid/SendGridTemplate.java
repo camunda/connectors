@@ -6,14 +6,13 @@
  */
 package io.camunda.connector.sendgrid;
 
-import io.camunda.connector.api.annotation.Secret;
 import java.util.Map;
 import java.util.Objects;
 import javax.validation.constraints.NotEmpty;
 
 public class SendGridTemplate {
-  @NotEmpty @Secret private String id;
-  @NotEmpty @Secret private Map<String, Object> data;
+  @NotEmpty private String id;
+  @NotEmpty private Map<String, Object> data;
 
   public String getId() {
     return id;

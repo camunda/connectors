@@ -13,11 +13,6 @@ public class ErrorResponse {
   private String message;
   private StackTraceElement[] stackTrace;
 
-  public ErrorResponse(final Throwable throwable) {
-    message = throwable.getMessage();
-    stackTrace = throwable.getStackTrace();
-  }
-
   public String getMessage() {
     return message;
   }
