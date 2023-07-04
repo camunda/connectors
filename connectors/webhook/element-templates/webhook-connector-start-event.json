@@ -25,6 +25,10 @@
       "label": "Authentication"
     },
     {
+      "id": "authorization",
+      "label": "Authorization"
+    },
+    {
       "id": "activation",
       "label": "Activation"
     },
@@ -145,32 +149,32 @@
       }
     },
     {
-      "id": "shouldValidateJwt",
-      "label": "JWT authentication",
-      "group": "authentication",
-      "description": "Choose whether JWT verification is enabled.",
-      "value": "disabled",
+      "id": "authorizationType",
+      "label": "Authorization type",
+      "group": "authorization",
+      "description": "Choose the authorization type.",
+      "value": "none",
       "type": "Dropdown",
       "choices": [
         {
-          "name": "Enabled",
-          "value": "enabled"
+          "name": "None",
+          "value": "NONE"
         },
         {
-          "name": "Disabled",
-          "value": "disabled"
+          "name": "JWT",
+          "value": "JWT"
         }
       ],
       "binding": {
         "type": "zeebe:property",
-        "name": "inbound.shouldValidateJwt"
+        "name": "inbound.authorizationType"
       }
     },
     {
       "label": "JWK url",
       "description": "Well-known url of JWKs",
       "type": "String",
-      "group": "authentication",
+      "group": "authorization",
       "feel": "optional",
       "optional": true,
       "binding": {
@@ -178,15 +182,15 @@
         "name": "inbound.jwkUrl"
       },
       "condition": {
-        "property": "shouldValidateJwt",
-        "equals": "enabled"
+        "property": "authorizationType",
+        "equals": "JWT"
       }
     },
     {
       "label": "JWT role property expression",
       "description": "Expression to extract the roles from the JWT token",
       "type": "String",
-      "group": "authentication",
+      "group": "authorization",
       "feel": "required",
       "optional": true,
       "binding": {
@@ -194,15 +198,15 @@
         "name": "inbound.jwtRoleExpression"
       },
       "condition": {
-        "property": "shouldValidateJwt",
-        "equals": "enabled"
+        "property": "authorizationType",
+        "equals": "JWT"
       }
     },
     {
       "label": "Required roles",
       "description": "List of roles to test JWT roles against",
       "type": "String",
-      "group": "authentication",
+      "group": "authorization",
       "feel": "required",
       "optional": true,
       "binding": {
@@ -210,8 +214,8 @@
         "name": "inbound.requiredPermissions"
       },
       "condition": {
-        "property": "shouldValidateJwt",
-        "equals": "enabled"
+        "property": "authorizationType",
+        "equals": "JWT"
       }
     },
     {

@@ -27,6 +27,13 @@ public class WebhookConnectorProperties {
   @Secret private String hmacSecret;
   @Secret private String hmacHeader;
   private String hmacAlgorithm;
+
+  public enum AuthorizationType {
+    NONE,
+    JWT
+  }
+
+  private AuthorizationType authorizationType;
   private String jwkUrl;
   private Function<Object, List<String>>
       jwtRoleExpression; // e.g.: if admin = true then ["admin"] else roles
@@ -46,6 +53,8 @@ public class WebhookConnectorProperties {
     this.hmacSecret = readPropertyNullable("inbound.hmacSecret");
     this.hmacHeader = readPropertyNullable("inbound.hmacHeader");
     this.hmacAlgorithm = readPropertyNullable("inbound.hmacAlgorithm");
+    this.authorizationType =
+        AuthorizationType.valueOf(readPropertyNullable("inbound.authorizationType"));
     this.jwkUrl = readPropertyNullable("inbound.jwkUrl");
     this.jwtRoleExpression = readFeelFunctionPropertyNullable("inbound.jwtRoleExpression");
     this.requiredPermissions =
@@ -194,6 +203,14 @@ public class WebhookConnectorProperties {
 
   public void setRequiredPermissions(List<String> requiredPermissions) {
     this.requiredPermissions = requiredPermissions;
+  }
+
+  public AuthorizationType getAuthorizationType() {
+    return authorizationType;
+  }
+
+  public void setAuthorizationType(AuthorizationType authorizationType) {
+    this.authorizationType = authorizationType;
   }
 
   @Override

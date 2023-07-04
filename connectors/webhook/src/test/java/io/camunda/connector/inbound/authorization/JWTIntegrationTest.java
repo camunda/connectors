@@ -100,7 +100,7 @@ public class JWTIntegrationTest {
     // webhook connector setup
     String propertiesJsonString =
         "{\"inbound.shouldValidateHmac\":\"disabled\", "
-            + "\"inbound.shouldValidateJwt\":\"enabled\", "
+            + "\"inbound.authorizationType\":\"JWT\", "
             + "\"inbound.requiredPermissions\":\"=[\\\"admin\\\"]\", "
             + "\"inbound.type\":\"io.camunda:webhook:1\", "
             + "\"inbound.subtype\":\"ConfigurableInboundWebhook\", "
@@ -129,7 +129,7 @@ public class JWTIntegrationTest {
     // webhook connector setup
     String propertiesJsonString =
         "{\"inbound.shouldValidateHmac\":\"disabled\", "
-            + "\"inbound.shouldValidateJwt\":\"enabled\", "
+            + "\"inbound.authorizationType\":\"JWT\", "
             + "\"inbound.requiredPermissions\":\"=[\\\"admin\\\"]\", "
             + "\"inbound.type\":\"io.camunda:webhook:1\", "
             + "\"inbound.subtype\":\"ConfigurableInboundWebhook\", "
@@ -158,7 +158,7 @@ public class JWTIntegrationTest {
     // webhook connector setup
     String propertiesJsonString =
         "{\"inbound.shouldValidateHmac\":\"disabled\", "
-            + "\"inbound.shouldValidateJwt\":\"enabled\", "
+            + "\"inbound.authorizationType\":\"JWT\", "
             + "\"inbound.requiredPermissions\":\"=[\\\"admin\\\"]\", "
             + "\"inbound.type\":\"io.camunda:webhook:1\", "
             + "\"inbound.subtype\":\"ConfigurableInboundWebhook\", "
@@ -189,7 +189,7 @@ public class JWTIntegrationTest {
     // webhook connector setup
     String propertiesJsonString =
         "{\"inbound.shouldValidateHmac\":\"disabled\", "
-            + "\"inbound.shouldValidateJwt\":\"enabled\", "
+            + "\"inbound.authorizationType\":\"JWT\", "
             + "\"inbound.requiredPermissions\":\"=[\\\"admin\\\"]\", "
             + "\"inbound.type\":\"io.camunda:webhook:1\", "
             + "\"inbound.subtype\":\"ConfigurableInboundWebhook\", "

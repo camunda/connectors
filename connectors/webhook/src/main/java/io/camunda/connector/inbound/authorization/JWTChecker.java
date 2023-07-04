@@ -55,7 +55,9 @@ public class JWTChecker {
 
   private static Optional<DecodedJWT> getDecodedVerifiedJWT(
       WebhookProcessingPayload payload, JwkProvider jwkProvider) {
-    final String jwtToken = JWTChecker.extractJWTFomHeader(payload);
+    final String jwtToken =
+        JWTChecker.extractJWTFomHeader(payload)
+            .orElseThrow(() -> new RuntimeException("Cannot extract JWT from header!"));
     try {
       return Optional.of(JWTChecker.verifyJWT(jwtToken, jwkProvider));
     } catch (JWTDecodeException ex) {
@@ -99,12 +101,11 @@ public class JWTChecker {
         .orElseThrow(() -> new RuntimeException("JWT payload is null!"));
   }
 
-  private static String extractJWTFomHeader(final WebhookProcessingPayload payload) {
+  private static Optional<String> extractJWTFomHeader(final WebhookProcessingPayload payload) {
     return Optional.ofNullable(
             Optional.ofNullable(payload.headers().get("Authorization"))
                 .orElse(payload.headers().get("authorization")))
-        .map(authorizationHeader -> authorizationHeader.replace("Bearer", "").trim())
-        .orElse(null);
+        .map(authorizationHeader -> authorizationHeader.replace("Bearer", "").trim());
   }
 
   private static DecodedJWT verifyJWT(String jwtToken, JwkProvider jwkProvider)

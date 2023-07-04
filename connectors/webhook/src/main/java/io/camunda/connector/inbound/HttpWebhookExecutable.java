@@ -69,10 +69,9 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
       throw new IOException("Webhook failed: HMAC signature check didn't pass");
     }
 
-    if (props.getRequiredPermissions() != null && !props.getRequiredPermissions().isEmpty()) {
-      if (!JWTChecker.verify(payload, props, this.jwkProvider, objectMapper)) {
-        throw new IOException("Webhook failed: JWT check didn't pass");
-      }
+    if (WebhookConnectorProperties.AuthorizationType.JWT.equals(props.getAuthorizationType())
+        && !JWTChecker.verify(payload, props, this.jwkProvider, objectMapper)) {
+      throw new IOException("Webhook failed: JWT check didn't pass");
     }
 
     response.setBody(
