@@ -18,7 +18,6 @@ package io.camunda.connector.runtime.inbound.webhook;
 
 import static io.camunda.connector.runtime.inbound.lifecycle.InboundConnectorManager.WEBHOOK_CONTEXT_BPMN_FIELD;
 
-import io.camunda.connector.impl.inbound.InboundConnectorProperties;
 import io.camunda.connector.runtime.inbound.lifecycle.ActiveInboundConnector;
 import java.util.HashMap;
 import java.util.Map;
@@ -37,12 +36,12 @@ public class WebhookConnectorRegistry {
   }
 
   public void register(ActiveInboundConnector connector) {
-    InboundConnectorProperties properties = connector.properties();
-    var context = properties.getRequiredProperty(WEBHOOK_CONTEXT_BPMN_FIELD);
+    var properties = connector.context().getProperties();
+    var context = properties.get(WEBHOOK_CONTEXT_BPMN_FIELD).toString();
     var existingEndpoint = activeEndpointsByContext.putIfAbsent(context, connector);
     if (existingEndpoint != null) {
-      var bpmnProcessId = existingEndpoint.properties().getBpmnProcessId();
-      var elementId = existingEndpoint.properties().getElementId();
+      var bpmnProcessId = existingEndpoint.context().getDefinition().bpmnProcessId();
+      var elementId = existingEndpoint.context().getDefinition().elementId();
       var logMessage =
           "Context: " + context + " already in use by " + bpmnProcessId + "/" + elementId + ".";
       LOG.debug(logMessage);
@@ -51,7 +50,7 @@ public class WebhookConnectorRegistry {
   }
 
   public void deregister(ActiveInboundConnector connector) {
-    var context = connector.properties().getRequiredProperty(WEBHOOK_CONTEXT_BPMN_FIELD);
+    var context = connector.context().getProperties().get(WEBHOOK_CONTEXT_BPMN_FIELD).toString();
     activeEndpointsByContext.remove(context);
   }
 

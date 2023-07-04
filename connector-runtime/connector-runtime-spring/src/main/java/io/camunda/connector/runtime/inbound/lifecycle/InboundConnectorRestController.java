@@ -49,22 +49,23 @@ public class InboundConnectorRestController {
   }
 
   private ActiveInboundConnectorResponse mapToResponse(ActiveInboundConnector connector) {
-    var properties = connector.properties();
+    var properties = connector.context().getProperties();
+    var definition = connector.context().getDefinition();
     var health = connector.context().getHealth();
     Map<String, Object> details;
     if (connector.executable() instanceof WebhookConnectorExecutable) {
       details =
           new HashMap<>(Optional.ofNullable(health.getDetails()).orElse(Collections.emptyMap()));
-      var path = Optional.ofNullable(properties.getProperties().get(WEBHOOK_CONTEXT_BPMN_FIELD));
+      var path = Optional.ofNullable(properties.get(WEBHOOK_CONTEXT_BPMN_FIELD));
       details.put("path", path.orElse(""));
     } else {
       details = health.getDetails();
     }
     return new ActiveInboundConnectorResponse(
-        properties.getBpmnProcessId(),
-        properties.getVersion(),
-        properties.getElementId(),
-        properties.getType(),
+        definition.bpmnProcessId(),
+        definition.version(),
+        definition.elementId(),
+        definition.type(),
         details,
         health.getStatus());
   }

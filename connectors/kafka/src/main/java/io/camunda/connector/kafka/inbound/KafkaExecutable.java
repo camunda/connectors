@@ -38,10 +38,9 @@ public class KafkaExecutable implements InboundConnectorExecutable {
   public void activate(InboundConnectorContext connectorContext) {
     try {
       KafkaConnectorProperties elementProps =
-          connectorContext.getPropertiesAsType(KafkaConnectorProperties.class);
+          connectorContext.bindProperties(KafkaConnectorProperties.class);
       LOG.info("Subscription activation requested by the Connector runtime: {}", elementProps);
-      connectorContext.replaceSecrets(elementProps);
-      connectorContext.validate(elementProps);
+
       this.kafkaConnectorConsumer =
           new KafkaConnectorConsumer(consumerCreatorFunction, connectorContext, elementProps);
       this.kafkaConnectorConsumer.startConsumer();

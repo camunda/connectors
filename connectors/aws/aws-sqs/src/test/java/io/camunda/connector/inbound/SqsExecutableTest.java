@@ -26,7 +26,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.common.suppliers.AmazonSQSClientSupplier;
-import io.camunda.connector.impl.inbound.InboundConnectorProperties;
 import io.camunda.connector.impl.inbound.correlation.StartEventCorrelationPoint;
 import io.camunda.connector.impl.inbound.result.MessageCorrelationResult;
 import io.camunda.connector.inbound.model.SqsInboundProperties;
@@ -80,7 +79,7 @@ class SqsExecutableTest {
   @MethodSource("successRequestCases")
   public void activateTest(SqsInboundProperties properties) throws InterruptedException {
     // given
-    InboundConnectorProperties connectorProps = createConnectorProperties();
+    var connectorProps = createConnectorProperties();
     InboundConnectorContext context = createConnectorContext(properties, connectorProps);
     InboundConnectorContext spyContext = spy(context);
     Message message = createMessage().withReceiptHandle("receiptHandle");
@@ -116,10 +115,10 @@ class SqsExecutableTest {
     assertThat(executorService.isShutdown()).isTrue();
   }
 
-  private InboundConnectorProperties createConnectorProperties() {
-    return new InboundConnectorProperties(
-        new StartEventCorrelationPoint(1, "proc-id", 2),
+  private InboundConnectorDefinitionImpl createConnectorProperties() {
+    return new InboundConnectorDefinitionImpl(
         Map.of("inbound.context", "context"),
+        new StartEventCorrelationPoint(1, "proc-id", 2),
         "proc-id",
         2,
         1,

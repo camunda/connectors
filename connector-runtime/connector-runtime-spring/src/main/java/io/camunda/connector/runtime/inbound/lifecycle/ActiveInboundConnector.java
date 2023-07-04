@@ -17,10 +17,8 @@
 package io.camunda.connector.runtime.inbound.lifecycle;
 
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
-import io.camunda.connector.impl.inbound.InboundConnectorProperties;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
 
 public record ActiveInboundConnector(
     InboundConnectorExecutable executable,
-    InboundConnectorProperties properties,
     InboundConnectorContextImpl context) {}

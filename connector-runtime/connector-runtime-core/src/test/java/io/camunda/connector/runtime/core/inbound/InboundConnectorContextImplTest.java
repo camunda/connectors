@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.camunda.connector.api.secret.SecretProvider;
-import io.camunda.connector.impl.inbound.InboundConnectorProperties;
 import io.camunda.connector.impl.inbound.correlation.MessageCorrelationPoint;
 import io.camunda.connector.runtime.core.FooBarSecretProvider;
 import java.util.List;
@@ -32,42 +31,42 @@ class InboundConnectorContextImplTest {
   private final SecretProvider secretProvider = new FooBarSecretProvider();
 
   @Test
-  void getPropertiesAsType_shouldThrowExceptionWhenWrongFormat() {
+  void bindProperties_shouldThrowExceptionWhenWrongFormat() {
     // given
-    InboundConnectorProperties properties =
-        new InboundConnectorProperties(
-            new MessageCorrelationPoint(""),
+    InboundConnectorDefinitionImpl definition =
+        new InboundConnectorDefinitionImpl(
             Map.of("stringMap", "={{\"key\":\"value\"}"),
+            new MessageCorrelationPoint(""),
             "bool",
             0,
-            0,
+            0L,
             "id");
     InboundConnectorContextImpl inboundConnectorContext =
-        new InboundConnectorContextImpl(secretProvider, (e) -> {}, properties, null, (e) -> {});
+        new InboundConnectorContextImpl(secretProvider, (e) -> {}, definition, null, (e) -> {});
     // when and then
     RuntimeException exception =
         assertThrows(
             RuntimeException.class,
-            () -> inboundConnectorContext.getPropertiesAsType(TestPropertiesClass.class));
+            () -> inboundConnectorContext.bindProperties(TestPropertiesClass.class));
     assertThat(exception.getMessage()).contains("Parsed.Failure(Position 1:1");
   }
 
   @Test
-  void getPropertiesAsType_shouldParseNullValue() {
+  void bindProperties_shouldParseNullValue() {
     // given
-    InboundConnectorProperties properties =
-        new InboundConnectorProperties(
-            new MessageCorrelationPoint(""),
+    InboundConnectorDefinitionImpl definition =
+        new InboundConnectorDefinitionImpl(
             Map.of("stringMap", "={\"keyString\":null}"),
+            new MessageCorrelationPoint(""),
             "bool",
             0,
-            0,
+            0L,
             "id");
     InboundConnectorContextImpl inboundConnectorContext =
-        new InboundConnectorContextImpl(secretProvider, (e) -> {}, properties, null, (e) -> {});
+        new InboundConnectorContextImpl(secretProvider, (e) -> {}, definition, null, (e) -> {});
     // when
     TestPropertiesClass propertiesAsType =
-        inboundConnectorContext.getPropertiesAsType(TestPropertiesClass.class);
+        inboundConnectorContext.bindProperties(TestPropertiesClass.class);
     // then
     assertThat(propertiesAsType.getStringMap().containsKey("keyString")).isTrue();
     assertThat(propertiesAsType.getStringMap().get("keyString")).isNull();
@@ -75,34 +74,33 @@ class InboundConnectorContextImplTest {
   }
 
   @Test
-  void getPropertiesAsType_shouldParseStringAsString() {
+  void bindProperties_shouldParseStringAsString() {
     // given
-    InboundConnectorProperties properties =
-        new InboundConnectorProperties(
-            new MessageCorrelationPoint(""),
+    InboundConnectorDefinitionImpl definition =
+        new InboundConnectorDefinitionImpl(
             Map.of(
                 "mapWithStringListWithNumbers",
                 "={\"key\":[\"34\", \"45\", \"890\",\"0\",\"16785\"]}"),
+            new MessageCorrelationPoint(""),
             "bool",
             0,
-            0,
+            0L,
             "id");
     InboundConnectorContextImpl inboundConnectorContext =
-        new InboundConnectorContextImpl(secretProvider, (e) -> {}, properties, null, (e) -> {});
+        new InboundConnectorContextImpl(secretProvider, (e) -> {}, definition, null, (e) -> {});
     // when
     TestPropertiesClass propertiesAsType =
-        inboundConnectorContext.getPropertiesAsType(TestPropertiesClass.class);
+        inboundConnectorContext.bindProperties(TestPropertiesClass.class);
     // then
     assertThat(propertiesAsType.getMapWithStringListWithNumbers().get("key").get(0))
         .isInstanceOf(String.class);
   }
 
   @Test
-  void getPropertiesAsTypeShouldParseAllObject() {
+  void bindProperties_shouldParseAllObject() {
     // Given
-    InboundConnectorProperties properties =
-        new InboundConnectorProperties(
-            new MessageCorrelationPoint(""),
+    InboundConnectorDefinitionImpl definition =
+        new InboundConnectorDefinitionImpl(
             Map.of(
                 "stringMap",
                 "={\"keyString\":\"valueString\"}",
@@ -113,7 +111,7 @@ class InboundConnectorContextImplTest {
                 "numberList",
                 "=[34, -45, 890, 0, -16785]",
                 "str",
-                "foo ",
+                "foo",
                 "bool",
                 "true",
                 "mapWithNumberList",
@@ -124,17 +122,40 @@ class InboundConnectorContextImplTest {
                 "=[\"34\", \"-45\", \"890\", \"0\", \"-16785\"]",
                 "stringObjectMap",
                 "={\"innerObject\":{\"stringList\":[\"innerList\"], \"bool\":false}}"),
+            new MessageCorrelationPoint(""),
             "bool",
             0,
-            0,
+            0L,
             "id");
     InboundConnectorContextImpl inboundConnectorContext =
-        new InboundConnectorContextImpl(secretProvider, (e) -> {}, properties, null, (e) -> {});
+        new InboundConnectorContextImpl(secretProvider, (e) -> {}, definition, null, (e) -> {});
     // when
     TestPropertiesClass propertiesAsType =
-        inboundConnectorContext.getPropertiesAsType(TestPropertiesClass.class);
+        inboundConnectorContext.bindProperties(TestPropertiesClass.class);
     // then
     assertThat(propertiesAsType).isEqualTo(createTestClass());
+  }
+
+  @Test
+  void getProperties_shouldNotParseFeel() {
+    // given
+    InboundConnectorDefinitionImpl definition =
+        new InboundConnectorDefinitionImpl(
+            Map.of("stringMap", "={\"keyString\":null}"),
+            new MessageCorrelationPoint(""),
+            "bool",
+            0,
+            0L,
+            "id");
+
+    InboundConnectorContextImpl inboundConnectorContext =
+        new InboundConnectorContextImpl(secretProvider, (e) -> {}, definition, null, (e) -> {});
+
+    // when
+    Map<String, Object> properties = inboundConnectorContext.getProperties();
+
+    // then
+    assertThat(properties.get("stringMap")).isEqualTo("={\"keyString\":null}");
   }
 
   private TestPropertiesClass createTestClass() {
@@ -144,7 +165,7 @@ class InboundConnectorContextImplTest {
     testClass.setStringList(List.of("value1", "value2", "value3"));
     testClass.setNumberList(List.of(34, -45, 890, 0, -16785));
     testClass.setStringNumberList(List.of("34", "-45", "890", "0", "-16785"));
-    testClass.setStr("foo ");
+    testClass.setStr("foo");
     testClass.setBool(true);
     testClass.setMapWithNumberList(Map.of("key", List.of(43L, 0L, -123L)));
     var innerObject = new TestPropertiesClass();

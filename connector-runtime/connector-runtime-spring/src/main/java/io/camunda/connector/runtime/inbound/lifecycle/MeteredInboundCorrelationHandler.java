@@ -17,12 +17,14 @@
 package io.camunda.connector.runtime.inbound.lifecycle;
 
 import io.camunda.connector.api.inbound.InboundConnectorResult;
-import io.camunda.connector.impl.inbound.InboundConnectorProperties;
+import io.camunda.connector.impl.Constants;
+import io.camunda.connector.impl.inbound.ProcessCorrelationPoint;
 import io.camunda.connector.runtime.core.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics.Inbound;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
+import java.util.Map;
 
 public class MeteredInboundCorrelationHandler extends InboundCorrelationHandler {
 
@@ -35,34 +37,39 @@ public class MeteredInboundCorrelationHandler extends InboundCorrelationHandler 
   }
 
   @Override
-  protected boolean isActivationConditionMet(
-      InboundConnectorProperties properties, Object context) {
+  protected boolean isActivationConditionMet(Map<String, ?> properties, Object context) {
     boolean isConditionMet = super.isActivationConditionMet(properties, context);
     if (!isConditionMet) {
       metricsRecorder.increase(
           Inbound.METRIC_NAME_TRIGGERS,
           Inbound.ACTION_ACTIVATION_CONDITION_FAILED,
-          properties.getType());
+          properties.get(Constants.INBOUND_TYPE_KEYWORD).toString());
     }
     return isConditionMet;
   }
 
   @Override
-  public InboundConnectorResult<?> correlate(
-      InboundConnectorProperties properties, Object variables) {
+  public InboundConnectorResult<?> correlate(Map<String, ?> properties,
+      ProcessCorrelationPoint correlationPoint, Object variables) {
     metricsRecorder.increase(
-        Inbound.METRIC_NAME_TRIGGERS, Inbound.ACTION_TRIGGERED, properties.getType());
+        Inbound.METRIC_NAME_TRIGGERS,
+        Inbound.ACTION_TRIGGERED,
+        properties.get(Constants.INBOUND_TYPE_KEYWORD).toString());
 
     try {
-      var result = super.correlate(properties, variables);
+      var result = super.correlate(properties, correlationPoint, variables);
       if (result.isActivated()) {
         metricsRecorder.increase(
-            Inbound.METRIC_NAME_TRIGGERS, Inbound.ACTION_CORRELATED, properties.getType());
+            Inbound.METRIC_NAME_TRIGGERS,
+            Inbound.ACTION_CORRELATED,
+            properties.get(Constants.INBOUND_TYPE_KEYWORD).toString());
       }
       return result;
     } catch (Exception e) {
       metricsRecorder.increase(
-          Inbound.METRIC_NAME_TRIGGERS, Inbound.ACTION_CORRELATION_FAILED, properties.getType());
+          Inbound.METRIC_NAME_TRIGGERS,
+          Inbound.ACTION_CORRELATION_FAILED,
+          properties.get(Constants.INBOUND_TYPE_KEYWORD).toString());
       throw e;
     }
   }

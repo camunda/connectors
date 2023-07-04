@@ -27,15 +27,13 @@ import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingResult;
 import io.camunda.connector.api.secret.SecretProvider;
-import io.camunda.connector.impl.inbound.InboundConnectorProperties;
 import io.camunda.connector.impl.inbound.correlation.StartEventCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
 import io.camunda.connector.runtime.inbound.lifecycle.ActiveInboundConnector;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
-import io.camunda.zeebe.spring.client.metrics.SimpleMetricsRecorder;
 import java.util.HashMap;
 import java.util.Map;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
@@ -47,18 +45,8 @@ import org.mockito.quality.Strictness;
 @MockitoSettings(strictness = Strictness.LENIENT)
 public class WebhookControllerPlainJavaTests {
 
-  private static final String CONNECTOR_SECRET_NAME = "DUMMY_SECRET";
-  private static final String CONNECTOR_SECRET_VALUE = "s3cr3T";
-
-  private SimpleMetricsRecorder metrics;
-
-  @BeforeEach
-  public void setupMetrics() {
-    metrics = new SimpleMetricsRecorder();
-  }
-
   @Test
-  public void multipleWebhooksOnSameContextPathAreNotSupported() throws Exception {
+  public void multipleWebhooksOnSameContextPathAreNotSupported() {
     WebhookConnectorRegistry webhookConnectorRegistry = new WebhookConnectorRegistry();
     var connectorA = buildConnector(webhookProperties("processA", 1, "myPath"));
     webhookConnectorRegistry.register(connectorA);
@@ -69,7 +57,7 @@ public class WebhookControllerPlainJavaTests {
   }
 
   @Test
-  public void webhookMultipleVersionsDisableWebhook() throws Exception {
+  public void webhookMultipleVersionsDisableWebhook() {
     WebhookConnectorRegistry webhook = new WebhookConnectorRegistry();
 
     var processA1 = buildConnector(webhookProperties("processA", 1, "myPath"));
@@ -87,7 +75,7 @@ public class WebhookControllerPlainJavaTests {
     var connectorForPath1 = webhook.getWebhookConnectorByContextPath("myPath");
 
     assertTrue(connectorForPath1.isPresent(), "Connector is present");
-    assertEquals(2, connectorForPath1.get().properties().getVersion(), "The newest one");
+    assertEquals(2, connectorForPath1.get().context().getDefinition().version(), "The newest one");
 
     var connectorForPath2 = webhook.getWebhookConnectorByContextPath("myPath2");
     assertTrue(connectorForPath2.isEmpty(), "No one - as it was deleted.");
@@ -110,7 +98,7 @@ public class WebhookControllerPlainJavaTests {
 
   private static long nextProcessDefinitionKey = 0L;
 
-  public static ActiveInboundConnector buildConnector(InboundConnectorProperties properties) {
+  public static ActiveInboundConnector buildConnector(InboundConnectorDefinitionImpl properties) {
     WebhookConnectorExecutable executable = Mockito.mock(WebhookConnectorExecutable.class);
     try {
       Mockito.when(executable.triggerWebhook(any(WebhookProcessingPayload.class)))
@@ -118,25 +106,25 @@ public class WebhookControllerPlainJavaTests {
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
-    return new ActiveInboundConnector(executable, properties, buildContext(properties));
+    return new ActiveInboundConnector(executable, buildContext(properties));
   }
 
-  public static InboundConnectorContextImpl buildContext(InboundConnectorProperties properties) {
+  public static InboundConnectorContextImpl buildContext(
+      InboundConnectorDefinitionImpl properties) {
     final Map<String, String> secrets = new HashMap<>();
     SecretProvider secretProvider = secrets::get;
     return new InboundConnectorContextImpl(secretProvider, e -> {}, properties, null, (x) -> {});
   }
 
-  public static InboundConnectorProperties webhookProperties(
+  public static InboundConnectorDefinitionImpl webhookProperties(
       String bpmnProcessId, int version, String contextPath) {
     return webhookProperties(++nextProcessDefinitionKey, bpmnProcessId, version, contextPath);
   }
 
-  public static InboundConnectorProperties webhookProperties(
+  public static InboundConnectorDefinitionImpl webhookProperties(
       long processDefinitionKey, String bpmnProcessId, int version, String contextPath) {
 
-    return new InboundConnectorProperties(
-        new StartEventCorrelationPoint(processDefinitionKey, bpmnProcessId, version),
+    return new InboundConnectorDefinitionImpl(
         Map.of(
             "inbound.type", "webhook",
             "inbound.context", contextPath,
@@ -144,6 +132,7 @@ public class WebhookControllerPlainJavaTests {
             "inbound.secret", "TEST",
             "inbound.activationCondition", "=true",
             "inbound.variableMapping", "={}"),
+        new StartEventCorrelationPoint(processDefinitionKey, bpmnProcessId, version),
         bpmnProcessId,
         version,
         processDefinitionKey,

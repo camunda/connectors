@@ -111,7 +111,6 @@ public class SnsWebhookExecutable implements WebhookConnectorExecutable {
       throw new Exception("Inbound connector context cannot be null");
     }
     props = new SnsWebhookConnectorProperties(context.getProperties());
-    context.replaceSecrets(props);
   }
 
   // Topic ARN header has a format arn:aws:sns:region-xyz:000011112222:TopicName, and

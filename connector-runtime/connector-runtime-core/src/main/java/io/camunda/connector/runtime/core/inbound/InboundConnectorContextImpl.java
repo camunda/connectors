@@ -23,17 +23,18 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.scala.DefaultScalaModule$;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
+import io.camunda.connector.api.inbound.InboundConnectorDefinition;
 import io.camunda.connector.api.inbound.InboundConnectorResult;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
+import io.camunda.connector.impl.ConnectorInputException;
 import io.camunda.connector.impl.Constants;
 import io.camunda.connector.impl.context.AbstractConnectorContext;
-import io.camunda.connector.impl.inbound.InboundConnectorProperties;
 import io.camunda.connector.runtime.core.feel.FeelParserWrapper;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -43,17 +44,8 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
     implements InboundConnectorContext {
 
   private final Logger LOG = LoggerFactory.getLogger(InboundConnectorContextImpl.class);
-  private static final Set<String> reservedKeys =
-      Set.of(
-          Constants.ACTIVATION_CONDITION_KEYWORD,
-          Constants.LEGACY_VARIABLE_MAPPING_KEYWORD,
-          Constants.INBOUND_TYPE_KEYWORD,
-          Constants.RESULT_VARIABLE_KEYWORD,
-          Constants.RESULT_EXPRESSION_KEYWORD,
-          Constants.ERROR_EXPRESSION_KEYWORD,
-          Constants.CORRELATION_KEY_EXPRESSION_KEYWORD);
+  private final InboundConnectorDefinitionImpl definition;
 
-  private final InboundConnectorProperties properties;
   private final InboundCorrelationHandler correlationHandler;
   private final ObjectMapper objectMapper;
 
@@ -61,15 +53,18 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   private Health health = Health.unknown();
 
+  private Map<String, Object> propertiesWithSecrets;
+  private Map<String, Object> propertiesWithFeel;
+
   public InboundConnectorContextImpl(
       SecretProvider secretProvider,
       ValidationProvider validationProvider,
-      InboundConnectorProperties properties,
+      InboundConnectorDefinitionImpl definition,
       InboundCorrelationHandler correlationHandler,
       Consumer<Throwable> cancellationCallback) {
     super(secretProvider, validationProvider);
     this.correlationHandler = correlationHandler;
-    this.properties = properties;
+    this.definition = definition;
     this.cancellationCallback = cancellationCallback;
     this.objectMapper =
         new ObjectMapper()
@@ -83,20 +78,21 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   public InboundConnectorContextImpl(
       SecretProvider secretProvider,
       ValidationProvider validationProvider,
-      InboundConnectorProperties properties,
+      InboundConnectorDefinitionImpl definition,
       InboundCorrelationHandler correlationHandler,
       ObjectMapper objectMapper,
       Consumer<Throwable> cancellationCallback) {
     super(secretProvider, validationProvider);
     this.correlationHandler = correlationHandler;
-    this.properties = properties;
+    this.definition = definition;
     this.objectMapper = objectMapper;
     this.cancellationCallback = cancellationCallback;
   }
 
   @Override
   public InboundConnectorResult<?> correlate(Object variables) {
-    return correlationHandler.correlate(properties, variables);
+    return correlationHandler.correlate(
+        definition.properties(), definition.correlationPoint(), variables);
   }
 
   @Override
@@ -109,30 +105,22 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   }
 
   @Override
-  public InboundConnectorProperties getProperties() {
-    return properties;
+  public Map<String, Object> getProperties() {
+    return getPropertiesWithSecrets(definition.properties());
   }
 
   @Override
-  public <T> T getPropertiesAsType(Class<T> cls) {
-
-    Map<String, Object> result =
-        properties.getPropertiesAsObjectMap().entrySet().stream()
-            .filter(entry -> entry.getValue() != null)
-            .collect(
-                Collectors.toMap(
-                    Map.Entry::getKey,
-                    entry ->
-                        isReservedKey(entry.getKey())
-                            ? entry.getValue()
-                            : FeelParserWrapper.parseIfIsFeelExpressionOrGetOriginal(
-                                entry.getValue())));
-
-    return objectMapper.convertValue(result, cls);
+  public <T> T bindProperties(Class<T> cls) {
+    var evaluatedProps = getPropertiesWithFeel(definition.properties());
+    var propsWithSecrets = getPropertiesWithSecrets(evaluatedProps);
+    var mappedObject = objectMapper.convertValue(propsWithSecrets, cls);
+    getValidationProvider().validate(mappedObject);
+    return mappedObject;
   }
 
-  private static boolean isReservedKey(final String value) {
-    return reservedKeys.contains(value);
+  @Override
+  public InboundConnectorDefinition getDefinition() {
+    return definition;
   }
 
   @Override
@@ -144,7 +132,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       return false;
     }
     InboundConnectorContextImpl that = (InboundConnectorContextImpl) o;
-    return Objects.equals(properties, that.properties);
+    return Objects.equals(definition, that.definition);
   }
 
   @Override
@@ -158,11 +146,34 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   @Override
   public int hashCode() {
-    return Objects.hash(properties);
+    return Objects.hash(definition);
   }
 
   @Override
   public String toString() {
-    return "InboundConnectorContextImpl{" + "properties=" + properties + '}';
+    return "InboundConnectorContextImpl{" + "definition=" + definition + '}';
+  }
+
+  private Map<String, Object> getPropertiesWithFeel(Map<String, Object> properties) {
+    if (propertiesWithFeel == null) {
+      propertiesWithFeel = properties.entrySet().stream().map(entry -> {
+        if (Constants.RESERVED_KEYWORDS.contains(entry.getKey())) {
+          return entry;
+        } else {
+          return Map.entry(
+              entry.getKey(),
+              FeelParserWrapper.parseIfIsFeelExpressionOrGetOriginal(entry.getValue()));
+        }
+      }).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+    return propertiesWithFeel;
+  }
+
+  private Map<String, Object> getPropertiesWithSecrets(Map<String, Object> properties) {
+    if (propertiesWithSecrets == null) {
+      propertiesWithSecrets = new HashMap<>(properties);
+      replaceSecrets(propertiesWithSecrets);
+    }
+    return propertiesWithSecrets;
   }
 }

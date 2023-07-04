@@ -18,12 +18,10 @@ package io.camunda.connector.runtime.core.inbound.correlation;
 
 import static io.camunda.connector.impl.Constants.ACTIVATION_CONDITION_KEYWORD;
 import static io.camunda.connector.impl.Constants.CORRELATION_KEY_EXPRESSION_KEYWORD;
-import static io.camunda.connector.impl.Constants.LEGACY_VARIABLE_MAPPING_KEYWORD;
 
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.inbound.InboundConnectorResult;
 import io.camunda.connector.impl.ConnectorInputException;
-import io.camunda.connector.impl.inbound.InboundConnectorProperties;
 import io.camunda.connector.impl.inbound.ProcessCorrelationPoint;
 import io.camunda.connector.impl.inbound.correlation.MessageCorrelationPoint;
 import io.camunda.connector.impl.inbound.correlation.StartEventCorrelationPoint;
@@ -39,11 +37,15 @@ import io.camunda.connector.runtime.core.feel.FeelEngineWrapperException;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.client.api.response.ProcessInstanceEvent;
 import io.camunda.zeebe.client.api.response.PublishMessageResponse;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** Component responsible for calling Zeebe to report an inbound event */
+/**
+ * Component responsible for calling Zeebe to report an inbound event
+ */
 public class InboundCorrelationHandler {
+
   private static final Logger LOG = LoggerFactory.getLogger(InboundCorrelationHandler.class);
 
   private final ZeebeClient zeebeClient;
@@ -54,15 +56,14 @@ public class InboundCorrelationHandler {
     this.feelEngine = feelEngine;
   }
 
-  public InboundConnectorResult<?> correlate(
-      InboundConnectorProperties properties, Object variables) {
-    ProcessCorrelationPoint correlationPoint = properties.getCorrelationPoint();
+  public InboundConnectorResult<?> correlate(Map<String, ?> properties,
+      ProcessCorrelationPoint correlationPoint, Object variables) {
 
-    if (correlationPoint instanceof StartEventCorrelationPoint) {
-      return triggerStartEvent(properties, variables);
+    if (correlationPoint instanceof StartEventCorrelationPoint startCorPoint) {
+      return triggerStartEvent(properties, startCorPoint, variables);
     }
-    if (correlationPoint instanceof MessageCorrelationPoint) {
-      return triggerMessage(properties, variables);
+    if (correlationPoint instanceof MessageCorrelationPoint msgCorPoint) {
+      return triggerMessage(properties, msgCorPoint, variables);
     }
     throw new ConnectorException(
         "Process correlation point "
@@ -71,9 +72,8 @@ public class InboundCorrelationHandler {
   }
 
   protected InboundConnectorResult<ProcessInstance> triggerStartEvent(
-      InboundConnectorProperties properties, Object variables) {
-    StartEventCorrelationPoint correlationPoint =
-        (StartEventCorrelationPoint) properties.getCorrelationPoint();
+      Map<String, ?> properties, StartEventCorrelationPoint correlationPoint,
+      Object variables) {
 
     if (!isActivationConditionMet(properties, variables)) {
       LOG.debug("Activation condition didn't match: {}", correlationPoint);
@@ -107,10 +107,8 @@ public class InboundCorrelationHandler {
   }
 
   protected InboundConnectorResult<CorrelatedMessage> triggerMessage(
-      InboundConnectorProperties properties, Object variables) {
+      Map<String, ?> properties, MessageCorrelationPoint correlationPoint, Object variables) {
 
-    MessageCorrelationPoint correlationPoint =
-        (MessageCorrelationPoint) properties.getCorrelationPoint();
     String correlationKey = extractCorrelationKey(properties, variables);
 
     if (!isActivationConditionMet(properties, variables)) {
@@ -142,12 +140,11 @@ public class InboundCorrelationHandler {
     }
   }
 
-  protected boolean isActivationConditionMet(
-      InboundConnectorProperties properties, Object context) {
+  protected boolean isActivationConditionMet(Map<String, ?> properties, Object context) {
 
-    String activationCondition = properties.getProperty(ACTIVATION_CONDITION_KEYWORD);
+    String activationCondition = getProperty(ACTIVATION_CONDITION_KEYWORD, properties);
     if (activationCondition == null || activationCondition.trim().length() == 0) {
-      LOG.debug("No activation condition specified for {}", properties.getCorrelationPoint());
+      LOG.debug("No activation condition specified for connector");
       return true;
     }
     try {
@@ -158,9 +155,9 @@ public class InboundCorrelationHandler {
     }
   }
 
-  protected String extractCorrelationKey(InboundConnectorProperties properties, Object context) {
+  protected String extractCorrelationKey(Map<String, ?> properties, Object context) {
     String correlationKeyExpression =
-        properties.getRequiredProperty(CORRELATION_KEY_EXPRESSION_KEYWORD);
+        getRequiredProperty(CORRELATION_KEY_EXPRESSION_KEYWORD, properties);
     try {
       return feelEngine.evaluate(correlationKeyExpression, context);
     } catch (Exception e) {
@@ -168,15 +165,23 @@ public class InboundCorrelationHandler {
     }
   }
 
-  protected Object extractVariables(Object rawVariables, InboundConnectorProperties properties) {
-    if (properties.getProperty(LEGACY_VARIABLE_MAPPING_KEYWORD) != null) {
-      // if legacy variable mapping is used, we don't need to extract variables
-      // because they are already extracted by the webhook connector
-      LOG.debug(
-          "Legacy variable mapping is used for connector {}. Skipping variable extraction",
-          properties.getCorrelationPoint());
-      return rawVariables;
+  protected Object extractVariables(Object rawVariables, Map<String, ?> properties) {
+    return ConnectorHelper.createOutputVariables(rawVariables, properties);
+  }
+
+  protected String getRequiredProperty(String key, Map<String, ?> properties) {
+    String result = getProperty(key, properties);
+    if (result == null) {
+      throw new IllegalArgumentException("Required property '" + key + "' not found");
     }
-    return ConnectorHelper.createOutputVariables(rawVariables, properties.getProperties());
+    return result;
+  }
+
+  protected String getProperty(String key, Map<String, ?> properties) {
+    Object result = properties.get(key);
+    if (result == null || result instanceof String) {
+      return (String) result;
+    }
+    throw new IllegalArgumentException("Property '" + key + "' is malformed");
   }
 }

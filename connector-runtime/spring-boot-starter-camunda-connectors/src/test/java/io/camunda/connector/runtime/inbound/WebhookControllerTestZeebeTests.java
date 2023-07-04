@@ -84,6 +84,7 @@ class WebhookControllerTestZeebeTests {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testSuccessfulProcessingWithActivation() throws Exception {
     WebhookConnectorExecutable webhookConnectorExecutable = mock(WebhookConnectorExecutable.class);
     when(webhookConnectorExecutable.triggerWebhook(any(WebhookProcessingPayload.class)))
@@ -96,7 +97,7 @@ class WebhookControllerTestZeebeTests {
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
-        new ActiveInboundConnector(webhookConnectorExecutable, webhookProperties, webhookContext));
+        new ActiveInboundConnector(webhookConnectorExecutable, webhookContext));
 
     deployProcess("processA");
 
@@ -122,6 +123,7 @@ class WebhookControllerTestZeebeTests {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testSuccessfulProcessingWithFailedActivation() throws Exception {
     WebhookConnectorExecutable webhookConnectorExecutable = mock(WebhookConnectorExecutable.class);
     when(webhookConnectorExecutable.triggerWebhook(any(WebhookProcessingPayload.class)))
@@ -130,7 +132,7 @@ class WebhookControllerTestZeebeTests {
     var correlationHandlerMock = mock(InboundCorrelationHandler.class);
     var correlationResultMock = mock(InboundConnectorResult.class);
     when(correlationResultMock.isActivated()).thenReturn(false);
-    when(correlationHandlerMock.correlate(any(), any())).thenReturn(correlationResultMock);
+    when(correlationHandlerMock.correlate(any(), any(), any())).thenReturn(correlationResultMock);
 
     var webhookProperties = webhookProperties("nonExistingProcess", 1, "myPath");
     var webhookContext =
@@ -139,7 +141,7 @@ class WebhookControllerTestZeebeTests {
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
-        new ActiveInboundConnector(webhookConnectorExecutable, webhookProperties, webhookContext));
+        new ActiveInboundConnector(webhookConnectorExecutable, webhookContext));
 
     ResponseEntity<InboundConnectorResult<?>> responseEntity =
         (ResponseEntity<InboundConnectorResult<?>>)
@@ -167,7 +169,7 @@ class WebhookControllerTestZeebeTests {
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
-        new ActiveInboundConnector(webhookConnectorExecutable, webhookProperties, webhookContext));
+        new ActiveInboundConnector(webhookConnectorExecutable, webhookContext));
 
     deployProcess("processB");
 
@@ -194,7 +196,7 @@ class WebhookControllerTestZeebeTests {
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
-        new ActiveInboundConnector(webhookConnectorExecutable, webhookProperties, webhookContext));
+        new ActiveInboundConnector(webhookConnectorExecutable, webhookContext));
 
     deployProcess("processA");
 
@@ -210,6 +212,7 @@ class WebhookControllerTestZeebeTests {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testFeelExpressionErrorDuringProcessing() throws Exception {
     WebhookConnectorExecutable webhookConnectorExecutable = mock(WebhookConnectorExecutable.class);
     when(webhookConnectorExecutable.triggerWebhook(any(WebhookProcessingPayload.class)))
@@ -222,7 +225,7 @@ class WebhookControllerTestZeebeTests {
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
-        new ActiveInboundConnector(webhookConnectorExecutable, webhookProperties, webhookContext));
+        new ActiveInboundConnector(webhookConnectorExecutable, webhookContext));
 
     deployProcess("processA");
 

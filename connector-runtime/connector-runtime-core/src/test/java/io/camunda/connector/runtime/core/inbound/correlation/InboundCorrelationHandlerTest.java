@@ -34,7 +34,6 @@ import io.camunda.connector.impl.inbound.result.StartEventCorrelationResult;
 import io.camunda.connector.runtime.core.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.core.util.command.CreateCommandDummy;
 import io.camunda.connector.runtime.core.util.command.PublishMessageCommandDummy;
-import io.camunda.connector.test.inbound.InboundConnectorPropertiesBuilder;
 import io.camunda.zeebe.client.ZeebeClient;
 import java.util.Collections;
 import java.util.Map;
@@ -64,26 +63,20 @@ public class InboundCorrelationHandlerTest {
     @Test
     void startEvent_shouldCallCorrectZeebeMethod() {
       // given
-      var properties =
-          InboundConnectorPropertiesBuilder.create()
-              .correlationPoint(new StartEventCorrelationPoint(0, "process1", 0))
-              .bpmnProcessId("process1")
-              .processDefinitionKey(0)
-              .version(0)
-              .build();
+      var point = new StartEventCorrelationPoint(0, "process1", 0);
 
       var dummyCommand = Mockito.spy(new CreateCommandDummy());
       when(zeebeClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
 
       // when
-      handler.correlate(properties, Collections.emptyMap());
+      handler.correlate(Map.of(), point, Collections.emptyMap());
 
       // then
       verify(zeebeClient).newCreateInstanceCommand();
       verifyNoMoreInteractions(zeebeClient);
 
-      verify(dummyCommand).bpmnProcessId(properties.getBpmnProcessId());
-      verify(dummyCommand).version(properties.getVersion());
+      verify(dummyCommand).bpmnProcessId(point.getBpmnProcessId());
+      verify(dummyCommand).version(point.getVersion());
       verify(dummyCommand).send();
     }
 
@@ -92,18 +85,14 @@ public class InboundCorrelationHandlerTest {
       // given
       var correlationKeyValue = "someTestCorrelationKeyValue";
       var point = new MessageCorrelationPoint("msg1");
-      var properties =
-          InboundConnectorPropertiesBuilder.create()
-              .correlationPoint(point)
-              .correlationKeyExpression("=correlationKey")
-              .build();
+      var properties = Map.of(Constants.CORRELATION_KEY_EXPRESSION_KEYWORD, "=correlationKey");
       Map<String, Object> variables = Map.of("correlationKey", correlationKeyValue);
 
       var dummyCommand = spy(new PublishMessageCommandDummy());
       when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
 
       // when
-      handler.correlate(properties, variables);
+      handler.correlate(properties, point, variables);
 
       // then
       verify(zeebeClient).newPublishMessageCommand();
@@ -122,19 +111,12 @@ public class InboundCorrelationHandlerTest {
     void activationConditionFalse_shouldNotCorrelate() {
       // given
       var point = new StartEventCorrelationPoint(0, "process1", 0);
-      var properties =
-          InboundConnectorPropertiesBuilder.create()
-              .correlationPoint(point)
-              .bpmnProcessId("process1")
-              .processDefinitionKey(0)
-              .version(0)
-              .activationCondition("=testKey=\"otherValue\"")
-              .build();
+      var properties = Map.of(Constants.ACTIVATION_CONDITION_KEYWORD, "=testKey=\"otherValue\"");
 
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
       // when
-      InboundConnectorResult<?> result = handler.correlate(properties, variables);
+      InboundConnectorResult<?> result = handler.correlate(properties, point, variables);
 
       // then
       verifyNoMoreInteractions(zeebeClient);
@@ -157,19 +139,12 @@ public class InboundCorrelationHandlerTest {
       when(zeebeClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
 
       var point = new StartEventCorrelationPoint(0, "process1", 0);
-      var properties =
-          InboundConnectorPropertiesBuilder.create()
-              .correlationPoint(point)
-              .bpmnProcessId("process1")
-              .processDefinitionKey(0)
-              .version(0)
-              .activationCondition("=testKey=\"testValue\"")
-              .build();
+      var properties = Map.of(Constants.ACTIVATION_CONDITION_KEYWORD, "=testKey=\"testValue\"");
 
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
       // when
-      InboundConnectorResult<?> result = handler.correlate(properties, variables);
+      InboundConnectorResult<?> result = handler.correlate(properties, point, variables);
 
       // then
       verify(zeebeClient).newCreateInstanceCommand();
@@ -195,18 +170,11 @@ public class InboundCorrelationHandlerTest {
       when(zeebeClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
 
       var point = new StartEventCorrelationPoint(0, "process1", 0);
-      var properties =
-          InboundConnectorPropertiesBuilder.create()
-              .correlationPoint(point)
-              .bpmnProcessId("process1")
-              .processDefinitionKey(0)
-              .version(0)
-              .build();
 
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
       // when
-      InboundConnectorResult<?> result = handler.correlate(properties, variables);
+      InboundConnectorResult<?> result = handler.correlate(Map.of(), point, variables);
 
       // then
       verify(zeebeClient).newCreateInstanceCommand();
@@ -232,19 +200,12 @@ public class InboundCorrelationHandlerTest {
       when(zeebeClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
 
       var point = new StartEventCorrelationPoint(0, "process1", 0);
-      var properties =
-          InboundConnectorPropertiesBuilder.create()
-              .correlationPoint(point)
-              .bpmnProcessId("process1")
-              .processDefinitionKey(0)
-              .version(0)
-              .activationCondition(" ")
-              .build();
+      var properties = Map.of(Constants.ACTIVATION_CONDITION_KEYWORD, " ");
 
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
       // when
-      InboundConnectorResult<?> result = handler.correlate(properties, variables);
+      InboundConnectorResult<?> result = handler.correlate(properties, point, variables);
 
       // then
       verify(zeebeClient).newCreateInstanceCommand();
@@ -272,13 +233,6 @@ public class InboundCorrelationHandlerTest {
     void noResultVar_noResultExpr_shouldNotCopyVariables() {
       // given
       var point = new StartEventCorrelationPoint(0, "process1", 0);
-      var properties =
-          InboundConnectorPropertiesBuilder.create()
-              .correlationPoint(point)
-              .bpmnProcessId("process1")
-              .processDefinitionKey(0)
-              .version(0)
-              .build();
 
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
@@ -286,7 +240,7 @@ public class InboundCorrelationHandlerTest {
       when(zeebeClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
 
       // when
-      handler.correlate(properties, variables);
+      handler.correlate(Map.of(), point, variables);
 
       // then
       ArgumentCaptor<Map> argumentsCaptured = ArgumentCaptor.forClass(Map.class);
@@ -299,14 +253,7 @@ public class InboundCorrelationHandlerTest {
     void resultVarProvided_noResultExpr_shouldCopyAllVarsToResultVar() {
       // given
       var point = new StartEventCorrelationPoint(0, "process1", 0);
-      var properties =
-          InboundConnectorPropertiesBuilder.create()
-              .correlationPoint(point)
-              .bpmnProcessId("process1")
-              .processDefinitionKey(0)
-              .version(0)
-              .resultVariable("resultVar")
-              .build();
+      var properties = Map.of(Constants.RESULT_VARIABLE_KEYWORD, "resultVar");
 
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
@@ -314,7 +261,7 @@ public class InboundCorrelationHandlerTest {
       when(zeebeClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
 
       // when
-      handler.correlate(properties, variables);
+      handler.correlate(properties, point, variables);
 
       // then
       ArgumentCaptor<Map> argumentsCaptured = ArgumentCaptor.forClass(Map.class);
@@ -328,14 +275,7 @@ public class InboundCorrelationHandlerTest {
     void noResultVar_resultExprProvided_shouldExtractVariables() {
       // given
       var point = new StartEventCorrelationPoint(0, "process1", 0);
-      var properties =
-          InboundConnectorPropertiesBuilder.create()
-              .correlationPoint(point)
-              .bpmnProcessId("process1")
-              .processDefinitionKey(0)
-              .version(0)
-              .resultExpression("={otherKeyAlias: otherKey}")
-              .build();
+      var properties = Map.of(Constants.RESULT_EXPRESSION_KEYWORD, "={otherKeyAlias: otherKey}");
 
       Map<String, Object> variables = Map.of("testKey", "testValue", "otherKey", "otherValue");
 
@@ -343,7 +283,7 @@ public class InboundCorrelationHandlerTest {
       when(zeebeClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
 
       // when
-      handler.correlate(properties, variables);
+      handler.correlate(properties, point, variables);
 
       // then
       ArgumentCaptor<Map> argumentsCaptured = ArgumentCaptor.forClass(Map.class);
@@ -357,15 +297,9 @@ public class InboundCorrelationHandlerTest {
     void resultVarProvided_resultExprProvided_shouldExtractVarsAndCopyAllVarsToResultVar() {
       // given
       var point = new StartEventCorrelationPoint(0, "process1", 0);
-      var properties =
-          InboundConnectorPropertiesBuilder.create()
-              .correlationPoint(point)
-              .bpmnProcessId("process1")
-              .processDefinitionKey(0)
-              .version(0)
-              .resultVariable("resultVar")
-              .resultExpression("={otherKeyAlias: otherKey}")
-              .build();
+      var properties = Map.of(
+          Constants.RESULT_VARIABLE_KEYWORD, "resultVar",
+          Constants.RESULT_EXPRESSION_KEYWORD, "={otherKeyAlias: otherKey}");
 
       Map<String, Object> variables = Map.of("testKey", "testValue", "otherKey", "otherValue");
 
@@ -373,7 +307,7 @@ public class InboundCorrelationHandlerTest {
       when(zeebeClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
 
       // when
-      handler.correlate(properties, variables);
+      handler.correlate(properties, point, variables);
 
       // then
       ArgumentCaptor<Map> argumentsCaptured = ArgumentCaptor.forClass(Map.class);
@@ -388,36 +322,6 @@ public class InboundCorrelationHandlerTest {
                       "testKey", "testValue"),
                   "otherKeyAlias",
                   "otherValue"));
-    }
-
-    @Test
-    void legacyVariableMappingProvided_shouldNotExtractVariables() {
-      // given
-      var point = new StartEventCorrelationPoint(0, "process1", 0);
-      // no resultVariable or resultExpression, but legacy inbound.variableMapping
-      var properties =
-          InboundConnectorPropertiesBuilder.create()
-              .correlationPoint(point)
-              .bpmnProcessId("process1")
-              .processDefinitionKey(0)
-              .version(0)
-              .property(Constants.LEGACY_VARIABLE_MAPPING_KEYWORD, "={otherKeyAlias: otherKey}")
-              .build();
-
-      Map<String, Object> variables = Map.of("otherKeyAlias", "otherValue");
-
-      var dummyCommand = spy(new CreateCommandDummy());
-      when(zeebeClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
-
-      // when
-      handler.correlate(properties, variables);
-
-      // then
-      ArgumentCaptor<Map> argumentsCaptured = ArgumentCaptor.forClass(Map.class);
-      verify(dummyCommand).variables((Map<String, String>) argumentsCaptured.capture());
-
-      assertThat(argumentsCaptured.getValue())
-          .containsExactlyInAnyOrderEntriesOf(Map.of("otherKeyAlias", "otherValue"));
     }
   }
 }

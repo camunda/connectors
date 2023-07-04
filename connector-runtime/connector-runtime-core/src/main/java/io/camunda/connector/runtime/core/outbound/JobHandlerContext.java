@@ -16,11 +16,13 @@
  */
 package io.camunda.connector.runtime.core.outbound;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
+import io.camunda.connector.impl.ConnectorInputException;
 import io.camunda.connector.impl.context.AbstractConnectorContext;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import java.util.Map;
@@ -28,8 +30,8 @@ import java.util.Objects;
 
 /**
  * Implementation of {@link io.camunda.connector.api.outbound.OutboundConnectorContext} passed on to
- * a {@link io.camunda.connector.api.outbound.OutboundConnectorFunction} when called from the {@link
- * ConnectorJobHandler}.
+ * a {@link io.camunda.connector.api.outbound.OutboundConnectorFunction} when called from the
+ * {@link ConnectorJobHandler}.
  */
 public class JobHandlerContext extends AbstractConnectorContext
     implements OutboundConnectorContext {
@@ -73,17 +75,25 @@ public class JobHandlerContext extends AbstractConnectorContext
     return jsonWithSecrets;
   }
 
+  private <T> T mapJson(String json, TypeReference<T> type) {
+    try {
+      return objectMapper.readValue(json, type);
+    } catch (Exception e) {
+      throw new ConnectorException("JSON_MAPPING", "Error during json mapping.");
+    }
+  }
+
   private <T> T mapJson(String json, Class<T> cls) {
     try {
-      return objectMapper.readValue(getJsonReplacedWithSecrets(), cls);
+      return objectMapper.readValue(json, cls);
     } catch (Exception e) {
       throw new ConnectorException("JSON_MAPPING", "Error during json mapping.");
     }
   }
 
   @Override
-  public String getVariables() {
-    return getJsonReplacedWithSecrets();
+  public Map<String, Object> getVariables() {
+      return mapJson(getJsonReplacedWithSecrets(), new TypeReference<>() {});
   }
 
   @Override
