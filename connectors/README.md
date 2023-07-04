@@ -15,7 +15,7 @@ mvn clean verify
 Use the [Camunda Connector Runtime](https://github.com/camunda-community-hub/spring-zeebe/tree/master/connector-runtime#building-connector-runtime-bundles) to run your function as a local Java application.
 
 In your IDE you can also simply navigate to the
-[LocalContainerRuntime](../bundle/default-bundle/src/test/java/io/camunda/connector/bundle/LocalConnectorRuntime.java)
+[LocalContainerRuntime](../bundle/default-bundle/src/test/java/io/camunda/connector/bundle/io.camunda.coonnector.runtime.app.LocalConnectorRuntime.java)
 class in test scope of the `default-bundle` module and run it via your IDE.
 
 ## Element Template
