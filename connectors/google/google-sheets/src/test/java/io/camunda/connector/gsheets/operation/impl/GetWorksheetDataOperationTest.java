@@ -50,7 +50,7 @@ class GetWorksheetDataOperationTest extends BaseTest {
   @Test
   void getWorksheetData_shouldGetWorksheetData() throws IOException {
     // Given
-    GetWorksheetData model = new GetWorksheetData(SPREADSHEET_ID, WORKSHEET_NAME, null);
+    GetWorksheetData model = new GetWorksheetData(SPREADSHEET_ID, WORKSHEET_NAME);
     List<List<Object>> values = List.of(List.of());
     ValueRange valueRange = new ValueRange().setValues(values);
 

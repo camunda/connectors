@@ -25,6 +25,7 @@ import io.camunda.connector.gsheets.model.request.impl.GetWorksheetData;
 import io.camunda.connector.gsheets.supplier.GsonSheetsComponentSupplier;
 import io.camunda.connector.impl.ConnectorInputException;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
+import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import io.camunda.google.model.Authentication;
 import io.camunda.google.model.AuthenticationType;
 import java.io.IOException;
@@ -56,11 +57,10 @@ class GoogleSheetsRequestTest extends BaseTest {
   @MethodSource("successRequestCases")
   void replaceSecrets_shouldReplaceAllSecrets(final String input) {
     // Given
-    GoogleSheetsRequest request = GSON.fromJson(input, GoogleSheetsRequest.class);
-    OutboundConnectorContext context = buildContext();
+    OutboundConnectorContext context = buildContext(input);
 
     // When
-    context.replaceSecrets(request);
+    var request = context.bindVariables(GoogleSheetsRequest.class);
 
     // Then
     verifyAuthentication(request.getAuthentication());
@@ -72,15 +72,19 @@ class GoogleSheetsRequestTest extends BaseTest {
   @MethodSource("failRequestCases")
   void validateWith_shouldThrowExceptionWhenNonExistLeastOneRequireField(final String input) {
     // Given
-    GoogleSheetsRequest request = GSON.fromJson(input, GoogleSheetsRequest.class);
-    OutboundConnectorContext context = OutboundConnectorContextBuilder.create().build();
+    OutboundConnectorContext context =
+        OutboundConnectorContextBuilder.create()
+            .validation(new DefaultValidationProvider())
+            .variables(input)
+            .build();
     // When and Then
     ConnectorInputException thrown =
-        assertThrows(ConnectorInputException.class, () -> context.validate(request));
+        assertThrows(
+            ConnectorInputException.class, () -> context.bindVariables(GoogleSheetsRequest.class));
     assertThat(thrown.getMessage()).contains("Found constraints violated while validating input:");
   }
 
-  private static OutboundConnectorContext buildContext() {
+  private static OutboundConnectorContext buildContext(String input) {
     return OutboundConnectorContextBuilder.create()
         .secret(SECRET_BEARER_TOKEN, ACTUAL_BEARER_TOKEN)
         .secret(SECRET_REFRESH_TOKEN, ACTUAL_REFRESH_TOKEN)
@@ -93,6 +97,7 @@ class GoogleSheetsRequestTest extends BaseTest {
         .secret(SECRET_CELL_ID, ACTUAL_CELL_ID)
         .secret(SECRET_CELL_VALUE, ACTUAL_CELL_VALUE)
         .secret(SECRET_ROW, ACTUAL_ROW)
+        .variables(input)
         .build();
   }
 

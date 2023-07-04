@@ -17,10 +17,12 @@
 
 package io.camunda.connector.runtime.core.outbound;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.BpmnError;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.secret.SecretProvider;
+import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.ConnectorHelper;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
@@ -42,13 +44,19 @@ public class ConnectorJobHandler implements JobHandler {
   protected final OutboundConnectorFunction call;
   protected SecretProvider secretProvider;
 
+  protected ValidationProvider validationProvider;
+
+  protected ObjectMapper objectMapper;
+
   /**
    * Create a handler wrapper for the specified connector function.
    *
    * @param call - the connector function to call
    */
-  public ConnectorJobHandler(final OutboundConnectorFunction call) {
+  public ConnectorJobHandler(
+      final OutboundConnectorFunction call, ValidationProvider validationProvider) {
     this.call = call;
+    this.validationProvider = validationProvider;
   }
 
   /**
@@ -57,22 +65,27 @@ public class ConnectorJobHandler implements JobHandler {
    * @param call - the connector function to call
    */
   public ConnectorJobHandler(
-      final OutboundConnectorFunction call, final SecretProvider secretProvider) {
+      final OutboundConnectorFunction call,
+      final SecretProvider secretProvider,
+      final ValidationProvider validationProvider,
+      final ObjectMapper objectMapper) {
     this.call = call;
     this.secretProvider = secretProvider;
+    this.validationProvider = validationProvider;
+    this.objectMapper = objectMapper;
   }
 
   @Override
   public void handle(final JobClient client, final ActivatedJob job) {
-
     LOGGER.info("Received job {}", job.getKey());
-
     final ConnectorResult result = new ConnectorResult();
     try {
-      result.setResponseValue(call.execute(new JobHandlerContext(job, getSecretProvider())));
+      var context =
+          new JobHandlerContext(job, getSecretProvider(), validationProvider, objectMapper);
+      var response = call.execute(context);
+      result.setResponseValue(response);
       result.setVariables(
           ConnectorHelper.createOutputVariables(result.getResponseValue(), job.getCustomHeaders()));
-
     } catch (Exception ex) {
       LOGGER.debug("Exception while processing job {}", job.getKey(), ex);
       result.setResponseValue(Map.of("error", toMap(ex)));

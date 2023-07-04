@@ -11,9 +11,9 @@ import static org.mockito.ArgumentMatchers.any;
 
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.gdrive.model.GoogleDriveResult;
-import io.camunda.connector.gdrive.model.request.GoogleDriveRequest;
 import io.camunda.connector.gdrive.model.request.Resource;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
+import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import io.camunda.google.supplier.GsonComponentSupplier;
 import java.io.IOException;
 import java.util.stream.Stream;
@@ -40,15 +40,12 @@ class GoogleDriveFunctionTest extends BaseTest {
     OutboundConnectorContext context =
         OutboundConnectorContextBuilder.create()
             .variables(input)
+            .validation(new DefaultValidationProvider())
             .secret(SECRET_BEARER_TOKEN, ACTUAL_BEARER_TOKEN)
             .secret(SECRET_REFRESH_TOKEN, ACTUAL_REFRESH_TOKEN)
             .secret(SECRET_OAUTH_CLIENT_ID, ACTUAL_OAUTH_CLIENT_ID)
             .secret(SECRET_OAUTH_SECRET_ID, ACTUAL_OAUTH_SECRET_ID)
             .build();
-
-    GoogleDriveRequest request = parseInput(input, GoogleDriveRequest.class);
-
-    context.replaceSecrets(request);
 
     GoogleDriveResult googleDriveResult = new GoogleDriveResult();
     googleDriveResult.setGoogleDriveResourceId(FILE_ID);

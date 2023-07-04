@@ -6,32 +6,21 @@
  */
 package io.camunda.connector.gsheets.model.request.impl;
 
-import io.camunda.connector.api.annotation.Secret;
-import io.camunda.connector.gsheets.model.request.Input;
+import io.camunda.connector.gsheets.model.request.SpreadsheetInput;
 import java.util.Objects;
 import javax.validation.constraints.NotBlank;
 
-public class CreateWorksheet implements Input {
+public class CreateWorksheet extends SpreadsheetInput {
 
-  @NotBlank @Secret private String spreadsheetId;
-  @NotBlank @Secret private String worksheetName;
+  @NotBlank private String worksheetName;
   private Integer worksheetIndex;
-  private String type;
 
-  public CreateWorksheet(
-      String spreadsheetId, String worksheetName, Integer worksheetIndex, String type) {
-    this.spreadsheetId = spreadsheetId;
+  public CreateWorksheet() {}
+
+  public CreateWorksheet(String spreadsheetId, String worksheetName, Integer worksheetIndex) {
+    super(spreadsheetId);
     this.worksheetName = worksheetName;
     this.worksheetIndex = worksheetIndex;
-    this.type = type;
-  }
-
-  public String getSpreadsheetId() {
-    return spreadsheetId;
-  }
-
-  public void setSpreadsheetId(String spreadsheetId) {
-    this.spreadsheetId = spreadsheetId;
   }
 
   public String getWorksheetName() {
@@ -51,49 +40,28 @@ public class CreateWorksheet implements Input {
   }
 
   @Override
-  public String getType() {
-    return type;
-  }
-
-  @Override
-  public void setType(String type) {
-    this.type = type;
-  }
-
-  @Override
   public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
     CreateWorksheet that = (CreateWorksheet) o;
-    return Objects.equals(spreadsheetId, that.spreadsheetId)
-        && Objects.equals(worksheetName, that.worksheetName)
-        && Objects.equals(worksheetIndex, that.worksheetIndex)
-        && Objects.equals(type, that.type);
+    return Objects.equals(worksheetName, that.worksheetName)
+        && Objects.equals(worksheetIndex, that.worksheetIndex);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(spreadsheetId, worksheetName, worksheetIndex, type);
+    return Objects.hash(worksheetName, worksheetIndex);
   }
 
   @Override
   public String toString() {
     return "CreateWorksheet{"
-        + "spreadsheetId='"
-        + spreadsheetId
-        + '\''
-        + ", worksheetName='"
+        + "worksheetName='"
         + worksheetName
         + '\''
         + ", worksheetIndex="
         + worksheetIndex
-        + ", type='"
-        + type
-        + '\''
-        + '}';
+        + "} "
+        + super.toString();
   }
 }

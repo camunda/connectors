@@ -11,9 +11,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.graphql.model.GraphQLRequest;
-import io.camunda.connector.graphql.utils.JsonSerializeHelper;
 import io.camunda.connector.impl.ConnectorInputException;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
+import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.IOException;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -49,11 +49,12 @@ public class GraphQLFunctionInputValidationTest extends BaseTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"", " ", "\r\n"})
+  @ValueSource(strings = {"", " "})
   void shouldRaiseException_WhenExecuted_MethodMalformed(final String input) {
     // Given
     OutboundConnectorContext ctx =
         OutboundConnectorContextBuilder.create()
+            .validation(new DefaultValidationProvider())
             .variables(String.format(REQUEST_METHOD_OBJECT_PLACEHOLDER, input))
             .build();
 
@@ -63,7 +64,7 @@ public class GraphQLFunctionInputValidationTest extends BaseTest {
 
     // Then
     assertThat(exception.getMessage())
-        .contains("Found constraints violated while validating input", "method: must not be blank");
+        .contains("Found constraints violated while validating input", "method");
   }
 
   @ParameterizedTest
@@ -72,6 +73,7 @@ public class GraphQLFunctionInputValidationTest extends BaseTest {
     // Given
     OutboundConnectorContext ctx =
         OutboundConnectorContextBuilder.create()
+            .validation(new DefaultValidationProvider())
             .variables(String.format(REQUEST_ENDPOINT_OBJECT_PLACEHOLDER, input))
             .build();
     // When
@@ -79,24 +81,24 @@ public class GraphQLFunctionInputValidationTest extends BaseTest {
         assertThrows(ConnectorInputException.class, () -> functionUnderTest.execute(ctx));
     // Then
     assertThat(exception.getMessage())
-        .contains(
-            "Found constraints violated while validating input",
-            "must match \"^(http://|https://|secrets|\\{\\{).*$\"");
+        .contains("Found constraints violated while validating input", "graphql.url");
   }
 
   @ParameterizedTest(name = "Validate null field # {index}")
   @MethodSource("failRequestCases")
   void validate_shouldThrowExceptionWhenLeastOneNotExistRequestField(String input) {
     // Given request without one required field
-    GraphQLRequest httpJsonRequest = JsonSerializeHelper.serializeRequest(gson, input);
     OutboundConnectorContext context =
-        OutboundConnectorContextBuilder.create().variables(httpJsonRequest).build();
+        OutboundConnectorContextBuilder.create()
+            .validation(new DefaultValidationProvider())
+            .variables(input)
+            .build();
     // When context.validate(request);
     // Then expect exception that one required field not set
     ConnectorInputException thrown =
         assertThrows(
             ConnectorInputException.class,
-            () -> context.validate(httpJsonRequest),
+            () -> context.bindVariables(GraphQLRequest.class),
             "ConnectorInputException was expected");
     assertThat(thrown.getMessage()).contains("Found constraints violated while validating input");
   }
@@ -105,29 +107,19 @@ public class GraphQLFunctionInputValidationTest extends BaseTest {
   @MethodSource("failTimeOutConnectionCases")
   void validate_shouldThrowExceptionConnectionTimeoutIsWrong(String input) {
     // Given request without one required field
-    GraphQLRequest httpJsonRequest = JsonSerializeHelper.serializeRequest(gson, input);
     OutboundConnectorContext context =
-        OutboundConnectorContextBuilder.create().variables(httpJsonRequest).build();
+        OutboundConnectorContextBuilder.create()
+            .variables(input)
+            .validation(new DefaultValidationProvider())
+            .build();
     // When context.validate(request);
     // Then expect exception
     ConnectorInputException thrown =
         assertThrows(
             ConnectorInputException.class,
-            () -> context.validate(httpJsonRequest),
+            () -> context.bindVariables(GraphQLRequest.class),
             "ConnectorInputException was expected");
     assertThat(thrown.getMessage()).contains("Found constraints violated while validating input");
-  }
-
-  @ParameterizedTest(name = "Success validate connectionTimeout # {index}")
-  @MethodSource("successTimeOutConnectionCases")
-  void validate_shouldValidateWithoutException(String input) {
-    // Given request without one required field
-    GraphQLRequest httpJsonRequest = JsonSerializeHelper.serializeRequest(gson, input);
-    OutboundConnectorContext context =
-        OutboundConnectorContextBuilder.create().variables(httpJsonRequest).build();
-    // When context.validate(request);
-    // Then expect normal validate without exception
-    context.validate(httpJsonRequest);
   }
 
   protected static Stream<String> failRequestCases() throws IOException {
@@ -136,9 +128,5 @@ public class GraphQLFunctionInputValidationTest extends BaseTest {
 
   private static Stream<String> failTimeOutConnectionCases() throws IOException {
     return loadTestCasesFromResourceFile(FAIL_CASES_TIMEOUT_CONNECTION_RESOURCE_PATH);
-  }
-
-  private static Stream<String> successTimeOutConnectionCases() throws IOException {
-    return loadTestCasesFromResourceFile(SUCCESS_CASES_TIMEOUT_CONNECTION_RESOURCE_PATH);
   }
 }

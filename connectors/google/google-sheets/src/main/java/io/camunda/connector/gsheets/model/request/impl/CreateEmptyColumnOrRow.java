@@ -6,21 +6,19 @@
  */
 package io.camunda.connector.gsheets.model.request.impl;
 
-import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.gsheets.model.request.Dimension;
-import io.camunda.connector.gsheets.model.request.Input;
+import io.camunda.connector.gsheets.model.request.SpreadsheetInput;
 import java.util.Objects;
-import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
-public class CreateEmptyColumnOrRow implements Input {
+public class CreateEmptyColumnOrRow extends SpreadsheetInput {
 
-  @NotBlank @Secret private String spreadsheetId;
   @NotNull private Integer worksheetId;
   @NotNull private Dimension dimension;
   private Integer startIndex;
   private Integer endIndex;
-  private String type;
+
+  public CreateEmptyColumnOrRow() {}
 
   public CreateEmptyColumnOrRow(
       String spreadsheetId,
@@ -29,20 +27,11 @@ public class CreateEmptyColumnOrRow implements Input {
       Integer startIndex,
       Integer endIndex,
       String type) {
-    this.spreadsheetId = spreadsheetId;
+    super(spreadsheetId);
     this.worksheetId = worksheetId;
     this.dimension = dimension;
     this.startIndex = startIndex;
     this.endIndex = endIndex;
-    this.type = type;
-  }
-
-  public String getSpreadsheetId() {
-    return spreadsheetId;
-  }
-
-  public void setSpreadsheetId(String spreadsheetId) {
-    this.spreadsheetId = spreadsheetId;
   }
 
   public Integer getWorksheetId() {
@@ -78,44 +67,25 @@ public class CreateEmptyColumnOrRow implements Input {
   }
 
   @Override
-  public String getType() {
-    return type;
-  }
-
-  @Override
-  public void setType(String type) {
-    this.type = type;
-  }
-
-  @Override
   public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
     CreateEmptyColumnOrRow that = (CreateEmptyColumnOrRow) o;
-    return Objects.equals(spreadsheetId, that.spreadsheetId)
-        && Objects.equals(worksheetId, that.worksheetId)
+    return Objects.equals(worksheetId, that.worksheetId)
         && dimension == that.dimension
         && Objects.equals(startIndex, that.startIndex)
-        && Objects.equals(endIndex, that.endIndex)
-        && Objects.equals(type, that.type);
+        && Objects.equals(endIndex, that.endIndex);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(spreadsheetId, worksheetId, dimension, startIndex, endIndex, type);
+    return Objects.hash(worksheetId, dimension, startIndex, endIndex);
   }
 
   @Override
   public String toString() {
     return "CreateEmptyColumnOrRow{"
-        + "spreadsheetId='"
-        + spreadsheetId
-        + '\''
-        + ", worksheetId="
+        + "worksheetId="
         + worksheetId
         + ", dimension="
         + dimension
@@ -123,9 +93,7 @@ public class CreateEmptyColumnOrRow implements Input {
         + startIndex
         + ", endIndex="
         + endIndex
-        + ", type='"
-        + type
-        + '\''
-        + '}';
+        + "} "
+        + super.toString();
   }
 }

@@ -10,9 +10,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.readString;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.aws.ObjectMapperSupplier;
-import io.camunda.connector.awslambda.model.AwsLambdaRequest;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import java.io.File;
 import java.io.IOException;
@@ -53,15 +53,15 @@ public abstract class BaseTest {
   protected static final String FAIL_REQUEST_CASE_PATH =
       "src/test/resources/requests/lambda-connector-fail-test-case.json";
 
-  protected static Stream<AwsLambdaRequest> successRequestCases() throws IOException {
+  protected static Stream<String> successRequestCases() throws IOException {
     return BaseTest.loadTestCasesFromResourceFile(SUCCESS_REQUEST_CASE_PATH);
   }
 
-  protected static Stream<AwsLambdaRequest> successSecretsRequestCases() throws IOException {
+  protected static Stream<String> successSecretsRequestCases() throws IOException {
     return BaseTest.loadTestCasesFromResourceFile(SUCCESS_REQUEST_WITH_SECRETS_CASE_PATH);
   }
 
-  protected static Stream<AwsLambdaRequest> failRequestCases() throws IOException {
+  protected static Stream<String> failRequestCases() throws IOException {
     return BaseTest.loadTestCasesFromResourceFile(FAIL_REQUEST_CASE_PATH);
   }
 
@@ -73,9 +73,10 @@ public abstract class BaseTest {
         .secret(FUNCTION_NAME_KEY, ACTUAL_FUNCTION_NAME);
   }
 
-  protected static Stream<AwsLambdaRequest> loadTestCasesFromResourceFile(
-      final String fileWithTestCasesUri) throws IOException {
+  protected static Stream<String> loadTestCasesFromResourceFile(final String fileWithTestCasesUri)
+      throws IOException {
     final String cases = readString(new File(fileWithTestCasesUri).toPath(), UTF_8);
-    return objectMapper.readValue(cases, new TypeReference<List<AwsLambdaRequest>>() {}).stream();
+    return objectMapper.readValue(cases, new TypeReference<List<JsonNode>>() {}).stream()
+        .map(JsonNode::toString);
   }
 }

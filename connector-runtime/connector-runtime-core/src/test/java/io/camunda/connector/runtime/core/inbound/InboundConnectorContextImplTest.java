@@ -43,7 +43,7 @@ class InboundConnectorContextImplTest {
             0,
             "id");
     InboundConnectorContextImpl inboundConnectorContext =
-        new InboundConnectorContextImpl(secretProvider, properties, null, (e) -> {});
+        new InboundConnectorContextImpl(secretProvider, (e) -> {}, properties, null, (e) -> {});
     // when and then
     RuntimeException exception =
         assertThrows(
@@ -64,7 +64,7 @@ class InboundConnectorContextImplTest {
             0,
             "id");
     InboundConnectorContextImpl inboundConnectorContext =
-        new InboundConnectorContextImpl(secretProvider, properties, null, (e) -> {});
+        new InboundConnectorContextImpl(secretProvider, (e) -> {}, properties, null, (e) -> {});
     // when
     TestPropertiesClass propertiesAsType =
         inboundConnectorContext.getPropertiesAsType(TestPropertiesClass.class);
@@ -88,7 +88,7 @@ class InboundConnectorContextImplTest {
             0,
             "id");
     InboundConnectorContextImpl inboundConnectorContext =
-        new InboundConnectorContextImpl(secretProvider, properties, null, (e) -> {});
+        new InboundConnectorContextImpl(secretProvider, (e) -> {}, properties, null, (e) -> {});
     // when
     TestPropertiesClass propertiesAsType =
         inboundConnectorContext.getPropertiesAsType(TestPropertiesClass.class);
@@ -129,7 +129,7 @@ class InboundConnectorContextImplTest {
             0,
             "id");
     InboundConnectorContextImpl inboundConnectorContext =
-        new InboundConnectorContextImpl(secretProvider, properties, null, (e) -> {});
+        new InboundConnectorContextImpl(secretProvider, (e) -> {}, properties, null, (e) -> {});
     // when
     TestPropertiesClass propertiesAsType =
         inboundConnectorContext.getPropertiesAsType(TestPropertiesClass.class);

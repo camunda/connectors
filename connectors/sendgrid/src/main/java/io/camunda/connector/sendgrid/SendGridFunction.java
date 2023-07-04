@@ -42,19 +42,12 @@ public class SendGridFunction implements OutboundConnectorFunction {
 
   @Override
   public Object execute(OutboundConnectorContext context) throws Exception {
-
-    final var request = context.getVariablesAsType(SendGridRequest.class);
-    context.validate(request);
-    context.replaceSecrets(request);
-
+    final var request = context.bindVariables(SendGridRequest.class);
     SendGrid sendGrid = sendGridSupplier.sendGrid(request.getApiKey());
-
     final var mail = createEmail(request);
     final var result = sendEmail(mail, sendGrid);
-
     final int statusCode = result.getStatusCode();
     LOGGER.info("Received response from SendGrid with code {}", statusCode);
-
     if (statusCode != 202) {
       final SendGridErrors errors = gson.fromJson(result.getBody(), SendGridErrors.class);
       final var exceptionMessage =
@@ -64,7 +57,6 @@ public class SendGridFunction implements OutboundConnectorFunction {
       LOGGER.info(exceptionMessage);
       throw new IllegalArgumentException(exceptionMessage);
     }
-
     return null;
   }
 

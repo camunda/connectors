@@ -41,7 +41,7 @@ public class KafkaConnectorProperties {
 
     public final String label;
 
-    private AutoOffsetReset(String label) {
+    AutoOffsetReset(String label) {
       this.label = label;
     }
 

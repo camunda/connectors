@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.inbound.lifecycle;
 
+import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.inbound.DefaultInboundConnectorFactory;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
@@ -43,6 +44,7 @@ public class InboundConnectorLifecycleConfiguration {
       InboundCorrelationHandler correlationHandler,
       ProcessDefinitionInspector processDefinitionInspector,
       SecretProviderAggregator secretProviderAggregator,
+      @Autowired(required = false) ValidationProvider validationProvider,
       MetricsRecorder metricsRecorder,
       @Autowired(required = false) WebhookConnectorRegistry webhookConnectorRegistry) {
     return new InboundConnectorManager(
@@ -50,6 +52,7 @@ public class InboundConnectorLifecycleConfiguration {
         correlationHandler,
         processDefinitionInspector,
         secretProviderAggregator,
+        validationProvider,
         metricsRecorder,
         webhookConnectorRegistry);
   }

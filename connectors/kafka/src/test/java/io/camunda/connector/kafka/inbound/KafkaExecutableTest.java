@@ -22,6 +22,7 @@ import com.google.gson.Gson;
 import io.camunda.connector.kafka.outbound.model.KafkaTopic;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
 import io.camunda.connector.test.inbound.InboundConnectorPropertiesBuilder;
+import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
@@ -80,6 +81,7 @@ public class KafkaExecutableTest {
                 InboundConnectorPropertiesBuilder.create()
                     .properties(propertiesMap)
                     .bpmnProcessId(processId))
+            .validation(new DefaultValidationProvider())
             .build();
     originalContext = context;
   }
@@ -164,7 +166,7 @@ public class KafkaExecutableTest {
 
   private static Stream<Arguments> provideStringsForGetOffsets() {
     return Stream.of(
-        Arguments.of("10", Arrays.asList(10L)),
+        Arguments.of("10", List.of(10L)),
         Arguments.of("10,12", Arrays.asList(10L, 12L)),
         Arguments.of(Arrays.asList(10L, 12L), Arrays.asList(10L, 12L)),
         Arguments.of("1,2,3,4,5", Arrays.asList(1L, 2L, 3L, 4L, 5L)));

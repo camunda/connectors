@@ -6,36 +6,32 @@
  */
 package io.camunda.connector.gsheets.model.request.impl;
 
-import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.gsheets.model.request.ColumnIndexType;
-import io.camunda.connector.gsheets.model.request.Input;
+import io.camunda.connector.gsheets.model.request.SpreadsheetInput;
 import java.util.Objects;
 import javax.validation.constraints.AssertTrue;
-import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
-public class DeleteColumn implements Input {
+public class DeleteColumn extends SpreadsheetInput {
 
-  @NotBlank @Secret private String spreadsheetId;
   @NotNull private Integer worksheetId;
   @NotNull private ColumnIndexType columnIndexType;
   private Integer columnNumberIndex;
-  @Secret private String columnLetterIndex;
-  private String type;
+  private String columnLetterIndex;
+
+  public DeleteColumn() {}
 
   public DeleteColumn(
       String spreadsheetId,
       Integer worksheetId,
       ColumnIndexType columnIndexType,
       Integer columnNumberIndex,
-      String columnLetterIndex,
-      String type) {
-    this.spreadsheetId = spreadsheetId;
+      String columnLetterIndex) {
+    super(spreadsheetId);
     this.worksheetId = worksheetId;
     this.columnIndexType = columnIndexType;
     this.columnNumberIndex = columnNumberIndex;
     this.columnLetterIndex = columnLetterIndex;
-    this.type = type;
   }
 
   @AssertTrue(message = "Column index cannot be blank")
@@ -47,14 +43,6 @@ public class DeleteColumn implements Input {
     }
 
     return null != this.columnNumberIndex;
-  }
-
-  public String getSpreadsheetId() {
-    return spreadsheetId;
-  }
-
-  public void setSpreadsheetId(String spreadsheetId) {
-    this.spreadsheetId = spreadsheetId;
   }
 
   public Integer getWorksheetId() {
@@ -90,45 +78,25 @@ public class DeleteColumn implements Input {
   }
 
   @Override
-  public String getType() {
-    return type;
-  }
-
-  @Override
-  public void setType(String type) {
-    this.type = type;
-  }
-
-  @Override
   public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
     DeleteColumn that = (DeleteColumn) o;
-    return Objects.equals(spreadsheetId, that.spreadsheetId)
-        && Objects.equals(worksheetId, that.worksheetId)
+    return Objects.equals(worksheetId, that.worksheetId)
         && columnIndexType == that.columnIndexType
         && Objects.equals(columnNumberIndex, that.columnNumberIndex)
-        && Objects.equals(columnLetterIndex, that.columnLetterIndex)
-        && Objects.equals(type, that.type);
+        && Objects.equals(columnLetterIndex, that.columnLetterIndex);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(
-        spreadsheetId, worksheetId, columnIndexType, columnNumberIndex, columnLetterIndex, type);
+    return Objects.hash(worksheetId, columnIndexType, columnNumberIndex, columnLetterIndex);
   }
 
   @Override
   public String toString() {
     return "DeleteColumn{"
-        + "spreadsheetId='"
-        + spreadsheetId
-        + '\''
-        + ", worksheetId="
+        + "worksheetId="
         + worksheetId
         + ", columnIndexType="
         + columnIndexType
@@ -137,9 +105,7 @@ public class DeleteColumn implements Input {
         + ", columnLetterIndex='"
         + columnLetterIndex
         + '\''
-        + ", type='"
-        + type
-        + '\''
-        + '}';
+        + "} "
+        + super.toString();
   }
 }

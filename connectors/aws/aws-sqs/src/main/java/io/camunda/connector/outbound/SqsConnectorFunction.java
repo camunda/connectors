@@ -47,23 +47,16 @@ public class SqsConnectorFunction implements OutboundConnectorFunction {
   }
 
   @Override
-  public Object execute(final OutboundConnectorContext context) throws JsonProcessingException {
-    final var variables = context.getVariables();
-    LOGGER.debug("Executing SQS connector with variables : {}", variables);
-    final var request = objectMapper.readValue(variables, SqsConnectorRequest.class);
-    context.validate(request);
-    context.replaceSecrets(request);
-
-    AWSCredentialsProvider provider = CredentialsProviderSupport.credentialsProvider(request);
-
+  public Object execute(final OutboundConnectorContext context) {
+    var request = context.bindVariables(SqsConnectorRequest.class);
     var region =
         AwsUtils.extractRegionOrDefault(request.getConfiguration(), request.getQueue().getRegion());
+    AWSCredentialsProvider provider = CredentialsProviderSupport.credentialsProvider(request);
     AmazonSQS sqsClient = sqsClientSupplier.sqsClient(provider, region);
     return new SqsConnectorResult(sendMsgToSqs(sqsClient, request.getQueue()).getMessageId());
   }
 
-  private SendMessageResult sendMsgToSqs(final AmazonSQS sqsClient, final QueueRequestData queue)
-      throws JsonProcessingException {
+  private SendMessageResult sendMsgToSqs(final AmazonSQS sqsClient, final QueueRequestData queue) {
     try {
       String payload =
           queue.getMessageBody() instanceof String
@@ -77,6 +70,8 @@ public class SqsConnectorFunction implements OutboundConnectorFunction {
               .withMessageGroupId(queue.getMessageGroupId())
               .withMessageDeduplicationId(queue.getMessageDeduplicationId());
       return sqsClient.sendMessage(message);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException("Error mapping payload to json.");
     } finally {
       if (sqsClient != null) {
         sqsClient.shutdown();

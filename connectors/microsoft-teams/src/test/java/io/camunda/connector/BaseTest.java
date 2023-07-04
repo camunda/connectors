@@ -8,11 +8,17 @@ package io.camunda.connector;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.readString;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.impl.ConnectorInputException;
+import io.camunda.connector.model.MSTeamsRequest;
 import io.camunda.connector.suppliers.ObjectMapperSupplier;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
+import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -190,5 +196,19 @@ public abstract class BaseTest {
               }
             })
         .map(Arguments::of);
+  }
+
+  protected static void assertValidationException(String input) {
+    OutboundConnectorContext context =
+        getContextBuilderWithSecrets()
+            .validation(new DefaultValidationProvider())
+            .variables(input)
+            .build();
+    ConnectorInputException thrown =
+        assertThrows(
+            ConnectorInputException.class,
+            () -> context.bindVariables(MSTeamsRequest.class),
+            "Exception was expected");
+    assertThat(thrown.getMessage()).contains("Found constraints violated while validating input");
   }
 }

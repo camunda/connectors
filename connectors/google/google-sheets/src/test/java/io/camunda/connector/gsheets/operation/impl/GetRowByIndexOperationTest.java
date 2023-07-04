@@ -50,7 +50,7 @@ class GetRowByIndexOperationTest extends BaseTest {
   @Test
   void getRow_shouldGetRowByIndexOnDefinedWorksheet() throws IOException {
     // Given
-    GetRowByIndex model = new GetRowByIndex(SPREADSHEET_ID, WORKSHEET_NAME, ROW_INDEX, null);
+    GetRowByIndex model = new GetRowByIndex(SPREADSHEET_ID, WORKSHEET_NAME, ROW_INDEX);
 
     List<Object> row = List.of(1);
     List<List<Object>> values = List.of(row);
@@ -84,7 +84,7 @@ class GetRowByIndexOperationTest extends BaseTest {
   @Test
   void getRow_shouldGetRowByIndex() throws IOException {
     // Given
-    GetRowByIndex model = new GetRowByIndex(SPREADSHEET_ID, null, ROW_INDEX, null);
+    GetRowByIndex model = new GetRowByIndex(SPREADSHEET_ID, null, ROW_INDEX);
 
     List<Object> row = List.of(1);
     List<List<Object>> values = List.of(row);

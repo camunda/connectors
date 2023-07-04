@@ -25,6 +25,7 @@ import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorResult;
 import io.camunda.connector.api.secret.SecretProvider;
+import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.impl.Constants;
 import io.camunda.connector.impl.context.AbstractConnectorContext;
 import io.camunda.connector.impl.inbound.InboundConnectorProperties;
@@ -62,10 +63,11 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   public InboundConnectorContextImpl(
       SecretProvider secretProvider,
+      ValidationProvider validationProvider,
       InboundConnectorProperties properties,
       InboundCorrelationHandler correlationHandler,
       Consumer<Throwable> cancellationCallback) {
-    super(secretProvider);
+    super(secretProvider, validationProvider);
     this.correlationHandler = correlationHandler;
     this.properties = properties;
     this.cancellationCallback = cancellationCallback;
@@ -80,11 +82,12 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   public InboundConnectorContextImpl(
       SecretProvider secretProvider,
+      ValidationProvider validationProvider,
       InboundConnectorProperties properties,
       InboundCorrelationHandler correlationHandler,
       ObjectMapper objectMapper,
       Consumer<Throwable> cancellationCallback) {
-    super(secretProvider);
+    super(secretProvider, validationProvider);
     this.correlationHandler = correlationHandler;
     this.properties = properties;
     this.objectMapper = objectMapper;

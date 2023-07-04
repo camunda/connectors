@@ -70,7 +70,7 @@ class HttpServiceTest extends BaseTest {
   void checkIfOAuthBearerTokenIsAddedOnTheRequestHeader(final String input) throws IOException {
     // given
     final var context = OutboundConnectorContextBuilder.create().variables(input).build();
-    final var httpJsonRequest = gson.fromJson(context.getVariables(), HttpJsonRequest.class);
+    final var httpJsonRequest = context.bindVariables(HttpJsonRequest.class);
 
     HttpRequestFactory factory = new MockHttpTransport().createRequestFactory();
     HttpRequest httpRequest =
@@ -94,7 +94,7 @@ class HttpServiceTest extends BaseTest {
       throws IOException, InstantiationException, IllegalAccessException {
     // given
     final var context = OutboundConnectorContextBuilder.create().variables(input).build();
-    final var httpJsonRequest = gson.fromJson(context.getVariables(), HttpJsonRequest.class);
+    final var httpJsonRequest = context.bindVariables(HttpJsonRequest.class);
 
     HttpTransport transport =
         new MockHttpTransport() {
@@ -113,6 +113,7 @@ class HttpServiceTest extends BaseTest {
             };
           }
         };
+
     HttpRequestFactory requestFactory = transport.createRequestFactory();
 
     // when

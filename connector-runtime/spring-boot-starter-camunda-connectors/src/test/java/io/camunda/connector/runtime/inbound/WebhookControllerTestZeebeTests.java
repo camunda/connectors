@@ -92,7 +92,7 @@ class WebhookControllerTestZeebeTests {
     var webhookProperties = webhookProperties("processA", 1, "myPath");
     var webhookContext =
         new InboundConnectorContextImpl(
-            secretProvider, webhookProperties, correlationHandler, (e) -> {});
+            secretProvider, v -> {}, webhookProperties, correlationHandler, (e) -> {});
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
@@ -135,7 +135,7 @@ class WebhookControllerTestZeebeTests {
     var webhookProperties = webhookProperties("nonExistingProcess", 1, "myPath");
     var webhookContext =
         new InboundConnectorContextImpl(
-            secretProvider, webhookProperties, correlationHandlerMock, (e) -> {});
+            secretProvider, v -> {}, webhookProperties, correlationHandlerMock, (e) -> {});
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
@@ -163,7 +163,7 @@ class WebhookControllerTestZeebeTests {
     var webhookProperties = webhookProperties("processA", 1, "myPath");
     var webhookContext =
         new InboundConnectorContextImpl(
-            secretProvider, webhookProperties, correlationHandler, (e) -> {});
+            secretProvider, v -> {}, webhookProperties, correlationHandler, (e) -> {});
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
@@ -190,7 +190,7 @@ class WebhookControllerTestZeebeTests {
     var webhookProperties = webhookProperties("processA", 1, "myPath");
     var webhookContext =
         new InboundConnectorContextImpl(
-            secretProvider, webhookProperties, correlationHandler, (e) -> {});
+            secretProvider, v -> {}, webhookProperties, correlationHandler, (e) -> {});
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
@@ -218,7 +218,7 @@ class WebhookControllerTestZeebeTests {
     var webhookProperties = webhookProperties("processA", 1, "myPath");
     var webhookContext =
         new InboundConnectorContextImpl(
-            secretProvider, webhookProperties, correlationHandler, (e) -> {});
+            secretProvider, v -> {}, webhookProperties, correlationHandler, (e) -> {});
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(

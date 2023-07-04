@@ -8,10 +8,11 @@ package io.camunda.connector.graphql.model;
 
 import io.camunda.connector.common.auth.Authentication;
 import java.util.Objects;
-import javax.validation.constraints.NotBlank;
+import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
 
 public class GraphQLRequestWrapper {
-  @NotBlank private GraphQLRequest graphql;
+  @Valid @NotNull private GraphQLRequest graphql;
   private Authentication authentication;
 
   public GraphQLRequest getGraphql() {

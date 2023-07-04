@@ -6,12 +6,10 @@
  */
 package io.camunda.connector.aws.dynamodb;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.aws.CredentialsProviderSupport;
-import io.camunda.connector.aws.ObjectMapperSupplier;
 
 @OutboundConnector(
     name = "AWS",
@@ -21,12 +19,8 @@ public class AwsDynamoDbServiceConnectorFunction implements OutboundConnectorFun
 
   @Override
   public Object execute(OutboundConnectorContext context) throws Exception {
-    final ObjectMapper objectMapper = ObjectMapperSupplier.getMapperInstance();
     final AwsDynamoDbOperationFactory operationFactory = AwsDynamoDbOperationFactory.getInstance();
-    final AwsDynamoDbRequest dynamoDbRequest =
-        objectMapper.readValue(context.getVariables(), AwsDynamoDbRequest.class);
-    context.validate(dynamoDbRequest);
-    context.replaceSecrets(dynamoDbRequest);
+    final AwsDynamoDbRequest dynamoDbRequest = context.bindVariables(AwsDynamoDbRequest.class);
     return operationFactory
         .createOperation(dynamoDbRequest.getInput())
         .invoke(

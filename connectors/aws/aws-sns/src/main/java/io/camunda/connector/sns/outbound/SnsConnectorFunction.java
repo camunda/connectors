@@ -20,7 +20,6 @@ import io.camunda.connector.aws.CredentialsProviderSupport;
 import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.sns.outbound.model.SnsConnectorRequest;
 import io.camunda.connector.sns.outbound.model.SnsConnectorResult;
-import io.camunda.connector.sns.outbound.model.TopicRequestData;
 import io.camunda.connector.sns.suppliers.SnsClientSupplier;
 import org.apache.commons.text.StringEscapeUtils;
 import org.slf4j.Logger;
@@ -47,33 +46,30 @@ public class SnsConnectorFunction implements OutboundConnectorFunction {
   }
 
   @Override
-  public Object execute(final OutboundConnectorContext context) throws JsonProcessingException {
-    final var variables = context.getVariables();
-    LOGGER.debug("Executing SNS connector with variables : {}", variables);
-    final var request = objectMapper.readValue(variables, SnsConnectorRequest.class);
-    context.validate(request);
-    context.replaceSecrets(request);
+  public Object execute(final OutboundConnectorContext context) {
+    final var request = context.bindVariables(SnsConnectorRequest.class);
     var region =
         AwsUtils.extractRegionOrDefault(request.getConfiguration(), request.getTopic().getRegion());
     AWSCredentialsProvider provider = CredentialsProviderSupport.credentialsProvider(request);
     AmazonSNS snsClient = snsClientSupplier.getSnsClient(provider, region);
-    return new SnsConnectorResult(sendMsgToSns(snsClient, request.getTopic()).getMessageId());
+    return new SnsConnectorResult(sendMsgToSns(snsClient, request).getMessageId());
   }
 
-  private PublishResult sendMsgToSns(final AmazonSNS snsClient, final TopicRequestData topic)
-      throws JsonProcessingException {
+  private PublishResult sendMsgToSns(final AmazonSNS snsClient, SnsConnectorRequest request) {
     try {
       String topicMessage =
-          topic.getMessage() instanceof String
-              ? StringEscapeUtils.unescapeJson(topic.getMessage().toString())
-              : objectMapper.writeValueAsString(topic.getMessage());
+          request.getTopic().getMessage() instanceof String
+              ? StringEscapeUtils.unescapeJson(request.getTopic().getMessage().toString())
+              : objectMapper.writeValueAsString(request.getTopic().getMessage());
       PublishRequest message =
           new PublishRequest()
-              .withTopicArn(topic.getTopicArn())
+              .withTopicArn(request.getTopic().getTopicArn())
               .withMessage(topicMessage)
-              .withMessageAttributes(topic.getAwsSnsNativeMessageAttributes())
-              .withSubject(topic.getSubject());
+              .withMessageAttributes(request.getTopic().getAwsSnsNativeMessageAttributes())
+              .withSubject(request.getTopic().getSubject());
       return snsClient.publish(message);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException("Error mapping message to json.");
     } finally {
       if (snsClient != null) {
         snsClient.shutdown();

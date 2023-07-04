@@ -19,8 +19,6 @@ import io.camunda.connector.aws.CredentialsProviderSupport;
 import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.awslambda.model.AwsLambdaRequest;
 import io.camunda.connector.awslambda.model.AwsLambdaResult;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @OutboundConnector(
     name = "AWSLambda",
@@ -28,7 +26,6 @@ import org.slf4j.LoggerFactory;
     type = "io.camunda:aws-lambda:1")
 public class LambdaConnectorFunction implements OutboundConnectorFunction {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(LambdaConnectorFunction.class);
   private final AwsLambdaSupplier awsLambdaSupplier;
   private final ObjectMapper objectMapper;
 
@@ -43,28 +40,26 @@ public class LambdaConnectorFunction implements OutboundConnectorFunction {
   }
 
   @Override
-  public Object execute(OutboundConnectorContext context) throws JsonProcessingException {
-    var request = context.getVariablesAsType(AwsLambdaRequest.class);
-    LOGGER.info("Executing my connector with request {}", request);
-    context.validate(request);
-    context.replaceSecrets(request);
+  public Object execute(OutboundConnectorContext context) {
+    var request = context.bindVariables(AwsLambdaRequest.class);
     return new AwsLambdaResult(invokeLambdaFunction(request), objectMapper);
   }
 
-  private InvokeResult invokeLambdaFunction(AwsLambdaRequest request)
-      throws JsonProcessingException {
+  private InvokeResult invokeLambdaFunction(AwsLambdaRequest request) {
     var region =
         AwsUtils.extractRegionOrDefault(
             request.getConfiguration(), request.getAwsFunction().getRegion());
     final AWSLambda awsLambda =
         awsLambdaSupplier.awsLambdaService(
             CredentialsProviderSupport.credentialsProvider(request), region);
-    final InvokeRequest invokeRequest =
-        new InvokeRequest()
-            .withFunctionName(request.getAwsFunction().getFunctionName())
-            .withPayload(objectMapper.writeValueAsString(request.getAwsFunction().getPayload()));
     try {
+      final InvokeRequest invokeRequest =
+          new InvokeRequest()
+              .withFunctionName(request.getAwsFunction().getFunctionName())
+              .withPayload(objectMapper.writeValueAsString(request.getAwsFunction().getPayload()));
       return awsLambda.invoke(invokeRequest);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException("Error mapping payload to json.");
     } finally {
       if (awsLambda != null) {
         awsLambda.shutdown();

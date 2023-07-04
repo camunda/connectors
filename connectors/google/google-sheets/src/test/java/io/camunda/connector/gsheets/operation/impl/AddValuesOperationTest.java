@@ -51,7 +51,7 @@ class AddValuesOperationTest extends BaseTest {
     List<List<Object>> values = List.of(List.of(1));
     ValueRange valueRange = new ValueRange().setValues(values);
 
-    AddValues model = new AddValues(SPREADSHEET_ID, WORKSHEET_NAME, CELL_ID, 1, null);
+    AddValues model = new AddValues(SPREADSHEET_ID, WORKSHEET_NAME, CELL_ID, 1);
 
     try (MockedStatic<GoogleSheetsServiceSupplier> mockedServiceSupplier =
         mockStatic(GoogleSheetsServiceSupplier.class)) {

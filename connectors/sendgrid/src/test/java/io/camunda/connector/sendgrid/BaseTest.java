@@ -11,6 +11,7 @@ import static java.nio.file.Files.readString;
 
 import com.google.gson.Gson;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
+import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -137,6 +138,7 @@ public class BaseTest {
 
   protected static OutboundConnectorContextBuilder getContextBuilderWithSecrets() {
     return OutboundConnectorContextBuilder.create()
+        .validation(new DefaultValidationProvider())
         .secret(SecretsConstant.API_KEY, ActualValue.API_KEY)
         .secret(SecretsConstant.SENDER_EMAIL, ActualValue.SENDER_EMAIL)
         .secret(SecretsConstant.SENDER_NAME, ActualValue.SENDER_NAME)

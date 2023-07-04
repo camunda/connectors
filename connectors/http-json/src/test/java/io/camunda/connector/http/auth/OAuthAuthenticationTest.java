@@ -58,7 +58,7 @@ class OAuthAuthenticationTest extends BaseTest {
   void checkOAuthBearerTokenFormat(final String input) throws IOException {
     // given
     final var context = OutboundConnectorContextBuilder.create().variables(input).build();
-    final var httpJsonRequest = gson.fromJson(context.getVariables(), HttpJsonRequest.class);
+    final var httpJsonRequest = context.bindVariables(HttpJsonRequest.class);
 
     HttpRequestFactory factory = new MockHttpTransport().createRequestFactory();
     HttpRequest httpRequest =

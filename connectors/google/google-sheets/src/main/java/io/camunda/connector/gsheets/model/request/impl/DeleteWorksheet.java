@@ -6,30 +6,19 @@
  */
 package io.camunda.connector.gsheets.model.request.impl;
 
-import io.camunda.connector.api.annotation.Secret;
-import io.camunda.connector.gsheets.model.request.Input;
+import io.camunda.connector.gsheets.model.request.SpreadsheetInput;
 import java.util.Objects;
-import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
-public class DeleteWorksheet implements Input {
+public class DeleteWorksheet extends SpreadsheetInput {
 
-  @NotBlank @Secret private String spreadsheetId;
   @NotNull private Integer worksheetId;
-  private String type;
 
-  public DeleteWorksheet(String spreadsheetId, Integer worksheetId, String type) {
-    this.spreadsheetId = spreadsheetId;
+  public DeleteWorksheet() {}
+
+  public DeleteWorksheet(String spreadsheetId, Integer worksheetId) {
+    super(spreadsheetId);
     this.worksheetId = worksheetId;
-    this.type = type;
-  }
-
-  public String getSpreadsheetId() {
-    return spreadsheetId;
-  }
-
-  public void setSpreadsheetId(String spreadsheetId) {
-    this.spreadsheetId = spreadsheetId;
   }
 
   public Integer getWorksheetId() {
@@ -40,44 +29,21 @@ public class DeleteWorksheet implements Input {
     this.worksheetId = worksheetId;
   }
 
-  public String getType() {
-    return type;
-  }
-
-  public void setType(String type) {
-    this.type = type;
-  }
-
   @Override
   public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
     DeleteWorksheet that = (DeleteWorksheet) o;
-    return Objects.equals(spreadsheetId, that.spreadsheetId)
-        && Objects.equals(worksheetId, that.worksheetId)
-        && Objects.equals(type, that.type);
+    return Objects.equals(worksheetId, that.worksheetId);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(spreadsheetId, worksheetId, type);
+    return Objects.hash(worksheetId);
   }
 
   @Override
   public String toString() {
-    return "DeleteWorksheet{"
-        + "spreadsheetId='"
-        + spreadsheetId
-        + '\''
-        + ", worksheetId="
-        + worksheetId
-        + ", type='"
-        + type
-        + '\''
-        + '}';
+    return "DeleteWorksheet{" + "worksheetId=" + worksheetId + "} " + super.toString();
   }
 }

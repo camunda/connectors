@@ -6,14 +6,17 @@
  */
 package io.camunda.google.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.api.client.util.Value;
 import com.google.gson.annotations.SerializedName;
 
 public enum AuthenticationType {
+  @JsonProperty("bearer")
   @Value("bearer")
   @SerializedName("bearer")
   BEARER,
 
+  @JsonProperty("refresh")
   @Value("refresh")
   @SerializedName("refresh")
   REFRESH

@@ -33,13 +33,9 @@ public class SlackFunction implements OutboundConnectorFunction {
 
   @Override
   public Object execute(OutboundConnectorContext context) throws Exception {
-
     final var variables = context.getVariables();
     final var slackRequest = gson.fromJson(variables, SlackRequest.class);
-
     context.validate(slackRequest);
-    context.replaceSecrets(slackRequest);
-
     return slackRequest.invoke(slack);
   }
 }

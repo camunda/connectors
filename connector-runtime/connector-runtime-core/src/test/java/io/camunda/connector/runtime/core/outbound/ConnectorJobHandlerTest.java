@@ -20,6 +20,7 @@ package io.camunda.connector.runtime.core.outbound;
 import static io.camunda.connector.impl.Constants.ERROR_EXPRESSION_KEYWORD;
 import static io.camunda.connector.impl.Constants.RESULT_EXPRESSION_KEYWORD;
 import static io.camunda.connector.impl.Constants.RESULT_VARIABLE_KEYWORD;
+import static io.camunda.connector.runtime.core.outbound.ConnectorJobHandlerTest.OutputTests.ResultVariableTests.newConnectorJobHandler;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.api.annotation.Secret;
@@ -40,48 +41,6 @@ import org.junit.jupiter.params.provider.ValueSource;
 class ConnectorJobHandlerTest {
 
   @Nested
-  class SecretTests {
-
-    @Test
-    void shouldReplaceSecretsViaSpiLoadedProvider() {
-      // given
-      var jobHandler =
-          new ConnectorJobHandler(
-              (context) -> {
-                var input = new TestInput("secrets." + FooBarSecretProvider.SECRET_NAME);
-                context.replaceSecrets(input);
-                return input;
-              });
-
-      // when
-      var result = JobBuilder.create().withResultVariableHeader("result").execute(jobHandler);
-
-      // then
-      assertThat(result.getVariable("result"))
-          .extracting("value")
-          .isEqualTo(FooBarSecretProvider.SECRET_VALUE);
-    }
-
-    @Test
-    void shouldOverrideSecretProvider() {
-      // given
-      var jobHandler =
-          new TestConnectorJobHandler(
-              (context) -> {
-                var input = new TestInput("secrets." + FooBarSecretProvider.SECRET_NAME);
-                context.replaceSecrets(input);
-                return input;
-              });
-
-      // when
-      var result = JobBuilder.create().withResultVariableHeader("result").execute(jobHandler);
-
-      // then
-      assertThat(result.getVariable("result")).extracting("value").isEqualTo("baz");
-    }
-  }
-
-  @Nested
   class OutputTests {
 
     @Nested
@@ -93,7 +52,7 @@ class ConnectorJobHandlerTest {
       @ValueSource(strings = {" ", "\t", "\n"})
       void shouldNotSetWithBlankResultVariable(String variableName) {
         // given
-        var jobHandler = new ConnectorJobHandler((context) -> Map.of("hello", "world"));
+        var jobHandler = newConnectorJobHandler((context) -> Map.of("hello", "world"));
 
         // when
         var result = JobBuilder.create().withResultVariableHeader(variableName).execute(jobHandler);
@@ -102,10 +61,14 @@ class ConnectorJobHandlerTest {
         assertThat(result.getVariables()).isEmpty();
       }
 
+      protected static ConnectorJobHandler newConnectorJobHandler(OutboundConnectorFunction call) {
+        return new ConnectorJobHandler(call, e -> {});
+      }
+
       @Test
       void shouldHandleMap() {
         // given
-        var jobHandler = new ConnectorJobHandler((context) -> Map.of("hello", "world"));
+        var jobHandler = newConnectorJobHandler((context) -> Map.of("hello", "world"));
 
         // when
         var result = JobBuilder.create().withResultVariableHeader("result").execute(jobHandler);
@@ -117,7 +80,7 @@ class ConnectorJobHandlerTest {
       @Test
       void shouldHandleNull() {
         // given
-        var jobHandler = new ConnectorJobHandler((ctx) -> null);
+        var jobHandler = newConnectorJobHandler((ctx) -> null);
         var expected = new HashMap<>();
         expected.put("result", null);
 
@@ -131,7 +94,7 @@ class ConnectorJobHandlerTest {
       @Test
       void shouldHandleEmptyMap() {
         // given
-        var jobHandler = new ConnectorJobHandler((ctx) -> Map.of());
+        var jobHandler = newConnectorJobHandler((ctx) -> Map.of());
 
         // when
         var result = JobBuilder.create().withResultVariableHeader("result").execute(jobHandler);
@@ -143,7 +106,7 @@ class ConnectorJobHandlerTest {
       @Test
       void shouldHandleScalarValue() {
         // given
-        var jobHandler = new ConnectorJobHandler((ctx) -> 1);
+        var jobHandler = newConnectorJobHandler((ctx) -> 1);
 
         // when
         var result = JobBuilder.create().withResultVariableHeader("result").execute(jobHandler);
@@ -162,7 +125,7 @@ class ConnectorJobHandlerTest {
       @ValueSource(strings = {" ", "\t", "\n"})
       void shouldNotSetWithBlankResultExpression(String expression) {
         // given
-        var jobHandler = new ConnectorJobHandler((context) -> Map.of("hello", "world"));
+        var jobHandler = newConnectorJobHandler((context) -> Map.of("hello", "world"));
 
         // when
         var result = JobBuilder.create().withResultExpressionHeader(expression).execute(jobHandler);
@@ -175,7 +138,7 @@ class ConnectorJobHandlerTest {
       void shouldHandleMap() {
         // given
         var jobHandler =
-            new ConnectorJobHandler(
+            newConnectorJobHandler(
                 (context) -> Map.of("callStatus", Map.of("statusCode", "200 OK")));
         var resultExpression = "{\"processedOutput\": response.callStatus }";
 
@@ -192,7 +155,7 @@ class ConnectorJobHandlerTest {
       void shouldHandleMap_WithNullValues() {
         // given
         var jobHandler =
-            new ConnectorJobHandler(
+            newConnectorJobHandler(
                 (context) -> {
                   var map = new HashMap<>();
                   map.put("statusCode", 200);
@@ -215,7 +178,7 @@ class ConnectorJobHandlerTest {
       void shouldHandleMap_MapNullValues() {
         // given
         var jobHandler =
-            new ConnectorJobHandler(
+            newConnectorJobHandler(
                 (context) -> {
                   var map = new HashMap<>();
                   map.put("statusCode", 200);
@@ -240,7 +203,7 @@ class ConnectorJobHandlerTest {
       void shouldHandlePojo_Mapped() {
         // given
         var jobHandler =
-            new ConnectorJobHandler((context) -> new TestConnectorResponsePojo("responseValue"));
+            newConnectorJobHandler((context) -> new TestConnectorResponsePojo("responseValue"));
         var resultExpression = "{\"processedOutput\": response.value }";
 
         // when
@@ -254,7 +217,7 @@ class ConnectorJobHandlerTest {
       @Test
       void shouldHandlePojo_NullValues() {
         // given
-        var jobHandler = new ConnectorJobHandler((context) -> new TestConnectorResponsePojo(null));
+        var jobHandler = newConnectorJobHandler((context) -> new TestConnectorResponsePojo(null));
         var resultExpression = "{\"processedOutput\": response.value }";
         var expected = new HashMap<>();
         expected.put("processedOutput", null);
@@ -271,7 +234,7 @@ class ConnectorJobHandlerTest {
       void shouldHandlePojo_DirectAssignment() {
         // given
         var jobHandler =
-            new ConnectorJobHandler((context) -> new TestConnectorResponsePojo("responseValue"));
+            newConnectorJobHandler((context) -> new TestConnectorResponsePojo("responseValue"));
         var resultExpression = "= response";
 
         // when
@@ -286,7 +249,7 @@ class ConnectorJobHandlerTest {
       void shouldHandleUnknownObject() {
         // given
         var jobHandler =
-            new ConnectorJobHandler(
+            newConnectorJobHandler(
                 (context) -> {
                   var response = new HashMap<>();
                   response.put("status", "COMPLETED");
@@ -308,7 +271,7 @@ class ConnectorJobHandlerTest {
       @Test
       void shouldFail_MappingFromNull() {
         // given
-        var jobHandler = new ConnectorJobHandler((context) -> null);
+        var jobHandler = newConnectorJobHandler((context) -> null);
         var resultExpression = "{\"processedOutput\": response.callStatus }";
 
         // when
@@ -324,7 +287,7 @@ class ConnectorJobHandlerTest {
       @Test
       void shouldFail_MappingNonExistingKeys() {
         // given
-        var jobHandler = new ConnectorJobHandler((context) -> Map.of());
+        var jobHandler = newConnectorJobHandler((context) -> Map.of());
         var resultExpression = "{\"processedOutput\": response.callStatus }";
 
         // when
@@ -341,7 +304,7 @@ class ConnectorJobHandlerTest {
       @Test
       void shouldFail_MappingFromScalar() {
         // given
-        var jobHandler = new ConnectorJobHandler((context) -> "FOO");
+        var jobHandler = newConnectorJobHandler((context) -> "FOO");
         var resultExpression = "= response";
 
         // when
@@ -357,7 +320,7 @@ class ConnectorJobHandlerTest {
       @Test
       void shouldFail_ProducingScalar() {
         // given
-        var jobHandler = new ConnectorJobHandler((context) -> Map.of("FOO", "BAR"));
+        var jobHandler = newConnectorJobHandler((context) -> Map.of("FOO", "BAR"));
         var resultExpression = "= FOO";
 
         // when & then
@@ -376,7 +339,7 @@ class ConnectorJobHandlerTest {
       @Test
       void shouldNotSetWithoutResultVariableAndExpression() {
         // given
-        var jobHandler = new ConnectorJobHandler((context) -> Map.of("hello", "world"));
+        var jobHandler = new ConnectorJobHandler((context) -> Map.of("hello", "world"), e -> {});
 
         // when
         var result = JobBuilder.create().execute(jobHandler);
@@ -390,7 +353,7 @@ class ConnectorJobHandlerTest {
         // given
         var jobHandler =
             new ConnectorJobHandler(
-                (context) -> Map.of("callStatus", Map.of("statusCode", "200 OK")));
+                (context) -> Map.of("callStatus", Map.of("statusCode", "200 OK")), e -> {});
         var resultExpression = "{\"processedOutput\": response.callStatus }";
         var resultVariable = "result";
 
@@ -419,7 +382,7 @@ class ConnectorJobHandlerTest {
     void shouldProduceFailCommandWhenCallThrowsException() {
       // given
       var jobHandler =
-          new ConnectorJobHandler(
+          newConnectorJobHandler(
               context -> {
                 throw new NullPointerException("expected");
               });
@@ -436,7 +399,7 @@ class ConnectorJobHandlerTest {
       // given
       var veryLongMessage = "This is quite a long message".repeat(300); // 8400 chars
       var jobHandler =
-          new ConnectorJobHandler(
+          newConnectorJobHandler(
               context -> {
                 throw new IllegalArgumentException(veryLongMessage);
               });
@@ -454,7 +417,7 @@ class ConnectorJobHandlerTest {
       // given
       var veryLongMessage = "This is quite a long message".repeat(300); // 8400 chars
       var errorExpression = "bpmnError(\"500\", testProperty)";
-      var jobHandler = new ConnectorJobHandler(context -> veryLongMessage);
+      var jobHandler = newConnectorJobHandler(context -> veryLongMessage);
 
       // when
       var result =
@@ -490,7 +453,7 @@ class ConnectorJobHandlerTest {
         })
     void shouldNotCreateBpmnErrorWithExpression(String expression) {
       var jobHandler =
-          new ConnectorJobHandler(
+          newConnectorJobHandler(
               context -> {
                 // no error code provided
                 throw new ConnectorException(null, "exception message");
@@ -506,7 +469,7 @@ class ConnectorJobHandlerTest {
     @Test
     void shouldFail_BpmnErrorFunctionWithWrongArgument() {
       var jobHandler =
-          new ConnectorJobHandler(
+          newConnectorJobHandler(
               context -> {
                 // no error code provided
                 throw new ConnectorException(null, "exception message");
@@ -529,7 +492,7 @@ class ConnectorJobHandlerTest {
               + "{ \"code\": error.code, \"message\": \"Message: \" + error.message} "
               + "else {}";
       var jobHandler =
-          new ConnectorJobHandler(
+          newConnectorJobHandler(
               context -> {
                 throw new ConnectorException("1013", "exception message");
               });
@@ -551,7 +514,7 @@ class ConnectorJobHandlerTest {
               + "bpmnError(error.code, \"Message: \" + error.message) "
               + "else null";
       var jobHandler =
-          new ConnectorJobHandler(
+          newConnectorJobHandler(
               context -> {
                 throw new ConnectorException("1013", "exception message");
               });
@@ -573,7 +536,7 @@ class ConnectorJobHandlerTest {
               + "bpmnError(error.code, \"Message: \" + error.message) "
               + "else null";
       var jobHandler =
-          new ConnectorJobHandler(
+          newConnectorJobHandler(
               context -> {
                 throw new ConnectorException("1013", "exception message");
               });
@@ -597,7 +560,7 @@ class ConnectorJobHandlerTest {
               + "bpmnError(\"9999\", \"Message for foo value on test property\") "
               + "else null";
       var jobHandler =
-          new ConnectorJobHandler(
+          newConnectorJobHandler(
               context -> {
                 throw new ConnectorException("1013", "exception message");
               });
@@ -621,7 +584,7 @@ class ConnectorJobHandlerTest {
               + "bpmnError(error.code, \"Message: \" + error.message) "
               + "else {}";
       var jobHandler =
-          new ConnectorJobHandler(
+          newConnectorJobHandler(
               context -> {
                 throw new ConnectorException("1013", "exception message");
               });
@@ -645,7 +608,7 @@ class ConnectorJobHandlerTest {
               + "bpmnError(error.code, \"Message: \" + error.message) "
               + "else {}";
       var jobHandler =
-          new ConnectorJobHandler(
+          newConnectorJobHandler(
               context -> {
                 throw new ConnectorException("1013", "exception message");
               });
@@ -669,7 +632,7 @@ class ConnectorJobHandlerTest {
               + "bpmnError(error.code, \"Message: \" + error.message) "
               + "else {}";
       var jobHandler =
-          new ConnectorJobHandler(
+          newConnectorJobHandler(
               context -> {
                 throw new ConnectorException("1013", "exception message");
               });
@@ -692,7 +655,7 @@ class ConnectorJobHandlerTest {
               + "else if error.code != null then "
               + "bpmnError(error.code, \"Message: \" + error.message) "
               + "else {}";
-      var jobHandler = new ConnectorJobHandler(context -> Map.of("testProperty", "foo"));
+      var jobHandler = newConnectorJobHandler(context -> Map.of("testProperty", "foo"));
       // when
       var result =
           JobBuilder.create()
@@ -712,7 +675,7 @@ class ConnectorJobHandlerTest {
               + "else if response.testProperty = \"foo\" then "
               + "bpmnError(\"9999\", \"Message for foo value on test property\") "
               + "else {}";
-      var jobHandler = new ConnectorJobHandler(context -> Map.of("testProperty", "foo"));
+      var jobHandler = newConnectorJobHandler(context -> Map.of("testProperty", "foo"));
       // when
       var result =
           JobBuilder.create()
@@ -732,7 +695,7 @@ class ConnectorJobHandlerTest {
               + "else if error.code != null then "
               + "bpmnError(error.code, \"Message: \" + error.message) "
               + "else {}";
-      var jobHandler = new ConnectorJobHandler(context -> "foo");
+      var jobHandler = newConnectorJobHandler(context -> "foo");
       // when
       var result =
           JobBuilder.create()
@@ -768,7 +731,7 @@ class ConnectorJobHandlerTest {
   private static class TestConnectorJobHandler extends ConnectorJobHandler {
 
     public TestConnectorJobHandler(OutboundConnectorFunction call) {
-      super(call);
+      super(call, e -> {});
     }
 
     @Override

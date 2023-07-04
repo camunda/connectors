@@ -13,6 +13,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.impl.ConnectorInputException;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorRequest;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
+import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -74,10 +75,10 @@ class KafkaConnectorFunctionTest {
         new RecordMetadata(new TopicPartition(SECRET_TOPIC_NAME, 1), 1, 1, 1, 1, 1);
     completedKafkaResult.complete(kafkaResponse);
     Mockito.when(producer.send(ArgumentMatchers.any())).thenReturn(completedKafkaResult);
-    KafkaConnectorRequest req = new Gson().fromJson(incomingJson, KafkaConnectorRequest.class);
+
     OutboundConnectorContext ctx =
         OutboundConnectorContextBuilder.create()
-            .variables(req)
+            .variables(incomingJson)
             .secret(SECRET_USER_NAME_KEY, SECRET_USER_NAME)
             .secret(SECRET_PASSWORD_KEY, SECRET_PASSWORD)
             .secret(SECRET_BOOTSTRAP_KEY, SECRET_BOOTSTRAP_SERVER)
@@ -87,27 +88,34 @@ class KafkaConnectorFunctionTest {
     // when
     objectUnderTest.execute(ctx);
 
+    var request = ctx.bindVariables(KafkaConnectorRequest.class);
+
     // then
     // Testing records are equal
     Mockito.verify(producer).send(producerRecordCaptor.capture());
     ProducerRecord recordActual = producerRecordCaptor.getValue();
     ProducerRecord recordExpected =
         new ProducerRecord(
-            req.getTopic().getTopicName(), req.getMessage().getKey(), req.getMessage().getValue());
+            request.getTopic().getTopicName(),
+            request.getMessage().getKey(),
+            request.getMessage().getValue());
     assertThat(recordActual.toString()).isEqualTo(recordExpected.toString());
 
     // Testing secrets updated
-    assertThat(req.getAuthentication().getUsername()).isEqualTo(SECRET_USER_NAME);
-    assertThat(req.getAuthentication().getPassword()).isEqualTo(SECRET_PASSWORD);
-    assertThat(req.getTopic().getBootstrapServers()).isEqualTo(SECRET_BOOTSTRAP_SERVER);
-    assertThat(req.getTopic().getTopicName()).isEqualTo(SECRET_TOPIC_NAME);
+    assertThat(request.getAuthentication().getUsername()).isEqualTo(SECRET_USER_NAME);
+    assertThat(request.getAuthentication().getPassword()).isEqualTo(SECRET_PASSWORD);
+    assertThat(request.getTopic().getBootstrapServers()).isEqualTo(SECRET_BOOTSTRAP_SERVER);
+    assertThat(request.getTopic().getTopicName()).isEqualTo(SECRET_TOPIC_NAME);
   }
 
   @ParameterizedTest
   @MethodSource("failRequestCases")
   void execute_ShouldFail(final String incomingJson) {
-    KafkaConnectorRequest req = new Gson().fromJson(incomingJson, KafkaConnectorRequest.class);
-    OutboundConnectorContext ctx = OutboundConnectorContextBuilder.create().variables(req).build();
+    OutboundConnectorContext ctx =
+        OutboundConnectorContextBuilder.create()
+            .validation(new DefaultValidationProvider())
+            .variables(incomingJson)
+            .build();
     Assertions.assertThrows(ConnectorInputException.class, () -> objectUnderTest.execute(ctx));
   }
 
@@ -131,7 +139,8 @@ class KafkaConnectorFunctionTest {
     completedKafkaResult.complete(kafkaResponse);
     Mockito.when(producer.send(ArgumentMatchers.any())).thenReturn(completedKafkaResult);
     KafkaConnectorRequest req = new Gson().fromJson(noAuthRequest, KafkaConnectorRequest.class);
-    OutboundConnectorContext ctx = OutboundConnectorContextBuilder.create().variables(req).build();
+    OutboundConnectorContext ctx =
+        OutboundConnectorContextBuilder.create().variables(noAuthRequest).build();
 
     // when
     objectUnderTest.execute(ctx);

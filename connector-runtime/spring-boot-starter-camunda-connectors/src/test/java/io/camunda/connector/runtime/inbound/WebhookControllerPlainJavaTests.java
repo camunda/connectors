@@ -124,7 +124,7 @@ public class WebhookControllerPlainJavaTests {
   public static InboundConnectorContextImpl buildContext(InboundConnectorProperties properties) {
     final Map<String, String> secrets = new HashMap<>();
     SecretProvider secretProvider = secrets::get;
-    return new InboundConnectorContextImpl(secretProvider, properties, null, (x) -> {});
+    return new InboundConnectorContextImpl(secretProvider, e -> {}, properties, null, (x) -> {});
   }
 
   public static InboundConnectorProperties webhookProperties(

@@ -26,6 +26,7 @@ import io.camunda.connector.kafka.outbound.model.KafkaConnectorRequest;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorResponse;
 import io.camunda.connector.kafka.outbound.model.KafkaMessage;
 import io.camunda.connector.kafka.outbound.model.KafkaTopic;
+import io.camunda.connector.kafka.supplier.GsonSupplier;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
 import io.camunda.connector.test.inbound.InboundConnectorPropertiesBuilder;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
@@ -101,8 +102,10 @@ public class KafkaIntegrationTest {
     request.setTopic(kafkaTopic);
     request.setAuthentication(kafkaAuthentication);
 
+    var json = GsonSupplier.gson().toJson(request);
+
     OutboundConnectorContext context =
-        OutboundConnectorContextBuilder.create().variables(request).build();
+        OutboundConnectorContextBuilder.create().variables(json).build();
 
     // When
     var result = function.execute(context);

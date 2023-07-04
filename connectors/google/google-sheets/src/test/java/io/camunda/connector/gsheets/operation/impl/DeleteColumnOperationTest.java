@@ -64,8 +64,7 @@ class DeleteColumnOperationTest extends BaseTest {
   void deleteColumn_shouldDeleteColumnByNumberIndex() throws IOException {
     // Given
     DeleteColumn model =
-        new DeleteColumn(
-            SPREADSHEET_ID, WORKSHEET_ID, ColumnIndexType.NUMBERS, COLUMN_INDEX, null, null);
+        new DeleteColumn(SPREADSHEET_ID, WORKSHEET_ID, ColumnIndexType.NUMBERS, COLUMN_INDEX, null);
 
     try (MockedStatic<GoogleSheetsServiceSupplier> mockedServiceSupplier =
         mockStatic(GoogleSheetsServiceSupplier.class)) {
@@ -102,8 +101,7 @@ class DeleteColumnOperationTest extends BaseTest {
   void deleteColumn_shouldDeleteColumnByLetterIndex() throws IOException {
     // Given
     DeleteColumn model =
-        new DeleteColumn(
-            SPREADSHEET_ID, WORKSHEET_ID, ColumnIndexType.LETTERS, COLUMN_INDEX, "B", null);
+        new DeleteColumn(SPREADSHEET_ID, WORKSHEET_ID, ColumnIndexType.LETTERS, COLUMN_INDEX, "B");
 
     try (MockedStatic<GoogleSheetsServiceSupplier> mockedServiceSupplier =
         mockStatic(GoogleSheetsServiceSupplier.class)) {

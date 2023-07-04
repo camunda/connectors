@@ -7,11 +7,9 @@
 package io.camunda.connector.model.request.channel;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.microsoft.graph.requests.ChannelCollectionReferenceRequest;
 import com.microsoft.graph.requests.ChannelCollectionResponse;
 import com.microsoft.graph.requests.ChannelCollectionWithReferencesPage;
@@ -19,9 +17,6 @@ import com.microsoft.graph.requests.ChannelCollectionWithReferencesRequestBuilde
 import com.microsoft.graph.requests.GraphServiceClient;
 import com.microsoft.graph.requests.TeamRequestBuilder;
 import io.camunda.connector.BaseTest;
-import io.camunda.connector.api.outbound.OutboundConnectorContext;
-import io.camunda.connector.impl.ConnectorInputException;
-import io.camunda.connector.model.MSTeamsRequest;
 import okhttp3.Request;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -44,20 +39,8 @@ class ListChannelsTest extends BaseTest {
 
   @ParameterizedTest
   @MethodSource("listChannelsValidationFailTestCases")
-  public void validate_shouldThrowExceptionWhenLeastOneRequiredFieldNotExist(String input)
-      throws JsonProcessingException {
-    // Given request without one required field
-    MSTeamsRequest request = objectMapper.readValue(input, MSTeamsRequest.class);
-    OutboundConnectorContext context = getContextBuilderWithSecrets().variables(input).build();
-    // When context.validate;
-    // Then expect exception that one required field not set
-    assertThat(request.getData()).isInstanceOf(ListChannels.class);
-    ConnectorInputException thrown =
-        assertThrows(
-            ConnectorInputException.class,
-            () -> context.validate(request.getData()),
-            "IllegalArgumentException was expected");
-    assertThat(thrown.getMessage()).contains("Found constraints violated while validating input");
+  public void validate_shouldThrowExceptionWhenLeastOneRequiredFieldNotExist(String input) {
+    assertValidationException(input);
   }
 
   @Test

@@ -176,7 +176,7 @@ class FeelEngineWrapperExpressionEvaluationTest {
 
   class TestPojo {
 
-    private String value;
+    private final String value;
 
     public TestPojo(String value) {
       this.value = value;

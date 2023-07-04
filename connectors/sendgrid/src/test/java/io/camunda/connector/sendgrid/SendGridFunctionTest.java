@@ -8,7 +8,6 @@ package io.camunda.connector.sendgrid;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
@@ -79,9 +78,7 @@ public class SendGridFunctionTest extends BaseTest {
   public void execute_shouldThrowExceptionIfResponseStatusCodeIsNot202(int statusCode) {
     // ignore validate and replace secrets, test only result cases
     context = spy(OutboundConnectorContext.class);
-    when(context.getVariablesAsType(any())).thenReturn(mock(SendGridRequest.class));
-    doNothing().when(context).validate(any());
-    doNothing().when(context).replaceSecrets(any());
+    when(context.bindVariables(any())).thenReturn(mock(SendGridRequest.class));
     // Given response with bad status
     sendGridResponse.setStatusCode(statusCode);
     // When and then
@@ -97,9 +94,7 @@ public class SendGridFunctionTest extends BaseTest {
   public void execute_shouldReturnNullIfResponseStatusCodeIs202(int statusCode) throws Exception {
     // ignore validate and replace secrets, test only result cases
     context = spy(OutboundConnectorContext.class);
-    when(context.getVariablesAsType(any())).thenReturn(mock(SendGridRequest.class));
-    doNothing().when(context).validate(any());
-    doNothing().when(context).replaceSecrets(any());
+    when(context.bindVariables(any())).thenReturn(mock(SendGridRequest.class));
     // Given
     sendGridResponse.setStatusCode(statusCode);
     // When
@@ -113,7 +108,7 @@ public class SendGridFunctionTest extends BaseTest {
   @MethodSource("successSendMailWithContentRequestCases")
   public void execute_shouldCreateRequestWithMailAndExpectedData(String input) throws Exception {
     // Given
-    context = contextBuilder.variables(gson.fromJson(input, SendGridRequest.class)).build();
+    context = contextBuilder.variables(input).build();
     ArgumentCaptor<Request> requestArgumentCaptor = ArgumentCaptor.forClass(Request.class);
     // When
     function.execute(context);
@@ -146,7 +141,7 @@ public class SendGridFunctionTest extends BaseTest {
   @MethodSource("successSendMailByTemplateRequestCases")
   public void execute_shouldSendMailByTemplateIfTemplateExist(String input) throws Exception {
     // Given
-    context = contextBuilder.variables(gson.fromJson(input, SendGridRequest.class)).build();
+    context = contextBuilder.variables(input).build();
     ArgumentCaptor<Request> requestArgumentCaptor = ArgumentCaptor.forClass(Request.class);
     // When
     function.execute(context);
@@ -163,7 +158,7 @@ public class SendGridFunctionTest extends BaseTest {
   @MethodSource("successSendMailWithContentRequestCases")
   public void execute_shouldSendMailIfContentExist(String input) throws Exception {
     // Given
-    context = contextBuilder.variables(gson.fromJson(input, SendGridRequest.class)).build();
+    context = contextBuilder.variables(input).build();
     // When
     function.execute(context);
     verify(sendGridMock).api(requestArgumentCaptor.capture());
