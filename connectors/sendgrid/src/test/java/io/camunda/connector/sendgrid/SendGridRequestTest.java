@@ -9,21 +9,17 @@ package io.camunda.connector.sendgrid;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.impl.ConnectorInputException;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 public class SendGridRequestTest extends BaseTest {
 
-  private SendGridRequest sendGridRequest;
-  private OutboundConnectorContext context;
-
   @ParameterizedTest(name = "Validate null field # {index}")
   @MethodSource("failRequestCases")
   void validate_shouldThrowExceptionWhenLeastOneNotExistRequestField(String input) {
     // Given request without one required field
-    context = getContextBuilderWithSecrets().variables(input).build();
+    var context = getContextBuilderWithSecrets().variables(input).build();
     // When context.validate(sendGridRequest);
     // Then expect exception that one required field not set
     ConnectorInputException thrown =
@@ -38,7 +34,7 @@ public class SendGridRequestTest extends BaseTest {
   @MethodSource("failTestWithWrongSenderEmail")
   public void validate_shouldThrowExceptionWhenSenderEmailIsBlankOrNull(String input) {
     // Given request without one required field
-    context = getContextBuilderWithSecrets().variables(input).build();
+    var context = getContextBuilderWithSecrets().variables(input).build();
     // When context.validate(sendGridRequest);
     // Then expect exception that one required field not set
     ConnectorInputException thrown =
@@ -53,7 +49,7 @@ public class SendGridRequestTest extends BaseTest {
   @MethodSource("failTestWithWrongSenderName")
   public void validate_shouldThrowExceptionWhenSenderNameIsBlankOrNull(String input) {
     // Given request without one required field
-    context = getContextBuilderWithSecrets().variables(input).build();
+    var context = getContextBuilderWithSecrets().variables(input).build();
     // When context.validate(sendGridRequest);
     // Then expect exception that one required field not set
     ConnectorInputException thrown =
@@ -68,7 +64,7 @@ public class SendGridRequestTest extends BaseTest {
   @MethodSource("failTestWithWrongReceiverEmail")
   public void validate_shouldThrowExceptionWhenReceiverEmailIsBlankOrNull(String input) {
     // Given request without one required field
-    context = getContextBuilderWithSecrets().variables(input).build();
+    var context = getContextBuilderWithSecrets().variables(input).build();
     // When context.validate(sendGridRequest);
     // Then expect exception that one required field not set
     ConnectorInputException thrown =
@@ -83,7 +79,7 @@ public class SendGridRequestTest extends BaseTest {
   @MethodSource("failTestWithWrongReceiverName")
   public void validate_shouldThrowExceptionWhenReceiverNameIsBlankOrNull(String input) {
     // Given request without one required field
-    context = getContextBuilderWithSecrets().variables(input).build();
+    var context = getContextBuilderWithSecrets().variables(input).build();
     // When context.validate(sendGridRequest);
     // Then expect exception that one required field not set
     ConnectorInputException thrown =
@@ -98,7 +94,7 @@ public class SendGridRequestTest extends BaseTest {
   @MethodSource("successReplaceSecretsTemplateRequestCases")
   void replaceSecrets_shouldReplaceSecretsWhenExistTemplateRequest(String input) {
     // Given request with secrets
-    context = getContextBuilderWithSecrets().variables(input).build();
+    var context = getContextBuilderWithSecrets().variables(input).build();
     // When
     var sendGridRequest = context.bindVariables(SendGridRequest.class);
     // Then should replace secrets

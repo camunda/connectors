@@ -7,7 +7,6 @@
 package io.camunda.connector.sendgrid;
 
 import com.sendgrid.helpers.mail.objects.Email;
-import io.camunda.connector.api.annotation.Secret;
 import java.util.Objects;
 import javax.validation.Valid;
 import javax.validation.constraints.AssertTrue;
@@ -15,11 +14,11 @@ import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 
 public class SendGridRequest {
-  @NotEmpty @Secret private String apiKey;
-  @Valid @NotNull @Secret private SendGridEmail from;
-  @Valid @NotNull @Secret private SendGridEmail to;
-  @Valid @Secret private SendGridTemplate template;
-  @Valid @Secret private SendGridContent content;
+  @NotEmpty private String apiKey;
+  @Valid @NotNull private SendGridEmail from;
+  @Valid @NotNull private SendGridEmail to;
+  @Valid private SendGridTemplate template;
+  @Valid private SendGridContent content;
 
   @AssertTrue(message = "must not be empty")
   private boolean isSenderName() {

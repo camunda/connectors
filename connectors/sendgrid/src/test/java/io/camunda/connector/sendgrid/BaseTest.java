@@ -9,6 +9,7 @@ package io.camunda.connector.sendgrid;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.readString;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
@@ -20,7 +21,7 @@ import org.junit.jupiter.params.provider.Arguments;
 
 public class BaseTest {
 
-  protected static final Gson gson = new Gson();
+  protected static final ObjectMapper objectMapper = SendGridFunction.objectMapper;
 
   private static final String FAIL_REQUEST_CASES_PATH =
       "src/test/resources/requests/validation/request-without-one-field-fail-test-cases.json";
