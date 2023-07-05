@@ -6,14 +6,12 @@
  */
 package io.camunda.google.model;
 
-import com.google.api.client.util.Key;
-import io.camunda.connector.api.annotation.Secret;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
 public abstract class GoogleBaseRequest {
 
-  @Key @Valid @NotNull @Secret protected Authentication authentication;
+  @Valid @NotNull protected Authentication authentication;
 
   public Authentication getAuthentication() {
     return authentication;

@@ -6,14 +6,14 @@
  */
 package io.camunda.connector.gdrive.model.request;
 
-import com.google.api.client.util.Key;
-import io.camunda.connector.api.annotation.Secret;
+import com.fasterxml.jackson.databind.JsonNode;
 import java.util.Objects;
 import javax.validation.constraints.NotEmpty;
 
 public class Template {
-  @Key @NotEmpty @Secret private String id;
-  @Key private Variables variables;
+  @NotEmpty private String id;
+
+  private JsonNode variables;
 
   public String getId() {
     return id;
@@ -23,11 +23,11 @@ public class Template {
     this.id = id;
   }
 
-  public Variables getVariables() {
+  public JsonNode getVariables() {
     return variables;
   }
 
-  public void setVariables(final Variables variables) {
+  public void setVariables(JsonNode variables) {
     this.variables = variables;
   }
 
