@@ -75,8 +75,8 @@ public class KafkaPropertyTransformer {
           DEFAULT_GROUP_ID_PREFIX
               + "-"
               + context
-                  .getProperties()
-                  .getBpmnProcessId()); // GROUP_ID_CONFIG is mandatory. It will be used to assign a
+                  .getDefinition()
+                  .bpmnProcessId()); // GROUP_ID_CONFIG is mandatory. It will be used to assign a
       // clint id
     }
     kafkaProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, props.getAutoOffsetReset().toString());

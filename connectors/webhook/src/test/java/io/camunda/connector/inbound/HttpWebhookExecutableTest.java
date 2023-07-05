@@ -13,10 +13,9 @@ import com.google.common.net.HttpHeaders;
 import com.google.common.net.MediaType;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
-import io.camunda.connector.impl.inbound.InboundConnectorProperties;
 import io.camunda.connector.inbound.signature.HMACAlgoCustomerChoice;
 import io.camunda.connector.inbound.utils.HttpMethods;
-import io.camunda.connector.test.inbound.InboundConnectorPropertiesBuilder;
+import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import org.assertj.core.api.Assertions;
@@ -35,13 +34,16 @@ class HttpWebhookExecutableTest {
 
   @Test
   void triggerWebhook_JsonBody_HappyCase() throws Exception {
-    InboundConnectorProperties properties =
-        InboundConnectorPropertiesBuilder.create()
-            .property("inbound.context", "webhookContext")
-            .property("inbound.method", "any")
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context", "webhookContext",
+                        "method", "any")))
             .build();
-    InboundConnectorContext ctx = Mockito.mock(InboundConnectorContext.class);
-    Mockito.when(ctx.getProperties()).thenReturn(properties);
+
     WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
     Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
     Mockito.when(payload.headers())
@@ -57,13 +59,15 @@ class HttpWebhookExecutableTest {
 
   @Test
   void triggerWebhook_FormDataBody_HappyCase() throws Exception {
-    InboundConnectorProperties properties =
-        InboundConnectorPropertiesBuilder.create()
-            .property("inbound.context", "webhookContext")
-            .property("inbound.method", "any")
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context", "webhookContext",
+                        "method", "any")))
             .build();
-    InboundConnectorContext ctx = Mockito.mock(InboundConnectorContext.class);
-    Mockito.when(ctx.getProperties()).thenReturn(properties);
     WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
     Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
     Mockito.when(payload.headers())
@@ -80,13 +84,15 @@ class HttpWebhookExecutableTest {
 
   @Test
   void triggerWebhook_UnknownJsonLikeBody_HappyCase() throws Exception {
-    InboundConnectorProperties properties =
-        InboundConnectorPropertiesBuilder.create()
-            .property("inbound.context", "webhookContext")
-            .property("inbound.method", "any")
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context", "webhookContext",
+                        "method", "any")))
             .build();
-    InboundConnectorContext ctx = Mockito.mock(InboundConnectorContext.class);
-    Mockito.when(ctx.getProperties()).thenReturn(properties);
     WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
     Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
     Mockito.when(payload.headers())
@@ -102,13 +108,15 @@ class HttpWebhookExecutableTest {
 
   @Test
   void triggerWebhook_BinaryData_RaisesException() throws Exception {
-    InboundConnectorProperties properties =
-        InboundConnectorPropertiesBuilder.create()
-            .property("inbound.context", "webhookContext")
-            .property("inbound.method", "any")
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context", "webhookContext",
+                        "method", "any")))
             .build();
-    InboundConnectorContext ctx = Mockito.mock(InboundConnectorContext.class);
-    Mockito.when(ctx.getProperties()).thenReturn(properties);
     WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
     Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
     Mockito.when(payload.headers())
@@ -123,13 +131,15 @@ class HttpWebhookExecutableTest {
 
   @Test
   void triggerWebhook_HttpMethodNotAllowed_RaisesException() throws Exception {
-    InboundConnectorProperties properties =
-        InboundConnectorPropertiesBuilder.create()
-            .property("inbound.context", "webhookContext")
-            .property("inbound.method", "get")
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context", "webhookContext",
+                        "method", "get")))
             .build();
-    InboundConnectorContext ctx = Mockito.mock(InboundConnectorContext.class);
-    Mockito.when(ctx.getProperties()).thenReturn(properties);
     WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
     Mockito.when(payload.method()).thenReturn(HttpMethods.post.name());
     Mockito.when(payload.headers())
@@ -144,17 +154,19 @@ class HttpWebhookExecutableTest {
 
   @Test
   void triggerWebhook_HmacSignatureMatches_HappyCase() throws Exception {
-    InboundConnectorProperties properties =
-        InboundConnectorPropertiesBuilder.create()
-            .property("inbound.context", "webhookContext")
-            .property("inbound.method", "any")
-            .property("inbound.shouldValidateHmac", enabled.name())
-            .property("inbound.hmacSecret", "mySecretKey")
-            .property("inbound.hmacHeader", "X-HMAC-Sig")
-            .property("inbound.hmacAlgorithm", HMACAlgoCustomerChoice.sha_256.name())
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context", "webhookContext",
+                        "method", "any",
+                        "shouldValidateHmac", enabled.name(),
+                        "hmacSecret", "mySecretKey",
+                        "hmacHeader", "X-HMAC-Sig",
+                        "hmacAlgorithm", HMACAlgoCustomerChoice.sha_256.name())))
             .build();
-    InboundConnectorContext ctx = Mockito.mock(InboundConnectorContext.class);
-    Mockito.when(ctx.getProperties()).thenReturn(properties);
     WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
     Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
     Mockito.when(payload.headers())
@@ -175,17 +187,19 @@ class HttpWebhookExecutableTest {
 
   @Test
   void triggerWebhook_HmacSignatureDidntMatch_RaisesException() throws Exception {
-    InboundConnectorProperties properties =
-        InboundConnectorPropertiesBuilder.create()
-            .property("inbound.context", "webhookContext")
-            .property("inbound.method", "any")
-            .property("inbound.shouldValidateHmac", enabled.name())
-            .property("inbound.hmacSecret", "mySecretKey")
-            .property("inbound.hmacHeader", "X-HMAC-Sig")
-            .property("inbound.hmacAlgorithm", HMACAlgoCustomerChoice.sha_256.name())
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context", "webhookContext",
+                        "method", "any",
+                        "shouldValidateHmac", enabled.name(),
+                        "hmacSecret", "mySecretKey",
+                        "hmacHeader", "X-HMAC-Sig",
+                        "hmacAlgorithm", HMACAlgoCustomerChoice.sha_256.name())))
             .build();
-    InboundConnectorContext ctx = Mockito.mock(InboundConnectorContext.class);
-    Mockito.when(ctx.getProperties()).thenReturn(properties);
     WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
     Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
     Mockito.when(payload.headers())

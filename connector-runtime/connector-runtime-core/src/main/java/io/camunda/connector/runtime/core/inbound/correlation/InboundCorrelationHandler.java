@@ -16,15 +16,12 @@
  */
 package io.camunda.connector.runtime.core.inbound.correlation;
 
-import static io.camunda.connector.impl.Constants.ACTIVATION_CONDITION_KEYWORD;
-import static io.camunda.connector.impl.Constants.CORRELATION_KEY_EXPRESSION_KEYWORD;
-
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.inbound.InboundConnectorDefinition;
 import io.camunda.connector.api.inbound.InboundConnectorResult;
 import io.camunda.connector.impl.ConnectorInputException;
-import io.camunda.connector.impl.inbound.ProcessCorrelationPoint;
-import io.camunda.connector.impl.inbound.correlation.MessageCorrelationPoint;
-import io.camunda.connector.impl.inbound.correlation.StartEventCorrelationPoint;
+import io.camunda.connector.impl.inbound.MessageCorrelationPoint;
+import io.camunda.connector.impl.inbound.StartEventCorrelationPoint;
 import io.camunda.connector.impl.inbound.result.CorrelatedMessage;
 import io.camunda.connector.impl.inbound.result.CorrelationErrorData;
 import io.camunda.connector.impl.inbound.result.CorrelationErrorData.CorrelationErrorReason;
@@ -37,13 +34,10 @@ import io.camunda.connector.runtime.core.feel.FeelEngineWrapperException;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.client.api.response.ProcessInstanceEvent;
 import io.camunda.zeebe.client.api.response.PublishMessageResponse;
-import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * Component responsible for calling Zeebe to report an inbound event
- */
+/** Component responsible for calling Zeebe to report an inbound event */
 public class InboundCorrelationHandler {
 
   private static final Logger LOG = LoggerFactory.getLogger(InboundCorrelationHandler.class);
@@ -56,14 +50,15 @@ public class InboundCorrelationHandler {
     this.feelEngine = feelEngine;
   }
 
-  public InboundConnectorResult<?> correlate(Map<String, ?> properties,
-      ProcessCorrelationPoint correlationPoint, Object variables) {
+  public InboundConnectorResult<?> correlate(
+      InboundConnectorDefinition definition, Object variables) {
+    var correlationPoint = definition.correlationPoint();
 
     if (correlationPoint instanceof StartEventCorrelationPoint startCorPoint) {
-      return triggerStartEvent(properties, startCorPoint, variables);
+      return triggerStartEvent(definition, startCorPoint, variables);
     }
     if (correlationPoint instanceof MessageCorrelationPoint msgCorPoint) {
-      return triggerMessage(properties, msgCorPoint, variables);
+      return triggerMessage(definition, msgCorPoint, variables);
     }
     throw new ConnectorException(
         "Process correlation point "
@@ -72,23 +67,24 @@ public class InboundCorrelationHandler {
   }
 
   protected InboundConnectorResult<ProcessInstance> triggerStartEvent(
-      Map<String, ?> properties, StartEventCorrelationPoint correlationPoint,
+      InboundConnectorDefinition definition,
+      StartEventCorrelationPoint correlationPoint,
       Object variables) {
 
-    if (!isActivationConditionMet(properties, variables)) {
+    if (!isActivationConditionMet(definition, variables)) {
       LOG.debug("Activation condition didn't match: {}", correlationPoint);
       return new StartEventCorrelationResult(
-          correlationPoint.getProcessDefinitionKey(),
+          correlationPoint.processDefinitionKey(),
           new CorrelationErrorData(CorrelationErrorReason.ACTIVATION_CONDITION_NOT_MET));
     }
-    Object extractedVariables = extractVariables(variables, properties);
+    Object extractedVariables = extractVariables(variables, definition);
 
     try {
       ProcessInstanceEvent result =
           zeebeClient
               .newCreateInstanceCommand()
-              .bpmnProcessId(correlationPoint.getBpmnProcessId())
-              .version(correlationPoint.getVersion())
+              .bpmnProcessId(correlationPoint.bpmnProcessId())
+              .version(correlationPoint.version())
               .variables(extractedVariables)
               .send()
               .join();
@@ -97,8 +93,8 @@ public class InboundCorrelationHandler {
       return new StartEventCorrelationResult(
           result.getProcessDefinitionKey(),
           new ProcessInstance(
-              result.getProcessInstanceKey(), correlationPoint.getBpmnProcessId(),
-              correlationPoint.getProcessDefinitionKey(), correlationPoint.getVersion()));
+              result.getProcessInstanceKey(), correlationPoint.bpmnProcessId(),
+              correlationPoint.processDefinitionKey(), correlationPoint.version()));
 
     } catch (Exception e) {
       throw new ConnectorException(
@@ -107,32 +103,33 @@ public class InboundCorrelationHandler {
   }
 
   protected InboundConnectorResult<CorrelatedMessage> triggerMessage(
-      Map<String, ?> properties, MessageCorrelationPoint correlationPoint, Object variables) {
+      InboundConnectorDefinition definition,
+      MessageCorrelationPoint correlationPoint,
+      Object variables) {
 
-    String correlationKey = extractCorrelationKey(properties, variables);
+    String correlationKey = extractCorrelationKey(correlationPoint, variables);
 
-    if (!isActivationConditionMet(properties, variables)) {
+    if (!isActivationConditionMet(definition, variables)) {
       LOG.debug("Activation condition didn't match: {}", correlationPoint);
       return new MessageCorrelationResult(
-          correlationPoint.getMessageName(),
+          correlationPoint.messageName(),
           new CorrelationErrorData(CorrelationErrorReason.ACTIVATION_CONDITION_NOT_MET));
     }
 
-    Object extractedVariables = extractVariables(variables, properties);
+    Object extractedVariables = extractVariables(variables, definition);
 
     try {
       PublishMessageResponse response =
           zeebeClient
               .newPublishMessageCommand()
-              .messageName(correlationPoint.getMessageName())
+              .messageName(correlationPoint.messageName())
               .correlationKey(correlationKey)
               .variables(extractedVariables)
               .send()
               .join();
 
       LOG.info("Published message with key: " + response.getMessageKey());
-      return new MessageCorrelationResult(
-          correlationPoint.getMessageName(), response.getMessageKey());
+      return new MessageCorrelationResult(correlationPoint.messageName(), response.getMessageKey());
 
     } catch (Exception e) {
       throw new ConnectorException(
@@ -140,24 +137,24 @@ public class InboundCorrelationHandler {
     }
   }
 
-  protected boolean isActivationConditionMet(Map<String, ?> properties, Object context) {
+  protected boolean isActivationConditionMet(
+      InboundConnectorDefinition definition, Object context) {
 
-    String activationCondition = getProperty(ACTIVATION_CONDITION_KEYWORD, properties);
-    if (activationCondition == null || activationCondition.trim().length() == 0) {
+    var maybeCondition = definition.activationCondition();
+    if (maybeCondition == null || maybeCondition.isBlank()) {
       LOG.debug("No activation condition specified for connector");
       return true;
     }
     try {
-      Object shouldActivate = feelEngine.evaluate(activationCondition, context);
+      Object shouldActivate = feelEngine.evaluate(maybeCondition, context);
       return Boolean.TRUE.equals(shouldActivate);
     } catch (FeelEngineWrapperException e) {
       throw new ConnectorInputException(e);
     }
   }
 
-  protected String extractCorrelationKey(Map<String, ?> properties, Object context) {
-    String correlationKeyExpression =
-        getRequiredProperty(CORRELATION_KEY_EXPRESSION_KEYWORD, properties);
+  protected String extractCorrelationKey(MessageCorrelationPoint point, Object context) {
+    String correlationKeyExpression = point.correlationKeyExpression();
     try {
       return feelEngine.evaluate(correlationKeyExpression, context);
     } catch (Exception e) {
@@ -165,23 +162,8 @@ public class InboundCorrelationHandler {
     }
   }
 
-  protected Object extractVariables(Object rawVariables, Map<String, ?> properties) {
-    return ConnectorHelper.createOutputVariables(rawVariables, properties);
-  }
-
-  protected String getRequiredProperty(String key, Map<String, ?> properties) {
-    String result = getProperty(key, properties);
-    if (result == null) {
-      throw new IllegalArgumentException("Required property '" + key + "' not found");
-    }
-    return result;
-  }
-
-  protected String getProperty(String key, Map<String, ?> properties) {
-    Object result = properties.get(key);
-    if (result == null || result instanceof String) {
-      return (String) result;
-    }
-    throw new IllegalArgumentException("Property '" + key + "' is malformed");
+  protected Object extractVariables(Object rawVariables, InboundConnectorDefinition definition) {
+    return ConnectorHelper.createOutputVariables(
+        rawVariables, definition.resultVariable(), definition.resultExpression());
   }
 }

@@ -23,6 +23,7 @@ import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
+import io.camunda.connector.impl.Constants;
 import io.camunda.connector.runtime.core.ConnectorHelper;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
@@ -85,7 +86,10 @@ public class ConnectorJobHandler implements JobHandler {
       var response = call.execute(context);
       result.setResponseValue(response);
       result.setVariables(
-          ConnectorHelper.createOutputVariables(result.getResponseValue(), job.getCustomHeaders()));
+          ConnectorHelper.createOutputVariables(
+              result.getResponseValue(),
+              job.getCustomHeaders().get(Constants.RESULT_VARIABLE_KEYWORD),
+              job.getCustomHeaders().get(Constants.RESULT_EXPRESSION_KEYWORD)));
     } catch (Exception ex) {
       LOGGER.debug("Exception while processing job {}", job.getKey(), ex);
       result.setResponseValue(Map.of("error", toMap(ex)));

@@ -43,7 +43,7 @@
       "method": "get",
       "url": "https://camunda.io/http-endpoint",
       "query": "query Root($id: ID) {\n  person (id: $id) {\n    id\n    name\n  }\n}",
-      "connectionTimeoutInSeconds": "secrets.SOME_SECRET_KEY"
+      "connectionTimeoutInSeconds": "secrets.CONNECT_TIMEOUT_KEY"
     },
     "authentication": {
       "type": "bearer",

@@ -12,7 +12,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.graphql.model.GraphQLRequest;
 import io.camunda.connector.impl.ConnectorInputException;
-import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.IOException;
 import java.util.stream.Stream;
@@ -53,7 +52,7 @@ public class GraphQLFunctionInputValidationTest extends BaseTest {
   void shouldRaiseException_WhenExecuted_MethodMalformed(final String input) {
     // Given
     OutboundConnectorContext ctx =
-        OutboundConnectorContextBuilder.create()
+        getContextBuilderWithSecrets()
             .validation(new DefaultValidationProvider())
             .variables(String.format(REQUEST_METHOD_OBJECT_PLACEHOLDER, input))
             .build();
@@ -72,7 +71,7 @@ public class GraphQLFunctionInputValidationTest extends BaseTest {
   void shouldRaiseException_WhenExecuted_EndpointMalformed(final String input) {
     // Given
     OutboundConnectorContext ctx =
-        OutboundConnectorContextBuilder.create()
+        getContextBuilderWithSecrets()
             .validation(new DefaultValidationProvider())
             .variables(String.format(REQUEST_ENDPOINT_OBJECT_PLACEHOLDER, input))
             .build();
@@ -89,7 +88,7 @@ public class GraphQLFunctionInputValidationTest extends BaseTest {
   void validate_shouldThrowExceptionWhenLeastOneNotExistRequestField(String input) {
     // Given request without one required field
     OutboundConnectorContext context =
-        OutboundConnectorContextBuilder.create()
+        getContextBuilderWithSecrets()
             .validation(new DefaultValidationProvider())
             .variables(input)
             .build();
@@ -108,7 +107,7 @@ public class GraphQLFunctionInputValidationTest extends BaseTest {
   void validate_shouldThrowExceptionConnectionTimeoutIsWrong(String input) {
     // Given request without one required field
     OutboundConnectorContext context =
-        OutboundConnectorContextBuilder.create()
+        getContextBuilderWithSecrets()
             .variables(input)
             .validation(new DefaultValidationProvider())
             .build();

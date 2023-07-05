@@ -25,7 +25,6 @@ import io.camunda.connector.gsheets.model.request.impl.GetWorksheetData;
 import io.camunda.connector.gsheets.supplier.GsonSheetsComponentSupplier;
 import io.camunda.connector.impl.ConnectorInputException;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
-import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import io.camunda.google.model.Authentication;
 import io.camunda.google.model.AuthenticationType;
 import java.io.IOException;
@@ -72,11 +71,7 @@ class GoogleSheetsRequestTest extends BaseTest {
   @MethodSource("failRequestCases")
   void validateWith_shouldThrowExceptionWhenNonExistLeastOneRequireField(final String input) {
     // Given
-    OutboundConnectorContext context =
-        OutboundConnectorContextBuilder.create()
-            .validation(new DefaultValidationProvider())
-            .variables(input)
-            .build();
+    OutboundConnectorContext context = buildContext(input);
     // When and Then
     ConnectorInputException thrown =
         assertThrows(

@@ -89,6 +89,7 @@ public abstract class BaseTest {
       String MESSAGE_ID = "CHANNEL_MESSAGE_ID_KEY";
       String FILTER = "CHANNEL_FILTER_KEY";
       String CONTENT = "CHANNEL_MESSAGE_CONTENT_KEY";
+      String OWNER = "CHANNEL_OWNER_KEY";
     }
   }
 
@@ -104,6 +105,7 @@ public abstract class BaseTest {
         .secret(Secrets.Channel.NAME, ActualValue.Channel.NAME)
         .secret(Secrets.Channel.MESSAGE_ID, ActualValue.Channel.MESSAGE_ID)
         .secret(Secrets.Channel.FILTER, ActualValue.Channel.FILTER)
+        .secret(Secrets.Channel.OWNER, ActualValue.Channel.OWNER)
         .secret(Secrets.Channel.CONTENT, ActualValue.Channel.CONTENT)
         .secret(Secrets.Chat.CHAT_ID, ActualValue.Chat.CHAT_ID)
         .secret(Secrets.Chat.MESSAGE_ID, ActualValue.Chat.MESSAGE_ID)

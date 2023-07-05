@@ -11,6 +11,7 @@ import static java.nio.file.Files.readString;
 
 import com.google.api.client.json.JsonParser;
 import com.google.gson.Gson;
+import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import io.camunda.google.supplier.GsonComponentSupplier;
 import java.io.File;
 import java.io.IOException;
@@ -50,5 +51,13 @@ public abstract class BaseTest {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  protected OutboundConnectorContextBuilder getContextBuilderWithSecrets() {
+    return OutboundConnectorContextBuilder.create()
+        .secret(SECRET_BEARER_TOKEN, ACTUAL_BEARER_TOKEN)
+        .secret(SECRET_OAUTH_SECRET_ID, ACTUAL_OAUTH_SECRET_ID)
+        .secret(SECRET_REFRESH_TOKEN, ACTUAL_REFRESH_TOKEN)
+        .secret(SECRET_OAUTH_CLIENT_ID, ACTUAL_OAUTH_CLIENT_ID);
   }
 }

@@ -16,18 +16,13 @@
  */
 package io.camunda.connector.runtime.core.inbound;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.fasterxml.jackson.module.scala.DefaultScalaModule$;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
 import io.camunda.connector.api.inbound.InboundConnectorResult;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
-import io.camunda.connector.impl.ConnectorInputException;
 import io.camunda.connector.impl.Constants;
 import io.camunda.connector.impl.context.AbstractConnectorContext;
 import io.camunda.connector.runtime.core.feel.FeelParserWrapper;
@@ -45,6 +40,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   private final Logger LOG = LoggerFactory.getLogger(InboundConnectorContextImpl.class);
   private final InboundConnectorDefinitionImpl definition;
+  private final Map<String, Object> properties;
 
   private final InboundCorrelationHandler correlationHandler;
   private final ObjectMapper objectMapper;
@@ -53,46 +49,24 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   private Health health = Health.unknown();
 
-  private Map<String, Object> propertiesWithSecrets;
-  private Map<String, Object> propertiesWithFeel;
-
   public InboundConnectorContextImpl(
       SecretProvider secretProvider,
       ValidationProvider validationProvider,
       InboundConnectorDefinitionImpl definition,
       InboundCorrelationHandler correlationHandler,
-      Consumer<Throwable> cancellationCallback) {
+      Consumer<Throwable> cancellationCallback,
+      ObjectMapper objectMapper) {
     super(secretProvider, validationProvider);
     this.correlationHandler = correlationHandler;
     this.definition = definition;
-    this.cancellationCallback = cancellationCallback;
-    this.objectMapper =
-        new ObjectMapper()
-            .registerModule(DefaultScalaModule$.MODULE$)
-            .registerModule(new JavaTimeModule())
-            // deserialize unknown types as empty objects
-            .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
-            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
-  }
-
-  public InboundConnectorContextImpl(
-      SecretProvider secretProvider,
-      ValidationProvider validationProvider,
-      InboundConnectorDefinitionImpl definition,
-      InboundCorrelationHandler correlationHandler,
-      ObjectMapper objectMapper,
-      Consumer<Throwable> cancellationCallback) {
-    super(secretProvider, validationProvider);
-    this.correlationHandler = correlationHandler;
-    this.definition = definition;
+    this.properties = InboundPropertyHandler.readWrappedProperties(definition.rawProperties());
     this.objectMapper = objectMapper;
     this.cancellationCallback = cancellationCallback;
   }
 
   @Override
   public InboundConnectorResult<?> correlate(Object variables) {
-    return correlationHandler.correlate(
-        definition.properties(), definition.correlationPoint(), variables);
+    return correlationHandler.correlate(definition, variables);
   }
 
   @Override
@@ -106,12 +80,12 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   @Override
   public Map<String, Object> getProperties() {
-    return getPropertiesWithSecrets(definition.properties());
+    return getPropertiesWithSecrets(properties);
   }
 
   @Override
   public <T> T bindProperties(Class<T> cls) {
-    var evaluatedProps = getPropertiesWithFeel(definition.properties());
+    var evaluatedProps = getPropertiesWithFeel(properties);
     var propsWithSecrets = getPropertiesWithSecrets(evaluatedProps);
     var mappedObject = objectMapper.convertValue(propsWithSecrets, cls);
     getValidationProvider().validate(mappedObject);
@@ -140,6 +114,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
     this.health = health;
   }
 
+  @Override
   public Health getHealth() {
     return health;
   }
@@ -154,20 +129,28 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
     return "InboundConnectorContextImpl{" + "definition=" + definition + '}';
   }
 
+  private Map<String, Object> propertiesWithFeel;
+
   private Map<String, Object> getPropertiesWithFeel(Map<String, Object> properties) {
     if (propertiesWithFeel == null) {
-      propertiesWithFeel = properties.entrySet().stream().map(entry -> {
-        if (Constants.RESERVED_KEYWORDS.contains(entry.getKey())) {
-          return entry;
-        } else {
-          return Map.entry(
-              entry.getKey(),
-              FeelParserWrapper.parseIfIsFeelExpressionOrGetOriginal(entry.getValue()));
-        }
-      }).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+      propertiesWithFeel =
+          properties.entrySet().stream()
+              .map(
+                  entry -> {
+                    if (Constants.RESERVED_KEYWORDS.contains(entry.getKey())) {
+                      return entry;
+                    } else {
+                      return Map.entry(
+                          entry.getKey(),
+                          FeelParserWrapper.parseIfIsFeelExpressionOrGetOriginal(entry.getValue()));
+                    }
+                  })
+              .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
     return propertiesWithFeel;
   }
+
+  private Map<String, Object> propertiesWithSecrets;
 
   private Map<String, Object> getPropertiesWithSecrets(Map<String, Object> properties) {
     if (propertiesWithSecrets == null) {

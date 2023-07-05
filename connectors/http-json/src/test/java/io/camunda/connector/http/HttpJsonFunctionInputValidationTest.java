@@ -22,7 +22,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.http.model.HttpJsonRequest;
 import io.camunda.connector.impl.ConnectorInputException;
-import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.IOException;
 import java.util.stream.Stream;
@@ -64,7 +63,7 @@ public class HttpJsonFunctionInputValidationTest extends BaseTest {
     var json = String.format(REQUEST_METHOD_OBJECT_PLACEHOLDER, input);
     // Given
     OutboundConnectorContext ctx =
-        OutboundConnectorContextBuilder.create()
+        getContextBuilderWithSecrets()
             .variables(json)
             .validation(new DefaultValidationProvider())
             .build();
@@ -83,7 +82,7 @@ public class HttpJsonFunctionInputValidationTest extends BaseTest {
   void shouldRaiseException_WhenExecuted_EndpointMalformed(final String input) {
     // Given
     OutboundConnectorContext ctx =
-        OutboundConnectorContextBuilder.create()
+        getContextBuilderWithSecrets()
             .variables(String.format(REQUEST_ENDPOINT_OBJECT_PLACEHOLDER, input))
             .validation(new DefaultValidationProvider())
             .build();
@@ -100,7 +99,7 @@ public class HttpJsonFunctionInputValidationTest extends BaseTest {
   void validate_shouldThrowExceptionWhenLeastOneNotExistRequestField(String input) {
     // Given request without one required field
     OutboundConnectorContext context =
-        OutboundConnectorContextBuilder.create()
+        getContextBuilderWithSecrets()
             .variables(input)
             .validation(new DefaultValidationProvider())
             .build();
@@ -119,7 +118,7 @@ public class HttpJsonFunctionInputValidationTest extends BaseTest {
   void validate_shouldThrowExceptionConnectionTimeoutIsWrong(String input) {
     // Given request without one required field
     OutboundConnectorContext context =
-        OutboundConnectorContextBuilder.create()
+        getContextBuilderWithSecrets()
             .variables(input)
             .validation(new DefaultValidationProvider())
             .build();
@@ -138,7 +137,7 @@ public class HttpJsonFunctionInputValidationTest extends BaseTest {
   void validate_shouldValidateWithoutException(String input) {
     // Given request without one required field
     OutboundConnectorContext context =
-        OutboundConnectorContextBuilder.create()
+        getContextBuilderWithSecrets()
             .variables(input)
             .validation(new DefaultValidationProvider())
             .build();

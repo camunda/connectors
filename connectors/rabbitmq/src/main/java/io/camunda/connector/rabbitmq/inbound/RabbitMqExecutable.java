@@ -43,8 +43,7 @@ public class RabbitMqExecutable implements InboundConnectorExecutable {
 
   @Override
   public void activate(InboundConnectorContext context) throws Exception {
-    RabbitMqInboundProperties properties =
-        context.bindProperties(RabbitMqInboundProperties.class);
+    RabbitMqInboundProperties properties = context.bindProperties(RabbitMqInboundProperties.class);
 
     LOGGER.info("Subscription activation requested by the Connector runtime: {}", properties);
 

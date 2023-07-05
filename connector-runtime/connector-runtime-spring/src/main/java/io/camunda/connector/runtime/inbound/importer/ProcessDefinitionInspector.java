@@ -18,11 +18,10 @@ package io.camunda.connector.runtime.inbound.importer;
 
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
 import io.camunda.connector.impl.Constants;
+import io.camunda.connector.impl.inbound.MessageCorrelationPoint;
 import io.camunda.connector.impl.inbound.ProcessCorrelationPoint;
-import io.camunda.connector.impl.inbound.correlation.MessageCorrelationPoint;
-import io.camunda.connector.impl.inbound.correlation.StartEventCorrelationPoint;
+import io.camunda.connector.impl.inbound.StartEventCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
-import io.camunda.connector.runtime.core.inbound.InboundPropertyHandler;
 import io.camunda.operate.CamundaOperateClient;
 import io.camunda.operate.dto.ProcessDefinition;
 import io.camunda.operate.exception.OperateException;
@@ -45,8 +44,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Inspects the imported process definitions and extracts Inbound Connector definitions as
- * {@link ProcessCorrelationPoint}.
+ * Inspects the imported process definitions and extracts Inbound Connector definitions as {@link
+ * ProcessCorrelationPoint}.
  */
 public class ProcessDefinitionInspector {
 
@@ -114,10 +113,11 @@ public class ProcessDefinitionInspector {
       }
       ProcessCorrelationPoint target = maybeTarget.get();
 
-      var inboundZeebeProperties = extractProperties(element);
+      var rawProperties = getRawProperties(element);
 
-      InboundConnectorDefinitionImpl def = new InboundConnectorDefinitionImpl(
-              inboundZeebeProperties,
+      InboundConnectorDefinitionImpl def =
+          new InboundConnectorDefinitionImpl(
+              rawProperties,
               target,
               process.getId(),
               definition.getVersion().intValue(),
@@ -159,10 +159,10 @@ public class ProcessDefinitionInspector {
                                 + " must contain at least one event definition"));
     String name = msgDef.getMessage().getName();
 
-    // fail-fast strategy, validating if correlation key expression is set
-    validateRequiredProperty(catchEvent, Constants.CORRELATION_KEY_EXPRESSION_KEYWORD);
+    String correlationKeyExpression =
+        extractRequiredProperty(catchEvent, Constants.CORRELATION_KEY_EXPRESSION_KEYWORD);
 
-    return Optional.of(new MessageCorrelationPoint(name));
+    return Optional.of(new MessageCorrelationPoint(name, correlationKeyExpression));
   }
 
   private Optional<ProcessCorrelationPoint> handleStartEvent(
@@ -170,37 +170,28 @@ public class ProcessDefinitionInspector {
 
     return Optional.of(
         new StartEventCorrelationPoint(
-            definition.getKey(), process.getId(), definition.getVersion().intValue()));
+            process.getId(), definition.getVersion().intValue(), definition.getKey()));
   }
 
   private Optional<ProcessCorrelationPoint> handleReceiveTask(ReceiveTask receiveTask) {
     Message message = receiveTask.getMessage();
-
-    // fail-fast strategy, validating if correlation key expression is set
-    validateRequiredProperty(receiveTask, Constants.CORRELATION_KEY_EXPRESSION_KEYWORD);
-    return Optional.of(new MessageCorrelationPoint(message.getName()));
+    String correlationKeyExpression =
+        extractRequiredProperty(receiveTask, Constants.CORRELATION_KEY_EXPRESSION_KEYWORD);
+    return Optional.of(new MessageCorrelationPoint(message.getName(), correlationKeyExpression));
   }
 
-  private void validateRequiredProperty(BaseElement element, String name) {
-    if (extractRawProperty(element, name) == null) {
-      throw new IllegalStateException("Missing required property " + name);
-    }
-  }
-
-  private Map<String, Object> extractProperties(BaseElement element) {
+  private Map<String, String> getRawProperties(BaseElement element) {
     ZeebeProperties zeebeProperties = element.getSingleExtensionElement(ZeebeProperties.class);
     if (zeebeProperties == null) {
       LOG.warn("Missing `zeebe:property` mappings on element " + element);
       return null;
     }
-    var rawProperties = zeebeProperties.getProperties().stream()
+    return zeebeProperties.getProperties().stream()
         .filter(property -> property.getValue() != null)
         .collect(Collectors.toMap(ZeebeProperty::getName, ZeebeProperty::getValue));
-
-    return InboundPropertyHandler.readWrappedProperties(rawProperties);
   }
 
-  private String extractRawProperty(BaseElement element, String name) {
+  private String extractRequiredProperty(BaseElement element, String name) {
     ZeebeProperties zeebeProperties = element.getSingleExtensionElement(ZeebeProperties.class);
     if (zeebeProperties == null) {
       LOG.warn("Missing `zeebe:property` mappings on element " + element);
@@ -210,6 +201,6 @@ public class ProcessDefinitionInspector {
         .filter(property -> property.getName().equals(name))
         .findAny()
         .map(ZeebeProperty::getValue)
-        .orElse(null);
+        .orElseThrow(() -> new IllegalStateException("Missing required property " + name));
   }
 }

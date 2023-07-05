@@ -17,7 +17,6 @@ import io.camunda.connector.gdrive.GoogleDriveFunction;
 import io.camunda.connector.gdrive.GoogleDriveService;
 import io.camunda.connector.gdrive.model.request.GoogleDriveRequest;
 import io.camunda.connector.impl.ConnectorInputException;
-import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.IOException;
 import java.util.stream.Stream;
@@ -45,13 +44,9 @@ class GoogleDriveRequestTest extends BaseTest {
   void replaceSecrets_shouldReplaceAllSecrets(final String input) {
     // Given
     OutboundConnectorContext context =
-        OutboundConnectorContextBuilder.create()
+        getContextBuilderWithSecrets()
             .validation(new DefaultValidationProvider())
             .variables(input)
-            .secret(SECRET_BEARER_TOKEN, ACTUAL_BEARER_TOKEN)
-            .secret(SECRET_REFRESH_TOKEN, ACTUAL_REFRESH_TOKEN)
-            .secret(SECRET_OAUTH_CLIENT_ID, ACTUAL_OAUTH_CLIENT_ID)
-            .secret(SECRET_OAUTH_SECRET_ID, ACTUAL_OAUTH_SECRET_ID)
             .build();
 
     GoogleDriveFunction function =
@@ -66,7 +61,7 @@ class GoogleDriveRequestTest extends BaseTest {
     // Given
     GoogleDriveRequest request = parseInput(input, GoogleDriveRequest.class);
     OutboundConnectorContext context =
-        OutboundConnectorContextBuilder.create()
+        getContextBuilderWithSecrets()
             .variables(input)
             .validation(new DefaultValidationProvider())
             .build();

@@ -29,21 +29,22 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.impl.ConnectorUtil;
 import io.camunda.connector.impl.Constants;
 import io.camunda.connector.impl.inbound.InboundConnectorConfiguration;
-import io.camunda.connector.impl.inbound.correlation.MessageCorrelationPoint;
+import io.camunda.connector.impl.inbound.MessageCorrelationPoint;
 import io.camunda.connector.runtime.app.TestInboundConnector;
 import io.camunda.connector.runtime.app.TestWebhookConnector;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.inbound.ProcessDefinitionTestUtil;
-import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionInspector;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.operate.dto.ProcessDefinition;
@@ -64,6 +65,7 @@ public class InboundConnectorManagerTest {
   private WebhookConnectorRegistry webhookRegistry;
   private SecretProviderAggregator secretProviderAggregator;
   private InboundCorrelationHandler correlationHandler;
+  private final ObjectMapper mapper = new ObjectMapper();
 
   @BeforeEach
   void resetMocks() {
@@ -81,6 +83,7 @@ public class InboundConnectorManagerTest {
 
     manager =
         new InboundConnectorManager(
+            mapper,
             factory,
             correlationHandler,
             inspector,
@@ -104,23 +107,6 @@ public class InboundConnectorManagerTest {
     assertTrue(manager.isProcessDefinitionRegistered(process.getKey()));
     verify(factory, times(1)).getInstance(connector.type());
     verify(inboundConnectorExecutable, times(1)).activate(eq(inboundContext(connector)));
-  }
-
-  @Test
-  void shouldActivateConnector_NewBpmnDeployed_MultipleConnectors() throws Exception {
-    // given
-    var process = processDefinition("proc1", 1);
-    var connectors = List.of(inboundConnector(process), inboundConnector(process));
-
-    // when
-    procDefUtil.deployProcessDefinition(process, connectors);
-
-    // then
-    assertTrue(manager.isProcessDefinitionRegistered(process.getKey()));
-    verify(factory, times(2)).getInstance(connectors.get(0).type());
-    for (var connector : connectors) {
-      verify(inboundConnectorExecutable, times(1)).activate(eq(inboundContext(connector)));
-    }
   }
 
   @Test
@@ -252,6 +238,7 @@ public class InboundConnectorManagerTest {
     // emulating camunda.connector.webhook.enabled=false
     manager =
         new InboundConnectorManager(
+            mapper,
             factory,
             correlationHandler,
             inspector,
@@ -273,12 +260,13 @@ public class InboundConnectorManagerTest {
 
     var query = new ActiveInboundConnectorQuery("webhook1", null, null);
     var activeInboundConnectors = manager.query(query);
-    assertEquals("webhook1", activeInboundConnectors.get(0).context().getDefinition().bpmnProcessId());
+    assertEquals(
+        "webhook1", activeInboundConnectors.get(0).context().getDefinition().bpmnProcessId());
   }
 
   private InboundConnectorContext inboundContext(InboundConnectorDefinitionImpl definition) {
     return new InboundConnectorContextImpl(
-        secretProviderAggregator, v -> {}, definition, correlationHandler, (event) -> {});
+        secretProviderAggregator, v -> {}, definition, correlationHandler, (event) -> {}, mapper);
   }
 
   private static final InboundConnectorConfiguration connectorConfig =
@@ -290,7 +278,7 @@ public class InboundConnectorManagerTest {
   private static InboundConnectorDefinitionImpl inboundConnector(ProcessDefinition procDef) {
     return new InboundConnectorDefinitionImpl(
         Map.of(Constants.INBOUND_TYPE_KEYWORD, connectorConfig.getType()),
-        new MessageCorrelationPoint(""),
+        new MessageCorrelationPoint("", ""),
         procDef.getBpmnProcessId(),
         procDef.getVersion().intValue(),
         procDef.getKey(),
@@ -302,9 +290,9 @@ public class InboundConnectorManagerTest {
         Map.of(
             Constants.INBOUND_TYPE_KEYWORD,
             webhookConfig.getType(),
-            InboundConnectorManager.WEBHOOK_CONTEXT_BPMN_FIELD,
+            "inbound.context",
             "myWebhookEndpoint"),
-        new MessageCorrelationPoint(""),
+        new MessageCorrelationPoint("", ""),
         procDef.getBpmnProcessId(),
         procDef.getVersion().intValue(),
         procDef.getKey(),

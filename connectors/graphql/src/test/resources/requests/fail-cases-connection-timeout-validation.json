@@ -101,7 +101,7 @@
     }
   },
   {
-    "descriptionOfTest": "Value with 'secrets.' token in the middle",
+    "descriptionOfTest": "Value with 'secrets' token in the middle",
     "graphql": {
       "method": "get",
       "url": "https://camunda.io/http-endpoint",

@@ -23,16 +23,16 @@ import static org.junit.jupiter.api.Assertions.assertThrowsExactly;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingResult;
-import io.camunda.connector.api.secret.SecretProvider;
-import io.camunda.connector.impl.inbound.correlation.StartEventCorrelationPoint;
-import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
+import io.camunda.connector.impl.inbound.StartEventCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
 import io.camunda.connector.runtime.inbound.lifecycle.ActiveInboundConnector;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
-import java.util.HashMap;
+import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -45,13 +45,15 @@ import org.mockito.quality.Strictness;
 @MockitoSettings(strictness = Strictness.LENIENT)
 public class WebhookControllerPlainJavaTests {
 
+  private static final ObjectMapper mapper = new ObjectMapper();
+
   @Test
   public void multipleWebhooksOnSameContextPathAreNotSupported() {
     WebhookConnectorRegistry webhookConnectorRegistry = new WebhookConnectorRegistry();
-    var connectorA = buildConnector(webhookProperties("processA", 1, "myPath"));
+    var connectorA = buildConnector(webhookDefinition("processA", 1, "myPath"));
     webhookConnectorRegistry.register(connectorA);
 
-    var connectorB = buildConnector(webhookProperties("processA", 1, "myPath"));
+    var connectorB = buildConnector(webhookDefinition("processA", 1, "myPath"));
     assertThrowsExactly(
         RuntimeException.class, () -> webhookConnectorRegistry.register(connectorB));
   }
@@ -60,9 +62,9 @@ public class WebhookControllerPlainJavaTests {
   public void webhookMultipleVersionsDisableWebhook() {
     WebhookConnectorRegistry webhook = new WebhookConnectorRegistry();
 
-    var processA1 = buildConnector(webhookProperties("processA", 1, "myPath"));
-    var processA2 = buildConnector(webhookProperties("processA", 2, "myPath"));
-    var processB1 = buildConnector(webhookProperties("processB", 1, "myPath2"));
+    var processA1 = buildConnector(webhookDefinition("processA", 1, "myPath"));
+    var processA2 = buildConnector(webhookDefinition("processA", 2, "myPath"));
+    var processB1 = buildConnector(webhookDefinition("processB", 1, "myPath2"));
 
     webhook.register(processA1);
     webhook.deregister(processA1);
@@ -86,7 +88,7 @@ public class WebhookControllerPlainJavaTests {
     WebhookConnectorRegistry webhook = new WebhookConnectorRegistry();
 
     // given
-    var processA1 = buildConnector(webhookProperties("processA", 1, "myPath"));
+    var processA1 = buildConnector(webhookDefinition("processA", 1, "myPath"));
 
     // when
     webhook.register(processA1);
@@ -98,7 +100,7 @@ public class WebhookControllerPlainJavaTests {
 
   private static long nextProcessDefinitionKey = 0L;
 
-  public static ActiveInboundConnector buildConnector(InboundConnectorDefinitionImpl properties) {
+  public static ActiveInboundConnector buildConnector(InboundConnectorDefinitionImpl definition) {
     WebhookConnectorExecutable executable = Mockito.mock(WebhookConnectorExecutable.class);
     try {
       Mockito.when(executable.triggerWebhook(any(WebhookProcessingPayload.class)))
@@ -106,33 +108,28 @@ public class WebhookControllerPlainJavaTests {
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
-    return new ActiveInboundConnector(executable, buildContext(properties));
+    return new ActiveInboundConnector(executable, buildContext(definition));
   }
 
-  public static InboundConnectorContextImpl buildContext(
-      InboundConnectorDefinitionImpl properties) {
-    final Map<String, String> secrets = new HashMap<>();
-    SecretProvider secretProvider = secrets::get;
-    return new InboundConnectorContextImpl(secretProvider, e -> {}, properties, null, (x) -> {});
+  public static InboundConnectorContext buildContext(InboundConnectorDefinitionImpl def) {
+    return InboundConnectorContextBuilder.create()
+        .properties(
+            Map.of("inbound", Map.of("context", def.rawProperties().get("inbound.context"))))
+        .definition(def)
+        .build();
   }
 
-  public static InboundConnectorDefinitionImpl webhookProperties(
-      String bpmnProcessId, int version, String contextPath) {
-    return webhookProperties(++nextProcessDefinitionKey, bpmnProcessId, version, contextPath);
+  public static InboundConnectorDefinitionImpl webhookDefinition(
+      String bpmnProcessId, int version, String path) {
+    return webhookDefinition(++nextProcessDefinitionKey, bpmnProcessId, version, path);
   }
 
-  public static InboundConnectorDefinitionImpl webhookProperties(
-      long processDefinitionKey, String bpmnProcessId, int version, String contextPath) {
+  public static InboundConnectorDefinitionImpl webhookDefinition(
+      long processDefinitionKey, String bpmnProcessId, int version, String path) {
 
     return new InboundConnectorDefinitionImpl(
-        Map.of(
-            "inbound.type", "webhook",
-            "inbound.context", contextPath,
-            "inbound.secretExtractor", "=\"TEST\"",
-            "inbound.secret", "TEST",
-            "inbound.activationCondition", "=true",
-            "inbound.variableMapping", "={}"),
-        new StartEventCorrelationPoint(processDefinitionKey, bpmnProcessId, version),
+        Map.of("inbound.type", "io.camunda:webhook:1", "inbound.context", path),
+        new StartEventCorrelationPoint(bpmnProcessId, version, processDefinitionKey),
         bpmnProcessId,
         version,
         processDefinitionKey,

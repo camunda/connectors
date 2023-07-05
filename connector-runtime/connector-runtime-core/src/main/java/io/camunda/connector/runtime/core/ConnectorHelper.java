@@ -17,8 +17,6 @@
 package io.camunda.connector.runtime.core;
 
 import static io.camunda.connector.impl.Constants.ERROR_EXPRESSION_KEYWORD;
-import static io.camunda.connector.impl.Constants.RESULT_EXPRESSION_KEYWORD;
-import static io.camunda.connector.impl.Constants.RESULT_VARIABLE_KEYWORD;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -32,9 +30,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-/**
- * The ConnectorHelper provide utility functions used to build connector runtimes.
- */
+/** The ConnectorHelper provide utility functions used to build connector runtimes. */
 public class ConnectorHelper {
 
   public static FeelEngineWrapper FEEL_ENGINE_WRAPPER = new FeelEngineWrapper();
@@ -44,22 +40,15 @@ public class ConnectorHelper {
   private static final String ERROR_CANNOT_PARSE_VARIABLES = "Cannot parse '%s' as '%s'.";
 
   /**
-   * @return a map with output process variables for a given response from an
-   * {@link OutboundConnectorFunction} or an {@link InboundConnectorExecutable}. configured with
-   * headers from a Zeebe Job or inbound Connector properties.
+   * @return a map with output process variables for a given response from an {@link
+   *     OutboundConnectorFunction} or an {@link InboundConnectorExecutable}. configured with
+   *     headers from a Zeebe Job or inbound Connector properties.
    */
   public static Map<String, Object> createOutputVariables(
-      final Object responseContent, final Map<String, ?> jobHeaders) {
+      final Object responseContent,
+      final String resultVariableName,
+      final String resultExpression) {
     final Map<String, Object> outputVariables = new HashMap<>();
-    final String resultVariableName;
-    final String resultExpression;
-
-    try {
-      resultVariableName = (String) jobHeaders.get(RESULT_VARIABLE_KEYWORD);
-      resultExpression = (String) jobHeaders.get(RESULT_EXPRESSION_KEYWORD);
-    } catch (ClassCastException e) {
-      throw new IllegalStateException("Failed to get result variable name or expression", e);
-    }
 
     if (resultVariableName != null && !resultVariableName.isBlank()) {
       outputVariables.put(resultVariableName, responseContent);
@@ -89,10 +78,10 @@ public class ConnectorHelper {
       return connectorClass.getDeclaredConstructor().newInstance();
 
     } catch (InvocationTargetException
-             | InstantiationException
-             | IllegalAccessException
-             | ClassCastException
-             | NoSuchMethodException e) {
+        | InstantiationException
+        | IllegalAccessException
+        | ClassCastException
+        | NoSuchMethodException e) {
 
       throw new IllegalStateException("Failed to instantiate connector " + connectorClass, e);
     }

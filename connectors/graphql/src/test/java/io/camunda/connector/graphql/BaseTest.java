@@ -37,6 +37,7 @@ public class BaseTest {
       String OAUTH_TOKEN_ENDPOINT = "OAUTH_TOKEN_ENDPOINT_KEY";
       String CLIENT_ID = "CLIENT_ID_KEY";
       String CLIENT_SECRET = "CLIENT_SECRET_KEY";
+      String CLIENT_AUTHENTICATION = "CLIENT_AUTHENTICATION_KEY";
       String AUDIENCE = "AUDIENCE_KEY";
     }
 
@@ -65,6 +66,7 @@ public class BaseTest {
       String OAUTH_TOKEN_ENDPOINT = "https://test/api/v2/";
       String CLIENT_ID = "bi1cekB123456GRWBBEgzdxA89S2T";
       String CLIENT_SECRET = "Bzw6SL12345678934562eqg4fJM72EeeM2JQiF4BfbyYZUDCur7ntB";
+      String CLIENT_AUTHENTICATION = "client_authentication";
       String AUDIENCE = "https://test/api/v2/";
     }
 
@@ -112,6 +114,9 @@ public class BaseTest {
         .secret(SecretsConstant.Authentication.CLIENT_ID, ActualValue.Authentication.CLIENT_ID)
         .secret(
             SecretsConstant.Authentication.CLIENT_SECRET, ActualValue.Authentication.CLIENT_SECRET)
+        .secret(
+            SecretsConstant.Authentication.CLIENT_AUTHENTICATION,
+            ActualValue.Authentication.CLIENT_AUTHENTICATION)
         .secret(SecretsConstant.Authentication.AUDIENCE, ActualValue.Authentication.AUDIENCE)
         .secret(SecretsConstant.Variables.ID, ActualValue.Variables.ID)
         .secret(SecretsConstant.Query.ID, ActualValue.Query.ID)

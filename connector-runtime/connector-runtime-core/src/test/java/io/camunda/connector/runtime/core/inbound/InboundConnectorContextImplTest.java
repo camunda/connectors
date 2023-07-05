@@ -19,8 +19,9 @@ package io.camunda.connector.runtime.core.inbound;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.secret.SecretProvider;
-import io.camunda.connector.impl.inbound.correlation.MessageCorrelationPoint;
+import io.camunda.connector.impl.inbound.MessageCorrelationPoint;
 import io.camunda.connector.runtime.core.FooBarSecretProvider;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +30,7 @@ import org.junit.jupiter.api.Test;
 
 class InboundConnectorContextImplTest {
   private final SecretProvider secretProvider = new FooBarSecretProvider();
+  private final ObjectMapper mapper = new ObjectMapper();
 
   @Test
   void bindProperties_shouldThrowExceptionWhenWrongFormat() {
@@ -36,13 +38,14 @@ class InboundConnectorContextImplTest {
     InboundConnectorDefinitionImpl definition =
         new InboundConnectorDefinitionImpl(
             Map.of("stringMap", "={{\"key\":\"value\"}"),
-            new MessageCorrelationPoint(""),
+            new MessageCorrelationPoint("", ""),
             "bool",
             0,
             0L,
             "id");
     InboundConnectorContextImpl inboundConnectorContext =
-        new InboundConnectorContextImpl(secretProvider, (e) -> {}, definition, null, (e) -> {});
+        new InboundConnectorContextImpl(
+            secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper);
     // when and then
     RuntimeException exception =
         assertThrows(
@@ -57,13 +60,14 @@ class InboundConnectorContextImplTest {
     InboundConnectorDefinitionImpl definition =
         new InboundConnectorDefinitionImpl(
             Map.of("stringMap", "={\"keyString\":null}"),
-            new MessageCorrelationPoint(""),
+            new MessageCorrelationPoint("", ""),
             "bool",
             0,
             0L,
             "id");
     InboundConnectorContextImpl inboundConnectorContext =
-        new InboundConnectorContextImpl(secretProvider, (e) -> {}, definition, null, (e) -> {});
+        new InboundConnectorContextImpl(
+            secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper);
     // when
     TestPropertiesClass propertiesAsType =
         inboundConnectorContext.bindProperties(TestPropertiesClass.class);
@@ -81,13 +85,14 @@ class InboundConnectorContextImplTest {
             Map.of(
                 "mapWithStringListWithNumbers",
                 "={\"key\":[\"34\", \"45\", \"890\",\"0\",\"16785\"]}"),
-            new MessageCorrelationPoint(""),
+            new MessageCorrelationPoint("", ""),
             "bool",
             0,
             0L,
             "id");
     InboundConnectorContextImpl inboundConnectorContext =
-        new InboundConnectorContextImpl(secretProvider, (e) -> {}, definition, null, (e) -> {});
+        new InboundConnectorContextImpl(
+            secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper);
     // when
     TestPropertiesClass propertiesAsType =
         inboundConnectorContext.bindProperties(TestPropertiesClass.class);
@@ -122,13 +127,14 @@ class InboundConnectorContextImplTest {
                 "=[\"34\", \"-45\", \"890\", \"0\", \"-16785\"]",
                 "stringObjectMap",
                 "={\"innerObject\":{\"stringList\":[\"innerList\"], \"bool\":false}}"),
-            new MessageCorrelationPoint(""),
+            new MessageCorrelationPoint("", ""),
             "bool",
             0,
             0L,
             "id");
     InboundConnectorContextImpl inboundConnectorContext =
-        new InboundConnectorContextImpl(secretProvider, (e) -> {}, definition, null, (e) -> {});
+        new InboundConnectorContextImpl(
+            secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper);
     // when
     TestPropertiesClass propertiesAsType =
         inboundConnectorContext.bindProperties(TestPropertiesClass.class);
@@ -142,14 +148,15 @@ class InboundConnectorContextImplTest {
     InboundConnectorDefinitionImpl definition =
         new InboundConnectorDefinitionImpl(
             Map.of("stringMap", "={\"keyString\":null}"),
-            new MessageCorrelationPoint(""),
+            new MessageCorrelationPoint("", ""),
             "bool",
             0,
             0L,
             "id");
 
     InboundConnectorContextImpl inboundConnectorContext =
-        new InboundConnectorContextImpl(secretProvider, (e) -> {}, definition, null, (e) -> {});
+        new InboundConnectorContextImpl(
+            secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper);
 
     // when
     Map<String, Object> properties = inboundConnectorContext.getProperties();

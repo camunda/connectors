@@ -16,15 +16,13 @@
  */
 package io.camunda.connector.runtime.inbound.lifecycle;
 
+import io.camunda.connector.api.inbound.InboundConnectorDefinition;
 import io.camunda.connector.api.inbound.InboundConnectorResult;
-import io.camunda.connector.impl.Constants;
-import io.camunda.connector.impl.inbound.ProcessCorrelationPoint;
 import io.camunda.connector.runtime.core.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics.Inbound;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
-import java.util.Map;
 
 public class MeteredInboundCorrelationHandler extends InboundCorrelationHandler {
 
@@ -37,39 +35,31 @@ public class MeteredInboundCorrelationHandler extends InboundCorrelationHandler 
   }
 
   @Override
-  protected boolean isActivationConditionMet(Map<String, ?> properties, Object context) {
-    boolean isConditionMet = super.isActivationConditionMet(properties, context);
+  protected boolean isActivationConditionMet(InboundConnectorDefinition def, Object context) {
+    boolean isConditionMet = super.isActivationConditionMet(def, context);
     if (!isConditionMet) {
       metricsRecorder.increase(
-          Inbound.METRIC_NAME_TRIGGERS,
-          Inbound.ACTION_ACTIVATION_CONDITION_FAILED,
-          properties.get(Constants.INBOUND_TYPE_KEYWORD).toString());
+          Inbound.METRIC_NAME_TRIGGERS, Inbound.ACTION_ACTIVATION_CONDITION_FAILED, def.type());
     }
     return isConditionMet;
   }
 
   @Override
-  public InboundConnectorResult<?> correlate(Map<String, ?> properties,
-      ProcessCorrelationPoint correlationPoint, Object variables) {
+  public InboundConnectorResult<?> correlate(
+      InboundConnectorDefinition definition, Object variables) {
     metricsRecorder.increase(
-        Inbound.METRIC_NAME_TRIGGERS,
-        Inbound.ACTION_TRIGGERED,
-        properties.get(Constants.INBOUND_TYPE_KEYWORD).toString());
+        Inbound.METRIC_NAME_TRIGGERS, Inbound.ACTION_TRIGGERED, definition.type());
 
     try {
-      var result = super.correlate(properties, correlationPoint, variables);
+      var result = super.correlate(definition, variables);
       if (result.isActivated()) {
         metricsRecorder.increase(
-            Inbound.METRIC_NAME_TRIGGERS,
-            Inbound.ACTION_CORRELATED,
-            properties.get(Constants.INBOUND_TYPE_KEYWORD).toString());
+            Inbound.METRIC_NAME_TRIGGERS, Inbound.ACTION_CORRELATED, definition.type());
       }
       return result;
     } catch (Exception e) {
       metricsRecorder.increase(
-          Inbound.METRIC_NAME_TRIGGERS,
-          Inbound.ACTION_CORRELATION_FAILED,
-          properties.get(Constants.INBOUND_TYPE_KEYWORD).toString());
+          Inbound.METRIC_NAME_TRIGGERS, Inbound.ACTION_CORRELATION_FAILED, definition.type());
       throw e;
     }
   }

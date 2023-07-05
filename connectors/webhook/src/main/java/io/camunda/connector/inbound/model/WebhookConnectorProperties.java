@@ -44,8 +44,7 @@ public class WebhookConnectorProperties {
 
     this.activationCondition = readPropertyNullable("activationCondition");
     this.variableMapping = readPropertyNullable("variableMapping");
-    this.shouldValidateHmac =
-        readPropertyWithDefault("shouldValidateHmac", disabled.name());
+    this.shouldValidateHmac = readPropertyWithDefault("shouldValidateHmac", disabled.name());
     this.hmacSecret = readPropertyNullable("hmacSecret");
     this.hmacHeader = readPropertyNullable("hmacHeader");
     this.hmacAlgorithm = readPropertyNullable("hmacAlgorithm");
@@ -61,8 +60,7 @@ public class WebhookConnectorProperties {
 
   protected <T> T readPropertyAsTypeNullable(String propertyName, Class<T> type) {
     Object parsedExpression =
-        FeelParserWrapper.parseIfIsFeelExpressionOrGetOriginal(
-            genericProperties.get(propertyName));
+        FeelParserWrapper.parseIfIsFeelExpressionOrGetOriginal(genericProperties.get(propertyName));
     return ObjectMapperSupplier.getMapperInstance().convertValue(parsedExpression, type);
   }
 
@@ -71,7 +69,11 @@ public class WebhookConnectorProperties {
   }
 
   protected String readPropertyNullable(String propertyName) {
-    return genericProperties.get(propertyName).toString();
+    var prop = genericProperties.get(propertyName);
+    if (prop == null) {
+      return null;
+    }
+    return prop.toString();
   }
 
   protected String readPropertyRequired(String propertyName) {

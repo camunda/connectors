@@ -16,9 +16,8 @@
  */
 package io.camunda.connector.runtime.inbound.webhook;
 
-import static io.camunda.connector.runtime.inbound.lifecycle.InboundConnectorManager.WEBHOOK_CONTEXT_BPMN_FIELD;
-
 import io.camunda.connector.runtime.inbound.lifecycle.ActiveInboundConnector;
+import io.camunda.connector.runtime.inbound.webhook.model.CommonWebhookProperties;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -36,8 +35,8 @@ public class WebhookConnectorRegistry {
   }
 
   public void register(ActiveInboundConnector connector) {
-    var properties = connector.context().getProperties();
-    var context = properties.get(WEBHOOK_CONTEXT_BPMN_FIELD).toString();
+    var properties = connector.context().bindProperties(CommonWebhookProperties.class);
+    var context = properties.getContext();
     var existingEndpoint = activeEndpointsByContext.putIfAbsent(context, connector);
     if (existingEndpoint != null) {
       var bpmnProcessId = existingEndpoint.context().getDefinition().bpmnProcessId();
@@ -50,7 +49,7 @@ public class WebhookConnectorRegistry {
   }
 
   public void deregister(ActiveInboundConnector connector) {
-    var context = connector.context().getProperties().get(WEBHOOK_CONTEXT_BPMN_FIELD).toString();
+    var context = connector.context().bindProperties(CommonWebhookProperties.class).getContext();
     activeEndpointsByContext.remove(context);
   }
 
