@@ -6,12 +6,10 @@
  */
 package io.camunda.connector.slack.outbound;
 
-import com.google.gson.Gson;
 import com.slack.api.Slack;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import io.camunda.connector.slack.outbound.suppliers.GsonSupplier;
 
 @OutboundConnector(
     name = "SLACK",
@@ -19,23 +17,19 @@ import io.camunda.connector.slack.outbound.suppliers.GsonSupplier;
     type = "io.camunda:slack:1")
 public class SlackFunction implements OutboundConnectorFunction {
 
-  private final Gson gson;
   private final Slack slack;
 
   public SlackFunction() {
-    this(Slack.getInstance(), GsonSupplier.getGson());
+    this(Slack.getInstance());
   }
 
-  public SlackFunction(final Slack slack, final Gson gson) {
+  public SlackFunction(final Slack slack) {
     this.slack = slack;
-    this.gson = gson;
   }
 
   @Override
   public Object execute(OutboundConnectorContext context) throws Exception {
-    final var variables = context.getVariables();
-    final var slackRequest = gson.fromJson(variables, SlackRequest.class);
-    context.validate(slackRequest);
+    final var slackRequest = context.bindVariables(SlackRequest.class);
     return slackRequest.invoke(slack);
   }
 }

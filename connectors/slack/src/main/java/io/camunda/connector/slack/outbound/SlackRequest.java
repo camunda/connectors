@@ -6,10 +6,14 @@
  */
 package io.camunda.connector.slack.outbound;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.slack.api.Slack;
 import com.slack.api.methods.MethodsClient;
 import com.slack.api.methods.SlackApiException;
-import io.camunda.connector.api.annotation.Secret;
+import io.camunda.connector.slack.outbound.model.ChatPostMessageData;
+import io.camunda.connector.slack.outbound.model.ConversationsCreateData;
+import io.camunda.connector.slack.outbound.model.ConversationsInviteData;
 import java.io.IOException;
 import java.util.Objects;
 import javax.validation.Valid;
@@ -18,10 +22,21 @@ import javax.validation.constraints.NotNull;
 
 public class SlackRequest<T extends SlackRequestData> {
 
-  @NotBlank @Secret private String token;
-  @NotBlank private String method;
+  @NotBlank private String token;
 
-  @Valid @NotNull @Secret private T data;
+  @JsonTypeInfo(
+      use = JsonTypeInfo.Id.NAME,
+      include = JsonTypeInfo.As.EXTERNAL_PROPERTY,
+      property = "method")
+  @JsonSubTypes(
+      value = {
+        @JsonSubTypes.Type(value = ChatPostMessageData.class, name = "chat.postMessage"),
+        @JsonSubTypes.Type(value = ConversationsCreateData.class, name = "conversations.create"),
+        @JsonSubTypes.Type(value = ConversationsInviteData.class, name = "conversations.invite")
+      })
+  @Valid
+  @NotNull
+  private T data;
 
   public SlackResponse invoke(final Slack slack) throws SlackApiException, IOException {
     MethodsClient methods = slack.methods(token);
@@ -34,14 +49,6 @@ public class SlackRequest<T extends SlackRequestData> {
 
   public void setToken(String token) {
     this.token = token;
-  }
-
-  public String getMethod() {
-    return method;
-  }
-
-  public void setMethod(String method) {
-    this.method = method;
   }
 
   public T getData() {
@@ -57,27 +64,16 @@ public class SlackRequest<T extends SlackRequestData> {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
     SlackRequest<?> that = (SlackRequest<?>) o;
-    return Objects.equals(token, that.token)
-        && Objects.equals(method, that.method)
-        && Objects.equals(data, that.data);
+    return Objects.equals(token, that.token) && Objects.equals(data, that.data);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(token, method, data);
+    return Objects.hash(token, data);
   }
 
   @Override
   public String toString() {
-    return "SlackRequest{"
-        + "token='"
-        + token
-        + '\''
-        + ", method='"
-        + method
-        + '\''
-        + ", data="
-        + data
-        + '}';
+    return "SlackRequest{" + "token=[redacted]" + ", data=" + data + '}';
   }
 }
