@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.kafka.outbound.model;
 
-import io.camunda.connector.api.annotation.Secret;
 import java.util.Objects;
 import java.util.Properties;
 import javax.validation.constraints.NotEmpty;
@@ -14,8 +13,8 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 
 public class KafkaTopic {
 
-  @NotEmpty @Secret private String bootstrapServers;
-  @NotEmpty @Secret private String topicName;
+  @NotEmpty private String bootstrapServers;
+  @NotEmpty private String topicName;
 
   public String getBootstrapServers() {
     return bootstrapServers;

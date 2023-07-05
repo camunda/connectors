@@ -8,7 +8,10 @@ package io.camunda.connector.kafka.outbound;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.google.gson.Gson;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.impl.ConnectorInputException;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorRequest;
@@ -16,9 +19,7 @@ import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -30,7 +31,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
@@ -42,6 +42,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 // This test only tests different input validation and compliance, and secrets replacement
 @ExtendWith(MockitoExtension.class)
 class KafkaConnectorFunctionTest {
+
+  private static final ObjectMapper objectMapper =
+      new ObjectMapper().configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false);
 
   private static final String SUCCESS_CASES_RESOURCE_PATH =
       "src/test/resources/requests/success-test-cases.json";
@@ -138,9 +141,9 @@ class KafkaConnectorFunctionTest {
         new RecordMetadata(new TopicPartition(SECRET_TOPIC_NAME, 1), 1, 1, 1, 1, 1);
     completedKafkaResult.complete(kafkaResponse);
     Mockito.when(producer.send(ArgumentMatchers.any())).thenReturn(completedKafkaResult);
-    KafkaConnectorRequest req = new Gson().fromJson(noAuthRequest, KafkaConnectorRequest.class);
     OutboundConnectorContext ctx =
         OutboundConnectorContextBuilder.create().variables(noAuthRequest).build();
+    KafkaConnectorRequest req = ctx.bindVariables(KafkaConnectorRequest.class);
 
     // when
     objectUnderTest.execute(ctx);
@@ -170,9 +173,9 @@ class KafkaConnectorFunctionTest {
 
   @SuppressWarnings("unchecked")
   private static Stream<String> loadRequestCasesFromFile(final String fileName) throws IOException {
-    Gson gson = new Gson();
-    final String cases = Files.readString(new File(fileName).toPath(), StandardCharsets.UTF_8);
-    var array = gson.fromJson(cases, ArrayList.class);
-    return array.stream().map(gson::toJson).map(Arguments::of);
+    return objectMapper
+        .readValue(new File(fileName), new TypeReference<List<JsonNode>>() {})
+        .stream()
+        .map(JsonNode::toString);
   }
 }
