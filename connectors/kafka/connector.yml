@@ -1,3 +1,0 @@
-name: KAFKA
-type: io.camunda:connector-kafka:1
-variables: [ authentication, topic, message, additionalProperties ]

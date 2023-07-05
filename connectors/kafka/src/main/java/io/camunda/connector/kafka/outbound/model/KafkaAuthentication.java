@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.kafka.outbound.model;
 
-import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.impl.ConnectorInputException;
 import java.util.Objects;
 import java.util.Properties;
@@ -21,8 +20,8 @@ public class KafkaAuthentication {
   protected static final String SECURITY_PROTOCOL_VALUE = "SASL_SSL"; // default value
   protected static final String SASL_MECHANISM_VALUE = "PLAIN"; // default value
 
-  @Secret private String username;
-  @Secret private String password;
+  private String username;
+  private String password;
 
   public String getUsername() {
     return username;

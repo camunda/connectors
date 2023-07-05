@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.kafka.outbound.model;
 
-import io.camunda.connector.api.annotation.Secret;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -24,8 +23,8 @@ public class KafkaConnectorRequest {
   protected static final String CLIENT_DNS_LOOKUP_RECOMMENDED_VALUE = "use_all_dns_ips";
   protected static final String ACKS_RECOMMENDED_VALUE = "all";
 
-  @Valid @Secret private KafkaAuthentication authentication;
-  @Valid @NotNull @Secret private KafkaTopic topic;
+  @Valid private KafkaAuthentication authentication;
+  @Valid @NotNull private KafkaTopic topic;
   @Valid @NotNull private KafkaMessage message;
 
   private Map<String, Object> additionalProperties = new HashMap<>();

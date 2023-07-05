@@ -13,7 +13,9 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
 
-import com.google.gson.Gson;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.impl.inbound.result.MessageCorrelationResult;
@@ -26,7 +28,6 @@ import io.camunda.connector.kafka.outbound.model.KafkaConnectorRequest;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorResponse;
 import io.camunda.connector.kafka.outbound.model.KafkaMessage;
 import io.camunda.connector.kafka.outbound.model.KafkaTopic;
-import io.camunda.connector.kafka.supplier.GsonSupplier;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
 import io.camunda.connector.test.inbound.InboundConnectorPropertiesBuilder;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
@@ -56,6 +57,11 @@ public class KafkaIntegrationTest {
   private static String BOOTSTRAP_SERVERS;
 
   private final String processId = "Process_id";
+
+  private final ObjectMapper objectMapper =
+      new ObjectMapper()
+          .configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false)
+          .configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
 
   @ClassRule
   private static final KafkaContainer kafkaContainer =
@@ -102,7 +108,7 @@ public class KafkaIntegrationTest {
     request.setTopic(kafkaTopic);
     request.setAuthentication(kafkaAuthentication);
 
-    var json = GsonSupplier.gson().toJson(request);
+    var json = objectMapper.writeValueAsString(request);
 
     OutboundConnectorContext context =
         OutboundConnectorContextBuilder.create().variables(json).build();
@@ -138,8 +144,8 @@ public class KafkaIntegrationTest {
             + "',"
             + "'autoOffsetReset':'none',"
             + "'offsets':'9999,8888'}";
-    Gson gson = new Gson();
-    Map<String, String> propertiesMap = gson.fromJson(jsonString, Map.class);
+
+    Map<String, String> propertiesMap = objectMapper.readValue(jsonString, Map.class);
     InboundConnectorContextBuilder.TestInboundConnectorContext context =
         InboundConnectorContextBuilder.create()
             .result(new MessageCorrelationResult("", 0))
@@ -191,8 +197,7 @@ public class KafkaIntegrationTest {
             + BOOTSTRAP_SERVERS
             + "',"
             + "'autoOffsetReset':'earliest'}";
-    Gson gson = new Gson();
-    Map<String, String> propertiesMap = gson.fromJson(jsonString, Map.class);
+    Map<String, String> propertiesMap = objectMapper.readValue(jsonString, Map.class);
     InboundConnectorContextBuilder.TestInboundConnectorContext context =
         InboundConnectorContextBuilder.create()
             .result(new MessageCorrelationResult("", 0))
@@ -243,8 +248,8 @@ public class KafkaIntegrationTest {
             + "',"
             + "'autoOffsetReset':'earliest',"
             + "'offsets':'0,0'}";
-    Gson gson = new Gson();
-    Map<String, String> propertiesMap = gson.fromJson(jsonString, Map.class);
+
+    Map<String, String> propertiesMap = objectMapper.readValue(jsonString, Map.class);
     InboundConnectorContextBuilder.TestInboundConnectorContext context =
         InboundConnectorContextBuilder.create()
             .result(new MessageCorrelationResult("", 0))
