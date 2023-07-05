@@ -51,9 +51,13 @@
     <version.kotlin>1.8.22</version.kotlin>
 
     <version.testcontainers>1.18.3</version.testcontainers>
+    <version.wiremock>3.0.0-beta-10</version.wiremock>
     
     <version.commons-codec>1.15</version.commons-codec>
     <version.guava>32.0.1-jre</version.guava>
+
+    <version.auth0.jwt>4.4.0</version.auth0.jwt>
+    <version.auth0.jwks>0.22.0</version.auth0.jwks>
   </properties>
 
   <modules>
