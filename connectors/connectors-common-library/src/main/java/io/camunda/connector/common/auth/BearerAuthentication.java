@@ -18,12 +18,11 @@ package io.camunda.connector.common.auth;
 
 import com.google.api.client.http.HttpHeaders;
 import com.google.common.base.Objects;
-import io.camunda.connector.api.annotation.Secret;
 import javax.validation.constraints.NotEmpty;
 
 public class BearerAuthentication extends Authentication {
 
-  @NotEmpty @Secret private String token;
+  @NotEmpty private String token;
 
   @Override
   public void setHeaders(final HttpHeaders headers) {
