@@ -11,7 +11,6 @@ import static java.nio.file.Files.readString;
 
 import com.google.gson.Gson;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
-import io.camunda.connector.slack.outbound.suppliers.GsonSupplier;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.File;
@@ -22,7 +21,6 @@ import org.junit.jupiter.params.provider.Arguments;
 
 public abstract class BaseTest {
 
-  protected static final Gson gson = GsonSupplier.getGson();
   protected static OutboundConnectorContext context;
 
   protected interface ActualValue {

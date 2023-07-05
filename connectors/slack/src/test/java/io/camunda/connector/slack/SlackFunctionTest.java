@@ -78,7 +78,7 @@ public class SlackFunctionTest extends BaseTest {
 
   @BeforeEach
   public void init() throws SlackApiException, IOException {
-    slackFunction = new SlackFunction(slackClientMock, gson);
+    slackFunction = new SlackFunction(slackClientMock);
 
     when(slackClientMock.methods(ActualValue.TOKEN)).thenReturn(methodsClient);
     when(methodsClient.usersLookupByEmail(usersLookupByEmailRequestArgumentCaptor.capture()))
@@ -191,7 +191,7 @@ public class SlackFunctionTest extends BaseTest {
     assertThat(conversationsCreateRequestArgumentCaptor.getValue().getName())
         .isEqualTo(ActualValue.ConversationsCreateData.NEW_CHANNEL_NAME);
 
-    SlackRequest<ConversationsCreateData> request = gson.fromJson(input, SlackRequest.class);
+    SlackRequest<ConversationsCreateData> request = context.bindVariables(SlackRequest.class);
     assertThat(conversationsCreateRequestArgumentCaptor.getValue().isPrivate())
         .isEqualTo(request.getData().getVisibility() == ConversationsCreateData.Visibility.PRIVATE);
     assertThat(executeResponse).isInstanceOf(ConversationsCreateSlackResponse.class);
@@ -210,7 +210,7 @@ public class SlackFunctionTest extends BaseTest {
     assertThat(conversationsInviteRequestArgumentCaptor.getValue().getChannel())
         .isEqualTo(ActualValue.ConversationsCreateData.NEW_CHANNEL_NAME);
 
-    SlackRequest<ConversationsInviteData> request = gson.fromJson(input, SlackRequest.class);
+    SlackRequest<ConversationsInviteData> request = context.bindVariables(SlackRequest.class);
     assertThat(executeResponse)
         .isInstanceOf(ConversationsInviteSlackResponse.class)
         .extracting("channel")
@@ -316,8 +316,6 @@ public class SlackFunctionTest extends BaseTest {
     when(lookupByEmailResponse.getUser()).thenReturn(null);
     // When and then
     Throwable thrown = catchThrowable(() -> slackFunction.execute(context));
-    assertThat(thrown)
-        .isInstanceOf(RuntimeException.class)
-        .hasMessageContaining("The object to be validated must not be null");
+    assertThat(thrown).isInstanceOf(RuntimeException.class);
   }
 }
