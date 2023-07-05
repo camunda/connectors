@@ -14,7 +14,6 @@ import io.camunda.connector.gdrive.model.GoogleDriveResult;
 import io.camunda.connector.gdrive.model.request.Resource;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
-import io.camunda.google.supplier.GsonComponentSupplier;
 import java.io.IOException;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
@@ -33,9 +32,7 @@ class GoogleDriveFunctionTest extends BaseTest {
   void execute_shouldExecuteAndReturnResultWhenGiveContext(String input) {
     // Given
     GoogleDriveService googleDriveServiceMock = Mockito.mock(GoogleDriveService.class);
-    GoogleDriveFunction service =
-        new GoogleDriveFunction(
-            googleDriveServiceMock, GsonComponentSupplier.gsonFactoryInstance());
+    GoogleDriveFunction service = new GoogleDriveFunction(googleDriveServiceMock);
 
     OutboundConnectorContext context =
         OutboundConnectorContextBuilder.create()

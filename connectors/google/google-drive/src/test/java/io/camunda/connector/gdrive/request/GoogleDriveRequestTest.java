@@ -10,7 +10,6 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 
-import com.google.api.client.json.gson.GsonFactory;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.gdrive.BaseTest;
 import io.camunda.connector.gdrive.GoogleDriveFunction;
@@ -53,9 +52,7 @@ class GoogleDriveRequestTest extends BaseTest {
             .secret(SECRET_OAUTH_CLIENT_ID, ACTUAL_OAUTH_CLIENT_ID)
             .secret(SECRET_OAUTH_SECRET_ID, ACTUAL_OAUTH_SECRET_ID)
             .build();
-
-    GoogleDriveFunction function =
-        new GoogleDriveFunction(mock(GoogleDriveService.class), GsonFactory.getDefaultInstance());
+    GoogleDriveFunction function = new GoogleDriveFunction(mock(GoogleDriveService.class));
     function.execute(context);
   }
 
@@ -64,7 +61,6 @@ class GoogleDriveRequestTest extends BaseTest {
   @MethodSource("failRequestCases")
   void validateWith_shouldThrowExceptionWhenNonExistLeastOneRequireField(final String input) {
     // Given
-    GoogleDriveRequest request = parseInput(input, GoogleDriveRequest.class);
     OutboundConnectorContext context =
         OutboundConnectorContextBuilder.create()
             .variables(input)
@@ -72,7 +68,8 @@ class GoogleDriveRequestTest extends BaseTest {
             .build();
     // When and Then
     ConnectorInputException thrown =
-        assertThrows(ConnectorInputException.class, () -> context.validate(request));
+        assertThrows(
+            ConnectorInputException.class, () -> context.bindVariables(GoogleDriveRequest.class));
     assertThat(thrown.getMessage()).contains("Found constraints violated while validating input:");
   }
 }

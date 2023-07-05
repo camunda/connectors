@@ -6,6 +6,9 @@
  */
 package io.camunda.connector.gdrive;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.google.api.client.json.JsonParser;
+import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.docs.v1.model.BatchUpdateDocumentResponse;
 import com.google.api.services.docs.v1.model.Request;
 import com.google.api.services.drive.model.File;
@@ -15,6 +18,8 @@ import io.camunda.connector.gdrive.model.request.Resource;
 import io.camunda.connector.gdrive.model.request.Template;
 import io.camunda.connector.gdrive.model.request.Type;
 import io.camunda.connector.gdrive.model.request.Variables;
+import io.camunda.google.supplier.GsonComponentSupplier;
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -22,6 +27,8 @@ import org.slf4j.LoggerFactory;
 
 public class GoogleDriveService {
   private static final Logger LOGGER = LoggerFactory.getLogger(GoogleDriveService.class);
+
+  private final GsonFactory gsonFactory = GsonComponentSupplier.gsonFactoryInstance();
 
   public GoogleDriveService() {}
 
@@ -55,9 +62,11 @@ public class GoogleDriveService {
           "File successfully created by template, file name [{}], templateId [{}]",
           result.getId(),
           resource.getName());
-      Optional.ofNullable(resource)
+      Optional.of(resource)
           .map(Resource::getTemplate)
           .map(Template::getVariables)
+          .map(JsonNode::toString)
+          .map(this::mapJsonToRequests)
           .map(Variables::getRequests)
           .ifPresent(requests -> updateWithRequests(client, requests, result));
     } else {
@@ -67,12 +76,34 @@ public class GoogleDriveService {
         result.getId(), MimeTypeUrl.getResourceUrl(result.getMimeType(), result.getId()));
   }
 
+  private Variables mapJsonToRequests(String json) {
+    try {
+      JsonParser jsonParser = gsonFactory.createJsonParser(json);
+      return jsonParser.parseAndClose(Variables.class);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   private File createMetaDataFile(final Resource resource) {
-    return Optional.ofNullable(resource.getAdditionalGoogleDriveProperties())
-        .orElseGet(File::new)
-        .setName(resource.getName())
+    File file = null;
+    if (resource.getAdditionalGoogleDriveProperties() == null) {
+      new File();
+    } else {
+      file = mapJsonToFile(resource.getAdditionalGoogleDriveProperties().toString());
+    }
+    return file.setName(resource.getName())
         .setMimeType(resource.getType() == Type.FOLDER ? MimeTypeUrl.FOLDER.getMimeType() : null)
         .setParents(resource.getParent() != null ? List.of(resource.getParent()) : null);
+  }
+
+  private File mapJsonToFile(String json) {
+    try {
+      JsonParser jsonParser = gsonFactory.createJsonParser(json);
+      return jsonParser.parseAndClose(File.class);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private void updateWithRequests(
