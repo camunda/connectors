@@ -6,18 +6,15 @@
  */
 package io.camunda.connector.sendgrid;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.nio.file.Files.readString;
-
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.Gson;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Stream;
-import org.junit.jupiter.params.provider.Arguments;
 
 public class BaseTest {
 
@@ -157,9 +154,9 @@ public class BaseTest {
   @SuppressWarnings("unchecked")
   protected static Stream<String> loadTestCasesFromResourceFile(final String fileWithTestCasesUri)
       throws IOException {
-    final String cases = readString(new File(fileWithTestCasesUri).toPath(), UTF_8);
-    final Gson testingGson = new Gson();
-    var array = testingGson.fromJson(cases, ArrayList.class);
-    return array.stream().map(testingGson::toJson).map(Arguments::of);
+    return SendGridFunction.objectMapper
+        .readValue(new File(fileWithTestCasesUri), new TypeReference<List<JsonNode>>() {})
+        .stream()
+        .map(JsonNode::toString);
   }
 }

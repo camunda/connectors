@@ -9,17 +9,9 @@ package io.camunda.connector.aws.dynamodb.model;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import io.camunda.connector.aws.dynamodb.model.item.AddItem;
-import io.camunda.connector.aws.dynamodb.model.item.DeleteItem;
-import io.camunda.connector.aws.dynamodb.model.item.GetItem;
-import io.camunda.connector.aws.dynamodb.model.item.UpdateItem;
-import io.camunda.connector.aws.dynamodb.model.table.CreateTable;
-import io.camunda.connector.aws.dynamodb.model.table.DeleteTable;
-import io.camunda.connector.aws.dynamodb.model.table.DescribeTable;
-import io.camunda.connector.aws.dynamodb.model.table.ScanTable;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
   // channel
   @JsonSubTypes.Type(value = CreateTable.class, name = "createTable"),
@@ -31,9 +23,4 @@ import io.camunda.connector.aws.dynamodb.model.table.ScanTable;
   @JsonSubTypes.Type(value = GetItem.class, name = "getItem"),
   @JsonSubTypes.Type(value = UpdateItem.class, name = "updateItem")
 })
-public interface AwsInput {
-
-  String getType();
-
-  void setType(final String type);
-}
+public interface AwsInput {}

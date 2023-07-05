@@ -8,7 +8,7 @@ package io.camunda.connector.aws.dynamodb.operation.table;
 
 import com.amazonaws.services.dynamodbv2.document.DynamoDB;
 import io.camunda.connector.aws.dynamodb.model.AwsDynamoDbResult;
-import io.camunda.connector.aws.dynamodb.model.table.DeleteTable;
+import io.camunda.connector.aws.dynamodb.model.DeleteTable;
 import io.camunda.connector.aws.dynamodb.operation.AwsDynamoDbOperation;
 
 public class DeleteTableOperation implements AwsDynamoDbOperation {

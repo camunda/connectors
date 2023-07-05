@@ -6,15 +6,15 @@
  */
 package io.camunda.connector.aws.model.impl;
 
-import io.camunda.connector.api.annotation.Secret;
 import java.util.Objects;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
 public class AwsBaseRequest {
 
-  @Valid @NotNull @Secret private AwsBaseAuthentication authentication;
-  @Secret private AwsBaseConfiguration configuration;
+  @Valid @NotNull private AwsBaseAuthentication authentication;
+
+  private AwsBaseConfiguration configuration;
 
   public AwsBaseAuthentication getAuthentication() {
     return authentication;
