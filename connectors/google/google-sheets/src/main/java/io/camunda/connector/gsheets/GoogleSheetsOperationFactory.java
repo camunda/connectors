@@ -41,7 +41,6 @@ public class GoogleSheetsOperationFactory {
 
   public GoogleSheetOperation createOperation(Input input) {
     GoogleSheetOperation operation;
-
     if (input instanceof CreateSpreadsheet in) {
       operation = new CreateSpreadSheetOperation(in);
     } else if (input instanceof CreateWorksheet in) {
