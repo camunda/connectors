@@ -17,7 +17,6 @@
 package io.camunda.connector.common.auth;
 
 import com.google.api.client.http.HttpHeaders;
-import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.common.constants.Constants;
 import java.util.HashMap;
 import java.util.Map;
@@ -26,10 +25,10 @@ import javax.validation.constraints.NotEmpty;
 
 public class OAuthAuthentication extends Authentication {
   private final String grantType = "client_credentials";
-  @NotEmpty @Secret private String oauthTokenEndpoint;
-  @NotEmpty @Secret private String clientId;
-  @NotEmpty @Secret private String clientSecret;
-  @Secret private String audience;
+  @NotEmpty private String oauthTokenEndpoint;
+  @NotEmpty private String clientId;
+  @NotEmpty private String clientSecret;
+  private String audience;
   @NotEmpty private String clientAuthentication;
 
   private String scopes;
