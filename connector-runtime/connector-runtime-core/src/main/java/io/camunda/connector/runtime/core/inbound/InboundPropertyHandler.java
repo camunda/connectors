@@ -100,6 +100,7 @@ public class InboundPropertyHandler {
       // Terminal node already exists for this path
       throw new RuntimeException("Duplicate key: " + key);
     }
-    traversePropertiesMap(path.subList(1, path.size()), (Map<String, Object>) currentRoot.get(key), value);
+    traversePropertiesMap(
+        path.subList(1, path.size()), (Map<String, Object>) currentRoot.get(key), value);
   }
 }
