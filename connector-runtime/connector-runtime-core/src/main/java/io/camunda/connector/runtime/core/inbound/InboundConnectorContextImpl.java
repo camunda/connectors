@@ -114,7 +114,6 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
     this.health = health;
   }
 
-  @Override
   public Health getHealth() {
     return health;
   }

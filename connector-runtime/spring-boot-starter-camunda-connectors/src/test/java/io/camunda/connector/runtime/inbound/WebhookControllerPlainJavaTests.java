@@ -22,17 +22,19 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrowsExactly;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingResult;
 import io.camunda.connector.impl.inbound.StartEventCorrelationPoint;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
+import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.inbound.lifecycle.ActiveInboundConnector;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
-import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
+import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -101,22 +103,24 @@ public class WebhookControllerPlainJavaTests {
   private static long nextProcessDefinitionKey = 0L;
 
   public static ActiveInboundConnector buildConnector(InboundConnectorDefinitionImpl definition) {
-    WebhookConnectorExecutable executable = Mockito.mock(WebhookConnectorExecutable.class);
+    WebhookConnectorExecutable executable = mock(WebhookConnectorExecutable.class);
     try {
       Mockito.when(executable.triggerWebhook(any(WebhookProcessingPayload.class)))
-          .thenReturn(Mockito.mock(WebhookProcessingResult.class));
+          .thenReturn(mock(WebhookProcessingResult.class));
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
     return new ActiveInboundConnector(executable, buildContext(definition));
   }
 
-  public static InboundConnectorContext buildContext(InboundConnectorDefinitionImpl def) {
-    return InboundConnectorContextBuilder.create()
-        .properties(
-            Map.of("inbound", Map.of("context", def.rawProperties().get("inbound.context"))))
-        .definition(def)
-        .build();
+  public static InboundConnectorContextImpl buildContext(InboundConnectorDefinitionImpl def) {
+    return new InboundConnectorContextImpl(
+        name -> null,
+        new DefaultValidationProvider(),
+        def,
+        mock(InboundCorrelationHandler.class),
+        e -> {},
+        mapper);
   }
 
   public static InboundConnectorDefinitionImpl webhookDefinition(
