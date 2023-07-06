@@ -97,34 +97,12 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   }
 
   @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    InboundConnectorContextImpl that = (InboundConnectorContextImpl) o;
-    return Objects.equals(definition, that.definition);
-  }
-
-  @Override
   public void reportHealth(Health health) {
     this.health = health;
   }
 
   public Health getHealth() {
     return health;
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(definition);
-  }
-
-  @Override
-  public String toString() {
-    return "InboundConnectorContextImpl{" + "definition=" + definition + '}';
   }
 
   private Map<String, Object> propertiesWithFeel;
@@ -151,5 +129,27 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       replaceSecrets(propertiesWithSecrets);
     }
     return propertiesWithSecrets;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    InboundConnectorContextImpl that = (InboundConnectorContextImpl) o;
+    return Objects.equals(definition, that.definition);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(definition);
+  }
+
+  @Override
+  public String toString() {
+    return "InboundConnectorContextImpl{" + "definition=" + definition + '}';
   }
 }

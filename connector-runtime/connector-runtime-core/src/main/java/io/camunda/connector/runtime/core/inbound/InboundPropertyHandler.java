@@ -65,7 +65,7 @@ public class InboundPropertyHandler {
         var path = entry.getKey();
         var value = entry.getValue();
 
-        traverse(path, wrapped, value);
+        traversePropertiesMap(path, wrapped, value);
       }
     } catch (RuntimeException e) {
       throw new RuntimeException("Detected malformed Connector properties: " + e.getMessage(), e);
@@ -74,7 +74,8 @@ public class InboundPropertyHandler {
   }
 
   @SuppressWarnings("unchecked")
-  private static void traverse(List<String> path, Map<String, Object> currentRoot, String value) {
+  private static void traversePropertiesMap(
+      List<String> path, Map<String, Object> currentRoot, String value) {
 
     String key = path.get(0);
     if (path.size() == 1) {
@@ -99,6 +100,6 @@ public class InboundPropertyHandler {
       // Terminal node already exists for this path
       throw new RuntimeException("Duplicate key: " + key);
     }
-    traverse(path.subList(1, path.size()), (Map<String, Object>) currentRoot.get(key), value);
+    traversePropertiesMap(path.subList(1, path.size()), (Map<String, Object>) currentRoot.get(key), value);
   }
 }
