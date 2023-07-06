@@ -79,8 +79,7 @@ public interface InboundConnectorContext {
    * io.camunda.connector.api.validation.ValidationProvider} implementation available in the
    * Connector runtime.
    *
-   * <p>FEEL expressions are evaluated for all fields which are not listed in the {@link
-   * io.camunda.connector.impl.Constants#RESERVED_KEYWORDS}.
+   * <p>FEEL expressions in properties are evaluated as encountered.
    *
    * @param cls a class to deserialize properties into
    * @param <T> a type to deserialize properties into
