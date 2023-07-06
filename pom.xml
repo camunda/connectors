@@ -48,7 +48,7 @@
     <version.sendGrid>4.9.3</version.sendGrid>
 
     <version.slack>1.30.0</version.slack>
-    <version.kotlin>1.8.22</version.kotlin>
+    <version.kotlin>1.9.0</version.kotlin>
 
     <version.testcontainers>1.18.3</version.testcontainers>
     <version.snappy-java>1.1.10.1</version.snappy-java>
