@@ -4,35 +4,23 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.aws.dynamodb.model.table;
+package io.camunda.connector.aws.dynamodb.model;
 
-import io.camunda.connector.api.annotation.Secret;
-import io.camunda.connector.aws.dynamodb.model.AwsInput;
 import java.util.Objects;
 import javax.validation.constraints.NotBlank;
 
-public class CreateTable implements AwsInput {
+public final class CreateTable extends TableOperation {
 
-  @NotBlank @Secret private String tableName;
-  @NotBlank @Secret private String partitionKey;
+  @NotBlank private String partitionKey;
   @NotBlank private String partitionKeyRole;
   @NotBlank private String partitionKeyType;
-  @Secret private String sortKey;
+  private String sortKey;
   private String sortKeyRole;
   private String sortKeyType;
   private Long readCapacityUnits;
   private Long writeCapacityUnits;
   private String billingModeStr;
   private boolean deletionProtection;
-  private transient String type;
-
-  public String getTableName() {
-    return tableName;
-  }
-
-  public void setTableName(final String tableName) {
-    this.tableName = tableName;
-  }
 
   public String getPartitionKey() {
     return partitionKey;
@@ -115,26 +103,11 @@ public class CreateTable implements AwsInput {
   }
 
   @Override
-  public String getType() {
-    return type;
-  }
-
-  @Override
-  public void setType(final String type) {
-    this.type = type;
-  }
-
-  @Override
-  public boolean equals(final Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    final CreateTable that = (CreateTable) o;
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    CreateTable that = (CreateTable) o;
     return deletionProtection == that.deletionProtection
-        && Objects.equals(tableName, that.tableName)
         && Objects.equals(partitionKey, that.partitionKey)
         && Objects.equals(partitionKeyRole, that.partitionKeyRole)
         && Objects.equals(partitionKeyType, that.partitionKeyType)
@@ -143,14 +116,12 @@ public class CreateTable implements AwsInput {
         && Objects.equals(sortKeyType, that.sortKeyType)
         && Objects.equals(readCapacityUnits, that.readCapacityUnits)
         && Objects.equals(writeCapacityUnits, that.writeCapacityUnits)
-        && Objects.equals(billingModeStr, that.billingModeStr)
-        && Objects.equals(type, that.type);
+        && Objects.equals(billingModeStr, that.billingModeStr);
   }
 
   @Override
   public int hashCode() {
     return Objects.hash(
-        tableName,
         partitionKey,
         partitionKeyRole,
         partitionKeyType,
@@ -160,46 +131,40 @@ public class CreateTable implements AwsInput {
         readCapacityUnits,
         writeCapacityUnits,
         billingModeStr,
-        deletionProtection,
-        type);
+        deletionProtection);
   }
 
   @Override
   public String toString() {
     return "CreateTable{"
-        + "tableName='"
-        + tableName
-        + "'"
-        + ", partitionKey='"
+        + "partitionKey='"
         + partitionKey
-        + "'"
+        + '\''
         + ", partitionKeyRole='"
         + partitionKeyRole
-        + "'"
+        + '\''
         + ", partitionKeyType='"
         + partitionKeyType
-        + "'"
+        + '\''
         + ", sortKey='"
         + sortKey
-        + "'"
+        + '\''
         + ", sortKeyRole='"
         + sortKeyRole
-        + "'"
+        + '\''
         + ", sortKeyType='"
         + sortKeyType
-        + "'"
+        + '\''
         + ", readCapacityUnits="
         + readCapacityUnits
         + ", writeCapacityUnits="
         + writeCapacityUnits
         + ", billingModeStr='"
         + billingModeStr
-        + "'"
+        + '\''
         + ", deletionProtection="
         + deletionProtection
-        + ", type='"
-        + type
-        + "'"
-        + "}";
+        + "} "
+        + super.toString();
   }
 }

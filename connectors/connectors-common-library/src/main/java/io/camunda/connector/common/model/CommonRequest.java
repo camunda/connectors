@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.common.model;
 
-import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.common.auth.Authentication;
 import java.util.Map;
 import java.util.Objects;
@@ -28,22 +27,20 @@ public class CommonRequest {
 
   @NotBlank
   @Pattern(regexp = "^(http://|https://|secrets|\\{\\{).*$")
-  @Secret
   private String url;
 
-  @NotBlank @Secret private String method;
+  @NotBlank private String method;
 
-  @Valid @Secret private Authentication authentication;
+  @Valid private Authentication authentication;
 
   @Pattern(regexp = "^([0-9]+|secrets\\..+)$")
-  @Secret
   private String connectionTimeoutInSeconds;
 
-  @Secret private Map<String, String> headers;
+  private Map<String, String> headers;
 
-  @Secret private Object body;
+  private Object body;
 
-  @Secret private Map<String, String> queryParameters;
+  private Map<String, String> queryParameters;
 
   public Object getBody() {
     return body;

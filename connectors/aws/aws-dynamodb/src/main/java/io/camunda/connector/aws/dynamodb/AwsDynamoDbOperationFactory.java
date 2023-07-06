@@ -6,15 +6,15 @@
  */
 package io.camunda.connector.aws.dynamodb;
 
+import io.camunda.connector.aws.dynamodb.model.AddItem;
 import io.camunda.connector.aws.dynamodb.model.AwsInput;
-import io.camunda.connector.aws.dynamodb.model.item.AddItem;
-import io.camunda.connector.aws.dynamodb.model.item.DeleteItem;
-import io.camunda.connector.aws.dynamodb.model.item.GetItem;
-import io.camunda.connector.aws.dynamodb.model.item.UpdateItem;
-import io.camunda.connector.aws.dynamodb.model.table.CreateTable;
-import io.camunda.connector.aws.dynamodb.model.table.DeleteTable;
-import io.camunda.connector.aws.dynamodb.model.table.DescribeTable;
-import io.camunda.connector.aws.dynamodb.model.table.ScanTable;
+import io.camunda.connector.aws.dynamodb.model.CreateTable;
+import io.camunda.connector.aws.dynamodb.model.DeleteItem;
+import io.camunda.connector.aws.dynamodb.model.DeleteTable;
+import io.camunda.connector.aws.dynamodb.model.DescribeTable;
+import io.camunda.connector.aws.dynamodb.model.GetItem;
+import io.camunda.connector.aws.dynamodb.model.ScanTable;
+import io.camunda.connector.aws.dynamodb.model.UpdateItem;
 import io.camunda.connector.aws.dynamodb.operation.AwsDynamoDbOperation;
 import io.camunda.connector.aws.dynamodb.operation.item.AddItemOperation;
 import io.camunda.connector.aws.dynamodb.operation.item.DeleteItemOperation;

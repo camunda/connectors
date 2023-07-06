@@ -6,13 +6,11 @@
  */
 package io.camunda.connector.gsheets;
 
-import com.google.gson.Gson;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.gsheets.model.request.GoogleSheetsRequest;
 import io.camunda.connector.gsheets.operation.GoogleSheetOperation;
-import io.camunda.connector.gsheets.supplier.GsonSheetsComponentSupplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,11 +21,10 @@ import org.slf4j.LoggerFactory;
 public class GoogleSheetsFunction implements OutboundConnectorFunction {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GoogleSheetsFunction.class);
-  private final Gson gson;
+
   private final GoogleSheetsOperationFactory operationFactory;
 
   public GoogleSheetsFunction() {
-    gson = GsonSheetsComponentSupplier.gsonInstance();
     operationFactory = GoogleSheetsOperationFactory.getInstance();
   }
 

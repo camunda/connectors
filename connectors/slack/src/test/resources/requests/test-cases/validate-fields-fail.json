@@ -16,12 +16,7 @@
       "text": "_ this is secret test text _"
     }
   },
-  {
-    "description": "without data",
-    "token": "xoxb-0123456789456-123467890987-thisIsTestToken",
-    "method": "chat.postMessage",
-    "data": null
-  },
+
   {
     "description": "without channel",
     "token": "xoxb-0123456789456-123467890987-thisIsTestToken",
@@ -56,15 +51,6 @@
     "data": {
       "channel":"channel",
       "text": "    "
-    }
-  },
-  {
-    "description": "create channel; with wrong visibility",
-    "token": "xoxb-0123456789456-123467890987-thisIsTestToken",
-    "method": "conversations.create",
-    "data": {
-      "newChannelName": "new Channel name",
-      "visibility": "wrong name for deserialization"
     }
   },
   {

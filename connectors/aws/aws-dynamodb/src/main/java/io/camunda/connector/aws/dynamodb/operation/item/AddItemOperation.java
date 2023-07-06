@@ -12,7 +12,7 @@ import com.amazonaws.services.dynamodbv2.document.PutItemOutcome;
 import com.amazonaws.services.dynamodbv2.document.Table;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.aws.ObjectMapperSupplier;
-import io.camunda.connector.aws.dynamodb.model.item.AddItem;
+import io.camunda.connector.aws.dynamodb.model.AddItem;
 import io.camunda.connector.aws.dynamodb.operation.AwsDynamoDbOperation;
 
 public class AddItemOperation implements AwsDynamoDbOperation {

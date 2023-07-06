@@ -6,12 +6,11 @@
  */
 package io.camunda.connector.sendgrid;
 
-import io.camunda.connector.api.annotation.Secret;
 import java.util.Objects;
 
 public class SendGridEmail {
-  @Secret private String name;
-  @Secret private String email;
+  private String name;
+  private String email;
 
   public String getName() {
     return name;

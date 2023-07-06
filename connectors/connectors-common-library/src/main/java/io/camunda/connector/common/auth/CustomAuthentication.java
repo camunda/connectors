@@ -17,7 +17,6 @@
 package io.camunda.connector.common.auth;
 
 import com.google.api.client.http.HttpHeaders;
-import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.common.model.CommonRequest;
 import java.util.Map;
 import java.util.Objects;
@@ -28,9 +27,9 @@ public class CustomAuthentication extends Authentication {
 
   @NotNull @Valid private CommonRequest request;
 
-  @Secret private Map<String, String> outputBody;
+  private Map<String, String> outputBody;
 
-  @Secret private Map<String, String> outputHeaders;
+  private Map<String, String> outputHeaders;
 
   @Override
   public void setHeaders(final HttpHeaders headers) {}

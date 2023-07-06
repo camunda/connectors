@@ -11,7 +11,7 @@ import com.amazonaws.services.dynamodbv2.document.Item;
 import com.amazonaws.services.dynamodbv2.document.ItemCollection;
 import com.amazonaws.services.dynamodbv2.document.ScanOutcome;
 import io.camunda.connector.aws.dynamodb.model.AwsDynamoDbResult;
-import io.camunda.connector.aws.dynamodb.model.table.ScanTable;
+import io.camunda.connector.aws.dynamodb.model.ScanTable;
 import io.camunda.connector.aws.dynamodb.operation.AwsDynamoDbOperation;
 import java.util.ArrayList;
 

@@ -11,7 +11,7 @@ import com.amazonaws.services.dynamodbv2.document.KeyAttribute;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.aws.ObjectMapperSupplier;
-import io.camunda.connector.aws.dynamodb.model.item.DeleteItem;
+import io.camunda.connector.aws.dynamodb.model.DeleteItem;
 import io.camunda.connector.aws.dynamodb.operation.AwsDynamoDbOperation;
 import java.util.ArrayList;
 import java.util.HashMap;

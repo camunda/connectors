@@ -9,7 +9,6 @@ package io.camunda.connector.gsheets.model.request;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.google.gson.Gson;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.gsheets.BaseTest;
 import io.camunda.connector.gsheets.model.request.impl.AddValues;
@@ -22,7 +21,6 @@ import io.camunda.connector.gsheets.model.request.impl.DeleteWorksheet;
 import io.camunda.connector.gsheets.model.request.impl.GetRowByIndex;
 import io.camunda.connector.gsheets.model.request.impl.GetSpreadsheetDetails;
 import io.camunda.connector.gsheets.model.request.impl.GetWorksheetData;
-import io.camunda.connector.gsheets.supplier.GsonSheetsComponentSupplier;
 import io.camunda.connector.impl.ConnectorInputException;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import io.camunda.google.model.Authentication;
@@ -40,8 +38,6 @@ class GoogleSheetsRequestTest extends BaseTest {
       "src/test/resources/requests/request-success-test-cases.json";
   private static final String FAIL_CASES_RESOURCE_PATH =
       "src/test/resources/requests/request-fail-test-cases.json";
-
-  private static final Gson GSON = GsonSheetsComponentSupplier.gsonInstance();
 
   private static Stream<String> successRequestCases() throws IOException {
     return BaseTest.loadTestCasesFromResourceFile(SUCCESS_CASES_RESOURCE_PATH);

@@ -46,7 +46,7 @@ mvn clean package
 
 ### Email Template
 
-If the email should be send with a template the request has to contain a `template` object.
+If the email should be sent with a template the request has to contain a `template` object.
 
 ```json
 {

@@ -18,7 +18,6 @@ package io.camunda.connector.common.auth;
 
 import com.google.api.client.http.HttpHeaders;
 import com.google.common.base.Objects;
-import io.camunda.connector.api.annotation.Secret;
 import java.util.function.Function;
 import javax.validation.constraints.NotEmpty;
 
@@ -27,8 +26,8 @@ public class BasicAuthentication extends Authentication {
   private static final Function<String, String> SPEC_PASSWORD =
       (psw) -> psw.equals(SPEC_PASSWORD_EMPTY_PATTERN) ? "" : psw;
 
-  @NotEmpty @Secret private String username;
-  @NotEmpty @Secret private String password;
+  @NotEmpty private String username;
+  @NotEmpty private String password;
 
   @Override
   public void setHeaders(final HttpHeaders headers) {

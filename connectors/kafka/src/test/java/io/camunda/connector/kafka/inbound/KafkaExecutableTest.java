@@ -18,6 +18,9 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.kafka.outbound.model.KafkaTopic;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
 import io.camunda.connector.test.inbound.InboundConnectorDefinitionBuilder;
@@ -39,6 +42,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 public class KafkaExecutableTest {
+  private final ObjectMapper objectMapper =
+      new ObjectMapper()
+          .configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false)
+          .configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
   private InboundConnectorContextBuilder.TestInboundConnectorContext context;
   private InboundConnectorContextBuilder.TestInboundConnectorContext originalContext;
   private List<PartitionInfo> topicPartitions;
@@ -50,7 +57,7 @@ public class KafkaExecutableTest {
   private final String processId = "Process_id";
 
   @BeforeEach
-  public void setUp() {
+  public void setUp() throws Exception {
     topic = "my-topic";
     topicPartitions =
         Arrays.asList(
@@ -130,7 +137,6 @@ public class KafkaExecutableTest {
     // When
     Properties properties =
         KafkaPropertyTransformer.getKafkaProperties(kafkaConnectorProperties, context);
-
     // Then
     assertEquals("localhost:9092", properties.get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG));
     assertEquals(

@@ -12,7 +12,7 @@ import com.amazonaws.services.dynamodbv2.document.PrimaryKey;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.aws.ObjectMapperSupplier;
-import io.camunda.connector.aws.dynamodb.model.item.GetItem;
+import io.camunda.connector.aws.dynamodb.model.GetItem;
 import io.camunda.connector.aws.dynamodb.operation.AwsDynamoDbOperation;
 import java.util.HashMap;
 import java.util.Optional;

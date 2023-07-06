@@ -6,14 +6,13 @@
  */
 package io.camunda.connector.sendgrid;
 
-import io.camunda.connector.api.annotation.Secret;
 import java.util.Objects;
 import javax.validation.constraints.NotEmpty;
 
 public class SendGridContent {
-  @NotEmpty @Secret private String subject;
-  @NotEmpty @Secret private String type;
-  @NotEmpty @Secret private String value;
+  @NotEmpty private String subject;
+  @NotEmpty private String type;
+  @NotEmpty private String value;
 
   public String getSubject() {
     return subject;

@@ -13,7 +13,7 @@ import com.amazonaws.services.dynamodbv2.model.CreateTableRequest;
 import com.amazonaws.services.dynamodbv2.model.KeySchemaElement;
 import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughput;
 import com.amazonaws.services.dynamodbv2.model.TableDescription;
-import io.camunda.connector.aws.dynamodb.model.table.CreateTable;
+import io.camunda.connector.aws.dynamodb.model.CreateTable;
 import io.camunda.connector.aws.dynamodb.operation.AwsDynamoDbOperation;
 import java.util.ArrayList;
 import java.util.List;
