@@ -76,10 +76,13 @@
       "description": "Slack signing secret. <a href='https://api.slack.com/authentication/verifying-requests-from-slack' target='_blank'>See documentation</a> regarding the Slack signing secret",
       "type": "String",
       "group": "endpoint",
-      "optional": true,
+      "feel": "optional",
       "binding": {
         "type": "zeebe:property",
         "name": "inbound.slackSigningSecret"
+      },
+      "constraints": {
+        "notEmpty": true
       }
     },
     {
