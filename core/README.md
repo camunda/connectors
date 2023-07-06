@@ -42,10 +42,7 @@ public class SubscriptionConnector implements InboundConnectorExecutable {
   @Override
   public void activate(InboundConnectorContext context) throws Exception {
 
-    var properties = context.getPropertiesAsType(SubscriptionProperties.class);
-
-    context.replaceSecrets(properties);
-    context.validate(properties);
+    var properties = context.bindProperties(SubscriptionProperties.class);
 
     // subscribe to events
     subscription = new MockSubscription(properties.getTopic());
