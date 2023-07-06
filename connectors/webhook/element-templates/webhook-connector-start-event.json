@@ -179,7 +179,7 @@
       "optional": true,
       "binding": {
         "type": "zeebe:property",
-        "name": "inbound.jwkUrl"
+        "name": "inbound.jwt.jwkUrl"
       },
       "condition": {
         "property": "authorizationType",
@@ -195,7 +195,7 @@
       "optional": true,
       "binding": {
         "type": "zeebe:property",
-        "name": "inbound.jwtRoleExpression"
+        "name": "inbound.jwt.jwtRoleExpression"
       },
       "condition": {
         "property": "authorizationType",
@@ -211,7 +211,7 @@
       "optional": true,
       "binding": {
         "type": "zeebe:property",
-        "name": "inbound.requiredPermissions"
+        "name": "inbound.jwt.requiredPermissions"
       },
       "condition": {
         "property": "authorizationType",

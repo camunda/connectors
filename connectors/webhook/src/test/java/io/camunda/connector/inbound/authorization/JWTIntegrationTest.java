@@ -101,15 +101,15 @@ public class JWTIntegrationTest {
     String propertiesJsonString =
         "{\"inbound.shouldValidateHmac\":\"disabled\", "
             + "\"inbound.authorizationType\":\"JWT\", "
-            + "\"inbound.requiredPermissions\":\"=[\\\"admin\\\"]\", "
+            + "\"inbound.jwt.requiredPermissions\":\"=[\\\"admin\\\"]\", "
             + "\"inbound.type\":\"io.camunda:webhook:1\", "
             + "\"inbound.subtype\":\"ConfigurableInboundWebhook\", "
-            + "\"inbound.jwkUrl\":\""
+            + "\"inbound.jwt.jwkUrl\":\""
             + JWK_FULL_URL
             + JWK_PATH_ENDING
             + "\", "
             + "\"inbound.context\":\"test\", "
-            + "\"inbound.jwtRoleExpression\":\"=if admin = true then [\\\"admin\\\"] else roles\""
+            + "\"inbound.jwt.jwtRoleExpression\":\"=if admin = true then [\\\"admin\\\"] else roles\""
             + "}";
     HttpWebhookExecutable httpWebhookExecutable = setUpWebhook(propertiesJsonString);
 
@@ -130,15 +130,15 @@ public class JWTIntegrationTest {
     String propertiesJsonString =
         "{\"inbound.shouldValidateHmac\":\"disabled\", "
             + "\"inbound.authorizationType\":\"JWT\", "
-            + "\"inbound.requiredPermissions\":\"=[\\\"admin\\\"]\", "
+            + "\"inbound.jwt.requiredPermissions\":\"=[\\\"admin\\\"]\", "
             + "\"inbound.type\":\"io.camunda:webhook:1\", "
             + "\"inbound.subtype\":\"ConfigurableInboundWebhook\", "
-            + "\"inbound.jwkUrl\":\""
+            + "\"inbound.jwt.jwkUrl\":\""
             + JWK_FULL_URL
             + JWK_PATH_ENDING
             + "\", "
             + "\"inbound.context\":\"test\", "
-            + "\"inbound.jwtRoleExpression\":\"=if admin = true then [\\\"admin\\\"] else roles\""
+            + "\"inbound.jwt.jwtRoleExpression\":\"=if admin = true then [\\\"admin\\\"] else roles\""
             + "}";
     HttpWebhookExecutable httpWebhookExecutable = setUpWebhook(propertiesJsonString);
 
@@ -159,15 +159,15 @@ public class JWTIntegrationTest {
     String propertiesJsonString =
         "{\"inbound.shouldValidateHmac\":\"disabled\", "
             + "\"inbound.authorizationType\":\"JWT\", "
-            + "\"inbound.requiredPermissions\":\"=[\\\"admin\\\"]\", "
+            + "\"inbound.jwt.requiredPermissions\":\"=[\\\"admin\\\"]\", "
             + "\"inbound.type\":\"io.camunda:webhook:1\", "
             + "\"inbound.subtype\":\"ConfigurableInboundWebhook\", "
-            + "\"inbound.jwkUrl\":\""
+            + "\"inbound.jwt.jwkUrl\":\""
             + JWK_FULL_URL
             + JWK_PATH_ENDING
             + "\", "
             + "\"inbound.context\":\"test\", "
-            + "\"inbound.jwtRoleExpression\":\"=if admin = true then [\\\"admin\\\"] else roles\""
+            + "\"inbound.jwt.jwtRoleExpression\":\"=if admin = true then [\\\"admin\\\"] else roles\""
             + "}";
     HttpWebhookExecutable httpWebhookExecutable = setUpWebhook(propertiesJsonString);
 
@@ -190,15 +190,15 @@ public class JWTIntegrationTest {
     String propertiesJsonString =
         "{\"inbound.shouldValidateHmac\":\"disabled\", "
             + "\"inbound.authorizationType\":\"JWT\", "
-            + "\"inbound.requiredPermissions\":\"=[\\\"admin\\\"]\", "
+            + "\"inbound.jwt.requiredPermissions\":\"=[\\\"admin\\\"]\", "
             + "\"inbound.type\":\"io.camunda:webhook:1\", "
             + "\"inbound.subtype\":\"ConfigurableInboundWebhook\", "
-            + "\"inbound.jwkUrl\":\""
+            + "\"inbound.jwt.jwkUrl\":\""
             + JWK_FULL_URL
             + JWK_PATH_ENDING
             + "\", "
             + "\"inbound.context\":\"test\", "
-            + "\"inbound.jwtRoleExpression\":\"=if admin = true then [\\\"admin\\\"] else roles\""
+            + "\"inbound.jwt.jwtRoleExpression\":\"=if admin = true then [\\\"admin\\\"] else roles\""
             + "}";
     HttpWebhookExecutable httpWebhookExecutable = setUpWebhook(propertiesJsonString);
 
@@ -220,13 +220,13 @@ public class JWTIntegrationTest {
     // webhook connector setup
     String propertiesJsonString =
         "{\"inbound.shouldValidateHmac\":\"disabled\", "
-            + "\"inbound.shouldValidateJwt\":\"enabled\", "
-            + "\"inbound.requiredPermissions\":\"=[\\\"admin\\\"]\", "
+            + "\"inbound.authorizationType\":\"JWT\", "
+            + "\"inbound.jwt.requiredPermissions\":\"=[\\\"admin\\\"]\", "
             + "\"inbound.type\":\"io.camunda:webhook:1\", "
             + "\"inbound.subtype\":\"ConfigurableInboundWebhook\", "
-            + "\"inbound.jwkUrl\":\"https://google.com\", "
+            + "\"inbound.jwt.jwkUrl\":\"https://google.com\", "
             + "\"inbound.context\":\"test\", "
-            + "\"inbound.jwtRoleExpression\":\"=if admin = true then [\\\"admin\\\"] else roles\""
+            + "\"inbound.jwt.jwtRoleExpression\":\"=if admin = true then [\\\"admin\\\"] else roles\""
             + "}";
     HttpWebhookExecutable httpWebhookExecutable = setUpWebhook(propertiesJsonString);
 

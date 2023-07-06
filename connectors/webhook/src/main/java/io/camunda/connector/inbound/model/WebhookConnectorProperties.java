@@ -15,6 +15,7 @@ import io.camunda.connector.runtime.core.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.core.feel.FeelParserWrapper;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Function;
 
 public class WebhookConnectorProperties {
@@ -54,11 +55,13 @@ public class WebhookConnectorProperties {
     this.hmacHeader = readPropertyNullable("inbound.hmacHeader");
     this.hmacAlgorithm = readPropertyNullable("inbound.hmacAlgorithm");
     this.authorizationType =
-        AuthorizationType.valueOf(readPropertyNullable("inbound.authorizationType"));
-    this.jwkUrl = readPropertyNullable("inbound.jwkUrl");
-    this.jwtRoleExpression = readFeelFunctionPropertyNullable("inbound.jwtRoleExpression");
+        AuthorizationType.valueOf(
+            Optional.ofNullable(readPropertyNullable("inbound.authorizationType"))
+                .orElse(AuthorizationType.NONE.toString()));
+    this.jwkUrl = readPropertyNullable("inbound.jwt.jwkUrl");
+    this.jwtRoleExpression = readFeelFunctionPropertyNullable("inbound.jwt.jwtRoleExpression");
     this.requiredPermissions =
-        (List<String>) readParsedFeelObjectPropertyNullable("inbound.requiredPermissions");
+        (List<String>) readParsedFeelObjectPropertyNullable("inbound.jwt.requiredPermissions");
   }
 
   public String getConnectorIdentifier() {

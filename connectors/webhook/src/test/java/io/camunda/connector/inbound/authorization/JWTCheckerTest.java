@@ -165,9 +165,9 @@ public class JWTCheckerTest {
     Map<String, String> properties = new HashMap<>();
     properties.put("inbound.type", "webhook");
     properties.put("inbound.context", "context");
-    properties.put("inbound.jwkUrl", "jwkUrl");
-    properties.put("inbound.jwtRoleExpression", jwtRolePath);
-    properties.put("inbound.requiredPermissions", "=[\"admin\"]");
+    properties.put("inbound.jwt.jwkUrl", "jwkUrl");
+    properties.put("inbound.jwt.jwtRoleExpression", jwtRolePath);
+    properties.put("inbound.jwt.requiredPermissions", "=[\"admin\"]");
     InboundConnectorProperties inboundProperties =
         new InboundConnectorProperties(
             correlationPoint, properties, "bpmnProcessId", 1, 1l, "elementId");
