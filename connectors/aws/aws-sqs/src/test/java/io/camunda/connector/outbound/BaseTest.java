@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.outbound;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.aws.ObjectMapperSupplier;
 
@@ -74,5 +75,7 @@ public abstract class BaseTest {
                       }
                     }""";
 
-  protected static final ObjectMapper objectMapper = ObjectMapperSupplier.getMapperInstance();
+  protected static final ObjectMapper objectMapper =
+      ObjectMapperSupplier.getMapperInstance()
+          .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 }

@@ -86,7 +86,6 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
       throw new Exception("Inbound connector context cannot be null");
     }
     props = new SlackWebhookProperties(context.getProperties());
-    context.replaceSecrets(props);
   }
 
   private Map bodyAsMap(Map<String, String> headers, byte[] rawBody) throws IOException {

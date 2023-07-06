@@ -16,12 +16,13 @@
  */
 package io.camunda.connector.runtime.inbound.lifecycle;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.validation.ValidationProvider;
-import io.camunda.connector.impl.inbound.InboundConnectorProperties;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
@@ -49,9 +50,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class InboundConnectorManager {
 
   private static final Logger LOG = LoggerFactory.getLogger(InboundConnectorManager.class);
-
-  public static final String WEBHOOK_CONTEXT_BPMN_FIELD = "inbound.context";
-
   private final InboundConnectorFactory connectorFactory;
   private final InboundCorrelationHandler correlationHandler;
   private final ProcessDefinitionInspector processDefinitionInspector;
@@ -67,7 +65,10 @@ public class InboundConnectorManager {
 
   private final Map<String, Set<ActiveInboundConnector>> activeConnectorsByBpmnId = new HashMap<>();
 
+  private final ObjectMapper objectMapper;
+
   public InboundConnectorManager(
+      ObjectMapper objectMapper,
       InboundConnectorFactory connectorFactory,
       InboundCorrelationHandler correlationHandler,
       ProcessDefinitionInspector processDefinitionInspector,
@@ -75,6 +76,7 @@ public class InboundConnectorManager {
       ValidationProvider validationProvider,
       MetricsRecorder metricsRecorder,
       @Autowired(required = false) WebhookConnectorRegistry webhookConnectorRegistry) {
+    this.objectMapper = objectMapper;
     this.connectorFactory = connectorFactory;
     this.correlationHandler = correlationHandler;
     this.processDefinitionInspector = processDefinitionInspector;
@@ -122,7 +124,8 @@ public class InboundConnectorManager {
     return registeredProcessDefinitionKeys.contains(processDefinitionKey);
   }
 
-  private void handleLatestBpmnVersion(String bpmnId, List<InboundConnectorProperties> connectors) {
+  private void handleLatestBpmnVersion(
+      String bpmnId, List<InboundConnectorDefinitionImpl> connectors) {
     var alreadyActiveConnectors = activeConnectorsByBpmnId.get(bpmnId);
     if (alreadyActiveConnectors != null) {
       var connectorsToDeactivate = alreadyActiveConnectors.stream().toList();
@@ -131,19 +134,20 @@ public class InboundConnectorManager {
     connectors.forEach(this::activateConnector);
   }
 
-  private void activateConnector(InboundConnectorProperties newProperties) {
-    InboundConnectorExecutable executable = connectorFactory.getInstance(newProperties.getType());
-    Consumer<Throwable> cancellationCallback = throwable -> deactivateConnector(newProperties);
+  private void activateConnector(InboundConnectorDefinitionImpl newConnector) {
+    InboundConnectorExecutable executable = connectorFactory.getInstance(newConnector.type());
+    Consumer<Throwable> cancellationCallback = throwable -> deactivateConnector(newConnector);
 
     var inboundContext =
         new InboundConnectorContextImpl(
             secretProviderAggregator,
             validationProvider,
-            newProperties,
+            newConnector,
             correlationHandler,
-            cancellationCallback);
+            cancellationCallback,
+            objectMapper);
 
-    var connector = new ActiveInboundConnector(executable, newProperties, inboundContext);
+    var connector = new ActiveInboundConnector(executable, inboundContext);
 
     try {
       addActiveConnector(connector);
@@ -156,25 +160,23 @@ public class InboundConnectorManager {
       if (webhookConnectorRegistry != null
           && connector.executable() instanceof WebhookConnectorExecutable) {
         webhookConnectorRegistry.register(connector);
-        LOG.trace("Registering webhook: " + newProperties.getType());
+        LOG.trace("Registering webhook: " + newConnector.type());
       }
       inboundContext.reportHealth(Health.up());
       metricsRecorder.increase(
-          Inbound.METRIC_NAME_ACTIVATIONS, Inbound.ACTION_ACTIVATED, newProperties.getType());
+          Inbound.METRIC_NAME_ACTIVATIONS, Inbound.ACTION_ACTIVATED, newConnector.type());
     } catch (Exception e) {
       inboundContext.reportHealth(Health.down(e));
       // log and continue with other connectors anyway
-      LOG.error("Failed to activate inbound connector " + newProperties, e);
+      LOG.error("Failed to activate inbound connector " + newConnector, e);
       metricsRecorder.increase(
-          Inbound.METRIC_NAME_ACTIVATIONS,
-          Inbound.ACTION_ACTIVATION_FAILED,
-          newProperties.getType());
+          Inbound.METRIC_NAME_ACTIVATIONS, Inbound.ACTION_ACTIVATION_FAILED, newConnector.type());
     }
   }
 
   private void addActiveConnector(ActiveInboundConnector connector) {
     activeConnectorsByBpmnId.compute(
-        connector.properties().getBpmnProcessId(),
+        connector.context().getDefinition().bpmnProcessId(),
         (bpmnId, connectors) -> {
           if (connectors == null) {
             Set<ActiveInboundConnector> set = new HashSet<>();
@@ -186,25 +188,27 @@ public class InboundConnectorManager {
         });
   }
 
-  private void deactivateConnector(InboundConnectorProperties properties) {
-    findActiveConnector(properties).ifPresent(this::deactivateConnector);
+  private void deactivateConnector(InboundConnectorDefinitionImpl definition) {
+    findActiveConnector(definition).ifPresent(this::deactivateConnector);
     metricsRecorder.increase(
-        Inbound.METRIC_NAME_ACTIVATIONS, Inbound.ACTION_DEACTIVATED, properties.getType());
+        Inbound.METRIC_NAME_ACTIVATIONS, Inbound.ACTION_DEACTIVATED, definition.type());
   }
 
   private void deactivateConnector(ActiveInboundConnector connector) {
     try {
       connector.executable().deactivate();
-      activeConnectorsByBpmnId.get(connector.properties().getBpmnProcessId()).remove(connector);
+      activeConnectorsByBpmnId
+          .get(connector.context().getDefinition().bpmnProcessId())
+          .remove(connector);
       if (webhookConnectorRegistry != null
           && connector.executable() instanceof WebhookConnectorExecutable) {
         webhookConnectorRegistry.deregister(connector);
-        LOG.trace("Unregistering webhook: " + connector.properties().getType());
+        LOG.trace("Unregistering webhook: " + connector.context().getDefinition().type());
       }
       metricsRecorder.increase(
           Inbound.METRIC_NAME_ACTIVATIONS,
           Inbound.ACTION_DEACTIVATED,
-          connector.properties().getType());
+          connector.context().getDefinition().type());
     } catch (Exception e) {
       // log and continue with other connectors anyway
       LOG.error("Failed to deactivate inbound connector " + connector, e);
@@ -212,11 +216,13 @@ public class InboundConnectorManager {
   }
 
   private Optional<ActiveInboundConnector> findActiveConnector(
-      InboundConnectorProperties properties) {
-    return Optional.ofNullable(activeConnectorsByBpmnId.get(properties.getBpmnProcessId()))
+      InboundConnectorDefinitionImpl definition) {
+    return Optional.ofNullable(activeConnectorsByBpmnId.get(definition.bpmnProcessId()))
         .flatMap(
             connectors ->
-                connectors.stream().filter(c -> c.properties().equals(properties)).findFirst());
+                connectors.stream()
+                    .filter(c -> c.context().getDefinition().equals(definition))
+                    .findFirst());
   }
 
   public List<ActiveInboundConnector> query(ActiveInboundConnectorQuery request) {
@@ -242,7 +248,7 @@ public class InboundConnectorManager {
       return connectors;
     }
     return connectors.stream()
-        .filter(props -> type.equals(props.properties().getType()))
+        .filter(props -> type.equals(props.context().getDefinition().type()))
         .collect(Collectors.toList());
   }
 
@@ -253,7 +259,7 @@ public class InboundConnectorManager {
       return connectors;
     }
     return connectors.stream()
-        .filter(connector -> elementId.equals(connector.properties().getElementId()))
+        .filter(connector -> elementId.equals(connector.context().getDefinition().elementId()))
         .collect(Collectors.toList());
   }
 }

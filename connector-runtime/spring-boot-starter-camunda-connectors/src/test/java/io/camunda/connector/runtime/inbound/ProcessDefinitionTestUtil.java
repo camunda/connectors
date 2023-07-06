@@ -18,7 +18,7 @@ package io.camunda.connector.runtime.inbound;
 
 import static org.mockito.Mockito.when;
 
-import io.camunda.connector.impl.inbound.InboundConnectorProperties;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionInspector;
 import io.camunda.connector.runtime.inbound.lifecycle.InboundConnectorManager;
 import io.camunda.operate.dto.ProcessDefinition;
@@ -40,20 +40,20 @@ public class ProcessDefinitionTestUtil {
   }
 
   public void deployProcessDefinition(
-      ProcessDefinition processDefinition, InboundConnectorProperties connector)
+      ProcessDefinition processDefinition, InboundConnectorDefinitionImpl connector)
       throws OperateException {
     deployProcessDefinition(processDefinition, List.of(connector));
   }
 
   public void deployProcessDefinition(
-      ProcessDefinition processDefinition, List<InboundConnectorProperties> connectors)
+      ProcessDefinition processDefinition, List<InboundConnectorDefinitionImpl> connectors)
       throws OperateException {
 
     deployProcessDefinition(Map.of(processDefinition, connectors));
   }
 
   public void deployProcessDefinition(
-      Map<ProcessDefinition, List<InboundConnectorProperties>> connectorsByProcDef)
+      Map<ProcessDefinition, List<InboundConnectorDefinitionImpl>> connectorsByProcDef)
       throws OperateException {
 
     for (var entry : connectorsByProcDef.entrySet()) {

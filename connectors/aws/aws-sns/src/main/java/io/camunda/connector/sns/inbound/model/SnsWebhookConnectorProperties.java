@@ -6,45 +6,36 @@
  */
 package io.camunda.connector.sns.inbound.model;
 
-import io.camunda.connector.api.annotation.Secret;
-import io.camunda.connector.impl.inbound.InboundConnectorProperties;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class SnsWebhookConnectorProperties {
 
-  private final InboundConnectorProperties genericProperties;
-  @Secret private String context;
+  private final Map<String, String> genericProperties;
+  private String context;
   private SubscriptionAllowListFlag subscriptionAllowListFlag;
-  @Secret private List<String> subscriptionAllowList;
+  private List<String> subscriptionAllowList;
 
-  public SnsWebhookConnectorProperties(InboundConnectorProperties properties) {
-    this.genericProperties = properties;
-    this.context = genericProperties.getProperties().get("inbound.context");
+  public SnsWebhookConnectorProperties(Map<String, Object> properties) {
+    this.genericProperties = (Map<String, String>) properties.get("inbound");
+    this.context = genericProperties.get("context");
     // If no value somehow passed, force it to specific.
     // In this case, BPMN process might fail but at the same time, we enforce security.
     this.subscriptionAllowListFlag =
         SubscriptionAllowListFlag.valueOf(
-            genericProperties
-                .getProperties()
-                .getOrDefault(
-                    "inbound.securitySubscriptionAllowedFor",
-                    SubscriptionAllowListFlag.specific.name()));
+            genericProperties.getOrDefault(
+                "securitySubscriptionAllowedFor", SubscriptionAllowListFlag.specific.name()));
     this.subscriptionAllowList =
-        Arrays.stream(
-                genericProperties
-                    .getProperties()
-                    .getOrDefault("inbound.topicsAllowList", "")
-                    .trim()
-                    .split(","))
+        Arrays.stream(genericProperties.getOrDefault("topicsAllowList", "").trim().split(","))
             .collect(Collectors.toList());
   }
 
-  public InboundConnectorProperties getGenericProperties() {
+  public Map<String, String> getGenericProperties() {
     return genericProperties;
   }
 

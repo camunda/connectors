@@ -105,6 +105,5 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
       throw new Exception("Inbound connector context cannot be null");
     }
     props = new WebhookConnectorProperties(context.getProperties());
-    context.replaceSecrets(props);
   }
 }

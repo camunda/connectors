@@ -8,56 +8,49 @@ package io.camunda.connector.inbound.model;
 
 import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.disabled;
 
-import io.camunda.connector.api.annotation.Secret;
-import io.camunda.connector.impl.inbound.InboundConnectorProperties;
-import io.camunda.connector.impl.inbound.ProcessCorrelationPoint;
 import io.camunda.connector.inbound.utils.HttpMethods;
 import io.camunda.connector.inbound.utils.ObjectMapperSupplier;
 import io.camunda.connector.runtime.core.feel.FeelParserWrapper;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
 public class WebhookConnectorProperties {
 
-  private final InboundConnectorProperties genericProperties;
-  @Secret private String context;
+  private final Map<String, Object> genericProperties;
+  private String context;
   private String method;
   private String activationCondition;
   private String variableMapping;
   private String shouldValidateHmac;
-  @Secret private String hmacSecret;
-  @Secret private String hmacHeader;
+  private String hmacSecret;
+  private String hmacHeader;
   private String hmacAlgorithm;
   private HMACScope[] hmacScopes;
 
-  public WebhookConnectorProperties(InboundConnectorProperties properties) {
-    this.genericProperties = properties;
+  public WebhookConnectorProperties(Map<String, Object> properties) {
 
-    this.context = readPropertyRequired("inbound.context");
+    // properties contain structure like
+    // { "inbound": { "context": "myContext", "method": "POST" } }
+    // TODO: Rename properties to avoid this mess. This will require a new version of the connector.
+    genericProperties = (Map<String, Object>) properties.get("inbound");
+
+    this.context = readPropertyRequired("context");
 
     // If method is not specified - allow all. This will ensure backwards compatibility,
     // and ease up writing custom protocol webhook connectors.
-    this.method = readPropertyWithDefault("inbound.method", HttpMethods.any.name());
+    this.method = readPropertyWithDefault("method", HttpMethods.any.name());
 
-    this.activationCondition = readPropertyNullable("inbound.activationCondition");
-    this.variableMapping = readPropertyNullable("inbound.variableMapping");
-    this.shouldValidateHmac =
-        readPropertyWithDefault("inbound.shouldValidateHmac", disabled.name());
-    this.hmacSecret = readPropertyNullable("inbound.hmacSecret");
-    this.hmacHeader = readPropertyNullable("inbound.hmacHeader");
-    this.hmacAlgorithm = readPropertyNullable("inbound.hmacAlgorithm");
+    this.activationCondition = readPropertyNullable("activationCondition");
+    this.variableMapping = readPropertyNullable("variableMapping");
+    this.shouldValidateHmac = readPropertyWithDefault("shouldValidateHmac", disabled.name());
+    this.hmacSecret = readPropertyNullable("hmacSecret");
+    this.hmacHeader = readPropertyNullable("hmacHeader");
+    this.hmacAlgorithm = readPropertyNullable("hmacAlgorithm");
     this.hmacScopes =
         readPropertyAsTypeWithDefault(
-            "inbound.hmacScopes", HMACScope[].class, new HMACScope[] {HMACScope.BODY});
-  }
-
-  public String getConnectorIdentifier() {
-    return getContext()
-        + "-"
-        + genericProperties.getBpmnProcessId()
-        + "-"
-        + genericProperties.getVersion();
+            "hmacScopes", HMACScope[].class, new HMACScope[] {HMACScope.BODY});
   }
 
   protected <T> T readPropertyAsTypeWithDefault(
@@ -67,17 +60,20 @@ public class WebhookConnectorProperties {
 
   protected <T> T readPropertyAsTypeNullable(String propertyName, Class<T> type) {
     Object parsedExpression =
-        FeelParserWrapper.parseIfIsFeelExpressionOrGetOriginal(
-            genericProperties.getProperties().get(propertyName));
+        FeelParserWrapper.parseIfIsFeelExpressionOrGetOriginal(genericProperties.get(propertyName));
     return ObjectMapperSupplier.getMapperInstance().convertValue(parsedExpression, type);
   }
 
   protected String readPropertyWithDefault(String propertyName, String defaultValue) {
-    return genericProperties.getProperties().getOrDefault(propertyName, defaultValue);
+    return genericProperties.getOrDefault(propertyName, defaultValue).toString();
   }
 
   protected String readPropertyNullable(String propertyName) {
-    return genericProperties.getProperties().get(propertyName);
+    var prop = genericProperties.get(propertyName);
+    if (prop == null) {
+      return null;
+    }
+    return prop.toString();
   }
 
   protected String readPropertyRequired(String propertyName) {
@@ -157,26 +153,6 @@ public class WebhookConnectorProperties {
 
   public void setHmacAlgorithm(String hmacAlgorithm) {
     this.hmacAlgorithm = hmacAlgorithm;
-  }
-
-  public String getType() {
-    return genericProperties.getType();
-  }
-
-  public ProcessCorrelationPoint getCorrelationPoint() {
-    return genericProperties.getCorrelationPoint();
-  }
-
-  public String getBpmnProcessId() {
-    return genericProperties.getBpmnProcessId();
-  }
-
-  public int getProcessDefinitionVersion() {
-    return genericProperties.getVersion();
-  }
-
-  public long getProcessDefinitionKey() {
-    return genericProperties.getProcessDefinitionKey();
   }
 
   public HMACScope[] getHmacScopes() {

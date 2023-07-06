@@ -24,13 +24,13 @@ import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
+import io.camunda.connector.api.inbound.InboundConnectorDefinition;
 import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.common.suppliers.AmazonSQSClientSupplier;
-import io.camunda.connector.impl.inbound.InboundConnectorProperties;
-import io.camunda.connector.impl.inbound.correlation.StartEventCorrelationPoint;
 import io.camunda.connector.impl.inbound.result.MessageCorrelationResult;
 import io.camunda.connector.inbound.model.SqsInboundProperties;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
+import io.camunda.connector.test.inbound.InboundConnectorDefinitionBuilder;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.File;
 import java.io.IOException;
@@ -78,10 +78,10 @@ class SqsExecutableTest {
 
   @ParameterizedTest
   @MethodSource("successRequestCases")
-  public void activateTest(SqsInboundProperties properties) throws InterruptedException {
+  public void activateTest(Map<String, Object> properties) throws InterruptedException {
     // given
-    InboundConnectorProperties connectorProps = createConnectorProperties();
-    InboundConnectorContext context = createConnectorContext(properties, connectorProps);
+    var definition = createDefinition();
+    InboundConnectorContext context = createConnectorContext(properties, definition);
     InboundConnectorContext spyContext = spy(context);
     Message message = createMessage().withReceiptHandle("receiptHandle");
     Message message1 = spy(message);
@@ -89,7 +89,11 @@ class SqsExecutableTest {
         .thenReturn(sqsClient);
     when(sqsClient.receiveMessage(any(ReceiveMessageRequest.class)))
         .thenReturn(new ReceiveMessageResult().withMessages(message1));
-    consumer = new SqsQueueConsumer(sqsClient, properties, spyContext);
+    consumer =
+        new SqsQueueConsumer(
+            sqsClient,
+            objectMapper.convertValue(properties, SqsInboundProperties.class),
+            spyContext);
     // when
     SqsExecutable sqsExecutable = new SqsExecutable(supplier, executorService, consumer);
     sqsExecutable.activate(spyContext);
@@ -98,8 +102,6 @@ class SqsExecutableTest {
     consumer.setQueueConsumerActive(false);
     executorService.shutdown();
     executorService.awaitTermination(1, TimeUnit.SECONDS);
-    verify(spyContext).replaceSecrets(properties);
-    verify(spyContext).validate(properties);
     verify(spyContext, atLeast(1)).correlate(MessageMapper.toSqsInboundMessage(message));
   }
 
@@ -116,26 +118,27 @@ class SqsExecutableTest {
     assertThat(executorService.isShutdown()).isTrue();
   }
 
-  private InboundConnectorProperties createConnectorProperties() {
-    return new InboundConnectorProperties(
-        new StartEventCorrelationPoint(1, "proc-id", 2),
-        Map.of("inbound.context", "context"),
-        "proc-id",
-        2,
-        1,
-        "element-id");
+  private InboundConnectorDefinition createDefinition() {
+    return InboundConnectorDefinitionBuilder.create()
+        .bpmnProcessId("proc-id")
+        .version(1)
+        .processDefinitionKey(2)
+        .elementId("element-id")
+        .type("type")
+        .build();
   }
 
   private InboundConnectorContext createConnectorContext(
-      SqsInboundProperties properties, InboundConnectorProperties connectorProps) {
+      Map<String, Object> properties, InboundConnectorDefinition definition) {
     return InboundConnectorContextBuilder.create()
         .secret(AWS_SECRET_KEY, ACTUAL_SECRET_KEY)
         .secret(AWS_ACCESS_KEY, ACTUAL_ACCESS_KEY)
         .secret(SQS_QUEUE_URL, ACTUAL_QUEUE_URL)
         .secret(ATTRIBUTE_NAME, ACTUAL_ATTRIBUTE_NAME)
         .secret(MESSAGE_ATTRIBUTE_NAME, ACTUAL_MESSAGE_ATTRIBUTE_NAME)
-        .propertiesAsType(properties)
-        .properties(connectorProps)
+        .properties(properties)
+        .objectMapper(objectMapper)
+        .definition(definition)
         .validation(new DefaultValidationProvider())
         .result(new MessageCorrelationResult("", 0))
         .build();
@@ -145,11 +148,11 @@ class SqsExecutableTest {
     return new Message().withMessageId("1").withBody("{\"a\":\"c\"}");
   }
 
-  private static Stream<SqsInboundProperties> successRequestCases() throws IOException {
+  private static Stream<Map<String, Object>> successRequestCases() throws IOException {
     final String cases =
         readString(new File(SqsExecutableTest.SUCCESS_CASES_RESOURCE_PATH).toPath(), UTF_8);
     return objectMapper
-        .readValue(cases, new TypeReference<List<SqsInboundProperties>>() {})
+        .readValue(cases, new TypeReference<List<Map<String, Object>>>() {})
         .stream();
   }
 }

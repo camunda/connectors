@@ -19,7 +19,6 @@ import com.google.api.services.drive.model.File;
 import io.camunda.connector.gdrive.model.GoogleDriveResult;
 import io.camunda.connector.gdrive.model.MimeTypeUrl;
 import io.camunda.connector.gdrive.model.request.GoogleDriveRequest;
-import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import java.io.IOException;
 import java.util.List;
 import java.util.stream.Stream;
@@ -57,7 +56,7 @@ class GoogleDriveServiceTest extends BaseTest {
   @MethodSource("successFolderRequestCases")
   void execute_shouldCreateFolderFromRequest(String input) {
     // Given
-    var context = OutboundConnectorContextBuilder.create().variables(input).build();
+    var context = getContextBuilderWithSecrets().variables(input).build();
     GoogleDriveRequest request = context.bindVariables(GoogleDriveRequest.class);
     ArgumentCaptor<File> captor = ArgumentCaptor.forClass(File.class);
     // When
@@ -79,7 +78,7 @@ class GoogleDriveServiceTest extends BaseTest {
   @MethodSource("successFileRequestCases")
   void execute_shouldCreateFileFromRequest(String input) {
     // Given
-    var context = OutboundConnectorContextBuilder.create().variables(input).build();
+    var context = getContextBuilderWithSecrets().variables(input).build();
     GoogleDriveRequest request = context.bindVariables(GoogleDriveRequest.class);
     String templateId = request.getResource().getTemplate().getId();
     Mockito.when(googleDriveClient.createWithTemplate(any(), eq(templateId))).thenReturn(file);
@@ -100,7 +99,7 @@ class GoogleDriveServiceTest extends BaseTest {
   @MethodSource("successFileRequestCases")
   void execute_shouldCreateFileWithoutTemplate(String input) {
     // Given
-    var context = OutboundConnectorContextBuilder.create().variables(input).build();
+    var context = getContextBuilderWithSecrets().variables(input).build();
     GoogleDriveRequest request = context.bindVariables(GoogleDriveRequest.class);
     String templateId = request.getResource().getTemplate().getId();
     Mockito.when(googleDriveClient.createWithTemplate(any(), eq(templateId))).thenReturn(file);
@@ -124,7 +123,7 @@ class GoogleDriveServiceTest extends BaseTest {
   @MethodSource("successFileRequestCases")
   void execute_shouldCreateFileAndUpdateDocument(String input) {
     // Given
-    var context = OutboundConnectorContextBuilder.create().variables(input).build();
+    var context = getContextBuilderWithSecrets().variables(input).build();
     GoogleDriveRequest request = context.bindVariables(GoogleDriveRequest.class);
 
     file.setMimeType(MimeTypeUrl.DOCUMENT.getMimeType());
@@ -149,7 +148,7 @@ class GoogleDriveServiceTest extends BaseTest {
   @MethodSource("successFileRequestCases")
   void execute_shouldDoNotUpdateDocumentIfTypeNotDocument(String input) {
     // Given
-    var context = OutboundConnectorContextBuilder.create().variables(input).build();
+    var context = getContextBuilderWithSecrets().variables(input).build();
     GoogleDriveRequest request = context.bindVariables(GoogleDriveRequest.class);
     file.setMimeType(MimeTypeUrl.PRESENTATION.getMimeType());
     String templateId = request.getResource().getTemplate().getId();

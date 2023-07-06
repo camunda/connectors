@@ -83,7 +83,7 @@
     }
   },
   {
-    "descriptionOfTest": "Value with 'secrets.' token in the middle",
+    "descriptionOfTest": "Value with 'secrets' token in the middle",
     "method": "get",
     "url": "https://camunda.io/http-endpoint",
     "connectionTimeoutInSeconds": "bad secrets.TOKEN_KEY value",

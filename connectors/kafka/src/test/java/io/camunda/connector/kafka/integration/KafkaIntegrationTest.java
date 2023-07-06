@@ -29,7 +29,7 @@ import io.camunda.connector.kafka.outbound.model.KafkaConnectorResponse;
 import io.camunda.connector.kafka.outbound.model.KafkaMessage;
 import io.camunda.connector.kafka.outbound.model.KafkaTopic;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
-import io.camunda.connector.test.inbound.InboundConnectorPropertiesBuilder;
+import io.camunda.connector.test.inbound.InboundConnectorDefinitionBuilder;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import java.time.Duration;
 import java.util.Arrays;
@@ -134,26 +134,12 @@ public class KafkaIntegrationTest {
     kafkaConnectorProperties.setAuthenticationType("custom");
     kafkaConnectorProperties.setOffsets("9999,8888");
     kafkaConnectorProperties.setTopic(kafkaTopic);
-    String jsonString =
-        "{'authenticationType':'custom', "
-            + "'topic.topicName':'"
-            + TOPIC
-            + "',"
-            + "'topic.bootstrapServers':'"
-            + BOOTSTRAP_SERVERS
-            + "',"
-            + "'autoOffsetReset':'none',"
-            + "'offsets':'9999,8888'}";
 
-    Map<String, String> propertiesMap = objectMapper.readValue(jsonString, Map.class);
     InboundConnectorContextBuilder.TestInboundConnectorContext context =
         InboundConnectorContextBuilder.create()
             .result(new MessageCorrelationResult("", 0))
-            .propertiesAsType(kafkaConnectorProperties)
-            .properties(
-                InboundConnectorPropertiesBuilder.create()
-                    .properties(propertiesMap)
-                    .bpmnProcessId(processId))
+            .properties(kafkaConnectorProperties)
+            .definition(InboundConnectorDefinitionBuilder.create().bpmnProcessId(processId).build())
             .build();
     KafkaExecutable executable = new KafkaExecutable();
 
@@ -188,24 +174,12 @@ public class KafkaIntegrationTest {
     kafkaConnectorProperties.setAutoOffsetReset(KafkaConnectorProperties.AutoOffsetReset.EARLIEST);
     kafkaConnectorProperties.setAuthenticationType("custom");
     kafkaConnectorProperties.setTopic(kafkaTopic);
-    String jsonString =
-        "{'authenticationType':'custom', "
-            + "'topic.topicName':'"
-            + TOPIC
-            + "',"
-            + "'topic.bootstrapServers':'"
-            + BOOTSTRAP_SERVERS
-            + "',"
-            + "'autoOffsetReset':'earliest'}";
-    Map<String, String> propertiesMap = objectMapper.readValue(jsonString, Map.class);
+
     InboundConnectorContextBuilder.TestInboundConnectorContext context =
         InboundConnectorContextBuilder.create()
             .result(new MessageCorrelationResult("", 0))
-            .propertiesAsType(kafkaConnectorProperties)
-            .properties(
-                InboundConnectorPropertiesBuilder.create()
-                    .properties(propertiesMap)
-                    .bpmnProcessId(processId))
+            .properties(kafkaConnectorProperties)
+            .definition(InboundConnectorDefinitionBuilder.create().bpmnProcessId(processId).build())
             .build();
     KafkaExecutable executable = new KafkaExecutable();
 
@@ -238,26 +212,12 @@ public class KafkaIntegrationTest {
     kafkaConnectorProperties.setAuthenticationType("custom");
     kafkaConnectorProperties.setOffsets("0,0");
     kafkaConnectorProperties.setTopic(kafkaTopic);
-    String jsonString =
-        "{'authenticationType':'custom', "
-            + "'topic.topicName':'"
-            + TOPIC
-            + "',"
-            + "'topic.bootstrapServers':'"
-            + BOOTSTRAP_SERVERS
-            + "',"
-            + "'autoOffsetReset':'earliest',"
-            + "'offsets':'0,0'}";
 
-    Map<String, String> propertiesMap = objectMapper.readValue(jsonString, Map.class);
     InboundConnectorContextBuilder.TestInboundConnectorContext context =
         InboundConnectorContextBuilder.create()
             .result(new MessageCorrelationResult("", 0))
-            .propertiesAsType(kafkaConnectorProperties)
-            .properties(
-                InboundConnectorPropertiesBuilder.create()
-                    .properties(propertiesMap)
-                    .bpmnProcessId(processId))
+            .properties(kafkaConnectorProperties)
+            .definition(InboundConnectorDefinitionBuilder.create().bpmnProcessId(processId).build())
             .build();
     KafkaExecutable executable = new KafkaExecutable();
 

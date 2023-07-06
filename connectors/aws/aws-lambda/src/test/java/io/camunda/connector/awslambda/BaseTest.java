@@ -29,6 +29,8 @@ public abstract class BaseTest {
   protected static final String ACTUAL_SECRET_KEY = "testSecretKey";
   protected static final String ACCESS_KEY = "ACCESS_KEY";
   protected static final String ACTUAL_ACCESS_KEY = "AKIAUTEST1234OOUNTYOWU";
+  protected static final String PAYLOAD_KEY = "PAYLOAD_KEY";
+  protected static final String ACTUAL_PAYLOAD_KEY = "event";
   protected static final String FUNCTION_REGION_KEY = "REGION_KEY";
   protected static final String ACTUAL_FUNCTION_REGION = "us-east-1";
   protected static final String ACTUAL_FUNCTION_NAME =
@@ -70,7 +72,8 @@ public abstract class BaseTest {
         .secret(SECRET_KEY, ACTUAL_SECRET_KEY)
         .secret(ACCESS_KEY, ACTUAL_ACCESS_KEY)
         .secret(FUNCTION_REGION_KEY, ACTUAL_FUNCTION_REGION)
-        .secret(FUNCTION_NAME_KEY, ACTUAL_FUNCTION_NAME);
+        .secret(FUNCTION_NAME_KEY, ACTUAL_FUNCTION_NAME)
+        .secret(PAYLOAD_KEY, ACTUAL_PAYLOAD_KEY);
   }
 
   protected static Stream<String> loadTestCasesFromResourceFile(final String fileWithTestCasesUri)

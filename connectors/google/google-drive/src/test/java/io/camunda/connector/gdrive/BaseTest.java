@@ -10,6 +10,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
@@ -41,5 +42,13 @@ public abstract class BaseTest {
         .readValue(new File(fileWithTestCasesUri), new TypeReference<List<JsonNode>>() {})
         .stream()
         .map(JsonNode::toString);
+  }
+
+  protected OutboundConnectorContextBuilder getContextBuilderWithSecrets() {
+    return OutboundConnectorContextBuilder.create()
+        .secret(SECRET_BEARER_TOKEN, ACTUAL_BEARER_TOKEN)
+        .secret(SECRET_OAUTH_SECRET_ID, ACTUAL_OAUTH_SECRET_ID)
+        .secret(SECRET_REFRESH_TOKEN, ACTUAL_REFRESH_TOKEN)
+        .secret(SECRET_OAUTH_CLIENT_ID, ACTUAL_OAUTH_CLIENT_ID);
   }
 }

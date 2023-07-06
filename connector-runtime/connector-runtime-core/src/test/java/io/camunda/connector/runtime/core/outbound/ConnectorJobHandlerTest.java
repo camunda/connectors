@@ -17,13 +17,12 @@
 
 package io.camunda.connector.runtime.core.outbound;
 
-import static io.camunda.connector.impl.Constants.ERROR_EXPRESSION_KEYWORD;
-import static io.camunda.connector.impl.Constants.RESULT_EXPRESSION_KEYWORD;
-import static io.camunda.connector.impl.Constants.RESULT_VARIABLE_KEYWORD;
+import static io.camunda.connector.runtime.core.Keywords.ERROR_EXPRESSION_KEYWORD;
+import static io.camunda.connector.runtime.core.Keywords.RESULT_EXPRESSION_KEYWORD;
+import static io.camunda.connector.runtime.core.Keywords.RESULT_VARIABLE_KEYWORD;
 import static io.camunda.connector.runtime.core.outbound.ConnectorJobHandlerTest.OutputTests.ResultVariableTests.newConnectorJobHandler;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.secret.SecretProvider;
@@ -713,7 +712,7 @@ class ConnectorJobHandlerTest {
   }
 
   public static class TestInput {
-    @Secret private String value;
+    private String value;
 
     public TestInput(String value) {
       this.value = value;
@@ -740,18 +739,7 @@ class ConnectorJobHandlerTest {
     }
   }
 
-  private static class TestConnectorResponsePojo {
-
-    private final String value;
-
-    private TestConnectorResponsePojo(final String value) {
-      this.value = value;
-    }
-
-    public String getValue() {
-      return value;
-    }
-  }
+  private record TestConnectorResponsePojo(String value) {}
 
   private static class NonSerializable {
 

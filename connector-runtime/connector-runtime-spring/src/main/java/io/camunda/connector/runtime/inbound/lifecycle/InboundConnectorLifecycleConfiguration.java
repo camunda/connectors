@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.inbound.lifecycle;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.inbound.DefaultInboundConnectorFactory;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
@@ -40,6 +41,7 @@ public class InboundConnectorLifecycleConfiguration {
 
   @Bean
   public InboundConnectorManager inboundConnectorManager(
+      ObjectMapper mapper,
       InboundConnectorFactory connectorFactory,
       InboundCorrelationHandler correlationHandler,
       ProcessDefinitionInspector processDefinitionInspector,
@@ -48,6 +50,7 @@ public class InboundConnectorLifecycleConfiguration {
       MetricsRecorder metricsRecorder,
       @Autowired(required = false) WebhookConnectorRegistry webhookConnectorRegistry) {
     return new InboundConnectorManager(
+        mapper,
         connectorFactory,
         correlationHandler,
         processDefinitionInspector,

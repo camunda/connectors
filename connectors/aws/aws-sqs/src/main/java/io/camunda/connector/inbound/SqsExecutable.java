@@ -45,11 +45,9 @@ public class SqsExecutable implements InboundConnectorExecutable {
 
   @Override
   public void activate(final InboundConnectorContext context) {
-    SqsInboundProperties properties = context.getPropertiesAsType(SqsInboundProperties.class);
+    SqsInboundProperties properties = context.bindProperties(SqsInboundProperties.class);
     LOGGER.info("Subscription activation requested by the Connector runtime: {}", properties);
 
-    context.replaceSecrets(properties);
-    context.validate(properties);
     var region =
         AwsUtils.extractRegionOrDefault(
             properties.getConfiguration(), properties.getQueue().getRegion());

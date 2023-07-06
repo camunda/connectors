@@ -23,7 +23,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.kafka.outbound.model.KafkaTopic;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
-import io.camunda.connector.test.inbound.InboundConnectorPropertiesBuilder;
+import io.camunda.connector.test.inbound.InboundConnectorDefinitionBuilder;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -70,22 +70,12 @@ public class KafkaExecutableTest {
     kafkaConnectorProperties.setAutoOffsetReset(KafkaConnectorProperties.AutoOffsetReset.NONE);
     kafkaConnectorProperties.setAuthenticationType("custom");
     kafkaConnectorProperties.setTopic(kafkaTopic);
-    String jsonString =
-        "{'authenticationType':'custom', "
-            + "'topic.topicName':'"
-            + topic
-            + "',"
-            + "'topic.bootstrapServers':'localhost:9092',"
-            + "'autoOffsetReset':'none'}";
-    Map<String, String> propertiesMap = objectMapper.readValue(jsonString, Map.class);
+
     context =
         InboundConnectorContextBuilder.create()
             .secret("test", "test")
-            .propertiesAsType(kafkaConnectorProperties)
-            .properties(
-                InboundConnectorPropertiesBuilder.create()
-                    .properties(propertiesMap)
-                    .bpmnProcessId(processId))
+            .properties(kafkaConnectorProperties)
+            .definition(InboundConnectorDefinitionBuilder.create().bpmnProcessId(processId).build())
             .validation(new DefaultValidationProvider())
             .build();
     originalContext = context;

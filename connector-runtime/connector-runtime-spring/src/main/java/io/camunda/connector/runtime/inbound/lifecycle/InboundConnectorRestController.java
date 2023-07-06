@@ -16,21 +16,23 @@
  */
 package io.camunda.connector.runtime.inbound.lifecycle;
 
-import static io.camunda.connector.runtime.inbound.lifecycle.InboundConnectorManager.WEBHOOK_CONTEXT_BPMN_FIELD;
-
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
+import io.camunda.connector.runtime.inbound.webhook.model.CommonWebhookProperties;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 public class InboundConnectorRestController {
+  private static final Logger LOG = LoggerFactory.getLogger(InboundConnectorRestController.class);
 
   private final InboundConnectorManager inboundManager;
 
@@ -49,22 +51,29 @@ public class InboundConnectorRestController {
   }
 
   private ActiveInboundConnectorResponse mapToResponse(ActiveInboundConnector connector) {
-    var properties = connector.properties();
+    var properties = connector.context().getProperties();
+    var definition = connector.context().getDefinition();
     var health = connector.context().getHealth();
     Map<String, Object> details;
     if (connector.executable() instanceof WebhookConnectorExecutable) {
       details =
           new HashMap<>(Optional.ofNullable(health.getDetails()).orElse(Collections.emptyMap()));
-      var path = Optional.ofNullable(properties.getProperties().get(WEBHOOK_CONTEXT_BPMN_FIELD));
-      details.put("path", path.orElse(""));
+      try {
+        var castedProps = connector.context().bindProperties(CommonWebhookProperties.class);
+        var path = Optional.ofNullable(castedProps.getContext());
+        details.put("path", path.orElse(""));
+      } catch (Exception e) {
+        LOG.error("ERROR: webhook connector doesn't have context path property", e);
+        details.put("path", "");
+      }
     } else {
       details = health.getDetails();
     }
     return new ActiveInboundConnectorResponse(
-        properties.getBpmnProcessId(),
-        properties.getVersion(),
-        properties.getElementId(),
-        properties.getType(),
+        definition.bpmnProcessId(),
+        definition.version(),
+        definition.elementId(),
+        definition.type(),
         details,
         health.getStatus());
   }

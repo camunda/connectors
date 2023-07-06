@@ -32,7 +32,7 @@
     "descriptionOfTest": "secrets value",
     "method": "get",
     "url": "https://camunda.io/http-endpoint",
-    "connectionTimeoutInSeconds": "secrets.SOME_SECRET_KEY",
+    "connectionTimeoutInSeconds": "secrets.CONNECT_TIMEOUT_KEY",
     "authentication": {
       "type": "bearer",
       "token": "secrets.TOKEN_KEY"

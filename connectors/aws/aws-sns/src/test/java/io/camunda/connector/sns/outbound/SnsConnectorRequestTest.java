@@ -39,20 +39,6 @@ class SnsConnectorRequestTest extends BaseTest {
   }
 
   @Test
-  void replaceSecrets_shouldNotReplaceMessageBody() {
-    // Given request with message body
-    var context =
-        OutboundConnectorContextBuilder.create()
-            .variables("\"" + SECRETS + SNS_MESSAGE_BODY + "\"")
-            .secret(SNS_MESSAGE_BODY, WRONG_MESSAGE_BODY)
-            .build();
-    // When replace secrets
-    var request = context.bindVariables(String.class);
-    // Then expect that message body will be same as was
-    assertThat(request).isEqualTo(SECRETS + SNS_MESSAGE_BODY);
-  }
-
-  @Test
   void execute_messageAttributesParsedCorrectly() {
     // Given request is DEFAULT_REQUEST_BODY with message attributes
     // When fetching native AWS SNS message attributes, they (native AWS SNS attributes) are mapped

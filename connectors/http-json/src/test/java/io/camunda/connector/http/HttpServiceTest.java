@@ -69,7 +69,7 @@ class HttpServiceTest extends BaseTest {
   @MethodSource("successCasesOauth")
   void checkIfOAuthBearerTokenIsAddedOnTheRequestHeader(final String input) throws IOException {
     // given
-    final var context = OutboundConnectorContextBuilder.create().variables(input).build();
+    final var context = getContextBuilderWithSecrets().variables(input).build();
     final var httpJsonRequest = context.bindVariables(HttpJsonRequest.class);
 
     HttpRequestFactory factory = new MockHttpTransport().createRequestFactory();
