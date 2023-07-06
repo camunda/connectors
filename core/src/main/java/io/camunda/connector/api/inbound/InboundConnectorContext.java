@@ -16,30 +16,16 @@
  */
 package io.camunda.connector.api.inbound;
 
-import io.camunda.connector.impl.inbound.InboundConnectorProperties;
 import io.camunda.connector.impl.inbound.ProcessCorrelationPoint;
 import io.camunda.connector.impl.inbound.result.MessageCorrelationResult;
 import io.camunda.connector.impl.inbound.result.StartEventCorrelationResult;
+import java.util.Map;
 
 /**
  * The context object provided to an inbound connector function. The context allows to fetch
  * information injected by the environment runtime.
  */
 public interface InboundConnectorContext {
-
-  /**
-   * Replaces the secrets in the input object by the defined secrets in the context's secret store.
-   *
-   * @param input - the object to replace secrets in
-   */
-  void replaceSecrets(Object input);
-
-  /**
-   * Validates the input object
-   *
-   * @param input - the object to validate
-   */
-  void validate(Object input);
 
   /**
    * Correlates the inbound event to the matching process definition
@@ -68,23 +54,47 @@ public interface InboundConnectorContext {
   void cancel(Throwable exception);
 
   /**
-   * Low-level properties access method. Allows to perform custom deserialization, or access
-   * internal properties of the process correlation point.
+   * Low-level properties access method. Allows to perform custom deserialization. For a simpler
+   * property access, consider using {@link #bindProperties(Class)} (Class)}.
    *
-   * <p>For a simpler property access, consider using {@link #getPropertiesAsType(Class)}
+   * <p>Note: this method doesn't perform validation or FEEl expression evaluation. Secret
+   * replacement is performed using the {@link io.camunda.connector.api.secret.SecretProvider}
+   * implementation available in the Connector runtime.
    *
-   * @return - raw properties as an {@link InboundConnectorProperties} object
+   * @return raw properties as a map with secrets replaced
    */
-  InboundConnectorProperties getProperties();
+  Map<String, Object> getProperties();
 
   /**
-   * High-level properties access method. Deserializes inbound Connector properties to the requested
-   * type. Deserialization logic is runtime-specific. If you need a lower-level access to properties
-   * (e.g. for custom deserialization), use {@link #getProperties()}
+   * High-level properties access method. Allows to deserialize properties into a given type.
    *
-   * @return - Connector-specific properties deserialized to a provided type
+   * <p>Additionally, this method takes care of secret replacement, properties validation, and FEEL
+   * expression evaluation.
+   *
+   * <p>Secret values are substituted using the {@link
+   * io.camunda.connector.api.secret.SecretProvider} implementations available in the Connector
+   * runtime.
+   *
+   * <p>Properties validation is performed using the {@link
+   * io.camunda.connector.api.validation.ValidationProvider} implementation available in the
+   * Connector runtime.
+   *
+   * <p>FEEL expressions are evaluated for all fields which are not listed in the {@link
+   * io.camunda.connector.impl.Constants#RESERVED_KEYWORDS}.
+   *
+   * @param cls a class to deserialize properties into
+   * @param <T> a type to deserialize properties into
+   * @return deserialized and validated properties with secrets replaced
    */
-  <T> T getPropertiesAsType(Class<T> cls);
+  <T> T bindProperties(Class<T> cls);
+
+  /**
+   * Provides an object that references the process definition that the inbound Connector is
+   * configured for. The object can be used to access the process definition metadata.
+   *
+   * @return definition of the inbound Connector
+   */
+  InboundConnectorDefinition getDefinition();
 
   /**
    * Report the health to allow other components to process the current status of the Connector. The

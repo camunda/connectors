@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.impl;
 
+import java.util.Set;
+
 public class Constants {
 
   /**
@@ -74,5 +76,12 @@ public class Constants {
    */
   public static final String INBOUND_TYPE_KEYWORD = "inbound.type";
 
-  public static final String LEGACY_VARIABLE_MAPPING_KEYWORD = "inbound.variableMapping";
+  public static final Set<String> RESERVED_KEYWORDS =
+      Set.of(
+          RESULT_VARIABLE_KEYWORD,
+          RESULT_EXPRESSION_KEYWORD,
+          ERROR_EXPRESSION_KEYWORD,
+          CORRELATION_KEY_EXPRESSION_KEYWORD,
+          ACTIVATION_CONDITION_KEYWORD,
+          INBOUND_TYPE_KEYWORD);
 }

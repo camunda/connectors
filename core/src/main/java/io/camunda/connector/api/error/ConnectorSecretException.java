@@ -14,21 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.impl.inbound;
+package io.camunda.connector.api.error;
 
-/**
- * Base class for a unique set of properties of a single inbound Connector usage in the business
- * process definition.
- *
- * <p>Comparable interface defines the priorities among inbound connector execution (suitable
- * inbound candidates are executed in the natural order).
- */
-public sealed interface ProcessCorrelationPoint extends Comparable<ProcessCorrelationPoint>
-    permits MessageCorrelationPoint, StartEventCorrelationPoint {
+import java.io.Serial;
 
-  /**
-   * Returns the ID of the correlation point, which also serves as a deduplication key. Correlation
-   * points with the same ID logically represent the same inbound connector execution.
-   */
-  String getId();
+/** Unchecked exception indicating issues during secret resolution. */
+public class ConnectorSecretException extends RuntimeException {
+
+  @Serial private static final long serialVersionUID = 1L;
+
+  public ConnectorSecretException(String message) {
+    super(message);
+  }
+
+  public ConnectorSecretException(String message, Throwable cause) {
+    super(message, cause);
+  }
 }

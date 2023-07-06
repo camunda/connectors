@@ -16,19 +16,20 @@
  */
 package io.camunda.connector.impl.inbound;
 
-/**
- * Base class for a unique set of properties of a single inbound Connector usage in the business
- * process definition.
- *
- * <p>Comparable interface defines the priorities among inbound connector execution (suitable
- * inbound candidates are executed in the natural order).
- */
-public sealed interface ProcessCorrelationPoint extends Comparable<ProcessCorrelationPoint>
-    permits MessageCorrelationPoint, StartEventCorrelationPoint {
+/** Properties of a message published by an Inbound Connector */
+public record MessageCorrelationPoint(String messageName, String correlationKeyExpression)
+    implements ProcessCorrelationPoint {
+  @Override
+  public String getId() {
+    return messageName;
+  }
 
-  /**
-   * Returns the ID of the correlation point, which also serves as a deduplication key. Correlation
-   * points with the same ID logically represent the same inbound connector execution.
-   */
-  String getId();
+  @Override
+  public int compareTo(ProcessCorrelationPoint o) {
+    if (!this.getClass().equals(o.getClass())) {
+      return 1;
+    }
+    MessageCorrelationPoint other = (MessageCorrelationPoint) o;
+    return messageName.compareTo(other.messageName);
+  }
 }

@@ -32,11 +32,39 @@ public interface OutboundConnectorContext {
   Map<String, String> getCustomerHeaders();
 
   /**
+   * Low-level variable access. For a more convenient access, use {@link #bindVariables(Class)}.
+   *
+   * <p>Note: this method doesn't perform validation. Secret replacement is performed using the
+   * {@link io.camunda.connector.api.secret.SecretProvider} implementations registered in the
+   * runtime.
+   *
    * @return the raw variables input as JSON String
    */
   String getVariables();
 
+  /**
+   * High-level variable access method. Allows to deserialize variables into a given type.
+   *
+   * <p>Additionally, this method takes care of secret replacement and variable validation.
+   *
+   * <p>Secret values are substituted using the {@link
+   * io.camunda.connector.api.secret.SecretProvider} implementations available in the Connector
+   * runtime.
+   *
+   * <p>Variable validation is performed using the {@link
+   * io.camunda.connector.api.validation.ValidationProvider} implementation available in the
+   * Connector runtime.
+   *
+   * @param cls a class to deserialize variables into
+   * @param <T> a type to deserialize variables into
+   * @return deserialized and validated variables with secrets replaced
+   */
   <T> T bindVariables(Class<T> cls);
 
+  /**
+   * Deprecated: use {@link #bindVariables(Class)} instead, where validation is performed
+   * automatically.
+   */
+  @Deprecated(forRemoval = true)
   void validate(Object input);
 }

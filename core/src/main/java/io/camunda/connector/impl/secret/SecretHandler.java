@@ -17,6 +17,7 @@
 package io.camunda.connector.impl.secret;
 
 import io.camunda.connector.api.annotation.Secret;
+import io.camunda.connector.api.error.ConnectorSecretException;
 import io.camunda.connector.api.secret.SecretContainerHandler;
 import io.camunda.connector.api.secret.SecretElementHandler;
 import io.camunda.connector.api.secret.SecretProvider;
@@ -30,6 +31,7 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -51,8 +53,17 @@ public class SecretHandler implements SecretElementHandler, SecretContainerHandl
 
   protected final SecretProvider secretProvider;
 
+  protected Function<String, String> secretReplacer;
+
   public SecretHandler(final SecretProvider secretProvider) {
     this.secretProvider = secretProvider;
+    secretReplacer =
+        name ->
+            Optional.ofNullable(secretProvider.getSecret(name))
+                .orElseThrow(
+                    () ->
+                        new ConnectorSecretException(
+                            String.format("Secret with name '%s' is not available", name)));
   }
 
   @Override
@@ -193,11 +204,7 @@ public class SecretHandler implements SecretElementHandler, SecretContainerHandl
   }
 
   protected String getSecret(String secretName) {
-    return Optional.ofNullable(secretProvider.getSecret(secretName))
-        .orElseThrow(
-            () ->
-                new IllegalArgumentException(
-                    String.format("Secret with name '%s' is not available", secretName)));
+    return secretReplacer.apply(secretName);
   }
 
   protected String replaceSecretPlaceholders(String original) {
@@ -214,6 +221,6 @@ public class SecretHandler implements SecretElementHandler, SecretContainerHandl
   }
 
   public String replaceSecrets(String input) {
-    return SecretUtil.replaceSecrets(input, secretProvider::getSecret);
+    return SecretUtil.replaceSecrets(input, secretReplacer);
   }
 }
