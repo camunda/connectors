@@ -40,23 +40,4 @@ public interface InboundConnectorDefinition {
 
   /** Returns the element id of the connector in the process definition. */
   String elementId();
-
-  /**
-   * FEEL expression that is used to map connector output to process variables. Defined in connector
-   * properties as {@link io.camunda.connector.impl.Constants#RESULT_EXPRESSION_KEYWORD}.
-   */
-  String resultExpression();
-
-  /**
-   * Name of the process variable that is used to store connector output. Defined in connector
-   * properties as {@link io.camunda.connector.impl.Constants#RESULT_VARIABLE_KEYWORD}.
-   */
-  String resultVariable();
-
-  /**
-   * FEEL expression that evaluates to boolean and determines whether event should be triggered.
-   * Defined in connector properties as {@link
-   * io.camunda.connector.impl.Constants#ACTIVATION_CONDITION_KEYWORD}.
-   */
-  String activationCondition();
 }

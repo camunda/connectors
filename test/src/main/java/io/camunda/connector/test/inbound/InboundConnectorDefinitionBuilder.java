@@ -30,9 +30,6 @@ public class InboundConnectorDefinitionBuilder {
   private String elementId = "test-element";
   private ProcessCorrelationPoint correlationPoint =
       new StartEventCorrelationPoint(bpmnProcessId, version, processDefinitionKey);
-  private String resultExpression;
-  private String resultVariable;
-  private String activationCondition;
 
   public static InboundConnectorDefinitionBuilder create() {
     return new InboundConnectorDefinitionBuilder();
@@ -69,32 +66,9 @@ public class InboundConnectorDefinitionBuilder {
     return this;
   }
 
-  public InboundConnectorDefinitionBuilder resultExpression(String resultExpression) {
-    this.resultExpression = resultExpression;
-    return this;
-  }
-
-  public InboundConnectorDefinitionBuilder resultVariable(String resultVariable) {
-    this.resultVariable = resultVariable;
-    return this;
-  }
-
-  public InboundConnectorDefinitionBuilder activationCondition(String activationCondition) {
-    this.activationCondition = activationCondition;
-    return this;
-  }
-
   public InboundConnectorDefinition build() {
     return new InboundConnectorDefinitionImpl(
-        type,
-        correlationPoint,
-        bpmnProcessId,
-        version,
-        processDefinitionKey,
-        elementId,
-        resultExpression,
-        resultVariable,
-        activationCondition);
+        type, correlationPoint, bpmnProcessId, version, processDefinitionKey, elementId);
   }
 
   public record InboundConnectorDefinitionImpl(
@@ -103,9 +77,6 @@ public class InboundConnectorDefinitionBuilder {
       String bpmnProcessId,
       Integer version,
       Long processDefinitionKey,
-      String elementId,
-      String resultExpression,
-      String resultVariable,
-      String activationCondition)
+      String elementId)
       implements InboundConnectorDefinition {}
 }
