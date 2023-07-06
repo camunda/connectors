@@ -16,9 +16,9 @@
  */
 package io.camunda.connector.runtime.inbound.lifecycle;
 
-import io.camunda.connector.api.inbound.InboundConnectorDefinition;
 import io.camunda.connector.api.inbound.InboundConnectorResult;
 import io.camunda.connector.runtime.core.feel.FeelEngineWrapper;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics.Inbound;
 import io.camunda.zeebe.client.ZeebeClient;
@@ -35,7 +35,7 @@ public class MeteredInboundCorrelationHandler extends InboundCorrelationHandler 
   }
 
   @Override
-  protected boolean isActivationConditionMet(InboundConnectorDefinition def, Object context) {
+  protected boolean isActivationConditionMet(InboundConnectorDefinitionImpl def, Object context) {
     boolean isConditionMet = super.isActivationConditionMet(def, context);
     if (!isConditionMet) {
       metricsRecorder.increase(
@@ -46,7 +46,7 @@ public class MeteredInboundCorrelationHandler extends InboundCorrelationHandler 
 
   @Override
   public InboundConnectorResult<?> correlate(
-      InboundConnectorDefinition definition, Object variables) {
+      InboundConnectorDefinitionImpl definition, Object variables) {
     metricsRecorder.increase(
         Inbound.METRIC_NAME_TRIGGERS, Inbound.ACTION_TRIGGERED, definition.type());
 

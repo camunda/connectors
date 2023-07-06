@@ -17,10 +17,10 @@
 package io.camunda.connector.runtime.inbound.importer;
 
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
-import io.camunda.connector.impl.Constants;
 import io.camunda.connector.impl.inbound.MessageCorrelationPoint;
 import io.camunda.connector.impl.inbound.ProcessCorrelationPoint;
 import io.camunda.connector.impl.inbound.StartEventCorrelationPoint;
+import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
 import io.camunda.operate.CamundaOperateClient;
 import io.camunda.operate.dto.ProcessDefinition;
@@ -160,7 +160,7 @@ public class ProcessDefinitionInspector {
     String name = msgDef.getMessage().getName();
 
     String correlationKeyExpression =
-        extractRequiredProperty(catchEvent, Constants.CORRELATION_KEY_EXPRESSION_KEYWORD);
+        extractRequiredProperty(catchEvent, Keywords.CORRELATION_KEY_EXPRESSION_KEYWORD);
 
     return Optional.of(new MessageCorrelationPoint(name, correlationKeyExpression));
   }
@@ -176,7 +176,7 @@ public class ProcessDefinitionInspector {
   private Optional<ProcessCorrelationPoint> handleReceiveTask(ReceiveTask receiveTask) {
     Message message = receiveTask.getMessage();
     String correlationKeyExpression =
-        extractRequiredProperty(receiveTask, Constants.CORRELATION_KEY_EXPRESSION_KEYWORD);
+        extractRequiredProperty(receiveTask, Keywords.CORRELATION_KEY_EXPRESSION_KEYWORD);
     return Optional.of(new MessageCorrelationPoint(message.getName(), correlationKeyExpression));
   }
 

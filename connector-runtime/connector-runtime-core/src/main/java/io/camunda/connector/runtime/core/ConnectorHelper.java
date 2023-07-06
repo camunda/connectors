@@ -16,8 +16,6 @@
  */
 package io.camunda.connector.runtime.core;
 
-import static io.camunda.connector.impl.Constants.ERROR_EXPRESSION_KEYWORD;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.BpmnError;
@@ -65,7 +63,7 @@ public class ConnectorHelper {
 
   public static Optional<BpmnError> examineErrorExpression(
       final Object responseContent, final Map<String, String> jobHeaders) {
-    final var errorExpression = jobHeaders.get(ERROR_EXPRESSION_KEYWORD);
+    final var errorExpression = jobHeaders.get(Keywords.ERROR_EXPRESSION_KEYWORD);
     return Optional.ofNullable(errorExpression)
         .filter(s -> !s.isBlank())
         .map(expression -> FEEL_ENGINE_WRAPPER.evaluateToJson(expression, responseContent))

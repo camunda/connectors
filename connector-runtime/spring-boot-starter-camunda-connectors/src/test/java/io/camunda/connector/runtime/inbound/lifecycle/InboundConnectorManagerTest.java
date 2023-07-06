@@ -34,11 +34,11 @@ import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.impl.ConnectorUtil;
-import io.camunda.connector.impl.Constants;
 import io.camunda.connector.impl.inbound.InboundConnectorConfiguration;
 import io.camunda.connector.impl.inbound.MessageCorrelationPoint;
 import io.camunda.connector.runtime.app.TestInboundConnector;
 import io.camunda.connector.runtime.app.TestWebhookConnector;
+import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
@@ -277,7 +277,7 @@ public class InboundConnectorManagerTest {
 
   private static InboundConnectorDefinitionImpl inboundConnector(ProcessDefinition procDef) {
     return new InboundConnectorDefinitionImpl(
-        Map.of(Constants.INBOUND_TYPE_KEYWORD, connectorConfig.getType()),
+        Map.of(Keywords.INBOUND_TYPE_KEYWORD, connectorConfig.getType()),
         new MessageCorrelationPoint("", ""),
         procDef.getBpmnProcessId(),
         procDef.getVersion().intValue(),
@@ -288,7 +288,7 @@ public class InboundConnectorManagerTest {
   private static InboundConnectorDefinitionImpl webhookConnector(ProcessDefinition procDef) {
     return new InboundConnectorDefinitionImpl(
         Map.of(
-            Constants.INBOUND_TYPE_KEYWORD,
+            Keywords.INBOUND_TYPE_KEYWORD,
             webhookConfig.getType(),
             "inbound.context",
             "myWebhookEndpoint"),

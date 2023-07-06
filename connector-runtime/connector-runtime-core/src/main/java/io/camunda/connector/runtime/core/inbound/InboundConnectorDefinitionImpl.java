@@ -17,8 +17,8 @@
 package io.camunda.connector.runtime.core.inbound;
 
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
-import io.camunda.connector.impl.Constants;
 import io.camunda.connector.impl.inbound.ProcessCorrelationPoint;
+import io.camunda.connector.runtime.core.Keywords;
 import java.util.Map;
 import java.util.Optional;
 
@@ -34,25 +34,22 @@ public record InboundConnectorDefinitionImpl(
 
   @Override
   public String type() {
-    return Optional.ofNullable(rawProperties.get(Constants.INBOUND_TYPE_KEYWORD))
+    return Optional.ofNullable(rawProperties.get(Keywords.INBOUND_TYPE_KEYWORD))
         .orElseThrow(
             () ->
                 new IllegalArgumentException(
                     "Missing connector type property. The connector element template is not valid"));
   }
 
-  @Override
   public String resultExpression() {
-    return rawProperties.get(Constants.RESULT_EXPRESSION_KEYWORD);
+    return rawProperties.get(Keywords.RESULT_EXPRESSION_KEYWORD);
   }
 
-  @Override
   public String resultVariable() {
-    return rawProperties.get(Constants.RESULT_VARIABLE_KEYWORD);
+    return rawProperties.get(Keywords.RESULT_VARIABLE_KEYWORD);
   }
 
-  @Override
   public String activationCondition() {
-    return rawProperties.get(Constants.ACTIVATION_CONDITION_KEYWORD);
+    return rawProperties.get(Keywords.ACTIVATION_CONDITION_KEYWORD);
   }
 }

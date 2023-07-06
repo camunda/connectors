@@ -17,7 +17,6 @@
 package io.camunda.connector.runtime.core.inbound.correlation;
 
 import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.api.inbound.InboundConnectorDefinition;
 import io.camunda.connector.api.inbound.InboundConnectorResult;
 import io.camunda.connector.impl.ConnectorInputException;
 import io.camunda.connector.impl.inbound.MessageCorrelationPoint;
@@ -31,6 +30,7 @@ import io.camunda.connector.impl.inbound.result.StartEventCorrelationResult;
 import io.camunda.connector.runtime.core.ConnectorHelper;
 import io.camunda.connector.runtime.core.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.core.feel.FeelEngineWrapperException;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.client.api.response.ProcessInstanceEvent;
 import io.camunda.zeebe.client.api.response.PublishMessageResponse;
@@ -51,7 +51,7 @@ public class InboundCorrelationHandler {
   }
 
   public InboundConnectorResult<?> correlate(
-      InboundConnectorDefinition definition, Object variables) {
+      InboundConnectorDefinitionImpl definition, Object variables) {
     var correlationPoint = definition.correlationPoint();
 
     if (correlationPoint instanceof StartEventCorrelationPoint startCorPoint) {
@@ -67,7 +67,7 @@ public class InboundCorrelationHandler {
   }
 
   protected InboundConnectorResult<ProcessInstance> triggerStartEvent(
-      InboundConnectorDefinition definition,
+      InboundConnectorDefinitionImpl definition,
       StartEventCorrelationPoint correlationPoint,
       Object variables) {
 
@@ -103,7 +103,7 @@ public class InboundCorrelationHandler {
   }
 
   protected InboundConnectorResult<CorrelatedMessage> triggerMessage(
-      InboundConnectorDefinition definition,
+      InboundConnectorDefinitionImpl definition,
       MessageCorrelationPoint correlationPoint,
       Object variables) {
 
@@ -138,7 +138,7 @@ public class InboundCorrelationHandler {
   }
 
   protected boolean isActivationConditionMet(
-      InboundConnectorDefinition definition, Object context) {
+      InboundConnectorDefinitionImpl definition, Object context) {
 
     var maybeCondition = definition.activationCondition();
     if (maybeCondition == null || maybeCondition.isBlank()) {
@@ -162,7 +162,8 @@ public class InboundCorrelationHandler {
     }
   }
 
-  protected Object extractVariables(Object rawVariables, InboundConnectorDefinition definition) {
+  protected Object extractVariables(
+      Object rawVariables, InboundConnectorDefinitionImpl definition) {
     return ConnectorHelper.createOutputVariables(
         rawVariables, definition.resultVariable(), definition.resultExpression());
   }

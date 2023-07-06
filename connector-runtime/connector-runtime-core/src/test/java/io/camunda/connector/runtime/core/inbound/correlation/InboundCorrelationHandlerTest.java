@@ -31,9 +31,9 @@ import io.camunda.connector.impl.inbound.result.CorrelationErrorData.Correlation
 import io.camunda.connector.impl.inbound.result.ProcessInstance;
 import io.camunda.connector.impl.inbound.result.StartEventCorrelationResult;
 import io.camunda.connector.runtime.core.feel.FeelEngineWrapper;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
 import io.camunda.connector.runtime.core.util.command.CreateCommandDummy;
 import io.camunda.connector.runtime.core.util.command.PublishMessageCommandDummy;
-import io.camunda.connector.test.inbound.InboundConnectorDefinitionBuilder;
 import io.camunda.zeebe.client.ZeebeClient;
 import java.util.Collections;
 import java.util.Map;
@@ -64,7 +64,8 @@ public class InboundCorrelationHandlerTest {
     void startEvent_shouldCallCorrectZeebeMethod() {
       // given
       var point = new StartEventCorrelationPoint("process1", 0, 0);
-      var definition = InboundConnectorDefinitionBuilder.create().correlationPoint(point).build();
+      var definition = mock(InboundConnectorDefinitionImpl.class);
+      when(definition.correlationPoint()).thenReturn(point);
 
       var dummyCommand = Mockito.spy(new CreateCommandDummy());
       when(zeebeClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
@@ -86,7 +87,8 @@ public class InboundCorrelationHandlerTest {
       // given
       var correlationKeyValue = "someTestCorrelationKeyValue";
       var point = new MessageCorrelationPoint("msg1", "=correlationKey");
-      var definition = InboundConnectorDefinitionBuilder.create().correlationPoint(point).build();
+      var definition = mock(InboundConnectorDefinitionImpl.class);
+      when(definition.correlationPoint()).thenReturn(point);
 
       Map<String, Object> variables = Map.of("correlationKey", correlationKeyValue);
 
@@ -113,11 +115,9 @@ public class InboundCorrelationHandlerTest {
     void activationConditionFalse_shouldNotCorrelate() {
       // given
       var point = new StartEventCorrelationPoint("process1", 0, 0);
-      var definition =
-          InboundConnectorDefinitionBuilder.create()
-              .activationCondition("=testKey=\"otherValue\"")
-              .correlationPoint(point)
-              .build();
+      var definition = mock(InboundConnectorDefinitionImpl.class);
+      when(definition.correlationPoint()).thenReturn(point);
+      when(definition.activationCondition()).thenReturn("=testKey=\"otherValue\"");
 
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
@@ -145,11 +145,9 @@ public class InboundCorrelationHandlerTest {
       when(zeebeClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
 
       var point = new StartEventCorrelationPoint("process1", 0, 0);
-      var definition =
-          InboundConnectorDefinitionBuilder.create()
-              .activationCondition("=testKey=\"testValue\"")
-              .correlationPoint(point)
-              .build();
+      var definition = mock(InboundConnectorDefinitionImpl.class);
+      when(definition.correlationPoint()).thenReturn(point);
+      when(definition.activationCondition()).thenReturn("=testKey=\"testValue\"");
 
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
@@ -180,7 +178,9 @@ public class InboundCorrelationHandlerTest {
       when(zeebeClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
 
       var point = new StartEventCorrelationPoint("process1", 0, 0);
-      var definition = InboundConnectorDefinitionBuilder.create().correlationPoint(point).build();
+      var definition = mock(InboundConnectorDefinitionImpl.class);
+      when(definition.correlationPoint()).thenReturn(point);
+      when(definition.activationCondition()).thenReturn(null);
 
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
@@ -211,11 +211,9 @@ public class InboundCorrelationHandlerTest {
       when(zeebeClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
 
       var point = new StartEventCorrelationPoint("process1", 0, 0);
-      var definition =
-          InboundConnectorDefinitionBuilder.create()
-              .activationCondition(" ")
-              .correlationPoint(point)
-              .build();
+      var definition = mock(InboundConnectorDefinitionImpl.class);
+      when(definition.correlationPoint()).thenReturn(point);
+      when(definition.activationCondition()).thenReturn("  ");
 
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
@@ -248,7 +246,8 @@ public class InboundCorrelationHandlerTest {
     void noResultVar_noResultExpr_shouldNotCopyVariables() {
       // given
       var point = new StartEventCorrelationPoint("process1", 0, 0);
-      var definition = InboundConnectorDefinitionBuilder.create().correlationPoint(point).build();
+      var definition = mock(InboundConnectorDefinitionImpl.class);
+      when(definition.correlationPoint()).thenReturn(point);
 
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
@@ -269,11 +268,9 @@ public class InboundCorrelationHandlerTest {
     void resultVarProvided_noResultExpr_shouldCopyAllVarsToResultVar() {
       // given
       var point = new StartEventCorrelationPoint("process1", 0, 0);
-      var definition =
-          InboundConnectorDefinitionBuilder.create()
-              .correlationPoint(point)
-              .resultVariable("resultVar")
-              .build();
+      var definition = mock(InboundConnectorDefinitionImpl.class);
+      when(definition.correlationPoint()).thenReturn(point);
+      when(definition.resultVariable()).thenReturn("resultVar");
 
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
@@ -295,11 +292,9 @@ public class InboundCorrelationHandlerTest {
     void noResultVar_resultExprProvided_shouldExtractVariables() {
       // given
       var point = new StartEventCorrelationPoint("process1", 0, 0);
-      var definition =
-          InboundConnectorDefinitionBuilder.create()
-              .correlationPoint(point)
-              .resultExpression("={otherKeyAlias: otherKey}")
-              .build();
+      var definition = mock(InboundConnectorDefinitionImpl.class);
+      when(definition.correlationPoint()).thenReturn(point);
+      when(definition.resultExpression()).thenReturn("={otherKeyAlias: otherKey}");
 
       Map<String, Object> variables = Map.of("testKey", "testValue", "otherKey", "otherValue");
 
@@ -321,12 +316,10 @@ public class InboundCorrelationHandlerTest {
     void resultVarProvided_resultExprProvided_shouldExtractVarsAndCopyAllVarsToResultVar() {
       // given
       var point = new StartEventCorrelationPoint("process1", 0, 0);
-      var definition =
-          InboundConnectorDefinitionBuilder.create()
-              .correlationPoint(point)
-              .resultVariable("resultVar")
-              .resultExpression("={otherKeyAlias: otherKey}")
-              .build();
+      var definition = mock(InboundConnectorDefinitionImpl.class);
+      when(definition.correlationPoint()).thenReturn(point);
+      when(definition.resultVariable()).thenReturn("resultVar");
+      when(definition.resultExpression()).thenReturn("={otherKeyAlias: otherKey}");
 
       Map<String, Object> variables = Map.of("testKey", "testValue", "otherKey", "otherValue");
 

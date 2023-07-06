@@ -23,7 +23,6 @@ import io.camunda.connector.api.inbound.InboundConnectorDefinition;
 import io.camunda.connector.api.inbound.InboundConnectorResult;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
-import io.camunda.connector.impl.Constants;
 import io.camunda.connector.impl.context.AbstractConnectorContext;
 import io.camunda.connector.runtime.core.feel.FeelParserWrapper;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
@@ -135,15 +134,10 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       propertiesWithFeel =
           properties.entrySet().stream()
               .map(
-                  entry -> {
-                    if (Constants.RESERVED_KEYWORDS.contains(entry.getKey())) {
-                      return entry;
-                    } else {
-                      return Map.entry(
+                  entry ->
+                      Map.entry(
                           entry.getKey(),
-                          FeelParserWrapper.parseIfIsFeelExpressionOrGetOriginal(entry.getValue()));
-                    }
-                  })
+                          FeelParserWrapper.parseIfIsFeelExpressionOrGetOriginal(entry.getValue())))
               .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
     return propertiesWithFeel;
