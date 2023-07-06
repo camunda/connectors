@@ -19,14 +19,14 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
-import io.camunda.connector.inbound.model.WebhookConnectorProperties;
+import io.camunda.connector.inbound.model.JWTProperties;
 import io.camunda.connector.runtime.core.feel.FeelEngineWrapperException;
 import java.security.interfaces.ECPublicKey;
 import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,16 +36,15 @@ public class JWTChecker {
   private static final Logger LOGGER = LoggerFactory.getLogger(JWTChecker.class);
 
   public static boolean verify(
-      final WebhookProcessingPayload payload,
-      final WebhookConnectorProperties webhookConnectorProperties,
+      final JWTProperties jwtProperties,
       final JwkProvider jwkProvider,
       final ObjectMapper objectMapper) {
-    Optional<DecodedJWT> decodedJWT = getDecodedVerifiedJWT(payload, jwkProvider);
+    Optional<DecodedJWT> decodedJWT = getDecodedVerifiedJWT(jwtProperties, jwkProvider);
     if (decodedJWT.isEmpty()) {
       return false;
     }
-    List<String> roles = extractRoles(webhookConnectorProperties, decodedJWT.get(), objectMapper);
-    if (!roles.containsAll(webhookConnectorProperties.getRequiredPermissions())) {
+    List<String> roles = extractRoles(jwtProperties, decodedJWT.get(), objectMapper);
+    if (!roles.containsAll(jwtProperties.requiredPermissions())) {
       LOGGER.debug("JWT authorization failed");
       return false;
     }
@@ -54,9 +53,9 @@ public class JWTChecker {
   }
 
   private static Optional<DecodedJWT> getDecodedVerifiedJWT(
-      WebhookProcessingPayload payload, JwkProvider jwkProvider) {
+      JWTProperties jwtProperties, JwkProvider jwkProvider) {
     final String jwtToken =
-        JWTChecker.extractJWTFomHeader(payload)
+        JWTChecker.extractJWTFomHeader(jwtProperties.headers())
             .orElseThrow(() -> new RuntimeException("Cannot extract JWT from header!"));
     try {
       return Optional.of(JWTChecker.verifyJWT(jwtToken, jwkProvider));
@@ -73,12 +72,10 @@ public class JWTChecker {
   }
 
   private static List<String> extractRoles(
-      WebhookConnectorProperties webhookConnectorProperties,
-      DecodedJWT verifiedJWT,
-      ObjectMapper objectMapper) {
+      JWTProperties jwtProperties, DecodedJWT verifiedJWT, ObjectMapper objectMapper) {
     try {
       JsonNode jsonNode = getJsonPayloadFromToken(verifiedJWT, objectMapper);
-      return webhookConnectorProperties.getJwtRoleExpression().apply(jsonNode);
+      return jwtProperties.jwtRoleExpression().apply(jsonNode);
     } catch (FeelEngineWrapperException ex) {
       LOGGER.warn("Failed to evaluate FEEL expression! Reason: " + ex.getReason());
       return new ArrayList<>();
@@ -101,10 +98,9 @@ public class JWTChecker {
         .orElseThrow(() -> new RuntimeException("JWT payload is null!"));
   }
 
-  private static Optional<String> extractJWTFomHeader(final WebhookProcessingPayload payload) {
+  private static Optional<String> extractJWTFomHeader(final Map<String, String> headers) {
     return Optional.ofNullable(
-            Optional.ofNullable(payload.headers().get("Authorization"))
-                .orElse(payload.headers().get("authorization")))
+            Optional.ofNullable(headers.get("Authorization")).orElse(headers.get("authorization")))
         .map(authorizationHeader -> authorizationHeader.replace("Bearer", "").trim());
   }
 

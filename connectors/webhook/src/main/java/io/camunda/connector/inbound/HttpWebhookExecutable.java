@@ -20,6 +20,7 @@ import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingResult;
 import io.camunda.connector.inbound.authorization.JWTChecker;
+import io.camunda.connector.inbound.model.JWTProperties;
 import io.camunda.connector.inbound.model.WebhookConnectorProperties;
 import io.camunda.connector.inbound.model.WebhookProcessingResultImpl;
 import io.camunda.connector.inbound.signature.HMACAlgoCustomerChoice;
@@ -70,7 +71,11 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
     }
 
     if (WebhookConnectorProperties.AuthorizationType.JWT.equals(props.getAuthorizationType())
-        && !JWTChecker.verify(payload, props, this.jwkProvider, objectMapper)) {
+        && !JWTChecker.verify(
+            new JWTProperties(
+                props.getRequiredPermissions(), props.getJwtRoleExpression(), payload.headers()),
+            this.jwkProvider,
+            objectMapper)) {
       throw new IOException("Webhook failed: JWT check didn't pass");
     }
 
@@ -133,7 +138,7 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
     context.replaceSecrets(props);
 
     // jwk url must be specified in the element template for this to work
-    if (props.getJwkUrl() != null) {
+    if (WebhookConnectorProperties.AuthorizationType.JWT.equals(props.getAuthorizationType())) {
       this.jwkProvider =
           new JwkProviderBuilder(new URL(props.getJwkUrl()))
               .cached(10, 10, TimeUnit.MINUTES) // Cache JWKs for 10 minutes

@@ -12,20 +12,21 @@ import static org.junit.Assert.assertTrue;
 import com.auth0.jwk.Jwk;
 import com.auth0.jwk.JwkProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
-import io.camunda.connector.impl.inbound.InboundConnectorProperties;
-import io.camunda.connector.impl.inbound.ProcessCorrelationPoint;
-import io.camunda.connector.impl.inbound.correlation.StartEventCorrelationPoint;
-import io.camunda.connector.inbound.model.WebhookConnectorProperties;
+import io.camunda.connector.inbound.model.JWTProperties;
 import io.camunda.connector.inbound.utils.ObjectMapperSupplier;
+import io.camunda.connector.runtime.core.feel.FeelEngineWrapper;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import org.junit.Test;
 
 public class JWTCheckerTest {
 
   private final ObjectMapper objectMapper;
+
+  private final FeelEngineWrapper feelEngineWrapper;
 
   private static final String JWT_TOKEN =
       "eyJ0eXAiOiJhdCtqd3QiLCJhbGciOiJSUzI1NiIsImtpZCI6ImM2ZjgzODZkMzFiOThiNzdkODNiYmEzNWE0NTdhZWY0In0.eyJpc3MiOiJodHRwczovL2lkcC5sb2NhbCIsImF1ZCI6ImFwaTEiLCJzdWIiOiI1YmU4NjM1OTA3M2M0MzRiYWQyZGEzOTMyMjIyZGFiZSIsImNsaWVudF9pZCI6Im15X2NsaWVudF9hcHAiLCJleHAiOjE3ODY4MjI2MTYsImlhdCI6MTY4NjgxOTAxNiwianRpIjoiMTE0ZjhjODRjNTM3MDNhYzIxMjBkMzAyNjExZTM1OGMiLCJyb2xlcyI6WyJhZG1pbiIsInN1cGVyYWRtaW4iXSwiYWRtaW4iOnRydWV9.KsjyrTJdpJnnji3c57wkc6REMl-501n2Nn98xd_2wZSGwpzHtf1ocsouudJ7hm-4W1dLUHJTLYJAO9thzWtH1Yomyq029ffz5CU8B7gtcrqg9OP_QuVCOcb9KPzjA_Lc5s4SELzDrJoedR90W-nL_7BYPvhrhu9dZcH3NbcaeU_531Yqc-YhVByBX_f6MwnpXYJECNGIx9F70SHrEI58paa8KLCvDu5Kcps480YsYHKCo9k5LoSmcDBGG_-n0riWfei0wGCFcHdhdI6ag08-C109oh7Po-PQ7GVTkEJ4pFmQ7dxBxsq_X39jh8w_9XynqbTaQhbwfNZ5u0SLWEp-n2yzxYFMLONI0VtSxw4zUfMUMJFW4iZvduxe_Ui4Jlj4ZmVxa60l7Wb3k4fi6C5-3hXOvb1XngFElSdFvIC2WGlaIfDfb82Bzq41PJc8Fqm3VRVWN7y5gpADT_Y9PYvZWP98AmogEMR_-l7gCr5ICDRlDpoNcCv3vVbJ6rTLvkAC";
@@ -75,36 +76,42 @@ public class JWTCheckerTest {
 
   public JWTCheckerTest() {
     this.objectMapper = ObjectMapperSupplier.getMapperInstance();
+    this.feelEngineWrapper = new FeelEngineWrapper();
   }
 
   @Test
   public void jwtCheckSuccessTest() throws Exception {
     // given
-    WebhookProcessingPayload payload = new TestWebhookProcessingPayload(JWT_TOKEN);
-    WebhookConnectorProperties webhookConnectorProperties =
-        generateWebhookConnectorProperties("=if admin = true then [\"admin\"] else roles");
     JwkProvider jwkProvider = new TestJwkProvider();
+    JWTProperties jwtProperties =
+        new JWTProperties(
+            Arrays.asList("admin"),
+            getRoleExpressionFunction("=if admin = true then [\"admin\"] else roles"),
+            Map.of("Authorization", "Bearer " + JWT_TOKEN));
 
     // when
-    boolean verificationResult =
-        JWTChecker.verify(payload, webhookConnectorProperties, jwkProvider, objectMapper);
+    boolean verificationResult = JWTChecker.verify(jwtProperties, jwkProvider, objectMapper);
 
     // then
     assertTrue(verificationResult);
   }
 
+  Function<Object, List<String>> getRoleExpressionFunction(String rawFeelExpression) {
+    return variables -> this.feelEngineWrapper.evaluate(rawFeelExpression, variables);
+  }
+
   @Test
   public void jwtCheckSuccessWithDifferentAlgorithmTest() throws Exception {
     // given
-    WebhookProcessingPayload payload =
-        new TestWebhookProcessingPayload(JWT_WITH_ES512_ALGORITHM_TOKEN);
-    WebhookConnectorProperties webhookConnectorProperties =
-        generateWebhookConnectorProperties("=if admin = true then [\"admin\"] else roles");
     JwkProvider jwkProvider = new TestES512JwkProvider();
+    JWTProperties jwtProperties =
+        new JWTProperties(
+            Arrays.asList("admin"),
+            getRoleExpressionFunction("=if admin = true then [\"admin\"] else roles"),
+            Map.of("Authorization", "Bearer " + JWT_WITH_ES512_ALGORITHM_TOKEN));
 
     // when
-    boolean verificationResult =
-        JWTChecker.verify(payload, webhookConnectorProperties, jwkProvider, objectMapper);
+    boolean verificationResult = JWTChecker.verify(jwtProperties, jwkProvider, objectMapper);
 
     // then
     assertTrue(verificationResult);
@@ -113,14 +120,15 @@ public class JWTCheckerTest {
   @Test
   public void jwtCheckWrongTokenTest() throws Exception {
     // given
-    TestWebhookProcessingPayload payload = new TestWebhookProcessingPayload(WRONG_JWT_TOKEN);
-    WebhookConnectorProperties webhookConnectorProperties =
-        generateWebhookConnectorProperties("=if admin = true then [\"admin\"] else roles");
     JwkProvider jwkProvider = new TestJwkProvider();
+    JWTProperties jwtProperties =
+        new JWTProperties(
+            Arrays.asList("admin"),
+            getRoleExpressionFunction("=if admin = true then [\"admin\"] else roles"),
+            Map.of("Authorization", "Bearer " + WRONG_JWT_TOKEN));
 
     // when
-    boolean verificationResult =
-        JWTChecker.verify(payload, webhookConnectorProperties, jwkProvider, objectMapper);
+    boolean verificationResult = JWTChecker.verify(jwtProperties, jwkProvider, objectMapper);
 
     // then
     assertFalse(verificationResult);
@@ -129,14 +137,15 @@ public class JWTCheckerTest {
   @Test
   public void jwtCheckTokenExpiredTest() throws Exception {
     // given
-    TestWebhookProcessingPayload payload = new TestWebhookProcessingPayload(EXPIRED_JWT_TOKEN);
-    WebhookConnectorProperties webhookConnectorProperties =
-        generateWebhookConnectorProperties("=if admin = true then [\"admin\"] else roles");
     JwkProvider jwkProvider = new TestJwkProvider();
+    JWTProperties jwtProperties =
+        new JWTProperties(
+            Arrays.asList("admin"),
+            getRoleExpressionFunction("=if admin = true then [\"admin\"] else roles"),
+            Map.of("Authorization", "Bearer " + EXPIRED_JWT_TOKEN));
 
     // when
-    boolean verificationResult =
-        JWTChecker.verify(payload, webhookConnectorProperties, jwkProvider, objectMapper);
+    boolean verificationResult = JWTChecker.verify(jwtProperties, jwkProvider, objectMapper);
 
     // then
     assertFalse(verificationResult);
@@ -145,35 +154,36 @@ public class JWTCheckerTest {
   @Test
   public void jwtCheckTokenNotEnoughPermissionTest() throws Exception {
     // given
-    TestWebhookProcessingPayload payload =
-        new TestWebhookProcessingPayload(NOT_ENOUGH_PERMISSION_JWT_TOKEN);
-    WebhookConnectorProperties webhookConnectorProperties =
-        generateWebhookConnectorProperties("=if admin = true then [\"admin\"] else roles");
     JwkProvider jwkProvider = new TestJwkProvider();
+    JWTProperties jwtProperties =
+        new JWTProperties(
+            Arrays.asList("admin"),
+            getRoleExpressionFunction("=if admin = true then [\"admin\"] else roles"),
+            Map.of("Authorization", "Bearer " + NOT_ENOUGH_PERMISSION_JWT_TOKEN));
 
     // when
-    boolean verificationResult =
-        JWTChecker.verify(payload, webhookConnectorProperties, jwkProvider, objectMapper);
+    boolean verificationResult = JWTChecker.verify(jwtProperties, jwkProvider, objectMapper);
 
     // then
     assertFalse(verificationResult);
   }
 
-  private WebhookConnectorProperties generateWebhookConnectorProperties(String jwtRolePath) {
-    ProcessCorrelationPoint correlationPoint =
-        new StartEventCorrelationPoint(1l, "bpmnProcessId", 1);
-    Map<String, String> properties = new HashMap<>();
-    properties.put("inbound.type", "webhook");
-    properties.put("inbound.context", "context");
-    properties.put("inbound.jwt.jwkUrl", "jwkUrl");
-    properties.put("inbound.jwt.jwtRoleExpression", jwtRolePath);
-    properties.put("inbound.jwt.requiredPermissions", "=[\"admin\"]");
-    InboundConnectorProperties inboundProperties =
-        new InboundConnectorProperties(
-            correlationPoint, properties, "bpmnProcessId", 1, 1l, "elementId");
-    WebhookConnectorProperties webhookConnectorProperties =
-        new WebhookConnectorProperties(inboundProperties);
-    return webhookConnectorProperties;
+  @Test
+  public void jwtCheckWrongRoleExpressionTest() throws Exception {
+    // given
+    JwkProvider jwkProvider = new TestJwkProvider();
+    JWTProperties jwtProperties =
+        new JWTProperties(
+            Arrays.asList("admin"),
+            getRoleExpressionFunction(
+                "=if admin = true then [\"wrongPermission\"] else wrongPermission"),
+            Map.of("Authorization", "Bearer " + JWT_TOKEN));
+
+    // when
+    boolean verificationResult = JWTChecker.verify(jwtProperties, jwkProvider, objectMapper);
+
+    // then
+    assertFalse(verificationResult);
   }
 
   class TestJwkProvider implements JwkProvider {
