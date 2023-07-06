@@ -16,33 +16,47 @@
  */
 package io.camunda.connector.test.inbound;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
+import io.camunda.connector.api.inbound.InboundConnectorDefinition;
 import io.camunda.connector.api.inbound.InboundConnectorResult;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.impl.context.AbstractConnectorContext;
-import io.camunda.connector.impl.inbound.InboundConnectorProperties;
-import io.camunda.connector.impl.inbound.correlation.MessageCorrelationPoint;
+import io.camunda.connector.impl.inbound.result.MessageCorrelationResult;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 
 /** Test helper class for creating an {@link InboundConnectorContext} with a fluent API. */
 public class InboundConnectorContextBuilder {
 
   protected final Map<String, String> secrets = new HashMap<>();
   protected SecretProvider secretProvider = secrets::get;
-  protected InboundConnectorProperties properties;
-  protected Object propertiesAsType;
-  protected InboundConnectorResult<?> result;
+  protected Map<String, Object> properties;
+  protected InboundConnectorDefinition definition;
+  protected InboundConnectorResult<?> result = new MessageCorrelationResult("mockMsg", 0);
   protected ValidationProvider validationProvider;
+
+  protected ObjectMapper objectMapper = new ObjectMapper();
 
   public static InboundConnectorContextBuilder create() {
     return new InboundConnectorContextBuilder();
+  }
+
+  /**
+   * Provides the connector definition.
+   *
+   * @param definition - the connector definition
+   * @return builder for fluent API
+   */
+  public InboundConnectorContextBuilder definition(InboundConnectorDefinition definition) {
+    this.definition = definition;
+    return this;
   }
 
   /**
@@ -77,9 +91,9 @@ public class InboundConnectorContextBuilder {
    */
   public InboundConnectorContextBuilder property(String key, String value) {
     if (properties == null) {
-      properties = getGenericProperties();
+      properties = new HashMap<>();
     }
-    properties.getProperties().put(key, value);
+    properties.put(key, value);
     return this;
   }
 
@@ -89,44 +103,41 @@ public class InboundConnectorContextBuilder {
    * @param properties - new properties
    * @return builder for fluent API
    */
-  public InboundConnectorContextBuilder properties(InboundConnectorProperties properties) {
-    assertNoProperties();
-    this.properties = properties;
+  @SuppressWarnings("unchecked")
+  public InboundConnectorContextBuilder properties(Map<String, ?> properties) {
+    if (this.properties != null && !this.properties.equals(properties)) {
+      throw new IllegalStateException("Properties already set");
+    }
+    this.properties = (Map<String, Object>) replaceImmutableMaps(properties);
     return this;
   }
 
+  // this allows to create nested maps in place, like Map.of("a", Map.of("b", "c"))
+  @SuppressWarnings("unchecked")
+  protected Map<String, ?> replaceImmutableMaps(Map<String, ?> properties) {
+    Map<String, Object> mutableProperties = new HashMap<>();
+    for (Map.Entry<String, ?> entry : properties.entrySet()) {
+      Object value = entry.getValue();
+      if (value instanceof Map) {
+        value = replaceImmutableMaps((Map<String, ?>) value);
+      }
+      mutableProperties.put(entry.getKey(), value);
+    }
+    return mutableProperties;
+  }
+
   /**
-   * Provides multiple properties using a {@link InboundConnectorPropertiesBuilder}
+   * Provides multiple properties as object. The properties will then be converted to an
+   * intermediate Map representation.
    *
    * @param properties - new properties
    * @return builder for fluent API
    */
-  public InboundConnectorContextBuilder properties(InboundConnectorPropertiesBuilder properties) {
-    assertNoProperties();
-    this.properties = properties.build();
-    return this;
-  }
-
-  /**
-   * Provides properties as object
-   *
-   * @param obj - properties as object
-   * @return builder for fluent API
-   */
-  public InboundConnectorContextBuilder properties(Object obj) {
-    assertNoProperties();
-    this.propertiesAsType = obj;
-    return this;
-  }
-
-  /**
-   * Provides propertiesAsType as object
-   *
-   * @param obj - propertiesAsType as object
-   * @return builder for fluent API
-   */
-  public InboundConnectorContextBuilder propertiesAsType(Object obj) {
-    this.propertiesAsType = obj;
+  public InboundConnectorContextBuilder properties(Object properties) {
+    if (this.properties != null && !this.properties.equals(properties)) {
+      throw new IllegalStateException("Properties already set");
+    }
+    this.properties = objectMapper.convertValue(properties, new TypeReference<>() {});
     return this;
   }
 
@@ -148,27 +159,23 @@ public class InboundConnectorContextBuilder {
   }
 
   /**
+   * Sets a custom {@link ObjectMapper} that is used to serialize and deserialize the properties. If
+   * not provided, default mapper will be used.
+   *
+   * @param objectMapper - custom object mapper
+   * @return builder for fluent API
+   */
+  public InboundConnectorContextBuilder objectMapper(ObjectMapper objectMapper) {
+    this.objectMapper = objectMapper;
+    return this;
+  }
+
+  /**
    * @return the {@link io.camunda.connector.api.inbound.InboundConnectorContext} including all
    *     previously defined properties
    */
   public TestInboundConnectorContext build() {
     return new TestInboundConnectorContext(secretProvider, validationProvider);
-  }
-
-  private void assertNoProperties() {
-    if (properties != null) {
-      throw new IllegalStateException("properties already set");
-    }
-  }
-
-  private InboundConnectorProperties getGenericProperties() {
-    return new InboundConnectorProperties(
-        new MessageCorrelationPoint("msgName"),
-        new HashMap<>(),
-        UUID.randomUUID().toString(),
-        0,
-        0,
-        "defaultElementId");
   }
 
   public class TestInboundConnectorContext extends AbstractConnectorContext
@@ -181,13 +188,12 @@ public class InboundConnectorContextBuilder {
     protected TestInboundConnectorContext(
         SecretProvider secretProvider, ValidationProvider validationProvider) {
       super(secretProvider, validationProvider);
+
+      replaceSecrets(properties);
     }
 
     @Override
     public InboundConnectorResult<?> correlate(Object variables) {
-      if (result == null) {
-        throw new IllegalStateException("Mock result not provided during test context creation");
-      }
       correlatedEvents.add(variables);
       return result;
     }
@@ -198,22 +204,22 @@ public class InboundConnectorContextBuilder {
     }
 
     @Override
-    public InboundConnectorProperties getProperties() {
+    public Map<String, Object> getProperties() {
       return properties;
     }
 
     @Override
-    public <T> T getPropertiesAsType(Class<T> cls) {
-      if (propertiesAsType == null) {
-        throw new IllegalStateException("propertiesAsType not provided");
+    public <T> T bindProperties(Class<T> cls) {
+      var mappedObject = objectMapper.convertValue(properties, cls);
+      if (validationProvider != null) {
+        getValidationProvider().validate(mappedObject);
       }
+      return mappedObject;
+    }
 
-      try {
-        return cls.cast(propertiesAsType);
-      } catch (ClassCastException ex) {
-        throw new IllegalStateException(
-            "no propertiesAsType of type " + cls.getName() + " provided", ex);
-      }
+    @Override
+    public InboundConnectorDefinition getDefinition() {
+      return definition;
     }
 
     @Override
@@ -221,13 +227,17 @@ public class InboundConnectorContextBuilder {
       return Optional.ofNullable(validationProvider).orElseGet(super::getValidationProvider);
     }
 
+    @Override
+    public void reportHealth(Health health) {
+      this.health = health;
+    }
+
     public List<Object> getCorrelations() {
       return correlatedEvents;
     }
 
-    @Override
-    public void reportHealth(Health health) {
-      this.health = health;
+    public Health getHealth() {
+      return health;
     }
   }
 }

@@ -18,8 +18,11 @@ package io.camunda.connector.test.outbound;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchException;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import io.camunda.connector.api.error.ConnectorSecretException;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 
 public class OutboundConnectorContextBuilderTest {
 
@@ -27,7 +30,7 @@ public class OutboundConnectorContextBuilderTest {
   public void shouldProvideVariablesAsString() {
     var json = "{ \"foo\" : \"FOO\" }";
     var context = OutboundConnectorContextBuilder.create().variables(json).build();
-    assertThat(context.getVariables()).isEqualTo(json);
+    assertThat(context.getVariables()).isEqualTo("{ \"foo\" : \"FOO\" }");
   }
 
   @Test
@@ -47,11 +50,12 @@ public class OutboundConnectorContextBuilderTest {
   }
 
   @Test
-  public void shouldNotReplaceSecret() {
+  public void shouldThrowOnMissingSecret() {
     var context =
         OutboundConnectorContextBuilder.create().variables("{}").secret("x", "FOO").build();
-    var replaced = context.getSecretHandler().replaceSecrets("secrets.foo");
-    assertThat(replaced).isEqualTo("secrets.foo");
+    Executable replacement = () -> context.getSecretHandler().replaceSecrets("secrets.foo");
+    assertThrows(
+        ConnectorSecretException.class, replacement, "Secret with name 'foo' is not available");
   }
 
   @Test

@@ -16,8 +16,6 @@
  */
 package io.camunda.connector.impl.inbound;
 
-import io.camunda.connector.impl.inbound.correlation.MessageCorrelationPoint;
-import io.camunda.connector.impl.inbound.correlation.StartEventCorrelationPoint;
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -29,11 +27,11 @@ public class ProcessCorrelationPointTest {
   @Test
   void shouldBeSortableByProcessVersion() {
     // given
-    ProcessCorrelationPoint p1 = new StartEventCorrelationPoint(0, "process1", 0);
-    ProcessCorrelationPoint p2 = new StartEventCorrelationPoint(2, "process1", 1);
-    ProcessCorrelationPoint p3 = new StartEventCorrelationPoint(1, "process2", 0);
-    ProcessCorrelationPoint p4 = new MessageCorrelationPoint("jobCompleted");
-    ProcessCorrelationPoint p5 = new MessageCorrelationPoint("jobCompleted1");
+    ProcessCorrelationPoint p1 = new StartEventCorrelationPoint("process1", 0, 0);
+    ProcessCorrelationPoint p2 = new StartEventCorrelationPoint("process1", 2, 1);
+    ProcessCorrelationPoint p3 = new StartEventCorrelationPoint("process2", 1, 0);
+    ProcessCorrelationPoint p4 = new MessageCorrelationPoint("jobCompleted", "=vars.jobId");
+    ProcessCorrelationPoint p5 = new MessageCorrelationPoint("jobCompleted1", "vars.jobId");
 
     // when
     List<ProcessCorrelationPoint> sortedPoints = List.of(p5, p1, p2, p3, p4);

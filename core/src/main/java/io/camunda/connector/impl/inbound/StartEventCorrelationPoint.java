@@ -14,43 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.impl.inbound.correlation;
+package io.camunda.connector.impl.inbound;
 
-import io.camunda.connector.impl.inbound.ProcessCorrelationPoint;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-/** Properties of a message published by an Inbound Connector */
-public class MessageCorrelationPoint extends ProcessCorrelationPoint {
-
-  private static final Logger LOG = LoggerFactory.getLogger(MessageCorrelationPoint.class);
-  private final String messageName;
-
-  public MessageCorrelationPoint(String messageName) {
-    this.messageName = messageName;
-    LOG.debug("Created inbound correlation point: " + this);
-  }
-
-  public String getMessageName() {
-    return messageName;
-  }
+/** Properties of a StartEvent triggered by an Inbound Connector */
+public record StartEventCorrelationPoint(
+    String bpmnProcessId, int version, long processDefinitionKey)
+    implements ProcessCorrelationPoint {
 
   @Override
   public String getId() {
-    return messageName;
-  }
-
-  @Override
-  public String toString() {
-    return "MessageCorrelationPoint{" + "messageName='" + messageName + '\'' + '}';
+    return bpmnProcessId + "-" + version + "-" + processDefinitionKey;
   }
 
   @Override
   public int compareTo(ProcessCorrelationPoint o) {
     if (!this.getClass().equals(o.getClass())) {
-      return 1;
+      return -1;
     }
-    MessageCorrelationPoint other = (MessageCorrelationPoint) o;
-    return messageName.compareTo(other.messageName);
+    StartEventCorrelationPoint other = (StartEventCorrelationPoint) o;
+    if (!bpmnProcessId.equals(other.bpmnProcessId)) {
+      return bpmnProcessId.compareTo(other.bpmnProcessId);
+    }
+    return Integer.compare(version, other.version);
   }
 }
