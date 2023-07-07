@@ -16,12 +16,13 @@
  */
 package io.camunda.connector.common.services;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.http.AbstractHttpContent;
 import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.HttpContent;
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
-import com.google.gson.Gson;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.common.constants.Constants;
 import io.camunda.connector.common.model.CommonRequest;
@@ -36,15 +37,17 @@ public final class HTTPProxyService {
 
   private static final Logger LOG = LoggerFactory.getLogger(HTTPProxyService.class);
 
+  private static final ObjectMapper objectMapper =
+      new ObjectMapper().configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false);
+
   public static HttpRequest toRequestViaProxy(
-      final Gson gson,
       final HttpRequestFactory requestFactory,
       final CommonRequest request,
       final String proxyFunctionUrl)
       throws IOException {
     // Using the JsonHttpContent cannot work with an element on the root content,
     // hence write it ourselves:
-    final String contentAsJson = gson.toJson(request);
+    final String contentAsJson = objectMapper.writeValueAsString(request);
     HttpContent content =
         new AbstractHttpContent(Constants.APPLICATION_JSON_CHARSET_UTF_8) {
           public void writeTo(OutputStream outputStream) throws IOException {

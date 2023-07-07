@@ -117,7 +117,7 @@ public class GraphQLFunction implements OutboundConnectorFunction {
     HTTPService httpService = new HTTPService(gson);
 
     HttpRequest httpRequest =
-        HTTPProxyService.toRequestViaProxy(gson, requestFactory, commonRequest, proxyFunctionUrl);
+        HTTPProxyService.toRequestViaProxy(requestFactory, commonRequest, proxyFunctionUrl);
 
     HttpResponse httpResponse = httpService.executeHttpRequest(httpRequest, true);
 
