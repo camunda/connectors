@@ -23,11 +23,9 @@ import com.github.tomakehurst.wiremock.common.ClasspathFileSource;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingResult;
 import io.camunda.connector.impl.inbound.result.MessageCorrelationResult;
 import io.camunda.connector.inbound.HttpWebhookExecutable;
-import io.camunda.connector.inbound.model.WebhookConnectorProperties;
 import io.camunda.connector.inbound.utils.ObjectMapperSupplier;
 import io.camunda.connector.inbound.utils.TestRSAKeyProvider;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
-import io.camunda.connector.test.inbound.InboundConnectorPropertiesBuilder;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Date;
@@ -235,17 +233,10 @@ public class JWTIntegrationTest {
   private HttpWebhookExecutable setUpWebhook(String propertiesJsonString) throws Exception {
     Map<String, String> propertiesMap =
         this.objectMapper.readValue(propertiesJsonString, Map.class);
-    InboundConnectorPropertiesBuilder inboundConnectorPropertiesBuilder =
-        InboundConnectorPropertiesBuilder.create()
-            .properties(propertiesMap)
-            .bpmnProcessId(processId);
-    WebhookConnectorProperties webhookConnectorProperties =
-        new WebhookConnectorProperties(inboundConnectorPropertiesBuilder.build());
     InboundConnectorContextBuilder.TestInboundConnectorContext context =
         InboundConnectorContextBuilder.create()
             .result(new MessageCorrelationResult("", 0))
-            .propertiesAsType(webhookConnectorProperties)
-            .properties(inboundConnectorPropertiesBuilder)
+            .properties(propertiesMap)
             .build();
     HttpWebhookExecutable httpWebhookExecutable = new HttpWebhookExecutable();
     httpWebhookExecutable.activate(context);

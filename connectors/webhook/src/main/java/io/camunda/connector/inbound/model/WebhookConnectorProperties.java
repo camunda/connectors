@@ -8,22 +8,16 @@ package io.camunda.connector.inbound.model;
 
 import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.disabled;
 
-import io.camunda.connector.api.annotation.Secret;
-import io.camunda.connector.impl.inbound.InboundConnectorProperties;
-import io.camunda.connector.impl.inbound.ProcessCorrelationPoint;
-import io.camunda.connector.runtime.core.feel.FeelEngineWrapper;
-import io.camunda.connector.runtime.core.feel.FeelParserWrapper;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.function.Function;
 import io.camunda.connector.inbound.utils.HttpMethods;
 import io.camunda.connector.inbound.utils.ObjectMapperSupplier;
+import io.camunda.connector.runtime.core.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.core.feel.FeelParserWrapper;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 
 public class WebhookConnectorProperties {
 
@@ -111,11 +105,14 @@ public class WebhookConnectorProperties {
 
   protected Object readParsedFeelObjectPropertyNullable(String propertyName) {
     return FeelParserWrapper.parseIfIsFeelExpressionOrGetOriginal(
-        genericProperties.getProperties().get(propertyName));
+        genericProperties.get(propertyName));
   }
 
   protected Function<Object, List<String>> readFeelFunctionPropertyNullable(String propertyName) {
-    String rawFeelExpression = genericProperties.getProperties().get(propertyName);
+    String rawFeelExpression = readPropertyNullable(propertyName);
+    if (rawFeelExpression == null) {
+      return null;
+    }
     if (!FeelParserWrapper.isFeelExpression(rawFeelExpression)) {
       throw new IllegalArgumentException(propertyName + " should be a FEEL expression!");
     }

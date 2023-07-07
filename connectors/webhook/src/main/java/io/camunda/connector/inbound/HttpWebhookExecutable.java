@@ -28,13 +28,10 @@ import io.camunda.connector.inbound.utils.HttpWebhookUtil;
 import io.camunda.connector.inbound.utils.ObjectMapperSupplier;
 import java.io.IOException;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Optional;
-import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -125,7 +122,6 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
       throw new Exception("Inbound connector context cannot be null");
     }
     props = new WebhookConnectorProperties(context.getProperties());
-    context.replaceSecrets(props);
 
     // jwk url must be specified in the element template for this to work
     if (WebhookConnectorProperties.AuthorizationType.JWT.equals(props.getAuthorizationType())) {

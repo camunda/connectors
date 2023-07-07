@@ -26,6 +26,11 @@ public class TestWebhookProcessingPayload implements WebhookProcessingPayload {
   }
 
   @Override
+  public String requestURL() {
+    return "testUrl";
+  }
+
+  @Override
   public String method() {
     // omitted intentionally
     return null;
