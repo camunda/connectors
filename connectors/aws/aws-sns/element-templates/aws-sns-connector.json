@@ -4,7 +4,7 @@
   "id": "io.camunda.connectors.AWSSNS.v1",
   "description": "Send message to topic",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-sns/",
-  "version": 2,
+  "version": 3,
   "appliesTo": [
     "bpmn:Task"
   ],
@@ -72,6 +72,15 @@
       }
     },
     {
+      "type": "Hidden",
+      "description": "This value forces to evaluate configuration first in order",
+      "value": "nonce",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "configuration.nonce"
+      }
+    },
+    {
       "label": "Topic ARN",
       "description": "Specify the topic you want to publish to",
       "group": "topicProperties",
@@ -97,6 +106,15 @@
         "notEmpty": true
       },
       "feel": "optional"
+    },
+    {
+      "description": "Backwards compatible region",
+      "type": "Hidden",
+      "value": "=configuration.region",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "topic.region"
+      }
     },
     {
       "label": "Subject",
