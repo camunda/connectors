@@ -34,13 +34,9 @@ import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-@Disabled // to be run manually
 public class JWTIntegrationTest {
-
-  private static final int PORT = 8089;
 
   private static WireMockServer wireMockServer;
 
@@ -54,7 +50,7 @@ public class JWTIntegrationTest {
 
   private static final String JWK_ENDPOINT_PATH = JWK_BASE_PATH + JWK_PATH_ENDING;
 
-  private final String JWK_FULL_URL = "http://localhost:" + PORT + JWK_BASE_PATH;
+  private static String JWK_FULL_URL;
 
   private final ObjectMapper objectMapper;
 
@@ -65,9 +61,13 @@ public class JWTIntegrationTest {
   @BeforeAll
   public static void before() {
     ClasspathFileSource fileSource = new ClasspathFileSource("src/test/resources/authorization");
-    wireMockServer = new WireMockServer(PORT, fileSource, true);
+    wireMockServer =
+        new WireMockServer(
+            0, fileSource, true); // 0 tells WireMock to select an available port automatically
     wireMockServer.start();
-    configureFor("localhost", PORT);
+    final int wiremockPort = wireMockServer.port();
+    configureFor("localhost", wiremockPort);
+    JWK_FULL_URL = "http://localhost:" + wiremockPort + JWK_BASE_PATH;
     // Mock the JWK endpoint
     stubFor(
         get(urlEqualTo(JWK_ENDPOINT_PATH))
@@ -88,18 +88,18 @@ public class JWTIntegrationTest {
     List<String> roles = Arrays.asList("admin", "superadmin");
     // webhook connector setup
     String propertiesJsonString =
-        "{\"inbound.shouldValidateHmac\":\"disabled\", "
-            + "\"inbound.authorizationType\":\"JWT\", "
-            + "\"inbound.jwt.requiredPermissions\":\"=[\\\"admin\\\"]\", "
-            + "\"inbound.type\":\"io.camunda:webhook:1\", "
-            + "\"inbound.subtype\":\"ConfigurableInboundWebhook\", "
-            + "\"inbound.jwt.jwkUrl\":\""
+        "{\"inbound\": { \"shouldValidateHmac\":\"disabled\", "
+            + "\"authorizationType\":\"JWT\", "
+            + "\"jwt.requiredPermissions\":\"=[\\\"admin\\\"]\", "
+            + "\"type\":\"io.camunda:webhook:1\", "
+            + "\"subtype\":\"ConfigurableInboundWebhook\", "
+            + "\"jwt.jwkUrl\":\""
             + JWK_FULL_URL
             + JWK_PATH_ENDING
             + "\", "
-            + "\"inbound.context\":\"test\", "
-            + "\"inbound.jwt.jwtRoleExpression\":\"=if admin = true then [\\\"admin\\\"] else roles\""
-            + "}";
+            + "\"context\":\"test\", "
+            + "\"jwt.jwtRoleExpression\":\"=if admin = true then [\\\"admin\\\"] else roles\""
+            + "}}";
     HttpWebhookExecutable httpWebhookExecutable = setUpWebhook(propertiesJsonString);
 
     // webhook connector trigger
@@ -117,18 +117,18 @@ public class JWTIntegrationTest {
     List<String> roles = Arrays.asList("user");
     // webhook connector setup
     String propertiesJsonString =
-        "{\"inbound.shouldValidateHmac\":\"disabled\", "
-            + "\"inbound.authorizationType\":\"JWT\", "
-            + "\"inbound.jwt.requiredPermissions\":\"=[\\\"admin\\\"]\", "
-            + "\"inbound.type\":\"io.camunda:webhook:1\", "
-            + "\"inbound.subtype\":\"ConfigurableInboundWebhook\", "
-            + "\"inbound.jwt.jwkUrl\":\""
+        "{\"inbound\": { \"shouldValidateHmac\":\"disabled\", "
+            + "\"authorizationType\":\"JWT\", "
+            + "\"jwt.requiredPermissions\":\"=[\\\"admin\\\"]\", "
+            + "\"type\":\"io.camunda:webhook:1\", "
+            + "\"subtype\":\"ConfigurableInboundWebhook\", "
+            + "\"jwt.jwkUrl\":\""
             + JWK_FULL_URL
             + JWK_PATH_ENDING
             + "\", "
-            + "\"inbound.context\":\"test\", "
-            + "\"inbound.jwt.jwtRoleExpression\":\"=if admin = true then [\\\"admin\\\"] else roles\""
-            + "}";
+            + "\"context\":\"test\", "
+            + "\"jwt.jwtRoleExpression\":\"=if admin = true then [\\\"admin\\\"] else roles\""
+            + "}}";
     HttpWebhookExecutable httpWebhookExecutable = setUpWebhook(propertiesJsonString);
 
     // webhook connector trigger
@@ -146,18 +146,18 @@ public class JWTIntegrationTest {
     List<String> roles = Arrays.asList("user");
     // webhook connector setup
     String propertiesJsonString =
-        "{\"inbound.shouldValidateHmac\":\"disabled\", "
-            + "\"inbound.authorizationType\":\"JWT\", "
-            + "\"inbound.jwt.requiredPermissions\":\"=[\\\"admin\\\"]\", "
-            + "\"inbound.type\":\"io.camunda:webhook:1\", "
-            + "\"inbound.subtype\":\"ConfigurableInboundWebhook\", "
-            + "\"inbound.jwt.jwkUrl\":\""
+        "{\"inbound\": {\"shouldValidateHmac\":\"disabled\", "
+            + "\"authorizationType\":\"JWT\", "
+            + "\"jwt.requiredPermissions\":\"=[\\\"admin\\\"]\", "
+            + "\"type\":\"io.camunda:webhook:1\", "
+            + "\"subtype\":\"ConfigurableInboundWebhook\", "
+            + "\"jwt.jwkUrl\":\""
             + JWK_FULL_URL
             + JWK_PATH_ENDING
             + "\", "
-            + "\"inbound.context\":\"test\", "
-            + "\"inbound.jwt.jwtRoleExpression\":\"=if admin = true then [\\\"admin\\\"] else roles\""
-            + "}";
+            + "\"context\":\"test\", "
+            + "\"jwt.jwtRoleExpression\":\"=if admin = true then [\\\"admin\\\"] else roles\""
+            + "}}";
     HttpWebhookExecutable httpWebhookExecutable = setUpWebhook(propertiesJsonString);
 
     // webhook connector trigger
@@ -177,18 +177,18 @@ public class JWTIntegrationTest {
     List<String> roles = Arrays.asList("user");
     // webhook connector setup
     String propertiesJsonString =
-        "{\"inbound.shouldValidateHmac\":\"disabled\", "
-            + "\"inbound.authorizationType\":\"JWT\", "
-            + "\"inbound.jwt.requiredPermissions\":\"=[\\\"admin\\\"]\", "
-            + "\"inbound.type\":\"io.camunda:webhook:1\", "
-            + "\"inbound.subtype\":\"ConfigurableInboundWebhook\", "
-            + "\"inbound.jwt.jwkUrl\":\""
+        "{\"inbound\": {\"shouldValidateHmac\":\"disabled\", "
+            + "\"authorizationType\":\"JWT\", "
+            + "\"jwt.requiredPermissions\":\"=[\\\"admin\\\"]\", "
+            + "\"type\":\"io.camunda:webhook:1\", "
+            + "\"subtype\":\"ConfigurableInboundWebhook\", "
+            + "\"jwt.jwkUrl\":\""
             + JWK_FULL_URL
             + JWK_PATH_ENDING
             + "\", "
-            + "\"inbound.context\":\"test\", "
-            + "\"inbound.jwt.jwtRoleExpression\":\"=if admin = true then [\\\"admin\\\"] else roles\""
-            + "}";
+            + "\"context\":\"test\", "
+            + "\"jwt.jwtRoleExpression\":\"=if admin = true then [\\\"admin\\\"] else roles\""
+            + "}}";
     HttpWebhookExecutable httpWebhookExecutable = setUpWebhook(propertiesJsonString);
 
     // webhook connector trigger
@@ -208,15 +208,15 @@ public class JWTIntegrationTest {
     List<String> roles = Arrays.asList("admin", "superadmin");
     // webhook connector setup
     String propertiesJsonString =
-        "{\"inbound.shouldValidateHmac\":\"disabled\", "
-            + "\"inbound.authorizationType\":\"JWT\", "
-            + "\"inbound.jwt.requiredPermissions\":\"=[\\\"admin\\\"]\", "
-            + "\"inbound.type\":\"io.camunda:webhook:1\", "
-            + "\"inbound.subtype\":\"ConfigurableInboundWebhook\", "
-            + "\"inbound.jwt.jwkUrl\":\"https://google.com\", "
-            + "\"inbound.context\":\"test\", "
-            + "\"inbound.jwt.jwtRoleExpression\":\"=if admin = true then [\\\"admin\\\"] else roles\""
-            + "}";
+        "{\"inbound\": {\"shouldValidateHmac\":\"disabled\", "
+            + "\"authorizationType\":\"JWT\", "
+            + "\"jwt.requiredPermissions\":\"=[\\\"admin\\\"]\", "
+            + "\"type\":\"io.camunda:webhook:1\", "
+            + "\"subtype\":\"ConfigurableInboundWebhook\", "
+            + "\"jwt.jwkUrl\":\"https://google.com\", "
+            + "\"context\":\"test\", "
+            + "\"jwt.jwtRoleExpression\":\"=if admin = true then [\\\"admin\\\"] else roles\""
+            + "}}";
     HttpWebhookExecutable httpWebhookExecutable = setUpWebhook(propertiesJsonString);
 
     // webhook connector trigger

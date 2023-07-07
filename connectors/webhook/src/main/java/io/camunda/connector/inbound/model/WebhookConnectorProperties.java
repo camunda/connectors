@@ -72,12 +72,12 @@ public class WebhookConnectorProperties {
 
     this.authorizationType =
         AuthorizationType.valueOf(
-            Optional.ofNullable(readPropertyNullable("inbound.authorizationType"))
+            Optional.ofNullable(readPropertyNullable("authorizationType"))
                 .orElse(AuthorizationType.NONE.toString()));
-    this.jwkUrl = readPropertyNullable("inbound.jwt.jwkUrl");
-    this.jwtRoleExpression = readFeelFunctionPropertyNullable("inbound.jwt.jwtRoleExpression");
+    this.jwkUrl = readPropertyNullable("jwt.jwkUrl");
+    this.jwtRoleExpression = readFeelFunctionPropertyNullable("jwt.jwtRoleExpression");
     this.requiredPermissions =
-        (List<String>) readParsedFeelObjectPropertyNullable("inbound.jwt.requiredPermissions");
+        (List<String>) readParsedFeelObjectPropertyNullable("jwt.requiredPermissions");
   }
 
   protected <T> T readPropertyAsTypeWithDefault(
