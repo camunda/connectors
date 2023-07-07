@@ -126,6 +126,7 @@
       "group": "endpoint",
       "type": "Text",
       "feel": "required",
+      "optional": true,
       "binding": {
         "type": "zeebe:input",
         "name": "graphql.headers"
