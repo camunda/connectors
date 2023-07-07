@@ -97,7 +97,7 @@ public class HttpService {
 
   private HttpJsonResult executeRequestViaProxy(HttpJsonRequest request) throws IOException {
     HttpRequest httpRequest =
-        HTTPProxyService.toRequestViaProxy(gson, requestFactory, request, proxyFunctionUrl);
+        HTTPProxyService.toRequestViaProxy(requestFactory, request, proxyFunctionUrl);
 
     HTTPService httpService = new HTTPService(gson);
 
