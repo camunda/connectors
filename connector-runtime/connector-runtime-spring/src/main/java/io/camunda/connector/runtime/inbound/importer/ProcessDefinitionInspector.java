@@ -114,6 +114,10 @@ public class ProcessDefinitionInspector {
       ProcessCorrelationPoint target = maybeTarget.get();
 
       var rawProperties = getRawProperties(element);
+      if (rawProperties == null || !rawProperties.containsKey(Keywords.INBOUND_TYPE_KEYWORD)) {
+        LOG.debug("Not a connector: " + element.getId());
+        continue;
+      }
 
       InboundConnectorDefinitionImpl def =
           new InboundConnectorDefinitionImpl(
@@ -183,7 +187,6 @@ public class ProcessDefinitionInspector {
   private Map<String, String> getRawProperties(BaseElement element) {
     ZeebeProperties zeebeProperties = element.getSingleExtensionElement(ZeebeProperties.class);
     if (zeebeProperties == null) {
-      LOG.warn("Missing `zeebe:property` mappings on element " + element);
       return null;
     }
     return zeebeProperties.getProperties().stream()
@@ -194,8 +197,7 @@ public class ProcessDefinitionInspector {
   private String extractRequiredProperty(BaseElement element, String name) {
     ZeebeProperties zeebeProperties = element.getSingleExtensionElement(ZeebeProperties.class);
     if (zeebeProperties == null) {
-      LOG.warn("Missing `zeebe:property` mappings on element " + element);
-      return null;
+      throw new IllegalStateException("Missing required property " + name);
     }
     return zeebeProperties.getProperties().stream()
         .filter(property -> property.getName().equals(name))
