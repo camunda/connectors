@@ -75,7 +75,6 @@ limitations under the License.</license.inlineheader>
     <!-- Third party dependencies -->
     <version.slf4j>1.7.36</version.slf4j>
     <version.jakarta-validation>2.0.2</version.jakarta-validation>
-    <version.gson>2.10.1</version.gson>
     <version.mockito>5.4.0</version.mockito>
     <version.junit-jupiter>5.9.3</version.junit-jupiter>
     <version.assertj>3.24.2</version.assertj>
@@ -84,7 +83,6 @@ limitations under the License.</license.inlineheader>
     <version.hibernate-validator>6.2.5.Final</version.hibernate-validator>
 
     <!-- maven plugins (not managed by parent) -->
-    <plugin.version.function-maven-plugin>0.10.1</plugin.version.function-maven-plugin>
     <plugin.version.maven-enforcer-plugin>3.1.0</plugin.version.maven-enforcer-plugin>
     <plugin.version.maven-exec-plugin>3.1.0</plugin.version.maven-exec-plugin>
     <plugin.version.maven-install-plugin>3.1.1</plugin.version.maven-install-plugin>
@@ -172,12 +170,6 @@ limitations under the License.</license.inlineheader>
         <groupId>jakarta.validation</groupId>
         <artifactId>jakarta.validation-api</artifactId>
         <version>${version.jakarta-validation}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>com.google.code.gson</groupId>
-        <artifactId>gson</artifactId>
-        <version>${version.gson}</version>
       </dependency>
 
       <dependency>
@@ -388,16 +380,20 @@ limitations under the License.</license.inlineheader>
           </configuration>
         </plugin>
         <plugin>
-          <groupId>com.google.cloud.functions</groupId>
-          <artifactId>function-maven-plugin</artifactId>
-          <version>${plugin.version.function-maven-plugin}</version>
+          <artifactId>maven-dependency-plugin</artifactId>
+          <version>3.6.0</version>
         </plugin>
       </plugins>
     </pluginManagement>
+
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-enforcer-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
       </plugin>
     </plugins>
   </build>
