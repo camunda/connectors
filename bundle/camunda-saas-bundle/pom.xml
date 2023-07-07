@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.camunda.connector</groupId>
     <artifactId>connector-runtime-bundle-parent</artifactId>
-    <version>0.21.0-rc3</version>
+    <version>0.21.0-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
   <artifactId>connector-runtime-bundle-saas</artifactId>
