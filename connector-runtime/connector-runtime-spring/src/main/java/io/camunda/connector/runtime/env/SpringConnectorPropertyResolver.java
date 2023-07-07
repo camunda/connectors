@@ -31,11 +31,7 @@ public class SpringConnectorPropertyResolver implements ConnectorPropertyResolve
   public boolean containsProperty(String key) {
     if (environment.containsProperty(key)) {
       return true;
-    } else if (environment.containsProperty(createSpringFormattedKey(key))) {
-      return true;
-    } else {
-      return false;
-    }
+    } else return environment.containsProperty(createSpringFormattedKey(key));
   }
 
   @Override

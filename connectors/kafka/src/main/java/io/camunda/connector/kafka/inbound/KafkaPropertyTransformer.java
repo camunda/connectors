@@ -6,11 +6,11 @@
  */
 package io.camunda.connector.kafka.inbound;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonSyntaxException;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorRequest;
-import io.camunda.connector.kafka.supplier.GsonSupplier;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -28,6 +28,11 @@ import org.slf4j.LoggerFactory;
 public class KafkaPropertyTransformer {
 
   private static final Logger LOG = LoggerFactory.getLogger(KafkaPropertyTransformer.class);
+
+  private static ObjectMapper objectMapper =
+      new ObjectMapper()
+          .configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false)
+          .configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
 
   static final String DEFAULT_GROUP_ID_PREFIX = "kafka-inbound-connector";
 
@@ -75,8 +80,8 @@ public class KafkaPropertyTransformer {
           DEFAULT_GROUP_ID_PREFIX
               + "-"
               + context
-                  .getProperties()
-                  .getBpmnProcessId()); // GROUP_ID_CONFIG is mandatory. It will be used to assign a
+                  .getDefinition()
+                  .bpmnProcessId()); // GROUP_ID_CONFIG is mandatory. It will be used to assign a
       // clint id
     }
     kafkaProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, props.getAutoOffsetReset().toString());
@@ -93,11 +98,11 @@ public class KafkaPropertyTransformer {
     kafkaInboundMessage.setKey(consumerRecord.key());
     kafkaInboundMessage.setRawValue(consumerRecord.value());
     try {
-      JsonElement bodyAsJsonElement =
-          GsonSupplier.gson()
-              .fromJson(StringEscapeUtils.unescapeJson(consumerRecord.value()), JsonElement.class);
-      kafkaInboundMessage.setValue(GsonSupplier.gson().fromJson(bodyAsJsonElement, Object.class));
-    } catch (JsonSyntaxException e) {
+      var json = StringEscapeUtils.unescapeJson(consumerRecord.value());
+      var jsonNode = objectMapper.readTree(json);
+      var value = objectMapper.convertValue(jsonNode, Object.class);
+      kafkaInboundMessage.setValue(value);
+    } catch (Exception e) {
       LOG.debug("Cannot parse value to json object -> use the raw value");
       kafkaInboundMessage.setValue(kafkaInboundMessage.getRawValue());
     }

@@ -22,10 +22,11 @@ public class SendGridErrors {
 
   @Override
   public String toString() {
-    return "SendGrid returned the following errors: " + String.join("; ", errors);
+    return "SendGrid returned the following errors: "
+        + String.join("; ", errors.stream().map(SendGridError::getMessage).toList());
   }
 
-  static class SendGridError implements CharSequence {
+  static class SendGridError {
     String message;
 
     public String getMessage() {
@@ -34,21 +35,6 @@ public class SendGridErrors {
 
     public void setMessage(final String message) {
       this.message = message;
-    }
-
-    @Override
-    public int length() {
-      return message.length();
-    }
-
-    @Override
-    public char charAt(final int index) {
-      return message.charAt(index);
-    }
-
-    @Override
-    public CharSequence subSequence(final int start, final int end) {
-      return message.subSequence(start, end);
     }
 
     @Override

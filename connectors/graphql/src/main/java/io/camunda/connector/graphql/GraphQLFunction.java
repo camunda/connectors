@@ -31,6 +31,7 @@ import io.camunda.connector.common.services.HTTPService;
 import io.camunda.connector.graphql.components.GsonComponentSupplier;
 import io.camunda.connector.graphql.components.HttpTransportComponentSupplier;
 import io.camunda.connector.graphql.model.GraphQLRequest;
+import io.camunda.connector.graphql.model.GraphQLRequestWrapper;
 import io.camunda.connector.graphql.model.GraphQLResult;
 import io.camunda.connector.graphql.utils.GraphQLRequestMapper;
 import io.camunda.connector.graphql.utils.JsonSerializeHelper;
@@ -84,14 +85,12 @@ public class GraphQLFunction implements OutboundConnectorFunction {
   @Override
   public Object execute(OutboundConnectorContext context)
       throws IOException, InstantiationException, IllegalAccessException {
-    final var json = context.getVariables();
-    var connectorRequest = JsonSerializeHelper.serializeRequest(gson, json);
-    context.validate(connectorRequest);
-    context.replaceSecrets(connectorRequest);
-
+    var connectorRequest = context.bindVariables(GraphQLRequestWrapper.class);
+    GraphQLRequest graphQLRequest = connectorRequest.getGraphql();
+    graphQLRequest.setAuthentication(connectorRequest.getAuthentication());
     return StringUtils.isBlank(proxyFunctionUrl)
-        ? executeGraphQLConnector(connectorRequest)
-        : executeGraphQLConnectorViaProxy(connectorRequest);
+        ? executeGraphQLConnector(graphQLRequest)
+        : executeGraphQLConnectorViaProxy(graphQLRequest);
   }
 
   private GraphQLResult executeGraphQLConnector(final GraphQLRequest connectorRequest)

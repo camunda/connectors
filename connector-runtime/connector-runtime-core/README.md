@@ -21,7 +21,7 @@ Include the job worker runtime utilities as maven dependency:
 You can create a job worker by wrapping a Connector function like this:
 
 ```java
-import io.camunda.connector.slack.SlackFunction;
+import io.camunda.connector.slack.outbound.SlackFunction;
 import io.camunda.connector.runtime.jobworker.api.outbound.ConnectorJobHandler;
 import io.camunda.zeebe.client.ZeebeClient;
 

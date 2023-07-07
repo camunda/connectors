@@ -1,1 +1,1 @@
-io.camunda.connector.slack.SlackFunction
+io.camunda.connector.slack.outbound.SlackFunction

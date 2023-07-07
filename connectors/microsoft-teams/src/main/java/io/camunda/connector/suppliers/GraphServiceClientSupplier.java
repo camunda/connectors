@@ -57,7 +57,7 @@ public class GraphServiceClientSupplier {
 
     TokenCredentialAuthProvider tokenCredentialAuthProvider =
         new TokenCredentialAuthProvider(build);
-    return GraphServiceClient.<Request>builder()
+    return GraphServiceClient.builder()
         .authenticationProvider(tokenCredentialAuthProvider)
         .buildClient();
   }

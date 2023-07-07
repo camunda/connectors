@@ -6,9 +6,7 @@
  */
 package io.camunda.connector.gdrive.model.request;
 
-import com.google.api.client.util.Key;
-import com.google.api.services.drive.model.File;
-import io.camunda.connector.api.annotation.Secret;
+import com.fasterxml.jackson.databind.JsonNode;
 import java.util.Objects;
 import javax.validation.Valid;
 import javax.validation.constraints.NotEmpty;
@@ -16,11 +14,11 @@ import javax.validation.constraints.NotNull;
 
 public class Resource {
 
-  @Key @NotNull private Type type;
-  @Key @NotEmpty @Secret private String name;
-  @Key @Secret private String parent;
-  @Key private File additionalGoogleDriveProperties;
-  @Key @Valid @Secret private Template template;
+  @NotNull private Type type;
+  @NotEmpty private String name;
+  private String parent;
+  private JsonNode additionalGoogleDriveProperties;
+  @Valid private Template template;
 
   public Type getType() {
     return type;
@@ -46,11 +44,11 @@ public class Resource {
     this.parent = parent;
   }
 
-  public File getAdditionalGoogleDriveProperties() {
+  public JsonNode getAdditionalGoogleDriveProperties() {
     return additionalGoogleDriveProperties;
   }
 
-  public void setAdditionalGoogleDriveProperties(final File additionalGoogleDriveProperties) {
+  public void setAdditionalGoogleDriveProperties(JsonNode additionalGoogleDriveProperties) {
     this.additionalGoogleDriveProperties = additionalGoogleDriveProperties;
   }
 

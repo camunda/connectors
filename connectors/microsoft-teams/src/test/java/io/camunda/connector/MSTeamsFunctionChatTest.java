@@ -66,7 +66,7 @@ class MSTeamsFunctionChatTest extends BaseTest {
 
   @BeforeEach
   public void init() {
-    function = new MSTeamsFunction(graphServiceClientSupplier, objectMapper);
+    function = new MSTeamsFunction(graphServiceClientSupplier);
 
     when(graphServiceClientSupplier.buildAndGetGraphServiceClient(
             any(ClientSecretAuthentication.class)))

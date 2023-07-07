@@ -26,11 +26,16 @@ import org.springframework.context.annotation.Configuration;
 public class ProcessDefinitionImportConfiguration {
 
   @Bean
+  public ProcessDefinitionSearch processDefinitionSearch(CamundaOperateClient client) {
+    return new ProcessDefinitionSearch(client);
+  }
+
+  @Bean
   public ProcessDefinitionImporter processDefinitionImporter(
-      CamundaOperateClient client,
       InboundConnectorManager manager,
+      ProcessDefinitionSearch search,
       MetricsRecorder metricsRecorder) {
-    return new ProcessDefinitionImporter(client, manager, metricsRecorder);
+    return new ProcessDefinitionImporter(manager, search, metricsRecorder);
   }
 
   @Bean

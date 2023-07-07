@@ -18,8 +18,11 @@
 
   <modules>
     <module>aws-base</module>
-    <module>aws-lambda</module>
     <module>aws-dynamodb</module>
+    <module>aws-eventbridge</module>
+    <module>aws-lambda</module>
+    <module>aws-sns</module>
+    <module>aws-sqs</module>
   </modules>
 
   <properties>

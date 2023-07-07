@@ -44,15 +44,18 @@ public class RabbitMqConsumer extends DefaultConsumer {
 
     LOGGER.debug("Received AMQP message with delivery tag {}", envelope.getDeliveryTag());
     try {
-      RabbitMqInboundResult variables = prepareVariables(consumerTag, envelope, properties, body);
+      RabbitMqInboundResult variables = prepareVariables(consumerTag, properties, body);
       InboundConnectorResult<?> result = context.correlate(variables);
 
       if (result != null && result.isActivated()) {
         LOGGER.debug("ACK - inbound event correlated successfully: {}", result.getResponseData());
         getChannel().basicAck(envelope.getDeliveryTag(), false);
-      } else {
+      } else if (result != null) {
         LOGGER.debug("NACK (no requeue) - inbound event not correlated: {}", result.getErrorData());
         getChannel().basicReject(envelope.getDeliveryTag(), false);
+      } else {
+        LOGGER.error("NACK (requeue) - no response from correlation");
+        getChannel().basicReject(envelope.getDeliveryTag(), true);
       }
 
     } catch (ConnectorInputException e) {
@@ -86,7 +89,7 @@ public class RabbitMqConsumer extends DefaultConsumer {
   }
 
   private RabbitMqInboundResult prepareVariables(
-      String consumerTag, Envelope envelope, BasicProperties properties, byte[] body) {
+      String consumerTag, BasicProperties rawProperties, byte[] body) {
 
     try {
       String bodyAsString = new String(body, StandardCharsets.UTF_8);
@@ -95,8 +98,7 @@ public class RabbitMqConsumer extends DefaultConsumer {
               .fromJson(StringEscapeUtils.unescapeJson(bodyAsString), JsonElement.class);
 
       Object bodyAsObject;
-      if (bodyAsJsonElement instanceof JsonPrimitive) {
-        JsonPrimitive bodyAsPrimitive = (JsonPrimitive) bodyAsJsonElement;
+      if (bodyAsJsonElement instanceof JsonPrimitive bodyAsPrimitive) {
         if (bodyAsPrimitive.isBoolean()) {
           bodyAsObject = bodyAsPrimitive.getAsBoolean();
         } else if (bodyAsPrimitive.isNumber()) {
@@ -108,7 +110,8 @@ public class RabbitMqConsumer extends DefaultConsumer {
         bodyAsObject = GsonSupplier.gson().fromJson(bodyAsJsonElement, Object.class);
       }
       RabbitMqInboundMessage message =
-          new RabbitMqInboundMessage(consumerTag, bodyAsObject, properties);
+          new RabbitMqInboundMessage(
+              consumerTag, bodyAsObject, AMQPPropertyUtil.toProperties(rawProperties));
       return new RabbitMqInboundResult(message);
 
     } catch (Exception e) {

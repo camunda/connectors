@@ -13,7 +13,9 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
 
-import com.google.gson.Gson;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.impl.inbound.result.MessageCorrelationResult;
@@ -27,7 +29,7 @@ import io.camunda.connector.kafka.outbound.model.KafkaConnectorResponse;
 import io.camunda.connector.kafka.outbound.model.KafkaMessage;
 import io.camunda.connector.kafka.outbound.model.KafkaTopic;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
-import io.camunda.connector.test.inbound.InboundConnectorPropertiesBuilder;
+import io.camunda.connector.test.inbound.InboundConnectorDefinitionBuilder;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import java.time.Duration;
 import java.util.Arrays;
@@ -55,6 +57,11 @@ public class KafkaIntegrationTest {
   private static String BOOTSTRAP_SERVERS;
 
   private final String processId = "Process_id";
+
+  private final ObjectMapper objectMapper =
+      new ObjectMapper()
+          .configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false)
+          .configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
 
   @ClassRule
   private static final KafkaContainer kafkaContainer =
@@ -101,8 +108,10 @@ public class KafkaIntegrationTest {
     request.setTopic(kafkaTopic);
     request.setAuthentication(kafkaAuthentication);
 
+    var json = objectMapper.writeValueAsString(request);
+
     OutboundConnectorContext context =
-        OutboundConnectorContextBuilder.create().variables(request).build();
+        OutboundConnectorContextBuilder.create().variables(json).build();
 
     // When
     var result = function.execute(context);
@@ -125,26 +134,12 @@ public class KafkaIntegrationTest {
     kafkaConnectorProperties.setAuthenticationType("custom");
     kafkaConnectorProperties.setOffsets("9999,8888");
     kafkaConnectorProperties.setTopic(kafkaTopic);
-    String jsonString =
-        "{'authenticationType':'custom', "
-            + "'topic.topicName':'"
-            + TOPIC
-            + "',"
-            + "'topic.bootstrapServers':'"
-            + BOOTSTRAP_SERVERS
-            + "',"
-            + "'autoOffsetReset':'none',"
-            + "'offsets':'9999,8888'}";
-    Gson gson = new Gson();
-    Map<String, String> propertiesMap = gson.fromJson(jsonString, Map.class);
+
     InboundConnectorContextBuilder.TestInboundConnectorContext context =
         InboundConnectorContextBuilder.create()
             .result(new MessageCorrelationResult("", 0))
-            .propertiesAsType(kafkaConnectorProperties)
-            .properties(
-                InboundConnectorPropertiesBuilder.create()
-                    .properties(propertiesMap)
-                    .bpmnProcessId(processId))
+            .properties(kafkaConnectorProperties)
+            .definition(InboundConnectorDefinitionBuilder.create().bpmnProcessId(processId).build())
             .build();
     KafkaExecutable executable = new KafkaExecutable();
 
@@ -179,25 +174,12 @@ public class KafkaIntegrationTest {
     kafkaConnectorProperties.setAutoOffsetReset(KafkaConnectorProperties.AutoOffsetReset.EARLIEST);
     kafkaConnectorProperties.setAuthenticationType("custom");
     kafkaConnectorProperties.setTopic(kafkaTopic);
-    String jsonString =
-        "{'authenticationType':'custom', "
-            + "'topic.topicName':'"
-            + TOPIC
-            + "',"
-            + "'topic.bootstrapServers':'"
-            + BOOTSTRAP_SERVERS
-            + "',"
-            + "'autoOffsetReset':'earliest'}";
-    Gson gson = new Gson();
-    Map<String, String> propertiesMap = gson.fromJson(jsonString, Map.class);
+
     InboundConnectorContextBuilder.TestInboundConnectorContext context =
         InboundConnectorContextBuilder.create()
             .result(new MessageCorrelationResult("", 0))
-            .propertiesAsType(kafkaConnectorProperties)
-            .properties(
-                InboundConnectorPropertiesBuilder.create()
-                    .properties(propertiesMap)
-                    .bpmnProcessId(processId))
+            .properties(kafkaConnectorProperties)
+            .definition(InboundConnectorDefinitionBuilder.create().bpmnProcessId(processId).build())
             .build();
     KafkaExecutable executable = new KafkaExecutable();
 
@@ -230,26 +212,12 @@ public class KafkaIntegrationTest {
     kafkaConnectorProperties.setAuthenticationType("custom");
     kafkaConnectorProperties.setOffsets("0,0");
     kafkaConnectorProperties.setTopic(kafkaTopic);
-    String jsonString =
-        "{'authenticationType':'custom', "
-            + "'topic.topicName':'"
-            + TOPIC
-            + "',"
-            + "'topic.bootstrapServers':'"
-            + BOOTSTRAP_SERVERS
-            + "',"
-            + "'autoOffsetReset':'earliest',"
-            + "'offsets':'0,0'}";
-    Gson gson = new Gson();
-    Map<String, String> propertiesMap = gson.fromJson(jsonString, Map.class);
+
     InboundConnectorContextBuilder.TestInboundConnectorContext context =
         InboundConnectorContextBuilder.create()
             .result(new MessageCorrelationResult("", 0))
-            .propertiesAsType(kafkaConnectorProperties)
-            .properties(
-                InboundConnectorPropertiesBuilder.create()
-                    .properties(propertiesMap)
-                    .bpmnProcessId(processId))
+            .properties(kafkaConnectorProperties)
+            .definition(InboundConnectorDefinitionBuilder.create().bpmnProcessId(processId).build())
             .build();
     KafkaExecutable executable = new KafkaExecutable();
 

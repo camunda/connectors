@@ -6,15 +6,14 @@
  */
 package io.camunda.connector.graphql.model;
 
-import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.common.model.CommonRequest;
 import java.util.Objects;
 import javax.validation.constraints.NotBlank;
 
 public class GraphQLRequest extends CommonRequest {
 
-  @NotBlank @Secret private String query;
-  @Secret private Object variables;
+  @NotBlank private String query;
+  private Object variables;
 
   public boolean hasQuery() {
     return query != null;

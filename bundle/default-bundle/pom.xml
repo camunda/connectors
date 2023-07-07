@@ -13,20 +13,20 @@
   <dependencies>
     <dependency>
       <groupId>io.camunda.connector</groupId>
-      <artifactId>spring-boot-starter-camunda-connectors</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.micrometer</groupId>
-      <artifactId>micrometer-registry-prometheus</artifactId>
+      <artifactId>connector-runtime-application</artifactId>
     </dependency>
 
     <dependency>
       <groupId>io.camunda.connector</groupId>
-      <artifactId>connector-sqs</artifactId>
+      <artifactId>connector-aws-sqs</artifactId>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-aws-dynamodb</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-aws-eventbridge</artifactId>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
@@ -46,7 +46,7 @@
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
-      <artifactId>connector-sns</artifactId>
+      <artifactId>connector-aws-sns</artifactId>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
@@ -84,7 +84,7 @@
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
         <configuration>
-          <mainClass>io.camunda.connector.bundle.ConnectorRuntimeApplication</mainClass>
+          <mainClass>io.camunda.connector.runtime.app.ConnectorRuntimeApplication</mainClass>
         </configuration>
       </plugin>
        <plugin>
@@ -139,7 +139,7 @@
                   <resource>META-INF/io.netty.versions.properties</resource>
               </transformer>
               <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                <mainClass>io.camunda.connector.bundle.ConnectorRuntimeApplication</mainClass>
+                <mainClass>io.camunda.connector.runtime.app.ConnectorRuntimeApplication</mainClass>
               </transformer>
             </transformers>
           </configuration>

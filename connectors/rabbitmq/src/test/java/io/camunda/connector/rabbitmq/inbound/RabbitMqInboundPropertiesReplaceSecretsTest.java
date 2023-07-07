@@ -28,12 +28,13 @@ public class RabbitMqInboundPropertiesReplaceSecretsTest extends InboundBaseTest
     context = getContextBuilderWithSecrets().properties(properties).build();
 
     // When
-    context.replaceSecrets(properties);
+    var boundProperties = context.bindProperties(RabbitMqInboundProperties.class);
 
     // Then should replace secrets
-    assertThat(properties.getConsumerTag()).isEqualTo(ActualValue.CONSUMER_TAG);
-    assertThat(properties.getQueueName()).isEqualTo(ActualValue.QUEUE_NAME);
-    assertThat(properties.getArguments().get("x-queue-type")).isEqualTo(ActualValue.QUEUE_TYPE);
+    assertThat(boundProperties.getConsumerTag()).isEqualTo(ActualValue.CONSUMER_TAG);
+    assertThat(boundProperties.getQueueName()).isEqualTo(ActualValue.QUEUE_NAME);
+    assertThat(boundProperties.getArguments().get("x-queue-type"))
+        .isEqualTo(ActualValue.QUEUE_TYPE);
   }
 
   @Test
@@ -44,14 +45,16 @@ public class RabbitMqInboundPropertiesReplaceSecretsTest extends InboundBaseTest
     authentication.setAuthType(RabbitMqAuthenticationType.uri);
     RabbitMqInboundProperties properties = new RabbitMqInboundProperties();
     properties.setAuthentication(authentication);
+    properties.setQueueName(ActualValue.QUEUE_NAME);
 
     context = getContextBuilderWithSecrets().properties(properties).build();
 
     // When
-    context.replaceSecrets(properties);
+    var boundProperties = context.bindProperties(RabbitMqInboundProperties.class);
 
     // Then should replace secrets
-    assertThat(properties.getAuthentication().getUri()).isEqualTo(ActualValue.Authentication.URI);
+    assertThat(boundProperties.getAuthentication().getUri())
+        .isEqualTo(ActualValue.Authentication.URI);
   }
 
   @Test
@@ -62,17 +65,18 @@ public class RabbitMqInboundPropertiesReplaceSecretsTest extends InboundBaseTest
     authentication.setUserName(SecretsConstant.SECRETS + SecretsConstant.Authentication.USERNAME);
     authentication.setPassword(SecretsConstant.SECRETS + SecretsConstant.Authentication.PASSWORD);
     RabbitMqInboundProperties properties = new RabbitMqInboundProperties();
+    properties.setQueueName(ActualValue.QUEUE_NAME);
     properties.setAuthentication(authentication);
 
     context = getContextBuilderWithSecrets().properties(properties).build();
 
     // When
-    context.replaceSecrets(properties);
+    var boundProperties = context.bindProperties(RabbitMqInboundProperties.class);
 
     // Then should replace secrets
-    assertThat(properties.getAuthentication().getUserName())
+    assertThat(boundProperties.getAuthentication().getUserName())
         .isEqualTo(ActualValue.Authentication.USERNAME);
-    assertThat(properties.getAuthentication().getPassword())
+    assertThat(boundProperties.getAuthentication().getPassword())
         .isEqualTo(ActualValue.Authentication.PASSWORD);
   }
 }

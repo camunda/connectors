@@ -9,19 +9,16 @@ package io.camunda.connector.awslambda;
 import com.amazonaws.services.lambda.AWSLambda;
 import com.amazonaws.services.lambda.model.InvokeRequest;
 import com.amazonaws.services.lambda.model.InvokeResult;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.aws.AwsUtils;
 import io.camunda.connector.aws.CredentialsProviderSupport;
-import io.camunda.connector.aws.model.impl.AwsBaseConfiguration;
+import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.awslambda.model.AwsLambdaRequest;
 import io.camunda.connector.awslambda.model.AwsLambdaResult;
-import io.camunda.connector.impl.ConnectorInputException;
-import java.util.Optional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @OutboundConnector(
     name = "AWSLambda",
@@ -29,47 +26,40 @@ import org.slf4j.LoggerFactory;
     type = "io.camunda:aws-lambda:1")
 public class LambdaConnectorFunction implements OutboundConnectorFunction {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(LambdaConnectorFunction.class);
   private final AwsLambdaSupplier awsLambdaSupplier;
-  private final Gson gson;
+  private final ObjectMapper objectMapper;
 
   public LambdaConnectorFunction() {
-    this(new AwsLambdaSupplier(), new GsonBuilder().create());
+    this(new AwsLambdaSupplier(), ObjectMapperSupplier.getMapperInstance());
   }
 
-  public LambdaConnectorFunction(final AwsLambdaSupplier awsLambdaSupplier, final Gson gson) {
+  public LambdaConnectorFunction(
+      final AwsLambdaSupplier awsLambdaSupplier, final ObjectMapper objectMapper) {
     this.awsLambdaSupplier = awsLambdaSupplier;
-    this.gson = gson;
+    this.objectMapper = objectMapper;
   }
 
   @Override
   public Object execute(OutboundConnectorContext context) {
-    var request = context.getVariablesAsType(AwsLambdaRequest.class);
-    LOGGER.info("Executing my connector with request {}", request);
-    context.validate(request);
-    context.replaceSecrets(request);
-    return new AwsLambdaResult(invokeLambdaFunction(request), gson);
+    var request = context.bindVariables(AwsLambdaRequest.class);
+    return new AwsLambdaResult(invokeLambdaFunction(request), objectMapper);
   }
 
   private InvokeResult invokeLambdaFunction(AwsLambdaRequest request) {
     var region =
-        Optional.ofNullable(request.getConfiguration())
-            .map(AwsBaseConfiguration::getRegion)
-            .or(() -> Optional.ofNullable(request.getAwsFunction().getRegion()))
-            .orElseThrow(
-                () ->
-                    new ConnectorInputException(
-                        new RuntimeException(
-                            "Found constraints violated while validating input: Region is missing.")));
+        AwsUtils.extractRegionOrDefault(
+            request.getConfiguration(), request.getAwsFunction().getRegion());
     final AWSLambda awsLambda =
         awsLambdaSupplier.awsLambdaService(
             CredentialsProviderSupport.credentialsProvider(request), region);
-    final InvokeRequest invokeRequest =
-        new InvokeRequest()
-            .withFunctionName(request.getAwsFunction().getFunctionName())
-            .withPayload(gson.toJson(request.getAwsFunction().getPayload()));
     try {
+      final InvokeRequest invokeRequest =
+          new InvokeRequest()
+              .withFunctionName(request.getAwsFunction().getFunctionName())
+              .withPayload(objectMapper.writeValueAsString(request.getAwsFunction().getPayload()));
       return awsLambda.invoke(invokeRequest);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException("Error mapping payload to json.");
     } finally {
       if (awsLambda != null) {
         awsLambda.shutdown();

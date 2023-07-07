@@ -6,8 +6,6 @@
  */
 package io.camunda.connector.gdrive.model.request;
 
-import com.google.api.client.util.Key;
-import io.camunda.connector.api.annotation.Secret;
 import io.camunda.google.model.GoogleBaseRequest;
 import java.util.Objects;
 import javax.validation.Valid;
@@ -15,7 +13,7 @@ import javax.validation.constraints.NotNull;
 
 public class GoogleDriveRequest extends GoogleBaseRequest {
 
-  @Key @Valid @NotNull @Secret private Resource resource;
+  @Valid @NotNull private Resource resource;
 
   public Resource getResource() {
     return resource;

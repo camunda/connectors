@@ -40,6 +40,7 @@ import io.camunda.connector.http.model.HttpJsonRequest;
 import io.camunda.connector.http.model.HttpJsonResult;
 import io.camunda.connector.impl.ConnectorInputException;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
+import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -144,7 +145,11 @@ public class HttpJsonFunctionTest extends BaseTest {
   @MethodSource("failCases")
   void shouldReturnFallbackResult_WhenMalformedRequest(final String input) {
     final var context =
-        OutboundConnectorContextBuilder.create().variables(input).secrets(name -> "foo").build();
+        OutboundConnectorContextBuilder.create()
+            .variables(input)
+            .validation(new DefaultValidationProvider())
+            .secrets(name -> "foo")
+            .build();
 
     // when
     var exceptionThrown = catchException(() -> functionUnderTest.execute(context));
@@ -192,7 +197,7 @@ public class HttpJsonFunctionTest extends BaseTest {
         OutboundConnectorContextBuilder.create().variables(input).secrets(name -> "foo").build();
     final var expectedTimeInMilliseconds =
         Integer.parseInt(
-                gson.fromJson(input, HttpJsonRequest.class).getConnectionTimeoutInSeconds())
+                context.bindVariables(HttpJsonRequest.class).getConnectionTimeoutInSeconds())
             * 1000;
 
     when(requestFactory.buildRequest(

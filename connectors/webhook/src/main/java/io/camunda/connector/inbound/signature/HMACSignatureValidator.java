@@ -15,6 +15,7 @@ import java.util.Objects;
 import java.util.TreeMap;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import javax.xml.bind.DatatypeConverter;
 import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,17 +50,24 @@ public class HMACSignatureValidator {
 
   public boolean isRequestValid()
       throws NoSuchAlgorithmException, InvalidKeyException, IOException {
-    var caseInsensitiveHeaders = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+    var caseInsensitiveHeaders = new TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER);
     caseInsensitiveHeaders.putAll(headers);
 
     if (!caseInsensitiveHeaders.containsKey(hmacHeader)) {
       throw new IOException("Expected HMAC header " + hmacHeader + ", but was not present");
     }
-    final String providedHmac = headers.get(hmacHeader.toLowerCase());
+    final String providedHmac = caseInsensitiveHeaders.get(hmacHeader);
     LOG.debug("Given HMAC from webhook call: {}", providedHmac);
 
     if (providedHmac == null || providedHmac.length() == 0) {
       return false;
+    }
+
+    // Some webhooks produce longer version, like sha256=aabbcc...; hmac-sha1=aabbcc...; etc
+    var providedHmacWithoutTag = providedHmac;
+    var split = providedHmacWithoutTag.split("=");
+    if (split.length == 2) {
+      providedHmacWithoutTag = split[1];
     }
 
     Mac sha256_HMAC = Mac.getInstance(hmacAlgo.getAlgoReference());
@@ -70,13 +78,13 @@ public class HMACSignatureValidator {
     byte[] expectedHmac = sha256_HMAC.doFinal(requestBody);
 
     // Some webhooks produce short HMAC message, e.g. aabbcc...
-    String expectedShortHmacString = Hex.encodeHexString(expectedHmac);
-    // The other produce longer version, like sha256=aabbcc...
-    String expectedLongHmacString = hmacAlgo.getTag() + "=" + expectedShortHmacString;
-    LOG.debug(
-        "Computed HMAC from webhook body: {}, {}", expectedShortHmacString, expectedLongHmacString);
+    String expectedHmacString = Hex.encodeHexString(expectedHmac);
 
-    return providedHmac.equals(expectedShortHmacString)
-        || providedHmac.equals(expectedLongHmacString);
+    // The Twilio produce base64 version
+    String expectedBase64HmacString = DatatypeConverter.printBase64Binary(expectedHmac);
+    LOG.debug("Computed HMAC from webhook body: {}", expectedHmacString);
+    return providedHmac.equals(expectedHmacString)
+        || providedHmacWithoutTag.equals(expectedHmacString)
+        || providedHmac.equals(expectedBase64HmacString);
   }
 }

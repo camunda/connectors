@@ -68,15 +68,14 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
       var correlatedEvents = context.getCorrelations();
       assertThat(correlatedEvents).hasSize(1);
       assertThat(correlatedEvents.get(0)).isInstanceOf(RabbitMqInboundResult.class);
-      RabbitMqInboundMessage message =
-          ((RabbitMqInboundResult) correlatedEvents.get(0)).getMessage();
+      RabbitMqInboundMessage message = ((RabbitMqInboundResult) correlatedEvents.get(0)).message();
 
-      assertThat(message.getBody()).isInstanceOf(Map.class);
-      Map<String, Object> body = (Map<String, Object>) message.getBody();
+      assertThat(message.body()).isInstanceOf(Map.class);
+      Map<String, Object> body = (Map<String, Object>) message.body();
       assertThat(body).containsEntry("key", "value");
 
-      assertThat(message.getProperties()).isEqualTo(properties);
-      assertThat(message.getConsumerTag()).isEqualTo("consumerTag");
+      assertThat(message.properties()).isEqualTo(AMQPPropertyUtil.toProperties(properties));
+      assertThat(message.consumerTag()).isEqualTo("consumerTag");
 
       verify(mockChannel, times(1)).basicAck(1, false);
     }
@@ -84,9 +83,6 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
     @Test
     void consumer_shouldHandlePlaintextPayload() throws IOException {
       // Given plaintext payload
-      ArgumentCaptor<RabbitMqInboundResult> captor =
-          ArgumentCaptor.forClass(RabbitMqInboundResult.class);
-
       Envelope envelope = new Envelope(1, false, "exchange", "routingKey");
       BasicProperties properties = new BasicProperties.Builder().build();
       String body = "plaintext";
@@ -98,14 +94,13 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
       var correlatedEvents = context.getCorrelations();
       assertThat(correlatedEvents).hasSize(1);
       assertThat(correlatedEvents.get(0)).isInstanceOf(RabbitMqInboundResult.class);
-      RabbitMqInboundMessage message =
-          ((RabbitMqInboundResult) correlatedEvents.get(0)).getMessage();
+      RabbitMqInboundMessage message = ((RabbitMqInboundResult) correlatedEvents.get(0)).message();
 
-      assertThat(message.getBody()).isInstanceOf(String.class);
-      assertThat(message.getBody()).isEqualTo(body);
+      assertThat(message.body()).isInstanceOf(String.class);
+      assertThat(message.body()).isEqualTo(body);
 
-      assertThat(message.getProperties()).isEqualTo(properties);
-      assertThat(message.getConsumerTag()).isEqualTo("consumerTag");
+      assertThat(message.properties()).isEqualTo(AMQPPropertyUtil.toProperties(properties));
+      assertThat(message.consumerTag()).isEqualTo("consumerTag");
 
       verify(mockChannel, times(1)).basicAck(1, false);
     }
@@ -113,9 +108,6 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
     @Test
     void consumer_shouldHandleNumericPayload() throws IOException {
       // Given plaintext payload
-      ArgumentCaptor<RabbitMqInboundResult> captor =
-          ArgumentCaptor.forClass(RabbitMqInboundResult.class);
-
       Envelope envelope = new Envelope(1, false, "exchange", "routingKey");
       BasicProperties properties = new BasicProperties.Builder().build();
       String body = "3";
@@ -127,14 +119,13 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
       var correlatedEvents = context.getCorrelations();
       assertThat(correlatedEvents).hasSize(1);
       assertThat(correlatedEvents.get(0)).isInstanceOf(RabbitMqInboundResult.class);
-      RabbitMqInboundMessage message =
-          ((RabbitMqInboundResult) correlatedEvents.get(0)).getMessage();
+      RabbitMqInboundMessage message = ((RabbitMqInboundResult) correlatedEvents.get(0)).message();
 
-      assertThat(message.getBody()).isInstanceOf(Number.class);
-      assertThat(((Number) message.getBody()).intValue()).isEqualTo(Integer.parseInt(body));
+      assertThat(message.body()).isInstanceOf(Number.class);
+      assertThat(((Number) message.body()).intValue()).isEqualTo(Integer.parseInt(body));
 
-      assertThat(message.getProperties()).isEqualTo(properties);
-      assertThat(message.getConsumerTag()).isEqualTo("consumerTag");
+      assertThat(message.properties()).isEqualTo(AMQPPropertyUtil.toProperties(properties));
+      assertThat(message.consumerTag()).isEqualTo("consumerTag");
 
       verify(mockChannel, times(1)).basicAck(1, false);
     }
@@ -142,9 +133,6 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
     @Test
     void consumer_shouldHandleBooleanPayload() throws IOException {
       // Given plaintext payload
-      ArgumentCaptor<RabbitMqInboundResult> captor =
-          ArgumentCaptor.forClass(RabbitMqInboundResult.class);
-
       Envelope envelope = new Envelope(1, false, "exchange", "routingKey");
       BasicProperties properties = new BasicProperties.Builder().build();
       String body = "true";
@@ -156,14 +144,13 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
       var correlatedEvents = context.getCorrelations();
       assertThat(correlatedEvents).hasSize(1);
       assertThat(correlatedEvents.get(0)).isInstanceOf(RabbitMqInboundResult.class);
-      RabbitMqInboundMessage message =
-          ((RabbitMqInboundResult) correlatedEvents.get(0)).getMessage();
+      RabbitMqInboundMessage message = ((RabbitMqInboundResult) correlatedEvents.get(0)).message();
 
-      assertThat(message.getBody()).isInstanceOf(Boolean.class);
-      assertThat(message.getBody()).isEqualTo(Boolean.parseBoolean(body));
+      assertThat(message.body()).isInstanceOf(Boolean.class);
+      assertThat(message.body()).isEqualTo(Boolean.parseBoolean(body));
 
-      assertThat(message.getProperties()).isEqualTo(properties);
-      assertThat(message.getConsumerTag()).isEqualTo("consumerTag");
+      assertThat(message.properties()).isEqualTo(AMQPPropertyUtil.toProperties(properties));
+      assertThat(message.consumerTag()).isEqualTo("consumerTag");
 
       verify(mockChannel, times(1)).basicAck(1, false);
     }
@@ -188,13 +175,13 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
 
     // Then
     verify(mockContext, times(1)).correlate(captor.capture());
-    RabbitMqInboundMessage message = captor.getValue().getMessage();
+    RabbitMqInboundMessage message = captor.getValue().message();
 
-    assertThat(message.getBody()).isInstanceOf(String.class);
-    assertThat(message.getBody()).isEqualTo(body);
+    assertThat(message.body()).isInstanceOf(String.class);
+    assertThat(message.body()).isEqualTo(body);
 
-    assertThat(message.getProperties()).isEqualTo(properties);
-    assertThat(message.getConsumerTag()).isEqualTo("consumerTag");
+    assertThat(message.properties()).isEqualTo(AMQPPropertyUtil.toProperties(properties));
+    assertThat(message.consumerTag()).isEqualTo("consumerTag");
 
     verify(mockChannel, times(1)).basicReject(1, true);
   }
@@ -219,13 +206,13 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
 
     // Then
     verify(mockContext, times(1)).correlate(captor.capture());
-    RabbitMqInboundMessage message = captor.getValue().getMessage();
+    RabbitMqInboundMessage message = captor.getValue().message();
 
-    assertThat(message.getBody()).isInstanceOf(String.class);
-    assertThat(message.getBody()).isEqualTo(body);
+    assertThat(message.body()).isInstanceOf(String.class);
+    assertThat(message.body()).isEqualTo(body);
 
-    assertThat(message.getProperties()).isEqualTo(properties);
-    assertThat(message.getConsumerTag()).isEqualTo("consumerTag");
+    assertThat(message.properties()).isEqualTo(AMQPPropertyUtil.toProperties(properties));
+    assertThat(message.consumerTag()).isEqualTo("consumerTag");
 
     verify(mockChannel, times(1)).basicReject(1, false);
   }

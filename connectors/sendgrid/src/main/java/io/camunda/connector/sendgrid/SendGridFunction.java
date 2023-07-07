@@ -6,7 +6,8 @@
  */
 package io.camunda.connector.sendgrid;
 
-import com.google.gson.Gson;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sendgrid.Method;
 import com.sendgrid.Response;
 import com.sendgrid.SendGrid;
@@ -27,36 +28,29 @@ public class SendGridFunction implements OutboundConnectorFunction {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(SendGridFunction.class);
 
-  private final Gson gson;
+  protected static final ObjectMapper objectMapper =
+      new ObjectMapper().configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false);
 
   private final SendGridClientSupplier sendGridSupplier;
 
   public SendGridFunction() {
-    this(GsonComponentSupplier.gsonInstance(), new SendGridClientSupplier());
+    this(new SendGridClientSupplier());
   }
 
-  public SendGridFunction(final Gson gson, SendGridClientSupplier sendGridSupplier) {
-    this.gson = gson;
+  public SendGridFunction(SendGridClientSupplier sendGridSupplier) {
     this.sendGridSupplier = sendGridSupplier;
   }
 
   @Override
   public Object execute(OutboundConnectorContext context) throws Exception {
-
-    final var request = context.getVariablesAsType(SendGridRequest.class);
-    context.validate(request);
-    context.replaceSecrets(request);
-
+    final var request = context.bindVariables(SendGridRequest.class);
     SendGrid sendGrid = sendGridSupplier.sendGrid(request.getApiKey());
-
     final var mail = createEmail(request);
     final var result = sendEmail(mail, sendGrid);
-
     final int statusCode = result.getStatusCode();
     LOGGER.info("Received response from SendGrid with code {}", statusCode);
-
     if (statusCode != 202) {
-      final SendGridErrors errors = gson.fromJson(result.getBody(), SendGridErrors.class);
+      final SendGridErrors errors = objectMapper.readValue(result.getBody(), SendGridErrors.class);
       final var exceptionMessage =
           String.format(
               "User request failed to execute with status %s and error '%s'",
@@ -64,7 +58,6 @@ public class SendGridFunction implements OutboundConnectorFunction {
       LOGGER.info(exceptionMessage);
       throw new IllegalArgumentException(exceptionMessage);
     }
-
     return null;
   }
 
@@ -81,7 +74,6 @@ public class SendGridFunction implements OutboundConnectorFunction {
   private void addTemplateIfPresent(final Mail mail, final SendGridRequest request) {
     if (request.hasTemplate()) {
       mail.setTemplateId(request.getTemplate().getId());
-
       final var personalization = new Personalization();
       personalization.addTo(request.getInnerSenGridEmailTo());
       request.getTemplate().getData().forEach(personalization::addDynamicTemplateData);

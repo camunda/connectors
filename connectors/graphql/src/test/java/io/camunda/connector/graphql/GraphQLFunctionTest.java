@@ -33,6 +33,7 @@ import io.camunda.connector.graphql.model.GraphQLRequest;
 import io.camunda.connector.graphql.model.GraphQLResult;
 import io.camunda.connector.impl.ConnectorInputException;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
+import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.IOException;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -112,7 +113,11 @@ public class GraphQLFunctionTest extends BaseTest {
   @MethodSource("failCases")
   void shouldReturnFallbackResult_WhenMalformedRequest(final String input) {
     final var context =
-        OutboundConnectorContextBuilder.create().variables(input).secrets(name -> "foo").build();
+        OutboundConnectorContextBuilder.create()
+            .variables(input)
+            .validation(new DefaultValidationProvider())
+            .secrets(name -> "foo")
+            .build();
 
     // when
     var exceptionThrown = catchException(() -> functionUnderTest.execute(context));

@@ -58,7 +58,7 @@ class DeleteWorksheetOperationTest extends BaseTest {
   @Test
   void deleteWorksheet_shouldDeleteByIndex() throws IOException {
     // Given
-    DeleteWorksheet model = new DeleteWorksheet(SPREADSHEET_ID, WORKSHEET_INDEX, null);
+    DeleteWorksheet model = new DeleteWorksheet(SPREADSHEET_ID, WORKSHEET_INDEX);
 
     try (MockedStatic<GoogleSheetsServiceSupplier> mockedServiceSupplier =
         mockStatic(GoogleSheetsServiceSupplier.class)) {

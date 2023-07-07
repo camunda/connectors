@@ -20,8 +20,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
 import java.util.Map;
+import org.json.JSONException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.skyscreamer.jsonassert.JSONAssert;
+import org.skyscreamer.jsonassert.JSONCompareMode;
 
 class FeelEngineWrapperExpressionEvaluationTest {
 
@@ -33,7 +36,7 @@ class FeelEngineWrapperExpressionEvaluationTest {
   }
 
   @Test
-  void evaluateToJson_ShouldSucceed_WhenHappyCase() {
+  void evaluateToJson_ShouldSucceed_WhenHappyCase() throws JSONException {
     // given
     // FEEL expression -> {"processedOutput":response.callStatus}
     final var resultExpression = "{\"processedOutput\": response.callStatus }";
@@ -44,8 +47,10 @@ class FeelEngineWrapperExpressionEvaluationTest {
     final var evaluatedResultAsJson = objectUnderTest.evaluateToJson(resultExpression, variables);
 
     // then
-    assertThat(evaluatedResultAsJson)
-        .isEqualTo("{\"processedOutput\":{\"statusCode\":\"200 OK\"}}");
+    JSONAssert.assertEquals(
+        "{\"processedOutput\":{\"statusCode\":\"200 OK\"}}",
+        evaluatedResultAsJson,
+        JSONCompareMode.STRICT);
   }
 
   @Test
@@ -65,7 +70,7 @@ class FeelEngineWrapperExpressionEvaluationTest {
   }
 
   @Test
-  void evaluateToJson_ShouldSucceed_WhenHandlingPojo() {
+  void evaluateToJson_ShouldSucceed_WhenHandlingPojo() throws JSONException {
     // given
     final var resultExpression = "= { value: response.value, response: response }";
     final var variables = new TestPojo("FOO");
@@ -74,12 +79,14 @@ class FeelEngineWrapperExpressionEvaluationTest {
     final var evaluatedResultAsJson = objectUnderTest.evaluateToJson(resultExpression, variables);
 
     // then
-    assertThat(evaluatedResultAsJson)
-        .isEqualTo("{\"response\":{\"value\":\"FOO\"},\"value\":\"FOO\"}");
+    JSONAssert.assertEquals(
+        "{\"response\":{\"value\":\"FOO\"},\"value\":\"FOO\"}",
+        evaluatedResultAsJson,
+        JSONCompareMode.STRICT);
   }
 
   @Test
-  void evaluateToJson_ShouldSucceed_WhenExpressionStartsWithEqualsSign() {
+  void evaluateToJson_ShouldSucceed_WhenExpressionStartsWithEqualsSign() throws JSONException {
     // given
     // FEEL expression -> ={"processedOutput":response.callStatus}
     final var resultExpression = "={\"processedOutput\": response.callStatus }";
@@ -90,12 +97,14 @@ class FeelEngineWrapperExpressionEvaluationTest {
     final var evaluatedResultAsJson = objectUnderTest.evaluateToJson(resultExpression, variables);
 
     // then
-    assertThat(evaluatedResultAsJson)
-        .isEqualTo("{\"processedOutput\":{\"statusCode\":\"200 OK\"}}");
+    JSONAssert.assertEquals(
+        "{\"processedOutput\":{\"statusCode\":\"200 OK\"}}",
+        evaluatedResultAsJson,
+        JSONCompareMode.STRICT);
   }
 
   @Test
-  void evaluateToJson_ShouldSucceed_WhenVariableNotFound() {
+  void evaluateToJson_ShouldSucceed_WhenVariableNotFound() throws JSONException {
     // given
     // FEEL expression -> ={"processedOutput":response.doesnt-exist}
     final var resultExpression = "={\"processedOutput\": response.doesnt-exist }";
@@ -106,11 +115,12 @@ class FeelEngineWrapperExpressionEvaluationTest {
     final var evaluatedResultAsJson = objectUnderTest.evaluateToJson(resultExpression, variables);
 
     // then
-    assertThat(evaluatedResultAsJson).isEqualTo("{\"processedOutput\":null}");
+    JSONAssert.assertEquals(
+        "{\"processedOutput\":null}", evaluatedResultAsJson, JSONCompareMode.STRICT);
   }
 
   @Test
-  void evaluateToJson_ShouldSucceed_WhenUsedBuiltInFunction() {
+  void evaluateToJson_ShouldSucceed_WhenUsedBuiltInFunction() throws JSONException {
     // given
     // FEEL expression -> {"processedOutput": upper case(response.callStatus)}
     final var resultExpression = "{\"processedOutput\": upper case(response.callStatus) }";
@@ -121,8 +131,9 @@ class FeelEngineWrapperExpressionEvaluationTest {
     final var evaluatedResultAsJson = objectUnderTest.evaluateToJson(resultExpression, variables);
 
     // then
-    assertThat(evaluatedResultAsJson)
-        .isEqualTo("{\"processedOutput\":\"DONE\"}"); // processedOutput in upper-case!
+    JSONAssert.assertEquals(
+        "{\"processedOutput\":\"DONE\"}", evaluatedResultAsJson, JSONCompareMode.STRICT);
+    // processedOutput in upper-case!
   }
 
   @Test
@@ -176,7 +187,7 @@ class FeelEngineWrapperExpressionEvaluationTest {
 
   class TestPojo {
 
-    private String value;
+    private final String value;
 
     public TestPojo(String value) {
       this.value = value;

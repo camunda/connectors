@@ -8,13 +8,15 @@ package io.camunda.connector.gdrive.request;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
 
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.gdrive.BaseTest;
+import io.camunda.connector.gdrive.GoogleDriveFunction;
+import io.camunda.connector.gdrive.GoogleDriveService;
 import io.camunda.connector.gdrive.model.request.GoogleDriveRequest;
 import io.camunda.connector.impl.ConnectorInputException;
-import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
-import io.camunda.google.model.AuthenticationType;
+import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.IOException;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
@@ -40,36 +42,13 @@ class GoogleDriveRequestTest extends BaseTest {
   @MethodSource("successRequestCases")
   void replaceSecrets_shouldReplaceAllSecrets(final String input) {
     // Given
-    GoogleDriveRequest request = parseInput(input, GoogleDriveRequest.class);
     OutboundConnectorContext context =
-        OutboundConnectorContextBuilder.create()
-            .secret(SECRET_BEARER_TOKEN, ACTUAL_BEARER_TOKEN)
-            .secret(SECRET_REFRESH_TOKEN, ACTUAL_REFRESH_TOKEN)
-            .secret(SECRET_OAUTH_CLIENT_ID, ACTUAL_OAUTH_CLIENT_ID)
-            .secret(SECRET_OAUTH_SECRET_ID, ACTUAL_OAUTH_SECRET_ID)
+        getContextBuilderWithSecrets()
+            .validation(new DefaultValidationProvider())
+            .variables(input)
             .build();
-
-    // When
-    context.replaceSecrets(request);
-
-    // Then
-    if (request.getAuthentication().getAuthType() == AuthenticationType.BEARER) {
-      assertThat(request.getAuthentication().getBearerToken())
-          .isNotNull()
-          .isEqualTo(ACTUAL_BEARER_TOKEN);
-    }
-
-    if (request.getAuthentication().getAuthType() == AuthenticationType.REFRESH) {
-      assertThat(request.getAuthentication().getOauthClientId())
-          .isNotNull()
-          .isEqualTo(ACTUAL_OAUTH_CLIENT_ID);
-      assertThat(request.getAuthentication().getOauthClientSecret())
-          .isNotNull()
-          .isEqualTo(ACTUAL_OAUTH_SECRET_ID);
-      assertThat(request.getAuthentication().getOauthRefreshToken())
-          .isNotNull()
-          .isEqualTo(ACTUAL_REFRESH_TOKEN);
-    }
+    GoogleDriveFunction function = new GoogleDriveFunction(mock(GoogleDriveService.class));
+    function.execute(context);
   }
 
   @DisplayName("Throw IllegalArgumentException when request without require fields")
@@ -77,11 +56,15 @@ class GoogleDriveRequestTest extends BaseTest {
   @MethodSource("failRequestCases")
   void validateWith_shouldThrowExceptionWhenNonExistLeastOneRequireField(final String input) {
     // Given
-    GoogleDriveRequest request = parseInput(input, GoogleDriveRequest.class);
-    OutboundConnectorContext context = OutboundConnectorContextBuilder.create().build();
+    OutboundConnectorContext context =
+        getContextBuilderWithSecrets()
+            .variables(input)
+            .validation(new DefaultValidationProvider())
+            .build();
     // When and Then
     ConnectorInputException thrown =
-        assertThrows(ConnectorInputException.class, () -> context.validate(request));
+        assertThrows(
+            ConnectorInputException.class, () -> context.bindVariables(GoogleDriveRequest.class));
     assertThat(thrown.getMessage()).contains("Found constraints violated while validating input:");
   }
 }

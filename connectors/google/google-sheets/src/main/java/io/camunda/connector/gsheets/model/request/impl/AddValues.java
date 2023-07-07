@@ -6,35 +6,23 @@
  */
 package io.camunda.connector.gsheets.model.request.impl;
 
-import io.camunda.connector.api.annotation.Secret;
-import io.camunda.connector.gsheets.model.request.Input;
-import java.util.Objects;
+import io.camunda.connector.gsheets.model.request.SpreadsheetInput;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
-public class AddValues implements Input {
+public class AddValues extends SpreadsheetInput {
 
-  @NotBlank @Secret private String spreadsheetId;
-  @Secret private String worksheetName;
-  @NotBlank @Secret private String cellId;
-  @NotNull @Secret private Object value;
-  private String type;
+  private String worksheetName;
+  @NotBlank private String cellId;
+  @NotNull private Object value;
 
-  public AddValues(
-      String spreadsheetId, String worksheetName, String cellId, Object value, String type) {
-    this.spreadsheetId = spreadsheetId;
+  public AddValues() {}
+
+  public AddValues(String spreadsheetId, String worksheetName, String cellId, Object value) {
+    super(spreadsheetId);
     this.worksheetName = worksheetName;
     this.cellId = cellId;
     this.value = value;
-    this.type = type;
-  }
-
-  public String getSpreadsheetId() {
-    return spreadsheetId;
-  }
-
-  public void setSpreadsheetId(String spreadsheetId) {
-    this.spreadsheetId = spreadsheetId;
   }
 
   public String getWorksheetName() {
@@ -59,55 +47,5 @@ public class AddValues implements Input {
 
   public void setValue(Object value) {
     this.value = value;
-  }
-
-  @Override
-  public String getType() {
-    return type;
-  }
-
-  @Override
-  public void setType(String type) {
-    this.type = type;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    AddValues addValues = (AddValues) o;
-    return Objects.equals(spreadsheetId, addValues.spreadsheetId)
-        && Objects.equals(worksheetName, addValues.worksheetName)
-        && Objects.equals(cellId, addValues.cellId)
-        && Objects.equals(value, addValues.value)
-        && Objects.equals(type, addValues.type);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(spreadsheetId, worksheetName, cellId, value, type);
-  }
-
-  @Override
-  public String toString() {
-    return "AddValues{"
-        + "spreadsheetId='"
-        + spreadsheetId
-        + '\''
-        + ", worksheetName='"
-        + worksheetName
-        + '\''
-        + ", cellId='"
-        + cellId
-        + '\''
-        + ", value=[REDACTED]"
-        + ", type='"
-        + type
-        + '\''
-        + '}';
   }
 }

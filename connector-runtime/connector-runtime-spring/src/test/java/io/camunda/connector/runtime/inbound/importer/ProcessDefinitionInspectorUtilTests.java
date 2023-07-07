@@ -20,11 +20,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import io.camunda.connector.impl.inbound.InboundConnectorProperties;
+import io.camunda.connector.api.inbound.InboundConnectorDefinition;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
 import io.camunda.operate.CamundaOperateClient;
 import io.camunda.operate.dto.ProcessDefinition;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import java.io.FileInputStream;
+import java.util.Comparator;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.util.ResourceUtils;
@@ -33,20 +35,42 @@ public class ProcessDefinitionInspectorUtilTests {
 
   @Test
   public void testSingleWebhookInCollaboration() throws Exception {
-    var inboundConnectors = fromModel("single-webhook-collaboration.bpmn");
-    assertEquals(inboundConnectors.size(), 1);
-    assertEquals(inboundConnectors.get(0).getElementId(), "start_event");
+    var inboundConnectors = fromModel("single-webhook-collaboration.bpmn", "process");
+    assertEquals(1, inboundConnectors.size());
+    assertEquals("start_event", inboundConnectors.get(0).elementId());
   }
 
   @Test
-  public void testMultipleWebhooksInCollaboration() throws Exception {
-    var inboundConnectors = fromModel("multi-webhook-collaboration.bpmn");
-    assertEquals(inboundConnectors.size(), 2);
-    assertEquals(inboundConnectors.get(0).getElementId(), "start_event");
-    assertEquals(inboundConnectors.get(1).getElementId(), "intermediate_event");
+  public void testMultipleWebhooksInCollaborationP1() throws Exception {
+    var inboundConnectors = fromModel("multi-webhook-collaboration.bpmn", "process1");
+    assertEquals(1, inboundConnectors.size());
+    assertEquals("start_event", inboundConnectors.get(0).elementId());
   }
 
-  private List<InboundConnectorProperties> fromModel(String fileName) {
+  @Test
+  public void testMultipleWebhooksInCollaborationP2() throws Exception {
+    var inboundConnectors = fromModel("multi-webhook-collaboration.bpmn", "process2");
+    assertEquals(1, inboundConnectors.size());
+    assertEquals("intermediate_event", inboundConnectors.get(0).elementId());
+  }
+
+  @Test
+  public void testMultipleWebhookStartEventsInCollaborationP1() throws Exception {
+    var inboundConnectors = fromModel("multi-webhook-start-collaboration.bpmn", "process1");
+    inboundConnectors.sort(Comparator.comparing(InboundConnectorDefinition::elementId));
+    assertEquals(1, inboundConnectors.size());
+    assertEquals("start_1", inboundConnectors.get(0).elementId());
+  }
+
+  @Test
+  public void testMultipleWebhookStartEventsInCollaborationP2() throws Exception {
+    var inboundConnectors = fromModel("multi-webhook-start-collaboration.bpmn", "process2");
+    inboundConnectors.sort(Comparator.comparing(InboundConnectorDefinition::elementId));
+    assertEquals(1, inboundConnectors.size());
+    assertEquals("start_2", inboundConnectors.get(0).elementId());
+  }
+
+  private List<InboundConnectorDefinitionImpl> fromModel(String fileName, String processId) {
     try {
       var operateClientMock = mock(CamundaOperateClient.class);
       var inspector = new ProcessDefinitionInspector(operateClientMock);
@@ -54,6 +78,7 @@ public class ProcessDefinitionInspectorUtilTests {
       var model = Bpmn.readModelFromStream(new FileInputStream(modelFile));
       var processDefinitionMock = mock(ProcessDefinition.class);
       when(processDefinitionMock.getKey()).thenReturn(1L);
+      when(processDefinitionMock.getBpmnProcessId()).thenReturn(processId);
       when(operateClientMock.getProcessDefinitionModel(1L)).thenReturn(model);
       return inspector.findInboundConnectors(processDefinitionMock);
     } catch (Exception e) {

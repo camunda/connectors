@@ -6,41 +6,26 @@
  */
 package io.camunda.connector.gsheets.model.request.impl;
 
-import io.camunda.connector.api.annotation.Secret;
-import io.camunda.connector.gsheets.model.request.Input;
+import io.camunda.connector.gsheets.model.request.SpreadsheetInput;
 import java.util.List;
 import java.util.Objects;
-import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 
-public class CreateRow implements Input {
+public class CreateRow extends SpreadsheetInput {
 
-  @NotBlank @Secret private String spreadsheetId;
-  @Secret private String worksheetName;
+  private String worksheetName;
   @NotNull private Integer rowIndex;
-  @NotEmpty @Secret private List<Object> values;
-  private String type;
+  @NotEmpty private List<Object> values;
+
+  public CreateRow() {}
 
   public CreateRow(
-      String spreadsheetId,
-      String worksheetName,
-      Integer rowIndex,
-      List<Object> values,
-      String type) {
-    this.spreadsheetId = spreadsheetId;
+      String spreadsheetId, String worksheetName, Integer rowIndex, List<Object> values) {
+    super(spreadsheetId);
     this.worksheetName = worksheetName;
     this.rowIndex = rowIndex;
     this.values = values;
-    this.type = type;
-  }
-
-  public String getSpreadsheetId() {
-    return spreadsheetId;
-  }
-
-  public void setSpreadsheetId(String spreadsheetId) {
-    this.spreadsheetId = spreadsheetId;
   }
 
   public String getWorksheetName() {
@@ -68,51 +53,31 @@ public class CreateRow implements Input {
   }
 
   @Override
-  public String getType() {
-    return type;
-  }
-
-  @Override
-  public void setType(String type) {
-    this.type = type;
-  }
-
-  @Override
   public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
     CreateRow createRow = (CreateRow) o;
-    return Objects.equals(spreadsheetId, createRow.spreadsheetId)
-        && Objects.equals(worksheetName, createRow.worksheetName)
+    return Objects.equals(worksheetName, createRow.worksheetName)
         && Objects.equals(rowIndex, createRow.rowIndex)
-        && Objects.equals(values, createRow.values)
-        && Objects.equals(type, createRow.type);
+        && Objects.equals(values, createRow.values);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(spreadsheetId, worksheetName, rowIndex, values, type);
+    return Objects.hash(worksheetName, rowIndex, values);
   }
 
   @Override
   public String toString() {
     return "CreateRow{"
-        + "spreadsheetId='"
-        + spreadsheetId
-        + '\''
-        + ", worksheetName='"
+        + "worksheetName='"
         + worksheetName
         + '\''
         + ", rowIndex="
         + rowIndex
-        + ", values=[REDACTED]"
-        + ", type='"
-        + type
-        + '\''
-        + '}';
+        + ", values="
+        + values
+        + "} "
+        + super.toString();
   }
 }

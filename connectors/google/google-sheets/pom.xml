@@ -39,10 +39,6 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.danilopianini</groupId>
-            <artifactId>gson-extras</artifactId>
-        </dependency>
-        <dependency>
             <groupId>io.camunda.connector</groupId>
             <artifactId>connector-google-base</artifactId>
             <version>${project.version}</version>

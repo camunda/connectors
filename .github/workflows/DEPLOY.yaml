@@ -16,7 +16,7 @@ jobs:
 
       - name: Import Secrets
         id: secrets # important to refer to it in later steps
-        uses: hashicorp/vault-action@v2.6.0
+        uses: hashicorp/vault-action@v2.7.1
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -82,6 +82,15 @@ jobs:
         with:
           username: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
           password: ${{ steps.secrets.outputs.DOCKERHUB_PASSWORD }}
+
+      - name: Build and Push Docker Image tag SNAPSHOT - connector-runtime
+        uses: docker/build-push-action@v4
+        with:
+          context: connector-runtime/connector-runtime-application/
+          push: ${{ github.ref == 'refs/heads/main' }}
+          tags: camunda/connectors:SNAPSHOT
+          platforms: linux/amd64,linux/arm64
+          provenance: false
 
       - name: Build and Push Docker Image tag SNAPSHOT - bundle-default
         uses: docker/build-push-action@v4

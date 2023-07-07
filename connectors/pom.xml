@@ -19,8 +19,6 @@
 
   <modules>
     <module>aws</module>
-    <module>sns</module>
-    <module>sqs</module>
     <module>rabbitmq</module>
     <module>sendgrid</module>
     <module>kafka</module>
@@ -57,6 +55,11 @@ except in compliance with the proprietary license.</license.inlineheader>
     </dependency>
 
     <!-- test dependencies -->
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-test</artifactId>
+      <scope>test</scope>
+    </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>

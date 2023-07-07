@@ -16,6 +16,11 @@
  */
 package io.camunda.connector.runtime;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.module.scala.DefaultScalaModule$;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.impl.config.ConnectorPropertyResolver;
 import io.camunda.connector.runtime.core.feel.FeelEngineWrapper;
@@ -65,5 +70,18 @@ public class OutboundConnectorsAutoConfiguration {
   @ConditionalOnMissingBean
   public ConnectorPropertyResolver springConnectorPropertyResolver(Environment environment) {
     return new SpringConnectorPropertyResolver(environment);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public ObjectMapper objectMapper() {
+    var mapper = new ObjectMapper();
+    mapper
+        .registerModule(DefaultScalaModule$.MODULE$)
+        .registerModule(new JavaTimeModule())
+        // deserialize unknown types as empty objects
+        .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
+        .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+    return mapper;
   }
 }

@@ -6,11 +6,11 @@
  */
 package io.camunda.connector.gdrive.model.request;
 
-import com.google.api.client.util.Value;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 public enum Type {
-  @Value("folder")
+  @JsonProperty("folder")
   FOLDER,
-  @Value("file")
+  @JsonProperty("file")
   FILE
 }

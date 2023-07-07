@@ -34,10 +34,11 @@ class AwsLambdaResultTest extends BaseTest {
             .withPayload(wrap);
 
     // When
-    AwsLambdaResult awsLambdaResult = new AwsLambdaResult(invokeResult, gson);
+    AwsLambdaResult awsLambdaResult = new AwsLambdaResult(invokeResult, objectMapper);
     // Then
     assertThat(awsLambdaResult.getStatusCode()).isEqualTo(statusCode);
     assertThat(awsLambdaResult.getExecutedVersion()).isEqualTo(version);
-    assertThat(awsLambdaResult.getPayload()).isEqualTo(gson.fromJson(payload, Object.class));
+    assertThat(awsLambdaResult.getPayload())
+        .isEqualTo(objectMapper.convertValue(payload, Object.class));
   }
 }

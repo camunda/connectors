@@ -6,19 +6,20 @@
  */
 package io.camunda.connector.gdrive;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.nio.file.Files.readString;
-
-import com.google.api.client.json.JsonParser;
-import com.google.gson.Gson;
-import io.camunda.google.supplier.GsonComponentSupplier;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Stream;
-import org.junit.jupiter.params.provider.Arguments;
 
 public abstract class BaseTest {
+
+  private static final ObjectMapper objectMapper =
+      new ObjectMapper().configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false);
 
   protected static final String SECRET_BEARER_TOKEN = "MyToken";
   protected static final String SECRET_REFRESH_TOKEN = "MyOauthRefresh";
@@ -37,18 +38,17 @@ public abstract class BaseTest {
   @SuppressWarnings("unchecked")
   protected static Stream<String> loadTestCasesFromResourceFile(final String fileWithTestCasesUri)
       throws IOException {
-    final String cases = readString(new File(fileWithTestCasesUri).toPath(), UTF_8);
-    final Gson testingGson = new Gson();
-    var array = testingGson.fromJson(cases, ArrayList.class);
-    return array.stream().map(testingGson::toJson).map(Arguments::of);
+    return objectMapper
+        .readValue(new File(fileWithTestCasesUri), new TypeReference<List<JsonNode>>() {})
+        .stream()
+        .map(JsonNode::toString);
   }
 
-  protected static <T> T parseInput(final String input, final Class<T> clazz) {
-    JsonParser jsonParser = GsonComponentSupplier.gsonFactoryInstance().createJsonParser(input);
-    try {
-      return jsonParser.parseAndClose(clazz);
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
+  protected OutboundConnectorContextBuilder getContextBuilderWithSecrets() {
+    return OutboundConnectorContextBuilder.create()
+        .secret(SECRET_BEARER_TOKEN, ACTUAL_BEARER_TOKEN)
+        .secret(SECRET_OAUTH_SECRET_ID, ACTUAL_OAUTH_SECRET_ID)
+        .secret(SECRET_REFRESH_TOKEN, ACTUAL_REFRESH_TOKEN)
+        .secret(SECRET_OAUTH_CLIENT_ID, ACTUAL_OAUTH_CLIENT_ID);
   }
 }

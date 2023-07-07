@@ -6,18 +6,17 @@
  */
 package io.camunda.connector.awslambda.model;
 
-import io.camunda.connector.api.annotation.Secret;
 import java.util.Objects;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 
 public class FunctionRequestData {
 
-  @NotEmpty @Secret private String functionName;
+  @NotEmpty private String functionName;
   @NotNull private Object payload;
   private OperationType operationType; // this is not use and not implemented yet
 
-  @Secret private String region;
+  @Deprecated private String region;
 
   public String getFunctionName() {
     return functionName;
@@ -75,10 +74,12 @@ public class FunctionRequestData {
         + '}';
   }
 
+  @Deprecated
   public String getRegion() {
     return region;
   }
 
+  @Deprecated
   public void setRegion(String region) {
     this.region = region;
   }

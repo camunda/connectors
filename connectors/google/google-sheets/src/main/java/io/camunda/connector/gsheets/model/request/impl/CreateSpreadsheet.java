@@ -6,21 +6,20 @@
  */
 package io.camunda.connector.gsheets.model.request.impl;
 
-import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.gsheets.model.request.Input;
 import java.util.Objects;
 import javax.validation.constraints.NotBlank;
 
-public class CreateSpreadsheet implements Input {
+public class CreateSpreadsheet extends Input {
 
-  @NotBlank @Secret private String spreadsheetName;
-  @Secret private String parent;
-  private String type;
+  @NotBlank private String spreadsheetName;
+  private String parent;
 
-  public CreateSpreadsheet(String spreadsheetName, String parent, String type) {
+  public CreateSpreadsheet() {}
+
+  public CreateSpreadsheet(String spreadsheetName, String parent) {
     this.spreadsheetName = spreadsheetName;
     this.parent = parent;
-    this.type = type;
   }
 
   public String getSpreadsheetName() {
@@ -40,32 +39,17 @@ public class CreateSpreadsheet implements Input {
   }
 
   @Override
-  public String getType() {
-    return type;
-  }
-
-  @Override
-  public void setType(String type) {
-    this.type = type;
-  }
-
-  @Override
   public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
     CreateSpreadsheet that = (CreateSpreadsheet) o;
     return Objects.equals(spreadsheetName, that.spreadsheetName)
-        && Objects.equals(parent, that.parent)
-        && Objects.equals(type, that.type);
+        && Objects.equals(parent, that.parent);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(spreadsheetName, parent, type);
+    return Objects.hash(spreadsheetName, parent);
   }
 
   @Override
@@ -77,9 +61,7 @@ public class CreateSpreadsheet implements Input {
         + ", parent='"
         + parent
         + '\''
-        + ", type='"
-        + type
-        + '\''
-        + '}';
+        + "} "
+        + super.toString();
   }
 }

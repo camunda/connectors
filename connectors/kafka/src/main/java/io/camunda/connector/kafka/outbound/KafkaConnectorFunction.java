@@ -20,16 +20,12 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @OutboundConnector(
     name = "KAFKA",
     inputVariables = {"authentication", "topic", "message", "additionalProperties"},
     type = "io.camunda:connector-kafka:1")
 public class KafkaConnectorFunction implements OutboundConnectorFunction {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(KafkaConnectorFunction.class);
 
   private final Function<Properties, Producer> producerCreatorFunction;
 
@@ -43,10 +39,7 @@ public class KafkaConnectorFunction implements OutboundConnectorFunction {
 
   @Override
   public Object execute(final OutboundConnectorContext context) throws Exception {
-    LOGGER.debug("Executing Kafka connector with context: " + context);
-    var connectorRequest = context.getVariablesAsType(KafkaConnectorRequest.class);
-    context.validate(connectorRequest);
-    context.replaceSecrets(connectorRequest);
+    var connectorRequest = context.bindVariables(KafkaConnectorRequest.class);
     return executeConnector(connectorRequest);
   }
 

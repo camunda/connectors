@@ -7,7 +7,7 @@
 package io.camunda.connector.aws.dynamodb.operation.table;
 
 import com.amazonaws.services.dynamodbv2.document.DynamoDB;
-import io.camunda.connector.aws.dynamodb.model.table.DescribeTable;
+import io.camunda.connector.aws.dynamodb.model.DescribeTable;
 import io.camunda.connector.aws.dynamodb.operation.AwsDynamoDbOperation;
 
 public class DescribeTableOperation implements AwsDynamoDbOperation {

@@ -9,25 +9,28 @@ package io.camunda.connector.awslambda;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.readString;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Stream;
-import org.junit.jupiter.params.provider.Arguments;
 
 public abstract class BaseTest {
 
-  protected static final Gson gson = new GsonBuilder().create();
+  protected static final ObjectMapper objectMapper = ObjectMapperSupplier.getMapperInstance();
 
   protected static final String SECRET_KEY = "SECRET_KEY";
   protected static final String ACTUAL_SECRET_KEY = "testSecretKey";
   protected static final String ACCESS_KEY = "ACCESS_KEY";
   protected static final String ACTUAL_ACCESS_KEY = "AKIAUTEST1234OOUNTYOWU";
+  protected static final String PAYLOAD_KEY = "PAYLOAD_KEY";
+  protected static final String ACTUAL_PAYLOAD_KEY = "event";
   protected static final String FUNCTION_REGION_KEY = "REGION_KEY";
   protected static final String ACTUAL_FUNCTION_REGION = "us-east-1";
   protected static final String ACTUAL_FUNCTION_NAME =
@@ -36,7 +39,8 @@ public abstract class BaseTest {
 
   protected static final String ACTUAL_STRING_PAYLOAD = "{\"event\":{\"key\":\"value\"}}";
   protected static final Object ACTUAL_PAYLOAD =
-      gson.fromJson(ACTUAL_STRING_PAYLOAD, Object.class); // toObject(ACTUAL_STRING_PAYLOAD);
+      objectMapper.convertValue(
+          ACTUAL_STRING_PAYLOAD, Object.class); // toObject(ACTUAL_STRING_PAYLOAD);
   protected static final ByteBuffer ACTUAL_BYTEBUFFER_PAYLOAD =
       ByteBuffer.wrap(ACTUAL_STRING_PAYLOAD.getBytes(StandardCharsets.UTF_8));
 
@@ -68,15 +72,14 @@ public abstract class BaseTest {
         .secret(SECRET_KEY, ACTUAL_SECRET_KEY)
         .secret(ACCESS_KEY, ACTUAL_ACCESS_KEY)
         .secret(FUNCTION_REGION_KEY, ACTUAL_FUNCTION_REGION)
-        .secret(FUNCTION_NAME_KEY, ACTUAL_FUNCTION_NAME);
+        .secret(FUNCTION_NAME_KEY, ACTUAL_FUNCTION_NAME)
+        .secret(PAYLOAD_KEY, ACTUAL_PAYLOAD_KEY);
   }
 
-  @SuppressWarnings("unchecked")
   protected static Stream<String> loadTestCasesFromResourceFile(final String fileWithTestCasesUri)
       throws IOException {
     final String cases = readString(new File(fileWithTestCasesUri).toPath(), UTF_8);
-    final Gson testingGson = new Gson();
-    var array = testingGson.fromJson(cases, ArrayList.class);
-    return array.stream().map(testingGson::toJson).map(Arguments::of);
+    return objectMapper.readValue(cases, new TypeReference<List<JsonNode>>() {}).stream()
+        .map(JsonNode::toString);
   }
 }

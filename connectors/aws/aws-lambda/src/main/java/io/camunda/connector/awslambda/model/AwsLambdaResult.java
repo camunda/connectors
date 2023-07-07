@@ -7,7 +7,7 @@
 package io.camunda.connector.awslambda.model;
 
 import com.amazonaws.services.lambda.model.InvokeResult;
-import com.google.gson.Gson;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class AwsLambdaResult {
 
@@ -15,10 +15,11 @@ public class AwsLambdaResult {
   private String executedVersion;
   private Object payload;
 
-  public AwsLambdaResult(final InvokeResult invokeResult, Gson gson) {
+  public AwsLambdaResult(final InvokeResult invokeResult, final ObjectMapper objectMapper) {
     this.statusCode = invokeResult.getStatusCode();
     this.executedVersion = invokeResult.getExecutedVersion();
-    this.payload = gson.fromJson(new String(invokeResult.getPayload().array()), Object.class);
+    this.payload =
+        objectMapper.convertValue(new String(invokeResult.getPayload().array()), Object.class);
   }
 
   public Integer getStatusCode() {

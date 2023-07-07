@@ -6,14 +6,7 @@
  */
 package io.camunda.connector.model.request.channel;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.BaseTest;
-import io.camunda.connector.api.outbound.OutboundConnectorContext;
-import io.camunda.connector.impl.ConnectorInputException;
-import io.camunda.connector.model.MSTeamsRequest;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -21,19 +14,7 @@ class GetChannelMessageTest extends BaseTest {
 
   @ParameterizedTest
   @MethodSource("getChannelMessageValidationFailTestCases")
-  public void validate_shouldThrowExceptionWhenLeastOneRequiredFieldNotExist(String input)
-      throws JsonProcessingException {
-    // Given request without one required field
-    MSTeamsRequest request = objectMapper.readValue(input, MSTeamsRequest.class);
-    OutboundConnectorContext context = getContextBuilderWithSecrets().variables(input).build();
-    // When context.validate;
-    // Then expect exception that one required field not set
-    assertThat(request.getData()).isInstanceOf(GetChannelMessage.class);
-    ConnectorInputException thrown =
-        assertThrows(
-            ConnectorInputException.class,
-            () -> context.validate(request.getData()),
-            "IllegalArgumentException was expected");
-    assertThat(thrown.getMessage()).contains("Found constraints violated while validating input");
+  public void validate_shouldThrowExceptionWhenLeastOneRequiredFieldNotExist(String input) {
+    assertValidationException(input);
   }
 }

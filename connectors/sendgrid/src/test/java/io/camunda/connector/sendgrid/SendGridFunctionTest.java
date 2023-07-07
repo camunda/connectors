@@ -8,13 +8,12 @@ package io.camunda.connector.sendgrid;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.core.JsonPointer;
 import com.sendgrid.Method;
 import com.sendgrid.Request;
 import com.sendgrid.Response;
@@ -58,10 +57,9 @@ public class SendGridFunctionTest extends BaseTest {
     SendGridErrors.SendGridError sendGridError = new SendGridErrors.SendGridError();
     sendGridError.setMessage("error msg");
     sendGridErrors.setErrors(List.of(sendGridError));
-    gson.toJson(sendGridErrors);
 
     sendGridResponse = new Response();
-    sendGridResponse.setBody(gson.toJson(sendGridErrors));
+    sendGridResponse.setBody(objectMapper.writeValueAsString(sendGridErrors));
     sendGridResponse.setStatusCode(202);
 
     SendGridClientSupplier sendGridSupplierMock = mock(SendGridClientSupplier.class);
@@ -69,7 +67,7 @@ public class SendGridFunctionTest extends BaseTest {
 
     when(sendGridSupplierMock.sendGrid(any())).thenReturn(sendGridMock);
     when(sendGridMock.api(any())).thenReturn(sendGridResponse);
-    function = new SendGridFunction(gson, sendGridSupplierMock);
+    function = new SendGridFunction(sendGridSupplierMock);
 
     requestArgumentCaptor = ArgumentCaptor.forClass(Request.class);
   }
@@ -79,9 +77,7 @@ public class SendGridFunctionTest extends BaseTest {
   public void execute_shouldThrowExceptionIfResponseStatusCodeIsNot202(int statusCode) {
     // ignore validate and replace secrets, test only result cases
     context = spy(OutboundConnectorContext.class);
-    when(context.getVariablesAsType(any())).thenReturn(mock(SendGridRequest.class));
-    doNothing().when(context).validate(any());
-    doNothing().when(context).replaceSecrets(any());
+    when(context.bindVariables(any())).thenReturn(mock(SendGridRequest.class));
     // Given response with bad status
     sendGridResponse.setStatusCode(statusCode);
     // When and then
@@ -97,9 +93,7 @@ public class SendGridFunctionTest extends BaseTest {
   public void execute_shouldReturnNullIfResponseStatusCodeIs202(int statusCode) throws Exception {
     // ignore validate and replace secrets, test only result cases
     context = spy(OutboundConnectorContext.class);
-    when(context.getVariablesAsType(any())).thenReturn(mock(SendGridRequest.class));
-    doNothing().when(context).validate(any());
-    doNothing().when(context).replaceSecrets(any());
+    when(context.bindVariables(any())).thenReturn(mock(SendGridRequest.class));
     // Given
     sendGridResponse.setStatusCode(statusCode);
     // When
@@ -113,7 +107,7 @@ public class SendGridFunctionTest extends BaseTest {
   @MethodSource("successSendMailWithContentRequestCases")
   public void execute_shouldCreateRequestWithMailAndExpectedData(String input) throws Exception {
     // Given
-    context = contextBuilder.variables(gson.fromJson(input, SendGridRequest.class)).build();
+    context = contextBuilder.variables(input).build();
     ArgumentCaptor<Request> requestArgumentCaptor = ArgumentCaptor.forClass(Request.class);
     // When
     function.execute(context);
@@ -122,39 +116,32 @@ public class SendGridFunctionTest extends BaseTest {
     Request requestValue = requestArgumentCaptor.getValue();
     assertThat(requestValue.getMethod()).isEqualTo(Method.POST);
 
-    JsonObject requestJsonObject = gson.fromJson(requestValue.getBody(), JsonObject.class);
-    JsonObject from = requestJsonObject.get(FROM_JSON_NAME).getAsJsonObject();
+    var requestJsonObject = objectMapper.readTree(requestValue.getBody());
+    var from = requestJsonObject.get(FROM_JSON_NAME);
 
-    JsonObject to =
-        requestJsonObject
-            .get(PERSONALIZATION_JSON_NAME)
-            .getAsJsonArray()
-            .get(0)
-            .getAsJsonObject()
-            .get(TO_JSON_NAME)
-            .getAsJsonArray()
-            .get(0)
-            .getAsJsonObject();
+    var to =
+        requestJsonObject.withObject(
+            JsonPointer.valueOf("/" + PERSONALIZATION_JSON_NAME + "/0/" + TO_JSON_NAME + "/0"));
 
-    assertThat(from.get(NAME_JSON_NAME).getAsString()).isEqualTo(ActualValue.SENDER_NAME);
-    assertThat(from.get(EMAIL_JSON_NAME).getAsString()).isEqualTo(ActualValue.SENDER_EMAIL);
-    assertThat(to.get(NAME_JSON_NAME).getAsString()).isEqualTo(ActualValue.RECEIVER_NAME);
-    assertThat(to.get(EMAIL_JSON_NAME).getAsString()).isEqualTo(ActualValue.RECEIVER_EMAIL);
+    assertThat(from.get(NAME_JSON_NAME).textValue()).isEqualTo(ActualValue.SENDER_NAME);
+    assertThat(from.get(EMAIL_JSON_NAME).textValue()).isEqualTo(ActualValue.SENDER_EMAIL);
+    assertThat(to.get(NAME_JSON_NAME).textValue()).isEqualTo(ActualValue.RECEIVER_NAME);
+    assertThat(to.get(EMAIL_JSON_NAME).textValue()).isEqualTo(ActualValue.RECEIVER_EMAIL);
   }
 
   @ParameterizedTest(name = "Should send mail with template. Test case # {index}")
   @MethodSource("successSendMailByTemplateRequestCases")
   public void execute_shouldSendMailByTemplateIfTemplateExist(String input) throws Exception {
     // Given
-    context = contextBuilder.variables(gson.fromJson(input, SendGridRequest.class)).build();
+    context = contextBuilder.variables(input).build();
     ArgumentCaptor<Request> requestArgumentCaptor = ArgumentCaptor.forClass(Request.class);
     // When
     function.execute(context);
     verify(sendGridMock).api(requestArgumentCaptor.capture());
     // Then we have 'template_id' in sendGridRequest with expected ID and 'content' is not exist
     Request requestValue = requestArgumentCaptor.getValue();
-    JsonObject requestJsonObject = gson.fromJson(requestValue.getBody(), JsonObject.class);
-    assertThat(requestJsonObject.get(TEMPLATE_ID_JSON_NAME).getAsString())
+    var requestJsonObject = objectMapper.readTree(requestValue.getBody());
+    assertThat(requestJsonObject.get(TEMPLATE_ID_JSON_NAME).textValue())
         .isEqualTo(ActualValue.Template.ID);
     assertThat(requestJsonObject.has(CONTENT_JSON_NAME)).isFalse();
   }
@@ -163,21 +150,19 @@ public class SendGridFunctionTest extends BaseTest {
   @MethodSource("successSendMailWithContentRequestCases")
   public void execute_shouldSendMailIfContentExist(String input) throws Exception {
     // Given
-    context = contextBuilder.variables(gson.fromJson(input, SendGridRequest.class)).build();
+    context = contextBuilder.variables(input).build();
     // When
     function.execute(context);
     verify(sendGridMock).api(requestArgumentCaptor.capture());
     // Then we have 'content' in sendGridRequest with expected data and template ID is not exist
-    JsonObject requestJsonObject =
-        gson.fromJson(requestArgumentCaptor.getValue().getBody(), JsonObject.class);
+    var requestJsonObject = objectMapper.readTree(requestArgumentCaptor.getValue().getBody());
 
-    assertThat(requestJsonObject.get(SUBJECT_JSON_NAME).getAsString())
+    assertThat(requestJsonObject.get(SUBJECT_JSON_NAME).textValue())
         .isEqualTo(ActualValue.Content.SUBJECT);
-    JsonObject content =
-        requestJsonObject.get(CONTENT_JSON_NAME).getAsJsonArray().get(0).getAsJsonObject();
-    assertThat(content.get(CONTENT_TYPE_JSON_NAME).getAsString())
-        .isEqualTo(ActualValue.Content.TYPE);
-    assertThat(content.get(CONTENT_VALUE_JSON_NAME).getAsString())
+    var content =
+        requestJsonObject.get(CONTENT_JSON_NAME).withObject(JsonPointer.empty().appendIndex(0));
+    assertThat(content.get(CONTENT_TYPE_JSON_NAME).textValue()).isEqualTo(ActualValue.Content.TYPE);
+    assertThat(content.get(CONTENT_VALUE_JSON_NAME).textValue())
         .isEqualTo(ActualValue.Content.VALUE);
 
     assertThat(requestJsonObject.has(TEMPLATE_ID_JSON_NAME)).isFalse();

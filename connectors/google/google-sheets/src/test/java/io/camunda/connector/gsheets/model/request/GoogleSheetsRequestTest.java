@@ -9,7 +9,6 @@ package io.camunda.connector.gsheets.model.request;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.google.gson.Gson;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.gsheets.BaseTest;
 import io.camunda.connector.gsheets.model.request.impl.AddValues;
@@ -22,7 +21,6 @@ import io.camunda.connector.gsheets.model.request.impl.DeleteWorksheet;
 import io.camunda.connector.gsheets.model.request.impl.GetRowByIndex;
 import io.camunda.connector.gsheets.model.request.impl.GetSpreadsheetDetails;
 import io.camunda.connector.gsheets.model.request.impl.GetWorksheetData;
-import io.camunda.connector.gsheets.supplier.GsonSheetsComponentSupplier;
 import io.camunda.connector.impl.ConnectorInputException;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import io.camunda.google.model.Authentication;
@@ -41,8 +39,6 @@ class GoogleSheetsRequestTest extends BaseTest {
   private static final String FAIL_CASES_RESOURCE_PATH =
       "src/test/resources/requests/request-fail-test-cases.json";
 
-  private static final Gson GSON = GsonSheetsComponentSupplier.gsonInstance();
-
   private static Stream<String> successRequestCases() throws IOException {
     return BaseTest.loadTestCasesFromResourceFile(SUCCESS_CASES_RESOURCE_PATH);
   }
@@ -56,11 +52,10 @@ class GoogleSheetsRequestTest extends BaseTest {
   @MethodSource("successRequestCases")
   void replaceSecrets_shouldReplaceAllSecrets(final String input) {
     // Given
-    GoogleSheetsRequest request = GSON.fromJson(input, GoogleSheetsRequest.class);
-    OutboundConnectorContext context = buildContext();
+    OutboundConnectorContext context = buildContext(input);
 
     // When
-    context.replaceSecrets(request);
+    var request = context.bindVariables(GoogleSheetsRequest.class);
 
     // Then
     verifyAuthentication(request.getAuthentication());
@@ -72,15 +67,15 @@ class GoogleSheetsRequestTest extends BaseTest {
   @MethodSource("failRequestCases")
   void validateWith_shouldThrowExceptionWhenNonExistLeastOneRequireField(final String input) {
     // Given
-    GoogleSheetsRequest request = GSON.fromJson(input, GoogleSheetsRequest.class);
-    OutboundConnectorContext context = OutboundConnectorContextBuilder.create().build();
+    OutboundConnectorContext context = buildContext(input);
     // When and Then
     ConnectorInputException thrown =
-        assertThrows(ConnectorInputException.class, () -> context.validate(request));
+        assertThrows(
+            ConnectorInputException.class, () -> context.bindVariables(GoogleSheetsRequest.class));
     assertThat(thrown.getMessage()).contains("Found constraints violated while validating input:");
   }
 
-  private static OutboundConnectorContext buildContext() {
+  private static OutboundConnectorContext buildContext(String input) {
     return OutboundConnectorContextBuilder.create()
         .secret(SECRET_BEARER_TOKEN, ACTUAL_BEARER_TOKEN)
         .secret(SECRET_REFRESH_TOKEN, ACTUAL_REFRESH_TOKEN)
@@ -93,6 +88,7 @@ class GoogleSheetsRequestTest extends BaseTest {
         .secret(SECRET_CELL_ID, ACTUAL_CELL_ID)
         .secret(SECRET_CELL_VALUE, ACTUAL_CELL_VALUE)
         .secret(SECRET_ROW, ACTUAL_ROW)
+        .variables(input)
         .build();
   }
 

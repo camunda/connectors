@@ -6,29 +6,19 @@
  */
 package io.camunda.connector.gsheets.model.request.impl;
 
-import io.camunda.connector.api.annotation.Secret;
-import io.camunda.connector.gsheets.model.request.Input;
+import io.camunda.connector.gsheets.model.request.SpreadsheetInput;
 import java.util.Objects;
 import javax.validation.constraints.NotBlank;
 
-public class GetWorksheetData implements Input {
+public class GetWorksheetData extends SpreadsheetInput {
 
-  @NotBlank @Secret private String spreadsheetId;
-  @NotBlank @Secret private String worksheetName;
-  private String type;
+  @NotBlank private String worksheetName;
 
-  public GetWorksheetData(String spreadsheetId, String worksheetName, String type) {
-    this.spreadsheetId = spreadsheetId;
+  public GetWorksheetData() {}
+
+  public GetWorksheetData(String spreadsheetId, String worksheetName) {
+    super(spreadsheetId);
     this.worksheetName = worksheetName;
-    this.type = type;
-  }
-
-  public String getSpreadsheetId() {
-    return spreadsheetId;
-  }
-
-  public void setSpreadsheetId(String spreadsheetId) {
-    this.spreadsheetId = spreadsheetId;
   }
 
   public String getWorksheetName() {
@@ -40,46 +30,20 @@ public class GetWorksheetData implements Input {
   }
 
   @Override
-  public String getType() {
-    return type;
-  }
-
-  @Override
-  public void setType(String type) {
-    this.type = type;
-  }
-
-  @Override
   public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
     GetWorksheetData that = (GetWorksheetData) o;
-    return Objects.equals(spreadsheetId, that.spreadsheetId)
-        && Objects.equals(worksheetName, that.worksheetName)
-        && Objects.equals(type, that.type);
+    return Objects.equals(worksheetName, that.worksheetName);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(spreadsheetId, worksheetName, type);
+    return Objects.hash(worksheetName);
   }
 
   @Override
   public String toString() {
-    return "GetWorksheetData{"
-        + "spreadsheetId='"
-        + spreadsheetId
-        + '\''
-        + ", worksheetName='"
-        + worksheetName
-        + '\''
-        + ", type='"
-        + type
-        + '\''
-        + '}';
+    return "GetWorksheetData{" + "worksheetName='" + worksheetName + '\'' + "} " + super.toString();
   }
 }

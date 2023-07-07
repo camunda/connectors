@@ -32,11 +32,6 @@ except in compliance with the proprietary license.</license.inlineheader>
 
   <dependencies>
     <dependency>
-      <groupId>com.google.code.gson</groupId>
-      <artifactId>gson</artifactId>
-    </dependency>
-
-    <dependency>
       <groupId>com.sendgrid</groupId>
       <artifactId>sendgrid-java</artifactId>
     </dependency>

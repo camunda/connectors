@@ -23,7 +23,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.camunda.connector.impl.Constants;
+import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.zeebe.client.api.command.CompleteJobCommandStep1;
 import io.camunda.zeebe.client.api.command.FailJobCommandStep1;
 import io.camunda.zeebe.client.api.command.ThrowErrorCommandStep1;
@@ -72,15 +72,15 @@ class JobBuilder {
     }
 
     public JobBuilderStep withResultVariableHeader(final String value) {
-      return withHeader(Constants.RESULT_VARIABLE_KEYWORD, value);
+      return withHeader(Keywords.RESULT_VARIABLE_KEYWORD, value);
     }
 
     public JobBuilderStep withResultExpressionHeader(final String value) {
-      return withHeader(Constants.RESULT_EXPRESSION_KEYWORD, value);
+      return withHeader(Keywords.RESULT_EXPRESSION_KEYWORD, value);
     }
 
     public JobBuilderStep withErrorExpressionHeader(final String value) {
-      return withHeader(Constants.ERROR_EXPRESSION_KEYWORD, value);
+      return withHeader(Keywords.ERROR_EXPRESSION_KEYWORD, value);
     }
 
     public JobBuilderStep withHeader(String key, String value) {

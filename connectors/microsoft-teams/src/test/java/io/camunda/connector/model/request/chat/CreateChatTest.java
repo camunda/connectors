@@ -7,10 +7,8 @@
 package io.camunda.connector.model.request.chat;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.microsoft.graph.models.Chat;
 import com.microsoft.graph.models.ChatType;
 import com.microsoft.graph.requests.ChatCollectionRequest;
@@ -18,9 +16,6 @@ import com.microsoft.graph.requests.ChatCollectionRequestBuilder;
 import com.microsoft.graph.requests.GraphServiceClient;
 import com.microsoft.graph.serializer.AdditionalDataManager;
 import io.camunda.connector.BaseTest;
-import io.camunda.connector.api.outbound.OutboundConnectorContext;
-import io.camunda.connector.impl.ConnectorInputException;
-import io.camunda.connector.model.MSTeamsRequest;
 import io.camunda.connector.model.Member;
 import java.util.List;
 import okhttp3.Request;
@@ -66,19 +61,7 @@ class CreateChatTest extends BaseTest {
 
   @ParameterizedTest
   @MethodSource("createChatValidationFailTestCases")
-  public void validate_shouldThrowExceptionWhenAtLeastOneRequiredFieldNotExist(String input)
-      throws JsonProcessingException {
-    // Given request without one required field
-    MSTeamsRequest request = objectMapper.readValue(input, MSTeamsRequest.class);
-    OutboundConnectorContext context = getContextBuilderWithSecrets().variables(input).build();
-    // When context.validate;
-    // Then expect exception that one required field not set
-    assertThat(request.getData()).isInstanceOf(CreateChat.class);
-    ConnectorInputException thrown =
-        assertThrows(
-            ConnectorInputException.class,
-            () -> context.validate(request.getData()),
-            "IllegalArgumentException was expected");
-    assertThat(thrown.getMessage()).contains("Found constraints violated while validating input");
+  public void validate_shouldThrowExceptionWhenAtLeastOneRequiredFieldNotExist(String input) {
+    assertValidationException(input);
   }
 }

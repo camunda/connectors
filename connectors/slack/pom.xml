@@ -25,18 +25,26 @@
 
   <dependencies>
     <dependency>
-      <groupId>com.google.code.gson</groupId>
-      <artifactId>gson</artifactId>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>${version.jackson-bom}</version>
     </dependency>
-
-    <dependency>
-      <groupId>org.danilopianini</groupId>
-      <artifactId>gson-extras</artifactId>
-    </dependency>
-
     <dependency>
       <groupId>com.slack.api</groupId>
       <artifactId>slack-api-client</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.slack.api</groupId>
+      <artifactId>slack-api-model</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.slack.api</groupId>
+      <artifactId>slack-app-backend</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <version>${version.guava}</version>
     </dependency>
     <!-- This dependency will be removed after camunda/zeebe#9859 is resolved. -->
     <dependency>

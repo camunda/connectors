@@ -21,6 +21,7 @@ import static org.apache.http.entity.ContentType.APPLICATION_XML;
 import static org.apache.http.entity.ContentType.TEXT_PLAIN;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 import com.google.api.client.http.HttpHeaders;
@@ -122,8 +123,7 @@ class HTTPServiceTest {
   @ValueSource(strings = {"{\"name\":\"John\", \"age\":30}", "[1, 2, 3]"})
   public void ssJSONValid_shouldReturnTrueIfJSONIsValid(String input) {
     boolean result = HTTPService.isJSONValid(input);
-    assertThat(result).isTrue();
-    assertEquals(true, result);
+    assertTrue(result);
   }
 
   @ParameterizedTest

@@ -6,20 +6,19 @@
  */
 package io.camunda.connector.sendgrid;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.nio.file.Files.readString;
-
-import com.google.gson.Gson;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
+import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Stream;
-import org.junit.jupiter.params.provider.Arguments;
 
 public class BaseTest {
 
-  protected static final Gson gson = new Gson();
+  protected static final ObjectMapper objectMapper = SendGridFunction.objectMapper;
 
   private static final String FAIL_REQUEST_CASES_PATH =
       "src/test/resources/requests/validation/request-without-one-field-fail-test-cases.json";
@@ -137,6 +136,7 @@ public class BaseTest {
 
   protected static OutboundConnectorContextBuilder getContextBuilderWithSecrets() {
     return OutboundConnectorContextBuilder.create()
+        .validation(new DefaultValidationProvider())
         .secret(SecretsConstant.API_KEY, ActualValue.API_KEY)
         .secret(SecretsConstant.SENDER_EMAIL, ActualValue.SENDER_EMAIL)
         .secret(SecretsConstant.SENDER_NAME, ActualValue.SENDER_NAME)
@@ -154,9 +154,9 @@ public class BaseTest {
   @SuppressWarnings("unchecked")
   protected static Stream<String> loadTestCasesFromResourceFile(final String fileWithTestCasesUri)
       throws IOException {
-    final String cases = readString(new File(fileWithTestCasesUri).toPath(), UTF_8);
-    final Gson testingGson = new Gson();
-    var array = testingGson.fromJson(cases, ArrayList.class);
-    return array.stream().map(testingGson::toJson).map(Arguments::of);
+    return SendGridFunction.objectMapper
+        .readValue(new File(fileWithTestCasesUri), new TypeReference<List<JsonNode>>() {})
+        .stream()
+        .map(JsonNode::toString);
   }
 }

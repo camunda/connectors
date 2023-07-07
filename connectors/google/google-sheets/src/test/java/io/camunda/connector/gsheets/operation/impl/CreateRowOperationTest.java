@@ -50,7 +50,7 @@ class CreateRowOperationTest extends BaseTest {
     List<List<Object>> values = List.of(List.of());
     ValueRange valueRange = new ValueRange().setValues(values);
 
-    CreateRow model = new CreateRow(SPREADSHEET_ID, WORKSHEET_NAME, ROW_INDEX, row, null);
+    CreateRow model = new CreateRow(SPREADSHEET_ID, WORKSHEET_NAME, ROW_INDEX, row);
 
     try (MockedStatic<GoogleSheetsServiceSupplier> mockedServiceSupplier =
         mockStatic(GoogleSheetsServiceSupplier.class)) {

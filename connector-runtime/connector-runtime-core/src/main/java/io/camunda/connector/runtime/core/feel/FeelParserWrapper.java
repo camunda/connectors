@@ -72,8 +72,7 @@ public class FeelParserWrapper {
   private static Object parseExpression(final Exp expression) {
     if (ConstNull.canEqual(expression)) {
       return null;
-    } else if (expression instanceof ConstContext) {
-      ConstContext constContext = (ConstContext) expression;
+    } else if (expression instanceof ConstContext constContext) {
       Map<Object, Object> map = new HashMap<>();
       for (int i = 0; i < constContext.entries().size(); i++) {
         Tuple2<String, Exp> apply = constContext.entries().apply(i);
@@ -82,8 +81,7 @@ public class FeelParserWrapper {
         map.put(s, parseExpression(exp));
       }
       return map;
-    } else if (expression instanceof ConstList) {
-      ConstList value1 = (ConstList) expression;
+    } else if (expression instanceof ConstList value1) {
       List<Exp> items = value1.items();
       java.util.List<Object> result = new java.util.ArrayList<>();
       for (int i = 0; i < items.size(); i++) {

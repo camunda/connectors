@@ -64,8 +64,7 @@ public class HttpService {
     if (request.getAuthentication() != null) {
       if (request.getAuthentication() instanceof OAuthAuthentication) {
         bearerToken = getTokenFromOAuthRequest(request, httpService, authService);
-      } else if (request.getAuthentication() instanceof CustomAuthentication) {
-        final var authentication = (CustomAuthentication) request.getAuthentication();
+      } else if (request.getAuthentication() instanceof CustomAuthentication authentication) {
         final var httpRequest =
             HttpRequestMapper.toHttpRequest(requestFactory, authentication.getRequest());
         HttpResponse httpResponse = httpService.executeHttpRequest(httpRequest);

@@ -11,8 +11,8 @@ import static java.nio.file.Files.readString;
 
 import com.google.gson.Gson;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
-import io.camunda.connector.slack.suppliers.GsonSupplier;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
+import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -21,7 +21,6 @@ import org.junit.jupiter.params.provider.Arguments;
 
 public abstract class BaseTest {
 
-  protected static final Gson gson = GsonSupplier.getGson();
   protected static OutboundConnectorContext context;
 
   protected interface ActualValue {
@@ -62,6 +61,7 @@ public abstract class BaseTest {
 
   protected static OutboundConnectorContextBuilder getContextBuilderWithSecrets() {
     return OutboundConnectorContextBuilder.create()
+        .validation(new DefaultValidationProvider())
         .secret(SecretsConstant.TOKEN, ActualValue.TOKEN)
         .secret(SecretsConstant.ChatPostMessageData.EMAIL, ActualValue.ChatPostMessageData.EMAIL)
         .secret(

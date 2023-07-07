@@ -16,8 +16,10 @@
  */
 package io.camunda.connector.runtime.outbound.jobhandling;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.BpmnError;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.impl.outbound.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.outbound.ConnectorJobHandler;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult;
@@ -46,9 +48,11 @@ public class SpringConnectorJobHandler extends ConnectorJobHandler {
       MetricsRecorder metricsRecorder,
       CommandExceptionHandlingStrategy commandExceptionHandlingStrategy,
       SecretProviderAggregator secretProviderAggregator,
+      ValidationProvider validationProvider,
+      ObjectMapper objectMapper,
       OutboundConnectorFunction connectorFunction,
       OutboundConnectorConfiguration connectorConfiguration) {
-    super(connectorFunction, secretProviderAggregator);
+    super(connectorFunction, secretProviderAggregator, validationProvider, objectMapper);
     this.metricsRecorder = metricsRecorder;
     this.commandExceptionHandlingStrategy = commandExceptionHandlingStrategy;
     this.connectorConfiguration = connectorConfiguration;

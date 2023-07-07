@@ -6,23 +6,21 @@
  */
 package io.camunda.google.model;
 
-import com.google.api.client.util.Key;
 import com.google.api.services.drive.DriveScopes;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.UserCredentials;
-import io.camunda.connector.api.annotation.Secret;
 import java.util.Objects;
 import javax.validation.constraints.AssertTrue;
 import javax.validation.constraints.NotNull;
 
 public class Authentication {
 
-  @Key @NotNull private AuthenticationType authType;
-  @Key @Secret private String bearerToken;
-  @Key @Secret private String oauthClientId;
-  @Key @Secret private String oauthClientSecret;
-  @Key @Secret private String oauthRefreshToken;
+  @NotNull private AuthenticationType authType;
+  private String bearerToken;
+  private String oauthClientId;
+  private String oauthClientSecret;
+  private String oauthRefreshToken;
 
   @AssertTrue
   private boolean isHasAuthData() {

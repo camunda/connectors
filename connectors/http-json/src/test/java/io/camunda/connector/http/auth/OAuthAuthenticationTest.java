@@ -32,7 +32,6 @@ import io.camunda.connector.common.services.AuthenticationService;
 import io.camunda.connector.http.BaseTest;
 import io.camunda.connector.http.HttpRequestMapper;
 import io.camunda.connector.http.model.HttpJsonRequest;
-import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import java.io.IOException;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -57,8 +56,8 @@ class OAuthAuthenticationTest extends BaseTest {
   @MethodSource("successCasesOauth")
   void checkOAuthBearerTokenFormat(final String input) throws IOException {
     // given
-    final var context = OutboundConnectorContextBuilder.create().variables(input).build();
-    final var httpJsonRequest = gson.fromJson(context.getVariables(), HttpJsonRequest.class);
+    final var context = getContextBuilderWithSecrets().variables(input).build();
+    final var httpJsonRequest = context.bindVariables(HttpJsonRequest.class);
 
     HttpRequestFactory factory = new MockHttpTransport().createRequestFactory();
     HttpRequest httpRequest =

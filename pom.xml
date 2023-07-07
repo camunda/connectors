@@ -6,7 +6,7 @@
   <parent>
     <groupId>io.camunda.connector</groupId>
     <artifactId>connector-parent</artifactId>
-    <version>0.10.0</version>
+    <version>0.11.0-SNAPSHOT</version>
     <relativePath/>
   </parent>
 
@@ -20,53 +20,54 @@
 
   <properties>
     <version.spring-zeebe>8.2.3-SNAPSHOT</version.spring-zeebe>
-    <version.operate-client>8.1.8</version.operate-client>
+    <version.operate-client>8.1.8.1</version.operate-client>
 
-    <version.spring-boot>3.1.0</version.spring-boot>
-    <version.spring-cloud-gcp-starter-logging>4.4.0</version.spring-cloud-gcp-starter-logging>
+    <version.spring-boot>3.1.1</version.spring-boot>
+    <version.spring-cloud-gcp-starter-logging>4.5.1</version.spring-cloud-gcp-starter-logging>
 
-    <version.aws-java-sdk>1.12.488</version.aws-java-sdk>
+    <version.aws-java-sdk>1.12.502</version.aws-java-sdk>
 
     <version.google-api-client>2.2.0</version.google-api-client>
-    <version.google-api-services-drive>v3-rev20230603-2.0.0</version.google-api-services-drive>
+    <version.google-api-services-drive>v3-rev20230610-2.0.0</version.google-api-services-drive>
     <version.google-oauth-client-jetty>1.34.1</version.google-oauth-client-jetty>
-    <version.google-auth-library-oauth2-http>1.17.0</version.google-auth-library-oauth2-http>
+    <version.google-auth-library-oauth2-http>1.19.0</version.google-auth-library-oauth2-http>
     <version.google-api-services-docs>v1-rev20230227-2.0.0</version.google-api-services-docs>
     <version.google-api-services-sheets>v4-rev20230526-2.0.0</version.google-api-services-sheets>
 
-    <version.google-libraries-bom>26.17.0</version.google-libraries-bom>
+    <version.google-libraries-bom>26.18.0</version.google-libraries-bom>
     <version.gson-extras>1.2.0</version.gson-extras>
 
     <version.httpcore>4.4.16</version.httpcore>
 
     <version.kafka-clients>3.5.0</version.kafka-clients>
 
-    <version.microsoft-graph>5.60.0</version.microsoft-graph>
+    <version.microsoft-graph>5.62.0</version.microsoft-graph>
     <version.azure-identity>1.9.1</version.azure-identity>
 
     <version.bcprov-jdk15on>1.70</version.bcprov-jdk15on>
     <version.sendGrid>4.9.3</version.sendGrid>
 
-    <version.slack>1.29.2</version.slack>
-    <version.kotlin>1.8.22</version.kotlin>
+    <version.slack>1.30.0</version.slack>
 
     <version.testcontainers>1.18.3</version.testcontainers>
-    <version.wiremock>3.0.0-beta-10</version.wiremock>
-    
-    <version.commons-codec>1.15</version.commons-codec>
-    <version.guava>32.0.1-jre</version.guava>
 
+    <version.snappy-java>1.1.10.1</version.snappy-java>
+    <version.commons-codec>1.16.0</version.commons-codec>
+    <version.guava>32.1.1-jre</version.guava>
+    <version.javax.xml.bind>2.4.0-b180830.0359</version.javax.xml.bind>
+    
+    <version.wiremock>3.0.0-beta-10</version.wiremock>
     <version.auth0.jwt>4.4.0</version.auth0.jwt>
     <version.auth0.jwks>0.22.0</version.auth0.jwks>
   </properties>
 
   <modules>
-    <module>connector-archetype-internal</module>
     <module>connectors</module>
     <module>bundle</module>
     <module>connector-runtime/connector-runtime-core</module>
     <module>connector-runtime/connector-runtime-spring</module>
     <module>connector-runtime/spring-boot-starter-camunda-connectors</module>
+    <module>connector-runtime/connector-runtime-application</module>
   </modules>
 
   <dependencyManagement>
@@ -96,6 +97,7 @@
         <artifactId>connector-runtime-core</artifactId>
         <version>${project.version}</version>
       </dependency>
+
       <dependency>
         <groupId>io.camunda.connector</groupId>
         <artifactId>connector-runtime-spring</artifactId>
@@ -218,18 +220,18 @@
       </dependency>
 
       <dependency>
-        <groupId>org.jetbrains.kotlin</groupId>
-        <artifactId>kotlin-stdlib</artifactId>
-        <version>${version.kotlin}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.jetbrains.kotlin</groupId>
-        <artifactId>kotlin-stdlib-common</artifactId>
-        <version>${version.kotlin}</version>
+        <groupId>com.slack.api</groupId>
+        <artifactId>slack-api-client</artifactId>
+        <version>${version.slack}</version>
       </dependency>
       <dependency>
         <groupId>com.slack.api</groupId>
-        <artifactId>slack-api-client</artifactId>
+        <artifactId>slack-api-model</artifactId>
+        <version>${version.slack}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.slack.api</groupId>
+        <artifactId>slack-app-backend</artifactId>
         <version>${version.slack}</version>
       </dependency>
       <dependency>
@@ -260,7 +262,7 @@
       <dependency>
         <groupId>com.google.protobuf</groupId>
         <artifactId>protobuf-java</artifactId>
-        <version>3.23.2</version>
+        <version>3.23.3</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

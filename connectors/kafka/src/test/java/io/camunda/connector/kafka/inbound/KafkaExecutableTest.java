@@ -18,10 +18,13 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.gson.Gson;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.kafka.outbound.model.KafkaTopic;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
-import io.camunda.connector.test.inbound.InboundConnectorPropertiesBuilder;
+import io.camunda.connector.test.inbound.InboundConnectorDefinitionBuilder;
+import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
@@ -39,6 +42,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 public class KafkaExecutableTest {
+  private final ObjectMapper objectMapper =
+      new ObjectMapper()
+          .configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false)
+          .configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
   private InboundConnectorContextBuilder.TestInboundConnectorContext context;
   private InboundConnectorContextBuilder.TestInboundConnectorContext originalContext;
   private List<PartitionInfo> topicPartitions;
@@ -50,7 +57,7 @@ public class KafkaExecutableTest {
   private final String processId = "Process_id";
 
   @BeforeEach
-  public void setUp() {
+  public void setUp() throws Exception {
     topic = "my-topic";
     topicPartitions =
         Arrays.asList(
@@ -63,23 +70,13 @@ public class KafkaExecutableTest {
     kafkaConnectorProperties.setAutoOffsetReset(KafkaConnectorProperties.AutoOffsetReset.NONE);
     kafkaConnectorProperties.setAuthenticationType("custom");
     kafkaConnectorProperties.setTopic(kafkaTopic);
-    String jsonString =
-        "{'authenticationType':'custom', "
-            + "'topic.topicName':'"
-            + topic
-            + "',"
-            + "'topic.bootstrapServers':'localhost:9092',"
-            + "'autoOffsetReset':'none'}";
-    Gson gson = new Gson();
-    Map<String, String> propertiesMap = gson.fromJson(jsonString, Map.class);
+
     context =
         InboundConnectorContextBuilder.create()
             .secret("test", "test")
-            .propertiesAsType(kafkaConnectorProperties)
-            .properties(
-                InboundConnectorPropertiesBuilder.create()
-                    .properties(propertiesMap)
-                    .bpmnProcessId(processId))
+            .properties(kafkaConnectorProperties)
+            .definition(InboundConnectorDefinitionBuilder.create().bpmnProcessId(processId).build())
+            .validation(new DefaultValidationProvider())
             .build();
     originalContext = context;
   }
@@ -140,7 +137,6 @@ public class KafkaExecutableTest {
     // When
     Properties properties =
         KafkaPropertyTransformer.getKafkaProperties(kafkaConnectorProperties, context);
-
     // Then
     assertEquals("localhost:9092", properties.get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG));
     assertEquals(
@@ -164,7 +160,7 @@ public class KafkaExecutableTest {
 
   private static Stream<Arguments> provideStringsForGetOffsets() {
     return Stream.of(
-        Arguments.of("10", Arrays.asList(10L)),
+        Arguments.of("10", List.of(10L)),
         Arguments.of("10,12", Arrays.asList(10L, 12L)),
         Arguments.of(Arrays.asList(10L, 12L), Arrays.asList(10L, 12L)),
         Arguments.of("1,2,3,4,5", Arrays.asList(1L, 2L, 3L, 4L, 5L)));

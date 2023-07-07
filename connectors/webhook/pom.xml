@@ -27,6 +27,15 @@
 
   <dependencies>
     <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-runtime-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>javax.xml.bind</groupId>
+      <artifactId>jaxb-api</artifactId>
+      <version>${version.javax.xml.bind}</version>
+    </dependency>
+    <dependency>
       <groupId>commons-codec</groupId>
       <artifactId>commons-codec</artifactId>
       <version>${version.commons-codec}</version>

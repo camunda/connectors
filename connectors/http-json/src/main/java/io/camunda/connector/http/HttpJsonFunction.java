@@ -65,12 +65,7 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
   @Override
   public Object execute(final OutboundConnectorContext context)
       throws IOException, InstantiationException, IllegalAccessException {
-    final var json = context.getVariables();
-    final var request = gson.fromJson(json, HttpJsonRequest.class);
-
-    context.validate(request);
-    context.replaceSecrets(request);
-
+    final var request = context.bindVariables(HttpJsonRequest.class);
     return httpService.executeConnectorRequest(request);
   }
 }

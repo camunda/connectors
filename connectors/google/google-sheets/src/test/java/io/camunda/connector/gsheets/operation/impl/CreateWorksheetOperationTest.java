@@ -60,7 +60,7 @@ class CreateWorksheetOperationTest extends BaseTest {
   @Test
   void createWorksheet_shouldFormRequestWithoutIndex() throws IOException {
     // Given
-    CreateWorksheet model = new CreateWorksheet(SPREADSHEET_ID, WORKSHEET_NAME, null, null);
+    CreateWorksheet model = new CreateWorksheet(SPREADSHEET_ID, WORKSHEET_NAME, null);
 
     try (MockedStatic<GoogleSheetsServiceSupplier> mockedServiceSupplier =
         mockStatic(GoogleSheetsServiceSupplier.class)) {
@@ -94,8 +94,7 @@ class CreateWorksheetOperationTest extends BaseTest {
   @Test
   void createWorksheet_shouldFormRequestWitIndex() throws IOException {
     // Given
-    CreateWorksheet model =
-        new CreateWorksheet(SPREADSHEET_ID, WORKSHEET_NAME, WORKSHEET_INDEX, null);
+    CreateWorksheet model = new CreateWorksheet(SPREADSHEET_ID, WORKSHEET_NAME, WORKSHEET_INDEX);
 
     try (MockedStatic<GoogleSheetsServiceSupplier> mockedServiceSupplier =
         mockStatic(GoogleSheetsServiceSupplier.class)) {

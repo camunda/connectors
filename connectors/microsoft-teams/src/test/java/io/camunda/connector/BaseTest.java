@@ -8,11 +8,17 @@ package io.camunda.connector;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.readString;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.impl.ConnectorInputException;
+import io.camunda.connector.model.MSTeamsRequest;
 import io.camunda.connector.suppliers.ObjectMapperSupplier;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
+import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -83,6 +89,7 @@ public abstract class BaseTest {
       String MESSAGE_ID = "CHANNEL_MESSAGE_ID_KEY";
       String FILTER = "CHANNEL_FILTER_KEY";
       String CONTENT = "CHANNEL_MESSAGE_CONTENT_KEY";
+      String OWNER = "CHANNEL_OWNER_KEY";
     }
   }
 
@@ -98,6 +105,7 @@ public abstract class BaseTest {
         .secret(Secrets.Channel.NAME, ActualValue.Channel.NAME)
         .secret(Secrets.Channel.MESSAGE_ID, ActualValue.Channel.MESSAGE_ID)
         .secret(Secrets.Channel.FILTER, ActualValue.Channel.FILTER)
+        .secret(Secrets.Channel.OWNER, ActualValue.Channel.OWNER)
         .secret(Secrets.Channel.CONTENT, ActualValue.Channel.CONTENT)
         .secret(Secrets.Chat.CHAT_ID, ActualValue.Chat.CHAT_ID)
         .secret(Secrets.Chat.MESSAGE_ID, ActualValue.Chat.MESSAGE_ID)
@@ -190,5 +198,19 @@ public abstract class BaseTest {
               }
             })
         .map(Arguments::of);
+  }
+
+  protected static void assertValidationException(String input) {
+    OutboundConnectorContext context =
+        getContextBuilderWithSecrets()
+            .validation(new DefaultValidationProvider())
+            .variables(input)
+            .build();
+    ConnectorInputException thrown =
+        assertThrows(
+            ConnectorInputException.class,
+            () -> context.bindVariables(MSTeamsRequest.class),
+            "Exception was expected");
+    assertThat(thrown.getMessage()).contains("Found constraints violated while validating input");
   }
 }
