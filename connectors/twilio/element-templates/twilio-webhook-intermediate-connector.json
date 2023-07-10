@@ -41,6 +41,16 @@
       }
     },
     {
+      "type": "Hidden",
+      "generatedValue": {
+        "type": "uuid"
+      },
+      "binding": {
+        "type": "bpmn:Message#property",
+        "name": "name"
+      }
+    },
+    {
       "id": "webhookMethod",
       "label": "Webhook method",
       "group": "endpoint",
