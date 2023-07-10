@@ -13,24 +13,82 @@ public class FeelFunctionDeserializerTest {
       .registerModule(new JacksonModuleFeel());
 
   @Test
-  void feelFunctionDeserialization() throws JsonProcessingException {
+  void feelFunctionDeserialization_objectResult() throws JsonProcessingException {
     // given
     String json = """
-        { "concatenate": "= { result: a + b }" }
+        { "function": "= { result: a + b }" }
         """;
 
     // when
-    TargetType targetType = mapper.readValue(json, TargetType.class);
+    TargetTypeObject targetType = mapper.readValue(json, TargetTypeObject.class);
 
     // then
-    InputContext inputContext = new InputContext("foo", "bar");
-    String result = targetType.concatenate().apply(inputContext);
+    InputContextString inputContext = new InputContextString("foo", "bar");
+    Object result = targetType.function().apply(inputContext);
+    assertThat(result).isInstanceOf(OutputContext.class);
+    OutputContext outputContext = (OutputContext) result;
+    assertThat(outputContext.result).isEqualTo("foobar");
+  }
+
+  @Test
+  void feelFunctionDeserialization_stringResult() throws JsonProcessingException {
+    // given
+    String json = """
+        { "function": "= a + b" }
+        """;
+
+    // when
+    TargetTypeString targetType = mapper.readValue(json, TargetTypeString.class);
+
+    // then
+    InputContextString inputContext = new InputContextString("foo", "bar");
+    String result = targetType.function().apply(inputContext);
     assertThat(result).isEqualTo("foobar");
   }
 
-  record TargetType(Function<InputContext, String> concatenate) {}
+  @Test
+  void feelFunctionDeserialization_booleanResult() throws JsonProcessingException {
+    // given
+    String json = """
+        { "function": "= a = b" }
+        """;
 
-  record InputContext(String a, String b) {}
+    // when
+    TargetTypeBoolean targetType = mapper.readValue(json, TargetTypeBoolean.class);
+
+    // then
+    InputContextString inputContext = new InputContextString("foo", "bar");
+    Boolean result = targetType.function().apply(inputContext);
+    assertThat(result).isFalse();
+  }
+
+  @Test
+  void feelFunctionDeserialization_integerResult() throws JsonProcessingException {
+    // given
+    String json = """
+        { "function": "= a + b" }
+        """;
+
+    // when
+    TargetTypeInteger targetType = mapper.readValue(json, TargetTypeInteger.class);
+
+    // then
+    InputContextInteger inputContext = new InputContextInteger(3, 5);
+    Integer result = targetType.function().apply(inputContext);
+    assertThat(result).isEqualTo(8);
+  }
+
+  record InputContextString(String a, String b) {}
+
+  record InputContextInteger(Integer a, Integer b) {}
 
   record OutputContext(String result) {}
+
+  record TargetTypeObject(Function<InputContextString, OutputContext> function) {}
+
+  record TargetTypeString(Function<InputContextString, String> function) {}
+
+  record TargetTypeBoolean(Function<InputContextString, Boolean> function) {}
+
+  record TargetTypeInteger(Function<InputContextInteger, Integer> function) {}
 }
