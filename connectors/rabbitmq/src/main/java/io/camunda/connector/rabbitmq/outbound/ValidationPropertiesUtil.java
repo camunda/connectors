@@ -6,20 +6,21 @@
  */
 package io.camunda.connector.rabbitmq.outbound;
 
-import com.google.gson.JsonElement;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.rabbitmq.client.AMQP;
 import java.util.Arrays;
-import java.util.Map;
-import java.util.Set;
+import java.util.Iterator;
+import java.util.Map.Entry;
 
 public final class ValidationPropertiesUtil {
 
   private ValidationPropertiesUtil() {}
 
   // return the input object without changing, only validation
-  public static JsonElement validateAmqpBasicPropertiesOrThrowException(JsonElement jsonElement) {
-    Set<Map.Entry<String, JsonElement>> entries = jsonElement.getAsJsonObject().entrySet();
-    for (Map.Entry<String, JsonElement> entry : entries) {
+  public static JsonNode validateAmqpBasicPropertiesOrThrowException(JsonNode jsonElement) {
+    Iterator<Entry<String, JsonNode>> entries = jsonElement.fields();
+    while(entries.hasNext()) {
+      Entry<String, JsonNode> entry = entries.next();
       boolean fieldExist =
           Arrays.stream(AMQP.BasicProperties.class.getDeclaredFields())
               .anyMatch(f -> f.getName().equals(entry.getKey()));
