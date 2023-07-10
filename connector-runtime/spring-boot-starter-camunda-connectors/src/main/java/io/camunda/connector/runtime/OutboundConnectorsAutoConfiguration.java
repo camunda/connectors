@@ -19,6 +19,7 @@ package io.camunda.connector.runtime;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.scala.DefaultScalaModule$;
 import io.camunda.connector.api.secret.SecretProvider;
@@ -77,6 +78,7 @@ public class OutboundConnectorsAutoConfiguration {
   public ObjectMapper objectMapper() {
     var mapper = new ObjectMapper();
     mapper
+        .registerModule(new Jdk8Module())
         .registerModule(DefaultScalaModule$.MODULE$)
         .registerModule(new JavaTimeModule())
         // deserialize unknown types as empty objects
