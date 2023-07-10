@@ -19,7 +19,7 @@ public final class ValidationPropertiesUtil {
   // return the input object without changing, only validation
   public static JsonNode validateAmqpBasicPropertiesOrThrowException(JsonNode jsonElement) {
     Iterator<Entry<String, JsonNode>> entries = jsonElement.fields();
-    while(entries.hasNext()) {
+    while (entries.hasNext()) {
       Entry<String, JsonNode> entry = entries.next();
       boolean fieldExist =
           Arrays.stream(AMQP.BasicProperties.class.getDeclaredFields())

@@ -21,9 +21,10 @@ import org.slf4j.LoggerFactory;
 
 public class RabbitMqMessage {
   private static final Logger LOGGER = LoggerFactory.getLogger(RabbitMqMessage.class);
-  private static final ObjectMapper mapper = new ObjectMapper()
-      .findAndRegisterModules()
-      .configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false);
+  private static final ObjectMapper mapper =
+      new ObjectMapper()
+          .findAndRegisterModules()
+          .configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false);
 
   private Object properties;
   @NotNull private Object body;
@@ -32,17 +33,14 @@ public class RabbitMqMessage {
     return Optional.ofNullable(properties)
         .map(properties -> mapper.convertValue(properties, JsonNode.class))
         .map(ValidationPropertiesUtil::validateAmqpBasicPropertiesOrThrowException)
-        .map(
-            jsonProperties ->
-                mapper.convertValue(jsonProperties, AMQP.BasicProperties.class))
+        .map(jsonProperties -> mapper.convertValue(jsonProperties, AMQP.BasicProperties.class))
         .orElse(null);
   }
 
   public byte[] getBodyAsByteArray() {
     if (body instanceof String) {
       try {
-        JsonNode jsonElement =
-            mapper.readTree(StringEscapeUtils.unescapeJson(body.toString()));
+        JsonNode jsonElement = mapper.readTree(StringEscapeUtils.unescapeJson(body.toString()));
 
         if (jsonElement.isValueNode()) {
           return ((String) body).getBytes();
@@ -57,13 +55,14 @@ public class RabbitMqMessage {
     }
 
     return Optional.of(body)
-        .map(body -> {
-          try {
-            return mapper.writeValueAsString(body);
-          } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-          }
-        })
+        .map(
+            body -> {
+              try {
+                return mapper.writeValueAsString(body);
+              } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+              }
+            })
         .map(StringEscapeUtils::unescapeJson)
         .map(String::getBytes)
         .orElseThrow(() -> new RuntimeException("Parse error to byte array"));
