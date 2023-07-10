@@ -51,7 +51,7 @@ public class JobHandlerContext extends AbstractConnectorContext
   }
 
   @Override
-  public Map<String, String> getCustomerHeaders() {
+  public Map<String, String> getCustomHeaders() {
     return job.getCustomHeaders();
   }
 
