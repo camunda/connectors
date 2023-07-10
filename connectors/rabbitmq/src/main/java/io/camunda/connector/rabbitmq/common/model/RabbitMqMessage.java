@@ -6,12 +6,12 @@
  */
 package io.camunda.connector.rabbitmq.common.model;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonSyntaxException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.AMQP;
-import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.rabbitmq.outbound.ValidationPropertiesUtil;
-import io.camunda.connector.rabbitmq.supplier.GsonSupplier;
 import java.util.Objects;
 import java.util.Optional;
 import javax.validation.constraints.NotNull;
@@ -21,31 +21,33 @@ import org.slf4j.LoggerFactory;
 
 public class RabbitMqMessage {
   private static final Logger LOGGER = LoggerFactory.getLogger(RabbitMqMessage.class);
-  @Secret private Object properties;
-  @NotNull @Secret private Object body;
+  private static final ObjectMapper mapper =
+      new ObjectMapper()
+          .findAndRegisterModules()
+          .configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false);
+
+  private Object properties;
+  @NotNull private Object body;
 
   public AMQP.BasicProperties getPropertiesAsAmqpBasicProperties() {
     return Optional.ofNullable(properties)
-        .map(GsonSupplier.gson()::toJsonTree)
+        .map(properties -> mapper.convertValue(properties, JsonNode.class))
         .map(ValidationPropertiesUtil::validateAmqpBasicPropertiesOrThrowException)
-        .map(
-            jsonProperties ->
-                GsonSupplier.gson().fromJson(jsonProperties, AMQP.BasicProperties.class))
+        .map(jsonProperties -> mapper.convertValue(jsonProperties, AMQP.BasicProperties.class))
         .orElse(null);
   }
 
   public byte[] getBodyAsByteArray() {
     if (body instanceof String) {
       try {
-        JsonElement jsonElement =
-            GsonSupplier.gson()
-                .fromJson(StringEscapeUtils.unescapeJson(body.toString()), JsonElement.class);
-        if (jsonElement.isJsonPrimitive()) {
+        JsonNode jsonElement = mapper.readTree(StringEscapeUtils.unescapeJson(body.toString()));
+
+        if (jsonElement.isValueNode()) {
           return ((String) body).getBytes();
         } else {
           body = jsonElement;
         }
-      } catch (JsonSyntaxException e) {
+      } catch (JsonProcessingException e) {
         // this is plain text value, and not JSON. For example, "some input text".
         LOGGER.debug("Expected exception when parsing a plain text value : {}", body, e);
         return body.toString().getBytes();
@@ -53,7 +55,14 @@ public class RabbitMqMessage {
     }
 
     return Optional.of(body)
-        .map(GsonSupplier.gson()::toJson)
+        .map(
+            body -> {
+              try {
+                return mapper.writeValueAsString(body);
+              } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+              }
+            })
         .map(StringEscapeUtils::unescapeJson)
         .map(String::getBytes)
         .orElseThrow(() -> new RuntimeException("Parse error to byte array"));

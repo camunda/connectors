@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.rabbitmq.outbound.model;
 
-import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.rabbitmq.common.model.RabbitMqAuthentication;
 import io.camunda.connector.rabbitmq.common.model.RabbitMqAuthenticationType;
 import io.camunda.connector.rabbitmq.common.model.RabbitMqMessage;
@@ -17,9 +16,9 @@ import javax.validation.constraints.NotNull;
 
 public class RabbitMqRequest {
 
-  @Valid @NotNull @Secret private RabbitMqAuthentication authentication;
-  @Valid @NotNull @Secret private RabbitMqOutboundRouting routing;
-  @Valid @NotNull @Secret private RabbitMqMessage message;
+  @Valid @NotNull private RabbitMqAuthentication authentication;
+  @Valid @NotNull private RabbitMqOutboundRouting routing;
+  @Valid @NotNull private RabbitMqMessage message;
 
   @AssertFalse
   private boolean isRoutingParamsNotFilling() {
