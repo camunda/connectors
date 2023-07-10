@@ -64,11 +64,7 @@ public class JobHandlerContext extends AbstractConnectorContext
 
   private String getJsonReplacedWithSecrets() {
     if (jsonWithSecrets == null) {
-      try {
-        jsonWithSecrets = getSecretHandler().replaceSecrets(job.getVariables());
-      } catch (Exception e) {
-        throw new ConnectorException("SECRET_MAPPING", "Error during secret mapping.");
-      }
+      jsonWithSecrets = getSecretHandler().replaceSecrets(job.getVariables());
     }
     return jsonWithSecrets;
   }
