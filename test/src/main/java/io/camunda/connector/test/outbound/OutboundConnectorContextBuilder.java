@@ -123,7 +123,7 @@ public class OutboundConnectorContextBuilder {
     }
 
     @Override
-    public Map<String, String> getCustomerHeaders() {
+    public Map<String, String> getCustomHeaders() {
       return headers;
     }
 
