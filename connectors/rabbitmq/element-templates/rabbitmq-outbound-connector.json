@@ -218,7 +218,7 @@
       "group": "message",
       "type": "Text",
       "feel": "required",
-      "value": "{}",
+      "value": "={}",
       "binding": {
         "type": "zeebe:input",
         "name": "message.properties"
