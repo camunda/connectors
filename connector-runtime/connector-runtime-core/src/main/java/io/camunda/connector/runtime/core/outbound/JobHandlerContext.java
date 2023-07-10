@@ -70,8 +70,9 @@ public class JobHandlerContext extends AbstractConnectorContext
   }
 
   private <T> T mapJson(String json, Class<T> cls) {
+    var jsonWithSecrets = getJsonReplacedWithSecrets();
     try {
-      return objectMapper.readValue(getJsonReplacedWithSecrets(), cls);
+      return objectMapper.readValue(jsonWithSecrets, cls);
     } catch (Exception e) {
       throw new ConnectorException("JSON_MAPPING", "Error during json mapping.");
     }
