@@ -29,7 +29,7 @@ public interface OutboundConnectorContext {
    *
    * @return job headers.
    */
-  Map<String, String> getCustomerHeaders();
+  Map<String, String> getCustomHeaders();
 
   /**
    * Low-level variable access. For a more convenient access, use {@link #bindVariables(Class)}.
