@@ -57,6 +57,15 @@ except in compliance with the proprietary license.</license.inlineheader>
       <artifactId>kafka</artifactId>
       <version>${version.testcontainers}</version>
     </dependency>
+    <dependency>
+      <groupId>org.skyscreamer</groupId>
+      <artifactId>jsonassert</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.module</groupId>
+      <artifactId>jackson-module-scala_3</artifactId>
+    </dependency>
   </dependencies>
 
 </project>
