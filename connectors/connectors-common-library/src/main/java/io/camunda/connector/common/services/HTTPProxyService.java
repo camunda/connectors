@@ -18,6 +18,10 @@ package io.camunda.connector.common.services;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.module.scala.DefaultScalaModule$;
 import com.google.api.client.http.AbstractHttpContent;
 import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.HttpContent;
@@ -38,7 +42,13 @@ public final class HTTPProxyService {
   private static final Logger LOG = LoggerFactory.getLogger(HTTPProxyService.class);
 
   private static final ObjectMapper objectMapper =
-      new ObjectMapper().configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false);
+      new ObjectMapper()
+          .registerModule(new Jdk8Module())
+          .registerModule(DefaultScalaModule$.MODULE$)
+          .registerModule(new JavaTimeModule())
+          // deserialize unknown types as empty objects
+          .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
+          .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
   public static HttpRequest toRequestViaProxy(
       final HttpRequestFactory requestFactory,
