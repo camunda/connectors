@@ -60,5 +60,34 @@
         }
       }
     }
+  },
+  {
+    "authentication": {
+      "authType": "refresh",
+      "oauthClientId": "secrets.MyOauthClient",
+      "oauthClientSecret": "secrets.MyOauthSecret",
+      "oauthRefreshToken": "secrets.MyOauthRefresh"
+    },
+    "resource": {
+      "type":"file",
+      "parent":"optional my idFolderParent",
+      "name":"MyNewFile",
+      "template":{
+        "id":"121J6hMy-4ffHhXl5egwIhCsznS3mXWm",
+        "variables":{
+          "requests":[
+            {
+              "replaceAllText":{
+                "replaceText":"2022-08-03",
+                "containsText":{
+                  "matchCase":"true",
+                  "text":"{{recordDate}}"
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
   }
 ]

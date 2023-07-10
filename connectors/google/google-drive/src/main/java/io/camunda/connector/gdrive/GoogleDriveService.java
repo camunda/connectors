@@ -86,9 +86,9 @@ public class GoogleDriveService {
   }
 
   private File createMetaDataFile(final Resource resource) {
-    File file = null;
+    File file;
     if (resource.getAdditionalGoogleDriveProperties() == null) {
-      new File();
+      file = new File();
     } else {
       file = mapJsonToFile(resource.getAdditionalGoogleDriveProperties().toString());
     }
