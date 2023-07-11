@@ -25,7 +25,7 @@ import java.util.regex.Pattern;
 public class SecretUtil {
 
   private static final Pattern SECRET_PATTERN_SECRETS =
-      Pattern.compile("secrets\\.(?<secret>[a-zA-Z_]*)");
+      Pattern.compile("secrets\\.(?<secret>[a-zA-Z_-]*)");
 
   private static final Pattern SECRET_PATTERN_PARENTHESES =
       Pattern.compile("\\{\\{\\s*secrets\\.(?<secret>\\S+?\\s*)}}");
