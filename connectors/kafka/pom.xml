@@ -31,10 +31,6 @@ except in compliance with the proprietary license.</license.inlineheader>
   </properties>
 
   <dependencies>
-    <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-databind</artifactId>
-    </dependency>
 
     <dependency>
       <groupId>org.apache.kafka</groupId>
@@ -61,10 +57,6 @@ except in compliance with the proprietary license.</license.inlineheader>
       <groupId>org.skyscreamer</groupId>
       <artifactId>jsonassert</artifactId>
       <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.fasterxml.jackson.module</groupId>
-      <artifactId>jackson-module-scala_3</artifactId>
     </dependency>
   </dependencies>
 

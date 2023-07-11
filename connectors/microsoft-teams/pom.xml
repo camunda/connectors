@@ -24,7 +24,6 @@
   </licenses>
 
   <dependencies>
-
     <dependency>
       <groupId>com.microsoft.graph</groupId>
       <artifactId>microsoft-graph</artifactId>
