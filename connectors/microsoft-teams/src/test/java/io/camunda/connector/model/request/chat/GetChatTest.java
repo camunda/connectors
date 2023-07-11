@@ -64,9 +64,10 @@ class GetChatTest extends BaseTest {
     String chatStringResponse =
         "{\"oDataType\":null,\"id\":\"19:e37f90808e7748d7bbbb2029ed17f643@thread.v2\",\"chatType\":\"GROUP\",\"members\":null,\"messages\":null}";
 
-    ObjectMapper objectMapper = new ObjectMapper()
-        .registerModule(new JavaTimeModule())
-        .registerModule(DefaultScalaModule$.MODULE$);
+    ObjectMapper objectMapper =
+        new ObjectMapper()
+            .registerModule(new JavaTimeModule())
+            .registerModule(DefaultScalaModule$.MODULE$);
     Chat chat = objectMapper.readValue(chatStringResponse, Chat.class);
 
     when(graphServiceClient.chats(ActualValue.Chat.CHAT_ID)).thenReturn(chatRequestBuilder);
