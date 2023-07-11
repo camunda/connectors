@@ -9,6 +9,7 @@ package io.camunda.connector.awslambda.model;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.amazonaws.services.lambda.model.InvokeResult;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.awslambda.BaseTest;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -24,7 +25,7 @@ class AwsLambdaResultTest extends BaseTest {
     "400,$LATEST,{\"!@#$%^&*\":\"!@#$%^&*\"}"
   })
   public void newAwsLambdaResult_shouldReturnResultWithCorrectData(
-      Integer statusCode, String version, String payload) {
+      Integer statusCode, String version, String payload) throws JsonProcessingException {
     // Given invoke result from aws lambda client
     ByteBuffer wrap = ByteBuffer.wrap(payload.getBytes(StandardCharsets.UTF_8));
     InvokeResult invokeResult =
@@ -39,6 +40,6 @@ class AwsLambdaResultTest extends BaseTest {
     assertThat(awsLambdaResult.getStatusCode()).isEqualTo(statusCode);
     assertThat(awsLambdaResult.getExecutedVersion()).isEqualTo(version);
     assertThat(awsLambdaResult.getPayload())
-        .isEqualTo(objectMapper.convertValue(payload, Object.class));
+        .isEqualTo(objectMapper.readValue(payload, Object.class));
   }
 }
