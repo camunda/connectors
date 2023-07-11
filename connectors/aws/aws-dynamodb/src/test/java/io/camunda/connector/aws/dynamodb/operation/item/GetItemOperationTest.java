@@ -95,6 +95,6 @@ class GetItemOperationTest extends BaseDynamoDbOperationTest {
     GetItem castedRequest = (GetItem) request;
     assertThat(castedRequest.getTableName()).isEqualTo(TestDynamoDBData.ActualValue.TABLE_NAME);
     assertThat(castedRequest.getPrimaryKeyComponents())
-        .isEqualTo(objectMapper.readValue("{\"id\":\"1234\"}", Object.class));
+        .isEqualTo(objectMapper.readValue("{\"id\":\"1234\"}", Map.class));
   }
 }
