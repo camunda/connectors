@@ -23,7 +23,7 @@ This project incorporates components with the licenses under which Camunda recei
   * com.google.guava:guava (Version: 32.0.1-jre, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * com.google.guava:listenablefuture (Version: 9999.0-empty-to-avoid-conflict-with-guava, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * com.google.j2objc:j2objc-annotations (Version: 2.8, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
-  * com.google.protobuf:protobuf-java (Version: 3.23.3, License: BSD-3-Clause (URL: https://opensource.org/licenses/BSD-3-Clause))
+  * com.google.protobuf:protobuf-java (Version: 3.23.4, License: BSD-3-Clause (URL: https://opensource.org/licenses/BSD-3-Clause))
   * com.lihaoyi:fastparse_2.13 (Version: 2.3.3, License: MIT (URL: https://opensource.org/licenses/MIT))
   * com.lihaoyi:geny_2.13 (Version: 0.6.10, License: MIT (URL: https://opensource.org/licenses/MIT))
   * com.lihaoyi:sourcecode_2.13 (Version: 0.2.3, License: MIT (URL: https://opensource.org/licenses/MIT))
