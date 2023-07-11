@@ -15,12 +15,13 @@ import com.fasterxml.jackson.module.scala.DefaultScalaModule$;
 
 public final class ObjectMapperSupplier {
 
-  private static final ObjectMapper MAPPER = new ObjectMapper()
-      .registerModule(new Jdk8Module())
-      .registerModule(DefaultScalaModule$.MODULE$)
-      .registerModule(new JavaTimeModule())
-      .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
-      .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+  private static final ObjectMapper MAPPER =
+      new ObjectMapper()
+          .registerModule(new Jdk8Module())
+          .registerModule(DefaultScalaModule$.MODULE$)
+          .registerModule(new JavaTimeModule())
+          .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
+          .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
   private ObjectMapperSupplier() {}
 
