@@ -8,6 +8,7 @@ package io.camunda.connector.awslambda.model;
 
 import com.amazonaws.services.lambda.model.InvokeResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
 
 public class AwsLambdaResult {
 
@@ -18,8 +19,11 @@ public class AwsLambdaResult {
   public AwsLambdaResult(final InvokeResult invokeResult, final ObjectMapper objectMapper) {
     this.statusCode = invokeResult.getStatusCode();
     this.executedVersion = invokeResult.getExecutedVersion();
-    this.payload =
-        objectMapper.convertValue(new String(invokeResult.getPayload().array()), Object.class);
+    try {
+      this.payload = objectMapper.readValue(invokeResult.getPayload().array(), Object.class);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   public Integer getStatusCode() {

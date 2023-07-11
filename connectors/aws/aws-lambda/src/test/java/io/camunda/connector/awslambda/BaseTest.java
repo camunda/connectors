@@ -9,6 +9,7 @@ package io.camunda.connector.awslambda;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.readString;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -38,9 +39,16 @@ public abstract class BaseTest {
   protected static final String FUNCTION_NAME_KEY = "FUNCTION_NAME";
 
   protected static final String ACTUAL_STRING_PAYLOAD = "{\"event\":{\"key\":\"value\"}}";
-  protected static final Object ACTUAL_PAYLOAD =
-      objectMapper.convertValue(
-          ACTUAL_STRING_PAYLOAD, Object.class); // toObject(ACTUAL_STRING_PAYLOAD);
+  protected static final Object ACTUAL_PAYLOAD; // toObject(ACTUAL_STRING_PAYLOAD);
+
+  static {
+    try {
+      ACTUAL_PAYLOAD = objectMapper.readValue(ACTUAL_STRING_PAYLOAD, Object.class);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   protected static final ByteBuffer ACTUAL_BYTEBUFFER_PAYLOAD =
       ByteBuffer.wrap(ACTUAL_STRING_PAYLOAD.getBytes(StandardCharsets.UTF_8));
 
