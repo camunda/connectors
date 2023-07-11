@@ -118,6 +118,7 @@
     {
       "description": "Backwards compatible region",
       "type": "Hidden",
+      "value": "=configuration.region",
       "binding": {
         "type": "zeebe:property",
         "name": "queue.region"
