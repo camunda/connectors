@@ -100,7 +100,7 @@ The docker image contains Connectors licensed under [Camunda Platform Self-Manag
 [graphql connector]: ../connectors/graphql
 [rabbitmq connector]: ../connectors/rabbitmq
 [kafka connector]: ../connectors/kafka
-[connector runtime]: https://github.com/camunda/connector-runtime-docker
+[connector runtime]: https://github.com/camunda/connectors-bundle/tree/main/connector-runtime
 [sendgrid connector]: ../connectors/sendgrid
 [slack connector]: ../connectors/slack
 [ms teams connector]: ../connectors/microsoft-teams
