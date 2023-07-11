@@ -21,6 +21,8 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.camunda.connector.kafka.outbound.model.KafkaTopic;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
 import io.camunda.connector.test.inbound.InboundConnectorDefinitionBuilder;
@@ -145,7 +147,13 @@ public class KafkaExecutableTest {
         DEFAULT_KEY_DESERIALIZER, properties.get(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG));
     assertEquals(false, properties.get(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG));
     assertEquals(
-        "kafka-inbound-connector-" + processId, properties.get(ConsumerConfig.GROUP_ID_CONFIG));
+        "kafka-inbound-connector-"
+            + context.getDefinition().bpmnProcessId()
+            + "-"
+            + context.getDefinition().elementId()
+            + "-"
+            + context.getDefinition().processDefinitionKey(),
+        properties.get(ConsumerConfig.GROUP_ID_CONFIG));
   }
 
   @ParameterizedTest
@@ -176,8 +184,8 @@ public class KafkaExecutableTest {
     // Then
     assertEquals("my-key", kafkaInboundMessage.getKey());
     assertEquals("{\"foo\": \"bar\"}", kafkaInboundMessage.getRawValue());
-    Map<String, Object> expectedValue = new HashMap<>();
-    expectedValue.put("foo", "bar");
+    ObjectNode expectedValue = JsonNodeFactory.instance.objectNode();
+    expectedValue.set("foo", JsonNodeFactory.instance.textNode("bar"));
     assertEquals(expectedValue, kafkaInboundMessage.getValue());
   }
 

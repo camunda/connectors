@@ -75,14 +75,19 @@ public class KafkaPropertyTransformer {
     connectorRequest.setAdditionalProperties(props.getAdditionalProperties());
     final Properties kafkaProps = connectorRequest.assembleKafkaClientProperties();
     if (kafkaProps.getProperty(ConsumerConfig.GROUP_ID_CONFIG) == null) {
-      kafkaProps.put(
-          ConsumerConfig.GROUP_ID_CONFIG,
+      var groupIdConfig =
           DEFAULT_GROUP_ID_PREFIX
               + "-"
-              + context
-                  .getDefinition()
-                  .bpmnProcessId()); // GROUP_ID_CONFIG is mandatory. It will be used to assign a
-      // clint id
+              + context.getDefinition().bpmnProcessId()
+              + "-"
+              + context.getDefinition().elementId()
+              + "-"
+              + context.getDefinition().processDefinitionKey();
+      var limitedGroupIdConfig = groupIdConfig.substring(0, Math.min(groupIdConfig.length(), 250));
+      kafkaProps.put(
+          ConsumerConfig.GROUP_ID_CONFIG,
+          limitedGroupIdConfig); // GROUP_ID_CONFIG is mandatory. It will be used to assign a
+      // client id
     }
     kafkaProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, props.getAutoOffsetReset().toString());
     kafkaProps.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
@@ -100,8 +105,7 @@ public class KafkaPropertyTransformer {
     try {
       var json = StringEscapeUtils.unescapeJson(consumerRecord.value());
       var jsonNode = objectMapper.readTree(json);
-      var value = objectMapper.convertValue(jsonNode, Object.class);
-      kafkaInboundMessage.setValue(value);
+      kafkaInboundMessage.setValue(jsonNode);
     } catch (Exception e) {
       LOG.debug("Cannot parse value to json object -> use the raw value");
       kafkaInboundMessage.setValue(kafkaInboundMessage.getRawValue());

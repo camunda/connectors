@@ -93,15 +93,22 @@ class KafkaConnectorFunctionTest {
 
     var request = ctx.bindVariables(KafkaConnectorRequest.class);
 
+    String transformedValue =
+        request.getMessage().getValue() instanceof String
+            ? (String) request.getMessage().getValue()
+            : objectMapper.writeValueAsString(request.getMessage().getValue());
+
     // then
     // Testing records are equal
     Mockito.verify(producer).send(producerRecordCaptor.capture());
     ProducerRecord recordActual = producerRecordCaptor.getValue();
+    String expectedValue =
+        request.getMessage().getValue() instanceof String
+            ? (String) request.getMessage().getValue()
+            : objectMapper.writeValueAsString(request.getMessage().getValue());
     ProducerRecord recordExpected =
         new ProducerRecord(
-            request.getTopic().getTopicName(),
-            request.getMessage().getKey(),
-            request.getMessage().getValue());
+            request.getTopic().getTopicName(), request.getMessage().getKey(), expectedValue);
     assertThat(recordActual.toString()).isEqualTo(recordExpected.toString());
 
     // Testing secrets updated
