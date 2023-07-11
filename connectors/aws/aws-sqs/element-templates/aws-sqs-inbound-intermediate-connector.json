@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Amazon SQS connector",
   "id": "io.camunda.connectors.AWSSQS.intermediate.v1",
-  "version": 3,
+  "version": 4,
   "description": "Receive message from a queue",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-sqs-inbound/",
   "appliesTo": [
@@ -89,15 +89,6 @@
       }
     },
     {
-      "type": "Hidden",
-      "description": "This value forces to evaluate configuration first in order",
-      "value": "nonce",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "configuration.nonce"
-      }
-    },
-    {
       "label": "Queue URL",
       "description": "Specify the URL of the SQS queue where you would like to send message to",
       "group": "queueProperties",
@@ -125,15 +116,6 @@
       },
       "constraints": {
         "notEmpty": true
-      }
-    },
-    {
-      "description": "Backwards compatible region",
-      "type": "Hidden",
-      "value": "=configuration.region",
-      "binding": {
-        "type": "zeebe:property",
-        "name": "queue.region"
       }
     },
     {
