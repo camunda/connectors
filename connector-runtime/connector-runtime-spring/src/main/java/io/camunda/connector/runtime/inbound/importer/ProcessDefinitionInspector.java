@@ -105,7 +105,8 @@ public class ProcessDefinitionInspector {
             .filter(
                 element -> {
                   Map<String, String> zeebeProperties = getRawProperties(element);
-                  if (zeebeProperties != null && zeebeProperties.get(Keywords.INBOUND_TYPE_KEYWORD) != null) {
+                  if (zeebeProperties != null
+                      && zeebeProperties.get(Keywords.INBOUND_TYPE_KEYWORD) != null) {
                     return true;
                   }
                   return false;
