@@ -40,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,8 +80,19 @@ public class ProcessDefinitionInspector {
 
     var connectorDefinitions =
         processes.stream()
-            .flatMap(process -> inspectBpmnProcess(process, processDefinition).stream())
-            .collect(Collectors.groupingBy(InboundConnectorDefinition::correlationPoint));
+            .flatMap(process -> {
+              try {
+                return inspectBpmnProcess(process, processDefinition).stream();
+              } catch (Exception e) {
+                LOG.warn(
+                    "Failed to inspect process definition "
+                        + processDefinition
+                        + " for connectors. It will be ignored",
+                    e);
+                return Stream.of();
+              }
+            }
+            ).collect(Collectors.groupingBy(InboundConnectorDefinition::correlationPoint));
 
     return connectorDefinitions.entrySet().stream()
         .map(
@@ -107,28 +119,32 @@ public class ProcessDefinitionInspector {
     List<InboundConnectorDefinitionImpl> discoveredConnectors = new ArrayList<>();
 
     for (BaseElement element : inboundEligibleElements) {
-      Optional<ProcessCorrelationPoint> maybeTarget = handleElement(element, process, definition);
-      if (maybeTarget.isEmpty()) {
-        continue;
+      try {
+        Optional<ProcessCorrelationPoint> maybeTarget = handleElement(element, process, definition);
+        if (maybeTarget.isEmpty()) {
+          continue;
+        }
+        ProcessCorrelationPoint target = maybeTarget.get();
+
+        var rawProperties = getRawProperties(element);
+        if (rawProperties == null || !rawProperties.containsKey(Keywords.INBOUND_TYPE_KEYWORD)) {
+          LOG.debug("Not a connector: " + element.getId());
+          continue;
+        }
+
+        InboundConnectorDefinitionImpl def =
+            new InboundConnectorDefinitionImpl(
+                rawProperties,
+                target,
+                process.getId(),
+                definition.getVersion().intValue(),
+                definition.getKey(),
+                element.getId());
+
+        discoveredConnectors.add(def);
+      } catch (Exception e) {
+        LOG.warn("Failed to inspect element " + element.getId() + " for connectors", e);
       }
-      ProcessCorrelationPoint target = maybeTarget.get();
-
-      var rawProperties = getRawProperties(element);
-      if (rawProperties == null || !rawProperties.containsKey(Keywords.INBOUND_TYPE_KEYWORD)) {
-        LOG.debug("Not a connector: " + element.getId());
-        continue;
-      }
-
-      InboundConnectorDefinitionImpl def =
-          new InboundConnectorDefinitionImpl(
-              rawProperties,
-              target,
-              process.getId(),
-              definition.getVersion().intValue(),
-              definition.getKey(),
-              element.getId());
-
-      discoveredConnectors.add(def);
     }
     return discoveredConnectors;
   }
