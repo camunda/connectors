@@ -102,16 +102,25 @@ public class ProcessDefinitionInspector {
     List<BaseElement> inboundEligibleElements =
         INBOUND_ELIGIBLE_TYPES.stream()
             .flatMap(type -> process.getChildElementsByType(type).stream())
+            .filter(
+                element -> {
+                  Map<String, String> zeebeProperties = getRawProperties(element);
+                  if (zeebeProperties != null && zeebeProperties.get("inbound.type") != null) {
+                    return true;
+                  }
+                  return false;
+                })
             .collect(Collectors.toList());
 
-    List<InboundConnectorDefinitionImpl> discoveredConnectors = new ArrayList<>();
+    List<InboundConnectorDefinitionImpl> discoveredInboundConnectors = new ArrayList<>();
 
     for (BaseElement element : inboundEligibleElements) {
-      Optional<ProcessCorrelationPoint> maybeTarget = handleElement(element, process, definition);
-      if (maybeTarget.isEmpty()) {
+      Optional<ProcessCorrelationPoint> optionalTarget =
+          getCorrelationPointForElement(element, process, definition);
+      if (optionalTarget.isEmpty()) {
         continue;
       }
-      ProcessCorrelationPoint target = maybeTarget.get();
+      ProcessCorrelationPoint target = optionalTarget.get();
 
       var rawProperties = getRawProperties(element);
       if (rawProperties == null || !rawProperties.containsKey(Keywords.INBOUND_TYPE_KEYWORD)) {
@@ -128,26 +137,26 @@ public class ProcessDefinitionInspector {
               definition.getKey(),
               element.getId());
 
-      discoveredConnectors.add(def);
+      discoveredInboundConnectors.add(def);
     }
-    return discoveredConnectors;
+    return discoveredInboundConnectors;
   }
 
-  private Optional<ProcessCorrelationPoint> handleElement(
+  private Optional<ProcessCorrelationPoint> getCorrelationPointForElement(
       BaseElement element, Process process, ProcessDefinition definition) {
 
     if (element instanceof StartEvent) {
-      return handleStartEvent(process, definition);
+      return getCorrelationPointForStartEvent(process, definition);
     } else if (element instanceof IntermediateCatchEvent) {
-      return handleIntermediateCatchEvent((IntermediateCatchEvent) element);
+      return getCorrelationPointForIntermediateCatchEvent((IntermediateCatchEvent) element);
     } else if (element instanceof ReceiveTask) {
-      return handleReceiveTask((ReceiveTask) element);
+      return getCorrelationPointForReceiveTask((ReceiveTask) element);
     }
     LOG.warn("Unsupported Inbound element type: " + element.getClass());
     return Optional.empty();
   }
 
-  private Optional<ProcessCorrelationPoint> handleIntermediateCatchEvent(
+  private Optional<ProcessCorrelationPoint> getCorrelationPointForIntermediateCatchEvent(
       IntermediateCatchEvent catchEvent) {
 
     MessageEventDefinition msgDef =
@@ -169,7 +178,7 @@ public class ProcessDefinitionInspector {
     return Optional.of(new MessageCorrelationPoint(name, correlationKeyExpression));
   }
 
-  private Optional<ProcessCorrelationPoint> handleStartEvent(
+  private Optional<ProcessCorrelationPoint> getCorrelationPointForStartEvent(
       Process process, ProcessDefinition definition) {
 
     return Optional.of(
@@ -177,7 +186,8 @@ public class ProcessDefinitionInspector {
             process.getId(), definition.getVersion().intValue(), definition.getKey()));
   }
 
-  private Optional<ProcessCorrelationPoint> handleReceiveTask(ReceiveTask receiveTask) {
+  private Optional<ProcessCorrelationPoint> getCorrelationPointForReceiveTask(
+      ReceiveTask receiveTask) {
     Message message = receiveTask.getMessage();
     String correlationKeyExpression =
         extractRequiredProperty(receiveTask, Keywords.CORRELATION_KEY_EXPRESSION_KEYWORD);
