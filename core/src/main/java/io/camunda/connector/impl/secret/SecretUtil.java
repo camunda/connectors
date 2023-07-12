@@ -25,7 +25,7 @@ import java.util.regex.Pattern;
 public class SecretUtil {
 
   private static final Pattern SECRET_PATTERN_SECRETS =
-      Pattern.compile("secrets\\.(?<secret>[a-zA-Z_-]*)");
+      Pattern.compile("secrets\\.(?<secret>([a-zA-Z0-9]+[\\/._-])*[a-zA-Z0-9]+)");
 
   private static final Pattern SECRET_PATTERN_PARENTHESES =
       Pattern.compile("\\{\\{\\s*secrets\\.(?<secret>\\S+?\\s*)}}");
@@ -67,11 +67,16 @@ public class SecretUtil {
 
   private static String resolveSecretValue(
       Function<String, String> secretReplacer, Matcher matcher) {
-    var result = secretReplacer.apply(matcher.group("secret").trim());
-    if (result != null) {
-      return result;
+    var secretName = matcher.group("secret").trim();
+    if (!secretName.isBlank() && !secretName.isEmpty()) {
+      var result = secretReplacer.apply(secretName);
+      if (result != null) {
+        return result;
+      } else {
+        return matcher.group();
+      }
     } else {
-      return matcher.group();
+      return null;
     }
   }
 }
