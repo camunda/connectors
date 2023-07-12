@@ -20,6 +20,8 @@ import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.Consumer;
@@ -35,6 +37,8 @@ public class KafkaConnectorConsumer {
   private static final Logger LOG = LoggerFactory.getLogger(KafkaConnectorConsumer.class);
 
   private final InboundConnectorContext context;
+
+  private ExecutorService executorService;
 
   public CompletableFuture<?> future;
 
@@ -53,11 +57,12 @@ public class KafkaConnectorConsumer {
     this.consumerCreatorFunction = consumerCreatorFunction;
     this.context = connectorContext;
     this.elementProps = elementProps;
+    this.executorService = Executors.newSingleThreadExecutor();
   }
 
   public void startConsumer() {
     this.future =
-        CompletableFuture.supplyAsync(
+        CompletableFuture.runAsync(
             () -> {
               try {
                 this.consumer =
@@ -91,8 +96,8 @@ public class KafkaConnectorConsumer {
                 throw ex;
               }
               LOG.debug("Kafka inbound loop finished");
-              return null;
-            });
+            },
+            this.executorService);
   }
 
   private void handleMessage(ConsumerRecord<String, String> record) {
@@ -112,6 +117,9 @@ public class KafkaConnectorConsumer {
       this.future.get();
     }
     this.consumer.close();
+    if (this.executorService != null) {
+      this.executorService.shutdownNow();
+    }
   }
 
   private Consumer<String, String> createConsumer(
