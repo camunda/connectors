@@ -55,7 +55,7 @@ public class FeelParserWrapper {
     }
   }
 
-  private static boolean isFeelExpression(String value) {
+  public static boolean isFeelExpression(String value) {
     return value.startsWith("=");
   }
 

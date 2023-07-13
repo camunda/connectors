@@ -10,11 +10,14 @@ import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.di
 
 import io.camunda.connector.inbound.utils.HttpMethods;
 import io.camunda.connector.inbound.utils.ObjectMapperSupplier;
+import io.camunda.connector.runtime.core.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.core.feel.FeelParserWrapper;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 
 public class WebhookConnectorProperties {
 
@@ -29,12 +32,27 @@ public class WebhookConnectorProperties {
   private String hmacAlgorithm;
   private HMACScope[] hmacScopes;
 
+  public enum AuthorizationType {
+    NONE,
+    JWT
+  }
+
+  private AuthorizationType authorizationType;
+  private String jwkUrl;
+  private Function<Object, List<String>>
+      jwtRoleExpression; // e.g.: if admin = true then ["admin"] else roles
+  private List<String> requiredPermissions;
+
+  private FeelEngineWrapper feelEngine;
+
   public WebhookConnectorProperties(Map<String, Object> properties) {
 
     // properties contain structure like
     // { "inbound": { "context": "myContext", "method": "POST" } }
     // TODO: Rename properties to avoid this mess. This will require a new version of the connector.
     genericProperties = (Map<String, Object>) properties.get("inbound");
+
+    this.feelEngine = new FeelEngineWrapper();
 
     this.context = readPropertyRequired("context");
 
@@ -51,6 +69,15 @@ public class WebhookConnectorProperties {
     this.hmacScopes =
         readPropertyAsTypeWithDefault(
             "hmacScopes", HMACScope[].class, new HMACScope[] {HMACScope.BODY});
+
+    this.authorizationType =
+        AuthorizationType.valueOf(
+            Optional.ofNullable(readPropertyNullable("authorizationType"))
+                .orElse(AuthorizationType.NONE.toString()));
+    this.jwkUrl = readPropertyNullable("jwt.jwkUrl");
+    this.jwtRoleExpression = readFeelFunctionPropertyNullable("jwt.jwtRoleExpression");
+    this.requiredPermissions =
+        (List<String>) readParsedFeelObjectPropertyNullable("jwt.requiredPermissions");
   }
 
   protected <T> T readPropertyAsTypeWithDefault(
@@ -74,6 +101,22 @@ public class WebhookConnectorProperties {
       return null;
     }
     return prop.toString();
+  }
+
+  protected Object readParsedFeelObjectPropertyNullable(String propertyName) {
+    return FeelParserWrapper.parseIfIsFeelExpressionOrGetOriginal(
+        genericProperties.get(propertyName));
+  }
+
+  protected Function<Object, List<String>> readFeelFunctionPropertyNullable(String propertyName) {
+    String rawFeelExpression = readPropertyNullable(propertyName);
+    if (rawFeelExpression == null) {
+      return null;
+    }
+    if (!FeelParserWrapper.isFeelExpression(rawFeelExpression)) {
+      throw new IllegalArgumentException(propertyName + " should be a FEEL expression!");
+    }
+    return variables -> this.feelEngine.evaluate(rawFeelExpression, variables);
   }
 
   protected String readPropertyRequired(String propertyName) {
@@ -161,6 +204,38 @@ public class WebhookConnectorProperties {
 
   public void setHmacScopes(final HMACScope[] hmacScopes) {
     this.hmacScopes = hmacScopes;
+  }
+
+  public String getJwkUrl() {
+    return jwkUrl;
+  }
+
+  public void setJwkUrl(String jwkUrl) {
+    this.jwkUrl = jwkUrl;
+  }
+
+  public Function<Object, List<String>> getJwtRoleExpression() {
+    return jwtRoleExpression;
+  }
+
+  public void setJwtRoleExpression(Function<Object, List<String>> jwtRoleExpression) {
+    this.jwtRoleExpression = jwtRoleExpression;
+  }
+
+  public List<String> getRequiredPermissions() {
+    return requiredPermissions;
+  }
+
+  public void setRequiredPermissions(List<String> requiredPermissions) {
+    this.requiredPermissions = requiredPermissions;
+  }
+
+  public AuthorizationType getAuthorizationType() {
+    return authorizationType;
+  }
+
+  public void setAuthorizationType(AuthorizationType authorizationType) {
+    this.authorizationType = authorizationType;
   }
 
   @Override

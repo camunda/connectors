@@ -50,10 +50,15 @@
     <version.slack>1.30.0</version.slack>
 
     <version.testcontainers>1.18.3</version.testcontainers>
+
     <version.snappy-java>1.1.10.1</version.snappy-java>
     <version.commons-codec>1.16.0</version.commons-codec>
     <version.guava>32.1.1-jre</version.guava>
     <version.javax.xml.bind>2.4.0-b180830.0359</version.javax.xml.bind>
+    
+    <version.wiremock>3.0.0-beta-10</version.wiremock>
+    <version.auth0.jwt>4.4.0</version.auth0.jwt>
+    <version.auth0.jwks>0.22.0</version.auth0.jwks>
   </properties>
 
   <modules>

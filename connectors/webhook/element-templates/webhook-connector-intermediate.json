@@ -23,6 +23,14 @@
       "label": "Webhook configuration"
     },
     {
+      "id": "authentication",
+      "label": "Authentication"
+    },
+    {
+      "id": "authorization",
+      "label": "Authorization"
+    },
+    {
       "id": "activation",
       "label": "Activation"
     },
@@ -108,7 +116,7 @@
     {
       "id": "shouldValidateHmac",
       "label": "HMAC authentication",
-      "group": "endpoint",
+      "group": "authentication",
       "description": "Choose whether HMAC verification is enabled. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/#make-your-http-webhook-connector-for-receiving-messages-executable' target='_blank'>See documentation</a> and <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/#example' target='_blank'>example</a> that explains how to use HMAC-related fields",
       "value": "disabled",
       "type": "Dropdown",
@@ -131,7 +139,7 @@
       "label": "HMAC secret key",
       "description": "Shared secret key",
       "type": "String",
-      "group": "endpoint",
+      "group": "authentication",
       "optional": true,
       "binding": {
         "type": "zeebe:property",
@@ -146,7 +154,7 @@
       "label": "HMAC header",
       "description": "Name of header attribute that will contain the HMAC value",
       "type": "String",
-      "group": "endpoint",
+      "group": "authentication",
       "optional": true,
       "binding": {
         "type": "zeebe:property",
@@ -159,7 +167,7 @@
     },
     {
       "label": "HMAC algorithm",
-      "group": "endpoint",
+      "group": "authentication",
       "description": "Choose HMAC algorithm",
       "value": "sha_256",
       "type": "Dropdown",
@@ -188,7 +196,7 @@
     },
     {
       "label": "HMAC scopes",
-      "group": "endpoint",
+      "group": "authentication",
       "description": "Set HMAC scopes for calculating signature data. See <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/' target='_blank'>documentation</a>",
       "feel": "required",
       "type": "String",
@@ -200,6 +208,76 @@
       "condition": {
         "property": "shouldValidateHmac",
         "equals": "enabled"
+      }
+    },
+    {
+      "id": "authorizationType",
+      "label": "Authorization type",
+      "group": "authorization",
+      "description": "Choose the authorization type.",
+      "value": "none",
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "None",
+          "value": "NONE"
+        },
+        {
+          "name": "JWT",
+          "value": "JWT"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.authorizationType"
+      }
+    },
+    {
+      "label": "JWK url",
+      "description": "Well-known url of JWKs",
+      "type": "String",
+      "group": "authorization",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.jwt.jwkUrl"
+      },
+      "condition": {
+        "property": "authorizationType",
+        "equals": "JWT"
+      }
+    },
+    {
+      "label": "JWT role property expression",
+      "description": "Expression to extract the roles from the JWT token",
+      "type": "String",
+      "group": "authorization",
+      "feel": "required",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.jwt.jwtRoleExpression"
+      },
+      "condition": {
+        "property": "authorizationType",
+        "equals": "JWT"
+      }
+    },
+    {
+      "label": "Required roles",
+      "description": "List of roles to test JWT roles against",
+      "type": "String",
+      "group": "authorization",
+      "feel": "required",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.jwt.requiredPermissions"
+      },
+      "condition": {
+        "property": "authorizationType",
+        "equals": "JWT"
       }
     },
     {

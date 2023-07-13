@@ -9,12 +9,16 @@ package io.camunda.connector.inbound;
 import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.disabled;
 import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.enabled;
 
+import com.auth0.jwk.JwkProvider;
+import com.auth0.jwk.JwkProviderBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingResult;
+import io.camunda.connector.inbound.authorization.JWTChecker;
+import io.camunda.connector.inbound.model.JWTProperties;
 import io.camunda.connector.inbound.model.WebhookConnectorProperties;
 import io.camunda.connector.inbound.model.WebhookProcessingResultImpl;
 import io.camunda.connector.inbound.signature.HMACAlgoCustomerChoice;
@@ -23,9 +27,11 @@ import io.camunda.connector.inbound.utils.HttpMethods;
 import io.camunda.connector.inbound.utils.HttpWebhookUtil;
 import io.camunda.connector.inbound.utils.ObjectMapperSupplier;
 import java.io.IOException;
+import java.net.URL;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,6 +42,7 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
   private final ObjectMapper objectMapper;
 
   private WebhookConnectorProperties props;
+  private JwkProvider jwkProvider;
 
   public HttpWebhookExecutable() {
     this(ObjectMapperSupplier.getMapperInstance());
@@ -61,6 +68,16 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
     if (!webhookSignatureIsValid(props, payload)) {
       throw new IOException("Webhook failed: HMAC signature check didn't pass");
     }
+
+    if (WebhookConnectorProperties.AuthorizationType.JWT.equals(props.getAuthorizationType())
+        && !JWTChecker.verify(
+            new JWTProperties(
+                props.getRequiredPermissions(), props.getJwtRoleExpression(), payload.headers()),
+            this.jwkProvider,
+            objectMapper)) {
+      throw new IOException("Webhook failed: JWT check didn't pass");
+    }
+
     response.setBody(
         HttpWebhookUtil.transformRawBodyToMap(
             payload.rawBody(), HttpWebhookUtil.extractContentType(payload.headers())));
@@ -105,5 +122,14 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
       throw new Exception("Inbound connector context cannot be null");
     }
     props = new WebhookConnectorProperties(context.getProperties());
+
+    // jwk url must be specified in the element template for this to work
+    if (WebhookConnectorProperties.AuthorizationType.JWT.equals(props.getAuthorizationType())) {
+      this.jwkProvider =
+          new JwkProviderBuilder(new URL(props.getJwkUrl()))
+              .cached(10, 10, TimeUnit.MINUTES) // Cache JWKs for 10 minutes
+              .rateLimited(10, 1, TimeUnit.MINUTES) // Rate limit to 10 requests per minute
+              .build();
+    }
   }
 }
