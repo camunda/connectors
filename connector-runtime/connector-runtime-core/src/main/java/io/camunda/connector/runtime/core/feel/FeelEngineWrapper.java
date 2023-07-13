@@ -130,6 +130,10 @@ public class FeelEngineWrapper {
     }
   }
 
+  public ObjectMapper getObjectMapper() {
+    return objectMapper;
+  }
+
   private Object evaluateInternal(final String expression, final Object variables) {
     var variablesAsMap = ensureVariablesMap(variables);
     var variablesAsMapAsScalaMap = toScalaMap(variablesAsMap);

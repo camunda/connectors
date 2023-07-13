@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 
@@ -24,10 +26,9 @@ public class FeelFunctionDeserializerTest {
 
     // then
     InputContextString inputContext = new InputContextString("foo", "bar");
-    Object result = targetType.function().apply(inputContext);
+    OutputContext result = targetType.function().apply(inputContext);
     assertThat(result).isInstanceOf(OutputContext.class);
-    OutputContext outputContext = (OutputContext) result;
-    assertThat(outputContext.result).isEqualTo("foobar");
+    assertThat(result.result).isEqualTo("foobar");
   }
 
   @Test
@@ -78,17 +79,84 @@ public class FeelFunctionDeserializerTest {
     assertThat(result).isEqualTo(8);
   }
 
-  record InputContextString(String a, String b) {}
+  @Test
+  void feelFunctionDeserialization_nullResult() throws JsonProcessingException {
+    // given
+    String json = """
+        { "function": "= null" }
+        """;
 
-  record InputContextInteger(Integer a, Integer b) {}
+    // when
+    TargetTypeObject targetType = mapper.readValue(json, TargetTypeObject.class);
 
-  record OutputContext(String result) {}
+    // then
+    InputContextString inputContext = new InputContextString("foo", "bar");
+    Object result = targetType.function().apply(inputContext);
+    assertThat(result).isNull();
+  }
 
-  record TargetTypeObject(Function<InputContextString, OutputContext> function) {}
+  @Test
+  void feelSupplierDeserialization_listResult() throws JsonProcessingException {
+    // given
+    String json = """
+        { "function": "= [a, b]" }
+        """;
 
-  record TargetTypeString(Function<InputContextString, String> function) {}
+    // when
+    TargetTypeList targetType = mapper.readValue(json, TargetTypeList.class);
 
-  record TargetTypeBoolean(Function<InputContextString, Boolean> function) {}
+    // then
+    InputContextInteger inputContext = new InputContextInteger(3, 5);
+    List<Long> result = targetType.function().apply(inputContext);
+    assertThat(result).containsExactlyElementsOf(List.of(3L, 5L));
+  }
 
-  record TargetTypeInteger(Function<InputContextInteger, Integer> function) {}
+  @Test
+  void feelSupplierDeserialization_mapResult() throws JsonProcessingException {
+    // given
+    String json = """
+        { "function": "= { foo: a + b }" }
+        """;
+
+    // when
+    TargetTypeMap targetType = mapper.readValue(json, TargetTypeMap.class);
+
+    // then
+    InputContextInteger inputContext = new InputContextInteger(3, 5);
+    Map<String, Long> result = targetType.function().apply(inputContext);
+    assertThat(result).containsEntry("foo", 8L);
+  }
+
+  @Test
+  void feelFunctionDeserialization_convertFromMap() {
+    // given
+    var jsonAsMap = Map.of("function", "= { result: a + b }");
+
+    // when
+    TargetTypeObject targetType = mapper.convertValue(jsonAsMap, TargetTypeObject.class);
+
+    // then
+    InputContextString inputContext = new InputContextString("foo", "bar");
+    OutputContext result = targetType.function().apply(inputContext);
+    assertThat(result).isInstanceOf(OutputContext.class);
+    assertThat(result.result).isEqualTo("foobar");
+  }
+
+  private record InputContextString(String a, String b) {}
+
+  private record InputContextInteger(Integer a, Integer b) {}
+
+  private record OutputContext(String result) {}
+
+  private record TargetTypeObject(Function<InputContextString, OutputContext> function) {}
+
+  private record TargetTypeString(Function<InputContextString, String> function) {}
+
+  private record TargetTypeBoolean(Function<InputContextString, Boolean> function) {}
+
+  private record TargetTypeInteger(Function<InputContextInteger, Integer> function) {}
+
+  private record TargetTypeList(Function<InputContextInteger, List<Long>> function) {}
+
+  private record TargetTypeMap(Function<InputContextInteger, Map<String, Long>> function) {}
 }
