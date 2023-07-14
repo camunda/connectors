@@ -163,9 +163,7 @@ public class FeelFunctionDeserializerTest {
 
   private record OutputContext(String result) {}
 
-  private record TargetTypeObject(
-      Function<InputContextString, OutputContext> function
-  ) {}
+  private record TargetTypeObject(Function<InputContextString, OutputContext> function) {}
 
   private record TargetTypeString(Function<InputContextString, String> function) {}
 
