@@ -113,6 +113,11 @@ public class FeelEngineWrapper {
     }
   }
 
+  public <T> T evaluate(final String expression, final Object variables, final Class<T> clazz) {
+    Object result = evaluate(expression, variables);
+    return objectMapper.convertValue(result, clazz);
+  }
+
   /**
    * Evaluates an expression to a JSON String.
    *
@@ -128,10 +133,6 @@ public class FeelEngineWrapper {
     } catch (Exception e) {
       throw new FeelEngineWrapperException(e.getMessage(), expression, variables, e);
     }
-  }
-
-  public ObjectMapper getObjectMapper() {
-    return objectMapper;
   }
 
   private Object evaluateInternal(final String expression, final Object variables) {
