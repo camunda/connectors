@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.core.feel.jackson;
+package io.camunda.connector.runtime.core.feel.jackson.function;
 
 import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.databind.module.SimpleModule;
@@ -22,13 +22,13 @@ import io.camunda.connector.runtime.core.feel.FeelEngineWrapper;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-public class JacksonModuleFeel extends SimpleModule {
+public class JacksonModuleFeelFunction extends SimpleModule {
 
   private final FeelEngineWrapper feelEngineWrapper = new FeelEngineWrapper();
 
   @Override
   public String getModuleName() {
-    return "JacksonModuleFeel";
+    return "JacksonModuleFeelFunction";
   }
 
   @Override

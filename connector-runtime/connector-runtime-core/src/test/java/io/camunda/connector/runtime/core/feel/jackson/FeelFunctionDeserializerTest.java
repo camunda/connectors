@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.runtime.core.feel.jackson.function.JacksonModuleFeelFunction;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -27,7 +28,8 @@ import org.junit.jupiter.api.Test;
 
 public class FeelFunctionDeserializerTest {
 
-  private final ObjectMapper mapper = new ObjectMapper().registerModule(new JacksonModuleFeel());
+  private final ObjectMapper mapper =
+      new ObjectMapper().registerModule(new JacksonModuleFeelFunction());
 
   @Test
   void feelFunctionDeserialization_objectResult() throws JsonProcessingException {

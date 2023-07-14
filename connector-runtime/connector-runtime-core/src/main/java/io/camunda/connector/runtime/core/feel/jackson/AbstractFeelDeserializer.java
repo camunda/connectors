@@ -51,5 +51,5 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
     return value.startsWith("=");
   }
 
-  abstract T doDeserialize(String expression);
+  protected abstract T doDeserialize(String expression);
 }

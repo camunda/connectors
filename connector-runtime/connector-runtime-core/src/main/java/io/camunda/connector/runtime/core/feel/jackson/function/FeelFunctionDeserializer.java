@@ -14,38 +14,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.core.feel.jackson;
+package io.camunda.connector.runtime.core.feel.jackson.function;
 
 import com.fasterxml.jackson.databind.BeanProperty;
 import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
 import io.camunda.connector.runtime.core.feel.FeelEngineWrapper;
-import java.util.Map;
-import java.util.function.Supplier;
+import io.camunda.connector.runtime.core.feel.jackson.AbstractFeelDeserializer;
+import java.util.function.Function;
 
-public class FeelSupplierDeserializer<OUT> extends AbstractFeelDeserializer<Supplier<OUT>> {
+class FeelFunctionDeserializer<IN, OUT> extends AbstractFeelDeserializer<Function<IN, OUT>> {
 
-  Class<OUT> outputType;
+  private final Class<OUT> outputType;
 
-  protected FeelSupplierDeserializer(Class<OUT> outputType, FeelEngineWrapper feelEngineWrapper) {
+  public FeelFunctionDeserializer(Class<OUT> outputType, FeelEngineWrapper feelEngineWrapper) {
     super(feelEngineWrapper);
     this.outputType = outputType;
   }
 
+  private final FeelEngineWrapper feelEngineWrapper = new FeelEngineWrapper();
+
   @Override
-  Supplier<OUT> doDeserialize(String expression) {
-    // evaluate eagerly to fail fast
-    OUT result = feelEngineWrapper.evaluate(expression, Map.of(), outputType);
-    return () -> result;
+  protected Function<IN, OUT> doDeserialize(String expression) {
+    return (input) -> feelEngineWrapper.evaluate(expression, input, outputType);
   }
 
   @Override
-  public FeelSupplierDeserializer<?> createContextual(
-      DeserializationContext ctxt, BeanProperty property) {
-
-    if (property.getType().containedTypeCount() == 1) {
-      var outputType = property.getType().containedType(0).getRawClass();
-      return new FeelSupplierDeserializer<>(outputType, feelEngineWrapper);
+  public JsonDeserializer<?> createContextual(DeserializationContext ctxt, BeanProperty property) {
+    if (property.getType().containedTypeCount() == 2) {
+      var outputType = property.getType().containedType(1).getRawClass();
+      return new FeelFunctionDeserializer<>(outputType, feelEngineWrapper);
     }
-    return new FeelSupplierDeserializer<>(Object.class, feelEngineWrapper);
+    return new FeelFunctionDeserializer<>(Object.class, feelEngineWrapper);
   }
 }

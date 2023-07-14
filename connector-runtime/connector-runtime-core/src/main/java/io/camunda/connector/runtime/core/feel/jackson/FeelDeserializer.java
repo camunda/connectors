@@ -20,30 +20,28 @@ import com.fasterxml.jackson.databind.BeanProperty;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import io.camunda.connector.runtime.core.feel.FeelEngineWrapper;
-import java.util.function.Function;
+import java.util.Map;
 
-public class FeelFunctionDeserializer<IN, OUT> extends AbstractFeelDeserializer<Function<IN, OUT>> {
+public class FeelDeserializer extends AbstractFeelDeserializer<Object> {
 
-  private final Class<OUT> outputType;
+  private final Class<?> outputType;
 
-  public FeelFunctionDeserializer(Class<OUT> outputType, FeelEngineWrapper feelEngineWrapper) {
+  public FeelDeserializer() { // needed for references in @JsonDeserialize
+    this(new FeelEngineWrapper(), Object.class);
+  }
+
+  protected FeelDeserializer(FeelEngineWrapper feelEngineWrapper, Class<?> outputType) {
     super(feelEngineWrapper);
     this.outputType = outputType;
   }
 
-  private final FeelEngineWrapper feelEngineWrapper = new FeelEngineWrapper();
-
   @Override
-  protected Function<IN, OUT> doDeserialize(String expression) {
-    return (input) -> feelEngineWrapper.evaluate(expression, input, outputType);
+  protected Object doDeserialize(String expression) {
+    return feelEngineWrapper.evaluate(expression, Map.of(), outputType);
   }
 
   @Override
   public JsonDeserializer<?> createContextual(DeserializationContext ctxt, BeanProperty property) {
-    if (property.getType().containedTypeCount() == 2) {
-      var outputType = property.getType().containedType(1).getRawClass();
-      return new FeelFunctionDeserializer<>(outputType, feelEngineWrapper);
-    }
-    return new FeelFunctionDeserializer<>(Object.class, feelEngineWrapper);
+    return new FeelDeserializer(feelEngineWrapper, property.getType().getRawClass());
   }
 }
