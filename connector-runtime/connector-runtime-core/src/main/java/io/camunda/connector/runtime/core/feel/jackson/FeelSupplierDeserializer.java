@@ -33,7 +33,9 @@ public class FeelSupplierDeserializer<OUT> extends AbstractFeelDeserializer<Supp
 
   @Override
   Supplier<OUT> doDeserialize(String expression) {
-    return () -> feelEngineWrapper.evaluate(expression, Map.of(), outputType);
+    // evaluate eagerly to fail fast
+    OUT result = feelEngineWrapper.evaluate(expression, Map.of(), outputType);
+    return () -> result;
   }
 
   @Override
