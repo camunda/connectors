@@ -59,7 +59,7 @@ public class FeelParserWrapper {
     return value.startsWith("=");
   }
 
-  public static Object parseExpression(String expressionStr) {
+  private static Object parseExpression(String expressionStr) {
     String feelExpression = expressionStr.substring(1);
     Parsed<Exp> parsedExp = FeelParser.parseExpression(feelExpression);
     if (!parsedExp.isSuccess()) {
