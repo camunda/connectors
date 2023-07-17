@@ -15,7 +15,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.impl.feel.FeelEngineWrapper;
 import io.camunda.connector.inbound.model.JWTProperties;
 import io.camunda.connector.inbound.utils.ObjectMapperSupplier;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -80,17 +79,19 @@ public class JWTCheckerTest {
   }
 
   @Test
-  public void jwtCheckSuccessTest() throws Exception {
+  public void jwtCheckSuccessTest() {
     // given
     JwkProvider jwkProvider = new TestJwkProvider();
     JWTProperties jwtProperties =
         new JWTProperties(
-            Arrays.asList("admin"),
+            List.of("admin"),
             getRoleExpressionFunction("=if admin = true then [\"admin\"] else roles"),
-            Map.of("Authorization", "Bearer " + JWT_TOKEN));
+            "https://mockUrl.com");
+    var headers = Map.of("Authorization", "Bearer " + JWT_TOKEN);
 
     // when
-    boolean verificationResult = JWTChecker.verify(jwtProperties, jwkProvider, objectMapper);
+    boolean verificationResult =
+        JWTChecker.verify(jwtProperties, headers, jwkProvider, objectMapper);
 
     // then
     assertTrue(verificationResult);
@@ -101,92 +102,102 @@ public class JWTCheckerTest {
   }
 
   @Test
-  public void jwtCheckSuccessWithDifferentAlgorithmTest() throws Exception {
+  public void jwtCheckSuccessWithDifferentAlgorithmTest() {
     // given
     JwkProvider jwkProvider = new TestES512JwkProvider();
     JWTProperties jwtProperties =
         new JWTProperties(
-            Arrays.asList("admin"),
+            List.of("admin"),
             getRoleExpressionFunction("=if admin = true then [\"admin\"] else roles"),
-            Map.of("Authorization", "Bearer " + JWT_WITH_ES512_ALGORITHM_TOKEN));
+            "https://mockUrl.com");
+    var headers = Map.of("Authorization", "Bearer " + JWT_WITH_ES512_ALGORITHM_TOKEN);
 
     // when
-    boolean verificationResult = JWTChecker.verify(jwtProperties, jwkProvider, objectMapper);
+    boolean verificationResult =
+        JWTChecker.verify(jwtProperties, headers, jwkProvider, objectMapper);
 
     // then
     assertTrue(verificationResult);
   }
 
   @Test
-  public void jwtCheckWrongTokenTest() throws Exception {
+  public void jwtCheckWrongTokenTest() {
     // given
     JwkProvider jwkProvider = new TestJwkProvider();
     JWTProperties jwtProperties =
         new JWTProperties(
-            Arrays.asList("admin"),
+            List.of("admin"),
             getRoleExpressionFunction("=if admin = true then [\"admin\"] else roles"),
-            Map.of("Authorization", "Bearer " + WRONG_JWT_TOKEN));
+            "https://mockUrl.com");
+    var headers = Map.of("Authorization", "Bearer " + WRONG_JWT_TOKEN);
 
     // when
-    boolean verificationResult = JWTChecker.verify(jwtProperties, jwkProvider, objectMapper);
+    boolean verificationResult =
+        JWTChecker.verify(jwtProperties, headers, jwkProvider, objectMapper);
 
     // then
     assertFalse(verificationResult);
   }
 
   @Test
-  public void jwtCheckTokenExpiredTest() throws Exception {
+  public void jwtCheckTokenExpiredTest() {
     // given
     JwkProvider jwkProvider = new TestJwkProvider();
     JWTProperties jwtProperties =
         new JWTProperties(
-            Arrays.asList("admin"),
+            List.of("admin"),
             getRoleExpressionFunction("=if admin = true then [\"admin\"] else roles"),
-            Map.of("Authorization", "Bearer " + EXPIRED_JWT_TOKEN));
+            "https://mockUrl.com");
+    var headers = Map.of("Authorization", "Bearer " + EXPIRED_JWT_TOKEN);
 
     // when
-    boolean verificationResult = JWTChecker.verify(jwtProperties, jwkProvider, objectMapper);
+    boolean verificationResult =
+        JWTChecker.verify(jwtProperties, headers, jwkProvider, objectMapper);
 
     // then
     assertFalse(verificationResult);
   }
 
   @Test
-  public void jwtCheckTokenNotEnoughPermissionTest() throws Exception {
+  public void jwtCheckTokenNotEnoughPermissionTest() {
     // given
     JwkProvider jwkProvider = new TestJwkProvider();
     JWTProperties jwtProperties =
         new JWTProperties(
-            Arrays.asList("admin"),
+            List.of("admin"),
             getRoleExpressionFunction("=if admin = true then [\"admin\"] else roles"),
-            Map.of("Authorization", "Bearer " + NOT_ENOUGH_PERMISSION_JWT_TOKEN));
+            "https://mockUrl.com");
+    var headers = Map.of("Authorization", "Bearer " + NOT_ENOUGH_PERMISSION_JWT_TOKEN);
 
     // when
-    boolean verificationResult = JWTChecker.verify(jwtProperties, jwkProvider, objectMapper);
+    boolean verificationResult =
+        JWTChecker.verify(jwtProperties, headers, jwkProvider, objectMapper);
 
     // then
     assertFalse(verificationResult);
   }
 
   @Test
-  public void jwtCheckWrongRoleExpressionTest() throws Exception {
+  public void jwtCheckWrongRoleExpressionTest() {
     // given
     JwkProvider jwkProvider = new TestJwkProvider();
     JWTProperties jwtProperties =
         new JWTProperties(
-            Arrays.asList("admin"),
+            List.of("admin"),
             getRoleExpressionFunction(
                 "=if admin = true then [\"wrongPermission\"] else wrongPermission"),
-            Map.of("Authorization", "Bearer " + JWT_TOKEN));
+            "https://mockUrl.com");
+    var headers = Map.of("Authorization", "Bearer " + JWT_TOKEN);
 
     // when
-    boolean verificationResult = JWTChecker.verify(jwtProperties, jwkProvider, objectMapper);
+    boolean verificationResult =
+        JWTChecker.verify(jwtProperties, headers, jwkProvider, objectMapper);
 
     // then
     assertFalse(verificationResult);
   }
 
-  class TestJwkProvider implements JwkProvider {
+  static class TestJwkProvider implements JwkProvider {
 
     @Override
     public Jwk get(String keyId) {
@@ -195,7 +206,7 @@ public class JWTCheckerTest {
       jwkMap.put("use", "sig");
       jwkMap.put("alg", "RS256");
       jwkMap.put("kty", "RSA");
-      jwkMap.put("key_ops", Arrays.asList("sign"));
+      jwkMap.put("key_ops", List.of("sign"));
       jwkMap.put(
           "d",
           "EiqH3SGMnz6MEelFNL7elLc3EmpUFm6Zzx1sr1fa5_LmT50TMrgksxoaoKVnfOCK8RmnLaKSKvoQZY2iz6DEYymqpZy778lEAzf7hgmFIChd1JaV2NXAPIBImmF34R3v7W37FG-UnTvgfqVFKJQkF__0iu8FJq1qw4vCtZQnoGD6oKewCURD42MUHTsosTvvL_PlgqrU3hklozzZDLFuPHdh0CEoZHj4OZKxjX2iMAnEX6kNZ3bMtxymxKCayeXXPk2DSjPu4y2EvbShx18EKbEHIqeHpiiZXBPzpraFZXsLXvSwyc16JGxNmxw0QyCOBlPZO1E6fjEv9hhsizyE-oRT_PS9nRas779iv-EQnKvEe97ERKYZm_u9Y42aJcbFrsitrUx2r4oNqTwyYD0UK560Lai4ex2XzZHPwgNSixmVtrWfFiKs_Zlqkd-R8BIzmMfCMKVoiOz-eeGbZbrEDvnZBZqPu-09qVAKW0vJ8BJ7Jgve-MggS1O_T2It-NEJ");
@@ -224,7 +235,7 @@ public class JWTCheckerTest {
     }
   }
 
-  class TestES512JwkProvider implements JwkProvider {
+  static class TestES512JwkProvider implements JwkProvider {
 
     @Override
     public Jwk get(String keyId) {
@@ -233,7 +244,7 @@ public class JWTCheckerTest {
       jwkMap.put("use", "sig");
       jwkMap.put("alg", "ES512");
       jwkMap.put("kty", "EC");
-      jwkMap.put("key_ops", Arrays.asList("sign"));
+      jwkMap.put("key_ops", List.of("sign"));
       jwkMap.put(
           "x",
           "AKbVN_7jvuvwwC4AwG5-ZswrTqhRJg-TfSfiU6eQ7N13Cr8WpnrgZZu0_4xKRKPaRExABT8-IgqtXItFhLSz5IWO");

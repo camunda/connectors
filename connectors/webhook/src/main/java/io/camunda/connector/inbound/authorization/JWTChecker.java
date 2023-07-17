@@ -37,25 +37,26 @@ public class JWTChecker {
 
   public static boolean verify(
       final JWTProperties jwtProperties,
+      final Map<String, String> headers,
       final JwkProvider jwkProvider,
       final ObjectMapper objectMapper) {
-    Optional<DecodedJWT> decodedJWT = getDecodedVerifiedJWT(jwtProperties, jwkProvider);
+    Optional<DecodedJWT> decodedJWT = getDecodedVerifiedJWT(jwtProperties, headers, jwkProvider);
     if (decodedJWT.isEmpty()) {
       return false;
     }
     List<String> roles = extractRoles(jwtProperties, decodedJWT.get(), objectMapper);
     if (!roles.containsAll(jwtProperties.requiredPermissions())) {
-      LOGGER.debug("JWT authorization failed");
+      LOGGER.debug("JWT auth failed");
       return false;
     }
-    LOGGER.debug("JWT authorization was successful");
+    LOGGER.debug("JWT auth was successful");
     return true;
   }
 
   private static Optional<DecodedJWT> getDecodedVerifiedJWT(
-      JWTProperties jwtProperties, JwkProvider jwkProvider) {
+      JWTProperties jwtProperties, Map<String, String> headers, JwkProvider jwkProvider) {
     final String jwtToken =
-        JWTChecker.extractJWTFomHeader(jwtProperties.headers())
+        JWTChecker.extractJWTFomHeader(headers)
             .orElseThrow(() -> new RuntimeException("Cannot extract JWT from header!"));
     try {
       return Optional.of(JWTChecker.verifyJWT(jwtToken, jwkProvider));

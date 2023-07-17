@@ -41,7 +41,8 @@ class HttpWebhookExecutableTest {
                     "inbound",
                     Map.of(
                         "context", "webhookContext",
-                        "method", "any")))
+                        "method", "any",
+                        "auth", Map.of("type", "NONE"))))
             .build();
 
     WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
@@ -66,7 +67,8 @@ class HttpWebhookExecutableTest {
                     "inbound",
                     Map.of(
                         "context", "webhookContext",
-                        "method", "any")))
+                        "method", "any",
+                        "auth", Map.of("type", "NONE"))))
             .build();
     WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
     Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
@@ -91,7 +93,8 @@ class HttpWebhookExecutableTest {
                     "inbound",
                     Map.of(
                         "context", "webhookContext",
-                        "method", "any")))
+                        "method", "any",
+                        "auth", Map.of("type", "NONE"))))
             .build();
     WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
     Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
@@ -115,7 +118,8 @@ class HttpWebhookExecutableTest {
                     "inbound",
                     Map.of(
                         "context", "webhookContext",
-                        "method", "any")))
+                        "method", "any",
+                        "auth", Map.of("type", "NONE"))))
             .build();
     WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
     Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
@@ -138,7 +142,8 @@ class HttpWebhookExecutableTest {
                     "inbound",
                     Map.of(
                         "context", "webhookContext",
-                        "method", "get")))
+                        "method", "get",
+                        "auth", Map.of("type", "NONE"))))
             .build();
     WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
     Mockito.when(payload.method()).thenReturn(HttpMethods.post.name());
@@ -165,7 +170,8 @@ class HttpWebhookExecutableTest {
                         "shouldValidateHmac", enabled.name(),
                         "hmacSecret", "mySecretKey",
                         "hmacHeader", "X-HMAC-Sig",
-                        "hmacAlgorithm", HMACAlgoCustomerChoice.sha_256.name())))
+                        "hmacAlgorithm", HMACAlgoCustomerChoice.sha_256.name(),
+                        "auth", Map.of("type", "NONE"))))
             .build();
     WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
     Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
@@ -198,7 +204,8 @@ class HttpWebhookExecutableTest {
                         "shouldValidateHmac", enabled.name(),
                         "hmacSecret", "mySecretKey",
                         "hmacHeader", "X-HMAC-Sig",
-                        "hmacAlgorithm", HMACAlgoCustomerChoice.sha_256.name())))
+                        "hmacAlgorithm", HMACAlgoCustomerChoice.sha_256.name(),
+                        "auth", Map.of("type", "NONE"))))
             .build();
     WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
     Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());

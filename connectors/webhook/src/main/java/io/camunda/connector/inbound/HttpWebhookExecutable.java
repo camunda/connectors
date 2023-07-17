@@ -9,17 +9,15 @@ package io.camunda.connector.inbound;
 import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.disabled;
 import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.enabled;
 
-import com.auth0.jwk.JwkProvider;
-import com.auth0.jwk.JwkProviderBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingResult;
-import io.camunda.connector.inbound.authorization.JWTChecker;
-import io.camunda.connector.inbound.model.JWTProperties;
+import io.camunda.connector.inbound.authorization.WebhookAuthChecker;
 import io.camunda.connector.inbound.model.WebhookConnectorProperties;
+import io.camunda.connector.inbound.model.WebhookConnectorProperties.WebhookConnectorPropertiesWrapper;
 import io.camunda.connector.inbound.model.WebhookProcessingResultImpl;
 import io.camunda.connector.inbound.signature.HMACAlgoCustomerChoice;
 import io.camunda.connector.inbound.signature.HMACSignatureValidator;
@@ -27,11 +25,9 @@ import io.camunda.connector.inbound.utils.HttpMethods;
 import io.camunda.connector.inbound.utils.HttpWebhookUtil;
 import io.camunda.connector.inbound.utils.ObjectMapperSupplier;
 import java.io.IOException;
-import java.net.URL;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,7 +38,7 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
   private final ObjectMapper objectMapper;
 
   private WebhookConnectorProperties props;
-  private JwkProvider jwkProvider;
+  private WebhookAuthChecker authChecker;
 
   public HttpWebhookExecutable() {
     this(ObjectMapperSupplier.getMapperInstance());
@@ -55,28 +51,20 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
   @Override
   public WebhookProcessingResult triggerWebhook(WebhookProcessingPayload payload)
       throws NoSuchAlgorithmException, InvalidKeyException, IOException {
-    LOGGER.trace(
-        "Triggered webhook with context " + props.getContext() + " and payload " + payload);
+    LOGGER.trace("Triggered webhook with context " + props.context() + " and payload " + payload);
 
-    if (!HttpMethods.any.name().equalsIgnoreCase(props.getMethod())
-        && !payload.method().equalsIgnoreCase(props.getMethod())) {
+    if (!HttpMethods.any.name().equalsIgnoreCase(props.method())
+        && !payload.method().equalsIgnoreCase(props.method())) {
       throw new IOException("Webhook failed: method not supported");
     }
 
     WebhookProcessingResultImpl response = new WebhookProcessingResultImpl();
 
-    if (!webhookSignatureIsValid(props, payload)) {
+    if (!webhookSignatureIsValid(payload)) {
       throw new IOException("Webhook failed: HMAC signature check didn't pass");
     }
 
-    if (WebhookConnectorProperties.AuthorizationType.JWT.equals(props.getAuthorizationType())
-        && !JWTChecker.verify(
-            new JWTProperties(
-                props.getRequiredPermissions(), props.getJwtRoleExpression(), payload.headers()),
-            this.jwkProvider,
-            objectMapper)) {
-      throw new IOException("Webhook failed: JWT check didn't pass");
-    }
+    authChecker.checkAuthorization(payload);
 
     response.setBody(
         HttpWebhookUtil.transformRawBodyToMap(
@@ -87,32 +75,30 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
     return response;
   }
 
-  private boolean webhookSignatureIsValid(
-      WebhookConnectorProperties context, WebhookProcessingPayload payload)
+  private boolean webhookSignatureIsValid(WebhookProcessingPayload payload)
       throws NoSuchAlgorithmException, InvalidKeyException, IOException {
-    if (shouldValidateHmac(context)) {
+    if (shouldValidateHmac()) {
       return validateHmacSignature(
-          HttpWebhookUtil.extractSignatureData(payload, context.getHmacScopes()), payload, context);
+          HttpWebhookUtil.extractSignatureData(payload, props.hmacScopes()), payload);
     }
     return true;
   }
 
-  private boolean shouldValidateHmac(WebhookConnectorProperties context) {
+  private boolean shouldValidateHmac() {
     final String shouldValidateHmac =
-        Optional.ofNullable(context.getShouldValidateHmac()).orElse(disabled.name());
+        Optional.ofNullable(props.shouldValidateHmac()).orElse(disabled.name());
     return enabled.name().equals(shouldValidateHmac);
   }
 
-  private boolean validateHmacSignature(
-      byte[] signatureData, WebhookProcessingPayload payload, WebhookConnectorProperties context)
+  private boolean validateHmacSignature(byte[] signatureData, WebhookProcessingPayload payload)
       throws NoSuchAlgorithmException, InvalidKeyException, IOException {
     final HMACSignatureValidator hmacSignatureValidator =
         new HMACSignatureValidator(
             signatureData,
             payload.headers(),
-            context.getHmacHeader(),
-            context.getHmacSecret(),
-            HMACAlgoCustomerChoice.valueOf(context.getHmacAlgorithm()));
+            props.hmacHeader(),
+            props.hmacSecret(),
+            HMACAlgoCustomerChoice.valueOf(props.hmacAlgorithm()));
     return hmacSignatureValidator.isRequestValid();
   }
 
@@ -121,15 +107,8 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
     if (context == null) {
       throw new Exception("Inbound connector context cannot be null");
     }
-    props = new WebhookConnectorProperties(context.getProperties());
-
-    // jwk url must be specified in the element template for this to work
-    if (WebhookConnectorProperties.AuthorizationType.JWT.equals(props.getAuthorizationType())) {
-      this.jwkProvider =
-          new JwkProviderBuilder(new URL(props.getJwkUrl()))
-              .cached(10, 10, TimeUnit.MINUTES) // Cache JWKs for 10 minutes
-              .rateLimited(10, 1, TimeUnit.MINUTES) // Rate limit to 10 requests per minute
-              .build();
-    }
+    var wrappedProps = context.bindProperties(WebhookConnectorPropertiesWrapper.class);
+    props = new WebhookConnectorProperties(wrappedProps);
+    authChecker = new WebhookAuthChecker(props.auth(), objectMapper);
   }
 }

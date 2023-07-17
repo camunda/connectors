@@ -6,18 +6,18 @@
  */
 package io.camunda.connector.inbound.model;
 
+import io.camunda.connector.impl.feel.FEEL;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 
 public record JWTProperties(
-    List<String> requiredPermissions,
+    @FEEL List<String> requiredPermissions,
     Function<Object, List<String>> jwtRoleExpression,
-    Map<String, String> headers) {
+    String jwkUrl) {
   public JWTProperties {
     Objects.requireNonNull(requiredPermissions);
     Objects.requireNonNull(jwtRoleExpression);
-    Objects.requireNonNull(headers);
+    Objects.requireNonNull(jwkUrl);
   }
 }

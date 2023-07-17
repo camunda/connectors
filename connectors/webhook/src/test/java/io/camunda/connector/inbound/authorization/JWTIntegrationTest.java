@@ -9,7 +9,7 @@ package io.camunda.connector.inbound.authorization;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.catchThrowable;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.auth0.jwk.Jwk;
 import com.auth0.jwk.JwkProvider;
@@ -87,20 +87,25 @@ public class JWTIntegrationTest {
     // given
     List<String> roles = Arrays.asList("admin", "superadmin");
     // webhook connector setup
-    String propertiesJsonString =
-        "{\"inbound\": { \"shouldValidateHmac\":\"disabled\", "
-            + "\"authorizationType\":\"JWT\", "
-            + "\"jwt.requiredPermissions\":\"=[\\\"admin\\\"]\", "
-            + "\"type\":\"io.camunda:webhook:1\", "
-            + "\"subtype\":\"ConfigurableInboundWebhook\", "
-            + "\"jwt.jwkUrl\":\""
-            + JWK_FULL_URL
-            + JWK_PATH_ENDING
-            + "\", "
-            + "\"context\":\"test\", "
-            + "\"jwt.jwtRoleExpression\":\"=if admin = true then [\\\"admin\\\"] else roles\""
-            + "}}";
-    HttpWebhookExecutable httpWebhookExecutable = setUpWebhook(propertiesJsonString);
+    Map<String, Object> props =
+        Map.of(
+            "inbound",
+            Map.of(
+                "type", "io.camunda:webhook:1",
+                "subtype", "ConfigurableInboundWebhook",
+                "context", "test",
+                "method", "any",
+                "auth",
+                    Map.of(
+                        "type",
+                        "JWT",
+                        "jwt",
+                        Map.of(
+                            "jwkUrl", JWK_FULL_URL + JWK_PATH_ENDING,
+                            "jwtRoleExpression", "=if admin = true then [\"admin\"] else roles",
+                            "requiredPermissions", "=[\"admin\"]"))));
+
+    HttpWebhookExecutable httpWebhookExecutable = setUpWebhook(props);
 
     // webhook connector trigger
     TestWebhookProcessingPayload payload =
@@ -116,20 +121,25 @@ public class JWTIntegrationTest {
     // given
     List<String> roles = Arrays.asList("user");
     // webhook connector setup
-    String propertiesJsonString =
-        "{\"inbound\": { \"shouldValidateHmac\":\"disabled\", "
-            + "\"authorizationType\":\"JWT\", "
-            + "\"jwt.requiredPermissions\":\"=[\\\"admin\\\"]\", "
-            + "\"type\":\"io.camunda:webhook:1\", "
-            + "\"subtype\":\"ConfigurableInboundWebhook\", "
-            + "\"jwt.jwkUrl\":\""
-            + JWK_FULL_URL
-            + JWK_PATH_ENDING
-            + "\", "
-            + "\"context\":\"test\", "
-            + "\"jwt.jwtRoleExpression\":\"=if admin = true then [\\\"admin\\\"] else roles\""
-            + "}}";
-    HttpWebhookExecutable httpWebhookExecutable = setUpWebhook(propertiesJsonString);
+    Map<String, Object> props =
+        Map.of(
+            "inbound",
+            Map.of(
+                "type", "io.camunda:webhook:1",
+                "subtype", "ConfigurableInboundWebhook",
+                "context", "test",
+                "method", "any",
+                "auth",
+                    Map.of(
+                        "type",
+                        "JWT",
+                        "jwt",
+                        Map.of(
+                            "jwkUrl", JWK_FULL_URL + JWK_PATH_ENDING,
+                            "jwtRoleExpression", "=if admin = true then [\"admin\"] else roles",
+                            "requiredPermissions", "=[\"admin\"]"))));
+
+    HttpWebhookExecutable httpWebhookExecutable = setUpWebhook(props);
 
     // webhook connector trigger
     TestWebhookProcessingPayload payload =
@@ -145,20 +155,25 @@ public class JWTIntegrationTest {
     // given
     List<String> roles = Arrays.asList("user");
     // webhook connector setup
-    String propertiesJsonString =
-        "{\"inbound\": {\"shouldValidateHmac\":\"disabled\", "
-            + "\"authorizationType\":\"JWT\", "
-            + "\"jwt.requiredPermissions\":\"=[\\\"admin\\\"]\", "
-            + "\"type\":\"io.camunda:webhook:1\", "
-            + "\"subtype\":\"ConfigurableInboundWebhook\", "
-            + "\"jwt.jwkUrl\":\""
-            + JWK_FULL_URL
-            + JWK_PATH_ENDING
-            + "\", "
-            + "\"context\":\"test\", "
-            + "\"jwt.jwtRoleExpression\":\"=if admin = true then [\\\"admin\\\"] else roles\""
-            + "}}";
-    HttpWebhookExecutable httpWebhookExecutable = setUpWebhook(propertiesJsonString);
+    Map<String, Object> props =
+        Map.of(
+            "inbound",
+            Map.of(
+                "type", "io.camunda:webhook:1",
+                "subtype", "ConfigurableInboundWebhook",
+                "context", "test",
+                "method", "any",
+                "auth",
+                    Map.of(
+                        "type",
+                        "JWT",
+                        "jwt",
+                        Map.of(
+                            "jwkUrl", JWK_FULL_URL + JWK_PATH_ENDING,
+                            "jwtRoleExpression", "=if admin = true then [\"admin\"] else roles",
+                            "requiredPermissions", "=[\"admin\"]"))));
+
+    HttpWebhookExecutable httpWebhookExecutable = setUpWebhook(props);
 
     // webhook connector trigger
     TestWebhookProcessingPayload payload =
@@ -176,20 +191,25 @@ public class JWTIntegrationTest {
     // given
     List<String> roles = Arrays.asList("user");
     // webhook connector setup
-    String propertiesJsonString =
-        "{\"inbound\": {\"shouldValidateHmac\":\"disabled\", "
-            + "\"authorizationType\":\"JWT\", "
-            + "\"jwt.requiredPermissions\":\"=[\\\"admin\\\"]\", "
-            + "\"type\":\"io.camunda:webhook:1\", "
-            + "\"subtype\":\"ConfigurableInboundWebhook\", "
-            + "\"jwt.jwkUrl\":\""
-            + JWK_FULL_URL
-            + JWK_PATH_ENDING
-            + "\", "
-            + "\"context\":\"test\", "
-            + "\"jwt.jwtRoleExpression\":\"=if admin = true then [\\\"admin\\\"] else roles\""
-            + "}}";
-    HttpWebhookExecutable httpWebhookExecutable = setUpWebhook(propertiesJsonString);
+    Map<String, Object> props =
+        Map.of(
+            "inbound",
+            Map.of(
+                "type", "io.camunda:webhook:1",
+                "subtype", "ConfigurableInboundWebhook",
+                "method", "any",
+                "context", "test",
+                "auth",
+                    Map.of(
+                        "type",
+                        "JWT",
+                        "jwt",
+                        Map.of(
+                            "jwkUrl", JWK_FULL_URL + JWK_PATH_ENDING,
+                            "jwtRoleExpression", "=if admin = true then [\"admin\"] else roles",
+                            "requiredPermissions", "=[\"admin\"]"))));
+
+    HttpWebhookExecutable httpWebhookExecutable = setUpWebhook(props);
 
     // webhook connector trigger
     TestWebhookProcessingPayload payload =
@@ -207,17 +227,25 @@ public class JWTIntegrationTest {
     // given
     List<String> roles = Arrays.asList("admin", "superadmin");
     // webhook connector setup
-    String propertiesJsonString =
-        "{\"inbound\": {\"shouldValidateHmac\":\"disabled\", "
-            + "\"authorizationType\":\"JWT\", "
-            + "\"jwt.requiredPermissions\":\"=[\\\"admin\\\"]\", "
-            + "\"type\":\"io.camunda:webhook:1\", "
-            + "\"subtype\":\"ConfigurableInboundWebhook\", "
-            + "\"jwt.jwkUrl\":\"https://google.com\", "
-            + "\"context\":\"test\", "
-            + "\"jwt.jwtRoleExpression\":\"=if admin = true then [\\\"admin\\\"] else roles\""
-            + "}}";
-    HttpWebhookExecutable httpWebhookExecutable = setUpWebhook(propertiesJsonString);
+    Map<String, Object> props =
+        Map.of(
+            "inbound",
+            Map.of(
+                "type", "io.camunda:webhook:1",
+                "subtype", "ConfigurableInboundWebhook",
+                "context", "test",
+                "method", "any",
+                "auth",
+                    Map.of(
+                        "type",
+                        "JWT",
+                        "jwt",
+                        Map.of(
+                            "jwkUrl", "https://google.com",
+                            "jwtRoleExpression", "=if admin = true then [\"admin\"] else roles",
+                            "requiredPermissions", "=[\"admin\"]"))));
+
+    HttpWebhookExecutable httpWebhookExecutable = setUpWebhook(props);
 
     // webhook connector trigger
     TestWebhookProcessingPayload payload =
@@ -230,14 +258,15 @@ public class JWTIntegrationTest {
         .hasMessageContaining("Cannot obtain jwks from url");
   }
 
-  private HttpWebhookExecutable setUpWebhook(String propertiesJsonString) throws Exception {
-    Map<String, String> propertiesMap =
-        this.objectMapper.readValue(propertiesJsonString, Map.class);
+  private HttpWebhookExecutable setUpWebhook(Map<String, Object> props) throws Exception {
+
     InboundConnectorContextBuilder.TestInboundConnectorContext context =
         InboundConnectorContextBuilder.create()
             .result(new MessageCorrelationResult("", 0))
-            .properties(propertiesMap)
+            .properties(props)
+            .objectMapper(objectMapper)
             .build();
+
     HttpWebhookExecutable httpWebhookExecutable = new HttpWebhookExecutable();
     httpWebhookExecutable.activate(context);
     return httpWebhookExecutable;
