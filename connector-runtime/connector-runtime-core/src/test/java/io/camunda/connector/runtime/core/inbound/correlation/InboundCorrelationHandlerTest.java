@@ -25,12 +25,12 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.api.inbound.InboundConnectorResult;
+import io.camunda.connector.impl.feel.FeelEngineWrapper;
 import io.camunda.connector.impl.inbound.MessageCorrelationPoint;
 import io.camunda.connector.impl.inbound.StartEventCorrelationPoint;
 import io.camunda.connector.impl.inbound.result.CorrelationErrorData.CorrelationErrorReason;
 import io.camunda.connector.impl.inbound.result.ProcessInstance;
 import io.camunda.connector.impl.inbound.result.StartEventCorrelationResult;
-import io.camunda.connector.runtime.core.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
 import io.camunda.connector.runtime.core.util.command.CreateCommandDummy;
 import io.camunda.connector.runtime.core.util.command.PublishMessageCommandDummy;

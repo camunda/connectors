@@ -8,9 +8,9 @@ package io.camunda.connector.inbound.model;
 
 import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.disabled;
 
+import io.camunda.connector.impl.feel.FeelEngineWrapper;
 import io.camunda.connector.inbound.utils.HttpMethods;
 import io.camunda.connector.inbound.utils.ObjectMapperSupplier;
-import io.camunda.connector.runtime.core.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.core.feel.FeelParserWrapper;
 import java.util.Arrays;
 import java.util.List;
