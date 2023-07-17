@@ -81,6 +81,7 @@ limitations under the License.</license.inlineheader>
     <version.jackson-bom>2.15.2</version.jackson-bom>
     <version.jackson-datatype-jsr310>2.15.2</version.jackson-datatype-jsr310>
     <version.hibernate-validator>6.2.5.Final</version.hibernate-validator>
+    <version.jsonassert>1.5.1</version.jsonassert>
 
     <!-- maven plugins (not managed by parent) -->
     <plugin.version.maven-enforcer-plugin>3.1.0</plugin.version.maven-enforcer-plugin>
@@ -204,6 +205,13 @@ limitations under the License.</license.inlineheader>
         <groupId>org.assertj</groupId>
         <artifactId>assertj-core</artifactId>
         <version>${version.assertj}</version>
+        <scope>test</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>org.skyscreamer</groupId>
+        <artifactId>jsonassert</artifactId>
+        <version>${version.jsonassert}</version>
         <scope>test</scope>
       </dependency>
 
