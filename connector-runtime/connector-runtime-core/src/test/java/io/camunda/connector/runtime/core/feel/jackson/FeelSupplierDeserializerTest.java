@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.runtime.core.feel.jackson.function.JacksonModuleFeelFunction;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;

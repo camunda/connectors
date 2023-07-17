@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.core.feel.jackson.function;
+package io.camunda.connector.runtime.core.feel.jackson;
 
 import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.databind.module.SimpleModule;
-import io.camunda.connector.runtime.core.feel.FeelEngineWrapper;
+import io.camunda.connector.impl.feel.FeelEngineWrapper;
 import java.util.function.Function;
 import java.util.function.Supplier;
 

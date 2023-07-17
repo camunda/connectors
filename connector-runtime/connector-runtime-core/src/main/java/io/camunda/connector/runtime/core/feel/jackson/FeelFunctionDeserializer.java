@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.core.feel.jackson.function;
+package io.camunda.connector.runtime.core.feel.jackson;
 
 import com.fasterxml.jackson.databind.BeanProperty;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
-import io.camunda.connector.runtime.core.feel.FeelEngineWrapper;
-import io.camunda.connector.runtime.core.feel.jackson.AbstractFeelDeserializer;
+import io.camunda.connector.impl.feel.AbstractFeelDeserializer;
+import io.camunda.connector.impl.feel.FeelEngineWrapper;
 import java.util.function.Function;
 
 class FeelFunctionDeserializer<IN, OUT> extends AbstractFeelDeserializer<Function<IN, OUT>> {

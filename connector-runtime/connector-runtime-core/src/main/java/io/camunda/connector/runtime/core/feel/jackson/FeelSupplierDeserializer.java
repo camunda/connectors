@@ -18,30 +18,34 @@ package io.camunda.connector.runtime.core.feel.jackson;
 
 import com.fasterxml.jackson.databind.BeanProperty;
 import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonDeserializer;
-import io.camunda.connector.runtime.core.feel.FeelEngineWrapper;
+import io.camunda.connector.impl.feel.AbstractFeelDeserializer;
+import io.camunda.connector.impl.feel.FeelEngineWrapper;
 import java.util.Map;
+import java.util.function.Supplier;
 
-public class FeelDeserializer extends AbstractFeelDeserializer<Object> {
+class FeelSupplierDeserializer<OUT> extends AbstractFeelDeserializer<Supplier<OUT>> {
 
-  private final Class<?> outputType;
+  Class<OUT> outputType;
 
-  public FeelDeserializer() { // needed for references in @JsonDeserialize
-    this(new FeelEngineWrapper(), Object.class);
-  }
-
-  protected FeelDeserializer(FeelEngineWrapper feelEngineWrapper, Class<?> outputType) {
+  protected FeelSupplierDeserializer(Class<OUT> outputType, FeelEngineWrapper feelEngineWrapper) {
     super(feelEngineWrapper);
     this.outputType = outputType;
   }
 
   @Override
-  protected Object doDeserialize(String expression) {
-    return feelEngineWrapper.evaluate(expression, Map.of(), outputType);
+  protected Supplier<OUT> doDeserialize(String expression) {
+    // evaluate eagerly to fail fast
+    return () -> feelEngineWrapper.evaluate(expression, Map.of(), outputType);
   }
 
   @Override
-  public JsonDeserializer<?> createContextual(DeserializationContext ctxt, BeanProperty property) {
-    return new FeelDeserializer(feelEngineWrapper, property.getType().getRawClass());
+  public FeelSupplierDeserializer<?> createContextual(
+      DeserializationContext ctxt, BeanProperty property) {
+
+    if (property.getType().containedTypeCount() == 1) {
+      var outputType = property.getType().containedType(0).getRawClass();
+      return new FeelSupplierDeserializer<>(outputType, feelEngineWrapper);
+    }
+    return new FeelSupplierDeserializer<>(Object.class, feelEngineWrapper);
   }
 }
