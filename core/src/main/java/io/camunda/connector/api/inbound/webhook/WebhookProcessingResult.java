@@ -52,21 +52,4 @@ public interface WebhookProcessingResult {
   default Map<String, Object> connectorData() {
     return Collections.emptyMap();
   }
-
-  /**
-   * @return HTTP status code in response
-   */
-  default int statusCode() {
-    return -1;
-  }
-
-  /**
-   * Flag that indicates whether response has to be returned "as-is". In this case, body, headers,
-   * and status will be set as defined in current interface method implementation.
-   *
-   * @return boolean flag that indicates whether response is strict
-   */
-  default boolean strict() {
-    return false;
-  }
 }
