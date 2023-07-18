@@ -168,7 +168,7 @@ public class JWTIntegrationTest {
     Throwable thrown = catchThrowable(() -> httpWebhookExecutable.triggerWebhook(payload));
     assertThat(thrown)
         .isInstanceOf(IOException.class)
-        .hasMessageContaining("Webhook failed: JWT check didn't pass");
+        .hasMessageContaining("Webhook authorization failed: JWT check didn't pass");
   }
 
   @Test
@@ -199,7 +199,7 @@ public class JWTIntegrationTest {
     Throwable thrown = catchThrowable(() -> httpWebhookExecutable.triggerWebhook(payload));
     assertThat(thrown)
         .isInstanceOf(IOException.class)
-        .hasMessageContaining("Webhook failed: JWT check didn't pass");
+        .hasMessageContaining("Webhook authorization failed: JWT check didn't pass");
   }
 
   @Test

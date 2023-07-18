@@ -9,6 +9,8 @@ package io.camunda.connector.inbound.model;
 import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.disabled;
 
 import io.camunda.connector.impl.feel.FeelEngineWrapper;
+import io.camunda.connector.inbound.model.authorization.ApiKeyProperties;
+import io.camunda.connector.inbound.model.authorization.BasicAuthProperties;
 import io.camunda.connector.inbound.utils.HttpMethods;
 import io.camunda.connector.inbound.utils.ObjectMapperSupplier;
 import io.camunda.connector.runtime.core.feel.FeelParserWrapper;
@@ -34,6 +36,8 @@ public class WebhookConnectorProperties {
 
   public enum AuthorizationType {
     NONE,
+    BASIC,
+    API_KEY,
     JWT
   }
 
@@ -42,6 +46,9 @@ public class WebhookConnectorProperties {
   private Function<Object, List<String>>
       jwtRoleExpression; // e.g.: if admin = true then ["admin"] else roles
   private List<String> requiredPermissions;
+
+  private ApiKeyProperties apiKeyProperties;
+  private BasicAuthProperties basicAuthProperties;
 
   private FeelEngineWrapper feelEngine;
 
@@ -78,6 +85,9 @@ public class WebhookConnectorProperties {
     this.jwtRoleExpression = readFeelFunctionPropertyNullable("jwt.jwtRoleExpression");
     this.requiredPermissions =
         (List<String>) readParsedFeelObjectPropertyNullable("jwt.requiredPermissions");
+
+    this.apiKeyProperties = readPropertyAsTypeNullable("apiKey", ApiKeyProperties.class);
+    this.basicAuthProperties = readPropertyAsTypeNullable("basic", BasicAuthProperties.class);
   }
 
   protected <T> T readPropertyAsTypeWithDefault(
@@ -238,25 +248,47 @@ public class WebhookConnectorProperties {
     this.authorizationType = authorizationType;
   }
 
+  public ApiKeyProperties getApiKeyProperties() {
+    return apiKeyProperties;
+  }
+
+  public void setApiKeyProperties(final ApiKeyProperties apiKeyProperties) {
+    this.apiKeyProperties = apiKeyProperties;
+  }
+
+  public BasicAuthProperties getBasicAuthProperties() {
+    return basicAuthProperties;
+  }
+
+  public void setBasicAuthProperties(final BasicAuthProperties basicAuthProperties) {
+    this.basicAuthProperties = basicAuthProperties;
+  }
+
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }
-    if (o == null || getClass() != o.getClass()) {
+    if (!(o instanceof final WebhookConnectorProperties that)) {
       return false;
     }
-    WebhookConnectorProperties that = (WebhookConnectorProperties) o;
     return Objects.equals(genericProperties, that.genericProperties)
-        && Objects.equals(method, that.method)
         && Objects.equals(context, that.context)
+        && Objects.equals(method, that.method)
         && Objects.equals(activationCondition, that.activationCondition)
         && Objects.equals(variableMapping, that.variableMapping)
         && Objects.equals(shouldValidateHmac, that.shouldValidateHmac)
         && Objects.equals(hmacSecret, that.hmacSecret)
         && Objects.equals(hmacHeader, that.hmacHeader)
         && Objects.equals(hmacAlgorithm, that.hmacAlgorithm)
-        && Arrays.equals(hmacScopes, that.hmacScopes);
+        && Arrays.equals(hmacScopes, that.hmacScopes)
+        && authorizationType == that.authorizationType
+        && Objects.equals(jwkUrl, that.jwkUrl)
+        && Objects.equals(jwtRoleExpression, that.jwtRoleExpression)
+        && Objects.equals(requiredPermissions, that.requiredPermissions)
+        && Objects.equals(apiKeyProperties, that.apiKeyProperties)
+        && Objects.equals(basicAuthProperties, that.basicAuthProperties)
+        && Objects.equals(feelEngine, that.feelEngine);
   }
 
   @Override
@@ -271,6 +303,9 @@ public class WebhookConnectorProperties {
         hmacSecret,
         hmacHeader,
         hmacAlgorithm,
+        apiKeyProperties,
+        apiKeyProperties,
+        basicAuthProperties,
         Arrays.hashCode(hmacScopes));
   }
 

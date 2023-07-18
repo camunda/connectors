@@ -27,9 +27,19 @@ import java.util.stream.Collectors;
 public class HttpWebhookUtil {
 
   public static String extractContentType(Map<String, String> headers) {
+    return extractHeader(headers, HttpHeaders.CONTENT_TYPE);
+  }
+
+  public static String extractHeader(Map<String, String> headers, String expectedHeader) {
     var caseInsensitiveMap = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
     caseInsensitiveMap.putAll(headers);
-    return caseInsensitiveMap.getOrDefault(HttpHeaders.CONTENT_TYPE, "").toString();
+    return caseInsensitiveMap.getOrDefault(expectedHeader, "").toString();
+  }
+
+  public static String extractQueryParam(Map<String, String> params, String expectedParam) {
+    var caseInsensitiveMap = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+    caseInsensitiveMap.putAll(params);
+    return caseInsensitiveMap.getOrDefault(expectedParam, "").toString();
   }
 
   public static Map transformRawBodyToMap(byte[] rawBody, String contentTypeHeader)

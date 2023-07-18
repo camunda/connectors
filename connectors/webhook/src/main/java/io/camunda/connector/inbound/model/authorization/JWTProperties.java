@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.inbound.model;
+package io.camunda.connector.inbound.model.authorization;
 
 import java.util.List;
 import java.util.Map;

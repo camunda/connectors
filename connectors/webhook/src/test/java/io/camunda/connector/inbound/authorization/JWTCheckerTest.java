@@ -13,7 +13,7 @@ import com.auth0.jwk.Jwk;
 import com.auth0.jwk.JwkProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.impl.feel.FeelEngineWrapper;
-import io.camunda.connector.inbound.model.JWTProperties;
+import io.camunda.connector.inbound.model.authorization.JWTProperties;
 import io.camunda.connector.inbound.utils.ObjectMapperSupplier;
 import java.util.Arrays;
 import java.util.HashMap;

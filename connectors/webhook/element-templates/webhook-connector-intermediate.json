@@ -223,13 +223,125 @@
           "value": "NONE"
         },
         {
+          "name": "Basic",
+          "value": "BASIC"
+        },
+        {
           "name": "JWT",
           "value": "JWT"
+        },
+        {
+          "name": "API key",
+          "value": "API_KEY"
         }
       ],
       "binding": {
         "type": "zeebe:property",
         "name": "inbound.authorizationType"
+      }
+    },
+    {
+      "label": "Username",
+      "group": "authorization",
+      "type": "String",
+      "feel": "optional",
+      "optional": false,
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.basic.username"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authorizationType",
+        "equals": "BASIC"
+      }
+    },
+    {
+      "label": "Password",
+      "group": "authorization",
+      "type": "String",
+      "feel": "optional",
+      "optional": false,
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.basic.password"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authorizationType",
+        "equals": "BASIC"
+      }
+    },
+    {
+      "id": "apiKeyType",
+      "label": "Add API key to",
+      "group": "authorization",
+      "description": "Choose the authorization type.",
+      "type": "Dropdown",
+      "optional": true,
+      "choices": [
+        {
+          "name": "Header",
+          "value": "HEADER"
+        },
+        {
+          "name": "Query params",
+          "value": "QUERY_PARAMS"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.apiKey.type"
+      },
+      "condition": {
+        "property": "authorizationType",
+        "equals": "API_KEY"
+      }
+    },
+    {
+      "label": "Key",
+      "group": "authorization",
+      "type": "String",
+      "feel": "optional",
+      "optional": false,
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.apiKey.key"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "apiKeyType",
+        "oneOf": [
+          "HEADER",
+          "QUERY_PARAMS"
+        ]
+      }
+    },
+    {
+      "label": "Value",
+      "group": "authorization",
+      "type": "String",
+      "feel": "optional",
+      "optional": false,
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.apiKey.value"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "apiKeyType",
+        "oneOf": [
+          "HEADER",
+          "QUERY_PARAMS"
+        ]
       }
     },
     {

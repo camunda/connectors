@@ -17,8 +17,7 @@ import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingResult;
-import io.camunda.connector.inbound.authorization.JWTChecker;
-import io.camunda.connector.inbound.model.JWTProperties;
+import io.camunda.connector.inbound.authorization.AuthorizationService;
 import io.camunda.connector.inbound.model.WebhookConnectorProperties;
 import io.camunda.connector.inbound.model.WebhookProcessingResultImpl;
 import io.camunda.connector.inbound.signature.HMACAlgoCustomerChoice;
@@ -69,13 +68,8 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
       throw new IOException("Webhook failed: HMAC signature check didn't pass");
     }
 
-    if (WebhookConnectorProperties.AuthorizationType.JWT.equals(props.getAuthorizationType())
-        && !JWTChecker.verify(
-            new JWTProperties(
-                props.getRequiredPermissions(), props.getJwtRoleExpression(), payload.headers()),
-            this.jwkProvider,
-            objectMapper)) {
-      throw new IOException("Webhook failed: JWT check didn't pass");
+    if (props.getAuthorizationType() != WebhookConnectorProperties.AuthorizationType.NONE) {
+      AuthorizationService.verifyAuthorization(props, payload, jwkProvider, objectMapper);
     }
 
     response.setBody(
