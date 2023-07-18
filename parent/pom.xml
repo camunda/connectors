@@ -92,7 +92,7 @@ limitations under the License.</license.inlineheader>
     <plugin.version.maven-resources-plugin>3.2.0</plugin.version.maven-resources-plugin>
     <plugin.version.maven-shade-plugin>3.5.0</plugin.version.maven-shade-plugin>
     <plugin.version.maven-surefire-plugin>3.1.2</plugin.version.maven-surefire-plugin>
-    <plugin.version.spotless-maven-plugin>2.37.0</plugin.version.spotless-maven-plugin>
+    <plugin.version.spotless-maven-plugin>2.38.0</plugin.version.spotless-maven-plugin>
   </properties>
 
   <dependencyManagement>
