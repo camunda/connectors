@@ -74,7 +74,7 @@ public class WebhookAuthCheckerTest {
   @Nested
   class ApiKey {
     private final FeelEngineWrapper feel = new FeelEngineWrapper();
-    private final String locatorExpression = "=split(request.headers.Authorization, \" \")[2]";
+    private final String locatorExpression = "=split(request.headers.authorization, \" \")[2]";
     private final Function<Object, String> locator =
         request -> feel.evaluate(locatorExpression, request);
     private final ApiKeyAuth expectedAuth = new ApiKeyAuth("apiKey", locator);

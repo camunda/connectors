@@ -22,9 +22,9 @@ public record TestWebhookProcessingPayload(
         null,
         null,
         Map.of(
-            HttpHeaders.AUTHORIZATION,
+            HttpHeaders.AUTHORIZATION.toLowerCase(),
             "Bearer " + token,
-            HttpHeaders.CONTENT_TYPE,
+            HttpHeaders.CONTENT_TYPE.toLowerCase(),
             "application/json"),
         null,
         body == null ? null : body.getBytes());

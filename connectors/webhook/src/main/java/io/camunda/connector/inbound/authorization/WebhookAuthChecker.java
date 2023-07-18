@@ -20,9 +20,12 @@ import io.camunda.connector.inbound.model.WebhookAuthorization.JwtAuth;
 import io.camunda.connector.inbound.utils.HttpWebhookUtil;
 import java.io.IOException;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class WebhookAuthChecker {
 
@@ -31,9 +34,6 @@ public class WebhookAuthChecker {
   private ObjectMapper objectMapper;
 
   public WebhookAuthChecker(WebhookAuthorization authorization) {
-    if (authorization == null) {
-      throw new IllegalArgumentException("Authorization must not be null");
-    }
 
     this.authorization = authorization;
 
@@ -84,7 +84,10 @@ public class WebhookAuthChecker {
   private void checkBasicAuth(BasicAuth expectedAuthorization, WebhookProcessingPayload payload)
       throws IOException {
 
-    String authHeader = payload.headers().get(HttpHeaders.AUTHORIZATION);
+    String authHeader = payload.headers().entrySet().stream()
+        .collect(Collectors.toMap(entry -> entry.getKey().toLowerCase(), Entry::getValue))
+        .get(HttpHeaders.AUTHORIZATION.toLowerCase());
+
     if (authHeader == null) {
       throw new IOException(AUTH_HEADER_MISSING_MSG);
     }
@@ -99,7 +102,8 @@ public class WebhookAuthChecker {
       throwInvalid();
     }
     String expectedAuth = expectedAuthorization.username() + ":" + expectedAuthorization.password();
-    String actualAuth = new String(Base64.getDecoder().decode(authValue));
+    String actualAuth = new String(
+        Base64.getDecoder().decode(authValue.getBytes(StandardCharsets.UTF_8)));
     if (!expectedAuth.equals(actualAuth)) {
       throwInvalid();
     }

@@ -240,7 +240,7 @@
         "name": "inbound.auth.jwt.jwkUrl"
       },
       "condition": {
-        "property": "inbound.auth.type",
+        "property": "authorizationType",
         "equals": "JWT"
       }
     },
@@ -256,7 +256,7 @@
         "name": "inbound.auth.jwt.jwtRoleExpression"
       },
       "condition": {
-        "property": "inbound.auth.type",
+        "property": "authorizationType",
         "equals": "JWT"
       }
     },
@@ -272,7 +272,7 @@
         "name": "inbound.auth.jwt.requiredPermissions"
       },
       "condition": {
-        "property": "inbound.auth.type",
+        "property": "authorizationType",
         "equals": "JWT"
       }
     },
@@ -287,7 +287,7 @@
         "name": "inbound.auth.username"
       },
       "condition": {
-        "property": "inbound.auth.type",
+        "property": "authorizationType",
         "equals": "BASIC"
       },
       "constraints": {
@@ -305,7 +305,7 @@
         "name": "inbound.auth.password"
       },
       "condition": {
-        "property": "inbound.auth.type",
+        "property": "authorizationType",
         "equals": "BASIC"
       },
       "constraints": {
@@ -323,7 +323,7 @@
         "name": "inbound.auth.apiKey"
       },
       "condition": {
-        "property": "inbound.auth.type",
+        "property": "authorizationType",
         "equals": "APIKEY"
       },
       "constraints": {
@@ -341,13 +341,13 @@
         "name": "inbound.auth.apiKeyLocator"
       },
       "condition": {
-        "property": "inbound.auth.type",
+        "property": "authorizationType",
         "equals": "APIKEY"
       },
       "constraints": {
         "notEmpty": true
       },
-      "value": "=split(request.headers.Authorization, \" \")[2]"
+      "value": "=split(request.headers.authorization, \" \")[2]"
     },
     {
       "label": "Condition",
