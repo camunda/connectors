@@ -28,7 +28,7 @@ class FeelFunctionDeserializer<IN, OUT> extends AbstractFeelDeserializer<Functio
   private final Class<OUT> outputType;
 
   public FeelFunctionDeserializer(Class<OUT> outputType, FeelEngineWrapper feelEngineWrapper) {
-    super(feelEngineWrapper);
+    super(feelEngineWrapper, true);
     this.outputType = outputType;
   }
 

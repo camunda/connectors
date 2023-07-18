@@ -11,10 +11,13 @@ import com.auth0.jwk.JwkProviderBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.net.HttpHeaders;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
+import io.camunda.connector.api.inbound.webhook.WebhookResultContext;
+import io.camunda.connector.api.inbound.webhook.WebhookResultContext.Request;
 import io.camunda.connector.inbound.model.WebhookAuthorization;
 import io.camunda.connector.inbound.model.WebhookAuthorization.ApiKeyAuth;
 import io.camunda.connector.inbound.model.WebhookAuthorization.BasicAuth;
 import io.camunda.connector.inbound.model.WebhookAuthorization.JwtAuth;
+import io.camunda.connector.inbound.utils.HttpWebhookUtil;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Base64;
@@ -67,6 +70,20 @@ public class WebhookAuthChecker {
       return;
     }
 
+    if (authorization instanceof BasicAuth basicAuth) {
+      checkBasicAuth(basicAuth, payload);
+    } else if (authorization instanceof ApiKeyAuth apiKeyAuth) {
+      checkApiKeyAuth(apiKeyAuth, payload);
+    } else if (authorization instanceof JwtAuth jwtAuth) {
+      checkJwtAuth(jwtAuth, payload);
+    } else {
+      throw new IllegalStateException("Unsupported auth type");
+    }
+  }
+
+  private void checkBasicAuth(BasicAuth expectedAuthorization, WebhookProcessingPayload payload)
+      throws IOException {
+
     String authHeader = payload.headers().get(HttpHeaders.AUTHORIZATION);
     if (authHeader == null) {
       throw new IOException(AUTH_HEADER_MISSING_MSG);
@@ -78,20 +95,6 @@ public class WebhookAuthChecker {
     String authType = authHeaderParts[0];
     String authValue = authHeaderParts[1];
 
-    if (authorization instanceof BasicAuth basicAuth) {
-      checkBasicAuth(basicAuth, authType, authValue);
-    } else if (authorization instanceof ApiKeyAuth apiKeyAuth) {
-      checkApiKeyAuth(apiKeyAuth, authType, authValue);
-    } else if (authorization instanceof JwtAuth jwtAuth) {
-      checkJwtAuth(jwtAuth, payload.headers());
-    } else {
-      throw new IllegalStateException("Unsupported auth type");
-    }
-  }
-
-  private void checkBasicAuth(BasicAuth expectedAuthorization, String authType, String authValue)
-      throws IOException {
-
     if (!"basic".equalsIgnoreCase(authType)) {
       throwInvalid();
     }
@@ -102,20 +105,28 @@ public class WebhookAuthChecker {
     }
   }
 
-  private void checkApiKeyAuth(ApiKeyAuth expectedAuthorization, String authType, String authValue)
+  private void checkApiKeyAuth(ApiKeyAuth expectedAuthorization, WebhookProcessingPayload payload)
       throws IOException {
 
-    if (!"bearer".equalsIgnoreCase(authType)) {
-      throwInvalid();
-    }
+    WebhookResultContext result =
+        new WebhookResultContext(
+            new Request(
+                HttpWebhookUtil.transformRawBodyToMap(
+                    payload.rawBody(), HttpWebhookUtil.extractContentType(payload.headers())),
+                payload.headers(),
+                payload.params(),
+                Map.of()));
+
+    String authValue = expectedAuthorization.apiKeyLocator().apply(result);
     if (!expectedAuthorization.apiKey().equals(authValue)) {
       throwInvalid();
     }
   }
 
-  private void checkJwtAuth(JwtAuth expectedAuthorization, Map<String, String> headers)
+  private void checkJwtAuth(JwtAuth expectedAuthorization, WebhookProcessingPayload payload)
       throws IOException {
-    if (!JWTChecker.verify(expectedAuthorization.jwt(), headers, this.jwkProvider, objectMapper)) {
+    if (!JWTChecker.verify(
+        expectedAuthorization.jwt(), payload.headers(), this.jwkProvider, objectMapper)) {
       throw new IOException("Webhook failed: JWT check didn't pass");
     }
   }

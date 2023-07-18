@@ -225,6 +225,14 @@
         {
           "name": "JWT",
           "value": "JWT"
+        },
+        {
+          "name": "Basic",
+          "value": "BASIC"
+        },
+        {
+          "name": "API Key",
+          "value": "APIKEY"
         }
       ],
       "binding": {
@@ -279,6 +287,79 @@
         "property": "inbound.auth.type",
         "equals": "JWT"
       }
+    },
+    {
+      "label": "Username",
+      "description": "Username for basic authentication",
+      "type": "String",
+      "group": "authorization",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.auth.username"
+      },
+      "condition": {
+        "property": "inbound.auth.type",
+        "equals": "BASIC"
+      },
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
+      "label": "Password",
+      "description": "Password for basic authentication",
+      "type": "String",
+      "group": "authorization",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.auth.password"
+      },
+      "condition": {
+        "property": "inbound.auth.type",
+        "equals": "BASIC"
+      },
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
+      "label": "API Key",
+      "description": "Expected API key",
+      "type": "String",
+      "group": "authorization",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.auth.apiKey"
+      },
+      "condition": {
+        "property": "inbound.auth.type",
+        "equals": "APIKEY"
+      },
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
+      "label": "API Key locator",
+      "description": "A FEEL expression that extracts API key from the request",
+      "type": "String",
+      "group": "authorization",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.auth.apiKeyLocator"
+      },
+      "condition": {
+        "property": "inbound.auth.type",
+        "equals": "APIKEY"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "value": "=split(request.headers.Authorization, \" \")[2]"
     },
     {
       "label": "Correlation key (process)",

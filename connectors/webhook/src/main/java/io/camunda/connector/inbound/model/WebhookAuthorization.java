@@ -8,10 +8,12 @@ package io.camunda.connector.inbound.model;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.camunda.connector.impl.feel.FEEL;
 import io.camunda.connector.inbound.model.WebhookAuthorization.ApiKeyAuth;
 import io.camunda.connector.inbound.model.WebhookAuthorization.BasicAuth;
 import io.camunda.connector.inbound.model.WebhookAuthorization.JwtAuth;
 import io.camunda.connector.inbound.model.WebhookAuthorization.None;
+import java.util.function.Function;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
@@ -22,9 +24,10 @@ import io.camunda.connector.inbound.model.WebhookAuthorization.None;
 })
 public sealed interface WebhookAuthorization permits ApiKeyAuth, BasicAuth, JwtAuth, None {
 
-  record BasicAuth(String username, String password) implements WebhookAuthorization {}
+  record BasicAuth(@FEEL String username, @FEEL String password) implements WebhookAuthorization {}
 
-  record ApiKeyAuth(String apiKey) implements WebhookAuthorization {}
+  record ApiKeyAuth(@FEEL String apiKey, Function<Object, String> apiKeyLocator)
+      implements WebhookAuthorization {}
 
   record JwtAuth(JWTProperties jwt) implements WebhookAuthorization {}
 

@@ -13,29 +13,17 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.net.HttpHeaders;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
+import io.camunda.connector.impl.feel.FeelEngineWrapper;
 import io.camunda.connector.inbound.model.WebhookAuthorization;
 import io.camunda.connector.inbound.model.WebhookAuthorization.ApiKeyAuth;
 import java.io.IOException;
 import java.util.Base64;
 import java.util.Map;
+import java.util.function.Function;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 public class WebhookAuthCheckerTest {
-
-  @Test
-  void anyMethod_missingAuthorizationHeader() {
-    // given
-    var payload = mock(WebhookProcessingPayload.class);
-    when(payload.headers()).thenReturn(Map.of());
-    var checker = new WebhookAuthChecker(new ApiKeyAuth(""));
-
-    // when/then
-    assertThrows(
-        IOException.class,
-        () -> checker.checkAuthorization(payload),
-        "Authorization header is missing");
-  }
 
   @Nested
   class BasicAuth {
@@ -85,7 +73,11 @@ public class WebhookAuthCheckerTest {
 
   @Nested
   class ApiKey {
-    private final ApiKeyAuth expectedAuth = new ApiKeyAuth("apiKey");
+    private final FeelEngineWrapper feel = new FeelEngineWrapper();
+    private final String locatorExpression = "=split(request.headers.Authorization, \" \")[2]";
+    private final Function<Object, String> locator =
+        request -> feel.evaluate(locatorExpression, request);
+    private final ApiKeyAuth expectedAuth = new ApiKeyAuth("apiKey", locator);
 
     @Test
     void apiKey_validKey() {
@@ -119,10 +111,7 @@ public class WebhookAuthCheckerTest {
     }
 
     private WebhookProcessingPayload preparePayload(String apiKey) {
-      var header = "Bearer " + apiKey;
-      var payload = mock(WebhookProcessingPayload.class);
-      when(payload.headers()).thenReturn(Map.of(HttpHeaders.AUTHORIZATION, header));
-      return payload;
+      return new TestWebhookProcessingPayload(apiKey, null);
     }
   }
 }
