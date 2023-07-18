@@ -36,12 +36,15 @@ public class FeelDeserializer extends AbstractFeelDeserializer<Object> {
   }
 
   protected FeelDeserializer(FeelEngineWrapper feelEngineWrapper, Class<?> outputType) {
-    super(feelEngineWrapper);
+    super(feelEngineWrapper, true);
     this.outputType = outputType;
   }
 
   @Override
   protected Object doDeserialize(String expression) {
+    if (!isFeelExpression(expression)) {
+      return expression;
+    }
     return FEEL_ENGINE_WRAPPER.evaluate(expression, Map.of(), outputType);
   }
 
