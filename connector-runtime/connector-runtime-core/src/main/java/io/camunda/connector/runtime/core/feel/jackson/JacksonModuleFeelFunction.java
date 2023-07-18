@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.core.feel.jackson;
 
 import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.databind.type.TypeFactory;
 import io.camunda.connector.impl.feel.FeelEngineWrapper;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -40,9 +41,11 @@ public class JacksonModuleFeelFunction extends SimpleModule {
   @Override
   public void setupModule(SetupContext context) {
     addDeserializer(
-        Function.class, new FeelFunctionDeserializer<>(Object.class, feelEngineWrapper));
+        Function.class,
+        new FeelFunctionDeserializer<>(TypeFactory.unknownType(), feelEngineWrapper));
     addDeserializer(
-        Supplier.class, new FeelSupplierDeserializer<>(Object.class, feelEngineWrapper));
+        Supplier.class,
+        new FeelSupplierDeserializer<>(TypeFactory.unknownType(), feelEngineWrapper));
     super.setupModule(context);
   }
 }

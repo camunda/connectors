@@ -14,6 +14,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.net.HttpHeaders;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.impl.feel.FeelEngineWrapper;
+import io.camunda.connector.impl.feel.FeelEngineWrapperException;
 import io.camunda.connector.inbound.model.WebhookAuthorization;
 import io.camunda.connector.inbound.model.WebhookAuthorization.ApiKeyAuth;
 import java.io.IOException;
@@ -103,11 +104,11 @@ public class WebhookAuthCheckerTest {
     void apiKey_malformedHeader() {
       // given
       var payload = mock(WebhookProcessingPayload.class);
-      when(payload.headers()).thenReturn(Map.of(HttpHeaders.AUTHORIZATION, "NotBearer 123"));
+      when(payload.headers()).thenReturn(Map.of(HttpHeaders.AUTHORIZATION, "NotBearer"));
       var checker = new WebhookAuthChecker(expectedAuth);
 
       // when/then
-      assertThrows(IOException.class, () -> checker.checkAuthorization(payload));
+      assertThrows(FeelEngineWrapperException.class, () -> checker.checkAuthorization(payload));
     }
 
     private WebhookProcessingPayload preparePayload(String apiKey) {

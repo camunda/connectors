@@ -18,6 +18,8 @@ package io.camunda.connector.runtime.core.feel.jackson;
 
 import com.fasterxml.jackson.databind.BeanProperty;
 import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.type.TypeFactory;
 import io.camunda.connector.impl.feel.AbstractFeelDeserializer;
 import io.camunda.connector.impl.feel.FeelEngineWrapper;
 import java.util.Map;
@@ -25,9 +27,9 @@ import java.util.function.Supplier;
 
 class FeelSupplierDeserializer<OUT> extends AbstractFeelDeserializer<Supplier<OUT>> {
 
-  Class<OUT> outputType;
+  private JavaType outputType;
 
-  protected FeelSupplierDeserializer(Class<OUT> outputType, FeelEngineWrapper feelEngineWrapper) {
+  protected FeelSupplierDeserializer(JavaType outputType, FeelEngineWrapper feelEngineWrapper) {
     super(feelEngineWrapper, false);
     this.outputType = outputType;
   }
@@ -43,9 +45,9 @@ class FeelSupplierDeserializer<OUT> extends AbstractFeelDeserializer<Supplier<OU
       DeserializationContext ctxt, BeanProperty property) {
 
     if (property.getType().containedTypeCount() == 1) {
-      var outputType = property.getType().containedType(0).getRawClass();
+      var outputType = property.getType().containedType(0);
       return new FeelSupplierDeserializer<>(outputType, feelEngineWrapper);
     }
-    return new FeelSupplierDeserializer<>(Object.class, feelEngineWrapper);
+    return new FeelSupplierDeserializer<>(TypeFactory.unknownType(), feelEngineWrapper);
   }
 }

@@ -84,9 +84,10 @@ public class WebhookAuthChecker {
   private void checkBasicAuth(BasicAuth expectedAuthorization, WebhookProcessingPayload payload)
       throws IOException {
 
-    String authHeader = payload.headers().entrySet().stream()
-        .collect(Collectors.toMap(entry -> entry.getKey().toLowerCase(), Entry::getValue))
-        .get(HttpHeaders.AUTHORIZATION.toLowerCase());
+    String authHeader =
+        payload.headers().entrySet().stream()
+            .collect(Collectors.toMap(entry -> entry.getKey().toLowerCase(), Entry::getValue))
+            .get(HttpHeaders.AUTHORIZATION.toLowerCase());
 
     if (authHeader == null) {
       throw new IOException(AUTH_HEADER_MISSING_MSG);
@@ -102,8 +103,8 @@ public class WebhookAuthChecker {
       throwInvalid();
     }
     String expectedAuth = expectedAuthorization.username() + ":" + expectedAuthorization.password();
-    String actualAuth = new String(
-        Base64.getDecoder().decode(authValue.getBytes(StandardCharsets.UTF_8)));
+    String actualAuth =
+        new String(Base64.getDecoder().decode(authValue.getBytes(StandardCharsets.UTF_8)));
     if (!expectedAuth.equals(actualAuth)) {
       throwInvalid();
     }
