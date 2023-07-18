@@ -17,6 +17,8 @@
 package io.camunda.connector.impl.feel;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -82,6 +84,18 @@ public class FeelDeserializerTest {
 
     // when & then
     assertThrows(JsonMappingException.class, () -> mapper.readValue(json, TargetTypeString.class));
+  }
+
+  @Test
+  void feelDeserializer_notFeel_preserved() throws JsonProcessingException {
+    // given
+    String json = """
+        { "props": "foobar" }
+        """;
+
+    // when && then
+    assertDoesNotThrow(() -> mapper.readValue(json, TargetTypeString.class));
+    assertEquals("foobar", mapper.readValue(json, TargetTypeString.class).props);
   }
 
   private record TargetTypeMap(@FEEL Map<String, String> props) {}

@@ -26,10 +26,12 @@ import java.io.IOException;
 public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
     implements ContextualDeserializer {
   protected FeelEngineWrapper feelEngineWrapper;
+  protected boolean relaxed;
 
-  protected AbstractFeelDeserializer(FeelEngineWrapper feelEngineWrapper) {
+  protected AbstractFeelDeserializer(FeelEngineWrapper feelEngineWrapper, boolean relaxed) {
     super(String.class);
     this.feelEngineWrapper = feelEngineWrapper;
+    this.relaxed = relaxed;
   }
 
   @Override
@@ -38,7 +40,9 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
 
     if (node != null && node.isTextual()) {
       String value = node.textValue();
-      if (isFeelExpression(value)) {
+      // if not relaxed, we expect only a FEEL expression
+      // otherwise we accept any string
+      if (relaxed || isFeelExpression(value)) {
         return doDeserialize(value);
       }
     }
@@ -46,7 +50,7 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
         "Invalid input: expected a FEEL expression, but got '" + node + "' instead.");
   }
 
-  private boolean isFeelExpression(String value) {
+  protected boolean isFeelExpression(String value) {
     return value.startsWith("=");
   }
 
