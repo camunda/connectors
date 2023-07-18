@@ -18,6 +18,7 @@ package io.camunda.connector.impl.feel;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -113,7 +114,7 @@ public class FeelEngineWrapper {
     }
   }
 
-  public <T> T evaluate(final String expression, final Object variables, final Class<T> clazz) {
+  public <T> T evaluate(final String expression, final Object variables, final JavaType clazz) {
     Object result = evaluate(expression, variables);
     return objectMapper.convertValue(result, clazz);
   }
@@ -138,6 +139,7 @@ public class FeelEngineWrapper {
   private Object evaluateInternal(final String expression, final Object variables) {
     var variablesAsMap = ensureVariablesMap(variables);
     var variablesAsMapAsScalaMap = toScalaMap(variablesAsMap);
+
     var result = feelEngine.evalExpression(trimExpression(expression), variablesAsMapAsScalaMap);
     if (result.isRight()) {
       return result.right().get();
