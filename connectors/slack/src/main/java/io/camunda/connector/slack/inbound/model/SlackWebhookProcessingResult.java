@@ -16,17 +16,12 @@ public class SlackWebhookProcessingResult implements WebhookProcessingResult {
   private final Map<String, Object> body;
   private final Map<String, String> headers;
   private final Map<String, Object> connectorData;
-  private final int statusCode;
 
   public SlackWebhookProcessingResult(
-      Map<String, Object> body,
-      Map<String, String> headers,
-      Map<String, Object> connectorData,
-      int statusCode) {
+      Map<String, Object> body, Map<String, String> headers, Map<String, Object> connectorData) {
     this.body = body;
     this.headers = headers;
     this.connectorData = connectorData;
-    this.statusCode = statusCode;
   }
 
   @Override
@@ -40,17 +35,7 @@ public class SlackWebhookProcessingResult implements WebhookProcessingResult {
   }
 
   @Override
-  public int statusCode() {
-    return statusCode;
-  }
-
-  @Override
   public Map<String, Object> connectorData() {
     return connectorData;
-  }
-
-  @Override
-  public boolean strict() {
-    return true;
   }
 }

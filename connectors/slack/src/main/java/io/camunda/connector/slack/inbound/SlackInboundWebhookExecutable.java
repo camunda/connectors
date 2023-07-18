@@ -71,13 +71,12 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
       return new SlackWebhookProcessingResult(
           defaultCommandResponse(),
           Map.of(HttpHeaders.CONTENT_TYPE, MediaType.JSON_UTF_8.toString()),
-          bodyAsMap,
-          200);
+          bodyAsMap);
     }
 
     // Other requests, e.g. events
     return new SlackWebhookProcessingResult(
-        bodyAsMap, webhookProcessingPayload.headers(), Map.of(), 200);
+        bodyAsMap, webhookProcessingPayload.headers(), Map.of());
   }
 
   @Override
