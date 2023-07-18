@@ -28,7 +28,7 @@ class FeelSupplierDeserializer<OUT> extends AbstractFeelDeserializer<Supplier<OU
   Class<OUT> outputType;
 
   protected FeelSupplierDeserializer(Class<OUT> outputType, FeelEngineWrapper feelEngineWrapper) {
-    super(feelEngineWrapper, true);
+    super(feelEngineWrapper, false);
     this.outputType = outputType;
   }
 
