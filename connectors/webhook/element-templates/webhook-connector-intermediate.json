@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Webhook connector",
   "id": "io.camunda.connectors.webhook.WebhookConnectorIntermediate.v1",
-  "version": 3,
+  "version": 4,
   "description": "Configure webhook to receive callbacks",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/",
   "category": {
@@ -215,7 +215,7 @@
       "label": "Authorization type",
       "group": "authorization",
       "description": "Choose the authorization type.",
-      "value": "none",
+      "value": "NONE",
       "type": "Dropdown",
       "choices": [
         {
@@ -225,11 +225,19 @@
         {
           "name": "JWT",
           "value": "JWT"
+        },
+        {
+          "name": "Basic",
+          "value": "BASIC"
+        },
+        {
+          "name": "API Key",
+          "value": "APIKEY"
         }
       ],
       "binding": {
         "type": "zeebe:property",
-        "name": "inbound.authorizationType"
+        "name": "inbound.auth.type"
       }
     },
     {
@@ -241,7 +249,7 @@
       "optional": true,
       "binding": {
         "type": "zeebe:property",
-        "name": "inbound.jwt.jwkUrl"
+        "name": "inbound.auth.jwt.jwkUrl"
       },
       "condition": {
         "property": "authorizationType",
@@ -257,7 +265,7 @@
       "optional": true,
       "binding": {
         "type": "zeebe:property",
-        "name": "inbound.jwt.jwtRoleExpression"
+        "name": "inbound.auth.jwt.jwtRoleExpression"
       },
       "condition": {
         "property": "authorizationType",
@@ -273,12 +281,85 @@
       "optional": true,
       "binding": {
         "type": "zeebe:property",
-        "name": "inbound.jwt.requiredPermissions"
+        "name": "inbound.auth.jwt.requiredPermissions"
       },
       "condition": {
         "property": "authorizationType",
         "equals": "JWT"
       }
+    },
+    {
+      "label": "Username",
+      "description": "Username for basic authentication",
+      "type": "String",
+      "group": "authorization",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.auth.username"
+      },
+      "condition": {
+        "property": "authorizationType",
+        "equals": "BASIC"
+      },
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
+      "label": "Password",
+      "description": "Password for basic authentication",
+      "type": "String",
+      "group": "authorization",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.auth.password"
+      },
+      "condition": {
+        "property": "authorizationType",
+        "equals": "BASIC"
+      },
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
+      "label": "API Key",
+      "description": "Expected API key",
+      "type": "String",
+      "group": "authorization",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.auth.apiKey"
+      },
+      "condition": {
+        "property": "authorizationType",
+        "equals": "APIKEY"
+      },
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
+      "label": "API Key locator",
+      "description": "A FEEL expression that extracts API key from the request",
+      "type": "String",
+      "group": "authorization",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.auth.apiKeyLocator"
+      },
+      "condition": {
+        "property": "authorizationType",
+        "equals": "APIKEY"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "value": "=split(request.headers.authorization, \" \")[2]"
     },
     {
       "label": "Correlation key (process)",

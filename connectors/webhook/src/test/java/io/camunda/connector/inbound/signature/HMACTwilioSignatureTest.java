@@ -52,7 +52,8 @@ public class HMACTwilioSignatureTest {
                         "hmacAlgorithm", "sha_1",
                         "hmacSecret", "mySecretAuthKey",
                         "hmacHeader", "x-twilio-signature",
-                        "method", "any"))));
+                        "method", "any",
+                        "auth", Map.of("type", "NONE")))));
   }
 
   @ParameterizedTest

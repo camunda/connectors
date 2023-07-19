@@ -18,17 +18,19 @@ package io.camunda.connector.runtime.core.feel.jackson;
 
 import com.fasterxml.jackson.databind.BeanProperty;
 import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.type.TypeFactory;
 import io.camunda.connector.impl.feel.AbstractFeelDeserializer;
 import io.camunda.connector.impl.feel.FeelEngineWrapper;
 import java.util.function.Function;
 
 class FeelFunctionDeserializer<IN, OUT> extends AbstractFeelDeserializer<Function<IN, OUT>> {
 
-  private final Class<OUT> outputType;
+  private final JavaType outputType;
 
-  public FeelFunctionDeserializer(Class<OUT> outputType, FeelEngineWrapper feelEngineWrapper) {
-    super(feelEngineWrapper);
+  public FeelFunctionDeserializer(JavaType outputType, FeelEngineWrapper feelEngineWrapper) {
+    super(feelEngineWrapper, false);
     this.outputType = outputType;
   }
 
@@ -42,9 +44,9 @@ class FeelFunctionDeserializer<IN, OUT> extends AbstractFeelDeserializer<Functio
   @Override
   public JsonDeserializer<?> createContextual(DeserializationContext ctxt, BeanProperty property) {
     if (property.getType().containedTypeCount() == 2) {
-      var outputType = property.getType().containedType(1).getRawClass();
+      var outputType = property.getType().containedType(1);
       return new FeelFunctionDeserializer<>(outputType, feelEngineWrapper);
     }
-    return new FeelFunctionDeserializer<>(Object.class, feelEngineWrapper);
+    return new FeelFunctionDeserializer<>(TypeFactory.unknownType(), feelEngineWrapper);
   }
 }

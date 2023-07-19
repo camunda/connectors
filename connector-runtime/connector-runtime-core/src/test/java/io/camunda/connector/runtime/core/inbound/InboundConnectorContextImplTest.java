@@ -19,10 +19,16 @@ package io.camunda.connector.runtime.core.inbound;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.camunda.connector.api.secret.SecretProvider;
+import io.camunda.connector.impl.feel.FEEL;
 import io.camunda.connector.impl.inbound.MessageCorrelationPoint;
 import io.camunda.connector.runtime.core.FooBarSecretProvider;
+import io.camunda.connector.runtime.core.feel.jackson.JacksonModuleFeelFunction;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImplTest.TestPropertiesClass.InnerObject;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -30,7 +36,13 @@ import org.junit.jupiter.api.Test;
 
 class InboundConnectorContextImplTest {
   private final SecretProvider secretProvider = new FooBarSecretProvider();
-  private final ObjectMapper mapper = new ObjectMapper();
+  private final ObjectMapper mapper =
+      new ObjectMapper()
+          .registerModule(new JavaTimeModule())
+          .registerModule(new JacksonModuleFeelFunction())
+          // deserialize unknown types as empty objects
+          .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
+          .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
   @Test
   void bindProperties_shouldThrowExceptionWhenWrongFormat() {
@@ -51,7 +63,7 @@ class InboundConnectorContextImplTest {
         assertThrows(
             RuntimeException.class,
             () -> inboundConnectorContext.bindProperties(TestPropertiesClass.class));
-    assertThat(exception.getMessage()).contains("Parsed.Failure(Position 1:1");
+    assertThat(exception.getMessage()).contains("Failed to evaluate expression");
   }
 
   @Test
@@ -83,8 +95,7 @@ class InboundConnectorContextImplTest {
     InboundConnectorDefinitionImpl definition =
         new InboundConnectorDefinitionImpl(
             Map.of(
-                "mapWithStringListWithNumbers",
-                "={\"key\":[\"34\", \"45\", \"890\",\"0\",\"16785\"]}"),
+                "mapWithStringListWithNumbers", "={key:[\"34\", \"45\", \"890\",\"0\",\"16785\"]}"),
             new MessageCorrelationPoint("", ""),
             "bool",
             0,
@@ -118,7 +129,7 @@ class InboundConnectorContextImplTest {
                 "str",
                 "foo",
                 "bool",
-                "true",
+                "=true",
                 "mapWithNumberList",
                 "={\"key\":[43, 0, -123]}",
                 "mapWithStringListWithNumbers",
@@ -126,7 +137,7 @@ class InboundConnectorContextImplTest {
                 "stringNumberList",
                 "=[\"34\", \"-45\", \"890\", \"0\", \"-16785\"]",
                 "stringObjectMap",
-                "={\"innerObject\":{\"stringList\":[\"innerList\"], \"bool\":false}}"),
+                "={\"innerObject\":{\"stringList\":[\"innerList\"], \"bool\":true}}"),
             new MessageCorrelationPoint("", ""),
             "bool",
             0,
@@ -175,9 +186,7 @@ class InboundConnectorContextImplTest {
     testClass.setStr("foo");
     testClass.setBool(true);
     testClass.setMapWithNumberList(Map.of("key", List.of(43L, 0L, -123L)));
-    var innerObject = new TestPropertiesClass();
-    innerObject.setBool(false);
-    innerObject.setStringList(List.of("innerList"));
+    var innerObject = new InnerObject(List.of("innerList"), true);
     testClass.setStringObjectMap(Map.of("innerObject", innerObject));
     testClass.setMapWithStringListWithNumbers(
         Map.of("key", List.of("34", "45", "890", "0", "16785")));
@@ -185,16 +194,16 @@ class InboundConnectorContextImplTest {
   }
 
   public static class TestPropertiesClass {
-    private Map<String, String> stringMap;
-    private Map<String, Map<String, String>> stringMapMap;
-    private Map<String, TestPropertiesClass> stringObjectMap;
-    private List<String> stringList;
-    private List<Integer> numberList;
-    private List<String> stringNumberList;
-    private Map<String, List<Long>> mapWithNumberList;
-    private Map<String, List<String>> mapWithStringListWithNumbers;
-    private String str;
-    private boolean bool;
+    @FEEL private Map<String, String> stringMap;
+    @FEEL private Map<String, Map<String, String>> stringMapMap;
+    @FEEL private Map<String, InnerObject> stringObjectMap;
+    @FEEL private List<String> stringList;
+    @FEEL private List<Integer> numberList;
+    @FEEL private List<String> stringNumberList;
+    @FEEL private Map<String, List<Long>> mapWithNumberList;
+    @FEEL private Map<String, List<String>> mapWithStringListWithNumbers;
+    @FEEL private String str;
+    @FEEL private boolean bool;
 
     public Map<String, String> getStringMap() {
       return stringMap;
@@ -208,7 +217,7 @@ class InboundConnectorContextImplTest {
       this.stringMapMap = stringMapMap;
     }
 
-    public void setStringObjectMap(final Map<String, TestPropertiesClass> stringObjectMap) {
+    public void setStringObjectMap(final Map<String, InnerObject> stringObjectMap) {
       this.stringObjectMap = stringObjectMap;
     }
 
@@ -244,6 +253,8 @@ class InboundConnectorContextImplTest {
     public void setBool(final boolean bool) {
       this.bool = bool;
     }
+
+    record InnerObject(List<String> stringList, boolean bool) {}
 
     @Override
     public boolean equals(final Object o) {

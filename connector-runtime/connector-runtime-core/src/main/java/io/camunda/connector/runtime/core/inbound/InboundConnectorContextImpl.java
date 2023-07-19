@@ -24,13 +24,11 @@ import io.camunda.connector.api.inbound.InboundConnectorResult;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.impl.context.AbstractConnectorContext;
-import io.camunda.connector.runtime.core.feel.FeelParserWrapper;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -84,9 +82,8 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   @Override
   public <T> T bindProperties(Class<T> cls) {
-    var evaluatedProps = getPropertiesWithFeel(properties);
-    var propsWithSecrets = getPropertiesWithSecrets(evaluatedProps);
-    var mappedObject = objectMapper.convertValue(propsWithSecrets, cls);
+    var mappedObject = objectMapper.convertValue(properties, cls);
+    replaceSecrets(mappedObject);
     getValidationProvider().validate(mappedObject);
     return mappedObject;
   }
@@ -103,22 +100,6 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   public Health getHealth() {
     return health;
-  }
-
-  private Map<String, Object> propertiesWithFeel;
-
-  private Map<String, Object> getPropertiesWithFeel(Map<String, Object> properties) {
-    if (propertiesWithFeel == null) {
-      propertiesWithFeel =
-          properties.entrySet().stream()
-              .map(
-                  entry ->
-                      Map.entry(
-                          entry.getKey(),
-                          FeelParserWrapper.parseIfIsFeelExpressionOrGetOriginal(entry.getValue())))
-              .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-    }
-    return propertiesWithFeel;
   }
 
   private Map<String, Object> propertiesWithSecrets;
