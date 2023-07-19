@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Webhook connector",
   "id": "io.camunda.connectors.webhook.WebhookConnector.v1",
-  "version": 5,
+  "version": 6,
   "description": "Configure webhook to receive callbacks",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/",
   "category": {
@@ -35,6 +35,10 @@
     {
       "id": "variable-mapping",
       "label": "Variable mapping"
+    },
+    {
+      "id": "webhookResponse",
+      "label": "Webhook response"
     }
   ],
   "properties": [
@@ -383,6 +387,18 @@
         "name": "resultExpression"
       },
       "description": "Expression to map the inbound payload to process variables"
+    },
+    {
+      "label": "Response body expression",
+      "type": "Text",
+      "group": "webhookResponse",
+      "feel": "required",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.responseBodyExpression"
+      },
+      "description": "Specify condition and response"
     }
   ],
   "icon": {

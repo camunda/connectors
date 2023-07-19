@@ -21,7 +21,7 @@ public class WebhookProcessingResultImpl implements WebhookProcessingResult {
 
   @Override
   public Object body() {
-    return Optional.ofNullable(body).orElse(Collections.emptyMap());
+    return body;
   }
 
   @Override

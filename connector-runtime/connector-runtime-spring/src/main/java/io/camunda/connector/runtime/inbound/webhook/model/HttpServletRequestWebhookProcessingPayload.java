@@ -27,17 +27,21 @@ public class HttpServletRequestWebhookProcessingPayload implements WebhookProces
 
   private final String requestURL;
   private final String method;
+
+  private final Map<String, Object> body;
   private final Map<String, String> headers;
   private final Map<String, String> params;
   private final byte[] rawBody;
 
   public HttpServletRequestWebhookProcessingPayload(
       final HttpServletRequest httpServletRequest,
+      final Map<String, Object> body,
       final Map<String, String> params,
       final Map<String, String> headers,
       byte[] bodyAsByteArray) {
     this.requestURL = httpServletRequest.getRequestURL().toString();
     this.method = httpServletRequest.getMethod();
+    this.body = body;
     this.headers = headers;
     this.params = params;
     this.rawBody = bodyAsByteArray;
@@ -51,6 +55,11 @@ public class HttpServletRequestWebhookProcessingPayload implements WebhookProces
   @Override
   public String method() {
     return method;
+  }
+
+  @Override
+  public Map<String, Object> body() {
+    return Collections.unmodifiableMap(Optional.ofNullable(body).orElse(Collections.emptyMap()));
   }
 
   @Override

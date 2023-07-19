@@ -15,6 +15,7 @@ import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.inbound.signature.HMACAlgoCustomerChoice;
 import io.camunda.connector.inbound.utils.HttpMethods;
+import io.camunda.connector.inbound.utils.ObjectMapperSupplier;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -55,20 +56,112 @@ class HttpWebhookExecutableTest {
     testObject.activate(ctx);
     var result = testObject.triggerWebhook(payload);
 
-    Assertions.assertThat((Map) result.body()).containsEntry("key", "value");
+    Assertions.assertThat((Map) result.body()).isNull();
   }
 
   @Test
-  void triggerWebhook_FormDataBody_HappyCase() throws Exception {
+  void triggerWebhook_JsonBodyWithReturnExpression_HappyCase() throws Exception {
     InboundConnectorContext ctx =
         InboundConnectorContextBuilder.create()
+            .objectMapper(ObjectMapperSupplier.getMapperInstance())
             .properties(
                 Map.of(
                     "inbound",
                     Map.of(
                         "context", "webhookContext",
                         "method", "any",
-                        "auth", Map.of("type", "NONE"))))
+                        "auth", Map.of("type", "NONE"),
+                        "responseBodyExpression",
+                            "=if get value(request.body, \"key\") = \"value\" then {myReturn: \"12345\"} else null")))
+            .build();
+
+    WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
+    Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
+    Mockito.when(payload.headers())
+        .thenReturn(Map.of(HttpHeaders.CONTENT_TYPE, MediaType.JSON_UTF_8.toString()));
+    Mockito.when(payload.rawBody())
+        .thenReturn("{\"key\": \"value\"}".getBytes(StandardCharsets.UTF_8));
+
+    testObject.activate(ctx);
+    var result = testObject.triggerWebhook(payload);
+
+    Assertions.assertThat((Map) result.body()).containsEntry("myReturn", "12345");
+  }
+
+  @Test
+  void triggerWebhook_JsonBodyWithReturnDidntMatchExpression_ReturnExpressionValueNull()
+      throws Exception {
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .objectMapper(ObjectMapperSupplier.getMapperInstance())
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context", "webhookContext",
+                        "method", "any",
+                        "auth", Map.of("type", "NONE"),
+                        "responseBodyExpression",
+                            "=if get value(request.body, \"key\") = \"value\" then {myReturn: \"12345\"} else null")))
+            .build();
+
+    WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
+    Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
+    Mockito.when(payload.headers())
+        .thenReturn(Map.of(HttpHeaders.CONTENT_TYPE, MediaType.JSON_UTF_8.toString()));
+    Mockito.when(payload.rawBody())
+        .thenReturn("{\"key\": \"wrong\"}".getBytes(StandardCharsets.UTF_8));
+
+    testObject.activate(ctx);
+    var result = testObject.triggerWebhook(payload);
+
+    Assertions.assertThat((Map) result.body()).isNull();
+  }
+
+  @Test
+  void triggerWebhook_JsonBodyWithReturnDidntMatchExpression_ReturnExpressionValueEmpty()
+      throws Exception {
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .objectMapper(ObjectMapperSupplier.getMapperInstance())
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context", "webhookContext",
+                        "method", "any",
+                        "auth", Map.of("type", "NONE"),
+                        "responseBodyExpression",
+                            "=if get value(request.body, \"key\") = \"value\" then {myReturn: \"12345\"} else {}")))
+            .build();
+
+    WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
+    Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
+    Mockito.when(payload.headers())
+        .thenReturn(Map.of(HttpHeaders.CONTENT_TYPE, MediaType.JSON_UTF_8.toString()));
+    Mockito.when(payload.rawBody())
+        .thenReturn("{\"key\": \"wrong\"}".getBytes(StandardCharsets.UTF_8));
+
+    testObject.activate(ctx);
+    var result = testObject.triggerWebhook(payload);
+
+    Assertions.assertThat((Map) result.body()).isEmpty();
+  }
+
+  @Test
+  void triggerWebhook_FormDataBody_HappyCase() throws Exception {
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .objectMapper(ObjectMapperSupplier.getMapperInstance())
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context", "webhookContext",
+                        "method", "any",
+                        "auth", Map.of("type", "NONE"),
+                        "responseBodyExpression",
+                            "=if get value(request.body, \"key1\") = \"value1\" then {key2: get value(request.body, \"key2\")} else null")))
             .build();
     WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
     Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
@@ -80,7 +173,6 @@ class HttpWebhookExecutableTest {
     testObject.activate(ctx);
     var result = testObject.triggerWebhook(payload);
 
-    Assertions.assertThat((Map) result.body()).containsEntry("key1", "value1");
     Assertions.assertThat((Map) result.body()).containsEntry("key2", "value2");
   }
 
@@ -88,13 +180,16 @@ class HttpWebhookExecutableTest {
   void triggerWebhook_UnknownJsonLikeBody_HappyCase() throws Exception {
     InboundConnectorContext ctx =
         InboundConnectorContextBuilder.create()
+            .objectMapper(ObjectMapperSupplier.getMapperInstance())
             .properties(
                 Map.of(
                     "inbound",
                     Map.of(
                         "context", "webhookContext",
                         "method", "any",
-                        "auth", Map.of("type", "NONE"))))
+                        "auth", Map.of("type", "NONE"),
+                        "responseBodyExpression",
+                            "=if get value(request.body, \"key\") = \"value\" then {key: \"value\"} else {}")))
             .build();
     WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
     Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
@@ -107,30 +202,6 @@ class HttpWebhookExecutableTest {
     var result = testObject.triggerWebhook(payload);
 
     Assertions.assertThat((Map) result.body()).containsEntry("key", "value");
-  }
-
-  @Test
-  void triggerWebhook_BinaryData_RaisesException() throws Exception {
-    InboundConnectorContext ctx =
-        InboundConnectorContextBuilder.create()
-            .properties(
-                Map.of(
-                    "inbound",
-                    Map.of(
-                        "context", "webhookContext",
-                        "method", "any",
-                        "auth", Map.of("type", "NONE"))))
-            .build();
-    WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
-    Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
-    Mockito.when(payload.headers())
-        .thenReturn(Map.of(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_BINARY.toString()));
-    Mockito.when(payload.rawBody())
-        .thenReturn("Zm9sbG93IHRoZSB3aGl0ZSByYWJiaXQ=".getBytes(StandardCharsets.UTF_8));
-
-    testObject.activate(ctx);
-
-    assertThrows(Exception.class, () -> testObject.triggerWebhook(payload));
   }
 
   @Test
@@ -161,6 +232,7 @@ class HttpWebhookExecutableTest {
   void triggerWebhook_HmacSignatureMatches_HappyCase() throws Exception {
     InboundConnectorContext ctx =
         InboundConnectorContextBuilder.create()
+            .objectMapper(ObjectMapperSupplier.getMapperInstance())
             .properties(
                 Map.of(
                     "inbound",
@@ -171,7 +243,9 @@ class HttpWebhookExecutableTest {
                         "hmacSecret", "mySecretKey",
                         "hmacHeader", "X-HMAC-Sig",
                         "hmacAlgorithm", HMACAlgoCustomerChoice.sha_256.name(),
-                        "auth", Map.of("type", "NONE"))))
+                        "auth", Map.of("type", "NONE"),
+                        "responseBodyExpression",
+                            "=if get value(request.body, \"key\") = \"value\" then {myReturn: \"12345\"} else null")))
             .build();
     WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
     Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
@@ -188,7 +262,7 @@ class HttpWebhookExecutableTest {
     testObject.activate(ctx);
     var result = testObject.triggerWebhook(payload);
 
-    Assertions.assertThat((Map) result.body()).containsEntry("key", "value");
+    Assertions.assertThat((Map) result.body()).containsEntry("myReturn", "12345");
   }
 
   @Test

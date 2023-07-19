@@ -37,6 +37,10 @@
     {
       "id": "variable-mapping",
       "label": "Variable mapping"
+    },
+    {
+      "id": "webhookResponse",
+      "label": "Webhook response"
     }
   ],
   "properties": [
@@ -423,6 +427,18 @@
         "name": "resultExpression"
       },
       "description": "Expression to map the inbound payload to process variables"
+    },
+    {
+      "label": "Response body expression",
+      "type": "Text",
+      "group": "webhookResponse",
+      "feel": "required",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.responseBodyExpression"
+      },
+      "description": "Specify condition and response"
     }
   ],
   "icon": {

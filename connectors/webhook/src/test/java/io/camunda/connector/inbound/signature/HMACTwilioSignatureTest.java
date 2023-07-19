@@ -110,6 +110,8 @@ public class HMACTwilioSignatureTest {
 
     private String requestURL;
     private String method;
+
+    private Map<String, Object> bodyAsMap;
     private Map<String, String> headers;
     private Map<String, String> params;
     private String body;
@@ -123,6 +125,11 @@ public class HMACTwilioSignatureTest {
     @Override
     public String method() {
       return method;
+    }
+
+    @Override
+    public Map<String, Object> body() {
+      return bodyAsMap;
     }
 
     @Override

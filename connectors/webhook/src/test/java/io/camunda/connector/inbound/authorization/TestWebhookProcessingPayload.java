@@ -13,6 +13,7 @@ import java.util.Map;
 public record TestWebhookProcessingPayload(
     String requestURL,
     String method,
+    Map<String, Object> body,
     Map<String, String> headers,
     Map<String, String> params,
     byte[] rawBody)
@@ -21,6 +22,7 @@ public record TestWebhookProcessingPayload(
     this(
         null,
         null,
+        Map.of(),
         Map.of(
             HttpHeaders.AUTHORIZATION.toLowerCase(),
             "Bearer " + token,

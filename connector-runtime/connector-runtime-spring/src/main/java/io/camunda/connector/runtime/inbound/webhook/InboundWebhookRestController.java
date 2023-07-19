@@ -64,6 +64,7 @@ public class InboundWebhookRestController {
       @PathVariable String context,
       @RequestHeader Map<String, String> headers,
       @RequestBody(required = false) byte[] bodyAsByteArray,
+      @RequestBody(required = false) Map<String, Object> bodyAsMap,
       @RequestParam Map<String, String> params,
       HttpServletRequest httpServletRequest)
       throws IOException {
@@ -74,7 +75,7 @@ public class InboundWebhookRestController {
             connector -> {
               WebhookProcessingPayload payload =
                   new HttpServletRequestWebhookProcessingPayload(
-                      httpServletRequest, params, headers, bodyAsByteArray);
+                      httpServletRequest, bodyAsMap, params, headers, bodyAsByteArray);
               return processWebhook(connector, payload);
             })
         .orElseGet(() -> ResponseEntity.notFound().build());
@@ -86,9 +87,18 @@ public class InboundWebhookRestController {
     try {
       var webhookResult =
           ((WebhookConnectorExecutable) connector.executable()).triggerWebhook(payload);
-      var ctxData = toConnectorVariablesContext(webhookResult);
-      InboundConnectorResult<?> result = connector.context().correlate(ctxData);
-      connectorResponse = ResponseEntity.ok(result);
+      InboundConnectorResult<?> result =
+          connector
+              .context()
+              .correlate(
+                  new WebhookResultContext(
+                      new WebhookResultContext.Request(
+                          payload.body(),
+                          payload.headers(),
+                          payload.params(),
+                          webhookResult.connectorData())));
+      connectorResponse =
+          ResponseEntity.ok(webhookResult.body() == null ? result : webhookResult.body());
     } catch (Exception e) {
       LOG.error("Webhook failed with exception", e);
       if (e instanceof FeelEngineWrapperException feelEngineWrapperException) {

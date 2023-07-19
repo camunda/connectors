@@ -8,6 +8,7 @@ package io.camunda.connector.inbound;
 
 import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.disabled;
 import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.enabled;
+import static io.camunda.connector.inbound.utils.HttpWebhookUtil.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.InboundConnector;
@@ -15,6 +16,7 @@ import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingResult;
+import io.camunda.connector.api.inbound.webhook.WebhookResultContext;
 import io.camunda.connector.inbound.authorization.WebhookAuthChecker;
 import io.camunda.connector.inbound.model.WebhookConnectorProperties;
 import io.camunda.connector.inbound.model.WebhookConnectorProperties.WebhookConnectorPropertiesWrapper;
@@ -22,11 +24,11 @@ import io.camunda.connector.inbound.model.WebhookProcessingResultImpl;
 import io.camunda.connector.inbound.signature.HMACAlgoCustomerChoice;
 import io.camunda.connector.inbound.signature.HMACSignatureValidator;
 import io.camunda.connector.inbound.utils.HttpMethods;
-import io.camunda.connector.inbound.utils.HttpWebhookUtil;
 import io.camunda.connector.inbound.utils.ObjectMapperSupplier;
 import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,9 +68,9 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
 
     authChecker.checkAuthorization(payload);
 
-    response.setBody(
-        HttpWebhookUtil.transformRawBodyToMap(
-            payload.rawBody(), HttpWebhookUtil.extractContentType(payload.headers())));
+    var strictResponseBody = evaluateResponseBodyExpression(payload);
+
+    response.setBody(strictResponseBody);
     response.setHeaders(payload.headers());
     response.setParams(payload.params());
 
@@ -78,8 +80,7 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
   private boolean webhookSignatureIsValid(WebhookProcessingPayload payload)
       throws NoSuchAlgorithmException, InvalidKeyException, IOException {
     if (shouldValidateHmac()) {
-      return validateHmacSignature(
-          HttpWebhookUtil.extractSignatureData(payload, props.hmacScopes()), payload);
+      return validateHmacSignature(extractSignatureData(payload, props.hmacScopes()), payload);
     }
     return true;
   }
@@ -100,6 +101,22 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
             props.hmacSecret(),
             HMACAlgoCustomerChoice.valueOf(props.hmacAlgorithm()));
     return hmacSignatureValidator.isRequestValid();
+  }
+
+  private Map evaluateResponseBodyExpression(WebhookProcessingPayload payload) throws IOException {
+    if (props.responseBodyExpression() == null) {
+      return null;
+    }
+
+    var context =
+        new WebhookResultContext(
+            new WebhookResultContext.Request(
+                transformRawBodyToMap(payload.rawBody(), extractContentType(payload.headers())),
+                payload.headers(),
+                payload.params(),
+                Map.of()));
+
+    return props.responseBodyExpression().apply(context);
   }
 
   @Override
