@@ -18,29 +18,26 @@ package io.camunda.connector.api.inbound.webhook;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.function.Function;
 
 /**
  * A wrapper object that returns data processed by a webhook. Depending on webhook runtime
  * implementation, this data can be used in the BPMN process correlation. See {@link
  * io.camunda.connector.api.inbound.InboundConnectorContext#correlate(Object)}.
  */
-public interface WebhookProcessingResult {
+public interface WebhookResult {
 
   /**
-   * @return processed HTTP request body
+   * @return processed HTTP request wrapper
    */
-  Object body();
+  MappedHttpRequest request();
 
   /**
-   * @return processed HTTP request headers
+   * @return strict response from the connector. May be useful to handle challenges, or special
+   *     response cases.
    */
-  Map<String, String> headers();
-
-  /**
-   * @return processed HTTP request URL parameters
-   */
-  default Map<String, String> params() {
-    return Collections.emptyMap();
+  default WebhookHttpResponse response() {
+    return null;
   }
 
   /**
@@ -51,5 +48,9 @@ public interface WebhookProcessingResult {
    */
   default Map<String, Object> connectorData() {
     return Collections.emptyMap();
+  }
+
+  default Function<WebhookResultContext, Object> responseBodyExpression() {
+    return response -> null;
   }
 }

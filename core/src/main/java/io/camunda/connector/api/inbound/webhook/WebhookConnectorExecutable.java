@@ -34,9 +34,9 @@ public interface WebhookConnectorExecutable extends InboundConnectorExecutable {
    *
    * @param payload Webhook request data, such as body, or headers. See {@link
    *     WebhookProcessingPayload}.
-   * @return Processed webhook request data. See {@link WebhookProcessingResult}.
+   * @return Processed webhook request data. See {@link WebhookResult}.
    */
-  WebhookProcessingResult triggerWebhook(WebhookProcessingPayload payload) throws Exception;
+  WebhookResult triggerWebhook(WebhookProcessingPayload payload) throws Exception;
 
   /**
    * @see InboundConnectorExecutable#activate(InboundConnectorContext)
