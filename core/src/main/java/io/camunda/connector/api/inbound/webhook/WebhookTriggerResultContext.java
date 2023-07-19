@@ -16,10 +16,11 @@
  */
 package io.camunda.connector.api.inbound.webhook;
 
-import io.camunda.connector.api.inbound.InboundConnectorResult;
 import java.util.Map;
 
-public record WebhookResultContext(
-    MappedHttpRequest request,
-    Map<String, Object> connectorData,
-    InboundConnectorResult correlation) {}
+/**
+ * Container for the webhook result that will be passed to the correlated process instance as
+ * variables.
+ */
+public record WebhookTriggerResultContext(
+    MappedHttpRequest request, Map<String, Object> connectorData) {}
