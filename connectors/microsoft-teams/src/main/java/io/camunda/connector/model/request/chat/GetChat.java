@@ -12,9 +12,9 @@ import com.microsoft.graph.requests.ChatRequest;
 import com.microsoft.graph.requests.GraphServiceClient;
 import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.model.request.MSTeamsRequestData;
+import jakarta.validation.constraints.NotBlank;
 import java.util.List;
 import java.util.Objects;
-import javax.validation.constraints.NotBlank;
 import okhttp3.Request;
 
 public class GetChat extends MSTeamsRequestData {

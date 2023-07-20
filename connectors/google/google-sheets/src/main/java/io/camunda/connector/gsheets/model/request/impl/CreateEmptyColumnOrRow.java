@@ -8,8 +8,8 @@ package io.camunda.connector.gsheets.model.request.impl;
 
 import io.camunda.connector.gsheets.model.request.Dimension;
 import io.camunda.connector.gsheets.model.request.SpreadsheetInput;
+import jakarta.validation.constraints.NotNull;
 import java.util.Objects;
-import javax.validation.constraints.NotNull;
 
 public class CreateEmptyColumnOrRow extends SpreadsheetInput {
 

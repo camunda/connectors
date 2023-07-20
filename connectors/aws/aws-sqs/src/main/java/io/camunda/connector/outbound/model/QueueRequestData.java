@@ -9,14 +9,14 @@ package io.camunda.connector.outbound.model;
 import com.amazonaws.services.sqs.model.MessageAttributeValue;
 import com.amazonaws.util.StringUtils;
 import io.camunda.connector.api.annotation.Secret;
+import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
-import javax.validation.constraints.AssertTrue;
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.NotNull;
 
 public class QueueRequestData {
 

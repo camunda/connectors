@@ -10,9 +10,9 @@ import com.google.api.services.drive.DriveScopes;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.UserCredentials;
+import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.NotNull;
 import java.util.Objects;
-import javax.validation.constraints.AssertTrue;
-import javax.validation.constraints.NotNull;
 
 public class Authentication {
 

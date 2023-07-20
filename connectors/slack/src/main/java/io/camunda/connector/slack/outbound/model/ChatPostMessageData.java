@@ -14,9 +14,9 @@ import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.slack.outbound.SlackRequestData;
 import io.camunda.connector.slack.outbound.SlackResponse;
 import io.camunda.connector.slack.outbound.utils.DataLookupService;
+import jakarta.validation.constraints.NotBlank;
 import java.io.IOException;
 import java.util.Objects;
-import javax.validation.constraints.NotBlank;
 import org.apache.commons.text.StringEscapeUtils;
 
 public class ChatPostMessageData implements SlackRequestData {

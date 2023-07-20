@@ -18,8 +18,8 @@ package io.camunda.connector.common.auth;
 
 import com.google.api.client.http.HttpHeaders;
 import com.google.common.base.Objects;
+import jakarta.validation.constraints.NotEmpty;
 import java.util.function.Function;
-import javax.validation.constraints.NotEmpty;
 
 public class BasicAuthentication extends Authentication {
   private static final String SPEC_PASSWORD_EMPTY_PATTERN = "SPEC_PASSWORD_EMPTY_PATTERN";

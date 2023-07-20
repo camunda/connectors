@@ -16,11 +16,11 @@ import com.microsoft.graph.requests.GraphServiceClient;
 import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.model.Member;
 import io.camunda.connector.model.request.MSTeamsRequestData;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
 import okhttp3.Request;
 
 public class CreateChat extends MSTeamsRequestData {

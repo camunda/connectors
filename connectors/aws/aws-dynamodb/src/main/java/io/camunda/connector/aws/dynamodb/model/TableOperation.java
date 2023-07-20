@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.aws.dynamodb.model;
 
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotBlank;
 
 public sealed class TableOperation implements AwsInput
     permits AddItem,

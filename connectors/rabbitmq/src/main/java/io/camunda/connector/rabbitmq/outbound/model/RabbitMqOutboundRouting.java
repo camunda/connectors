@@ -8,8 +8,8 @@ package io.camunda.connector.rabbitmq.outbound.model;
 
 import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.rabbitmq.common.model.RabbitMqRouting;
+import jakarta.validation.constraints.NotBlank;
 import java.util.Objects;
-import javax.validation.constraints.NotBlank;
 
 public class RabbitMqOutboundRouting extends RabbitMqRouting {
 

@@ -7,9 +7,9 @@
 package io.camunda.connector.graphql.model;
 
 import io.camunda.connector.common.auth.Authentication;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import java.util.Objects;
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
 
 public class GraphQLRequestWrapper {
   @Valid @NotNull private GraphQLRequest graphql;

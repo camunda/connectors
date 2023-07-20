@@ -7,10 +7,10 @@
 package io.camunda.connector.inbound.model;
 
 import io.camunda.connector.api.annotation.Secret;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.Pattern;
 import java.util.List;
 import java.util.Objects;
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.Pattern;
 
 public class SqsInboundQueueProperties {
   @Deprecated @Secret private String region;

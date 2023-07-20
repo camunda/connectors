@@ -7,8 +7,8 @@
 package io.camunda.connector.aws.model.impl;
 
 import io.camunda.connector.aws.model.AwsAuthentication;
+import jakarta.validation.constraints.NotBlank;
 import java.util.Objects;
-import javax.validation.constraints.NotBlank;
 
 public class AwsBaseAuthentication implements AwsAuthentication {
   @NotBlank private String accessKey;

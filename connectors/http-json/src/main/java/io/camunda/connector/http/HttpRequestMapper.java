@@ -33,9 +33,9 @@ import io.camunda.connector.common.model.HttpRequestBuilder;
 import io.camunda.connector.http.components.GsonComponentSupplier;
 import io.camunda.connector.http.model.HttpJsonRequest;
 import io.camunda.connector.impl.ConnectorInputException;
+import jakarta.validation.ValidationException;
 import java.io.IOException;
 import java.util.Optional;
-import javax.validation.ValidationException;
 import org.apache.commons.text.StringEscapeUtils;
 
 public class HttpRequestMapper {

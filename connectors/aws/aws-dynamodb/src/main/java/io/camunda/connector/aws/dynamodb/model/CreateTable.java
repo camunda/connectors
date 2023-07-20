@@ -6,8 +6,8 @@
  */
 package io.camunda.connector.aws.dynamodb.model;
 
+import jakarta.validation.constraints.NotBlank;
 import java.util.Objects;
-import javax.validation.constraints.NotBlank;
 
 public final class CreateTable extends TableOperation {
 

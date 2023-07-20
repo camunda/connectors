@@ -7,8 +7,8 @@
 package io.camunda.connector.gsheets.model.request.impl;
 
 import io.camunda.connector.gsheets.model.request.SpreadsheetInput;
+import jakarta.validation.constraints.NotBlank;
 import java.util.Objects;
-import javax.validation.constraints.NotBlank;
 
 public class CreateWorksheet extends SpreadsheetInput {
 

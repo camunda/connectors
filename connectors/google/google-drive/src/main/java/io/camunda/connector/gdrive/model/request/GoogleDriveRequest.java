@@ -7,9 +7,9 @@
 package io.camunda.connector.gdrive.model.request;
 
 import io.camunda.google.model.GoogleBaseRequest;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import java.util.Objects;
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
 
 public class GoogleDriveRequest extends GoogleBaseRequest {
 

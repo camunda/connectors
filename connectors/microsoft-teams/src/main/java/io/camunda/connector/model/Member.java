@@ -8,11 +8,11 @@ package io.camunda.connector.model;
 
 import com.google.gson.JsonPrimitive;
 import io.camunda.connector.api.annotation.Secret;
+import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import javax.validation.constraints.AssertTrue;
-import javax.validation.constraints.NotNull;
 
 public class Member {
 

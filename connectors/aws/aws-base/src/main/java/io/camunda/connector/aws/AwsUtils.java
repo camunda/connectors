@@ -7,8 +7,8 @@
 package io.camunda.connector.aws;
 
 import io.camunda.connector.aws.model.AwsConfiguration;
+import jakarta.validation.ValidationException;
 import java.util.Optional;
-import javax.validation.ValidationException;
 
 public class AwsUtils {
   private AwsUtils() {}
