@@ -197,6 +197,21 @@ public class JWTCheckerTest {
     assertFalse(verificationResult);
   }
 
+  @Test
+  public void jwtCheckWithOutRoles() {
+    // given jwt, check only signature
+    JwkProvider jwkProvider = new TestJwkProvider();
+    JWTProperties jwtProperties = new JWTProperties(null, null, "https://mockUrl.com");
+    var headers = Map.of("Authorization", "Bearer " + JWT_TOKEN);
+
+    // when
+    boolean verificationResult =
+        JWTChecker.verify(jwtProperties, headers, jwkProvider, objectMapper);
+
+    // then
+    assertTrue(verificationResult);
+  }
+
   static class TestJwkProvider implements JwkProvider {
 
     @Override
