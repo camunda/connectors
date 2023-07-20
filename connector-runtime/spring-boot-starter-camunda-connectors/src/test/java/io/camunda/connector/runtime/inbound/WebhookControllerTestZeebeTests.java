@@ -111,7 +111,6 @@ class WebhookControllerTestZeebeTests {
                 new HashMap<>(),
                 "{}".getBytes(),
                 new HashMap<>(),
-                new HashMap<>(),
                 new MockHttpServletRequest());
 
     assertEquals(200, responseEntity.getStatusCode().value());
@@ -154,7 +153,6 @@ class WebhookControllerTestZeebeTests {
                 new HashMap<>(),
                 "{}".getBytes(),
                 new HashMap<>(),
-                new HashMap<>(),
                 new MockHttpServletRequest());
 
     assertEquals(200, responseEntity.getStatusCode().value());
@@ -184,7 +182,6 @@ class WebhookControllerTestZeebeTests {
             new HashMap<>(),
             "{}".getBytes(),
             new HashMap<>(),
-            new HashMap<>(),
             new MockHttpServletRequest());
     assertEquals(500, responseEntity.getStatusCode().value());
   }
@@ -211,7 +208,6 @@ class WebhookControllerTestZeebeTests {
             "myPath",
             new HashMap<>(),
             "{}".getBytes(),
-            new HashMap<>(),
             new HashMap<>(),
             new MockHttpServletRequest());
 
@@ -242,7 +238,6 @@ class WebhookControllerTestZeebeTests {
                 "myPath",
                 new HashMap<>(),
                 "{}".getBytes(),
-                new HashMap<>(),
                 new HashMap<>(),
                 new MockHttpServletRequest());
 

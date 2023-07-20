@@ -22,6 +22,9 @@ import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 import static org.springframework.web.bind.annotation.RequestMethod.PUT;
 
+import com.google.common.net.HttpHeaders;
+import com.google.common.net.MediaType;
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.inbound.InboundConnectorResult;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
@@ -30,10 +33,19 @@ import io.camunda.connector.api.inbound.webhook.WebhookResultContext;
 import io.camunda.connector.impl.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.inbound.lifecycle.ActiveInboundConnector;
 import io.camunda.connector.runtime.inbound.webhook.model.HttpServletRequestWebhookProcessingPayload;
+import io.camunda.connector.runtime.inbound.webhook.utils.WebUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,7 +76,6 @@ public class InboundWebhookRestController {
       @PathVariable String context,
       @RequestHeader Map<String, String> headers,
       @RequestBody(required = false) byte[] bodyAsByteArray,
-      @RequestBody(required = false) Map<String, Object> bodyAsMap,
       @RequestParam Map<String, String> params,
       HttpServletRequest httpServletRequest)
       throws IOException {
@@ -75,7 +86,7 @@ public class InboundWebhookRestController {
             connector -> {
               WebhookProcessingPayload payload =
                   new HttpServletRequestWebhookProcessingPayload(
-                      httpServletRequest, bodyAsMap, params, headers, bodyAsByteArray);
+                      httpServletRequest, WebUtils.transformRawBodyToMap(bodyAsByteArray, WebUtils.extractContentType(headers)), params, headers, bodyAsByteArray);
               return processWebhook(connector, payload);
             })
         .orElseGet(() -> ResponseEntity.notFound().build());
