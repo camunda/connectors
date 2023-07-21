@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
@@ -87,7 +88,7 @@ public class FeelDeserializerTest {
   }
 
   @Test
-  void feelDeserializer_notFeel_preserved() throws JsonProcessingException {
+  void feelDeserializer_plainString_preserved() throws JsonProcessingException {
     // given
     String json = """
         { "props": "foobar" }
@@ -98,6 +99,42 @@ public class FeelDeserializerTest {
     assertEquals("foobar", mapper.readValue(json, TargetTypeString.class).props);
   }
 
+  @Test
+  void feelDeserializer_notFeel_jsonArray_parsed() {
+    // given
+    String json = """
+        { "props": "[1, 2, 3]" }
+        """;
+
+    // when && then
+    var targetType = assertDoesNotThrow(() -> mapper.readValue(json, TargetTypeArray.class));
+    assertThat(targetType.props).containsExactly(1L, 2L, 3L);
+  }
+
+  @Test
+  void feelDeserializer_notFeel_jsonList_parsed() {
+    // given
+    String json = """
+        { "props": "[1, 2, 3]" }
+        """;
+
+    // when && then
+    var targetType = assertDoesNotThrow(() -> mapper.readValue(json, TargetTypeList.class));
+    assertThat(targetType.props).containsExactly("1", "2", "3");
+  }
+
+  @Test
+  void feelDeserializer_notFeel_jsonObject_parsed() {
+    // given
+    String json = """
+        { "props": "{\\"foo\\": \\"bar\\"}" }
+        """;
+
+    // when && then
+    var targetType = assertDoesNotThrow(() -> mapper.readValue(json, TargetTypeMap.class));
+    assertThat(targetType.props).containsEntry("foo", "bar");
+  }
+
   private record TargetTypeMap(@FEEL Map<String, String> props) {}
 
   private record TargetTypeObject(@FEEL StubObject stubObject) {}
@@ -105,4 +142,8 @@ public class FeelDeserializerTest {
   private record StubObject(Map<String, Object> props) {}
 
   private record TargetTypeString(@FEEL String props) {}
+
+  private record TargetTypeArray(@FEEL Long[] props) {}
+
+  private record TargetTypeList(@FEEL List<String> props) {}
 }
