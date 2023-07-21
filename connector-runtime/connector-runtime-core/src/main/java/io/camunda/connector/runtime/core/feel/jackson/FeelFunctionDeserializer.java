@@ -20,6 +20,8 @@ import com.fasterxml.jackson.databind.BeanProperty;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 import io.camunda.connector.impl.feel.AbstractFeelDeserializer;
 import io.camunda.connector.impl.feel.FeelEngineWrapper;
@@ -37,8 +39,8 @@ class FeelFunctionDeserializer<IN, OUT> extends AbstractFeelDeserializer<Functio
   private final FeelEngineWrapper feelEngineWrapper = new FeelEngineWrapper();
 
   @Override
-  protected Function<IN, OUT> doDeserialize(String expression) {
-    return (input) -> feelEngineWrapper.evaluate(expression, input, outputType);
+  protected Function<IN, OUT> doDeserialize(JsonNode node, ObjectMapper mapper) {
+    return (input) -> feelEngineWrapper.evaluate(node.textValue(), input, outputType);
   }
 
   @Override
