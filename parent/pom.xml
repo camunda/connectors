@@ -74,13 +74,13 @@ limitations under the License.</license.inlineheader>
 
     <!-- Third party dependencies -->
     <version.slf4j>1.7.36</version.slf4j>
-    <version.jakarta-validation>2.0.2</version.jakarta-validation>
+    <version.jakarta-validation>3.0.2</version.jakarta-validation>
     <version.mockito>5.4.0</version.mockito>
     <version.junit-jupiter>5.9.3</version.junit-jupiter>
     <version.assertj>3.24.2</version.assertj>
     <version.jackson-bom>2.15.2</version.jackson-bom>
     <version.jackson-datatype-jsr310>2.15.2</version.jackson-datatype-jsr310>
-    <version.hibernate-validator>6.2.5.Final</version.hibernate-validator>
+    <version.hibernate-validator>8.0.0.Final</version.hibernate-validator>
     <version.jsonassert>1.5.1</version.jsonassert>
 
     <!-- maven plugins (not managed by parent) -->
