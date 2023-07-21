@@ -18,14 +18,14 @@ package io.camunda.connector.validation.impl;
 
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.impl.ConnectorInputException;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.MessageInterpolator;
+import jakarta.validation.Validation;
+import jakarta.validation.ValidationException;
+import jakarta.validation.ValidatorFactory;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import javax.validation.ConstraintViolation;
-import javax.validation.MessageInterpolator;
-import javax.validation.Validation;
-import javax.validation.ValidationException;
-import javax.validation.ValidatorFactory;
 import org.hibernate.validator.messageinterpolation.ParameterMessageInterpolator;
 
 public class DefaultValidationProvider implements ValidationProvider {
