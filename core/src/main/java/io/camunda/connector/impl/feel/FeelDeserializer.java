@@ -16,11 +16,15 @@
  */
 package io.camunda.connector.impl.feel;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.BeanProperty;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.TypeFactory;
+import java.io.IOException;
 import java.util.Map;
 
 /**
@@ -43,11 +47,21 @@ public class FeelDeserializer extends AbstractFeelDeserializer<Object> {
   }
 
   @Override
-  protected Object doDeserialize(String expression) {
-    if (!isFeelExpression(expression)) {
-      return expression;
+  protected Object doDeserialize(JsonNode node, ObjectMapper mapper)
+      throws JsonProcessingException {
+    if (isFeelExpression(node.textValue())) {
+      return FEEL_ENGINE_WRAPPER.evaluate(node.textValue(), Map.of(), outputType);
     }
-    return FEEL_ENGINE_WRAPPER.evaluate(expression, Map.of(), outputType);
+    if (node.isTextual()) {
+      try {
+        // check if this string contains a JSON object/array/etc inside (i.e. it's not just a
+        // string)
+        return mapper.readValue(node.textValue(), outputType);
+      } catch (IOException e) {
+        // ignore, this is just a string, we will take care of it below
+      }
+    }
+    return mapper.treeToValue(node, outputType);
   }
 
   @Override

@@ -19,12 +19,14 @@ package io.camunda.connector.impl.feel;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.deser.ContextualDeserializer;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import java.io.IOException;
 
 public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
     implements ContextualDeserializer {
+
   protected FeelEngineWrapper feelEngineWrapper;
   protected boolean relaxed;
 
@@ -37,22 +39,23 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
   @Override
   public T deserialize(JsonParser parser, DeserializationContext context) throws IOException {
     JsonNode node = parser.getCodec().readTree(parser);
+    if (node == null || node.isNull()) {
+      return null;
+    }
+    ObjectMapper mapper = (ObjectMapper) parser.getCodec();
 
-    if (node != null && node.isTextual()) {
-      String value = node.textValue();
-      // if not relaxed, we expect only a FEEL expression
-      // otherwise we accept any string
-      if (relaxed || isFeelExpression(value)) {
-        return doDeserialize(value);
-      }
+    if (isFeelExpression(node.textValue()) || relaxed) {
+      return doDeserialize(node, mapper);
     }
     throw new IOException(
-        "Invalid input: expected a FEEL expression, but got '" + node + "' instead.");
+        "Invalid input: expected a FEEL expression (starting with '=') or a JSON object/array/etc. "
+            + "Property name: "
+            + parser.getParsingContext().getCurrentName());
   }
 
   protected boolean isFeelExpression(String value) {
-    return value.startsWith("=");
+    return value != null && value.startsWith("=");
   }
 
-  protected abstract T doDeserialize(String expression);
+  protected abstract T doDeserialize(JsonNode node, ObjectMapper mapper) throws IOException;
 }
