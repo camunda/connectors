@@ -32,4 +32,4 @@ mvn clean package
 
 ## Element Template
 
-The element templates can be found in the [element-templates/aws-dynamodb-outbound-connector.json](element-templates/aws-dynamodb-outbound-connector.json)file.
+The element templates can be found in the [element-templates/aws-dynamodb-outbound-connector.json](element-templates/aws-dynamodb-connector.json)file.

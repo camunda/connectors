@@ -16,8 +16,6 @@ public record JWTProperties(
     Function<Object, List<String>> jwtRoleExpression,
     @FEEL String jwkUrl) {
   public JWTProperties {
-    Objects.requireNonNull(requiredPermissions);
-    Objects.requireNonNull(jwtRoleExpression);
     Objects.requireNonNull(jwkUrl);
   }
 }

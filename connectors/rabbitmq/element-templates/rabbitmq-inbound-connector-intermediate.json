@@ -291,7 +291,7 @@
       "description": "Name of variable to store the result of the connector in"
     },
     {
-      "label":"Result expression",
+      "label": "Result expression",
       "type": "String",
       "group": "variable-mapping",
       "feel": "required",

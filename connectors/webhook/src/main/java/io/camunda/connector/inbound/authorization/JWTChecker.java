@@ -40,21 +40,25 @@ public class JWTChecker {
       final Map<String, String> headers,
       final JwkProvider jwkProvider,
       final ObjectMapper objectMapper) {
-    Optional<DecodedJWT> decodedJWT = getDecodedVerifiedJWT(jwtProperties, headers, jwkProvider);
+    Optional<DecodedJWT> decodedJWT = getDecodedVerifiedJWT(headers, jwkProvider);
     if (decodedJWT.isEmpty()) {
       return false;
     }
-    List<String> roles = extractRoles(jwtProperties, decodedJWT.get(), objectMapper);
-    if (!roles.containsAll(jwtProperties.requiredPermissions())) {
-      LOGGER.debug("JWT auth failed");
-      return false;
+    if (jwtProperties.requiredPermissions() != null
+        && !jwtProperties.requiredPermissions().isEmpty()) {
+
+      List<String> roles = extractRoles(jwtProperties, decodedJWT.get(), objectMapper);
+      if (!roles.containsAll(jwtProperties.requiredPermissions())) {
+        LOGGER.debug("JWT auth failed");
+        return false;
+      }
     }
     LOGGER.debug("JWT auth was successful");
     return true;
   }
 
   private static Optional<DecodedJWT> getDecodedVerifiedJWT(
-      JWTProperties jwtProperties, Map<String, String> headers, JwkProvider jwkProvider) {
+      Map<String, String> headers, JwkProvider jwkProvider) {
     final String jwtToken =
         JWTChecker.extractJWTFomHeader(headers)
             .orElseThrow(() -> new RuntimeException("Cannot extract JWT from header!"));
@@ -134,21 +138,14 @@ public class JWTChecker {
   }
 
   private static Algorithm getAlgorithm(Jwk jwk) throws InvalidPublicKeyException {
-    switch (jwk.getAlgorithm()) {
-      case "RS256":
-        return Algorithm.RSA256((RSAPublicKey) jwk.getPublicKey());
-      case "RS384":
-        return Algorithm.RSA384((RSAPublicKey) jwk.getPublicKey());
-      case "RS512":
-        return Algorithm.RSA512((RSAPublicKey) jwk.getPublicKey());
-      case "ES256":
-        return Algorithm.ECDSA256((ECPublicKey) jwk.getPublicKey(), null);
-      case "ES384":
-        return Algorithm.ECDSA384((ECPublicKey) jwk.getPublicKey(), null);
-      case "ES512":
-        return Algorithm.ECDSA512((ECPublicKey) jwk.getPublicKey(), null);
-      default:
-        throw new RuntimeException("Unknown algorithm!");
-    }
+    return switch (jwk.getAlgorithm()) {
+      case "RS256" -> Algorithm.RSA256((RSAPublicKey) jwk.getPublicKey());
+      case "RS384" -> Algorithm.RSA384((RSAPublicKey) jwk.getPublicKey());
+      case "RS512" -> Algorithm.RSA512((RSAPublicKey) jwk.getPublicKey());
+      case "ES256" -> Algorithm.ECDSA256((ECPublicKey) jwk.getPublicKey(), null);
+      case "ES384" -> Algorithm.ECDSA384((ECPublicKey) jwk.getPublicKey(), null);
+      case "ES512" -> Algorithm.ECDSA512((ECPublicKey) jwk.getPublicKey(), null);
+      default -> throw new RuntimeException("Unknown algorithm!");
+    };
   }
 }

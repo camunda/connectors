@@ -1,10 +1,10 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "Slack Webhook",
-  "id": "io.camunda.connectors.inbound.Slack.IntermediateCatchEvent.v1",
-  "description": "Receive events from Slack",
+  "name": "GitHub webhook connector",
+  "id": "io.camunda.connectors.webhook.GithubWebhookConnectorIntermediate.v1",
   "version": 1,
-  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/slack-inbound/",
+  "description": "Receive events from GitHub",
+  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/github-webhook/",
   "category": {
     "id": "connectors",
     "name": "Connectors"
@@ -34,18 +34,10 @@
   "properties": [
     {
       "type": "Hidden",
-      "value": "io.camunda:slack-webhook:1",
+      "value": "io.camunda:webhook:1",
       "binding": {
         "type": "zeebe:property",
         "name": "inbound.type"
-      }
-    },
-    {
-      "type": "Hidden",
-      "value": "SlackEventsWebhook",
-      "binding": {
-        "type": "zeebe:property",
-        "name": "inbound.subtype"
       }
     },
     {
@@ -59,6 +51,14 @@
       }
     },
     {
+      "type": "Hidden",
+      "value": "GitHubWebhook",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.subtype"
+      }
+    },
+    {
       "label": "Webhook ID",
       "type": "String",
       "group": "endpoint",
@@ -66,23 +66,44 @@
         "type": "zeebe:property",
         "name": "inbound.context"
       },
-      "description": "The webhook ID is a part of the URL endpoint",
+      "description": "The webhook ID is a part of the URL",
       "constraints": {
         "notEmpty": true
       }
     },
     {
-      "label": "Slack signing secret",
-      "description": "Slack signing secret. <a href='https://api.slack.com/authentication/verifying-requests-from-slack' target='_blank'>See documentation</a> regarding the Slack signing secret",
-      "type": "String",
-      "group": "endpoint",
-      "feel": "optional",
+      "type": "Hidden",
+      "value": "enabled",
       "binding": {
         "type": "zeebe:property",
-        "name": "inbound.slackSigningSecret"
-      },
-      "constraints": {
-        "notEmpty": true
+        "name": "inbound.shouldValidateHmac"
+      }
+    },
+    {
+      "label": "GitHub secret",
+      "description": "Shared secret key. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/github-webhook/' target='_blank'>See documentation</a> regarding GitHub secret",
+      "type": "String",
+      "group": "endpoint",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.hmacSecret"
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "X-Hub-Signature-256",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.hmacHeader"
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "sha_256",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.hmacAlgorithm"
       }
     },
     {
@@ -121,9 +142,9 @@
       "optional": true,
       "binding": {
         "type": "zeebe:property",
-        "name": "activationCondition"
+        "name": "inbound.activationCondition"
       },
-      "description": "Condition under which the connector triggers. Leave empty to catch all events."
+      "description": "Condition under which the connector triggers. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/github-webhook/' target='_blank'>See documentation</a>"
     },
     {
       "label": "Result variable",
@@ -150,6 +171,6 @@
     }
   ],
   "icon": {
-    "contents": "data:image/svg+xml;utf8,%3Csvg%20width%3D%2218%22%20height%3D%2218%22%20%20viewBox%3D%220%200%20127%20127%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%20%20%3Cpath%20d%3D%22M27.2%2080c0%207.3-5.9%2013.2-13.2%2013.2C6.7%2093.2.8%2087.3.8%2080c0-7.3%205.9-13.2%2013.2-13.2h13.2V80zm6.6%200c0-7.3%205.9-13.2%2013.2-13.2%207.3%200%2013.2%205.9%2013.2%2013.2v33c0%207.3-5.9%2013.2-13.2%2013.2-7.3%200-13.2-5.9-13.2-13.2V80z%22%20fill%3D%22%23E01E5A%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M47%2027c-7.3%200-13.2-5.9-13.2-13.2C33.8%206.5%2039.7.6%2047%20.6c7.3%200%2013.2%205.9%2013.2%2013.2V27H47zm0%206.7c7.3%200%2013.2%205.9%2013.2%2013.2%200%207.3-5.9%2013.2-13.2%2013.2H13.9C6.6%2060.1.7%2054.2.7%2046.9c0-7.3%205.9-13.2%2013.2-13.2H47z%22%20fill%3D%22%2336C5F0%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M99.9%2046.9c0-7.3%205.9-13.2%2013.2-13.2%207.3%200%2013.2%205.9%2013.2%2013.2%200%207.3-5.9%2013.2-13.2%2013.2H99.9V46.9zm-6.6%200c0%207.3-5.9%2013.2-13.2%2013.2-7.3%200-13.2-5.9-13.2-13.2V13.8C66.9%206.5%2072.8.6%2080.1.6c7.3%200%2013.2%205.9%2013.2%2013.2v33.1z%22%20fill%3D%22%232EB67D%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M80.1%2099.8c7.3%200%2013.2%205.9%2013.2%2013.2%200%207.3-5.9%2013.2-13.2%2013.2-7.3%200-13.2-5.9-13.2-13.2V99.8h13.2zm0-6.6c-7.3%200-13.2-5.9-13.2-13.2%200-7.3%205.9-13.2%2013.2-13.2h33.1c7.3%200%2013.2%205.9%2013.2%2013.2%200%207.3-5.9%2013.2-13.2%2013.2H80.1z%22%20fill%3D%22%23ECB22E%22%2F%3E%0A%3C%2Fsvg%3E%0A"
+    "contents": "data:image/svg+xml,%3Csvg width='18' height='18' viewBox='0 0 1024 1024' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M8 0C3.58 0 0 3.58 0 8C0 11.54 2.29 14.53 5.47 15.59C5.87 15.66 6.02 15.42 6.02 15.21C6.02 15.02 6.01 14.39 6.01 13.72C4 14.09 3.48 13.23 3.32 12.78C3.23 12.55 2.84 11.84 2.5 11.65C2.22 11.5 1.82 11.13 2.49 11.12C3.12 11.11 3.57 11.7 3.72 11.94C4.44 13.15 5.59 12.81 6.05 12.6C6.12 12.08 6.33 11.73 6.56 11.53C4.78 11.33 2.92 10.64 2.92 7.58C2.92 6.71 3.23 5.99 3.74 5.43C3.66 5.23 3.38 4.41 3.82 3.31C3.82 3.31 4.49 3.1 6.02 4.13C6.66 3.95 7.34 3.86 8.02 3.86C8.7 3.86 9.38 3.95 10.02 4.13C11.55 3.09 12.22 3.31 12.22 3.31C12.66 4.41 12.38 5.23 12.3 5.43C12.81 5.99 13.12 6.7 13.12 7.58C13.12 10.65 11.25 11.33 9.47 11.53C9.76 11.78 10.01 12.26 10.01 13.01C10.01 14.08 10 14.94 10 15.21C10 15.42 10.15 15.67 10.55 15.59C13.71 14.53 16 11.53 16 8C16 3.58 12.42 0 8 0Z' transform='scale(64)' fill='%231B1F23'/%3E%3C/svg%3E"
   }
 }

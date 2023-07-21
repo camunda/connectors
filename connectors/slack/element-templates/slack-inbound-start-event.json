@@ -17,16 +17,16 @@
   },
   "groups": [
     {
-      "id":"endpoint",
-      "label":"Webhook configuration"
+      "id": "endpoint",
+      "label": "Webhook configuration"
     },
     {
-      "id":"activation",
-      "label":"Activation"
+      "id": "activation",
+      "label": "Activation"
     },
     {
-      "id":"variable-mapping",
-      "label":"Variable mapping"
+      "id": "variable-mapping",
+      "label": "Variable mapping"
     }
   ],
   "properties": [
@@ -97,7 +97,7 @@
       "description": "Name of variable to store the result of the connector in"
     },
     {
-      "label":"Result expression",
+      "label": "Result expression",
       "type": "String",
       "group": "variable-mapping",
       "feel": "required",

@@ -22,10 +22,10 @@
     <version.spring-zeebe>8.2.3</version.spring-zeebe>
     <version.operate-client>8.2.0</version.operate-client>
 
-    <version.spring-boot>3.1.1</version.spring-boot>
+    <version.spring-boot>3.1.2</version.spring-boot>
     <version.spring-cloud-gcp-starter-logging>4.5.1</version.spring-cloud-gcp-starter-logging>
 
-    <version.aws-java-sdk>1.12.507</version.aws-java-sdk>
+    <version.aws-java-sdk>1.12.511</version.aws-java-sdk>
 
     <version.google-api-client>2.2.0</version.google-api-client>
     <version.google-api-services-drive>v3-rev20230610-2.0.0</version.google-api-services-drive>
@@ -39,7 +39,7 @@
 
     <version.httpcore>4.4.16</version.httpcore>
 
-    <version.kafka-clients>3.5.0</version.kafka-clients>
+    <version.kafka-clients>3.5.1</version.kafka-clients>
 
     <version.microsoft-graph>5.64.0</version.microsoft-graph>
     <version.azure-identity>1.9.2</version.azure-identity>

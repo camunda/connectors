@@ -81,7 +81,7 @@
       "description": "Provide the username (must have permissions to produce message to the topic)",
       "group": "authentication",
       "type": "String",
-      "feel":"optional",
+      "feel": "optional",
       "optional": true,
       "binding": {
         "type": "zeebe:property",
@@ -97,7 +97,7 @@
       "description": "Provide a password for the user",
       "group": "authentication",
       "type": "String",
-      "feel":"optional",
+      "feel": "optional",
       "optional": true,
       "binding": {
         "type": "zeebe:property",
@@ -113,7 +113,7 @@
       "description": "Provide bootstrap server(s), comma-delimited if there are multiple",
       "group": "kafka",
       "type": "String",
-      "feel":"optional",
+      "feel": "optional",
       "binding": {
         "type": "zeebe:property",
         "name": "topic.bootstrapServers"
@@ -127,7 +127,7 @@
       "description": "Provide the topic name",
       "group": "kafka",
       "type": "String",
-      "feel":"optional",
+      "feel": "optional",
       "binding": {
         "type": "zeebe:property",
         "name": "topic.topicName"
@@ -142,7 +142,7 @@
       "group": "kafka",
       "type": "String",
       "optional": true,
-      "feel":"required",
+      "feel": "required",
       "binding": {
         "type": "zeebe:property",
         "name": "additionalProperties"
