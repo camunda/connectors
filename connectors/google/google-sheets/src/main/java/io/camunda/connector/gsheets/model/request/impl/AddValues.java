@@ -7,8 +7,8 @@
 package io.camunda.connector.gsheets.model.request.impl;
 
 import io.camunda.connector.gsheets.model.request.SpreadsheetInput;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 public class AddValues extends SpreadsheetInput {
 

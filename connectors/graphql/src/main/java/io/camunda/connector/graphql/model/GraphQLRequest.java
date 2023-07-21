@@ -7,8 +7,8 @@
 package io.camunda.connector.graphql.model;
 
 import io.camunda.connector.common.model.CommonRequest;
+import jakarta.validation.constraints.NotBlank;
 import java.util.Objects;
-import javax.validation.constraints.NotBlank;
 
 public class GraphQLRequest extends CommonRequest {
 

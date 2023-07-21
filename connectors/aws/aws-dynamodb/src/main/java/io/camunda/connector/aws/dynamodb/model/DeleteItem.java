@@ -6,8 +6,8 @@
  */
 package io.camunda.connector.aws.dynamodb.model;
 
+import jakarta.validation.constraints.NotNull;
 import java.util.Objects;
-import javax.validation.constraints.NotNull;
 
 public final class DeleteItem extends TableOperation {
 

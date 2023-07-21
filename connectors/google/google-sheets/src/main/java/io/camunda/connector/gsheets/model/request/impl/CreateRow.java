@@ -7,10 +7,10 @@
 package io.camunda.connector.gsheets.model.request.impl;
 
 import io.camunda.connector.gsheets.model.request.SpreadsheetInput;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import java.util.Objects;
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.NotNull;
 
 public class CreateRow extends SpreadsheetInput {
 

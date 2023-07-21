@@ -17,11 +17,11 @@
 package io.camunda.connector.common.model;
 
 import io.camunda.connector.common.auth.Authentication;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import java.util.Map;
 import java.util.Objects;
-import javax.validation.Valid;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.Pattern;
 
 public class CommonRequest {
 

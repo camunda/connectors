@@ -6,8 +6,8 @@
  */
 package io.camunda.connector.sendgrid;
 
+import jakarta.validation.constraints.NotEmpty;
 import java.util.Objects;
-import javax.validation.constraints.NotEmpty;
 
 public class SendGridContent {
   @NotEmpty private String subject;

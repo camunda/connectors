@@ -8,8 +8,8 @@ package io.camunda.connector.aws.dynamodb;
 
 import io.camunda.connector.aws.dynamodb.model.AwsInput;
 import io.camunda.connector.aws.model.impl.AwsBaseRequest;
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 
 public class AwsDynamoDbRequest extends AwsBaseRequest {
   @Valid @NotNull private AwsInput input;

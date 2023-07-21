@@ -7,9 +7,9 @@
 package io.camunda.connector.aws.eventbridge;
 
 import io.camunda.connector.api.annotation.Secret;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import java.util.Objects;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
 
 public class AwsEventBridgeInput {
   @NotBlank @Secret private String source;

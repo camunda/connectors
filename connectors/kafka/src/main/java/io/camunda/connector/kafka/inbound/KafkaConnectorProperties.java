@@ -10,10 +10,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.kafka.outbound.model.KafkaAuthentication;
 import io.camunda.connector.kafka.outbound.model.KafkaTopic;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import java.util.HashMap;
 import java.util.Map;
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
 
 public class KafkaConnectorProperties {
 

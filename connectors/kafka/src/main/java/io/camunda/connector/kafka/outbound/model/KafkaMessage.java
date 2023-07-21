@@ -6,9 +6,9 @@
  */
 package io.camunda.connector.kafka.outbound.model;
 
+import jakarta.validation.constraints.NotNull;
 import java.util.Objects;
 import java.util.Properties;
-import javax.validation.constraints.NotNull;
 import org.apache.kafka.clients.producer.ProducerConfig;
 
 public class KafkaMessage {

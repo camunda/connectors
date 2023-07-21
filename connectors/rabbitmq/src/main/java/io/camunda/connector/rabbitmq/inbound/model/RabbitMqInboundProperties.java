@@ -9,11 +9,11 @@ package io.camunda.connector.rabbitmq.inbound.model;
 import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.rabbitmq.common.model.RabbitMqAuthentication;
 import io.camunda.connector.rabbitmq.common.model.RabbitMqRouting;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import java.util.Map;
 import java.util.Objects;
-import javax.validation.Valid;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
 
 public class RabbitMqInboundProperties {
   @Valid @NotNull @Secret private RabbitMqAuthentication authentication;

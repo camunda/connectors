@@ -10,9 +10,9 @@ import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.model.authentication.MSTeamsAuthentication;
 import io.camunda.connector.model.request.MSTeamsRequestData;
 import io.camunda.connector.suppliers.GraphServiceClientSupplier;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import java.util.Objects;
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
 
 public class MSTeamsRequest {
 

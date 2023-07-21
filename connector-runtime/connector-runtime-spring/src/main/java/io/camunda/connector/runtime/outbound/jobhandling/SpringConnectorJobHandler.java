@@ -68,7 +68,15 @@ public class SpringConnectorJobHandler extends ConnectorJobHandler {
               Outbound.METRIC_NAME_INVOCATIONS,
               Outbound.ACTION_ACTIVATED,
               connectorConfiguration.getType());
-          super.handle(client, job);
+          try {
+            super.handle(client, job);
+          } catch (Exception e) {
+            metricsRecorder.increase(
+                Outbound.METRIC_NAME_INVOCATIONS,
+                Outbound.ACTION_FAILED,
+                connectorConfiguration.getType());
+            System.out.println("Failed to handle job: " + job);
+          }
         });
   }
 

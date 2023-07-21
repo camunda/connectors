@@ -18,7 +18,7 @@ package io.camunda.connector.common.auth;
 
 import com.google.api.client.http.HttpHeaders;
 import com.google.common.base.Objects;
-import javax.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotEmpty;
 
 public class BearerAuthentication extends Authentication {
 

@@ -6,12 +6,12 @@
  */
 package io.camunda.connector.kafka.outbound.model;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.producer.ProducerConfig;
 

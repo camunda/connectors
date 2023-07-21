@@ -7,8 +7,8 @@
 package io.camunda.connector.rabbitmq.common.model;
 
 import io.camunda.connector.api.annotation.Secret;
+import jakarta.validation.constraints.AssertFalse;
 import java.util.Objects;
-import javax.validation.constraints.AssertFalse;
 
 public class RabbitMqAuthentication {
 

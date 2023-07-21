@@ -9,9 +9,9 @@ package io.camunda.connector.gsheets.model.request;
 import com.google.api.client.util.Key;
 import io.camunda.connector.api.annotation.Secret;
 import io.camunda.google.model.GoogleBaseRequest;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import java.util.Objects;
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
 
 public class GoogleSheetsRequest extends GoogleBaseRequest {
 

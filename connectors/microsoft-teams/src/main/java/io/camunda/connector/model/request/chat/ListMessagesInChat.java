@@ -11,10 +11,10 @@ import com.microsoft.graph.requests.GraphServiceClient;
 import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.model.OrderBy;
 import io.camunda.connector.model.request.MSTeamsRequestData;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import java.util.Objects;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Pattern;
 import okhttp3.Request;
 
 public class ListMessagesInChat extends MSTeamsRequestData {

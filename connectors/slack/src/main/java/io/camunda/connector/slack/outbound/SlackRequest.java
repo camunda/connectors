@@ -14,11 +14,11 @@ import com.slack.api.methods.SlackApiException;
 import io.camunda.connector.slack.outbound.model.ChatPostMessageData;
 import io.camunda.connector.slack.outbound.model.ConversationsCreateData;
 import io.camunda.connector.slack.outbound.model.ConversationsInviteData;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import java.io.IOException;
 import java.util.Objects;
-import javax.validation.Valid;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
 
 public class SlackRequest<T extends SlackRequestData> {
 

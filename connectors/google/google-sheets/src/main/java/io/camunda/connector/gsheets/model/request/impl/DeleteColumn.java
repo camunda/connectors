@@ -8,9 +8,9 @@ package io.camunda.connector.gsheets.model.request.impl;
 
 import io.camunda.connector.gsheets.model.request.ColumnIndexType;
 import io.camunda.connector.gsheets.model.request.SpreadsheetInput;
+import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.NotNull;
 import java.util.Objects;
-import javax.validation.constraints.AssertTrue;
-import javax.validation.constraints.NotNull;
 
 public class DeleteColumn extends SpreadsheetInput {
 

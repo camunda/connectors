@@ -12,9 +12,9 @@ import com.microsoft.graph.models.ItemBody;
 import com.microsoft.graph.requests.GraphServiceClient;
 import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.model.request.MSTeamsRequestData;
+import jakarta.validation.constraints.NotBlank;
 import java.util.Objects;
 import java.util.Optional;
-import javax.validation.constraints.NotBlank;
 import okhttp3.Request;
 import org.apache.commons.text.StringEscapeUtils;
 

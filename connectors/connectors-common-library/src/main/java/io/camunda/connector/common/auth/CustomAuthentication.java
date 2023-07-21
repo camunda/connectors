@@ -18,10 +18,10 @@ package io.camunda.connector.common.auth;
 
 import com.google.api.client.http.HttpHeaders;
 import io.camunda.connector.common.model.CommonRequest;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import java.util.Map;
 import java.util.Objects;
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
 
 public class CustomAuthentication extends Authentication {
 

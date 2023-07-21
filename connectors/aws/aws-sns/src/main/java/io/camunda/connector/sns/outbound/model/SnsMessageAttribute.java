@@ -8,8 +8,8 @@ package io.camunda.connector.sns.outbound.model;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.constraints.NotBlank;
 import java.util.Objects;
-import javax.validation.constraints.NotBlank;
 
 public class SnsMessageAttribute {
   @JsonProperty("dataType")

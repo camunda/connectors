@@ -7,8 +7,8 @@
 package io.camunda.connector.gdrive.model.request;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import jakarta.validation.constraints.NotEmpty;
 import java.util.Objects;
-import javax.validation.constraints.NotEmpty;
 
 public class Template {
   @NotEmpty private String id;

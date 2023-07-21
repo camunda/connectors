@@ -6,9 +6,9 @@
  */
 package io.camunda.connector.awslambda.model;
 
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import java.util.Objects;
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.NotNull;
 
 public class FunctionRequestData {
 

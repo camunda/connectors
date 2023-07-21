@@ -18,10 +18,10 @@ package io.camunda.connector.common.auth;
 
 import com.google.api.client.http.HttpHeaders;
 import io.camunda.connector.common.constants.Constants;
+import jakarta.validation.constraints.NotEmpty;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import javax.validation.constraints.NotEmpty;
 
 public class OAuthAuthentication extends Authentication {
   private final String grantType = "client_credentials";
