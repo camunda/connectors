@@ -190,7 +190,6 @@
         ]
       }
     },
-
     {
       "label": "Username",
       "group": "authentication",

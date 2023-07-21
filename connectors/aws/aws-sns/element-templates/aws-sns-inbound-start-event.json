@@ -31,30 +31,30 @@
   ],
   "properties": [
     {
-      "type":"Hidden",
-      "value":"io.camunda:aws-sns-webhook:1",
-      "binding":{
-        "type":"zeebe:property",
-        "name":"inbound.type"
+      "type": "Hidden",
+      "value": "io.camunda:aws-sns-webhook:1",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.type"
       }
     },
     {
-      "type":"Hidden",
-      "value":"SnsHttpsSubscription",
-      "binding":{
-        "type":"zeebe:property",
-        "name":"inbound.subtype"
+      "type": "Hidden",
+      "value": "SnsHttpsSubscription",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.subtype"
       }
     },
     {
-      "label":"Subscription ID",
-      "type":"String",
-      "group":"subscription",
-      "binding":{
-        "type":"zeebe:property",
-        "name":"inbound.context"
+      "label": "Subscription ID",
+      "type": "String",
+      "group": "subscription",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.context"
       },
-      "description":"The subscription ID is a part of the URL endpoint",
+      "description": "The subscription ID is a part of the URL endpoint",
       "constraints": {
         "notEmpty": true
       }
@@ -123,7 +123,7 @@
       "description": "Name of variable to store the result of the connector in"
     },
     {
-      "label":"Result expression",
+      "label": "Result expression",
       "type": "String",
       "group": "variable-mapping",
       "feel": "required",

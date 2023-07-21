@@ -1,19 +1,19 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "RabbitMQ connector",
-  "id": "io.camunda.connectors.inbound.RabbitMQ.StartEvent.v1",
+  "id": "io.camunda.connectors.RabbitMQ.v1",
+  "description": "Send message to RabbitMQ",
+  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/",
   "version": 1,
-  "description": "Receive a message from RabbitMQ",
-  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq-inbound",
   "category": {
     "id": "connectors",
     "name": "Connectors"
   },
   "appliesTo": [
-    "bpmn:StartEvent"
+    "bpmn:Task"
   ],
   "elementType": {
-    "value": "bpmn:StartEvent"
+    "value": "bpmn:ServiceTask"
   },
   "groups": [
     {
@@ -25,25 +25,24 @@
       "label": "Routing"
     },
     {
-      "id": "subscription",
-      "label": "Subscription"
+      "id": "message",
+      "label": "Message"
     },
     {
-      "id": "activation",
-      "label": "Activation"
+      "id": "output",
+      "label": "Output mapping"
     },
     {
-      "id": "variable-mapping",
-      "label": "Variable mapping"
+      "id": "errors",
+      "label": "Error handling"
     }
   ],
   "properties": [
     {
       "type": "Hidden",
-      "value": "io.camunda:connector-rabbitmq-inbound:1",
+      "value": "io.camunda:connector-rabbitmq:1",
       "binding": {
-        "type": "zeebe:property",
-        "name": "inbound.type"
+        "type": "zeebe:taskDefinition:type"
       }
     },
     {
@@ -53,7 +52,7 @@
       "type": "Dropdown",
       "value": "uri",
       "binding": {
-        "type": "zeebe:property",
+        "type": "zeebe:input",
         "name": "authentication.authType"
       },
       "choices": [
@@ -73,7 +72,7 @@
       "group": "authentication",
       "type": "String",
       "binding": {
-        "type": "zeebe:property",
+        "type": "zeebe:input",
         "name": "authentication.uri"
       },
       "constraints": {
@@ -93,7 +92,7 @@
       "group": "authentication",
       "type": "String",
       "binding": {
-        "type": "zeebe:property",
+        "type": "zeebe:input",
         "name": "authentication.userName"
       },
       "constraints": {
@@ -109,7 +108,7 @@
       "group": "authentication",
       "type": "String",
       "binding": {
-        "type": "zeebe:property",
+        "type": "zeebe:input",
         "name": "authentication.password"
       },
       "constraints": {
@@ -122,11 +121,12 @@
     },
     {
       "label": "Host name",
-      "description": "Host name: get from RabbitMQ external applocation configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/#routing-data\"target=\"_blank\">documentation</a>",
+      "description": "Host name: get from RabbitMQ external application configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/#routing-data\"target=\"_blank\">documentation</a>",
+      "feel": "optional",
       "group": "routing",
       "type": "String",
       "binding": {
-        "type": "zeebe:property",
+        "type": "zeebe:input",
         "name": "routing.hostName"
       },
       "constraints": {
@@ -140,10 +140,11 @@
     {
       "label": "Virtual host",
       "description": "Virtual name: get from RabbitMQ external application configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/#routing-data\"target=\"_blank\">documentation</a>",
+      "feel": "optional",
       "group": "routing",
       "type": "String",
       "binding": {
-        "type": "zeebe:property",
+        "type": "zeebe:input",
         "name": "routing.virtualHost"
       },
       "constraints": {
@@ -155,12 +156,41 @@
       }
     },
     {
-      "label": "Port",
-      "description": "Port: get from RabbitMQ external application configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/#routing-data\"target=\"_blank\">documentation</a>",
+      "label": "Exchange",
+      "description": "Topic exchange: get from RabbitMQ external application configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/#routing-data\"target=\"_blank\">documentation</a>",
+      "feel": "optional",
       "group": "routing",
       "type": "String",
       "binding": {
-        "type": "zeebe:property",
+        "type": "zeebe:input",
+        "name": "routing.exchange"
+      },
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
+      "label": "Routing key",
+      "description": "Routing key: a binding is a \"link\" that was set up to bind a queue to an exchange. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/#routing-data\"target=\"_blank\">documentation</a>",
+      "feel": "optional",
+      "group": "routing",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "routing.routingKey"
+      },
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
+      "label": "Port",
+      "description": "Port: get from RabbitMQ external application configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/#routing-data\"target=\"_blank\">documentation</a>",
+      "feel": "optional",
+      "group": "routing",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:input",
         "name": "routing.port"
       },
       "constraints": {
@@ -172,95 +202,59 @@
       }
     },
     {
-      "label": "Queue name",
-      "description": "Name of the queue to subscribe to",
-      "group": "subscription",
-      "type": "String",
+      "label": "Message",
+      "description": "Data to send to RabbitMQ",
+      "group": "message",
+      "type": "Text",
       "feel": "optional",
       "binding": {
-        "type": "zeebe:property",
-        "name": "queueName"
-      },
-      "constraints": {
-        "notEmpty": true
+        "type": "zeebe:input",
+        "name": "message.body"
       }
     },
     {
-      "label": "Consumer tag",
-      "description": "Consumer tag to use for the subscription",
-      "group": "subscription",
-      "type": "String",
-      "feel": "optional",
-      "binding": {
-        "type": "zeebe:property",
-        "name": "consumerTag"
-      }
-    },
-    {
-      "label": "Arguments",
-      "description": "Arguments to use for the subscription",
-      "group": "subscription",
-      "type": "String",
+      "label": "Properties",
+      "description": "Properties for the message, routing headers, etc.",
+      "group": "message",
+      "type": "Text",
       "feel": "required",
+      "value": "={}",
       "binding": {
-        "type": "zeebe:property",
-        "name": "arguments"
+        "type": "zeebe:input",
+        "name": "message.properties"
       }
-    },
-    {
-      "label": "Exclusive consumer",
-      "group": "subscription",
-      "type": "Dropdown",
-      "value": "false",
-      "binding": {
-        "type": "zeebe:property",
-        "name": "exclusive"
-      },
-      "choices": [
-        {
-          "name": "Yes",
-          "value": "true"
-        },
-        {
-          "name": "No",
-          "value": "false"
-        }
-      ]
-    },
-    {
-      "label": "Activation condition",
-      "type": "String",
-      "group": "activation",
-      "feel": "required",
-      "optional": true,
-      "binding": {
-        "type": "zeebe:property",
-        "name": "activationCondition"
-      },
-      "description": "Condition under which the connector triggers. Leave empty to catch all events"
     },
     {
       "label": "Result variable",
+      "description": "Enter name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>",
+      "group": "output",
       "type": "String",
-      "group": "variable-mapping",
-      "optional": true,
       "binding": {
-        "type": "zeebe:property",
-        "name": "resultVariable"
-      },
-      "description": "Name of variable to store the result of the connector in"
+        "type": "zeebe:taskHeader",
+        "key": "resultVariable"
+      }
     },
     {
-      "label":"Result expression",
-      "type": "String",
-      "group": "variable-mapping",
+      "label": "Result expression",
+      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "group": "output",
+      "type": "Text",
       "feel": "required",
-      "optional": true,
       "binding": {
-        "type": "zeebe:property",
-        "name": "resultExpression"
-      },
-      "description": "Expression to map the inbound payload to process variables"
+        "type": "zeebe:taskHeader",
+        "key": "resultExpression"
+      }
+    },
+    {
+      "label": "Error expression",
+      "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
+      "group": "errors",
+      "type": "Text",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "errorExpression"
+      }
     }
   ],
   "icon": {

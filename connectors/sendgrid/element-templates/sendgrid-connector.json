@@ -2,6 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "SendGrid connector",
   "id": "io.camunda.connectors.SendGrid.v2",
+  "version": 1,
   "description": "Send an email via SendGrid",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/sendgrid/",
   "icon": {
