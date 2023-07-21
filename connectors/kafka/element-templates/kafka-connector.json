@@ -72,7 +72,7 @@
       "description": "Provide bootstrap server(s), comma-delimited if there are multiple",
       "group": "kafka",
       "type": "String",
-      "feel":"optional",
+      "feel": "optional",
       "binding": {
         "type": "zeebe:input",
         "name": "topic.bootstrapServers"
@@ -86,7 +86,7 @@
       "description": "Provide topic name",
       "group": "kafka",
       "type": "String",
-      "feel":"optional",
+      "feel": "optional",
       "binding": {
         "type": "zeebe:input",
         "name": "topic.topicName"
@@ -101,7 +101,7 @@
       "group": "kafka",
       "type": "String",
       "optional": true,
-      "feel":"required",
+      "feel": "required",
       "binding": {
         "type": "zeebe:input",
         "name": "additionalProperties"
@@ -112,7 +112,7 @@
       "description": "Provide message key",
       "group": "message",
       "type": "String",
-      "feel":"optional",
+      "feel": "optional",
       "binding": {
         "type": "zeebe:input",
         "name": "message.key"
@@ -126,7 +126,7 @@
       "description": "Provide message value",
       "group": "message",
       "type": "String",
-      "feel":"optional",
+      "feel": "optional",
       "binding": {
         "type": "zeebe:input",
         "name": "message.value"

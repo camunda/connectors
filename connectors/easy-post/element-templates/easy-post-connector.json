@@ -4,7 +4,7 @@
   "id": "io.camunda.connectors.EasyPost.v1",
   "version": 1,
   "description": "Allows you to create addresses, parcels, and shipments, as well as purchase and verify shipments",
-  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/easypost/",
+  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/easy-post/",
   "category": {
     "id": "connectors",
     "name": "Connectors"
