@@ -10,9 +10,9 @@ import com.auth0.jwk.JwkProvider;
 import com.auth0.jwk.JwkProviderBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.net.HttpHeaders;
+import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
-import io.camunda.connector.api.inbound.webhook.WebhookResultContext;
-import io.camunda.connector.api.inbound.webhook.WebhookResultContext.Request;
+import io.camunda.connector.api.inbound.webhook.WebhookTriggerResultContext;
 import io.camunda.connector.inbound.model.WebhookAuthorization;
 import io.camunda.connector.inbound.model.WebhookAuthorization.ApiKeyAuth;
 import io.camunda.connector.inbound.model.WebhookAuthorization.BasicAuth;
@@ -113,14 +113,14 @@ public class WebhookAuthChecker {
   private void checkApiKeyAuth(ApiKeyAuth expectedAuthorization, WebhookProcessingPayload payload)
       throws IOException {
 
-    WebhookResultContext result =
-        new WebhookResultContext(
-            new Request(
+    WebhookTriggerResultContext result =
+        new WebhookTriggerResultContext(
+            new MappedHttpRequest(
                 HttpWebhookUtil.transformRawBodyToMap(
                     payload.rawBody(), HttpWebhookUtil.extractContentType(payload.headers())),
                 payload.headers(),
-                payload.params(),
-                Map.of()));
+                payload.params()),
+            Map.of());
 
     String authValue = expectedAuthorization.apiKeyLocator().apply(result);
     if (!expectedAuthorization.apiKey().equals(authValue)) {

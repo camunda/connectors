@@ -55,7 +55,7 @@ class HttpWebhookExecutableTest {
     testObject.activate(ctx);
     var result = testObject.triggerWebhook(payload);
 
-    Assertions.assertThat((Map) result.body()).containsEntry("key", "value");
+    Assertions.assertThat((Map) result.request().body()).containsEntry("key", "value");
   }
 
   @Test
@@ -80,8 +80,8 @@ class HttpWebhookExecutableTest {
     testObject.activate(ctx);
     var result = testObject.triggerWebhook(payload);
 
-    Assertions.assertThat((Map) result.body()).containsEntry("key1", "value1");
-    Assertions.assertThat((Map) result.body()).containsEntry("key2", "value2");
+    Assertions.assertThat((Map) result.request().body()).containsEntry("key1", "value1");
+    Assertions.assertThat((Map) result.request().body()).containsEntry("key2", "value2");
   }
 
   @Test
@@ -106,7 +106,7 @@ class HttpWebhookExecutableTest {
     testObject.activate(ctx);
     var result = testObject.triggerWebhook(payload);
 
-    Assertions.assertThat((Map) result.body()).containsEntry("key", "value");
+    Assertions.assertThat((Map) result.request().body()).containsEntry("key", "value");
   }
 
   @Test
@@ -188,7 +188,7 @@ class HttpWebhookExecutableTest {
     testObject.activate(ctx);
     var result = testObject.triggerWebhook(payload);
 
-    Assertions.assertThat((Map) result.body()).containsEntry("key", "value");
+    Assertions.assertThat((Map) result.request().body()).containsEntry("key", "value");
   }
 
   @Test

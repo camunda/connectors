@@ -13,7 +13,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
-import io.camunda.connector.api.inbound.webhook.WebhookProcessingResult;
+import io.camunda.connector.api.inbound.webhook.WebhookResult;
 import io.camunda.connector.inbound.HttpWebhookExecutable;
 import io.camunda.connector.inbound.utils.HttpMethods;
 import io.camunda.connector.inbound.utils.ObjectMapperSupplier;
@@ -70,7 +70,7 @@ public class HMACTwilioSignatureTest {
     var context = InboundConnectorContextBuilder.create().properties(baseProperties).build();
     httpWebhookExecutable.activate(context);
     // When
-    WebhookProcessingResult webhookProcessingResult =
+    WebhookResult webhookProcessingResult =
         httpWebhookExecutable.triggerWebhook(webhookProcessingPayload);
     // Then assert that result not null, and validation pass done, without exceptions
     assertThat(webhookProcessingResult).isNotNull();
@@ -87,7 +87,7 @@ public class HMACTwilioSignatureTest {
 
     httpWebhookExecutable.activate(context);
     // When
-    WebhookProcessingResult webhookProcessingResult =
+    WebhookResult webhookProcessingResult =
         httpWebhookExecutable.triggerWebhook(webhookProcessingPayload);
     // Then assert that result not null, and validation pass done, without exceptions
     assertThat(webhookProcessingResult).isNotNull();

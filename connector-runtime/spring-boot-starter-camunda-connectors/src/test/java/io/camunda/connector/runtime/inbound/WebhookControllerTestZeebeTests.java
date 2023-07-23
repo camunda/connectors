@@ -29,9 +29,12 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.InboundConnectorResult;
+import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
+import io.camunda.connector.api.inbound.webhook.WebhookHttpResponse;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
-import io.camunda.connector.api.inbound.webhook.WebhookProcessingResult;
+import io.camunda.connector.api.inbound.webhook.WebhookResult;
+import io.camunda.connector.api.inbound.webhook.WebhookResultContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.impl.feel.FeelEngineWrapperException;
 import io.camunda.connector.impl.inbound.result.ProcessInstance;
@@ -48,6 +51,7 @@ import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.process.test.inspections.model.InspectedProcessInstance;
 import io.camunda.zeebe.spring.test.ZeebeSpringTest;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -90,8 +94,11 @@ class WebhookControllerTestZeebeTests {
   @SuppressWarnings("unchecked")
   public void testSuccessfulProcessingWithActivation() throws Exception {
     WebhookConnectorExecutable webhookConnectorExecutable = mock(WebhookConnectorExecutable.class);
+    WebhookResult webhookResult = mock(WebhookResult.class);
+    when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));
+    when(webhookResult.responseBodyExpression()).thenReturn(WebhookResultContext::correlation);
     when(webhookConnectorExecutable.triggerWebhook(any(WebhookProcessingPayload.class)))
-        .thenReturn(mock(WebhookProcessingResult.class));
+        .thenReturn(webhookResult);
 
     var webhookDef = webhookDefinition("processA", 1, "myPath");
     var webhookContext =
@@ -127,10 +134,51 @@ class WebhookControllerTestZeebeTests {
 
   @Test
   @SuppressWarnings("unchecked")
+  public void testSuccessfulProcessingWithActivationAndStrictResponse() throws Exception {
+    WebhookConnectorExecutable webhookConnectorExecutable = mock(WebhookConnectorExecutable.class);
+    WebhookResult webhookResult = mock(WebhookResult.class);
+    when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));
+    when(webhookResult.response())
+        .thenReturn(new WebhookHttpResponse(Map.of("keyResponse", "valueResponse"), null));
+    when(webhookConnectorExecutable.triggerWebhook(any(WebhookProcessingPayload.class)))
+        .thenReturn(webhookResult);
+
+    var webhookDef = webhookDefinition("processA", 1, "myPath");
+    var webhookContext =
+        new InboundConnectorContextImpl(
+            secretProvider, v -> {}, webhookDef, correlationHandler, (e) -> {}, mapper);
+
+    // Register webhook function 'implementation'
+    webhookConnectorRegistry.register(
+        new ActiveInboundConnector(webhookConnectorExecutable, webhookContext));
+
+    deployProcess("processA");
+
+    ResponseEntity<Map> responseEntity =
+        (ResponseEntity<Map>)
+            controller.inbound(
+                "myPath",
+                new HashMap<>(),
+                "{}".getBytes(),
+                new HashMap<>(),
+                new MockHttpServletRequest());
+
+    assertEquals(200, responseEntity.getStatusCode().value());
+    assertEquals("valueResponse", responseEntity.getBody().get("keyResponse"));
+
+    var result = responseEntity.getBody();
+    assertInstanceOf(Map.class, result);
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
   public void testSuccessfulProcessingWithFailedActivation() throws Exception {
     WebhookConnectorExecutable webhookConnectorExecutable = mock(WebhookConnectorExecutable.class);
+    WebhookResult webhookResult = mock(WebhookResult.class);
+    when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));
+    when(webhookResult.responseBodyExpression()).thenReturn(WebhookResultContext::correlation);
     when(webhookConnectorExecutable.triggerWebhook(any(WebhookProcessingPayload.class)))
-        .thenReturn(mock(WebhookProcessingResult.class));
+        .thenReturn(webhookResult);
 
     var correlationHandlerMock = mock(InboundCorrelationHandler.class);
     var correlationResultMock = mock(InboundConnectorResult.class);
@@ -163,7 +211,7 @@ class WebhookControllerTestZeebeTests {
   public void testSuccessfulProcessingWithErrorDuringActivation() throws Exception {
     WebhookConnectorExecutable webhookConnectorExecutable = mock(WebhookConnectorExecutable.class);
     when(webhookConnectorExecutable.triggerWebhook(any(WebhookProcessingPayload.class)))
-        .thenReturn(mock(WebhookProcessingResult.class));
+        .thenReturn(mock(WebhookResult.class));
 
     var webhookDefinition = webhookDefinition("processA", 1, "myPath");
     var webhookContext =

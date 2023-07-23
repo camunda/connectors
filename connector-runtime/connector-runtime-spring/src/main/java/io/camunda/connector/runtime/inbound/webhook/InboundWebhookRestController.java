@@ -23,10 +23,12 @@ import static org.springframework.web.bind.annotation.RequestMethod.POST;
 import static org.springframework.web.bind.annotation.RequestMethod.PUT;
 
 import io.camunda.connector.api.inbound.InboundConnectorResult;
+import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
-import io.camunda.connector.api.inbound.webhook.WebhookProcessingResult;
+import io.camunda.connector.api.inbound.webhook.WebhookResult;
 import io.camunda.connector.api.inbound.webhook.WebhookResultContext;
+import io.camunda.connector.api.inbound.webhook.WebhookTriggerResultContext;
 import io.camunda.connector.impl.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.inbound.lifecycle.ActiveInboundConnector;
 import io.camunda.connector.runtime.inbound.webhook.model.HttpServletRequestWebhookProcessingPayload;
@@ -86,9 +88,16 @@ public class InboundWebhookRestController {
     try {
       var webhookResult =
           ((WebhookConnectorExecutable) connector.executable()).triggerWebhook(payload);
-      var ctxData = toConnectorVariablesContext(webhookResult);
+      var ctxData = toWebhookTriggerResultContext(webhookResult);
       InboundConnectorResult<?> result = connector.context().correlate(ctxData);
-      connectorResponse = ResponseEntity.ok(result);
+      var processVariablesContext = toWebhookResultContext(webhookResult, result);
+      if (webhookResult.response() != null) {
+        connectorResponse = ResponseEntity.ok(webhookResult.response().body());
+      } else {
+        var httpResponseData =
+            webhookResult.responseBodyExpression().apply(processVariablesContext);
+        connectorResponse = ResponseEntity.ok(httpResponseData);
+      }
     } catch (Exception e) {
       LOG.error("Webhook failed with exception", e);
       if (e instanceof FeelEngineWrapperException feelEngineWrapperException) {
@@ -103,16 +112,34 @@ public class InboundWebhookRestController {
     return connectorResponse;
   }
 
-  private WebhookResultContext toConnectorVariablesContext(
-      WebhookProcessingResult processedResult) {
+  // This will be used to correlate data returned from connector.
+  // In other words, we pass this data to Zeebe.
+  private WebhookTriggerResultContext toWebhookTriggerResultContext(WebhookResult processedResult) {
     if (processedResult == null) {
-      return new WebhookResultContext(null);
+      return new WebhookTriggerResultContext(null, null);
+    }
+    return new WebhookTriggerResultContext(
+        new MappedHttpRequest(
+            Optional.ofNullable(processedResult.request().body()).orElse(emptyMap()),
+            Optional.ofNullable(processedResult.request().headers()).orElse(emptyMap()),
+            Optional.ofNullable(processedResult.request().params()).orElse(emptyMap())),
+        Optional.ofNullable(processedResult.connectorData()).orElse(emptyMap()));
+  }
+
+  // This data will be used to compose a response.
+  // In other words, depending on the response body expression,
+  // this data may be returned to the webhook caller.
+  private WebhookResultContext toWebhookResultContext(
+      WebhookResult processedResult, InboundConnectorResult<?> result) {
+    if (processedResult == null) {
+      return new WebhookResultContext(null, null, null);
     }
     return new WebhookResultContext(
-        new WebhookResultContext.Request(
-            Optional.ofNullable(processedResult.body()).orElse(emptyMap()),
-            Optional.ofNullable(processedResult.headers()).orElse(emptyMap()),
-            Optional.ofNullable(processedResult.params()).orElse(emptyMap()),
-            Optional.ofNullable(processedResult.connectorData()).orElse(emptyMap())));
+        new MappedHttpRequest(
+            Optional.ofNullable(processedResult.request().body()).orElse(emptyMap()),
+            Optional.ofNullable(processedResult.request().headers()).orElse(emptyMap()),
+            Optional.ofNullable(processedResult.request().params()).orElse(emptyMap())),
+        Optional.ofNullable(processedResult.connectorData()).orElse(emptyMap()),
+        result);
   }
 }

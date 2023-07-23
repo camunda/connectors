@@ -18,31 +18,24 @@ package io.camunda.connector.runtime.app;
 
 import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
+import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
-import io.camunda.connector.api.inbound.webhook.WebhookProcessingResult;
+import io.camunda.connector.api.inbound.webhook.WebhookResult;
 import java.util.Map;
 
 @InboundConnector(name = "TEST_WEBHOOK", type = "io.camunda:test-webhook:1")
 public class TestWebhookConnector implements WebhookConnectorExecutable {
 
   @Override
-  public WebhookProcessingResult triggerWebhook(WebhookProcessingPayload webhookProcessingPayload)
+  public WebhookResult triggerWebhook(WebhookProcessingPayload webhookProcessingPayload)
       throws Exception {
-    return new WebhookProcessingResult() {
-      @Override
-      public Object body() {
-        return Map.of("bodyKey", "bodyVal");
-      }
+    return new WebhookResult() {
 
       @Override
-      public Map<String, String> headers() {
-        return Map.of("X-Header", "XValue");
-      }
-
-      @Override
-      public Map<String, String> params() {
-        return Map.of("param1", "value1");
+      public MappedHttpRequest request() {
+        return new MappedHttpRequest(
+            Map.of("bodyKey", "bodyVal"), Map.of("X-Header", "XValue"), Map.of("param1", "value1"));
       }
 
       @Override

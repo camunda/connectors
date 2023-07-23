@@ -6,44 +6,27 @@
  */
 package io.camunda.connector.sns.inbound.model;
 
-import io.camunda.connector.api.inbound.webhook.WebhookProcessingResult;
+import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
+import io.camunda.connector.api.inbound.webhook.WebhookResult;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 
-public class SnsWebhookProcessingResult implements WebhookProcessingResult {
+public class SnsWebhookProcessingResult implements WebhookResult {
 
-  private Map<String, Object> body;
-  private Map<String, String> headers;
-  private Map<String, String> params;
+  private MappedHttpRequest request;
   private Map<String, Object> connectorData;
 
   public SnsWebhookProcessingResult() {}
 
-  public SnsWebhookProcessingResult(
-      Map<String, Object> body,
-      Map<String, String> headers,
-      Map<String, String> params,
-      Map<String, Object> connectorData) {
-    this.body = body;
-    this.headers = headers;
-    this.params = params;
+  public SnsWebhookProcessingResult(MappedHttpRequest request, Map<String, Object> connectorData) {
+    this.request = request;
     this.connectorData = connectorData;
   }
 
   @Override
-  public Map<String, Object> body() {
-    return Optional.ofNullable(body).orElse(Collections.emptyMap());
-  }
-
-  @Override
-  public Map<String, String> headers() {
-    return Optional.ofNullable(headers).orElse(Collections.emptyMap());
-  }
-
-  @Override
-  public Map<String, String> params() {
-    return Optional.ofNullable(params).orElse(Collections.emptyMap());
+  public MappedHttpRequest request() {
+    return request;
   }
 
   @Override

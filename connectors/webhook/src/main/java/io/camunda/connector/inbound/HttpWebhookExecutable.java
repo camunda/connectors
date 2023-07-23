@@ -12,9 +12,10 @@ import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.en
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
+import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
-import io.camunda.connector.api.inbound.webhook.WebhookProcessingResult;
+import io.camunda.connector.api.inbound.webhook.WebhookResult;
 import io.camunda.connector.inbound.authorization.WebhookAuthChecker;
 import io.camunda.connector.inbound.model.WebhookConnectorProperties;
 import io.camunda.connector.inbound.model.WebhookConnectorProperties.WebhookConnectorPropertiesWrapper;
@@ -49,7 +50,7 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
   }
 
   @Override
-  public WebhookProcessingResult triggerWebhook(WebhookProcessingPayload payload)
+  public WebhookResult triggerWebhook(WebhookProcessingPayload payload)
       throws NoSuchAlgorithmException, InvalidKeyException, IOException {
     LOGGER.trace("Triggered webhook with context " + props.context() + " and payload " + payload);
 
@@ -66,11 +67,16 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
 
     authChecker.checkAuthorization(payload);
 
-    response.setBody(
-        HttpWebhookUtil.transformRawBodyToMap(
-            payload.rawBody(), HttpWebhookUtil.extractContentType(payload.headers())));
-    response.setHeaders(payload.headers());
-    response.setParams(payload.params());
+    response.setRequest(
+        new MappedHttpRequest(
+            HttpWebhookUtil.transformRawBodyToMap(
+                payload.rawBody(), HttpWebhookUtil.extractContentType(payload.headers())),
+            payload.headers(),
+            payload.params()));
+
+    if (props.responseBodyExpression() != null) {
+      response.setResponseBodyExpression(props.responseBodyExpression());
+    }
 
     return response;
   }
