@@ -43,7 +43,6 @@ The response will contain the result of the called Slack method.
       "ts": "1654636029.472959"
   }
 }
-
 ```
 
 ## Element Template

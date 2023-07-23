@@ -6,36 +6,37 @@
  */
 package io.camunda.connector.slack.inbound.model;
 
-import io.camunda.connector.api.inbound.webhook.WebhookProcessingResult;
-import java.util.Collections;
+import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
+import io.camunda.connector.api.inbound.webhook.WebhookHttpResponse;
+import io.camunda.connector.api.inbound.webhook.WebhookResult;
 import java.util.Map;
-import java.util.Optional;
 
-public class SlackWebhookProcessingResult implements WebhookProcessingResult {
+public class SlackWebhookProcessingResult implements WebhookResult {
 
-  private final Map<String, Object> body;
-  private final Map<String, String> headers;
+  private MappedHttpRequest request;
   private final Map<String, Object> connectorData;
 
+  private WebhookHttpResponse response;
+
   public SlackWebhookProcessingResult(
-      Map<String, Object> body, Map<String, String> headers, Map<String, Object> connectorData) {
-    this.body = body;
-    this.headers = headers;
+      MappedHttpRequest request, Map<String, Object> connectorData, WebhookHttpResponse response) {
+    this.request = request;
     this.connectorData = connectorData;
+    this.response = response;
   }
 
   @Override
-  public Object body() {
-    return Optional.ofNullable(body).orElse(Collections.emptyMap());
-  }
-
-  @Override
-  public Map<String, String> headers() {
-    return Optional.ofNullable(headers).orElse(Collections.emptyMap());
+  public MappedHttpRequest request() {
+    return request;
   }
 
   @Override
   public Map<String, Object> connectorData() {
     return connectorData;
+  }
+
+  @Override
+  public WebhookHttpResponse response() {
+    return response;
   }
 }

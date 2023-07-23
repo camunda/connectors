@@ -95,8 +95,8 @@ class SlackInboundWebhookExecutableTest {
     final var result = testObject.triggerWebhook(payload);
 
     assertNotNull(result);
-    assertThat(result.body()).isInstanceOf(Map.class);
-    assertThat((Map) result.body()).containsEntry(FIELD_TYPE, "myType");
+    assertThat(result.request().body()).isInstanceOf(Map.class);
+    assertThat((Map) result.request().body()).containsEntry(FIELD_TYPE, "myType");
   }
 
   @Test
@@ -145,8 +145,9 @@ class SlackInboundWebhookExecutableTest {
     final var result = testObject.triggerWebhook(payload);
 
     assertNotNull(result);
-    assertThat(result.body()).isInstanceOf(Map.class);
-    assertThat((Map) result.body()).containsEntry(FIELD_CHALLENGE, "aAaAaAaAaAaAaAaAaAaA");
+    assertThat(result.request().body()).isInstanceOf(Map.class);
+    assertThat((Map) result.request().body())
+        .containsEntry(FIELD_CHALLENGE, "aAaAaAaAaAaAaAaAaAaA");
   }
 
   @Test
@@ -173,10 +174,10 @@ class SlackInboundWebhookExecutableTest {
     final var result = testObject.triggerWebhook(payload);
 
     assertNotNull(result);
-    assertThat(result.body()).isInstanceOf(Map.class);
-    assertThat((Map) result.body())
+    assertThat(result.request().body()).isInstanceOf(Map.class);
+    assertThat((Map) result.response().body())
         .containsEntry(COMMAND_RESPONSE_TYPE_KEY, COMMAND_RESPONSE_TYPE_DEFAULT_VALUE);
-    assertThat((Map) result.body())
+    assertThat((Map) result.response().body())
         .containsEntry(COMMAND_RESPONSE_TEXT_KEY, COMMAND_RESPONSE_TEXT_DEFAULT_VALUE);
     assertThat((Map) result.connectorData()).containsEntry(FORM_VALUE_COMMAND, "/test123");
     assertThat((Map) result.connectorData()).containsEntry("text", "hello world");
@@ -206,10 +207,10 @@ class SlackInboundWebhookExecutableTest {
     final var result = testObject.triggerWebhook(payload);
 
     assertNotNull(result);
-    assertThat(result.body()).isInstanceOf(Map.class);
-    assertThat((Map) result.body())
+    assertThat(result.request().body()).isInstanceOf(Map.class);
+    assertThat((Map) result.response().body())
         .containsEntry(COMMAND_RESPONSE_TYPE_KEY, COMMAND_RESPONSE_TYPE_DEFAULT_VALUE);
-    assertThat((Map) result.body())
+    assertThat((Map) result.response().body())
         .containsEntry(COMMAND_RESPONSE_TEXT_KEY, COMMAND_RESPONSE_TEXT_DEFAULT_VALUE);
     assertThat((Map) result.connectorData()).containsEntry(FORM_VALUE_COMMAND, "/test123");
     assertThat((Map) result.connectorData()).containsEntry("text", "hello world");

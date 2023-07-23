@@ -13,9 +13,10 @@ import com.amazonaws.services.sns.message.SnsSubscriptionConfirmation;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
+import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
-import io.camunda.connector.api.inbound.webhook.WebhookProcessingResult;
+import io.camunda.connector.api.inbound.webhook.WebhookResult;
 import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.sns.inbound.model.SnsWebhookConnectorProperties;
 import io.camunda.connector.sns.inbound.model.SnsWebhookProcessingResult;
@@ -51,7 +52,7 @@ public class SnsWebhookExecutable implements WebhookConnectorExecutable {
   }
 
   @Override
-  public WebhookProcessingResult triggerWebhook(WebhookProcessingPayload webhookProcessingPayload)
+  public WebhookResult triggerWebhook(WebhookProcessingPayload webhookProcessingPayload)
       throws Exception {
     checkMessageAllowListed(webhookProcessingPayload);
     Map bodyAsMap = objectMapper.readValue(webhookProcessingPayload.rawBody(), Map.class);
@@ -76,18 +77,16 @@ public class SnsWebhookExecutable implements WebhookConnectorExecutable {
     confirmation.confirmSubscription();
 
     return new SnsWebhookProcessingResult(
-        bodyAsMap,
-        webhookProcessingPayload.headers(),
-        webhookProcessingPayload.params(),
+        new MappedHttpRequest(
+            bodyAsMap, webhookProcessingPayload.headers(), webhookProcessingPayload.params()),
         Map.of("snsEventType", "Subscription"));
   }
 
   private SnsWebhookProcessingResult handleNotification(
       WebhookProcessingPayload webhookProcessingPayload, Map bodyAsMap) {
     return new SnsWebhookProcessingResult(
-        bodyAsMap,
-        webhookProcessingPayload.headers(),
-        webhookProcessingPayload.params(),
+        new MappedHttpRequest(
+            bodyAsMap, webhookProcessingPayload.headers(), webhookProcessingPayload.params()),
         Map.of("snsEventType", "Notification"));
   }
 

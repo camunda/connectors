@@ -27,7 +27,7 @@ import static org.mockito.Mockito.mock;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
-import io.camunda.connector.api.inbound.webhook.WebhookProcessingResult;
+import io.camunda.connector.api.inbound.webhook.WebhookResult;
 import io.camunda.connector.impl.inbound.StartEventCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
@@ -106,7 +106,7 @@ public class WebhookControllerPlainJavaTests {
     WebhookConnectorExecutable executable = mock(WebhookConnectorExecutable.class);
     try {
       Mockito.when(executable.triggerWebhook(any(WebhookProcessingPayload.class)))
-          .thenReturn(mock(WebhookProcessingResult.class));
+          .thenReturn(mock(WebhookResult.class));
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

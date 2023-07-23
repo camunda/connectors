@@ -20,7 +20,7 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.common.ClasspathFileSource;
-import io.camunda.connector.api.inbound.webhook.WebhookProcessingResult;
+import io.camunda.connector.api.inbound.webhook.WebhookResult;
 import io.camunda.connector.impl.inbound.result.MessageCorrelationResult;
 import io.camunda.connector.inbound.HttpWebhookExecutable;
 import io.camunda.connector.inbound.utils.ObjectMapperSupplier;
@@ -110,10 +110,11 @@ public class JWTIntegrationTest {
     // webhook connector trigger
     TestWebhookProcessingPayload payload =
         new TestWebhookProcessingPayload(generateJWTToken(roles, false), REQ_BODY);
-    WebhookProcessingResult webhookProcessingResult = httpWebhookExecutable.triggerWebhook(payload);
+    WebhookResult webhookProcessingResult = httpWebhookExecutable.triggerWebhook(payload);
 
     // then
-    assertEquals(objectMapper.readValue(REQ_BODY, Map.class), webhookProcessingResult.body());
+    assertEquals(
+        objectMapper.readValue(REQ_BODY, Map.class), webhookProcessingResult.request().body());
   }
 
   @Test
@@ -144,10 +145,11 @@ public class JWTIntegrationTest {
     // webhook connector trigger
     TestWebhookProcessingPayload payload =
         new TestWebhookProcessingPayload(generateJWTToken(roles, true), REQ_BODY);
-    WebhookProcessingResult webhookProcessingResult = httpWebhookExecutable.triggerWebhook(payload);
+    WebhookResult webhookProcessingResult = httpWebhookExecutable.triggerWebhook(payload);
 
     // then
-    assertEquals(objectMapper.readValue(REQ_BODY, Map.class), webhookProcessingResult.body());
+    assertEquals(
+        objectMapper.readValue(REQ_BODY, Map.class), webhookProcessingResult.request().body());
   }
 
   @Test

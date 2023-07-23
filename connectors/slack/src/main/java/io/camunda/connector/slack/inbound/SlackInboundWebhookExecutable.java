@@ -11,9 +11,11 @@ import com.google.common.net.HttpHeaders;
 import com.google.common.net.MediaType;
 import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
+import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
+import io.camunda.connector.api.inbound.webhook.WebhookHttpResponse;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
-import io.camunda.connector.api.inbound.webhook.WebhookProcessingResult;
+import io.camunda.connector.api.inbound.webhook.WebhookResult;
 import io.camunda.connector.slack.inbound.model.SlackWebhookProcessingResult;
 import io.camunda.connector.slack.inbound.model.SlackWebhookProperties;
 import io.camunda.connector.slack.inbound.suppliers.ObjectMapperSupplier;
@@ -51,7 +53,7 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
   }
 
   @Override
-  public WebhookProcessingResult triggerWebhook(WebhookProcessingPayload webhookProcessingPayload)
+  public WebhookResult triggerWebhook(WebhookProcessingPayload webhookProcessingPayload)
       throws Exception {
     if (!props
         .signatureVerifier()
@@ -69,14 +71,17 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
     // Command detected
     if (bodyAsMap.containsKey(FORM_VALUE_COMMAND)) {
       return new SlackWebhookProcessingResult(
-          defaultCommandResponse(),
-          Map.of(HttpHeaders.CONTENT_TYPE, MediaType.JSON_UTF_8.toString()),
-          bodyAsMap);
+          new MappedHttpRequest(
+              bodyAsMap, Map.of(HttpHeaders.CONTENT_TYPE, MediaType.JSON_UTF_8.toString()), null),
+          bodyAsMap,
+          new WebhookHttpResponse(defaultCommandResponse(), null));
     }
 
     // Other requests, e.g. events
     return new SlackWebhookProcessingResult(
-        bodyAsMap, webhookProcessingPayload.headers(), Map.of());
+        new MappedHttpRequest(bodyAsMap, webhookProcessingPayload.headers(), null),
+        null,
+        new WebhookHttpResponse(bodyAsMap, null));
   }
 
   @Override

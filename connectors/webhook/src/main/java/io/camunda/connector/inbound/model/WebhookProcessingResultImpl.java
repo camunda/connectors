@@ -6,32 +6,25 @@
  */
 package io.camunda.connector.inbound.model;
 
-import com.google.common.base.Objects;
-import io.camunda.connector.api.inbound.webhook.WebhookProcessingResult;
+import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
+import io.camunda.connector.api.inbound.webhook.WebhookResult;
+import io.camunda.connector.api.inbound.webhook.WebhookResultContext;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 
-public class WebhookProcessingResultImpl implements WebhookProcessingResult {
+public class WebhookProcessingResultImpl implements WebhookResult {
 
-  private Object body;
-  private Map<String, String> headers;
-  private Map<String, String> params;
+  private MappedHttpRequest request;
   private Map<String, Object> connectorData;
 
-  @Override
-  public Object body() {
-    return Optional.ofNullable(body).orElse(Collections.emptyMap());
-  }
+  private Function<WebhookResultContext, Object> responseBodyExpression;
 
   @Override
-  public Map<String, String> headers() {
-    return Optional.ofNullable(headers).orElse(Collections.emptyMap());
-  }
-
-  @Override
-  public Map<String, String> params() {
-    return Optional.ofNullable(params).orElse(Collections.emptyMap());
+  public MappedHttpRequest request() {
+    return request;
   }
 
   @Override
@@ -39,20 +32,25 @@ public class WebhookProcessingResultImpl implements WebhookProcessingResult {
     return Optional.ofNullable(connectorData).orElse(Collections.emptyMap());
   }
 
-  public void setBody(Object body) {
-    this.body = body;
+  @Override
+  public Function<WebhookResultContext, Object> responseBodyExpression() {
+    if (responseBodyExpression != null) {
+      return responseBodyExpression;
+    }
+    return (response) -> null;
   }
 
-  public void setHeaders(Map<String, String> headers) {
-    this.headers = headers;
-  }
-
-  public void setParams(Map<String, String> params) {
-    this.params = params;
+  public void setRequest(MappedHttpRequest request) {
+    this.request = request;
   }
 
   public void setConnectorData(Map<String, Object> connectorData) {
     this.connectorData = connectorData;
+  }
+
+  public void setResponseBodyExpression(
+      Function<WebhookResultContext, Object> responseBodyExpression) {
+    this.responseBodyExpression = responseBodyExpression;
   }
 
   @Override
@@ -60,28 +58,25 @@ public class WebhookProcessingResultImpl implements WebhookProcessingResult {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
     WebhookProcessingResultImpl that = (WebhookProcessingResultImpl) o;
-    return Objects.equal(body, that.body)
-        && Objects.equal(headers, that.headers)
-        && Objects.equal(params, that.params)
-        && Objects.equal(connectorData, that.connectorData);
+    return Objects.equals(request, that.request)
+        && Objects.equals(connectorData, that.connectorData)
+        && Objects.equals(responseBodyExpression, that.responseBodyExpression);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(body, headers, params, connectorData);
+    return Objects.hash(request, connectorData, responseBodyExpression);
   }
 
   @Override
   public String toString() {
-    return "WebhookResponsePayloadImpl{"
-        + "body="
-        + body
-        + ", headers="
-        + headers
-        + ", params="
-        + params
+    return "WebhookProcessingResultImpl{"
+        + "request="
+        + request
         + ", connectorData="
         + connectorData
+        + ", responseBodyExpression="
+        + responseBodyExpression
         + '}';
   }
 }
