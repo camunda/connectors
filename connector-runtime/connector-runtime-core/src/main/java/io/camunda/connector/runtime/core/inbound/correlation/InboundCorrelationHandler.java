@@ -34,6 +34,9 @@ import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.client.api.response.ProcessInstanceEvent;
 import io.camunda.zeebe.client.api.response.PublishMessageResponse;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -146,11 +149,39 @@ public class InboundCorrelationHandler {
       return true;
     }
     try {
+      // quick fix cases when activation condition with '-' like
+      // '=(request.body.detail-type="MyEvent")'
+      if (maybeCondition.contains("-")) {
+        if (tryToEvaluateIgnoreSubtraction(context, maybeCondition)) {
+          return true;
+          // if false - let's try to evaluate origin expression
+        }
+      }
       Object shouldActivate = feelEngine.evaluate(maybeCondition, context);
       return Boolean.TRUE.equals(shouldActivate);
     } catch (FeelEngineWrapperException e) {
       throw new ConnectorInputException(e);
     }
+  }
+
+  // evaluate expression replacing '-' to string, because in other way FEEL try to subtract strings
+  private boolean tryToEvaluateIgnoreSubtraction(
+      final Object context, final String maybeCondition) {
+    Function<String, String> replaceMinusToStringFunction =
+        (str) -> str.replaceAll("-", "_UNICODE_CHARACTER_MINUS_SIGN_");
+    Map<String, Object> redactedContext = new HashMap<>();
+    String redactedCondition = replaceMinusToStringFunction.apply(maybeCondition);
+    try {
+      Map<String, String> contextCopy = Map.copyOf((Map<String, String>) context);
+      contextCopy.forEach(
+          (key, value) -> {
+            redactedContext.put(
+                replaceMinusToStringFunction.apply(key), replaceMinusToStringFunction.apply(value));
+          });
+    } catch (ClassCastException e) {
+      return false;
+    }
+    return Boolean.TRUE.equals(feelEngine.evaluate(redactedCondition, redactedContext));
   }
 
   protected String extractCorrelationKey(MessageCorrelationPoint point, Object context) {

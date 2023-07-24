@@ -41,6 +41,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -138,8 +140,9 @@ public class InboundCorrelationHandlerTest {
           .isEqualTo(CorrelationErrorReason.ACTIVATION_CONDITION_NOT_MET);
     }
 
-    @Test
-    void activationConditionTrue_shouldCorrelate() {
+    @ParameterizedTest
+    @CsvSource({"testKey,testValue", "test-key, testValue", "test-key, test-value"})
+    void activationConditionTrue_shouldCorrelate(String key, String value) {
       // given
       var dummyCommand = spy(new CreateCommandDummy());
       when(zeebeClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
@@ -147,9 +150,9 @@ public class InboundCorrelationHandlerTest {
       var point = new StartEventCorrelationPoint("process1", 0, 0);
       var definition = mock(InboundConnectorDefinitionImpl.class);
       when(definition.correlationPoint()).thenReturn(point);
-      when(definition.activationCondition()).thenReturn("=testKey=\"testValue\"");
+      when(definition.activationCondition()).thenReturn("=" + key + "=\"" + value + "\"");
 
-      Map<String, Object> variables = Map.of("testKey", "testValue");
+      Map<String, Object> variables = Map.of(key, value);
 
       // when
       InboundConnectorResult<?> result = handler.correlate(definition, variables);
