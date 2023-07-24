@@ -25,7 +25,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * A Jackson deserializer for FEEL expressions. It can be used to deserialize a string that contains
@@ -53,15 +57,59 @@ public class FeelDeserializer extends AbstractFeelDeserializer<Object> {
       return FEEL_ENGINE_WRAPPER.evaluate(node.textValue(), Map.of(), outputType);
     }
     if (node.isTextual()) {
-      try {
-        // check if this string contains a JSON object/array/etc inside (i.e. it's not just a
-        // string)
-        return mapper.readValue(node.textValue(), outputType);
-      } catch (IOException e) {
-        // ignore, this is just a string, we will take care of it below
+      var textValue = node.textValue();
+      if (outputType.isCollectionLikeType()
+          && outputType.hasContentType()
+          && !textValue.trim().startsWith("[")) {
+        // Support legacy list like formats like: a,b,c | 1,2,3
+        if (outputType.getContentType().hasRawClass(Long.class)) {
+          return convertStringToListOfLongs(textValue);
+        } else if (outputType.getContentType().hasRawClass(Integer.class)) {
+          return convertStringToListOfIntegers(textValue);
+        } else if (outputType.getContentType().hasRawClass(String.class)) {
+          return convertStringToListOfStrings(textValue);
+        } else {
+          throw new IllegalArgumentException("Unsupported output type: " + outputType);
+        }
+      } else {
+        try {
+          // check if this string contains a JSON object/array/etc inside (i.e. it's not just a
+          // string)
+          return mapper.readValue(node.textValue(), outputType);
+        } catch (IOException e) {
+          // ignore, this is just a string, we will take care of it below
+        }
       }
     }
     return mapper.treeToValue(node, outputType);
+  }
+
+  public static List<Long> convertStringToListOfLongs(String string) {
+    var value = string.trim();
+    if (value.isBlank()) {
+      return new ArrayList<>();
+    }
+    return Arrays.stream(string.split(","))
+        .map(s -> Long.parseLong(s.trim()))
+        .collect(Collectors.toList());
+  }
+
+  public static List<Integer> convertStringToListOfIntegers(String string) {
+    var value = string.trim();
+    if (value.isBlank()) {
+      return new ArrayList<>();
+    }
+    return Arrays.stream(string.split(","))
+        .map(s -> Integer.parseInt(s.trim()))
+        .collect(Collectors.toList());
+  }
+
+  public static List<String> convertStringToListOfStrings(String string) {
+    var value = string.trim();
+    if (value.isBlank()) {
+      return new ArrayList<>();
+    }
+    return Arrays.stream(string.split(",")).map(String::trim).collect(Collectors.toList());
   }
 
   @Override
