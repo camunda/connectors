@@ -7,29 +7,32 @@
 package io.camunda.connector.kafka.inbound;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.camunda.connector.api.annotation.Secret;
+import io.camunda.connector.impl.feel.FEEL;
 import io.camunda.connector.kafka.outbound.model.KafkaAuthentication;
 import io.camunda.connector.kafka.outbound.model.KafkaTopic;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class KafkaConnectorProperties {
 
   @NotNull private String authenticationType;
 
-  @Valid @Secret private KafkaAuthentication authentication;
+  @Valid private KafkaAuthentication authentication;
 
-  @Valid @NotNull @Secret private KafkaTopic topic;
+  @Valid @NotNull private KafkaTopic topic;
 
   private Map<String, Object> additionalProperties = new HashMap<>();
 
-  @Secret private String activationCondition;
+  private String activationCondition;
 
-  private Object offsets;
+  @FEEL private List<Long> offsets;
 
   @NotNull private AutoOffsetReset autoOffsetReset = AutoOffsetReset.NONE;
+
+  private String groupId;
 
   public enum AutoOffsetReset {
     @JsonProperty("none")
@@ -63,11 +66,11 @@ public class KafkaConnectorProperties {
     return autoOffsetReset;
   }
 
-  public Object getOffsets() {
+  public List<Long> getOffsets() {
     return offsets;
   }
 
-  public void setOffsets(Object offsets) {
+  public void setOffsets(List<Long> offsets) {
     this.offsets = offsets;
   }
 
@@ -107,6 +110,14 @@ public class KafkaConnectorProperties {
     this.additionalProperties = additionalProperties;
   }
 
+  public String getGroupId() {
+    return groupId;
+  }
+
+  public void setGroupId(String groupId) {
+    this.groupId = groupId;
+  }
+
   @Override
   public String toString() {
     return "KafkaConnectorProperties{"
@@ -124,8 +135,10 @@ public class KafkaConnectorProperties {
         + '\''
         + ", offsets="
         + offsets
-        + ", autoOffsetReset='"
+        + ", autoOffsetReset="
         + autoOffsetReset
+        + ", groupId='"
+        + groupId
         + '\''
         + '}';
   }

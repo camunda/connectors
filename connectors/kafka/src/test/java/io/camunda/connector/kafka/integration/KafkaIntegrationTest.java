@@ -33,6 +33,7 @@ import io.camunda.connector.test.inbound.InboundConnectorDefinitionBuilder;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.AdminClient;
@@ -163,7 +164,7 @@ public class KafkaIntegrationTest {
     KafkaConnectorProperties kafkaConnectorProperties = new KafkaConnectorProperties();
     kafkaConnectorProperties.setAutoOffsetReset(KafkaConnectorProperties.AutoOffsetReset.NONE);
     kafkaConnectorProperties.setAuthenticationType("custom");
-    kafkaConnectorProperties.setOffsets("9999,8888");
+    kafkaConnectorProperties.setOffsets(List.of(9999L, 8888L));
     kafkaConnectorProperties.setTopic(kafkaTopic);
 
     InboundConnectorContextBuilder.TestInboundConnectorContext context =
@@ -250,7 +251,7 @@ public class KafkaIntegrationTest {
     KafkaConnectorProperties kafkaConnectorProperties = new KafkaConnectorProperties();
     kafkaConnectorProperties.setAutoOffsetReset(KafkaConnectorProperties.AutoOffsetReset.EARLIEST);
     kafkaConnectorProperties.setAuthenticationType("custom");
-    kafkaConnectorProperties.setOffsets("0,0");
+    kafkaConnectorProperties.setOffsets(List.of(0L, 0L));
     kafkaConnectorProperties.setTopic(kafkaTopic);
 
     InboundConnectorContextBuilder.TestInboundConnectorContext context =

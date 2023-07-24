@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
@@ -48,7 +49,7 @@ public class KafkaPropertyTransformer {
   protected static final String DEFAULT_KEY_DESERIALIZER =
       "org.apache.kafka.common.serialization.StringDeserializer";
 
-  public static List<Long> getOffsets(Object offsets) {
+  public static List<Long> parseOffsets(Object offsets) {
     if (offsets == null) {
       return null;
     }
@@ -76,6 +77,17 @@ public class KafkaPropertyTransformer {
         .collect(Collectors.toList());
   }
 
+  public static Optional<List<Long>> getOffsets(KafkaConnectorProperties elementProps) {
+    List<Long> offsets = null;
+    if (elementProps.getOffsets() != null) {
+      try {
+        offsets = KafkaPropertyTransformer.parseOffsets(elementProps.getOffsets());
+      } catch (Exception e) {
+      }
+    }
+    return Optional.ofNullable(offsets);
+  }
+
   public static Properties getKafkaProperties(
       KafkaConnectorProperties props, InboundConnectorContext context) {
     KafkaConnectorRequest connectorRequest = new KafkaConnectorRequest();
@@ -84,19 +96,9 @@ public class KafkaPropertyTransformer {
     connectorRequest.setAdditionalProperties(props.getAdditionalProperties());
     final Properties kafkaProps = connectorRequest.assembleKafkaClientProperties();
     if (kafkaProps.getProperty(ConsumerConfig.GROUP_ID_CONFIG) == null) {
-      var groupIdConfig =
-          DEFAULT_GROUP_ID_PREFIX
-              + "-"
-              + context.getDefinition().bpmnProcessId()
-              + "-"
-              + context.getDefinition().elementId()
-              + "-"
-              + context.getDefinition().processDefinitionKey();
-      var limitedGroupIdConfig = groupIdConfig.substring(0, Math.min(groupIdConfig.length(), 250));
-      kafkaProps.put(
-          ConsumerConfig.GROUP_ID_CONFIG,
-          limitedGroupIdConfig); // GROUP_ID_CONFIG is mandatory. It will be used to assign a
-      // client id
+      var groupIdConfig = resolveGroupId(props, context);
+      // GROUP_ID_CONFIG is mandatory. It will be used to assign a client id
+      kafkaProps.put(ConsumerConfig.GROUP_ID_CONFIG, groupIdConfig);
     }
     kafkaProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, props.getAutoOffsetReset().toString());
     kafkaProps.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
@@ -104,6 +106,25 @@ public class KafkaPropertyTransformer {
     kafkaProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, DEFAULT_KEY_DESERIALIZER);
     kafkaProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, DEFAULT_KEY_DESERIALIZER);
     return kafkaProps;
+  }
+
+  private static String resolveGroupId(
+      KafkaConnectorProperties kafkaConnectorProperties, InboundConnectorContext context) {
+    var clientId = kafkaConnectorProperties.getGroupId();
+    if (kafkaConnectorProperties.getGroupId() == null) {
+      clientId = computeGroupId(context);
+    }
+    return clientId.substring(0, Math.min(clientId.length(), 250));
+  }
+
+  private static String computeGroupId(InboundConnectorContext context) {
+    return DEFAULT_GROUP_ID_PREFIX
+        + "-"
+        + context.getDefinition().bpmnProcessId()
+        + "-"
+        + context.getDefinition().elementId()
+        + "-"
+        + context.getDefinition().processDefinitionKey();
   }
 
   public static KafkaInboundMessage convertConsumerRecordToKafkaInboundMessage(

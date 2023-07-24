@@ -160,7 +160,7 @@ public class KafkaExecutableTest {
   @MethodSource("provideStringsForGetOffsets")
   public void testGetOffsets(Object input, List<Long> expected) {
     // When
-    var result = KafkaPropertyTransformer.getOffsets(input);
+    var result = KafkaPropertyTransformer.parseOffsets(input);
 
     // Then
     assertEquals(expected, result);
@@ -191,5 +191,19 @@ public class KafkaExecutableTest {
 
   public KafkaExecutable getConsumerMock() {
     return new KafkaExecutable(properties -> mockConsumer);
+  }
+
+  @Test
+  public void testOffsets() {
+    context =
+        InboundConnectorContextBuilder.create()
+            .secret("test", "test")
+            .property("offsets", "=[1,2]")
+            .definition(InboundConnectorDefinitionBuilder.create().bpmnProcessId(processId).build())
+            .validation(new DefaultValidationProvider())
+            .build();
+
+    var properties = context.bindProperties(KafkaConnectorProperties.class);
+    System.out.println(properties);
   }
 }

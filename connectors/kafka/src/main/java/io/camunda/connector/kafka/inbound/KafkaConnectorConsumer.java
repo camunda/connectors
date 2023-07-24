@@ -33,7 +33,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class KafkaConnectorConsumer {
-
   private static final Logger LOG = LoggerFactory.getLogger(KafkaConnectorConsumer.class);
 
   private final InboundConnectorContext context;
@@ -44,9 +43,9 @@ public class KafkaConnectorConsumer {
 
   Consumer<String, String> consumer;
 
-  boolean shouldLoop = true;
+  KafkaConnectorProperties elementProps;
 
-  private final KafkaConnectorProperties elementProps;
+  boolean shouldLoop = true;
 
   private final Function<Properties, Consumer<String, String>> consumerCreatorFunction;
 
@@ -64,40 +63,69 @@ public class KafkaConnectorConsumer {
     this.future =
         CompletableFuture.runAsync(
             () -> {
-              try {
-                this.consumer =
-                    createConsumer(
-                        this.consumerCreatorFunction,
-                        getKafkaProperties(elementProps, this.context),
-                        elementProps,
-                        getOffsets(elementProps.getOffsets()));
-                reportUp();
-              } catch (Exception ex) {
-                LOG.error("Failed to initialize connector: {}", ex.getMessage());
-                context.reportHealth(Health.down(ex));
-                throw ex;
-              }
-
-              try {
-                while (shouldLoop) {
-                  ConsumerRecords<String, String> records =
-                      this.consumer.poll(Duration.ofMillis(500));
-                  for (ConsumerRecord<String, String> record : records) {
-                    handleMessage(record);
-                  }
-                  if (!records.isEmpty()) {
-                    this.consumer.commitSync();
-                  }
-                  reportUp();
-                }
-              } catch (Exception ex) {
-                LOG.error("Failed to execute connector: {}", ex.getMessage());
-                context.reportHealth(Health.down(ex));
-                throw ex;
-              }
-              LOG.debug("Kafka inbound loop finished");
+              prepareConsumer();
+              consume();
             },
             this.executorService);
+  }
+
+  private void prepareConsumer() {
+    try {
+      this.consumer = consumerCreatorFunction.apply(getKafkaProperties(elementProps, context));
+      var partitions = assignTopicPartitions(consumer, elementProps.getTopic().getTopicName());
+      getOffsets(elementProps).ifPresent(offsets -> seekOffsets(consumer, partitions, offsets));
+      reportUp();
+    } catch (Exception ex) {
+      LOG.error("Failed to initialize connector: {}", ex.getMessage());
+      context.reportHealth(Health.down(ex));
+      throw ex;
+    }
+  }
+
+  private List<TopicPartition> assignTopicPartitions(
+      Consumer<String, String> consumer, String topic) {
+    // dynamically assign partitions to be able to handle offsets
+    List<PartitionInfo> partitions = consumer.partitionsFor(topic);
+    List<TopicPartition> topicPartitions =
+        partitions.stream()
+            .map(partition -> new TopicPartition(partition.topic(), partition.partition()))
+            .collect(Collectors.toList());
+    consumer.assign(topicPartitions);
+    return topicPartitions;
+  }
+
+  private void seekOffsets(
+      Consumer<String, String> consumer, List<TopicPartition> partitions, List<Long> offsets) {
+    if (partitions.size() != offsets.size()) {
+      throw new ConnectorInputException(
+          new IllegalArgumentException(
+              "Number of offsets provided is not equal the number of partitions!"));
+    }
+    for (int i = 0; i < offsets.size(); i++) {
+      consumer.seek(partitions.get(i), offsets.get(i));
+    }
+    LOG.info("Kafka inbound connector initialized");
+  }
+
+  private void consume() {
+    // TODO add resilient4j we should wait in case of any exceptions and only go down
+    // after X amount of attempts
+    while (shouldLoop) {
+      try {
+        ConsumerRecords<String, String> records = this.consumer.poll(Duration.ofMillis(500));
+        for (ConsumerRecord<String, String> record : records) {
+          handleMessage(record);
+        }
+        if (!records.isEmpty()) {
+          this.consumer.commitSync();
+        }
+        reportUp();
+      } catch (Exception ex) {
+        LOG.error("Failed to execute connector: {}", ex.getMessage());
+        context.reportHealth(Health.down(ex));
+      }
+    }
+    LOG.debug("Kafka inbound loop finished");
   }
 
   private void handleMessage(ConsumerRecord<String, String> record) {
@@ -120,37 +148,6 @@ public class KafkaConnectorConsumer {
     if (this.executorService != null) {
       this.executorService.shutdownNow();
     }
-  }
-
-  private Consumer<String, String> createConsumer(
-      final Function<Properties, Consumer<String, String>> consumerCreatorFunction,
-      final Properties kafkaProps,
-      final KafkaConnectorProperties elementProps,
-      final List<Long> offsets) {
-    // init
-    Consumer<String, String> consumer = consumerCreatorFunction.apply(kafkaProps);
-
-    // dynamically assign partitions to be able to handle offsets
-    List<PartitionInfo> partitions = consumer.partitionsFor(elementProps.getTopic().getTopicName());
-    List<TopicPartition> topicPartitions =
-        partitions.stream()
-            .map(partition -> new TopicPartition(partition.topic(), partition.partition()))
-            .collect(Collectors.toList());
-    consumer.assign(topicPartitions);
-
-    // set partition offsets if necessary
-    if (offsets != null) {
-      if (partitions.size() != offsets.size()) {
-        throw new ConnectorInputException(
-            new IllegalArgumentException(
-                "Number of offsets provided is not equal the number of partitions!"));
-      }
-      for (int i = 0; i < offsets.size(); i++) {
-        consumer.seek(topicPartitions.get(i), offsets.get(i));
-      }
-    }
-    LOG.info("Kafka inbound connector initialized");
-    return consumer;
   }
 
   private void reportUp() {
