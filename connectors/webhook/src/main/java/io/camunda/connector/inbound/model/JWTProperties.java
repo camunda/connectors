@@ -13,7 +13,7 @@ import java.util.function.Function;
 
 public record JWTProperties(
     @FEEL List<String> requiredPermissions,
-    Function<Object, List<String>> jwtRoleExpression,
+    Function<Object, List<String>> permissionsExpression,
     @FEEL String jwkUrl) {
   public JWTProperties {
     Objects.requireNonNull(jwkUrl);

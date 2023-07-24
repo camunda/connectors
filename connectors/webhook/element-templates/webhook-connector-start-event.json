@@ -253,7 +253,7 @@
       "optional": true,
       "binding": {
         "type": "zeebe:property",
-        "name": "inbound.auth.jwt.jwtRoleExpression"
+        "name": "inbound.auth.jwt.permissionsExpression"
       },
       "condition": {
         "property": "authorizationType",

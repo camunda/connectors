@@ -80,7 +80,7 @@ public class JWTChecker {
       JWTProperties jwtProperties, DecodedJWT verifiedJWT, ObjectMapper objectMapper) {
     try {
       JsonNode jsonNode = getJsonPayloadFromToken(verifiedJWT, objectMapper);
-      return jwtProperties.jwtRoleExpression().apply(jsonNode);
+      return jwtProperties.permissionsExpression().apply(jsonNode);
     } catch (FeelEngineWrapperException ex) {
       LOGGER.warn("Failed to evaluate FEEL expression! Reason: " + ex.getReason());
       return new ArrayList<>();
