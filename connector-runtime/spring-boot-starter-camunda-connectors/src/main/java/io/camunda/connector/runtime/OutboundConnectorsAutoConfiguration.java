@@ -25,7 +25,7 @@ import com.fasterxml.jackson.module.scala.DefaultScalaModule$;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.impl.config.ConnectorPropertyResolver;
 import io.camunda.connector.impl.feel.FeelEngineWrapper;
-import io.camunda.connector.runtime.core.feel.jackson.JacksonModuleFeelFunction;
+import io.camunda.connector.impl.feel.jackson.JacksonModuleFeelFunction;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.env.SpringConnectorPropertyResolver;
 import io.camunda.connector.runtime.outbound.OutboundConnectorRuntimeConfiguration;
