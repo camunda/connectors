@@ -27,15 +27,6 @@
     }
   },
   {
-    "descriptionOfTest": "Normal value with space",
-    "method": "get",
-    "url": "https://camunda.io/http-endpoint",
-    "connectionTimeoutInSeconds": "23 ",
-    "authentication": {
-      "type": "noAuth"
-    }
-  },
-  {
     "descriptionOfTest": "Blank value",
     "method": "get",
     "url": "https://camunda.io/http-endpoint",

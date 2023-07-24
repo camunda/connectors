@@ -116,6 +116,7 @@ public class HttpJsonFunctionInputValidationTest extends BaseTest {
   @ParameterizedTest(name = "Validate connectionTimeout # {index}")
   @MethodSource("failTimeOutConnectionCases")
   void validate_shouldThrowExceptionConnectionTimeoutIsWrong(String input) {
+    System.out.println(input);
     // Given request without one required field
     OutboundConnectorContext context =
         getContextBuilderWithSecrets()

@@ -11,7 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import io.camunda.connector.runtime.core.feel.jackson.JacksonModuleFeelFunction;
+import io.camunda.connector.impl.feel.jackson.JacksonModuleFeelFunction;
 
 public final class ObjectMapperSupplier {
 

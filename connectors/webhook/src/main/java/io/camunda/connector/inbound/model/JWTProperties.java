@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.inbound.model;
 
-import io.camunda.connector.impl.feel.FEEL;
+import io.camunda.connector.api.annotation.FEEL;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
