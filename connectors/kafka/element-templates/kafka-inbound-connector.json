@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Kafka consumer connector",
   "id": "io.camunda.connectors.inbound.KAFKA.v1",
-  "version": 1,
+  "version": 2,
   "description": "Consume Kafka message",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka-inbound/",
   "category": {
@@ -122,6 +122,21 @@
       },
       "constraints": {
         "notEmpty": true
+      }
+    },
+    {
+      "label": "Consumer Group ID",
+      "description": "Provide the consumer group ID used by the connector. Leave empty for an automatically generated one",
+      "group": "kafka",
+      "type": "String",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:property",
+        "name": "groupId"
+      },
+      "constraints": {
+        "notEmpty": false,
+        "maxLength": 250
       }
     },
     {

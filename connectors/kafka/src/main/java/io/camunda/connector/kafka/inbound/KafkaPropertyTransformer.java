@@ -15,14 +15,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.scala.DefaultScalaModule$;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorRequest;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
 import java.util.Properties;
-import java.util.stream.Collectors;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -48,45 +41,6 @@ public class KafkaPropertyTransformer {
 
   protected static final String DEFAULT_KEY_DESERIALIZER =
       "org.apache.kafka.common.serialization.StringDeserializer";
-
-  public static List<Long> parseOffsets(Object offsets) {
-    if (offsets == null) {
-      return null;
-    }
-    List<Long> offsetCollection = null;
-    if (offsets instanceof Collection<?>) {
-      offsetCollection = (List<Long>) offsets;
-    } else if (offsets instanceof String) {
-      offsetCollection = convertStringToList((String) offsets);
-    } else {
-      // We accept only List or String input for offsets
-      throw new IllegalArgumentException(
-          "Invalid input type for offsets. Supported types are: List<Long> and String. Got "
-              + offsets.getClass()
-              + " instead.");
-    }
-    return offsetCollection;
-  }
-
-  public static List<Long> convertStringToList(String string) {
-    if (StringUtils.isBlank(string)) {
-      return new ArrayList<>();
-    }
-    return Arrays.stream(string.split(","))
-        .map(s -> Long.parseLong(s.trim()))
-        .collect(Collectors.toList());
-  }
-
-  public static Optional<List<Long>> getOffsets(KafkaConnectorProperties elementProps) {
-    List<Long> offsets = null;
-    if (elementProps.getOffsets() != null) {
-      try {
-        offsets = KafkaPropertyTransformer.parseOffsets(elementProps.getOffsets());
-      } catch (Exception e) {
-      }
-    }
-    return Optional.ofNullable(offsets);
-  }
 
   public static Properties getKafkaProperties(
       KafkaConnectorProperties props, InboundConnectorContext context) {

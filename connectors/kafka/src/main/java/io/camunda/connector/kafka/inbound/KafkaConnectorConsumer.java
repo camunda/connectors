@@ -8,7 +8,6 @@ package io.camunda.connector.kafka.inbound;
 
 import static io.camunda.connector.kafka.inbound.KafkaPropertyTransformer.convertConsumerRecordToKafkaInboundMessage;
 import static io.camunda.connector.kafka.inbound.KafkaPropertyTransformer.getKafkaProperties;
-import static io.camunda.connector.kafka.inbound.KafkaPropertyTransformer.getOffsets;
 
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
@@ -17,6 +16,7 @@ import io.camunda.connector.impl.ConnectorInputException;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -73,7 +73,8 @@ public class KafkaConnectorConsumer {
     try {
       this.consumer = consumerCreatorFunction.apply(getKafkaProperties(elementProps, context));
       var partitions = assignTopicPartitions(consumer, elementProps.getTopic().getTopicName());
-      getOffsets(elementProps).ifPresent(offsets -> seekOffsets(consumer, partitions, offsets));
+      Optional.ofNullable(elementProps.getOffsets())
+          .ifPresent(offsets -> seekOffsets(consumer, partitions, offsets));
       reportUp();
     } catch (Exception ex) {
       LOG.error("Failed to initialize connector: {}", ex.getMessage());

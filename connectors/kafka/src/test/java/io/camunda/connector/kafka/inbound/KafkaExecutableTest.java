@@ -7,6 +7,7 @@
 package io.camunda.connector.kafka.inbound;
 
 import static io.camunda.connector.kafka.inbound.KafkaPropertyTransformer.DEFAULT_KEY_DESERIALIZER;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -59,7 +60,7 @@ public class KafkaExecutableTest {
   private final String processId = "Process_id";
 
   @BeforeEach
-  public void setUp() throws Exception {
+  public void setUp() {
     topic = "my-topic";
     topicPartitions =
         Arrays.asList(
@@ -70,7 +71,8 @@ public class KafkaExecutableTest {
     kafkaTopic.setBootstrapServers("localhost:9092");
     kafkaConnectorProperties = new KafkaConnectorProperties();
     kafkaConnectorProperties.setAutoOffsetReset(KafkaConnectorProperties.AutoOffsetReset.NONE);
-    kafkaConnectorProperties.setAuthenticationType("custom");
+    kafkaConnectorProperties.setAuthenticationType(
+        KafkaConnectorProperties.AuthenticationType.custom);
     kafkaConnectorProperties.setTopic(kafkaTopic);
 
     context =
@@ -118,7 +120,7 @@ public class KafkaExecutableTest {
   }
 
   @Test
-  void testActivateAndDeactivate() throws Exception {
+  void testActivateAndDeactivate() {
     // Given
     when(mockConsumer.partitionsFor(topic)).thenReturn(topicPartitions);
     doNothing().when(mockConsumer).assign(any());
@@ -135,7 +137,7 @@ public class KafkaExecutableTest {
   }
 
   @Test
-  void testGetKafkaProperties() throws Exception {
+  void testGetKafkaProperties() {
     // When
     Properties properties =
         KafkaPropertyTransformer.getKafkaProperties(kafkaConnectorProperties, context);
@@ -146,6 +148,7 @@ public class KafkaExecutableTest {
     assertEquals(
         DEFAULT_KEY_DESERIALIZER, properties.get(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG));
     assertEquals(false, properties.get(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG));
+
     assertEquals(
         "kafka-inbound-connector-"
             + context.getDefinition().bpmnProcessId()
@@ -156,22 +159,14 @@ public class KafkaExecutableTest {
         properties.get(ConsumerConfig.GROUP_ID_CONFIG));
   }
 
-  @ParameterizedTest
-  @MethodSource("provideStringsForGetOffsets")
-  public void testGetOffsets(Object input, List<Long> expected) {
+  @Test
+  void testGroupIdUsage() {
     // When
-    var result = KafkaPropertyTransformer.parseOffsets(input);
-
+    kafkaConnectorProperties.setGroupId("my-group-id");
+    Properties properties =
+        KafkaPropertyTransformer.getKafkaProperties(kafkaConnectorProperties, context);
     // Then
-    assertEquals(expected, result);
-  }
-
-  private static Stream<Arguments> provideStringsForGetOffsets() {
-    return Stream.of(
-        Arguments.of("10", List.of(10L)),
-        Arguments.of("10,12", Arrays.asList(10L, 12L)),
-        Arguments.of(Arrays.asList(10L, 12L), Arrays.asList(10L, 12L)),
-        Arguments.of("1,2,3,4,5", Arrays.asList(1L, 2L, 3L, 4L, 5L)));
+    assertEquals("my-group-id", properties.get(ConsumerConfig.GROUP_ID_CONFIG));
   }
 
   @Test
@@ -193,17 +188,35 @@ public class KafkaExecutableTest {
     return new KafkaExecutable(properties -> mockConsumer);
   }
 
-  @Test
-  public void testOffsets() {
+  @ParameterizedTest
+  @MethodSource("provideStringsForGetOffsets")
+  public void testOffsets(Object input, List<Long> expected) {
+
+    var properties = new HashMap<String, Object>();
+    properties.put("topic", new KafkaTopic("test", "test"));
+    properties.put("offsets", input);
+    properties.put("authenticationType", "custom");
+
     context =
         InboundConnectorContextBuilder.create()
             .secret("test", "test")
-            .property("offsets", "=[1,2]")
+            .properties(properties)
             .definition(InboundConnectorDefinitionBuilder.create().bpmnProcessId(processId).build())
             .validation(new DefaultValidationProvider())
             .build();
 
-    var properties = context.bindProperties(KafkaConnectorProperties.class);
-    System.out.println(properties);
+    var boundProps = context.bindProperties(KafkaConnectorProperties.class);
+    assertThat(boundProps.getOffsets()).isEqualTo(expected);
+  }
+
+  private static Stream<Arguments> provideStringsForGetOffsets() {
+    return Stream.of(
+        Arguments.of("=[1,2,3]", List.of(1L, 2L, 3L)),
+        Arguments.of("[1,2,3]", List.of(1L, 2L, 3L)),
+        Arguments.of("1", List.of(1L)),
+        Arguments.of("1,2", Arrays.asList(1L, 2L)),
+        Arguments.of("1,2,3,", Arrays.asList(1L, 2L, 3L)),
+        Arguments.of("1,2,3,4,5", Arrays.asList(1L, 2L, 3L, 4L, 5L)),
+        Arguments.of(Arrays.asList(10L, 12L), Arrays.asList(10L, 12L)));
   }
 }

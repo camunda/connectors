@@ -42,6 +42,7 @@
       "bootstrapServers":"kafka-stub.kafka.cloud:1234",
       "topicName":"some-awesome-topic"
     },
+    "groupId":  "test-group-id",
     "message":{
       "key":"Happy",
       "value":"Case"

@@ -7,7 +7,7 @@
 package io.camunda.connector.kafka.inbound;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.camunda.connector.impl.feel.FEEL;
+import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.kafka.outbound.model.KafkaAuthentication;
 import io.camunda.connector.kafka.outbound.model.KafkaTopic;
 import jakarta.validation.Valid;
@@ -18,7 +18,7 @@ import java.util.Map;
 
 public class KafkaConnectorProperties {
 
-  @NotNull private String authenticationType;
+  @NotNull private AuthenticationType authenticationType;
 
   @Valid private KafkaAuthentication authentication;
 
@@ -54,11 +54,16 @@ public class KafkaConnectorProperties {
     }
   }
 
-  public String getAuthenticationType() {
+  public enum AuthenticationType {
+    credentials,
+    custom
+  }
+
+  public AuthenticationType getAuthenticationType() {
     return authenticationType;
   }
 
-  public void setAuthenticationType(String authenticationType) {
+  public void setAuthenticationType(AuthenticationType authenticationType) {
     this.authenticationType = authenticationType;
   }
 

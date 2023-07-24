@@ -53,6 +53,7 @@ except in compliance with the proprietary license.</license.inlineheader>
       <artifactId>kafka</artifactId>
       <version>${version.testcontainers}</version>
     </dependency>
+
     <dependency>
       <groupId>org.skyscreamer</groupId>
       <artifactId>jsonassert</artifactId>
