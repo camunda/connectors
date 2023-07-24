@@ -80,7 +80,7 @@ limitations under the License.</license.inlineheader>
     <version.assertj>3.24.2</version.assertj>
     <version.jackson-bom>2.15.2</version.jackson-bom>
     <version.jackson-datatype-jsr310>2.15.2</version.jackson-datatype-jsr310>
-    <version.hibernate-validator>8.0.0.Final</version.hibernate-validator>
+    <version.hibernate-validator>8.0.1.Final</version.hibernate-validator>
     <version.jsonassert>1.5.1</version.jsonassert>
 
     <!-- maven plugins (not managed by parent) -->
