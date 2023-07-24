@@ -102,7 +102,7 @@ public class JWTIntegrationTest {
                         "jwt",
                         Map.of(
                             "jwkUrl", JWK_FULL_URL + JWK_PATH_ENDING,
-                            "jwtRoleExpression", "=if admin = true then [\"admin\"] else roles",
+                            "permissionsExpression", "=if admin = true then [\"admin\"] else roles",
                             "requiredPermissions", "=[\"admin\"]"))));
 
     HttpWebhookExecutable httpWebhookExecutable = setUpWebhook(props);
@@ -136,7 +136,7 @@ public class JWTIntegrationTest {
                         "jwt",
                         Map.of(
                             "jwkUrl", JWK_FULL_URL + JWK_PATH_ENDING,
-                            "jwtRoleExpression", "=if admin = true then [\"admin\"] else roles",
+                            "permissionsExpression", "=if admin = true then [\"admin\"] else roles",
                             "requiredPermissions", "=[\"admin\"]"))));
 
     HttpWebhookExecutable httpWebhookExecutable = setUpWebhook(props);
@@ -170,7 +170,7 @@ public class JWTIntegrationTest {
                         "jwt",
                         Map.of(
                             "jwkUrl", JWK_FULL_URL + JWK_PATH_ENDING,
-                            "jwtRoleExpression", "=if admin = true then [\"admin\"] else roles",
+                            "permissionsExpression", "=if admin = true then [\"admin\"] else roles",
                             "requiredPermissions", "=[\"admin\"]"))));
 
     HttpWebhookExecutable httpWebhookExecutable = setUpWebhook(props);
@@ -206,7 +206,7 @@ public class JWTIntegrationTest {
                         "jwt",
                         Map.of(
                             "jwkUrl", JWK_FULL_URL + JWK_PATH_ENDING,
-                            "jwtRoleExpression", "=if admin = true then [\"admin\"] else roles",
+                            "permissionsExpression", "=if admin = true then [\"admin\"] else roles",
                             "requiredPermissions", "=[\"admin\"]"))));
 
     HttpWebhookExecutable httpWebhookExecutable = setUpWebhook(props);
@@ -242,7 +242,7 @@ public class JWTIntegrationTest {
                         "jwt",
                         Map.of(
                             "jwkUrl", "https://google.com",
-                            "jwtRoleExpression", "=if admin = true then [\"admin\"] else roles",
+                            "permissionsExpression", "=if admin = true then [\"admin\"] else roles",
                             "requiredPermissions", "=[\"admin\"]"))));
 
     HttpWebhookExecutable httpWebhookExecutable = setUpWebhook(props);
