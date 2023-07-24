@@ -258,7 +258,7 @@
     },
     {
       "label": "JWT role property expression",
-      "description": "Expression to extract the roles from the JWT token",
+      "description": "Expression to extract the roles from the JWT token. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/#how-to-extract-roles-from-jwt-data'>See documentation</a>",
       "type": "String",
       "group": "authorization",
       "feel": "required",
@@ -344,7 +344,7 @@
     },
     {
       "label": "API Key locator",
-      "description": "A FEEL expression that extracts API key from the request",
+      "description": "A FEEL expression that extracts API key from the request. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/#how-to-configure-api-key-authorization'>See documentation</a>",
       "type": "String",
       "group": "authorization",
       "feel": "required",
