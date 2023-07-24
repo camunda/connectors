@@ -135,6 +135,54 @@ public class FeelDeserializerTest {
     assertThat(targetType.props).containsEntry("foo", "bar");
   }
 
+  @Test
+  void feelDeserializer_notFeel_stringListLong_parsed() {
+    // given
+    String json = """
+        { "props": "1, 2, 3" }
+        """;
+
+    // when && then
+    var targetType = assertDoesNotThrow(() -> mapper.readValue(json, TargetTypeListLong.class));
+    assertThat(targetType.props).containsExactly(1L, 2L, 3L);
+  }
+
+  @Test
+  void feelDeserializer_notFeel_stringListInteger_parsed() {
+    // given
+    String json = """
+        { "props": "1, 2, 3" }
+        """;
+
+    // when && then
+    var targetType = assertDoesNotThrow(() -> mapper.readValue(json, TargetTypeListInteger.class));
+    assertThat(targetType.props).containsExactly(1, 2, 3);
+  }
+
+  @Test
+  void feelDeserializer_notFeel_stringList_parsed() {
+    // given
+    String json = """
+        { "props": "a, b, c" }
+        """;
+
+    // when && then
+    var targetType = assertDoesNotThrow(() -> mapper.readValue(json, TargetTypeList.class));
+    assertThat(targetType.props).contains("a", "b", "c");
+  }
+
+  @Test
+  void feelDeserializer_notFeel_string_parsed() {
+    // given
+    String json = """
+        { "props": "a, b, c" }
+        """;
+
+    // when && then
+    var targetType = assertDoesNotThrow(() -> mapper.readValue(json, TargetTypeString.class));
+    assertThat(targetType.props).isEqualTo("a, b, c");
+  }
+
   private record TargetTypeMap(@FEEL Map<String, String> props) {}
 
   private record TargetTypeObject(@FEEL StubObject stubObject) {}
@@ -146,4 +194,8 @@ public class FeelDeserializerTest {
   private record TargetTypeArray(@FEEL Long[] props) {}
 
   private record TargetTypeList(@FEEL List<String> props) {}
+
+  private record TargetTypeListLong(@FEEL List<Long> props) {}
+
+  private record TargetTypeListInteger(@FEEL List<Integer> props) {}
 }
