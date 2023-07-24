@@ -17,12 +17,18 @@
 package io.camunda.connector.test.outbound;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.impl.context.AbstractConnectorContext;
+import io.camunda.connector.impl.feel.jackson.JacksonModuleFeelFunction;
+import io.camunda.connector.test.ConnectorContextTestUtil;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -34,12 +40,18 @@ public class OutboundConnectorContextBuilder {
 
   protected ValidationProvider validationProvider;
 
-  protected String variablesAsJson;
+  protected Map<String, Object> variables;
 
   protected final Map<String, String> headers = new HashMap<>();
 
-  private final ObjectMapper objectMapper =
-      new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+  private ObjectMapper objectMapper =
+      new ObjectMapper()
+          .registerModule(new JacksonModuleFeelFunction())
+          .registerModule(new Jdk8Module())
+          .registerModule(new JavaTimeModule())
+          // deserialize unknown types as empty objects
+          .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
+          .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
   /**
    * @return a new instance of the {@link OutboundConnectorContextBuilder}
@@ -49,8 +61,8 @@ public class OutboundConnectorContextBuilder {
   }
 
   private void assertNoVariables() {
-    if (this.variablesAsJson != null) {
-      throw new IllegalStateException("variablesAsJSON already set");
+    if (this.variables != null) {
+      throw new IllegalStateException("Variables already set");
     }
   }
 
@@ -62,7 +74,52 @@ public class OutboundConnectorContextBuilder {
    */
   public OutboundConnectorContextBuilder variables(String variablesAsJSON) {
     this.assertNoVariables();
-    this.variablesAsJson = variablesAsJSON;
+    try {
+      this.variables = objectMapper.readValue(variablesAsJSON, Map.class);
+    } catch (JsonProcessingException e) {
+      throw new IllegalArgumentException("Invalid JSON: " + variablesAsJSON, e);
+    }
+    return this;
+  }
+
+  /**
+   * Provides the variables as a map.
+   *
+   * @param variables - the variables as map
+   * @return builder for fluent API
+   */
+  public OutboundConnectorContextBuilder variables(Map<String, ?> variables) {
+    this.assertNoVariables();
+    this.variables = (Map<String, Object>) ConnectorContextTestUtil.replaceImmutableMaps(variables);
+    return this;
+  }
+
+  /**
+   * Provides multiple variables as object. The variables will then be converted to an intermediate
+   * Map representation.
+   *
+   * @param variables - new variables
+   * @return builder for fluent API
+   */
+  public OutboundConnectorContextBuilder variables(Object variables) {
+    this.assertNoVariables();
+    this.variables = objectMapper.convertValue(variables, new TypeReference<>() {});
+    return this;
+  }
+
+  /**
+   * Provides the variable value for the given name. Nested variables can be provided like
+   * "foo.bar.baz".
+   *
+   * @param key - property name
+   * @param value - property value
+   * @return builder for fluent API
+   */
+  public OutboundConnectorContextBuilder variable(String key, String value) {
+    if (variables == null) {
+      variables = new HashMap<>();
+    }
+    ConnectorContextTestUtil.addVariable(key, value, variables);
     return this;
   }
 
@@ -107,6 +164,18 @@ public class OutboundConnectorContextBuilder {
   }
 
   /**
+   * Sets a custom {@link ObjectMapper} that is used to serialize and deserialize the variables. If
+   * not provided, default mapper will be used.
+   *
+   * @param objectMapper - custom object mapper
+   * @return builder for fluent API
+   */
+  public OutboundConnectorContextBuilder objectMapper(ObjectMapper objectMapper) {
+    this.objectMapper = objectMapper;
+    return this;
+  }
+
+  /**
    * @return the {@link OutboundConnectorContext} including all previously defined properties
    */
   public TestConnectorContext build() {
@@ -119,7 +188,7 @@ public class OutboundConnectorContextBuilder {
     protected TestConnectorContext(
         SecretProvider secretProvider, ValidationProvider validationProvider) {
       super(secretProvider, validationProvider);
-      variablesAsJson = getSecretHandler().replaceSecrets(variablesAsJson);
+      replaceSecrets(variables);
     }
 
     @Override
@@ -129,20 +198,20 @@ public class OutboundConnectorContextBuilder {
 
     @Override
     public String getVariables() {
-      return variablesAsJson;
+      try {
+        return objectMapper.writeValueAsString(variables);
+      } catch (JsonProcessingException e) {
+        throw new RuntimeException(e);
+      }
     }
 
     @Override
     public <T> T bindVariables(Class<T> cls) {
-      try {
-        var mappedObject = objectMapper.readValue(variablesAsJson, cls);
-        if (validationProvider != null) {
-          getValidationProvider().validate(mappedObject);
-        }
-        return mappedObject;
-      } catch (JsonProcessingException e) {
-        throw new RuntimeException(e);
+      var mappedObject = objectMapper.convertValue(variables, cls);
+      if (validationProvider != null) {
+        getValidationProvider().validate(mappedObject);
       }
+      return mappedObject;
     }
   }
 }

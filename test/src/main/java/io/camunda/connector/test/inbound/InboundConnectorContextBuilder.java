@@ -17,7 +17,11 @@
 package io.camunda.connector.test.inbound;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
@@ -25,7 +29,9 @@ import io.camunda.connector.api.inbound.InboundConnectorResult;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.impl.context.AbstractConnectorContext;
+import io.camunda.connector.impl.feel.jackson.JacksonModuleFeelFunction;
 import io.camunda.connector.impl.inbound.result.MessageCorrelationResult;
+import io.camunda.connector.test.ConnectorContextTestUtil;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -42,7 +48,14 @@ public class InboundConnectorContextBuilder {
   protected InboundConnectorResult<?> result = new MessageCorrelationResult("mockMsg", 0);
   protected ValidationProvider validationProvider;
 
-  protected ObjectMapper objectMapper = new ObjectMapper();
+  protected ObjectMapper objectMapper =
+      new ObjectMapper()
+          .registerModule(new JacksonModuleFeelFunction())
+          .registerModule(new Jdk8Module())
+          .registerModule(new JavaTimeModule())
+          // deserialize unknown types as empty objects
+          .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
+          .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
   public static InboundConnectorContextBuilder create() {
     return new InboundConnectorContextBuilder();
@@ -83,7 +96,8 @@ public class InboundConnectorContextBuilder {
   }
 
   /**
-   * Provides the property value for the given name.
+   * Provides the property value for the given name. Nested properties can be provided like
+   * "foo.bar.baz".
    *
    * @param key - property name
    * @param value - property value
@@ -93,7 +107,7 @@ public class InboundConnectorContextBuilder {
     if (properties == null) {
       properties = new HashMap<>();
     }
-    properties.put(key, value);
+    ConnectorContextTestUtil.addVariable(key, value, properties);
     return this;
   }
 
@@ -108,22 +122,9 @@ public class InboundConnectorContextBuilder {
     if (this.properties != null && !this.properties.equals(properties)) {
       throw new IllegalStateException("Properties already set");
     }
-    this.properties = (Map<String, Object>) replaceImmutableMaps(properties);
+    this.properties =
+        (Map<String, Object>) ConnectorContextTestUtil.replaceImmutableMaps(properties);
     return this;
-  }
-
-  // this allows to create nested maps in place, like Map.of("a", Map.of("b", "c"))
-  @SuppressWarnings("unchecked")
-  protected Map<String, ?> replaceImmutableMaps(Map<String, ?> properties) {
-    Map<String, Object> mutableProperties = new HashMap<>();
-    for (Map.Entry<String, ?> entry : properties.entrySet()) {
-      Object value = entry.getValue();
-      if (value instanceof Map) {
-        value = replaceImmutableMaps((Map<String, ?>) value);
-      }
-      mutableProperties.put(entry.getKey(), value);
-    }
-    return mutableProperties;
   }
 
   /**
@@ -139,6 +140,25 @@ public class InboundConnectorContextBuilder {
     }
     this.properties = objectMapper.convertValue(properties, new TypeReference<>() {});
     return this;
+  }
+
+  /**
+   * Provides multiple properties as object. The properties will then be converted to an
+   * intermediate Map representation.
+   *
+   * @param propertiesAsJson - new properties
+   * @return builder for fluent API
+   */
+  public InboundConnectorContextBuilder properties(String propertiesAsJson) {
+    if (this.properties != null) {
+      throw new IllegalStateException("Properties already set");
+    }
+    try {
+      this.properties = objectMapper.readValue(propertiesAsJson, new TypeReference<>() {});
+      return this;
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
 
   /**

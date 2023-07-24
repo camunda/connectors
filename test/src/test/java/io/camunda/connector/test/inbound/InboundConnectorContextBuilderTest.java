@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.test.outbound;
+package io.camunda.connector.test.inbound;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchException;
@@ -25,60 +25,60 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 
-public class OutboundConnectorContextBuilderTest {
+public class InboundConnectorContextBuilderTest {
 
   @Test
-  public void shouldProvideVariablesAsString() {
+  public void shouldProvidePropertiesAsString() {
     var json = "{ \"foo\" : \"FOO\" }";
-    var context = OutboundConnectorContextBuilder.create().variables(json).build();
-    assertThat(context.getVariables()).isEqualTo("{\"foo\":\"FOO\"}");
+    var context = InboundConnectorContextBuilder.create().properties(json).build();
+    assertThat(context.getProperties()).isEqualTo(Map.of("foo", "FOO"));
   }
 
   @Test
-  public void shouldProvideVariablesAsMapAndReplaceSecrets() {
+  public void shouldProvidePropertiesAsMapAndReplaceSecrets() {
     var properties = Map.of("foo", "{{secrets.FOO}}");
     var context =
-        OutboundConnectorContextBuilder.create()
-            .variables(properties)
+        InboundConnectorContextBuilder.create()
+            .properties(properties)
             // try replacing secrets to check how it handles immutable maps
             .secret("FOO", "BAR")
             .build();
-    assertThat(context.bindVariables(TestRecord.class)).isEqualTo(new TestRecord("BAR"));
+    assertThat(context.bindProperties(TestRecord.class)).isEqualTo(new TestRecord("BAR"));
   }
 
   @Test
   public void shouldProvidePropertiesOneByOne() {
     var context =
-        OutboundConnectorContextBuilder.create()
-            .variable("record.foo", "FOO")
-            .variable("bar", "BAR")
+        InboundConnectorContextBuilder.create()
+            .property("record.foo", "FOO")
+            .property("bar", "BAR")
             .build();
-    assertThat(context.bindVariables(TestWrapperRecord.class))
+    assertThat(context.bindProperties(TestWrapperRecord.class))
         .isEqualTo(new TestWrapperRecord(new TestRecord("FOO"), "BAR"));
   }
 
   @Test
   public void shouldProvidePropertiesAsObject() {
     var context =
-        OutboundConnectorContextBuilder.create()
-            .variables(new TestWrapperRecord(new TestRecord("FOO"), "BAR"))
+        InboundConnectorContextBuilder.create()
+            .properties(new TestWrapperRecord(new TestRecord("FOO"), "BAR"))
             .build();
-    assertThat(context.bindVariables(TestWrapperRecord.class))
+    assertThat(context.bindProperties(TestWrapperRecord.class))
         .isEqualTo(new TestWrapperRecord(new TestRecord("FOO"), "BAR"));
   }
 
   @Test
-  public void shouldThrowOnDuplicateVariableDefinition() {
+  public void shouldThrowOnDuplicatePropertyDefinition() {
     var exception =
         catchException(
-            () -> OutboundConnectorContextBuilder.create().variables("{ }").variables("{ }"));
-    assertThat(exception).hasMessage("Variables already set");
+            () -> InboundConnectorContextBuilder.create().properties("{ }").properties("{ }"));
+    assertThat(exception).hasMessage("Properties already set");
   }
 
   @Test
   public void shouldProvideSecret() {
     var context =
-        OutboundConnectorContextBuilder.create().variables("{}").secret("foo", "FOO").build();
+        InboundConnectorContextBuilder.create().properties("{}").secret("foo", "FOO").build();
     var replaced = context.getSecretHandler().replaceSecrets("secrets.foo");
     assertThat(replaced).isEqualTo("FOO");
   }
@@ -86,7 +86,7 @@ public class OutboundConnectorContextBuilderTest {
   @Test
   public void shouldThrowOnMissingSecret() {
     var context =
-        OutboundConnectorContextBuilder.create().variables("{}").secret("x", "FOO").build();
+        InboundConnectorContextBuilder.create().properties("{}").secret("x", "FOO").build();
     Executable replacement = () -> context.getSecretHandler().replaceSecrets("secrets.foo");
     assertThrows(
         ConnectorSecretException.class, replacement, "Secret with name 'foo' is not available");
@@ -95,8 +95,8 @@ public class OutboundConnectorContextBuilderTest {
   @Test
   public void shouldProvideMultipleSecrets() {
     var context =
-        OutboundConnectorContextBuilder.create()
-            .variables("{}")
+        InboundConnectorContextBuilder.create()
+            .properties("{}")
             .secret("foo", "FOO")
             .secret("bar", "BAR")
             .build();
@@ -107,7 +107,7 @@ public class OutboundConnectorContextBuilderTest {
   @Test
   public void shouldProvideSecretWithParentheses() {
     var context =
-        OutboundConnectorContextBuilder.create().variables("{}").secret("foo", "FOO").build();
+        InboundConnectorContextBuilder.create().properties("{}").secret("foo", "FOO").build();
     var replaced = context.getSecretHandler().replaceSecrets("{{secrets.foo}}");
     assertThat(replaced).isEqualTo("FOO");
   }
@@ -115,8 +115,8 @@ public class OutboundConnectorContextBuilderTest {
   @Test
   public void shouldProvideMultipleSecretWithParentheses() {
     var context =
-        OutboundConnectorContextBuilder.create()
-            .variables("{}")
+        InboundConnectorContextBuilder.create()
+            .properties("{}")
             .secret("foo", "FOO")
             .secret("bar", "BAR")
             .build();

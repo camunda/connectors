@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.annotation.FEEL;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
