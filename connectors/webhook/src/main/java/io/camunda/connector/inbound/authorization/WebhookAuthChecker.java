@@ -65,7 +65,7 @@ public class WebhookAuthChecker {
    */
   public void checkAuthorization(WebhookProcessingPayload payload) throws IOException {
 
-    if (authorization instanceof WebhookAuthorization.None) {
+    if (authorization == null || authorization instanceof WebhookAuthorization.None) {
       // no auth expected, proceed
       return;
     }

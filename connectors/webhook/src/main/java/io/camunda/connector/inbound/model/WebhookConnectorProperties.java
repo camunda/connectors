@@ -27,11 +27,13 @@ public record WebhookConnectorProperties(
         wrapper.inbound.hmacHeader,
         wrapper.inbound.hmacAlgorithm,
         // default to BODY if no scopes are provided
-        wrapper.inbound.hmacScopes != null
-            ? wrapper.inbound.hmacScopes
-            : new HMACScope[] {HMACScope.BODY},
-        wrapper.inbound.auth);
+        getOrDefault(wrapper.inbound.hmacScopes, new HMACScope[] {HMACScope.BODY}),
+        getOrDefault(wrapper.inbound.auth, new WebhookAuthorization.None()));
   }
 
   public record WebhookConnectorPropertiesWrapper(WebhookConnectorProperties inbound) {}
+
+  private static <T> T getOrDefault(T value, T defaultValue) {
+    return value != null ? value : defaultValue;
+  }
 }
