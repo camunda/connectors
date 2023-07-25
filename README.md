@@ -30,7 +30,7 @@ This is a multi-module project with different licenses applied to different modu
 
 ### Modules available under [Apache 2.0 license](https://www.apache.org/licenses/LICENSE-2.0)
 
-* [Core](core) module 
+* [Core](core) module
 * [Connector Runtime](connector-runtime) and all its submodules
 * [Secret provider](secret-provider) implementations
 * [Test libraries](test)
