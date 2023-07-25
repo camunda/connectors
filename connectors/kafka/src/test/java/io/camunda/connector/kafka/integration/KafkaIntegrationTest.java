@@ -35,7 +35,6 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.NewPartitions;
@@ -56,7 +55,7 @@ import org.testcontainers.utility.DockerImageName;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class KafkaIntegrationTest {
 
-  private static final String TOPIC = "test-topic-" + UUID.randomUUID();
+  private static final String TOPIC = "my-topic";
   private static String BOOTSTRAP_SERVERS;
 
   private final String processId = "Process_id";
@@ -64,11 +63,9 @@ public class KafkaIntegrationTest {
   private final ObjectMapper objectMapper =
       new ObjectMapper().configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false);
 
-  private static final String kafkaDockerImage = "confluentinc/cp-kafka:7.4.0";
-
   @ClassRule
   public static final KafkaContainer kafkaContainer =
-      new KafkaContainer(DockerImageName.parse(kafkaDockerImage));
+      new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:6.2.1"));
 
   @BeforeAll
   public static void init() {
@@ -159,7 +156,7 @@ public class KafkaIntegrationTest {
 
   @Test
   @Order(3)
-  void setInvalidOffsetForInboundConnectorWhenAutoOffsetResetIsNone() {
+  void setInvalidOffsetForInboundConnectorWhenAutoOffsetResetIsNone() throws Exception {
     // Given
     KafkaTopic kafkaTopic = new KafkaTopic();
     kafkaTopic.setTopicName(TOPIC);
@@ -266,7 +263,6 @@ public class KafkaIntegrationTest {
             .properties(kafkaConnectorProperties)
             .definition(InboundConnectorDefinitionBuilder.create().bpmnProcessId(processId).build())
             .build();
-
     KafkaExecutable executable = new KafkaExecutable();
 
     // When
