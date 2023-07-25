@@ -64,7 +64,7 @@ public class KafkaIntegrationTest {
       new ObjectMapper().configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false);
 
   @ClassRule
-  private static final KafkaContainer kafkaContainer =
+  public static final KafkaContainer kafkaContainer =
       new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:6.2.1"));
 
   @BeforeAll
@@ -156,7 +156,7 @@ public class KafkaIntegrationTest {
 
   @Test
   @Order(3)
-  void setInvalidOffsetForInboundConnectorWhenAutoOffsetResetIsNone() throws Exception {
+  void setInvalidOffsetForInboundConnectorWhenAutoOffsetResetIsNone() {
     // Given
     KafkaTopic kafkaTopic = new KafkaTopic();
     kafkaTopic.setTopicName(TOPIC);

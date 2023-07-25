@@ -13,6 +13,8 @@ import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorResult;
 import io.camunda.connector.impl.ConnectorInputException;
+import io.github.resilience4j.retry.RetryConfig;
+import io.github.resilience4j.retry.RetryRegistry;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
@@ -27,6 +29,7 @@ import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.OffsetOutOfRangeException;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
@@ -34,6 +37,14 @@ import org.slf4j.LoggerFactory;
 
 public class KafkaConnectorConsumer {
   private static final Logger LOG = LoggerFactory.getLogger(KafkaConnectorConsumer.class);
+
+  private static final RetryRegistry retryRegistry =
+      RetryRegistry.of(
+          RetryConfig.custom()
+              .maxAttempts(3)
+              .intervalFunction(attempts -> attempts * 5000L)
+              .failAfterMaxAttempts(true)
+              .build());
 
   private final InboundConnectorContext context;
 
@@ -109,24 +120,31 @@ public class KafkaConnectorConsumer {
   }
 
   private void consume() {
-    // TODO add resilient4j we should wait in case of any exceptions and only go down
-    // after X amount of attempts
+    var retry = retryRegistry.retry("kafka-poll");
     while (shouldLoop) {
       try {
-        ConsumerRecords<String, String> records = this.consumer.poll(Duration.ofMillis(500));
-        for (ConsumerRecord<String, String> record : records) {
-          handleMessage(record);
-        }
-        if (!records.isEmpty()) {
-          this.consumer.commitSync();
-        }
+        retry.executeRunnable(this::pollAndPublish);
         reportUp();
       } catch (Exception ex) {
         LOG.error("Failed to execute connector: {}", ex.getMessage());
         context.reportHealth(Health.down(ex));
+        if (ex instanceof OffsetOutOfRangeException) {
+          throw ex;
+        }
       }
     }
     LOG.debug("Kafka inbound loop finished");
+  }
+
+  private void pollAndPublish() {
+    LOG.debug("Polling the topics: {}", this.consumer.assignment());
+    ConsumerRecords<String, String> records = this.consumer.poll(Duration.ofMillis(500));
+    for (ConsumerRecord<String, String> record : records) {
+      handleMessage(record);
+    }
+    if (!records.isEmpty()) {
+      this.consumer.commitSync();
+    }
   }
 
   private void handleMessage(ConsumerRecord<String, String> record) {
