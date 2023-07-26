@@ -55,7 +55,7 @@ import org.testcontainers.utility.DockerImageName;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class KafkaIntegrationTest {
 
-  private static final String TOPIC = "test-topic-" + UUID.randomUUID();
+  private static final String TOPIC = "test-topic";
   private static String BOOTSTRAP_SERVERS;
 
   private final String processId = "Process_id";
@@ -63,7 +63,7 @@ public class KafkaIntegrationTest {
   private final ObjectMapper objectMapper =
       new ObjectMapper().configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false);
 
-  private static final String kafkaDockerImage = "confluentinc/cp-kafka:7.4.0";
+  private static final String kafkaDockerImage = "confluentinc/cp-kafka:6.2.1";
 
   @ClassRule
   public static final KafkaContainer kafkaContainer =
