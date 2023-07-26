@@ -19,7 +19,7 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.impl.feel.FeelEngineWrapperException;
+import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.inbound.model.JWTProperties;
 import java.security.interfaces.ECPublicKey;
 import java.security.interfaces.RSAPublicKey;

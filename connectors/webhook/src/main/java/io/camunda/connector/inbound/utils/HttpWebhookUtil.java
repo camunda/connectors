@@ -9,6 +9,7 @@ package io.camunda.connector.inbound.utils;
 import com.google.common.net.HttpHeaders;
 import com.google.common.net.MediaType;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
+import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.inbound.model.HMACScope;
 import java.io.IOException;
 import java.net.URLDecoder;
@@ -47,7 +48,7 @@ public class HttpWebhookUtil {
           .collect(Collectors.toMap(param -> param[0], param -> param.length == 1 ? "" : param[1]));
     } else {
       // Do our best to parse to JSON (throws exception otherwise)
-      return ObjectMapperSupplier.getMapperInstance().readValue(rawBody, Map.class);
+      return ConnectorsObjectMapperSupplier.getCopy().readValue(rawBody, Map.class);
     }
   }
 

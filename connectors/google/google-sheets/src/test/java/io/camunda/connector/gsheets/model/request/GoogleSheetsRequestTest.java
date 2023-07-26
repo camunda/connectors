@@ -9,6 +9,7 @@ package io.camunda.connector.gsheets.model.request;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.gsheets.BaseTest;
 import io.camunda.connector.gsheets.model.request.impl.AddValues;
@@ -21,7 +22,6 @@ import io.camunda.connector.gsheets.model.request.impl.DeleteWorksheet;
 import io.camunda.connector.gsheets.model.request.impl.GetRowByIndex;
 import io.camunda.connector.gsheets.model.request.impl.GetSpreadsheetDetails;
 import io.camunda.connector.gsheets.model.request.impl.GetWorksheetData;
-import io.camunda.connector.impl.ConnectorInputException;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import io.camunda.google.model.Authentication;
 import io.camunda.google.model.AuthenticationType;

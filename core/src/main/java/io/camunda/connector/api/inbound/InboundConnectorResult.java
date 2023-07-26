@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.api.inbound;
 
-import io.camunda.connector.impl.inbound.result.CorrelationErrorData;
+import io.camunda.connector.api.inbound.result.CorrelationErrorData;
 import java.util.Optional;
 
 /**

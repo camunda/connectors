@@ -16,16 +16,11 @@
  */
 package io.camunda.connector.runtime;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.fasterxml.jackson.module.scala.DefaultScalaModule$;
+import io.camunda.connector.api.config.ConnectorPropertyResolver;
 import io.camunda.connector.api.secret.SecretProvider;
-import io.camunda.connector.impl.config.ConnectorPropertyResolver;
-import io.camunda.connector.impl.feel.FeelEngineWrapper;
-import io.camunda.connector.impl.feel.jackson.JacksonModuleFeelFunction;
+import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.env.SpringConnectorPropertyResolver;
 import io.camunda.connector.runtime.outbound.OutboundConnectorRuntimeConfiguration;
@@ -77,15 +72,7 @@ public class OutboundConnectorsAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public ObjectMapper objectMapper() {
-    var mapper = new ObjectMapper();
-    mapper
-        .registerModule(new Jdk8Module())
-        .registerModule(DefaultScalaModule$.MODULE$)
-        .registerModule(new JavaTimeModule())
-        .registerModule(new JacksonModuleFeelFunction())
-        // deserialize unknown types as empty objects
-        .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
-        .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+    var mapper = ConnectorsObjectMapperSupplier.getCopy();
     return mapper;
   }
 }

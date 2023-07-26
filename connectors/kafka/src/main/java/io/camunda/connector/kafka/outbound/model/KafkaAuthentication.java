@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.kafka.outbound.model;
 
-import io.camunda.connector.impl.ConnectorInputException;
+import io.camunda.connector.api.error.ConnectorInputException;
 import java.util.Objects;
 import java.util.Properties;
 import org.apache.kafka.clients.CommonClientConfigs;

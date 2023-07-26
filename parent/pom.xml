@@ -190,6 +190,12 @@ limitations under the License.</license.inlineheader>
 
       <dependency>
         <groupId>io.camunda.connector</groupId>
+        <artifactId>jackson-module-feel</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>io.camunda.connector</groupId>
         <artifactId>connector-gcp-security-manager</artifactId>
         <version>${project.version}</version>
       </dependency>

@@ -17,20 +17,16 @@
 package io.camunda.connector.test.inbound;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
 import io.camunda.connector.api.inbound.InboundConnectorResult;
+import io.camunda.connector.api.inbound.result.MessageCorrelationResult;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
-import io.camunda.connector.impl.context.AbstractConnectorContext;
-import io.camunda.connector.impl.feel.jackson.JacksonModuleFeelFunction;
-import io.camunda.connector.impl.inbound.result.MessageCorrelationResult;
+import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.runtime.core.AbstractConnectorContext;
 import io.camunda.connector.test.ConnectorContextTestUtil;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -48,14 +44,7 @@ public class InboundConnectorContextBuilder {
   protected InboundConnectorResult<?> result = new MessageCorrelationResult("mockMsg", 0);
   protected ValidationProvider validationProvider;
 
-  protected ObjectMapper objectMapper =
-      new ObjectMapper()
-          .registerModule(new JacksonModuleFeelFunction())
-          .registerModule(new Jdk8Module())
-          .registerModule(new JavaTimeModule())
-          // deserialize unknown types as empty objects
-          .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
-          .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+  protected ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER;
 
   public static InboundConnectorContextBuilder create() {
     return new InboundConnectorContextBuilder();

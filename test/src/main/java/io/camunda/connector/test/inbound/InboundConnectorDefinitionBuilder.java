@@ -17,8 +17,8 @@
 package io.camunda.connector.test.inbound;
 
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
-import io.camunda.connector.impl.inbound.ProcessCorrelationPoint;
-import io.camunda.connector.impl.inbound.StartEventCorrelationPoint;
+import io.camunda.connector.api.inbound.correlation.ProcessCorrelationPoint;
+import io.camunda.connector.api.inbound.correlation.StartEventCorrelationPoint;
 
 /** Test helper class for creating an {@link InboundConnectorDefinition} with a fluent API. */
 public class InboundConnectorDefinitionBuilder {

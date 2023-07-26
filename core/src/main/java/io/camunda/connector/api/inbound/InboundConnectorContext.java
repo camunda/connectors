@@ -16,9 +16,7 @@
  */
 package io.camunda.connector.api.inbound;
 
-import io.camunda.connector.impl.inbound.ProcessCorrelationPoint;
-import io.camunda.connector.impl.inbound.result.MessageCorrelationResult;
-import io.camunda.connector.impl.inbound.result.StartEventCorrelationResult;
+import io.camunda.connector.api.inbound.correlation.ProcessCorrelationPoint;
 import java.util.Map;
 
 /**
@@ -37,9 +35,10 @@ public interface InboundConnectorContext {
    * io.camunda.connector.api.error.ConnectorException} will be thrown.
    *
    * @param variables - an object containing inbound connector variables
-   * @return either {@link MessageCorrelationResult} or {@link StartEventCorrelationResult},
-   *     depending on the type of the underlying {@link ProcessCorrelationPoint}.
-   * @throws io.camunda.connector.impl.ConnectorInputException if the correlation fails due to
+   * @return either {@link io.camunda.connector.api.inbound.result.MessageCorrelationResult} or
+   *     {@link io.camunda.connector.api.inbound.result.StartEventCorrelationResult}, depending on
+   *     the type of the underlying {@link ProcessCorrelationPoint}.
+   * @throws io.camunda.connector.api.error.ConnectorInputException if the correlation fails due to
    *     invalid input. In this case, correlation should not be retried.
    * @throws io.camunda.connector.api.error.ConnectorException if the correlation fails due to
    *     unexpected runtime error. Such errors may be temporary and can be retried.
