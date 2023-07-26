@@ -40,7 +40,6 @@
     <version.httpcore>4.4.16</version.httpcore>
 
     <version.kafka-clients>3.5.1</version.kafka-clients>
-    <version.resilience4j-retry>2.1.0</version.resilience4j-retry>
 
     <version.microsoft-graph>5.65.0</version.microsoft-graph>
     <version.azure-identity>1.9.2</version.azure-identity>

@@ -35,6 +35,7 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.NewPartitions;
@@ -42,7 +43,6 @@ import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.OffsetOutOfRangeException;
 import org.junit.ClassRule;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -51,11 +51,11 @@ import org.skyscreamer.jsonassert.JSONAssert;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 
-@Disabled // to be run manually
+// @Disabled // to be run manually
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class KafkaIntegrationTest {
 
-  private static final String TOPIC = "my-topic";
+  private static final String TOPIC = "test-topic-" + UUID.randomUUID();
   private static String BOOTSTRAP_SERVERS;
 
   private final String processId = "Process_id";
@@ -63,9 +63,11 @@ public class KafkaIntegrationTest {
   private final ObjectMapper objectMapper =
       new ObjectMapper().configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false);
 
+  private static final String kafkaDockerImage = "confluentinc/cp-kafka:7.4.0";
+
   @ClassRule
   public static final KafkaContainer kafkaContainer =
-      new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:6.2.1"));
+      new KafkaContainer(DockerImageName.parse(kafkaDockerImage));
 
   @BeforeAll
   public static void init() {
@@ -263,6 +265,7 @@ public class KafkaIntegrationTest {
             .properties(kafkaConnectorProperties)
             .definition(InboundConnectorDefinitionBuilder.create().bpmnProcessId(processId).build())
             .build();
+
     KafkaExecutable executable = new KafkaExecutable();
 
     // When

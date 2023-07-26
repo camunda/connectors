@@ -13,8 +13,6 @@ import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorResult;
 import io.camunda.connector.impl.ConnectorInputException;
-import io.github.resilience4j.retry.RetryConfig;
-import io.github.resilience4j.retry.RetryRegistry;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
@@ -37,14 +35,6 @@ import org.slf4j.LoggerFactory;
 
 public class KafkaConnectorConsumer {
   private static final Logger LOG = LoggerFactory.getLogger(KafkaConnectorConsumer.class);
-
-  private static final RetryRegistry retryRegistry =
-      RetryRegistry.of(
-          RetryConfig.custom()
-              .maxAttempts(3)
-              .intervalFunction(attempts -> attempts * 5000L)
-              .failAfterMaxAttempts(true)
-              .build());
 
   private final InboundConnectorContext context;
 
@@ -119,11 +109,10 @@ public class KafkaConnectorConsumer {
     LOG.info("Kafka inbound connector initialized");
   }
 
-  private void consume() {
-    var retry = retryRegistry.retry("kafka-poll");
+  public void consume() {
     while (shouldLoop) {
       try {
-        retry.executeRunnable(this::pollAndPublish);
+        pollAndPublish();
         reportUp();
       } catch (Exception ex) {
         LOG.error("Failed to execute connector: {}", ex.getMessage());
