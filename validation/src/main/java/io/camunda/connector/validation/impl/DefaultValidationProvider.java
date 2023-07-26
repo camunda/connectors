@@ -16,8 +16,8 @@
  */
 package io.camunda.connector.validation.impl;
 
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.validation.ValidationProvider;
-import io.camunda.connector.impl.ConnectorInputException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.MessageInterpolator;
 import jakarta.validation.Validation;

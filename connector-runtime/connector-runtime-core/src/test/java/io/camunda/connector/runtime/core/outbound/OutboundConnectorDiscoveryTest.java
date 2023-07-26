@@ -18,7 +18,7 @@ package io.camunda.connector.runtime.core.outbound;
 
 import static io.camunda.connector.runtime.core.util.TestUtil.withEnvVars;
 
-import io.camunda.connector.impl.outbound.OutboundConnectorConfiguration;
+import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import java.util.Arrays;
 import java.util.List;
 import org.assertj.core.api.Assertions;
@@ -169,9 +169,9 @@ public class OutboundConnectorDiscoveryTest {
     Assertions.assertThatList(registrations)
         .anyMatch(
             registration ->
-                (registration.getName().equals(name)
-                    && registration.getType().equals(type)
-                    && Arrays.equals(registration.getInputVariables(), inputVariables)
-                    && registration.getConnectorClass().getName().equals(functionCls)));
+                (registration.name().equals(name)
+                    && registration.type().equals(type)
+                    && Arrays.equals(registration.inputVariables(), inputVariables)
+                    && registration.connectorClass().getName().equals(functionCls)));
   }
 }

@@ -32,13 +32,14 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import io.camunda.connector.api.inbound.correlation.MessageCorrelationPoint;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
-import io.camunda.connector.impl.ConnectorUtil;
-import io.camunda.connector.impl.inbound.InboundConnectorConfiguration;
-import io.camunda.connector.impl.inbound.MessageCorrelationPoint;
+import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.app.TestInboundConnector;
 import io.camunda.connector.runtime.app.TestWebhookConnector;
+import io.camunda.connector.runtime.core.ConnectorUtil;
 import io.camunda.connector.runtime.core.Keywords;
+import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
@@ -65,7 +66,7 @@ public class InboundConnectorManagerTest {
   private WebhookConnectorRegistry webhookRegistry;
   private SecretProviderAggregator secretProviderAggregator;
   private InboundCorrelationHandler correlationHandler;
-  private final ObjectMapper mapper = new ObjectMapper();
+  private final ObjectMapper mapper = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER;
 
   @BeforeEach
   void resetMocks() {
@@ -207,7 +208,7 @@ public class InboundConnectorManagerTest {
 
   @Test
   void shouldActivateAndRegisterWebhookWithANewVersion() throws Exception {
-    when(factory.getInstance(webhookConfig.getType())).thenReturn(webhookConnectorExecutable);
+    when(factory.getInstance(webhookConfig.type())).thenReturn(webhookConnectorExecutable);
 
     // Deploy one process with a webhook
     var pv1 = processDefinition("webhook1", 1);
@@ -219,7 +220,7 @@ public class InboundConnectorManagerTest {
     var wh2 = webhookConnector(pv2);
     procDefUtil.deployProcessDefinition(pv2, wh2);
 
-    verify(factory, times(2)).getInstance(webhookConfig.getType());
+    verify(factory, times(2)).getInstance(webhookConfig.type());
     verify(webhookConnectorExecutable, times(1)).activate(eq(inboundContext(wh1)));
     verify(webhookConnectorExecutable).deactivate();
     verify(webhookConnectorExecutable, times(1)).activate(eq(inboundContext(wh2)));
@@ -277,7 +278,7 @@ public class InboundConnectorManagerTest {
 
   private static InboundConnectorDefinitionImpl inboundConnector(ProcessDefinition procDef) {
     return new InboundConnectorDefinitionImpl(
-        Map.of(Keywords.INBOUND_TYPE_KEYWORD, connectorConfig.getType()),
+        Map.of(Keywords.INBOUND_TYPE_KEYWORD, connectorConfig.type()),
         new MessageCorrelationPoint("", ""),
         procDef.getBpmnProcessId(),
         procDef.getVersion().intValue(),
@@ -289,7 +290,7 @@ public class InboundConnectorManagerTest {
     return new InboundConnectorDefinitionImpl(
         Map.of(
             Keywords.INBOUND_TYPE_KEYWORD,
-            webhookConfig.getType(),
+            webhookConfig.type(),
             "inbound.context",
             "myWebhookEndpoint"),
         new MessageCorrelationPoint("", ""),

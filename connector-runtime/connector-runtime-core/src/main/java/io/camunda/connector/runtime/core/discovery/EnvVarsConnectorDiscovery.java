@@ -18,9 +18,9 @@ package io.camunda.connector.runtime.core.discovery;
 
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import io.camunda.connector.impl.ConnectorUtil;
-import io.camunda.connector.impl.inbound.InboundConnectorConfiguration;
-import io.camunda.connector.impl.outbound.OutboundConnectorConfiguration;
+import io.camunda.connector.runtime.core.ConnectorUtil;
+import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
+import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -109,10 +109,10 @@ public class EnvVarsConnectorDiscovery {
           name,
           getEnv(name, "INPUT_VARIABLES")
               .map(variables -> variables.split(","))
-              .or(() -> annotationConfig.map(OutboundConnectorConfiguration::getInputVariables))
+              .or(() -> annotationConfig.map(OutboundConnectorConfiguration::inputVariables))
               .orElseThrow(() -> envMissing("Variables not specified", name, "INPUT_VARIABLES")),
           getEnv(name, "TYPE")
-              .or(() -> annotationConfig.map(OutboundConnectorConfiguration::getType))
+              .or(() -> annotationConfig.map(OutboundConnectorConfiguration::type))
               .orElseThrow(() -> envMissing("Type not specified", name, "TYPE")),
           cls);
 
@@ -135,7 +135,7 @@ public class EnvVarsConnectorDiscovery {
       return new InboundConnectorConfiguration(
           name,
           getEnv(name, "TYPE")
-              .or(() -> annotationConfig.map(InboundConnectorConfiguration::getType))
+              .or(() -> annotationConfig.map(InboundConnectorConfiguration::type))
               .orElseThrow(() -> envMissing("Type not specified", name, "TYPE")),
           cls);
 

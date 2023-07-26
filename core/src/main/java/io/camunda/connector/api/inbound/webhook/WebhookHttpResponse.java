@@ -16,6 +16,6 @@
  */
 package io.camunda.connector.api.inbound.webhook;
 
-import scala.collection.immutable.Map;
+import java.util.Map;
 
 public record WebhookHttpResponse(Object body, Map<String, String> headers) {}

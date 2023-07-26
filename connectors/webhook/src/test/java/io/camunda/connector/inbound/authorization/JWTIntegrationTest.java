@@ -20,10 +20,10 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.common.ClasspathFileSource;
+import io.camunda.connector.api.inbound.result.MessageCorrelationResult;
 import io.camunda.connector.api.inbound.webhook.WebhookResult;
-import io.camunda.connector.impl.inbound.result.MessageCorrelationResult;
+import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.inbound.HttpWebhookExecutable;
-import io.camunda.connector.inbound.utils.ObjectMapperSupplier;
 import io.camunda.connector.inbound.utils.TestRSAKeyProvider;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
 import java.io.IOException;
@@ -55,7 +55,7 @@ public class JWTIntegrationTest {
   private final ObjectMapper objectMapper;
 
   public JWTIntegrationTest() {
-    this.objectMapper = ObjectMapperSupplier.getMapperInstance();
+    this.objectMapper = ConnectorsObjectMapperSupplier.getCopy();
   }
 
   @BeforeAll

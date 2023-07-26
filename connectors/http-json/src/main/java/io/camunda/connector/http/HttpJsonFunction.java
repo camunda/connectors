@@ -19,13 +19,13 @@ package io.camunda.connector.http;
 import com.google.api.client.http.HttpRequestFactory;
 import com.google.gson.Gson;
 import io.camunda.connector.api.annotation.OutboundConnector;
+import io.camunda.connector.api.config.ConnectorConfigurationUtil;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.common.constants.Constants;
 import io.camunda.connector.http.components.GsonComponentSupplier;
 import io.camunda.connector.http.components.HttpTransportComponentSupplier;
 import io.camunda.connector.http.model.HttpJsonRequest;
-import io.camunda.connector.impl.config.ConnectorConfigurationUtil;
 import java.io.IOException;
 
 @OutboundConnector(

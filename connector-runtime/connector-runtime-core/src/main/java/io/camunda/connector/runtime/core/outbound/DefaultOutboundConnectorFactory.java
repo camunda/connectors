@@ -19,7 +19,7 @@ package io.camunda.connector.runtime.core.outbound;
 import static io.camunda.connector.runtime.core.ConnectorHelper.instantiateConnector;
 
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import io.camunda.connector.impl.outbound.OutboundConnectorConfiguration;
+import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.discovery.EnvVarsConnectorDiscovery;
 import io.camunda.connector.runtime.core.discovery.SPIConnectorDiscovery;
 import java.util.ArrayList;
@@ -56,7 +56,7 @@ public class DefaultOutboundConnectorFactory implements OutboundConnectorFactory
   public OutboundConnectorFunction getInstance(String type) {
     var configuration =
         functionMap.keySet().stream()
-            .filter(config -> config.getType().equals(type))
+            .filter(config -> config.type().equals(type))
             .findFirst()
             .orElseThrow(
                 () -> new NoSuchElementException("Connector " + type + " is not registered"));
@@ -67,14 +67,14 @@ public class DefaultOutboundConnectorFactory implements OutboundConnectorFactory
   public void registerConfiguration(OutboundConnectorConfiguration configuration) {
     Optional<OutboundConnectorConfiguration> oldConfig =
         functionMap.keySet().stream()
-            .filter(config -> config.getType().equals(configuration.getType()))
+            .filter(config -> config.type().equals(configuration.type()))
             .findAny();
 
     if (oldConfig.isPresent()) {
       LOG.info("Connector " + oldConfig + " is overridden, new configuration" + configuration);
       functionMap.remove(oldConfig.get());
     }
-    functionMap.put(configuration, instantiateConnector(configuration.getConnectorClass()));
+    functionMap.put(configuration, instantiateConnector(configuration.connectorClass()));
   }
 
   @Override
@@ -95,6 +95,6 @@ public class DefaultOutboundConnectorFactory implements OutboundConnectorFactory
         configurations.stream()
             .collect(
                 Collectors.toMap(
-                    config -> config, config -> instantiateConnector(config.getConnectorClass())));
+                    config -> config, config -> instantiateConnector(config.connectorClass())));
   }
 }

@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.runtime.outbound.lifecycle;
 
-import io.camunda.connector.impl.outbound.OutboundConnectorConfiguration;
+import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import java.util.Comparator;
 
 public class OutboundConnectorConfigurationComparator
@@ -27,6 +27,6 @@ public class OutboundConnectorConfigurationComparator
     if (o1 == o2) return 0;
     if (o1 == null) return -1;
 
-    return o1.getType().compareTo(o2.getType());
+    return o1.type().compareTo(o2.type());
   }
 }

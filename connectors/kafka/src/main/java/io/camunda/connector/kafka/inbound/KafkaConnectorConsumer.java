@@ -9,10 +9,10 @@ package io.camunda.connector.kafka.inbound;
 import static io.camunda.connector.kafka.inbound.KafkaPropertyTransformer.convertConsumerRecordToKafkaInboundMessage;
 import static io.camunda.connector.kafka.inbound.KafkaPropertyTransformer.getKafkaProperties;
 
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorResult;
-import io.camunda.connector.impl.ConnectorInputException;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;

@@ -13,8 +13,8 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.net.HttpHeaders;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
-import io.camunda.connector.impl.feel.FeelEngineWrapper;
-import io.camunda.connector.impl.feel.FeelEngineWrapperException;
+import io.camunda.connector.feel.FeelEngineWrapper;
+import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.inbound.model.WebhookAuthorization;
 import io.camunda.connector.inbound.model.WebhookAuthorization.ApiKeyAuth;
 import java.io.IOException;

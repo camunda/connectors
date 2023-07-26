@@ -18,16 +18,12 @@ package io.camunda.connector.test.outbound;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
-import io.camunda.connector.impl.context.AbstractConnectorContext;
-import io.camunda.connector.impl.feel.jackson.JacksonModuleFeelFunction;
+import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.runtime.core.AbstractConnectorContext;
 import io.camunda.connector.test.ConnectorContextTestUtil;
 import java.util.HashMap;
 import java.util.Map;
@@ -44,14 +40,7 @@ public class OutboundConnectorContextBuilder {
 
   protected final Map<String, String> headers = new HashMap<>();
 
-  private ObjectMapper objectMapper =
-      new ObjectMapper()
-          .registerModule(new JacksonModuleFeelFunction())
-          .registerModule(new Jdk8Module())
-          .registerModule(new JavaTimeModule())
-          // deserialize unknown types as empty objects
-          .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
-          .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+  private ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
 
   /**
    * @return a new instance of the {@link OutboundConnectorContextBuilder}

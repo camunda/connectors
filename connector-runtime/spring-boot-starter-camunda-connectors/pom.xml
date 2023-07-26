@@ -24,10 +24,6 @@
 
   <dependencies>
     <dependency>
-      <groupId>com.fasterxml.jackson.datatype</groupId>
-      <artifactId>jackson-datatype-jsr310</artifactId>
-    </dependency>
-    <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-runtime-spring</artifactId>
       <version>${project.version}</version>
@@ -35,10 +31,6 @@
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-validation</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.camunda.connector</groupId>
-      <artifactId>connector-test</artifactId>
     </dependency>
     <dependency>
       <groupId>io.camunda.spring</groupId>
@@ -101,6 +93,11 @@
     <dependency>
       <groupId>io.camunda.spring</groupId>
       <artifactId>spring-boot-starter-camunda-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-test</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>

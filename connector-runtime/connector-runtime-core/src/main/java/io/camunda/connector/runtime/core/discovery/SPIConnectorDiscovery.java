@@ -18,9 +18,9 @@ package io.camunda.connector.runtime.core.discovery;
 
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import io.camunda.connector.impl.ConnectorUtil;
-import io.camunda.connector.impl.inbound.InboundConnectorConfiguration;
-import io.camunda.connector.impl.outbound.OutboundConnectorConfiguration;
+import io.camunda.connector.runtime.core.ConnectorUtil;
+import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
+import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import java.util.List;
 import java.util.ServiceLoader;
 import java.util.stream.Collectors;

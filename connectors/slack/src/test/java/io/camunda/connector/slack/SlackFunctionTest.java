@@ -226,7 +226,7 @@ public class SlackFunctionTest extends BaseTest {
     // When and then
     Throwable thrown = catchThrowable(() -> slackFunction.execute(context));
     assertThat(thrown)
-        .isInstanceOf(io.camunda.connector.impl.ConnectorInputException.class)
+        .isInstanceOf(io.camunda.connector.api.error.ConnectorInputException.class)
         .hasMessageContaining(
             "jakarta.validation.ValidationException: Found constraints violated while validating input");
   }

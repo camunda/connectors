@@ -17,8 +17,6 @@
 
 package io.camunda.connector.api.annotation;
 
-import io.camunda.connector.api.secret.SecretContainerHandler;
-import io.camunda.connector.impl.secret.SecretHandler;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -38,5 +36,6 @@ import java.lang.annotation.Target;
 @Deprecated(forRemoval = true)
 public @interface Secret {
 
-  Class<? extends SecretContainerHandler> handler() default SecretHandler.class;
+  @Deprecated
+  Class<?> handler() default Object.class;
 }

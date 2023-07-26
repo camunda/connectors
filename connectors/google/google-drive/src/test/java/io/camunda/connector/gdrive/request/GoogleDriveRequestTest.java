@@ -10,12 +10,12 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.gdrive.BaseTest;
 import io.camunda.connector.gdrive.GoogleDriveFunction;
 import io.camunda.connector.gdrive.GoogleDriveService;
 import io.camunda.connector.gdrive.model.request.GoogleDriveRequest;
-import io.camunda.connector.impl.ConnectorInputException;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.IOException;
 import java.util.stream.Stream;

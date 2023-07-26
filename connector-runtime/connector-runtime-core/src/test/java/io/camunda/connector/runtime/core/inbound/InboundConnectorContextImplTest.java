@@ -19,14 +19,11 @@ package io.camunda.connector.runtime.core.inbound;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.camunda.connector.api.annotation.FEEL;
+import io.camunda.connector.api.inbound.correlation.MessageCorrelationPoint;
 import io.camunda.connector.api.secret.SecretProvider;
-import io.camunda.connector.impl.feel.jackson.JacksonModuleFeelFunction;
-import io.camunda.connector.impl.inbound.MessageCorrelationPoint;
+import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.FooBarSecretProvider;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImplTest.TestPropertiesClass.InnerObject;
 import java.util.List;
@@ -36,13 +33,7 @@ import org.junit.jupiter.api.Test;
 
 class InboundConnectorContextImplTest {
   private final SecretProvider secretProvider = new FooBarSecretProvider();
-  private final ObjectMapper mapper =
-      new ObjectMapper()
-          .registerModule(new JavaTimeModule())
-          .registerModule(new JacksonModuleFeelFunction())
-          // deserialize unknown types as empty objects
-          .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
-          .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+  private final ObjectMapper mapper = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER;
 
   @Test
   void bindProperties_shouldThrowExceptionWhenWrongFormat() {

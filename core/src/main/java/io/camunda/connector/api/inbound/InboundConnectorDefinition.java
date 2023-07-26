@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.api.inbound;
 
-import io.camunda.connector.impl.inbound.ProcessCorrelationPoint;
+import io.camunda.connector.api.inbound.correlation.ProcessCorrelationPoint;
 
 public interface InboundConnectorDefinition {
 

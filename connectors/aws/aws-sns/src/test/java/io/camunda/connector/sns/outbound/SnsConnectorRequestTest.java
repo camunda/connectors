@@ -10,8 +10,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.amazonaws.services.sns.model.MessageAttributeValue;
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
-import io.camunda.connector.impl.ConnectorInputException;
 import io.camunda.connector.sns.outbound.model.SnsConnectorRequest;
 import io.camunda.connector.sns.outbound.model.SnsMessageAttribute;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;

@@ -25,12 +25,12 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.api.inbound.InboundConnectorResult;
-import io.camunda.connector.impl.feel.FeelEngineWrapper;
-import io.camunda.connector.impl.inbound.MessageCorrelationPoint;
-import io.camunda.connector.impl.inbound.StartEventCorrelationPoint;
-import io.camunda.connector.impl.inbound.result.CorrelationErrorData.CorrelationErrorReason;
-import io.camunda.connector.impl.inbound.result.ProcessInstance;
-import io.camunda.connector.impl.inbound.result.StartEventCorrelationResult;
+import io.camunda.connector.api.inbound.correlation.MessageCorrelationPoint;
+import io.camunda.connector.api.inbound.correlation.StartEventCorrelationPoint;
+import io.camunda.connector.api.inbound.result.CorrelationErrorData.CorrelationErrorReason;
+import io.camunda.connector.api.inbound.result.ProcessInstance;
+import io.camunda.connector.api.inbound.result.StartEventCorrelationResult;
+import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
 import io.camunda.connector.runtime.core.util.command.CreateCommandDummy;
 import io.camunda.connector.runtime.core.util.command.PublishMessageCommandDummy;
@@ -134,7 +134,7 @@ public class InboundCorrelationHandlerTest {
       assertFalse(result.getResponseData().isPresent());
       assertFalse(result.isActivated());
       assertThat(result.getErrorData().isPresent()).isTrue();
-      assertThat(result.getErrorData().get().getReason())
+      assertThat(result.getErrorData().get().reason())
           .isEqualTo(CorrelationErrorReason.ACTIVATION_CONDITION_NOT_MET);
     }
 

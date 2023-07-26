@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.runtime.inbound;
 
-import io.camunda.connector.impl.feel.FeelEngineWrapper;
+import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionImportConfiguration;
 import io.camunda.connector.runtime.inbound.lifecycle.InboundConnectorLifecycleConfiguration;

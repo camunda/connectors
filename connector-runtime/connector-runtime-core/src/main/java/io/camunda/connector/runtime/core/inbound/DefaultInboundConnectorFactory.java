@@ -19,7 +19,7 @@ package io.camunda.connector.runtime.core.inbound;
 import static io.camunda.connector.runtime.core.ConnectorHelper.instantiateConnector;
 
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
-import io.camunda.connector.impl.inbound.InboundConnectorConfiguration;
+import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.discovery.EnvVarsConnectorDiscovery;
 import io.camunda.connector.runtime.core.discovery.SPIConnectorDiscovery;
 import java.util.List;
@@ -61,19 +61,19 @@ public class DefaultInboundConnectorFactory implements InboundConnectorFactory {
 
     InboundConnectorConfiguration configuration =
         configurations.stream()
-            .filter(config -> config.getType().equals(type))
+            .filter(config -> config.type().equals(type))
             .findFirst()
             .orElseThrow(
                 () -> new NoSuchElementException("Connector " + type + " is not registered"));
 
-    return instantiateConnector(configuration.getConnectorClass());
+    return instantiateConnector(configuration.connectorClass());
   }
 
   @Override
   public void registerConfiguration(InboundConnectorConfiguration configuration) {
     Optional<InboundConnectorConfiguration> oldConfig =
         configurations.stream()
-            .filter(config -> config.getType().equals(configuration.getType()))
+            .filter(config -> config.type().equals(configuration.type()))
             .findAny();
 
     if (oldConfig.isPresent()) {
