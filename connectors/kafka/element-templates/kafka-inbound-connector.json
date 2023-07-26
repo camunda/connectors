@@ -1,9 +1,9 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "Kafka consumer connector",
+  "name": "Kafka Consumer Connector",
   "id": "io.camunda.connectors.inbound.KAFKA.v1",
   "version": 1,
-  "description": "Consume Kafka message",
+  "description": "Consume Kafka messages",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka-inbound/",
   "category": {
     "id": "connectors",
@@ -125,6 +125,22 @@
       }
     },
     {
+      "label": "Consumer Group ID",
+      "description": "Provide the consumer group ID used by the connector. Leave empty for an automatically generated one",
+      "group": "kafka",
+      "type": "String",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:property",
+        "name": "groupId"
+      },
+      "constraints": {
+        "notEmpty": false,
+        "maxLength": 250
+      }
+    },
+    {
       "label": "Additional properties",
       "description": "Provide additional Kafka consumer properties in JSON",
       "group": "kafka",
@@ -138,7 +154,7 @@
     },
     {
       "label": "Offsets",
-      "description": "Comma-separated list of offsets, e.g., '10,23' or '=[ \"10\", \"23\"]'. If specified, it has to have the same number of values as the number of partitions",
+      "description": "List of offsets, e.g. '10' or '=[10, 23]'. If specified, it has to have the same number of values as the number of partitions",
       "group": "kafka",
       "type": "String",
       "feel": "optional",

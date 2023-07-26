@@ -20,9 +20,7 @@ import org.slf4j.LoggerFactory;
 @InboundConnector(name = "KAFKA_INBOUND", type = "io.camunda:connector-kafka-inbound:1")
 public class KafkaExecutable implements InboundConnectorExecutable {
   private static final Logger LOG = LoggerFactory.getLogger(KafkaExecutable.class);
-
   private final Function<Properties, Consumer<String, String>> consumerCreatorFunction;
-
   public KafkaConnectorConsumer kafkaConnectorConsumer;
 
   public KafkaExecutable(
@@ -39,8 +37,6 @@ public class KafkaExecutable implements InboundConnectorExecutable {
     try {
       KafkaConnectorProperties elementProps =
           connectorContext.bindProperties(KafkaConnectorProperties.class);
-      LOG.info("Subscription activation requested by the Connector runtime: {}", elementProps);
-
       this.kafkaConnectorConsumer =
           new KafkaConnectorConsumer(consumerCreatorFunction, connectorContext, elementProps);
       this.kafkaConnectorConsumer.startConsumer();

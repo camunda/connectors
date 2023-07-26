@@ -16,6 +16,13 @@ public class KafkaTopic {
   @NotEmpty private String bootstrapServers;
   @NotEmpty private String topicName;
 
+  public KafkaTopic() {}
+
+  public KafkaTopic(String bootstrapServers, String topicName) {
+    this.bootstrapServers = bootstrapServers;
+    this.topicName = topicName;
+  }
+
   public String getBootstrapServers() {
     return bootstrapServers;
   }

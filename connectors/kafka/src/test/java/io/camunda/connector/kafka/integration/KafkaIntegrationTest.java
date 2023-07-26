@@ -33,6 +33,7 @@ import io.camunda.connector.test.inbound.InboundConnectorDefinitionBuilder;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.AdminClient;
@@ -41,7 +42,6 @@ import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.OffsetOutOfRangeException;
 import org.junit.ClassRule;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -50,11 +50,11 @@ import org.skyscreamer.jsonassert.JSONAssert;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 
-@Disabled // to be run manually
+// @Disabled // to be run manually
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class KafkaIntegrationTest {
 
-  private static final String TOPIC = "my-topic";
+  private static final String TOPIC = "test-topic";
   private static String BOOTSTRAP_SERVERS;
 
   private final String processId = "Process_id";
@@ -62,9 +62,11 @@ public class KafkaIntegrationTest {
   private final ObjectMapper objectMapper =
       new ObjectMapper().configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false);
 
+  private static final String kafkaDockerImage = "confluentinc/cp-kafka:6.2.1";
+
   @ClassRule
-  private static final KafkaContainer kafkaContainer =
-      new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:6.2.1"));
+  public static final KafkaContainer kafkaContainer =
+      new KafkaContainer(DockerImageName.parse(kafkaDockerImage));
 
   @BeforeAll
   public static void init() {
@@ -162,8 +164,9 @@ public class KafkaIntegrationTest {
     kafkaTopic.setBootstrapServers(BOOTSTRAP_SERVERS);
     KafkaConnectorProperties kafkaConnectorProperties = new KafkaConnectorProperties();
     kafkaConnectorProperties.setAutoOffsetReset(KafkaConnectorProperties.AutoOffsetReset.NONE);
-    kafkaConnectorProperties.setAuthenticationType("custom");
-    kafkaConnectorProperties.setOffsets("9999,8888");
+    kafkaConnectorProperties.setAuthenticationType(
+        KafkaConnectorProperties.AuthenticationType.custom);
+    kafkaConnectorProperties.setOffsets(List.of(9999L, 8888L));
     kafkaConnectorProperties.setTopic(kafkaTopic);
 
     InboundConnectorContextBuilder.TestInboundConnectorContext context =
@@ -203,7 +206,8 @@ public class KafkaIntegrationTest {
     kafkaTopic.setBootstrapServers(BOOTSTRAP_SERVERS);
     KafkaConnectorProperties kafkaConnectorProperties = new KafkaConnectorProperties();
     kafkaConnectorProperties.setAutoOffsetReset(KafkaConnectorProperties.AutoOffsetReset.EARLIEST);
-    kafkaConnectorProperties.setAuthenticationType("custom");
+    kafkaConnectorProperties.setAuthenticationType(
+        KafkaConnectorProperties.AuthenticationType.custom);
     kafkaConnectorProperties.setTopic(kafkaTopic);
 
     InboundConnectorContextBuilder.TestInboundConnectorContext context =
@@ -249,8 +253,9 @@ public class KafkaIntegrationTest {
     kafkaTopic.setBootstrapServers(BOOTSTRAP_SERVERS);
     KafkaConnectorProperties kafkaConnectorProperties = new KafkaConnectorProperties();
     kafkaConnectorProperties.setAutoOffsetReset(KafkaConnectorProperties.AutoOffsetReset.EARLIEST);
-    kafkaConnectorProperties.setAuthenticationType("custom");
-    kafkaConnectorProperties.setOffsets("0,0");
+    kafkaConnectorProperties.setAuthenticationType(
+        KafkaConnectorProperties.AuthenticationType.custom);
+    kafkaConnectorProperties.setOffsets(List.of(0L, 0L));
     kafkaConnectorProperties.setTopic(kafkaTopic);
 
     InboundConnectorContextBuilder.TestInboundConnectorContext context =
@@ -259,6 +264,7 @@ public class KafkaIntegrationTest {
             .properties(kafkaConnectorProperties)
             .definition(InboundConnectorDefinitionBuilder.create().bpmnProcessId(processId).build())
             .build();
+
     KafkaExecutable executable = new KafkaExecutable();
 
     // When

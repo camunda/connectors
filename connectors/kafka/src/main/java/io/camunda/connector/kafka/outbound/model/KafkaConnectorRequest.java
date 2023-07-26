@@ -13,13 +13,18 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import org.apache.kafka.clients.CommonClientConfigs;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 
 public class KafkaConnectorRequest {
 
   protected static final String SESSION_TIMEOUT_MS_RECOMMENDED_VALUE = "45000";
+  protected static final String DEFAULT_API_TIMEOUT_MS = "60000";
+  protected static final String HEARTBEAT_INTERVAL_MS = "3000";
   protected static final String DELIVERY_TIMEOUT_MS_RECOMMENDED_VALUE = "45000";
-  protected static final String MAX_BLOCK_MS_RECOMMENDED_VALUE = "45000";
+  protected static final String LINGER_MS = "0";
+  protected static final String REQUEST_TIMEOUT_MS = "30000";
+  protected static final String MAX_BLOCK_MS_RECOMMENDED_VALUE = "60000";
   protected static final String CLIENT_DNS_LOOKUP_RECOMMENDED_VALUE = "use_all_dns_ips";
   protected static final String ACKS_RECOMMENDED_VALUE = "all";
 
@@ -87,6 +92,10 @@ public class KafkaConnectorRequest {
     props.put(ProducerConfig.ACKS_CONFIG, ACKS_RECOMMENDED_VALUE);
     props.put(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, DELIVERY_TIMEOUT_MS_RECOMMENDED_VALUE);
     props.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, MAX_BLOCK_MS_RECOMMENDED_VALUE);
+    props.put(ProducerConfig.LINGER_MS_CONFIG, LINGER_MS);
+    props.put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, REQUEST_TIMEOUT_MS);
+    props.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, HEARTBEAT_INTERVAL_MS);
+    props.put(ConsumerConfig.DEFAULT_API_TIMEOUT_MS_CONFIG, DEFAULT_API_TIMEOUT_MS);
 
     // Step 3: override properties provided by the client
     if (!additionalProperties.isEmpty()) {
