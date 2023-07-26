@@ -129,6 +129,7 @@
       "description": "Provide the consumer group ID used by the connector. Leave empty for an automatically generated one",
       "group": "kafka",
       "type": "String",
+      "feel": "optional",
       "optional": true,
       "binding": {
         "type": "zeebe:property",

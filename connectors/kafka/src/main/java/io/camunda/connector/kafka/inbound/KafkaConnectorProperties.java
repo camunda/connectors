@@ -32,7 +32,7 @@ public class KafkaConnectorProperties {
 
   @NotNull private AutoOffsetReset autoOffsetReset = AutoOffsetReset.NONE;
 
-  private String groupId;
+  @FEEL private String groupId;
 
   public enum AutoOffsetReset {
     @JsonProperty("none")
