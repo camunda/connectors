@@ -1,4 +1,4 @@
-FROM eclipse-temurin:17.0.7_7-jre
+FROM eclipse-temurin:17.0.8_7-jre
 
 RUN mkdir /opt/app
 COPY target/*-with-dependencies.jar /opt/app/
