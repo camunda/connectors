@@ -132,7 +132,7 @@
     {
       "type": "Hidden",
       "group": "webhookResponse",
-      "value": "=if get value(request.params, \"hub.mode\") = \"subscribe\" then {\"hub.challenge\": get value(request.params, \"hub.challenge\")} else null",
+      "value": "=if get value(request.params, \"hub.mode\") = \"subscribe\" then get value(request.params, \"hub.challenge\") else null",
       "binding": {
         "type": "zeebe:property",
         "name": "inbound.responseBodyExpression"
@@ -141,7 +141,7 @@
     },
     {
       "id": "authorizationType",
-      "value": "APIKEY",
+      "value": "NONE",
       "type": "Hidden",
       "binding": {
         "type": "zeebe:property",
