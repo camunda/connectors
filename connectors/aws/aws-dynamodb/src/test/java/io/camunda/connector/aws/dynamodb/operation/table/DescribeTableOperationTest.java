@@ -9,7 +9,6 @@ package io.camunda.connector.aws.dynamodb.operation.table;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.amazonaws.services.dynamodbv2.model.TableDescription;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.aws.dynamodb.BaseDynamoDbOperationTest;
 import io.camunda.connector.aws.dynamodb.TestDynamoDBData;
@@ -34,13 +33,13 @@ class DescribeTableOperationTest extends BaseDynamoDbOperationTest {
   }
 
   @Test
-  public void replaceSecrets_shouldReplaceSecrets() throws JsonProcessingException {
+  public void replaceSecrets_shouldReplaceSecrets() {
     // Given
     String input =
         """
                 {
                   "type": "describeTable",
-                  "tableName": "secrets.TABLE_NAME_KEY"
+                  "tableName": "{{secrets.TABLE_NAME_KEY}}"
                 }
                 """;
     OutboundConnectorContext context = getContextWithSecrets(input);

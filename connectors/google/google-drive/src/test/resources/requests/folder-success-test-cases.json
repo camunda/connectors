@@ -2,7 +2,7 @@
   {
     "authentication": {
       "authType": "bearer",
-      "bearerToken": "secrets.MyToken"
+      "bearerToken": "{{secrets.MyToken}}"
     },
     "resource": {
       "type":"folder",
@@ -16,9 +16,9 @@
   {
     "authentication": {
       "authType": "refresh",
-      "oauthClientId": "secrets.MyOauthClient",
-      "oauthClientSecret": "secrets.MyOauthSecret",
-      "oauthRefreshToken": "secrets.MyOauthRefresh"
+      "oauthClientId": "{{secrets.MyOauthClient}}",
+      "oauthClientSecret": "{{secrets.MyOauthSecret}}",
+      "oauthRefreshToken": "{{secrets.MyOauthRefresh}}"
     },
     "resource": {
       "type":"folder",

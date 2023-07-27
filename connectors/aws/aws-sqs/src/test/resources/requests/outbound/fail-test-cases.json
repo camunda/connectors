@@ -10,13 +10,13 @@
         "data":"ok"
       },
       "region":"us-east-1",
-      "url":"secrets.SQS_QUEUE_URL"
+      "url":"{{secrets.SQS_QUEUE_URL}}"
     }
   },
   {
     "testDescription": "No access key",
     "authentication":{
-      "secretKey":"secrets.AWS_SECRET_KEY"
+      "secretKey":"{{secrets.AWS_SECRET_KEY}}"
     },
     "configuration": {
       "region":"us-east-1"
@@ -27,13 +27,13 @@
         "data":"ok"
       },
       "region":"us-east-1",
-      "url":"secrets.SQS_QUEUE_URL"
+      "url":"{{secrets.SQS_QUEUE_URL}}"
     }
   },
   {
     "testDescription": "No secret key",
     "authentication":{
-      "accessKey":"secrets.AWS_ACCESS_KEY"
+      "accessKey":"{{secrets.AWS_ACCESS_KEY}}"
     },
     "configuration": {
       "region":"us-east-1"
@@ -44,14 +44,14 @@
         "data":"ok"
       },
       "region":"us-east-1",
-      "url":"secrets.SQS_QUEUE_URL"
+      "url":"{{secrets.SQS_QUEUE_URL}}"
     }
   },
   {
     "testDescription": "No queue URL",
     "authentication":{
-      "secretKey":"secrets.AWS_SECRET_KEY",
-      "accessKey":"secrets.AWS_ACCESS_KEY"
+      "secretKey":"{{secrets.AWS_SECRET_KEY}}",
+      "accessKey":"{{secrets.AWS_ACCESS_KEY}}"
     },
     "configuration": {
       "region":"us-east-1"
@@ -67,22 +67,22 @@
   {
     "testDescription": "No region",
     "authentication":{
-      "secretKey":"secrets.AWS_SECRET_KEY",
-      "accessKey":"secrets.AWS_ACCESS_KEY"
+      "secretKey":"{{secrets.AWS_SECRET_KEY}}",
+      "accessKey":"{{secrets.AWS_ACCESS_KEY}}"
     },
     "queue":{
       "messageAttributes":{},
       "messageBody":{
         "data":"ok"
       },
-      "url":"secrets.SQS_QUEUE_URL"
+      "url":"{{secrets.SQS_QUEUE_URL}}"
     }
   },
   {
     "testDescription": "No message body",
     "authentication":{
-      "secretKey":"secrets.AWS_SECRET_KEY",
-      "accessKey":"secrets.AWS_ACCESS_KEY"
+      "secretKey":"{{secrets.AWS_SECRET_KEY}}",
+      "accessKey":"{{secrets.AWS_ACCESS_KEY}}"
     },
     "configuration": {
       "region":"us-east-1"
@@ -90,21 +90,21 @@
     "queue":{
       "messageAttributes":{},
       "region":"us-east-1",
-      "url":"secrets.SQS_QUEUE_URL"
+      "url":"{{secrets.SQS_QUEUE_URL}}"
     }
   },
   {
     "testDescription": "No queue",
     "authentication":{
-      "secretKey":"secrets.AWS_SECRET_KEY",
-      "accessKey":"secrets.AWS_ACCESS_KEY"
+      "secretKey":"{{secrets.AWS_SECRET_KEY}}",
+      "accessKey":"{{secrets.AWS_ACCESS_KEY}}"
     }
   },
   {
     "testDescription": "No messageGroupId for FIFO queue",
     "authentication": {
-      "secretKey": "secrets.AWS_SECRET_KEY",
-      "accessKey": "secrets.AWS_ACCESS_KEY"
+      "secretKey": "{{secrets.AWS_SECRET_KEY}}",
+      "accessKey": "{{secrets.AWS_ACCESS_KEY}}"
     },
     "configuration": {
       "region":"us-east-1"
@@ -117,14 +117,14 @@
         "data": "ok"
       },
       "region": "us-east-1",
-      "url": "secrets.SQS_QUEUE_URL"
+      "url": "{{secrets.SQS_QUEUE_URL}}"
     }
   },
   {
     "testDescription": "Invalid queue type",
     "authentication": {
-      "secretKey": "secrets.AWS_SECRET_KEY",
-      "accessKey": "secrets.AWS_ACCESS_KEY"
+      "secretKey": "{{secrets.AWS_SECRET_KEY}}",
+      "accessKey": "{{secrets.AWS_ACCESS_KEY}}"
     },
     "configuration": {
       "region":"us-east-1"
@@ -138,14 +138,14 @@
         "data": "ok"
       },
       "region": "us-east-1",
-      "url": "secrets.SQS_QUEUE_URL"
+      "url": "{{secrets.SQS_QUEUE_URL}}"
     }
   },
   {
     "testDescription": "messageGroupId not supported for standard queues",
     "authentication": {
-      "secretKey": "secrets.AWS_SECRET_KEY",
-      "accessKey": "secrets.AWS_ACCESS_KEY"
+      "secretKey": "{{secrets.AWS_SECRET_KEY}}",
+      "accessKey": "{{secrets.AWS_ACCESS_KEY}}"
     },
     "configuration": {
       "region":"us-east-1"
@@ -158,7 +158,7 @@
         "data": "ok"
       },
       "region": "us-east-1",
-      "url": "secrets.SQS_QUEUE_URL"
+      "url": "{{secrets.SQS_QUEUE_URL}}"
     }
   }
 ]

@@ -51,7 +51,7 @@
       "connectionTimeoutInSeconds": "1.56",
       "authentication": {
         "type": "bearer",
-        "token": "secrets.TOKEN_KEY"
+        "token": "{{secrets.TOKEN_KEY}}"
       }
     }
   },
@@ -85,7 +85,7 @@
       "connectionTimeoutInSeconds": "0b0011",
       "authentication": {
         "type": "bearer",
-        "token": "secrets.TOKEN_KEY"
+        "token": "{{secrets.TOKEN_KEY}}"
       }
     }
   },
@@ -94,7 +94,7 @@
     "graphql": {
       "method": "get",
       "url": "https://camunda.io/http-endpoint",
-      "connectionTimeoutInSeconds": "bad secrets.TOKEN_KEY value"
+      "connectionTimeoutInSeconds": "bad secrets.TOKEN_KEY value}}"
     },
     "authentication": {
       "type": "noAuth"

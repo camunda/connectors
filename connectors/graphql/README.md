@@ -56,8 +56,8 @@ The response will contain the status code, the headers and the body of the respo
   "url": "https://httpbin.org/basic-auth/user/password",
   "authentication": {
     "type": "basic",
-    "username": "secrets.USERNAME",
-    "password": "secrets.PASSWORD"
+    "username": "{{secrets.USERNAME}}",
+    "password": "{{secrets.PASSWORD}}"
   }
 }
 ```
@@ -70,7 +70,7 @@ The response will contain the status code, the headers and the body of the respo
   "url": "https://httpbin.org/bearer",
   "authentication": {
     "type": "bearer",
-    "token": "secrets.TOKEN"
+    "token": "{{secrets.TOKEN}}"
   }
 }
 ```
@@ -82,13 +82,13 @@ The response will contain the status code, the headers and the body of the respo
   "method": "post",
   "url": "https://youroauthclientdomainname.eu.auth0.com/oauth/token",
   "authentication": {
-    "oauthTokenEndpoint":"secrets.OAUTH_TOKEN_ENDPOINT_KEY",
+    "oauthTokenEndpoint":"{{secrets.OAUTH_TOKEN_ENDPOINT_KEY}}",
     "scopes": "read:clients read:users",
-    "audience":"secrets.AUDIENCE_KEY",
-    "clientId":"secrets.CLIENT_ID_KEY",
-    "clientSecret":"secrets.CLIENT_SECRET_KEY",
+    "audience":"{{secrets.AUDIENCE_KEY}}",
+    "clientId":"{{secrets.CLIENT_ID_KEY}}",
+    "clientSecret":"{{secrets.CLIENT_SECRET_KEY}}",
     "type": "oauth-client-credentials-flow",
-    "clientAuthentication":"secrets.CLIENT_AUTHENTICATION_KEY"
+    "clientAuthentication":"{{secrets.CLIENT_AUTHENTICATION_KEY}}"
   }
 }
 ```

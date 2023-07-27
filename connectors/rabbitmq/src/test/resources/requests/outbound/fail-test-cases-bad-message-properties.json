@@ -57,25 +57,25 @@
     "testDescription": "wrong properties with 'credentials' auth type and secrets",
     "authentication": {
       "authType": "credentials",
-      "password": "secrets.PASSWORD_KEY",
-      "userName": "secrets.USERNAME_KEY"
+      "password": "{{secrets.PASSWORD_KEY}}",
+      "userName": "{{secrets.USERNAME_KEY}}"
     },
     "routing": {
-      "virtualHost": "secrets.VIRTUAL_HOST_KEY",
-      "hostName": "secrets.HOST_NAME_KEY",
-      "exchange": "secrets.EXCHANGE_NAME_KEY",
-      "routingKey": "secrets.ROUTING_SECRET_KEY",
-      "port": "secrets.PORT_KEY"
+      "virtualHost": "{{secrets.VIRTUAL_HOST_KEY}}",
+      "hostName": "{{secrets.HOST_NAME_KEY}}",
+      "exchange": "{{secrets.EXCHANGE_NAME_KEY}}",
+      "routingKey": "{{secrets.ROUTING_SECRET_KEY}}",
+      "port": "{{secrets.PORT_KEY}}"
     },
     "message": {
       "body": {
-        "msg_key": "secrets.TEXT_KEY"
+        "msg_key": "{{secrets.TEXT_KEY}}"
       },
       "properties": {
-        "contentType": "secrets.CONTENT_TYPE_KEY",
-        "Encoding": "secrets.CONTENT_ENCODING_KEY",
+        "contentType": "{{secrets.CONTENT_TYPE_KEY}}",
+        "Encoding": "{{secrets.CONTENT_ENCODING_KEY}}",
         "headers": {
-          "header1": "secrets.HEADER_VALUE_KEY"
+          "header1": "{{secrets.HEADER_VALUE_KEY}}"
         }
       }
     }
@@ -84,25 +84,25 @@
     "testDescription": "wrong properties field with 'uri' auth type and secrets",
     "authentication": {
       "authType": "uri",
-      "uri": "secrets.URI_KEY"
+      "uri": "{{secrets.URI_KEY}}"
     },
     "routing": {
-      "virtualHost": "secrets.VIRTUAL_HOST_KEY",
-      "hostName": "secrets.HOST_NAME_KEY",
-      "exchange": "secrets.EXCHANGE_NAME_KEY",
-      "routingKey": "secrets.ROUTING_SECRET_KEY",
-      "port": "secrets.PORT_KEY"
+      "virtualHost": "{{secrets.VIRTUAL_HOST_KEY}}",
+      "hostName": "{{secrets.HOST_NAME_KEY}}",
+      "exchange": "{{secrets.EXCHANGE_NAME_KEY}}",
+      "routingKey": "{{secrets.ROUTING_SECRET_KEY}}",
+      "port": "{{secrets.PORT_KEY}}"
     },
     "message": {
       "body": {
-        "msg_key": "secrets.TEXT_KEY"
+        "msg_key": "{{secrets.TEXT_KEY}}"
       },
       "properties": {
-        "contentType": "secrets.CONTENT_TYPE_KEY",
-        "content": "secrets.CONTENT_ENCODING_KEY",
+        "contentType": "{{secrets.CONTENT_TYPE_KEY}}",
+        "content": "{{secrets.CONTENT_ENCODING_KEY}}",
         "myNewField": "field value",
         "headers": {
-          "header1": "secrets.HEADER_VALUE_KEY"
+          "header1": "{{secrets.HEADER_VALUE_KEY}}"
         }
       }
     }
@@ -111,22 +111,22 @@
     "testDescription": "wrong properties with 'uri' auth type and secrets with string in body",
     "authentication": {
       "authType": "uri",
-      "uri": "secrets.URI_KEY"
+      "uri": "{{secrets.URI_KEY}}"
     },
     "routing": {
-      "virtualHost": "secrets.VIRTUAL_HOST_KEY",
-      "hostName": "secrets.HOST_NAME_KEY",
-      "exchange": "secrets.EXCHANGE_NAME_KEY",
-      "routingKey": "secrets.ROUTING_SECRET_KEY",
-      "port": "secrets.PORT_KEY"
+      "virtualHost": "{{secrets.VIRTUAL_HOST_KEY}}",
+      "hostName": "{{secrets.HOST_NAME_KEY}}",
+      "exchange": "{{secrets.EXCHANGE_NAME_KEY}}",
+      "routingKey": "{{secrets.ROUTING_SECRET_KEY}}",
+      "port": "{{secrets.PORT_KEY}}"
     },
     "message": {
       "body": "string text",
       "properties": {
-        "contentType": "secrets.CONTENT_TYPE_KEY",
-        "contentEncoding": "secrets.CONTENT_ENCODING_KEY",
+        "contentType": "{{secrets.CONTENT_TYPE_KEY}}",
+        "contentEncoding": "{{secrets.CONTENT_ENCODING_KEY}}",
         "headers12": {
-          "header1": "secrets.HEADER_VALUE_KEY"
+          "header1": "{{secrets.HEADER_VALUE_KEY}}"
         }
       }
     }

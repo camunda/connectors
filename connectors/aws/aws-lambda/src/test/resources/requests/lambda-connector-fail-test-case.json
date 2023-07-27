@@ -1,50 +1,50 @@
 [
   {
     "authentication": {
-      "accessKey": "secrets.ACCESS_KEY"
+      "accessKey": "{{secrets.ACCESS_KEY}}"
     },
     "configuration": {
       "region": "test-region"
     },
     "awsFunction": {
-      "payload": "secrets.PAYLOAD_KEY",
-      "functionName": "secrets.FUNCTION_NAME"
+      "payload": "{{secrets.PAYLOAD_KEY}}",
+      "functionName": "{{secrets.FUNCTION_NAME}}"
     }
   },
   {
     "authentication": {
-      "secretKey": "secrets.SECRET_KEY"
+      "secretKey": "{{secrets.SECRET_KEY}}"
     },
     "configuration": {
       "region": "test-region"
     },
     "awsFunction": {
-      "payload": "secrets.PAYLOAD_KEY",
-      "functionName": "secrets.FUNCTION_NAME"
+      "payload": "{{secrets.PAYLOAD_KEY}}",
+      "functionName": "{{secrets.FUNCTION_NAME}}"
     }
   },
   {
     "authentication": {
-      "secretKey": "secrets.SECRET_KEY",
-      "accessKey": "secrets.ACCESS_KEY"
+      "secretKey": "{{secrets.SECRET_KEY}}",
+      "accessKey": "{{secrets.ACCESS_KEY}}"
     },
     "configuration": {
-      "region": "secrets.REGION_KEY"
+      "region": "{{secrets.REGION_KEY}}"
     },
     "awsFunction": {
-      "functionName": "secrets.FUNCTION_NAME"
+      "functionName": "{{secrets.FUNCTION_NAME}}"
     }
   },
   {
     "authentication": {
-      "secretKey": "secrets.SECRET_KEY",
-      "accessKey": "secrets.ACCESS_KEY"
+      "secretKey": "{{secrets.SECRET_KEY}}",
+      "accessKey": "{{secrets.ACCESS_KEY}}"
     },
     "configuration": {
-      "region": "secrets.REGION_KEY"
+      "region": "{{secrets.REGION_KEY}}"
     },
     "awsFunction": {
-      "payload": "secrets.PAYLOAD_KEY"
+      "payload": "{{secrets.PAYLOAD_KEY}}"
     }
   }
 ]

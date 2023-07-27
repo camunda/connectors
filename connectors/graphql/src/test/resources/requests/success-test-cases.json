@@ -30,7 +30,7 @@
     "descriptionOfTest": "Normal request with bearer auth",
     "authentication": {
       "type": "bearer",
-      "token": "secrets.MY_TOKEN"
+      "token": "{{secrets.MY_TOKEN}}"
     },
     "graphql": {
       "method": "get",
@@ -46,7 +46,7 @@
     "descriptionOfTest": "Normal request with no variables",
     "authentication": {
       "type": "bearer",
-      "token": "secrets.MY_TOKEN"
+      "token": "{{secrets.MY_TOKEN}}"
     },
     "graphql": {
       "method": "get",
@@ -59,7 +59,7 @@
     "descriptionOfTest": "Normal request with empty variables",
     "authentication": {
       "type": "bearer",
-      "token": "secrets.MY_TOKEN"
+      "token": "{{secrets.MY_TOKEN}}"
     },
     "graphql": {
       "method": "get",
@@ -73,7 +73,7 @@
     "descriptionOfTest": "Normal request with connectionTimeoutInSeconds",
     "authentication": {
       "type": "bearer",
-      "token": "secrets.MY_TOKEN"
+      "token": "{{secrets.MY_TOKEN}}"
     },
     "graphql": {
       "method": "get",

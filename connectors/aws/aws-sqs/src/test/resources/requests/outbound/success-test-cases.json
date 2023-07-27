@@ -2,8 +2,8 @@
   {
     "testDescription": "deprecated case, but region must support in queue too",
     "authentication":{
-      "secretKey":"secrets.AWS_SECRET_KEY",
-      "accessKey":"secrets.AWS_ACCESS_KEY"
+      "secretKey":"{{secrets.AWS_SECRET_KEY}}",
+      "accessKey":"{{secrets.AWS_ACCESS_KEY}}"
     },
     "queue":{
       "messageAttributes":{},
@@ -11,14 +11,14 @@
         "data":"ok"
       },
       "region":"us-east-1",
-      "url":"secrets.SQS_QUEUE_URL"
+      "url":"{{secrets.SQS_QUEUE_URL}}"
     }
   },
   {
     "testDescription": "Request with secrets",
     "authentication":{
-      "secretKey":"secrets.AWS_SECRET_KEY",
-      "accessKey":"secrets.AWS_ACCESS_KEY"
+      "secretKey":"{{secrets.AWS_SECRET_KEY}}",
+      "accessKey":"{{secrets.AWS_ACCESS_KEY}}"
     },
     "configuration": {
       "region":"us-east-1"
@@ -28,7 +28,7 @@
       "messageBody":{
         "data":"ok"
       },
-      "url":"secrets.SQS_QUEUE_URL"
+      "url":"{{secrets.SQS_QUEUE_URL}}"
     }
   },
   {
@@ -51,8 +51,8 @@
   {
     "testDescription":"Request with attributes",
     "authentication":{
-      "secretKey":"secrets.AWS_SECRET_KEY",
-      "accessKey":"secrets.AWS_ACCESS_KEY"
+      "secretKey":"{{secrets.AWS_SECRET_KEY}}",
+      "accessKey":"{{secrets.AWS_ACCESS_KEY}}"
     },
     "configuration": {
       "region":"us-east-1"
@@ -71,14 +71,14 @@
       "messageBody":{
         "data":"ok"
       },
-      "url":"secrets.SQS_QUEUE_URL"
+      "url":"{{secrets.SQS_QUEUE_URL}}"
     }
   },
   {
     "testDescription":"Request for FIFO queue",
     "authentication":{
-      "secretKey":"secrets.AWS_SECRET_KEY",
-      "accessKey":"secrets.AWS_ACCESS_KEY"
+      "secretKey":"{{secrets.AWS_SECRET_KEY}}",
+      "accessKey":"{{secrets.AWS_ACCESS_KEY}}"
     },
     "configuration": {
       "region":"us-east-1"
@@ -91,7 +91,7 @@
       "messageBody":{
         "data":"ok"
       },
-      "url":"secrets.SQS_QUEUE_URL"
+      "url":"{{secrets.SQS_QUEUE_URL}}"
     }
   }
 ]

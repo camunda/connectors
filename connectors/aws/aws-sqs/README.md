@@ -15,8 +15,8 @@ mvn clean package
 ```json
 {
   "authentication":{
-    "secretKey":"secrets.AWS_SECRET_KEY",
-    "accessKey":"secrets.AWS_ACCESS_KEY"
+    "secretKey":"{{secrets.AWS_SECRET_KEY}}",
+    "accessKey":"{{secrets.AWS_ACCESS_KEY}}"
   },
   "queue":{
     "messageAttributes":{

@@ -14,7 +14,6 @@ import static org.mockito.Mockito.when;
 import com.amazonaws.services.dynamodbv2.model.BillingMode;
 import com.amazonaws.services.dynamodbv2.model.CreateTableRequest;
 import com.amazonaws.services.dynamodbv2.model.TableDescription;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.aws.dynamodb.BaseDynamoDbOperationTest;
 import io.camunda.connector.aws.dynamodb.TestDynamoDBData;
@@ -114,17 +113,17 @@ class CreateTableOperationTest extends BaseDynamoDbOperationTest {
   }
 
   @Test
-  public void replaceSecrets_shouldReplaceSecrets() throws JsonProcessingException {
+  public void replaceSecrets_shouldReplaceSecrets() {
     // Given
     String input =
         """
                 {
                   "type": "createTable",
-                  "partitionKey": "secrets.PARTITION_KEY",
-                  "partitionKeyRole": "secrets.PARTITION_KEY",
-                  "partitionKeyType": "secrets.PARTITION_KEY",
-                  "sortKey": "secrets.SORT_KEY",
-                  "tableName": "secrets.TABLE_NAME_KEY"
+                  "partitionKey": "{{secrets.PARTITION_KEY}}",
+                  "partitionKeyRole": "{{secrets.PARTITION_KEY}}",
+                  "partitionKeyType": "{{secrets.PARTITION_KEY",
+                  "sortKey": "{{secrets.SORT_KEY}}",
+                  "tableName": "{{secrets.TABLE_NAME_KEY}}"
                 }
                 """;
     OutboundConnectorContext context = getContextWithSecrets(input);

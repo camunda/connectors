@@ -10,7 +10,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.aws.dynamodb.BaseDynamoDbOperationTest;
 import io.camunda.connector.aws.dynamodb.TestDynamoDBData;
@@ -41,13 +40,13 @@ class DeleteTableOperationTest extends BaseDynamoDbOperationTest {
   }
 
   @Test
-  public void replaceSecrets_shouldReplaceSecrets() throws JsonProcessingException {
+  public void replaceSecrets_shouldReplaceSecrets() {
     // Given
     String input =
         """
                 {
                   "type": "deleteTable",
-                  "tableName": "secrets.TABLE_NAME_KEY"
+                  "tableName": "{{secrets.TABLE_NAME_KEY}}"
                 }
                 """;
     OutboundConnectorContext context = getContextWithSecrets(input);

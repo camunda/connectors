@@ -16,17 +16,17 @@
   },
   {
     "authentication": {
-      "secretKey": "secrets.SECRET_KEY",
-      "accessKey": "secrets.ACCESS_KEY"
+      "secretKey": "{{secrets.SECRET_KEY}}",
+      "accessKey": "{{secrets.ACCESS_KEY}}"
     },
     "configuration": {
-      "region": "secrets.REGION"
+      "region": "{{secrets.REGION}}"
     },
     "input": {
-      "detailType": "secrets.DETAIL_TYPE",
-      "eventBusName": "secrets.EVENT_BUS_NAME",
-      "source": "secrets.SOURCE",
-      "detail": {"key1": {"innerKey": "secrets.INNER_DETAIL_VALUE"}}
+      "detailType": "{{secrets.DETAIL_TYPE}}",
+      "eventBusName": "{{secrets.EVENT_BUS_NAME}}",
+      "source": "{{secrets.SOURCE}}",
+      "detail": {"key1": {"innerKey": "{{secrets.INNER_DETAIL_VALUE}}"}}
     }
   }
 ]

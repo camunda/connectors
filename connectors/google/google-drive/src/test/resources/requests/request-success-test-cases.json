@@ -67,7 +67,7 @@
     "testDescription": "Bearer token given as secret",
     "authentication": {
       "authType": "bearer",
-      "bearerToken": "secrets.MyToken"
+      "bearerToken": "{{secrets.MyToken}}"
     },
     "resource": {
       "type":"file",
@@ -98,9 +98,9 @@
     "testDescription": "Refresh token given as secret",
     "authentication": {
       "authType": "refresh",
-      "oauthClientId": "secrets.MyOauthClient",
-      "oauthClientSecret": "secrets.MyOauthSecret",
-      "oauthRefreshToken": "secrets.MyOauthRefresh"
+      "oauthClientId": "{{secrets.MyOauthClient}}",
+      "oauthClientSecret": "{{secrets.MyOauthSecret}}",
+      "oauthRefreshToken": "{{secrets.MyOauthRefresh}}"
     },
     "resource": {
       "type":"file",

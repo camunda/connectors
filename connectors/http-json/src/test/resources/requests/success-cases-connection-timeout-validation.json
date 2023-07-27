@@ -15,7 +15,7 @@
     "connectionTimeoutInSeconds": "0",
     "authentication": {
       "type": "bearer",
-      "token": "secrets.TOKEN_KEY"
+      "token": "{{secrets.TOKEN_KEY}}"
     }
   },
   {
@@ -25,17 +25,17 @@
     "connectionTimeoutInSeconds": "99",
     "authentication": {
       "type": "bearer",
-      "token": "secrets.TOKEN_KEY"
+      "token": "{{secrets.TOKEN_KEY}}"
     }
   },
   {
     "descriptionOfTest": "secrets value",
     "method": "get",
     "url": "https://camunda.io/http-endpoint",
-    "connectionTimeoutInSeconds": "secrets.CONNECT_TIMEOUT_KEY",
+    "connectionTimeoutInSeconds": "{{secrets.CONNECT_TIMEOUT_KEY}}",
     "authentication": {
       "type": "bearer",
-      "token": "secrets.TOKEN_KEY"
+      "token": "{{secrets.TOKEN_KEY}}"
     }
   }
 ]

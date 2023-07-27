@@ -17,14 +17,14 @@ mvn clean package
 ```json
 {
   "authentication": {
-    "accessKey": "secrets.SNS_ACCESS_KEY",
-    "secretKey": "secrets.SNS_SECRET_KEY"
+    "accessKey": "{{secrets.SNS_ACCESS_KEY}}",
+    "secretKey": "{{secrets.SNS_SECRET_KEY}}"
   },
   "input": {
     "type": "getItem",
-    "tableName": "secrets.TABLE_NAME_KEY",
+    "tableName": "{{secrets.TABLE_NAME_KEY}}",
     "primaryKeyComponents": {
-      "id": "secrets.KEY_ATTRIBUTE_VALUE"
+      "id": "{{secrets.KEY_ATTRIBUTE_VALUE}}"
     }
   }
 }

@@ -91,7 +91,7 @@
   {
     "testDescription": "Username as secret",
     "authentication":{
-      "username":"secrets.USER_NAME",
+      "username":"{{secrets.USER_NAME}}",
       "password":"mySecretPassword"
     },
     "topic":{
@@ -107,7 +107,7 @@
     "testDescription": "Password as secret",
     "authentication":{
       "username":"myLogin",
-      "password":"secrets.PASSWORD"
+      "password":"{{secrets.PASSWORD}}"
     },
     "topic":{
       "bootstrapServers":"kafka-stub.kafka.cloud:1234",
@@ -125,7 +125,7 @@
       "password":"mySecretPassword"
     },
     "topic":{
-      "bootstrapServers":"secrets.BOOTSTRAP_SERVER",
+      "bootstrapServers":"{{secrets.BOOTSTRAP_SERVER}}",
       "topicName":"some-awesome-topic"
     },
     "message":{
@@ -141,7 +141,7 @@
     },
     "topic":{
       "bootstrapServers":"kafka-stub.kafka.cloud:1234",
-      "topicName":"secrets.TOPIC_NAME"
+      "topicName":"{{secrets.TOPIC_NAME}}"
     },
     "message":{
       "key":"Happy",
