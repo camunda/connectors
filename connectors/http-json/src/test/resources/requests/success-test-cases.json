@@ -37,8 +37,8 @@
     },
     "authentication": {
       "type": "basic",
-      "username": "secrets.MY_USERNAME",
-      "password": "secrets.MY_PASSWORD"
+      "username": "{{secrets.MY_USERNAME}}",
+      "password": "{{secrets.MY_PASSWORD}}"
     },
     "body": {
       "customer": {
@@ -63,7 +63,7 @@
     },
     "authentication": {
       "type": "bearer",
-      "token": "secrets.MY_TOKEN"
+      "token": "{{secrets.MY_TOKEN}}"
     },
     "body": {
       "customer": {
@@ -84,7 +84,7 @@
     },
     "authentication": {
       "type": "bearer",
-      "token": "secrets.MY_TOKEN"
+      "token": "{{secrets.MY_TOKEN}}"
     },
     "body": {
       "customer": {
@@ -106,7 +106,7 @@
     "authentication": {
       "X-Camunda-Cluster-ID": "abcdef",
       "type": "bearer",
-      "token": "secrets.MY_TOKEN"
+      "token": "{{secrets.MY_TOKEN}}"
     },
     "body": {
       "customer": {
@@ -131,7 +131,7 @@
     },
     "authentication": {
       "type": "bearer",
-      "token": "secrets.MY_TOKEN"
+      "token": "{{secrets.MY_TOKEN}}"
     }
   },
   {
@@ -149,7 +149,7 @@
     },
     "authentication": {
       "type": "bearer",
-      "token": "secrets.MY_TOKEN"
+      "token": "{{secrets.MY_TOKEN}}"
     },
     "body": {
     }
@@ -168,7 +168,7 @@
     },
     "authentication": {
       "type": "bearer",
-      "token": "secrets.MY_TOKEN"
+      "token": "{{secrets.MY_TOKEN}}"
     },
     "connectionTimeoutInSeconds": "50",
     "body": {

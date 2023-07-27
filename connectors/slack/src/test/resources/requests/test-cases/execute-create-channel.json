@@ -1,10 +1,10 @@
 [
   {
     "description": "with secrets keys without braces",
-    "token": "secrets.TOKEN_KEY",
+    "token": "{{secrets.TOKEN_KEY}}",
     "method": "conversations.create",
     "data": {
-      "newChannelName": "secrets.NEW_CHANNEL_NAME_KEY",
+      "newChannelName": "{{secrets.NEW_CHANNEL_NAME_KEY}}",
       "visibility": "PUBLIC"
     }
   },

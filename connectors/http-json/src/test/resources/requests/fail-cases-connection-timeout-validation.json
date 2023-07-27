@@ -42,7 +42,7 @@
     "connectionTimeoutInSeconds": "1.56",
     "authentication": {
       "type": "bearer",
-      "token": "secrets.TOKEN_KEY"
+      "token": "{{secrets.TOKEN_KEY}}"
     }
   },
   {
@@ -70,7 +70,7 @@
     "connectionTimeoutInSeconds": "0b0011",
     "authentication": {
       "type": "bearer",
-      "token": "secrets.TOKEN_KEY"
+      "token": "{{secrets.TOKEN_KEY}}"
     }
   },
   {

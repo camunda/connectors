@@ -14,7 +14,7 @@ mvn clean package
 
 ```json
 {
-  "apiKey": "secrets.SENDGRID_API_KEY",
+  "apiKey": "{{secrets.SENDGRID_API_KEY}}",
   "from": {
     "name": "John Doe",
     "email": "john.doe@example.com"
@@ -50,7 +50,7 @@ If the email should be sent with a template the request has to contain a `templa
 
 ```json
 {
-  "apiKey": "secrets.SENDGRID_API_KEY",
+  "apiKey": "{{secrets.SENDGRID_API_KEY}}",
   "from": {
     "name": "John Doe",
     "email": "john.doe@example.com"
@@ -76,7 +76,7 @@ If the email should be sent with a template the request has to contain a `templa
 
 ```json
 {
-  "apiKey": "secrets.SENDGRID_API_KEY",
+  "apiKey": "{{secrets.SENDGRID_API_KEY}}",
   "from": {
     "name": "John Doe",
     "email": "john.doe@example.com"

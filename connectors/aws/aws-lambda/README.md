@@ -15,13 +15,13 @@ mvn clean package
 ```json
 {
   "authentication": {
-    "secretKey": "secrets.SECRET_KEY",
-    "accessKey": "secrets.ACCESS_KEY",
-    "region": "secrets.REGION_KEY"
+    "secretKey": "{{secrets.SECRET_KEY}}",
+    "accessKey": "{{secrets.ACCESS_KEY}}",
+    "region": "{{secrets.REGION_KEY}}"
   },
   "function": {
-    "functionName": "secrets.FUNCTION_NAME",
-    "operationType": "secrets.OPERATION_TYPE",
+    "functionName": "{{secrets.FUNCTION_NAME}}",
+    "operationType": "{{secrets.OPERATION_TYPE}}",
     "payload": {
       "event": {
         "data": "value"

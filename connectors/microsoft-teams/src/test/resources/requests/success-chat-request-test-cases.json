@@ -76,7 +76,7 @@
     },
     "data": {
       "method": "getChat",
-      "chatId": "secrets.CHAT_ID_KEY",
+      "chatId": "{{secrets.CHAT_ID_KEY}}",
       "expand": "members"
     }
   },
@@ -128,8 +128,8 @@
     },
     "data": {
       "method": "getMessageFromChat",
-      "chatId": "secrets.CHAT_ID_KEY",
-      "messageId": "secrets.MESSAGE_ID_KEY"
+      "chatId": "{{secrets.CHAT_ID_KEY}}",
+      "messageId": "{{secrets.MESSAGE_ID_KEY}}"
     }
   },
   {
@@ -155,7 +155,7 @@
     },
     "data": {
       "method": "listMembersOfChat",
-      "chatId": "secrets.CHAT_ID_KEY"
+      "chatId": "{{secrets.CHAT_ID_KEY}}"
     }
   },
   {
@@ -183,9 +183,9 @@
     },
     "data": {
       "method": "listMessagesInChat",
-      "chatId": "secrets.CHAT_ID_KEY",
+      "chatId": "{{secrets.CHAT_ID_KEY}}",
       "orderBy": "withoutOrdering",
-      "filter": "secrets.FILTER_KEY"
+      "filter": "{{secrets.FILTER_KEY}}"
     }
   },
   {
@@ -213,7 +213,7 @@
     },
     "data": {
       "method": "sendMessageToChat",
-      "chatId": "secrets.CHAT_ID_KEY",
+      "chatId": "{{secrets.CHAT_ID_KEY}}",
       "content": "{{secrets.CONTENT_PART_1_KEY}}{{secrets.CONTENT_PART_2_KEY}}"
     }
   },
@@ -246,7 +246,7 @@
     "description": "create chat with secrets / bearer token auth type",
     "authentication": {
       "type": "token",
-      "token": "secrets.BEARER_TOKEN_KEY"
+      "token": "{{secrets.BEARER_TOKEN_KEY}}"
     },
     "data": {
       "method": "createChat",
@@ -282,11 +282,11 @@
     "description": "get chat with secrets / bearer token auth type",
     "authentication": {
       "type": "token",
-      "token": "secrets.BEARER_TOKEN_KEY"
+      "token": "{{secrets.BEARER_TOKEN_KEY}}"
     },
     "data": {
       "method": "getChat",
-      "chatId": "secrets.CHAT_ID_KEY",
+      "chatId": "{{secrets.CHAT_ID_KEY}}",
       "expand": "members"
     }
   },
@@ -304,7 +304,7 @@
     "description": "list chats with secrets / bearer token auth type",
     "authentication": {
       "type": "token",
-      "token": "secrets.BEARER_TOKEN_KEY"
+      "token": "{{secrets.BEARER_TOKEN_KEY}}"
     },
     "data": {
       "method": "listChats"
@@ -326,12 +326,12 @@
     "description": "Get message in chat with secrets / bearer token auth type",
     "authentication": {
       "type": "token",
-      "token": "secrets.BEARER_TOKEN_KEY"
+      "token": "{{secrets.BEARER_TOKEN_KEY}}"
     },
     "data": {
       "method": "getMessageFromChat",
-      "chatId": "secrets.CHAT_ID_KEY",
-      "messageId": "secrets.MESSAGE_ID_KEY"
+      "chatId": "{{secrets.CHAT_ID_KEY}}",
+      "messageId": "{{secrets.MESSAGE_ID_KEY}}"
     }
   },
   {
@@ -349,11 +349,11 @@
     "description": "List members of chat with secrets / bearer token auth type",
     "authentication": {
       "type": "token",
-      "token": "secrets.BEARER_TOKEN_KEY"
+      "token": "{{secrets.BEARER_TOKEN_KEY}}"
     },
     "data": {
       "method": "listMembersOfChat",
-      "chatId": "secrets.CHAT_ID_KEY"
+      "chatId": "{{secrets.CHAT_ID_KEY}}"
     }
   },
   {
@@ -373,13 +373,13 @@
     "description": "List messages in chat with secrets / bearer token auth type",
     "authentication": {
       "type": "token",
-      "token": "secrets.BEARER_TOKEN_KEY"
+      "token": "{{secrets.BEARER_TOKEN_KEY}}"
     },
     "data": {
       "method": "listMessagesInChat",
-      "chatId": "secrets.CHAT_ID_KEY",
+      "chatId": "{{secrets.CHAT_ID_KEY}}",
       "orderBy": "withoutOrdering",
-      "filter": "secrets.FILTER_KEY"
+      "filter": "{{secrets.FILTER_KEY}}"
     }
   },
   {
@@ -399,11 +399,11 @@
     "description": "Send messages in chat with secrets / bearer token auth type",
     "authentication": {
       "type": "token",
-      "token": "secrets.BEARER_TOKEN_KEY"
+      "token": "{{secrets.BEARER_TOKEN_KEY}}"
     },
     "data": {
       "method": "sendMessageToChat",
-      "chatId": "secrets.CHAT_ID_KEY",
+      "chatId": "{{secrets.CHAT_ID_KEY}}",
       "content": "{{secrets.CONTENT_PART_1_KEY}}{{secrets.CONTENT_PART_2_KEY}}"
     }
   },
@@ -439,7 +439,7 @@
     "description": "create chat with secrets / refresh token auth type",
     "authentication": {
       "type": "refresh",
-      "token": "secrets.REFRESH_TOKEN_KEY",
+      "token": "{{secrets.REFRESH_TOKEN_KEY}}",
       "clientId": "{{secrets.CLIENT_ID_KEY}}",
       "tenantId": "{{secrets.TENANT_ID_KEY}}",
       "clientSecret": "{{secrets.CLIENT_SECRET_KEY}}"
@@ -481,14 +481,14 @@
     "description": "get chat with secrets / refresh token auth type",
     "authentication": {
       "type": "refresh",
-      "token": "secrets.REFRESH_TOKEN_KEY",
+      "token": "{{secrets.REFRESH_TOKEN_KEY}}",
       "clientId": "{{secrets.CLIENT_ID_KEY}}",
       "tenantId": "{{secrets.TENANT_ID_KEY}}",
       "clientSecret": "{{secrets.CLIENT_SECRET_KEY}}"
     },
     "data": {
       "method": "getChat",
-      "chatId": "secrets.CHAT_ID_KEY",
+      "chatId": "{{secrets.CHAT_ID_KEY}}",
       "expand": "members"
     }
   },
@@ -509,7 +509,7 @@
     "description": "list chats with secrets / refresh token auth type",
     "authentication": {
       "type": "refresh",
-      "token": "secrets.REFRESH_TOKEN_KEY",
+      "token": "{{secrets.REFRESH_TOKEN_KEY}}",
       "clientId": "{{secrets.CLIENT_ID_KEY}}",
       "tenantId": "{{secrets.TENANT_ID_KEY}}",
       "clientSecret": "{{secrets.CLIENT_SECRET_KEY}}"
@@ -537,15 +537,15 @@
     "description": "Get message in chat with secrets / refresh token auth type",
     "authentication": {
       "type": "refresh",
-      "token": "secrets.REFRESH_TOKEN_KEY",
+      "token": "{{secrets.REFRESH_TOKEN_KEY}}",
       "clientId": "{{secrets.CLIENT_ID_KEY}}",
       "tenantId": "{{secrets.TENANT_ID_KEY}}",
       "clientSecret": "{{secrets.CLIENT_SECRET_KEY}}"
     },
     "data": {
       "method": "getMessageFromChat",
-      "chatId": "secrets.CHAT_ID_KEY",
-      "messageId": "secrets.MESSAGE_ID_KEY"
+      "chatId": "{{secrets.CHAT_ID_KEY}}",
+      "messageId": "{{secrets.MESSAGE_ID_KEY}}"
     }
   },
   {
@@ -566,14 +566,14 @@
     "description": "List members of chat with secrets / refresh token auth type",
     "authentication": {
       "type": "refresh",
-      "token": "secrets.REFRESH_TOKEN_KEY",
+      "token": "{{secrets.REFRESH_TOKEN_KEY}}",
       "clientId": "{{secrets.CLIENT_ID_KEY}}",
       "tenantId": "{{secrets.TENANT_ID_KEY}}",
       "clientSecret": "{{secrets.CLIENT_SECRET_KEY}}"
     },
     "data": {
       "method": "listMembersOfChat",
-      "chatId": "secrets.CHAT_ID_KEY"
+      "chatId": "{{secrets.CHAT_ID_KEY}}"
     }
   },
   {
@@ -596,16 +596,16 @@
     "description": "List messages in chat with secrets / refresh token auth type",
     "authentication": {
       "type": "refresh",
-      "token": "secrets.REFRESH_TOKEN_KEY",
+      "token": "{{secrets.REFRESH_TOKEN_KEY}}",
       "clientId": "{{secrets.CLIENT_ID_KEY}}",
       "tenantId": "{{secrets.TENANT_ID_KEY}}",
       "clientSecret": "{{secrets.CLIENT_SECRET_KEY}}"
     },
     "data": {
       "method": "listMessagesInChat",
-      "chatId": "secrets.CHAT_ID_KEY",
+      "chatId": "{{secrets.CHAT_ID_KEY}}",
       "orderBy": "withoutOrdering",
-      "filter": "secrets.FILTER_KEY"
+      "filter": "{{secrets.FILTER_KEY}}"
     }
   },
   {
@@ -627,14 +627,14 @@
     "description": "Send messages in chat with secrets / refresh token auth type",
     "authentication": {
       "type": "refresh",
-      "token": "secrets.REFRESH_TOKEN_KEY",
+      "token": "{{secrets.REFRESH_TOKEN_KEY}}",
       "clientId": "{{secrets.CLIENT_ID_KEY}}",
       "tenantId": "{{secrets.TENANT_ID_KEY}}",
       "clientSecret": "{{secrets.CLIENT_SECRET_KEY}}"
     },
     "data": {
       "method": "sendMessageToChat",
-      "chatId": "secrets.CHAT_ID_KEY",
+      "chatId": "{{secrets.CHAT_ID_KEY}}",
       "content": "{{secrets.CONTENT_PART_1_KEY}}{{secrets.CONTENT_PART_2_KEY}}"
     }
   }

@@ -3,7 +3,7 @@
     "testDescription": "Request without a token",
     "operation":{
       "spreadsheetName":"newSpreadsheet",
-      "parent":"secrets.PARENT_ID",
+      "parent":"{{secrets.PARENT_ID}}",
       "type":"createSpreadsheet"
     }
   },
@@ -11,12 +11,12 @@
     "testDescription": "Request with refresh token without client id",
     "authentication": {
       "authType": "refresh",
-      "oauthClientSecret": "secrets.MyOauthSecret",
-      "oauthRefreshToken": "secrets.MyOauthRefresh"
+      "oauthClientSecret": "{{secrets.MyOauthSecret}}",
+      "oauthRefreshToken": "{{secrets.MyOauthRefresh}}"
     },
     "operation":{
       "spreadsheetName":"newSpreadsheet",
-      "parent":"secrets.PARENT_ID",
+      "parent":"{{secrets.PARENT_ID}}",
       "type":"createSpreadsheet"
     }
   },
@@ -24,12 +24,12 @@
     "testDescription": "Request with refresh token without secret",
     "authentication": {
       "authType": "refresh",
-      "oauthClientId": "secrets.MyOauthClient",
-      "oauthRefreshToken": "secrets.MyOauthRefresh"
+      "oauthClientId": "{{secrets.MyOauthClient}}",
+      "oauthRefreshToken": "{{secrets.MyOauthRefresh}}"
     },
     "operation":{
       "spreadsheetName":"newSpreadsheet",
-      "parent":"secrets.PARENT_ID",
+      "parent":"{{secrets.PARENT_ID}}",
       "type":"createSpreadsheet"
     }
   },
@@ -37,12 +37,12 @@
     "testDescription": "Request with refresh token without refresh token",
     "authentication": {
       "authType": "refresh",
-      "oauthClientId": "secrets.MyOauthClient",
-      "oauthClientSecret": "secrets.MyOauthSecret"
+      "oauthClientId": "{{secrets.MyOauthClient}}",
+      "oauthClientSecret": "{{secrets.MyOauthSecret}}"
     },
     "operation":{
       "spreadsheetName":"newSpreadsheet",
-      "parent":"secrets.PARENT_ID",
+      "parent":"{{secrets.PARENT_ID}}",
       "type":"createSpreadsheet"
     }
   },
@@ -53,7 +53,7 @@
       "bearerToken": "MyRealToken"
     },
     "operation":{
-      "parent":"secrets.PARENT_ID",
+      "parent":"{{secrets.PARENT_ID}}",
       "type":"createSpreadsheet"
     }
   },

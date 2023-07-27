@@ -18,12 +18,12 @@ mvn clean package
   {
   "authentication":{
     "authType":"bearer",
-    "bearerToken": "secrets.GDRIVE_BEARER"
+    "bearerToken": "{{secrets.GDRIVE_BEARER}}"
   },
   "resource": {
     "type": "folder",
     "name": "MyNewFolderName",
-    "parent": "secrets.PARENT_ID",
+    "parent": "{{secrets.PARENT_ID}}",
     "additionalGoogleDriveProperties": {
       "description": "description"
     }
@@ -37,16 +37,16 @@ mvn clean package
 {
   "authentication":{
     "authType":"refresh",
-    "oauthClientId":"secrets.GDRIVE_OAUTH_CLIENT_ID",
-    "oauthClientSecret":"secrets.GDRIVE_OAUTH_CLIENT_SECRET",
-    "oauthRefreshToken":"secrets.GDRIVE_OAUTH_REFRESH_TOKEN"
+    "oauthClientId":"{{secrets.GDRIVE_OAUTH_CLIENT_ID}}",
+    "oauthClientSecret":"{{secrets.GDRIVE_OAUTH_CLIENT_SECRET}}",
+    "oauthRefreshToken":"{{secrets.GDRIVE_OAUTH_REFRESH_TOKEN}}"
   },
   "resource":{
     "type":"folder",
     "additionalGoogleDriveProperties":{
       "description": "description"
     },
-    "parent":"secrets.PARENT_ID",
+    "parent":"{{secrets.PARENT_ID}}",
     "name":"MyNewFolderName"
   }
 }
@@ -60,12 +60,12 @@ mvn clean package
   {
   "authentication":{
     "authType":"bearer",
-    "bearerToken": "secrets.GDRIVE_BEARER"
+    "bearerToken": "{{secrets.GDRIVE_BEARER}}"
   },
   "resource": {
     "type": "folder",
     "name": "MyNewFolder",
-    "parent": "secrets.PARENT_ID",
+    "parent": "{{secrets.PARENT_ID}}",
     "additionalGoogleDriveProperties": {
       "description": " description"
     },
@@ -95,14 +95,14 @@ mvn clean package
   {
   "authentication":{
     "authType":"refresh",
-    "oauthClientId":"secrets.GDRIVE_OAUTH_CLIENT_ID",
-    "oauthClientSecret":"secrets.GDRIVE_OAUTH_CLIENT_SECRET",
-    "oauthRefreshToken":"secrets.GDRIVE_OAUTH_REFRESH_TOKEN"
+    "oauthClientId":"{{secrets.GDRIVE_OAUTH_CLIENT_ID}}",
+    "oauthClientSecret":"{{secrets.GDRIVE_OAUTH_CLIENT_SECRET}}",
+    "oauthRefreshToken":"{{secrets.GDRIVE_OAUTH_REFRESH_TOKEN}}"
   },
   "resource": {
     "type": "folder",
     "name": "MyNewFolder",
-    "parent": "secrets.PARENT_ID",
+    "parent": "{{secrets.PARENT_ID}}",
     "additionalGoogleDriveProperties": {
       "description": " description"
     },

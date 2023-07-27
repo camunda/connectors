@@ -1,6 +1,6 @@
 [
   {
-    "apiKey": "secrets.SENDGRID_API_KEY",
+    "apiKey": "{{secrets.SENDGRID_API_KEY}}",
     "from": {
       "name": "John Doe",
       "email": "john.doe@example.com"
@@ -10,11 +10,11 @@
       "email": "jane.doe@example.com"
     },
     "template": {
-      "id": "secrets.TEMPLATE_ID",
+      "id": "{{secrets.TEMPLATE_ID}}",
       "data": {
-        "accountName": "secrets.TEMPLATE_DATA_ACCOUNT_NAME",
-        "shipAddress": "secrets.TEMPLATE_DATA_SHIP_ADDRESS",
-        "shipZip": "secrets.TEMPLATE_DATA_SHIP_ZIP"
+        "accountName": "{{secrets.TEMPLATE_DATA_ACCOUNT_NAME}}",
+        "shipAddress": "{{secrets.TEMPLATE_DATA_SHIP_ADDRESS}}",
+        "shipZip": "{{secrets.TEMPLATE_DATA_SHIP_ZIP}}"
       }
     }
   },
@@ -46,7 +46,7 @@
       "email":"jane.doe@wxample.com",
       "name":"Jane Doe"
     },
-    "apiKey":"secrets.SENDGRID_API_KEY",
+    "apiKey":"{{secrets.SENDGRID_API_KEY}}",
     "template":{
       "data":{
         "records":47336,

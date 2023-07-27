@@ -17,8 +17,8 @@
   {
     "testDescription": "Request with secrets",
     "authentication":{
-      "secretKey":"secrets.AWS_SECRET_KEY",
-      "accessKey":"secrets.AWS_ACCESS_KEY"
+      "secretKey":"{{secrets.AWS_SECRET_KEY}}",
+      "accessKey":"{{secrets.AWS_ACCESS_KEY}}"
     },
     "configuration": {
       "region":"us-east-1"
@@ -26,7 +26,7 @@
     "queue":{
       "attributeNames":["{{secrets.ATTRIBUTE_NAME_KEY}}"],
       "messageAttributeNames": ["{{secrets.MESSAGE_ATTRIBUTE_NAME_KEY}"],
-      "url":"secrets.SQS_QUEUE_URL",
+      "url":"{{secrets.SQS_QUEUE_URL}}",
       "pollingWaitTime": "1"
     }
   },
@@ -50,14 +50,14 @@
   {
     "testDescription": "Request with secrets, without attributes",
     "authentication":{
-      "secretKey":"secrets.AWS_SECRET_KEY",
-      "accessKey":"secrets.AWS_ACCESS_KEY"
+      "secretKey":"{{secrets.AWS_SECRET_KEY}}",
+      "accessKey":"{{secrets.AWS_ACCESS_KEY}}"
     },
     "configuration": {
       "region":"us-east-1"
     },
     "queue":{
-      "url":"secrets.SQS_QUEUE_URL",
+      "url":"{{secrets.SQS_QUEUE_URL}}",
       "pollingWaitTime": "1"
     }
   },

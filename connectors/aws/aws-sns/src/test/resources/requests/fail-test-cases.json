@@ -14,7 +14,7 @@
   {
     "testDescription": "No access key",
     "authentication":{
-      "secretKey":"secrets.AWS_SECRET_KEY"
+      "secretKey":"{{secrets.AWS_SECRET_KEY}}"
     },
     "configuration": {
       "region":"us-east-1"
@@ -29,7 +29,7 @@
   {
     "testDescription": "No secret key",
     "authentication":{
-      "accessKey":"secrets.AWS_ACCESS_KEY"
+      "accessKey":"{{secrets.AWS_ACCESS_KEY}}"
     },
     "configuration": {
       "region":"us-east-1"
@@ -44,8 +44,8 @@
   {
     "testDescription": "No topic ARN",
     "authentication":{
-      "secretKey":"secrets.AWS_SECRET_KEY",
-      "accessKey":"secrets.AWS_ACCESS_KEY"
+      "secretKey":"{{secrets.AWS_SECRET_KEY}}",
+      "accessKey":"{{secrets.AWS_ACCESS_KEY}}"
     },
     "configuration": {
       "region":"us-east-1"
@@ -59,8 +59,8 @@
   {
     "testDescription": "No region",
     "authentication":{
-      "secretKey":"secrets.AWS_SECRET_KEY",
-      "accessKey":"secrets.AWS_ACCESS_KEY"
+      "secretKey":"{{secrets.AWS_SECRET_KEY}}",
+      "accessKey":"{{secrets.AWS_ACCESS_KEY}}"
     },
     "topic":{
       "message":"Hello",
@@ -72,8 +72,8 @@
   {
     "testDescription": "No message body",
     "authentication":{
-      "secretKey":"secrets.AWS_SECRET_KEY",
-      "accessKey":"secrets.AWS_ACCESS_KEY"
+      "secretKey":"{{secrets.AWS_SECRET_KEY}}",
+      "accessKey":"{{secrets.AWS_ACCESS_KEY}}"
     },
     "configuration": {
       "region":"us-east-1"
@@ -87,15 +87,15 @@
   {
     "testDescription": "No topic",
     "authentication":{
-      "secretKey":"secrets.AWS_SECRET_KEY",
-      "accessKey":"secrets.AWS_ACCESS_KEY"
+      "secretKey":"{{secrets.AWS_SECRET_KEY}}",
+      "accessKey":"{{secrets.AWS_ACCESS_KEY}}"
     }
   },
   {
     "testDescription": "Request with empty region",
     "authentication":{
-      "secretKey":"secrets.AWS_SECRET_KEY",
-      "accessKey":"secrets.AWS_ACCESS_KEY"
+      "secretKey":"{{secrets.AWS_SECRET_KEY}}",
+      "accessKey":"{{secrets.AWS_ACCESS_KEY}}"
     },
     "configuration": {
       "region":""
@@ -110,8 +110,8 @@
   {
     "testDescription": "Request with blank region",
     "authentication":{
-      "secretKey":"secrets.AWS_SECRET_KEY",
-      "accessKey":"secrets.AWS_ACCESS_KEY"
+      "secretKey":"{{secrets.AWS_SECRET_KEY}}",
+      "accessKey":"{{secrets.AWS_ACCESS_KEY}}"
     },
     "configuration": {
       "region":"   "
@@ -127,8 +127,8 @@
   {
     "testDescription": "Request without topic ARN",
     "authentication":{
-      "secretKey":"secrets.AWS_SECRET_KEY",
-      "accessKey":"secrets.AWS_ACCESS_KEY"
+      "secretKey":"{{secrets.AWS_SECRET_KEY}}",
+      "accessKey":"{{secrets.AWS_ACCESS_KEY}}"
     },
     "configuration": {
       "region":"us-east-1"
@@ -142,8 +142,8 @@
   {
     "testDescription": "Request with subject length greater than 99",
     "authentication":{
-      "secretKey":"secrets.AWS_SECRET_KEY",
-      "accessKey":"secrets.AWS_ACCESS_KEY"
+      "secretKey":"{{secrets.AWS_SECRET_KEY}}",
+      "accessKey":"{{secrets.AWS_ACCESS_KEY}}"
     },
     "configuration": {
       "region":"us-east-1"

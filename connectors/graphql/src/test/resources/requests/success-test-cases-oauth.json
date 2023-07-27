@@ -4,8 +4,8 @@
     "oauthTokenEndpoint":"https://dev-test.eu.auth0.com/api/v2/",
     "scopes": "read:clients",
     "audience":"https://dev-test.eu.auth0.com/api/v2/",
-    "clientId":"secrets.CLIENT_ID_KEY",
-    "clientSecret":"secrets.CLIENT_SECRET_KEY",
+    "clientId":"{{secrets.CLIENT_ID_KEY}}",
+    "clientSecret":"{{secrets.CLIENT_SECRET_KEY}}",
     "type":"oauth-client-credentials-flow",
     "clientAuthentication":"basicAuthHeader"
   },

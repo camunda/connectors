@@ -1,11 +1,11 @@
 [
   {
     "description": "with secrets keys without braces",
-    "token": "secrets.TOKEN_KEY",
+    "token": "{{secrets.TOKEN_KEY}}",
     "method": "chat.postMessage",
     "data": {
-      "channel": "secrets.CHANNEL_NAME_KEY",
-      "text": "secrets.TEXT_KEY"
+      "channel": "{{secrets.CHANNEL_NAME_KEY}}",
+      "text": "{{secrets.TEXT_KEY}}"
     }
   },
   {

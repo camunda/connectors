@@ -18,11 +18,11 @@ mvn clean package
 {
   "authentication": {
     "authType": "bearer",
-    "bearerToken": "secrets.GDRIVE_BEARER"
+    "bearerToken": "{{secrets.GDRIVE_BEARER}}"
   },
   "operation": {
-    "spreadsheetName": "secrets.SPREADSHEET_NAME",
-    "parent": "secrets.PARENT_ID",
+    "spreadsheetName": "{{secrets.SPREADSHEET_NAME}}",
+    "parent": "{{secrets.PARENT_ID}}",
     "type": "createSpreadsheet"
   }
 }
@@ -34,13 +34,13 @@ mvn clean package
 {
   "authentication": {
     "authType": "refresh",
-    "oauthClientId": "secrets.GDRIVE_OAUTH_CLIENT_ID",
-    "oauthClientSecret": "secrets.GDRIVE_OAUTH_CLIENT_SECRET",
-    "oauthRefreshToken": "secrets.GDRIVE_OAUTH_REFRESH_TOKEN"
+    "oauthClientId": "{{secrets.GDRIVE_OAUTH_CLIENT_ID}}",
+    "oauthClientSecret": "{{secrets.GDRIVE_OAUTH_CLIENT_SECRET}}",
+    "oauthRefreshToken": "{{secrets.GDRIVE_OAUTH_REFRESH_TOKEN}}"
   },
   "operation": {
-    "spreadsheetName": "secrets.SPREADSHEET_NAME",
-    "parent": "secrets.PARENT_ID",
+    "spreadsheetName": "{{secrets.SPREADSHEET_NAME}}",
+    "parent": "{{secrets.PARENT_ID}}",
     "type": "createSpreadsheet"
   }
 }
@@ -63,11 +63,11 @@ mvn clean package
 {
   "authentication": {
     "authType": "bearer",
-    "bearerToken": "secrets.GDRIVE_BEARER"
+    "bearerToken": "{{secrets.GDRIVE_BEARER}}"
   },
   "operation": {
-    "worksheetName": "secrets.WORKSHEET_NAME",
-    "spreadsheetId": "secrets.SPREADSHEET_ID",
+    "worksheetName": "{{secrets.WORKSHEET_NAME}}",
+    "spreadsheetId": "{{secrets.SPREADSHEET_ID}}",
     "index": "0",
     "type": "createWorksheet"
   }
@@ -80,13 +80,13 @@ mvn clean package
 {
   "authentication": {
     "authType": "refresh",
-    "oauthClientId": "secrets.GDRIVE_OAUTH_CLIENT_ID",
-    "oauthClientSecret": "secrets.GDRIVE_OAUTH_CLIENT_SECRET",
-    "oauthRefreshToken": "secrets.GDRIVE_OAUTH_REFRESH_TOKEN"
+    "oauthClientId": "{{secrets.GDRIVE_OAUTH_CLIENT_ID}}",
+    "oauthClientSecret": "{{secrets.GDRIVE_OAUTH_CLIENT_SECRET}}",
+    "oauthRefreshToken": "{{secrets.GDRIVE_OAUTH_REFRESH_TOKEN}}"
   },
   "operation": {
-    "worksheetName": "secrets.WORKSHEET_NAME",
-    "spreadsheetId": "secrets.SPREADSHEET_ID",
+    "worksheetName": "{{secrets.WORKSHEET_NAME}}",
+    "spreadsheetId": "{{secrets.SPREADSHEET_ID}}",
     "index": "0",
     "type": "createWorksheet"
   }
@@ -111,10 +111,10 @@ mvn clean package
 {
   "authentication": {
     "authType": "bearer",
-    "bearerToken": "secrets.GDRIVE_BEARER"
+    "bearerToken": "{{secrets.GDRIVE_BEARER}}"
   },
   "operation": {
-    "spreadsheetId": "secrets.SPREADSHEET_ID",
+    "spreadsheetId": "{{secrets.SPREADSHEET_ID}}",
     "type": "spreadsheetsDetails"
   }
 }
@@ -126,12 +126,12 @@ mvn clean package
 {
   "authentication": {
     "authType": "refresh",
-    "oauthClientId": "secrets.GDRIVE_OAUTH_CLIENT_ID",
-    "oauthClientSecret": "secrets.GDRIVE_OAUTH_CLIENT_SECRET",
-    "oauthRefreshToken": "secrets.GDRIVE_OAUTH_REFRESH_TOKEN"
+    "oauthClientId": "{{secrets.GDRIVE_OAUTH_CLIENT_ID}}",
+    "oauthClientSecret": "{{secrets.GDRIVE_OAUTH_CLIENT_SECRET}}",
+    "oauthRefreshToken": "{{secrets.GDRIVE_OAUTH_REFRESH_TOKEN}}"
   },
   "operation": {
-    "spreadsheetId": "secrets.SPREADSHEET_ID",
+    "spreadsheetId": "{{secrets.SPREADSHEET_ID}}",
     "type": "spreadsheetsDetails"
   }
 }
@@ -281,11 +281,11 @@ mvn clean package
 {
   "authentication": {
     "authType": "bearer",
-    "bearerToken": "secrets.GDRIVE_BEARER"
+    "bearerToken": "{{secrets.GDRIVE_BEARER}}"
   },
   "operation": {
     "worksheetId": "0",
-    "spreadsheetId": "secrets.SPREADSHEET_ID",
+    "spreadsheetId": "{{secrets.SPREADSHEET_ID}}",
     "type": "deleteWorksheet"
   }
 }
@@ -297,13 +297,13 @@ mvn clean package
 {
   "authentication": {
     "authType": "refresh",
-    "oauthClientId": "secrets.GDRIVE_OAUTH_CLIENT_ID",
-    "oauthClientSecret": "secrets.GDRIVE_OAUTH_CLIENT_SECRET",
-    "oauthRefreshToken": "secrets.GDRIVE_OAUTH_REFRESH_TOKEN"
+    "oauthClientId": "{{secrets.GDRIVE_OAUTH_CLIENT_ID}}",
+    "oauthClientSecret": "{{secrets.GDRIVE_OAUTH_CLIENT_SECRET}}",
+    "oauthRefreshToken": "{{secrets.GDRIVE_OAUTH_REFRESH_TOKEN}}"
   },
   "operation": {
     "worksheetId": "0",
-    "spreadsheetId": "secrets.SPREADSHEET_ID",
+    "spreadsheetId": "{{secrets.SPREADSHEET_ID}}",
     "type": "deleteWorksheet"
   }
 }
@@ -327,14 +327,14 @@ mvn clean package
 {
   "authentication": {
     "authType": "bearer",
-    "bearerToken": "secrets.GDRIVE_BEARER"
+    "bearerToken": "{{secrets.GDRIVE_BEARER}}"
   },
   "operation": {
-    "worksheetName": "secrets.WORKSHEET_NAME",
-    "spreadsheetId": "secrets.SPREADSHEET_ID",
-    "cellId": "secrets.CELL_ID",
+    "worksheetName": "{{secrets.WORKSHEET_NAME}}",
+    "spreadsheetId": "{{secrets.SPREADSHEET_ID}}",
+    "cellId": "{{secrets.CELL_ID}}",
     "type": "addValues",
-    "value": " secrets.VALUE"
+    "value": "{{secrets.VALUE}}"
   }
 }
 ```
@@ -345,16 +345,16 @@ mvn clean package
 {
   "authentication": {
     "authType": "refresh",
-    "oauthClientId": "secrets.GDRIVE_OAUTH_CLIENT_ID",
-    "oauthClientSecret": "secrets.GDRIVE_OAUTH_CLIENT_SECRET",
-    "oauthRefreshToken": "secrets.GDRIVE_OAUTH_REFRESH_TOKEN"
+    "oauthClientId": "{{secrets.GDRIVE_OAUTH_CLIENT_ID}}",
+    "oauthClientSecret": "{{secrets.GDRIVE_OAUTH_CLIENT_SECRET}}",
+    "oauthRefreshToken": "{{secrets.GDRIVE_OAUTH_REFRESH_TOKEN}}"
   },
   "operation": {
-    "worksheetName": "secrets.WORKSHEET_NAME",
-    "spreadsheetId": "secrets.SPREADSHEET_ID",
-    "cellId": "secrets.WORKSHEET_ID",
+    "worksheetName": "{{secrets.WORKSHEET_NAME}}",
+    "spreadsheetId": "{{secrets.SPREADSHEET_ID}}",
+    "cellId": "{{secrets.WORKSHEET_ID}}",
     "type": "addValues",
-    "value": " secrets.VALUE"
+    "value": "{{secrets.VALUE}}"
   }
 }
 ```
@@ -377,10 +377,10 @@ mvn clean package
 {
   "authentication": {
     "authType": "bearer",
-    "bearerToken": "secrets.GDRIVE_BEARER"
+    "bearerToken": "{{secrets.GDRIVE_BEARER}}"
   },
   "operation": {
-    "spreadsheetId": "secrets.SPREADSHEET_ID",
+    "spreadsheetId": "{{secrets.SPREADSHEET_ID}}",
     "startIndex": null,
     "endIndex": null,
     "worksheetId": "0",
@@ -396,12 +396,12 @@ mvn clean package
 {
   "authentication": {
     "authType": "refresh",
-    "oauthClientId": "secrets.GDRIVE_OAUTH_CLIENT_ID",
-    "oauthClientSecret": "secrets.GDRIVE_OAUTH_CLIENT_SECRET",
-    "oauthRefreshToken": "secrets.GDRIVE_OAUTH_REFRESH_TOKEN"
+    "oauthClientId": "{{secrets.GDRIVE_OAUTH_CLIENT_ID}}",
+    "oauthClientSecret": "{{secrets.GDRIVE_OAUTH_CLIENT_SECRET}}",
+    "oauthRefreshToken": "{{secrets.GDRIVE_OAUTH_REFRESH_TOKEN}}"
   },
   "operation": {
-    "spreadsheetId": "secrets.SPREADSHEET_ID",
+    "spreadsheetId": "{{secrets.SPREADSHEET_ID}}",
     "startIndex": "",
     "endIndex": "",
     "worksheetId": "0",
@@ -430,13 +430,13 @@ mvn clean package
 {
   "authentication": {
     "authType": "bearer",
-    "bearerToken": "secrets.GDRIVE_BEARER"
+    "bearerToken": "{{secrets.GDRIVE_BEARER}}"
   },
   "operation": {
-    "values": ["secrets.ROW"],
+    "values": ["{{secrets.ROW"],
     "rowIndex": "1",
-    "spreadsheetId": "secrets.SPREADSHEET_ID",
-    "worksheetName": "secrets.WORKSHEET_NAME",
+    "spreadsheetId": "{{secrets.SPREADSHEET_ID}}",
+    "worksheetName": "{{secrets.WORKSHEET_NAME}}",
     "type": "createRow"
   }
 }
@@ -448,15 +448,15 @@ mvn clean package
 {
   "authentication": {
     "authType": "refresh",
-    "oauthClientId": "secrets.GDRIVE_OAUTH_CLIENT_ID",
-    "oauthClientSecret": "secrets.GDRIVE_OAUTH_CLIENT_SECRET",
-    "oauthRefreshToken": "secrets.GDRIVE_OAUTH_REFRESH_TOKEN"
+    "oauthClientId": "{{secrets.GDRIVE_OAUTH_CLIENT_ID}}",
+    "oauthClientSecret": "{{secrets.GDRIVE_OAUTH_CLIENT_SECRET}}",
+    "oauthRefreshToken": "{{secrets.GDRIVE_OAUTH_REFRESH_TOKEN}}"
   },
   "operation": {
-    "values": ["secrets.ROW"],
+    "values": ["{{secrets.ROW"],
     "rowIndex": "1",
-    "spreadsheetId": "secrets.SPREADSHEET_ID",
-    "worksheetName": "secrets.WORKSHEET_NAME",
+    "spreadsheetId": "{{secrets.SPREADSHEET_ID}}",
+    "worksheetName": "{{secrets.WORKSHEET_NAME}}",
     "type": "createRow"
   }
 }
@@ -481,10 +481,10 @@ mvn clean package
 {
   "authentication": {
     "authType": "bearer",
-    "bearerToken": "secrets.GDRIVE_BEARER"
+    "bearerToken": "{{secrets.GDRIVE_BEARER}}"
   },
   "operation": {
-    "spreadsheetId": "secrets.SPREADSHEET_ID",
+    "spreadsheetId": "{{secrets.SPREADSHEET_ID}}",
     "columnIndexType": "NUMBERS",
     "worksheetId": "0",
     "type": "deleteColumn",
@@ -499,12 +499,12 @@ mvn clean package
 {
   "authentication": {
     "authType": "refresh",
-    "oauthClientId": "secrets.GDRIVE_OAUTH_CLIENT_ID",
-    "oauthClientSecret": "secrets.GDRIVE_OAUTH_CLIENT_SECRET",
-    "oauthRefreshToken": "secrets.GDRIVE_OAUTH_REFRESH_TOKEN"
+    "oauthClientId": "{{secrets.GDRIVE_OAUTH_CLIENT_ID}}",
+    "oauthClientSecret": "{{secrets.GDRIVE_OAUTH_CLIENT_SECRET}}",
+    "oauthRefreshToken": "{{secrets.GDRIVE_OAUTH_REFRESH_TOKEN}}"
   },
   "operation": {
-    "spreadsheetId": "secrets.SPREADSHEET_ID",
+    "spreadsheetId": "{{secrets.SPREADSHEET_ID}}",
     "columnIndexType": "NUMBERS",
     "worksheetId": "0",
     "type": "deleteColumn",
@@ -519,11 +519,11 @@ mvn clean package
 {
   "authentication": {
     "authType": "bearer",
-    "bearerToken": "secrets.GDRIVE_BEARER"
+    "bearerToken": "{{secrets.GDRIVE_BEARER}}"
   },
   "operation": {
     "columnLetterIndex": "A",
-    "spreadsheetId": "secrets.SPREADSHEET_ID",
+    "spreadsheetId": "{{secrets.SPREADSHEET_ID}}",
     "columnIndexType": "LETTERS",
     "worksheetId": "0",
     "type": "deleteColumn"
@@ -537,13 +537,13 @@ mvn clean package
 {
   "authentication": {
     "authType": "refresh",
-    "oauthClientId": "secrets.GDRIVE_OAUTH_CLIENT_ID",
-    "oauthClientSecret": "secrets.GDRIVE_OAUTH_CLIENT_SECRET",
-    "oauthRefreshToken": "secrets.GDRIVE_OAUTH_REFRESH_TOKEN"
+    "oauthClientId": "{{secrets.GDRIVE_OAUTH_CLIENT_ID}}",
+    "oauthClientSecret": "{{secrets.GDRIVE_OAUTH_CLIENT_SECRET}}",
+    "oauthRefreshToken": "{{secrets.GDRIVE_OAUTH_REFRESH_TOKEN}}"
   },
   "operation": {
     "columnLetterIndex": "A",
-    "spreadsheetId": "secrets.SPREADSHEET_ID",
+    "spreadsheetId": "{{secrets.SPREADSHEET_ID}}",
     "columnIndexType": "LETTERS",
     "worksheetId": "0",
     "type": "deleteColumn"
@@ -568,12 +568,12 @@ mvn clean package
 {
   "authentication": {
     "authType": "bearer",
-    "bearerToken": "secrets.GDRIVE_BEARER"
+    "bearerToken": "{{secrets.GDRIVE_BEARER}}"
   },
   "operation": {
     "rowIndex": "1",
-    "spreadsheetId": "secrets.SPREADSHEET_ID",
-    "worksheetName": "secrets.WORKSHEET_NAME",
+    "spreadsheetId": "{{secrets.SPREADSHEET_ID}}",
+    "worksheetName": "{{secrets.WORKSHEET_NAME}}",
     "type": "getRowByIndex"
   }
 }
@@ -585,14 +585,14 @@ mvn clean package
 {
   "authentication": {
     "authType": "refresh",
-    "oauthClientId": "secrets.GDRIVE_OAUTH_CLIENT_ID",
-    "oauthClientSecret": "secrets.GDRIVE_OAUTH_CLIENT_SECRET",
-    "oauthRefreshToken": "secrets.GDRIVE_OAUTH_REFRESH_TOKEN"
+    "oauthClientId": "{{secrets.GDRIVE_OAUTH_CLIENT_ID}}",
+    "oauthClientSecret": "{{secrets.GDRIVE_OAUTH_CLIENT_SECRET}}",
+    "oauthRefreshToken": "{{secrets.GDRIVE_OAUTH_REFRESH_TOKEN}}"
   },
   "operation":  {
     "rowIndex": "1",
-    "spreadsheetId": "secrets.SPREADSHEET_ID",
-    "worksheetName": "secrets.WORKSHEET_NAME",
+    "spreadsheetId": "{{secrets.SPREADSHEET_ID}}",
+    "worksheetName": "{{secrets.WORKSHEET_NAME}}",
     "type": "getRowByIndex"
   }
 }
@@ -616,11 +616,11 @@ mvn clean package
 {
   "authentication": {
     "authType": "bearer",
-    "bearerToken": "secrets.GDRIVE_BEARER"
+    "bearerToken": "{{secrets.GDRIVE_BEARER}}"
   },
   "operation":  {
-    "worksheetName": "secrets.WORKSHEET_NAME",
-    "spreadsheetId": "secrets.SPREADSHEET_ID",
+    "worksheetName": "{{secrets.WORKSHEET_NAME}}",
+    "spreadsheetId": "{{secrets.SPREADSHEET_ID}}",
     "type": "getWorksheetData"
   }
 }
@@ -632,13 +632,13 @@ mvn clean package
 {
   "authentication": {
     "authType": "refresh",
-    "oauthClientId": "secrets.GDRIVE_OAUTH_CLIENT_ID",
-    "oauthClientSecret": "secrets.GDRIVE_OAUTH_CLIENT_SECRET",
-    "oauthRefreshToken": "secrets.GDRIVE_OAUTH_REFRESH_TOKEN"
+    "oauthClientId": "{{secrets.GDRIVE_OAUTH_CLIENT_ID}}",
+    "oauthClientSecret": "{{secrets.GDRIVE_OAUTH_CLIENT_SECRET}}",
+    "oauthRefreshToken": "{{secrets.GDRIVE_OAUTH_REFRESH_TOKEN}}"
   },
   "operation":  {
-    "worksheetName": "secrets.WORKSHEET_ID",
-    "spreadsheetId": "secrets.SPREADSHEET_ID",
+    "worksheetName": "{{secrets.WORKSHEET_ID}}",
+    "spreadsheetId": "{{secrets.SPREADSHEET_ID}}",
     "type": "getWorksheetData"
   }
 }

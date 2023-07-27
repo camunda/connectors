@@ -18,8 +18,8 @@ mvn clean package
 {
   "authentication": {
     "authType": "credentials",
-    "userName": "secrets.USERNAME",
-    "password": "secrets.PASSWORD"
+    "userName": "{{secrets.USERNAME}}",
+    "password": "{{secrets.PASSWORD}}"
   },
   "routing": {
     "exchange": "exchangeName",
@@ -83,8 +83,8 @@ mvn clean package
 {
   "authentication": {
     "authType": "credentials",
-    "userName": "secrets.USERNAME",
-    "password": "secrets.PASSWORD"
+    "userName": "{{secrets.USERNAME}}",
+    "password": "{{secrets.PASSWORD}}"
   },
   "routing": {
     "virtualHost": "virtualHostName",

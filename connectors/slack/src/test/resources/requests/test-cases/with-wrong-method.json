@@ -3,8 +3,8 @@
     "token": "xoxb-0123456789456-123467890987-thisIsTestToken",
     "method": "chatpostMessage",
     "data": {
-      "channel": "secrets.CHANNEL_NAME_KEY",
-      "text": "secrets.TEXT_KEY"
+      "channel": "{{secrets.CHANNEL_NAME_KEY}}",
+      "text": "{{secrets.TEXT_KEY}}"
     }
   },
   {

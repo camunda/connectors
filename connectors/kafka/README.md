@@ -15,12 +15,12 @@ mvn clean package
 ```json
 {
   "authentication":{
-    "username":"secrets.KAFKA_USER_NAME",
-    "password":"secrets.KAFKA_PASSWORD"
+    "username":"{{secrets.KAFKA_USER_NAME}}",
+    "password":"{{secrets.KAFKA_PASSWORD}}"
   },
   "topic":{
-    "bootstrapServers":"secrets.KAFKA_BOOTSTRAP_SERVERS",
-    "topicName":"secrets.KAFKA_TOPIC_NAME"
+    "bootstrapServers":"{{secrets.KAFKA_BOOTSTRAP_SERVERS}}",
+    "topicName":"{{secrets.KAFKA_TOPIC_NAME}}"
   },
   "message":{
     "key":"document-id-1234567890",

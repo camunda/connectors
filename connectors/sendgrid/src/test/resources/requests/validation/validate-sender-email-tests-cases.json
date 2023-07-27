@@ -1,7 +1,7 @@
 [
   {
     "description": "sender email is empty",
-    "apiKey": "secrets.SENDGRID_API_KEY",
+    "apiKey": "{{secrets.SENDGRID_API_KEY}}",
     "from": {
       "name": "John Doe",
       "email": "  "
@@ -11,9 +11,9 @@
       "email": "jane.doe@example.com"
     },
     "content": {
-      "subject": "secrets.CONTENT_SUBJECT",
-      "type": "secrets.CONTENT_TYPE",
-      "value": "secrets.CONTENT_VALUE"
+      "subject": "{{secrets.CONTENT_SUBJECT}}",
+      "type": "{{secrets.CONTENT_TYPE}}",
+      "value": "{{secrets.CONTENT_VALUE}}"
     }
   },
   {

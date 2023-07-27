@@ -160,7 +160,7 @@
       "oauthTokenEndpoint":"https://abc.eu.auth0.com/api/v2/",
       "scopes": "read:clients",
       "audience":"https://abc.eu.auth0.com/api/v2/",
-      "clientSecret":"secrets.CLIENT_SECRET_KEY",
+      "clientSecret":"{{secrets.CLIENT_SECRET_KEY}}",
       "type":"oauth-client-credentials-flow",
       "clientAuthentication":"basicAuthHeader"
     },
@@ -185,7 +185,7 @@
       "oauthTokenEndpoint":"https://abc.eu.auth0.com/api/v2/",
       "scopes": "read:clients",
       "audience":"https://abc.eu.auth0.com/api/v2/",
-      "clientId":"secrets.CLIENT_ID_KEY",
+      "clientId":"{{secrets.CLIENT_ID_KEY}}",
       "type":"oauth-client-credentials-flow",
       "clientAuthentication":"basicAuthHeader"
     },
@@ -209,8 +209,8 @@
     "authentication":{
       "scopes": "read:clients",
       "audience":"https://abc.eu.auth0.com/api/v2/",
-      "clientId":"secrets.CLIENT_ID_KEY",
-      "clientSecret":"secrets.CLIENT_SECRET_KEY",
+      "clientId":"{{secrets.CLIENT_ID_KEY}}",
+      "clientSecret":"{{secrets.CLIENT_SECRET_KEY}}",
       "type":"oauth-client-credentials-flow",
       "clientAuthentication":"basicAuthHeader"
     },
@@ -235,8 +235,8 @@
       "oauthTokenEndpoint":"https://abc.eu.auth0.com/api/v2/",
       "scopes": "read:clients",
       "audience":"https://abc.eu.auth0.com/api/v2/",
-      "clientId":"secrets.CLIENT_ID_KEY",
-      "clientSecret":"secrets.CLIENT_SECRET_KEY",
+      "clientId":"{{secrets.CLIENT_ID_KEY}}",
+      "clientSecret":"{{secrets.CLIENT_SECRET_KEY}}",
       "type":"oauth-client-credentials-flow"
     },
     "body": {
