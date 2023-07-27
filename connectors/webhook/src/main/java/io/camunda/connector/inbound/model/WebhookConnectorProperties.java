@@ -8,6 +8,7 @@ package io.camunda.connector.inbound.model;
 
 import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.api.inbound.webhook.WebhookResultContext;
+import io.camunda.connector.inbound.utils.HttpMethods;
 import java.util.function.Function;
 
 public record WebhookConnectorProperties(
@@ -24,7 +25,7 @@ public record WebhookConnectorProperties(
   public WebhookConnectorProperties(WebhookConnectorPropertiesWrapper wrapper) {
     this(
         wrapper.inbound.context,
-        wrapper.inbound.method,
+        wrapper.inbound.method != null ? wrapper.inbound.method : HttpMethods.any.name(),
         wrapper.inbound.shouldValidateHmac,
         wrapper.inbound.hmacSecret,
         wrapper.inbound.hmacHeader,
