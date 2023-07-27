@@ -1,29 +1,30 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-
+  
   <parent>
     <groupId>io.camunda.connector</groupId>
     <artifactId>connector-parent</artifactId>
-    <relativePath>../parent/pom.xml</relativePath>
+    <relativePath>../../parent/pom.xml</relativePath>
     <version>0.22.0-SNAPSHOT</version>
   </parent>
 
-  <name>connector-core</name>
-  <description>Camunda Connector Core</description>
-  <artifactId>connector-core</artifactId>
+  <name>connector-validation</name>
+  <description>Camunda Connector Validation Module</description>
+  <artifactId>connector-validation</artifactId>
   <packaging>jar</packaging>
 
   <dependencies>
     <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-core</artifactId>
     </dependency>
 
     <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-databind</artifactId>
-      <scope>provided</scope>
+      <groupId>org.hibernate.validator</groupId>
+      <artifactId>hibernate-validator</artifactId>
     </dependency>
 
     <dependency>
