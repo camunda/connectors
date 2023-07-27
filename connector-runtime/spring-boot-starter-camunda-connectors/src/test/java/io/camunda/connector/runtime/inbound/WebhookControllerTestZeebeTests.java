@@ -22,6 +22,7 @@ import static io.camunda.zeebe.spring.test.ZeebeTestThreadSupport.waitForProcess
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -122,6 +123,14 @@ class WebhookControllerTestZeebeTests {
 
     assertEquals(200, responseEntity.getStatusCode().value());
     assertTrue(Objects.requireNonNull(responseEntity.getBody()).isActivated());
+    assertFalse(responseEntity.getBody().getErrorData().isPresent());
+    assertTrue(responseEntity.getBody().getResponseData().isPresent());
+    assertInstanceOf(ProcessInstance.class, responseEntity.getBody().getResponseData().get());
+    assertEquals(
+        "processA",
+        ((ProcessInstance) responseEntity.getBody().getResponseData().get()).getBpmnProcessId());
+    assertEquals(
+        1L, ((ProcessInstance) responseEntity.getBody().getResponseData().get()).getVersion());
 
     var result = responseEntity.getBody();
     assertInstanceOf(StartEventCorrelationResult.class, result);
@@ -205,6 +214,44 @@ class WebhookControllerTestZeebeTests {
 
     assertEquals(200, responseEntity.getStatusCode().value());
     assertFalse(Objects.requireNonNull(responseEntity.getBody()).isActivated());
+    assertFalse(responseEntity.getBody().getResponseData().isPresent());
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void testSuccessfulProcessingWithActivationCorrelationHidden() throws Exception {
+    WebhookConnectorExecutable webhookConnectorExecutable = mock(WebhookConnectorExecutable.class);
+    WebhookResult webhookResult = mock(WebhookResult.class);
+    when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));
+    // default use-case, when result expression not set
+    when(webhookResult.responseBodyExpression()).thenReturn(webhookResultContext -> null);
+    when(webhookConnectorExecutable.triggerWebhook(any(WebhookProcessingPayload.class)))
+        .thenReturn(webhookResult);
+
+    var webhookDef = webhookDefinition("processA", 1, "myPath");
+    var webhookContext =
+        new InboundConnectorContextImpl(
+            secretProvider, v -> {}, webhookDef, correlationHandler, (e) -> {}, mapper);
+
+    // Register webhook function 'implementation'
+    webhookConnectorRegistry.register(
+        new ActiveInboundConnector(webhookConnectorExecutable, webhookContext));
+
+    deployProcess("processA");
+
+    ResponseEntity<Map> responseEntity =
+        (ResponseEntity<Map>)
+            controller.inbound(
+                "myPath",
+                new HashMap<>(),
+                "{}".getBytes(),
+                new HashMap<>(),
+                new MockHttpServletRequest());
+
+    assertEquals(200, responseEntity.getStatusCode().value());
+
+    var result = responseEntity.getBody();
+    assertNull(result);
   }
 
   @Test
