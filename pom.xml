@@ -20,17 +20,17 @@
 
   <modules>
     <module>parent</module>
-    <module>core</module>
-    <module>validation</module>
-    <module>test</module>
-    <module>feel-jackson</module>
+    <module>connector-sdk/core</module>
+    <module>connector-sdk/validation</module>
+    <module>connector-sdk/test</module>
+    <module>connector-sdk/jackson-datatype-feel</module>
     <module>secret-provider/gcp-secret-provider</module>
-    <module>connectors</module>
-    <module>bundle</module>
     <module>connector-runtime/connector-runtime-core</module>
     <module>connector-runtime/connector-runtime-spring</module>
     <module>connector-runtime/spring-boot-starter-camunda-connectors</module>
     <module>connector-runtime/connector-runtime-application</module>
+    <module>connectors</module>
+    <module>bundle</module>
   </modules>
 
 </project>

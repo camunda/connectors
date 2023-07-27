@@ -4,11 +4,11 @@
   <parent>
     <groupId>io.camunda.connector</groupId>
     <artifactId>connector-parent</artifactId>
-    <relativePath>../parent/pom.xml</relativePath>
+    <relativePath>../../parent/pom.xml</relativePath>
     <version>0.22.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>jackson-module-feel</artifactId>
+  <artifactId>jackson-datatype-feel</artifactId>
   <description>Jackson module to evaluate FEEL expressions on deserialization</description>
 
   <dependencies>
