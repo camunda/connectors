@@ -35,7 +35,7 @@ public class JacksonModuleFeelFunction extends SimpleModule {
   @Override
   public Version version() {
     // TODO: get version from pom.xml
-    return new Version(0, 1, 0, null, "io.camunda", "jackson-module-feel");
+    return new Version(0, 1, 0, null, "io.camunda", "jackson-datatype-feel");
   }
 
   @Override

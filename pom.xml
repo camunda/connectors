@@ -24,7 +24,7 @@
     <module>connector-sdk/validation</module>
     <module>connector-sdk/test</module>
     <module>connector-sdk/jackson-datatype-feel</module>
-    <module>secret-provider/gcp-secret-provider</module>
+    <module>secret-providers/gcp-secret-provider</module>
     <module>connector-runtime/connector-runtime-core</module>
     <module>connector-runtime/connector-runtime-spring</module>
     <module>connector-runtime/spring-boot-starter-camunda-connectors</module>

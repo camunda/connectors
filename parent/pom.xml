@@ -190,7 +190,7 @@ limitations under the License.</license.inlineheader>
 
       <dependency>
         <groupId>io.camunda.connector</groupId>
-        <artifactId>jackson-module-feel</artifactId>
+        <artifactId>jackson-datatype-feel</artifactId>
         <version>${project.version}</version>
       </dependency>
 

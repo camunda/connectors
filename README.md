@@ -32,7 +32,7 @@ This is a multi-module project with different licenses applied to different modu
 
 * [Core](core) module
 * [Connector Runtime](connector-runtime) and all its submodules
-* [Secret provider](secret-provider) implementations
+* [Secret provider](secret-providers) implementations
 * [Test libraries](test)
 * [Validation](validation) module
 * [REST Connector](connectors/http-json)
