@@ -7,4 +7,7 @@ COPY target/*-with-dependencies.jar /opt/app/
 COPY start.sh /start.sh
 RUN chmod +x start.sh
 
+RUN addgroup --gid 1003 connectors && useradd -g connectors -u 1003 -M connectors
+USER connectors:connectors
+
 ENTRYPOINT ["/start.sh"]
