@@ -58,7 +58,7 @@
     
     <version.wiremock>3.0.0-beta-10</version.wiremock>
     <version.auth0.jwt>4.4.0</version.auth0.jwt>
-    <version.auth0.jwks>0.22.0</version.auth0.jwks>
+    <version.auth0.jwks>0.22.1</version.auth0.jwks>
   </properties>
 
   <modules>
