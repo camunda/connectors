@@ -10,7 +10,7 @@ This project incorporates components with the licenses under which Camunda recei
   * com.fasterxml.jackson.datatype:jackson-datatype-jsr310 (Version: 2.15.2, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * com.fasterxml.jackson.module:jackson-module-scala_3 (Version: 2.15.2, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * com.google.code.gson:gson (Version: 2.10.1, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
-  * com.rabbitmq:amqp-client (Version: 5.17.0, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0), GPLv2 (URL: https://www.gnu.org/licenses/old-licenses/gpl-2.0.html), MPL 2.0 (URL: https://www.mozilla.org/en-US/MPL/2.0/))
+  * com.rabbitmq:amqp-client (Version: 5.17.1, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0), GPLv2 (URL: https://www.gnu.org/licenses/old-licenses/gpl-2.0.html), MPL 2.0 (URL: https://www.mozilla.org/en-US/MPL/2.0/))
   * com.thoughtworks.paranamer:paranamer (Version: 2.8, License: BSD-3-Clause (URL: https://opensource.org/licenses/BSD-3-Clause))
   * org.apache.commons:commons-lang3 (Version: 3.12.0, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * org.apache.commons:commons-text (Version: 1.10.0, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
