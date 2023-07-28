@@ -27,7 +27,7 @@
 
     <dependency>
       <groupId>io.camunda.connector</groupId>
-      <artifactId>jackson-module-feel</artifactId>
+      <artifactId>jackson-datatype-feel</artifactId>
     </dependency>
 
     <dependency>
