@@ -4,7 +4,7 @@ Do Not Translate or Localize
 This project incorporates components with the licenses under which Camunda received them as listed below.
 
   * com.auth0:java-jwt (Version: 4.4.0, License: MIT (URL: https://opensource.org/licenses/MIT))
-  * com.auth0:jwks-rsa (Version: 0.22.0, License: MIT (URL: https://opensource.org/licenses/MIT))
+  * com.auth0:jwks-rsa (Version: 0.22.1, License: MIT (URL: https://opensource.org/licenses/MIT))
   * com.fasterxml.jackson.core:jackson-annotations (Version: 2.15.2, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * com.fasterxml.jackson.core:jackson-core (Version: 2.15.2, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
   * com.fasterxml.jackson.core:jackson-databind (Version: 2.15.2, License: Apache-2.0 (URL: https://opensource.org/licenses/Apache-2.0))
