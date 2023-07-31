@@ -65,7 +65,7 @@ limitations under the License.</license.inlineheader>
     <nexus.sonatype.url>https://s01.oss.sonatype.org</nexus.sonatype.url>
 
     <!-- Camunda internal libraries -->
-    <version.zeebe>8.2.8</version.zeebe>
+    <version.zeebe>8.2.10</version.zeebe>
     <version.spring-zeebe>8.2.3</version.spring-zeebe>
     <version.feel-engine>1.16.1</version.feel-engine>
     <version.operate-client>8.2.0</version.operate-client>
