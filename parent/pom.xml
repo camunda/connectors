@@ -72,7 +72,6 @@ limitations under the License.</license.inlineheader>
 
     <!-- Third party dependencies -->
 
-    <version.slf4j>1.7.36</version.slf4j>
     <version.jakarta-validation>3.0.2</version.jakarta-validation>
     <version.mockito>5.4.0</version.mockito>
     <version.junit-jupiter>5.10.0</version.junit-jupiter>
@@ -249,18 +248,6 @@ limitations under the License.</license.inlineheader>
       </dependency>
 
       <!-- Third party dependencies -->
-      <dependency>
-        <groupId>org.slf4j</groupId>
-        <artifactId>slf4j-api</artifactId>
-        <version>${version.slf4j}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.slf4j</groupId>
-        <artifactId>slf4j-jdk14</artifactId>
-        <version>${version.slf4j}</version>
-      </dependency>
-
       <dependency>
         <groupId>jakarta.validation</groupId>
         <artifactId>jakarta.validation-api</artifactId>
