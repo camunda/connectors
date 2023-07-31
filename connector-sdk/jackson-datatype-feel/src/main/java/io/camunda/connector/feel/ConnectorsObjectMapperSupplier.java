@@ -35,7 +35,6 @@ public class ConnectorsObjectMapperSupplier {
           .registerModule(new JacksonModuleFeelFunction())
           .registerModule(new Jdk8Module())
           .registerModule(new JavaTimeModule())
-          // .registerModule(DefaultScalaModule$.MODULE$)
           .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
           .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
