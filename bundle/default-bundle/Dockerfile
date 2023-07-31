@@ -7,6 +7,7 @@ COPY target/*-with-dependencies.jar /opt/app/
 COPY start.sh /start.sh
 RUN chmod +x start.sh
 
+# Create an unprivileged user / group and switch to that user
 RUN addgroup --gid 1003 connectors && useradd -g connectors -u 1003 -M connectors
 USER connectors:connectors
 
