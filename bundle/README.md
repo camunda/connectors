@@ -2,56 +2,12 @@
 
 The Connectors Bundle contains all out-of-the-box Connectors for Camunda 8. It's an easy way to try them out in your local setup or in k8s.
 
-The bundle contains the following components
-
-| Component                      | Version | License                                      |
-|--------------------------------|---------|----------------------------------------------|
-| [Connector Runtime]            | 0.21.0  | [Apache 2.0]                                 |
-| Asana Connector                | 0.21.0  | [Camunda Platform Self-Managed Free Edition] |
-| Automation Anywhere Connector  | 0.21.0  | [Camunda Platform Self-Managed Free Edition] |
-| Amazon DynamoDB Connector      | 0.21.0  | [Camunda Platform Self-Managed Free Edition] |
-| Amazon SNS Connector           | 0.21.0  | [Camunda Platform Self-Managed Free Edition] |
-| Amazon SQS Connector           | 0.21.0  | [Camunda Platform Self-Managed Free Edition] |
-| AWS Lambda Connector           | 0.21.0  | [Camunda Platform Self-Managed Free Edition] |
-| Blue Prism Connector           | 0.21.0  | [Camunda Platform Self-Managed Free Edition] |
-| Camunda Operate Connector      | 0.21.0  | [Camunda Platform Self-Managed Free Edition] |
-| Easy Post Connector            | 0.21.0  | [Camunda Platform Self-Managed Free Edition] |
-| GitHub Connector               | 0.21.0  | [Camunda Platform Self-Managed Free Edition] |
-| GitHub Webhook Connector       | 0.21.0  | [Camunda Platform Self-Managed Free Edition] |
-| GitLab Connector               | 0.21.0  | [Camunda Platform Self-Managed Free Edition] |
-| Google Drive Connector         | 0.21.0  | [Camunda Platform Self-Managed Free Edition] |
-| Google Sheets Connector        | 0.21.0  | [Camunda Platform Self-Managed Free Edition] |
-| Google Maps Platform Connector | 0.21.0  | [Camunda Platform Self-Managed Free Edition] |
-| GraphQL Connector              | 0.21.0  | [Camunda Platform Self-Managed Free Edition] |
-| HTTP Webhook Connector         | 0.21.0  | [Camunda Platform Self-Managed Free Edition] |
-| Kafka Consumer Connector       | 0.21.0  | [Camunda Platform Self-Managed Free Edition] |
-| Kafka Producer Connector       | 0.21.0  | [Camunda Platform Self-Managed Free Edition] |
-| Microsoft Teams Connector      | 0.21.0  | [Camunda Platform Self-Managed Free Edition] |
-| OpenAI Connector               | 0.21.0  | [Camunda Platform Self-Managed Free Edition] |
-| Operate Connector              | 0.21.0  | [Camunda Platform Self-Managed Free Edition] |
-| Power Automate Connector       | 0.21.0  | [Camunda Platform Self-Managed Free Edition] |
-| RabbitMQ Consumer Connector    | 0.21.0  | [Camunda Platform Self-Managed Free Edition] |
-| RabbitMQ Producer Connector    | 0.21.0  | [Camunda Platform Self-Managed Free Edition] |
-| REST Connector                 | 0.21.0  | [Apache 2.0]                                 |
-| SendGrid Connector             | 0.21.0  | [Camunda Platform Self-Managed Free Edition] |
-| Slack Connector                | 0.21.0  | [Camunda Platform Self-Managed Free Edition] |
-| Twilio Sender Connector        | 0.21.0  | [Camunda Platform Self-Managed Free Edition] |
-| Twilio Receiver Connector      | 0.21.0  | [Camunda Platform Self-Managed Free Edition] |
-| UiPath Connector               | 0.21.0  | [Camunda Platform Self-Managed Free Edition] |
-
-**Note:**
-- This list only includes Camunda 8 out-of-the-box Connectors that have their own implementation.
-Some of these Connectors are **Protocol Connectors**, which means they are compatible with more than one element template.
-- Some out-of-the-box Connectors in Camunda 8 only exist in the form of element-template for Protocol Connectors.
-Such template-only Connectors are also compatible with this bundle.
-
-
 The [`Dockerfile`](./default-bundle/Dockerfile) provides an image including the [Connector Runtime]
 and all [out-of-the-box Connectors](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/available-connectors-overview/)
 provided by Camunda. The image starts the Connector Runtime with all `jar`
 files provided in the `/opt/app` directory as classpath.
 
-To add more connectors to the image, follow the examples in the [Connector Runtime].
+To add more connectors to the image, follow the examples in the [Connector Runtime](../connector-runtime/README.md#adding-connectors).
 
 # Docker Compose
 
@@ -85,25 +41,3 @@ Find further instructions in the [Connector Runtime].
 ```bash
 docker build -t camunda/connectors-bundle:${VERSION} .
 ```
-
-# License
-
-[Apache 2.0]
-
-The docker image contains Connectors licensed under [Camunda Platform Self-Managed Free Edition] license.
-
-[apache 2.0]: https://www.apache.org/licenses/LICENSE-2.0
-[aws lambda connector]: ../connectors/aws-lambda
-[camunda platform self-managed free edition]: https://camunda.com/legal/terms/cloud-terms-and-conditions/camunda-cloud-self-managed-free-edition-terms/
-[google drive connector]: ../connectors/google-drive
-[http json connector (rest)]: ../connectors/http-json
-[graphql connector]: ../connectors/graphql
-[rabbitmq connector]: ../connectors/rabbitmq
-[kafka connector]: ../connectors/kafka
-[connector runtime]: https://github.com/camunda/connectors-bundle/tree/main/connector-runtime
-[sendgrid connector]: ../connectors/sendgrid
-[slack connector]: ../connectors/slack
-[ms teams connector]: ../connectors/microsoft-teams
-[sns connector]: ../connectors/sns
-[sqs connector]: ../connectors/sqs
-[http webhook connector]: ../connectors/http-json
