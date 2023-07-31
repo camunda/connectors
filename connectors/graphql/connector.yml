@@ -1,3 +1,0 @@
-name: GRAPHQL
-type: io.camunda:connector-graphql:1
-variables: [ graphql, authentication ]
