@@ -122,6 +122,10 @@ jobs:
         env:
           NEXT_VERSION: ${{ github.event.inputs.nextVersion }}
 
+      - name: Generate sbom reports
+        run: |
+          mvn cyclonedx:makeAggregateBom -pl bundle/default-bundle
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
         with:
@@ -255,6 +259,7 @@ jobs:
           body: ${{ steps.changelog.outputs.changes }}
           tag_name: ${{ github.event.inputs.version }}
           files: |
-            THIRD_PARTY_NOTICES
+            bundle/default-bundle/target/connectors-bundle-sbom.json
+            bundle/default-bundle/target/connectors-bundle-sbom.xml
             connectors-bundle-templates-${{ github.event.inputs.version }}.tar.gz
             connectors-bundle-templates-${{ github.event.inputs.version }}.zip
