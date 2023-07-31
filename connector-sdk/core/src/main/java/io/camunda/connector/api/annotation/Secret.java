@@ -24,9 +24,7 @@ import java.lang.annotation.Target;
 
 /**
  * Marks the path to a secret field as well as the secret itself. Secrets are always of type {@link
- * String} or a container type like Array, Map, List, Iterable, or a custom class. For
- * container-type fields, a container <code>handler</code> can be defined. Otherwise, the SDK's
- * default {@link SecretHandler} is used.
+ * String} or a container type like Array, Map, List, Iterable, or a custom class.
  *
  * <p><b>Deprecated:</b> Secret support is now available all fields during the binding process
  * without the need to annotate individual fields.
