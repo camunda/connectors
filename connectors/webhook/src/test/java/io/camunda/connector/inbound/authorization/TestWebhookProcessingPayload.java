@@ -29,4 +29,8 @@ public record TestWebhookProcessingPayload(
         null,
         body == null ? null : body.getBytes());
   }
+
+  TestWebhookProcessingPayload(Map<String, String> headers) {
+    this(null, null, headers, null, null);
+  }
 }

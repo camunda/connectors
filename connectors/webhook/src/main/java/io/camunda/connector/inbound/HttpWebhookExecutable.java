@@ -11,6 +11,7 @@ import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.en
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.InboundConnector;
+import io.camunda.connector.api.error.WebhookConnectorException;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
@@ -25,6 +26,7 @@ import io.camunda.connector.inbound.signature.HMACAlgoCustomerChoice;
 import io.camunda.connector.inbound.signature.HMACSignatureValidator;
 import io.camunda.connector.inbound.utils.HttpMethods;
 import io.camunda.connector.inbound.utils.HttpWebhookUtil;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -56,16 +58,27 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
 
     if (!HttpMethods.any.name().equalsIgnoreCase(props.method())
         && !payload.method().equalsIgnoreCase(props.method())) {
-      throw new IOException("Webhook failed: method not supported");
+      throw new WebhookConnectorException(
+          HttpResponseStatus.METHOD_NOT_ALLOWED.code(),
+          "Method " + payload.method() + " not supported");
     }
 
     WebhookProcessingResultImpl response = new WebhookProcessingResultImpl();
 
     if (!webhookSignatureIsValid(payload)) {
-      throw new IOException("Webhook failed: HMAC signature check didn't pass");
+      throw new WebhookConnectorException(
+          HttpResponseStatus.UNAUTHORIZED.code(), "HMAC signature check didn't pass");
     }
 
-    authChecker.checkAuthorization(payload);
+    var authHandler = authChecker.getHandler(payload);
+    if (!authHandler.isPresent()) {
+      throw new WebhookConnectorException(
+          HttpResponseStatus.UNAUTHORIZED.code(), "Authorization header not present");
+    }
+    if (!authHandler.isValid()) {
+      throw new WebhookConnectorException(
+          HttpResponseStatus.FORBIDDEN.code(), "Authorization header not valid");
+    }
 
     response.setRequest(
         new MappedHttpRequest(

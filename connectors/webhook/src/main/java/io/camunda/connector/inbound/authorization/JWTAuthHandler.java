@@ -19,8 +19,10 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.inbound.model.JWTProperties;
+import io.camunda.connector.inbound.model.WebhookAuthorization.JwtAuth;
 import java.security.interfaces.ECPublicKey;
 import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
@@ -31,15 +33,41 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class JWTChecker {
+final class JWTAuthHandler extends AuthorizationHandler<JwtAuth> {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(JWTChecker.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(JWTAuthHandler.class);
 
-  public static boolean verify(
-      final JWTProperties jwtProperties,
-      final Map<String, String> headers,
-      final JwkProvider jwkProvider,
-      final ObjectMapper objectMapper) {
+  private final JwkProvider jwkProvider;
+  private final ObjectMapper objectMapper;
+
+  public JWTAuthHandler(
+      JwtAuth authorization,
+      WebhookProcessingPayload payload,
+      JwkProvider jwkProvider,
+      ObjectMapper objectMapper) {
+    super(authorization, payload);
+    this.jwkProvider = jwkProvider;
+    this.objectMapper = objectMapper;
+  }
+
+  @Override
+  public boolean isPresent() {
+    var token = extractJWTFomHeader(payload.headers());
+    if (token.isEmpty()) return false;
+    try {
+      JWT.decode(token.get());
+    } catch (JWTDecodeException ex) {
+      LOGGER.warn("Failed to decode JWT token! Cause: " + ex.getCause());
+      return false;
+    }
+    return true;
+  }
+
+  @Override
+  public boolean isValid() {
+    JWTProperties jwtProperties = expectedAuthorization.jwt();
+    Map<String, String> headers = payload.headers();
+
     Optional<DecodedJWT> decodedJWT = getDecodedVerifiedJWT(headers, jwkProvider);
     if (decodedJWT.isEmpty()) {
       return false;
@@ -60,10 +88,10 @@ public class JWTChecker {
   private static Optional<DecodedJWT> getDecodedVerifiedJWT(
       Map<String, String> headers, JwkProvider jwkProvider) {
     final String jwtToken =
-        JWTChecker.extractJWTFomHeader(headers)
+        JWTAuthHandler.extractJWTFomHeader(headers)
             .orElseThrow(() -> new RuntimeException("Cannot extract JWT from header!"));
     try {
-      return Optional.of(JWTChecker.verifyJWT(jwtToken, jwkProvider));
+      return Optional.of(JWTAuthHandler.verifyJWT(jwtToken, jwkProvider));
     } catch (JWTDecodeException ex) {
       LOGGER.warn("Failed to decode JWT token! Cause: " + ex.getCause());
       return Optional.empty();

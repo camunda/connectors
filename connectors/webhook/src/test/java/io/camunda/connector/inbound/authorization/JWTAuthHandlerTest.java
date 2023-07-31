@@ -15,13 +15,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.inbound.model.JWTProperties;
+import io.camunda.connector.inbound.model.WebhookAuthorization.JwtAuth;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import org.junit.Test;
 
-public class JWTCheckerTest {
+public class JWTAuthHandlerTest {
 
   private final ObjectMapper objectMapper;
 
@@ -73,7 +74,7 @@ public class JWTCheckerTest {
   }
   * */
 
-  public JWTCheckerTest() {
+  public JWTAuthHandlerTest() {
     this.objectMapper = ConnectorsObjectMapperSupplier.getCopy();
     this.feelEngineWrapper = new FeelEngineWrapper();
   }
@@ -88,10 +89,15 @@ public class JWTCheckerTest {
             getRoleExpressionFunction("=if admin = true then [\"admin\"] else roles"),
             "https://mockUrl.com");
     var headers = Map.of("Authorization", "Bearer " + JWT_TOKEN);
+    var handler =
+        new JWTAuthHandler(
+            new JwtAuth(jwtProperties),
+            new TestWebhookProcessingPayload(headers),
+            jwkProvider,
+            objectMapper);
 
     // when
-    boolean verificationResult =
-        JWTChecker.verify(jwtProperties, headers, jwkProvider, objectMapper);
+    boolean verificationResult = handler.isValid();
 
     // then
     assertTrue(verificationResult);
@@ -111,10 +117,15 @@ public class JWTCheckerTest {
             getRoleExpressionFunction("=if admin = true then [\"admin\"] else roles"),
             "https://mockUrl.com");
     var headers = Map.of("Authorization", "Bearer " + JWT_WITH_ES512_ALGORITHM_TOKEN);
+    var handler =
+        new JWTAuthHandler(
+            new JwtAuth(jwtProperties),
+            new TestWebhookProcessingPayload(headers),
+            jwkProvider,
+            objectMapper);
 
     // when
-    boolean verificationResult =
-        JWTChecker.verify(jwtProperties, headers, jwkProvider, objectMapper);
+    boolean verificationResult = handler.isValid();
 
     // then
     assertTrue(verificationResult);
@@ -130,10 +141,15 @@ public class JWTCheckerTest {
             getRoleExpressionFunction("=if admin = true then [\"admin\"] else roles"),
             "https://mockUrl.com");
     var headers = Map.of("Authorization", "Bearer " + WRONG_JWT_TOKEN);
+    var handler =
+        new JWTAuthHandler(
+            new JwtAuth(jwtProperties),
+            new TestWebhookProcessingPayload(headers),
+            jwkProvider,
+            objectMapper);
 
     // when
-    boolean verificationResult =
-        JWTChecker.verify(jwtProperties, headers, jwkProvider, objectMapper);
+    boolean verificationResult = handler.isValid();
 
     // then
     assertFalse(verificationResult);
@@ -149,10 +165,15 @@ public class JWTCheckerTest {
             getRoleExpressionFunction("=if admin = true then [\"admin\"] else roles"),
             "https://mockUrl.com");
     var headers = Map.of("Authorization", "Bearer " + EXPIRED_JWT_TOKEN);
+    var handler =
+        new JWTAuthHandler(
+            new JwtAuth(jwtProperties),
+            new TestWebhookProcessingPayload(headers),
+            jwkProvider,
+            objectMapper);
 
     // when
-    boolean verificationResult =
-        JWTChecker.verify(jwtProperties, headers, jwkProvider, objectMapper);
+    boolean verificationResult = handler.isValid();
 
     // then
     assertFalse(verificationResult);
@@ -168,10 +189,15 @@ public class JWTCheckerTest {
             getRoleExpressionFunction("=if admin = true then [\"admin\"] else roles"),
             "https://mockUrl.com");
     var headers = Map.of("Authorization", "Bearer " + NOT_ENOUGH_PERMISSION_JWT_TOKEN);
+    var handler =
+        new JWTAuthHandler(
+            new JwtAuth(jwtProperties),
+            new TestWebhookProcessingPayload(headers),
+            jwkProvider,
+            objectMapper);
 
     // when
-    boolean verificationResult =
-        JWTChecker.verify(jwtProperties, headers, jwkProvider, objectMapper);
+    boolean verificationResult = handler.isValid();
 
     // then
     assertFalse(verificationResult);
@@ -188,10 +214,15 @@ public class JWTCheckerTest {
                 "=if admin = true then [\"wrongPermission\"] else wrongPermission"),
             "https://mockUrl.com");
     var headers = Map.of("Authorization", "Bearer " + JWT_TOKEN);
+    var handler =
+        new JWTAuthHandler(
+            new JwtAuth(jwtProperties),
+            new TestWebhookProcessingPayload(headers),
+            jwkProvider,
+            objectMapper);
 
     // when
-    boolean verificationResult =
-        JWTChecker.verify(jwtProperties, headers, jwkProvider, objectMapper);
+    boolean verificationResult = handler.isValid();
 
     // then
     assertFalse(verificationResult);
@@ -203,10 +234,15 @@ public class JWTCheckerTest {
     JwkProvider jwkProvider = new TestJwkProvider();
     JWTProperties jwtProperties = new JWTProperties(null, null, "https://mockUrl.com");
     var headers = Map.of("Authorization", "Bearer " + JWT_TOKEN);
+    var handler =
+        new JWTAuthHandler(
+            new JwtAuth(jwtProperties),
+            new TestWebhookProcessingPayload(headers),
+            jwkProvider,
+            objectMapper);
 
     // when
-    boolean verificationResult =
-        JWTChecker.verify(jwtProperties, headers, jwkProvider, objectMapper);
+    boolean verificationResult = handler.isValid();
 
     // then
     assertTrue(verificationResult);

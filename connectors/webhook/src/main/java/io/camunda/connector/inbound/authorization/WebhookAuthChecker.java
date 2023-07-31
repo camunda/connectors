@@ -9,23 +9,13 @@ package io.camunda.connector.inbound.authorization;
 import com.auth0.jwk.JwkProvider;
 import com.auth0.jwk.JwkProviderBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.net.HttpHeaders;
-import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
-import io.camunda.connector.api.inbound.webhook.WebhookTriggerResultContext;
 import io.camunda.connector.inbound.model.WebhookAuthorization;
 import io.camunda.connector.inbound.model.WebhookAuthorization.ApiKeyAuth;
 import io.camunda.connector.inbound.model.WebhookAuthorization.BasicAuth;
 import io.camunda.connector.inbound.model.WebhookAuthorization.JwtAuth;
-import io.camunda.connector.inbound.utils.HttpWebhookUtil;
-import java.io.IOException;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 public class WebhookAuthChecker {
 
@@ -60,86 +50,22 @@ public class WebhookAuthChecker {
   /**
    * Check auth header against expected auth. Doesn't return anything, but throws an exception if
    * auth is not valid.
-   *
-   * @throws IOException if auth is not valid
    */
-  public void checkAuthorization(WebhookProcessingPayload payload) throws IOException {
+  public AuthorizationHandler<?> getHandler(WebhookProcessingPayload payload) {
 
     if (authorization == null || authorization instanceof WebhookAuthorization.None) {
       // no auth expected, proceed
-      return;
+      return AuthorizationHandler.noOp();
     }
 
     if (authorization instanceof BasicAuth basicAuth) {
-      checkBasicAuth(basicAuth, payload);
+      return new BasicAuthHandler(basicAuth, payload);
     } else if (authorization instanceof ApiKeyAuth apiKeyAuth) {
-      checkApiKeyAuth(apiKeyAuth, payload);
+      return new ApiKeyAuthHandler(apiKeyAuth, payload);
     } else if (authorization instanceof JwtAuth jwtAuth) {
-      checkJwtAuth(jwtAuth, payload);
+      return new JWTAuthHandler(jwtAuth, payload, jwkProvider, objectMapper);
     } else {
       throw new IllegalStateException("Unsupported auth type");
     }
   }
-
-  private void checkBasicAuth(BasicAuth expectedAuthorization, WebhookProcessingPayload payload)
-      throws IOException {
-
-    String authHeader =
-        payload.headers().entrySet().stream()
-            .collect(Collectors.toMap(entry -> entry.getKey().toLowerCase(), Entry::getValue))
-            .get(HttpHeaders.AUTHORIZATION.toLowerCase());
-
-    if (authHeader == null) {
-      throw new IOException(AUTH_HEADER_MISSING_MSG);
-    }
-    String[] authHeaderParts = authHeader.split(" ");
-    if (authHeaderParts.length != 2) {
-      throwInvalid();
-    }
-    String authType = authHeaderParts[0];
-    String authValue = authHeaderParts[1];
-
-    if (!"basic".equalsIgnoreCase(authType)) {
-      throwInvalid();
-    }
-    String expectedAuth = expectedAuthorization.username() + ":" + expectedAuthorization.password();
-    String actualAuth =
-        new String(Base64.getDecoder().decode(authValue.getBytes(StandardCharsets.UTF_8)));
-    if (!expectedAuth.equals(actualAuth)) {
-      throwInvalid();
-    }
-  }
-
-  private void checkApiKeyAuth(ApiKeyAuth expectedAuthorization, WebhookProcessingPayload payload)
-      throws IOException {
-
-    WebhookTriggerResultContext result =
-        new WebhookTriggerResultContext(
-            new MappedHttpRequest(
-                HttpWebhookUtil.transformRawBodyToMap(
-                    payload.rawBody(), HttpWebhookUtil.extractContentType(payload.headers())),
-                payload.headers(),
-                payload.params()),
-            Map.of());
-
-    String authValue = expectedAuthorization.apiKeyLocator().apply(result);
-    if (!expectedAuthorization.apiKey().equals(authValue)) {
-      throwInvalid();
-    }
-  }
-
-  private void checkJwtAuth(JwtAuth expectedAuthorization, WebhookProcessingPayload payload)
-      throws IOException {
-    if (!JWTChecker.verify(
-        expectedAuthorization.jwt(), payload.headers(), this.jwkProvider, objectMapper)) {
-      throw new IOException("Webhook failed: JWT check didn't pass");
-    }
-  }
-
-  private static void throwInvalid() throws IOException {
-    throw new IOException(AUTH_HEADER_INVALID_MSG);
-  }
-
-  private static final String AUTH_HEADER_INVALID_MSG = "Authorization header is invalid";
-  private static final String AUTH_HEADER_MISSING_MSG = "Authorization header is missing";
 }

@@ -22,6 +22,7 @@ import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 import static org.springframework.web.bind.annotation.RequestMethod.PUT;
 
+import io.camunda.connector.api.error.WebhookConnectorException;
 import io.camunda.connector.api.inbound.InboundConnectorResult;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
@@ -39,6 +40,7 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -99,12 +101,14 @@ public class InboundWebhookRestController {
         connectorResponse = ResponseEntity.ok(httpResponseData);
       }
     } catch (Exception e) {
-      LOG.error("Webhook failed with exception", e);
+      LOG.info("Webhook failed with exception", e);
       if (e instanceof FeelEngineWrapperException feelEngineWrapperException) {
         var error =
             new FeelExpressionErrorResponse(
                 feelEngineWrapperException.getReason(), feelEngineWrapperException.getExpression());
         connectorResponse = ResponseEntity.unprocessableEntity().body(error);
+      } else if (e instanceof WebhookConnectorException webhookConnectorException) {
+        connectorResponse = handleWebhookConnectorException(webhookConnectorException);
       } else {
         connectorResponse = ResponseEntity.internalServerError().build();
       }
@@ -141,5 +145,23 @@ public class InboundWebhookRestController {
             Optional.ofNullable(processedResult.request().params()).orElse(emptyMap())),
         Optional.ofNullable(processedResult.connectorData()).orElse(emptyMap()),
         result);
+  }
+
+  private ResponseEntity<?> handleWebhookConnectorException(WebhookConnectorException e) {
+    var status = HttpStatus.valueOf(e.getStatusCode());
+    if (status.is5xxServerError()) {
+      LOG.error("Webhook failed with exception", e);
+      // no message will be included for security reasons
+      return ResponseEntity.status(status).body(null);
+    }
+    if (status == HttpStatus.UNAUTHORIZED || status == HttpStatus.FORBIDDEN) {
+      LOG.warn("Webhook failed with security-related exception", e);
+      // no message will be included for security reasons
+      return ResponseEntity.status(status).body(null);
+    }
+    if (status.is4xxClientError()) {
+      return ResponseEntity.status(status).body(new GenericErrorResponse(e.getMessage()));
+    }
+    return ResponseEntity.status(status).build();
   }
 }
