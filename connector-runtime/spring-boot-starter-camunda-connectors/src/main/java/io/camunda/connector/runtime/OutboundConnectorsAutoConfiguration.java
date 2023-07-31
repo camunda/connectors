@@ -72,7 +72,6 @@ public class OutboundConnectorsAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public ObjectMapper objectMapper() {
-    var mapper = ConnectorsObjectMapperSupplier.getCopy();
-    return mapper;
+    return ConnectorsObjectMapperSupplier.getCopy();
   }
 }
