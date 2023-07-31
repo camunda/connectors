@@ -1,0 +1,6 @@
+THIRD-PARTY SOFTWARE NOTICES AND INFORMATION
+Do Not Translate or Localize
+
+This project incorporates components with the licenses under which Camunda received them as listed below.
+
+  * org.slf4j:slf4j-api (Version: 1.7.36, License: MIT (URL: https://opensource.org/licenses/MIT))
