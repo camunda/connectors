@@ -18,7 +18,7 @@ package io.camunda.connector.runtime.core.inbound;
 
 import static io.camunda.connector.runtime.core.util.TestUtil.withEnvVars;
 
-import io.camunda.connector.impl.inbound.InboundConnectorConfiguration;
+import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
 import java.util.List;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -146,8 +146,8 @@ public class InboundConnectorDiscoveryTest {
     Assertions.assertThatList(registrations)
         .anyMatch(
             registration ->
-                (registration.getName().equals(name)
-                    && registration.getType().equals(type)
-                    && registration.getConnectorClass().getName().equals(functionCls)));
+                (registration.name().equals(name)
+                    && registration.type().equals(type)
+                    && registration.connectorClass().getName().equals(functionCls)));
   }
 }

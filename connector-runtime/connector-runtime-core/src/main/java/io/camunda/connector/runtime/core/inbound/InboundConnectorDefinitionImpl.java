@@ -17,7 +17,7 @@
 package io.camunda.connector.runtime.core.inbound;
 
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
-import io.camunda.connector.impl.inbound.ProcessCorrelationPoint;
+import io.camunda.connector.api.inbound.correlation.ProcessCorrelationPoint;
 import io.camunda.connector.runtime.core.Keywords;
 import java.util.Map;
 import java.util.Optional;

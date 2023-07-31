@@ -19,7 +19,7 @@ package io.camunda.connector.runtime.outbound.lifecycle;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.validation.ValidationProvider;
-import io.camunda.connector.impl.outbound.OutboundConnectorConfiguration;
+import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.outbound.jobhandling.SpringConnectorJobHandler;
@@ -81,13 +81,13 @@ public class OutboundConnectorManager {
       ZeebeClient client, OutboundConnectorConfiguration connector) {
     ZeebeWorkerValue zeebeWorkerValue =
         new ZeebeWorkerValue()
-            .setName(connector.getName())
-            .setType(connector.getType())
-            .setFetchVariables(connector.getInputVariables())
+            .setName(connector.name())
+            .setType(connector.type())
+            .setFetchVariables(connector.inputVariables())
             .setAutoComplete(true);
 
-    OutboundConnectorFunction connectorFunction = connectorFactory.getInstance(connector.getType());
-    LOG.trace("Opening worker for connector {}", connector.getName());
+    OutboundConnectorFunction connectorFunction = connectorFactory.getInstance(connector.type());
+    LOG.trace("Opening worker for connector {}", connector.name());
 
     JobHandler connectorJobHandler =
         new SpringConnectorJobHandler(

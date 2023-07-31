@@ -9,7 +9,7 @@ package io.camunda.connector.slack;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import io.camunda.connector.impl.ConnectorInputException;
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.slack.outbound.SlackRequest;
 import io.camunda.connector.slack.outbound.model.ChatPostMessageData;
 import org.junit.jupiter.params.ParameterizedTest;

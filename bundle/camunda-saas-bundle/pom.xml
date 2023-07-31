@@ -10,10 +10,6 @@
   <artifactId>connector-runtime-bundle-saas</artifactId>
   <packaging>jar</packaging>
 
-  <properties>
-    <version.gcp-secret-provider>0.11.4</version.gcp-secret-provider>
-  </properties>
-
   <dependencies>
     <dependency>
       <groupId>io.camunda.connector</groupId>
@@ -24,14 +20,21 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
     </dependency>
+
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-gcp-secret-provider</artifactId>
-      <version>${version.gcp-secret-provider}</version>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>com.google.cloud</groupId>
       <artifactId>spring-cloud-gcp-starter-logging</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>ch.qos.logback</groupId>
+          <artifactId>logback-classic</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
 
     <!-- Testing -->

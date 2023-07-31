@@ -1,3 +1,0 @@
-name: GOOGLEDRIVE
-type: io.camunda:google-drive:1
-variables: [ authentication, resource ]

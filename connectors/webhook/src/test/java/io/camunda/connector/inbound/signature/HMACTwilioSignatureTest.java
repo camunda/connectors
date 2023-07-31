@@ -14,9 +14,9 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookResult;
+import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.inbound.HttpWebhookExecutable;
 import io.camunda.connector.inbound.utils.HttpMethods;
-import io.camunda.connector.inbound.utils.ObjectMapperSupplier;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
 import java.io.File;
 import java.io.IOException;
@@ -100,7 +100,7 @@ public class HMACTwilioSignatureTest {
   protected static Stream<WebhookProcessingPayloadTest> loadTestCasesFromResourceFile(
       final String fileWithTestCasesUri) throws IOException {
     final String cases = readString(new File(fileWithTestCasesUri).toPath(), UTF_8);
-    final ObjectMapper objectMapper = ObjectMapperSupplier.getMapperInstance();
+    final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
     return objectMapper
         .readValue(cases, new TypeReference<List<WebhookProcessingPayloadTest>>() {})
         .stream();

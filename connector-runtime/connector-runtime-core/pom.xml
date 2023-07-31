@@ -26,23 +26,13 @@
     </dependency>
 
     <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>jackson-datatype-feel</artifactId>
+    </dependency>
+
+    <dependency>
       <groupId>io.camunda</groupId>
       <artifactId>zeebe-client-java</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>org.camunda.feel</groupId>
-      <artifactId>feel-engine</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>com.fasterxml.jackson.module</groupId>
-      <artifactId>jackson-module-scala_3</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>com.fasterxml.jackson.datatype</groupId>
-      <artifactId>jackson-datatype-jsr310</artifactId>
     </dependency>
 
     <dependency>
@@ -64,12 +54,6 @@
     </dependency>
 
     <dependency>
-      <groupId>io.camunda.connector</groupId>
-      <artifactId>connector-test</artifactId>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
       <groupId>org.assertj</groupId>
       <artifactId>assertj-core</artifactId>
       <scope>test</scope>
@@ -87,11 +71,5 @@
       <scope>test</scope>
     </dependency>
 
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-jdk14</artifactId>
-      <scope>test</scope>
-    </dependency>
   </dependencies>
-
 </project>

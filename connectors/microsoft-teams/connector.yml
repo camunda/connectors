@@ -1,3 +1,0 @@
-name: MSTEAMS
-type: io.camunda:connector-microsoft-teams:1
-variables: [ authentication, data ]

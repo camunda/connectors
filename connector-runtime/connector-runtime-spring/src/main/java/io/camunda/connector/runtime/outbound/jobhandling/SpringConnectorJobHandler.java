@@ -20,7 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.BpmnError;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.validation.ValidationProvider;
-import io.camunda.connector.impl.outbound.OutboundConnectorConfiguration;
+import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.outbound.ConnectorJobHandler;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
@@ -67,14 +67,14 @@ public class SpringConnectorJobHandler extends ConnectorJobHandler {
           metricsRecorder.increase(
               Outbound.METRIC_NAME_INVOCATIONS,
               Outbound.ACTION_ACTIVATED,
-              connectorConfiguration.getType());
+              connectorConfiguration.type());
           try {
             super.handle(client, job);
           } catch (Exception e) {
             metricsRecorder.increase(
                 Outbound.METRIC_NAME_INVOCATIONS,
                 Outbound.ACTION_FAILED,
-                connectorConfiguration.getType());
+                connectorConfiguration.type());
             System.out.println("Failed to handle job: " + job);
           }
         });
@@ -83,7 +83,7 @@ public class SpringConnectorJobHandler extends ConnectorJobHandler {
   @Override
   protected void failJob(JobClient client, ActivatedJob job, Exception exception) {
     metricsRecorder.increase(
-        Outbound.METRIC_NAME_INVOCATIONS, Outbound.ACTION_FAILED, connectorConfiguration.getType());
+        Outbound.METRIC_NAME_INVOCATIONS, Outbound.ACTION_FAILED, connectorConfiguration.type());
     // rethrowing the exception enables retries (handled by JobRunnableFactory)
     throw new RuntimeException(exception);
   }
@@ -93,7 +93,7 @@ public class SpringConnectorJobHandler extends ConnectorJobHandler {
     metricsRecorder.increase(
         Outbound.METRIC_NAME_INVOCATIONS,
         Outbound.ACTION_BPMN_ERROR,
-        connectorConfiguration.getType());
+        connectorConfiguration.type());
     new CommandWrapper(
             client
                 .newThrowErrorCommand(job.getKey())
@@ -108,9 +108,7 @@ public class SpringConnectorJobHandler extends ConnectorJobHandler {
   @SuppressWarnings({"unchecked", "rawtypes"})
   protected void completeJob(JobClient client, ActivatedJob job, ConnectorResult result) {
     metricsRecorder.increase(
-        Outbound.METRIC_NAME_INVOCATIONS,
-        Outbound.ACTION_COMPLETED,
-        connectorConfiguration.getType());
+        Outbound.METRIC_NAME_INVOCATIONS, Outbound.ACTION_COMPLETED, connectorConfiguration.type());
     CompleteJobCommandStep1 commandStep = client.newCompleteCommand(job.getKey());
     FinalCommandStep finalCommandStep = commandStep.variables(result.getVariables());
     new CommandWrapper(finalCommandStep, job, commandExceptionHandlingStrategy).executeAsync();

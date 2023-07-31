@@ -9,10 +9,10 @@ package io.camunda.connector.awslambda.model;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.aws.model.impl.AwsBaseAuthentication;
 import io.camunda.connector.aws.model.impl.AwsBaseConfiguration;
 import io.camunda.connector.awslambda.BaseTest;
-import io.camunda.connector.impl.ConnectorInputException;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;

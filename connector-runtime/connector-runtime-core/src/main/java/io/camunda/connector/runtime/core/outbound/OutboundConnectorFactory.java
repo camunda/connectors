@@ -17,8 +17,8 @@
 package io.camunda.connector.runtime.core.outbound;
 
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import io.camunda.connector.impl.outbound.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.ConnectorFactory;
+import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 
 public interface OutboundConnectorFactory
     extends ConnectorFactory<OutboundConnectorFunction, OutboundConnectorConfiguration> {}

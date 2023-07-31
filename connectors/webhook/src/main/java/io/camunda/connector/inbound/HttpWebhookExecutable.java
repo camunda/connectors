@@ -16,6 +16,7 @@ import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookResult;
+import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.inbound.authorization.WebhookAuthChecker;
 import io.camunda.connector.inbound.model.WebhookConnectorProperties;
 import io.camunda.connector.inbound.model.WebhookConnectorProperties.WebhookConnectorPropertiesWrapper;
@@ -24,7 +25,6 @@ import io.camunda.connector.inbound.signature.HMACAlgoCustomerChoice;
 import io.camunda.connector.inbound.signature.HMACSignatureValidator;
 import io.camunda.connector.inbound.utils.HttpMethods;
 import io.camunda.connector.inbound.utils.HttpWebhookUtil;
-import io.camunda.connector.inbound.utils.ObjectMapperSupplier;
 import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -42,7 +42,7 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
   private WebhookAuthChecker authChecker;
 
   public HttpWebhookExecutable() {
-    this(ObjectMapperSupplier.getMapperInstance());
+    this(ConnectorsObjectMapperSupplier.getCopy());
   }
 
   public HttpWebhookExecutable(final ObjectMapper objectMapper) {

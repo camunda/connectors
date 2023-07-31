@@ -9,7 +9,7 @@ package io.camunda.connector.sendgrid;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import io.camunda.connector.impl.ConnectorInputException;
+import io.camunda.connector.api.error.ConnectorInputException;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 

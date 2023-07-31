@@ -12,9 +12,9 @@ import static org.junit.Assert.assertTrue;
 import com.auth0.jwk.Jwk;
 import com.auth0.jwk.JwkProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.impl.feel.FeelEngineWrapper;
+import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.inbound.model.JWTProperties;
-import io.camunda.connector.inbound.utils.ObjectMapperSupplier;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -74,7 +74,7 @@ public class JWTCheckerTest {
   * */
 
   public JWTCheckerTest() {
-    this.objectMapper = ObjectMapperSupplier.getMapperInstance();
+    this.objectMapper = ConnectorsObjectMapperSupplier.getCopy();
     this.feelEngineWrapper = new FeelEngineWrapper();
   }
 

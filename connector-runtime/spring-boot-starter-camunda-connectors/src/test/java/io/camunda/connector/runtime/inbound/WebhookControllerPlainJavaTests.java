@@ -25,10 +25,11 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.inbound.correlation.StartEventCorrelationPoint;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookResult;
-import io.camunda.connector.impl.inbound.StartEventCorrelationPoint;
+import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
@@ -47,7 +48,7 @@ import org.mockito.quality.Strictness;
 @MockitoSettings(strictness = Strictness.LENIENT)
 public class WebhookControllerPlainJavaTests {
 
-  private static final ObjectMapper mapper = new ObjectMapper();
+  private static final ObjectMapper mapper = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER;
 
   @Test
   public void multipleWebhooksOnSameContextPathAreNotSupported() {

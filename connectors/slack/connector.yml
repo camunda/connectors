@@ -1,3 +1,0 @@
-name: SLACK
-type: io.camunda:slack:1
-variables: [ token, method, data ]

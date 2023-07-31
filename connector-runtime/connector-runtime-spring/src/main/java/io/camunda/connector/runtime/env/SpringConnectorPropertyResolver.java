@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.runtime.env;
 
-import io.camunda.connector.impl.config.ConnectorPropertyResolver;
+import io.camunda.connector.api.config.ConnectorPropertyResolver;
 import org.springframework.core.env.Environment;
 
 public class SpringConnectorPropertyResolver implements ConnectorPropertyResolver {

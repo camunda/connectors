@@ -10,9 +10,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
 
+import io.camunda.connector.api.inbound.result.MessageCorrelationResult;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import io.camunda.connector.impl.inbound.result.MessageCorrelationResult;
 import io.camunda.connector.rabbitmq.BaseTest;
 import io.camunda.connector.rabbitmq.BaseTest.ActualValue.Authentication;
 import io.camunda.connector.rabbitmq.BaseTest.ActualValue.Routing;

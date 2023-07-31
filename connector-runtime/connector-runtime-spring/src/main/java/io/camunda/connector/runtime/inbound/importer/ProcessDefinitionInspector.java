@@ -17,9 +17,9 @@
 package io.camunda.connector.runtime.inbound.importer;
 
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
-import io.camunda.connector.impl.inbound.MessageCorrelationPoint;
-import io.camunda.connector.impl.inbound.ProcessCorrelationPoint;
-import io.camunda.connector.impl.inbound.StartEventCorrelationPoint;
+import io.camunda.connector.api.inbound.correlation.MessageCorrelationPoint;
+import io.camunda.connector.api.inbound.correlation.ProcessCorrelationPoint;
+import io.camunda.connector.api.inbound.correlation.StartEventCorrelationPoint;
 import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
 import io.camunda.operate.CamundaOperateClient;
