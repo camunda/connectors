@@ -57,7 +57,7 @@ final class JWTAuthHandler extends WebhookAuthorizationHandler<JwtAuth> {
 
     Optional<DecodedJWT> decodedJWT = getDecodedVerifiedJWT(headers, jwkProvider);
     if (decodedJWT.isEmpty()) {
-      return new InvalidCredentials("JWT auth failed");
+      return JWT_AUTH_FAILED_RESULT;
     }
     if (jwtProperties.requiredPermissions() != null
         && !jwtProperties.requiredPermissions().isEmpty()) {
@@ -65,7 +65,7 @@ final class JWTAuthHandler extends WebhookAuthorizationHandler<JwtAuth> {
       List<String> roles = extractRoles(jwtProperties, decodedJWT.get(), objectMapper);
       if (!roles.containsAll(jwtProperties.requiredPermissions())) {
         LOGGER.debug("JWT auth failed");
-        return new Forbidden("Missing required permissions");
+        return JWT_AUTH_MISSING_PERMISSIONS_RESULT;
       }
     }
     LOGGER.debug("JWT auth was successful");
@@ -163,4 +163,9 @@ final class JWTAuthHandler extends WebhookAuthorizationHandler<JwtAuth> {
       default -> throw new RuntimeException("Unknown algorithm!");
     };
   }
+
+  private static final AuthorizationResult JWT_AUTH_FAILED_RESULT =
+      new InvalidCredentials("JWT auth failed");
+  private static final AuthorizationResult JWT_AUTH_MISSING_PERMISSIONS_RESULT =
+      new Forbidden("Missing required permissions");
 }

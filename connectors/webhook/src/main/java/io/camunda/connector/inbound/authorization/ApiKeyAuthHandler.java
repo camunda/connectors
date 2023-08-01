@@ -38,10 +38,10 @@ final class ApiKeyAuthHandler extends WebhookAuthorizationHandler<ApiKeyAuth> {
 
       String apiKeyValue = expectedAuthorization.apiKeyLocator().apply(result);
       if (apiKeyValue == null) {
-        return new InvalidCredentials("API key value is missing");
+        return API_KEY_MISSING_RESULT;
       }
       if (!apiKeyValue.equals(expectedAuthorization.apiKey())) {
-        return new InvalidCredentials("API key value is invalid");
+        return API_KEY_INVALID_RESULT;
       }
       return Success.INSTANCE;
     } catch (Exception e) {
@@ -49,4 +49,9 @@ final class ApiKeyAuthHandler extends WebhookAuthorizationHandler<ApiKeyAuth> {
       return new InvalidCredentials(e.getMessage());
     }
   }
+
+  private static final AuthorizationResult API_KEY_MISSING_RESULT =
+      new InvalidCredentials("API key is missing");
+  private static final AuthorizationResult API_KEY_INVALID_RESULT =
+      new InvalidCredentials("API key is invalid");
 }

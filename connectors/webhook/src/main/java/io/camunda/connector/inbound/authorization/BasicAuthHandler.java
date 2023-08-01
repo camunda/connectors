@@ -30,14 +30,14 @@ final class BasicAuthHandler extends WebhookAuthorizationHandler<BasicAuth> {
             && authHeader.trim().length() > "basic ".length();
 
     if (!isPresent) {
-      return new InvalidCredentials("Basic auth header is missing");
+      return AUTH_HEADER_MISSING_RESULT;
     }
     String authValue = authHeader.split(" ")[1];
     String expectedAuth = expectedAuthorization.username() + ":" + expectedAuthorization.password();
     String actualAuth =
         new String(Base64.getDecoder().decode(authValue.getBytes(StandardCharsets.UTF_8)));
     if (!expectedAuth.equals(actualAuth)) {
-      return new InvalidCredentials("Basic auth header is invalid");
+      return AUTH_HEADER_INVALID_RESULT;
     }
     return Success.INSTANCE;
   }
@@ -47,4 +47,9 @@ final class BasicAuthHandler extends WebhookAuthorizationHandler<BasicAuth> {
         .collect(Collectors.toMap(entry -> entry.getKey().toLowerCase(), Entry::getValue))
         .get(HttpHeaders.AUTHORIZATION.toLowerCase());
   }
+
+  private static final AuthorizationResult AUTH_HEADER_MISSING_RESULT =
+      new InvalidCredentials("Basic auth header is missing");
+  private static final AuthorizationResult AUTH_HEADER_INVALID_RESULT =
+      new InvalidCredentials("Basic auth header is invalid");
 }
