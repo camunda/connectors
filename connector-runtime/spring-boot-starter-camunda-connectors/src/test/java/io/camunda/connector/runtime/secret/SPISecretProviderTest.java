@@ -16,14 +16,17 @@
  */
 package io.camunda.connector.runtime.secret;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest(classes = {TestConnectorRuntimeApplication.class})
+@SpringBootTest(
+    classes = {TestConnectorRuntimeApplication.class},
+    properties = {"camunda.connector.secret-provider.environment.enabled=false"})
 public class SPISecretProviderTest {
 
   @Autowired SecretProviderAggregator secretProviderAggregator;
@@ -32,6 +35,7 @@ public class SPISecretProviderTest {
   void secretProviderIsLoadedFromServiceLoader() {
     // given only the SPI secret provider is defined and no spring beans secret providers
     // then it should be discovered
-    Assertions.assertThat(secretProviderAggregator.getSecret("SPI")).isEqualTo("SPI");
+    assertThat(secretProviderAggregator.getSecretProviders().size()).isEqualTo(1);
+    assertThat(secretProviderAggregator.getSecret("SPI")).isEqualTo("SPI");
   }
 }

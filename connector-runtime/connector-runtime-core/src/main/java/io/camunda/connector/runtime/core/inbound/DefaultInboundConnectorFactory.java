@@ -58,7 +58,6 @@ public class DefaultInboundConnectorFactory implements InboundConnectorFactory {
 
   @Override
   public InboundConnectorExecutable getInstance(String type) {
-
     InboundConnectorConfiguration configuration =
         configurations.stream()
             .filter(config -> config.type().equals(type))

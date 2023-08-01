@@ -26,6 +26,7 @@ import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.ConnectorHelper;
 import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
+import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import io.camunda.zeebe.client.api.worker.JobClient;
 import io.camunda.zeebe.client.api.worker.JobHandler;
@@ -124,8 +125,8 @@ public class ConnectorJobHandler implements JobHandler {
     if (secretProvider != null) {
       return secretProvider;
     }
-    // otherwise fall back to default implementation (SPI discovery or environment variables)
-    return new SecretProviderAggregator();
+    // otherwise fall back to default implementation (SPI discovery)
+    return new SecretProviderAggregator(SecretProviderDiscovery.discoverSecretProviders());
   }
 
   protected void logError(ActivatedJob job, Exception ex) {

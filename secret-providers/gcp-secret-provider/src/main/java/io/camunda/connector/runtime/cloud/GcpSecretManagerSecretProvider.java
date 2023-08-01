@@ -25,12 +25,12 @@ import com.google.common.cache.LoadingCache;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
-import io.camunda.connector.api.config.ConnectorConfigurationUtil;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.secret.SecretProvider;
 import java.lang.reflect.Type;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
@@ -62,9 +62,9 @@ public class GcpSecretManagerSecretProvider implements SecretProvider {
 
   public GcpSecretManagerSecretProvider() {
     this(
-        ConnectorConfigurationUtil.getProperty(CLUSTER_ID_ENV_NAME),
-        ConnectorConfigurationUtil.getProperty(SECRETS_PROJECT_ENV_NAME),
-        ConnectorConfigurationUtil.getProperty(SECRETS_PREFIX_ENV_NAME));
+        System.getenv(CLUSTER_ID_ENV_NAME),
+        System.getenv(SECRETS_PROJECT_ENV_NAME),
+        System.getenv(SECRETS_PREFIX_ENV_NAME));
   }
 
   public GcpSecretManagerSecretProvider(
@@ -96,7 +96,9 @@ public class GcpSecretManagerSecretProvider implements SecretProvider {
           }
         };
     long millis =
-        Long.valueOf(ConnectorConfigurationUtil.getProperty(SECRETS_CACHE_MILLIS_ENV_NAME, "5000"));
+        Long.parseLong(
+            Optional.ofNullable(System.getenv(SECRETS_CACHE_MILLIS_ENV_NAME))
+                .orElseGet(() -> "5000"));
     secretsCache =
         CacheBuilder.newBuilder().refreshAfterWrite(millis, TimeUnit.MILLISECONDS).build(loader);
   }

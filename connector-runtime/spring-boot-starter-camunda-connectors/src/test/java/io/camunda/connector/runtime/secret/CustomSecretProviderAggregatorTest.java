@@ -16,12 +16,15 @@
  */
 package io.camunda.connector.runtime.secret;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.secret.CustomSecretProviderAggregatorTest.CustomSecretProviderAggregator;
 import io.camunda.connector.runtime.secret.providers.BarSpringSecretProvider;
 import io.camunda.connector.runtime.secret.providers.FooSpringSecretProvider;
-import org.assertj.core.api.Assertions;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -42,12 +45,16 @@ public class CustomSecretProviderAggregatorTest {
   void customAggregatorCanOverrideDefault() {
     // given 2 secret providers defined in the spring context
     // and a custom secret provider aggregator
-    Assertions.assertThat(secretProviderAggregator.getSecret("FOO")).isEqualTo("CUSTOM");
-    Assertions.assertThat(secretProviderAggregator.getSecret("BAR")).isEqualTo("CUSTOM");
+    assertThat(secretProviderAggregator.getSecret("FOO")).isEqualTo("CUSTOM");
+    assertThat(secretProviderAggregator.getSecret("BAR")).isEqualTo("CUSTOM");
   }
 
   @Component
   public static class CustomSecretProviderAggregator extends SecretProviderAggregator {
+
+    public CustomSecretProviderAggregator(List<SecretProvider> secretProviders) {
+      super(secretProviders);
+    }
 
     @Override
     public String getSecret(String secretName) {

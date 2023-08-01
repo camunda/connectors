@@ -22,13 +22,19 @@ import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
+import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
 import io.camunda.connector.runtime.env.SpringConnectorPropertyResolver;
+import io.camunda.connector.runtime.env.SpringEnvironmentSecretProvider;
 import io.camunda.connector.runtime.outbound.OutboundConnectorRuntimeConfiguration;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
@@ -38,6 +44,9 @@ import org.springframework.core.env.Environment;
 @Import(OutboundConnectorRuntimeConfiguration.class)
 @EnableConfigurationProperties(ConnectorProperties.class)
 public class OutboundConnectorsAutoConfiguration {
+
+  @Value("${camunda.connector.secret-provider.discovery.enabled:true}")
+  Boolean secretProviderLookupEnabled;
 
   private static final Logger LOG =
       LoggerFactory.getLogger(OutboundConnectorsAutoConfiguration.class);
@@ -52,15 +61,24 @@ public class OutboundConnectorsAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public SecretProviderAggregator springSecretProviderAggregator(
-      List<SecretProvider> secretProviders) {
-    if (secretProviders == null || secretProviders.isEmpty()) {
-      LOG.debug(
-          "No secret providers discovered as Spring beans. "
-              + "Falling back to SPI discovery and environment variables.");
-      return new SecretProviderAggregator();
+      Optional<List<SecretProvider>> secretProviderBeans) {
+    var secretProviders = secretProviderBeans.orElseGet(LinkedList::new);
+    LOG.debug("Using secret providers discovered as Spring beans: {}", secretProviderBeans);
+    if (secretProviderLookupEnabled != Boolean.FALSE) {
+      var discoveredSecretProviders = SecretProviderDiscovery.discoverSecretProviders();
+      LOG.debug("Using secret providers discovered by lookup: {}", discoveredSecretProviders);
+      secretProviders.addAll(discoveredSecretProviders);
     }
-    LOG.debug("Using secret providers discovered as Spring beans: {}", secretProviders);
     return new SecretProviderAggregator(secretProviders);
+  }
+
+  @Bean
+  @ConditionalOnProperty(
+      name = "camunda.connector.secret-provider.environment.enabled",
+      havingValue = "true",
+      matchIfMissing = true)
+  public SpringEnvironmentSecretProvider defaultSecretProvider(Environment environment) {
+    return new SpringEnvironmentSecretProvider(environment);
   }
 
   @Bean
