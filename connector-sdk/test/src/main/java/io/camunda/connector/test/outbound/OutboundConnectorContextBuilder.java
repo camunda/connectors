@@ -64,7 +64,7 @@ public class OutboundConnectorContextBuilder {
   public OutboundConnectorContextBuilder variables(String variablesAsJSON) {
     this.assertNoVariables();
     try {
-      this.variables = objectMapper.readValue(variablesAsJSON, Map.class);
+      this.variables = objectMapper.readValue(variablesAsJSON, new TypeReference<>() {});
     } catch (JsonProcessingException e) {
       throw new IllegalArgumentException("Invalid JSON: " + variablesAsJSON, e);
     }
@@ -174,10 +174,17 @@ public class OutboundConnectorContextBuilder {
   public class TestConnectorContext extends AbstractConnectorContext
       implements OutboundConnectorContext {
 
+    private final String variablesWithSecrets;
+
     protected TestConnectorContext(
         SecretProvider secretProvider, ValidationProvider validationProvider) {
       super(secretProvider, validationProvider);
-      replaceSecrets(variables);
+      try {
+        var asString = objectMapper.writeValueAsString(variables);
+        variablesWithSecrets = getSecretHandler().replaceSecrets(asString);
+      } catch (JsonProcessingException e) {
+        throw new RuntimeException(e);
+      }
     }
 
     @Override
@@ -187,20 +194,20 @@ public class OutboundConnectorContextBuilder {
 
     @Override
     public String getVariables() {
-      try {
-        return objectMapper.writeValueAsString(variables);
-      } catch (JsonProcessingException e) {
-        throw new RuntimeException(e);
-      }
+      return variablesWithSecrets;
     }
 
     @Override
     public <T> T bindVariables(Class<T> cls) {
-      var mappedObject = objectMapper.convertValue(variables, cls);
-      if (validationProvider != null) {
-        getValidationProvider().validate(mappedObject);
+      try {
+        var mappedObject = objectMapper.readValue(variablesWithSecrets, cls);
+        if (validationProvider != null) {
+          getValidationProvider().validate(mappedObject);
+        }
+        return mappedObject;
+      } catch (JsonProcessingException e) {
+        throw new RuntimeException(e);
       }
-      return mappedObject;
     }
   }
 }

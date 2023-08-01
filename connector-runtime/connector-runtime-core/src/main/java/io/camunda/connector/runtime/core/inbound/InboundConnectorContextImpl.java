@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.runtime.core.inbound;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
@@ -25,7 +27,6 @@ import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -77,13 +78,12 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   @Override
   public Map<String, Object> getProperties() {
-    return getPropertiesWithSecrets(properties);
+    return getPropertiesWithSecrets();
   }
 
   @Override
   public <T> T bindProperties(Class<T> cls) {
-    var mappedObject = objectMapper.convertValue(properties, cls);
-    replaceSecrets(mappedObject);
+    var mappedObject = objectMapper.convertValue(getPropertiesWithSecrets(), cls);
     getValidationProvider().validate(mappedObject);
     return mappedObject;
   }
@@ -104,10 +104,16 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   private Map<String, Object> propertiesWithSecrets;
 
-  private Map<String, Object> getPropertiesWithSecrets(Map<String, Object> properties) {
+  private Map<String, Object> getPropertiesWithSecrets() {
     if (propertiesWithSecrets == null) {
-      propertiesWithSecrets = new HashMap<>(properties);
-      replaceSecrets(propertiesWithSecrets);
+      try {
+        var propertiesAsJsonString = objectMapper.writeValueAsString(properties);
+        var propertiesWithSecretsJson = getSecretHandler().replaceSecrets(propertiesAsJsonString);
+        propertiesWithSecrets =
+            objectMapper.readValue(propertiesWithSecretsJson, new TypeReference<>() {});
+      } catch (JsonProcessingException e) {
+        throw new RuntimeException(e);
+      }
     }
     return propertiesWithSecrets;
   }
