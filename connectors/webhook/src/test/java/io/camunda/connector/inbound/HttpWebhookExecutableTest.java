@@ -6,19 +6,23 @@
  */
 package io.camunda.connector.inbound;
 
+import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.disabled;
 import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.enabled;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchException;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.google.common.net.HttpHeaders;
 import com.google.common.net.MediaType;
+import io.camunda.connector.api.error.WebhookConnectorException;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.inbound.signature.HMACAlgoCustomerChoice;
 import io.camunda.connector.inbound.utils.HttpMethods;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -55,7 +59,7 @@ class HttpWebhookExecutableTest {
     testObject.activate(ctx);
     var result = testObject.triggerWebhook(payload);
 
-    Assertions.assertThat((Map) result.request().body()).containsEntry("key", "value");
+    assertThat((Map) result.request().body()).containsEntry("key", "value");
   }
 
   @Test
@@ -80,8 +84,8 @@ class HttpWebhookExecutableTest {
     testObject.activate(ctx);
     var result = testObject.triggerWebhook(payload);
 
-    Assertions.assertThat((Map) result.request().body()).containsEntry("key1", "value1");
-    Assertions.assertThat((Map) result.request().body()).containsEntry("key2", "value2");
+    assertThat((Map) result.request().body()).containsEntry("key1", "value1");
+    assertThat((Map) result.request().body()).containsEntry("key2", "value2");
   }
 
   @Test
@@ -106,7 +110,7 @@ class HttpWebhookExecutableTest {
     testObject.activate(ctx);
     var result = testObject.triggerWebhook(payload);
 
-    Assertions.assertThat((Map) result.request().body()).containsEntry("key", "value");
+    assertThat((Map) result.request().body()).containsEntry("key", "value");
   }
 
   @Test
@@ -154,7 +158,10 @@ class HttpWebhookExecutableTest {
 
     testObject.activate(ctx);
 
-    assertThrows(Exception.class, () -> testObject.triggerWebhook(payload));
+    var exception = catchException(() -> testObject.triggerWebhook(payload));
+    assertThat(exception).isInstanceOf(WebhookConnectorException.class);
+    assertThat(((WebhookConnectorException) exception).getStatusCode())
+        .isEqualTo(HttpResponseStatus.METHOD_NOT_ALLOWED.code());
   }
 
   @Test
@@ -188,7 +195,7 @@ class HttpWebhookExecutableTest {
     testObject.activate(ctx);
     var result = testObject.triggerWebhook(payload);
 
-    Assertions.assertThat((Map) result.request().body()).containsEntry("key", "value");
+    assertThat((Map) result.request().body()).containsEntry("key", "value");
   }
 
   @Test
@@ -221,6 +228,86 @@ class HttpWebhookExecutableTest {
 
     testObject.activate(ctx);
 
-    assertThrows(Exception.class, () -> testObject.triggerWebhook(payload));
+    var exception = catchException(() -> testObject.triggerWebhook(payload));
+    assertThat(exception).isInstanceOf(WebhookConnectorException.class);
+    assertThat(((WebhookConnectorException) exception).getStatusCode())
+        .isEqualTo(HttpResponseStatus.UNAUTHORIZED.code());
+  }
+
+  @Test
+  void triggerWebhook_BadApiKey_RaisesException() throws Exception {
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context",
+                        "webhookContext",
+                        "method",
+                        "any",
+                        "shouldValidateHmac",
+                        disabled.name(),
+                        "auth",
+                        Map.of(
+                            "type", "APIKEY",
+                            "apiKey", "myApiKey",
+                            "apiKeyLocator", "=request.headers.Authorization"))))
+            .build();
+
+    WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
+    Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
+    Mockito.when(payload.headers())
+        .thenReturn(
+            Map.of(
+                HttpHeaders.CONTENT_TYPE,
+                MediaType.JSON_UTF_8.toString(),
+                "Authorization",
+                "notMyApiKey")); // not correct API key
+    Mockito.when(payload.rawBody())
+        .thenReturn("{\"key\": \"value\"}".getBytes(StandardCharsets.UTF_8));
+
+    testObject.activate(ctx);
+
+    var exception = catchException(() -> testObject.triggerWebhook(payload));
+    assertThat(exception).isInstanceOf(WebhookConnectorException.class);
+    assertThat(((WebhookConnectorException) exception).getStatusCode())
+        .isEqualTo(HttpResponseStatus.UNAUTHORIZED.code());
+  }
+
+  @Test
+  void triggerWebhook_MissingApiKey_RaisesException() throws Exception {
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context",
+                        "webhookContext",
+                        "method",
+                        "any",
+                        "shouldValidateHmac",
+                        disabled.name(),
+                        "auth",
+                        Map.of(
+                            "type", "APIKEY",
+                            "apiKey", "myApiKey",
+                            "apiKeyLocator", "=request.headers.authorization"))))
+            .build();
+
+    WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
+    Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
+    Mockito.when(payload.headers())
+        .thenReturn(Map.of(HttpHeaders.CONTENT_TYPE, MediaType.JSON_UTF_8.toString()));
+    Mockito.when(payload.rawBody())
+        .thenReturn("{\"key\": \"value\"}".getBytes(StandardCharsets.UTF_8));
+
+    testObject.activate(ctx);
+
+    var exception = catchException(() -> testObject.triggerWebhook(payload));
+    assertThat(exception).isInstanceOf(WebhookConnectorException.class);
+    assertThat(((WebhookConnectorException) exception).getStatusCode())
+        .isEqualTo(HttpResponseStatus.UNAUTHORIZED.code());
   }
 }

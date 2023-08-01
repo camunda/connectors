@@ -19,8 +19,13 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.feel.FeelEngineWrapperException;
+import io.camunda.connector.inbound.authorization.AuthorizationResult.Failure.Forbidden;
+import io.camunda.connector.inbound.authorization.AuthorizationResult.Failure.InvalidCredentials;
+import io.camunda.connector.inbound.authorization.AuthorizationResult.Success;
 import io.camunda.connector.inbound.model.JWTProperties;
+import io.camunda.connector.inbound.model.WebhookAuthorization.JwtAuth;
 import java.security.interfaces.ECPublicKey;
 import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
@@ -31,18 +36,28 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class JWTChecker {
+final class JWTAuthHandler extends WebhookAuthorizationHandler<JwtAuth> {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(JWTChecker.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(JWTAuthHandler.class);
 
-  public static boolean verify(
-      final JWTProperties jwtProperties,
-      final Map<String, String> headers,
-      final JwkProvider jwkProvider,
-      final ObjectMapper objectMapper) {
+  private final JwkProvider jwkProvider;
+  private final ObjectMapper objectMapper;
+
+  public JWTAuthHandler(JwtAuth authorization, JwkProvider jwkProvider, ObjectMapper objectMapper) {
+    super(authorization);
+    this.jwkProvider = jwkProvider;
+    this.objectMapper = objectMapper;
+  }
+
+  @Override
+  public AuthorizationResult checkAuthorization(WebhookProcessingPayload payload) {
+
+    JWTProperties jwtProperties = expectedAuthorization.jwt();
+    Map<String, String> headers = payload.headers();
+
     Optional<DecodedJWT> decodedJWT = getDecodedVerifiedJWT(headers, jwkProvider);
     if (decodedJWT.isEmpty()) {
-      return false;
+      return JWT_AUTH_FAILED_RESULT;
     }
     if (jwtProperties.requiredPermissions() != null
         && !jwtProperties.requiredPermissions().isEmpty()) {
@@ -50,20 +65,20 @@ public class JWTChecker {
       List<String> roles = extractRoles(jwtProperties, decodedJWT.get(), objectMapper);
       if (!roles.containsAll(jwtProperties.requiredPermissions())) {
         LOGGER.debug("JWT auth failed");
-        return false;
+        return JWT_AUTH_MISSING_PERMISSIONS_RESULT;
       }
     }
     LOGGER.debug("JWT auth was successful");
-    return true;
+    return Success.INSTANCE;
   }
 
   private static Optional<DecodedJWT> getDecodedVerifiedJWT(
       Map<String, String> headers, JwkProvider jwkProvider) {
     final String jwtToken =
-        JWTChecker.extractJWTFomHeader(headers)
+        JWTAuthHandler.extractJWTFomHeader(headers)
             .orElseThrow(() -> new RuntimeException("Cannot extract JWT from header!"));
     try {
-      return Optional.of(JWTChecker.verifyJWT(jwtToken, jwkProvider));
+      return Optional.of(JWTAuthHandler.verifyJWT(jwtToken, jwkProvider));
     } catch (JWTDecodeException ex) {
       LOGGER.warn("Failed to decode JWT token! Cause: " + ex.getCause());
       return Optional.empty();
@@ -148,4 +163,9 @@ public class JWTChecker {
       default -> throw new RuntimeException("Unknown algorithm!");
     };
   }
+
+  private static final AuthorizationResult JWT_AUTH_FAILED_RESULT =
+      new InvalidCredentials("JWT auth failed");
+  private static final AuthorizationResult JWT_AUTH_MISSING_PERMISSIONS_RESULT =
+      new Forbidden("Missing required permissions");
 }

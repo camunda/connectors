@@ -22,6 +22,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -42,32 +43,22 @@ public class SecurityConfiguration {
   private String issuer;
 
   @Bean
+  public WebSecurityCustomizer webSecurityCustomizer() {
+    return (web) ->
+        web.ignoring()
+            .requestMatchers(HttpMethod.POST, "/inbound/*")
+            .requestMatchers(HttpMethod.GET, "/inbound/*")
+            .requestMatchers(HttpMethod.PUT, "/inbound/*")
+            .requestMatchers(HttpMethod.DELETE, "/inbound/*")
+            .requestMatchers("/actuator/**");
+  }
+
+  @Bean
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
     http.csrf(csrf -> csrf.ignoringRequestMatchers("/inbound/**"))
-        .authorizeRequests(
-            auth -> {
-              try {
-                auth.requestMatchers(HttpMethod.POST, "/inbound/**")
-                    .permitAll()
-                    .requestMatchers(HttpMethod.GET, "/inbound/**")
-                    .permitAll()
-                    .requestMatchers(HttpMethod.PUT, "/inbound/**")
-                    .permitAll()
-                    .requestMatchers(HttpMethod.DELETE, "/inbound/**")
-                    .permitAll()
-                    .requestMatchers("/actuator/**")
-                    .permitAll()
-                    .requestMatchers("/inbound")
-                    .hasAuthority("SCOPE_inbound:read")
-                    .anyRequest()
-                    .authenticated()
-                    .and()
-                    .oauth2ResourceServer()
-                    .jwt();
-              } catch (Exception e) {
-                throw new RuntimeException(e);
-              }
-            });
+        .authorizeHttpRequests(
+            auth -> auth.requestMatchers("/inbound").hasAuthority("SCOPE_inbound:read"))
+        .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.decoder(jwtDecoder())));
     return http.build();
   }
 
