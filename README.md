@@ -1,6 +1,6 @@
 > This is in developer preview and can be subject to breaking changes.
 
-# Camunda 8 out-of-the-box Connectors
+# Camunda 8 Connectors
 
 [![CI](https://github.com/camunda/connectors-bundle/actions/workflows/DEPLOY.yaml/badge.svg)](https://github.com/camunda/connectors-bundle/actions/workflows/DEPLOY.yml)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.camunda.connector/connector-core/badge.svg?style=flat)](https://maven-badges.herokuapp.com/maven-central/io.camunda.connector/connector-core)
@@ -30,12 +30,10 @@ This is a multi-module project with different licenses applied to different modu
 
 ### Modules available under [Apache 2.0 license](https://www.apache.org/licenses/LICENSE-2.0)
 
-* [Core](core) module
+* [Connector SDK](connector-sdk) including all supporting libraries
+* [Connector Secret providers](secret-providers) implementations
 * [Connector Runtime](connector-runtime) and all its submodules
-* [Secret provider](secret-providers) implementations
-* [Test libraries](test)
-* [Validation](validation) module
-* [REST Connector](connectors/http-json)
+* [HTTP Outbound Connector](connectors/http-json)
 
 ### Modules available under [Camunda Platform Self-Managed Free Edition license](https://camunda.com/legal/terms/cloud-terms-and-conditions/camunda-cloud-self-managed-free-edition-terms/)
 
@@ -46,7 +44,7 @@ When in doubt, refer to the `LICENSE` file in the respective module.
 
 ## Create a Connector
 
-Include the [connector-core](./core), e.g. via Maven:
+Include the [connector-core](connector-sdk/core), e.g. via Maven:
 
 ```xml
 <dependency>
@@ -68,18 +66,16 @@ Define your Connector logic through the [`OutboundConnectorFunction`](./core/src
 ```java
 
 @OutboundConnector(
-    name = "PING",
-    inputVariables = {"caller"},
-    type = "io.camunda.example.PingConnector:1"
+  name = "PING",
+  inputVariables = {"caller"},
+  type = "io.camunda.example.PingConnector:1"
 )
 public class PingConnector implements OutboundConnectorFunction {
 
   @Override
   public Object execute(OutboundConnectorContext context) throws Exception {
-
     var request = context.bindVariables(PingRequest.class);
     var caller = request.getCaller();
-
     return new PingResponse("Pong to " + caller);
   }
 }
@@ -90,8 +86,8 @@ public class PingConnector implements OutboundConnectorFunction {
 Define your Connector logic through the [`InboundConnectorExecutable`](./core/src/main/java/io/camunda/connector/api/inbound/InboundConnectorExecutable.java) interface:
 ```java
 @InboundConnector(
-    name = "SUBSCRIPTION",
-    type = "io.camunda.example.SubscriptionConnector:1"
+  name = "SUBSCRIPTION",
+  type = "io.camunda.example.SubscriptionConnector:1"
 )
 public class SubscriptionConnector implements InboundConnectorExecutable {
 
@@ -99,9 +95,7 @@ public class SubscriptionConnector implements InboundConnectorExecutable {
 
   @Override
   public void activate(InboundConnectorContext context) throws Exception {
-
     var properties = context.bindProperties(SubscriptionProperties.class);
-
     // subscribe to events
     subscription = new MockSubscription(properties.getTopic());
     subscription.subscribe(event -> {
@@ -129,7 +123,6 @@ Alternatively, you can use the [manual discovery mechanism](https://docs.camunda
 If you want to validate your Connector input, the SDK provides a default implementation using [Jakarta Bean Validation](https://beanvalidation.org/) with the [connector-validation](./validation) module. You can include it via maven with the following dependency:
 
 ```xml
-
 <dependency>
   <groupId>io.camunda.connector</groupId>
   <artifactId>connector-validation</artifactId>
