@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Amazon SQS connector",
   "id": "io.camunda.connectors.AWSSQS.intermediate.v1",
-  "version": 4,
+  "version": 5,
   "description": "Receive message from a queue",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-sqs-inbound/",
   "appliesTo": [
@@ -100,8 +100,8 @@
       "constraints": {
         "notEmpty": true,
         "pattern": {
-          "value": "(^https?://.+)|(^arn:.+)(^secrets\\..+)",
-          "message": "Must be an queue URL or ARN or a secret.XYZ"
+          "value": "^(https?://.+|arn:.+|\\{\\{secrets\\..+\\}\\}.*)$",
+          "message": "Must be an queue URL or ARN"
         }
       }
     },
@@ -123,8 +123,8 @@
       "description": "The duration (in seconds) for which the call waits for a message to arrive in the queue before returning. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-sqs-inbound/\" target=\"_blank\">documentation</a> for details",
       "group": "messagePollingProperties",
       "type": "String",
-      "optional": false,
-      "feel": "optional",
+      "optional":false,
+      "feel":"optional",
       "value": "1",
       "binding": {
         "type": "zeebe:property",
@@ -133,7 +133,7 @@
       "constraints": {
         "notEmpty": true,
         "pattern": {
-          "value": "^([0-9]?|1[0-9]|20|secrets\\..+)$",
+          "value": "^([0-9]?|1[0-9]|20|\\{\\{secrets\\..+\\}\\}.*)$",
           "message": "Must be >= 0 and <= 20 or a FEEL expression"
         }
       }
