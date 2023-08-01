@@ -1,6 +1,6 @@
 > This is in developer preview and can be subject to breaking changes.
 
-# Camunda 8 out-of-the-box Connectors
+# Camunda 8 Connectors
 
 [![CI](https://github.com/camunda/connectors-bundle/actions/workflows/DEPLOY.yaml/badge.svg)](https://github.com/camunda/connectors-bundle/actions/workflows/DEPLOY.yml)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.camunda.connector/connector-core/badge.svg?style=flat)](https://maven-badges.herokuapp.com/maven-central/io.camunda.connector/connector-core)
