@@ -23,6 +23,7 @@ import static org.springframework.web.bind.annotation.RequestMethod.POST;
 import static org.springframework.web.bind.annotation.RequestMethod.PUT;
 
 import io.camunda.connector.api.error.WebhookConnectorException;
+import io.camunda.connector.api.error.WebhookConnectorException.WebhookSecurityException;
 import io.camunda.connector.api.inbound.InboundConnectorResult;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
@@ -149,13 +150,13 @@ public class InboundWebhookRestController {
 
   private ResponseEntity<?> handleWebhookConnectorException(WebhookConnectorException e) {
     var status = HttpStatus.valueOf(e.getStatusCode());
-    if (status.is5xxServerError()) {
-      LOG.error("Webhook failed with exception", e);
+    if (e instanceof WebhookSecurityException) {
+      LOG.warn("Webhook failed with security-related exception", e);
       // no message will be included for security reasons
       return ResponseEntity.status(status).body(null);
     }
-    if (status == HttpStatus.UNAUTHORIZED || status == HttpStatus.FORBIDDEN) {
-      LOG.warn("Webhook failed with security-related exception", e);
+    if (status.is5xxServerError()) {
+      LOG.error("Webhook failed with exception", e);
       // no message will be included for security reasons
       return ResponseEntity.status(status).body(null);
     }

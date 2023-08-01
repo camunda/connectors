@@ -6,13 +6,14 @@
  */
 package io.camunda.connector.inbound.authorization;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.net.HttpHeaders;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
+import io.camunda.connector.inbound.authorization.AuthorizationResult.Failure.InvalidCredentials;
+import io.camunda.connector.inbound.authorization.AuthorizationResult.Success;
 import io.camunda.connector.inbound.model.WebhookAuthorization;
 import java.util.Base64;
 import java.util.Map;
@@ -27,22 +28,26 @@ public class BasicAuthHandlerTest {
   void basic_validCredentials() {
     // given
     var payload = mockBasicAuthHeader("username", "password");
-    var handler = new BasicAuthHandler(expectedAuth, payload);
+    var handler = new BasicAuthHandler(expectedAuth);
+
+    // when
+    var result = handler.checkAuthorization(payload);
 
     // when/then
-    assertTrue(handler::isPresent);
-    assertTrue(handler::isValid);
+    assertThat(result).isInstanceOf(Success.class);
   }
 
   @Test
   void basic_invalidCredentials() {
     // given
     var payload = mockBasicAuthHeader("wrong-username", "wrong-password");
-    var handler = new BasicAuthHandler(expectedAuth, payload);
+    var handler = new BasicAuthHandler(expectedAuth);
+
+    // when
+    var result = handler.checkAuthorization(payload);
 
     // when/then
-    assertTrue(handler::isPresent);
-    assertFalse(handler::isValid);
+    assertThat(result).isInstanceOf(InvalidCredentials.class);
   }
 
   @Test
@@ -50,11 +55,13 @@ public class BasicAuthHandlerTest {
     // given
     var payload = mock(WebhookProcessingPayload.class);
     when(payload.headers()).thenReturn(Map.of(HttpHeaders.AUTHORIZATION, "NotBasic 123"));
-    var handler = new BasicAuthHandler(expectedAuth, payload);
+    var handler = new BasicAuthHandler(expectedAuth);
+
+    // when
+    var result = handler.checkAuthorization(payload);
 
     // when/then
-    assertFalse(handler::isPresent);
-    assertFalse(handler::isValid);
+    assertThat(result).isInstanceOf(InvalidCredentials.class);
   }
 
   @Test
@@ -62,11 +69,13 @@ public class BasicAuthHandlerTest {
     // given
     var payload = mock(WebhookProcessingPayload.class);
     when(payload.headers()).thenReturn(Map.of());
-    var handler = new BasicAuthHandler(expectedAuth, payload);
+    var handler = new BasicAuthHandler(expectedAuth);
+
+    // when
+    var result = handler.checkAuthorization(payload);
 
     // when/then
-    assertFalse(handler::isPresent);
-    assertFalse(handler::isValid);
+    assertThat(result).isInstanceOf(InvalidCredentials.class);
   }
 
   private WebhookProcessingPayload mockBasicAuthHeader(String username, String password) {

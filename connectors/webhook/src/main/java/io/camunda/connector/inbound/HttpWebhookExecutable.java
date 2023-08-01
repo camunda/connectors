@@ -9,16 +9,17 @@ package io.camunda.connector.inbound;
 import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.disabled;
 import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.enabled;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.error.WebhookConnectorException;
+import io.camunda.connector.api.error.WebhookConnectorException.WebhookSecurityException;
+import io.camunda.connector.api.error.WebhookConnectorException.WebhookSecurityException.Reason;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookResult;
-import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
-import io.camunda.connector.inbound.authorization.WebhookAuthChecker;
+import io.camunda.connector.inbound.authorization.AuthorizationResult.Failure;
+import io.camunda.connector.inbound.authorization.WebhookAuthorizationHandler;
 import io.camunda.connector.inbound.model.WebhookConnectorProperties;
 import io.camunda.connector.inbound.model.WebhookConnectorProperties.WebhookConnectorPropertiesWrapper;
 import io.camunda.connector.inbound.model.WebhookProcessingResultImpl;
@@ -38,18 +39,9 @@ import org.slf4j.LoggerFactory;
 public class HttpWebhookExecutable implements WebhookConnectorExecutable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(HttpWebhookExecutable.class);
-  private final ObjectMapper objectMapper;
 
   private WebhookConnectorProperties props;
-  private WebhookAuthChecker authChecker;
-
-  public HttpWebhookExecutable() {
-    this(ConnectorsObjectMapperSupplier.getCopy());
-  }
-
-  public HttpWebhookExecutable(final ObjectMapper objectMapper) {
-    this.objectMapper = objectMapper;
-  }
+  private WebhookAuthorizationHandler<?> authChecker;
 
   @Override
   public WebhookResult triggerWebhook(WebhookProcessingPayload payload)
@@ -66,18 +58,15 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
     WebhookProcessingResultImpl response = new WebhookProcessingResultImpl();
 
     if (!webhookSignatureIsValid(payload)) {
-      throw new WebhookConnectorException(
-          HttpResponseStatus.UNAUTHORIZED.code(), "HMAC signature check didn't pass");
+      throw new WebhookSecurityException(
+          HttpResponseStatus.UNAUTHORIZED.code(),
+          Reason.INVALID_SIGNATURE,
+          "HMAC signature check didn't pass");
     }
 
-    var authHandler = authChecker.getHandler(payload);
-    if (!authHandler.isPresent()) {
-      throw new WebhookConnectorException(
-          HttpResponseStatus.UNAUTHORIZED.code(), "Authorization header not present");
-    }
-    if (!authHandler.isValid()) {
-      throw new WebhookConnectorException(
-          HttpResponseStatus.FORBIDDEN.code(), "Authorization header not valid");
+    var authResult = authChecker.checkAuthorization(payload);
+    if (authResult instanceof Failure failureResult) {
+      throw failureResult.toException();
     }
 
     response.setRequest(
@@ -128,6 +117,6 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
     }
     var wrappedProps = context.bindProperties(WebhookConnectorPropertiesWrapper.class);
     props = new WebhookConnectorProperties(wrappedProps);
-    authChecker = new WebhookAuthChecker(props.auth(), objectMapper);
+    authChecker = WebhookAuthorizationHandler.getHandlerForAuth(props.auth());
   }
 }

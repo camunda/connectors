@@ -9,24 +9,23 @@ package io.camunda.connector.inbound.authorization;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookTriggerResultContext;
+import io.camunda.connector.inbound.authorization.AuthorizationResult.Failure.InvalidCredentials;
+import io.camunda.connector.inbound.authorization.AuthorizationResult.Success;
 import io.camunda.connector.inbound.model.WebhookAuthorization.ApiKeyAuth;
 import io.camunda.connector.inbound.utils.HttpWebhookUtil;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-final class ApiKeyAuthHandler extends AuthorizationHandler<ApiKeyAuth> {
+final class ApiKeyAuthHandler extends WebhookAuthorizationHandler<ApiKeyAuth> {
   private static final Logger LOG = LoggerFactory.getLogger(ApiKeyAuthHandler.class);
 
-  public ApiKeyAuthHandler(ApiKeyAuth authorization, WebhookProcessingPayload payload) {
-    super(authorization, payload);
+  public ApiKeyAuthHandler(ApiKeyAuth authorization) {
+    super(authorization);
   }
 
-  private String apiKeyValue = null;
-  private boolean isEvaluated = false;
-
-  private String getApiKeyValue() {
-    isEvaluated = true;
+  @Override
+  public AuthorizationResult checkAuthorization(WebhookProcessingPayload payload) {
     try {
       WebhookTriggerResultContext result =
           new WebhookTriggerResultContext(
@@ -37,26 +36,17 @@ final class ApiKeyAuthHandler extends AuthorizationHandler<ApiKeyAuth> {
                   payload.params()),
               Map.of());
 
-      return expectedAuthorization.apiKeyLocator().apply(result);
+      String apiKeyValue = expectedAuthorization.apiKeyLocator().apply(result);
+      if (apiKeyValue == null) {
+        return new InvalidCredentials("API key value is missing");
+      }
+      if (!apiKeyValue.equals(expectedAuthorization.apiKey())) {
+        return new InvalidCredentials("API key value is invalid");
+      }
+      return Success.INSTANCE;
     } catch (Exception e) {
       LOG.info("Error while extracting API key value", e);
-      return null;
+      return new InvalidCredentials(e.getMessage());
     }
-  }
-
-  @Override
-  public boolean isPresent() {
-    if (apiKeyValue == null && !isEvaluated) {
-      apiKeyValue = getApiKeyValue();
-    }
-    return apiKeyValue != null;
-  }
-
-  @Override
-  public boolean isValid() {
-    if (apiKeyValue == null && !isEvaluated) {
-      apiKeyValue = getApiKeyValue();
-    }
-    return apiKeyValue != null && apiKeyValue.equals(expectedAuthorization.apiKey());
   }
 }

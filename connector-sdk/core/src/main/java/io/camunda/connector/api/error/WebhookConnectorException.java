@@ -20,7 +20,7 @@ package io.camunda.connector.api.error;
  * Unchecked exception indicating issues with a webhook connector. Must define an HTTP status code
  * that will be returned to the caller.
  */
-public class WebhookConnectorException extends ConnectorException {
+public sealed class WebhookConnectorException extends ConnectorException {
 
   protected int statusCode;
 
@@ -29,17 +29,25 @@ public class WebhookConnectorException extends ConnectorException {
     this.statusCode = statusCode;
   }
 
-  public WebhookConnectorException(int statusCode, Throwable cause) {
-    super(cause);
-    this.statusCode = statusCode;
-  }
-
-  public WebhookConnectorException(int statusCode, String message, Throwable cause) {
-    super(message, cause);
-    this.statusCode = statusCode;
-  }
-
   public int getStatusCode() {
     return statusCode;
+  }
+
+  public static final class WebhookSecurityException extends WebhookConnectorException {
+
+    public enum Reason {
+      INVALID_SIGNATURE,
+      INVALID_CREDENTIALS,
+      FORBIDDEN,
+      OTHER
+    }
+
+    public WebhookSecurityException(int statusCode, Reason reason, String message) {
+      super(statusCode, "Reason: " + reason + ". Details: " + message);
+    }
+
+    public WebhookSecurityException(int statusCode, Reason reason) {
+      super(statusCode, "Reason: " + reason);
+    }
   }
 }

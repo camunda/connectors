@@ -272,7 +272,7 @@ class HttpWebhookExecutableTest {
     var exception = catchException(() -> testObject.triggerWebhook(payload));
     assertThat(exception).isInstanceOf(WebhookConnectorException.class);
     assertThat(((WebhookConnectorException) exception).getStatusCode())
-        .isEqualTo(HttpResponseStatus.FORBIDDEN.code());
+        .isEqualTo(HttpResponseStatus.UNAUTHORIZED.code());
   }
 
   @Test

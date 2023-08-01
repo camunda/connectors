@@ -6,8 +6,7 @@
  */
 package io.camunda.connector.inbound.authorization;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -15,6 +14,8 @@ import com.google.common.net.HttpHeaders;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.feel.FeelEngineWrapperException;
+import io.camunda.connector.inbound.authorization.AuthorizationResult.Failure.InvalidCredentials;
+import io.camunda.connector.inbound.authorization.AuthorizationResult.Success;
 import io.camunda.connector.inbound.model.WebhookAuthorization.ApiKeyAuth;
 import java.util.Map;
 import java.util.function.Function;
@@ -32,22 +33,26 @@ public class ApiKeyAuthHandlerTest {
   void apiKey_validKey() {
     // given
     var payload = preparePayload("apiKey");
-    var checker = new ApiKeyAuthHandler(expectedAuth, payload);
+    var checker = new ApiKeyAuthHandler(expectedAuth);
 
-    // when/then
-    assertTrue(checker::isPresent);
-    assertTrue(checker::isValid);
+    // when
+    var result = checker.checkAuthorization(payload);
+
+    // then
+    assertThat(result).isInstanceOf(Success.class);
   }
 
   @Test
   void apiKey_invalidKey() {
     // given
     var payload = preparePayload("wrong-key");
-    var checker = new ApiKeyAuthHandler(expectedAuth, payload);
+    var checker = new ApiKeyAuthHandler(expectedAuth);
 
-    // when/then
-    assertTrue(checker::isPresent);
-    assertFalse(checker::isValid);
+    // when
+    var result = checker.checkAuthorization(payload);
+
+    // then
+    assertThat(result).isInstanceOf(InvalidCredentials.class);
   }
 
   @Test
@@ -55,11 +60,13 @@ public class ApiKeyAuthHandlerTest {
     // given
     var payload = mock(WebhookProcessingPayload.class);
     when(payload.headers()).thenReturn(Map.of(HttpHeaders.AUTHORIZATION, "NotBearer"));
-    var checker = new ApiKeyAuthHandler(expectedAuth, payload);
+    var checker = new ApiKeyAuthHandler(expectedAuth);
 
-    // when/then
-    assertFalse(checker::isPresent);
-    assertFalse(checker::isValid);
+    // when
+    var result = checker.checkAuthorization(payload);
+
+    // then
+    assertThat(result).isInstanceOf(InvalidCredentials.class);
   }
 
   @Test
@@ -71,9 +78,13 @@ public class ApiKeyAuthHandlerTest {
             request -> {
               throw new FeelEngineWrapperException("oops", "oops", null);
             });
-    var checker = new ApiKeyAuthHandler(invalidAuthDefinition, payload);
-    assertFalse(checker::isPresent);
-    assertFalse(checker::isValid);
+    var checker = new ApiKeyAuthHandler(invalidAuthDefinition);
+
+    // when
+    var result = checker.checkAuthorization(payload);
+
+    // then
+    assertThat(result).isInstanceOf(InvalidCredentials.class);
   }
 
   private WebhookProcessingPayload preparePayload(String apiKey) {

@@ -21,6 +21,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.feel.FeelEngineWrapperException;
+import io.camunda.connector.inbound.authorization.AuthorizationResult.Failure.Forbidden;
+import io.camunda.connector.inbound.authorization.AuthorizationResult.Failure.InvalidCredentials;
+import io.camunda.connector.inbound.authorization.AuthorizationResult.Success;
 import io.camunda.connector.inbound.model.JWTProperties;
 import io.camunda.connector.inbound.model.WebhookAuthorization.JwtAuth;
 import java.security.interfaces.ECPublicKey;
@@ -33,44 +36,28 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-final class JWTAuthHandler extends AuthorizationHandler<JwtAuth> {
+final class JWTAuthHandler extends WebhookAuthorizationHandler<JwtAuth> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(JWTAuthHandler.class);
 
   private final JwkProvider jwkProvider;
   private final ObjectMapper objectMapper;
 
-  public JWTAuthHandler(
-      JwtAuth authorization,
-      WebhookProcessingPayload payload,
-      JwkProvider jwkProvider,
-      ObjectMapper objectMapper) {
-    super(authorization, payload);
+  public JWTAuthHandler(JwtAuth authorization, JwkProvider jwkProvider, ObjectMapper objectMapper) {
+    super(authorization);
     this.jwkProvider = jwkProvider;
     this.objectMapper = objectMapper;
   }
 
   @Override
-  public boolean isPresent() {
-    var token = extractJWTFomHeader(payload.headers());
-    if (token.isEmpty()) return false;
-    try {
-      JWT.decode(token.get());
-    } catch (JWTDecodeException ex) {
-      LOGGER.warn("Failed to decode JWT token! Cause: " + ex.getCause());
-      return false;
-    }
-    return true;
-  }
+  public AuthorizationResult checkAuthorization(WebhookProcessingPayload payload) {
 
-  @Override
-  public boolean isValid() {
     JWTProperties jwtProperties = expectedAuthorization.jwt();
     Map<String, String> headers = payload.headers();
 
     Optional<DecodedJWT> decodedJWT = getDecodedVerifiedJWT(headers, jwkProvider);
     if (decodedJWT.isEmpty()) {
-      return false;
+      return new InvalidCredentials("JWT auth failed");
     }
     if (jwtProperties.requiredPermissions() != null
         && !jwtProperties.requiredPermissions().isEmpty()) {
@@ -78,11 +65,11 @@ final class JWTAuthHandler extends AuthorizationHandler<JwtAuth> {
       List<String> roles = extractRoles(jwtProperties, decodedJWT.get(), objectMapper);
       if (!roles.containsAll(jwtProperties.requiredPermissions())) {
         LOGGER.debug("JWT auth failed");
-        return false;
+        return new Forbidden("Missing required permissions");
       }
     }
     LOGGER.debug("JWT auth was successful");
-    return true;
+    return Success.INSTANCE;
   }
 
   private static Optional<DecodedJWT> getDecodedVerifiedJWT(
