@@ -20,30 +20,27 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
-import io.camunda.connector.runtime.secret.providers.BarSpringSecretProvider;
-import io.camunda.connector.runtime.secret.providers.FooSpringSecretProvider;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest(
-    classes = {
-      TestConnectorRuntimeApplication.class,
-      FooSpringSecretProvider.class,
-      BarSpringSecretProvider.class
-    },
+    classes = {TestConnectorRuntimeApplication.class},
     properties = {"camunda.connector.secretprovider.discovery.enabled=false"})
-public class SpringSecretProviderTest {
+public class SpringEnvironmentSecretProviderTest {
 
   @Autowired SecretProviderAggregator secretProviderAggregator;
 
+  @Value("${test.secret}")
+  String expectedSecretValue;
+
   @Test
-  void secretProviderIsLoadedFromSpringContext() {
-    // given 2 secret providers defined in the spring context
-    // then the secret provider aggregator should be able to find them
-    assertThat(secretProviderAggregator.getSecret("FOO")).isEqualTo("FOO");
-    assertThat(secretProviderAggregator.getSecret("BAR")).isEqualTo("BAR");
-    // and SPI secret provider should not be loaded
-    assertThat(secretProviderAggregator.getSecret("SPI")).isNull();
+  void springEnvironmentSecretProviderShouldBePresent() {
+    // Spring environment based secret provider should look up values from properties
+    assertThat(secretProviderAggregator.getSecretProviders().size()).isEqualTo(1);
+    var actualSecretValue = secretProviderAggregator.getSecret("test.secret");
+    assertThat(actualSecretValue).isNotNull();
+    assertThat(actualSecretValue).isEqualTo(expectedSecretValue);
   }
 }

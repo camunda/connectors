@@ -20,6 +20,7 @@ package io.camunda.connector.api.config;
  * Helper to resolve configuration properties of the application. It will either use a delegate set
  * by calling setCustomConfigurationPropertyResolver or default to System.getEnv().
  */
+@Deprecated(forRemoval = true)
 public class ConnectorConfigurationUtil {
 
   private static ConnectorPropertyResolver propertyResolverDelegate;

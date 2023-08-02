@@ -17,10 +17,8 @@
 package io.camunda.connector.runtime.core.secret;
 
 import io.camunda.connector.api.secret.SecretProvider;
-import io.camunda.connector.runtime.core.discovery.SPISecretProviderDiscovery;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,19 +32,9 @@ public class SecretProviderAggregator implements SecretProvider {
 
   protected final List<SecretProvider> secretProviders;
 
-  public SecretProviderAggregator(List<SecretProvider> secretProvidersOverride) {
-    if (secretProvidersOverride == null || secretProvidersOverride.isEmpty()) {
-      LOG.debug("No secret providers override provided, using SPI discovery");
-      this.secretProviders = lookupSecretProviders();
-    } else {
-      LOG.debug("Using provided secret providers override");
-      this.secretProviders = secretProvidersOverride;
-    }
-  }
-
-  public SecretProviderAggregator() {
-    LOG.debug("No secret providers override provided, using SPI discovery");
-    this.secretProviders = lookupSecretProviders();
+  public SecretProviderAggregator(List<SecretProvider> secretProviders) {
+    LOG.debug("Aggregating secret providers: {}", secretProviders);
+    this.secretProviders = secretProviders;
   }
 
   /**
@@ -70,29 +58,7 @@ public class SecretProviderAggregator implements SecretProvider {
     return null;
   }
 
-  /**
-   * Performs the look-up of secret providers available in the runtime environment. Default
-   * implementation uses {@link SPISecretProviderDiscovery}.
-   *
-   * @return the list of secret providers available in the runtime environment
-   */
-  protected List<SecretProvider> lookupSecretProviders() {
-    List<SecretProvider> spiSecretProviders = SPISecretProviderDiscovery.discover();
-    if (spiSecretProviders.isEmpty()) {
-      LOG.debug("No secret providers discovered via SPI. Falling back to environment variables");
-      return List.of(System::getenv);
-    } else {
-      LOG.debug(
-          "Discovered {} secret providers via SPI: {}",
-          spiSecretProviders.size(),
-          spiSecretProviders.stream()
-              .map(p -> p.getClass().getName())
-              .collect(Collectors.joining(", ")));
-      return spiSecretProviders;
-    }
-  }
-
-  List<SecretProvider> getSecretProviders() {
+  public List<SecretProvider> getSecretProviders() {
     return Collections.unmodifiableList(secretProviders);
   }
 }

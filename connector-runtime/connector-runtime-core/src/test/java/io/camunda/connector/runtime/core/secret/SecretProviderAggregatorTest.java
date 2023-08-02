@@ -43,10 +43,11 @@ public class SecretProviderAggregatorTest {
   @Test
   public void spiProviderDiscovery() {
     // given
-    SecretProviderAggregator aggregator = new SecretProviderAggregator();
+    SecretProviderAggregator aggregator =
+        new SecretProviderAggregator(SecretProviderDiscovery.discoverSecretProviders());
 
     // when
-    var secret = new SecretProviderAggregator().getSecret(FooBarSecretProvider.SECRET_NAME);
+    var secret = aggregator.getSecret(FooBarSecretProvider.SECRET_NAME);
 
     // then
     assertThat(aggregator.getSecretProviders()).hasSize(2);
