@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.core;
 
+import io.camunda.connector.runtime.core.config.ConnectorConfiguration;
 import java.util.List;
 
 /**
@@ -24,7 +25,7 @@ import java.util.List;
  * @param <T> Connector supertype
  * @param <C> Connector configuration type
  */
-public interface ConnectorFactory<T, C> {
+public interface ConnectorFactory<T, C extends ConnectorConfiguration> {
 
   /**
    * List all available configurations loaded by the runtime

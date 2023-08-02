@@ -16,21 +16,5 @@
  */
 package io.camunda.connector.runtime.core.config;
 
-import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import java.util.function.Supplier;
-
-public record OutboundConnectorConfiguration(
-    String name,
-    String[] inputVariables,
-    String type,
-    Class<? extends OutboundConnectorFunction> connectorClass,
-    Supplier<OutboundConnectorFunction> customInstanceSupplier)
-    implements ConnectorConfiguration {
-  public OutboundConnectorConfiguration(
-      String name,
-      String[] inputVariables,
-      String type,
-      Class<? extends OutboundConnectorFunction> connectorClass) {
-    this(name, inputVariables, type, connectorClass, null);
-  }
-}
+public sealed interface ConnectorConfiguration
+    permits InboundConnectorConfiguration, OutboundConnectorConfiguration {}

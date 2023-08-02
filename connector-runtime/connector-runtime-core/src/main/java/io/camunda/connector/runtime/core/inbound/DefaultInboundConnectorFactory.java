@@ -64,8 +64,15 @@ public class DefaultInboundConnectorFactory implements InboundConnectorFactory {
             .findFirst()
             .orElseThrow(
                 () -> new NoSuchElementException("Connector " + type + " is not registered"));
+    return createInstance(configuration);
+  }
 
-    return instantiateConnector(configuration.connectorClass());
+  private InboundConnectorExecutable createInstance(InboundConnectorConfiguration configuration) {
+    if (configuration.customInstanceSupplier() != null) {
+      return configuration.customInstanceSupplier().get();
+    } else {
+      return instantiateConnector(configuration.connectorClass());
+    }
   }
 
   @Override

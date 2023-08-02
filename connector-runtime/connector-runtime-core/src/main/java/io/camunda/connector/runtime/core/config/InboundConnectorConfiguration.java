@@ -17,6 +17,17 @@
 package io.camunda.connector.runtime.core.config;
 
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import java.util.function.Supplier;
 
 public record InboundConnectorConfiguration(
-    String name, String type, Class<? extends InboundConnectorExecutable> connectorClass) {}
+    String name,
+    String type,
+    Class<? extends InboundConnectorExecutable> connectorClass,
+    Supplier<InboundConnectorExecutable> customInstanceSupplier)
+    implements ConnectorConfiguration {
+
+  public InboundConnectorConfiguration(
+      String name, String type, Class<? extends InboundConnectorExecutable> connectorClass) {
+    this(name, type, connectorClass, null);
+  }
+}

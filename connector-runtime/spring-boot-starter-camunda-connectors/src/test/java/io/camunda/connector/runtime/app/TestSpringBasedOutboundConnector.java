@@ -14,23 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.core.config;
+package io.camunda.connector.runtime.app;
 
+import io.camunda.connector.api.annotation.OutboundConnector;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import java.util.function.Supplier;
+import java.util.Arrays;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
+import org.springframework.stereotype.Component;
 
-public record OutboundConnectorConfiguration(
-    String name,
-    String[] inputVariables,
-    String type,
-    Class<? extends OutboundConnectorFunction> connectorClass,
-    Supplier<OutboundConnectorFunction> customInstanceSupplier)
-    implements ConnectorConfiguration {
-  public OutboundConnectorConfiguration(
-      String name,
-      String[] inputVariables,
-      String type,
-      Class<? extends OutboundConnectorFunction> connectorClass) {
-    this(name, inputVariables, type, connectorClass, null);
+@OutboundConnector(
+    name = "TEST_SPRING",
+    type = "org:test-spring:1",
+    inputVariables = {})
+@Component
+public class TestSpringBasedOutboundConnector implements OutboundConnectorFunction {
+
+  private final Environment environment;
+
+  public TestSpringBasedOutboundConnector(@Autowired Environment environment) {
+    this.environment = environment;
+  }
+
+  @Override
+  public Object execute(OutboundConnectorContext context) {
+    return "Hello from Spring: " + Arrays.toString(environment.getDefaultProfiles());
   }
 }
