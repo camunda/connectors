@@ -82,9 +82,9 @@ limitations under the License.</license.inlineheader>
     <version.jsonassert>1.5.1</version.jsonassert>
 
     <version.spring-boot>3.1.2</version.spring-boot>
-    <version.spring-cloud-gcp-starter-logging>4.5.1</version.spring-cloud-gcp-starter-logging>
+    <version.spring-cloud-gcp-starter-logging>4.7.1</version.spring-cloud-gcp-starter-logging>
 
-    <version.aws-java-sdk>1.12.519</version.aws-java-sdk>
+    <version.aws-java-sdk>1.12.520</version.aws-java-sdk>
 
     <version.google-api-client>2.2.0</version.google-api-client>
     <version.google-api-services-drive>v3-rev20230610-2.0.0</version.google-api-services-drive>
@@ -92,7 +92,7 @@ limitations under the License.</license.inlineheader>
     <version.google-auth-library-oauth2-http>1.19.0</version.google-auth-library-oauth2-http>
     <version.google-api-services-docs>v1-rev20230227-2.0.0</version.google-api-services-docs>
     <version.google-api-services-sheets>v4-rev20230526-2.0.0</version.google-api-services-sheets>
-    <version.google-libraries-bom>26.20.0</version.google-libraries-bom>
+    <version.google-libraries-bom>26.21.0</version.google-libraries-bom>
     <version.gson-extras>1.2.0</version.gson-extras>
 
     <version.httpcore>4.4.16</version.httpcore>

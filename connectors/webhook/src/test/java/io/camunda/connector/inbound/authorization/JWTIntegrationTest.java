@@ -20,13 +20,14 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.common.ClasspathFileSource;
+import io.camunda.connector.api.error.WebhookConnectorException;
 import io.camunda.connector.api.inbound.result.MessageCorrelationResult;
 import io.camunda.connector.api.inbound.webhook.WebhookResult;
 import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.inbound.HttpWebhookExecutable;
 import io.camunda.connector.inbound.utils.TestRSAKeyProvider;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
-import java.io.IOException;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -183,9 +184,9 @@ public class JWTIntegrationTest {
 
     // then
     Throwable thrown = catchThrowable(() -> httpWebhookExecutable.triggerWebhook(payload));
-    assertThat(thrown)
-        .isInstanceOf(IOException.class)
-        .hasMessageContaining("Webhook failed: JWT check didn't pass");
+    assertThat(thrown).isInstanceOf(WebhookConnectorException.class);
+    assertThat(((WebhookConnectorException) thrown).getStatusCode())
+        .isEqualTo(HttpResponseStatus.FORBIDDEN.code());
   }
 
   @Test
@@ -219,9 +220,9 @@ public class JWTIntegrationTest {
 
     // then
     Throwable thrown = catchThrowable(() -> httpWebhookExecutable.triggerWebhook(payload));
-    assertThat(thrown)
-        .isInstanceOf(IOException.class)
-        .hasMessageContaining("Webhook failed: JWT check didn't pass");
+    assertThat(thrown).isInstanceOf(WebhookConnectorException.class);
+    assertThat(((WebhookConnectorException) thrown).getStatusCode())
+        .isEqualTo(HttpResponseStatus.UNAUTHORIZED.code());
   }
 
   @Test

@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Easy Post connector",
   "id": "io.camunda.connectors.EasyPost.v1",
-  "version": 1,
+  "version": 2,
   "description": "Allows you to create addresses, parcels, and shipments, as well as purchase and verify shipments",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/easy-post/",
   "category": {
@@ -792,7 +792,7 @@
       "constraints": {
         "notEmpty": false,
         "pattern": {
-          "value": "^(=.+|[0-9]+|secrets\\..+)$",
+          "value": "^(=.+|[0-9]+|\\{\\{secrets\\..+\\}\\})$",
           "message": "Must be a timeout in seconds (default value is 20 seconds) or a FEEL expression"
         }
       }

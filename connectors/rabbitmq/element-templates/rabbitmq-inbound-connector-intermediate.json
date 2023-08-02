@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "RabbitMQ connector",
   "id": "io.camunda.connectors.inbound.RabbitMQ.Intermediate.v1",
-  "version": 1,
+  "version": 2,
   "description": "Receive a message from RabbitMQ",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq-inbound",
   "category": {
@@ -91,7 +91,7 @@
       "constraints": {
         "notEmpty": true,
         "pattern": {
-          "value": "^(amqps?://)|(secrets).*",
+          "value": "^(amqps?://)|(\\{\\{secrets\\..+\\}\\}).*$",
           "message": "Must start with amqp(s):// or contain a secret reference"
         }
       },
