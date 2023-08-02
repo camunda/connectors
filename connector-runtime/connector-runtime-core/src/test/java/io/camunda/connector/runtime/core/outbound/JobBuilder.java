@@ -37,7 +37,7 @@ class JobBuilder {
 
   public static class JobBuilderStep {
 
-    private final JobClient jobClient;
+    private JobClient jobClient;
     private final ActivatedJob job;
     private final CompleteJobCommandStep1 completeCommand;
     private final FailJobCommandStep1 failCommand;
@@ -65,9 +65,19 @@ class JobBuilder {
       when(job.getKey()).thenReturn(-1L);
     }
 
+    public JobBuilderStep useJobClient(JobClient client) {
+      this.jobClient = client;
+      return this;
+    }
+
     public JobBuilderStep withHeaders(Map<String, String> headers) {
       when(job.getCustomHeaders()).thenReturn(headers);
 
+      return this;
+    }
+
+    public JobBuilderStep withRetries(int retries) {
+      when(job.getRetries()).thenReturn(retries);
       return this;
     }
 
@@ -89,15 +99,16 @@ class JobBuilder {
       return withHeaders(headers);
     }
 
-    public JobResult execute(ConnectorJobHandler connectorJobHandler) {
-      return execute(connectorJobHandler, true, false);
+    public JobResult executeAndCaptureResult(ConnectorJobHandler connectorJobHandler) {
+      return executeAndCaptureResult(connectorJobHandler, true, false);
     }
 
-    public JobResult execute(ConnectorJobHandler connectorJobHandler, boolean expectComplete) {
-      return execute(connectorJobHandler, expectComplete, false);
+    public JobResult executeAndCaptureResult(
+        ConnectorJobHandler connectorJobHandler, boolean expectComplete) {
+      return executeAndCaptureResult(connectorJobHandler, expectComplete, false);
     }
 
-    public JobResult execute(
+    public JobResult executeAndCaptureResult(
         ConnectorJobHandler connectorJobHandler, boolean expectComplete, boolean expectBpmnError) {
 
       // when
@@ -117,10 +128,14 @@ class JobBuilder {
         return new JobResult(errorCodeCaptor.getValue(), errorMessageCaptor.getValue());
       } else {
         var errorMessageCaptor = ArgumentCaptor.forClass(String.class);
-        verify(failCommand).retries(0);
+        verify(failCommand).retries(job.getRetries() == 0 ? 0 : job.getRetries() - 1);
         verify(failCommandStep2).errorMessage(errorMessageCaptor.capture());
         return new JobResult(null, errorMessageCaptor.getValue());
       }
+    }
+
+    public void execute(ConnectorJobHandler connectorJobHandler) {
+      connectorJobHandler.handle(jobClient, job);
     }
   }
 

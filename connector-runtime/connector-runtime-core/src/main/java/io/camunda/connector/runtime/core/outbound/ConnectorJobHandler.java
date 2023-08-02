@@ -27,9 +27,14 @@ import io.camunda.connector.runtime.core.ConnectorHelper;
 import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
+import io.camunda.zeebe.client.api.command.FinalCommandStep;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
+import io.camunda.zeebe.client.api.response.CompleteJobResponse;
+import io.camunda.zeebe.client.api.response.FailJobResponse;
 import io.camunda.zeebe.client.api.worker.JobClient;
 import io.camunda.zeebe.client.api.worker.JobHandler;
+import java.time.Duration;
+import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -82,6 +87,7 @@ public class ConnectorJobHandler implements JobHandler {
     LOGGER.info("Received job {}", job.getKey());
     final ConnectorResult result = new ConnectorResult();
     try {
+      getBackoffDuration(job); // fail-fast if backoff header is invalid
       var context =
           new JobHandlerContext(job, getSecretProvider(), validationProvider, objectMapper);
       var response = call.execute(context);
@@ -93,7 +99,7 @@ public class ConnectorJobHandler implements JobHandler {
               job.getCustomHeaders().get(Keywords.RESULT_EXPRESSION_KEYWORD)));
     } catch (Exception ex) {
       LOGGER.debug("Exception while processing job {}", job.getKey(), ex);
-      result.setResponseValue(Map.of("error", toMap(ex)));
+      result.setResponseValue(Map.of("error", exceptionToMap(ex)));
       result.setException(ex);
     }
 
@@ -134,33 +140,18 @@ public class ConnectorJobHandler implements JobHandler {
   }
 
   protected void completeJob(JobClient client, ActivatedJob job, ConnectorResult result) {
-    client.newCompleteCommand(job).variables(result.getVariables()).send().join();
+    prepareCompleteJobCommand(client, job, result).send().join();
   }
 
   protected void failJob(JobClient client, ActivatedJob job, Exception exception) {
-    String message = exception.getMessage();
-    String truncatedMessage =
-        message != null
-            ? message.substring(0, Math.min(message.length(), MAX_ERROR_MESSAGE_LENGTH))
-            : null;
-    client.newFailCommand(job).retries(0).errorMessage(truncatedMessage).send().join();
+    prepareFailJobCommand(client, job, exception).send().join();
   }
 
   protected void throwBpmnError(JobClient client, ActivatedJob job, BpmnError value) {
-    String message = value.getMessage();
-    String truncatedMessage =
-        message != null
-            ? message.substring(0, Math.min(message.length(), MAX_ERROR_MESSAGE_LENGTH))
-            : null;
-    client
-        .newThrowErrorCommand(job)
-        .errorCode(value.getCode())
-        .errorMessage(truncatedMessage)
-        .send()
-        .join();
+    prepareThrowBpmnErrorCommand(client, job, value).send().join();
   }
 
-  protected static Map<String, Object> toMap(Exception exception) {
+  protected static Map<String, Object> exceptionToMap(Exception exception) {
     Map<String, Object> result = new HashMap<>();
     result.put("type", exception.getClass().getName());
     var message = exception.getMessage();
@@ -175,5 +166,59 @@ public class ConnectorJobHandler implements JobHandler {
       }
     }
     return Map.copyOf(result);
+  }
+
+  protected static FinalCommandStep<CompleteJobResponse> prepareCompleteJobCommand(
+      JobClient client, ActivatedJob job, ConnectorResult result) {
+    return client.newCompleteCommand(job).variables(result.getVariables());
+  }
+
+  protected static FinalCommandStep<FailJobResponse> prepareFailJobCommand(
+      JobClient client, ActivatedJob job, Exception exception) {
+    var retries = job.getRetries();
+    var errorMessage = truncateErrorMessage(exception.getMessage());
+    Duration backoff;
+    try {
+      backoff = getBackoffDuration(job);
+    } catch (DateTimeParseException e) {
+      backoff = null;
+      retries = 0;
+      errorMessage =
+          "Failed to parse retry backoff header. Expected ISO-8601 duration, e.g. PT5M, "
+              + "got: "
+              + job.getCustomHeaders().get(Keywords.RETRY_BACKOFF_KEYWORD);
+    }
+    var command =
+        client
+            .newFailCommand(job)
+            .retries(retries == 0 ? 0 : retries - 1)
+            .errorMessage(errorMessage);
+    if (backoff != null) {
+      command = command.retryBackoff(backoff);
+    }
+    return command;
+  }
+
+  protected static FinalCommandStep<Void> prepareThrowBpmnErrorCommand(
+      JobClient client, ActivatedJob job, BpmnError error) {
+
+    return client
+        .newThrowErrorCommand(job)
+        .errorCode(error.getCode())
+        .errorMessage(truncateErrorMessage(error.getMessage()));
+  }
+
+  private static Duration getBackoffDuration(ActivatedJob job) {
+    String backoffHeader = job.getCustomHeaders().get(Keywords.RETRY_BACKOFF_KEYWORD);
+    if (backoffHeader == null) {
+      return null;
+    }
+    return Duration.parse(backoffHeader);
+  }
+
+  private static String truncateErrorMessage(String message) {
+    return message != null
+        ? message.substring(0, Math.min(message.length(), MAX_ERROR_MESSAGE_LENGTH))
+        : null;
   }
 }

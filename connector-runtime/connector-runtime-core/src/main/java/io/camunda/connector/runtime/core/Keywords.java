@@ -76,6 +76,14 @@ public class Keywords {
    */
   public static final String INBOUND_TYPE_KEYWORD = "inbound.type";
 
+  /**
+   * The keyword that identifies the source of `retry backoff` property of an outbound Connector.
+   * Retry backoff is an ISO8601 duration that is submitted to Zeebe with every job failure.
+   *
+   * <p>This value only exists for outbound Connectors and comes from the job headers.
+   */
+  public static final String RETRY_BACKOFF_KEYWORD = "retryBackoff";
+
   public static final Set<String> ALL_KEYWORDS =
       Set.of(
           RESULT_VARIABLE_KEYWORD,
