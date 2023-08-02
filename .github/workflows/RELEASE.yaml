@@ -94,7 +94,7 @@ jobs:
     # Maven build & version bump
 
       - name: Set Connectors release version
-        run:  mvn -B versions:set -DnewVersion=${RELEASE_VERSION} -DgenerateBackupPoms=false
+        run:  mvn -B versions:set -DnewVersion=${RELEASE_VERSION} -DgenerateBackupPoms=false -f parent
         env:
           RELEASE_VERSION: ${{ github.event.inputs.version }}
 
