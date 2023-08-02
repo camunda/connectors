@@ -24,7 +24,7 @@ public class KafkaConnectorProperties {
 
   @Valid @NotNull private KafkaTopic topic;
 
-  private Map<String, Object> additionalProperties = new HashMap<>();
+  @FEEL private Map<String, Object> additionalProperties = new HashMap<>();
 
   private String activationCondition;
 
