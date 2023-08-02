@@ -45,7 +45,7 @@ import org.springframework.core.env.Environment;
 @EnableConfigurationProperties(ConnectorProperties.class)
 public class OutboundConnectorsAutoConfiguration {
 
-  @Value("${camunda.connector.secret-provider.discovery.enabled:true}")
+  @Value("${camunda.connector.secretprovider.discovery.enabled:true}")
   Boolean secretProviderLookupEnabled;
 
   private static final Logger LOG =

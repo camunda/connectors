@@ -1,12 +1,12 @@
 {
   "properties": [
     {
-      "name": "camunda.connector.secret-provider.discovery.enabled",
+      "name": "camunda.connector.secretprovider.discovery.enabled",
       "type": "java.lang.String",
       "description": "Enable or disable the secret provider discovery."
   },
     {
-      "name": "camunda.connector.secret-provider.environment.enabled",
+      "name": "camunda.connector.secretprovider.environment.enabled",
       "type": "java.lang.String",
       "description": "Enable or disable a secret provider that uses spring environment for lookup."
     }

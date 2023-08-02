@@ -26,7 +26,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest(
     classes = {TestConnectorRuntimeApplication.class},
-    properties = {"camunda.connector.secret-provider.environment.enabled=false"})
+    properties = {"camunda.connector.secretprovider.environment.enabled=false"})
 public class SPISecretProviderTest {
 
   @Autowired SecretProviderAggregator secretProviderAggregator;
