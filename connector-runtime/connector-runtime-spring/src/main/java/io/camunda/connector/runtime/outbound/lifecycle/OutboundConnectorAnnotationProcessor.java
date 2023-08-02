@@ -22,9 +22,9 @@ import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.spring.client.annotation.processor.AbstractZeebeAnnotationProcessor;
+import io.camunda.zeebe.spring.client.bean.BeanInfo;
 import io.camunda.zeebe.spring.client.bean.ClassInfo;
 import java.lang.invoke.MethodHandles;
-import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,19 +52,24 @@ public class OutboundConnectorAnnotationProcessor extends AbstractZeebeAnnotatio
   @SuppressWarnings("unchecked")
   @Override
   public void configureFor(ClassInfo beanInfo) {
-    Optional<OutboundConnector> annotation = beanInfo.getAnnotation(OutboundConnector.class);
-    if (annotation.isPresent()) {
-      OutboundConnectorConfiguration connector =
-          new OutboundConnectorConfiguration(
-              annotation.get().name(),
-              annotation.get().inputVariables(),
-              annotation.get().type(),
-              (Class<? extends OutboundConnectorFunction>) beanInfo.getTargetClass());
+    beanInfo
+        .getAnnotation(OutboundConnector.class)
+        .map(outboundConnector -> registerOutboundConnector(outboundConnector, beanInfo));
+  }
 
-      LOGGER.info(
-          "Configuring outbound connector {} of bean '{}'", connector, beanInfo.getBeanName());
-      outboundConnectorFactory.registerConfiguration(connector);
-    }
+  private OutboundConnectorConfiguration registerOutboundConnector(
+      OutboundConnector outboundConnector, BeanInfo beanInfo) {
+    OutboundConnectorConfiguration configuration =
+        new OutboundConnectorConfiguration(
+            outboundConnector.name(),
+            outboundConnector.inputVariables(),
+            outboundConnector.type(),
+            (Class<? extends OutboundConnectorFunction>) beanInfo.getTargetClass(),
+            () -> (OutboundConnectorFunction) beanInfo.getBean());
+    LOGGER.info(
+        "Configuring outbound connector {} of bean '{}'", configuration, beanInfo.getBeanName());
+    outboundConnectorFactory.registerConfiguration(configuration);
+    return configuration;
   }
 
   @Override
