@@ -42,10 +42,6 @@ public abstract class AbstractConnectorContext {
     }
   }
 
-  public void replaceSecrets(final Object input) {
-    getSecretHandler().handleSecretContainer(input, getSecretHandler());
-  }
-
   public SecretHandler getSecretHandler() {
     if (secretHandler == null) {
       secretHandler = new SecretHandler(secretProvider);

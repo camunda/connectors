@@ -25,7 +25,7 @@
     },
     "queue":{
       "attributeNames":["{{secrets.ATTRIBUTE_NAME_KEY}}"],
-      "messageAttributeNames": ["{{secrets.MESSAGE_ATTRIBUTE_NAME_KEY}"],
+      "messageAttributeNames": ["{{secrets.MESSAGE_ATTRIBUTE_NAME_KEY}}"],
       "url":"{{secrets.SQS_QUEUE_URL}}",
       "pollingWaitTime": "1"
     }

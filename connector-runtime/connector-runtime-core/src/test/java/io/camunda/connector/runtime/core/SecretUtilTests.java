@@ -16,9 +16,11 @@
  */
 package io.camunda.connector.runtime.core;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
 import io.camunda.connector.runtime.core.secret.SecretUtil;
+import java.util.Map;
 import java.util.function.Function;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -55,5 +57,26 @@ public class SecretUtilTests {
     } else {
       verifyNoInteractions(secretReplacer);
     }
+  }
+
+  Map<String, String> secrets =
+      Map.of(
+          "KEY1", "VALUE1",
+          "KEY2", "VALUE2",
+          "KEY3", "VALUE3");
+
+  @ParameterizedTest
+  @CsvSource(
+      value = {
+        "{\"field1\": \"secrets.KEY1\"}|{\"field1\": \"VALUE1\"}",
+        "{\"field1\": \"secrets.KEY1\", \"field2\": \"secrets.KEY2\"}|{\"field1\": \"VALUE1\", \"field2\": \"VALUE2\"}",
+        "{\"field1\": \"{{secrets.KEY1}}\"}|{\"field1\": \"VALUE1\"}",
+        "{\"field1\": \"{{secrets.KEY1}}\", \"field2\": \"{{secrets.KEY2}}\"}|{\"field1\": \"VALUE1\", \"field2\": \"VALUE2\"}",
+      },
+      delimiter = '|') // delimiter is needed to escape the comma in the json
+  void testSecretReplacementWithJsonInput(String input, String output) {
+    Function<String, String> secretReplacer = (name) -> secrets.get(name);
+    var result = SecretUtil.replaceSecrets(input, secretReplacer);
+    assertThat(result).isEqualTo(output);
   }
 }

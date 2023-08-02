@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.test.inbound;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.Health;
@@ -194,11 +195,17 @@ public class InboundConnectorContextBuilder {
 
     private Health health = Health.unknown();
 
+    private final String propertiesWithSecrets;
+
     protected TestInboundConnectorContext(
         SecretProvider secretProvider, ValidationProvider validationProvider) {
       super(secretProvider, validationProvider);
-
-      replaceSecrets(properties);
+      try {
+        propertiesWithSecrets =
+            getSecretHandler().replaceSecrets(objectMapper.writeValueAsString(properties));
+      } catch (JsonProcessingException e) {
+        throw new RuntimeException(e);
+      }
     }
 
     @Override
@@ -214,16 +221,24 @@ public class InboundConnectorContextBuilder {
 
     @Override
     public Map<String, Object> getProperties() {
-      return properties;
+      try {
+        return objectMapper.readValue(propertiesWithSecrets, new TypeReference<>() {});
+      } catch (JsonProcessingException e) {
+        throw new RuntimeException(e);
+      }
     }
 
     @Override
     public <T> T bindProperties(Class<T> cls) {
-      var mappedObject = objectMapper.convertValue(properties, cls);
-      if (validationProvider != null) {
-        getValidationProvider().validate(mappedObject);
+      try {
+        var mappedObject = objectMapper.readValue(propertiesWithSecrets, cls);
+        if (validationProvider != null) {
+          getValidationProvider().validate(mappedObject);
+        }
+        return mappedObject;
+      } catch (JsonProcessingException e) {
+        throw new RuntimeException(e);
       }
-      return mappedObject;
     }
 
     @Override

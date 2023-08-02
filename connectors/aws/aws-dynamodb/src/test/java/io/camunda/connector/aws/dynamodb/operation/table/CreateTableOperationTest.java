@@ -121,7 +121,7 @@ class CreateTableOperationTest extends BaseDynamoDbOperationTest {
                   "type": "createTable",
                   "partitionKey": "{{secrets.PARTITION_KEY}}",
                   "partitionKeyRole": "{{secrets.PARTITION_KEY}}",
-                  "partitionKeyType": "{{secrets.PARTITION_KEY",
+                  "partitionKeyType": "{{secrets.PARTITION_KEY}}",
                   "sortKey": "{{secrets.SORT_KEY}}",
                   "tableName": "{{secrets.TABLE_NAME_KEY}}"
                 }
