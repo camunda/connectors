@@ -81,12 +81,12 @@ public class SpringConnectorJobHandler extends ConnectorJobHandler {
 
   @Override
   @SuppressWarnings({"unchecked", "rawtypes"})
-  protected void failJob(JobClient client, ActivatedJob job, Exception exception) {
+  protected void failJob(JobClient client, ActivatedJob job, ConnectorResult.ErrorResult result) {
     try {
       metricsRecorder.increase(
           Outbound.METRIC_NAME_INVOCATIONS, Outbound.ACTION_FAILED, connectorConfiguration.type());
     } finally {
-      FinalCommandStep commandStep = prepareFailJobCommand(client, job, exception);
+      FinalCommandStep commandStep = prepareFailJobCommand(client, job, result);
       new CommandWrapper(commandStep, job, commandExceptionHandlingStrategy).executeAsync();
     }
   }
@@ -109,7 +109,8 @@ public class SpringConnectorJobHandler extends ConnectorJobHandler {
 
   @Override
   @SuppressWarnings({"unchecked", "rawtypes"})
-  protected void completeJob(JobClient client, ActivatedJob job, ConnectorResult result) {
+  protected void completeJob(
+      JobClient client, ActivatedJob job, ConnectorResult.SuccessResult result) {
     try {
       metricsRecorder.increase(
           Outbound.METRIC_NAME_INVOCATIONS,

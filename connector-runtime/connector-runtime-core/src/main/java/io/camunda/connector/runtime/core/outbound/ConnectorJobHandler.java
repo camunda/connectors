@@ -25,6 +25,8 @@ import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.ConnectorHelper;
 import io.camunda.connector.runtime.core.Keywords;
+import io.camunda.connector.runtime.core.outbound.ConnectorResult.ErrorResult;
+import io.camunda.connector.runtime.core.outbound.ConnectorResult.SuccessResult;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
 import io.camunda.zeebe.client.api.command.FinalCommandStep;
@@ -85,26 +87,44 @@ public class ConnectorJobHandler implements JobHandler {
   @Override
   public void handle(final JobClient client, final ActivatedJob job) {
     LOGGER.info("Received job {}", job.getKey());
-    final ConnectorResult result = new ConnectorResult();
+
+    Duration retryBackoff;
     try {
-      getBackoffDuration(job); // fail-fast if backoff header is invalid
+      retryBackoff = getBackoffDuration(job);
+    } catch (DateTimeParseException e) {
+      var wrapperException =
+          new RuntimeException(
+              "Failed to parse retry backoff header. Expected ISO-8601 duration, e.g. PT5M, "
+                  + "got: "
+                  + job.getCustomHeaders().get(Keywords.RETRY_BACKOFF_KEYWORD),
+              e);
+      ConnectorResult.ErrorResult result =
+          new ConnectorResult.ErrorResult(Map.of("error", exceptionToMap(e)), wrapperException, 0);
+      failJob(client, job, result);
+      return;
+    }
+
+    ConnectorResult result;
+    try {
       var context =
           new JobHandlerContext(job, getSecretProvider(), validationProvider, objectMapper);
       var response = call.execute(context);
-      result.setResponseValue(response);
-      result.setVariables(
+      var responseVariables =
           ConnectorHelper.createOutputVariables(
-              result.getResponseValue(),
+              response,
               job.getCustomHeaders().get(Keywords.RESULT_VARIABLE_KEYWORD),
-              job.getCustomHeaders().get(Keywords.RESULT_EXPRESSION_KEYWORD)));
+              job.getCustomHeaders().get(Keywords.RESULT_EXPRESSION_KEYWORD));
+      result = new ConnectorResult.SuccessResult(response, responseVariables);
     } catch (Exception ex) {
       LOGGER.debug("Exception while processing job {}", job.getKey(), ex);
-      result.setResponseValue(Map.of("error", exceptionToMap(ex)));
-      result.setException(ex);
+      result =
+          new ConnectorResult.ErrorResult(
+              Map.of("error", exceptionToMap(ex)), ex, job.getRetries() - 1, retryBackoff);
     }
 
     try {
-      ConnectorHelper.examineErrorExpression(result.getResponseValue(), job.getCustomHeaders())
+      final ConnectorResult finalResult = result;
+      ConnectorHelper.examineErrorExpression(result.responseValue(), job.getCustomHeaders())
           .ifPresentOrElse(
               error -> {
                 LOGGER.debug(
@@ -112,17 +132,19 @@ public class ConnectorJobHandler implements JobHandler {
                 throwBpmnError(client, job, error);
               },
               () -> {
-                if (result.isSuccess()) {
+                if (finalResult instanceof SuccessResult successResult) {
                   LOGGER.debug("Completing job {}", job.getKey());
-                  completeJob(client, job, result);
+                  completeJob(client, job, successResult);
                 } else {
-                  logError(job, result.getException());
-                  failJob(client, job, result.getException());
+                  var errorResult = (ErrorResult) finalResult;
+                  logError(job, errorResult.exception());
+                  failJob(client, job, errorResult);
                 }
               });
     } catch (Exception ex) {
       logError(job, ex);
-      failJob(client, job, ex);
+      // failure while parsing the error expression
+      failJob(client, job, new ErrorResult(Map.of("error", exceptionToMap(ex)), ex, 0));
     }
   }
 
@@ -139,12 +161,13 @@ public class ConnectorJobHandler implements JobHandler {
     LOGGER.error("Exception while processing job {}", job.getKey(), ex);
   }
 
-  protected void completeJob(JobClient client, ActivatedJob job, ConnectorResult result) {
+  protected void completeJob(
+      JobClient client, ActivatedJob job, ConnectorResult.SuccessResult result) {
     prepareCompleteJobCommand(client, job, result).send().join();
   }
 
-  protected void failJob(JobClient client, ActivatedJob job, Exception exception) {
-    prepareFailJobCommand(client, job, exception).send().join();
+  protected void failJob(JobClient client, ActivatedJob job, ConnectorResult.ErrorResult result) {
+    prepareFailJobCommand(client, job, result).send().join();
   }
 
   protected void throwBpmnError(JobClient client, ActivatedJob job, BpmnError value) {
@@ -169,30 +192,17 @@ public class ConnectorJobHandler implements JobHandler {
   }
 
   protected static FinalCommandStep<CompleteJobResponse> prepareCompleteJobCommand(
-      JobClient client, ActivatedJob job, ConnectorResult result) {
-    return client.newCompleteCommand(job).variables(result.getVariables());
+      JobClient client, ActivatedJob job, ConnectorResult.SuccessResult result) {
+    return client.newCompleteCommand(job).variables(result.variables());
   }
 
   protected static FinalCommandStep<FailJobResponse> prepareFailJobCommand(
-      JobClient client, ActivatedJob job, Exception exception) {
-    var retries = job.getRetries();
-    var errorMessage = truncateErrorMessage(exception.getMessage());
-    Duration backoff;
-    try {
-      backoff = getBackoffDuration(job);
-    } catch (DateTimeParseException e) {
-      backoff = null;
-      retries = 0;
-      errorMessage =
-          "Failed to parse retry backoff header. Expected ISO-8601 duration, e.g. PT5M, "
-              + "got: "
-              + job.getCustomHeaders().get(Keywords.RETRY_BACKOFF_KEYWORD);
-    }
+      JobClient client, ActivatedJob job, ConnectorResult.ErrorResult result) {
+    var retries = result.retries();
+    var errorMessage = truncateErrorMessage(result.exception().getMessage());
+    Duration backoff = result.retryBackoff();
     var command =
-        client
-            .newFailCommand(job)
-            .retries(retries == 0 ? 0 : retries - 1)
-            .errorMessage(errorMessage);
+        client.newFailCommand(job).retries(Math.max(retries, 0)).errorMessage(errorMessage);
     if (backoff != null) {
       command = command.retryBackoff(backoff);
     }

@@ -16,40 +16,33 @@
  */
 package io.camunda.connector.runtime.core.outbound;
 
+import java.time.Duration;
 import java.util.Map;
 
 /** Result container for the {@link ConnectorJobHandler} */
-public class ConnectorResult {
+public sealed interface ConnectorResult {
 
-  private Exception exception;
-  private Object responseValue;
-  private Map<String, Object> variables;
+  Object responseValue();
 
-  public boolean isSuccess() {
-    return exception == null;
+  default boolean isSuccess() {
+    return this instanceof SuccessResult;
   }
 
-  public Object getResponseValue() {
-    return variables == null || variables.isEmpty() ? responseValue : variables;
+  record ErrorResult(Object responseValue, Exception exception, int retries, Duration retryBackoff)
+      implements ConnectorResult {
+    public ErrorResult(Object responseValue, Exception exception, int retries) {
+      this(responseValue, exception, retries, null);
+    }
   }
 
-  public void setResponseValue(Object responseValue) {
-    this.responseValue = responseValue;
-  }
-
-  public Exception getException() {
-    return exception;
-  }
-
-  public void setException(Exception exception) {
-    this.exception = exception;
-  }
-
-  public Map<String, Object> getVariables() {
-    return variables;
-  }
-
-  public void setVariables(Map<String, Object> variables) {
-    this.variables = variables;
+  record SuccessResult(Object rawResponse, Map<String, Object> variables)
+      implements ConnectorResult {
+    public Object responseValue() {
+      if (variables == null || variables.isEmpty()) {
+        return rawResponse;
+      } else {
+        return variables;
+      }
+    }
   }
 }
