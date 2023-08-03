@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.kafka.outbound;
 
+import static io.camunda.connector.kafka.outbound.KafkaConnectorFunction.produceAvroMessage;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -93,23 +94,26 @@ class KafkaConnectorFunctionTest {
 
     var request = ctx.bindVariables(KafkaConnectorRequest.class);
 
-    String transformedValue =
-        request.getMessage().getValue() instanceof String
-            ? (String) request.getMessage().getValue()
-            : objectMapper.writeValueAsString(request.getMessage().getValue());
-
     // then
     // Testing records are equal
     Mockito.verify(producer).send(producerRecordCaptor.capture());
     ProducerRecord recordActual = producerRecordCaptor.getValue();
-    String expectedValue =
-        request.getMessage().getValue() instanceof String
-            ? (String) request.getMessage().getValue()
-            : objectMapper.writeValueAsString(request.getMessage().getValue());
-    ProducerRecord recordExpected =
-        new ProducerRecord(
+
+    Object expectedValue;
+    if (request.getAvro() != null) {
+      expectedValue = produceAvroMessage(request);
+    } else {
+      expectedValue =
+          request.getMessage().getValue() instanceof String
+              ? (String) request.getMessage().getValue()
+              : objectMapper.writeValueAsString(request.getMessage().getValue());
+    }
+    var recordExpected =
+        new ProducerRecord<>(
             request.getTopic().getTopicName(), request.getMessage().getKey(), expectedValue);
-    assertThat(recordActual.toString()).isEqualTo(recordExpected.toString());
+    assertThat(recordActual.topic()).isEqualTo(recordExpected.topic());
+    assertThat(recordActual.key()).isEqualTo(recordExpected.key());
+    assertThat(recordActual.value()).isEqualTo(recordExpected.value());
 
     // Testing secrets updated
     assertThat(request.getAuthentication().getUsername()).isEqualTo(SECRET_USER_NAME);

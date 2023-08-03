@@ -8,6 +8,7 @@ package io.camunda.connector.kafka.inbound;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorRequest;
@@ -31,13 +32,18 @@ public class KafkaPropertyTransformer {
   protected static final String DEFAULT_KEY_DESERIALIZER =
       "org.apache.kafka.common.serialization.StringDeserializer";
 
+  protected static final String BYTE_ARRAY_DESERIALIZER =
+      "org.apache.kafka.common.serialization.ByteArrayDeserializer";
+
   public static Properties getKafkaProperties(
       KafkaConnectorProperties props, InboundConnectorContext context) {
     KafkaConnectorRequest connectorRequest = new KafkaConnectorRequest();
     connectorRequest.setTopic(props.getTopic());
     connectorRequest.setAuthentication(props.getAuthentication());
     connectorRequest.setAdditionalProperties(props.getAdditionalProperties());
+    connectorRequest.setAdditionalProperties(props.getAdditionalProperties());
     final Properties kafkaProps = connectorRequest.assembleKafkaClientProperties();
+
     if (kafkaProps.getProperty(ConsumerConfig.GROUP_ID_CONFIG) == null) {
       var groupIdConfig = resolveGroupId(props, context);
       // GROUP_ID_CONFIG is mandatory. It will be used to assign a client id
@@ -46,8 +52,15 @@ public class KafkaPropertyTransformer {
     kafkaProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, props.getAutoOffsetReset().toString());
     kafkaProps.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
     kafkaProps.put(TopicConfig.RETENTION_MS_CONFIG, -1);
+
     kafkaProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, DEFAULT_KEY_DESERIALIZER);
-    kafkaProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, DEFAULT_KEY_DESERIALIZER);
+
+    if (props.getAvro() == null) {
+      kafkaProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, DEFAULT_KEY_DESERIALIZER);
+    } else {
+      kafkaProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, BYTE_ARRAY_DESERIALIZER);
+    }
+
     return kafkaProps;
   }
 
@@ -71,14 +84,20 @@ public class KafkaPropertyTransformer {
   }
 
   public static KafkaInboundMessage convertConsumerRecordToKafkaInboundMessage(
-      ConsumerRecord<String, String> consumerRecord) {
+      ConsumerRecord<String, Object> consumerRecord, ObjectReader objectReader) {
     KafkaInboundMessage kafkaInboundMessage = new KafkaInboundMessage();
     kafkaInboundMessage.setKey(consumerRecord.key());
-    kafkaInboundMessage.setRawValue(consumerRecord.value());
     try {
-      var json = StringEscapeUtils.unescapeJson(consumerRecord.value());
-      var jsonNode = objectMapper.readTree(json);
-      kafkaInboundMessage.setValue(jsonNode);
+      if (consumerRecord.value() instanceof byte[]) {
+        var jsonNode = objectReader.readTree((byte[]) consumerRecord.value());
+        kafkaInboundMessage.setValue(jsonNode);
+      } else {
+        String value = (String) consumerRecord.value();
+        kafkaInboundMessage.setRawValue(value);
+        var json = StringEscapeUtils.unescapeJson(value);
+        var jsonNode = objectReader.readTree(json);
+        kafkaInboundMessage.setValue(jsonNode);
+      }
     } catch (Exception e) {
       LOG.debug("Cannot parse value to json object -> use the raw value");
       kafkaInboundMessage.setValue(kafkaInboundMessage.getRawValue());
