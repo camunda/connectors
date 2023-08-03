@@ -17,14 +17,22 @@
 package io.camunda.connector.runtime;
 
 import io.camunda.connector.runtime.inbound.InboundConnectorRuntimeConfiguration;
+import io.camunda.operate.CamundaOperateClient;
+import io.camunda.zeebe.spring.client.configuration.OperateClientProdAutoConfiguration;
+import io.camunda.zeebe.spring.client.properties.OperateClientConfigurationProperties;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @AutoConfiguration
 @AutoConfigureBefore(OutboundConnectorsAutoConfiguration.class)
+@AutoConfigureAfter(OperateClientProdAutoConfiguration.class)
 @ConditionalOnProperty(
     prefix = "camunda.connector.polling",
     name = "enabled",
@@ -32,4 +40,20 @@ import org.springframework.scheduling.annotation.EnableScheduling;
     matchIfMissing = true)
 @Import(InboundConnectorRuntimeConfiguration.class)
 @EnableScheduling
-public class InboundConnectorsAutoConfiguration {}
+@EnableConfigurationProperties(OperateClientConfigurationProperties.class)
+public class InboundConnectorsAutoConfiguration {
+
+  @Bean
+  @ConditionalOnMissingBean
+  public CamundaOperateClient myOperateClient(
+      OperateClientProdAutoConfiguration configuration,
+      OperateClientConfigurationProperties properties) {
+    return configuration.camundaOperateClient(properties);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public OperateClientProdAutoConfiguration operateClientProdAutoConfiguration() {
+    return new OperateClientProdAutoConfiguration();
+  }
+}
