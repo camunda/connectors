@@ -108,7 +108,7 @@ limitations under the License.</license.inlineheader>
     <version.slack>1.30.0</version.slack>
 
     <version.testcontainers>1.18.3</version.testcontainers>
-    <version.awaitility>3.0.0</version.awaitility>
+    <version.awaitility>4.2.0</version.awaitility>
 
     <version.snappy-java>1.1.10.3</version.snappy-java>
     <version.commons-codec>1.16.0</version.commons-codec>
@@ -434,7 +434,7 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>org.awaitility</groupId>
         <artifactId>awaitility</artifactId>
-        <version>3.0.0</version>
+        <version>${version.awaitility}</version>
       </dependency>
 
     </dependencies>
