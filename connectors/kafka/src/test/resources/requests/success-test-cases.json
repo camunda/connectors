@@ -15,6 +15,26 @@
     }
   },
   {
+    "testDescription": "Regular happy case with Avro Schema",
+    "authentication":{
+      "username":"myLogin",
+      "password":"mySecretPassword"
+    },
+    "topic":{
+      "bootstrapServers":"kafka-stub.kafka.cloud:1234",
+      "topicName":"some-awesome-topic"
+    },
+    "message":{
+      "key":"Happy",
+      "value":{"name":  "Testname", "age": 40,
+        "emails": ["test@camunda.com"]
+      }
+    },
+    "avro": {
+      "schema": "{\"type\": \"record\",\"name\": \"Employee\",\"fields\": [{\"name\": \"name\", \"type\": \"string\"},{\"name\": \"age\", \"type\": \"int\"},{\"name\": \"emails\", \"type\": {\"type\": \"array\", \"items\": \"string\"}},{\"name\": \"boss\", \"type\": [\"Employee\",\"null\"]}]}"
+    }
+  },
+  {
     "testDescription": "With additional properties",
     "authentication":{
       "username":"myLogin",
@@ -65,24 +85,6 @@
     "message":{
       "key":"Happy",
       "value": {"documentId": "1234567890", "signee": "User Testerson", "contentBase64": "QXQgbGVhc3Qgc29tZWJvZHkgcmVhZHMgdGhlIHRlc3RzLiBHcmVhdCBqb2Ih"}
-    },
-    "additionalProperties" : {
-      "delivery.timeout.ms": "20000"
-    }
-  },
-  {
-    "testDescription": "With key as JSON",
-    "authentication":{
-      "username":"myLogin",
-      "password":"mySecretPassword"
-    },
-    "topic":{
-      "bootstrapServers":"kafka-stub.kafka.cloud:1234",
-      "topicName":"some-awesome-topic"
-    },
-    "message":{
-      "key":{"keyId": "1234567890"},
-      "value": "OK"
     },
     "additionalProperties" : {
       "delivery.timeout.ms": "20000"

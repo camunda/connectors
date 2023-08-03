@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.kafka.outbound.model;
 
+import io.camunda.connector.kafka.model.Avro;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.util.HashMap;
@@ -31,6 +32,8 @@ public class KafkaConnectorRequest {
   @Valid private KafkaAuthentication authentication;
   @Valid @NotNull private KafkaTopic topic;
   @Valid @NotNull private KafkaMessage message;
+
+  @Valid private Avro avro;
 
   private Map<String, Object> additionalProperties = new HashMap<>();
 
@@ -66,6 +69,19 @@ public class KafkaConnectorRequest {
     this.additionalProperties = additionalProperties;
   }
 
+  public Avro getAvro() {
+    return avro;
+  }
+
+  public void setAvro(Avro avro) {
+    this.avro = avro;
+  }
+
+  protected static final String STRING_SERIALIZER =
+      "org.apache.kafka.common.serialization.StringSerializer";
+  protected static final String BYTE_ARRAY_SERIALIZER =
+      "org.apache.kafka.common.serialization.ByteArraySerializer";
+
   // Kafka client is built using java.utils.Properties.
   // This method creates properties required to establish connection and produce messages.
   public Properties assembleKafkaClientProperties() {
@@ -81,7 +97,13 @@ public class KafkaConnectorRequest {
     props.putAll(topicProps);
 
     if (this.message != null) { // can be valid in case of inbound
-      Properties messageProps = this.message.produceMessageProperties();
+      Properties messageProps = new Properties();
+      messageProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, STRING_SERIALIZER);
+      if (avro == null) {
+        messageProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, STRING_SERIALIZER);
+      } else {
+        messageProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, BYTE_ARRAY_SERIALIZER);
+      }
       props.putAll(messageProps);
     }
 

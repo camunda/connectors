@@ -8,6 +8,12 @@ package io.camunda.connector.kafka.outbound;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.dataformat.avro.AvroMapper;
+import com.fasterxml.jackson.dataformat.avro.AvroSchema;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.module.scala.DefaultScalaModule$;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
@@ -19,6 +25,7 @@ import java.util.Properties;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import org.apache.avro.Schema;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -44,25 +51,37 @@ public class KafkaConnectorFunction implements OutboundConnectorFunction {
   }
 
   @Override
-  public Object execute(final OutboundConnectorContext context) throws Exception {
+  public Object execute(final OutboundConnectorContext context) {
     var connectorRequest = context.bindVariables(KafkaConnectorRequest.class);
     return executeConnector(connectorRequest);
   }
 
+  public static byte[] produceAvroMessage(final KafkaConnectorRequest request) throws Exception {
+    Schema raw = new Schema.Parser().setValidate(true).parse(request.getAvro().schema());
+    AvroSchema schema = new AvroSchema(raw);
+    AvroMapper avroMapper = new AvroMapper();
+    return avroMapper.writer(schema).writeValueAsBytes(request.getMessage().getValue());
+  }
+
   private KafkaConnectorResponse executeConnector(final KafkaConnectorRequest request) {
     Properties props = request.assembleKafkaClientProperties();
-    Producer<String, String> producer = producerCreatorFunction.apply(props);
+    Producer<String, Object> producer = producerCreatorFunction.apply(props);
     RecordMetadata recordMetadata;
     try {
-      String transformedValue =
-          request.getMessage().getValue() instanceof String
-              ? (String) request.getMessage().getValue()
-              : objectMapper.writeValueAsString(request.getMessage().getValue());
+      Object transformedValue = null;
+      if (request.getAvro() != null) {
+        transformedValue = produceAvroMessage(request);
+      } else {
+        transformedValue =
+            request.getMessage().getValue() instanceof String
+                ? (String) request.getMessage().getValue()
+                : objectMapper.writeValueAsString(request.getMessage().getValue());
+      }
       Future<RecordMetadata> kafkaResponse =
           producer.send(
               new ProducerRecord<>(
                   request.getTopic().getTopicName(),
-                  request.getMessage().getKey().toString(),
+                  String.valueOf(request.getMessage().getKey()),
                   transformedValue));
       KafkaConnectorResponse result = new KafkaConnectorResponse();
       recordMetadata = kafkaResponse.get(45, TimeUnit.SECONDS);

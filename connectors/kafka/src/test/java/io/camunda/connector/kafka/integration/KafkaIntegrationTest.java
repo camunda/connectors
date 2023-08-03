@@ -13,15 +13,15 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.camunda.connector.api.inbound.result.MessageCorrelationResult;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.kafka.inbound.KafkaConnectorConsumer;
 import io.camunda.connector.kafka.inbound.KafkaConnectorProperties;
 import io.camunda.connector.kafka.inbound.KafkaExecutable;
 import io.camunda.connector.kafka.inbound.KafkaInboundMessage;
+import io.camunda.connector.kafka.model.Avro;
 import io.camunda.connector.kafka.outbound.KafkaConnectorFunction;
 import io.camunda.connector.kafka.outbound.model.KafkaAuthentication;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorRequest;
@@ -31,10 +31,14 @@ import io.camunda.connector.kafka.outbound.model.KafkaTopic;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
 import io.camunda.connector.test.inbound.InboundConnectorDefinitionBuilder;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
+import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.NewPartitions;
@@ -55,25 +59,29 @@ import org.testcontainers.utility.DockerImageName;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class KafkaIntegrationTest {
 
-  private static final String TOPIC = "test-topic";
+  private static final String TOPIC = "test-topic-" + UUID.randomUUID();
+  private static final String AVRO_TOPIC = "avro-test-topic-" + UUID.randomUUID();
+
   private static String BOOTSTRAP_SERVERS;
 
   private final String processId = "Process_id";
 
-  private final ObjectMapper objectMapper =
-      new ObjectMapper().configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false);
-
   private static final String kafkaDockerImage = "confluentinc/cp-kafka:6.2.1";
+
+  private static Avro avro;
 
   @ClassRule
   public static final KafkaContainer kafkaContainer =
-      new KafkaContainer(DockerImageName.parse(kafkaDockerImage));
+      new KafkaContainer(DockerImageName.parse(kafkaDockerImage)).withReuse(true);
 
   @BeforeAll
-  public static void init() {
+  public static void init() throws Exception {
     kafkaContainer.start();
-    createTopics(TOPIC);
+    createTopics(TOPIC, AVRO_TOPIC);
     BOOTSTRAP_SERVERS = kafkaContainer.getBootstrapServers().replace("PLAINTEXT://", "");
+    URI file = ClassLoader.getSystemResource("./example-avro-schema.json").toURI();
+    var avroSchema = Files.readString(Paths.get(file));
+    avro = new Avro(avroSchema);
   }
 
   private static void createTopics(String... topics) {
@@ -110,7 +118,7 @@ public class KafkaIntegrationTest {
     request.setTopic(kafkaTopic);
     request.setAuthentication(kafkaAuthentication);
 
-    var json = objectMapper.writeValueAsString(request);
+    var json = KafkaConnectorConsumer.objectMapper.writeValueAsString(request);
 
     OutboundConnectorContext context =
         OutboundConnectorContextBuilder.create().variables(json).build();
@@ -142,7 +150,7 @@ public class KafkaIntegrationTest {
     request.setTopic(kafkaTopic);
     request.setAuthentication(kafkaAuthentication);
 
-    var json = objectMapper.writeValueAsString(request);
+    var json = KafkaConnectorConsumer.objectMapper.writeValueAsString(request);
 
     OutboundConnectorContext context =
         OutboundConnectorContextBuilder.create().variables(json).build();
@@ -158,7 +166,7 @@ public class KafkaIntegrationTest {
 
   @Test
   @Order(3)
-  void setInvalidOffsetForInboundConnectorWhenAutoOffsetResetIsNone() throws Exception {
+  void setInvalidOffsetForInboundConnectorWhenAutoOffsetResetIsNone() {
     // Given
     KafkaTopic kafkaTopic = new KafkaTopic();
     kafkaTopic.setTopicName(TOPIC);
@@ -226,23 +234,21 @@ public class KafkaIntegrationTest {
 
     // Then
     assertEquals(2, context.getCorrelations().size());
-    assertInstanceOf(KafkaInboundMessage.class, context.getCorrelations().get(1));
-    KafkaInboundMessage castedResult1 = (KafkaInboundMessage) context.getCorrelations().get(1);
-    String rawValue1 = castedResult1.getRawValue();
-    assertInstanceOf(String.class, rawValue1);
-    JSONAssert.assertEquals("{\"message\": \"Test message\"}", rawValue1, true);
-    Object value1 = castedResult1.getValue();
-    assertInstanceOf(ObjectNode.class, value1);
-    assertEquals("Test message", ((ObjectNode) value1).get("message").asText());
+    var message =
+        context.getCorrelations().stream()
+            .filter(
+                m -> {
+                  var messge = (KafkaInboundMessage) m;
+                  return !(messge.getValue() instanceof String);
+                })
+            .findFirst()
+            .get();
 
-    assertInstanceOf(KafkaInboundMessage.class, context.getCorrelations().get(0));
-    KafkaInboundMessage castedResult2 = (KafkaInboundMessage) context.getCorrelations().get(0);
-    String rawValue2 = castedResult2.getRawValue();
-    assertInstanceOf(String.class, rawValue2);
-    assertEquals("Test message", rawValue2);
-    Object value2 = castedResult2.getValue();
-    assertInstanceOf(String.class, value2);
-    assertEquals("Test message", value2);
+    assertInstanceOf(KafkaInboundMessage.class, message);
+    KafkaInboundMessage castedResult1 = (KafkaInboundMessage) message;
+
+    String rawValue1 = castedResult1.getRawValue();
+    JSONAssert.assertEquals("{\"message\": \"Test message\"}", rawValue1, true);
   }
 
   @Test
@@ -274,9 +280,9 @@ public class KafkaIntegrationTest {
     executable.deactivate();
 
     // Then
-    assertEquals(2, context.getCorrelations().size());
-    assertInstanceOf(KafkaInboundMessage.class, context.getCorrelations().get(1));
-    KafkaInboundMessage castedResult1 = (KafkaInboundMessage) context.getCorrelations().get(1);
+    var inboundMessage = context.getCorrelations().get(context.getCorrelations().size() - 1);
+    assertInstanceOf(KafkaInboundMessage.class, inboundMessage);
+    KafkaInboundMessage castedResult1 = (KafkaInboundMessage) inboundMessage;
     String rawValue1 = castedResult1.getRawValue();
     assertInstanceOf(String.class, rawValue1);
     JSONAssert.assertEquals("{\"message\": \"Test message\"}", rawValue1, true);
@@ -292,5 +298,83 @@ public class KafkaIntegrationTest {
     Object value2 = castedResult2.getValue();
     assertInstanceOf(String.class, value2);
     assertEquals("Test message", value2);
+  }
+
+  @Test
+  @Order(6)
+  void publishAvroMessage() throws Exception {
+    // Given
+    OutboundConnectorFunction function = new KafkaConnectorFunction();
+
+    KafkaConnectorRequest request = new KafkaConnectorRequest();
+    request.setAvro(avro);
+
+    KafkaMessage kafkaMessage = new KafkaMessage();
+    kafkaMessage.setKey("avro1");
+    kafkaMessage.setValue(Map.of("name", "Test", "age", 40, "emails", List.of("test@camunda.com")));
+
+    KafkaTopic kafkaTopic = new KafkaTopic();
+    kafkaTopic.setTopicName(AVRO_TOPIC);
+    kafkaTopic.setBootstrapServers(BOOTSTRAP_SERVERS);
+
+    KafkaAuthentication kafkaAuthentication = new KafkaAuthentication();
+    request.setMessage(kafkaMessage);
+    request.setTopic(kafkaTopic);
+    request.setAuthentication(kafkaAuthentication);
+
+    var json = KafkaConnectorConsumer.objectMapper.writeValueAsString(request);
+
+    OutboundConnectorContext context =
+        OutboundConnectorContextBuilder.create().variables(json).build();
+
+    // When
+    var result = function.execute(context);
+
+    // Then
+    assertInstanceOf(KafkaConnectorResponse.class, result);
+    KafkaConnectorResponse castedResult = (KafkaConnectorResponse) result;
+    assertEquals(AVRO_TOPIC, castedResult.getTopic());
+  }
+
+  @Test
+  @Order(7)
+  void consumeAvro() {
+    // Given
+    KafkaTopic kafkaTopic = new KafkaTopic();
+    kafkaTopic.setTopicName(AVRO_TOPIC);
+    kafkaTopic.setBootstrapServers(BOOTSTRAP_SERVERS);
+
+    KafkaConnectorProperties kafkaConnectorProperties = new KafkaConnectorProperties();
+    kafkaConnectorProperties.setAutoOffsetReset(KafkaConnectorProperties.AutoOffsetReset.EARLIEST);
+    kafkaConnectorProperties.setAuthenticationType(
+        KafkaConnectorProperties.AuthenticationType.custom);
+    kafkaConnectorProperties.setTopic(kafkaTopic);
+    kafkaConnectorProperties.setAvro(avro);
+
+    InboundConnectorContextBuilder.TestInboundConnectorContext context =
+        InboundConnectorContextBuilder.create()
+            .result(new MessageCorrelationResult("", 0))
+            .properties(kafkaConnectorProperties)
+            .definition(InboundConnectorDefinitionBuilder.create().bpmnProcessId(processId).build())
+            .build();
+
+    KafkaExecutable executable = new KafkaExecutable();
+
+    // When
+    executable.activate(context);
+    await().atMost(Duration.ofSeconds(5)).until(() -> context.getCorrelations().size() > 0);
+    executable.deactivate();
+
+    // Then
+    var inboundMessage = context.getCorrelations().stream().findFirst().get();
+    assertInstanceOf(KafkaInboundMessage.class, inboundMessage);
+    KafkaInboundMessage castedResult1 = (KafkaInboundMessage) inboundMessage;
+
+    Object value1 = castedResult1.getValue();
+    assertInstanceOf(ObjectNode.class, value1);
+    assertEquals("Test", ((ObjectNode) value1).get("name").asText());
+    assertEquals(40, ((ObjectNode) value1).get("age").asInt());
+    assertEquals(
+        "test@camunda.com", ((ObjectNode) value1).get("emails").elements().next().asText());
   }
 }
