@@ -22,13 +22,11 @@ import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import java.util.Arrays;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
-import org.springframework.stereotype.Component;
 
 @OutboundConnector(
     name = "TEST_SPRING",
     type = "org:test-spring:1",
     inputVariables = {})
-@Component
 public class TestSpringBasedOutboundConnector implements OutboundConnectorFunction {
 
   private final Environment environment;
