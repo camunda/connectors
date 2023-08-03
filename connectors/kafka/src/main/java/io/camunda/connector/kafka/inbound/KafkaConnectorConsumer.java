@@ -9,6 +9,16 @@ package io.camunda.connector.kafka.inbound;
 import static io.camunda.connector.kafka.inbound.KafkaPropertyTransformer.convertConsumerRecordToKafkaInboundMessage;
 import static io.camunda.connector.kafka.inbound.KafkaPropertyTransformer.getKafkaProperties;
 
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.dataformat.avro.AvroMapper;
+import com.fasterxml.jackson.dataformat.avro.AvroSchema;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.module.scala.DefaultScalaModule$;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
@@ -24,6 +34,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.apache.avro.Schema;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -42,16 +53,28 @@ public class KafkaConnectorConsumer {
 
   public CompletableFuture<?> future;
 
-  Consumer<String, String> consumer;
+  Consumer<String, Object> consumer;
 
   KafkaConnectorProperties elementProps;
 
+  public static ObjectMapper objectMapper =
+      new ObjectMapper()
+          .registerModule(new Jdk8Module())
+          .registerModule(DefaultScalaModule$.MODULE$)
+          .registerModule(new JavaTimeModule())
+          // deserialize unknown types as empty objects
+          .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
+          .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+          .enable(JsonParser.Feature.ALLOW_SINGLE_QUOTES);
+
+  private ObjectReader avroObjectReader;
+
   boolean shouldLoop = true;
 
-  private final Function<Properties, Consumer<String, String>> consumerCreatorFunction;
+  private final Function<Properties, Consumer<String, Object>> consumerCreatorFunction;
 
   public KafkaConnectorConsumer(
-      final Function<Properties, Consumer<String, String>> consumerCreatorFunction,
+      final Function<Properties, Consumer<String, Object>> consumerCreatorFunction,
       final InboundConnectorContext connectorContext,
       final KafkaConnectorProperties elementProps) {
     this.consumerCreatorFunction = consumerCreatorFunction;
@@ -64,6 +87,13 @@ public class KafkaConnectorConsumer {
     this.future =
         CompletableFuture.runAsync(
             () -> {
+              if (elementProps.getAvro() != null) {
+                Schema schema =
+                    new Schema.Parser().setValidate(true).parse(elementProps.getAvro().schema());
+                AvroSchema avroSchema = new AvroSchema(schema);
+                AvroMapper avroMapper = new AvroMapper();
+                avroObjectReader = avroMapper.reader(avroSchema);
+              }
               prepareConsumer();
               consume();
             },
@@ -85,7 +115,7 @@ public class KafkaConnectorConsumer {
   }
 
   private List<TopicPartition> assignTopicPartitions(
-      Consumer<String, String> consumer, String topic) {
+      Consumer<String, Object> consumer, String topic) {
     // dynamically assign partitions to be able to handle offsets
     List<PartitionInfo> partitions = consumer.partitionsFor(topic);
     List<TopicPartition> topicPartitions =
@@ -97,7 +127,7 @@ public class KafkaConnectorConsumer {
   }
 
   private void seekOffsets(
-      Consumer<String, String> consumer, List<TopicPartition> partitions, List<Long> offsets) {
+      Consumer<String, ?> consumer, List<TopicPartition> partitions, List<Long> offsets) {
     if (partitions.size() != offsets.size()) {
       throw new ConnectorInputException(
           new IllegalArgumentException(
@@ -127,8 +157,8 @@ public class KafkaConnectorConsumer {
 
   private void pollAndPublish() {
     LOG.debug("Polling the topics: {}", this.consumer.assignment());
-    ConsumerRecords<String, String> records = this.consumer.poll(Duration.ofMillis(500));
-    for (ConsumerRecord<String, String> record : records) {
+    ConsumerRecords<String, Object> records = this.consumer.poll(Duration.ofMillis(500));
+    for (ConsumerRecord<String, Object> record : records) {
       handleMessage(record);
     }
     if (!records.isEmpty()) {
@@ -136,10 +166,11 @@ public class KafkaConnectorConsumer {
     }
   }
 
-  private void handleMessage(ConsumerRecord<String, String> record) {
+  private void handleMessage(ConsumerRecord<String, Object> record) {
     LOG.trace("Kafka message received: key = {}, value = {}", record.key(), record.value());
-    InboundConnectorResult<?> result =
-        this.context.correlate(convertConsumerRecordToKafkaInboundMessage(record));
+    var reader = avroObjectReader != null ? avroObjectReader : objectMapper.reader();
+    var mappedMessage = convertConsumerRecordToKafkaInboundMessage(record, reader);
+    InboundConnectorResult<?> result = this.context.correlate(mappedMessage);
     if (result.isActivated()) {
       LOG.debug("Inbound event correlated successfully: {}", result.getResponseData());
     } else {

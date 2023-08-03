@@ -8,14 +8,8 @@ package io.camunda.connector.kafka.outbound.model;
 
 import jakarta.validation.constraints.NotNull;
 import java.util.Objects;
-import java.util.Properties;
-import org.apache.kafka.clients.producer.ProducerConfig;
 
 public class KafkaMessage {
-
-  protected static final String DEFAULT_KEY_SERIALIZER =
-      "org.apache.kafka.common.serialization.StringSerializer";
-  protected static final String DEFAULT_VALUE_SERIALIZER = DEFAULT_KEY_SERIALIZER;
   @NotNull private Object key;
   @NotNull private Object value;
 
@@ -33,13 +27,6 @@ public class KafkaMessage {
 
   public void setValue(Object value) {
     this.value = value;
-  }
-
-  public Properties produceMessageProperties() {
-    Properties messageProps = new Properties();
-    messageProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, DEFAULT_KEY_SERIALIZER);
-    messageProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, DEFAULT_VALUE_SERIALIZER);
-    return messageProps;
   }
 
   @Override

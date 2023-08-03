@@ -8,6 +8,7 @@ package io.camunda.connector.kafka.inbound;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.camunda.connector.api.annotation.FEEL;
+import io.camunda.connector.kafka.model.Avro;
 import io.camunda.connector.kafka.outbound.model.KafkaAuthentication;
 import io.camunda.connector.kafka.outbound.model.KafkaTopic;
 import jakarta.validation.Valid;
@@ -33,6 +34,8 @@ public class KafkaConnectorProperties {
   @NotNull private AutoOffsetReset autoOffsetReset = AutoOffsetReset.NONE;
 
   @FEEL private String groupId;
+
+  @Valid private Avro avro;
 
   public enum AutoOffsetReset {
     @JsonProperty("none")
@@ -121,6 +124,14 @@ public class KafkaConnectorProperties {
 
   public void setGroupId(String groupId) {
     this.groupId = groupId;
+  }
+
+  public Avro getAvro() {
+    return avro;
+  }
+
+  public void setAvro(Avro avro) {
+    this.avro = avro;
   }
 
   @Override

@@ -61,7 +61,7 @@ public class KafkaExecutableTest {
   private InboundConnectorContextBuilder.TestInboundConnectorContext originalContext;
   private List<PartitionInfo> topicPartitions;
   private KafkaConnectorProperties kafkaConnectorProperties;
-  @Mock private KafkaConsumer<String, String> mockConsumer;
+  @Mock private KafkaConsumer<String, Object> mockConsumer;
 
   private String topic;
 
@@ -182,7 +182,8 @@ public class KafkaExecutableTest {
     // When
     KafkaInboundMessage kafkaInboundMessage =
         KafkaPropertyTransformer.convertConsumerRecordToKafkaInboundMessage(
-            new ConsumerRecord<>("my-topic", 0, 0, "my-key", "{\"foo\": \"bar\"}"));
+            new ConsumerRecord<>("my-topic", 0, 0, "my-key", "{\"foo\": \"bar\"}"),
+            KafkaConnectorConsumer.objectMapper.reader());
 
     // Then
     assertEquals("my-key", kafkaInboundMessage.getKey());
