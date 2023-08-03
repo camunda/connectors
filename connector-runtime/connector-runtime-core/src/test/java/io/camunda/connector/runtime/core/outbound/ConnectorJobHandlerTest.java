@@ -22,20 +22,33 @@ import static io.camunda.connector.runtime.core.Keywords.RESULT_EXPRESSION_KEYWO
 import static io.camunda.connector.runtime.core.Keywords.RESULT_VARIABLE_KEYWORD;
 import static io.camunda.connector.runtime.core.outbound.ConnectorJobHandlerTest.OutputTests.ResultVariableTests.newConnectorJobHandler;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import io.camunda.connector.api.secret.SecretProvider;
-import io.camunda.connector.runtime.core.FooBarSecretProvider;
+import io.camunda.connector.runtime.core.Keywords;
+import io.camunda.zeebe.client.api.command.FailJobCommandStep1;
+import io.camunda.zeebe.client.api.command.FailJobCommandStep1.FailJobCommandStep2;
+import io.camunda.zeebe.client.api.worker.JobClient;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EmptySource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
 
 class ConnectorJobHandlerTest {
 
@@ -54,7 +67,10 @@ class ConnectorJobHandlerTest {
         var jobHandler = newConnectorJobHandler((context) -> Map.of("hello", "world"));
 
         // when
-        var result = JobBuilder.create().withResultVariableHeader(variableName).execute(jobHandler);
+        var result =
+            JobBuilder.create()
+                .withResultVariableHeader(variableName)
+                .executeAndCaptureResult(jobHandler);
 
         // then
         assertThat(result.getVariables()).isEmpty();
@@ -70,7 +86,10 @@ class ConnectorJobHandlerTest {
         var jobHandler = newConnectorJobHandler((context) -> Map.of("hello", "world"));
 
         // when
-        var result = JobBuilder.create().withResultVariableHeader("result").execute(jobHandler);
+        var result =
+            JobBuilder.create()
+                .withResultVariableHeader("result")
+                .executeAndCaptureResult(jobHandler);
 
         // then
         assertThat(result.getVariables()).isEqualTo(Map.of("result", Map.of("hello", "world")));
@@ -84,7 +103,10 @@ class ConnectorJobHandlerTest {
         expected.put("result", null);
 
         // when
-        var result = JobBuilder.create().withResultVariableHeader("result").execute(jobHandler);
+        var result =
+            JobBuilder.create()
+                .withResultVariableHeader("result")
+                .executeAndCaptureResult(jobHandler);
 
         // then
         assertThat(result.getVariables()).isEqualTo(expected);
@@ -96,7 +118,10 @@ class ConnectorJobHandlerTest {
         var jobHandler = newConnectorJobHandler((ctx) -> Map.of());
 
         // when
-        var result = JobBuilder.create().withResultVariableHeader("result").execute(jobHandler);
+        var result =
+            JobBuilder.create()
+                .withResultVariableHeader("result")
+                .executeAndCaptureResult(jobHandler);
 
         // then
         assertThat(result.getVariables()).isEqualTo(Map.of("result", Map.of()));
@@ -108,7 +133,10 @@ class ConnectorJobHandlerTest {
         var jobHandler = newConnectorJobHandler((ctx) -> 1);
 
         // when
-        var result = JobBuilder.create().withResultVariableHeader("result").execute(jobHandler);
+        var result =
+            JobBuilder.create()
+                .withResultVariableHeader("result")
+                .executeAndCaptureResult(jobHandler);
 
         // then
         assertThat(result.getVariables()).isEqualTo(Map.of("result", 1));
@@ -127,7 +155,10 @@ class ConnectorJobHandlerTest {
         var jobHandler = newConnectorJobHandler((context) -> Map.of("hello", "world"));
 
         // when
-        var result = JobBuilder.create().withResultExpressionHeader(expression).execute(jobHandler);
+        var result =
+            JobBuilder.create()
+                .withResultExpressionHeader(expression)
+                .executeAndCaptureResult(jobHandler);
 
         // then
         assertThat(result.getVariables()).isEmpty();
@@ -143,7 +174,9 @@ class ConnectorJobHandlerTest {
 
         // when
         var result =
-            JobBuilder.create().withResultExpressionHeader(resultExpression).execute(jobHandler);
+            JobBuilder.create()
+                .withResultExpressionHeader(resultExpression)
+                .executeAndCaptureResult(jobHandler);
 
         // then
         assertThat(result.getVariables())
@@ -166,7 +199,9 @@ class ConnectorJobHandlerTest {
 
         // when
         var result =
-            JobBuilder.create().withResultExpressionHeader(resultExpression).execute(jobHandler);
+            JobBuilder.create()
+                .withResultExpressionHeader(resultExpression)
+                .executeAndCaptureResult(jobHandler);
 
         // then
         assertThat(result.getVariables())
@@ -192,7 +227,9 @@ class ConnectorJobHandlerTest {
 
         // when
         var result =
-            JobBuilder.create().withResultExpressionHeader(resultExpression).execute(jobHandler);
+            JobBuilder.create()
+                .withResultExpressionHeader(resultExpression)
+                .executeAndCaptureResult(jobHandler);
 
         // then
         assertThat(result.getVariables()).isEqualTo(Map.of("processedOutput", expected));
@@ -207,7 +244,9 @@ class ConnectorJobHandlerTest {
 
         // when
         var result =
-            JobBuilder.create().withResultExpressionHeader(resultExpression).execute(jobHandler);
+            JobBuilder.create()
+                .withResultExpressionHeader(resultExpression)
+                .executeAndCaptureResult(jobHandler);
 
         // then
         assertThat(result.getVariables()).isEqualTo(Map.of("processedOutput", "responseValue"));
@@ -223,7 +262,9 @@ class ConnectorJobHandlerTest {
 
         // when
         var result =
-            JobBuilder.create().withResultExpressionHeader(resultExpression).execute(jobHandler);
+            JobBuilder.create()
+                .withResultExpressionHeader(resultExpression)
+                .executeAndCaptureResult(jobHandler);
 
         // then
         assertThat(result.getVariables()).isEqualTo(expected);
@@ -238,7 +279,9 @@ class ConnectorJobHandlerTest {
 
         // when
         var result =
-            JobBuilder.create().withResultExpressionHeader(resultExpression).execute(jobHandler);
+            JobBuilder.create()
+                .withResultExpressionHeader(resultExpression)
+                .executeAndCaptureResult(jobHandler);
 
         // then
         assertThat(result.getVariables()).isEqualTo(Map.of("value", "responseValue"));
@@ -260,7 +303,9 @@ class ConnectorJobHandlerTest {
 
         // when
         var result =
-            JobBuilder.create().withResultExpressionHeader(resultExpression).execute(jobHandler);
+            JobBuilder.create()
+                .withResultExpressionHeader(resultExpression)
+                .executeAndCaptureResult(jobHandler);
 
         // then
         assertThat(result.getVariables())
@@ -277,7 +322,7 @@ class ConnectorJobHandlerTest {
         var result =
             JobBuilder.create()
                 .withResultExpressionHeader(resultExpression)
-                .execute(jobHandler, false);
+                .executeAndCaptureResult(jobHandler, false);
 
         // then
         assertThat(result.getErrorMessage()).contains("Context is null");
@@ -293,7 +338,7 @@ class ConnectorJobHandlerTest {
         var result =
             JobBuilder.create()
                 .withResultExpressionHeader(resultExpression)
-                .execute(jobHandler, false);
+                .executeAndCaptureResult(jobHandler, false);
 
         // then
         assertThat(result.getErrorMessage())
@@ -310,7 +355,7 @@ class ConnectorJobHandlerTest {
         var result =
             JobBuilder.create()
                 .withResultExpressionHeader(resultExpression)
-                .execute(jobHandler, false);
+                .executeAndCaptureResult(jobHandler, false);
 
         // then
         assertThat(result.getErrorMessage()).contains("Unable to parse 'FOO' as context");
@@ -326,7 +371,7 @@ class ConnectorJobHandlerTest {
         var result =
             JobBuilder.create()
                 .withResultExpressionHeader(resultExpression)
-                .execute(jobHandler, false);
+                .executeAndCaptureResult(jobHandler, false);
 
         // then
         assertThat(result.getErrorMessage()).contains("Cannot parse '\"BAR\"' as 'java.util.Map'");
@@ -341,7 +386,7 @@ class ConnectorJobHandlerTest {
         var jobHandler = new ConnectorJobHandler((context) -> Map.of("hello", "world"), e -> {});
 
         // when
-        var result = JobBuilder.create().execute(jobHandler);
+        var result = JobBuilder.create().executeAndCaptureResult(jobHandler);
 
         // then
         assertThat(result.getVariables()).isEmpty();
@@ -363,7 +408,7 @@ class ConnectorJobHandlerTest {
                     Map.of(
                         RESULT_VARIABLE_KEYWORD, resultVariable,
                         RESULT_EXPRESSION_KEYWORD, resultExpression))
-                .execute(jobHandler);
+                .executeAndCaptureResult(jobHandler);
 
         // then
         assertThat(result.getVariables().size()).isEqualTo(2);
@@ -387,7 +432,7 @@ class ConnectorJobHandlerTest {
               });
 
       // when
-      var result = JobBuilder.create().execute(jobHandler, false);
+      var result = JobBuilder.create().executeAndCaptureResult(jobHandler, false);
 
       // then
       assertThat(result.getErrorMessage()).isEqualTo("expected");
@@ -404,7 +449,7 @@ class ConnectorJobHandlerTest {
               });
 
       // when
-      var result = JobBuilder.create().execute(jobHandler, false);
+      var result = JobBuilder.create().executeAndCaptureResult(jobHandler, false);
 
       // then
       assertThat(result.getErrorMessage().length())
@@ -427,11 +472,127 @@ class ConnectorJobHandlerTest {
                       "testProperty",
                       ERROR_EXPRESSION_KEYWORD,
                       errorExpression))
-              .execute(jobHandler, false, true);
+              .executeAndCaptureResult(jobHandler, false, true);
 
       // then
       assertThat(result.getErrorMessage().length())
           .isLessThanOrEqualTo(ConnectorJobHandler.MAX_ERROR_MESSAGE_LENGTH);
+    }
+  }
+
+  @Nested
+  class RetryBackoffTests {
+
+    private FailJobCommandStep1 firstStepMock;
+    private FailJobCommandStep2 secondStepMock;
+    private JobClient jobClient;
+
+    @BeforeEach
+    void init() {
+      firstStepMock = mock(FailJobCommandStep1.class);
+      secondStepMock = mock(FailJobCommandStep2.class, RETURNS_DEEP_STUBS);
+      jobClient = mock(JobClient.class);
+      when(firstStepMock.retries(anyInt())).thenReturn(secondStepMock);
+      when(secondStepMock.retryBackoff(any())).thenReturn(secondStepMock);
+      when(secondStepMock.errorMessage(any())).thenReturn(secondStepMock);
+      jobClient = mock(JobClient.class);
+      when(jobClient.newFailCommand(any())).thenReturn(firstStepMock);
+    }
+
+    @Test
+    void shouldParseRetryBackoffHeader_Duration() {
+      // given
+      int initialRetries = 3;
+
+      var jobBuilder =
+          JobBuilder.create()
+              .useJobClient(jobClient)
+              .withRetries(initialRetries)
+              .withHeaders(Map.of(Keywords.RETRY_BACKOFF_KEYWORD, "PT1M"));
+      var jobHandler =
+          newConnectorJobHandler(
+              context -> {
+                throw new RuntimeException("oops");
+              });
+
+      // when
+      jobBuilder.execute(jobHandler);
+
+      // then
+      verify(firstStepMock).retries(initialRetries - 1);
+      ArgumentCaptor<Duration> backoffCaptor = ArgumentCaptor.forClass(Duration.class);
+      verify(secondStepMock).retryBackoff(backoffCaptor.capture());
+      assertThat(backoffCaptor.getValue()).isEqualTo(Duration.ofMinutes(1));
+    }
+
+    @Test
+    void shouldParseRetryBackoffHeader_Period() {
+      // given
+      int initialRetries = 3;
+      var jobBuilder =
+          JobBuilder.create()
+              .useJobClient(jobClient)
+              .withRetries(initialRetries)
+              .withHeaders(Map.of(Keywords.RETRY_BACKOFF_KEYWORD, "P1D"));
+      var jobHandler =
+          newConnectorJobHandler(
+              context -> {
+                throw new RuntimeException("oops");
+              });
+
+      // when
+      jobBuilder.execute(jobHandler);
+
+      // then
+      verify(firstStepMock).retries(initialRetries - 1);
+      ArgumentCaptor<Duration> backoffCaptor = ArgumentCaptor.forClass(Duration.class);
+      verify(secondStepMock).retryBackoff(backoffCaptor.capture());
+      assertThat(backoffCaptor.getValue()).isEqualTo(Duration.ofDays(1));
+    }
+
+    @Test
+    void shouldParseRetryBackoffHeader_Invalid_ConnectorNotInvoked() throws Exception {
+      // given
+      int initialRetries = 3;
+      var jobBuilder =
+          JobBuilder.create()
+              .useJobClient(jobClient)
+              .withRetries(initialRetries)
+              .withHeaders(Map.of(Keywords.RETRY_BACKOFF_KEYWORD, "P1D1S")); // invalid
+      var connectorFunction = mock(OutboundConnectorFunction.class);
+      var jobHandler = newConnectorJobHandler(connectorFunction);
+
+      // when
+      jobBuilder.execute(jobHandler);
+
+      // then
+      verify(firstStepMock).retries(0);
+      verify(secondStepMock, times(0)).retryBackoff(any()); // not set
+      verify(secondStepMock).errorMessage(contains("Failed to parse retry backoff header"));
+      verify(secondStepMock).send();
+      verify(connectorFunction, times(0)).execute(any()); // not invoked
+    }
+
+    @Test
+    void shouldHandleMissingRetryBackoffHeader() {
+      // given
+      int initialRetries = 3;
+      var jobBuilder = JobBuilder.create().useJobClient(jobClient).withRetries(initialRetries);
+
+      var jobHandler =
+          newConnectorJobHandler(
+              context -> {
+                throw new RuntimeException("oops");
+              });
+
+      // when
+      jobBuilder.execute(jobHandler);
+
+      // then
+      verify(firstStepMock).retries(initialRetries - 1);
+      verify(secondStepMock).errorMessage(any());
+      verify(secondStepMock, times(0)).retryBackoff(any()); // not set
+      verify(secondStepMock).send();
     }
   }
 
@@ -459,7 +620,9 @@ class ConnectorJobHandlerTest {
               });
       // when
       var result =
-          JobBuilder.create().withErrorExpressionHeader(expression).execute(jobHandler, false);
+          JobBuilder.create()
+              .withErrorExpressionHeader(expression)
+              .executeAndCaptureResult(jobHandler, false);
 
       // then
       assertThat(result.getErrorMessage()).isEqualTo("exception message");
@@ -476,7 +639,9 @@ class ConnectorJobHandlerTest {
       var errorExpression = "bpmnError(123, \"\")";
       // when
       var result =
-          JobBuilder.create().withErrorExpressionHeader(errorExpression).execute(jobHandler, false);
+          JobBuilder.create()
+              .withErrorExpressionHeader(errorExpression)
+              .executeAndCaptureResult(jobHandler, false);
 
       // then
       assertThat(result.getErrorMessage())
@@ -499,7 +664,7 @@ class ConnectorJobHandlerTest {
       var result =
           JobBuilder.create()
               .withErrorExpressionHeader(errorExpression)
-              .execute(jobHandler, false, true);
+              .executeAndCaptureResult(jobHandler, false, true);
       // then
       assertThat(result.getErrorCode()).isEqualTo("1013");
       assertThat(result.getErrorMessage()).isEqualTo("Message: exception message");
@@ -521,7 +686,7 @@ class ConnectorJobHandlerTest {
       var result =
           JobBuilder.create()
               .withErrorExpressionHeader(errorExpression)
-              .execute(jobHandler, false, true);
+              .executeAndCaptureResult(jobHandler, false, true);
       // then
       assertThat(result.getErrorCode()).isEqualTo("1013");
       assertThat(result.getErrorMessage()).isEqualTo("Message: exception message");
@@ -543,7 +708,7 @@ class ConnectorJobHandlerTest {
       var result =
           JobBuilder.create()
               .withErrorExpressionHeader(errorExpression)
-              .execute(jobHandler, false, true);
+              .executeAndCaptureResult(jobHandler, false, true);
       // then
       assertThat(result.getErrorCode()).isEqualTo("1013");
       assertThat(result.getErrorMessage()).isEqualTo("Message: exception message");
@@ -567,7 +732,7 @@ class ConnectorJobHandlerTest {
       var result =
           JobBuilder.create()
               .withErrorExpressionHeader(errorExpression)
-              .execute(jobHandler, false, true);
+              .executeAndCaptureResult(jobHandler, false, true);
       // then
       assertThat(result.getErrorCode()).isEqualTo("1013");
       assertThat(result.getErrorMessage()).isEqualTo("Message: exception message");
@@ -591,7 +756,7 @@ class ConnectorJobHandlerTest {
       var result =
           JobBuilder.create()
               .withErrorExpressionHeader(errorExpression)
-              .execute(jobHandler, false, true);
+              .executeAndCaptureResult(jobHandler, false, true);
       // then
       assertThat(result.getErrorCode()).isEqualTo("1013");
       assertThat(result.getErrorMessage()).isEqualTo("Message: exception message");
@@ -615,7 +780,7 @@ class ConnectorJobHandlerTest {
       var result =
           JobBuilder.create()
               .withErrorExpressionHeader(errorExpression)
-              .execute(jobHandler, false, true);
+              .executeAndCaptureResult(jobHandler, false, true);
       // then
       assertThat(result.getErrorCode()).isEqualTo("1013");
       assertThat(result.getErrorMessage()).isEqualTo("Message: exception message");
@@ -639,7 +804,7 @@ class ConnectorJobHandlerTest {
       var result =
           JobBuilder.create()
               .withErrorExpressionHeader(errorExpression)
-              .execute(jobHandler, false, true);
+              .executeAndCaptureResult(jobHandler, false, true);
       // then
       assertThat(result.getErrorCode()).isEqualTo("1013");
       assertThat(result.getErrorMessage()).isEqualTo("Message: exception message");
@@ -659,7 +824,7 @@ class ConnectorJobHandlerTest {
       var result =
           JobBuilder.create()
               .withErrorExpressionHeader(errorExpression)
-              .execute(jobHandler, false, true);
+              .executeAndCaptureResult(jobHandler, false, true);
       // then
       assertThat(result.getErrorCode()).isEqualTo("9999");
       assertThat(result.getErrorMessage()).isEqualTo("Message for foo value on test property");
@@ -679,7 +844,7 @@ class ConnectorJobHandlerTest {
       var result =
           JobBuilder.create()
               .withErrorExpressionHeader(errorExpression)
-              .execute(jobHandler, false, true);
+              .executeAndCaptureResult(jobHandler, false, true);
       // then
       assertThat(result.getErrorCode()).isEqualTo("9999");
       assertThat(result.getErrorMessage()).isEqualTo("Message for foo value on test property");
@@ -704,38 +869,10 @@ class ConnectorJobHandlerTest {
                       "testProperty",
                       ERROR_EXPRESSION_KEYWORD,
                       errorExpression))
-              .execute(jobHandler, false, true);
+              .executeAndCaptureResult(jobHandler, false, true);
       // then
       assertThat(result.getErrorCode()).isEqualTo("9999");
       assertThat(result.getErrorMessage()).isEqualTo("Message for foo value on test property");
-    }
-  }
-
-  public static class TestInput {
-    private String value;
-
-    public TestInput(String value) {
-      this.value = value;
-    }
-
-    public String getValue() {
-      return value;
-    }
-
-    public void setValue(String value) {
-      this.value = value;
-    }
-  }
-
-  private static class TestConnectorJobHandler extends ConnectorJobHandler {
-
-    public TestConnectorJobHandler(OutboundConnectorFunction call) {
-      super(call, e -> {});
-    }
-
-    @Override
-    public SecretProvider getSecretProvider() {
-      return name -> FooBarSecretProvider.SECRET_NAME.equals(name) ? "baz" : null;
     }
   }
 

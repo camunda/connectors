@@ -26,7 +26,6 @@ import io.camunda.connector.runtime.core.outbound.ConnectorResult;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics.Outbound;
-import io.camunda.zeebe.client.api.command.CompleteJobCommandStep1;
 import io.camunda.zeebe.client.api.command.FinalCommandStep;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import io.camunda.zeebe.client.api.worker.JobClient;
@@ -81,36 +80,45 @@ public class SpringConnectorJobHandler extends ConnectorJobHandler {
   }
 
   @Override
-  protected void failJob(JobClient client, ActivatedJob job, Exception exception) {
-    metricsRecorder.increase(
-        Outbound.METRIC_NAME_INVOCATIONS, Outbound.ACTION_FAILED, connectorConfiguration.type());
-    // rethrowing the exception enables retries (handled by JobRunnableFactory)
-    throw new RuntimeException(exception);
+  @SuppressWarnings({"unchecked", "rawtypes"})
+  protected void failJob(JobClient client, ActivatedJob job, ConnectorResult.ErrorResult result) {
+    try {
+      metricsRecorder.increase(
+          Outbound.METRIC_NAME_INVOCATIONS, Outbound.ACTION_FAILED, connectorConfiguration.type());
+    } finally {
+      FinalCommandStep commandStep = prepareFailJobCommand(client, job, result);
+      new CommandWrapper(commandStep, job, commandExceptionHandlingStrategy).executeAsync();
+    }
   }
 
   @Override
   protected void throwBpmnError(JobClient client, ActivatedJob job, BpmnError value) {
-    metricsRecorder.increase(
-        Outbound.METRIC_NAME_INVOCATIONS,
-        Outbound.ACTION_BPMN_ERROR,
-        connectorConfiguration.type());
-    new CommandWrapper(
-            client
-                .newThrowErrorCommand(job.getKey())
-                .errorCode(value.getCode())
-                .errorMessage(value.getMessage()),
-            job,
-            commandExceptionHandlingStrategy)
-        .executeAsync();
+    try {
+      metricsRecorder.increase(
+          Outbound.METRIC_NAME_INVOCATIONS,
+          Outbound.ACTION_BPMN_ERROR,
+          connectorConfiguration.type());
+    } finally {
+      new CommandWrapper(
+              prepareThrowBpmnErrorCommand(client, job, value),
+              job,
+              commandExceptionHandlingStrategy)
+          .executeAsync();
+    }
   }
 
   @Override
   @SuppressWarnings({"unchecked", "rawtypes"})
-  protected void completeJob(JobClient client, ActivatedJob job, ConnectorResult result) {
-    metricsRecorder.increase(
-        Outbound.METRIC_NAME_INVOCATIONS, Outbound.ACTION_COMPLETED, connectorConfiguration.type());
-    CompleteJobCommandStep1 commandStep = client.newCompleteCommand(job.getKey());
-    FinalCommandStep finalCommandStep = commandStep.variables(result.getVariables());
-    new CommandWrapper(finalCommandStep, job, commandExceptionHandlingStrategy).executeAsync();
+  protected void completeJob(
+      JobClient client, ActivatedJob job, ConnectorResult.SuccessResult result) {
+    try {
+      metricsRecorder.increase(
+          Outbound.METRIC_NAME_INVOCATIONS,
+          Outbound.ACTION_COMPLETED,
+          connectorConfiguration.type());
+    } finally {
+      FinalCommandStep commandStep = prepareCompleteJobCommand(client, job, result);
+      new CommandWrapper(commandStep, job, commandExceptionHandlingStrategy).executeAsync();
+    }
   }
 }
