@@ -19,6 +19,7 @@ package io.camunda.connector.runtime.outbound;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.outbound.DefaultOutboundConnectorFactory;
+import io.camunda.connector.runtime.core.outbound.OutboundConnectorDiscovery;
 import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.outbound.lifecycle.OutboundConnectorAnnotationProcessor;
@@ -35,7 +36,8 @@ public class OutboundConnectorRuntimeConfiguration {
 
   @Bean
   public OutboundConnectorFactory outboundConnectorFactory() {
-    return new DefaultOutboundConnectorFactory();
+    return new DefaultOutboundConnectorFactory(
+        OutboundConnectorDiscovery.loadConnectorConfigurations());
   }
 
   @Bean

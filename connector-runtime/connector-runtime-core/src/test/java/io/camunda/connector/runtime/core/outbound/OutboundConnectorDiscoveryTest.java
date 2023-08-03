@@ -27,7 +27,8 @@ import org.junit.jupiter.api.Test;
 public class OutboundConnectorDiscoveryTest {
 
   private static DefaultOutboundConnectorFactory getFactory() {
-    return new DefaultOutboundConnectorFactory();
+    return new DefaultOutboundConnectorFactory(
+        OutboundConnectorDiscovery.loadConnectorConfigurations());
   }
 
   @Test

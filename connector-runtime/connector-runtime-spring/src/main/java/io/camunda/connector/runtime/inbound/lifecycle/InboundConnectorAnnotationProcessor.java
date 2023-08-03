@@ -66,7 +66,12 @@ public class InboundConnectorAnnotationProcessor extends AbstractZeebeAnnotation
     var scope = configurableBeanFactory.getMergedBeanDefinition(beanInfo.getBeanName()).getScope();
     if (!SCOPE_PROTOTYPE.equals(scope)) {
       throw new IllegalStateException(
-          "Unsupported inbound connector scope: \"" + scope + "\" for bean: " + beanInfo.getBean());
+          "Only \""
+              + SCOPE_PROTOTYPE
+              + "\" scope is supported for inbound connectors but found: \""
+              + scope
+              + "\" for bean: "
+              + beanInfo.getBean());
     } else {
       InboundConnectorConfiguration configuration =
           new InboundConnectorConfiguration(

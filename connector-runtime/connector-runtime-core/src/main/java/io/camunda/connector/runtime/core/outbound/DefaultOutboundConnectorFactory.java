@@ -19,13 +19,12 @@ package io.camunda.connector.runtime.core.outbound;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.runtime.core.ConnectorHelper;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
-import io.camunda.connector.runtime.core.discovery.EnvVarsConnectorDiscovery;
-import io.camunda.connector.runtime.core.discovery.SPIConnectorDiscovery;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,62 +33,59 @@ public class DefaultOutboundConnectorFactory implements OutboundConnectorFactory
 
   private static final Logger LOG = LoggerFactory.getLogger(DefaultOutboundConnectorFactory.class);
 
-  // stores all pre-initialized outbound connectors
-  private Map<String, OutboundConnectorConfiguration> functionMap;
+  private final Map<String, OutboundConnectorConfiguration> connectorConfigs;
 
-  public DefaultOutboundConnectorFactory() {
-    loadConnectorConfigurations();
-    if (functionMap.size() > 0) {
-      LOG.debug("Registered outbound connectors: " + functionMap.keySet());
-    } else {
-      LOG.warn("No outbound connectors discovered");
-    }
+  private final Map<OutboundConnectorConfiguration, OutboundConnectorFunction>
+      connectorInstanceCache;
+
+  public DefaultOutboundConnectorFactory(List<OutboundConnectorConfiguration> configurations) {
+    connectorConfigs =
+        configurations.stream()
+            .collect(
+                Collectors.toConcurrentMap(OutboundConnectorConfiguration::type, config -> config));
+    connectorInstanceCache = new ConcurrentHashMap<>();
   }
 
   @Override
   public List<OutboundConnectorConfiguration> getConfigurations() {
-    return new ArrayList<>(functionMap.values());
+    return new ArrayList<>(connectorConfigs.values());
   }
 
   @Override
   public OutboundConnectorFunction getInstance(String type) {
-    return Optional.ofNullable(functionMap.get(type))
+    return Optional.ofNullable(connectorConfigs.get(type))
         .map(this::createInstance)
-        .orElseThrow(() -> new NoSuchElementException("Connector " + type + " is not registered"));
+        .orElseThrow(
+            () ->
+                new NoSuchElementException(
+                    "Outbound connector \"" + type + "\" is not registered"));
   }
 
   private OutboundConnectorFunction createInstance(OutboundConnectorConfiguration config) {
-    if (config.customInstanceSupplier() != null) {
-      return config.customInstanceSupplier().get();
-    } else {
-      return ConnectorHelper.instantiateConnector(config.connectorClass());
-    }
+    return connectorInstanceCache.computeIfAbsent(
+        config,
+        c -> {
+          if (c.customInstanceSupplier() != null) {
+            return c.customInstanceSupplier().get();
+          } else {
+            return ConnectorHelper.instantiateConnector(c.connectorClass());
+          }
+        });
   }
 
   @Override
   public void registerConfiguration(OutboundConnectorConfiguration configuration) {
-    var oldConfig = functionMap.get(configuration.type());
+    var oldConfig = connectorConfigs.get(configuration.type());
     if (oldConfig != null) {
       LOG.info("Connector " + oldConfig + " is overridden, new configuration" + configuration);
-      functionMap.remove(oldConfig.type());
+      connectorConfigs.remove(oldConfig.type());
     }
-    functionMap.put(configuration.type(), configuration);
+    connectorConfigs.put(configuration.type(), configuration);
   }
 
   @Override
   public void resetConfigurations() {
-    loadConnectorConfigurations();
-  }
-
-  protected void loadConnectorConfigurations() {
-    List<OutboundConnectorConfiguration> configurations;
-    if (EnvVarsConnectorDiscovery.isOutboundConfigured()) {
-      configurations = EnvVarsConnectorDiscovery.discoverOutbound();
-    } else {
-      configurations = SPIConnectorDiscovery.discoverOutbound();
-    }
-    functionMap =
-        configurations.stream()
-            .collect(Collectors.toMap(OutboundConnectorConfiguration::type, config -> config));
+    connectorConfigs.clear();
+    connectorInstanceCache.clear();
   }
 }
