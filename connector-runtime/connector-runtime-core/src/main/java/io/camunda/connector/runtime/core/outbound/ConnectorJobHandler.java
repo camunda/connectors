@@ -91,15 +91,9 @@ public class ConnectorJobHandler implements JobHandler {
     Duration retryBackoff;
     try {
       retryBackoff = getBackoffDuration(job);
-    } catch (DateTimeParseException e) {
-      var wrapperException =
-          new RuntimeException(
-              "Failed to parse retry backoff header. Expected ISO-8601 duration, e.g. PT5M, "
-                  + "got: "
-                  + job.getCustomHeaders().get(Keywords.RETRY_BACKOFF_KEYWORD),
-              e);
+    } catch (Exception e) {
       ConnectorResult.ErrorResult result =
-          new ConnectorResult.ErrorResult(Map.of("error", exceptionToMap(e)), wrapperException, 0);
+          new ConnectorResult.ErrorResult(Map.of("error", exceptionToMap(e)), e, 0);
       failJob(client, job, result);
       return;
     }
@@ -223,7 +217,15 @@ public class ConnectorJobHandler implements JobHandler {
     if (backoffHeader == null) {
       return null;
     }
-    return Duration.parse(backoffHeader);
+    try {
+      return Duration.parse(backoffHeader);
+    } catch (DateTimeParseException e) {
+      throw new RuntimeException(
+          "Failed to parse retry backoff header. Expected ISO-8601 duration, e.g. PT5M, "
+              + "got: "
+              + job.getCustomHeaders().get(Keywords.RETRY_BACKOFF_KEYWORD),
+          e);
+    }
   }
 
   private static String truncateErrorMessage(String message) {
