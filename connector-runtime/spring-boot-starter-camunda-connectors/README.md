@@ -17,4 +17,3 @@ The Connector runtime used with this starter can be configured via the following
 | `camunda.connector.polling.enabled`  | Whether Operate polling is enabled. This is required for inbound Connectors.        | `true`  |
 | `camunda.connector.polling.interval` | The interval in which Operate polls for new process deployments.                    | `5000`  |
 | `camunda.connector.webhook.enabled`  | Whether webhook connector support is enabled.                                       | `true`  |
-| `operate.client.enabled`             | Whether default Operate client is enabled. This is required for inbound Connectors. | `true`  |
