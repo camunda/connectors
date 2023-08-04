@@ -6,13 +6,17 @@
  */
 package io.camunda.connector.inbound.model;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public enum HMACScope {
   @JsonProperty("url")
+  @JsonAlias("URL")
   URL,
   @JsonProperty("body")
+  @JsonAlias("BODY")
   BODY,
   @JsonProperty("parameters")
+  @JsonAlias("PARAMETERS")
   PARAMETERS
 }
