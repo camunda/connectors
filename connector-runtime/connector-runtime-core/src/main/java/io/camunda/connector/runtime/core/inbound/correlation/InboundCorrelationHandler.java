@@ -156,7 +156,7 @@ public class InboundCorrelationHandler {
   protected String extractCorrelationKey(MessageCorrelationPoint point, Object context) {
     String correlationKeyExpression = point.correlationKeyExpression();
     try {
-      return feelEngine.evaluate(correlationKeyExpression, context);
+      return feelEngine.evaluate(correlationKeyExpression, context, String.class);
     } catch (Exception e) {
       throw new ConnectorInputException(e);
     }
