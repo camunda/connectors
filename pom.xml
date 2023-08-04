@@ -6,12 +6,11 @@
   <parent>
     <groupId>io.camunda.connector</groupId>
     <artifactId>connector-parent</artifactId>
-    <version>0.22.0-alpha2</version>
+    <version>0.22.0-SNAPSHOT</version>
     <relativePath>parent/pom.xml</relativePath>
   </parent>
 
   <artifactId>connectors-bundle-parent</artifactId>
-  <version>0.22.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>connectors</name>
@@ -19,7 +18,6 @@
   <inceptionYear>2022</inceptionYear>
 
   <modules>
-    <module>parent</module>
     <module>connector-sdk/core</module>
     <module>connector-sdk/validation</module>
     <module>connector-sdk/test</module>
