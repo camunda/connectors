@@ -25,6 +25,8 @@ import io.camunda.connector.inbound.model.WebhookConnectorProperties.WebhookConn
 import io.camunda.connector.inbound.model.WebhookProcessingResultImpl;
 import io.camunda.connector.inbound.signature.HMACAlgoCustomerChoice;
 import io.camunda.connector.inbound.signature.HMACSignatureValidator;
+import io.camunda.connector.inbound.signature.strategy.HMACEncodingStrategy;
+import io.camunda.connector.inbound.signature.strategy.HMACEncodingStrategyFactory;
 import io.camunda.connector.inbound.utils.HttpMethods;
 import io.camunda.connector.inbound.utils.HttpWebhookUtil;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -86,8 +88,10 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
   private boolean webhookSignatureIsValid(WebhookProcessingPayload payload)
       throws NoSuchAlgorithmException, InvalidKeyException, IOException {
     if (shouldValidateHmac()) {
-      return validateHmacSignature(
-          HttpWebhookUtil.extractSignatureData(payload, props.hmacScopes()), payload);
+      HMACEncodingStrategy strategy =
+          HMACEncodingStrategyFactory.getStrategy(props.hmacScopes(), payload.method());
+      byte[] bytesToSign = strategy.getBytesToSign(payload);
+      return validateHmacSignature(bytesToSign, payload);
     }
     return true;
   }
