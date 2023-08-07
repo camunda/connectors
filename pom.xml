@@ -18,6 +18,7 @@
   <inceptionYear>2022</inceptionYear>
 
   <modules>
+    <module>parent</module>
     <module>connector-sdk/core</module>
     <module>connector-sdk/validation</module>
     <module>connector-sdk/test</module>
