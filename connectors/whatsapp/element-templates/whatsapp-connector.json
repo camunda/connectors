@@ -95,16 +95,120 @@
       }
     },
     {
-      "label": "Message",
-      "description": "Message to be sent to the recipient",
+      "label": "Message type",
+      "description": "Choose message type you wish to send.  <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/whatsapp/' target='_blank'>See documentation</a>",
+      "group": "input",
+      "id": "messageType",
+      "type": "Dropdown",
+      "value": "messageType",
+      "choices": [
+        {
+          "name": "Plain text",
+          "value": "plainText"
+        },
+        {
+          "name": "Message template",
+          "value": "messageTemplate"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "messageType"
+      }
+    },
+    {
+      "label": "Message text",
+      "description": "Plain text message to be sent to the recipient",
       "group": "input",
       "type": "Text",
       "feel": "optional",
+      "constraints": {
+        "notEmpty": true
+      },
       "binding": {
         "type": "zeebe:input",
         "name": "messageBody"
       },
-      "optional": true
+      "condition": {
+        "property": "messageType",
+        "equals": "plainText"
+      }
+    },
+    {
+      "label": "Template name",
+      "description": "An approved WhatsApp template name",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "templateName"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "messageType",
+        "equals": "messageTemplate"
+      }
+    },
+    {
+      "label": "Template language code",
+      "description": "An approved WhatsApp template language code, e.g. en_US",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "templateLanguageCode"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "messageType",
+        "equals": "messageTemplate"
+      }
+    },
+    {
+      "label": "Header variables",
+      "description": "Header variables if supported by template",
+      "value": "=[]",
+      "group": "input",
+      "type": "Text",
+      "feel": "required",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "headerParameters"
+      },
+      "constraints": {
+        "notEmpty": false
+      },
+      "condition": {
+        "property": "messageType",
+        "equals": "messageTemplate"
+      }
+    },
+    {
+      "label": "Body variables",
+      "description": "Body variables if supported by template",
+      "value": "=[]",
+      "group": "input",
+      "type": "Text",
+      "feel": "required",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "bodyParameters"
+      },
+      "constraints": {
+        "notEmpty": false
+      },
+      "condition": {
+        "property": "messageType",
+        "equals": "messageTemplate"
+      }
     },
     {
       "value": "bearer",
@@ -136,6 +240,22 @@
       "binding": {
         "type": "zeebe:input",
         "name": "body"
+      },
+      "condition": {
+        "property": "messageType",
+        "equals": "plainText"
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "={\"messaging_product\":\"whatsapp\",\"recipient_type\":\"individual\",\"to\":recipientPhoneNumber,\"type\":\"template\", \"template\": {\"name\":templateName, \"language\": { \"code\": templateLanguageCode}, \"components\":[{\"type\":\"header\", \"parameters\":headerParameters}, {\"type\":\"body\", \"parameters\":bodyParameters}]}}",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body"
+      },
+      "condition": {
+        "property": "messageType",
+        "equals": "messageTemplate"
       }
     },
     {
