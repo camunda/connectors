@@ -31,10 +31,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @AutoConfiguration
-@AutoConfigureAfter({
-    CamundaAutoConfiguration.class,
-    OutboundConnectorsAutoConfiguration.class
-})
+@AutoConfigureAfter({CamundaAutoConfiguration.class, OutboundConnectorsAutoConfiguration.class})
 @ConditionalOnProperty(
     prefix = "camunda.connector.polling",
     name = "enabled",
