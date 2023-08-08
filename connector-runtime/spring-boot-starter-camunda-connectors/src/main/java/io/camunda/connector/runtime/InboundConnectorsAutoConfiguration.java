@@ -22,7 +22,6 @@ import io.camunda.zeebe.spring.client.configuration.OperateClientProdAutoConfigu
 import io.camunda.zeebe.spring.client.properties.OperateClientConfigurationProperties;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
-import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -31,8 +30,10 @@ import org.springframework.context.annotation.Import;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @AutoConfiguration
-@AutoConfigureBefore(OutboundConnectorsAutoConfiguration.class)
-@AutoConfigureAfter(OperateClientProdAutoConfiguration.class)
+@AutoConfigureAfter({
+    OperateClientProdAutoConfiguration.class,
+    OutboundConnectorsAutoConfiguration.class
+})
 @ConditionalOnProperty(
     prefix = "camunda.connector.polling",
     name = "enabled",
@@ -45,6 +46,7 @@ public class InboundConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  @ConditionalOnProperty(value = "operate.client.enabled", havingValue = "false", matchIfMissing = true)
   public CamundaOperateClient myOperateClient(
       OperateClientProdAutoConfiguration configuration,
       OperateClientConfigurationProperties properties) {
@@ -53,6 +55,7 @@ public class InboundConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  @ConditionalOnProperty(value = "operate.client.enabled", havingValue = "false", matchIfMissing = true)
   public OperateClientProdAutoConfiguration operateClientProdAutoConfiguration() {
     return new OperateClientProdAutoConfiguration();
   }
