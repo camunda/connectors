@@ -100,10 +100,9 @@ public class FeelEngineWrapper {
 
   @SuppressWarnings("unchecked")
   private <T> T sanitizeScalaOutput(T output) {
-    if (output instanceof scala.collection.Map<?,?> scalaMap) {
+    if (output instanceof scala.collection.Map<?, ?> scalaMap) {
       return (T) CollectionConverters.asJava(scalaMap);
-    }
-    else return output;
+    } else return output;
   }
 
   /**
