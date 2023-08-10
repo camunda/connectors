@@ -7,14 +7,10 @@
 package io.camunda.connector.rabbitmq.common.model;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.fasterxml.jackson.module.scala.DefaultScalaModule$;
 import com.rabbitmq.client.AMQP;
+import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.rabbitmq.outbound.ValidationPropertiesUtil;
 import jakarta.validation.constraints.NotNull;
 import java.util.Objects;
@@ -25,13 +21,7 @@ import org.slf4j.LoggerFactory;
 
 public class RabbitMqMessage {
   private static final Logger LOGGER = LoggerFactory.getLogger(RabbitMqMessage.class);
-  private static final ObjectMapper mapper =
-      new ObjectMapper()
-          .registerModule(new Jdk8Module())
-          .registerModule(DefaultScalaModule$.MODULE$)
-          .registerModule(new JavaTimeModule())
-          .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
-          .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+  private static final ObjectMapper mapper = ConnectorsObjectMapperSupplier.getCopy();
 
   private Object properties;
   @NotNull private Object body;
