@@ -27,8 +27,11 @@ import com.fasterxml.jackson.module.scala.DefaultScalaModule$;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 import org.camunda.feel.FeelEngine;
 import org.camunda.feel.impl.JavaValueMapper;
+import scala.collection.Iterable;
 import scala.jdk.javaapi.CollectionConverters;
 
 /** Wrapper for the FEEL engine, handling type conversions and expression evaluations. */
@@ -101,7 +104,17 @@ public class FeelEngineWrapper {
   @SuppressWarnings("unchecked")
   private <T> T sanitizeScalaOutput(T output) {
     if (output instanceof scala.collection.Map<?, ?> scalaMap) {
-      return (T) CollectionConverters.asJava(scalaMap);
+      return (T)
+          CollectionConverters.asJava(scalaMap).entrySet().stream()
+              .collect(
+                  HashMap::new,
+                  (m, v) -> m.put(v.getKey(), sanitizeScalaOutput(v.getValue())),
+                  HashMap::putAll);
+    } else if (output instanceof Iterable<?> scalaIterable) {
+      return (T)
+          StreamSupport.stream(CollectionConverters.asJava(scalaIterable).spliterator(), false)
+              .map(this::sanitizeScalaOutput)
+              .collect(Collectors.toList());
     } else return output;
   }
 
@@ -110,8 +123,8 @@ public class FeelEngineWrapper {
    *
    * @param expression the expression to evaluate
    * @param variables the variables to use in evaluation
-   * @return the evaluation result
    * @param <T> the type to cast the evaluation result to
+   * @return the evaluation result
    * @throws FeelEngineWrapperException when there is an exception message as a result of the
    *     evaluation or the result cannot be cast to the given type
    */
