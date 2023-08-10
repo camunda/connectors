@@ -6,38 +6,11 @@
  */
 package io.camunda.connector.slack.inbound.model;
 
-import com.slack.api.app_backend.SlackSignature;
-import java.util.Map;
+public record SlackWebhookProperties(String context, String slackSigningSecret) {
 
-public class SlackWebhookProperties {
-
-  private final Map<String, String> genericProperties;
-  private String context;
-  private String signingSecret;
-
-  public SlackWebhookProperties(Map<String, Object> properties) {
-    this.genericProperties = (Map<String, String>) properties.get("inbound");
-    this.context = genericProperties.get("context");
-    this.signingSecret = genericProperties.get("slackSigningSecret");
+  public SlackWebhookProperties(SlackWebhookPropertiesWrapper wrapper) {
+    this(wrapper.inbound.context, wrapper.inbound.slackSigningSecret);
   }
 
-  public SlackSignature.Verifier signatureVerifier() {
-    return new SlackSignature.Verifier(new SlackSignature.Generator(signingSecret));
-  }
-
-  public String getContext() {
-    return context;
-  }
-
-  public void setContext(String context) {
-    this.context = context;
-  }
-
-  public String getSigningSecret() {
-    return signingSecret;
-  }
-
-  public void setSigningSecret(String signingSecret) {
-    this.signingSecret = signingSecret;
-  }
+  public record SlackWebhookPropertiesWrapper(SlackWebhookProperties inbound) {}
 }

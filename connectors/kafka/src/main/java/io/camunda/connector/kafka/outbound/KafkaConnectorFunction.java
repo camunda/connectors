@@ -35,7 +35,7 @@ public class KafkaConnectorFunction implements OutboundConnectorFunction {
 
   private final Function<Properties, Producer> producerCreatorFunction;
 
-  private static final ObjectMapper objectMapper =
+  static final ObjectMapper objectMapper =
       new ObjectMapper()
           .registerModule(new Jdk8Module())
           .registerModule(DefaultScalaModule$.MODULE$)

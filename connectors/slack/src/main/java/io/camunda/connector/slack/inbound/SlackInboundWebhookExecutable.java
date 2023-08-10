@@ -9,6 +9,7 @@ package io.camunda.connector.slack.inbound;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.net.HttpHeaders;
 import com.google.common.net.MediaType;
+import com.slack.api.app_backend.SlackSignature;
 import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
@@ -55,8 +56,7 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
   @Override
   public WebhookResult triggerWebhook(WebhookProcessingPayload webhookProcessingPayload)
       throws Exception {
-    if (!props
-        .signatureVerifier()
+    if (!new SlackSignature.Verifier(new SlackSignature.Generator(props.slackSigningSecret()))
         .isValid(
             webhookProcessingPayload.headers().get(HEADER_SLACK_REQUEST_TIMESTAMP),
             new String(webhookProcessingPayload.rawBody(), StandardCharsets.UTF_8),
@@ -89,7 +89,9 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
     if (context == null) {
       throw new Exception("Inbound connector context cannot be null");
     }
-    props = new SlackWebhookProperties(context.getProperties());
+    var wrappedProps =
+        context.bindProperties(SlackWebhookProperties.SlackWebhookPropertiesWrapper.class);
+    props = new SlackWebhookProperties(wrappedProps);
   }
 
   private Map bodyAsMap(Map<String, String> headers, byte[] rawBody) throws IOException {
