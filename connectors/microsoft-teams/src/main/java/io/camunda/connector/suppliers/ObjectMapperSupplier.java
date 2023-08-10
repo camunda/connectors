@@ -7,24 +7,14 @@
 package io.camunda.connector.suppliers;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.fasterxml.jackson.module.scala.DefaultScalaModule$;
+import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
 
 public final class ObjectMapperSupplier {
 
   private static final ObjectMapper objectMapper =
-      new ObjectMapper()
-          .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-          .registerModule(DefaultScalaModule$.MODULE$)
-          .registerModule(new JavaTimeModule())
-          .registerModule(new Jdk8Module())
-          .setSerializationInclusion(JsonInclude.Include.NON_NULL)
-          .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
-          .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+      ConnectorsObjectMapperSupplier.getCopy()
+          .setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
   private ObjectMapperSupplier() {}
 

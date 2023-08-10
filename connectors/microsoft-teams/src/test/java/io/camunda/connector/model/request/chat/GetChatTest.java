@@ -12,13 +12,12 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.fasterxml.jackson.module.scala.DefaultScalaModule$;
 import com.microsoft.graph.models.Chat;
 import com.microsoft.graph.requests.ChatRequest;
 import com.microsoft.graph.requests.ChatRequestBuilder;
 import com.microsoft.graph.requests.GraphServiceClient;
 import io.camunda.connector.BaseTest;
+import io.camunda.connector.suppliers.ObjectMapperSupplier;
 import okhttp3.Request;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -64,10 +63,7 @@ class GetChatTest extends BaseTest {
     String chatStringResponse =
         "{\"oDataType\":null,\"id\":\"19:e37f90808e7748d7bbbb2029ed17f643@thread.v2\",\"chatType\":\"GROUP\",\"members\":null,\"messages\":null}";
 
-    ObjectMapper objectMapper =
-        new ObjectMapper()
-            .registerModule(new JavaTimeModule())
-            .registerModule(DefaultScalaModule$.MODULE$);
+    ObjectMapper objectMapper = ObjectMapperSupplier.objectMapper();
     Chat chat = objectMapper.readValue(chatStringResponse, Chat.class);
 
     when(graphServiceClient.chats(ActualValue.Chat.CHAT_ID)).thenReturn(chatRequestBuilder);
