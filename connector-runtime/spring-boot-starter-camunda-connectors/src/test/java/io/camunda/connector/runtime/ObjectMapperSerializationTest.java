@@ -22,12 +22,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
 import io.camunda.zeebe.client.api.JsonMapper;
 import io.camunda.zeebe.spring.test.ZeebeSpringTest;
 import java.time.ZoneOffset;
 import java.util.Date;
 import java.util.Map;
+import java.util.function.Supplier;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -44,6 +46,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 public class ObjectMapperSerializationTest {
 
   @Autowired private JsonMapper jsonMapper;
+  @Autowired private ObjectMapper objectMapper;
   @Autowired private ApplicationContext applicationContext;
 
   @Test
@@ -77,4 +80,19 @@ public class ObjectMapperSerializationTest {
     // should serialise OffsetDateTime
     assertThat(jsonMapper.toJson(new Date().toInstant().atOffset(ZoneOffset.UTC))).isNotNull();
   }
+
+  @Test
+  void feelDeserialization() throws JsonProcessingException {
+    var json =
+        """
+        {
+         "name": "= \\"test \\" + \\"Name\\" ",
+         "greetingSupplier": "= \\"Hello\\""
+        }""";
+    var feelClass = objectMapper.readValue(json, TestFeelClass.class);
+    assertThat(feelClass.name).isEqualTo("test Name");
+    assertThat(feelClass.greetingSupplier.get()).isEqualTo("Hello");
+  }
+
+  private record TestFeelClass(@FEEL String name, Supplier<String> greetingSupplier) {}
 }
