@@ -27,17 +27,23 @@ import com.fasterxml.jackson.module.scala.DefaultScalaModule$;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 import org.camunda.feel.FeelEngine;
 import org.camunda.feel.impl.JavaValueMapper;
+import scala.collection.Iterable;
 import scala.jdk.javaapi.CollectionConverters;
 
-/** Wrapper for the FEEL engine, handling type conversions and expression evaluations. */
+/**
+ * Wrapper for the FEEL engine, handling type conversions and expression evaluations.
+ */
 public class FeelEngineWrapper {
 
   static final String RESPONSE_MAP_KEY = "response";
   static final String ERROR_CONTEXT_IS_NULL = "Context is null";
 
-  static final TypeReference<Map<String, Object>> MAP_TYPE_REFERENCE = new TypeReference<>() {};
+  static final TypeReference<Map<String, Object>> MAP_TYPE_REFERENCE = new TypeReference<>() {
+  };
 
   private final FeelEngine feelEngine;
   private final ObjectMapper objectMapper;
@@ -65,7 +71,7 @@ public class FeelEngineWrapper {
    * Injection constructor allowing to pass in the {@link FeelEngine} and {@link ObjectMapper} to
    * use.
    *
-   * @param feelEngine the FEEL engine to use
+   * @param feelEngine   the FEEL engine to use
    * @param objectMapper the object mapper to use
    */
   public FeelEngineWrapper(final FeelEngine feelEngine, final ObjectMapper objectMapper) {
@@ -101,7 +107,13 @@ public class FeelEngineWrapper {
   @SuppressWarnings("unchecked")
   private <T> T sanitizeScalaOutput(T output) {
     if (output instanceof scala.collection.Map<?, ?> scalaMap) {
-      return (T) CollectionConverters.asJava(scalaMap);
+      return (T) CollectionConverters.asJava(scalaMap).entrySet().stream()
+          .collect(HashMap::new, (m, v) -> m.put(v.getKey(), sanitizeScalaOutput(v.getValue())),
+              HashMap::putAll);
+    } else if (output instanceof Iterable<?> scalaIterable) {
+      return (T) StreamSupport.stream(CollectionConverters.asJava(scalaIterable).spliterator(), false)
+          .map(this::sanitizeScalaOutput)
+          .collect(Collectors.toList());
     } else return output;
   }
 
@@ -109,11 +121,11 @@ public class FeelEngineWrapper {
    * Evaluates an expression with the FEEL engine with the given variables.
    *
    * @param expression the expression to evaluate
-   * @param variables the variables to use in evaluation
+   * @param variables  the variables to use in evaluation
+   * @param <T>        the type to cast the evaluation result to
    * @return the evaluation result
-   * @param <T> the type to cast the evaluation result to
    * @throws FeelEngineWrapperException when there is an exception message as a result of the
-   *     evaluation or the result cannot be cast to the given type
+   *                                    evaluation or the result cannot be cast to the given type
    */
   public <T> T evaluate(final String expression, final Object variables) {
     try {
@@ -137,10 +149,10 @@ public class FeelEngineWrapper {
    * Evaluates an expression to a JSON String.
    *
    * @param expression the expression to evaluate
-   * @param variables the variables to use in evaluation
+   * @param variables  the variables to use in evaluation
    * @return the JSON String representing the evaluation result
    * @throws FeelEngineWrapperException when there is an exception message as a result of the
-   *     evaluation or the result cannot be parsed as JSON
+   *                                    evaluation or the result cannot be parsed as JSON
    */
   public String evaluateToJson(final String expression, final Object variables) {
     try {
