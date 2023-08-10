@@ -188,7 +188,7 @@ class FeelEngineWrapperExpressionEvaluationTest {
   @Test
   void shouldSanitizeScalaMapOutput() {
     // given
-    final var expression = "={\"processedOutput\": response.callStatus }";
+    final var expression = "={\"processedOutput\": response.callStatus, \"response\": response }";
     final var variables = Map.of("callStatus", "200 OK");
 
     // when
@@ -197,7 +197,7 @@ class FeelEngineWrapperExpressionEvaluationTest {
     // then
     // result is not a scala map
     assertThat(result).isNotInstanceOf(scala.collection.Map.class);
-    assertThat(result).isEqualTo(Map.of("processedOutput", "200 OK"));
+    assertThat(result).isEqualTo(Map.of("processedOutput", "200 OK", "response", variables));
   }
 
   class TestPojo {
