@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.kafka.outbound;
 
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.error.ConnectorException;
@@ -31,7 +32,8 @@ public class KafkaConnectorFunction implements OutboundConnectorFunction {
 
   private final Function<Properties, Producer> producerCreatorFunction;
 
-  private static final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
+  private static final ObjectMapper objectMapper =
+      ConnectorsObjectMapperSupplier.getCopy().enable(JsonParser.Feature.ALLOW_SINGLE_QUOTES);
 
   public KafkaConnectorFunction() {
     this(KafkaProducer::new);

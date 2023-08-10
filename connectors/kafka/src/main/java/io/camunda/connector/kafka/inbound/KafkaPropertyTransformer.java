@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.kafka.inbound;
 
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
@@ -22,7 +23,8 @@ public class KafkaPropertyTransformer {
 
   private static final Logger LOG = LoggerFactory.getLogger(KafkaPropertyTransformer.class);
 
-  private static final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
+  private static final ObjectMapper objectMapper =
+      ConnectorsObjectMapperSupplier.getCopy().enable(JsonParser.Feature.ALLOW_SINGLE_QUOTES);
 
   static final String DEFAULT_GROUP_ID_PREFIX = "kafka-inbound-connector";
 
