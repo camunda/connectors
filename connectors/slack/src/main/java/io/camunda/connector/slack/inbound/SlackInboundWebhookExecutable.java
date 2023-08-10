@@ -16,9 +16,9 @@ import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookHttpResponse;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookResult;
+import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.slack.inbound.model.SlackWebhookProcessingResult;
 import io.camunda.connector.slack.inbound.model.SlackWebhookProperties;
-import io.camunda.connector.slack.inbound.suppliers.ObjectMapperSupplier;
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -45,7 +45,7 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
   private SlackWebhookProperties props;
 
   public SlackInboundWebhookExecutable() {
-    this(ObjectMapperSupplier.getMapperInstance());
+    this(ConnectorsObjectMapperSupplier.getCopy());
   }
 
   public SlackInboundWebhookExecutable(final ObjectMapper mapper) {
