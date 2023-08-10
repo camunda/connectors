@@ -98,6 +98,14 @@ public class FeelEngineWrapper {
     }
   }
 
+  @SuppressWarnings("unchecked")
+  private <T> T sanitizeScalaOutput(T output) {
+    if (output instanceof scala.collection.Map<?,?> scalaMap) {
+      return (T) CollectionConverters.asJava(scalaMap);
+    }
+    else return output;
+  }
+
   /**
    * Evaluates an expression with the FEEL engine with the given variables.
    *
@@ -118,12 +126,12 @@ public class FeelEngineWrapper {
 
   public <T> T evaluate(final String expression, final Object variables, final Class<T> clazz) {
     Object result = evaluate(expression, variables);
-    return objectMapper.convertValue(result, clazz);
+    return sanitizeScalaOutput(objectMapper.convertValue(result, clazz));
   }
 
   public <T> T evaluate(final String expression, final Object variables, final JavaType clazz) {
     Object result = evaluate(expression, variables);
-    return objectMapper.convertValue(result, clazz);
+    return sanitizeScalaOutput(objectMapper.convertValue(result, clazz));
   }
 
   /**

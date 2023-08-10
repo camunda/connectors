@@ -185,6 +185,21 @@ class FeelEngineWrapperExpressionEvaluationTest {
         .hasMessageContaining("no function found with name 'camel case'");
   }
 
+  @Test
+  void shouldSanitizeScalaMapOutput() {
+    // given
+    final var expression = "={\"processedOutput\": response.callStatus }";
+    final var variables = Map.of("callStatus", "200 OK");
+
+    // when
+    final var result = objectUnderTest.evaluate(expression, variables, Object.class);
+
+    // then
+    // result is not a scala map
+    assertThat(result).isNotInstanceOf(scala.collection.Map.class);
+    assertThat(result).isEqualTo(Map.of("processedOutput", "200 OK"));
+  }
+
   class TestPojo {
 
     private final String value;
