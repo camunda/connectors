@@ -6,16 +6,13 @@
  */
 package io.camunda.connector.kafka.outbound;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.fasterxml.jackson.module.scala.DefaultScalaModule$;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorRequest;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorResponse;
 import java.util.Properties;
@@ -36,12 +33,7 @@ public class KafkaConnectorFunction implements OutboundConnectorFunction {
   private final Function<Properties, Producer> producerCreatorFunction;
 
   private static final ObjectMapper objectMapper =
-      new ObjectMapper()
-          .registerModule(new Jdk8Module())
-          .registerModule(DefaultScalaModule$.MODULE$)
-          .registerModule(new JavaTimeModule())
-          .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
-          .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+      ConnectorsObjectMapperSupplier.getCopy().enable(JsonParser.Feature.ALLOW_SINGLE_QUOTES);
 
   public KafkaConnectorFunction() {
     this(KafkaProducer::new);

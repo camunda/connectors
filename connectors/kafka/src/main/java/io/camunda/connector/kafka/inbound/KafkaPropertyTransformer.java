@@ -7,13 +7,9 @@
 package io.camunda.connector.kafka.inbound;
 
 import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.fasterxml.jackson.module.scala.DefaultScalaModule$;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
+import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorRequest;
 import java.util.Properties;
 import org.apache.commons.text.StringEscapeUtils;
@@ -28,14 +24,7 @@ public class KafkaPropertyTransformer {
   private static final Logger LOG = LoggerFactory.getLogger(KafkaPropertyTransformer.class);
 
   private static final ObjectMapper objectMapper =
-      new ObjectMapper()
-          .registerModule(new Jdk8Module())
-          .registerModule(DefaultScalaModule$.MODULE$)
-          .registerModule(new JavaTimeModule())
-          // deserialize unknown types as empty objects
-          .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
-          .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-          .enable(JsonParser.Feature.ALLOW_SINGLE_QUOTES);
+      ConnectorsObjectMapperSupplier.getCopy().enable(JsonParser.Feature.ALLOW_SINGLE_QUOTES);
 
   static final String DEFAULT_GROUP_ID_PREFIX = "kafka-inbound-connector";
 
