@@ -22,12 +22,10 @@
     <module>rabbitmq</module>
     <module>sendgrid</module>
     <module>kafka</module>
-    <module>http-json</module>
+    <module>http</module>
     <module>microsoft-teams</module>
     <module>slack</module>
-    <module>graphql</module>
     <module>webhook</module>
-    <module>connectors-common-library</module>
     <module>google</module>
   </modules>
 
