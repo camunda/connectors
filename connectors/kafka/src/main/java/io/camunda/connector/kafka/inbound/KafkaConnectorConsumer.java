@@ -35,6 +35,7 @@ import java.util.concurrent.Executors;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.avro.Schema;
+import org.apache.commons.text.StringEscapeUtils;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -84,16 +85,16 @@ public class KafkaConnectorConsumer {
   }
 
   public void startConsumer() {
+    if (elementProps.getAvro() != null) {
+      var schemaString = StringEscapeUtils.unescapeJson(elementProps.getAvro().schema());
+      Schema schema = new Schema.Parser().setValidate(true).parse(schemaString);
+      AvroSchema avroSchema = new AvroSchema(schema);
+      AvroMapper avroMapper = new AvroMapper();
+      avroObjectReader = avroMapper.reader(avroSchema);
+    }
     this.future =
         CompletableFuture.runAsync(
             () -> {
-              if (elementProps.getAvro() != null) {
-                Schema schema =
-                    new Schema.Parser().setValidate(true).parse(elementProps.getAvro().schema());
-                AvroSchema avroSchema = new AvroSchema(schema);
-                AvroMapper avroMapper = new AvroMapper();
-                avroObjectReader = avroMapper.reader(avroSchema);
-              }
               prepareConsumer();
               consume();
             },

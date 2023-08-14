@@ -139,7 +139,7 @@
       "label": "Avro schema",
       "description": "Optional Avro schema for the message value",
       "group": "message",
-      "type": "String",
+      "type": "Text",
       "optional": true,
       "feel": "optional",
       "binding": {
