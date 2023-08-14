@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.core.inbound;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
 import io.camunda.connector.api.inbound.correlation.ProcessCorrelationPoint;
 import io.camunda.connector.runtime.core.Keywords;
@@ -24,7 +25,7 @@ import java.util.Optional;
 
 /** Inbound connector definition implementation that also contains connector properties */
 public record InboundConnectorDefinitionImpl(
-    Map<String, String> rawProperties,
+    @JsonIgnore Map<String, String> rawProperties,
     ProcessCorrelationPoint correlationPoint,
     String bpmnProcessId,
     Integer version,
@@ -51,5 +52,24 @@ public record InboundConnectorDefinitionImpl(
 
   public String activationCondition() {
     return rawProperties.get(Keywords.ACTIVATION_CONDITION_KEYWORD);
+  }
+
+  // override to exclude rawProperties
+  @Override
+  public String toString() {
+    return "InboundConnectorDefinitionImpl{"
+        + "correlationPoint="
+        + correlationPoint
+        + ", bpmnProcessId='"
+        + bpmnProcessId
+        + '\''
+        + ", version="
+        + version
+        + ", processDefinitionKey="
+        + processDefinitionKey
+        + ", elementId='"
+        + elementId
+        + '\''
+        + '}';
   }
 }
