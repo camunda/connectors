@@ -31,6 +31,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.apache.commons.text.StringEscapeUtils;
 
 /**
  * A Jackson deserializer for FEEL expressions. It can be used to deserialize a string that contains
@@ -55,7 +56,12 @@ public class FeelDeserializer extends AbstractFeelDeserializer<Object> {
   protected Object doDeserialize(JsonNode node, ObjectMapper mapper)
       throws JsonProcessingException {
     if (isFeelExpression(node.textValue())) {
-      return feelEngineWrapper.evaluate(node.textValue(), Map.of(), outputType);
+      var jsonNode = feelEngineWrapper.evaluate(node.textValue(), Map.of(), JsonNode.class);
+      if (outputType.getRawClass() == String.class && jsonNode.isObject()) {
+        return mapper.writeValueAsString(jsonNode);
+      } else {
+        return mapper.treeToValue(jsonNode, outputType);
+      }
     }
     if (node.isTextual()) {
       var textValue = node.textValue();
@@ -76,11 +82,18 @@ public class FeelDeserializer extends AbstractFeelDeserializer<Object> {
         try {
           // check if this string contains a JSON object/array/etc inside (i.e. it's not just a
           // string)
-          return mapper.readValue(node.textValue(), outputType);
+          var convertedValue = mapper.readValue(textValue, JsonNode.class);
+          if (outputType.getRawClass() == String.class) {
+            return mapper.writeValueAsString(convertedValue);
+          }
+          return mapper.treeToValue(convertedValue, outputType);
         } catch (IOException e) {
           // ignore, this is just a string, we will take care of it below
         }
       }
+    }
+    if (outputType.getRawClass() == String.class && node.isObject()) {
+      return mapper.writeValueAsString(node);
     }
     return mapper.treeToValue(node, outputType);
   }

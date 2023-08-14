@@ -22,6 +22,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import org.apache.avro.Schema;
+import org.apache.commons.text.StringEscapeUtils;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -29,7 +30,7 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 
 @OutboundConnector(
     name = "Kafka Producer",
-    inputVariables = {"authentication", "topic", "message", "additionalProperties"},
+    inputVariables = {"authentication", "topic", "message", "additionalProperties", "avro"},
     type = "io.camunda:connector-kafka:1")
 public class KafkaConnectorFunction implements OutboundConnectorFunction {
 
@@ -53,7 +54,8 @@ public class KafkaConnectorFunction implements OutboundConnectorFunction {
   }
 
   public static byte[] produceAvroMessage(final KafkaConnectorRequest request) throws Exception {
-    Schema raw = new Schema.Parser().setValidate(true).parse(request.getAvro().schema());
+    var schemaString = StringEscapeUtils.unescapeJson(request.getAvro().schema());
+    Schema raw = new Schema.Parser().setValidate(true).parse(schemaString);
     AvroSchema schema = new AvroSchema(raw);
     AvroMapper avroMapper = new AvroMapper();
     return avroMapper.writer(schema).writeValueAsBytes(request.getMessage().getValue());
