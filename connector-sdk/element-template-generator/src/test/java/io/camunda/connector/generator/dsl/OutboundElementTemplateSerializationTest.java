@@ -99,6 +99,7 @@ public class OutboundElementTemplateSerializationTest {
 
     // when
     var jsonString = objectMapper.writeValueAsString(elementTemplate);
+    System.out.println(jsonString);
 
     // then
     var path = Path.of(ClassLoader.getSystemResource("test-element-template.json").toURI());

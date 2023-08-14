@@ -22,7 +22,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 @JsonPropertyOrder({
@@ -46,7 +45,8 @@ public record OutboundElementTemplate(
     String documentationRef,
     String description,
     List<PropertyGroup> groups,
-    List<Property> properties) {
+    List<Property> properties)
+    implements ElementTemplateSchema {
 
   public OutboundElementTemplate {
     List<String> errors = new ArrayList<>();
@@ -76,27 +76,24 @@ public record OutboundElementTemplate(
     }
   }
 
-  @JsonProperty("$schema")
-  public String schema() {
-    return "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json";
+  @JsonProperty
+  public Set<BpmnType> appliesTo() {
+    return Set.of(BpmnType.TASK);
   }
 
   @JsonProperty
-  public Set<String> appliesTo() {
-    return Set.of("bpmn:Task");
+  public ElementType elementType() {
+    return new ElementType(BpmnType.SERVICE_TASK);
   }
 
   @JsonProperty
-  public Map<String, String> elementType() {
-    return Map.of("value", "bpmn:ServiceTask");
-  }
-
-  @JsonProperty
-  public Map<String, String> category() {
-    return Map.of("id", "connectors", "name", "Connectors");
+  public ElementTemplateCategory category() {
+    return ElementTemplateCategory.CONNECTORS;
   }
 
   public static OutboundElementTemplateBuilder builder() {
     return OutboundElementTemplateBuilder.create();
   }
+
+  public record ElementType(BpmnType value) {}
 }
