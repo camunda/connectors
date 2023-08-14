@@ -23,6 +23,7 @@
     <module>connector-sdk/validation</module>
     <module>connector-sdk/test</module>
     <module>connector-sdk/jackson-datatype-feel</module>
+    <module>connector-sdk/element-template-generator</module>
     <module>secret-providers/gcp-secret-provider</module>
     <module>connector-runtime/connector-runtime-core</module>
     <module>connector-runtime/connector-runtime-spring</module>
