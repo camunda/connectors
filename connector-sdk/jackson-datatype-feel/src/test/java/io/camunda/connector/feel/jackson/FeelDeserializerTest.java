@@ -86,7 +86,7 @@ public class FeelDeserializerTest {
         """;
 
     // when & then
-    assertThrows(JsonMappingException.class, () -> mapper.readValue(json, TargetTypeString.class));
+    assertThrows(JsonMappingException.class, () -> mapper.readValue(json, TargetTypeArray.class));
   }
 
   @Test
