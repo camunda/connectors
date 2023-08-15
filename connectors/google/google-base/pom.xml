@@ -27,12 +27,6 @@
     </licenses>
 
     <dependencies>
-
-        <dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
-        </dependency>
-
         <!-- GOOGLE AUTH API -->
         <dependency>
             <groupId>com.google.oauth-client</groupId>
