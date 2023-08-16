@@ -19,14 +19,18 @@ package io.camunda.connector.runtime.inbound.lifecycle;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import io.camunda.connector.api.inbound.PollingConnectorExecutable;
+import io.camunda.connector.api.inbound.operate.ProcessInstance;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
+import io.camunda.connector.runtime.core.inbound.InboundIntermediateConnectorContextImpl;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionInspector;
+import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics.Inbound;
 import io.camunda.operate.dto.ProcessDefinition;
@@ -42,6 +46,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,6 +58,7 @@ public class InboundConnectorManager {
   private final InboundConnectorFactory connectorFactory;
   private final InboundCorrelationHandler correlationHandler;
   private final ProcessDefinitionInspector processDefinitionInspector;
+  private final ProcessDefinitionSearch processDefinitionSearch;
   private final SecretProviderAggregator secretProviderAggregator;
   private final ValidationProvider validationProvider;
 
@@ -72,6 +78,7 @@ public class InboundConnectorManager {
       InboundConnectorFactory connectorFactory,
       InboundCorrelationHandler correlationHandler,
       ProcessDefinitionInspector processDefinitionInspector,
+      ProcessDefinitionSearch processDefinitionSearch,
       SecretProviderAggregator secretProviderAggregator,
       ValidationProvider validationProvider,
       MetricsRecorder metricsRecorder,
@@ -80,6 +87,7 @@ public class InboundConnectorManager {
     this.connectorFactory = connectorFactory;
     this.correlationHandler = correlationHandler;
     this.processDefinitionInspector = processDefinitionInspector;
+    this.processDefinitionSearch = processDefinitionSearch;
     this.secretProviderAggregator = secretProviderAggregator;
     this.validationProvider = validationProvider;
     this.metricsRecorder = metricsRecorder;
@@ -156,7 +164,15 @@ public class InboundConnectorManager {
             "Cannot activate webhook connector. "
                 + "Check whether property camunda.connector.webhook.enabled is set to true.");
       }
-      executable.activate(inboundContext);
+      if (executable instanceof PollingConnectorExecutable) {
+        Long processDefinitionKey = newConnector.processDefinitionKey();
+        Supplier<List<ProcessInstance>> processInstancesSupplier =
+            () -> processDefinitionSearch.fetchProcessInstancesWithVariables(processDefinitionKey);
+        executable.activate(
+            new InboundIntermediateConnectorContextImpl(inboundContext, processInstancesSupplier));
+      } else {
+        executable.activate(inboundContext);
+      }
       if (webhookConnectorRegistry != null
           && connector.executable() instanceof WebhookConnectorExecutable) {
         webhookConnectorRegistry.register(connector);

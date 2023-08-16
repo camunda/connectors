@@ -47,6 +47,7 @@ import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationH
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.inbound.ProcessDefinitionTestUtil;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionInspector;
+import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.operate.dto.ProcessDefinition;
 import io.camunda.zeebe.spring.client.metrics.DefaultNoopMetricsRecorder;
@@ -81,6 +82,7 @@ public class InboundConnectorManagerTest {
     secretProviderAggregator = mock(SecretProviderAggregator.class);
 
     ProcessDefinitionInspector inspector = mock(ProcessDefinitionInspector.class);
+    ProcessDefinitionSearch processDefinitionSearch = mock(ProcessDefinitionSearch.class);
 
     manager =
         new InboundConnectorManager(
@@ -88,6 +90,7 @@ public class InboundConnectorManagerTest {
             factory,
             correlationHandler,
             inspector,
+            processDefinitionSearch,
             secretProviderAggregator,
             v -> {},
             new DefaultNoopMetricsRecorder(),
@@ -235,6 +238,7 @@ public class InboundConnectorManagerTest {
   void shouldNotActivateWebhookWhenDisabled() throws Exception {
     // Given
     ProcessDefinitionInspector inspector = mock(ProcessDefinitionInspector.class);
+    ProcessDefinitionSearch processDefinitionSearch = mock(ProcessDefinitionSearch.class);
     // webhook connector registry is set to null,
     // emulating camunda.connector.webhook.enabled=false
     manager =
@@ -243,6 +247,7 @@ public class InboundConnectorManagerTest {
             factory,
             correlationHandler,
             inspector,
+            processDefinitionSearch,
             secretProviderAggregator,
             v -> {},
             new DefaultNoopMetricsRecorder(),

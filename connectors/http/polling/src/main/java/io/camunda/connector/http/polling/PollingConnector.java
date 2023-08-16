@@ -6,5 +6,21 @@
  */
 package io.camunda.connector.http.polling;
 
-// https://github.com/camunda/product-hub/issues/767#polling-diagram
-public class PollingConnector {}
+import io.camunda.connector.api.annotation.InboundConnector;
+import io.camunda.connector.api.inbound.InboundConnectorContext;
+import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
+import io.camunda.connector.api.inbound.PollingConnectorExecutable;
+
+@InboundConnector(name = "HTTP_POLLING", type = "io.camunda:http:polling:1")
+public class PollingConnector implements PollingConnectorExecutable {
+
+  @Override
+  public void activate(final InboundConnectorContext context) {
+    InboundIntermediateConnectorContext pollingContext =
+        (InboundIntermediateConnectorContext) context;
+    throw new UnsupportedOperationException("Connector not implemented yet");
+  }
+
+  @Override
+  public void deactivate() {}
+}
