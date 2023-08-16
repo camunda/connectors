@@ -55,7 +55,7 @@ public final class TextProperty extends Property {
 
     public TextProperty build() {
       return new TextProperty(
-          name, label, description, required, value, constraints, feel, group, binding, condition);
+          id, label, description, optional, value, constraints, feel, group, binding, condition);
     }
   }
 }

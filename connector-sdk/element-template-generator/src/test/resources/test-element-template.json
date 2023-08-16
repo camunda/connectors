@@ -70,6 +70,22 @@
       }
     },
     {
+      "label": "Type",
+      "description": "The type of message to compose",
+      "group": "compose",
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "message",
+          "value": "Compose a message"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "compose.type"
+      }
+    },
+    {
       "label": "Message",
       "group": "compose",
       "type": "Text",
@@ -80,6 +96,10 @@
       },
       "constraints": {
         "notEmpty": true
+      },
+      "condition": {
+        "property": "compose.type",
+        "equals": "message"
       }
     },
     {

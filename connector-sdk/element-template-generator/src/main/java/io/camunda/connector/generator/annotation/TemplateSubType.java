@@ -14,13 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.generator.dsl;
+package io.camunda.connector.generator.annotation;
 
-import java.util.List;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 
-public sealed interface PropertyCondition {
+@Retention(RetentionPolicy.RUNTIME)
+public @interface TemplateSubType {
 
-  record OneOf(String property, List<String> oneOf) implements PropertyCondition {}
+  String discriminatorProperty();
 
-  record Equals(String property, String equals) implements PropertyCondition {}
+  String equals() default "";
+
+  String[] oneOf() default {};
 }

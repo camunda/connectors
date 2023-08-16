@@ -55,7 +55,7 @@ public final class HiddenProperty extends Property {
 
     public HiddenProperty build() {
       return new HiddenProperty(
-          name, label, description, required, value, constraints, feel, group, binding, condition);
+          id, label, description, optional, value, constraints, feel, group, binding, condition);
     }
   }
 }

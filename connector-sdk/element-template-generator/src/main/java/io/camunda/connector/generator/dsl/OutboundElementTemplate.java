@@ -46,7 +46,7 @@ public record OutboundElementTemplate(
     String description,
     List<PropertyGroup> groups,
     List<Property> properties)
-    implements ElementTemplateSchema {
+    implements ElementTemplateBase {
 
   public OutboundElementTemplate {
     List<String> errors = new ArrayList<>();

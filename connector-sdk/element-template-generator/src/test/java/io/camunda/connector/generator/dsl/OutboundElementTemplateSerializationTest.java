@@ -22,6 +22,7 @@ import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskHeader;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.skyscreamer.jsonassert.JSONAssert;
 
@@ -63,10 +64,19 @@ public class OutboundElementTemplateSerializationTest {
                     .id("compose")
                     .label("Compose")
                     .properties(
+                        DropdownProperty.builder()
+                            .choices(
+                                List.of(
+                                    new DropdownProperty.DropdownChoice(
+                                        "message", "Compose a message")))
+                            .label("Type")
+                            .description("The type of message to compose")
+                            .binding(new ZeebeInput("compose.type")),
                         TextProperty.builder()
                             .label("Message")
                             .feel(FeelMode.optional)
                             .binding(new ZeebeInput("message"))
+                            .condition(new PropertyCondition.Equals("compose.type", "message"))
                             .constraints(PropertyConstraints.builder().notEmpty(true).build()))
                     .build(),
                 PropertyGroup.builder()
@@ -99,7 +109,6 @@ public class OutboundElementTemplateSerializationTest {
 
     // when
     var jsonString = objectMapper.writeValueAsString(elementTemplate);
-    System.out.println(jsonString);
 
     // then
     var path = Path.of(ClassLoader.getSystemResource("test-element-template.json").toURI());
