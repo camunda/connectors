@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -69,7 +70,8 @@ class ResponseParserTest {
         "asObject:" + ARRAY_NAME + ".asArray:" + NUMBER_OF_ELEMENT_IN_ARRAY + ".asString");
     // when
     Map<String, String> stringStringMap =
-        ResponseParser.extractPropertiesFromBody(prop, authResponse, gson);
+        ResponseParser.extractPropertiesFromBody(
+            prop, authResponse, ConnectorsObjectMapperSupplier.getCopy());
     // then
     assertThat(stringStringMap.get(KEY_NAME)).isEqualTo(ARRAY_VALUE);
   }
@@ -81,7 +83,8 @@ class ResponseParserTest {
     prop.put(KEY_NAME, "asObject:" + OBJECT_VALUE_KEY + ".asString");
     // when
     Map<String, String> stringStringMap =
-        ResponseParser.extractPropertiesFromBody(prop, authResponse, gson);
+        ResponseParser.extractPropertiesFromBody(
+            prop, authResponse, ConnectorsObjectMapperSupplier.getCopy());
     // then
     assertThat(stringStringMap.get(KEY_NAME)).isEqualTo(OBJECT_VALUE);
   }
@@ -95,7 +98,8 @@ class ResponseParserTest {
         "asObject:" + INNER_OBJECT_NAME + ".asObject:" + INNER_OBJECT_VALUE_KEY + ".asString");
     // when
     Map<String, String> stringStringMap =
-        ResponseParser.extractPropertiesFromBody(prop, authResponse, gson);
+        ResponseParser.extractPropertiesFromBody(
+            prop, authResponse, ConnectorsObjectMapperSupplier.getCopy());
     // then
     assertThat(stringStringMap.get(KEY_NAME)).isEqualTo(INNER_OBJECT_VALUE);
   }

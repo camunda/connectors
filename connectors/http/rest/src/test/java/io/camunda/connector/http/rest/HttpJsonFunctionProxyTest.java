@@ -67,7 +67,7 @@ public class HttpJsonFunctionProxyTest extends BaseTest {
 
   @BeforeEach
   public void setup() {
-    functionUnderTest = new HttpJsonFunction(gson, requestFactory, PROXY_FUNCTION_URL);
+    functionUnderTest = new HttpJsonFunction(objectMapper, requestFactory, PROXY_FUNCTION_URL);
     when(httpRequest.getHeaders()).thenReturn(Mockito.mock(HttpHeaders.class));
   }
 
@@ -84,7 +84,7 @@ public class HttpJsonFunctionProxyTest extends BaseTest {
             eq(new GenericUrl(PROXY_FUNCTION_URL)),
             nullable(HttpContent.class)))
         .thenReturn(httpRequest);
-    String responseContent = "{ headers: { 'someHeader': 'someValue'}}";
+    String responseContent = "{\"headers\":{\"someHeader\":\"someValue\"}}";
     when(httpResponse.getContent())
         .thenReturn(new ByteArrayInputStream(responseContent.getBytes(StandardCharsets.UTF_8)));
     when(httpRequest.execute()).thenReturn(httpResponse);
@@ -106,7 +106,7 @@ public class HttpJsonFunctionProxyTest extends BaseTest {
         OutboundConnectorContextBuilder.create().variables(input).secrets(name -> "foo").build();
 
     final var httpException = mock(HttpResponseException.class);
-    String errorResponseContent = "{ errorCode: 'XYZ', error: 'some message' }";
+    String errorResponseContent = "{\"errorCode\":\"XYZ\",\"error\":\"some message\"}";
     when(httpException.getContent()).thenReturn(errorResponseContent);
     when(httpException.getStatusCode()).thenReturn(500);
     when(httpException.getMessage()).thenReturn("my error message");

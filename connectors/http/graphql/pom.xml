@@ -31,10 +31,6 @@
       <artifactId>connector-http-base</artifactId>
       <version>${project.version}</version>
     </dependency>
-    <dependency>
-      <groupId>org.danilopianini</groupId>
-      <artifactId>gson-extras</artifactId>
-    </dependency>
 
     <dependency>
       <groupId>com.google.http-client</groupId>

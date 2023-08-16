@@ -80,7 +80,8 @@ class OAuthAuthenticationTest extends BaseTest {
 
     // check if the bearer token has the correct format and doesn't contain quotes
 
-    AuthenticationService authenticationService = new AuthenticationService(gson, requestFactory);
+    AuthenticationService authenticationService =
+        new AuthenticationService(objectMapper, requestFactory);
     assertFalse(authenticationService.extractOAuthAccessToken(httpResponse).contains("\""));
   }
 

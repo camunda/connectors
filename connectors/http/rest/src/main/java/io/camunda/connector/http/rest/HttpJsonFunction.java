@@ -16,13 +16,14 @@
  */
 package io.camunda.connector.http.rest;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.http.HttpRequestFactory;
 import com.google.gson.Gson;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.config.ConnectorConfigurationUtil;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import io.camunda.connector.http.base.components.GsonComponentSupplier;
+import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.http.base.components.HttpTransportComponentSupplier;
 import io.camunda.connector.http.base.constants.Constants;
 import io.camunda.connector.http.base.services.HttpService;
@@ -51,14 +52,14 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
 
   public HttpJsonFunction(String proxyFunctionUrl) {
     this(
-        GsonComponentSupplier.gsonInstance(),
+            ConnectorsObjectMapperSupplier.getCopy(),
         HttpTransportComponentSupplier.httpRequestFactoryInstance(),
         proxyFunctionUrl);
   }
 
   public HttpJsonFunction(
-      final Gson gson, final HttpRequestFactory requestFactory, final String proxyFunctionUrl) {
-    this.httpService = new HttpService(gson, requestFactory, proxyFunctionUrl);
+          final ObjectMapper objectMapper, final HttpRequestFactory requestFactory, final String proxyFunctionUrl) {
+    this.httpService = new HttpService(objectMapper, requestFactory, proxyFunctionUrl);
   }
 
   @Override

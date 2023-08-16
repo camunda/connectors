@@ -18,6 +18,7 @@ package io.camunda.connector.http.base.services;
 
 import static org.apache.http.entity.ContentType.APPLICATION_JSON;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpResponse;
 import com.google.api.client.http.HttpResponseException;
@@ -45,10 +46,10 @@ public class HttpInteractionService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(HttpInteractionService.class);
 
-  private final Gson gson;
+  private final ObjectMapper objectMapper;
 
-  public HttpInteractionService(final Gson gson) {
-    this.gson = gson;
+  public HttpInteractionService(final ObjectMapper objectMapper) {
+    this.objectMapper = objectMapper;
   }
 
   public HttpHeaders createHeaders(final HttpCommonRequest request, String bearerToken) {
@@ -91,7 +92,7 @@ public class HttpInteractionService {
       var errorMessage = hrex.getMessage();
       if (isProxyCall && hrex.getContent() != null) {
         try {
-          final var errorContent = gson.fromJson(hrex.getContent(), ErrorResponse.class);
+          final var errorContent = objectMapper.readValue(hrex.getContent(), ErrorResponse.class);
           errorCode = errorContent.getErrorCode();
           errorMessage = errorContent.getError();
         } catch (Exception e) {
@@ -128,7 +129,7 @@ public class HttpInteractionService {
 
       if (bodyString != null) {
         if (isJSONValid(bodyString)) {
-          Object body = gson.fromJson(bodyString, Object.class);
+          Object body = objectMapper.readValue(bodyString, Object.class);
           connectorResult.setBody(body);
         } else {
           connectorResult.setBody(bodyString);

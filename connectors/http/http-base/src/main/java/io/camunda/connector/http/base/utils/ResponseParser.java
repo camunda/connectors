@@ -16,8 +16,10 @@
  */
 package io.camunda.connector.http.base.utils;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonElement;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -27,13 +29,15 @@ public final class ResponseParser {
   private ResponseParser() {}
 
   public static Map<String, String> extractPropertiesFromBody(
-      final Map<String, String> requestedProperties, final String strResponse, final Gson gson) {
+      final Map<String, String> requestedProperties,
+      final String strResponse,
+      final ObjectMapper objectMapper) {
     if (requestedProperties == null || requestedProperties.isEmpty()) {
       return null;
     }
 
-    final JsonElement asJsonElement =
-        Optional.ofNullable(JsonHelper.getAsJsonElement(strResponse, gson))
+    final JsonNode asJsonNode =
+        Optional.ofNullable(JsonHelper.getAsJsonElement(strResponse, objectMapper))
             .orElseThrow(
                 () -> new IllegalArgumentException("Authentication response body is empty"));
 
@@ -41,7 +45,7 @@ public final class ResponseParser {
 
     requestedProperties.forEach(
         (k, v) -> {
-          JsonElement responseCopy = asJsonElement.deepCopy();
+          JsonNode responseCopy = asJsonNode.deepCopy();
           String[] fromRequests = v.trim().split("\\.");
           String result;
 
@@ -50,7 +54,8 @@ public final class ResponseParser {
             final String actionString = split[0].trim();
             if (actionString.equalsIgnoreCase("asObject")) {
               responseCopy =
-                  Optional.ofNullable(responseCopy.getAsJsonObject())
+                  Optional.ofNullable(responseCopy)
+                      .filter(node -> node instanceof ObjectNode)
                       .map(obj -> obj.get(split[1].trim()))
                       .orElseThrow(
                           () ->
@@ -60,7 +65,8 @@ public final class ResponseParser {
                                       + "] from authentication response"));
             } else if (actionString.equalsIgnoreCase("asArray")) {
               responseCopy =
-                  Optional.ofNullable(responseCopy.getAsJsonArray())
+                  Optional.ofNullable(responseCopy)
+                      .filter(node -> node instanceof ArrayNode)
                       .map(s -> s.get(Integer.parseInt(split[1].trim())))
                       .orElseThrow(
                           () ->
@@ -69,7 +75,7 @@ public final class ResponseParser {
                                       + split[1].trim()
                                       + "] from authentication response"));
             } else if (actionString.equalsIgnoreCase("asString")) {
-              result = responseCopy.getAsString();
+              result = responseCopy.asText();
               if (result == null) {
                 throw new RuntimeException(
                     "Fail to parse to String [" + responseCopy + "] from authentication response");

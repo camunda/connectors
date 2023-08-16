@@ -26,7 +26,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpResponse;
-import com.google.gson.Gson;
+import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -53,7 +53,7 @@ class HttpInteractionServiceTest {
 
   @BeforeEach
   public void setUp() {
-    httpInteractionService = new HttpInteractionService(new Gson());
+    httpInteractionService = new HttpInteractionService(ConnectorsObjectMapperSupplier.getCopy());
   }
 
   @Test

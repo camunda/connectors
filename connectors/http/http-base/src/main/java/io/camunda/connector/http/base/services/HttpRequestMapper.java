@@ -26,9 +26,9 @@ import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.UrlEncodedContent;
 import com.google.api.client.http.json.JsonHttpContent;
+import com.google.api.client.json.gson.GsonFactory;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.http.base.auth.OAuthAuthentication;
-import io.camunda.connector.http.base.components.GsonComponentSupplier;
 import io.camunda.connector.http.base.constants.Constants;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpRequestBuilder;
@@ -94,7 +94,7 @@ public class HttpRequestMapper {
     } else {
       content =
           request.hasBody()
-              ? new JsonHttpContent(GsonComponentSupplier.gsonFactoryInstance(), request.getBody())
+              ? new JsonHttpContent(new GsonFactory(), request.getBody())
               : null;
     }
 

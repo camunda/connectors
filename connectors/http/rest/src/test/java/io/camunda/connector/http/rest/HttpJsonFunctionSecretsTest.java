@@ -19,7 +19,7 @@ package io.camunda.connector.http.rest;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.http.base.auth.Authentication;
 import io.camunda.connector.http.base.auth.BasicAuthentication;
@@ -89,12 +89,11 @@ public class HttpJsonFunctionSecretsTest extends BaseTest {
     context = getContextBuilderWithSecrets().variables(input).build();
     HttpJsonRequest httpJsonRequest = context.bindVariables(HttpJsonRequest.class);
     // Then should replace secrets
-    JsonObject queryParams =
-        gson.toJsonTree(httpJsonRequest.getQueryParameters()).getAsJsonObject();
+    JsonNode queryParams = objectMapper.valueToTree(httpJsonRequest.getQueryParameters());
 
-    assertThat(queryParams.get(JsonKeys.QUERY).getAsString())
+    assertThat(queryParams.get(JsonKeys.QUERY).asText())
         .isEqualTo(ActualValue.QueryParameters.QUEUE);
-    assertThat(queryParams.get(JsonKeys.PRIORITY).getAsString())
+    assertThat(queryParams.get(JsonKeys.PRIORITY).asText())
         .isEqualTo(ActualValue.QueryParameters.PRIORITY);
   }
 
@@ -105,12 +104,10 @@ public class HttpJsonFunctionSecretsTest extends BaseTest {
     context = getContextBuilderWithSecrets().variables(input).build();
     HttpJsonRequest httpJsonRequest = context.bindVariables(HttpJsonRequest.class);
     // Then should replace secrets
-    JsonObject headers = gson.toJsonTree(httpJsonRequest.getHeaders()).getAsJsonObject();
+    JsonNode headers = objectMapper.valueToTree(httpJsonRequest.getHeaders());
 
-    assertThat(headers.get(JsonKeys.CLUSTER_ID).getAsString())
-        .isEqualTo(ActualValue.Headers.CLUSTER_ID);
-    assertThat(headers.get(JsonKeys.USER_AGENT).getAsString())
-        .isEqualTo(ActualValue.Headers.USER_AGENT);
+    assertThat(headers.get(JsonKeys.CLUSTER_ID).asText()).isEqualTo(ActualValue.Headers.CLUSTER_ID);
+    assertThat(headers.get(JsonKeys.USER_AGENT).asText()).isEqualTo(ActualValue.Headers.USER_AGENT);
   }
 
   @ParameterizedTest(name = "Should replace body secrets")
@@ -120,16 +117,14 @@ public class HttpJsonFunctionSecretsTest extends BaseTest {
     context = getContextBuilderWithSecrets().variables(input).build();
     HttpJsonRequest httpJsonRequest = context.bindVariables(HttpJsonRequest.class);
     // Then should replace secrets
-    JsonObject body = gson.toJsonTree(httpJsonRequest.getBody()).getAsJsonObject();
-    JsonObject customer = body.get(JsonKeys.CUSTOMER).getAsJsonObject();
+    JsonNode body = objectMapper.valueToTree(httpJsonRequest.getBody());
+    JsonNode customer = body.get(JsonKeys.CUSTOMER);
 
-    assertThat(customer.get(JsonKeys.ID).getAsString())
-        .isEqualTo(ActualValue.Body.CUSTOMER_ID_REAL);
-    assertThat(customer.get(JsonKeys.NAME).getAsString())
-        .isEqualTo(ActualValue.Body.CUSTOMER_NAME_REAL);
-    assertThat(customer.get(JsonKeys.EMAIL).getAsString())
+    assertThat(customer.get(JsonKeys.ID).asText()).isEqualTo(ActualValue.Body.CUSTOMER_ID_REAL);
+    assertThat(customer.get(JsonKeys.NAME).asText()).isEqualTo(ActualValue.Body.CUSTOMER_NAME_REAL);
+    assertThat(customer.get(JsonKeys.EMAIL).asText())
         .isEqualTo(ActualValue.Body.CUSTOMER_EMAIL_REAL);
 
-    assertThat(body.get(JsonKeys.TEXT).getAsString()).isEqualTo(ActualValue.Body.TEXT);
+    assertThat(body.get(JsonKeys.TEXT).asText()).isEqualTo(ActualValue.Body.TEXT);
   }
 }

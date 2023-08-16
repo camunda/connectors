@@ -20,6 +20,7 @@ import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.apache.v2.ApacheHttpTransport;
 import com.google.api.client.json.JsonObjectParser;
+import com.google.api.client.json.gson.GsonFactory;
 
 public class HttpTransportComponentSupplier {
 
@@ -28,8 +29,7 @@ public class HttpTransportComponentSupplier {
   private static final HttpTransport HTTP_TRANSPORT = new ApacheHttpTransport();
   private static final HttpRequestFactory REQUEST_FACTORY =
       HTTP_TRANSPORT.createRequestFactory(
-          request ->
-              request.setParser(new JsonObjectParser(GsonComponentSupplier.gsonFactoryInstance())));
+          request -> request.setParser(new JsonObjectParser(new GsonFactory())));
 
   public static HttpRequestFactory httpRequestFactoryInstance() {
     return REQUEST_FACTORY;
