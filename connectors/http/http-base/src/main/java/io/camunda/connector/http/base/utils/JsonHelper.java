@@ -16,16 +16,29 @@
  */
 package io.camunda.connector.http.base.utils;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonElement;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class JsonHelper {
 
-  public static JsonElement getAsJsonElement(final String strResponse, final Gson gson) {
+  private static final Logger LOGGER = LoggerFactory.getLogger(JsonHelper.class);
+
+  public static JsonNode getAsJsonElement(final String strResponse, final ObjectMapper mapper) {
     return Optional.ofNullable(strResponse)
         .filter(response -> !response.isBlank())
-        .map(response -> gson.fromJson(response, JsonElement.class))
+        .map(
+            response -> {
+              try {
+                return mapper.readTree(response);
+              } catch (JsonProcessingException e) {
+                LOGGER.error("Wasn't able to create a JSON node from string: " + strResponse);
+                throw new RuntimeException(e);
+              }
+            })
         .orElse(null);
   }
 }

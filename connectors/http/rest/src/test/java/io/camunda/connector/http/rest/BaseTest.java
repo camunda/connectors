@@ -19,8 +19,9 @@ package io.camunda.connector.http.rest;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.readString;
 
-import com.google.gson.Gson;
-import io.camunda.connector.http.base.components.GsonComponentSupplier;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import java.io.File;
 import java.io.IOException;
@@ -30,7 +31,7 @@ import org.junit.jupiter.params.provider.Arguments;
 
 public class BaseTest {
 
-  protected Gson gson = GsonComponentSupplier.gsonInstance();
+  protected ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
 
   protected interface SecretsConstant {
     String URL = "URL_KEY";
@@ -157,8 +158,17 @@ public class BaseTest {
   protected static Stream<String> loadTestCasesFromResourceFile(final String fileWithTestCasesUri)
       throws IOException {
     final String cases = readString(new File(fileWithTestCasesUri).toPath(), UTF_8);
-    final Gson testingGson = GsonComponentSupplier.gsonInstance();
-    var array = testingGson.fromJson(cases, ArrayList.class);
-    return array.stream().map(testingGson::toJson).map(Arguments::of);
+    final ObjectMapper mapper = ConnectorsObjectMapperSupplier.getCopy();
+    var array = mapper.readValue(cases, ArrayList.class);
+    return array.stream()
+            .map(
+                    value -> {
+                      try {
+                        return mapper.writeValueAsString(value);
+                      } catch (JsonProcessingException e) {
+                        throw new RuntimeException(e);
+                      }
+                    })
+            .map(Arguments::of);
   }
 }

@@ -6,15 +6,18 @@
  */
 package io.camunda.connector.http.graphql.utils;
 
-import com.google.gson.Gson;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.http.graphql.model.GraphQLRequest;
 import io.camunda.connector.http.graphql.model.GraphQLRequestWrapper;
 import java.util.HashMap;
 import java.util.Map;
 
 public final class JsonSerializeHelper {
-  public static GraphQLRequest serializeRequest(Gson gson, String input) {
-    GraphQLRequestWrapper graphQLRequestWrapper = gson.fromJson(input, GraphQLRequestWrapper.class);
+  public static GraphQLRequest serializeRequest(ObjectMapper objectMapper, String input)
+      throws JsonProcessingException {
+    GraphQLRequestWrapper graphQLRequestWrapper =
+        objectMapper.readValue(input, GraphQLRequestWrapper.class);
     GraphQLRequest graphQLRequest = graphQLRequestWrapper.getGraphql();
     graphQLRequest.setAuthentication(graphQLRequestWrapper.getAuthentication());
     return graphQLRequest;

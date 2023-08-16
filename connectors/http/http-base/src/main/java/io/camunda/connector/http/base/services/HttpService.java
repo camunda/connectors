@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.http.base.services;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpResponse;
@@ -35,13 +36,13 @@ import org.slf4j.LoggerFactory;
 public class HttpService {
   private static final Logger LOGGER = LoggerFactory.getLogger(HttpService.class);
 
-  private final Gson gson;
+  private final ObjectMapper objectMapper;
   private final HttpRequestFactory requestFactory;
   private final String proxyFunctionUrl;
 
   public HttpService(
-      final Gson gson, final HttpRequestFactory requestFactory, final String proxyFunctionUrl) {
-    this.gson = gson;
+          final ObjectMapper objectMapper, final HttpRequestFactory requestFactory, final String proxyFunctionUrl) {
+    this.objectMapper = objectMapper;
     this.requestFactory = requestFactory;
     this.proxyFunctionUrl = proxyFunctionUrl;
   }
@@ -56,8 +57,8 @@ public class HttpService {
   private HttpCommonResult executeRequestDirectly(HttpCommonRequest request)
       throws IOException, InstantiationException, IllegalAccessException {
     String bearerToken = null;
-    HttpInteractionService httpInteractionService = new HttpInteractionService(gson);
-    AuthenticationService authService = new AuthenticationService(gson, requestFactory);
+    HttpInteractionService httpInteractionService = new HttpInteractionService(objectMapper);
+    AuthenticationService authService = new AuthenticationService(objectMapper, requestFactory);
     if (request.getAuthentication() != null) {
       if (request.getAuthentication() instanceof OAuthAuthentication) {
         bearerToken = getTokenFromOAuthRequest(request, httpInteractionService, authService);
@@ -98,13 +99,13 @@ public class HttpService {
     HttpRequest httpRequest =
         HTTPProxyService.toRequestViaProxy(requestFactory, request, proxyFunctionUrl);
 
-    HttpInteractionService httpInteractionService = new HttpInteractionService(gson);
+    HttpInteractionService httpInteractionService = new HttpInteractionService(objectMapper);
 
     HttpResponse httpResponse = httpInteractionService.executeHttpRequest(httpRequest, true);
 
     try (InputStream responseContentStream = httpResponse.getContent();
         Reader reader = new InputStreamReader(responseContentStream)) {
-      final HttpCommonResult jsonResult = gson.fromJson(reader, HttpCommonResult.class);
+      final HttpCommonResult jsonResult = objectMapper.readValue(reader, HttpCommonResult.class);
       LOGGER.debug("Proxy returned result: " + jsonResult);
       return jsonResult;
     } catch (final Exception e) {

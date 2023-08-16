@@ -19,6 +19,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.HttpContent;
 import com.google.api.client.http.HttpHeaders;
@@ -26,6 +27,7 @@ import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpResponse;
 import com.google.api.client.http.HttpResponseException;
+import com.google.api.client.json.gson.GsonFactory;
 import com.google.gson.JsonObject;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorInputException;
@@ -64,7 +66,7 @@ public class GraphQLFunctionTest extends BaseTest {
 
   @BeforeEach
   public void setup() {
-    functionUnderTest = new GraphQLFunction(gson, requestFactory, gsonFactory, null);
+    functionUnderTest = new GraphQLFunction(objectMapper, requestFactory, new GsonFactory(), null);
   }
 
   @ParameterizedTest(name = "Executing test case: {0}")
@@ -136,8 +138,8 @@ public class GraphQLFunctionTest extends BaseTest {
     final var context =
         OutboundConnectorContextBuilder.create().variables(input).secrets(name -> "foo").build();
     final var expectedTimeInMilliseconds =
-        gson.fromJson(
-                    gson.fromJson(input, JsonObject.class).get("graphql").toString(),
+        objectMapper.readValue(
+                    objectMapper.readValue(input, JsonObject.class).get("graphql").toString(),
                     GraphQLRequest.class)
                 .getConnectionTimeoutInSeconds()
             * 1000;
@@ -212,8 +214,8 @@ public class GraphQLFunctionTest extends BaseTest {
         OutboundConnectorContextBuilder.create().variables(input).secrets(name -> "foo").build();
     HttpHeaders headers =
         HttpInteractionService.extractRequestHeaders(
-            gson.fromJson(
-                gson.fromJson(input, JsonObject.class).get("graphql").toString(),
+            objectMapper.readValue(
+                objectMapper.readValue(input, ObjectNode.class).get("graphql").toString(),
                 GraphQLRequest.class));
 
     when(requestFactory.buildRequest(

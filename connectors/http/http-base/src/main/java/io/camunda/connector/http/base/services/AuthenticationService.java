@@ -18,15 +18,15 @@ package io.camunda.connector.http.base.services;
 
 import static io.camunda.connector.http.base.utils.Timeout.setTimeout;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.HttpContent;
 import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpResponse;
 import com.google.api.client.http.UrlEncodedContent;
-import com.google.gson.Gson;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 import io.camunda.connector.http.base.auth.CustomAuthentication;
 import io.camunda.connector.http.base.auth.OAuthAuthentication;
 import io.camunda.connector.http.base.constants.Constants;
@@ -37,22 +37,26 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AuthenticationService {
 
-  private final Gson gson;
+  private static final Logger LOGGER = LoggerFactory.getLogger(AuthenticationService.class);
+
+  private final ObjectMapper objectMapper;
   private final HttpRequestFactory requestFactory;
 
-  public AuthenticationService(final Gson gson, final HttpRequestFactory requestFactory) {
-    this.gson = gson;
+  public AuthenticationService(
+      final ObjectMapper objectMapper, final HttpRequestFactory requestFactory) {
+    this.objectMapper = objectMapper;
     this.requestFactory = requestFactory;
   }
 
   public String extractOAuthAccessToken(HttpResponse oauthResponse) throws IOException {
-    return Optional.ofNullable(JsonHelper.getAsJsonElement(oauthResponse.parseAsString(), gson))
-        .map(JsonElement::getAsJsonObject)
-        .map(jsonObject -> jsonObject.get(Constants.ACCESS_TOKEN))
-        .map(JsonElement::getAsString)
+    return Optional.ofNullable(
+            JsonHelper.getAsJsonElement(oauthResponse.parseAsString(), objectMapper))
+        .map(jsonNode -> jsonNode.findValue(Constants.ACCESS_TOKEN).asText())
         .orElse(null);
   }
 
@@ -64,7 +68,7 @@ public class AuthenticationService {
     String strResponse = httpResponse.parseAsString();
     Map<String, String> headers =
         ResponseParser.extractPropertiesFromBody(
-            authentication.getOutputHeaders(), strResponse, gson);
+            authentication.getOutputHeaders(), strResponse, objectMapper);
     if (headers != null) {
       if (!request.hasHeaders()) {
         request.setHeaders(new HashMap<>());
@@ -73,16 +77,24 @@ public class AuthenticationService {
     }
 
     Map<String, String> body =
-        ResponseParser.extractPropertiesFromBody(authentication.getOutputBody(), strResponse, gson);
+        ResponseParser.extractPropertiesFromBody(
+            authentication.getOutputBody(), strResponse, objectMapper);
     if (body != null) {
       if (!request.hasBody()) {
         request.setBody(new Object());
       }
-      JsonObject requestBody = gson.toJsonTree(request.getBody()).getAsJsonObject();
-      // for now, we can add only string property to body, example of this object :
-      // "{"key":"value"}" but we can expand this method
-      body.forEach(requestBody::addProperty);
-      request.setBody(gson.fromJson(gson.toJson(requestBody), Object.class));
+      JsonNode requestBodyAsNode = objectMapper.readTree(request.getBody().toString());
+      if (requestBodyAsNode instanceof ObjectNode objectNode) {
+        body.forEach(objectNode::put);
+        request.setBody(objectMapper.writeValueAsString(objectNode));
+      } else {
+        // for now, we can add only string property to body, example of this object :
+        // "{"key":"value"}" but we can expand this method
+        LOGGER.error(
+            "Wasn't able to append body params. Request body: {}; response: {}",
+            requestBodyAsNode,
+            body);
+      }
     }
   }
 

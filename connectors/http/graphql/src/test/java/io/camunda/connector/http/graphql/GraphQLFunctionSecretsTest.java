@@ -11,7 +11,7 @@ import static org.assertj.core.api.Assertions.fail;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.http.base.auth.Authentication;
 import io.camunda.connector.http.base.auth.BasicAuthentication;
@@ -67,9 +67,9 @@ public class GraphQLFunctionSecretsTest extends BaseTest {
     context = getContextBuilderWithSecrets().variables(input).build();
     var graphQLRequest = context.bindVariables(GraphQLRequestWrapper.class);
     // Then should replace secrets
-    JsonObject variables =
-        gson.toJsonTree(graphQLRequest.getGraphql().getVariables()).getAsJsonObject();
-    assertThat(variables.get(JsonKeys.ID).getAsString()).isEqualTo(ActualValue.Variables.ID);
+    ObjectNode variables =
+        objectMapper.convertValue(graphQLRequest.getGraphql().getVariables(), ObjectNode.class);
+    assertThat(variables.get(JsonKeys.ID).asText()).isEqualTo(ActualValue.Variables.ID);
   }
 
   @ParameterizedTest(name = "Should replace query secrets")

@@ -28,6 +28,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.HttpContent;
 import com.google.api.client.http.HttpHeaders;
@@ -78,7 +79,7 @@ public class HttpJsonFunctionTest extends BaseTest {
 
   @BeforeEach
   public void setup() {
-    functionUnderTest = new HttpJsonFunction(gson, requestFactory, null);
+    functionUnderTest = new HttpJsonFunction(objectMapper, requestFactory, null);
   }
 
   @ParameterizedTest(name = "Executing test case: {0}")
@@ -100,7 +101,7 @@ public class HttpJsonFunctionTest extends BaseTest {
   void shouldReturnResultCustom_WhenExecuted(final String input)
       throws IOException, InstantiationException, IllegalAccessException {
     String response =
-        "{\"token\":\"eyJhbJNtIbehBWQLAGapcHIctws7gavjTCSCCC0Xd5sIn7DaB52Pwmabdj-9AkrVru_fZwLQseAq38n1-DkiyAaewxB0VbQgQ\",\"user\":{\"id\":331707,\"principalId\":331707,\"deleted\":false,\"permissions\":[{\"id\":13044559,\"resourceType\":\"processdiscovery\"},{\"id\":13044527,\"resourceType\":\"credentials\"},],\"emailVerified\":true,\"passwordSet\":true},\"tenantUuid\":\"08b93cfe-a6dd-4d6b-94aa-9369fdd2a026\"}";
+        "{\"token\":\"eyJhbJNtIbehBWQLAGapcHIctws7gavjTCSCCC0Xd5sIn7DaB52Pwmabdj-9AkrVru_fZwLQseAq38n1-DkiyAaewxB0VbQgQ\",\"user\":{\"id\":331707,\"principalId\":331707,\"deleted\":false,\"permissions\":[{\"id\":13044559,\"resourceType\":\"processdiscovery\"},{\"id\":13044527,\"resourceType\":\"credentials\"}],\"emailVerified\":true,\"passwordSet\":true},\"tenantUuid\":\"08b93cfe-a6dd-4d6b-94aa-9369fdd2a026\"}";
 
     when(httpResponse.parseAsString()).thenReturn(response);
     when(httpResponse.isSuccessStatusCode()).thenReturn(true);
@@ -182,10 +183,10 @@ public class HttpJsonFunctionTest extends BaseTest {
     var functionCallResponseAsObject = functionUnderTest.execute(context);
     // then null field 'unknown' exists in response body and has a null value
     var asJsonObject =
-        gson.toJsonTree(((HttpCommonResult) functionCallResponseAsObject).getBody())
-            .getAsJsonObject();
+    objectMapper.convertValue(
+            ((HttpCommonResult) functionCallResponseAsObject).getBody(), JsonNode.class);
     assertThat(asJsonObject.has("unknown")).isTrue();
-    assertThat(asJsonObject.get("unknown").isJsonNull()).isTrue();
+    assertThat(asJsonObject.get("unknown").isNull()).isTrue();
   }
 
   @ParameterizedTest(name = "Executing test case: {0}")

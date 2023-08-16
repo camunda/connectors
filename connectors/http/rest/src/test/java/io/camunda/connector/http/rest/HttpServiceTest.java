@@ -62,7 +62,7 @@ class HttpServiceTest extends BaseTest {
       "{\"access_token\": \"abcd\", \"scope\":\"read:clients\", \"expires_in\":86400,\"token_type\":\"Bearer\"}";
 
   public static final String CUSTOM_AUTH_RESPONSE =
-      "{\"token\":\"eyJhbJNtIbehBWQLAGapcHIctws7gavjTCSCCC0Xd5sIn7DaB52Pwmabdj-9AkrVru_fZwLQseAq38n1-DkiyAaewxB0VbQgQ\",\"user\":{\"id\":331707,\"principalId\":331707,\"deleted\":false,\"permissions\":[{\"id\":13044559,\"resourceType\":\"processdiscovery\"},{\"id\":13044527,\"resourceType\":\"credentials\"},],\"emailVerified\":true,\"passwordSet\":true},\"tenantUuid\":\"08b93cfe-a6dd-4d6b-94aa-9369fdd2a026\"}";
+      "{\"token\":\"eyJhbJNtIbehBWQLAGapcHIctws7gavjTCSCCC0Xd5sIn7DaB52Pwmabdj-9AkrVru_fZwLQseAq38n1-DkiyAaewxB0VbQgQ\",\"user\":{\"id\":331707,\"principalId\":331707,\"deleted\":false,\"permissions\":[{\"id\":13044559,\"resourceType\":\"processdiscovery\"},{\"id\":13044527,\"resourceType\":\"credentials\"}],\"emailVerified\":true,\"passwordSet\":true},\"tenantUuid\":\"08b93cfe-a6dd-4d6b-94aa-9369fdd2a026\"}";
 
   @Mock private HttpRequestFactory requestFactory;
   @Mock private HttpResponse httpResponse;
@@ -81,7 +81,8 @@ class HttpServiceTest extends BaseTest {
     when(httpResponse.parseAsString()).thenReturn(ACCESS_TOKEN);
 
     // when
-    AuthenticationService authenticationService = new AuthenticationService(gson, requestFactory);
+    AuthenticationService authenticationService =
+        new AuthenticationService(objectMapper, requestFactory);
     String bearerToken = authenticationService.extractOAuthAccessToken(httpResponse);
     HttpRequest request =
         HttpRequestMapper.toHttpRequest(requestFactory, httpJsonRequest, bearerToken);
@@ -121,7 +122,7 @@ class HttpServiceTest extends BaseTest {
     // when
     HttpService httpService =
         new HttpService(
-            gson,
+            objectMapper,
             requestFactory,
             ConnectorConfigurationUtil.getProperty(Constants.PROXY_FUNCTION_URL_ENV_NAME));
 

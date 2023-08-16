@@ -8,6 +8,7 @@ package io.camunda.connector.http.graphql;
 
 import static io.camunda.connector.http.base.utils.Timeout.setTimeout;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.HttpContent;
 import com.google.api.client.http.HttpHeaders;
@@ -21,6 +22,7 @@ import io.camunda.connector.api.config.ConnectorConfigurationUtil;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.http.base.auth.OAuthAuthentication;
 import io.camunda.connector.http.base.constants.Constants;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
@@ -28,7 +30,6 @@ import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.connector.http.base.services.AuthenticationService;
 import io.camunda.connector.http.base.services.HTTPProxyService;
 import io.camunda.connector.http.base.services.HttpInteractionService;
-import io.camunda.connector.http.graphql.components.GsonComponentSupplier;
 import io.camunda.connector.http.graphql.components.HttpTransportComponentSupplier;
 import io.camunda.connector.http.graphql.model.GraphQLRequest;
 import io.camunda.connector.http.graphql.model.GraphQLRequestWrapper;
@@ -52,7 +53,7 @@ public class GraphQLFunction implements OutboundConnectorFunction {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GraphQLFunction.class);
 
-  private final Gson gson;
+  private final ObjectMapper objectMapper;
   private final GsonFactory gsonFactory;
   private final HttpRequestFactory requestFactory;
 
@@ -64,18 +65,18 @@ public class GraphQLFunction implements OutboundConnectorFunction {
 
   public GraphQLFunction(String proxyFunctionUrl) {
     this(
-        GsonComponentSupplier.gsonInstance(),
+            ConnectorsObjectMapperSupplier.getCopy(),
         HttpTransportComponentSupplier.httpRequestFactoryInstance(),
-        GsonComponentSupplier.gsonFactoryInstance(),
+            new GsonFactory(),
         proxyFunctionUrl);
   }
 
   public GraphQLFunction(
-      final Gson gson,
+          final ObjectMapper objectMapper,
       final HttpRequestFactory requestFactory,
       final GsonFactory gsonFactory,
       final String proxyFunctionUrl) {
-    this.gson = gson;
+    this.objectMapper = objectMapper;
     this.requestFactory = requestFactory;
     this.gsonFactory = gsonFactory;
     this.proxyFunctionUrl = proxyFunctionUrl;
@@ -96,8 +97,8 @@ public class GraphQLFunction implements OutboundConnectorFunction {
       throws IOException, InstantiationException, IllegalAccessException {
     // connector logic
     LOGGER.debug("Executing graphql connector with request {}", connectorRequest);
-    HttpInteractionService httpInteractionService = new HttpInteractionService(gson);
-    AuthenticationService authService = new AuthenticationService(gson, requestFactory);
+    HttpInteractionService httpInteractionService = new HttpInteractionService(objectMapper);
+    AuthenticationService authService = new AuthenticationService(objectMapper, requestFactory);
     String bearerToken = null;
     if (connectorRequest.getAuthentication() != null
         && connectorRequest.getAuthentication() instanceof OAuthAuthentication) {
@@ -116,7 +117,7 @@ public class GraphQLFunction implements OutboundConnectorFunction {
   private HttpCommonResult executeGraphQLConnectorViaProxy(GraphQLRequest request)
       throws IOException {
     HttpCommonRequest commonRequest = GraphQLRequestMapper.toHttpCommonRequest(request);
-    HttpInteractionService httpInteractionService = new HttpInteractionService(gson);
+    HttpInteractionService httpInteractionService = new HttpInteractionService(objectMapper);
 
     com.google.api.client.http.HttpRequest httpRequest =
         HTTPProxyService.toRequestViaProxy(requestFactory, commonRequest, proxyFunctionUrl);
@@ -125,7 +126,7 @@ public class GraphQLFunction implements OutboundConnectorFunction {
 
     try (InputStream responseContentStream = httpResponse.getContent();
         Reader reader = new InputStreamReader(responseContentStream)) {
-      final HttpCommonResult jsonResult = gson.fromJson(reader, HttpCommonResult.class);
+      final HttpCommonResult jsonResult = objectMapper.readValue(reader, HttpCommonResult.class);
       LOGGER.debug("Proxy returned result: " + jsonResult);
       return jsonResult;
     } catch (final Exception e) {
