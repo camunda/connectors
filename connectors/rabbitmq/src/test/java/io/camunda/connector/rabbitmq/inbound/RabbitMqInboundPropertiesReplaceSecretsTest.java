@@ -8,6 +8,7 @@ package io.camunda.connector.rabbitmq.inbound;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.rabbitmq.common.model.RabbitMqAuthentication;
 import io.camunda.connector.rabbitmq.common.model.RabbitMqAuthenticationType;
@@ -22,9 +23,10 @@ public class RabbitMqInboundPropertiesReplaceSecretsTest extends InboundBaseTest
 
   @ParameterizedTest
   @MethodSource("successReplaceSecretsTest")
-  void replaceSecrets_shouldReplaceCommonSecrets(String input) {
+  void replaceSecrets_shouldReplaceCommonSecrets(String input) throws JsonProcessingException {
     // Given request with secrets
-    RabbitMqInboundProperties properties = gson.fromJson(input, RabbitMqInboundProperties.class);
+    RabbitMqInboundProperties properties =
+        objectMapper.readValue(input, RabbitMqInboundProperties.class);
     context = getContextBuilderWithSecrets().properties(properties).build();
 
     // When

@@ -8,9 +8,7 @@ package io.camunda.connector.rabbitmq.outbound;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.google.gson.JsonObject;
 import io.camunda.connector.rabbitmq.common.model.RabbitMqMessage;
-import io.camunda.connector.rabbitmq.supplier.GsonSupplier;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -26,9 +24,7 @@ class RabbitMqMessageTest {
     // when
     final byte[] bodyAsByteArray = rabbitMqMessage.getBodyAsByteArray();
     // then
-    assertThat(
-            GsonSupplier.gson().fromJson(new String(bodyAsByteArray), JsonObject.class).toString())
-        .isEqualTo("{\"key\":\"value\"}");
+    assertThat(new String(bodyAsByteArray)).isEqualTo("{\"key\":\"value\"}");
   }
 
   @Test
@@ -40,9 +36,7 @@ class RabbitMqMessageTest {
     // when
     final byte[] bodyAsByteArray = rabbitMqMessage.getBodyAsByteArray();
     // then
-    assertThat(
-            GsonSupplier.gson().fromJson(new String(bodyAsByteArray), JsonObject.class).toString())
-        .isEqualTo("{\"key\":-1}");
+    assertThat(new String(bodyAsByteArray)).isEqualTo("{\"key\":-1}");
   }
 
   @Test
@@ -54,9 +48,7 @@ class RabbitMqMessageTest {
     // when
     final byte[] bodyAsByteArray = rabbitMqMessage.getBodyAsByteArray();
     // then
-    assertThat(
-            GsonSupplier.gson().fromJson(new String(bodyAsByteArray), JsonObject.class).toString())
-        .isEqualTo("{\"key\":0.369}");
+    assertThat(new String(bodyAsByteArray)).isEqualTo("{\"key\":0.369}");
   }
 
   @Test

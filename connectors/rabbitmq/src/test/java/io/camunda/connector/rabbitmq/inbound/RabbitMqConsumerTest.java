@@ -106,6 +106,39 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
     }
 
     @Test
+    void consumer_shouldHandleXmlPayload() throws IOException {
+      // Given plaintext payload
+      Envelope envelope = new Envelope(1, false, "exchange", "routingKey");
+      BasicProperties properties = new BasicProperties.Builder().build();
+      String body =
+          """
+              <note>
+                <to>Tove</to>
+                <from>Jani</from>
+                <heading>Reminder</heading>
+                <body>Don't forget me this weekend!</body>
+              </note>
+              """;
+
+      // When
+      consumer.handleDelivery("consumerTag", envelope, properties, body.getBytes());
+
+      // Then
+      var correlatedEvents = context.getCorrelations();
+      assertThat(correlatedEvents).hasSize(1);
+      assertThat(correlatedEvents.get(0)).isInstanceOf(RabbitMqInboundResult.class);
+      RabbitMqInboundMessage message = ((RabbitMqInboundResult) correlatedEvents.get(0)).message();
+
+      assertThat(message.body()).isInstanceOf(String.class);
+      assertThat(message.body()).isEqualTo(body);
+
+      assertThat(message.properties()).isEqualTo(AMQPPropertyUtil.toProperties(properties));
+      assertThat(message.consumerTag()).isEqualTo("consumerTag");
+
+      verify(mockChannel, times(1)).basicAck(1, false);
+    }
+
+    @Test
     void consumer_shouldHandleNumericPayload() throws IOException {
       // Given plaintext payload
       Envelope envelope = new Envelope(1, false, "exchange", "routingKey");

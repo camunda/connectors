@@ -6,16 +6,14 @@
  */
 package io.camunda.connector.rabbitmq.supplier;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
 
-public final class GsonSupplier {
+public final class ObjectMapperSupplier {
 
-  private static final Gson gson = new GsonBuilder().create();
+  private static final ObjectMapper OBJECT_MAPPER = ConnectorsObjectMapperSupplier.getCopy();
 
-  private GsonSupplier() {}
-
-  public static Gson gson() {
-    return gson;
+  public static ObjectMapper instance() {
+    return OBJECT_MAPPER;
   }
 }
