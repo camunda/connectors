@@ -17,7 +17,9 @@
 package io.camunda.connector.runtime.core;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 import io.camunda.connector.runtime.core.secret.SecretUtil;
 import java.util.Map;

@@ -7,7 +7,7 @@
 package io.camunda.connector.gsheets.util;
 
 import static io.camunda.connector.gsheets.util.LetterNumericSystemConverter.spreadsheetLetterToNumericIndex;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
