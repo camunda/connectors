@@ -9,7 +9,10 @@ package io.camunda.connector.rabbitmq;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.readString;
 
-import com.google.gson.Gson;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.rabbitmq.supplier.ObjectMapperSupplier;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -18,7 +21,7 @@ import org.junit.jupiter.params.provider.Arguments;
 
 public abstract class BaseTest {
 
-  protected Gson gson = new Gson();
+  protected ObjectMapper objectMapper = ObjectMapperSupplier.instance();
 
   public interface ActualValue {
 
@@ -102,8 +105,17 @@ public abstract class BaseTest {
   protected static Stream<String> loadTestCasesFromResourceFile(final String fileWithTestCasesUri)
       throws IOException {
     final String cases = readString(new File(fileWithTestCasesUri).toPath(), UTF_8);
-    final Gson testingGson = new Gson();
-    var array = testingGson.fromJson(cases, ArrayList.class);
-    return array.stream().map(testingGson::toJson).map(Arguments::of);
+    final ObjectMapper mapper = ConnectorsObjectMapperSupplier.getCopy();
+    var array = mapper.readValue(cases, ArrayList.class);
+    return array.stream()
+        .map(
+            value -> {
+              try {
+                return mapper.writeValueAsString(value);
+              } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+              }
+            })
+        .map(Arguments::of);
   }
 }

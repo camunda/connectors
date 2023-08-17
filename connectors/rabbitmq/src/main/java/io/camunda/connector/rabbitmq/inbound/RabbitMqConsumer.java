@@ -6,8 +6,9 @@
  */
 package io.camunda.connector.rabbitmq.inbound;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonPrimitive;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ValueNode;
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DefaultConsumer;
@@ -19,7 +20,7 @@ import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorResult;
 import io.camunda.connector.rabbitmq.inbound.model.RabbitMqInboundResult;
 import io.camunda.connector.rabbitmq.inbound.model.RabbitMqInboundResult.RabbitMqInboundMessage;
-import io.camunda.connector.rabbitmq.supplier.GsonSupplier;
+import io.camunda.connector.rabbitmq.supplier.ObjectMapperSupplier;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import org.apache.commons.text.StringEscapeUtils;
@@ -93,21 +94,25 @@ public class RabbitMqConsumer extends DefaultConsumer {
 
     try {
       String bodyAsString = new String(body, StandardCharsets.UTF_8);
-      JsonElement bodyAsJsonElement =
-          GsonSupplier.gson()
-              .fromJson(StringEscapeUtils.unescapeJson(bodyAsString), JsonElement.class);
-
       Object bodyAsObject;
-      if (bodyAsJsonElement instanceof JsonPrimitive bodyAsPrimitive) {
-        if (bodyAsPrimitive.isBoolean()) {
-          bodyAsObject = bodyAsPrimitive.getAsBoolean();
-        } else if (bodyAsPrimitive.isNumber()) {
-          bodyAsObject = bodyAsPrimitive.getAsNumber();
+      if (isPayloadJson(bodyAsString)) {
+        JsonNode bodyAsJsonElement =
+            ObjectMapperSupplier.instance()
+                .readValue(StringEscapeUtils.unescapeJson(bodyAsString), JsonNode.class);
+        if (bodyAsJsonElement instanceof ValueNode bodyAsPrimitive) {
+          if (bodyAsPrimitive.isBoolean()) {
+            bodyAsObject = bodyAsPrimitive.asBoolean();
+          } else if (bodyAsPrimitive.isNumber()) {
+            bodyAsObject = bodyAsPrimitive.asDouble();
+          } else {
+            bodyAsObject = bodyAsPrimitive.asText();
+          }
         } else {
-          bodyAsObject = bodyAsPrimitive.getAsString();
+          bodyAsObject =
+              ObjectMapperSupplier.instance().convertValue(bodyAsJsonElement, Object.class);
         }
       } else {
-        bodyAsObject = GsonSupplier.gson().fromJson(bodyAsJsonElement, Object.class);
+        bodyAsObject = bodyAsString;
       }
       RabbitMqInboundMessage message =
           new RabbitMqInboundMessage(
@@ -118,5 +123,15 @@ public class RabbitMqConsumer extends DefaultConsumer {
       LOGGER.error("Failed to parse AMQP message body: {}", e.getMessage());
       throw new ConnectorInputException(e);
     }
+  }
+
+  private boolean isPayloadJson(final String bodyAsString) {
+    try {
+      ObjectMapperSupplier.instance()
+          .readValue(StringEscapeUtils.unescapeJson(bodyAsString), JsonNode.class);
+    } catch (JsonProcessingException e) {
+      return false;
+    }
+    return true;
   }
 }
