@@ -22,9 +22,10 @@ import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.config.ConnectorConfigurationUtil;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.http.base.components.GsonComponentSupplier;
+import io.camunda.connector.http.base.components.HttpTransportComponentSupplier;
 import io.camunda.connector.http.base.constants.Constants;
-import io.camunda.connector.http.rest.components.GsonComponentSupplier;
-import io.camunda.connector.http.rest.components.HttpTransportComponentSupplier;
+import io.camunda.connector.http.base.services.HttpService;
 import io.camunda.connector.http.rest.model.HttpJsonRequest;
 import java.io.IOException;
 
@@ -42,7 +43,6 @@ import java.io.IOException;
     type = "io.camunda:http-json:1")
 public class HttpJsonFunction implements OutboundConnectorFunction {
 
-  private final Gson gson;
   private final HttpService httpService;
 
   public HttpJsonFunction() {
@@ -59,7 +59,6 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
   public HttpJsonFunction(
       final Gson gson, final HttpRequestFactory requestFactory, final String proxyFunctionUrl) {
     this.httpService = new HttpService(gson, requestFactory, proxyFunctionUrl);
-    this.gson = gson;
   }
 
   @Override

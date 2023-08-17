@@ -17,16 +17,13 @@
 package io.camunda.connector.http.base.utils;
 
 import com.google.api.client.http.HttpRequest;
-import io.camunda.connector.http.base.model.CommonRequest;
-import java.util.concurrent.TimeUnit;
+import io.camunda.connector.http.base.model.HttpCommonRequest;
 
 public class Timeout {
 
-  public static void setTimeout(CommonRequest request, HttpRequest httpRequest) {
+  public static void setTimeout(HttpCommonRequest request, HttpRequest httpRequest) {
     if (request.getConnectionTimeoutInSeconds() != null) {
-      long connectionTimeout =
-          TimeUnit.SECONDS.toMillis(Long.parseLong(request.getConnectionTimeoutInSeconds()));
-      int intConnectionTimeout = Math.toIntExact(connectionTimeout);
+      int intConnectionTimeout = request.getConnectionTimeoutInSeconds();
       httpRequest.setConnectTimeout(intConnectionTimeout);
       httpRequest.setReadTimeout(intConnectionTimeout);
       httpRequest.setWriteTimeout(intConnectionTimeout);

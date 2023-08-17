@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.http.polling.auth;
+package io.camunda.connector.http.rest.auth;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -29,8 +29,8 @@ import com.google.api.client.http.HttpResponse;
 import com.google.api.client.testing.http.MockHttpTransport;
 import io.camunda.connector.http.base.constants.Constants;
 import io.camunda.connector.http.base.services.AuthenticationService;
-import io.camunda.connector.http.polling.BaseTest;
-import io.camunda.connector.http.rest.HttpRequestMapper;
+import io.camunda.connector.http.base.services.HttpRequestMapper;
+import io.camunda.connector.http.rest.BaseTest;
 import io.camunda.connector.http.rest.model.HttpJsonRequest;
 import java.io.IOException;
 import java.util.stream.Stream;

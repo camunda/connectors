@@ -17,7 +17,8 @@
 package io.camunda.connector.http.base.auth;
 
 import com.google.api.client.http.HttpHeaders;
-import io.camunda.connector.http.base.model.CommonRequest;
+import io.camunda.connector.api.annotation.FEEL;
+import io.camunda.connector.http.base.model.HttpCommonRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.util.Map;
@@ -25,20 +26,20 @@ import java.util.Objects;
 
 public class CustomAuthentication extends Authentication {
 
-  @NotNull @Valid private CommonRequest request;
+  @FEEL @NotNull @Valid private HttpCommonRequest request;
 
-  private Map<String, String> outputBody;
+  @FEEL private Map<String, String> outputBody;
 
-  private Map<String, String> outputHeaders;
+  @FEEL private Map<String, String> outputHeaders;
 
   @Override
   public void setHeaders(final HttpHeaders headers) {}
 
-  public CommonRequest getRequest() {
+  public HttpCommonRequest getRequest() {
     return request;
   }
 
-  public void setRequest(final CommonRequest request) {
+  public void setRequest(final HttpCommonRequest request) {
     this.request = request;
   }
 

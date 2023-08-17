@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.http.polling;
+package io.camunda.connector.http.rest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -35,11 +35,11 @@ import com.google.api.client.testing.http.MockLowLevelHttpRequest;
 import com.google.api.client.testing.http.MockLowLevelHttpResponse;
 import io.camunda.connector.api.config.ConnectorConfigurationUtil;
 import io.camunda.connector.http.base.constants.Constants;
+import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.connector.http.base.services.AuthenticationService;
-import io.camunda.connector.http.rest.HttpRequestMapper;
-import io.camunda.connector.http.rest.HttpService;
+import io.camunda.connector.http.base.services.HttpRequestMapper;
+import io.camunda.connector.http.base.services.HttpService;
 import io.camunda.connector.http.rest.model.HttpJsonRequest;
-import io.camunda.connector.http.rest.model.HttpJsonResult;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import java.io.IOException;
 import java.util.stream.Stream;
@@ -128,8 +128,8 @@ class HttpServiceTest extends BaseTest {
     Object result = httpService.executeConnectorRequest(httpJsonRequest);
 
     // then
-    assertThat(result).isInstanceOf(HttpJsonResult.class);
-    HttpJsonResult httpJsonResult = (HttpJsonResult) result;
+    assertThat(result).isInstanceOf(HttpCommonResult.class);
+    HttpCommonResult httpJsonResult = (HttpCommonResult) result;
     assertThat(httpJsonResult.getStatus()).isEqualTo(200);
   }
 

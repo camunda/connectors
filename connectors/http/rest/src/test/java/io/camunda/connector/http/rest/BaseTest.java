@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.http.polling;
+package io.camunda.connector.http.rest;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.readString;
 
 import com.google.gson.Gson;
-import io.camunda.connector.http.rest.components.GsonComponentSupplier;
+import io.camunda.connector.http.base.components.GsonComponentSupplier;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import java.io.File;
 import java.io.IOException;
@@ -73,7 +73,7 @@ public class BaseTest {
     String URL = "https://camunda.io/http-endpoint";
     String URL_WITH_PATH = "https://camunda.io/http-endpoint/path";
     String METHOD = "GET";
-    String CONNECT_TIMEOUT = "50";
+    Integer CONNECT_TIMEOUT = 50;
 
     interface Authentication {
       String TOKEN = "test token";
@@ -126,7 +126,7 @@ public class BaseTest {
     return OutboundConnectorContextBuilder.create()
         .secret(SecretsConstant.URL, ActualValue.URL)
         .secret(SecretsConstant.METHOD, ActualValue.METHOD)
-        .secret(SecretsConstant.CONNECT_TIMEOUT, ActualValue.CONNECT_TIMEOUT)
+        .secret(SecretsConstant.CONNECT_TIMEOUT, String.valueOf(ActualValue.CONNECT_TIMEOUT))
         .secret(SecretsConstant.Authentication.TOKEN, ActualValue.Authentication.TOKEN)
         .secret(SecretsConstant.Authentication.USERNAME, ActualValue.Authentication.USERNAME)
         .secret(SecretsConstant.Authentication.PASSWORD, ActualValue.Authentication.PASSWORD)

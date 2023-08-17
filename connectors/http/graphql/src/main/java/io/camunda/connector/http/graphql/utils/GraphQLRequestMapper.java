@@ -7,29 +7,29 @@
 package io.camunda.connector.http.graphql.utils;
 
 import io.camunda.connector.http.base.constants.Constants;
-import io.camunda.connector.http.base.model.CommonRequest;
+import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.graphql.model.GraphQLRequest;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 public final class GraphQLRequestMapper {
 
-  public static CommonRequest toCommonRequest(GraphQLRequest graphQLRequest) {
-    CommonRequest commonRequest = new CommonRequest();
+  public static HttpCommonRequest toHttpCommonRequest(GraphQLRequest graphQLRequest) {
+    HttpCommonRequest httpCommonRequest = new HttpCommonRequest();
     final Map<String, Object> queryAndVariablesMap =
         JsonSerializeHelper.queryAndVariablesToMap(graphQLRequest);
     if (Constants.POST.equalsIgnoreCase(graphQLRequest.getMethod())) {
-      commonRequest.setBody(queryAndVariablesMap);
+      httpCommonRequest.setBody(queryAndVariablesMap);
     } else {
       final Map<String, String> queryAndVariablesStringMap =
           queryAndVariablesMap.entrySet().stream()
               .collect(Collectors.toMap(Map.Entry::getKey, e -> String.valueOf(e.getValue())));
-      commonRequest.setQueryParameters(queryAndVariablesStringMap);
+      httpCommonRequest.setQueryParameters(queryAndVariablesStringMap);
     }
-    commonRequest.setAuthentication(graphQLRequest.getAuthentication());
-    commonRequest.setMethod(graphQLRequest.getMethod());
-    commonRequest.setUrl(graphQLRequest.getUrl());
-    commonRequest.setConnectionTimeoutInSeconds(graphQLRequest.getConnectionTimeoutInSeconds());
-    return commonRequest;
+    httpCommonRequest.setAuthentication(graphQLRequest.getAuthentication());
+    httpCommonRequest.setMethod(graphQLRequest.getMethod());
+    httpCommonRequest.setUrl(graphQLRequest.getUrl());
+    httpCommonRequest.setConnectionTimeoutInSeconds(graphQLRequest.getConnectionTimeoutInSeconds());
+    return httpCommonRequest;
   }
 }

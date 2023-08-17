@@ -20,12 +20,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.http.AbstractHttpContent;
 import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.HttpContent;
-import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.http.base.constants.Constants;
-import io.camunda.connector.http.base.model.CommonRequest;
+import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpRequestBuilder;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -39,9 +38,9 @@ public final class HTTPProxyService {
 
   private static final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
 
-  public static HttpRequest toRequestViaProxy(
+  public static com.google.api.client.http.HttpRequest toRequestViaProxy(
       final HttpRequestFactory requestFactory,
-      final CommonRequest request,
+      final HttpCommonRequest request,
       final String proxyFunctionUrl)
       throws IOException {
     // Using the JsonHttpContent cannot work with an element on the root content,
@@ -54,14 +53,14 @@ public final class HTTPProxyService {
           }
         };
 
-    HttpRequest httpRequest =
+    com.google.api.client.http.HttpRequest httpRequest =
         new HttpRequestBuilder()
             .method(Constants.POST)
             .genericUrl(new GenericUrl(proxyFunctionUrl))
             .content(content)
             .connectionTimeoutInSeconds(request.getConnectionTimeoutInSeconds())
             .followRedirects(false)
-            .headers(HTTPService.extractRequestHeaders(request))
+            .headers(HttpInteractionService.extractRequestHeaders(request))
             .build(requestFactory);
 
     try {

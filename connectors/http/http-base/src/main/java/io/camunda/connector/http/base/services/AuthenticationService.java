@@ -21,7 +21,6 @@ import static io.camunda.connector.http.base.utils.Timeout.setTimeout;
 import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.HttpContent;
 import com.google.api.client.http.HttpHeaders;
-import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpResponse;
 import com.google.api.client.http.UrlEncodedContent;
@@ -31,7 +30,7 @@ import com.google.gson.JsonObject;
 import io.camunda.connector.http.base.auth.CustomAuthentication;
 import io.camunda.connector.http.base.auth.OAuthAuthentication;
 import io.camunda.connector.http.base.constants.Constants;
-import io.camunda.connector.http.base.model.CommonRequest;
+import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.utils.JsonHelper;
 import io.camunda.connector.http.base.utils.ResponseParser;
 import java.io.IOException;
@@ -58,7 +57,7 @@ public class AuthenticationService {
   }
 
   public void fillRequestFromCustomAuthResponseData(
-      final CommonRequest request,
+      final HttpCommonRequest request,
       final CustomAuthentication authentication,
       final HttpResponse httpResponse)
       throws IOException {
@@ -87,7 +86,8 @@ public class AuthenticationService {
     }
   }
 
-  public HttpRequest createOAuthRequest(CommonRequest request) throws IOException {
+  public com.google.api.client.http.HttpRequest createOAuthRequest(HttpCommonRequest request)
+      throws IOException {
     OAuthAuthentication authentication = (OAuthAuthentication) request.getAuthentication();
 
     final GenericUrl genericUrl = new GenericUrl(authentication.getOauthTokenEndpoint());

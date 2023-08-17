@@ -14,8 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.http.rest.model;
+package io.camunda.connector.http.base.components;
 
-import io.camunda.connector.http.base.model.CommonResult;
+import com.google.api.client.http.HttpRequestFactory;
+import com.google.api.client.http.HttpTransport;
+import com.google.api.client.http.apache.v2.ApacheHttpTransport;
+import com.google.api.client.json.JsonObjectParser;
 
-public class HttpJsonResult extends CommonResult {}
+public class HttpTransportComponentSupplier {
+
+  private HttpTransportComponentSupplier() {}
+
+  private static final HttpTransport HTTP_TRANSPORT = new ApacheHttpTransport();
+  private static final HttpRequestFactory REQUEST_FACTORY =
+      HTTP_TRANSPORT.createRequestFactory(
+          request ->
+              request.setParser(new JsonObjectParser(GsonComponentSupplier.gsonFactoryInstance())));
+
+  public static HttpRequestFactory httpRequestFactoryInstance() {
+    return REQUEST_FACTORY;
+  }
+}

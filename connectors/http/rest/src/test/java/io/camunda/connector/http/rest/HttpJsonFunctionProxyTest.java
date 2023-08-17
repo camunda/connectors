@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.http.polling;
+package io.camunda.connector.http.rest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
@@ -34,8 +34,7 @@ import com.google.api.client.http.HttpResponse;
 import com.google.api.client.http.HttpResponseException;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.http.base.constants.Constants;
-import io.camunda.connector.http.rest.HttpJsonFunction;
-import io.camunda.connector.http.rest.model.HttpJsonResult;
+import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -91,8 +90,8 @@ public class HttpJsonFunctionProxyTest extends BaseTest {
     when(httpRequest.execute()).thenReturn(httpResponse);
 
     // when
-    HttpJsonResult functionCallResponseAsObject =
-        (HttpJsonResult) functionUnderTest.execute(context);
+    HttpCommonResult functionCallResponseAsObject =
+        (HttpCommonResult) functionUnderTest.execute(context);
 
     // then
     verify(httpRequest).execute();
