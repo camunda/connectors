@@ -30,10 +30,10 @@ public abstract sealed class PropertyBuilder
         StringPropertyBuilder,
         TextPropertyBuilder {
 
-  protected String name;
+  protected String id;
   protected String label;
   protected String description;
-  protected Boolean required;
+  protected Boolean optional;
   protected String value;
   protected PropertyConstraints constraints;
   protected FeelMode feel;
@@ -44,8 +44,12 @@ public abstract sealed class PropertyBuilder
 
   protected PropertyBuilder() {}
 
-  public PropertyBuilder name(String name) {
-    this.name = name;
+  public String getId() {
+    return id;
+  }
+
+  public PropertyBuilder id(String id) {
+    this.id = id;
     return this;
   }
 
@@ -59,8 +63,8 @@ public abstract sealed class PropertyBuilder
     return this;
   }
 
-  public PropertyBuilder required(boolean required) {
-    this.required = required;
+  public PropertyBuilder optional(boolean optional) {
+    this.optional = optional;
     return this;
   }
 
@@ -84,19 +88,18 @@ public abstract sealed class PropertyBuilder
     return this;
   }
 
-  public PropertyBuilder type(String type) {
-    this.type = type;
-    return this;
-  }
-
   public PropertyBuilder condition(PropertyCondition condition) {
     this.condition = condition;
     return this;
   }
 
-  // package-private to enforce usage of group class
-  PropertyBuilder group(String group) {
+  public PropertyBuilder group(String group) {
     this.group = group;
+    return this;
+  }
+
+  PropertyBuilder type(String type) {
+    this.type = type;
     return this;
   }
 

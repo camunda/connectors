@@ -16,11 +16,16 @@
  */
 package io.camunda.connector.generator.dsl;
 
-import java.util.List;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-public sealed interface PropertyCondition {
+public interface ElementTemplateBase {
 
-  record OneOf(String property, List<String> oneOf) implements PropertyCondition {}
+  String SCHEMA_FIELD_NAME = "$schema";
+  String SCHEMA_URL =
+      "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json";
 
-  record Equals(String property, String equals) implements PropertyCondition {}
+  @JsonProperty(SCHEMA_FIELD_NAME)
+  default String schema() {
+    return SCHEMA_URL;
+  }
 }

@@ -19,6 +19,7 @@ package io.camunda.connector.generator.dsl;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskDefinitionType;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 public class OutboundElementTemplateBuilder {
@@ -81,8 +82,20 @@ public class OutboundElementTemplateBuilder {
     return this;
   }
 
+  public OutboundElementTemplateBuilder propertyGroups(Collection<PropertyGroup> groups) {
+    this.groups.addAll(groups);
+    this.properties.addAll(
+        this.groups.stream().flatMap(group -> group.properties().stream()).toList());
+    return this;
+  }
+
   public OutboundElementTemplateBuilder properties(Property... properties) {
     this.properties.addAll(Arrays.asList(properties));
+    return this;
+  }
+
+  public OutboundElementTemplateBuilder properties(Collection<Property> properties) {
+    this.properties.addAll(properties);
     return this;
   }
 

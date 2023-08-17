@@ -55,7 +55,7 @@ public final class StringProperty extends Property {
 
     public StringProperty build() {
       return new StringProperty(
-          name, label, description, required, value, constraints, feel, group, binding, condition);
+          id, label, description, optional, value, constraints, feel, group, binding, condition);
     }
   }
 }

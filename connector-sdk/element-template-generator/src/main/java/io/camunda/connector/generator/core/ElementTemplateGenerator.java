@@ -14,18 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.generator.dsl;
+package io.camunda.connector.generator.core;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import io.camunda.connector.generator.dsl.ElementTemplateBase;
 
-interface ElementTemplateSchema {
+/**
+ * Interface for element template generator implementations that transform a connector definition
+ * and input consumed as Java classes into an element template.
+ *
+ * @param <T> the type of the element template to generate
+ */
+public interface ElementTemplateGenerator<T extends ElementTemplateBase> {
 
-  String SCHEMA_FIELD_NAME = "$schema";
-  String SCHEMA_URL =
-      "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json";
-
-  @JsonProperty(SCHEMA_FIELD_NAME)
-  default String schema() {
-    return SCHEMA_URL;
-  }
+  T generate(Class<?> connectorDefinition, Class<?> connectorInput);
 }

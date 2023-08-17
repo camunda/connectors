@@ -14,13 +14,42 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.generator.dsl;
+package io.camunda.connector.generator.annotation;
 
-import java.util.List;
+import io.camunda.connector.generator.dsl.Property.FeelMode;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-public sealed interface PropertyCondition {
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.FIELD)
+public @interface TemplateProperty {
 
-  record OneOf(String property, List<String> oneOf) implements PropertyCondition {}
+  String name() default "";
 
-  record Equals(String property, String equals) implements PropertyCondition {}
+  String label() default "";
+
+  String description() default "";
+
+  boolean optional() default false;
+
+  PropertyType type() default PropertyType.Unknown;
+
+  String[] choices() default {};
+
+  FeelMode feel() default FeelMode.disabled;
+
+  String defaultValue() default "";
+
+  String group() default "";
+
+  enum PropertyType {
+    Boolean,
+    Dropdown,
+    Hidden,
+    String,
+    Text,
+    Unknown
+  }
 }

@@ -75,7 +75,7 @@ public record PropertyGroup(String id, String label, @JsonIgnore List<Property> 
             if (!id.equals(property.group)) {
               throw new IllegalArgumentException(
                   "Property "
-                      + property.name
+                      + property.id
                       + " defines a different group "
                       + property.group
                       + " than the group "

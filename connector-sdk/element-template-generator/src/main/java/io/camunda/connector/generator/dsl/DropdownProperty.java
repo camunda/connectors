@@ -74,10 +74,10 @@ public final class DropdownProperty extends Property {
 
     public DropdownProperty build() {
       return new DropdownProperty(
-          name,
+          id,
           label,
           description,
-          required,
+          optional,
           value,
           constraints,
           feel,
