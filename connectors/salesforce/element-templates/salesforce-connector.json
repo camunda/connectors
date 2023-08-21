@@ -1,0 +1,434 @@
+{
+  "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name": "Salesforce sObject Connector",
+  "id": "90f7ab88-3924-45ed-8f04-66441748f35f",
+  "description": "Interact with Salesforce sObjects",
+  "icon": {
+    "contents": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBzdGFuZGFsb25lPSJubyI/Pgo8IURPQ1RZUEUgc3ZnIFBVQkxJQyAiLS8vVzNDLy9EVEQgU1ZHIDIwMDEwOTA0Ly9FTiIKICJodHRwOi8vd3d3LnczLm9yZy9UUi8yMDAxL1JFQy1TVkctMjAwMTA5MDQvRFREL3N2ZzEwLmR0ZCI+CjxzdmcgdmVyc2lvbj0iMS4wIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciCiB3aWR0aD0iODQwLjAwMDAwMHB0IiBoZWlnaHQ9IjYzNS4wMDAwMDBwdCIgdmlld0JveD0iMCAwIDg0MC4wMDAwMDAgNjM1LjAwMDAwMCIKIHByZXNlcnZlQXNwZWN0UmF0aW89InhNaWRZTWlkIG1lZXQiPgoKPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMC4wMDAwMDAsNjM1LjAwMDAwMCkgc2NhbGUoMC4xMDAwMDAsLTAuMTAwMDAwKSIKZmlsbD0iIzAwMDAwMCIgc3Ryb2tlPSJub25lIj4KPHBhdGggZD0iTTIyNTAgNTk0MCBjLTY3MiAtNTQgLTEyNDMgLTQ5OCAtMTQ1NCAtMTEzMSAtNjIgLTE4NiAtNzkgLTI5MSAtODAKLTQ5NCAtMSAtMTkwIDcgLTI1MCA1OCAtNDI2IGwyNCAtODIgLTEzMiAtMTMxIGMtMjM4IC0yMzYgLTM2OSAtNDc2IC00MzMKLTc5MSAtMjcgLTEzNSAtMjQgLTQyNCA1IC01NjIgNjQgLTI5NiAxOTggLTU0MSA0MTYgLTc1OCAyMTUgLTIxNCA0NDkgLTM0Mwo3MzggLTQwNiA4OCAtMTkgMzE1IC00MiAzNDAgLTM1IDcgMyA0MSA3IDc1IDEwIGw2MiA2IDYyIC0xMDUgYzQyMCAtNzA1IDEyODcKLTk0NiAxOTkxIC01NTIgMTgyIDEwMiAzODYgMjkxIDUwNCA0NjggMzggNTcgNjkgMTA1IDcwIDEwNyAwIDEgNDggLTEzIDEwNgotMzIgMTY3IC01NSAyNjIgLTY5IDQxMyAtNjMgMjYwIDExIDQ4NCA4NSA3MDkgMjM0IDEyMSA4MCAyNzYgMjMxIDM2NSAzNTYgMzUKNDggNjkgODcgNzUgODcgNyAwIDYxIC01IDEyMSAtMTEgMTIzIC0xMiAyODUgLTEgNDUwIDMyIDQ2MCA5MiA4OTcgMzg4IDExNTgKNzg0IDM4MyA1ODMgNDA1IDEzMzIgNTQgMTkyNiAtMjU5IDQ0MSAtNjg1IDc1MyAtMTE3OCA4NjMgLTMxNiA3MCAtNTY4IDU5Ci04NzcgLTM5IC02MyAtMjAgLTExNSAtMzUgLTExNyAtMzMgLTIgMiAtMjIgMjggLTQ0IDU4IC02MyA4NCAtMTk2IDIxNSAtMjg5CjI4NSAtMjE0IDE2MCAtNDkwIDI1OCAtNzY3IDI3MiAtMzMyIDE3IC02OTEgLTEyMSAtOTU3IC0zNjYgbC03NiAtNzEgLTUyIDU4CmMtMjcyIDMwMCAtNjg0IDUwOSAtMTA1NSA1MzcgLTE2MiAxMiAtMTkyIDEyIC0yODUgNXogbTQxMCAtMzU5IGMzNTYgLTgyIDY0MAotMjg2IDg1NSAtNjEzIDUwIC03NiA5MyAtMTM4IDk3IC0xMzggNCAwIDQ2IDUzIDk0IDExOCA0OCA2NCAxMTkgMTQ5IDE1OSAxODgKNDE4IDQxMyAxMDk4IDQxMSAxNTE2IC02IDc3IC03NyAxNDYgLTE3MiAyMTMgLTI5MiAyMSAtMzggNDIgLTY4IDQ2IC02OCA1IDAKNDkgMTcgOTcgMzkgMjUyIDExMSA1MTEgMTU2IDc2MCAxMzIgNTkwIC01NyAxMDY3IC00MjEgMTI3NyAtOTc2IDEzIC0zMyAzNgotMTEyIDUyIC0xNzUgMjcgLTEwOCAyOCAtMTI3IDI5IC0zMzAgMCAtMjQwIC05IC0zMDQgLTcxIC00OTAgLTcxIC0yMTQgLTE5MwotNDA4IC0zNTkgLTU3NSAtMjAzIC0yMDMgLTQ0MyAtMzM2IC03MjUgLTQwMiAtMTYwIC0zNyAtMzk5IC00MyAtNTg0IC0xNCAtNzYKMTMgLTEzOSAyMSAtMTQxIDE5IC0xIC0yIC0yNCAtNDUgLTUwIC05NyAtMTQzIC0yNzkgLTM4NSAtNDgzIC02NjkgLTU2NSAtMjc1Ci04MCAtNTQ1IC01MiAtODE4IDg1IC00MyAyMiAtODQgMzkgLTkxIDM5IC03IDAgLTM4IC01MyAtNjggLTExNyAtMTIwIC0yNjIKLTI5MCAtNDUwIC01MjEgLTU3NyAtMzI4IC0xODEgLTc3NSAtMTgxIC0xMTA3IDAgLTI1MCAxMzYgLTQzMyAzNTIgLTU0NSA2NDEKLTQwIDEwMyAtMzAgOTkgLTIwNSA2OSAtMTMzIC0yNCAtMzQ1IC0xOCAtNDY5IDEzIC03MjEgMTgwIC0xMDk1IDk3MyAtNzcyCjE2MzcgOTAgMTg2IDIzNyAzNTEgNDIxIDQ3NCA1MiAzNSA5NiA2NCA5OCA2NiAyIDIgLTE1IDUzIC0zNyAxMTMgLTg2IDIzMQotMTE1IDQyMyAtOTQgNjI5IDYyIDYwOCA1MDMgMTA4MCAxMTEyIDExODggMTA5IDE5IDM4OSAxMSA1MDAgLTE1eiIvPgo8cGF0aCBkPSJNMjcxNSAzOTM4IGMtMyAtNyAtNCAtMjMxIC0zIC00OTggbDMgLTQ4NSA2NCAtMyBjNDUgLTIgNjcgMSA3MiAxMAoxMCAxNSAxMiA5NDggMyA5NzIgLTggMjAgLTEzMiAyMyAtMTM5IDR6Ii8+CjxwYXRoIGQ9Ik00NzI1IDM5NDEgYy04NyAtMjIgLTE1NSAtOTEgLTE4NSAtMTg5IC0xMSAtMzUgLTIwIC03MiAtMjAgLTgyIDAKLTQyIC0xMSAtNTAgLTY1IC01MCBsLTUzIDAgLTExIC01MCBjLTYgLTI4IC0xMSAtNTUgLTExIC02MCAwIC02IDI1IC0xMCA1NQotMTAgMzcgMCA1NSAtNCA1NSAtMTIgMCAtNyAtMjMgLTEzOSAtNTAgLTI5MyAtNzkgLTQzOCAtODggLTQ1OSAtMjA3IC00NjAKbC02NiAwIC0xMyAtMzUgYy0yMSAtNTkgLTE4IC02OCAyOSAtODEgOTQgLTI1IDIxNiAxMyAyNjggODMgNDggNjggNjggMTM5CjEyNyA0NzIgbDU3IDMyMSA4MCA1IGM3OSA1IDgwIDUgODYgMzUgNCAxNyA3IDQyIDggNTggbDEgMjcgLTc2IDAgLTc2IDAgNyA0OApjOSA2NSAzOSAxMjggNjcgMTQzIDEzIDcgNTAgMTMgODQgMTIgbDYxIC0yIDE3IDUwIGMxMCAyOCAxNiA1MiAxMyA1NSAtMTkgMjAKLTEyNiAyOCAtMTgyIDE1eiIvPgo8cGF0aCBkPSJNMTU0NyAzNjA5IGMtMTY3IC0zOSAtMjMwIC0yMDEgLTExNyAtMzAyIDMwIC0yOCA2NSAtNDQgMTU2IC03MyAxNjEKLTUwIDE5MyAtODYgMTMzIC0xNDkgLTE3IC0xNyAtMzIgLTIwIC0xMDIgLTIwIC03MSAxIC05MSA1IC0xNTEgMzMgLTM4IDE4Ci03MiAyOSAtNzYgMjUgLTQgLTQgLTE0IC0yNyAtMjQgLTUxIGwtMTYgLTQzIDYyIC0yOSBjMTc3IC04MiAzOTEgLTUyIDQ1MiA2NAoyNCA0OCAyNiAxMTkgMyAxNjMgLTI1IDQ3IC02OCA3MyAtMjAwIDExNyAtOTIgMzEgLTEyNSA0NyAtMTQwIDY4IC0xOSAyNiAtMTkKMjggLTMgNTMgOSAxNCAyOSAzMSA0NCAzNiAzNSAxNCAxMjcgNCAxOTkgLTIxIDMxIC0xMSA2MCAtMTcgNjQgLTEyIDQgNCAxNAoyNCAyMyA0NSBsMTUgMzggLTMxIDE5IGMtNjcgNDAgLTIwNiA1OSAtMjkxIDM5eiIvPgo8cGF0aCBkPSJNMjIwNSAzNjExIGMtNzIgLTEyIC0xMjggLTI5IC0xNDkgLTQ0IC0xOCAtMTMgLTE4IC0xNSAzIC02MSAxNyAtMzkKMjQgLTQ3IDM4IC00MSA4NSAzNSAyMTggNDggMjc0IDI2IDM3IC0xMyA1OSAtNDggNTkgLTkxIGwwIC0zNSAtMTA2IDMgYy0xMzQKNCAtMTk5IC0xNCAtMjYwIC03MiAtNTAgLTQ5IC03MCAtMTA0IC02MCAtMTY5IDI0IC0xNTggMjEwIC0yMTIgNTEzIC0xNDcgbDUwCjExIDcgMTQzIGMxNiAzMTcgLTE0IDQxOSAtMTM0IDQ2MSAtNTQgMTkgLTE2NyAyNyAtMjM1IDE2eiBtMTk0IC0zNDcgbDMxIC02CjAgLTkzIDAgLTkyIC00NiAtNyBjLTExNiAtMTUgLTIwMSAxIC0yMjMgNDIgLTYgMTIgLTExIDM4IC0xMSA2MCAwIDQ0IDI4IDc3Cjc2IDkyIDM1IDEwIDEzMCAxMiAxNzMgNHoiLz4KPHBhdGggZD0iTTMyNDkgMzYwNyBjLTE2MCAtNDYgLTIzNiAtMTYxIC0yMjcgLTM0NyA3IC0xNDcgNjUgLTIzNCAxODggLTI4MgoxMDUgLTQxIDM5MCAtMjEgMzkwIDI3IDAgMTIgLTI5IDk1IC0zNCA5NSAwIDAgLTIzIC03IC01MSAtMTUgLTI3IC05IC04NSAtMTYKLTEyOCAtMTYgLTEwNCAtMSAtMTYyIDI2IC0xOTQgOTEgLTEzIDI0IC0yMyA1NCAtMjMgNjcgbDAgMjMgMjI4IDIgMjI3IDMgMAo3NSBjMCAxMjcgLTUzIDIxOCAtMTUyIDI2MiAtNTYgMjUgLTE2NCAzMiAtMjI0IDE1eiBtMTUxIC0xMTMgYzQ0IC0xOCA3NyAtNjEKODIgLTEwOSBsMyAtMzAgLTE0NSAtMyBjLTc5IC0xIC0xNTAgMCAtMTU3IDIgLTE1IDYgOCA3OSAzNSAxMDkgNDAgNDYgMTE0IDU4CjE4MiAzMXoiLz4KPHBhdGggZD0iTTM5MzcgMzYwOSBjLTk0IC0yMiAtMTUxIC03MyAtMTY4IC0xNTAgLTI0IC0xMDQgMzYgLTE3MSAxOTMgLTIyMAoxNjAgLTQ5IDE4OSAtNzAgMTY4IC0xMjMgLTI1IC02NiAtMTU1IC03NCAtMjc4IC0xNiAtMzYgMTcgLTY4IDI3IC03MiAyMyAtNAotNCAtMTQgLTI3IC0yNCAtNTEgbC0xNiAtNDMgNjIgLTI5IGMyMjcgLTEwNSA0NzIgLTI4IDQ3MiAxNDkgLTEgOTggLTQ4IDE0MAotMjE4IDE5NSAtNjAgMTkgLTExNyA0MyAtMTI3IDUyIC0yNSAyMyAtMjQgNjYgMiA5MCAzMCAyNyAxNDMgMjUgMjI0IC00IDMyCi0xMiA2MiAtMTkgNjYgLTE0IDQgNCAxNCAyNCAyMyA0NSBsMTUgMzggLTMxIDE5IGMtNjcgNDAgLTIwNiA1OSAtMjkxIDM5eiIvPgo8cGF0aCBkPSJNNTA2MyAzNjEwIGMtMTI3IC0yNyAtMjEyIC0xMjQgLTIzMiAtMjYyIC0yMiAtMTU5IDM5IC0zMDEgMTU3IC0zNjIKNTUgLTI4IDE0OSAtNDAgMjIwIC0yNyAxMDcgMjAgMTczIDY3IDIyMCAxNTUgMjUgNDcgMjcgNjAgMjcgMTcxIDAgMTExIC0yCjEyNCAtMjcgMTcwIC0zMyA2MyAtODAgMTA4IC0xMzkgMTM0IC01MyAyNCAtMTY1IDM0IC0yMjYgMjF6IG0xNzIgLTEyOSBjNTUKLTMxIDcwIC03MyA3MCAtMTk2IDAgLTkyIC0zIC0xMTYgLTIwIC0xNDQgLTM0IC01OCAtNjggLTc2IC0xNDAgLTc2IC03NCAwCi0xMDcgMTkgLTEzOSA4MSAtMjkgNTUgLTMwIDIyMCAtMiAyNzcgNDAgODAgMTQ1IDEwNiAyMzEgNTh6Ii8+CjxwYXRoIGQ9Ik01ODE4IDM2MDYgYy0yMSAtOCAtNDkgLTIxIC02MyAtMzAgLTMyIC0yMSAtMzUgLTIwIC0zNSA5IDAgMjYgLTEKMjYgLTY3IDIzIGwtNjggLTMgMCAtMzI1IDAgLTMyNSA3MCAwIDcwIDAgNSAyMTUgYzQgMTgyIDggMjIwIDIzIDI0OCAyNyA1MAo3MSA3MiAxNDMgNzIgbDYxIDAgMTcgNDMgYzI1IDY2IDIyIDczIC0zMCA4MSAtNjQgOCAtODMgNyAtMTI2IC04eiIvPgo8cGF0aCBkPSJNNjI1MSAzNjA0IGMtMTQzIC0zOCAtMjIwIC0xNDAgLTIyOSAtMzAxIC0xNCAtMjY2IDE4OCAtNDA0IDQ4NgotMzMxIDQ3IDEyIDQ5IDE5IDI2IDc4IC0xMyAzMSAtMjEgMzkgLTMzIDM0IC0zMiAtMTMgLTE2OCAtMTYgLTIwNCAtNSAtODcgMjkKLTEyNyA5NCAtMTI3IDIwNiAwIDgzIDIyIDEzOCA2OSAxNzggNDQgMzYgNjcgNDEgMTgwIDM0IGw5NyAtNiAxNyA0NiBjMjEgNTUKMTkgNTcgLTY4IDcyIC04MiAxNCAtMTQ4IDEzIC0yMTQgLTV6Ii8+CjxwYXRoIGQ9Ik02ODIyIDM2MDUgYy0xNTUgLTQzIC0yMzEgLTE2NiAtMjIwIC0zNTQgOCAtMTQ0IDc4IC0yMzkgMjA2IC0yNzgKMTExIC0zNCAzNzIgLTEyIDM3MiAzMiAwIDEyIC0yOSA5NSAtMzQgOTUgMCAwIC0yMyAtNyAtNTAgLTE1IC0yNyAtOCAtODYgLTE1Ci0xMzAgLTE1IC0xMzAgMCAtMTkzIDQzIC0yMTEgMTQyIGwtNyAzOCAyMjggMiAyMjkgMyAtMSA4MCBjLTEgMTI2IC01MiAyMTIKLTE1MiAyNTcgLTU3IDI2IC0xNjMgMzIgLTIzMCAxM3ogbTE1OCAtMTExIGM0NCAtMTggNzcgLTYxIDgyIC0xMDkgbDMgLTMwCi0xNDUgLTMgYy03OSAtMSAtMTUwIDAgLTE1NyAyIC05IDQgLTEwIDEyIC0xIDM4IDM1IDEwMyAxMTggMTQyIDIxOCAxMDJ6Ii8+CjwvZz4KPC9zdmc+Cg=="
+  },
+  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rest/",
+  "category": {
+    "id": "connectors",
+    "name": "Connectors"
+  },
+  "appliesTo": [
+    "bpmn:Task"
+  ],
+  "elementType": {
+    "value": "bpmn:ServiceTask"
+  },
+  "groups": [
+    {
+      "id": "authentication",
+      "label": "Authentication"
+    },
+    {
+      "id": "endpoint",
+      "label": "Operation"
+    },
+    {
+      "id": "input",
+      "label": "Payload"
+    },
+    {
+      "id": "timeout",
+      "label": "Connect timeout"
+    },
+    {
+      "id": "output",
+      "label": "Response mapping"
+    },
+    {
+      "id": "errors",
+      "label": "Error handling"
+    }
+  ],
+  "properties": [
+    {
+      "type": "Hidden",
+      "value": "io.camunda:http-json:1",
+      "binding": {
+        "type": "zeebe:taskDefinition:type"
+      }
+    },
+    {
+      "label": "Type",
+      "id": "authenticationType",
+      "group": "authentication",
+      "description": "Choose the authentication type",
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Bearer token",
+          "value": "bearer"
+        },
+        {
+          "name": "OAuth 2.0",
+          "value": "oauth-client-credentials-flow"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.type"
+      }
+    },
+    {
+      "label": "Salesforce Base URL",
+      "group": "endpoint",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "baseUrl"
+      },
+      "constraints": {
+        "notEmpty": true,
+        "pattern": {
+          "value": "^(=|http://|https://|secrets).*$",
+          "message": "Must be a http(s) URL."
+        }
+      }
+    },
+    {
+      "id": "salesforceOperationType",
+      "label": "Salesforce Operation Type",
+      "description": "The kind of operation to perform with the Salesforce REST API",
+      "type": "Dropdown",
+      "group": "endpoint",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "salesforceInteractionType"
+      },
+      "choices": [
+        {
+          "name": "sObject CRUD",
+          "value": "sObject"
+        },
+        {
+          "name": "SOQL Query",
+          "value": "soqlQuery"
+        }
+      ]
+    },
+    {
+      "label": "Interaction Type",
+      "id": "interactionType",
+      "group": "endpoint",
+      "description": "Choose the kind of interaction you want to perform",
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Get Object",
+          "value": "get"
+        },
+        {
+          "name": "Create Object",
+          "value": "post"
+        },
+        {
+          "name": "Update Object",
+          "value": "patch"
+        },
+        {
+          "name": "Delete Object",
+          "value": "delete"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "method"
+      },
+      "condition": {
+        "equals": "sObject",
+        "property": "salesforceOperationType"
+      }
+    },
+    {
+      "id": "method",
+      "label": "Method",
+      "group": "endpoint",
+      "type": "Hidden",
+      "value": "get",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "method"
+      },
+      "condition": {
+        "equals": "soqlQuery",
+        "property": "salesforceOperationType"
+      }
+    },
+    {
+      "label": "Salesforce Object Type",
+      "description": "Type of the Salesforce Object",
+      "group": "endpoint",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "objectType"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "equals": "sObject",
+        "property": "salesforceOperationType"
+      }
+    },
+    {
+      "label": "Salesforce Object Id",
+      "description": "Id of the Salesforce Object",
+      "group": "endpoint",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "objectId"
+      },
+      "condition": {
+        "allMatch": [
+          {
+            "property": "interactionType",
+            "oneOf": [
+              "patch",
+              "get",
+              "delete"
+            ]
+          },
+          {
+            "property": "salesforceOperationType",
+            "equals": "sObject"
+          }
+        ]
+      },
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
+      "label": "Relation Name",
+      "description": "Name of the child relation",
+      "group": "endpoint",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "relationName"
+      },
+      "condition": {
+        "allMatch":[
+          {
+            "property": "interactionType",
+            "equals": "get"
+          },
+          {
+            "property": "salesforceOperationType",
+            "equals": "sObject"
+          }
+        ]
+      }
+    },
+    {
+      "label": "SOQL Query",
+      "description": "Salesforce SOQL Query, for more details, please refer to the <a href=\"https://developer.salesforce.com/docs/atlas.en-us.soql_sosl.meta/soql_sosl/sforce_api_calls_soql.htm\" target=\"_blank\">documentation</a>",
+      "group": "endpoint",
+      "type": "Text",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "soqlQuery"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "equals": "soqlQuery",
+        "property": "salesforceOperationType"
+      }
+    },
+    {
+      "label": "URL",
+      "group": "endpoint",
+      "type": "Hidden",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "url"
+      },
+      "value": "=baseUrl + \"/services/data/v58.0/sobjects/\" + objectType + string(if objectId != null then \"/\" + objectId else \"\") + string(if relationName != null then \"/\" + relationName else \"\")",
+      "condition": {
+        "equals": "sObject",
+        "property": "salesforceOperationType"
+      }
+    },
+    {
+      "label": "URL",
+      "group": "endpoint",
+      "type": "Hidden",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "url"
+      },
+      "value": "=baseUrl + \"/services/data/v58.0/query\"",
+      "condition": {
+        "equals": "soqlQuery",
+        "property": "salesforceOperationType"
+      }
+    },
+    {
+      "label": "Request Body",
+      "description": "Data to send to the endpoint.",
+      "group": "input",
+      "type": "String",
+      "optional": true,
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body"
+      },
+      "condition": {
+        "property": "interactionType",
+        "oneOf": [
+          "patch",
+          "post",
+          "delete"
+        ]
+      }
+    },
+    {
+      "label": "Bearer token",
+      "group": "authentication",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.token"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "bearer"
+      }
+    },
+    {
+      "description": "The OAuth token endpoint",
+      "type": "Hidden",
+      "value": "=baseUrl + \"/services/oauth2/token\"",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.oauthTokenEndpoint"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "oauth-client-credentials-flow"
+      }
+    },
+    {
+      "label": "Client ID",
+      "description": "Your application's client ID from the OAuth client",
+      "group": "authentication",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.clientId"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "oauth-client-credentials-flow"
+      }
+    },
+    {
+      "label": "Client secret",
+      "description": "Your application's client secret from the OAuth client",
+      "group": "authentication",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.clientSecret"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "oauth-client-credentials-flow"
+      }
+    },
+    {
+      "description": "Client authentication type",
+      "id": "authenticationType",
+      "value": "credentialsBody",
+      "type": "Hidden",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.clientAuthentication"
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "oauth-client-credentials-flow"
+      }
+    },
+    {
+      "label": "Connection timeout",
+      "description": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
+      "group": "timeout",
+      "type": "String",
+      "value": "20",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "connectionTimeoutInSeconds"
+      },
+      "optional": true,
+      "feel": "optional",
+      "constraints": {
+        "notEmpty": false,
+        "pattern": {
+          "value": "^(=.+|[0-9]+|secrets\\..+)$",
+          "message": "Must be a timeout in seconds (default value is 20 seconds) or a FEEL expression"
+        }
+      }
+    },
+    {
+      "label": "Result variable",
+      "description": "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>",
+      "group": "output",
+      "type": "String",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultVariable"
+      }
+    },
+    {
+      "label": "Result expression",
+      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "group": "output",
+      "type": "Text",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultExpression"
+      }
+    },
+    {
+      "label": "Error expression",
+      "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
+      "group": "errors",
+      "type": "Text",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "errorExpression"
+      }
+    }
+  ]
+}
