@@ -207,7 +207,7 @@
       }
     },
     {
-      "label": "Relation Name",
+      "label": "Relation name",
       "description": "Name of the child relation",
       "group": "endpoint",
       "type": "String",
