@@ -111,7 +111,7 @@
       ]
     },
     {
-      "label": "Interaction Type",
+      "label": "Interaction type",
       "id": "interactionType",
       "group": "endpoint",
       "description": "Choose the kind of interaction you want to perform",
