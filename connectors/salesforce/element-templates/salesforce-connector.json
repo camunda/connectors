@@ -159,7 +159,7 @@
       }
     },
     {
-      "label": "Salesforce Object Type",
+      "label": "Salesforce object type",
       "description": "Type of the Salesforce object",
       "group": "endpoint",
       "type": "String",
