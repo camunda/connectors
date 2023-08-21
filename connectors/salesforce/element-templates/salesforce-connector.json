@@ -73,7 +73,7 @@
       }
     },
     {
-      "label": "Salesforce Base URL",
+      "label": "Salesforce base URL",
       "group": "endpoint",
       "type": "String",
       "feel": "optional",
