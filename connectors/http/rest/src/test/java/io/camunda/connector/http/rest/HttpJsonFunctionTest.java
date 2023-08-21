@@ -183,7 +183,7 @@ public class HttpJsonFunctionTest extends BaseTest {
     var functionCallResponseAsObject = functionUnderTest.execute(context);
     // then null field 'unknown' exists in response body and has a null value
     var asJsonObject =
-    objectMapper.convertValue(
+        objectMapper.convertValue(
             ((HttpCommonResult) functionCallResponseAsObject).getBody(), JsonNode.class);
     assertThat(asJsonObject.has("unknown")).isTrue();
     assertThat(asJsonObject.get("unknown").isNull()).isTrue();

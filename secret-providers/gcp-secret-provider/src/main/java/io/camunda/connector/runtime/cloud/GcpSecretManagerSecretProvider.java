@@ -16,18 +16,20 @@
  */
 package io.camunda.connector.runtime.cloud;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.cloud.secretmanager.v1.AccessSecretVersionResponse;
 import com.google.cloud.secretmanager.v1.SecretManagerServiceClient;
 import com.google.cloud.secretmanager.v1.SecretVersionName;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.secret.SecretProvider;
-import java.lang.reflect.Type;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -40,7 +42,13 @@ public class GcpSecretManagerSecretProvider implements SecretProvider {
 
   private static final Logger LOGGER =
       LoggerFactory.getLogger(GcpSecretManagerSecretProvider.class);
-  private static final Type MAP_TYPE = new TypeToken<Map<String, String>>() {}.getType();
+
+  private static final ObjectMapper DEFAULT_MAPPER =
+      new ObjectMapper()
+          .registerModule(new Jdk8Module())
+          .registerModule(new JavaTimeModule())
+          .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
+          .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
   /** Secrets used as fallback if SecretProvider is loaded via SPI */
   public static final String SECRETS_PROJECT_ENV_NAME = "SECRETS_PROJECT_ID";
@@ -51,7 +59,8 @@ public class GcpSecretManagerSecretProvider implements SecretProvider {
   public static final String SECRETS_CACHE_MILLIS_ENV_NAME =
       "CAMUNDA_CONNECTOR_SECRETS_CACHE_MILLIS";
 
-  private final Gson gson;
+  // private final Gson gson;
+  private ObjectMapper mapper;
   private final String clusterId;
   private final String secretsProjectId;
   private final String secretsNamePrefix;
@@ -69,12 +78,12 @@ public class GcpSecretManagerSecretProvider implements SecretProvider {
 
   public GcpSecretManagerSecretProvider(
       String clusterId, String secretsProjectId, String secretsNamePrefix) {
-    this(new GsonBuilder().create(), clusterId, secretsProjectId, secretsNamePrefix);
+    this(DEFAULT_MAPPER, clusterId, secretsProjectId, secretsNamePrefix);
   }
 
   public GcpSecretManagerSecretProvider(
-      Gson gson, String clusterId, String secretsProjectId, String secretsNamePrefix) {
-    this.gson = gson;
+      ObjectMapper mapper, String clusterId, String secretsProjectId, String secretsNamePrefix) {
+    this.mapper = mapper;
 
     this.clusterId = clusterId;
     this.secretsProjectId =
@@ -89,9 +98,9 @@ public class GcpSecretManagerSecretProvider implements SecretProvider {
   public void setupSecretsCache() {
     // Load secrets via this loader function whenever necessary
     CacheLoader<String, Map<String, String>> loader =
-        new CacheLoader<String, Map<String, String>>() {
+        new CacheLoader<>() {
           @Override
-          public Map<String, String> load(String key) {
+          public Map<String, String> load(String key) throws JsonProcessingException {
             return unwrapSecrets(loadGoogleSecrets(clusterId));
           }
         };
@@ -103,8 +112,9 @@ public class GcpSecretManagerSecretProvider implements SecretProvider {
         CacheBuilder.newBuilder().refreshAfterWrite(millis, TimeUnit.MILLISECONDS).build(loader);
   }
 
-  protected Map<String, String> unwrapSecrets(final String secretsAsjson) {
-    return gson.fromJson(secretsAsjson, MAP_TYPE);
+  protected Map<String, String> unwrapSecrets(final String secretsAsJson)
+      throws JsonProcessingException {
+    return mapper.readValue(secretsAsJson, Map.class);
   }
 
   protected String loadGoogleSecrets(final String clusterId) {

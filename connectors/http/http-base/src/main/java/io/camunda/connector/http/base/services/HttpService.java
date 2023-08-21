@@ -20,7 +20,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpResponse;
-import com.google.gson.Gson;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.http.base.auth.CustomAuthentication;
 import io.camunda.connector.http.base.auth.OAuthAuthentication;
@@ -41,7 +40,9 @@ public class HttpService {
   private final String proxyFunctionUrl;
 
   public HttpService(
-          final ObjectMapper objectMapper, final HttpRequestFactory requestFactory, final String proxyFunctionUrl) {
+      final ObjectMapper objectMapper,
+      final HttpRequestFactory requestFactory,
+      final String proxyFunctionUrl) {
     this.objectMapper = objectMapper;
     this.requestFactory = requestFactory;
     this.proxyFunctionUrl = proxyFunctionUrl;

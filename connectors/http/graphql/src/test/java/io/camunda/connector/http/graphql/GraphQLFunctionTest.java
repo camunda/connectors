@@ -28,7 +28,6 @@ import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpResponse;
 import com.google.api.client.http.HttpResponseException;
 import com.google.api.client.json.gson.GsonFactory;
-import com.google.gson.JsonObject;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.http.base.services.HttpInteractionService;
@@ -138,8 +137,9 @@ public class GraphQLFunctionTest extends BaseTest {
     final var context =
         OutboundConnectorContextBuilder.create().variables(input).secrets(name -> "foo").build();
     final var expectedTimeInMilliseconds =
-        objectMapper.readValue(
-                    objectMapper.readValue(input, JsonObject.class).get("graphql").toString(),
+        objectMapper
+                .readValue(
+                    objectMapper.readValue(input, ObjectNode.class).get("graphql").toString(),
                     GraphQLRequest.class)
                 .getConnectionTimeoutInSeconds()
             * 1000;
