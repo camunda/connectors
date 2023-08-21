@@ -130,7 +130,7 @@
           "value": "patch"
         },
         {
-          "name": "Delete Object",
+          "name": "Delete object",
           "value": "delete"
         }
       ],
