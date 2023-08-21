@@ -277,7 +277,7 @@
     },
     {
       "label": "Request Body",
-      "description": "Data to send to the endpoint.",
+      "description": "Data to send to the endpoint",
       "group": "input",
       "type": "String",
       "optional": true,
