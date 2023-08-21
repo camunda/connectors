@@ -230,7 +230,7 @@
       }
     },
     {
-      "label": "SOQL Query",
+      "label": "SOQL query",
       "description": "Salesforce SOQL Query, for more details, please refer to the <a href=\"https://developer.salesforce.com/docs/atlas.en-us.soql_sosl.meta/soql_sosl/sforce_api_calls_soql.htm\" target=\"_blank\">documentation</a>",
       "group": "endpoint",
       "type": "Text",
