@@ -12,13 +12,13 @@ import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
 
 public final class ObjectMapperSupplier {
 
-  private static final ObjectMapper objectMapper =
+  private static final ObjectMapper OBJECT_MAPPER =
       ConnectorsObjectMapperSupplier.getCopy()
           .setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
   private ObjectMapperSupplier() {}
 
   public static ObjectMapper objectMapper() {
-    return objectMapper;
+    return OBJECT_MAPPER;
   }
 }

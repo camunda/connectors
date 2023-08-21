@@ -18,7 +18,6 @@ package io.camunda.connector.http.rest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.http.HttpRequestFactory;
-import com.google.gson.Gson;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.config.ConnectorConfigurationUtil;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
@@ -52,13 +51,15 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
 
   public HttpJsonFunction(String proxyFunctionUrl) {
     this(
-            ConnectorsObjectMapperSupplier.getCopy(),
+        ConnectorsObjectMapperSupplier.getCopy(),
         HttpTransportComponentSupplier.httpRequestFactoryInstance(),
         proxyFunctionUrl);
   }
 
   public HttpJsonFunction(
-          final ObjectMapper objectMapper, final HttpRequestFactory requestFactory, final String proxyFunctionUrl) {
+      final ObjectMapper objectMapper,
+      final HttpRequestFactory requestFactory,
+      final String proxyFunctionUrl) {
     this.httpService = new HttpService(objectMapper, requestFactory, proxyFunctionUrl);
   }
 

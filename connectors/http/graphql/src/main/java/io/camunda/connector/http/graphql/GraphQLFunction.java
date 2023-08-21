@@ -16,7 +16,6 @@ import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpResponse;
 import com.google.api.client.http.json.JsonHttpContent;
 import com.google.api.client.json.gson.GsonFactory;
-import com.google.gson.Gson;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.config.ConnectorConfigurationUtil;
 import io.camunda.connector.api.error.ConnectorException;
@@ -65,14 +64,14 @@ public class GraphQLFunction implements OutboundConnectorFunction {
 
   public GraphQLFunction(String proxyFunctionUrl) {
     this(
-            ConnectorsObjectMapperSupplier.getCopy(),
+        ConnectorsObjectMapperSupplier.getCopy(),
         HttpTransportComponentSupplier.httpRequestFactoryInstance(),
-            new GsonFactory(),
+        new GsonFactory(),
         proxyFunctionUrl);
   }
 
   public GraphQLFunction(
-          final ObjectMapper objectMapper,
+      final ObjectMapper objectMapper,
       final HttpRequestFactory requestFactory,
       final GsonFactory gsonFactory,
       final String proxyFunctionUrl) {

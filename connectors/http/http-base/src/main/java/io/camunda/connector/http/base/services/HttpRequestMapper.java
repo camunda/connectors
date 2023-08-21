@@ -93,9 +93,7 @@ public class HttpRequestMapper {
       content = new UrlEncodedContent(request.getBody());
     } else {
       content =
-          request.hasBody()
-              ? new JsonHttpContent(new GsonFactory(), request.getBody())
-              : null;
+          request.hasBody() ? new JsonHttpContent(new GsonFactory(), request.getBody()) : null;
     }
 
     return new HttpRequestBuilder()
