@@ -177,7 +177,7 @@
       }
     },
     {
-      "label": "Salesforce Object Id",
+      "label": "Salesforce object ID",
       "description": "ID of the Salesforce object",
       "group": "endpoint",
       "type": "String",
