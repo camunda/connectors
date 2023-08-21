@@ -91,7 +91,7 @@
     },
     {
       "id": "salesforceOperationType",
-      "label": "Salesforce Operation Type",
+      "label": "Salesforce operation type",
       "description": "The kind of operation to perform with the Salesforce REST API",
       "type": "Dropdown",
       "group": "endpoint",
