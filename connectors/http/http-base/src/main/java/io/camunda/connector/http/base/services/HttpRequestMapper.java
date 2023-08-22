@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.http.rest;
+package io.camunda.connector.http.base.services;
 
 import static org.apache.http.entity.ContentType.APPLICATION_FORM_URLENCODED;
 import static org.apache.http.entity.ContentType.APPLICATION_JSON;
@@ -28,11 +28,10 @@ import com.google.api.client.http.UrlEncodedContent;
 import com.google.api.client.http.json.JsonHttpContent;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.http.base.auth.OAuthAuthentication;
+import io.camunda.connector.http.base.components.GsonComponentSupplier;
 import io.camunda.connector.http.base.constants.Constants;
-import io.camunda.connector.http.base.model.CommonRequest;
+import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpRequestBuilder;
-import io.camunda.connector.http.rest.components.GsonComponentSupplier;
-import io.camunda.connector.http.rest.model.HttpJsonRequest;
 import jakarta.validation.ValidationException;
 import java.io.IOException;
 import java.util.Optional;
@@ -43,7 +42,7 @@ public class HttpRequestMapper {
   private HttpRequestMapper() {}
 
   public static HttpRequest toOAuthHttpRequest(
-      final HttpRequestFactory requestFactory, final HttpJsonRequest request) throws IOException {
+      final HttpRequestFactory requestFactory, final HttpCommonRequest request) throws IOException {
 
     OAuthAuthentication authentication = (OAuthAuthentication) request.getAuthentication();
 
@@ -65,13 +64,13 @@ public class HttpRequestMapper {
   }
 
   public static HttpRequest toHttpRequest(
-      final HttpRequestFactory requestFactory, final CommonRequest request) throws IOException {
+      final HttpRequestFactory requestFactory, final HttpCommonRequest request) throws IOException {
     return toHttpRequest(requestFactory, request, null);
   }
 
   public static HttpRequest toHttpRequest(
       final HttpRequestFactory requestFactory,
-      final CommonRequest request,
+      final HttpCommonRequest request,
       final String bearerToken)
       throws IOException {
     // TODO: add more holistic solution
@@ -109,7 +108,7 @@ public class HttpRequestMapper {
         .build(requestFactory);
   }
 
-  private static HttpHeaders createHeaders(final CommonRequest request, String bearerToken) {
+  private static HttpHeaders createHeaders(final HttpCommonRequest request, String bearerToken) {
     final HttpHeaders httpHeaders = new HttpHeaders();
     if (request.hasBody()) {
       // set 'application/json' contentType if content type not exist in request

@@ -11,7 +11,6 @@ import static io.camunda.connector.http.base.utils.Timeout.setTimeout;
 import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.HttpContent;
 import com.google.api.client.http.HttpHeaders;
-import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpResponse;
 import com.google.api.client.http.json.JsonHttpContent;
@@ -24,11 +23,11 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.http.base.auth.OAuthAuthentication;
 import io.camunda.connector.http.base.constants.Constants;
-import io.camunda.connector.http.base.model.CommonRequest;
-import io.camunda.connector.http.base.model.CommonResult;
+import io.camunda.connector.http.base.model.HttpCommonRequest;
+import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.connector.http.base.services.AuthenticationService;
 import io.camunda.connector.http.base.services.HTTPProxyService;
-import io.camunda.connector.http.base.services.HTTPService;
+import io.camunda.connector.http.base.services.HttpInteractionService;
 import io.camunda.connector.http.graphql.components.GsonComponentSupplier;
 import io.camunda.connector.http.graphql.components.HttpTransportComponentSupplier;
 import io.camunda.connector.http.graphql.model.GraphQLRequest;
@@ -97,33 +96,36 @@ public class GraphQLFunction implements OutboundConnectorFunction {
       throws IOException, InstantiationException, IllegalAccessException {
     // connector logic
     LOGGER.debug("Executing graphql connector with request {}", connectorRequest);
-    HTTPService httpService = new HTTPService(gson);
+    HttpInteractionService httpInteractionService = new HttpInteractionService(gson);
     AuthenticationService authService = new AuthenticationService(gson, requestFactory);
     String bearerToken = null;
     if (connectorRequest.getAuthentication() != null
         && connectorRequest.getAuthentication() instanceof OAuthAuthentication) {
-      final HttpRequest oauthRequest = authService.createOAuthRequest(connectorRequest);
-      final HttpResponse oauthResponse = httpService.executeHttpRequest(oauthRequest);
+      final com.google.api.client.http.HttpRequest oauthRequest =
+          authService.createOAuthRequest(connectorRequest);
+      final HttpResponse oauthResponse = httpInteractionService.executeHttpRequest(oauthRequest);
       bearerToken = authService.extractOAuthAccessToken(oauthResponse);
     }
 
-    final HttpRequest httpRequest = createRequest(httpService, connectorRequest, bearerToken);
-    HttpResponse httpResponse = httpService.executeHttpRequest(httpRequest);
-    return httpService.toHttpResponse(httpResponse, GraphQLResult.class);
+    final com.google.api.client.http.HttpRequest httpRequest =
+        createRequest(httpInteractionService, connectorRequest, bearerToken);
+    HttpResponse httpResponse = httpInteractionService.executeHttpRequest(httpRequest);
+    return httpInteractionService.toHttpResponse(httpResponse, GraphQLResult.class);
   }
 
-  private CommonResult executeGraphQLConnectorViaProxy(GraphQLRequest request) throws IOException {
-    CommonRequest commonRequest = GraphQLRequestMapper.toCommonRequest(request);
-    HTTPService httpService = new HTTPService(gson);
+  private HttpCommonResult executeGraphQLConnectorViaProxy(GraphQLRequest request)
+      throws IOException {
+    HttpCommonRequest commonRequest = GraphQLRequestMapper.toHttpCommonRequest(request);
+    HttpInteractionService httpInteractionService = new HttpInteractionService(gson);
 
-    HttpRequest httpRequest =
+    com.google.api.client.http.HttpRequest httpRequest =
         HTTPProxyService.toRequestViaProxy(requestFactory, commonRequest, proxyFunctionUrl);
 
-    HttpResponse httpResponse = httpService.executeHttpRequest(httpRequest, true);
+    HttpResponse httpResponse = httpInteractionService.executeHttpRequest(httpRequest, true);
 
     try (InputStream responseContentStream = httpResponse.getContent();
         Reader reader = new InputStreamReader(responseContentStream)) {
-      final CommonResult jsonResult = gson.fromJson(reader, CommonResult.class);
+      final HttpCommonResult jsonResult = gson.fromJson(reader, HttpCommonResult.class);
       LOGGER.debug("Proxy returned result: " + jsonResult);
       return jsonResult;
     } catch (final Exception e) {
@@ -132,13 +134,15 @@ public class GraphQLFunction implements OutboundConnectorFunction {
     }
   }
 
-  public HttpRequest createRequest(
-      final HTTPService httpService, final GraphQLRequest request, String bearerToken)
+  public com.google.api.client.http.HttpRequest createRequest(
+      final HttpInteractionService httpInteractionService,
+      final GraphQLRequest request,
+      String bearerToken)
       throws IOException {
     final String method = request.getMethod().toUpperCase();
     final GenericUrl genericUrl = new GenericUrl(request.getUrl());
     HttpContent content = null;
-    final HttpHeaders headers = httpService.createHeaders(request, bearerToken);
+    final HttpHeaders headers = httpInteractionService.createHeaders(request, bearerToken);
     final Map<String, Object> queryAndVariablesMap =
         JsonSerializeHelper.queryAndVariablesToMap(request);
     if (Constants.POST.equalsIgnoreCase(method)) {

@@ -14,18 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.http.polling;
+package io.camunda.connector.http.rest;
 
 import static org.apache.http.entity.ContentType.APPLICATION_JSON;
 import static org.apache.http.entity.ContentType.TEXT_PLAIN;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.api.client.http.HttpHeaders;
-import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
-import io.camunda.connector.http.base.model.CommonRequest;
-import io.camunda.connector.http.rest.HttpRequestMapper;
-import io.camunda.connector.http.rest.components.HttpTransportComponentSupplier;
+import io.camunda.connector.http.base.components.HttpTransportComponentSupplier;
+import io.camunda.connector.http.base.model.HttpCommonRequest;
+import io.camunda.connector.http.base.services.HttpRequestMapper;
 import java.io.IOException;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,12 +33,12 @@ import org.junit.jupiter.api.Test;
 class HttpRequestMapperTest {
 
   private HttpRequestFactory httpRequestFactory;
-  private CommonRequest request;
+  private HttpCommonRequest request;
 
   @BeforeEach
   public void setUp() {
     httpRequestFactory = HttpTransportComponentSupplier.httpRequestFactoryInstance();
-    request = new CommonRequest();
+    request = new HttpCommonRequest();
     request.setMethod("POST");
     request.setUrl("http://example.com");
     request.setBody("{ \"key\": \"value\" }");
@@ -49,7 +48,8 @@ class HttpRequestMapperTest {
   public void shouldSetJsonContentTypeWhenNotProvided() throws IOException {
     // given request without headers
     // when
-    HttpRequest httpRequest = HttpRequestMapper.toHttpRequest(httpRequestFactory, request);
+    com.google.api.client.http.HttpRequest httpRequest =
+        HttpRequestMapper.toHttpRequest(httpRequestFactory, request);
     // then
     HttpHeaders headers = httpRequest.getHeaders();
     assertThat(headers.getContentType()).isEqualTo(APPLICATION_JSON.getMimeType());
@@ -60,7 +60,8 @@ class HttpRequestMapperTest {
     // given
     request.setHeaders(Map.of("Content-Type", "text/plain"));
     // when
-    HttpRequest httpRequest = HttpRequestMapper.toHttpRequest(httpRequestFactory, request);
+    com.google.api.client.http.HttpRequest httpRequest =
+        HttpRequestMapper.toHttpRequest(httpRequestFactory, request);
     // then
     HttpHeaders headers = httpRequest.getHeaders();
     assertThat(headers.getContentType()).isEqualTo(TEXT_PLAIN.getMimeType());

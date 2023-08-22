@@ -6,6 +6,6 @@
  */
 package io.camunda.connector.http.graphql.model;
 
-import io.camunda.connector.http.base.model.CommonResult;
+import io.camunda.connector.http.base.model.HttpCommonResult;
 
-public class GraphQLResult extends CommonResult {}
+public class GraphQLResult extends HttpCommonResult {}

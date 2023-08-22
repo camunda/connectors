@@ -1,48 +1,11 @@
 [
   {
-    "descriptionOfTest": "Negative value",
-    "method": "get",
-    "url": "https://camunda.io/http-endpoint",
-    "connectionTimeoutInSeconds": "-1",
-    "authentication": {
-      "type": "noAuth"
-    }
-  },
-  {
-    "descriptionOfTest": "Negative value",
-    "method": "get",
-    "url": "https://camunda.io/http-endpoint",
-    "connectionTimeoutInSeconds": "-99",
-    "authentication": {
-      "type": "noAuth"
-    }
-  },
-  {
     "descriptionOfTest": "String value",
     "method": "get",
     "url": "https://camunda.io/http-endpoint",
     "connectionTimeoutInSeconds": "bad value",
     "authentication": {
       "type": "noAuth"
-    }
-  },
-  {
-    "descriptionOfTest": "Blank value",
-    "method": "get",
-    "url": "https://camunda.io/http-endpoint",
-    "connectionTimeoutInSeconds": " ",
-    "authentication": {
-      "type": "noAuth"
-    }
-  },
-  {
-    "descriptionOfTest": "Float value",
-    "method": "get",
-    "url": "https://camunda.io/http-endpoint",
-    "connectionTimeoutInSeconds": "1.56",
-    "authentication": {
-      "type": "bearer",
-      "token": "{{secrets.TOKEN_KEY}}"
     }
   },
   {

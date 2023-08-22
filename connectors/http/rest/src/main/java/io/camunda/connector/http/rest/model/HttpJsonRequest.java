@@ -16,6 +16,6 @@
  */
 package io.camunda.connector.http.rest.model;
 
-import io.camunda.connector.http.base.model.CommonRequest;
+import io.camunda.connector.http.base.model.HttpCommonRequest;
 
-public class HttpJsonRequest extends CommonRequest {}
+public class HttpJsonRequest extends HttpCommonRequest {}

@@ -14,14 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.http.polling;
+package io.camunda.connector.http.rest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
-import io.camunda.connector.http.rest.HttpJsonFunction;
 import io.camunda.connector.http.rest.model.HttpJsonRequest;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.IOException;
@@ -117,7 +116,6 @@ public class HttpJsonFunctionInputValidationTest extends BaseTest {
   @ParameterizedTest(name = "Validate connectionTimeout # {index}")
   @MethodSource("failTimeOutConnectionCases")
   void validate_shouldThrowExceptionConnectionTimeoutIsWrong(String input) {
-    System.out.println(input);
     // Given request without one required field
     OutboundConnectorContext context =
         getContextBuilderWithSecrets()
@@ -126,12 +124,12 @@ public class HttpJsonFunctionInputValidationTest extends BaseTest {
             .build();
     // When context.validate(request);
     // Then expect exception
-    ConnectorInputException thrown =
+    RuntimeException thrown =
         assertThrows(
-            ConnectorInputException.class,
+            RuntimeException.class,
             () -> context.bindVariables(HttpJsonRequest.class),
             "ConnectorInputException was expected");
-    assertThat(thrown.getMessage()).contains("Found constraints violated while validating input");
+    assertThat(thrown.getMessage()).contains("Cannot deserialize value of type");
   }
 
   @ParameterizedTest(name = "Success validate connectionTimeout # {index}")

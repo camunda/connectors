@@ -19,7 +19,7 @@ package io.camunda.connector.http.base.model;
 import com.google.common.base.Objects;
 import java.util.Map;
 
-public class CommonResult {
+public class HttpCommonResult {
 
   private int status;
   private Map<String, Object> headers;
@@ -57,7 +57,7 @@ public class CommonResult {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    CommonResult that = (CommonResult) o;
+    HttpCommonResult that = (HttpCommonResult) o;
     return status == that.status
         && Objects.equal(headers, that.headers)
         && Objects.equal(body, that.body);
@@ -70,6 +70,13 @@ public class CommonResult {
 
   @Override
   public String toString() {
-    return "CommonResult{" + "status=" + status + ", headers=" + headers + ", body=" + body + '}';
+    return "HttpCommonResult{"
+        + "status="
+        + status
+        + ", headers="
+        + headers
+        + ", body="
+        + body
+        + '}';
   }
 }

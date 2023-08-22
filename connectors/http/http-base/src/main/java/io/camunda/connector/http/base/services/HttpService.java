@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.http.rest;
+package io.camunda.connector.http.base.services;
 
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
@@ -23,11 +23,8 @@ import com.google.gson.Gson;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.http.base.auth.CustomAuthentication;
 import io.camunda.connector.http.base.auth.OAuthAuthentication;
-import io.camunda.connector.http.base.services.AuthenticationService;
-import io.camunda.connector.http.base.services.HTTPProxyService;
-import io.camunda.connector.http.base.services.HTTPService;
-import io.camunda.connector.http.rest.model.HttpJsonRequest;
-import io.camunda.connector.http.rest.model.HttpJsonResult;
+import io.camunda.connector.http.base.model.HttpCommonRequest;
+import io.camunda.connector.http.base.model.HttpCommonResult;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -49,25 +46,25 @@ public class HttpService {
     this.proxyFunctionUrl = proxyFunctionUrl;
   }
 
-  public Object executeConnectorRequest(final HttpJsonRequest request)
+  public HttpCommonResult executeConnectorRequest(final HttpCommonRequest request)
       throws IOException, InstantiationException, IllegalAccessException {
     return proxyFunctionUrl == null
         ? executeRequestDirectly(request)
         : executeRequestViaProxy(request);
   }
 
-  private HttpJsonResult executeRequestDirectly(HttpJsonRequest request)
+  private HttpCommonResult executeRequestDirectly(HttpCommonRequest request)
       throws IOException, InstantiationException, IllegalAccessException {
     String bearerToken = null;
-    HTTPService httpService = new HTTPService(gson);
+    HttpInteractionService httpInteractionService = new HttpInteractionService(gson);
     AuthenticationService authService = new AuthenticationService(gson, requestFactory);
     if (request.getAuthentication() != null) {
       if (request.getAuthentication() instanceof OAuthAuthentication) {
-        bearerToken = getTokenFromOAuthRequest(request, httpService, authService);
+        bearerToken = getTokenFromOAuthRequest(request, httpInteractionService, authService);
       } else if (request.getAuthentication() instanceof CustomAuthentication authentication) {
         final var httpRequest =
             HttpRequestMapper.toHttpRequest(requestFactory, authentication.getRequest());
-        HttpResponse httpResponse = httpService.executeHttpRequest(httpRequest);
+        HttpResponse httpResponse = httpInteractionService.executeHttpRequest(httpRequest);
         if (httpResponse.isSuccessStatusCode()) {
           authService.fillRequestFromCustomAuthResponseData(request, authentication, httpResponse);
         } else {
@@ -80,32 +77,34 @@ public class HttpService {
         }
       }
     }
-    HttpRequest httpRequest = HttpRequestMapper.toHttpRequest(requestFactory, request, bearerToken);
-    HttpResponse httpResponse = httpService.executeHttpRequest(httpRequest, false);
-    return httpService.toHttpResponse(httpResponse, HttpJsonResult.class);
+    com.google.api.client.http.HttpRequest httpRequest =
+        HttpRequestMapper.toHttpRequest(requestFactory, request, bearerToken);
+    HttpResponse httpResponse = httpInteractionService.executeHttpRequest(httpRequest, false);
+    return httpInteractionService.toHttpResponse(httpResponse, HttpCommonResult.class);
   }
 
   private String getTokenFromOAuthRequest(
-      final HttpJsonRequest connectorRequest,
-      final HTTPService httpService,
+      final HttpCommonRequest connectorRequest,
+      final HttpInteractionService httpInteractionService,
       final AuthenticationService authService)
       throws IOException {
-    final HttpRequest oauthRequest = authService.createOAuthRequest(connectorRequest);
-    final HttpResponse oauthResponse = httpService.executeHttpRequest(oauthRequest);
+    final com.google.api.client.http.HttpRequest oauthRequest =
+        authService.createOAuthRequest(connectorRequest);
+    final HttpResponse oauthResponse = httpInteractionService.executeHttpRequest(oauthRequest);
     return authService.extractOAuthAccessToken(oauthResponse);
   }
 
-  private HttpJsonResult executeRequestViaProxy(HttpJsonRequest request) throws IOException {
+  private HttpCommonResult executeRequestViaProxy(HttpCommonRequest request) throws IOException {
     HttpRequest httpRequest =
         HTTPProxyService.toRequestViaProxy(requestFactory, request, proxyFunctionUrl);
 
-    HTTPService httpService = new HTTPService(gson);
+    HttpInteractionService httpInteractionService = new HttpInteractionService(gson);
 
-    HttpResponse httpResponse = httpService.executeHttpRequest(httpRequest, true);
+    HttpResponse httpResponse = httpInteractionService.executeHttpRequest(httpRequest, true);
 
     try (InputStream responseContentStream = httpResponse.getContent();
         Reader reader = new InputStreamReader(responseContentStream)) {
-      final HttpJsonResult jsonResult = gson.fromJson(reader, HttpJsonResult.class);
+      final HttpCommonResult jsonResult = gson.fromJson(reader, HttpCommonResult.class);
       LOGGER.debug("Proxy returned result: " + jsonResult);
       return jsonResult;
     } catch (final Exception e) {

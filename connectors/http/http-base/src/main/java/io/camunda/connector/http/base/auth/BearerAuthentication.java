@@ -18,11 +18,12 @@ package io.camunda.connector.http.base.auth;
 
 import com.google.api.client.http.HttpHeaders;
 import com.google.common.base.Objects;
+import io.camunda.connector.api.annotation.FEEL;
 import jakarta.validation.constraints.NotEmpty;
 
 public class BearerAuthentication extends Authentication {
 
-  @NotEmpty private String token;
+  @FEEL @NotEmpty private String token;
 
   @Override
   public void setHeaders(final HttpHeaders headers) {

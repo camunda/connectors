@@ -27,7 +27,7 @@ import static org.mockito.Mockito.when;
 import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpResponse;
 import com.google.gson.Gson;
-import io.camunda.connector.http.base.model.CommonResult;
+import io.camunda.connector.http.base.model.HttpCommonResult;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -40,10 +40,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class HTTPServiceTest {
+class HttpInteractionServiceTest {
 
   @Mock private HttpResponse httpResponse;
-  private HTTPService httpService;
+  private HttpInteractionService httpInteractionService;
 
   private static final String JSON_BODY =
       "{\"name\":\"John\",\"weight\":60.6,\"city\":\"New York\"}";
@@ -53,7 +53,7 @@ class HTTPServiceTest {
 
   @BeforeEach
   public void setUp() {
-    httpService = new HTTPService(new Gson());
+    httpInteractionService = new HttpInteractionService(new Gson());
   }
 
   @Test
@@ -66,15 +66,16 @@ class HTTPServiceTest {
     when(httpResponse.getHeaders())
         .thenReturn(new HttpHeaders().set("content-type", APPLICATION_JSON.getMimeType()));
     // When
-    CommonResult commonResult = httpService.toHttpResponse(httpResponse, CommonResult.class);
+    HttpCommonResult httpCommonResult =
+        httpInteractionService.toHttpResponse(httpResponse, HttpCommonResult.class);
     // Then
-    assertThat(commonResult).isNotNull();
-    assertEquals(200, commonResult.getStatus());
+    assertThat(httpCommonResult).isNotNull();
+    assertEquals(200, httpCommonResult.getStatus());
 
-    assertThat(commonResult.getHeaders().get("content-type"))
+    assertThat(httpCommonResult.getHeaders().get("content-type"))
         .isEqualTo(APPLICATION_JSON.getMimeType());
 
-    assertThat(commonResult.getBody())
+    assertThat(httpCommonResult.getBody())
         .hasFieldOrPropertyWithValue("name", "John")
         .hasFieldOrPropertyWithValue("weight", 60.6)
         .hasFieldOrPropertyWithValue("city", "New York");
@@ -89,15 +90,16 @@ class HTTPServiceTest {
     when(httpResponse.getHeaders())
         .thenReturn(new HttpHeaders().set("content-type", APPLICATION_XML.getMimeType()));
     // When
-    CommonResult commonResult = httpService.toHttpResponse(httpResponse, CommonResult.class);
+    HttpCommonResult httpCommonResult =
+        httpInteractionService.toHttpResponse(httpResponse, HttpCommonResult.class);
     // Then
-    assertThat(commonResult).isNotNull();
-    assertEquals(200, commonResult.getStatus());
+    assertThat(httpCommonResult).isNotNull();
+    assertEquals(200, httpCommonResult.getStatus());
 
-    assertThat(commonResult.getHeaders().get("content-type"))
+    assertThat(httpCommonResult.getHeaders().get("content-type"))
         .isEqualTo(APPLICATION_XML.getMimeType());
 
-    assertThat(commonResult.getBody()).isEqualTo(XML_BODY);
+    assertThat(httpCommonResult.getBody()).isEqualTo(XML_BODY);
   }
 
   @Test
@@ -110,26 +112,28 @@ class HTTPServiceTest {
     when(httpResponse.getHeaders())
         .thenReturn(new HttpHeaders().set("content-type", TEXT_PLAIN.getMimeType()));
     // When
-    CommonResult commonResult = httpService.toHttpResponse(httpResponse, CommonResult.class);
+    HttpCommonResult httpCommonResult =
+        httpInteractionService.toHttpResponse(httpResponse, HttpCommonResult.class);
     // Then
-    assertThat(commonResult).isNotNull();
-    assertEquals(200, commonResult.getStatus());
-    assertThat(commonResult.getHeaders().get("content-type")).isEqualTo(TEXT_PLAIN.getMimeType());
+    assertThat(httpCommonResult).isNotNull();
+    assertEquals(200, httpCommonResult.getStatus());
+    assertThat(httpCommonResult.getHeaders().get("content-type"))
+        .isEqualTo(TEXT_PLAIN.getMimeType());
 
-    assertThat(commonResult.getBody()).isEqualTo(TEXT_BODY);
+    assertThat(httpCommonResult.getBody()).isEqualTo(TEXT_BODY);
   }
 
   @ParameterizedTest
   @ValueSource(strings = {"{\"name\":\"John\", \"age\":30}", "[1, 2, 3]"})
   public void ssJSONValid_shouldReturnTrueIfJSONIsValid(String input) {
-    boolean result = HTTPService.isJSONValid(input);
+    boolean result = HttpInteractionService.isJSONValid(input);
     assertTrue(result);
   }
 
   @ParameterizedTest
   @ValueSource(strings = {"{name:\"John\", city:New York}", "Invalid JSON string"})
   public void ssJSONValid_shouldReturnFalseForInvalidJSON(String input) {
-    boolean result = HTTPService.isJSONValid(input);
+    boolean result = HttpInteractionService.isJSONValid(input);
     assertThat(result).isFalse();
   }
 }

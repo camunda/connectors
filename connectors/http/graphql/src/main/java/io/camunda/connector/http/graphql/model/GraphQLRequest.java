@@ -6,11 +6,11 @@
  */
 package io.camunda.connector.http.graphql.model;
 
-import io.camunda.connector.http.base.model.CommonRequest;
+import io.camunda.connector.http.base.model.HttpCommonRequest;
 import jakarta.validation.constraints.NotBlank;
 import java.util.Objects;
 
-public class GraphQLRequest extends CommonRequest {
+public class GraphQLRequest extends HttpCommonRequest {
 
   @NotBlank private String query;
   private Object variables;

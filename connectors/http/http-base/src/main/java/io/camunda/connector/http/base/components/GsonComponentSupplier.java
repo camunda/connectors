@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.http.rest.components;
+package io.camunda.connector.http.base.components;
 
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.gson.Gson;

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.http.polling;
+package io.camunda.connector.http.rest;
 
 import static org.apache.http.entity.ContentType.APPLICATION_JSON;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -37,9 +37,8 @@ import com.google.api.client.http.HttpResponse;
 import com.google.api.client.http.HttpResponseException;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorInputException;
-import io.camunda.connector.http.rest.HttpJsonFunction;
+import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.connector.http.rest.model.HttpJsonRequest;
-import io.camunda.connector.http.rest.model.HttpJsonResult;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.ByteArrayInputStream;
@@ -91,8 +90,8 @@ public class HttpJsonFunctionTest extends BaseTest {
 
     // then
     verify(httpRequest).execute();
-    assertThat(functionCallResponseAsObject).isInstanceOf(HttpJsonResult.class);
-    assertThat(((HttpJsonResult) functionCallResponseAsObject).getHeaders())
+    assertThat(functionCallResponseAsObject).isInstanceOf(HttpCommonResult.class);
+    assertThat(((HttpCommonResult) functionCallResponseAsObject).getHeaders())
         .containsValue(APPLICATION_JSON.getMimeType());
   }
 
@@ -109,8 +108,8 @@ public class HttpJsonFunctionTest extends BaseTest {
 
     // then
     verify(httpRequest, times(2)).execute();
-    assertThat(functionCallResponseAsObject).isInstanceOf(HttpJsonResult.class);
-    assertThat(((HttpJsonResult) functionCallResponseAsObject).getHeaders())
+    assertThat(functionCallResponseAsObject).isInstanceOf(HttpCommonResult.class);
+    assertThat(((HttpCommonResult) functionCallResponseAsObject).getHeaders())
         .containsValue(APPLICATION_JSON.getMimeType());
   }
 
@@ -122,8 +121,8 @@ public class HttpJsonFunctionTest extends BaseTest {
 
     // then
     verify(httpRequest, times(2)).execute();
-    assertThat(functionCallResponseAsObject).isInstanceOf(HttpJsonResult.class);
-    assertThat(((HttpJsonResult) functionCallResponseAsObject).getHeaders())
+    assertThat(functionCallResponseAsObject).isInstanceOf(HttpCommonResult.class);
+    assertThat(((HttpCommonResult) functionCallResponseAsObject).getHeaders())
         .containsValue(APPLICATION_JSON.getMimeType());
   }
 
@@ -183,7 +182,7 @@ public class HttpJsonFunctionTest extends BaseTest {
     var functionCallResponseAsObject = functionUnderTest.execute(context);
     // then null field 'unknown' exists in response body and has a null value
     var asJsonObject =
-        gson.toJsonTree(((HttpJsonResult) functionCallResponseAsObject).getBody())
+        gson.toJsonTree(((HttpCommonResult) functionCallResponseAsObject).getBody())
             .getAsJsonObject();
     assertThat(asJsonObject.has("unknown")).isTrue();
     assertThat(asJsonObject.get("unknown").isJsonNull()).isTrue();
@@ -196,10 +195,8 @@ public class HttpJsonFunctionTest extends BaseTest {
     // given - minimal required entity
     final var context =
         OutboundConnectorContextBuilder.create().variables(input).secrets(name -> "foo").build();
-    final var expectedTimeInMilliseconds =
-        Integer.parseInt(
-                context.bindVariables(HttpJsonRequest.class).getConnectionTimeoutInSeconds())
-            * 1000;
+    final var expectedTime =
+        context.bindVariables(HttpJsonRequest.class).getConnectionTimeoutInSeconds();
 
     when(requestFactory.buildRequest(
             anyString(), any(GenericUrl.class), nullable(HttpContent.class)))
@@ -210,7 +207,7 @@ public class HttpJsonFunctionTest extends BaseTest {
     // when
     functionUnderTest.execute(context);
     // then
-    verify(httpRequest).setConnectTimeout(expectedTimeInMilliseconds);
+    verify(httpRequest).setConnectTimeout(expectedTime);
   }
 
   @ParameterizedTest

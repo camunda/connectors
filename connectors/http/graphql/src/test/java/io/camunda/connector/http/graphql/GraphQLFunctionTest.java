@@ -29,7 +29,7 @@ import com.google.api.client.http.HttpResponseException;
 import com.google.gson.JsonObject;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorInputException;
-import io.camunda.connector.http.base.services.HTTPService;
+import io.camunda.connector.http.base.services.HttpInteractionService;
 import io.camunda.connector.http.graphql.model.GraphQLRequest;
 import io.camunda.connector.http.graphql.model.GraphQLResult;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
@@ -135,13 +135,11 @@ public class GraphQLFunctionTest extends BaseTest {
     // given - minimal required entity
     final var context =
         OutboundConnectorContextBuilder.create().variables(input).secrets(name -> "foo").build();
-    final var expectedTimeInMilliseconds =
-        Integer.parseInt(
-                gson.fromJson(
-                        gson.fromJson(input, JsonObject.class).get("graphql").toString(),
-                        GraphQLRequest.class)
-                    .getConnectionTimeoutInSeconds())
-            * 1000;
+    final var expectedTime =
+        gson.fromJson(
+                gson.fromJson(input, JsonObject.class).get("graphql").toString(),
+                GraphQLRequest.class)
+            .getConnectionTimeoutInSeconds();
 
     when(requestFactory.buildRequest(
             anyString(), any(GenericUrl.class), nullable(HttpContent.class)))
@@ -152,7 +150,7 @@ public class GraphQLFunctionTest extends BaseTest {
     // when
     functionUnderTest.execute(context);
     // then
-    verify(httpRequest).setConnectTimeout(expectedTimeInMilliseconds);
+    verify(httpRequest).setConnectTimeout(expectedTime);
   }
 
   @ParameterizedTest
@@ -213,7 +211,7 @@ public class GraphQLFunctionTest extends BaseTest {
     final var context =
         OutboundConnectorContextBuilder.create().variables(input).secrets(name -> "foo").build();
     HttpHeaders headers =
-        HTTPService.extractRequestHeaders(
+        HttpInteractionService.extractRequestHeaders(
             gson.fromJson(
                 gson.fromJson(input, JsonObject.class).get("graphql").toString(),
                 GraphQLRequest.class));

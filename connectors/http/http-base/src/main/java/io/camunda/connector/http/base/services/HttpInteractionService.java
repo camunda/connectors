@@ -19,7 +19,6 @@ package io.camunda.connector.http.base.services;
 import static org.apache.http.entity.ContentType.APPLICATION_JSON;
 
 import com.google.api.client.http.HttpHeaders;
-import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpResponse;
 import com.google.api.client.http.HttpResponseException;
 import com.google.gson.Gson;
@@ -29,9 +28,9 @@ import com.google.gson.JsonParser;
 import com.google.gson.stream.JsonReader;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.http.base.constants.Constants;
-import io.camunda.connector.http.base.model.CommonRequest;
-import io.camunda.connector.http.base.model.CommonResult;
 import io.camunda.connector.http.base.model.ErrorResponse;
+import io.camunda.connector.http.base.model.HttpCommonRequest;
+import io.camunda.connector.http.base.model.HttpCommonResult;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
@@ -42,17 +41,17 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class HTTPService {
+public class HttpInteractionService {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(HTTPService.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(HttpInteractionService.class);
 
   private final Gson gson;
 
-  public HTTPService(final Gson gson) {
+  public HttpInteractionService(final Gson gson) {
     this.gson = gson;
   }
 
-  public HttpHeaders createHeaders(final CommonRequest request, String bearerToken) {
+  public HttpHeaders createHeaders(final HttpCommonRequest request, String bearerToken) {
     final HttpHeaders httpHeaders = new HttpHeaders();
     if (Constants.POST.equalsIgnoreCase(request.getMethod())) {
       httpHeaders.setContentType(APPLICATION_JSON.getMimeType());
@@ -67,21 +66,23 @@ public class HTTPService {
     return httpHeaders;
   }
 
-  public static HttpHeaders extractRequestHeaders(final CommonRequest commonRequest) {
-    if (commonRequest.hasHeaders()) {
+  public static HttpHeaders extractRequestHeaders(final HttpCommonRequest httpCommonRequest) {
+    if (httpCommonRequest.hasHeaders()) {
       final HttpHeaders httpHeaders = new HttpHeaders();
-      commonRequest.getHeaders().forEach(httpHeaders::set);
+      httpCommonRequest.getHeaders().forEach(httpHeaders::set);
       return httpHeaders;
     }
 
     return new HttpHeaders();
   }
 
-  public HttpResponse executeHttpRequest(HttpRequest externalRequest) throws IOException {
+  public HttpResponse executeHttpRequest(com.google.api.client.http.HttpRequest externalRequest)
+      throws IOException {
     return executeHttpRequest(externalRequest, false);
   }
 
-  public HttpResponse executeHttpRequest(HttpRequest externalRequest, boolean isProxyCall)
+  public HttpResponse executeHttpRequest(
+      com.google.api.client.http.HttpRequest externalRequest, boolean isProxyCall)
       throws IOException {
     try {
       return externalRequest.execute();
@@ -102,7 +103,7 @@ public class HTTPService {
     }
   }
 
-  public <T extends CommonResult> T toHttpResponse(
+  public <T extends HttpCommonResult> T toHttpResponse(
       final HttpResponse externalResponse, final Class<T> resultClass)
       throws InstantiationException, IllegalAccessException {
     T connectorResult = resultClass.newInstance();

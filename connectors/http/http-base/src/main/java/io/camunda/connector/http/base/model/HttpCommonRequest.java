@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.http.base.model;
 
+import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.http.base.auth.Authentication;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -23,24 +24,24 @@ import jakarta.validation.constraints.Pattern;
 import java.util.Map;
 import java.util.Objects;
 
-public class CommonRequest {
+public class HttpCommonRequest {
 
+  @FEEL
   @NotBlank
-  @Pattern(regexp = "^(http://|https://|secrets|\\{\\{).*$")
+  @Pattern(regexp = "^(=|http://|https://|secrets|\\{\\{).*$")
   private String url;
 
-  @NotBlank private String method;
+  @FEEL @NotBlank private String method;
 
   @Valid private Authentication authentication;
 
-  @Pattern(regexp = "^([0-9]+|secrets\\..+)$")
-  private String connectionTimeoutInSeconds;
+  private Integer connectionTimeoutInSeconds;
 
-  private Map<String, String> headers;
+  @FEEL private Map<String, String> headers;
 
-  private Object body;
+  @FEEL private Object body;
 
-  private Map<String, String> queryParameters;
+  @FEEL private Map<String, String> queryParameters;
 
   public Object getBody() {
     return body;
@@ -106,11 +107,11 @@ public class CommonRequest {
     this.method = method;
   }
 
-  public String getConnectionTimeoutInSeconds() {
+  public Integer getConnectionTimeoutInSeconds() {
     return connectionTimeoutInSeconds;
   }
 
-  public void setConnectionTimeoutInSeconds(String connectionTimeoutInSeconds) {
+  public void setConnectionTimeoutInSeconds(Integer connectionTimeoutInSeconds) {
     this.connectionTimeoutInSeconds = connectionTimeoutInSeconds;
   }
 
@@ -118,7 +119,7 @@ public class CommonRequest {
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
-    CommonRequest that = (CommonRequest) o;
+    HttpCommonRequest that = (HttpCommonRequest) o;
     return url.equals(that.url)
         && method.equals(that.method)
         && Objects.equals(authentication, that.authentication)
@@ -136,7 +137,7 @@ public class CommonRequest {
 
   @Override
   public String toString() {
-    return "CommonRequest{"
+    return "HttpRequest{"
         + "url='"
         + url
         + '\''
