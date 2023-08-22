@@ -135,12 +135,12 @@ public class GraphQLFunctionTest extends BaseTest {
     // given - minimal required entity
     final var context =
         OutboundConnectorContextBuilder.create().variables(input).secrets(name -> "foo").build();
-    final var expectedTime =
+    final var expectedTimeInMilliseconds =
         gson.fromJson(
-                gson.fromJson(input, JsonObject.class).get("graphql").toString(),
-                GraphQLRequest.class)
-            .getConnectionTimeoutInSeconds();
-
+                    gson.fromJson(input, JsonObject.class).get("graphql").toString(),
+                    GraphQLRequest.class)
+                .getConnectionTimeoutInSeconds()
+            * 1000;
     when(requestFactory.buildRequest(
             anyString(), any(GenericUrl.class), nullable(HttpContent.class)))
         .thenReturn(httpRequest);
@@ -150,7 +150,7 @@ public class GraphQLFunctionTest extends BaseTest {
     // when
     functionUnderTest.execute(context);
     // then
-    verify(httpRequest).setConnectTimeout(expectedTime);
+    verify(httpRequest).setConnectTimeout(expectedTimeInMilliseconds);
   }
 
   @ParameterizedTest
