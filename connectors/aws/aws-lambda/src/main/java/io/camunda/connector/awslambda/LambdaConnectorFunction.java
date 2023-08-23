@@ -21,7 +21,7 @@ import io.camunda.connector.awslambda.model.AwsLambdaRequest;
 import io.camunda.connector.awslambda.model.AwsLambdaResult;
 
 @OutboundConnector(
-    name = "AWSLambda",
+    name = "AWS Lambda",
     inputVariables = {"authentication", "configuration", "awsFunction"},
     type = "io.camunda:aws-lambda:1")
 public class LambdaConnectorFunction implements OutboundConnectorFunction {

@@ -15,7 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @OutboundConnector(
-    name = "GOOGLESHEETS",
+    name = "Google Spreadsheets",
     inputVariables = {"authentication", "operation"},
     type = "io.camunda:google-sheets:1")
 public class GoogleSheetsFunction implements OutboundConnectorFunction {

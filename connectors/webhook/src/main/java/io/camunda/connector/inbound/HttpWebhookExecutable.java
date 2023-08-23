@@ -37,7 +37,7 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@InboundConnector(name = "WEBHOOK_INBOUND", type = "io.camunda:webhook:1")
+@InboundConnector(name = "Webhook", type = "io.camunda:webhook:1")
 public class HttpWebhookExecutable implements WebhookConnectorExecutable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(HttpWebhookExecutable.class);

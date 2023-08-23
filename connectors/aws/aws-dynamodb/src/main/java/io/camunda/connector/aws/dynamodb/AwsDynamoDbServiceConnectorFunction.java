@@ -12,7 +12,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.aws.CredentialsProviderSupport;
 
 @OutboundConnector(
-    name = "AWS",
+    name = "AWS DynamoDB",
     inputVariables = {"authentication", "configuration", "input"},
     type = "io.camunda:aws-dynamodb:1")
 public class AwsDynamoDbServiceConnectorFunction implements OutboundConnectorFunction {

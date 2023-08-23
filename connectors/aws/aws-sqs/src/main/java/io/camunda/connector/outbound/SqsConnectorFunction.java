@@ -27,7 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @OutboundConnector(
-    name = "AWSSQS",
+    name = "AWS SQS Inbound",
     inputVariables = {"authentication", "configuration", "queue"},
     type = "io.camunda:aws-sqs:1")
 public class SqsConnectorFunction implements OutboundConnectorFunction {

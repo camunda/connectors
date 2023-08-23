@@ -26,7 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @OutboundConnector(
-    name = "AWSSNS",
+    name = "AWS SNS Outbound",
     inputVariables = {"authentication", "configuration", "topic"},
     type = "io.camunda:aws-sns:1")
 public class SnsConnectorFunction implements OutboundConnectorFunction {

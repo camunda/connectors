@@ -25,7 +25,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 
 @OutboundConnector(
-    name = "KAFKA",
+    name = "Kafka Producer",
     inputVariables = {"authentication", "topic", "message", "additionalProperties"},
     type = "io.camunda:connector-kafka:1")
 public class KafkaConnectorFunction implements OutboundConnectorFunction {

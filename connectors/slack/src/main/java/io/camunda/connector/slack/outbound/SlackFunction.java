@@ -12,7 +12,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 
 @OutboundConnector(
-    name = "SLACK",
+    name = "Slack Outbound",
     inputVariables = {"token", "method", "data"},
     type = "io.camunda:slack:1")
 public class SlackFunction implements OutboundConnectorFunction {

@@ -30,7 +30,7 @@ import io.camunda.connector.http.rest.model.HttpJsonRequest;
 import java.io.IOException;
 
 @OutboundConnector(
-    name = "HTTPJSON",
+    name = "HTTP REST",
     inputVariables = {
       "url",
       "method",

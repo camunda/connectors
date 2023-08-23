@@ -18,15 +18,23 @@ package io.camunda.connector.runtime.core;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.annotation.OutboundConnector;
+import io.camunda.connector.api.inbound.InboundConnectorContext;
+import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import java.util.Optional;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
+import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension;
 
+@ExtendWith(SystemStubsExtension.class)
 public class ConnectorUtilTest {
 
   @Nested
@@ -59,6 +67,160 @@ public class ConnectorUtilTest {
 
       // then
       Assertions.assertThat(configuration).isNotPresent();
+    }
+
+    @Test
+    void shouldNormalizeOutboundConnectorNameWithoutOverride() {
+      // given
+      @OutboundConnector(
+          name = "NonNormalized nAme",
+          inputVariables = {"foo"},
+          type = "io.camunda:connector:1")
+      class NonNormalizedOutboundConnector implements OutboundConnectorFunction {
+        @Override
+        public Object execute(OutboundConnectorContext context) throws Exception {
+          return null;
+        }
+      }
+
+      // when
+      Optional<OutboundConnectorConfiguration> configuration =
+          ConnectorUtil.getOutboundConnectorConfiguration(NonNormalizedOutboundConnector.class);
+
+      // then
+      assertThat(configuration).isPresent();
+      assertThat(configuration.get().type()).isEqualTo("io.camunda:connector:1");
+    }
+
+    @Test
+    void shouldNormalizeOutboundConnectorNameWithOverride() throws Exception {
+      // given
+      @OutboundConnector(
+          name = "NonNormalized nAme",
+          inputVariables = {"foo"},
+          type = "io.camunda:connector:1")
+      class NonNormalizedOutboundConnector implements OutboundConnectorFunction {
+        @Override
+        public Object execute(OutboundConnectorContext context) throws Exception {
+          return null;
+        }
+      }
+
+      // when
+      EnvironmentVariables environmentVariables =
+          new EnvironmentVariables(
+              "CONNECTOR_NONNORMALIZED_NAME_TYPE", "io.camunda:connector:XXXXXXX");
+      environmentVariables.execute(
+          () -> {
+            Optional<OutboundConnectorConfiguration> configuration =
+                ConnectorUtil.getOutboundConnectorConfiguration(
+                    NonNormalizedOutboundConnector.class);
+            // then
+            assertThat(configuration).isPresent();
+            assertThat(configuration.get().type()).isEqualTo("io.camunda:connector:XXXXXXX");
+          });
+    }
+
+    @Test
+    void shouldNotNormalizeOutboundConnectorNameWithoutOverride() {
+      // given
+      @OutboundConnector(
+          name = "MY_CONNECTOR",
+          inputVariables = {"foo"},
+          type = "io.camunda:connector:1")
+      class NonNormalizedOutboundConnector implements OutboundConnectorFunction {
+        @Override
+        public Object execute(OutboundConnectorContext context) throws Exception {
+          return null;
+        }
+      }
+
+      // when
+      Optional<OutboundConnectorConfiguration> configuration =
+          ConnectorUtil.getOutboundConnectorConfiguration(NonNormalizedOutboundConnector.class);
+
+      // then
+      assertThat(configuration).isPresent();
+      assertThat(configuration.get().name()).isEqualTo("MY_CONNECTOR");
+      assertThat(configuration.get().type()).isEqualTo("io.camunda:connector:1");
+    }
+
+    @Test
+    void shouldNotNormalizeOutboundConnectorNameWithOverride() throws Exception {
+      // given
+      @OutboundConnector(
+          name = "MY_CONNECTOR",
+          inputVariables = {"foo"},
+          type = "io.camunda:connector:1")
+      class NonNormalizedOutboundConnector implements OutboundConnectorFunction {
+        @Override
+        public Object execute(OutboundConnectorContext context) throws Exception {
+          return null;
+        }
+      }
+
+      // when
+      EnvironmentVariables environmentVariables =
+          new EnvironmentVariables("CONNECTOR_MY_CONNECTOR_TYPE", "io.camunda:connector:XXXXXXX");
+      environmentVariables.execute(
+          () -> {
+            Optional<OutboundConnectorConfiguration> configuration =
+                ConnectorUtil.getOutboundConnectorConfiguration(
+                    NonNormalizedOutboundConnector.class);
+            // then
+            assertThat(configuration).isPresent();
+            assertThat(configuration.get().name()).isEqualTo("MY_CONNECTOR");
+            assertThat(configuration.get().type()).isEqualTo("io.camunda:connector:XXXXXXX");
+          });
+    }
+
+    @Test
+    void shouldNormalizeInboundConnectorNameWithoutOverride() {
+      // given
+      @InboundConnector(name = "NonNormalized nAme", type = "io.camunda:connector:1")
+      class NonNormalizedInboundConnector implements InboundConnectorExecutable {
+        @Override
+        public void activate(InboundConnectorContext context) throws Exception {}
+
+        @Override
+        public void deactivate() throws Exception {}
+      }
+
+      // when
+      Optional<InboundConnectorConfiguration> configuration =
+          ConnectorUtil.getInboundConnectorConfiguration(NonNormalizedInboundConnector.class);
+
+      // then
+      assertThat(configuration).isPresent();
+      assertThat(configuration.get().type()).isEqualTo("io.camunda:connector:1");
+    }
+
+    @Test
+    void shouldNormalizeInboundConnectorNameWithOverride() throws Exception {
+      // given
+      @InboundConnector(name = "NonNormalized nAme", type = "io.camunda:connector:1")
+      class NonNormalizedOutboundConnector implements InboundConnectorExecutable {
+
+        @Override
+        public void activate(InboundConnectorContext context) throws Exception {}
+
+        @Override
+        public void deactivate() throws Exception {}
+      }
+
+      // when
+      EnvironmentVariables environmentVariables =
+          new EnvironmentVariables(
+              "CONNECTOR_NONNORMALIZED_NAME_TYPE", "io.camunda:connector:XXXXXXX");
+      environmentVariables.execute(
+          () -> {
+            Optional<InboundConnectorConfiguration> configuration =
+                ConnectorUtil.getInboundConnectorConfiguration(
+                    NonNormalizedOutboundConnector.class);
+            // then
+            assertThat(configuration).isPresent();
+            assertThat(configuration.get().type()).isEqualTo("io.camunda:connector:XXXXXXX");
+          });
     }
   }
 }

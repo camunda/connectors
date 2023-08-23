@@ -21,7 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @OutboundConnector(
-    name = "SENDGRID",
+    name = "SendGrid",
     inputVariables = {"apiKey", "from", "to", "template", "content"},
     type = "io.camunda:sendgrid:1")
 public class SendGridFunction implements OutboundConnectorFunction {
