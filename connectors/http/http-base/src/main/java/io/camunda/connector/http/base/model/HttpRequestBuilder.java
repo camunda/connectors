@@ -22,6 +22,7 @@ import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 public final class HttpRequestBuilder {
 
@@ -70,7 +71,8 @@ public final class HttpRequestBuilder {
       httpRequest.setHeaders(headers);
     }
     if (connectionTimeoutInSeconds != null) {
-      int intConnectionTimeout = connectionTimeoutInSeconds;
+      long connectionTimeout = TimeUnit.SECONDS.toMillis(connectionTimeoutInSeconds);
+      int intConnectionTimeout = Math.toIntExact(connectionTimeout);
       httpRequest.setConnectTimeout(intConnectionTimeout);
       httpRequest.setReadTimeout(intConnectionTimeout);
       httpRequest.setWriteTimeout(intConnectionTimeout);

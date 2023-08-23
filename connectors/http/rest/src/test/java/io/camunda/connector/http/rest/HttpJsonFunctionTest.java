@@ -195,8 +195,8 @@ public class HttpJsonFunctionTest extends BaseTest {
     // given - minimal required entity
     final var context =
         OutboundConnectorContextBuilder.create().variables(input).secrets(name -> "foo").build();
-    final var expectedTime =
-        context.bindVariables(HttpJsonRequest.class).getConnectionTimeoutInSeconds();
+    final var expectedTimeInMilliseconds =
+        context.bindVariables(HttpJsonRequest.class).getConnectionTimeoutInSeconds() * 1000;
 
     when(requestFactory.buildRequest(
             anyString(), any(GenericUrl.class), nullable(HttpContent.class)))
@@ -207,7 +207,7 @@ public class HttpJsonFunctionTest extends BaseTest {
     // when
     functionUnderTest.execute(context);
     // then
-    verify(httpRequest).setConnectTimeout(expectedTime);
+    verify(httpRequest).setConnectTimeout(expectedTimeInMilliseconds);
   }
 
   @ParameterizedTest

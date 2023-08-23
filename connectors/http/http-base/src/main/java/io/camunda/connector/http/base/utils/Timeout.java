@@ -18,12 +18,14 @@ package io.camunda.connector.http.base.utils;
 
 import com.google.api.client.http.HttpRequest;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
+import java.util.concurrent.TimeUnit;
 
 public class Timeout {
 
   public static void setTimeout(HttpCommonRequest request, HttpRequest httpRequest) {
     if (request.getConnectionTimeoutInSeconds() != null) {
-      int intConnectionTimeout = request.getConnectionTimeoutInSeconds();
+      long connectionTimeout = TimeUnit.SECONDS.toMillis(request.getConnectionTimeoutInSeconds());
+      int intConnectionTimeout = Math.toIntExact(connectionTimeout);
       httpRequest.setConnectTimeout(intConnectionTimeout);
       httpRequest.setReadTimeout(intConnectionTimeout);
       httpRequest.setWriteTimeout(intConnectionTimeout);
