@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.security.GeneralSecurityException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,14 +50,14 @@ public class HttpService {
   }
 
   public HttpCommonResult executeConnectorRequest(final HttpCommonRequest request)
-      throws IOException, InstantiationException, IllegalAccessException {
+      throws IOException, InstantiationException, IllegalAccessException, GeneralSecurityException {
     return proxyFunctionUrl == null
         ? executeRequestDirectly(request)
         : executeRequestViaProxy(request);
   }
 
   private HttpCommonResult executeRequestDirectly(HttpCommonRequest request)
-      throws IOException, InstantiationException, IllegalAccessException {
+      throws IOException, InstantiationException, IllegalAccessException, GeneralSecurityException {
     String bearerToken = null;
     HttpInteractionService httpInteractionService = new HttpInteractionService(objectMapper);
     AuthenticationService authService = new AuthenticationService(objectMapper, requestFactory);

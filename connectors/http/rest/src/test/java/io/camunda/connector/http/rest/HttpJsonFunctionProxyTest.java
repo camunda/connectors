@@ -39,6 +39,7 @@ import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -74,7 +75,7 @@ public class HttpJsonFunctionProxyTest extends BaseTest {
   @ParameterizedTest(name = "Executing test case: {0}")
   @MethodSource("successCases")
   void shouldReturnResult_WhenExecuted(final String input)
-      throws IOException, InstantiationException, IllegalAccessException {
+      throws IOException, InstantiationException, IllegalAccessException, GeneralSecurityException {
     // given - minimal required entity
     final var context =
         OutboundConnectorContextBuilder.create().variables(input).secrets(name -> "foo").build();

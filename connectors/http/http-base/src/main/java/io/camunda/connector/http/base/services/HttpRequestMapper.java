@@ -24,7 +24,9 @@ import com.google.api.client.http.HttpContent;
 import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
+import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.UrlEncodedContent;
+import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.http.json.JsonHttpContent;
 import com.google.api.client.json.gson.GsonFactory;
 import io.camunda.connector.api.error.ConnectorInputException;
@@ -34,6 +36,9 @@ import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpRequestBuilder;
 import jakarta.validation.ValidationException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.security.GeneralSecurityException;
+import java.security.KeyStore;
 import java.util.Optional;
 import org.apache.commons.text.StringEscapeUtils;
 
@@ -64,7 +69,8 @@ public class HttpRequestMapper {
   }
 
   public static HttpRequest toHttpRequest(
-      final HttpRequestFactory requestFactory, final HttpCommonRequest request) throws IOException {
+      final HttpRequestFactory requestFactory, final HttpCommonRequest request)
+      throws IOException, GeneralSecurityException {
     return toHttpRequest(requestFactory, request, null);
   }
 
@@ -72,7 +78,7 @@ public class HttpRequestMapper {
       final HttpRequestFactory requestFactory,
       final HttpCommonRequest request,
       final String bearerToken)
-      throws IOException {
+      throws IOException, GeneralSecurityException {
     // TODO: add more holistic solution
     if (request.getUrl().contains("computeMetadata")) {
       throw new ConnectorInputException(new ValidationException("The provided URL is not allowed"));
@@ -96,6 +102,30 @@ public class HttpRequestMapper {
           request.hasBody() ? new JsonHttpContent(new GsonFactory(), request.getBody()) : null;
     }
 
+    // Load the client-side certificate and private key from a PKCS12 keystore
+    String keystorePassword = "secretPassword";
+
+    String keystorePath = "clientkeystore.p12";
+    InputStream keystoreStream = ClassLoader.getSystemResourceAsStream(keystorePath);
+
+    // To get the keystore in base64 string
+    // byte[] p12Data = is.readAllBytes();
+    // String base64Encoded = Base64.getEncoder().encodeToString(p12Data);
+
+    KeyStore keystore = KeyStore.getInstance("PKCS12");
+    keystore.load(keystoreStream, keystorePassword.toCharArray());
+
+    // Create the HTTP transport with client-side certificate
+    HttpTransport httpTransport =
+        new NetHttpTransport.Builder()
+            .trustCertificates(keystore)
+            .doNotValidateCertificate() // TODO : only here temporarily to skip server cert
+            // validation for the sake of tests
+            .build();
+
+    // Create the HTTP request factory
+    HttpRequestFactory requestFactoryWithKeyStore = httpTransport.createRequestFactory();
+
     return new HttpRequestBuilder()
         .method(request.getMethod().toUpperCase())
         .genericUrl(genericUrl)
@@ -103,7 +133,7 @@ public class HttpRequestMapper {
         .headers(headers)
         .connectionTimeoutInSeconds(request.getConnectionTimeoutInSeconds())
         .followRedirects(false)
-        .build(requestFactory);
+        .build(requestFactoryWithKeyStore);
   }
 
   private static HttpHeaders createHeaders(final HttpCommonRequest request, String bearerToken) {

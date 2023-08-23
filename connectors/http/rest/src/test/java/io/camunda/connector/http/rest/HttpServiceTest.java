@@ -42,6 +42,7 @@ import io.camunda.connector.http.base.services.HttpService;
 import io.camunda.connector.http.rest.model.HttpJsonRequest;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -69,7 +70,8 @@ class HttpServiceTest extends BaseTest {
 
   @ParameterizedTest(name = "Executing test case: {0}")
   @MethodSource("successCasesOauth")
-  void checkIfOAuthBearerTokenIsAddedOnTheRequestHeader(final String input) throws IOException {
+  void checkIfOAuthBearerTokenIsAddedOnTheRequestHeader(final String input)
+      throws IOException, GeneralSecurityException {
     // given
     final var context = getContextBuilderWithSecrets().variables(input).build();
     final var httpJsonRequest = context.bindVariables(HttpJsonRequest.class);
@@ -94,7 +96,7 @@ class HttpServiceTest extends BaseTest {
   @ParameterizedTest(name = "Executing test case: {0}")
   @MethodSource("successCasesCustomAuth")
   void execute_shouldPassAllStepsAndParsing(final String input)
-      throws IOException, InstantiationException, IllegalAccessException {
+      throws IOException, InstantiationException, IllegalAccessException, GeneralSecurityException {
     // given
     final var context = OutboundConnectorContextBuilder.create().variables(input).build();
     final var httpJsonRequest = context.bindVariables(HttpJsonRequest.class);

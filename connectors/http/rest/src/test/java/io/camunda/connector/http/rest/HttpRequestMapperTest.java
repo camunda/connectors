@@ -26,6 +26,7 @@ import io.camunda.connector.http.base.components.HttpTransportComponentSupplier;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.services.HttpRequestMapper;
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -45,7 +46,8 @@ class HttpRequestMapperTest {
   }
 
   @Test
-  public void shouldSetJsonContentTypeWhenNotProvided() throws IOException {
+  public void shouldSetJsonContentTypeWhenNotProvided()
+      throws IOException, GeneralSecurityException {
     // given request without headers
     // when
     com.google.api.client.http.HttpRequest httpRequest =
@@ -56,7 +58,8 @@ class HttpRequestMapperTest {
   }
 
   @Test
-  public void shouldSetTextPlainContentTypeIfProvided() throws IOException {
+  public void shouldSetTextPlainContentTypeIfProvided()
+      throws IOException, GeneralSecurityException {
     // given
     request.setHeaders(Map.of("Content-Type", "text/plain"));
     // when

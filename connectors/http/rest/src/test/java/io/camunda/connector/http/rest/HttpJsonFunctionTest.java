@@ -45,6 +45,7 @@ import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -85,7 +86,7 @@ public class HttpJsonFunctionTest extends BaseTest {
   @ParameterizedTest(name = "Executing test case: {0}")
   @MethodSource("successCases")
   void shouldReturnResult_WhenExecuted(final String input)
-      throws IOException, InstantiationException, IllegalAccessException {
+      throws IOException, InstantiationException, IllegalAccessException, GeneralSecurityException {
     // given - minimal required entity
     Object functionCallResponseAsObject = arrange(input);
 
@@ -99,7 +100,7 @@ public class HttpJsonFunctionTest extends BaseTest {
   @ParameterizedTest(name = "Executing test case: {0}")
   @MethodSource("successCasesCustomAuth")
   void shouldReturnResultCustom_WhenExecuted(final String input)
-      throws IOException, InstantiationException, IllegalAccessException {
+      throws IOException, InstantiationException, IllegalAccessException, GeneralSecurityException {
     String response =
         "{\"token\":\"eyJhbJNtIbehBWQLAGapcHIctws7gavjTCSCCC0Xd5sIn7DaB52Pwmabdj-9AkrVru_fZwLQseAq38n1-DkiyAaewxB0VbQgQ\",\"user\":{\"id\":331707,\"principalId\":331707,\"deleted\":false,\"permissions\":[{\"id\":13044559,\"resourceType\":\"processdiscovery\"},{\"id\":13044527,\"resourceType\":\"credentials\"}],\"emailVerified\":true,\"passwordSet\":true},\"tenantUuid\":\"08b93cfe-a6dd-4d6b-94aa-9369fdd2a026\"}";
 
@@ -117,7 +118,7 @@ public class HttpJsonFunctionTest extends BaseTest {
   @ParameterizedTest(name = "Executing test case: {0}")
   @MethodSource("successCasesOauth")
   void shouldReturnResultOAuth_WhenExecuted(final String input)
-      throws IOException, InstantiationException, IllegalAccessException {
+      throws IOException, InstantiationException, IllegalAccessException, GeneralSecurityException {
     Object functionCallResponseAsObject = arrange(input);
 
     // then
@@ -128,7 +129,7 @@ public class HttpJsonFunctionTest extends BaseTest {
   }
 
   private Object arrange(String input)
-      throws IOException, InstantiationException, IllegalAccessException {
+      throws IOException, InstantiationException, IllegalAccessException, GeneralSecurityException {
     final var context =
         OutboundConnectorContextBuilder.create().variables(input).secrets(name -> "foo").build();
     when(requestFactory.buildRequest(
@@ -163,7 +164,7 @@ public class HttpJsonFunctionTest extends BaseTest {
 
   @Test
   void execute_shouldReturnNullFieldWhenResponseWithContainNullField()
-      throws IOException, InstantiationException, IllegalAccessException {
+      throws IOException, InstantiationException, IllegalAccessException, GeneralSecurityException {
     // given request, and response body with null field value
     final var request =
         "{ \"method\": \"get\", \"url\": \"https://camunda.io/http-endpoint\", \"authentication\": { \"type\": \"noAuth\" } }";
@@ -192,7 +193,7 @@ public class HttpJsonFunctionTest extends BaseTest {
   @ParameterizedTest(name = "Executing test case: {0}")
   @MethodSource("successCases")
   void execute_shouldSetConnectTime(final String input)
-      throws IOException, InstantiationException, IllegalAccessException {
+      throws IOException, InstantiationException, IllegalAccessException, GeneralSecurityException {
     // given - minimal required entity
     final var context =
         OutboundConnectorContextBuilder.create().variables(input).secrets(name -> "foo").build();

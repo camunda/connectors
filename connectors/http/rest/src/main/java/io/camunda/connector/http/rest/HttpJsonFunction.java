@@ -28,6 +28,7 @@ import io.camunda.connector.http.base.constants.Constants;
 import io.camunda.connector.http.base.services.HttpService;
 import io.camunda.connector.http.rest.model.HttpJsonRequest;
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 
 @OutboundConnector(
     name = "HTTPJSON",
@@ -65,7 +66,7 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
 
   @Override
   public Object execute(final OutboundConnectorContext context)
-      throws IOException, InstantiationException, IllegalAccessException {
+      throws IOException, InstantiationException, IllegalAccessException, GeneralSecurityException {
     final var request = context.bindVariables(HttpJsonRequest.class);
     return httpService.executeConnectorRequest(request);
   }
