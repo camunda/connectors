@@ -14,7 +14,7 @@ import io.camunda.connector.model.MSTeamsRequest;
 import io.camunda.connector.suppliers.GraphServiceClientSupplier;
 
 @OutboundConnector(
-    name = "MSTEAMS",
+    name = "MS Teams",
     inputVariables = {"authentication", "data"},
     type = "io.camunda:connector-microsoft-teams:1")
 public class MSTeamsFunction implements OutboundConnectorFunction {

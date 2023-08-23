@@ -17,7 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @OutboundConnector(
-    name = "GOOGLEDRIVE",
+    name = "Google Docs",
     inputVariables = {"authentication", "resource"},
     type = "io.camunda:google-drive:1")
 public class GoogleDriveFunction implements OutboundConnectorFunction {

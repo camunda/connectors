@@ -11,7 +11,7 @@ import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.api.inbound.PollingConnectorExecutable;
 
-@InboundConnector(name = "HTTP_POLLING", type = "io.camunda:http-polling:1")
+@InboundConnector(name = "HTTP Polling", type = "io.camunda:http-polling:1")
 public class PollingConnector implements PollingConnectorExecutable {
 
   @Override

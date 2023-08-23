@@ -11,7 +11,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 
 @OutboundConnector(
-    name = "AWS",
+    name = "AWS DynamoDB Deprecated",
     inputVariables = {"authentication", "configuration", "input"},
     type = "io.camunda:aws:1")
 @Deprecated

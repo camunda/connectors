@@ -29,7 +29,7 @@ import java.util.Objects;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
-@InboundConnector(name = "SLACK_INBOUND", type = "io.camunda:slack-webhook:1")
+@InboundConnector(name = "Slack Inbound", type = "io.camunda:slack-webhook:1")
 public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable {
 
   protected static final String HEADER_SLACK_REQUEST_TIMESTAMP = "x-slack-request-timestamp";
