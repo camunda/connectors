@@ -53,26 +53,30 @@ public class ProcessDefinitionSearch {
 
   public void query(Consumer<List<ProcessDefinition>> resultHandler) {
     LOG.trace("Query process deployments...");
-    SearchResult<ProcessDefinition> result;
+    List<ProcessDefinition> processDefinitions = new ArrayList<>();
+    SearchResult<ProcessDefinition> processDefinitionResult;
     LOG.trace("Running paginated query");
     do {
       try {
         // automatically sorted by process definition key, i.e. in chronological order of deployment
         SearchQuery processDefinitionQuery =
             new SearchQuery.Builder().searchAfter(paginationIndex).size(20).build();
-        result = camundaOperateClient.search(processDefinitionQuery, ProcessDefinition.class);
+        processDefinitionResult =
+            camundaOperateClient.search(processDefinitionQuery, ProcessDefinition.class);
       } catch (OperateException e) {
         throw new RuntimeException(e);
       }
-      List<Object> newPaginationIdx = result.getSortValues();
+      List<Object> newPaginationIdx = processDefinitionResult.getSortValues();
 
       if (!CollectionUtils.isEmpty(newPaginationIdx)) {
         paginationIndex = newPaginationIdx;
       }
 
-      resultHandler.accept(result.getItems());
+      processDefinitions.addAll(processDefinitionResult.getItems());
 
-    } while (result.getItems().size() > 0);
+    } while (processDefinitionResult.getItems().size() > 0);
+
+    resultHandler.accept(processDefinitions);
   }
 
   /**
