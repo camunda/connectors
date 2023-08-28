@@ -13,10 +13,10 @@ name: "CodeQL"
 
 on:
   push:
-    branches: [ "main", "*", "update-third-party-notice" ]
-  pull_request:
+    branches: [ "main"]
+  #pull_request:
     # The branches below must be a subset of the branches above
-    branches: [ "main" ]
+    #branches: [ "main" ]
   schedule:
     - cron: '30 4 * * 1' # Runs at 04:30 (UTC), only on Monday.
 
@@ -49,11 +49,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
       # Set up Java version
-      - name: Setup Java JDK
-        uses: actions/setup-java@v3
-        with:
-          distribution: temurin
-          java-version: 19
+      #- name: Setup Java JDK
+        #uses: actions/setup-java@v3
+        #with:
+          #distribution: temurin
+          #java-version: 19
       # Initializes the CodeQL tools for scanning.
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v2
