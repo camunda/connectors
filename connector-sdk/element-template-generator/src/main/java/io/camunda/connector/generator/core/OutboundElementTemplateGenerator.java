@@ -22,7 +22,6 @@ import io.camunda.connector.generator.core.util.ReflectionUtil;
 import io.camunda.connector.generator.core.util.TemplatePropertiesUtil;
 import io.camunda.connector.generator.dsl.CommonProperties;
 import io.camunda.connector.generator.dsl.OutboundElementTemplate;
-import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskHeader;
 import io.camunda.connector.generator.dsl.PropertyBuilder;
@@ -39,13 +38,22 @@ public class OutboundElementTemplateGenerator
         ReflectionUtil.getRequiredAnnotation(connectorDefinition, OutboundConnector.class);
     var template = ReflectionUtil.getRequiredAnnotation(connectorDefinition, ElementTemplate.class);
 
-    List<Property> properties =
+    List<PropertyBuilder> properties =
         TemplatePropertiesUtil.extractTemplatePropertiesFromType(connectorInput).stream()
             .map(builder -> builder.binding(new ZeebeInput(builder.getId())))
-            .map(PropertyBuilder::build)
             .toList();
 
     var groups = new ArrayList<>(TemplatePropertiesUtil.groupProperties(properties));
+
+    if (!containsCustomGroups(groups)) {
+      // default group so that user properties are higher up in the UI than the output/error mapping
+      groups.add(
+          PropertyGroup.builder()
+              .id("default")
+              .label("Properties")
+              .properties(properties.toArray(PropertyBuilder[]::new))
+              .build());
+    }
 
     var outputGroup =
         PropertyGroup.builder()
@@ -73,17 +81,25 @@ public class OutboundElementTemplateGenerator
     groups.add(errorGroup);
 
     var nonGroupedProperties =
-        properties.stream().filter(property -> property.getGroup() == null).toList();
+        properties.stream().filter(property -> property.build().getGroup() == null).toList();
 
     return OutboundElementTemplate.builder()
         .id(template.id())
         .type(connector.type())
         .name(template.name())
         .version(template.version())
-        .documentationRef(template.documentationRef())
-        .description(template.description())
-        .properties(nonGroupedProperties)
+        .documentationRef(
+            template.documentationRef().isEmpty() ? null : template.documentationRef())
+        .description(template.description().isEmpty() ? null : template.description())
+        .properties(nonGroupedProperties.stream().map(PropertyBuilder::build).toList())
         .propertyGroups(groups)
         .build();
+  }
+
+  private boolean containsCustomGroups(List<PropertyGroup> groups) {
+    var copy = new ArrayList<>(groups);
+    copy.removeIf(
+        group -> TemplatePropertiesUtil.DISCRIMINATOR_PROPERTIES_GROUP_ID.equals(group.id()));
+    return !copy.isEmpty();
   }
 }

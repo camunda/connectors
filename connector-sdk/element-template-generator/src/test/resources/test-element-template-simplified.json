@@ -48,6 +48,7 @@
     {
       "id": "recipient",
       "label": "Recipient",
+      "feel": "optional",
       "binding": {
         "name": "recipient",
         "type": "zeebe:input"
@@ -66,11 +67,11 @@
       "type": "Dropdown",
       "choices": [
         {
-          "name": "Basic",
+          "name": "Basic auth",
           "value": "basic"
         },
         {
-          "name": "Token",
+          "name": "Token auth",
           "value": "token"
         }
       ]
@@ -111,6 +112,7 @@
       "id": "authorization.token",
       "label": "Token",
       "optional": false,
+      "feel": "optional",
       "group": "auth",
       "binding": {
         "name": "authorization.token",
@@ -126,6 +128,7 @@
       "id": "message",
       "label": "Message",
       "optional": false,
+      "feel": "optional",
       "group": "message",
       "binding": {
         "name": "message",
@@ -137,6 +140,7 @@
       "id": "resultVariable",
       "label": "Result Variable",
       "description": "Name of variable to store the response in",
+      "feel": "optional",
       "group": "output",
       "binding": {
         "key": "resultVariable",

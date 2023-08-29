@@ -18,13 +18,15 @@ package io.camunda.connector.http.base.auth;
 
 import com.google.api.client.http.HttpHeaders;
 import io.camunda.connector.api.annotation.FEEL;
+import io.camunda.connector.generator.annotation.TemplateSubType;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.util.Map;
 import java.util.Objects;
 
-public class CustomAuthentication extends Authentication {
+@TemplateSubType(ignore = true)
+public final class CustomAuthentication extends Authentication {
 
   @FEEL @NotNull @Valid private HttpCommonRequest request;
 

@@ -54,6 +54,9 @@ public final class TextProperty extends Property {
     private TextPropertyBuilder() {}
 
     public TextProperty build() {
+      if (feel == null) {
+        feel = FeelMode.optional;
+      }
       return new TextProperty(
           id, label, description, optional, value, constraints, feel, group, binding, condition);
     }

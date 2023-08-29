@@ -54,6 +54,9 @@ public final class StringProperty extends Property {
     private StringPropertyBuilder() {}
 
     public StringProperty build() {
+      if (feel == null) {
+        feel = FeelMode.optional;
+      }
       return new StringProperty(
           id, label, description, optional, value, constraints, feel, group, binding, condition);
     }

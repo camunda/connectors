@@ -24,7 +24,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-public class OAuthAuthentication extends Authentication {
+public final class OAuthAuthentication extends Authentication {
   private final String grantType = "client_credentials";
   @FEEL @NotEmpty private String oauthTokenEndpoint;
   @FEEL @NotEmpty private String clientId;

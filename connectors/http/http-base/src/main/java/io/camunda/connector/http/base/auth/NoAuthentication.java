@@ -18,7 +18,7 @@ package io.camunda.connector.http.base.auth;
 
 import com.google.api.client.http.HttpHeaders;
 
-public class NoAuthentication extends Authentication {
+public final class NoAuthentication extends Authentication {
 
   @Override
   public void setHeaders(final HttpHeaders headers) {}

@@ -28,7 +28,12 @@ import com.google.api.client.http.HttpHeaders;
   @JsonSubTypes.Type(value = OAuthAuthentication.class, name = "oauth-client-credentials-flow"),
   @JsonSubTypes.Type(value = BearerAuthentication.class, name = "bearer")
 })
-public abstract class Authentication {
+public abstract sealed class Authentication
+    permits BasicAuthentication,
+        BearerAuthentication,
+        CustomAuthentication,
+        NoAuthentication,
+        OAuthAuthentication {
 
   public abstract void setHeaders(HttpHeaders headers);
 }

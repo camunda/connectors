@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.generator.core.example;
 
+import io.camunda.connector.generator.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.annotation.TemplateProperty;
 import io.camunda.connector.generator.annotation.TemplateProperty.PropertyType;
 import io.camunda.connector.generator.annotation.TemplateSubType;
@@ -27,9 +28,11 @@ public record MyConnectorInput(
     Authorization authorization,
     @TemplateProperty(type = PropertyType.Text, group = "message") String message,
     String recipient) {
+
+  @TemplateDiscriminatorProperty(id = "authType", label = "Auth type")
   sealed interface Authorization permits BasicAuth, TokenAuth {
 
-    @TemplateSubType(discriminatorProperty = "authType", equals = "basic")
+    @TemplateSubType(id = "basic")
     record BasicAuth(
         @TemplateProperty(label = "Username", group = "auth", feel = FeelMode.optional)
             String username,
@@ -37,7 +40,7 @@ public record MyConnectorInput(
             String password)
         implements Authorization {}
 
-    @TemplateSubType(discriminatorProperty = "authType", equals = "token")
+    @TemplateSubType(id = "token")
     record TokenAuth(@TemplateProperty(label = "Token", group = "auth") String token)
         implements Authorization {}
   }

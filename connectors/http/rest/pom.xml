@@ -68,7 +68,6 @@ limitations under the License.</license.inlineheader>
       <groupId>org.slf4j</groupId>
       <artifactId>jcl-over-slf4j</artifactId>
     </dependency>
-
   </dependencies>
 
   <profiles>

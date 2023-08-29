@@ -68,6 +68,11 @@ limitations under the License.</license.inlineheader>
       <groupId>org.slf4j</groupId>
       <artifactId>jcl-over-slf4j</artifactId>
     </dependency>
+
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>element-template-generator</artifactId>
+    </dependency>
   </dependencies>
 
   <profiles>

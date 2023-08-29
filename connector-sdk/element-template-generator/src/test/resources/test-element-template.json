@@ -3,8 +3,8 @@
   "name": "Template: Some Function",
   "id": "io.camunda.connector.Template.v1",
   "description": "Describe this connector",
-  "version": 1,
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/available-connectors-overview/",
+  "version": 1,
   "category": {
     "id": "connectors",
     "name": "Connectors"
@@ -35,104 +35,105 @@
   ],
   "properties": [
     {
-      "type": "Hidden",
       "value": "io.camunda:template:1",
       "binding": {
         "type": "zeebe:taskDefinition:type"
-      }
+      },
+      "type": "Hidden"
     },
     {
       "label": "Username",
       "description": "The username for authentication.",
-      "group": "authentication",
-      "type": "String",
-      "feel": "optional",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "authentication.user"
-      },
       "constraints": {
         "notEmpty": true
-      }
+      },
+      "feel": "optional",
+      "group": "authentication",
+      "binding": {
+        "name": "authentication.user",
+        "type": "zeebe:input"
+      },
+      "type": "String"
     },
     {
       "label": "Token",
       "description": "The token for authentication.",
-      "group": "authentication",
-      "type": "String",
-      "feel": "optional",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "authentication.token"
-      },
       "constraints": {
         "notEmpty": true
-      }
+      },
+      "feel": "optional",
+      "group": "authentication",
+      "binding": {
+        "name": "authentication.token",
+        "type": "zeebe:input"
+      },
+      "type": "String"
     },
     {
       "label": "Type",
       "description": "The type of message to compose",
       "group": "compose",
+      "binding": {
+        "name": "compose.type",
+        "type": "zeebe:input"
+      },
       "type": "Dropdown",
       "choices": [
         {
           "name": "message",
           "value": "Compose a message"
         }
-      ],
-      "binding": {
-        "type": "zeebe:input",
-        "name": "compose.type"
-      }
+      ]
     },
     {
       "label": "Message",
-      "group": "compose",
-      "type": "Text",
-      "feel": "optional",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "message"
-      },
       "constraints": {
         "notEmpty": true
+      },
+      "feel": "optional",
+      "group": "compose",
+      "binding": {
+        "name": "message",
+        "type": "zeebe:input"
       },
       "condition": {
         "property": "compose.type",
         "equals": "message"
-      }
+      },
+      "type": "Text"
     },
     {
       "label": "Result Variable",
       "description": "Name of variable to store the response in",
+      "feel": "optional",
       "group": "output",
-      "type": "String",
       "binding": {
-        "type": "zeebe:taskHeader",
-        "key": "resultVariable"
-      }
+        "key": "resultVariable",
+        "type": "zeebe:taskHeader"
+      },
+      "type": "String"
     },
     {
       "label": "Result Expression",
       "description": "Expression to map the response into process variables",
-      "group": "output",
-      "type": "Text",
       "feel": "required",
+      "group": "output",
       "binding": {
-        "type": "zeebe:taskHeader",
-        "key": "resultExpression"
-      }
+        "key": "resultExpression",
+        "type": "zeebe:taskHeader"
+      },
+      "type": "Text"
     },
     {
       "label": "Error Expression",
       "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
-      "group": "errors",
-      "type": "Text",
       "feel": "required",
+      "group": "errors",
       "binding": {
-        "type": "zeebe:taskHeader",
-        "key": "errorExpression"
-      }
+        "key": "errorExpression",
+        "type": "zeebe:taskHeader"
+      },
+      "type": "Text"
     }
   ]
 }
