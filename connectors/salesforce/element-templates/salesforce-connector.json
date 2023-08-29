@@ -85,7 +85,7 @@
       "constraints": {
         "notEmpty": true,
         "pattern": {
-          "value": "^(=|https?://|\{\{secrets\..+\}\}).*$",
+          "value": "^(=|https?://|\\{\\{secrets\\..+\\}\\}).*$",
           "message": "Must be a http(s) URL."
         }
       }
