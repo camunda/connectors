@@ -54,7 +54,7 @@ public class BaseTest {
 
   protected interface ActualValue {
     String URL = "https://camunda.io/http-endpoint";
-    String METHOD = "GET";
+    String METHOD = "get";
     String CONNECT_TIMEOUT = "50";
 
     interface Authentication {

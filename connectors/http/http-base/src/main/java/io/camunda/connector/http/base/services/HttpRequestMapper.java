@@ -31,6 +31,7 @@ import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.http.base.auth.OAuthAuthentication;
 import io.camunda.connector.http.base.constants.Constants;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
+import io.camunda.connector.http.base.model.HttpMethod;
 import io.camunda.connector.http.base.model.HttpRequestBuilder;
 import jakarta.validation.ValidationException;
 import java.io.IOException;
@@ -54,7 +55,7 @@ public class HttpRequestMapper {
     headers.setContentType(Constants.APPLICATION_X_WWW_FORM_URLENCODED);
 
     return new HttpRequestBuilder()
-        .method(Constants.POST)
+        .method(HttpMethod.post)
         .genericUrl(new GenericUrl(authentication.getOauthTokenEndpoint()))
         .content(new UrlEncodedContent(authentication.getDataForAuthRequestBody()))
         .headers(headers)
@@ -87,17 +88,19 @@ public class HttpRequestMapper {
       String unescapeBody = StringEscapeUtils.unescapeJson((String) request.getBody());
       request.setBody(unescapeBody);
     }
-    HttpContent content;
 
-    if (APPLICATION_FORM_URLENCODED.getMimeType().equalsIgnoreCase(headers.getContentType())) {
-      content = new UrlEncodedContent(request.getBody());
-    } else {
-      content =
-          request.hasBody() ? new JsonHttpContent(new GsonFactory(), request.getBody()) : null;
+    HttpContent content = null;
+    if (request.getMethod().supportsBody) {
+      if (APPLICATION_FORM_URLENCODED.getMimeType().equalsIgnoreCase(headers.getContentType())) {
+        content = new UrlEncodedContent(request.getBody());
+      } else {
+        content =
+            request.hasBody() ? new JsonHttpContent(new GsonFactory(), request.getBody()) : null;
+      }
     }
 
     return new HttpRequestBuilder()
-        .method(request.getMethod().toUpperCase())
+        .method(request.getMethod())
         .genericUrl(genericUrl)
         .content(content)
         .headers(headers)

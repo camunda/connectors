@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.http.graphql.utils;
 
-import io.camunda.connector.http.base.constants.Constants;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.graphql.model.GraphQLRequest;
 import java.util.Map;
@@ -18,7 +17,7 @@ public final class GraphQLRequestMapper {
     HttpCommonRequest httpCommonRequest = new HttpCommonRequest();
     final Map<String, Object> queryAndVariablesMap =
         JsonSerializeHelper.queryAndVariablesToMap(graphQLRequest);
-    if (Constants.POST.equalsIgnoreCase(graphQLRequest.getMethod())) {
+    if (graphQLRequest.getMethod().supportsBody) {
       httpCommonRequest.setBody(queryAndVariablesMap);
     } else {
       final Map<String, String> queryAndVariablesStringMap =

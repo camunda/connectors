@@ -50,7 +50,7 @@ public class HttpJsonFunctionSecretsTest extends BaseTest {
     HttpJsonRequest httpJsonRequest = context.bindVariables(HttpJsonRequest.class);
     // Then should replace secrets
     assertThat(httpJsonRequest.getUrl()).isIn(ActualValue.URL, ActualValue.URL_WITH_PATH);
-    assertThat(httpJsonRequest.getMethod()).isEqualTo(ActualValue.METHOD);
+    assertThat(httpJsonRequest.getMethod().name()).isEqualTo(ActualValue.METHOD);
     assertThat(httpJsonRequest.getConnectionTimeoutInSeconds())
         .isEqualTo(ActualValue.CONNECT_TIMEOUT);
   }

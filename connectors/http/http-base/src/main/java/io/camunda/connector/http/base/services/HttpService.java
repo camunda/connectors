@@ -98,7 +98,7 @@ public class HttpService {
 
   private HttpCommonResult executeRequestViaProxy(HttpCommonRequest request) throws IOException {
     HttpRequest httpRequest =
-        HTTPProxyService.toRequestViaProxy(requestFactory, request, proxyFunctionUrl);
+        HttpProxyService.toRequestViaProxy(requestFactory, request, proxyFunctionUrl);
 
     HttpInteractionService httpInteractionService = new HttpInteractionService(objectMapper);
 

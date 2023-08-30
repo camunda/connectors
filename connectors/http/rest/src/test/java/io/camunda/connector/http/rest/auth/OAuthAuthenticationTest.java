@@ -28,6 +28,7 @@ import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpResponse;
 import com.google.api.client.testing.http.MockHttpTransport;
 import io.camunda.connector.http.base.constants.Constants;
+import io.camunda.connector.http.base.model.HttpMethod;
 import io.camunda.connector.http.base.services.AuthenticationService;
 import io.camunda.connector.http.base.services.HttpRequestMapper;
 import io.camunda.connector.http.rest.BaseTest;
@@ -61,7 +62,8 @@ class OAuthAuthenticationTest extends BaseTest {
 
     HttpRequestFactory factory = new MockHttpTransport().createRequestFactory();
     HttpRequest httpRequest =
-        factory.buildRequest(Constants.POST, new GenericUrl("http://abc3241.com"), null);
+        factory.buildRequest(
+            HttpMethod.post.name().toUpperCase(), new GenericUrl("http://abc3241.com"), null);
     when(requestFactory.buildRequest(any(), any(), any())).thenReturn(httpRequest);
     when(httpResponse.parseAsString()).thenReturn(ACCESS_TOKEN);
 
