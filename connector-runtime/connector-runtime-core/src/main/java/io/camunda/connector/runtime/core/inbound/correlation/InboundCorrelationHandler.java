@@ -34,6 +34,7 @@ import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.client.api.response.ProcessInstanceEvent;
 import io.camunda.zeebe.client.api.response.PublishMessageResponse;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,13 +53,18 @@ public class InboundCorrelationHandler {
 
   public InboundConnectorResult<?> correlate(
       InboundConnectorDefinitionImpl definition, Object variables) {
+    return correlate(definition, variables, UUID.randomUUID().toString());
+  }
+
+  public InboundConnectorResult<?> correlate(
+      InboundConnectorDefinitionImpl definition, Object variables, String messageId) {
     var correlationPoint = definition.correlationPoint();
 
     if (correlationPoint instanceof StartEventCorrelationPoint startCorPoint) {
       return triggerStartEvent(definition, startCorPoint, variables);
     }
     if (correlationPoint instanceof MessageCorrelationPoint msgCorPoint) {
-      return triggerMessage(definition, msgCorPoint, variables);
+      return triggerMessage(definition, msgCorPoint, variables, messageId);
     }
     throw new ConnectorException(
         "Process correlation point "
@@ -106,7 +112,8 @@ public class InboundCorrelationHandler {
   protected InboundConnectorResult<CorrelatedMessage> triggerMessage(
       InboundConnectorDefinitionImpl definition,
       MessageCorrelationPoint correlationPoint,
-      Object variables) {
+      Object variables,
+      String messageId) {
 
     String correlationKey = extractCorrelationKey(correlationPoint, variables);
 
@@ -125,6 +132,7 @@ public class InboundCorrelationHandler {
               .newPublishMessageCommand()
               .messageName(correlationPoint.messageName())
               .correlationKey(correlationKey)
+              .messageId(messageId)
               .tenantId(definition.tenantId())
               .variables(extractedVariables)
               .send()

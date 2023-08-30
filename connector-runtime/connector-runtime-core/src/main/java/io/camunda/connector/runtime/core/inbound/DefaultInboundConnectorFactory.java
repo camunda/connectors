@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.core.inbound;
 
 import static io.camunda.connector.runtime.core.ConnectorHelper.instantiateConnector;
 
+import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.discovery.EnvVarsConnectorDiscovery;
@@ -57,7 +58,7 @@ public class DefaultInboundConnectorFactory implements InboundConnectorFactory {
   }
 
   @Override
-  public InboundConnectorExecutable getInstance(String type) {
+  public InboundConnectorExecutable<InboundConnectorContext> getInstance(String type) {
     InboundConnectorConfiguration configuration =
         configurations.stream()
             .filter(config -> config.type().equals(type))
@@ -67,11 +68,14 @@ public class DefaultInboundConnectorFactory implements InboundConnectorFactory {
     return createInstance(configuration);
   }
 
-  private InboundConnectorExecutable createInstance(InboundConnectorConfiguration configuration) {
+  private InboundConnectorExecutable<InboundConnectorContext> createInstance(
+      InboundConnectorConfiguration configuration) {
     if (configuration.customInstanceSupplier() != null) {
-      return configuration.customInstanceSupplier().get();
+      return (InboundConnectorExecutable<InboundConnectorContext>)
+          configuration.customInstanceSupplier().get();
     } else {
-      return instantiateConnector(configuration.connectorClass());
+      return (InboundConnectorExecutable<InboundConnectorContext>)
+          instantiateConnector(configuration.connectorClass());
     }
   }
 

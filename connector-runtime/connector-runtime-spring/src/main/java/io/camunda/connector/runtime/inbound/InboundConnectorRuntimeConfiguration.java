@@ -16,22 +16,34 @@
  */
 package io.camunda.connector.runtime.inbound;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.FeelEngineWrapper;
+import io.camunda.connector.runtime.core.inbound.DefaultInboundConnectorContextFactory;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorContextFactory;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
+import io.camunda.connector.runtime.core.inbound.OperateClientAdapter;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
+import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionImportConfiguration;
 import io.camunda.connector.runtime.inbound.lifecycle.InboundConnectorAnnotationProcessor;
 import io.camunda.connector.runtime.inbound.lifecycle.InboundConnectorLifecycleConfiguration;
 import io.camunda.connector.runtime.inbound.lifecycle.MeteredInboundCorrelationHandler;
+import io.camunda.connector.runtime.inbound.operate.OperateClientConfiguration;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
 @Configuration
-@Import({InboundConnectorLifecycleConfiguration.class, ProcessDefinitionImportConfiguration.class})
+@Import({
+  InboundConnectorLifecycleConfiguration.class,
+  ProcessDefinitionImportConfiguration.class,
+  OperateClientConfiguration.class
+})
 public class InboundConnectorRuntimeConfiguration {
 
   @Bean
@@ -48,5 +60,22 @@ public class InboundConnectorRuntimeConfiguration {
       ConfigurableBeanFactory configurableBeanFactory) {
     return new InboundConnectorAnnotationProcessor(
         inboundConnectorFactory, configurableBeanFactory);
+  }
+
+  @Bean
+  public InboundConnectorContextFactory springInboundConnectorContextFactory(
+      ObjectMapper mapper,
+      InboundCorrelationHandler correlationHandler,
+      SecretProviderAggregator secretProviderAggregator,
+      @Autowired(required = false) ValidationProvider validationProvider,
+      OperateClientAdapter operateClientAdapter,
+      FeelEngineWrapper feelEngineWrapper) {
+    return new DefaultInboundConnectorContextFactory(
+        mapper,
+        correlationHandler,
+        secretProviderAggregator,
+        validationProvider,
+        operateClientAdapter,
+        feelEngineWrapper);
   }
 }
