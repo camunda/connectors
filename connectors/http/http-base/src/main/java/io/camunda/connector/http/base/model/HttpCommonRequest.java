@@ -20,6 +20,7 @@ import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.http.base.auth.Authentication;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import java.util.Map;
 import java.util.Objects;
@@ -31,7 +32,7 @@ public class HttpCommonRequest {
   @Pattern(regexp = "^(=|http://|https://|secrets|\\{\\{).*$")
   private String url;
 
-  @FEEL @NotBlank private String method;
+  @FEEL @NotNull private HttpMethod method;
 
   @Valid private Authentication authentication;
 
@@ -99,11 +100,11 @@ public class HttpCommonRequest {
     this.authentication = authentication;
   }
 
-  public String getMethod() {
+  public HttpMethod getMethod() {
     return method;
   }
 
-  public void setMethod(String method) {
+  public void setMethod(HttpMethod method) {
     this.method = method;
   }
 

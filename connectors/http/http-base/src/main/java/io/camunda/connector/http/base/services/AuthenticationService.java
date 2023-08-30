@@ -31,6 +31,7 @@ import io.camunda.connector.http.base.auth.CustomAuthentication;
 import io.camunda.connector.http.base.auth.OAuthAuthentication;
 import io.camunda.connector.http.base.constants.Constants;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
+import io.camunda.connector.http.base.model.HttpMethod;
 import io.camunda.connector.http.base.utils.JsonHelper;
 import io.camunda.connector.http.base.utils.ResponseParser;
 import java.io.IOException;
@@ -105,8 +106,8 @@ public class AuthenticationService {
     final GenericUrl genericUrl = new GenericUrl(authentication.getOauthTokenEndpoint());
     Map<String, String> data = authentication.getDataForAuthRequestBody();
     HttpContent content = new UrlEncodedContent(data);
-    final String method = Constants.POST;
-    final var httpRequest = requestFactory.buildRequest(method, genericUrl, content);
+    final var httpRequest =
+        requestFactory.buildRequest(HttpMethod.post.name().toUpperCase(), genericUrl, content);
     httpRequest.setFollowRedirects(false);
     setTimeout(request, httpRequest);
     HttpHeaders headers = new HttpHeaders();

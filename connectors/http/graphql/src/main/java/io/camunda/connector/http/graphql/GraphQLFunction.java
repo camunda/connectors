@@ -26,9 +26,10 @@ import io.camunda.connector.http.base.auth.OAuthAuthentication;
 import io.camunda.connector.http.base.constants.Constants;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
+import io.camunda.connector.http.base.model.HttpMethod;
 import io.camunda.connector.http.base.services.AuthenticationService;
-import io.camunda.connector.http.base.services.HTTPProxyService;
 import io.camunda.connector.http.base.services.HttpInteractionService;
+import io.camunda.connector.http.base.services.HttpProxyService;
 import io.camunda.connector.http.graphql.components.HttpTransportComponentSupplier;
 import io.camunda.connector.http.graphql.model.GraphQLRequest;
 import io.camunda.connector.http.graphql.model.GraphQLRequestWrapper;
@@ -119,7 +120,7 @@ public class GraphQLFunction implements OutboundConnectorFunction {
     HttpInteractionService httpInteractionService = new HttpInteractionService(objectMapper);
 
     com.google.api.client.http.HttpRequest httpRequest =
-        HTTPProxyService.toRequestViaProxy(requestFactory, commonRequest, proxyFunctionUrl);
+        HttpProxyService.toRequestViaProxy(requestFactory, commonRequest, proxyFunctionUrl);
 
     HttpResponse httpResponse = httpInteractionService.executeHttpRequest(httpRequest, true);
 
@@ -139,19 +140,19 @@ public class GraphQLFunction implements OutboundConnectorFunction {
       final GraphQLRequest request,
       String bearerToken)
       throws IOException {
-    final String method = request.getMethod().toUpperCase();
     final GenericUrl genericUrl = new GenericUrl(request.getUrl());
     HttpContent content = null;
     final HttpHeaders headers = httpInteractionService.createHeaders(request, bearerToken);
     final Map<String, Object> queryAndVariablesMap =
         JsonSerializeHelper.queryAndVariablesToMap(request);
-    if (Constants.POST.equalsIgnoreCase(method)) {
+    if (HttpMethod.post.equals(request.getMethod())) {
       content = new JsonHttpContent(gsonFactory, queryAndVariablesMap);
     } else {
       genericUrl.putAll(queryAndVariablesMap);
     }
 
-    final var httpRequest = requestFactory.buildRequest(method, genericUrl, content);
+    final var httpRequest =
+        requestFactory.buildRequest(request.getMethod().name().toUpperCase(), genericUrl, content);
     httpRequest.setFollowRedirects(false);
     setTimeout(request, httpRequest);
     httpRequest.setHeaders(headers);

@@ -36,6 +36,7 @@ import com.google.api.client.testing.http.MockLowLevelHttpResponse;
 import io.camunda.connector.api.config.ConnectorConfigurationUtil;
 import io.camunda.connector.http.base.constants.Constants;
 import io.camunda.connector.http.base.model.HttpCommonResult;
+import io.camunda.connector.http.base.model.HttpMethod;
 import io.camunda.connector.http.base.services.AuthenticationService;
 import io.camunda.connector.http.base.services.HttpRequestMapper;
 import io.camunda.connector.http.base.services.HttpService;
@@ -76,7 +77,8 @@ class HttpServiceTest extends BaseTest {
 
     HttpRequestFactory factory = new MockHttpTransport().createRequestFactory();
     HttpRequest httpRequest =
-        factory.buildRequest(Constants.POST, new GenericUrl("http://test.bearer.com"), null);
+        factory.buildRequest(
+            HttpMethod.post.name().toUpperCase(), new GenericUrl("http://test.bearer.com"), null);
     when(requestFactory.buildRequest(any(), any(), any())).thenReturn(httpRequest);
     when(httpResponse.parseAsString()).thenReturn(ACCESS_TOKEN);
 

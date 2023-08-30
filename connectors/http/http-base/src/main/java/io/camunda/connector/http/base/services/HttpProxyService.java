@@ -25,6 +25,7 @@ import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.http.base.constants.Constants;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
+import io.camunda.connector.http.base.model.HttpMethod;
 import io.camunda.connector.http.base.model.HttpRequestBuilder;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -32,9 +33,9 @@ import java.nio.charset.StandardCharsets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class HTTPProxyService {
+public final class HttpProxyService {
 
-  private static final Logger LOG = LoggerFactory.getLogger(HTTPProxyService.class);
+  private static final Logger LOG = LoggerFactory.getLogger(HttpProxyService.class);
 
   private static final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.getCopy();
 
@@ -55,7 +56,7 @@ public final class HTTPProxyService {
 
     com.google.api.client.http.HttpRequest httpRequest =
         new HttpRequestBuilder()
-            .method(Constants.POST)
+            .method(HttpMethod.post)
             .genericUrl(new GenericUrl(proxyFunctionUrl))
             .content(content)
             .connectionTimeoutInSeconds(request.getConnectionTimeoutInSeconds())

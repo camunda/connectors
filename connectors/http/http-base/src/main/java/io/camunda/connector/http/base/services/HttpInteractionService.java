@@ -27,7 +27,6 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 import com.google.gson.stream.JsonReader;
 import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.http.base.constants.Constants;
 import io.camunda.connector.http.base.model.ErrorResponse;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
@@ -53,7 +52,7 @@ public class HttpInteractionService {
 
   public HttpHeaders createHeaders(final HttpCommonRequest request, String bearerToken) {
     final HttpHeaders httpHeaders = new HttpHeaders();
-    if (Constants.POST.equalsIgnoreCase(request.getMethod())) {
+    if (request.getMethod().supportsBody) {
       httpHeaders.setContentType(APPLICATION_JSON.getMimeType());
     }
     if (request.hasAuthentication()) {

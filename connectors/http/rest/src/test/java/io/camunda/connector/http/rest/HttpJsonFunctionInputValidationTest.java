@@ -70,11 +70,10 @@ public class HttpJsonFunctionInputValidationTest extends BaseTest {
 
     // When
     Throwable exception =
-        assertThrows(ConnectorInputException.class, () -> functionUnderTest.execute(ctx));
+        assertThrows(RuntimeException.class, () -> functionUnderTest.execute(ctx));
 
     // Then
-    assertThat(exception.getMessage())
-        .contains("Found constraints violated while validating input", "method");
+    assertThat(exception.getMessage()).contains("HttpMethod");
   }
 
   @ParameterizedTest

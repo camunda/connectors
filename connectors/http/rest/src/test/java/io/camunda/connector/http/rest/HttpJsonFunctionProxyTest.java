@@ -33,8 +33,8 @@ import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpResponse;
 import com.google.api.client.http.HttpResponseException;
 import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.http.base.constants.Constants;
 import io.camunda.connector.http.base.model.HttpCommonResult;
+import io.camunda.connector.http.base.model.HttpMethod;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -80,7 +80,7 @@ public class HttpJsonFunctionProxyTest extends BaseTest {
         OutboundConnectorContextBuilder.create().variables(input).secrets(name -> "foo").build();
 
     when(requestFactory.buildRequest(
-            eq(Constants.POST),
+            eq(HttpMethod.post.name().toUpperCase()),
             eq(new GenericUrl(PROXY_FUNCTION_URL)),
             nullable(HttpContent.class)))
         .thenReturn(httpRequest);
@@ -111,7 +111,7 @@ public class HttpJsonFunctionProxyTest extends BaseTest {
     when(httpException.getStatusCode()).thenReturn(500);
     when(httpException.getMessage()).thenReturn("my error message");
     when(requestFactory.buildRequest(
-            eq(Constants.POST),
+            eq(HttpMethod.post.name().toUpperCase()),
             eq(new GenericUrl(PROXY_FUNCTION_URL)),
             nullable(HttpContent.class)))
         .thenReturn(httpRequest);
@@ -140,7 +140,7 @@ public class HttpJsonFunctionProxyTest extends BaseTest {
     when(httpException.getStatusCode()).thenReturn(500);
     when(httpException.getMessage()).thenReturn("my error message");
     when(requestFactory.buildRequest(
-            eq(Constants.POST),
+            eq(HttpMethod.post.name().toUpperCase()),
             eq(new GenericUrl(PROXY_FUNCTION_URL)),
             nullable(HttpContent.class)))
         .thenReturn(httpRequest);
@@ -167,7 +167,7 @@ public class HttpJsonFunctionProxyTest extends BaseTest {
     when(httpException.getStatusCode()).thenReturn(500);
     when(httpException.getMessage()).thenReturn("my error message");
     when(requestFactory.buildRequest(
-            eq(Constants.POST),
+            eq(HttpMethod.post.name().toUpperCase()),
             eq(new GenericUrl(PROXY_FUNCTION_URL)),
             nullable(HttpContent.class)))
         .thenReturn(httpRequest);

@@ -24,6 +24,7 @@ import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpRequestFactory;
 import io.camunda.connector.http.base.components.HttpTransportComponentSupplier;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
+import io.camunda.connector.http.base.model.HttpMethod;
 import io.camunda.connector.http.base.services.HttpRequestMapper;
 import java.io.IOException;
 import java.util.Map;
@@ -39,7 +40,7 @@ class HttpRequestMapperTest {
   public void setUp() {
     httpRequestFactory = HttpTransportComponentSupplier.httpRequestFactoryInstance();
     request = new HttpCommonRequest();
-    request.setMethod("POST");
+    request.setMethod(HttpMethod.post);
     request.setUrl("http://example.com");
     request.setBody("{ \"key\": \"value\" }");
   }
