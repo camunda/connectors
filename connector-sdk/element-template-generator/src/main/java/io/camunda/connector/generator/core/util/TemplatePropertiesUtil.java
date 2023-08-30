@@ -17,8 +17,8 @@
 package io.camunda.connector.generator.core.util;
 
 import static io.camunda.connector.generator.core.util.ReflectionUtil.getAllFields;
-import static io.camunda.connector.generator.core.util.ReflectionUtil.getRequiredAnnotation;
 
+import io.camunda.connector.generator.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.annotation.TemplateProperty;
 import io.camunda.connector.generator.annotation.TemplateProperty.PropertyType;
 import io.camunda.connector.generator.annotation.TemplateSubType;
@@ -35,19 +35,22 @@ import io.camunda.connector.generator.dsl.PropertyCondition.OneOf;
 import io.camunda.connector.generator.dsl.PropertyGroup;
 import io.camunda.connector.generator.dsl.StringProperty;
 import io.camunda.connector.generator.dsl.TextProperty;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /** Utility class for transforming data classes into {@link PropertyBuilder} instances. */
 public class TemplatePropertiesUtil {
+
+  public static final String DISCRIMINATOR_PROPERTIES_GROUP_ID = "settings";
 
   /**
    * Analyze the type and return a list of {@link PropertyBuilder} instances.
@@ -78,10 +81,19 @@ public class TemplatePropertiesUtil {
 
     for (Field field : fields) {
       if (isContainerType(field.getType())) {
+        var propertyAnnotation = field.getAnnotation(TemplateProperty.class);
+
         // analyze recursively
         var nestedProperties =
             extractTemplatePropertiesFromType(field.getType()).stream()
-                .map(builder -> addPathPrefix(builder, field.getName()))
+                .map(
+                    builder -> {
+                      if (propertyAnnotation == null || propertyAnnotation.addNestedPath()) {
+                        return addPathPrefix(builder, field.getName());
+                      } else {
+                        return builder;
+                      }
+                    })
                 .toList();
         properties.addAll(nestedProperties);
       } else {
@@ -99,8 +111,9 @@ public class TemplatePropertiesUtil {
    * @param properties the properties to group
    * @return a list of {@link PropertyGroup} instances
    */
-  public static List<PropertyGroup> groupProperties(List<Property> properties) {
+  public static List<PropertyGroup> groupProperties(List<PropertyBuilder> properties) {
     return properties.stream()
+        .map(PropertyBuilder::build)
         .filter(property -> property.getGroup() != null)
         .collect(Collectors.groupingBy(Property::getGroup))
         .entrySet()
@@ -178,75 +191,86 @@ public class TemplatePropertiesUtil {
   }
 
   private static List<PropertyBuilder> handleSealedType(Class<?> type) {
-    var subTypes = type.getPermittedSubclasses();
+    var subTypes =
+        Arrays.stream(type.getPermittedSubclasses())
+            .filter(
+                subType -> {
+                  var annotation = subType.getAnnotation(TemplateSubType.class);
+                  return annotation == null || annotation.ignore() == false;
+                })
+            .toList();
     var properties = new ArrayList<PropertyBuilder>();
 
-    String discriminatorProperty = null;
+    var discriminatorIdAndName =
+        extractIdAndLabelFromAnnotationOrDeriveFromType(
+            type,
+            TemplateDiscriminatorProperty.class,
+            TemplateDiscriminatorProperty::id,
+            TemplateDiscriminatorProperty::label);
 
-    Set<String> values = new HashSet<>();
+    Map<String, String> values = new HashMap<>();
 
     for (Class<?> subType : subTypes) {
-      var subTypeAnnotation = getRequiredAnnotation(subType, TemplateSubType.class);
+      var subTypeIdAndName =
+          extractIdAndLabelFromAnnotationOrDeriveFromType(
+              subType, TemplateSubType.class, TemplateSubType::id, TemplateSubType::label);
 
-      values.addAll(Arrays.asList(subTypeAnnotation.oneOf()));
-      values.add(subTypeAnnotation.equals()); // add both, handle nulls later
-
-      if (discriminatorProperty == null) {
-        discriminatorProperty = subTypeAnnotation.discriminatorProperty();
-      } else {
-        if (!discriminatorProperty.equals(subTypeAnnotation.discriminatorProperty())) {
-          throw new IllegalStateException(
-              "Subtype "
-                  + subType
-                  + " of sealed type "
-                  + type
-                  + " has different conditional property than other subtypes");
-        }
-      }
+      values.put(subTypeIdAndName.getKey(), subTypeIdAndName.getValue());
 
       var currentSubTypeProperties =
           extractTemplatePropertiesFromType(subType).stream()
               .map(
                   property ->
-                      property.condition(getConditionFromSubTypeAnnotation(subTypeAnnotation)))
+                      property.condition(
+                          new PropertyCondition.Equals(
+                              discriminatorIdAndName.getKey(), subTypeIdAndName.getKey())))
               .toList();
 
       properties.addAll(currentSubTypeProperties);
     }
 
-    if (discriminatorProperty == null) {
+    if (values.isEmpty()) {
       throw new IllegalStateException("Sealed type " + type + " has no subtypes");
     }
 
+    var discriminatorAnnotation = type.getAnnotation(TemplateDiscriminatorProperty.class);
     var discriminator =
         DropdownProperty.builder()
             .choices(
-                values.stream()
+                values.entrySet().stream()
                     .filter(Objects::nonNull)
-                    .map(value -> new DropdownChoice(transformIdIntoLabel(value), value))
+                    .map(entry -> new DropdownChoice(entry.getValue(), entry.getKey()))
                     .collect(Collectors.toList()))
-            .id(discriminatorProperty)
-            .optional(false)
-            .group("settings")
-            .label(transformIdIntoLabel(discriminatorProperty));
+            .id(discriminatorIdAndName.getKey())
+            .group(
+                discriminatorAnnotation == null
+                    ? DISCRIMINATOR_PROPERTIES_GROUP_ID
+                    : discriminatorAnnotation.group())
+            .label(discriminatorIdAndName.getValue())
+            .optional(false);
 
     var result = new ArrayList<>(List.of(discriminator));
     result.addAll(properties);
     return result;
   }
 
-  private static PropertyCondition getConditionFromSubTypeAnnotation(
-      TemplateSubType subTypeAnnotation) {
+  private static <T extends Annotation>
+      Map.Entry<String, String> extractIdAndLabelFromAnnotationOrDeriveFromType(
+          Class<?> type,
+          Class<T> annotationClass,
+          Function<T, String> idExtractor,
+          Function<T, String> labelExtractor) {
 
-    if (!subTypeAnnotation.equals().isBlank()) {
-      return new PropertyCondition.Equals(
-          subTypeAnnotation.discriminatorProperty(), subTypeAnnotation.equals());
-    } else if (subTypeAnnotation.oneOf().length > 0) {
-      return new PropertyCondition.OneOf(
-          subTypeAnnotation.discriminatorProperty(), Arrays.asList(subTypeAnnotation.oneOf()));
+    var annotation = type.getAnnotation(annotationClass);
+    if (annotation != null) {
+      var id = idExtractor.apply(annotation);
+      var name = labelExtractor.apply(annotation);
+      if (name.isBlank()) name = transformIdIntoLabel(type.getSimpleName());
+      return Map.entry(id, name);
+    } else {
+      return Map.entry(
+          type.getSimpleName().toLowerCase(), transformIdIntoLabel(type.getSimpleName()));
     }
-    throw new IllegalStateException(
-        "@TemplateSubType annotation must have either 'equals' or 'oneOf' attribute");
   }
 
   public static String transformIdIntoLabel(String id) {

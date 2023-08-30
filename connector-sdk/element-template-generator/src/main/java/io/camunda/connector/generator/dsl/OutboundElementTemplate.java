@@ -39,13 +39,13 @@ import java.util.Set;
 })
 @JsonInclude(Include.NON_NULL)
 public record OutboundElementTemplate(
-    String id,
-    String name,
-    int version,
-    String documentationRef,
-    String description,
-    List<PropertyGroup> groups,
-    List<Property> properties)
+    @JsonProperty String id,
+    @JsonProperty String name,
+    @JsonProperty int version,
+    @JsonProperty String documentationRef,
+    @JsonProperty String description,
+    @JsonProperty List<PropertyGroup> groups,
+    @JsonProperty List<Property> properties)
     implements ElementTemplateBase {
 
   public OutboundElementTemplate {
@@ -58,12 +58,6 @@ public record OutboundElementTemplate(
     }
     if (version < 0) {
       errors.add("version cannot be negative");
-    }
-    if (documentationRef == null) {
-      errors.add("documentationRef is required");
-    }
-    if (description == null) {
-      errors.add("description is required");
     }
     if (groups == null) {
       errors.add("groups is required");
@@ -95,5 +89,5 @@ public record OutboundElementTemplate(
     return OutboundElementTemplateBuilder.create();
   }
 
-  public record ElementType(BpmnType value) {}
+  public record ElementType(@JsonProperty BpmnType value) {}
 }

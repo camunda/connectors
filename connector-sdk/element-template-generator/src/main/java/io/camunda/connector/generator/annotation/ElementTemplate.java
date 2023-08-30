@@ -28,11 +28,20 @@ public @interface ElementTemplate {
 
   String name();
 
-  int version();
+  int version() default 0;
 
-  String documentationRef();
+  String documentationRef() default "";
 
-  String description();
+  String description() default "";
+
+  /** Allows to customize group labels */
+  PropertyGroup[] propertyGroups() default {};
 
   Class<?> inputDataClass();
+
+  @interface PropertyGroup {
+    String id();
+
+    String label() default "";
+  }
 }

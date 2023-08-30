@@ -22,7 +22,7 @@ import io.camunda.connector.api.annotation.FEEL;
 import jakarta.validation.constraints.NotEmpty;
 import java.util.function.Function;
 
-public class BasicAuthentication extends Authentication {
+public final class BasicAuthentication extends Authentication {
   private static final String SPEC_PASSWORD_EMPTY_PATTERN = "SPEC_PASSWORD_EMPTY_PATTERN";
   private static final Function<String, String> SPEC_PASSWORD =
       (psw) -> psw.equals(SPEC_PASSWORD_EMPTY_PATTERN) ? "" : psw;

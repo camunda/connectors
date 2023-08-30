@@ -21,7 +21,7 @@ import com.google.common.base.Objects;
 import io.camunda.connector.api.annotation.FEEL;
 import jakarta.validation.constraints.NotEmpty;
 
-public class BearerAuthentication extends Authentication {
+public final class BearerAuthentication extends Authentication {
 
   @FEEL @NotEmpty private String token;
 
