@@ -86,7 +86,7 @@ public class Health {
   }
 
   public static Health down() {
-    return new Health(Status.UP, null);
+    return new Health(Status.DOWN, null);
   }
 
   public static Health down(String key, Object value) {
