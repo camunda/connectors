@@ -58,7 +58,7 @@ public final class StringProperty extends Property {
         feel = FeelMode.optional;
       }
       return new StringProperty(
-          id, label, description, optional, value, constraints, feel, group, binding, condition);
+          name, label, description, optional, value, constraints, feel, group, binding, condition);
     }
   }
 }

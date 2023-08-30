@@ -6,17 +6,17 @@
  */
 package io.camunda.connector.gsheets;
 
-import io.camunda.connector.gsheets.model.request.Input;
-import io.camunda.connector.gsheets.model.request.impl.AddValues;
-import io.camunda.connector.gsheets.model.request.impl.CreateEmptyColumnOrRow;
-import io.camunda.connector.gsheets.model.request.impl.CreateRow;
-import io.camunda.connector.gsheets.model.request.impl.CreateSpreadsheet;
-import io.camunda.connector.gsheets.model.request.impl.CreateWorksheet;
-import io.camunda.connector.gsheets.model.request.impl.DeleteColumn;
-import io.camunda.connector.gsheets.model.request.impl.DeleteWorksheet;
-import io.camunda.connector.gsheets.model.request.impl.GetRowByIndex;
-import io.camunda.connector.gsheets.model.request.impl.GetSpreadsheetDetails;
-import io.camunda.connector.gsheets.model.request.impl.GetWorksheetData;
+import io.camunda.connector.gsheets.model.request.input.AddValues;
+import io.camunda.connector.gsheets.model.request.input.CreateEmptyColumnOrRow;
+import io.camunda.connector.gsheets.model.request.input.CreateRow;
+import io.camunda.connector.gsheets.model.request.input.CreateSpreadsheet;
+import io.camunda.connector.gsheets.model.request.input.CreateWorksheet;
+import io.camunda.connector.gsheets.model.request.input.DeleteColumn;
+import io.camunda.connector.gsheets.model.request.input.DeleteWorksheet;
+import io.camunda.connector.gsheets.model.request.input.GetRowByIndex;
+import io.camunda.connector.gsheets.model.request.input.GetSpreadsheetDetails;
+import io.camunda.connector.gsheets.model.request.input.GetWorksheetData;
+import io.camunda.connector.gsheets.model.request.input.Input;
 import io.camunda.connector.gsheets.operation.GoogleSheetOperation;
 import io.camunda.connector.gsheets.operation.impl.AddValuesOperation;
 import io.camunda.connector.gsheets.operation.impl.CreateEmptyColumnOrRowOperation;

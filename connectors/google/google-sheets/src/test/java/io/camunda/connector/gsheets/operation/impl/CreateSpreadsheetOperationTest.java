@@ -15,7 +15,7 @@ import static org.mockito.Mockito.when;
 import com.google.api.services.sheets.v4.Sheets;
 import com.google.api.services.sheets.v4.model.Spreadsheet;
 import io.camunda.connector.gsheets.BaseTest;
-import io.camunda.connector.gsheets.model.request.impl.CreateSpreadsheet;
+import io.camunda.connector.gsheets.model.request.input.CreateSpreadsheet;
 import io.camunda.connector.gsheets.model.response.CreateSpreadSheetResponse;
 import io.camunda.connector.gsheets.supplier.GoogleSheetsServiceSupplier;
 import io.camunda.google.DriveUtil;

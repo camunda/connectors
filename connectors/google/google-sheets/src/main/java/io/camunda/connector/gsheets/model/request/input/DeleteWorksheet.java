@@ -4,13 +4,12 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.gsheets.model.request.impl;
+package io.camunda.connector.gsheets.model.request.input;
 
-import io.camunda.connector.gsheets.model.request.SpreadsheetInput;
 import jakarta.validation.constraints.NotNull;
 import java.util.Objects;
 
-public class DeleteWorksheet extends SpreadsheetInput {
+public final class DeleteWorksheet extends SpreadsheetInput {
 
   @NotNull private Integer worksheetId;
 

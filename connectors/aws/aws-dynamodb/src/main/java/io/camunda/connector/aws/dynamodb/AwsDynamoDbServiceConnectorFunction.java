@@ -10,11 +10,18 @@ import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.aws.CredentialsProviderSupport;
+import io.camunda.connector.generator.annotation.ElementTemplate;
 
 @OutboundConnector(
     name = "AWS DynamoDB",
     inputVariables = {"authentication", "configuration", "input"},
     type = "io.camunda:aws-dynamodb:1")
+@ElementTemplate(
+    id = "aws-dynamodb-connector-aws-dynamodb",
+    name = "Generated AWS DynamoDB Connector",
+    version = 1,
+    description = "Generated AWS DynamoDB Connector",
+    inputDataClass = AwsDynamoDbRequest.class)
 public class AwsDynamoDbServiceConnectorFunction implements OutboundConnectorFunction {
 
   @Override

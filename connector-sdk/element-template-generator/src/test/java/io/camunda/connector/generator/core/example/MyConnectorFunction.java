@@ -21,21 +21,40 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.annotation.ElementTemplate;
 
-@OutboundConnector(
-    name = "my-connector",
-    type = "my-connector-type",
-    inputVariables = {})
-@ElementTemplate(
-    id = "my-connector-template",
-    name = "My Connector Template",
-    version = 1,
-    description = "My Connector Template Description",
-    documentationRef = "https://docs.camunda.org/manual/latest/reference/connect/",
-    inputDataClass = MyConnectorInput.class)
-public class MyConnectorFunction implements OutboundConnectorFunction {
+public abstract class MyConnectorFunction implements OutboundConnectorFunction {
+
+  public static final String ID = "my-connector-template";
+  public static final String NAME = "My Connector Template";
+  public static final int VERSION = 1;
+  public static final String DESCRIPTION = "My Connector Template Description";
+  public static final String DOCUMENTATION_REF =
+      "https://docs.camunda.org/manual/latest/reference/connect/";
 
   @Override
   public Object execute(OutboundConnectorContext context) {
     return null;
   }
+
+  @OutboundConnector(
+      name = "my-connector",
+      type = "my-connector-type",
+      inputVariables = {})
+  @ElementTemplate(
+      id = MyConnectorFunction.ID,
+      name = MyConnectorFunction.NAME,
+      version = MyConnectorFunction.VERSION,
+      description = MyConnectorFunction.DESCRIPTION,
+      documentationRef = MyConnectorFunction.DOCUMENTATION_REF,
+      inputDataClass = MyConnectorInput.class)
+  public static class FullyAnnotated extends MyConnectorFunction {}
+
+  @OutboundConnector(
+      name = "my-connector",
+      type = "my-connector-type",
+      inputVariables = {})
+  @ElementTemplate(
+      id = MyConnectorFunction.ID,
+      name = MyConnectorFunction.NAME,
+      inputDataClass = MyConnectorInput.class)
+  public static class MinimallyAnnotated extends MyConnectorFunction {}
 }

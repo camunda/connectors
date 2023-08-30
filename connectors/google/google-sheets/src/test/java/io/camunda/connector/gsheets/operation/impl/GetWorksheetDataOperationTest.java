@@ -18,7 +18,7 @@ import static org.mockito.Mockito.when;
 import com.google.api.services.sheets.v4.Sheets;
 import com.google.api.services.sheets.v4.model.ValueRange;
 import io.camunda.connector.gsheets.BaseTest;
-import io.camunda.connector.gsheets.model.request.impl.GetWorksheetData;
+import io.camunda.connector.gsheets.model.request.input.GetWorksheetData;
 import io.camunda.connector.gsheets.model.response.GoogleSheetsResult;
 import io.camunda.connector.gsheets.supplier.GoogleSheetsServiceSupplier;
 import io.camunda.google.model.Authentication;

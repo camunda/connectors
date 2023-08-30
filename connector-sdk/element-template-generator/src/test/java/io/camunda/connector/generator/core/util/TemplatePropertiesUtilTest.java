@@ -18,14 +18,6 @@ package io.camunda.connector.generator.core.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.camunda.connector.generator.core.example.MyConnectorInput;
-import io.camunda.connector.generator.dsl.DropdownProperty;
-import io.camunda.connector.generator.dsl.Property.FeelMode;
-import io.camunda.connector.generator.dsl.PropertyBuilder;
-import io.camunda.connector.generator.dsl.StringProperty;
-import io.camunda.connector.generator.dsl.TextProperty;
-import java.util.List;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
@@ -35,7 +27,8 @@ public class TemplatePropertiesUtilTest {
   @CsvSource({
     "myProperty, My property",
     "myPropertyWithCamelCase, My property with camel case",
-    "myPropertyWithCamelCaseAndNumbers123, My property with camel case and numbers 123"
+    "myPropertyWithCamelCaseAndNumbers123, My property with camel case and numbers 123",
+    "MY_UPPERCASE_PROPERTY,MY_UPPERCASE_PROPERTY"
   })
   void transformIntoLabel(String input, String expected) {
     // when
@@ -43,56 +36,5 @@ public class TemplatePropertiesUtilTest {
 
     // then
     assertThat(actual).isEqualTo(expected);
-  }
-
-  @Test
-  void extractPropertiesFromType() {
-    // given
-    var type = MyConnectorInput.class;
-
-    // when
-    var actual = TemplatePropertiesUtil.extractTemplatePropertiesFromType(type);
-
-    // then
-    var props = actual.stream().map(PropertyBuilder::build).toList();
-    assertThat(props)
-        .containsExactlyInAnyOrder(
-            TextProperty.builder()
-                .id("message")
-                .label("Message")
-                .group("message")
-                .optional(false)
-                .build(),
-            DropdownProperty.builder()
-                .choices(
-                    List.of(
-                        new DropdownProperty.DropdownChoice("Basic", "basic"),
-                        new DropdownProperty.DropdownChoice("Token", "token")))
-                .id("authorization.authType")
-                .label("Auth type")
-                .group("settings")
-                .optional(false)
-                .build(),
-            StringProperty.builder()
-                .id("authorization.username")
-                .label("Username")
-                .group("auth")
-                .feel(FeelMode.optional)
-                .optional(false)
-                .build(),
-            StringProperty.builder()
-                .id("authorization.password")
-                .label("Password")
-                .group("auth")
-                .feel(FeelMode.optional)
-                .optional(false)
-                .build(),
-            StringProperty.builder()
-                .id("authorization.token")
-                .label("Token")
-                .group("auth")
-                .optional(false)
-                .build(),
-            StringProperty.builder().id("recipient").label("Recipient").build());
   }
 }

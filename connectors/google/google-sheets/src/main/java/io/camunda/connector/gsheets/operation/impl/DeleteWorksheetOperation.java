@@ -9,7 +9,7 @@ package io.camunda.connector.gsheets.operation.impl;
 import com.google.api.services.sheets.v4.model.BatchUpdateSpreadsheetRequest;
 import com.google.api.services.sheets.v4.model.DeleteSheetRequest;
 import com.google.api.services.sheets.v4.model.Request;
-import io.camunda.connector.gsheets.model.request.impl.DeleteWorksheet;
+import io.camunda.connector.gsheets.model.request.input.DeleteWorksheet;
 import io.camunda.connector.gsheets.model.response.GoogleSheetsResult;
 import io.camunda.connector.gsheets.operation.GoogleSheetOperation;
 import io.camunda.google.model.Authentication;

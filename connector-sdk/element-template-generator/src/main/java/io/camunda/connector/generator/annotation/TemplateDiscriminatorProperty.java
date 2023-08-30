@@ -16,15 +16,14 @@
  */
 package io.camunda.connector.generator.annotation;
 
-import io.camunda.connector.generator.core.util.TemplatePropertiesUtil;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
 @Retention(RetentionPolicy.RUNTIME)
 public @interface TemplateDiscriminatorProperty {
-  String id();
+  String name();
 
   String label() default "";
 
-  String group() default TemplatePropertiesUtil.DISCRIMINATOR_PROPERTIES_GROUP_ID;
+  String group() default "";
 }

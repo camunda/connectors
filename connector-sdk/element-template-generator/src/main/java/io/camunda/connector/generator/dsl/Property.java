@@ -24,7 +24,7 @@ import java.util.Objects;
 public abstract sealed class Property
     permits BooleanProperty, DropdownProperty, HiddenProperty, StringProperty, TextProperty {
 
-  protected final String id;
+  protected final String name;
   protected final String label;
   protected final String description;
   protected final Boolean optional;
@@ -44,7 +44,7 @@ public abstract sealed class Property
   }
 
   public Property(
-      String id,
+      String name,
       String label,
       String description,
       Boolean optional,
@@ -55,7 +55,7 @@ public abstract sealed class Property
       PropertyBinding binding,
       PropertyCondition condition,
       String type) {
-    this.id = id;
+    this.name = name;
     this.label = label;
     this.description = description;
     this.optional = optional;
@@ -68,8 +68,8 @@ public abstract sealed class Property
     this.type = type;
   }
 
-  public String getId() {
-    return id;
+  public String getName() {
+    return name;
   }
 
   public String getLabel() {
@@ -122,7 +122,7 @@ public abstract sealed class Property
     }
     Property property = (Property) o;
     return optional == property.optional
-        && Objects.equals(id, property.id)
+        && Objects.equals(name, property.name)
         && Objects.equals(label, property.label)
         && Objects.equals(description, property.description)
         && Objects.equals(value, property.value)
@@ -136,14 +136,14 @@ public abstract sealed class Property
   @Override
   public int hashCode() {
     return Objects.hash(
-        id, label, description, optional, value, constraints, feel, group, binding, type);
+        name, label, description, optional, value, constraints, feel, group, binding, type);
   }
 
   @Override
   public String toString() {
     return "Property{"
         + "name='"
-        + id
+        + name
         + '\''
         + ", label='"
         + label

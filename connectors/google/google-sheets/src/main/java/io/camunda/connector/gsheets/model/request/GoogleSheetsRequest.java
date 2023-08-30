@@ -8,6 +8,7 @@ package io.camunda.connector.gsheets.model.request;
 
 import com.google.api.client.util.Key;
 import io.camunda.connector.api.annotation.Secret;
+import io.camunda.connector.gsheets.model.request.input.Input;
 import io.camunda.google.model.GoogleBaseRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;

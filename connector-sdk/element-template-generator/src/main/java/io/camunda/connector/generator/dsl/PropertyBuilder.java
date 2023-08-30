@@ -30,7 +30,7 @@ public abstract sealed class PropertyBuilder
         StringPropertyBuilder,
         TextPropertyBuilder {
 
-  protected String id;
+  protected String name;
   protected String label;
   protected String description;
   protected Boolean optional;
@@ -44,12 +44,12 @@ public abstract sealed class PropertyBuilder
 
   protected PropertyBuilder() {}
 
-  public String getId() {
-    return id;
+  public String getName() {
+    return name;
   }
 
-  public PropertyBuilder id(String id) {
-    this.id = id;
+  public PropertyBuilder name(String name) {
+    this.name = name;
     return this;
   }
 

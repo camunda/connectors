@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.gsheets.operation.impl;
 
-import io.camunda.connector.gsheets.model.request.impl.GetRowByIndex;
+import io.camunda.connector.gsheets.model.request.input.GetRowByIndex;
 import io.camunda.connector.gsheets.model.response.GoogleSheetsResult;
 import io.camunda.connector.gsheets.operation.GoogleSheetOperation;
 import io.camunda.google.model.Authentication;

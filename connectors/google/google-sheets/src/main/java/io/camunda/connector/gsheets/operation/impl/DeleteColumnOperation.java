@@ -12,7 +12,7 @@ import com.google.api.services.sheets.v4.model.DimensionRange;
 import com.google.api.services.sheets.v4.model.Request;
 import io.camunda.connector.gsheets.model.request.ColumnIndexType;
 import io.camunda.connector.gsheets.model.request.Dimension;
-import io.camunda.connector.gsheets.model.request.impl.DeleteColumn;
+import io.camunda.connector.gsheets.model.request.input.DeleteColumn;
 import io.camunda.connector.gsheets.model.response.GoogleSheetsResult;
 import io.camunda.connector.gsheets.operation.GoogleSheetOperation;
 import io.camunda.connector.gsheets.util.LetterNumericSystemConverter;

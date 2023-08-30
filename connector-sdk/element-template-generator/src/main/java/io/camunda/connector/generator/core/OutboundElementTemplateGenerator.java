@@ -33,19 +33,20 @@ public class OutboundElementTemplateGenerator
     implements ElementTemplateGenerator<OutboundElementTemplate> {
 
   @Override
-  public OutboundElementTemplate generate(Class<?> connectorDefinition, Class<?> connectorInput) {
+  public OutboundElementTemplate generate(Class<?> connectorDefinition) {
     var connector =
         ReflectionUtil.getRequiredAnnotation(connectorDefinition, OutboundConnector.class);
     var template = ReflectionUtil.getRequiredAnnotation(connectorDefinition, ElementTemplate.class);
+    var connectorInput = template.inputDataClass();
 
     List<PropertyBuilder> properties =
         TemplatePropertiesUtil.extractTemplatePropertiesFromType(connectorInput).stream()
-            .map(builder -> builder.binding(new ZeebeInput(builder.getId())))
+            .map(builder -> builder.binding(new ZeebeInput(builder.getName())))
             .toList();
 
     var groups = new ArrayList<>(TemplatePropertiesUtil.groupProperties(properties));
 
-    if (!containsCustomGroups(groups)) {
+    if (groups.isEmpty()) {
       // default group so that user properties are higher up in the UI than the output/error mapping
       groups.add(
           PropertyGroup.builder()
@@ -94,12 +95,5 @@ public class OutboundElementTemplateGenerator
         .properties(nonGroupedProperties.stream().map(PropertyBuilder::build).toList())
         .propertyGroups(groups)
         .build();
-  }
-
-  private boolean containsCustomGroups(List<PropertyGroup> groups) {
-    var copy = new ArrayList<>(groups);
-    copy.removeIf(
-        group -> TemplatePropertiesUtil.DISCRIMINATOR_PROPERTIES_GROUP_ID.equals(group.id()));
-    return !copy.isEmpty();
   }
 }

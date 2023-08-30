@@ -4,11 +4,9 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.gsheets.model.request.impl;
+package io.camunda.connector.gsheets.model.request.input;
 
-import io.camunda.connector.gsheets.model.request.SpreadsheetInput;
-
-public class GetSpreadsheetDetails extends SpreadsheetInput {
+public final class GetSpreadsheetDetails extends SpreadsheetInput {
 
   public GetSpreadsheetDetails() {}
 

@@ -55,7 +55,7 @@ public final class BooleanProperty extends Property {
 
     public BooleanProperty build() {
       return new BooleanProperty(
-          id, label, description, optional, value, constraints, feel, group, binding, condition);
+          name, label, description, optional, value, constraints, feel, group, binding, condition);
     }
   }
 }

@@ -4,23 +4,22 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.gsheets.model.request.impl;
+package io.camunda.connector.gsheets.model.request.input;
 
-import io.camunda.connector.gsheets.model.request.SpreadsheetInput;
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import java.util.Objects;
 
-public class CreateWorksheet extends SpreadsheetInput {
+public final class GetRowByIndex extends SpreadsheetInput {
 
-  @NotBlank private String worksheetName;
-  private Integer worksheetIndex;
+  private String worksheetName;
+  @NotNull private Integer rowIndex;
 
-  public CreateWorksheet() {}
+  public GetRowByIndex() {}
 
-  public CreateWorksheet(String spreadsheetId, String worksheetName, Integer worksheetIndex) {
+  public GetRowByIndex(String spreadsheetId, String worksheetName, Integer rowIndex) {
     super(spreadsheetId);
     this.worksheetName = worksheetName;
-    this.worksheetIndex = worksheetIndex;
+    this.rowIndex = rowIndex;
   }
 
   public String getWorksheetName() {
@@ -31,36 +30,36 @@ public class CreateWorksheet extends SpreadsheetInput {
     this.worksheetName = worksheetName;
   }
 
-  public Integer getWorksheetIndex() {
-    return worksheetIndex;
+  public Integer getRowIndex() {
+    return rowIndex;
   }
 
-  public void setWorksheetIndex(Integer worksheetIndex) {
-    this.worksheetIndex = worksheetIndex;
+  public void setRowIndex(Integer rowIndex) {
+    this.rowIndex = rowIndex;
   }
 
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
-    CreateWorksheet that = (CreateWorksheet) o;
+    GetRowByIndex that = (GetRowByIndex) o;
     return Objects.equals(worksheetName, that.worksheetName)
-        && Objects.equals(worksheetIndex, that.worksheetIndex);
+        && Objects.equals(rowIndex, that.rowIndex);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(worksheetName, worksheetIndex);
+    return Objects.hash(worksheetName, rowIndex);
   }
 
   @Override
   public String toString() {
-    return "CreateWorksheet{"
+    return "GetRowByIndex{"
         + "worksheetName='"
         + worksheetName
         + '\''
-        + ", worksheetIndex="
-        + worksheetIndex
+        + ", rowIndex="
+        + rowIndex
         + "} "
         + super.toString();
   }
