@@ -21,6 +21,7 @@ import static io.camunda.connector.generator.core.util.ReflectionUtil.getAllFiel
 import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.generator.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.annotation.TemplateProperty;
+import io.camunda.connector.generator.annotation.TemplateProperty.DropdownPropertyChoice;
 import io.camunda.connector.generator.annotation.TemplateProperty.PropertyType;
 import io.camunda.connector.generator.annotation.TemplateSubType;
 import io.camunda.connector.generator.dsl.BooleanProperty;
@@ -35,6 +36,7 @@ import io.camunda.connector.generator.dsl.PropertyCondition;
 import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
 import io.camunda.connector.generator.dsl.PropertyCondition.OneOf;
 import io.camunda.connector.generator.dsl.PropertyGroup;
+import io.camunda.connector.generator.dsl.PropertyGroup.PropertyGroupBuilder;
 import io.camunda.connector.generator.dsl.StringProperty;
 import io.camunda.connector.generator.dsl.TextProperty;
 import java.lang.annotation.Annotation;
@@ -42,6 +44,7 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -112,7 +115,7 @@ public class TemplatePropertiesUtil {
    * @param properties the properties to group
    * @return a list of {@link PropertyGroup} instances
    */
-  public static List<PropertyGroup> groupProperties(List<PropertyBuilder> properties) {
+  public static List<PropertyGroupBuilder> groupProperties(List<PropertyBuilder> properties) {
     return properties.stream()
         .map(PropertyBuilder::build)
         .filter(property -> property.getGroup() != null)
@@ -124,8 +127,7 @@ public class TemplatePropertiesUtil {
                 PropertyGroup.builder()
                     .id(entry.getKey())
                     .label(transformIdIntoLabel(entry.getKey()))
-                    .properties(entry.getValue())
-                    .build())
+                    .properties(entry.getValue()))
         .toList();
   }
 
@@ -136,20 +138,28 @@ public class TemplatePropertiesUtil {
       if (annotation.ignore()) {
         return null;
       }
-      name = annotation.name();
-      label = annotation.label();
+      if (!annotation.id().isBlank()) {
+        name = annotation.id();
+      } else {
+        name = field.getName();
+      }
+      if (!annotation.label().isBlank()) {
+        label = annotation.label();
+      } else {
+        label = transformIdIntoLabel(name);
+      }
     } else {
       name = field.getName();
       label = transformIdIntoLabel(name);
     }
 
     PropertyBuilder propertyBuilder =
-        createPropertyBuilder(field, annotation).name(name).label(label);
+        createPropertyBuilder(field, annotation).id(name).label(label);
     return TemplatePropertyAnnotationUtil.applyAnnotation(propertyBuilder, annotation);
   }
 
   private static PropertyBuilder addPathPrefix(PropertyBuilder builder, String path) {
-    builder.name(path + "." + builder.getName());
+    builder.id(path + "." + builder.getId());
     var built = builder.build();
     if (built.getCondition() != null) {
       if (built.getCondition() instanceof OneOf oneOfCondition) {
@@ -165,46 +175,43 @@ public class TemplatePropertiesUtil {
 
   private static PropertyBuilder createPropertyBuilder(Field field, TemplateProperty annotation) {
     PropertyType type;
-    String[] dropdownChoices = null;
+    Map<String, String> dropdownChoices = new HashMap<>();
 
-    if (field.getType().isEnum()) {
+    if (field.getType() == Boolean.class) {
+      type = PropertyType.Boolean;
+    } else if (field.getType().isEnum()) {
       type = PropertyType.Dropdown;
       dropdownChoices =
           Arrays.stream(field.getType().getEnumConstants())
-              .map(Object::toString)
-              .toArray(String[]::new);
+              .collect(
+                  Collectors.toMap(Object::toString, val -> transformIdIntoLabel(val.toString())));
     } else {
       type = PropertyType.String;
     }
 
     if (annotation != null) {
-      type = annotation.type();
-      dropdownChoices = annotation.choices();
-    }
-
-    if (type == null || type == PropertyType.Unknown) {
-      if (field.getType() == Boolean.class) {
-        type = PropertyType.Boolean;
-      } else if (field.getType().isEnum()) {
-        type = PropertyType.Dropdown;
-        if (dropdownChoices == null) {
-          dropdownChoices =
-              Arrays.stream(field.getType().getEnumConstants())
-                  .map(Object::toString)
-                  .toArray(String[]::new);
-        }
-      } else {
-        type = PropertyType.String;
+      if (annotation.type() != PropertyType.Unknown) {
+        type = annotation.type();
+      }
+      if (annotation.choices().length > 0) {
+        dropdownChoices =
+            Arrays.stream(annotation.choices())
+                .collect(
+                    Collectors.toMap(DropdownPropertyChoice::value, DropdownPropertyChoice::label));
       }
     }
+
     var builder =
         switch (type) {
           case Boolean -> BooleanProperty.builder();
           case Dropdown -> DropdownProperty.builder()
               .choices(
-                  Arrays.stream(dropdownChoices)
-                      .map(choice -> new DropdownChoice(transformIdIntoLabel(choice), choice))
-                      .toList());
+                  dropdownChoices.entrySet().stream()
+                      .map(
+                          entry ->
+                              new DropdownProperty.DropdownChoice(entry.getValue(), entry.getKey()))
+                      .toList())
+              .feel(FeelMode.disabled);
           case Hidden -> HiddenProperty.builder();
           case String -> StringProperty.builder();
           case Text -> TextProperty.builder();
@@ -267,13 +274,20 @@ public class TemplatePropertiesUtil {
                     .filter(Objects::nonNull)
                     .map(entry -> new DropdownChoice(entry.getValue(), entry.getKey()))
                     .collect(Collectors.toList()))
-            .name(discriminatorIdAndName.getKey())
+            .id(discriminatorIdAndName.getKey())
             .group(
                 discriminatorAnnotation == null || discriminatorAnnotation.group().isBlank()
                     ? null
                     : discriminatorAnnotation.group())
             .label(discriminatorIdAndName.getValue())
-            .optional(false);
+            .description(
+                discriminatorAnnotation == null || discriminatorAnnotation.description().isBlank()
+                    ? null
+                    : discriminatorAnnotation.description())
+            .value(
+                discriminatorAnnotation == null || discriminatorAnnotation.defaultValue().isBlank()
+                    ? null
+                    : discriminatorAnnotation.defaultValue());
 
     var result = new ArrayList<>(List.of(discriminator));
     result.addAll(properties);

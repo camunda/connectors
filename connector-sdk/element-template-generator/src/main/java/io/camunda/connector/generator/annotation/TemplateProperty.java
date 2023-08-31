@@ -17,7 +17,6 @@
 package io.camunda.connector.generator.annotation;
 
 import io.camunda.connector.generator.dsl.Property.FeelMode;
-import io.camunda.connector.generator.dsl.PropertyCondition;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -28,7 +27,7 @@ import java.lang.annotation.Target;
 public @interface TemplateProperty {
   boolean ignore() default false;
 
-  String name() default "";
+  String id() default "";
 
   String label() default "";
 
@@ -38,7 +37,7 @@ public @interface TemplateProperty {
 
   PropertyType type() default PropertyType.Unknown;
 
-  String[] choices() default {};
+  DropdownPropertyChoice[] choices() default {};
 
   FeelMode feel() default FeelMode.optional;
 
@@ -69,10 +68,7 @@ public @interface TemplateProperty {
    */
   boolean addNestedPath() default true;
 
-  PropertyCondition condition() default
-      @PropertyCondition(
-          expression = "",
-          variables = {});
+  PropertyCondition condition() default @PropertyCondition(property = "");
 
   enum PropertyType {
     Boolean,
@@ -84,8 +80,16 @@ public @interface TemplateProperty {
   }
 
   @interface PropertyCondition {
-    String expression();
+    String property();
 
-    String[] variables();
+    String equals() default "";
+
+    String[] oneOf() default {};
+  }
+
+  @interface DropdownPropertyChoice {
+    String value();
+
+    String label();
   }
 }

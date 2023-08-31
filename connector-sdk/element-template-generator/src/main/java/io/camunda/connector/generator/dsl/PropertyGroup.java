@@ -77,7 +77,7 @@ public record PropertyGroup(
             if (!id.equals(property.group)) {
               throw new IllegalArgumentException(
                   "Property "
-                      + property.name
+                      + property.id
                       + " defines a different group "
                       + property.group
                       + " than the group "

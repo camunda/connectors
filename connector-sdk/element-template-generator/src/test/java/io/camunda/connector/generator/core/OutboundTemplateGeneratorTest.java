@@ -105,7 +105,7 @@ public class OutboundTemplateGeneratorTest {
       var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class);
       var property =
           template.properties().stream()
-              .filter(p -> "annotatedStringProperty".equals(p.getName()))
+              .filter(p -> "annotatedStringProperty".equals(p.getId()))
               .findFirst()
               .orElseThrow();
 
@@ -164,12 +164,11 @@ public class OutboundTemplateGeneratorTest {
       var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class);
 
       template.properties().stream()
-          .filter(p -> "nestedProperty.nestedA".equals(p.getName()))
+          .filter(p -> "nestedProperty.nestedA".equals(p.getId()))
           .findFirst()
           .orElseThrow();
 
-      assertThat(
-              template.properties().stream().filter(p -> "nestedA".equals(p.getName())).findAny())
+      assertThat(template.properties().stream().filter(p -> "nestedA".equals(p.getId())).findAny())
           .isEmpty();
     }
 
@@ -178,13 +177,13 @@ public class OutboundTemplateGeneratorTest {
       var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class);
 
       template.properties().stream()
-          .filter(p -> "nestedB".equals(p.getName()))
+          .filter(p -> "nestedB".equals(p.getId()))
           .findFirst()
           .orElseThrow();
 
       assertThat(
               template.properties().stream()
-                  .filter(p -> "customPathNestedProperty.nestedB".equals(p.getName()))
+                  .filter(p -> "customPathNestedProperty.nestedB".equals(p.getId()))
                   .findAny())
           .isEmpty();
     }
@@ -192,7 +191,7 @@ public class OutboundTemplateGeneratorTest {
     @Test
     void ignoredProperty() {
       var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class);
-      assertThat(template.properties()).noneMatch(p -> "ignoredField".equals(p.getName()));
+      assertThat(template.properties()).noneMatch(p -> "ignoredField".equals(p.getId()));
     }
   }
 
@@ -221,7 +220,7 @@ public class OutboundTemplateGeneratorTest {
               .findFirst()
               .orElseThrow();
       assertThat(firstSubTypeValueProperty.getCondition())
-          .isEqualTo(new Equals(discriminatorProperty.getName(), "firstsubtype"));
+          .isEqualTo(new Equals(discriminatorProperty.getId(), "firstsubtype"));
 
       var secondSubTypeValueProperty =
           template.properties().stream()
@@ -229,7 +228,7 @@ public class OutboundTemplateGeneratorTest {
               .findFirst()
               .orElseThrow();
       assertThat(secondSubTypeValueProperty.getCondition())
-          .isEqualTo(new Equals(discriminatorProperty.getName(), "secondsubtype"));
+          .isEqualTo(new Equals(discriminatorProperty.getId(), "secondsubtype"));
     }
 
     @Test
@@ -254,7 +253,7 @@ public class OutboundTemplateGeneratorTest {
               .findFirst()
               .orElseThrow();
       assertThat(firstSubTypeValueProperty.getCondition())
-          .isEqualTo(new Equals(discriminatorProperty.getName(), "firstAnnotatedOverride"));
+          .isEqualTo(new Equals(discriminatorProperty.getId(), "firstAnnotatedOverride"));
 
       var secondSubTypeValueProperty =
           template.properties().stream()
@@ -262,7 +261,7 @@ public class OutboundTemplateGeneratorTest {
               .findFirst()
               .orElseThrow();
       assertThat(secondSubTypeValueProperty.getCondition())
-          .isEqualTo(new Equals(discriminatorProperty.getName(), "secondAnnotatedOverride"));
+          .isEqualTo(new Equals(discriminatorProperty.getId(), "secondAnnotatedOverride"));
     }
   }
 }

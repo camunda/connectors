@@ -22,7 +22,7 @@ public class CommonProperties {
 
   public static final PropertyBuilder RESULT_EXPRESSION =
       TextProperty.builder()
-          .name("resultExpression")
+          .id("resultExpression")
           .group("output")
           .label("Result Expression")
           .description("Expression to map the response into process variables")
@@ -30,14 +30,14 @@ public class CommonProperties {
 
   public static final PropertyBuilder RESULT_VARIABLE =
       StringProperty.builder()
-          .name("resultVariable")
+          .id("resultVariable")
           .group("output")
           .label("Result Variable")
           .description("Name of variable to store the response in");
 
   public static final PropertyBuilder ERROR_EXPRESSION =
       TextProperty.builder()
-          .name("errorExpression")
+          .id("errorExpression")
           .label("Error Expression")
           .group("error")
           .description(

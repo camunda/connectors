@@ -26,4 +26,8 @@ public @interface TemplateDiscriminatorProperty {
   String label() default "";
 
   String group() default "";
+
+  String description() default "";
+
+  String defaultValue() default "";
 }
