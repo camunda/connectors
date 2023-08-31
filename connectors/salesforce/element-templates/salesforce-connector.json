@@ -53,6 +53,37 @@
       }
     },
     {
+      "label": "Salesforce base URL",
+      "group": "endpoint",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "baseUrl"
+      },
+      "constraints": {
+        "notEmpty": true,
+        "pattern": {
+          "value": "^(=|https?://|\\{\\{secrets\\..+\\}\\}).*$",
+          "message": "Must be a http(s) URL."
+        }
+      }
+    },
+    {
+      "label": "Salesforce API version",
+      "group": "endpoint",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "apiVersion"
+      },
+      "value": "v58.0",
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
       "label": "Type",
       "id": "authenticationType",
       "group": "authentication",
@@ -71,23 +102,6 @@
       "binding": {
         "type": "zeebe:input",
         "name": "authentication.type"
-      }
-    },
-    {
-      "label": "Salesforce base URL",
-      "group": "endpoint",
-      "type": "String",
-      "feel": "optional",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "baseUrl"
-      },
-      "constraints": {
-        "notEmpty": true,
-        "pattern": {
-          "value": "^(=|https?://|\\{\\{secrets\\..+\\}\\}).*$",
-          "message": "Must be a http(s) URL."
-        }
       }
     },
     {
@@ -217,8 +231,9 @@
         "type": "zeebe:input",
         "name": "relationName"
       },
+      "optional": true,
       "condition": {
-        "allMatch":[
+        "allMatch": [
           {
             "property": "interactionType",
             "equals": "get"
@@ -249,6 +264,44 @@
       }
     },
     {
+      "label": "Query parameters",
+      "description": "Map of query parameters to add to the request URL",
+      "group": "endpoint",
+      "type": "Hidden",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "queryParameters"
+      },
+      "value": "={\n  q: soqlQuery\n}",
+      "condition": {
+        "equals": "soqlQuery",
+        "property": "salesforceOperationType"
+      }
+    },
+    {
+      "label": "Query parameters",
+      "description": "Map of query parameters to add to the request URL",
+      "group": "endpoint",
+      "type": "String",
+      "feel":"required",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "queryParameters"
+      },
+      "condition": {
+        "allMatch": [
+          {
+            "property": "interactionType",
+            "equals": "get"
+          },
+          {
+            "property": "salesforceOperationType",
+            "equals": "sObject"
+          }
+        ]
+      }
+    },
+    {
       "label": "URL",
       "group": "endpoint",
       "type": "Hidden",
@@ -256,7 +309,7 @@
         "type": "zeebe:input",
         "name": "url"
       },
-      "value": "=baseUrl + \"/services/data/v58.0/sobjects/\" + objectType + string(if objectId != null then \"/\" + objectId else \"\") + string(if relationName != null then \"/\" + relationName else \"\")",
+      "value": "=baseUrl + \"/services/data/\" + apiVersion + \"/sobjects/\" + objectType + string(if objectId != null then \"/\" + objectId else \"\") + string(if relationName != null then \"/\" + relationName else \"\")",
       "condition": {
         "equals": "sObject",
         "property": "salesforceOperationType"
@@ -270,7 +323,7 @@
         "type": "zeebe:input",
         "name": "url"
       },
-      "value": "=baseUrl + \"/services/data/v58.0/query\"",
+      "value": "=baseUrl + \"/services/data/\" + apiVersion + \"/query\"",
       "condition": {
         "equals": "soqlQuery",
         "property": "salesforceOperationType"
@@ -282,7 +335,7 @@
       "group": "input",
       "type": "String",
       "optional": true,
-      "feel": "optional",
+      "feel": "required",
       "binding": {
         "type": "zeebe:input",
         "name": "body"
@@ -291,8 +344,7 @@
         "property": "interactionType",
         "oneOf": [
           "patch",
-          "post",
-          "delete"
+          "post"
         ]
       }
     },
@@ -320,9 +372,6 @@
       "binding": {
         "type": "zeebe:input",
         "name": "authentication.oauthTokenEndpoint"
-      },
-      "constraints": {
-        "notEmpty": true
       },
       "condition": {
         "property": "authenticationType",
@@ -407,6 +456,13 @@
       "binding": {
         "type": "zeebe:taskHeader",
         "key": "resultVariable"
+      },
+      "condition": {
+        "property": "interactionType",
+        "oneOf": [
+          "get",
+          "post"
+        ]
       }
     },
     {
@@ -418,6 +474,13 @@
       "binding": {
         "type": "zeebe:taskHeader",
         "key": "resultExpression"
+      },
+      "condition": {
+        "property": "interactionType",
+        "oneOf": [
+          "get",
+          "post"
+        ]
       }
     },
     {
