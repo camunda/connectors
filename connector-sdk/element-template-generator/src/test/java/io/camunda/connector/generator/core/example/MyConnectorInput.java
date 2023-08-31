@@ -30,7 +30,7 @@ import io.camunda.connector.generator.core.example.MyConnectorInput.NonAnnotated
 public record MyConnectorInput(
     NonAnnotatedSealedType authorization,
     @TemplateProperty(
-            name = "annotatedStringProperty",
+            id = "annotatedStringProperty",
             label = "Annotated and renamed string property",
             type = PropertyType.Text,
             group = "message",
@@ -76,7 +76,7 @@ public record MyConnectorInput(
     VALUE2
   }
 
-  record NestedA(@TemplateProperty(name = "nestedA") String a) {}
+  record NestedA(@TemplateProperty(id = "nestedA") String a) {}
 
-  record NestedB(@TemplateProperty(name = "nestedB") String b) {}
+  record NestedB(@TemplateProperty(id = "nestedB") String b) {}
 }
