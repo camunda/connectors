@@ -56,7 +56,7 @@ public final class HttpProxyService {
 
     com.google.api.client.http.HttpRequest httpRequest =
         new HttpRequestBuilder()
-            .method(HttpMethod.post)
+            .method(HttpMethod.POST)
             .genericUrl(new GenericUrl(proxyFunctionUrl))
             .content(content)
             .connectionTimeoutInSeconds(request.getConnectionTimeoutInSeconds())

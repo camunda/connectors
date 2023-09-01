@@ -78,7 +78,7 @@ class HttpServiceTest extends BaseTest {
     HttpRequestFactory factory = new MockHttpTransport().createRequestFactory();
     HttpRequest httpRequest =
         factory.buildRequest(
-            HttpMethod.post.name().toUpperCase(), new GenericUrl("http://test.bearer.com"), null);
+            HttpMethod.POST.name().toUpperCase(), new GenericUrl("http://test.bearer.com"), null);
     when(requestFactory.buildRequest(any(), any(), any())).thenReturn(httpRequest);
     when(httpResponse.parseAsString()).thenReturn(ACCESS_TOKEN);
 

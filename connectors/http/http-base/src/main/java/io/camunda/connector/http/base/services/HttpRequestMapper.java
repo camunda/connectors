@@ -55,7 +55,7 @@ public class HttpRequestMapper {
     headers.setContentType(Constants.APPLICATION_X_WWW_FORM_URLENCODED);
 
     return new HttpRequestBuilder()
-        .method(HttpMethod.post)
+        .method(HttpMethod.POST)
         .genericUrl(new GenericUrl(authentication.getOauthTokenEndpoint()))
         .content(new UrlEncodedContent(authentication.getDataForAuthRequestBody()))
         .headers(headers)

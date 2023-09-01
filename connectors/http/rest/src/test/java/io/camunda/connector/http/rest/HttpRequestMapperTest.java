@@ -40,7 +40,7 @@ class HttpRequestMapperTest {
   public void setUp() {
     httpRequestFactory = HttpTransportComponentSupplier.httpRequestFactoryInstance();
     request = new HttpCommonRequest();
-    request.setMethod(HttpMethod.post);
+    request.setMethod(HttpMethod.POST);
     request.setUrl("http://example.com");
     request.setBody("{ \"key\": \"value\" }");
   }

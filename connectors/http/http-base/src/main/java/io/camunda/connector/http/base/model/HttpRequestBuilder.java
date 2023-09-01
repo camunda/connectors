@@ -64,8 +64,7 @@ public final class HttpRequestBuilder {
   }
 
   public HttpRequest build(final HttpRequestFactory requestFactory) throws IOException {
-    final var httpRequest =
-        requestFactory.buildRequest(method.name().toUpperCase(), genericUrl, content);
+    final var httpRequest = requestFactory.buildRequest(method.name(), genericUrl, content);
     httpRequest.setFollowRedirects(this.followRedirects);
     if (headers != null) {
       httpRequest.setHeaders(headers);

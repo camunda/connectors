@@ -80,7 +80,7 @@ public class HttpJsonFunctionProxyTest extends BaseTest {
         OutboundConnectorContextBuilder.create().variables(input).secrets(name -> "foo").build();
 
     when(requestFactory.buildRequest(
-            eq(HttpMethod.post.name().toUpperCase()),
+            eq(HttpMethod.POST.name().toUpperCase()),
             eq(new GenericUrl(PROXY_FUNCTION_URL)),
             nullable(HttpContent.class)))
         .thenReturn(httpRequest);
@@ -111,7 +111,7 @@ public class HttpJsonFunctionProxyTest extends BaseTest {
     when(httpException.getStatusCode()).thenReturn(500);
     when(httpException.getMessage()).thenReturn("my error message");
     when(requestFactory.buildRequest(
-            eq(HttpMethod.post.name().toUpperCase()),
+            eq(HttpMethod.POST.name().toUpperCase()),
             eq(new GenericUrl(PROXY_FUNCTION_URL)),
             nullable(HttpContent.class)))
         .thenReturn(httpRequest);
@@ -140,7 +140,7 @@ public class HttpJsonFunctionProxyTest extends BaseTest {
     when(httpException.getStatusCode()).thenReturn(500);
     when(httpException.getMessage()).thenReturn("my error message");
     when(requestFactory.buildRequest(
-            eq(HttpMethod.post.name().toUpperCase()),
+            eq(HttpMethod.POST.name().toUpperCase()),
             eq(new GenericUrl(PROXY_FUNCTION_URL)),
             nullable(HttpContent.class)))
         .thenReturn(httpRequest);
@@ -167,7 +167,7 @@ public class HttpJsonFunctionProxyTest extends BaseTest {
     when(httpException.getStatusCode()).thenReturn(500);
     when(httpException.getMessage()).thenReturn("my error message");
     when(requestFactory.buildRequest(
-            eq(HttpMethod.post.name().toUpperCase()),
+            eq(HttpMethod.POST.name().toUpperCase()),
             eq(new GenericUrl(PROXY_FUNCTION_URL)),
             nullable(HttpContent.class)))
         .thenReturn(httpRequest);

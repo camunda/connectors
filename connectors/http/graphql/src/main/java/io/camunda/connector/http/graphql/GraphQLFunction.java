@@ -145,14 +145,14 @@ public class GraphQLFunction implements OutboundConnectorFunction {
     final HttpHeaders headers = httpInteractionService.createHeaders(request, bearerToken);
     final Map<String, Object> queryAndVariablesMap =
         JsonSerializeHelper.queryAndVariablesToMap(request);
-    if (HttpMethod.post.equals(request.getMethod())) {
+    if (HttpMethod.POST.equals(request.getMethod())) {
       content = new JsonHttpContent(gsonFactory, queryAndVariablesMap);
     } else {
       genericUrl.putAll(queryAndVariablesMap);
     }
 
     final var httpRequest =
-        requestFactory.buildRequest(request.getMethod().name().toUpperCase(), genericUrl, content);
+        requestFactory.buildRequest(request.getMethod().name(), genericUrl, content);
     httpRequest.setFollowRedirects(false);
     setTimeout(request, httpRequest);
     httpRequest.setHeaders(headers);
