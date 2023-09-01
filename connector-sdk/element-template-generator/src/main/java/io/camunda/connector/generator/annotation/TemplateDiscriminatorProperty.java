@@ -19,15 +19,39 @@ package io.camunda.connector.generator.annotation;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
+/**
+ * This annotation can be used along with {@link TemplateSubType} to override the default behavior
+ * of handling sealed type hierarchies.
+ *
+ * <p>By default, the generator will create a property for the discriminator field that determines
+ * the concrete type of the object. The property ID and label will be derived from the class name of
+ * the sealed hierarchy root. Use this annotation to customize the discriminator property.
+ *
+ * <p>If you are customizing the subtypes using {@link TemplateSubType}, it is recommended to use
+ * this annotation to customize the discriminator property as well. Auto-generated discriminator
+ * property ID is not to be relied upon in manual customization.
+ */
 @Retention(RetentionPolicy.RUNTIME)
 public @interface TemplateDiscriminatorProperty {
+
+  /** Custom ID of the discriminator property */
   String name();
 
+  /**
+   * Custom label of the discriminator property. If not specified, the label will be derived from
+   * the sealed hierarchy root class name.
+   */
   String label() default "";
 
+  /**
+   * Custom group of the discriminator property. If not specified, the discriminator property will
+   * be placed in the default group.
+   */
   String group() default "";
 
+  /** Custom description of the discriminator property */
   String description() default "";
 
+  /** Pre-defined value for the discriminator property */
   String defaultValue() default "";
 }

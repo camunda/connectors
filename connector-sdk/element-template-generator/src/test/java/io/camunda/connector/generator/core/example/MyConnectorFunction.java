@@ -20,6 +20,7 @@ import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.annotation.ElementTemplate;
+import io.camunda.connector.generator.annotation.ElementTemplate.PropertyGroup;
 
 public abstract class MyConnectorFunction implements OutboundConnectorFunction {
 
@@ -45,7 +46,11 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
       version = MyConnectorFunction.VERSION,
       description = MyConnectorFunction.DESCRIPTION,
       documentationRef = MyConnectorFunction.DOCUMENTATION_REF,
-      inputDataClass = MyConnectorInput.class)
+      inputDataClass = MyConnectorInput.class,
+      propertyGroups = {
+        @PropertyGroup(id = "group2", label = "Group Two"),
+        @PropertyGroup(id = "group1", label = "Group One")
+      })
   public static class FullyAnnotated extends MyConnectorFunction {}
 
   @OutboundConnector(

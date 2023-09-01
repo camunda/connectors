@@ -19,6 +19,7 @@ package io.camunda.connector.generator.core.example;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.generator.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.annotation.TemplateProperty;
+import io.camunda.connector.generator.annotation.TemplateProperty.PropertyCondition;
 import io.camunda.connector.generator.annotation.TemplateProperty.PropertyType;
 import io.camunda.connector.generator.annotation.TemplateSubType;
 import io.camunda.connector.generator.core.example.MyConnectorInput.AnnotatedSealedType.FirstAnnotatedSubType;
@@ -28,12 +29,11 @@ import io.camunda.connector.generator.core.example.MyConnectorInput.NonAnnotated
 import io.camunda.connector.generator.core.example.MyConnectorInput.NonAnnotatedSealedType.SecondSubType;
 
 public record MyConnectorInput(
-    NonAnnotatedSealedType authorization,
     @TemplateProperty(
             id = "annotatedStringProperty",
             label = "Annotated and renamed string property",
             type = PropertyType.Text,
-            group = "message",
+            group = "group1",
             description = "description")
         String annotatedStringProperty,
     String notAnnotatedStringProperty,
@@ -44,6 +44,17 @@ public record MyConnectorInput(
     @TemplateProperty(addNestedPath = false) NestedB customPathNestedProperty,
     NonAnnotatedSealedType nonAnnotatedSealedType,
     AnnotatedSealedType annotatedSealedType,
+    @TemplateProperty(
+            condition = @PropertyCondition(property = "annotatedStringProperty", equals = "value"))
+        String conditionalPropertyEquals,
+    @TemplateProperty(
+            condition =
+                @PropertyCondition(
+                    property = "annotatedStringProperty",
+                    oneOf = {"value1", "value2"}))
+        String conditionalPropertyOneOf,
+    @TemplateProperty(group = "group1") String propertyForGroup1,
+    @TemplateProperty(group = "group2") String propertyForGroup2,
     @TemplateProperty(ignore = true) String ignoredField) {
 
   sealed interface NonAnnotatedSealedType permits FirstSubType, SecondSubType {
