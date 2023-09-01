@@ -107,7 +107,7 @@ public class AuthenticationService {
     Map<String, String> data = authentication.getDataForAuthRequestBody();
     HttpContent content = new UrlEncodedContent(data);
     final var httpRequest =
-        requestFactory.buildRequest(HttpMethod.post.name().toUpperCase(), genericUrl, content);
+        requestFactory.buildRequest(HttpMethod.POST.name(), genericUrl, content);
     httpRequest.setFollowRedirects(false);
     setTimeout(request, httpRequest);
     HttpHeaders headers = new HttpHeaders();

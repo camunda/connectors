@@ -17,8 +17,10 @@
 package io.camunda.connector.feel;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.camunda.connector.feel.jackson.FeelAnnotationIntrospector;
@@ -30,13 +32,13 @@ public class ConnectorsObjectMapperSupplier {
   private ConnectorsObjectMapperSupplier() {}
 
   public static ObjectMapper DEFAULT_MAPPER =
-      new ObjectMapper()
-          .setAnnotationIntrospector(new FeelAnnotationIntrospector())
-          .registerModule(new JacksonModuleFeelFunction())
-          .registerModule(new Jdk8Module())
-          .registerModule(new JavaTimeModule())
+      JsonMapper.builder()
+          .annotationIntrospector(new FeelAnnotationIntrospector())
+          .addModules(new JacksonModuleFeelFunction(), new Jdk8Module(), new JavaTimeModule())
           .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
-          .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+          .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+          .enable(MapperFeature.ACCEPT_CASE_INSENSITIVE_ENUMS)
+          .build();
 
   public static ObjectMapper getCopy() {
     return DEFAULT_MAPPER.copy();

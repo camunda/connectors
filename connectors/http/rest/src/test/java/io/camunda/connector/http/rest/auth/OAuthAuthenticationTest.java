@@ -62,8 +62,7 @@ class OAuthAuthenticationTest extends BaseTest {
 
     HttpRequestFactory factory = new MockHttpTransport().createRequestFactory();
     HttpRequest httpRequest =
-        factory.buildRequest(
-            HttpMethod.post.name().toUpperCase(), new GenericUrl("http://abc3241.com"), null);
+        factory.buildRequest(HttpMethod.POST.name(), new GenericUrl("http://abc3241.com"), null);
     when(requestFactory.buildRequest(any(), any(), any())).thenReturn(httpRequest);
     when(httpResponse.parseAsString()).thenReturn(ACCESS_TOKEN);
 

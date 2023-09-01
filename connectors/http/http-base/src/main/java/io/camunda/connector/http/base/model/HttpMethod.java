@@ -17,11 +17,11 @@
 package io.camunda.connector.http.base.model;
 
 public enum HttpMethod {
-  post(true),
-  get(false),
-  delete(false),
-  patch(true),
-  put(true);
+  POST(true),
+  GET(false),
+  DELETE(false),
+  PATCH(true),
+  PUT(true);
 
   public final boolean supportsBody;
 
