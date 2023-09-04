@@ -132,7 +132,8 @@ public class ProcessDefinitionInspector {
               process.getId(),
               definition.getVersion().intValue(),
               definition.getKey(),
-              element.getId());
+              element.getId(),
+              definition.getTenantId());
 
       discoveredInboundConnectors.add(def);
     }

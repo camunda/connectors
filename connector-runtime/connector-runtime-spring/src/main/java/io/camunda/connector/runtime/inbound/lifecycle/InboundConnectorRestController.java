@@ -51,7 +51,6 @@ public class InboundConnectorRestController {
   }
 
   private ActiveInboundConnectorResponse mapToResponse(ActiveInboundConnector connector) {
-    var properties = connector.context().getProperties();
     var definition = connector.context().getDefinition();
     var health = connector.context().getHealth();
     Map<String, Object> details;
@@ -74,6 +73,7 @@ public class InboundConnectorRestController {
         definition.version(),
         definition.elementId(),
         definition.type(),
+        definition.tenantId(),
         details,
         health.getStatus());
   }

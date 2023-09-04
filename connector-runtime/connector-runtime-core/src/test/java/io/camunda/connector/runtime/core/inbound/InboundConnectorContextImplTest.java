@@ -45,7 +45,8 @@ class InboundConnectorContextImplTest {
             "bool",
             0,
             0L,
-            "id");
+            "id",
+            "");
     InboundConnectorContextImpl inboundConnectorContext =
         new InboundConnectorContextImpl(
             secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper);
@@ -67,7 +68,8 @@ class InboundConnectorContextImplTest {
             "bool",
             0,
             0L,
-            "id");
+            "id",
+            "");
     InboundConnectorContextImpl inboundConnectorContext =
         new InboundConnectorContextImpl(
             secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper);
@@ -91,7 +93,8 @@ class InboundConnectorContextImplTest {
             "bool",
             0,
             0L,
-            "id");
+            "id",
+            "");
     InboundConnectorContextImpl inboundConnectorContext =
         new InboundConnectorContextImpl(
             secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper);
@@ -133,7 +136,8 @@ class InboundConnectorContextImplTest {
             "bool",
             0,
             0L,
-            "id");
+            "id",
+            "");
     InboundConnectorContextImpl inboundConnectorContext =
         new InboundConnectorContextImpl(
             secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper);
@@ -154,7 +158,8 @@ class InboundConnectorContextImplTest {
             "bool",
             0,
             0L,
-            "id");
+            "id",
+            "");
 
     InboundConnectorContextImpl inboundConnectorContext =
         new InboundConnectorContextImpl(

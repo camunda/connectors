@@ -72,6 +72,16 @@ public class PublishMessageCommandDummy
   }
 
   @Override
+  public PublishMessageCommandStep3 variable(String key, Object value) {
+    return this;
+  }
+
+  @Override
+  public PublishMessageCommandStep3 tenantId(String tenantId) {
+    return this;
+  }
+
+  @Override
   public FinalCommandStep<PublishMessageResponse> requestTimeout(Duration requestTimeout) {
     return this;
   }

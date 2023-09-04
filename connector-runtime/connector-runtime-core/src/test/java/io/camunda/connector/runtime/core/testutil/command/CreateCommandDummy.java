@@ -75,6 +75,16 @@ public class CreateCommandDummy
     return null;
   }
 
+  @Override
+  public CreateProcessInstanceCommandStep3 variable(String key, Object value) {
+    return this;
+  }
+
+  @Override
+  public CreateProcessInstanceCommandStep3 tenantId(String tenantId) {
+    return this;
+  }
+
   @SuppressWarnings({"rawtypes", "unchecked"})
   public ZeebeFuture<ProcessInstanceEvent> send() {
     ZeebeClientFutureImpl future = new ZeebeClientFutureImpl<>();
