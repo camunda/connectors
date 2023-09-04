@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     concurrency: deploy-snapshots
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Import Secrets
         id: secrets # important to refer to it in later steps
