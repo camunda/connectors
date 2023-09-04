@@ -24,5 +24,6 @@ public record ActiveInboundConnectorResponse(
     int version,
     String elementId,
     String type,
+    String tenantId,
     Map<String, Object> data,
     Health.Status status) {}

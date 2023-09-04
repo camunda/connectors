@@ -138,6 +138,7 @@ public class WebhookControllerPlainJavaTests {
         bpmnProcessId,
         version,
         processDefinitionKey,
-        "testElement");
+        "testElement",
+        "testTenantId");
   }
 }

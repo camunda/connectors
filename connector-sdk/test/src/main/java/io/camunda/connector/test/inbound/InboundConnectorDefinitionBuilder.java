@@ -28,6 +28,8 @@ public class InboundConnectorDefinitionBuilder {
   private int version = 1;
   private long processDefinitionKey = 1;
   private String elementId = "test-element";
+
+  private String tenantId = "test-tenant";
   private ProcessCorrelationPoint correlationPoint =
       new StartEventCorrelationPoint(bpmnProcessId, version, processDefinitionKey);
 
@@ -50,6 +52,11 @@ public class InboundConnectorDefinitionBuilder {
     return this;
   }
 
+  public InboundConnectorDefinitionBuilder tenantId(String tenantId) {
+    this.tenantId = tenantId;
+    return this;
+  }
+
   public InboundConnectorDefinitionBuilder correlationPoint(
       ProcessCorrelationPoint correlationPoint) {
     this.correlationPoint = correlationPoint;
@@ -68,7 +75,7 @@ public class InboundConnectorDefinitionBuilder {
 
   public InboundConnectorDefinition build() {
     return new InboundConnectorDefinitionImpl(
-        type, correlationPoint, bpmnProcessId, version, processDefinitionKey, elementId);
+        type, correlationPoint, bpmnProcessId, version, processDefinitionKey, elementId, tenantId);
   }
 
   public record InboundConnectorDefinitionImpl(
@@ -77,6 +84,7 @@ public class InboundConnectorDefinitionBuilder {
       String bpmnProcessId,
       Integer version,
       Long processDefinitionKey,
-      String elementId)
+      String elementId,
+      String tenantId)
       implements InboundConnectorDefinition {}
 }

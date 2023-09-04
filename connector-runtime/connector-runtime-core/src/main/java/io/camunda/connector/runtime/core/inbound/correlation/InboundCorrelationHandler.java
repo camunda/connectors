@@ -85,6 +85,7 @@ public class InboundCorrelationHandler {
               .newCreateInstanceCommand()
               .bpmnProcessId(correlationPoint.bpmnProcessId())
               .version(correlationPoint.version())
+              .tenantId(definition.tenantId())
               .variables(extractedVariables)
               .send()
               .join();
@@ -124,6 +125,7 @@ public class InboundCorrelationHandler {
               .newPublishMessageCommand()
               .messageName(correlationPoint.messageName())
               .correlationKey(correlationKey)
+              .tenantId(definition.tenantId())
               .variables(extractedVariables)
               .send()
               .join();

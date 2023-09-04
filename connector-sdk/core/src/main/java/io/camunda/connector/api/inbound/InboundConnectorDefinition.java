@@ -40,4 +40,7 @@ public interface InboundConnectorDefinition {
 
   /** Returns the element id of the connector in the process definition. */
   String elementId();
+
+  /** Returns the tenantId the process definition is assigned to. */
+  String tenantId();
 }

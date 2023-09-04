@@ -240,7 +240,8 @@ public class InboundConnectorManagerTest {
         procDef.getBpmnProcessId(),
         procDef.getVersion().intValue(),
         procDef.getKey(),
-        "test-element");
+        "test-element",
+        "test-tenant");
   }
 
   private static InboundConnectorDefinitionImpl webhookConnector(ProcessDefinition procDef) {
@@ -254,6 +255,7 @@ public class InboundConnectorManagerTest {
         procDef.getBpmnProcessId(),
         procDef.getVersion().intValue(),
         procDef.getKey(),
-        "test-element");
+        "test-element",
+        "test-tenant");
   }
 }

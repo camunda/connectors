@@ -34,4 +34,9 @@ public class ProcessInstanceEventDummy implements ProcessInstanceEvent {
   public long getProcessInstanceKey() {
     return 0;
   }
+
+  @Override
+  public String getTenantId() {
+    return null;
+  }
 }

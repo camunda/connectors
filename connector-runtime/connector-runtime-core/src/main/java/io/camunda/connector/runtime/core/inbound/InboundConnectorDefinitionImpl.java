@@ -30,7 +30,8 @@ public record InboundConnectorDefinitionImpl(
     String bpmnProcessId,
     Integer version,
     Long processDefinitionKey,
-    String elementId)
+    String elementId,
+    String tenantId)
     implements InboundConnectorDefinition {
 
   @Override
@@ -70,6 +71,8 @@ public record InboundConnectorDefinitionImpl(
         + processDefinitionKey
         + ", elementId='"
         + elementId
+        + ", tenantId='"
+        + tenantId
         + '\''
         + '}';
   }

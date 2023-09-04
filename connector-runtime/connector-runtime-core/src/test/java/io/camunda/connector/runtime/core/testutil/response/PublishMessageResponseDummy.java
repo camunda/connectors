@@ -23,4 +23,9 @@ public class PublishMessageResponseDummy implements PublishMessageResponse {
   public long getMessageKey() {
     return 0;
   }
+
+  @Override
+  public String getTenantId() {
+    return null;
+  }
 }
