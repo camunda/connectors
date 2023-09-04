@@ -113,6 +113,19 @@ except in compliance with the proprietary license.</license.inlineheader>
     <pluginManagement>
       <plugins>
         <plugin>
+          <groupId>io.camunda.connector</groupId>
+          <artifactId>element-template-generator-maven-plugin</artifactId>
+          <version>${project.version}</version>
+          <executions>
+            <execution>
+              <goals>
+                <goal>generate-templates</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
+
+        <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-shade-plugin</artifactId>
           <executions>
