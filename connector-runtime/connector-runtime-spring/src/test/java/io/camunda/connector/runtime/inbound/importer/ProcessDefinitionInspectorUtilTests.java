@@ -70,6 +70,13 @@ public class ProcessDefinitionInspectorUtilTests {
     assertEquals("start_2", inboundConnectors.get(0).elementId());
   }
 
+  @Test
+  public void testSingleWebhookBoundaryEvent() throws Exception {
+    var inboundConnectors = fromModel("single-webhook-boundary.bpmn", "BoundaryEventTest");
+    assertEquals(1, inboundConnectors.size());
+    assertEquals("boundary_event", inboundConnectors.get(0).elementId());
+  }
+
   private List<InboundConnectorDefinitionImpl> fromModel(String fileName, String processId) {
     try {
       var operateClientMock = mock(CamundaOperateClient.class);

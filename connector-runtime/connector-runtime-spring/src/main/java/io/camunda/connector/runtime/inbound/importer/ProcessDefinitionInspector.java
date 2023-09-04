@@ -27,6 +27,8 @@ import io.camunda.operate.dto.ProcessDefinition;
 import io.camunda.operate.exception.OperateException;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.BaseElement;
+import io.camunda.zeebe.model.bpmn.instance.BoundaryEvent;
+import io.camunda.zeebe.model.bpmn.instance.CatchEvent;
 import io.camunda.zeebe.model.bpmn.instance.IntermediateCatchEvent;
 import io.camunda.zeebe.model.bpmn.instance.Message;
 import io.camunda.zeebe.model.bpmn.instance.MessageEventDefinition;
@@ -58,6 +60,7 @@ public class ProcessDefinitionInspector {
     INBOUND_ELIGIBLE_TYPES.add(StartEvent.class);
     INBOUND_ELIGIBLE_TYPES.add(IntermediateCatchEvent.class);
     INBOUND_ELIGIBLE_TYPES.add(ReceiveTask.class);
+    INBOUND_ELIGIBLE_TYPES.add(BoundaryEvent.class);
   }
 
   private final CamundaOperateClient operate;
@@ -150,6 +153,8 @@ public class ProcessDefinitionInspector {
       return getCorrelationPointForStartEvent(process, definition);
     } else if (element instanceof IntermediateCatchEvent) {
       return getCorrelationPointForIntermediateCatchEvent((IntermediateCatchEvent) element);
+    } else if (element instanceof BoundaryEvent) {
+      return getCorrelationPointForIntermediateBoundaryEvent((BoundaryEvent) element);
     } else if (element instanceof ReceiveTask) {
       return getCorrelationPointForReceiveTask((ReceiveTask) element);
     }
@@ -158,8 +163,16 @@ public class ProcessDefinitionInspector {
   }
 
   private Optional<ProcessCorrelationPoint> getCorrelationPointForIntermediateCatchEvent(
-      IntermediateCatchEvent catchEvent) {
+      IntermediateCatchEvent intermediateCatchEvent) {
+    return getCorrelationPointCatchEvent(intermediateCatchEvent);
+  }
 
+  private Optional<ProcessCorrelationPoint> getCorrelationPointForIntermediateBoundaryEvent(
+      BoundaryEvent boundaryEvent) {
+    return getCorrelationPointCatchEvent(boundaryEvent);
+  }
+
+  private Optional<ProcessCorrelationPoint> getCorrelationPointCatchEvent(CatchEvent catchEvent) {
     MessageEventDefinition msgDef =
         (MessageEventDefinition)
             catchEvent.getEventDefinitions().stream()
@@ -168,8 +181,8 @@ public class ProcessDefinitionInspector {
                 .orElseThrow(
                     () ->
                         new IllegalStateException(
-                            "Sanity check failed: IntermediateCatchEvent "
-                                + catchEvent
+                            "Sanity check failed: "
+                                + catchEvent.getClass().getSimpleName()
                                 + " must contain at least one event definition"));
     String name = msgDef.getMessage().getName();
 
