@@ -4,11 +4,20 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.gsheets.model.request;
+package io.camunda.connector.gsheets.model.request.input;
 
 import jakarta.validation.constraints.NotBlank;
 
-public abstract class SpreadsheetInput extends Input {
+public abstract sealed class SpreadsheetInput extends Input
+    permits AddValues,
+        CreateEmptyColumnOrRow,
+        CreateRow,
+        CreateWorksheet,
+        DeleteColumn,
+        DeleteWorksheet,
+        GetRowByIndex,
+        GetSpreadsheetDetails,
+        GetWorksheetData {
 
   public SpreadsheetInput() {}
 

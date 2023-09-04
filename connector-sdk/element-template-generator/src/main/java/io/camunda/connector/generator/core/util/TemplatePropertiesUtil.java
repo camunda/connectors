@@ -18,8 +18,10 @@ package io.camunda.connector.generator.core.util;
 
 import static io.camunda.connector.generator.core.util.ReflectionUtil.getAllFields;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.generator.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.annotation.TemplateProperty;
+import io.camunda.connector.generator.annotation.TemplateProperty.DropdownPropertyChoice;
 import io.camunda.connector.generator.annotation.TemplateProperty.PropertyType;
 import io.camunda.connector.generator.annotation.TemplateSubType;
 import io.camunda.connector.generator.dsl.BooleanProperty;
@@ -27,12 +29,14 @@ import io.camunda.connector.generator.dsl.DropdownProperty;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
 import io.camunda.connector.generator.dsl.HiddenProperty;
 import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.dsl.PropertyBinding;
 import io.camunda.connector.generator.dsl.PropertyBuilder;
 import io.camunda.connector.generator.dsl.PropertyCondition;
 import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
 import io.camunda.connector.generator.dsl.PropertyCondition.OneOf;
 import io.camunda.connector.generator.dsl.PropertyGroup;
+import io.camunda.connector.generator.dsl.PropertyGroup.PropertyGroupBuilder;
 import io.camunda.connector.generator.dsl.StringProperty;
 import io.camunda.connector.generator.dsl.TextProperty;
 import java.lang.annotation.Annotation;
@@ -41,16 +45,16 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.ClassUtils;
 
 /** Utility class for transforming data classes into {@link PropertyBuilder} instances. */
 public class TemplatePropertiesUtil {
-
-  public static final String DISCRIMINATOR_PROPERTIES_GROUP_ID = "settings";
 
   /**
    * Analyze the type and return a list of {@link PropertyBuilder} instances.
@@ -100,7 +104,7 @@ public class TemplatePropertiesUtil {
         properties.add(buildProperty(field));
       }
     }
-    return properties;
+    return properties.stream().filter(Objects::nonNull).toList();
   }
 
   /**
@@ -111,7 +115,7 @@ public class TemplatePropertiesUtil {
    * @param properties the properties to group
    * @return a list of {@link PropertyGroup} instances
    */
-  public static List<PropertyGroup> groupProperties(List<PropertyBuilder> properties) {
+  public static List<PropertyGroupBuilder> groupProperties(List<PropertyBuilder> properties) {
     return properties.stream()
         .map(PropertyBuilder::build)
         .filter(property -> property.getGroup() != null)
@@ -123,17 +127,34 @@ public class TemplatePropertiesUtil {
                 PropertyGroup.builder()
                     .id(entry.getKey())
                     .label(transformIdIntoLabel(entry.getKey()))
-                    .properties(entry.getValue())
-                    .build())
+                    .properties(entry.getValue()))
         .toList();
   }
 
   private static PropertyBuilder buildProperty(Field field) {
     var annotation = field.getAnnotation(TemplateProperty.class);
+    String name, label;
+    if (annotation != null) {
+      if (annotation.ignore()) {
+        return null;
+      }
+      if (!annotation.id().isBlank()) {
+        name = annotation.id();
+      } else {
+        name = field.getName();
+      }
+      if (!annotation.label().isBlank()) {
+        label = annotation.label();
+      } else {
+        label = transformIdIntoLabel(name);
+      }
+    } else {
+      name = field.getName();
+      label = transformIdIntoLabel(name);
+    }
+
     PropertyBuilder propertyBuilder =
-        createPropertyBuilder(field, annotation)
-            .id(field.getName())
-            .label(transformIdIntoLabel(field.getName()));
+        createPropertyBuilder(field, annotation).id(name).label(label);
     return TemplatePropertyAnnotationUtil.applyAnnotation(propertyBuilder, annotation);
   }
 
@@ -153,41 +174,53 @@ public class TemplatePropertiesUtil {
   }
 
   private static PropertyBuilder createPropertyBuilder(Field field, TemplateProperty annotation) {
-    PropertyType type = null;
-    String[] dropdownChoices = null;
+    PropertyType type;
+    Map<String, String> dropdownChoices = new HashMap<>();
+
+    if (field.getType() == Boolean.class) {
+      type = PropertyType.Boolean;
+    } else if (field.getType().isEnum()) {
+      type = PropertyType.Dropdown;
+      dropdownChoices =
+          Arrays.stream(field.getType().getEnumConstants())
+              .collect(
+                  Collectors.toMap(Object::toString, val -> transformIdIntoLabel(val.toString())));
+    } else {
+      type = PropertyType.String;
+    }
 
     if (annotation != null) {
-      type = annotation.type();
-      dropdownChoices = annotation.choices();
-    }
-
-    if (type == null || type == PropertyType.Unknown) {
-      if (field.getType() == Boolean.class) {
-        type = PropertyType.Boolean;
-      } else if (field.getType().isEnum()) {
-        type = PropertyType.Dropdown;
-        if (dropdownChoices == null) {
-          dropdownChoices =
-              Arrays.stream(field.getType().getEnumConstants())
-                  .map(Object::toString)
-                  .toArray(String[]::new);
-        }
-      } else {
-        type = PropertyType.String;
+      if (annotation.type() != PropertyType.Unknown) {
+        type = annotation.type();
+      }
+      if (annotation.choices().length > 0) {
+        dropdownChoices =
+            Arrays.stream(annotation.choices())
+                .collect(
+                    Collectors.toMap(DropdownPropertyChoice::value, DropdownPropertyChoice::label));
       }
     }
-    return switch (type) {
-      case Boolean -> BooleanProperty.builder();
-      case Dropdown -> DropdownProperty.builder()
-          .choices(
-              Arrays.stream(dropdownChoices)
-                  .map(choice -> new DropdownChoice(transformIdIntoLabel(choice), choice))
-                  .toList());
-      case Hidden -> HiddenProperty.builder();
-      case String -> StringProperty.builder();
-      case Text -> TextProperty.builder();
-      case Unknown -> throw new IllegalStateException("Unknown property type");
-    };
+
+    var builder =
+        switch (type) {
+          case Boolean -> BooleanProperty.builder();
+          case Dropdown -> DropdownProperty.builder()
+              .choices(
+                  dropdownChoices.entrySet().stream()
+                      .map(
+                          entry ->
+                              new DropdownProperty.DropdownChoice(entry.getValue(), entry.getKey()))
+                      .toList())
+              .feel(FeelMode.disabled);
+          case Hidden -> HiddenProperty.builder();
+          case String -> StringProperty.builder();
+          case Text -> TextProperty.builder();
+          case Unknown -> throw new IllegalStateException("Unknown property type");
+        };
+    if (Object.class.equals(field.getType()) || JsonNode.class.equals(field.getType())) {
+      builder.feel(FeelMode.required);
+    }
+    return builder;
   }
 
   private static List<PropertyBuilder> handleSealedType(Class<?> type) {
@@ -196,7 +229,7 @@ public class TemplatePropertiesUtil {
             .filter(
                 subType -> {
                   var annotation = subType.getAnnotation(TemplateSubType.class);
-                  return annotation == null || annotation.ignore() == false;
+                  return annotation == null || !annotation.ignore();
                 })
             .toList();
     var properties = new ArrayList<PropertyBuilder>();
@@ -205,10 +238,10 @@ public class TemplatePropertiesUtil {
         extractIdAndLabelFromAnnotationOrDeriveFromType(
             type,
             TemplateDiscriminatorProperty.class,
-            TemplateDiscriminatorProperty::id,
+            TemplateDiscriminatorProperty::name,
             TemplateDiscriminatorProperty::label);
 
-    Map<String, String> values = new HashMap<>();
+    Map<String, String> values = new LinkedHashMap<>();
 
     for (Class<?> subType : subTypes) {
       var subTypeIdAndName =
@@ -243,11 +276,18 @@ public class TemplatePropertiesUtil {
                     .collect(Collectors.toList()))
             .id(discriminatorIdAndName.getKey())
             .group(
-                discriminatorAnnotation == null
-                    ? DISCRIMINATOR_PROPERTIES_GROUP_ID
+                discriminatorAnnotation == null || discriminatorAnnotation.group().isBlank()
+                    ? null
                     : discriminatorAnnotation.group())
             .label(discriminatorIdAndName.getValue())
-            .optional(false);
+            .description(
+                discriminatorAnnotation == null || discriminatorAnnotation.description().isBlank()
+                    ? null
+                    : discriminatorAnnotation.description())
+            .value(
+                discriminatorAnnotation == null || discriminatorAnnotation.defaultValue().isBlank()
+                    ? null
+                    : discriminatorAnnotation.defaultValue());
 
     var result = new ArrayList<>(List.of(discriminator));
     result.addAll(properties);
@@ -274,6 +314,10 @@ public class TemplatePropertiesUtil {
   }
 
   public static String transformIdIntoLabel(String id) {
+    // uppercase ids are preserved
+    if (id.toUpperCase().equals(id)) {
+      return id;
+    }
     // A simple attempt to transform camelCase into a normal sentence (first letter capitalized,
     // spaces)
     var label = new StringBuilder();
@@ -293,14 +337,13 @@ public class TemplatePropertiesUtil {
 
   private static boolean isContainerType(Class<?> type) {
     // true if object with fields, false if primitive or collection or map or array
-    if (type.isPrimitive() || type.isAssignableFrom(String.class)) {
-      return false;
-    }
-    if (type.isArray()
-        || Collection.class.isAssignableFrom(type)
-        || Map.class.isAssignableFrom(type)) {
-      return false;
-    }
-    return true;
+    return !ClassUtils.isPrimitiveOrWrapper(type)
+        && !type.isAssignableFrom(String.class)
+        && type != Object.class
+        && type != JsonNode.class
+        && !type.isEnum()
+        && !type.isArray()
+        && !Collection.class.isAssignableFrom(type)
+        && !Map.class.isAssignableFrom(type);
   }
 }

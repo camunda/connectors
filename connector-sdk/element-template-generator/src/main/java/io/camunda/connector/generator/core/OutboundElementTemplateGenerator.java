@@ -26,28 +26,62 @@ import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskHeader;
 import io.camunda.connector.generator.dsl.PropertyBuilder;
 import io.camunda.connector.generator.dsl.PropertyGroup;
+import io.camunda.connector.generator.dsl.PropertyGroup.PropertyGroupBuilder;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class OutboundElementTemplateGenerator
     implements ElementTemplateGenerator<OutboundElementTemplate> {
 
   @Override
-  public OutboundElementTemplate generate(Class<?> connectorDefinition, Class<?> connectorInput) {
+  public OutboundElementTemplate generate(Class<?> connectorDefinition) {
     var connector =
         ReflectionUtil.getRequiredAnnotation(connectorDefinition, OutboundConnector.class);
     var template = ReflectionUtil.getRequiredAnnotation(connectorDefinition, ElementTemplate.class);
+    var connectorInput = template.inputDataClass();
 
     List<PropertyBuilder> properties =
         TemplatePropertiesUtil.extractTemplatePropertiesFromType(connectorInput).stream()
             .map(builder -> builder.binding(new ZeebeInput(builder.getId())))
             .toList();
 
-    var groups = new ArrayList<>(TemplatePropertiesUtil.groupProperties(properties));
+    var groupsDefinedInProperties =
+        new ArrayList<>(TemplatePropertiesUtil.groupProperties(properties));
+    var manuallyDefinedGroups = Arrays.asList(template.propertyGroups());
 
-    if (!containsCustomGroups(groups)) {
+    List<PropertyGroup> mergedGroups = new ArrayList<>();
+
+    if (!manuallyDefinedGroups.isEmpty()) {
+      for (ElementTemplate.PropertyGroup group : manuallyDefinedGroups) {
+        var groupDefinedInProperties =
+            groupsDefinedInProperties.stream()
+                .filter(g -> g.build().id().equals(group.id()))
+                .findFirst();
+
+        if (groupDefinedInProperties.isEmpty()) {
+          throw new IllegalStateException(
+              String.format(
+                  "Property group '%s' defined in @ElementTemplate but no properties with this group id found",
+                  group.id()));
+        }
+
+        mergedGroups.add(
+            PropertyGroup.builder()
+                .id(group.id())
+                .label(group.label())
+                .properties(groupDefinedInProperties.get().build().properties())
+                .build());
+      }
+    } else {
+      mergedGroups =
+          new ArrayList<>(
+              groupsDefinedInProperties.stream().map(PropertyGroupBuilder::build).toList());
+    }
+
+    if (groupsDefinedInProperties.isEmpty()) {
       // default group so that user properties are higher up in the UI than the output/error mapping
-      groups.add(
+      mergedGroups.add(
           PropertyGroup.builder()
               .id("default")
               .label("Properties")
@@ -77,8 +111,8 @@ public class OutboundElementTemplateGenerator
                     .build())
             .build();
 
-    groups.add(outputGroup);
-    groups.add(errorGroup);
+    mergedGroups.add(outputGroup);
+    mergedGroups.add(errorGroup);
 
     var nonGroupedProperties =
         properties.stream().filter(property -> property.build().getGroup() == null).toList();
@@ -92,14 +126,7 @@ public class OutboundElementTemplateGenerator
             template.documentationRef().isEmpty() ? null : template.documentationRef())
         .description(template.description().isEmpty() ? null : template.description())
         .properties(nonGroupedProperties.stream().map(PropertyBuilder::build).toList())
-        .propertyGroups(groups)
+        .propertyGroups(mergedGroups)
         .build();
-  }
-
-  private boolean containsCustomGroups(List<PropertyGroup> groups) {
-    var copy = new ArrayList<>(groups);
-    copy.removeIf(
-        group -> TemplatePropertiesUtil.DISCRIMINATOR_PROPERTIES_GROUP_ID.equals(group.id()));
-    return !copy.isEmpty();
   }
 }

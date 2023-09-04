@@ -10,7 +10,7 @@ import com.google.api.services.sheets.v4.model.AddSheetRequest;
 import com.google.api.services.sheets.v4.model.BatchUpdateSpreadsheetRequest;
 import com.google.api.services.sheets.v4.model.Request;
 import com.google.api.services.sheets.v4.model.SheetProperties;
-import io.camunda.connector.gsheets.model.request.impl.CreateWorksheet;
+import io.camunda.connector.gsheets.model.request.input.CreateWorksheet;
 import io.camunda.connector.gsheets.model.response.GoogleSheetsResult;
 import io.camunda.connector.gsheets.operation.GoogleSheetOperation;
 import io.camunda.google.model.Authentication;

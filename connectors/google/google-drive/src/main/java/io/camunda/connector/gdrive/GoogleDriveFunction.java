@@ -12,6 +12,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.gdrive.model.GoogleDriveResult;
 import io.camunda.connector.gdrive.model.request.GoogleDriveRequest;
 import io.camunda.connector.gdrive.supliers.GoogleDocsServiceSupplier;
+import io.camunda.connector.generator.annotation.ElementTemplate;
 import io.camunda.google.supplier.GoogleDriveServiceSupplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +21,11 @@ import org.slf4j.LoggerFactory;
     name = "Google Docs",
     inputVariables = {"authentication", "resource"},
     type = "io.camunda:google-drive:1")
+@ElementTemplate(
+    id = "google-drive",
+    name = "Generated Google Drive Connector",
+    description = "Generated Google Drive Connector",
+    inputDataClass = GoogleDriveRequest.class)
 public class GoogleDriveFunction implements OutboundConnectorFunction {
   private static final Logger LOGGER = LoggerFactory.getLogger(GoogleDriveFunction.class);
 

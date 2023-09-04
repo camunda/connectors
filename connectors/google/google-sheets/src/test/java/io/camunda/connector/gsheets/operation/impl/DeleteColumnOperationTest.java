@@ -23,7 +23,7 @@ import com.google.api.services.sheets.v4.model.Request;
 import io.camunda.connector.gsheets.BaseTest;
 import io.camunda.connector.gsheets.model.request.ColumnIndexType;
 import io.camunda.connector.gsheets.model.request.Dimension;
-import io.camunda.connector.gsheets.model.request.impl.DeleteColumn;
+import io.camunda.connector.gsheets.model.request.input.DeleteColumn;
 import io.camunda.connector.gsheets.supplier.GoogleSheetsServiceSupplier;
 import io.camunda.google.model.Authentication;
 import java.io.IOException;

@@ -9,6 +9,7 @@ package io.camunda.connector.gsheets;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.generator.annotation.ElementTemplate;
 import io.camunda.connector.gsheets.model.request.GoogleSheetsRequest;
 import io.camunda.connector.gsheets.operation.GoogleSheetOperation;
 import org.slf4j.Logger;
@@ -18,6 +19,12 @@ import org.slf4j.LoggerFactory;
     name = "Google Spreadsheets",
     inputVariables = {"authentication", "operation"},
     type = "io.camunda:google-sheets:1")
+@ElementTemplate(
+    id = "google-sheets",
+    name = "Generated Google Sheets",
+    version = 1,
+    description = "Google Spreadsheets Connector",
+    inputDataClass = GoogleSheetsRequest.class)
 public class GoogleSheetsFunction implements OutboundConnectorFunction {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GoogleSheetsFunction.class);

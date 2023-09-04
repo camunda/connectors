@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.gsheets.operation.impl;
 
-import io.camunda.connector.gsheets.model.request.impl.GetWorksheetData;
+import io.camunda.connector.gsheets.model.request.input.GetWorksheetData;
 import io.camunda.connector.gsheets.model.response.GoogleSheetsResult;
 import io.camunda.connector.gsheets.operation.GoogleSheetOperation;
 import io.camunda.google.model.Authentication;

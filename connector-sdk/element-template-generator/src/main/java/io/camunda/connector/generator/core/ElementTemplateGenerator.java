@@ -26,5 +26,5 @@ import io.camunda.connector.generator.dsl.ElementTemplateBase;
  */
 public interface ElementTemplateGenerator<T extends ElementTemplateBase> {
 
-  T generate(Class<?> connectorDefinition, Class<?> connectorInput);
+  T generate(Class<?> connectorDefinition);
 }

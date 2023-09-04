@@ -21,12 +21,33 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+/**
+ * Annotation that can be used to override the default sealed type hierarchy handling.
+ *
+ * @see TemplateDiscriminatorProperty
+ */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
 public @interface TemplateSubType {
+
+  /**
+   * Custom ID of the subtype. If not specified, the ID will be derived from the subtype class name.
+   * The ID is passed in the input payload and can be used by your serialization framework to
+   * determine the concrete type of the object.
+   *
+   * <p>For example, it can be useful to define custom type IDs when your selaed hierarchy is
+   * deserialized using Jackson's polymorphic deserialization feature. In this case, the type ID
+   * must match the value of the {@code @JsonTypeInfo} annotation on the subtype class.
+   */
   String id() default "";
 
+  /**
+   * Custom label of the discriminator property. If not specified, the label will be derived from
+   * the subtype class name. The label is displayed as the name of the subtype in the discriminator
+   * property dropdown.
+   */
   String label() default "";
 
+  /** Use this property to exclude the subtype from the discriminator property dropdown. */
   boolean ignore() default false;
 }

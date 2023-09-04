@@ -4,15 +4,14 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.gsheets.model.request.impl;
+package io.camunda.connector.gsheets.model.request.input;
 
-import io.camunda.connector.gsheets.model.request.SpreadsheetInput;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import java.util.Objects;
 
-public class CreateRow extends SpreadsheetInput {
+public final class CreateRow extends SpreadsheetInput {
 
   private String worksheetName;
   @NotNull private Integer rowIndex;

@@ -23,4 +23,4 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
   @JsonSubTypes.Type(value = GetItem.class, name = "getItem"),
   @JsonSubTypes.Type(value = UpdateItem.class, name = "updateItem")
 })
-public interface AwsInput {}
+public sealed interface AwsInput permits TableOperation {}

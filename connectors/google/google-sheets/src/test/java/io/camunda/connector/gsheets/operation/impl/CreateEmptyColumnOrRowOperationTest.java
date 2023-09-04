@@ -27,7 +27,7 @@ import com.google.api.services.sheets.v4.model.InsertDimensionRequest;
 import com.google.api.services.sheets.v4.model.Request;
 import io.camunda.connector.gsheets.BaseTest;
 import io.camunda.connector.gsheets.model.request.Dimension;
-import io.camunda.connector.gsheets.model.request.impl.CreateEmptyColumnOrRow;
+import io.camunda.connector.gsheets.model.request.input.CreateEmptyColumnOrRow;
 import io.camunda.connector.gsheets.supplier.GoogleSheetsServiceSupplier;
 import io.camunda.google.model.Authentication;
 import java.io.IOException;

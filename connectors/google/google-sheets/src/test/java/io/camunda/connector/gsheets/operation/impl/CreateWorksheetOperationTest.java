@@ -22,7 +22,7 @@ import com.google.api.services.sheets.v4.model.BatchUpdateSpreadsheetResponse;
 import com.google.api.services.sheets.v4.model.Request;
 import com.google.api.services.sheets.v4.model.SheetProperties;
 import io.camunda.connector.gsheets.BaseTest;
-import io.camunda.connector.gsheets.model.request.impl.CreateWorksheet;
+import io.camunda.connector.gsheets.model.request.input.CreateWorksheet;
 import io.camunda.connector.gsheets.supplier.GoogleSheetsServiceSupplier;
 import io.camunda.google.model.Authentication;
 import java.io.IOException;

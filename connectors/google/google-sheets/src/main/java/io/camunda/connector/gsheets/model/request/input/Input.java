@@ -4,20 +4,10 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.gsheets.model.request;
+package io.camunda.connector.gsheets.model.request.input;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import io.camunda.connector.gsheets.model.request.impl.AddValues;
-import io.camunda.connector.gsheets.model.request.impl.CreateEmptyColumnOrRow;
-import io.camunda.connector.gsheets.model.request.impl.CreateRow;
-import io.camunda.connector.gsheets.model.request.impl.CreateSpreadsheet;
-import io.camunda.connector.gsheets.model.request.impl.CreateWorksheet;
-import io.camunda.connector.gsheets.model.request.impl.DeleteColumn;
-import io.camunda.connector.gsheets.model.request.impl.DeleteWorksheet;
-import io.camunda.connector.gsheets.model.request.impl.GetRowByIndex;
-import io.camunda.connector.gsheets.model.request.impl.GetSpreadsheetDetails;
-import io.camunda.connector.gsheets.model.request.impl.GetWorksheetData;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
@@ -33,4 +23,4 @@ import io.camunda.connector.gsheets.model.request.impl.GetWorksheetData;
   @JsonSubTypes.Type(value = GetSpreadsheetDetails.class, name = "spreadsheetsDetails"),
   @JsonSubTypes.Type(value = GetWorksheetData.class, name = "getWorksheetData")
 })
-public abstract class Input {}
+public abstract sealed class Input permits CreateSpreadsheet, SpreadsheetInput {}

@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.generator.dsl;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import java.util.Objects;
@@ -40,6 +41,7 @@ public abstract sealed class Property
   public enum FeelMode {
     optional,
     required,
+    @JsonIgnore
     disabled
   }
 
@@ -93,6 +95,9 @@ public abstract sealed class Property
   }
 
   public FeelMode getFeel() {
+    if (feel == FeelMode.disabled) {
+      return null;
+    }
     return feel;
   }
 

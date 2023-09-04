@@ -4,13 +4,12 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.gsheets.model.request.impl;
+package io.camunda.connector.gsheets.model.request.input;
 
-import io.camunda.connector.gsheets.model.request.Input;
 import jakarta.validation.constraints.NotBlank;
 import java.util.Objects;
 
-public class CreateSpreadsheet extends Input {
+public final class CreateSpreadsheet extends Input {
 
   @NotBlank private String spreadsheetName;
   private String parent;

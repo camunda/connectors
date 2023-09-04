@@ -48,8 +48,8 @@ public abstract sealed class PropertyBuilder
     return id;
   }
 
-  public PropertyBuilder id(String id) {
-    this.id = id;
+  public PropertyBuilder id(String name) {
+    this.id = name;
     return this;
   }
 

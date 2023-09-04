@@ -48,6 +48,11 @@
             <artifactId>google-api-services-drive</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>io.camunda.connector</groupId>
+            <artifactId>element-template-generator</artifactId>
+        </dependency>
+
     </dependencies>
 
 </project>
