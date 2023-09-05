@@ -45,14 +45,16 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
   @Parameter(property = "connectorClasses", required = true)
   private String[] connectorClasses;
 
-  @Parameter(property = "includeDependencies", required = false)
+  @Parameter(property = "includeDependencies")
   private String[] includeDependencies;
+
+  @Parameter(property = "outputDirectory", defaultValue = "${project.basedir}/element-templates")
+  private String outputDirectory;
 
   private static final ObjectMapper mapper = new ObjectMapper();
   private final OutboundElementTemplateGenerator generator = new OutboundElementTemplateGenerator();
 
   private static final String COMPILED_CLASSES_DIR = "target" + File.separator + "classes";
-  private static final String ELEMENT_TEMPLATES_DIR = "element-templates";
 
   @Override
   public void execute() throws MojoFailureException {
@@ -110,9 +112,7 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
   private void writeElementTemplate(OutboundElementTemplate template) {
     try {
       String fileName = transformConnectorNameToTemplateFileName(template.name());
-      File file =
-          new File(
-              project.getFile().getParent() + File.separator + ELEMENT_TEMPLATES_DIR, fileName);
+      File file = new File(outputDirectory, fileName);
       file.getParentFile().mkdirs();
       mapper.writerWithDefaultPrettyPrinter().writeValue(file, template);
     } catch (Exception e) {

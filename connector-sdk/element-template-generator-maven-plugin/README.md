@@ -33,7 +33,9 @@ Add the following plugin to your `pom.xml`:
 Edit the `connectorClass` element to point to your Connector class. You can specify multiple
 classes if you have more than one Connector in one project.
 
-The generated element template will be placed in `element-templates` directory in your project.
+By default, the generated element template will be placed in `element-templates` directory inside
+your project's base directory. You can change the output directory by setting the `outputDirectory`
+configuration parameter.
 
 ## Accessing classes from other modules
 
