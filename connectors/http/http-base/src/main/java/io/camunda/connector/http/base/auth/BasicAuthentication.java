@@ -19,16 +19,29 @@ package io.camunda.connector.http.base.auth;
 import com.google.api.client.http.HttpHeaders;
 import com.google.common.base.Objects;
 import io.camunda.connector.api.annotation.FEEL;
+import io.camunda.connector.generator.annotation.TemplateProperty;
+import io.camunda.connector.generator.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotEmpty;
 import java.util.function.Function;
 
+@TemplateSubType(id = "basic", label = "Basic")
 public final class BasicAuthentication extends Authentication {
+  @TemplateProperty(ignore = true)
   private static final String SPEC_PASSWORD_EMPTY_PATTERN = "SPEC_PASSWORD_EMPTY_PATTERN";
+
+  @TemplateProperty(ignore = true)
   private static final Function<String, String> SPEC_PASSWORD =
       (psw) -> psw.equals(SPEC_PASSWORD_EMPTY_PATTERN) ? "" : psw;
 
-  @FEEL @NotEmpty private String username;
-  @FEEL @NotEmpty private String password;
+  @FEEL
+  @NotEmpty
+  @TemplateProperty(group = "authentication")
+  private String username;
+
+  @FEEL
+  @NotEmpty
+  @TemplateProperty(group = "authentication")
+  private String password;
 
   @Override
   public void setHeaders(final HttpHeaders headers) {

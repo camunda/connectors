@@ -18,20 +18,68 @@ package io.camunda.connector.http.base.auth;
 
 import com.google.api.client.http.HttpHeaders;
 import io.camunda.connector.api.annotation.FEEL;
+import io.camunda.connector.generator.annotation.TemplateProperty;
+import io.camunda.connector.generator.annotation.TemplateProperty.DropdownPropertyChoice;
+import io.camunda.connector.generator.annotation.TemplateProperty.PropertyType;
+import io.camunda.connector.generator.annotation.TemplateSubType;
 import io.camunda.connector.http.base.constants.Constants;
 import jakarta.validation.constraints.NotEmpty;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
+@TemplateSubType(id = "oauth-client-credentials-flow", label = "OAuth 2.0")
 public final class OAuthAuthentication extends Authentication {
+  @TemplateProperty(ignore = true)
   private final String grantType = "client_credentials";
-  @FEEL @NotEmpty private String oauthTokenEndpoint;
-  @FEEL @NotEmpty private String clientId;
-  @FEEL @NotEmpty private String clientSecret;
-  @FEEL private String audience;
-  @FEEL @NotEmpty private String clientAuthentication;
 
+  @FEEL
+  @NotEmpty
+  @TemplateProperty(group = "authentication", description = "The OAuth token endpoint")
+  private String oauthTokenEndpoint;
+
+  @FEEL
+  @NotEmpty
+  @TemplateProperty(
+      group = "authentication",
+      description = "Your application's client ID from the OAuth client")
+  private String clientId;
+
+  @FEEL
+  @NotEmpty
+  @TemplateProperty(
+      group = "authentication",
+      description = "Your application's client secret from the OAuth client")
+  private String clientSecret;
+
+  @FEEL
+  @TemplateProperty(
+      group = "authentication",
+      description = "The unique identifier of the target API you want to access",
+      optional = true)
+  private String audience;
+
+  @FEEL
+  @NotEmpty
+  @TemplateProperty(
+      group = "authentication",
+      type = PropertyType.Dropdown,
+      choices = {
+        @DropdownPropertyChoice(
+            value = Constants.CREDENTIALS_BODY,
+            label = "Send client credentials in body"),
+        @DropdownPropertyChoice(
+            value = Constants.BASIC_AUTH_HEADER,
+            label = "Send as Basic Auth header")
+      },
+      description =
+          "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body")
+  private String clientAuthentication;
+
+  @TemplateProperty(
+      group = "authentication",
+      description = "The scopes which you want to request authorization for (e.g.read:contacts)",
+      optional = true)
   private String scopes;
 
   public Map<String, String> getDataForAuthRequestBody() {

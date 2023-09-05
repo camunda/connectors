@@ -70,6 +70,24 @@ limitations under the License.</license.inlineheader>
     </dependency>
   </dependencies>
 
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>element-template-generator-maven-plugin</artifactId>
+        <version>${project.version}</version>
+        <configuration>
+          <connectorClasses>
+            <connectorClass>io.camunda.connector.http.rest.HttpJsonFunction</connectorClass>
+          </connectorClasses>
+          <includeDependencies>
+            <includeDependency>io.camunda.connector:connector-http-base</includeDependency>
+          </includeDependencies>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
   <profiles>
     <profile>
       <id>cloud-function-plain</id>

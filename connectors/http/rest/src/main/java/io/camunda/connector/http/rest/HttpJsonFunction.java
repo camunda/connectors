@@ -24,6 +24,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.generator.annotation.ElementTemplate;
+import io.camunda.connector.generator.annotation.ElementTemplate.PropertyGroup;
 import io.camunda.connector.http.base.components.HttpTransportComponentSupplier;
 import io.camunda.connector.http.base.constants.Constants;
 import io.camunda.connector.http.base.services.HttpService;
@@ -47,7 +48,14 @@ import java.io.IOException;
     name = "Generated REST Connector",
     description = "Generated REST Connector",
     inputDataClass = HttpJsonRequest.class,
-    version = 1)
+    version = 1,
+    propertyGroups = {
+      @PropertyGroup(id = "authentication", label = "Authentication"),
+      @PropertyGroup(id = "endpoint", label = "HTTP Endpoint"),
+      @PropertyGroup(id = "timeout", label = "Connection timeout"),
+      @PropertyGroup(id = "payload", label = "Payload")
+    },
+    documentationRef = "https://docs.camunda.io/docs/components/connectors/protocol/rest/")
 public class HttpJsonFunction implements OutboundConnectorFunction {
 
   private final HttpService httpService;
