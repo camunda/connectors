@@ -1,0 +1,63 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.camunda.connector</groupId>
+    <artifactId>connector-parent</artifactId>
+    <relativePath>../../parent/pom.xml</relativePath>
+    <version>0.23.0-SNAPSHOT</version>
+  </parent>
+
+  <name>element-template-generator-maven-plugin</name>
+  <description>Maven plugin for generating connector templates</description>
+  <artifactId>element-template-generator-maven-plugin</artifactId>
+  <packaging>maven-plugin</packaging>
+
+  <properties>
+    <version.maven-plugin-api>3.9.4</version.maven-plugin-api>
+    <version.maven-plugin-annotations>3.9.0</version.maven-plugin-annotations>
+    <version.maven-plugin-plugin>3.9.0</version.maven-plugin-plugin>
+    <version.maven-project>2.2.1</version.maven-project>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>element-template-generator</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.maven</groupId>
+      <artifactId>maven-plugin-api</artifactId>
+      <version>${version.maven-plugin-api}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.maven.plugin-tools</groupId>
+      <artifactId>maven-plugin-annotations</artifactId>
+      <version>${version.maven-plugin-annotations}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.maven</groupId>
+      <artifactId>maven-project</artifactId>
+      <version>${version.maven-project}</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-plugin-plugin</artifactId>
+        <version>${version.maven-plugin-plugin}</version>
+        <executions>
+          <execution>
+            <id>default-descriptor</id>
+            <phase>process-classes</phase>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>
