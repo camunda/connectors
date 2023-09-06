@@ -14,21 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.generator.core.util;
+package io.camunda.connector.generator.core.processor;
 
 import io.camunda.connector.generator.annotation.TemplateProperty;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownPropertyBuilder;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.dsl.PropertyBuilder;
 import io.camunda.connector.generator.dsl.PropertyCondition;
+import java.lang.reflect.Field;
 import java.util.Arrays;
 
-public class TemplatePropertyAnnotationUtil {
+/** {@link TemplateProperty} annotation processor */
+public class TemplatePropertyFieldProcessor implements FieldProcessor {
 
-  public static PropertyBuilder applyAnnotation(
-      PropertyBuilder builder, TemplateProperty annotation) {
+  @Override
+  public void process(Field field, PropertyBuilder builder) {
+    var annotation = field.getAnnotation(TemplateProperty.class);
     if (annotation == null) {
-      return builder;
+      return;
     }
     builder.optional(annotation.optional());
     if (annotation.feel() != FeelMode.disabled && !(builder instanceof DropdownPropertyBuilder)) {
@@ -47,10 +50,9 @@ public class TemplatePropertyAnnotationUtil {
       builder.group(annotation.group());
     }
     builder.condition(buildCondition(annotation));
-    return builder;
   }
 
-  private static PropertyCondition buildCondition(TemplateProperty propertyAnnotation) {
+  private PropertyCondition buildCondition(TemplateProperty propertyAnnotation) {
     var conditionAnnotation = propertyAnnotation.condition();
     if (conditionAnnotation.property().isBlank()) {
       return null;
