@@ -27,6 +27,11 @@ import io.camunda.connector.generator.core.example.MyConnectorInput.AnnotatedSea
 import io.camunda.connector.generator.core.example.MyConnectorInput.AnnotatedSealedType.SecondAnnotatedSubType;
 import io.camunda.connector.generator.core.example.MyConnectorInput.NonAnnotatedSealedType.FirstSubType;
 import io.camunda.connector.generator.core.example.MyConnectorInput.NonAnnotatedSealedType.SecondSubType;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 
 public record MyConnectorInput(
     @TemplateProperty(
@@ -55,7 +60,15 @@ public record MyConnectorInput(
         String conditionalPropertyOneOf,
     @TemplateProperty(group = "group1") String propertyForGroup1,
     @TemplateProperty(group = "group2") String propertyForGroup2,
-    @TemplateProperty(ignore = true) String ignoredField) {
+    @TemplateProperty(ignore = true) String ignoredField,
+    @TemplateProperty(type = PropertyType.Text)
+        @Pattern(regexp = "^(=.*|[0-9]+|\\{\\{secrets\\..+}})$", message = "Pattern violated")
+        String propertyWithPattern,
+    @Size(min = 1, max = 10) String propertyWithMinMax,
+    @Size(min = Integer.MIN_VALUE, max = 10) String propertyWithMaxSize,
+    @NotEmpty String stringPropertyWithNotEmpty,
+    @NotBlank String stringPropertyWithNotBlank,
+    @NotNull Object objectPropertyWithNotNull) {
 
   sealed interface NonAnnotatedSealedType permits FirstSubType, SecondSubType {
 

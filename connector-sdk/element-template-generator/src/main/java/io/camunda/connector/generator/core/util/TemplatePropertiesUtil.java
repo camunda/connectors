@@ -24,6 +24,9 @@ import io.camunda.connector.generator.annotation.TemplateProperty;
 import io.camunda.connector.generator.annotation.TemplateProperty.DropdownPropertyChoice;
 import io.camunda.connector.generator.annotation.TemplateProperty.PropertyType;
 import io.camunda.connector.generator.annotation.TemplateSubType;
+import io.camunda.connector.generator.core.processor.FieldProcessor;
+import io.camunda.connector.generator.core.processor.JakartaValidationFieldProcessor;
+import io.camunda.connector.generator.core.processor.TemplatePropertyFieldProcessor;
 import io.camunda.connector.generator.dsl.BooleanProperty;
 import io.camunda.connector.generator.dsl.DropdownProperty;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
@@ -55,6 +58,9 @@ import org.apache.commons.lang3.ClassUtils;
 
 /** Utility class for transforming data classes into {@link PropertyBuilder} instances. */
 public class TemplatePropertiesUtil {
+
+  private static final List<FieldProcessor> fieldProcessors =
+      List.of(new TemplatePropertyFieldProcessor(), new JakartaValidationFieldProcessor());
 
   /**
    * Analyze the type and return a list of {@link PropertyBuilder} instances.
@@ -155,7 +161,11 @@ public class TemplatePropertiesUtil {
 
     PropertyBuilder propertyBuilder =
         createPropertyBuilder(field, annotation).id(name).label(label);
-    return TemplatePropertyAnnotationUtil.applyAnnotation(propertyBuilder, annotation);
+
+    for (FieldProcessor processor : fieldProcessors) {
+      processor.process(field, propertyBuilder);
+    }
+    return propertyBuilder;
   }
 
   private static PropertyBuilder addPathPrefix(PropertyBuilder builder, String path) {
@@ -217,7 +227,10 @@ public class TemplatePropertiesUtil {
           case Text -> TextProperty.builder();
           case Unknown -> throw new IllegalStateException("Unknown property type");
         };
-    if (Object.class.equals(field.getType()) || JsonNode.class.equals(field.getType())) {
+    if (Object.class.equals(field.getType())
+        || JsonNode.class.equals(field.getType())
+        || Collection.class.isAssignableFrom(field.getType())
+        || Map.class.isAssignableFrom(field.getType())) {
       builder.feel(FeelMode.required);
     }
     return builder;

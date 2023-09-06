@@ -29,6 +29,7 @@ import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.dsl.PropertyBinding;
 import io.camunda.connector.generator.dsl.PropertyCondition;
 import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
+import io.camunda.connector.generator.dsl.PropertyConstraints.Pattern;
 import io.camunda.connector.generator.dsl.StringProperty;
 import io.camunda.connector.generator.dsl.TextProperty;
 import java.util.List;
@@ -297,6 +298,73 @@ public class OutboundTemplateGeneratorTest extends BaseTest {
           .containsExactlyInAnyOrder(
               getPropertyByLabel("Annotated and renamed string property", template),
               getPropertyByLabel("Property for group 1", template));
+    }
+  }
+
+  @Nested
+  class ValidationConstraints {
+
+    @Test
+    void validationPresent_onlyPattern() {
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class);
+      var property = getPropertyByLabel("Property with pattern", template);
+      assertThat(property.getConstraints()).isNotNull();
+      assertThat(property.getConstraints().pattern())
+          .isEqualTo(new Pattern("^(=.*|[0-9]+|\\{\\{secrets\\..+}})$", "Pattern violated"));
+      assertThat(property.getConstraints().minLength()).isNull();
+      assertThat(property.getConstraints().maxLength()).isNull();
+      assertThat(property.getConstraints().notEmpty()).isNull();
+    }
+
+    @Test
+    void validationNotPresent() {
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class);
+      var property = getPropertyByLabel("Not annotated string property", template);
+      assertThat(property.getConstraints()).isNull();
+    }
+
+    @Test
+    void validationPresent_minMaxSize() {
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class);
+      var property = getPropertyByLabel("Property with min max", template);
+      assertThat(property.getConstraints()).isNotNull();
+      assertThat(property.getConstraints().minLength()).isEqualTo(1);
+      assertThat(property.getConstraints().maxLength()).isEqualTo(10);
+    }
+
+    @Test
+    void validationPresent_maxSizeOnly() {
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class);
+      var property = getPropertyByLabel("Property with max size", template);
+      assertThat(property.getConstraints()).isNotNull();
+      assertThat(property.getConstraints().minLength()).isNull();
+      assertThat(property.getConstraints().maxLength()).isEqualTo(10);
+    }
+
+    @Test
+    void validationPresent_notEmpty_stringProperty() {
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class);
+      var notEmptyProperty = getPropertyByLabel("String property with not empty", template);
+      assertThat(notEmptyProperty.getConstraints()).isNotNull();
+      assertThat(notEmptyProperty.getConstraints().notEmpty()).isTrue();
+      assertThat(notEmptyProperty.getConstraints().minLength()).isNull();
+      assertThat(notEmptyProperty.getConstraints().maxLength()).isNull();
+
+      var notBlankProperty = getPropertyByLabel("String property with not blank", template);
+      assertThat(notBlankProperty.getConstraints()).isNotNull();
+      assertThat(notBlankProperty.getConstraints().notEmpty()).isTrue();
+      assertThat(notBlankProperty.getConstraints().minLength()).isNull();
+      assertThat(notBlankProperty.getConstraints().maxLength()).isNull();
+    }
+
+    @Test
+    void validationPresent_notEmpty_objectProperty() {
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class);
+      var notEmptyProperty = getPropertyByLabel("Object property with not null", template);
+      assertThat(notEmptyProperty.getConstraints()).isNotNull();
+      assertThat(notEmptyProperty.getConstraints().notEmpty()).isTrue();
+      assertThat(notEmptyProperty.getConstraints().minLength()).isNull();
+      assertThat(notEmptyProperty.getConstraints().maxLength()).isNull();
     }
   }
 }
