@@ -13,7 +13,7 @@ To make use of the Template Generator, your Connector must:
 - Be annotated with the `@ElementTemplate` annotation defined in this module.
 
 The points above define the minimum requirements.
-ou can customize and extend the functionality by using more annotations (see below).
+You can customize and extend the functionality by using more annotations (see below).
 
 ## Usage
 
