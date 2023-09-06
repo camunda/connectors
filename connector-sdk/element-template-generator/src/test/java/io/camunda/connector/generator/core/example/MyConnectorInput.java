@@ -62,7 +62,7 @@ public record MyConnectorInput(
     @TemplateProperty(group = "group2") String propertyForGroup2,
     @TemplateProperty(ignore = true) String ignoredField,
     @TemplateProperty(type = PropertyType.Text)
-        @Pattern(regexp = "^(=.*|[0-9]+|\\{\\{secrets\\..+\\}\\})$", message = "Pattern violated")
+        @Pattern(regexp = "^(=.*|[0-9]+|\\{\\{secrets\\..+}})$", message = "Pattern violated")
         String propertyWithPattern,
     @Size(min = 1, max = 10) String propertyWithMinMax,
     @Size(min = Integer.MIN_VALUE, max = 10) String propertyWithMaxSize,

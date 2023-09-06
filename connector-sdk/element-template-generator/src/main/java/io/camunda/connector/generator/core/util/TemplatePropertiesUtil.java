@@ -227,7 +227,10 @@ public class TemplatePropertiesUtil {
           case Text -> TextProperty.builder();
           case Unknown -> throw new IllegalStateException("Unknown property type");
         };
-    if (Object.class.equals(field.getType()) || JsonNode.class.equals(field.getType())) {
+    if (Object.class.equals(field.getType())
+        || JsonNode.class.equals(field.getType())
+        || Collection.class.isAssignableFrom(field.getType())
+        || Map.class.isAssignableFrom(field.getType())) {
       builder.feel(FeelMode.required);
     }
     return builder;

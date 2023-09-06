@@ -310,7 +310,7 @@ public class OutboundTemplateGeneratorTest extends BaseTest {
       var property = getPropertyByLabel("Property with pattern", template);
       assertThat(property.getConstraints()).isNotNull();
       assertThat(property.getConstraints().pattern())
-          .isEqualTo(new Pattern("^(=.*|[0-9]+|\\{\\{secrets\\..+\\}\\})$", "Pattern violated"));
+          .isEqualTo(new Pattern("^(=.*|[0-9]+|\\{\\{secrets\\..+}})$", "Pattern violated"));
       assertThat(property.getConstraints().minLength()).isNull();
       assertThat(property.getConstraints().maxLength()).isNull();
       assertThat(property.getConstraints().notEmpty()).isNull();
