@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.generator.core;
 
+import static java.nio.file.Files.readAllBytes;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -32,6 +33,9 @@ import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
 import io.camunda.connector.generator.dsl.PropertyConstraints.Pattern;
 import io.camunda.connector.generator.dsl.StringProperty;
 import io.camunda.connector.generator.dsl.TextProperty;
+import java.io.IOException;
+import java.nio.file.Paths;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -365,6 +369,38 @@ public class OutboundTemplateGeneratorTest extends BaseTest {
       assertThat(notEmptyProperty.getConstraints().notEmpty()).isTrue();
       assertThat(notEmptyProperty.getConstraints().minLength()).isNull();
       assertThat(notEmptyProperty.getConstraints().maxLength()).isNull();
+    }
+  }
+
+  @Nested
+  class Icons {
+
+    @Test
+    void svgIcon_classpathFile() throws IOException {
+      var expectedIcon =
+          OutboundTemplateGeneratorTest.class.getClassLoader().getResource("my-connector-icon.svg");
+      var expectedIconString =
+          "data:image/svg+xml;base64,"
+              + Base64.getEncoder().encodeToString(readAllBytes(Paths.get(expectedIcon.getFile())));
+
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotatedWithSvgIcon.class);
+      var icon = template.icon();
+
+      assertThat(icon.contents()).isEqualTo(expectedIconString);
+    }
+
+    @Test
+    void pngIcon_classpathFile() throws IOException {
+      var expectedIcon =
+          OutboundTemplateGeneratorTest.class.getClassLoader().getResource("my-connector-icon.png");
+      var expectedIconString =
+          "data:image/png;base64,"
+              + Base64.getEncoder().encodeToString(readAllBytes(Paths.get(expectedIcon.getFile())));
+
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotatedWithPngIcon.class);
+      var icon = template.icon();
+
+      assertThat(icon.contents()).isEqualTo(expectedIconString);
     }
   }
 }

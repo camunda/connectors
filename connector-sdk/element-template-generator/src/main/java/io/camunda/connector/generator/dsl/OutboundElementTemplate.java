@@ -45,7 +45,8 @@ public record OutboundElementTemplate(
     @JsonProperty String documentationRef,
     @JsonProperty String description,
     @JsonProperty List<PropertyGroup> groups,
-    @JsonProperty List<Property> properties)
+    @JsonProperty List<Property> properties,
+    @JsonProperty ElementTemplateIcon icon)
     implements ElementTemplateBase {
 
   public OutboundElementTemplate {
@@ -67,6 +68,9 @@ public record OutboundElementTemplate(
     }
     if (!errors.isEmpty()) {
       throw new IllegalArgumentException(String.join(", ", errors));
+    }
+    if (icon != null && !icon.contents().matches("^(data):.*")) {
+      throw new IllegalArgumentException("icon contents must be base64 encoded");
     }
   }
 

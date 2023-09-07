@@ -243,6 +243,32 @@ to execute the Connector. The following properties are added by default:
 Every generated property is bound to a Zeebe input (`zeebe:input` mapping). The binding name is derived from the
 field name. Other bindings, like task headers, are currently not supported by the `@TemplateProperty` annotation.
 
+## Icons
+
+A custom element template icon can be defined by using the `@ElementTemplate` annotation:
+
+```java
+@ElementTemplate(
+    id = "myConnector",
+    name = "My Connector",
+    version = 1,
+    icon = "my-connector.svg")
+public class MyConnectorFunction { }
+```
+
+You can use SVG or PNG graphics for the icon, although SVG is recommended. The icons get rendered
+18x18 pixels in the element on the modeling canvas, and 32x32 pixels in the properties panel.
+
+The icon file must be available as a resource in the classpath. By default, it is expected to be in the
+`src/main/resources` directory.
+
+When running in a multi-module Maven environment using the
+[Maven Plugin](../element-template-generator-maven-plugin), the resources of a connector module are
+not visible to the Template Generator's default class loader. To mitigate this, the Maven Plugin
+adds the individual connector resources to the custom class loader that can be consumed by the
+Template Generator either via `Thread.currentThread().getContextClassLoader()` or directly via
+constructor injection.
+
 ## Element Template DSL
 
 This module defines a DSL for building element templates programmatically. The starting point is the

@@ -62,4 +62,26 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
       name = MyConnectorFunction.NAME,
       inputDataClass = MyConnectorInput.class)
   public static class MinimallyAnnotated extends MyConnectorFunction {}
+
+  @OutboundConnector(
+      name = "my-connector",
+      type = "my-connector-type",
+      inputVariables = {})
+  @ElementTemplate(
+      id = MyConnectorFunction.ID,
+      name = MyConnectorFunction.NAME,
+      inputDataClass = MyConnectorInput.class,
+      icon = "my-connector-icon.svg")
+  public static class MinimallyAnnotatedWithSvgIcon extends MyConnectorFunction {}
+
+  @OutboundConnector(
+      name = "my-connector",
+      type = "my-connector-type",
+      inputVariables = {})
+  @ElementTemplate(
+      id = MyConnectorFunction.ID,
+      name = MyConnectorFunction.NAME,
+      inputDataClass = MyConnectorInput.class,
+      icon = "my-connector-icon.png")
+  public static class MinimallyAnnotatedWithPngIcon extends MyConnectorFunction {}
 }

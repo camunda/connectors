@@ -78,6 +78,16 @@ public @interface ElementTemplate {
    */
   PropertyGroup[] propertyGroups() default {};
 
+  /**
+   * Icon for the connector. Will be displayed in Camunda Modeler along with the connector name.
+   * Should be a classpath resource path. The classpath resource should either be an SVG or PNG
+   * image.
+   *
+   * <p>It is recommended to use squared SVG graphics. The icons get rendered 18x18 pixels in the
+   * element on the modeling canvas, and 32x32 pixels in the properties panel.
+   */
+  String icon() default "";
+
   @interface PropertyGroup {
     String id();
 
