@@ -20,8 +20,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.generator.core.OutboundElementTemplateGenerator;
 import io.camunda.connector.generator.dsl.OutboundElementTemplate;
 import java.io.File;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.maven.artifact.Artifact;
@@ -52,7 +54,7 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
   private String outputDirectory;
 
   private static final ObjectMapper mapper = new ObjectMapper();
-  private final OutboundElementTemplateGenerator generator = new OutboundElementTemplateGenerator();
+  private OutboundElementTemplateGenerator generator;
 
   private static final String COMPILED_CLASSES_DIR = "target" + File.separator + "classes";
 
@@ -70,6 +72,15 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
           project.getFile().getParent() + File.separator + COMPILED_CLASSES_DIR;
       classpathUrls.add(new File(compiledClassesPath).toURI().toURL());
 
+      var resourcesDirectory = getResourcesDirectory();
+      var testResourcesDirectory = getTestResourcesDirectory();
+      if (resourcesDirectory != null) {
+        classpathUrls.add(resourcesDirectory);
+      }
+      if (testResourcesDirectory != null) {
+        classpathUrls.add(testResourcesDirectory);
+      }
+
       for (String dependency : includeDependencies) {
         Artifact dependencyArtifact = (Artifact) project.getArtifactMap().get(dependency);
         if (dependencyArtifact == null) {
@@ -85,6 +96,10 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
     try (URLClassLoader classLoader =
         new URLClassLoader(
             classpathUrls.toArray(new URL[0]), Thread.currentThread().getContextClassLoader())) {
+
+      // ensures that resources and classes from the project are loaded by the classloader
+      Thread.currentThread().setContextClassLoader(classLoader);
+      generator = new OutboundElementTemplateGenerator();
 
       for (String className : connectorClasses) {
         getLog().info("Generating element template for " + className);
@@ -126,5 +141,19 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
     connectorName = connectorName.replaceAll("([a-z])([A-Z]+)", "$1-$2");
     connectorName = connectorName.toLowerCase();
     return connectorName + ".json";
+  }
+
+  private URL getResourcesDirectory() throws MalformedURLException {
+    if (project.getBuild().getResources().size() > 0) {
+      return Path.of(project.getBuild().getResources().get(0).getDirectory()).toUri().toURL();
+    }
+    return null;
+  }
+
+  private URL getTestResourcesDirectory() throws MalformedURLException {
+    if (project.getBuild().getTestResources().size() > 0) {
+      return Path.of(project.getBuild().getTestResources().get(0).getDirectory()).toUri().toURL();
+    }
+    return null;
   }
 }

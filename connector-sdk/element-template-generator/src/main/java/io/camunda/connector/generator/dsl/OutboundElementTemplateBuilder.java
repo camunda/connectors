@@ -27,6 +27,7 @@ public class OutboundElementTemplateBuilder {
   private String id;
   private String name;
   private int version;
+  private ElementTemplateIcon icon;
   private String documentationRef;
   private String description;
   private final List<PropertyGroup> groups = new ArrayList<>();
@@ -62,6 +63,11 @@ public class OutboundElementTemplateBuilder {
 
   public OutboundElementTemplateBuilder version(int version) {
     this.version = version;
+    return this;
+  }
+
+  public OutboundElementTemplateBuilder icon(ElementTemplateIcon icon) {
+    this.icon = icon;
     return this;
   }
 
@@ -104,7 +110,7 @@ public class OutboundElementTemplateBuilder {
       throw new IllegalStateException("type is not assigned");
     }
     return new OutboundElementTemplate(
-        id, name, version, documentationRef, description, groups, properties);
+        id, name, version, documentationRef, description, groups, properties, icon);
   }
 
   private boolean isTypeAssigned() {
