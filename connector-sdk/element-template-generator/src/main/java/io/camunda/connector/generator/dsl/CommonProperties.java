@@ -33,7 +33,8 @@ public class CommonProperties {
           .id("resultVariable")
           .group("output")
           .label("Result Variable")
-          .description("Name of variable to store the response in");
+          .description("Name of variable to store the response in")
+          .feel(FeelMode.disabled);
 
   public static final PropertyBuilder ERROR_EXPRESSION =
       TextProperty.builder()

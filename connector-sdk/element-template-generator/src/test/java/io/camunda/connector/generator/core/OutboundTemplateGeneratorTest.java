@@ -88,6 +88,33 @@ public class OutboundTemplateGeneratorTest extends BaseTest {
       assertThat(template.documentationRef()).isNull();
       assertThat(template.description()).isNull();
     }
+
+    @Test
+    void resultVariableProperty() {
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class);
+      var property = getPropertyByLabel("Result Variable", template);
+      assertThat(property.getType()).isEqualTo("String");
+      assertThat(property.getBinding().type()).isEqualTo("zeebe:taskHeader");
+      assertThat(property.getFeel()).isNull();
+    }
+
+    @Test
+    void resultExpressionProperty() {
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class);
+      var property = getPropertyByLabel("Result Expression", template);
+      assertThat(property.getType()).isEqualTo("Text");
+      assertThat(property.getBinding().type()).isEqualTo("zeebe:taskHeader");
+      assertThat(property.getFeel()).isEqualTo(FeelMode.required);
+    }
+
+    @Test
+    void errorExpressionProperty() {
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class);
+      var property = getPropertyByLabel("Error Expression", template);
+      assertThat(property.getType()).isEqualTo("Text");
+      assertThat(property.getBinding().type()).isEqualTo("zeebe:taskHeader");
+      assertThat(property.getFeel()).isEqualTo(FeelMode.required);
+    }
   }
 
   @Nested
