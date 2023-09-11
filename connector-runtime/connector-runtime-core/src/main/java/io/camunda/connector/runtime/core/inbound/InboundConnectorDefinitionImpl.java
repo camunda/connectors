@@ -51,7 +51,8 @@ public record InboundConnectorDefinitionImpl(
   }
 
   public String activationCondition() {
-    return rawProperties.get(Keywords.ACTIVATION_CONDITION_KEYWORD);
+    return Optional.ofNullable(rawProperties.get(Keywords.ACTIVATION_CONDITION_KEYWORD))
+        .orElseGet(() -> rawProperties.get(Keywords.DEPRECATED_ACTIVATION_CONDITION_KEYWORD));
   }
 
   // override to exclude rawProperties
