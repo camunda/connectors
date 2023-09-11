@@ -70,6 +70,10 @@ public class Keywords {
    */
   public static final String ACTIVATION_CONDITION_KEYWORD = "activationCondition";
 
+  @Deprecated
+  public static final String DEPRECATED_ACTIVATION_CONDITION_KEYWORD =
+      "inbound.activationCondition";
+
   /**
    * The keyword that identifies the source of `type` property of an inbound Connector. Type
    * identifies the specific inbound Connector implementation.
@@ -90,6 +94,7 @@ public class Keywords {
           RESULT_EXPRESSION_KEYWORD,
           ERROR_EXPRESSION_KEYWORD,
           CORRELATION_KEY_EXPRESSION_KEYWORD,
+          DEPRECATED_ACTIVATION_CONDITION_KEYWORD,
           ACTIVATION_CONDITION_KEYWORD,
           INBOUND_TYPE_KEYWORD);
 }
