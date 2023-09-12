@@ -58,7 +58,11 @@ public class KafkaConnectorFunction implements OutboundConnectorFunction {
     Schema raw = new Schema.Parser().setValidate(true).parse(schemaString);
     AvroSchema schema = new AvroSchema(raw);
     AvroMapper avroMapper = new AvroMapper();
-    return avroMapper.writer(schema).writeValueAsBytes(request.getMessage().getValue());
+    Object messageValue = request.getMessage().getValue();
+    if (messageValue instanceof String messageValueAsString) {
+      messageValue = objectMapper.readTree(StringEscapeUtils.unescapeJson(messageValueAsString));
+    }
+    return avroMapper.writer(schema).writeValueAsBytes(messageValue);
   }
 
   private KafkaConnectorResponse executeConnector(final KafkaConnectorRequest request) {
