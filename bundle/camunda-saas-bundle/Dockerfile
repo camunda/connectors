@@ -1,6 +1,7 @@
 FROM eclipse-temurin:17.0.8_7-jre
 
 RUN mkdir /opt/app
+
 # Download connectors from maven central
 COPY target/*-with-dependencies.jar /opt/app/
 
