@@ -69,7 +69,7 @@ jobs:
           dockerfile: bundle/default-bundle/Dockerfile
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
         with:
           platforms: 'arm64,arm'
 
