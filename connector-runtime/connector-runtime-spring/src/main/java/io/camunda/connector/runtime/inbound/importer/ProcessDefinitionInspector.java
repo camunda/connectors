@@ -16,11 +16,13 @@
  */
 package io.camunda.connector.runtime.inbound.importer;
 
+import static io.camunda.connector.runtime.core.Keywords.CORRELATION_KEY_EXPRESSION_KEYWORD;
+import static io.camunda.connector.runtime.core.Keywords.INBOUND_TYPE_KEYWORD;
+
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
 import io.camunda.connector.api.inbound.correlation.MessageCorrelationPoint;
 import io.camunda.connector.api.inbound.correlation.ProcessCorrelationPoint;
 import io.camunda.connector.api.inbound.correlation.StartEventCorrelationPoint;
-import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
 import io.camunda.operate.CamundaOperateClient;
 import io.camunda.operate.dto.ProcessDefinition;
@@ -29,15 +31,20 @@ import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.BaseElement;
 import io.camunda.zeebe.model.bpmn.instance.BoundaryEvent;
 import io.camunda.zeebe.model.bpmn.instance.CatchEvent;
+import io.camunda.zeebe.model.bpmn.instance.FlowElement;
 import io.camunda.zeebe.model.bpmn.instance.IntermediateCatchEvent;
 import io.camunda.zeebe.model.bpmn.instance.Message;
 import io.camunda.zeebe.model.bpmn.instance.MessageEventDefinition;
 import io.camunda.zeebe.model.bpmn.instance.Process;
 import io.camunda.zeebe.model.bpmn.instance.ReceiveTask;
 import io.camunda.zeebe.model.bpmn.instance.StartEvent;
+import io.camunda.zeebe.model.bpmn.instance.SubProcess;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeProperties;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeProperty;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -101,23 +108,9 @@ public class ProcessDefinitionInspector {
 
   private List<InboundConnectorDefinitionImpl> inspectBpmnProcess(
       Process process, ProcessDefinition definition) {
-
-    List<BaseElement> inboundEligibleElements =
-        INBOUND_ELIGIBLE_TYPES.stream()
-            .flatMap(type -> process.getChildElementsByType(type).stream())
-            .filter(
-                element -> {
-                  Map<String, String> zeebeProperties = getRawProperties(element);
-                  if (zeebeProperties != null
-                      && zeebeProperties.get(Keywords.INBOUND_TYPE_KEYWORD) != null) {
-                    return true;
-                  }
-                  return false;
-                })
-            .collect(Collectors.toList());
+    Collection<BaseElement> inboundEligibleElements = retrieveEligibleElementsFromProcess(process);
 
     List<InboundConnectorDefinitionImpl> discoveredInboundConnectors = new ArrayList<>();
-
     for (BaseElement element : inboundEligibleElements) {
       Optional<ProcessCorrelationPoint> optionalTarget =
           getCorrelationPointForElement(element, process, definition);
@@ -127,7 +120,7 @@ public class ProcessDefinitionInspector {
       ProcessCorrelationPoint target = optionalTarget.get();
 
       var rawProperties = getRawProperties(element);
-      if (rawProperties == null || !rawProperties.containsKey(Keywords.INBOUND_TYPE_KEYWORD)) {
+      if (rawProperties == null || !rawProperties.containsKey(INBOUND_TYPE_KEYWORD)) {
         LOG.debug("Not a connector: " + element.getId());
         continue;
       }
@@ -144,6 +137,45 @@ public class ProcessDefinitionInspector {
       discoveredInboundConnectors.add(def);
     }
     return discoveredInboundConnectors;
+  }
+
+  private Collection<BaseElement> retrieveEligibleElementsFromProcess(final Process process) {
+    // process is root element in graph
+    Collection<FlowElement> buffer = new HashSet<>();
+    Collection<FlowElement> allElements = collectFlowElements(process.getFlowElements(), buffer);
+    Collection<BaseElement> inboundEligibleElements = new HashSet<>();
+    for (FlowElement element : allElements) {
+      INBOUND_ELIGIBLE_TYPES.forEach(
+          iet -> {
+            if (iet.isInstance(element)
+                && getRawProperties(element).containsKey(INBOUND_TYPE_KEYWORD)) {
+              inboundEligibleElements.add(element);
+            }
+          });
+    }
+    return inboundEligibleElements;
+  }
+
+  private Collection<FlowElement> retrieveEligibleElementsFromSubprocess(
+      final SubProcess subprocess) {
+    // Subprocesses can contain other subprocesses
+    Collection<FlowElement> buffer = new HashSet<>();
+    Collection<FlowElement> processFlowElements = subprocess.getFlowElements();
+    return collectFlowElements(processFlowElements, buffer);
+  }
+
+  private Collection<FlowElement> collectFlowElements(
+      final Collection<FlowElement> processFlowElements, final Collection<FlowElement> buffer) {
+    for (FlowElement element : processFlowElements) {
+      // if we detect a subprocess, we have to expand it
+      // its building blocks to identify where are connectors
+      if (element instanceof SubProcess subprocess) {
+        buffer.addAll(retrieveEligibleElementsFromSubprocess(subprocess));
+        continue;
+      }
+      buffer.add(element);
+    }
+    return buffer;
   }
 
   private Optional<ProcessCorrelationPoint> getCorrelationPointForElement(
@@ -187,7 +219,7 @@ public class ProcessDefinitionInspector {
     String name = msgDef.getMessage().getName();
 
     String correlationKeyExpression =
-        extractRequiredProperty(catchEvent, Keywords.CORRELATION_KEY_EXPRESSION_KEYWORD);
+        extractRequiredProperty(catchEvent, CORRELATION_KEY_EXPRESSION_KEYWORD);
 
     return Optional.of(new MessageCorrelationPoint(name, correlationKeyExpression));
   }
@@ -204,14 +236,14 @@ public class ProcessDefinitionInspector {
       ReceiveTask receiveTask) {
     Message message = receiveTask.getMessage();
     String correlationKeyExpression =
-        extractRequiredProperty(receiveTask, Keywords.CORRELATION_KEY_EXPRESSION_KEYWORD);
+        extractRequiredProperty(receiveTask, CORRELATION_KEY_EXPRESSION_KEYWORD);
     return Optional.of(new MessageCorrelationPoint(message.getName(), correlationKeyExpression));
   }
 
   private Map<String, String> getRawProperties(BaseElement element) {
     ZeebeProperties zeebeProperties = element.getSingleExtensionElement(ZeebeProperties.class);
     if (zeebeProperties == null) {
-      return null;
+      return Collections.emptyMap();
     }
     return zeebeProperties.getProperties().stream()
         .filter(property -> property.getValue() != null)

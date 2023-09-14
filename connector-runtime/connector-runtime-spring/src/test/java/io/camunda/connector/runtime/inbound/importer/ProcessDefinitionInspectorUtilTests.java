@@ -77,6 +77,21 @@ public class ProcessDefinitionInspectorUtilTests {
     assertEquals("boundary_event", inboundConnectors.get(0).elementId());
   }
 
+  @Test
+  public void testSingleWebhookSubprocess() throws Exception {
+    var inboundConnectors = fromModel("single-webhook-subprocess.bpmn", "subprocess_webhook");
+    assertEquals(1, inboundConnectors.size());
+    assertEquals("webhook_in_subprocess", inboundConnectors.get(0).elementId());
+  }
+
+  @Test
+  public void testSingleKafkaSubprocess() throws Exception {
+    var inboundConnectors =
+        fromModel("single-kafka-consumer-subprocess.bpmn", "kafka-consumer-subprocess");
+    assertEquals(1, inboundConnectors.size());
+    assertEquals("kafka_in_subprocess", inboundConnectors.get(0).elementId());
+  }
+
   private List<InboundConnectorDefinitionImpl> fromModel(String fileName, String processId) {
     try {
       var operateClientMock = mock(CamundaOperateClient.class);
