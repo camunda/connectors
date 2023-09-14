@@ -25,6 +25,8 @@ import io.camunda.operate.dto.Variable;
 import io.camunda.operate.exception.OperateException;
 import io.camunda.operate.search.ProcessInstanceFilter;
 import io.camunda.operate.search.SearchQuery;
+import io.camunda.operate.search.Sort;
+import io.camunda.operate.search.SortOrder;
 import io.camunda.operate.search.VariableFilter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -42,10 +44,10 @@ import org.springframework.util.CollectionUtils;
  */
 public class ProcessDefinitionSearch {
 
+  private static final int PAGE_SIZE = 50;
+
   private static final Logger LOG = LoggerFactory.getLogger(ProcessDefinitionImporter.class);
   private final CamundaOperateClient camundaOperateClient;
-
-  private List<Object> paginationIndex;
 
   public ProcessDefinitionSearch(CamundaOperateClient camundaOperateClient) {
     this.camundaOperateClient = camundaOperateClient;
@@ -56,11 +58,17 @@ public class ProcessDefinitionSearch {
     List<ProcessDefinition> processDefinitions = new ArrayList<>();
     SearchResult<ProcessDefinition> processDefinitionResult;
     LOG.trace("Running paginated query");
+
+    List<Object> paginationIndex = null;
     do {
       try {
         // automatically sorted by process definition key, i.e. in chronological order of deployment
         SearchQuery processDefinitionQuery =
-            new SearchQuery.Builder().searchAfter(paginationIndex).size(20).build();
+            new SearchQuery.Builder()
+                .searchAfter(paginationIndex)
+                .sort(new Sort("processDefinitionKey", SortOrder.DESC))
+                .size(PAGE_SIZE)
+                .build();
         processDefinitionResult =
             camundaOperateClient.search(processDefinitionQuery, ProcessDefinition.class);
       } catch (OperateException e) {
