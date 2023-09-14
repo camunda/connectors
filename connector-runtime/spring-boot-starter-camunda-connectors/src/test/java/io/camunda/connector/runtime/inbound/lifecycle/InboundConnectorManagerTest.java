@@ -52,8 +52,8 @@ import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.operate.dto.ProcessDefinition;
 import io.camunda.zeebe.spring.client.metrics.DefaultNoopMetricsRecorder;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -114,30 +114,6 @@ public class InboundConnectorManagerTest {
   }
 
   @Test
-  void shouldReplaceConnector_NewVersionDeployed() throws Exception {
-    // given
-    var process1 = processDefinition("proc1", 1);
-    var connector1 = inboundConnector(process1);
-    var process2 = processDefinition("proc1", 2);
-    var connector2 = inboundConnector(process2);
-
-    // when
-    procDefUtil.deployProcessDefinition(process1, connector1);
-    procDefUtil.deployProcessDefinition(process2, connector2);
-
-    // then
-    assertTrue(manager.isProcessDefinitionRegistered(process1.getKey()));
-    assertTrue(manager.isProcessDefinitionRegistered(process2.getKey()));
-
-    verify(factory, times(2)).getInstance(connector1.type());
-
-    verify(inboundConnectorExecutable, times(1)).activate(eq(inboundContext(connector1)));
-    verify(inboundConnectorExecutable, times(1)).deactivate();
-    verify(inboundConnectorExecutable, times(1)).activate(eq(inboundContext(connector2)));
-    verifyNoMoreInteractions(inboundConnectorExecutable);
-  }
-
-  @Test
   void shouldNotActivate_NewBpmnDeployed_NoConnectors() throws Exception {
     // given
     var process = processDefinition("proc1", 1);
@@ -149,33 +125,6 @@ public class InboundConnectorManagerTest {
     assertTrue(manager.isProcessDefinitionRegistered(process.getKey()));
     verifyNoInteractions(factory);
     verifyNoInteractions(inboundConnectorExecutable);
-  }
-
-  @Test
-  void shouldOnlyActivateLatestConnectors_BulkImport() throws Exception {
-    // given
-    var process1 = processDefinition("proc1", 1);
-    var connector1 = inboundConnector(process1);
-    var process2 = processDefinition("proc1", 2);
-    var connector2 = inboundConnector(process2);
-
-    // when
-    // emulates import of historic data, when old process definitions exists
-    // that were replaced before the runtime was even started
-    procDefUtil.deployProcessDefinition(
-        Map.of(
-            process1, List.of(connector1),
-            process2, List.of(connector2)));
-
-    // then
-    assertTrue(manager.isProcessDefinitionRegistered(process1.getKey()));
-
-    assertTrue(manager.isProcessDefinitionRegistered(process2.getKey()));
-    verify(factory, times(1)).getInstance(connector2.type());
-    verify(inboundConnectorExecutable, times(1)).activate(inboundContext(connector2));
-
-    verifyNoMoreInteractions(factory);
-    verifyNoMoreInteractions(inboundConnectorExecutable);
   }
 
   @Test
@@ -217,6 +166,9 @@ public class InboundConnectorManagerTest {
     var pv1 = processDefinition("webhook1", 1);
     var wh1 = webhookConnector(pv1);
     procDefUtil.deployProcessDefinition(pv1, wh1);
+
+    // De-register webhook
+    manager.handleDeletedProcessDefinitions(Set.of(pv1.getKey()));
 
     // Deploy a new version of the process
     var pv2 = processDefinition("webhook1", 2);

@@ -34,11 +34,10 @@ import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics.Inbound;
 import io.camunda.operate.dto.ProcessDefinition;
+import io.camunda.operate.exception.OperateException;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -48,6 +47,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -66,10 +66,10 @@ public class InboundConnectorManager {
   private final MetricsRecorder metricsRecorder;
 
   // TODO: consider using external storage instead of these collections to allow multi-instance
-  // setup
-  private final Set<Long> registeredProcessDefinitionKeys = new HashSet<>();
-
-  private final Map<String, Set<ActiveInboundConnector>> activeConnectorsByBpmnId = new HashMap<>();
+  //  setup
+  private final Map<Long, Set<ActiveInboundConnector>> activeConnectorsByProcDefKey =
+      new HashMap<>();
+  private Set<Long> registeredProcessDefinitions = new HashSet<>();
 
   private final ObjectMapper objectMapper;
 
@@ -94,52 +94,49 @@ public class InboundConnectorManager {
     this.webhookConnectorRegistry = webhookConnectorRegistry;
   }
 
-  /** Process a batch of process definitions */
-  public void registerProcessDefinitions(List<ProcessDefinition> processDefinitions) {
-    if (processDefinitions == null || processDefinitions.isEmpty()) {
-      return;
-    }
-    var newProcDefs =
-        processDefinitions.stream()
-            // register unregistered proc definitions
-            .filter(procDef -> !isProcessDefinitionRegistered(procDef.getKey()))
-            .peek(procDef -> registeredProcessDefinitionKeys.add(procDef.getKey()))
-            // group by BPMN ID
-            .collect(Collectors.groupingBy(ProcessDefinition::getBpmnProcessId));
-
-    // we will only handle the latest versions of process defs for each BPMN ID
-    var relevantProcDefs =
-        newProcDefs.values().stream()
-            .map(list -> Collections.max(list, Comparator.comparing(ProcessDefinition::getVersion)))
+  public void handleNewProcessDefinitions(Set<ProcessDefinition> newProcessDefinitions) {
+    var connectorsToActivate =
+        newProcessDefinitions.stream()
+            .peek(d -> registeredProcessDefinitions.add(d.getKey()))
+            .flatMap(
+                d -> {
+                  try {
+                    return processDefinitionInspector.findInboundConnectors(d).stream();
+                  } catch (OperateException e) {
+                    LOG.error("Failed to inspect process definition {}", d.getKey(), e);
+                    return Stream.empty();
+                  }
+                })
             .toList();
 
-    for (ProcessDefinition procDef : relevantProcDefs) {
+    for (var connector : connectorsToActivate) {
       try {
-        var connectors = processDefinitionInspector.findInboundConnectors(procDef);
-        handleLatestBpmnVersion(procDef.getBpmnProcessId(), connectors);
+        activateConnector(connector);
       } catch (Exception e) {
-        // log and continue with other process definitions anyway
-        LOG.error(
-            "Failed to activate inbound connectors in process '{}'. It will be ignored",
-            procDef.getBpmnProcessId(),
-            e);
+        LOG.error("Failed to activate connector {}", connector, e);
       }
     }
   }
 
-  /** Check whether process definition with provided key is already registered */
-  protected boolean isProcessDefinitionRegistered(long processDefinitionKey) {
-    return registeredProcessDefinitionKeys.contains(processDefinitionKey);
+  public void handleDeletedProcessDefinitions(Set<Long> deletedProcessDefinitionKeys) {
+    var connectorsToDeactivate =
+        deletedProcessDefinitionKeys.stream()
+            .flatMap(
+                key ->
+                    activeConnectorsByProcDefKey.getOrDefault(key, Collections.emptySet()).stream())
+            .toList();
+
+    for (var connector : connectorsToDeactivate) {
+      try {
+        deactivateConnector(connector);
+      } catch (Exception e) {
+        LOG.error("Failed to deactivate connector {}", connector, e);
+      }
+    }
   }
 
-  private void handleLatestBpmnVersion(
-      String bpmnId, List<InboundConnectorDefinitionImpl> connectors) {
-    var alreadyActiveConnectors = activeConnectorsByBpmnId.get(bpmnId);
-    if (alreadyActiveConnectors != null) {
-      var connectorsToDeactivate = alreadyActiveConnectors.stream().toList();
-      connectorsToDeactivate.forEach(this::deactivateConnector);
-    }
-    connectors.forEach(this::activateConnector);
+  public boolean isProcessDefinitionRegistered(Long key) {
+    return registeredProcessDefinitions.contains(key);
   }
 
   private void activateConnector(InboundConnectorDefinitionImpl newConnector) {
@@ -191,8 +188,8 @@ public class InboundConnectorManager {
   }
 
   private void addActiveConnector(ActiveInboundConnector connector) {
-    activeConnectorsByBpmnId.compute(
-        connector.context().getDefinition().bpmnProcessId(),
+    activeConnectorsByProcDefKey.compute(
+        connector.context().getDefinition().processDefinitionKey(),
         (bpmnId, connectors) -> {
           if (connectors == null) {
             Set<ActiveInboundConnector> set = new HashSet<>();
@@ -213,8 +210,8 @@ public class InboundConnectorManager {
   private void deactivateConnector(ActiveInboundConnector connector) {
     try {
       connector.executable().deactivate();
-      activeConnectorsByBpmnId
-          .get(connector.context().getDefinition().bpmnProcessId())
+      activeConnectorsByProcDefKey
+          .get(connector.context().getDefinition().processDefinitionKey())
           .remove(connector);
       if (webhookConnectorRegistry != null
           && connector.executable() instanceof WebhookConnectorExecutable) {
@@ -233,7 +230,7 @@ public class InboundConnectorManager {
 
   private Optional<ActiveInboundConnector> findActiveConnector(
       InboundConnectorDefinitionImpl definition) {
-    return Optional.ofNullable(activeConnectorsByBpmnId.get(definition.bpmnProcessId()))
+    return Optional.ofNullable(activeConnectorsByProcDefKey.get(definition.processDefinitionKey()))
         .flatMap(
             connectors ->
                 connectors.stream()
@@ -249,12 +246,14 @@ public class InboundConnectorManager {
 
   private List<ActiveInboundConnector> filterByBpmnProcessId(String bpmnProcessId) {
     if (bpmnProcessId != null) {
-      return new ArrayList<>(
-          activeConnectorsByBpmnId.getOrDefault(bpmnProcessId, Collections.emptySet()));
-    } else {
-      return activeConnectorsByBpmnId.values().stream()
+      return activeConnectorsByProcDefKey.values().stream()
           .flatMap(Collection::stream)
-          .collect(Collectors.toList());
+          .filter(
+              connector ->
+                  bpmnProcessId.equals(connector.context().getDefinition().bpmnProcessId()))
+          .toList();
+    } else {
+      return activeConnectorsByProcDefKey.values().stream().flatMap(Collection::stream).toList();
     }
   }
 

@@ -23,7 +23,6 @@ import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionInspector;
 import io.camunda.connector.runtime.inbound.lifecycle.InboundConnectorManager;
 import io.camunda.operate.dto.ProcessDefinition;
 import io.camunda.operate.exception.OperateException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -59,7 +58,7 @@ public class ProcessDefinitionTestUtil {
     for (var entry : connectorsByProcDef.entrySet()) {
       when(inspector.findInboundConnectors(entry.getKey())).thenReturn(entry.getValue());
     }
-    manager.registerProcessDefinitions(new ArrayList<>(connectorsByProcDef.keySet()));
+    manager.handleNewProcessDefinitions(connectorsByProcDef.keySet());
   }
 
   static long processDefinitionKey = 0L;

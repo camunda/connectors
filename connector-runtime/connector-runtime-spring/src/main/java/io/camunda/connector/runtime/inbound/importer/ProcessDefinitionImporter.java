@@ -19,9 +19,14 @@ package io.camunda.connector.runtime.inbound.importer;
 import io.camunda.connector.runtime.inbound.lifecycle.InboundConnectorManager;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics.Inbound;
 import io.camunda.operate.dto.ProcessDefinition;
-import io.camunda.operate.exception.OperateException;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,33 +35,116 @@ import org.springframework.scheduling.annotation.Scheduled;
 public class ProcessDefinitionImporter {
 
   private static final Logger LOG = LoggerFactory.getLogger(ProcessDefinitionImporter.class);
-  private final InboundConnectorManager inboundManager;
+  private final InboundConnectorManager connectorManager;
   private final ProcessDefinitionSearch search;
   private final MetricsRecorder metricsRecorder;
+
+  private final Set<Long> registeredProcessDefinitionKeys = new HashSet<>();
+  private final Map<String, ProcessDefinition> versionByBpmnProcessId = new HashMap<>();
 
   @Autowired
   public ProcessDefinitionImporter(
       InboundConnectorManager inboundManager,
       ProcessDefinitionSearch search,
       @Autowired(required = false) MetricsRecorder metricsRecorder) {
-    this.inboundManager = inboundManager;
+    this.connectorManager = inboundManager;
     this.search = search;
     this.metricsRecorder = metricsRecorder;
   }
 
   @Scheduled(fixedDelayString = "${camunda.connector.polling.interval:5000}")
-  public synchronized void scheduleImport() throws OperateException {
+  public synchronized void scheduleImport() {
     search.query(this::handleImportedDefinitions);
   }
 
-  private void handleImportedDefinitions(List<ProcessDefinition> processDefinitions) {
-    if (processDefinitions == null || processDefinitions.isEmpty()) {
-      LOG.trace("... returned no process definitions.");
+  public void handleImportedDefinitions(List<ProcessDefinition> unprocessedDefinitions) {
+    var definitions = keepOnlyLatestVersions(unprocessedDefinitions);
+
+    var notYetRegistered =
+        definitions.stream()
+            .filter(d -> !registeredProcessDefinitionKeys.contains(d.getKey()))
+            .collect(Collectors.toSet());
+
+    Set<Long> oldProcessDefinitionKeys = new HashSet<>();
+    var upgraded =
+        notYetRegistered.stream()
+            .filter(
+                d ->
+                    versionByBpmnProcessId.containsKey(d.getBpmnProcessId())
+                        && !d.getVersion()
+                            .equals(versionByBpmnProcessId.get(d.getBpmnProcessId()).getVersion()))
+            .peek(
+                d ->
+                    oldProcessDefinitionKeys.add(
+                        versionByBpmnProcessId.get(d.getBpmnProcessId()).getKey()))
+            .collect(Collectors.toSet());
+
+    var brandNew = new HashSet<>(notYetRegistered);
+    brandNew.removeAll(upgraded);
+
+    var deleted =
+        registeredProcessDefinitionKeys.stream()
+            .filter(k -> definitions.stream().noneMatch(d -> Objects.equals(d.getKey(), k)))
+            .filter(k -> !oldProcessDefinitionKeys.contains(k))
+            .collect(Collectors.toSet());
+
+    logResult(brandNew, upgraded, deleted);
+    meter(brandNew.size());
+
+    registeredProcessDefinitionKeys.addAll(
+        notYetRegistered.stream().map(ProcessDefinition::getKey).toList());
+    registeredProcessDefinitionKeys.removeAll(deleted);
+
+    notYetRegistered.forEach(
+        definition -> versionByBpmnProcessId.put(definition.getBpmnProcessId(), definition));
+
+    var toDeregister = new HashSet<>(oldProcessDefinitionKeys);
+    toDeregister.addAll(deleted);
+
+    if (!toDeregister.isEmpty()) {
+      connectorManager.handleDeletedProcessDefinitions(toDeregister);
+    }
+    if (!notYetRegistered.isEmpty()) {
+      connectorManager.handleNewProcessDefinitions(notYetRegistered);
+    }
+  }
+
+  private List<ProcessDefinition> keepOnlyLatestVersions(List<ProcessDefinition> unprocessed) {
+    Map<String, ProcessDefinition> versionsByBpmnProcessId = new HashMap<>();
+    for (ProcessDefinition pd : unprocessed) {
+      var currentVersion = versionsByBpmnProcessId.get(pd.getBpmnProcessId());
+      if (currentVersion == null || currentVersion.getVersion() < pd.getVersion()) {
+        versionsByBpmnProcessId.put(pd.getBpmnProcessId(), pd);
+      }
+    }
+    return versionsByBpmnProcessId.values().stream().toList();
+  }
+
+  private void logResult(
+      Set<ProcessDefinition> brandNew, Set<ProcessDefinition> upgraded, Set<Long> deleted) {
+
+    if (brandNew.isEmpty() && upgraded.isEmpty() && deleted.isEmpty()) {
+      LOG.debug("No changes in process definitions");
       return;
     }
-    LOG.trace("... returned " + processDefinitions.size() + " process definitions.");
-    meter(processDefinitions.size());
-    inboundManager.registerProcessDefinitions(processDefinitions);
+    LOG.info("Detected changes in process definitions");
+    LOG.info(". {} newly deployed", brandNew.size());
+    for (ProcessDefinition pd : brandNew) {
+      LOG.info(". . {}, version {}", pd.getBpmnProcessId(), pd.getVersion());
+    }
+    LOG.info(". {} replaced with new version", upgraded.size());
+    for (ProcessDefinition pd : upgraded) {
+      var oldVersion = versionByBpmnProcessId.get(pd.getBpmnProcessId()).getVersion();
+      LOG.info(
+          ". . {}, version {} - replaced with version {}",
+          pd.getBpmnProcessId(),
+          oldVersion,
+          pd.getVersion());
+    }
+    LOG.info(". {} deleted", deleted.size());
+    for (Long key : deleted) {
+      LOG.info(". . Key {}", key);
+    }
   }
 
   private void meter(int count) {
