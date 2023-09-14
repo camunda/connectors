@@ -62,11 +62,10 @@ public class ProcessDefinitionSearch {
     List<Object> paginationIndex = null;
     do {
       try {
-        // automatically sorted by process definition key, i.e. in chronological order of deployment
         SearchQuery processDefinitionQuery =
             new SearchQuery.Builder()
                 .searchAfter(paginationIndex)
-                .sort(new Sort("processDefinitionKey", SortOrder.DESC))
+                .sort(new Sort("key", SortOrder.DESC))
                 .size(PAGE_SIZE)
                 .build();
         processDefinitionResult =

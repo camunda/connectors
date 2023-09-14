@@ -71,8 +71,8 @@ public class ProcessDefinitionImporter {
             .filter(
                 d ->
                     versionByBpmnProcessId.containsKey(d.getBpmnProcessId())
-                        && versionByBpmnProcessId.get(d.getBpmnProcessId()).getVersion()
-                            < d.getVersion())
+                        && !d.getVersion()
+                            .equals(versionByBpmnProcessId.get(d.getBpmnProcessId()).getVersion()))
             .peek(
                 d ->
                     oldProcessDefinitionKeys.add(
@@ -85,17 +85,18 @@ public class ProcessDefinitionImporter {
     var deleted =
         registeredProcessDefinitionKeys.stream()
             .filter(k -> definitions.stream().noneMatch(d -> Objects.equals(d.getKey(), k)))
+            .filter(k -> !oldProcessDefinitionKeys.contains(k))
             .collect(Collectors.toSet());
+
+    logResult(brandNew, upgraded, deleted);
+    meter(brandNew.size());
 
     registeredProcessDefinitionKeys.addAll(
         notYetRegistered.stream().map(ProcessDefinition::getKey).toList());
     registeredProcessDefinitionKeys.removeAll(deleted);
 
-    upgraded.forEach(
+    notYetRegistered.forEach(
         definition -> versionByBpmnProcessId.put(definition.getBpmnProcessId(), definition));
-
-    logResult(brandNew, upgraded, deleted);
-    meter(brandNew.size());
 
     var toDeregister = new HashSet<>(oldProcessDefinitionKeys);
     toDeregister.addAll(deleted);
@@ -121,21 +122,28 @@ public class ProcessDefinitionImporter {
 
   private void logResult(
       Set<ProcessDefinition> brandNew, Set<ProcessDefinition> upgraded, Set<Long> deleted) {
-    LOG.info(
-        "Found {} new process definitions, {} upgraded process definitions, {} deleted process definitions",
-        brandNew.size(),
-        upgraded.size(),
-        deleted.size());
 
-    // more detailed logging (debug level)
-    if (!brandNew.isEmpty()) {
-      LOG.debug("New process definitions: {}", brandNew);
+    if (brandNew.isEmpty() && upgraded.isEmpty() && deleted.isEmpty()) {
+      LOG.debug("No changes in process definitions");
+      return;
     }
-    if (!upgraded.isEmpty()) {
-      LOG.debug("Upgraded process definitions: {}", upgraded);
+    LOG.info("Detected changes in process definitions");
+    LOG.info(". {} newly deployed", brandNew.size());
+    for (ProcessDefinition pd : brandNew) {
+      LOG.info(". . {}, version {}", pd.getBpmnProcessId(), pd.getVersion());
     }
-    if (!deleted.isEmpty()) {
-      LOG.debug("Deleted process definitions: {}", deleted);
+    LOG.info(". {} replaced with new version", upgraded.size());
+    for (ProcessDefinition pd : upgraded) {
+      var oldVersion = versionByBpmnProcessId.get(pd.getBpmnProcessId()).getVersion();
+      LOG.info(
+          ". . {}, version {} - replaced with version {}",
+          pd.getBpmnProcessId(),
+          oldVersion,
+          pd.getVersion());
+    }
+    LOG.info(". {} deleted", deleted.size());
+    for (Long key : deleted) {
+      LOG.info(". . Key {}", key);
     }
   }
 
