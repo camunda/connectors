@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_061u7nq" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.11.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.2.0">
+    <bpmn:process id="BoundaryEventTest" name="BoundaryEventTest" isExecutable="true">
+        <bpmn:startEvent id="StartEvent_1">
+            <bpmn:outgoing>Flow_1e2z2fx</bpmn:outgoing>
+        </bpmn:startEvent>
+        <bpmn:sequenceFlow id="Flow_1e2z2fx" sourceRef="StartEvent_1" targetRef="Activity_0d39mr2" />
+        <bpmn:endEvent id="Event_0bt01e2">
+            <bpmn:incoming>Flow_1p1asga</bpmn:incoming>
+            <bpmn:incoming>Flow_1o5h3c4</bpmn:incoming>
+        </bpmn:endEvent>
+        <bpmn:sequenceFlow id="Flow_1p1asga" sourceRef="Activity_0d39mr2" targetRef="Event_0bt01e2" />
+        <bpmn:sequenceFlow id="Flow_0z0ybyd" sourceRef="boundary_event" targetRef="Activity_0fwzykw" />
+        <bpmn:boundaryEvent id="boundary_event" zeebe:modelerTemplate="io.camunda.connectors.webhook.WebhookConnectorBoundary.v1" zeebe:modelerTemplateVersion="1" zeebe:modelerTemplateIcon="data:image/svg+xml,%3Csvg id=&#39;icon&#39; xmlns=&#39;http://www.w3.org/2000/svg&#39; width=&#39;18&#39; height=&#39;18&#39; viewBox=&#39;0 0 32 32&#39;%3E%3Cdefs%3E%3Cstyle%3E .cls-1 %7B fill: none; %7D %3C/style%3E%3C/defs%3E%3Cpath d=&#39;M24,26a3,3,0,1,0-2.8164-4H13v1a5,5,0,1,1-5-5V16a7,7,0,1,0,6.9287,8h6.2549A2.9914,2.9914,0,0,0,24,26Z&#39;/%3E%3Cpath d=&#39;M24,16a7.024,7.024,0,0,0-2.57.4873l-3.1656-5.5395a3.0469,3.0469,0,1,0-1.7326.9985l4.1189,7.2085.8686-.4976a5.0006,5.0006,0,1,1-1.851,6.8418L17.937,26.501A7.0005,7.0005,0,1,0,24,16Z&#39;/%3E%3Cpath d=&#39;M8.532,20.0537a3.03,3.03,0,1,0,1.7326.9985C11.74,18.47,13.86,14.7607,13.89,14.708l.4976-.8682-.8677-.497a5,5,0,1,1,6.812-1.8438l1.7315,1.002a7.0008,7.0008,0,1,0-10.3462,2.0356c-.457.7427-1.1021,1.8716-2.0737,3.5728Z&#39;/%3E%3Crect id=&#39;_Transparent_Rectangle_&#39; data-name=&#39;&#38;lt;Transparent Rectangle&#38;gt;&#39; class=&#39;cls-1&#39; width=&#39;32&#39; height=&#39;32&#39;/%3E%3C/svg%3E" attachedToRef="Activity_0d39mr2">
+            <bpmn:extensionElements>
+                <zeebe:properties>
+                    <zeebe:property name="inbound.type" value="io.camunda:webhook:1" />
+                    <zeebe:property name="inbound.subtype" value="ConfigurableInboundWebhook" />
+                    <zeebe:property name="inbound.method" value="any" />
+                    <zeebe:property name="inbound.context" value="destroy" />
+                    <zeebe:property name="inbound.shouldValidateHmac" value="disabled" />
+                    <zeebe:property name="inbound.auth.type" value="NONE" />
+                    <zeebe:property name="correlationKeyExpression" value="=request.body.val1" />
+                    <zeebe:property name="resultVariable" value="res1" />
+                </zeebe:properties>
+            </bpmn:extensionElements>
+            <bpmn:outgoing>Flow_0z0ybyd</bpmn:outgoing>
+            <bpmn:messageEventDefinition id="MessageEventDefinition_034wd6j" messageRef="Message_1ev5yye" />
+        </bpmn:boundaryEvent>
+        <bpmn:serviceTask id="Activity_0d39mr2" zeebe:modelerTemplate="io.camunda.connectors.HttpJson.v2" zeebe:modelerTemplateVersion="2" zeebe:modelerTemplateIcon="data:image/svg+xml;utf8,%3Csvg%20width%3D%2218%22%20height%3D%2218%22%20viewBox%3D%220%200%2018%2018%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Cpath%20d%3D%22M17.0335%208.99997C17.0335%2013.4475%2013.4281%2017.0529%208.98065%2017.0529C4.53316%2017.0529%200.927765%2013.4475%200.927765%208.99997C0.927765%204.55248%204.53316%200.947083%208.98065%200.947083C13.4281%200.947083%2017.0335%204.55248%2017.0335%208.99997Z%22%20fill%3D%22%23505562%22%2F%3E%0A%3Cpath%20d%3D%22M4.93126%2014.1571L6.78106%203.71471H10.1375C11.1917%203.71471%2011.9824%203.98323%2012.5095%204.52027C13.0465%205.04736%2013.315%205.73358%2013.315%206.57892C13.315%207.44414%2013.0714%208.15522%2012.5841%208.71215C12.1067%209.25913%2011.4553%209.63705%2010.6298%209.8459L12.0619%2014.1571H10.3315L9.03364%2010.0249H7.24351L6.51254%2014.1571H4.93126ZM7.49711%208.59281H9.24248C9.99832%208.59281%2010.5901%208.42374%2011.0177%208.08561C11.4553%207.73753%2011.6741%207.26513%2011.6741%206.66842C11.6741%206.19106%2011.5249%205.81811%2011.2265%205.54959C10.9282%205.27113%2010.4558%205.1319%209.80936%205.1319H8.10874L7.49711%208.59281Z%22%20fill%3D%22white%22%2F%3E%0A%3C%2Fsvg%3E%0A">
+            <bpmn:extensionElements>
+                <zeebe:taskDefinition type="io.camunda:http-json:1" />
+                <zeebe:ioMapping>
+                    <zeebe:input source="noAuth" target="authentication.type" />
+                    <zeebe:input source="get" target="method" />
+                    <zeebe:input source="https://httpbin.org/delay/10" target="url" />
+                    <zeebe:input source="20" target="connectionTimeoutInSeconds" />
+                </zeebe:ioMapping>
+                <zeebe:taskHeaders>
+                    <zeebe:header key="resultVariable" value="res0" />
+                </zeebe:taskHeaders>
+            </bpmn:extensionElements>
+            <bpmn:incoming>Flow_1e2z2fx</bpmn:incoming>
+            <bpmn:outgoing>Flow_1p1asga</bpmn:outgoing>
+        </bpmn:serviceTask>
+        <bpmn:serviceTask id="Activity_0fwzykw" zeebe:modelerTemplate="io.camunda.connectors.HttpJson.v2" zeebe:modelerTemplateVersion="2" zeebe:modelerTemplateIcon="data:image/svg+xml;utf8,%3Csvg%20width%3D%2218%22%20height%3D%2218%22%20viewBox%3D%220%200%2018%2018%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Cpath%20d%3D%22M17.0335%208.99997C17.0335%2013.4475%2013.4281%2017.0529%208.98065%2017.0529C4.53316%2017.0529%200.927765%2013.4475%200.927765%208.99997C0.927765%204.55248%204.53316%200.947083%208.98065%200.947083C13.4281%200.947083%2017.0335%204.55248%2017.0335%208.99997Z%22%20fill%3D%22%23505562%22%2F%3E%0A%3Cpath%20d%3D%22M4.93126%2014.1571L6.78106%203.71471H10.1375C11.1917%203.71471%2011.9824%203.98323%2012.5095%204.52027C13.0465%205.04736%2013.315%205.73358%2013.315%206.57892C13.315%207.44414%2013.0714%208.15522%2012.5841%208.71215C12.1067%209.25913%2011.4553%209.63705%2010.6298%209.8459L12.0619%2014.1571H10.3315L9.03364%2010.0249H7.24351L6.51254%2014.1571H4.93126ZM7.49711%208.59281H9.24248C9.99832%208.59281%2010.5901%208.42374%2011.0177%208.08561C11.4553%207.73753%2011.6741%207.26513%2011.6741%206.66842C11.6741%206.19106%2011.5249%205.81811%2011.2265%205.54959C10.9282%205.27113%2010.4558%205.1319%209.80936%205.1319H8.10874L7.49711%208.59281Z%22%20fill%3D%22white%22%2F%3E%0A%3C%2Fsvg%3E%0A">
+            <bpmn:extensionElements>
+                <zeebe:taskDefinition type="io.camunda:http-json:1" />
+                <zeebe:ioMapping>
+                    <zeebe:input source="noAuth" target="authentication.type" />
+                    <zeebe:input source="get" target="method" />
+                    <zeebe:input source="https://httpbin.org/anything/anything" target="url" />
+                    <zeebe:input source="20" target="connectionTimeoutInSeconds" />
+                </zeebe:ioMapping>
+                <zeebe:taskHeaders>
+                    <zeebe:header key="resultVariable" value="res2" />
+                </zeebe:taskHeaders>
+            </bpmn:extensionElements>
+            <bpmn:incoming>Flow_0z0ybyd</bpmn:incoming>
+            <bpmn:outgoing>Flow_1o5h3c4</bpmn:outgoing>
+        </bpmn:serviceTask>
+        <bpmn:sequenceFlow id="Flow_1o5h3c4" sourceRef="Activity_0fwzykw" targetRef="Event_0bt01e2" />
+    </bpmn:process>
+    <bpmn:message id="Message_1ev5yye" name="c97ca438-b051-49db-b007-f897574daceb" zeebe:modelerTemplate="io.camunda.connectors.webhook.WebhookConnectorBoundary.v1">
+        <bpmn:extensionElements>
+            <zeebe:subscription correlationKey="=myCorrKey" />
+        </bpmn:extensionElements>
+    </bpmn:message>
+    <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+        <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="BoundaryEventTest">
+            <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="StartEvent_1">
+                <dc:Bounds x="179" y="99" width="36" height="36" />
+            </bpmndi:BPMNShape>
+            <bpmndi:BPMNShape id="Activity_0v5zd43_di" bpmnElement="Activity_0d39mr2">
+                <dc:Bounds x="270" y="77" width="100" height="80" />
+            </bpmndi:BPMNShape>
+            <bpmndi:BPMNShape id="Activity_07ao8h5_di" bpmnElement="Activity_0fwzykw">
+                <dc:Bounds x="390" y="200" width="100" height="80" />
+            </bpmndi:BPMNShape>
+            <bpmndi:BPMNShape id="Event_0bt01e2_di" bpmnElement="Event_0bt01e2">
+                <dc:Bounds x="612" y="99" width="36" height="36" />
+            </bpmndi:BPMNShape>
+            <bpmndi:BPMNShape id="Event_12t2apk_di" bpmnElement="boundary_event">
+                <dc:Bounds x="302" y="139" width="36" height="36" />
+            </bpmndi:BPMNShape>
+            <bpmndi:BPMNEdge id="Flow_1e2z2fx_di" bpmnElement="Flow_1e2z2fx">
+                <di:waypoint x="215" y="117" />
+                <di:waypoint x="270" y="117" />
+            </bpmndi:BPMNEdge>
+            <bpmndi:BPMNEdge id="Flow_1p1asga_di" bpmnElement="Flow_1p1asga">
+                <di:waypoint x="370" y="117" />
+                <di:waypoint x="612" y="117" />
+            </bpmndi:BPMNEdge>
+            <bpmndi:BPMNEdge id="Flow_0z0ybyd_di" bpmnElement="Flow_0z0ybyd">
+                <di:waypoint x="320" y="175" />
+                <di:waypoint x="320" y="240" />
+                <di:waypoint x="390" y="240" />
+            </bpmndi:BPMNEdge>
+            <bpmndi:BPMNEdge id="Flow_1o5h3c4_di" bpmnElement="Flow_1o5h3c4">
+                <di:waypoint x="490" y="240" />
+                <di:waypoint x="630" y="240" />
+                <di:waypoint x="630" y="135" />
+            </bpmndi:BPMNEdge>
+        </bpmndi:BPMNPlane>
+    </bpmndi:BPMNDiagram>
+</bpmn:definitions>
