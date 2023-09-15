@@ -24,6 +24,8 @@
   </licenses>
 
   <properties>
+    <!-- Pins avro version, as jackson-dataformat-avro transitively imports the outdated one -->
+    <version.avro>1.11.2</version.avro>
     <license.inlineheader>Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
 under one or more contributor license agreements. Licensed under a proprietary license.
 See the License.txt file for more information. You may not use this file
@@ -41,6 +43,12 @@ except in compliance with the proprietary license.</license.inlineheader>
       <groupId>com.fasterxml.jackson.dataformat</groupId>
       <artifactId>jackson-dataformat-avro</artifactId>
       <version>${version.jackson-bom}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.avro</groupId>
+      <artifactId>avro</artifactId>
+      <version>${version.avro}</version>
     </dependency>
 
     <dependency>
