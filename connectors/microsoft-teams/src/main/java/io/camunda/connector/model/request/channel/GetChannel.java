@@ -7,7 +7,6 @@
 package io.camunda.connector.model.request.channel;
 
 import com.microsoft.graph.requests.GraphServiceClient;
-import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.model.request.MSTeamsRequestData;
 import jakarta.validation.constraints.NotBlank;
 import java.util.Objects;
@@ -15,8 +14,8 @@ import okhttp3.Request;
 
 public class GetChannel extends MSTeamsRequestData {
 
-  @NotBlank @Secret private String groupId;
-  @NotBlank @Secret private String channelId;
+  @NotBlank private String groupId;
+  @NotBlank private String channelId;
 
   @Override
   public Object invoke(final GraphServiceClient<Request> graphClient) {

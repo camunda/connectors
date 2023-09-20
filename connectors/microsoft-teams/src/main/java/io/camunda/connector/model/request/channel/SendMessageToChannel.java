@@ -10,7 +10,6 @@ import com.microsoft.graph.models.BodyType;
 import com.microsoft.graph.models.ChatMessage;
 import com.microsoft.graph.models.ItemBody;
 import com.microsoft.graph.requests.GraphServiceClient;
-import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.model.request.MSTeamsRequestData;
 import jakarta.validation.constraints.NotBlank;
 import java.util.Objects;
@@ -20,9 +19,9 @@ import org.apache.commons.text.StringEscapeUtils;
 
 public class SendMessageToChannel extends MSTeamsRequestData {
 
-  @NotBlank @Secret private String groupId;
-  @NotBlank @Secret private String channelId;
-  @NotBlank @Secret private String content;
+  @NotBlank private String groupId;
+  @NotBlank private String channelId;
+  @NotBlank private String content;
   private String bodyType;
 
   @Override

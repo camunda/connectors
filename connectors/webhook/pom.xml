@@ -29,6 +29,7 @@
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-runtime-core</artifactId>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
@@ -69,11 +70,6 @@
       <artifactId>wiremock</artifactId>
       <version>${version.wiremock}</version>
       <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.camunda.connector</groupId>
-      <artifactId>connector-runtime-core</artifactId>
-      <scope>provided</scope>
     </dependency>
   </dependencies>
 

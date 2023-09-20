@@ -19,6 +19,7 @@ package io.camunda.connector.test.outbound;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.outbound.JobContext;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
@@ -176,6 +177,8 @@ public class OutboundConnectorContextBuilder {
 
     private final String variablesWithSecrets;
 
+    private final TestJobContext jobContext;
+
     protected TestConnectorContext(
         SecretProvider secretProvider, ValidationProvider validationProvider) {
       super(secretProvider, validationProvider);
@@ -185,16 +188,12 @@ public class OutboundConnectorContextBuilder {
       } catch (JsonProcessingException e) {
         throw new RuntimeException(e);
       }
+      this.jobContext = new TestJobContext(() -> headers, () -> variablesWithSecrets);
     }
 
     @Override
-    public Map<String, String> getCustomHeaders() {
-      return headers;
-    }
-
-    @Override
-    public String getVariables() {
-      return variablesWithSecrets;
+    public JobContext getJobContext() {
+      return jobContext;
     }
 
     @Override

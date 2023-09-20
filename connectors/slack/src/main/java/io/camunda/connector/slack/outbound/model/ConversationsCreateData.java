@@ -10,7 +10,6 @@ import com.slack.api.methods.MethodsClient;
 import com.slack.api.methods.SlackApiException;
 import com.slack.api.methods.request.conversations.ConversationsCreateRequest;
 import com.slack.api.methods.response.conversations.ConversationsCreateResponse;
-import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.slack.outbound.SlackRequestData;
 import io.camunda.connector.slack.outbound.SlackResponse;
 import jakarta.validation.constraints.NotBlank;
@@ -20,7 +19,7 @@ import java.util.Objects;
 
 public class ConversationsCreateData implements SlackRequestData {
 
-  @NotBlank @Secret private String newChannelName;
+  @NotBlank private String newChannelName;
   @NotNull private Visibility visibility;
 
   public enum Visibility {

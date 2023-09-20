@@ -18,12 +18,12 @@ package io.camunda.connector.runtime.core.outbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.outbound.JobContext;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
-import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -40,6 +40,8 @@ public class JobHandlerContext extends AbstractConnectorContext
 
   private String jsonWithSecrets = null;
 
+  private final JobContext jobContext;
+
   public JobHandlerContext(
       final ActivatedJob job,
       final SecretProvider secretProvider,
@@ -48,16 +50,12 @@ public class JobHandlerContext extends AbstractConnectorContext
     super(secretProvider, validationProvider);
     this.job = job;
     this.objectMapper = objectMapper;
-  }
-
-  @Override
-  public Map<String, String> getCustomHeaders() {
-    return job.getCustomHeaders();
+    this.jobContext = new ActivatedJobContext(job, this::getJsonReplacedWithSecrets);
   }
 
   @Override
   public <T> T bindVariables(Class<T> cls) {
-    var mappedObject = mapJson(getJsonReplacedWithSecrets(), cls);
+    var mappedObject = mapJson(cls);
     getValidationProvider().validate(mappedObject);
     return mappedObject;
   }
@@ -69,7 +67,7 @@ public class JobHandlerContext extends AbstractConnectorContext
     return jsonWithSecrets;
   }
 
-  private <T> T mapJson(String json, Class<T> cls) {
+  private <T> T mapJson(Class<T> cls) {
     var jsonWithSecrets = getJsonReplacedWithSecrets();
     try {
       return objectMapper.readValue(jsonWithSecrets, cls);
@@ -79,8 +77,8 @@ public class JobHandlerContext extends AbstractConnectorContext
   }
 
   @Override
-  public String getVariables() {
-    return getJsonReplacedWithSecrets();
+  public JobContext getJobContext() {
+    return jobContext;
   }
 
   @Override

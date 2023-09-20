@@ -6,16 +6,15 @@
  */
 package io.camunda.connector.rabbitmq.outbound.model;
 
-import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.rabbitmq.common.model.RabbitMqRouting;
 import jakarta.validation.constraints.NotBlank;
 import java.util.Objects;
 
 public class RabbitMqOutboundRouting extends RabbitMqRouting {
 
-  @NotBlank @Secret private String exchange;
+  @NotBlank private String exchange;
 
-  @NotBlank @Secret private String routingKey;
+  @NotBlank private String routingKey;
 
   public String getExchange() {
     return exchange;

@@ -7,7 +7,6 @@
 package io.camunda.connector.model;
 
 import com.google.gson.JsonPrimitive;
-import io.camunda.connector.api.annotation.Secret;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
@@ -22,9 +21,9 @@ public class Member {
       new JsonPrimitive("#microsoft.graph.aadUserConversationMember");
   public static final List<String> OWNER_ROLES = List.of("owner");
 
-  @Secret private String userId;
-  @Secret private String userPrincipalName;
-  @Secret @NotNull private List<String> roles;
+  private String userId;
+  private String userPrincipalName;
+  @NotNull private List<String> roles;
 
   @AssertTrue(message = "Missing one of properties : [userId, userPrincipalName]")
   private boolean isUserOrNameExist() {

@@ -12,7 +12,6 @@ import com.microsoft.graph.models.ChannelMembershipType;
 import com.microsoft.graph.requests.ConversationMemberCollectionPage;
 import com.microsoft.graph.requests.ConversationMemberCollectionResponse;
 import com.microsoft.graph.requests.GraphServiceClient;
-import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.model.Member;
 import io.camunda.connector.model.request.MSTeamsRequestData;
 import jakarta.validation.constraints.AssertTrue;
@@ -22,9 +21,9 @@ import java.util.Objects;
 import okhttp3.Request;
 
 public class CreateChannel extends MSTeamsRequestData {
-  @NotBlank @Secret protected String groupId;
-  @NotBlank @Secret private String name;
-  @Secret private String description;
+  @NotBlank protected String groupId;
+  @NotBlank private String name;
+  private String description;
   @NotBlank private String channelType;
   private String owner;
 

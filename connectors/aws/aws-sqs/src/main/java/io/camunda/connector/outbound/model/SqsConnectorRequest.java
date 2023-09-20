@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.outbound.model;
 
-import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.aws.model.impl.AwsBaseRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -14,7 +13,7 @@ import java.util.Objects;
 
 public class SqsConnectorRequest extends AwsBaseRequest {
 
-  @Valid @NotNull @Secret private QueueRequestData queue;
+  @Valid @NotNull private QueueRequestData queue;
 
   public QueueRequestData getQueue() {
     return queue;

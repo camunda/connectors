@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.sns.outbound.model;
 
-import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.aws.model.impl.AwsBaseRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -14,7 +13,7 @@ import java.util.Objects;
 
 public class SnsConnectorRequest extends AwsBaseRequest {
 
-  @Valid @NotNull @Secret private TopicRequestData topic;
+  @Valid @NotNull private TopicRequestData topic;
 
   public TopicRequestData getTopic() {
     return topic;

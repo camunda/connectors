@@ -6,20 +6,18 @@
  */
 package io.camunda.connector.inbound.model;
 
-import io.camunda.connector.api.annotation.Secret;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Pattern;
 import java.util.List;
 import java.util.Objects;
 
 public class SqsInboundQueueProperties {
-  @Deprecated @Secret private String region;
-  @NotEmpty @Secret private String url;
-  @Secret private List<String> attributeNames;
-  @Secret private List<String> messageAttributeNames;
+  @Deprecated private String region;
+  @NotEmpty private String url;
+  private List<String> attributeNames;
+  private List<String> messageAttributeNames;
 
   @Pattern(regexp = "^([0-9]?|1[0-9]|20|secrets\\..+)$")
-  @Secret
   private String pollingWaitTime;
 
   @Deprecated

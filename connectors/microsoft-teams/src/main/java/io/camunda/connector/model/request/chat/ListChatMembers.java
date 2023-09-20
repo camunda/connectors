@@ -7,7 +7,6 @@
 package io.camunda.connector.model.request.chat;
 
 import com.microsoft.graph.requests.GraphServiceClient;
-import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.model.request.MSTeamsRequestData;
 import jakarta.validation.constraints.NotBlank;
 import java.util.Objects;
@@ -15,7 +14,7 @@ import okhttp3.Request;
 
 public class ListChatMembers extends MSTeamsRequestData {
 
-  @NotBlank @Secret private String chatId;
+  @NotBlank private String chatId;
 
   @Override
   public Object invoke(final GraphServiceClient<Request> graphClient) {

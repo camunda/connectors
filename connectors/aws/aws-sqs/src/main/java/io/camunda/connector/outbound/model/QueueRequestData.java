@@ -8,7 +8,6 @@ package io.camunda.connector.outbound.model;
 
 import com.amazonaws.services.sqs.model.MessageAttributeValue;
 import com.amazonaws.util.StringUtils;
-import io.camunda.connector.api.annotation.Secret;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -20,8 +19,8 @@ import java.util.function.Function;
 
 public class QueueRequestData {
 
-  @NotEmpty @Secret private String url;
-  @Deprecated @Secret private String region;
+  @NotEmpty private String url;
+  @Deprecated private String region;
 
   @NotNull private Object messageBody;
 

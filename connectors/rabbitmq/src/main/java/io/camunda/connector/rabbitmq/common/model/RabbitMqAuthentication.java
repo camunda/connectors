@@ -6,16 +6,15 @@
  */
 package io.camunda.connector.rabbitmq.common.model;
 
-import io.camunda.connector.api.annotation.Secret;
 import jakarta.validation.constraints.AssertFalse;
 import java.util.Objects;
 
 public class RabbitMqAuthentication {
 
   private RabbitMqAuthenticationType authType;
-  @Secret private String userName;
-  @Secret private String password;
-  @Secret private String uri;
+  private String userName;
+  private String password;
+  private String uri;
 
   @AssertFalse
   private boolean isAuthFieldsIsEmpty() {

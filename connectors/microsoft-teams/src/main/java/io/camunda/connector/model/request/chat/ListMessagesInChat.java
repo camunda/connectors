@@ -8,7 +8,6 @@ package io.camunda.connector.model.request.chat;
 
 import com.microsoft.graph.requests.ChatMessageCollectionRequest;
 import com.microsoft.graph.requests.GraphServiceClient;
-import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.model.OrderBy;
 import io.camunda.connector.model.request.MSTeamsRequestData;
 import jakarta.validation.constraints.NotBlank;
@@ -19,12 +18,11 @@ import okhttp3.Request;
 
 public class ListMessagesInChat extends MSTeamsRequestData {
 
-  @NotBlank @Secret private String chatId;
-  @Secret private String filter;
+  @NotBlank private String chatId;
+  private String filter;
   @NotNull private OrderBy orderBy;
 
   @Pattern(regexp = "^([1-9])|([1-4][0-9])|(50)$")
-  @Secret
   private String top;
 
   @Override

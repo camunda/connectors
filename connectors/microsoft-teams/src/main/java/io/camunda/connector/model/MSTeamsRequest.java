@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.model;
 
-import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.model.authentication.MSTeamsAuthentication;
 import io.camunda.connector.model.request.MSTeamsRequestData;
 import io.camunda.connector.suppliers.GraphServiceClientSupplier;
@@ -16,8 +15,8 @@ import java.util.Objects;
 
 public class MSTeamsRequest {
 
-  @Valid @NotNull @Secret private MSTeamsAuthentication authentication;
-  @Valid @NotNull @Secret private MSTeamsRequestData data;
+  @Valid @NotNull private MSTeamsAuthentication authentication;
+  @Valid @NotNull private MSTeamsRequestData data;
 
   public Object invoke(final GraphServiceClientSupplier graphSupplier) {
     return data.invoke(authentication.buildAndGetGraphServiceClient(graphSupplier));
