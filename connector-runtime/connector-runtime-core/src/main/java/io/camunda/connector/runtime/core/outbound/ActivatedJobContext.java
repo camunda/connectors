@@ -75,4 +75,9 @@ public class ActivatedJobContext implements JobContext {
   public long getElementInstanceKey() {
     return activatedJob.getElementInstanceKey();
   }
+
+  @Override
+  public String getTenantId() {
+    return activatedJob.getTenantId();
+  }
 }

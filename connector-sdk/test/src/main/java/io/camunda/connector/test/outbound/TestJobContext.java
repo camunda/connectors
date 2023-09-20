@@ -34,6 +34,8 @@ public class TestJobContext implements JobContext {
   private String elementId;
   private long elementInstanceKey;
 
+  private String tenantId;
+
   public TestJobContext(Supplier<Map<String, String>> headers, Supplier<String> variables) {
     this.headers = headers;
     this.variables = variables;
@@ -82,5 +84,42 @@ public class TestJobContext implements JobContext {
   @Override
   public long getElementInstanceKey() {
     return elementInstanceKey;
+  }
+
+  @Override
+  public String getTenantId() {
+    return tenantId;
+  }
+
+  public void setType(String type) {
+    this.type = type;
+  }
+
+  public void setProcessInstanceKey(long processInstanceKey) {
+    this.processInstanceKey = processInstanceKey;
+  }
+
+  public void setBpmnProcessId(String bpmnProcessId) {
+    this.bpmnProcessId = bpmnProcessId;
+  }
+
+  public void setProcessDefinitionVersion(int processDefinitionVersion) {
+    this.processDefinitionVersion = processDefinitionVersion;
+  }
+
+  public void setProcessDefinitionKey(long processDefinitionKey) {
+    this.processDefinitionKey = processDefinitionKey;
+  }
+
+  public void setElementId(String elementId) {
+    this.elementId = elementId;
+  }
+
+  public void setElementInstanceKey(long elementInstanceKey) {
+    this.elementInstanceKey = elementInstanceKey;
+  }
+
+  public void setTenantId(String tenantId) {
+    this.tenantId = tenantId;
   }
 }
