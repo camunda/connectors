@@ -7,7 +7,6 @@
 package io.camunda.connector.sns.outbound.model;
 
 import com.amazonaws.services.sns.model.MessageAttributeValue;
-import io.camunda.connector.api.annotation.Secret;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -19,8 +18,8 @@ import java.util.function.Function;
 
 public class TopicRequestData {
 
-  @NotBlank @Secret private String topicArn;
-  @Deprecated @Secret private String region;
+  @NotBlank private String topicArn;
+  @Deprecated private String region;
 
   @Size(max = 99)
   private String subject;

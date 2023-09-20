@@ -7,7 +7,6 @@
 package io.camunda.connector.model.authentication;
 
 import com.microsoft.graph.requests.GraphServiceClient;
-import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.suppliers.GraphServiceClientSupplier;
 import jakarta.validation.constraints.NotBlank;
 import java.util.Objects;
@@ -15,10 +14,10 @@ import okhttp3.Request;
 
 public class RefreshTokenAuthentication extends MSTeamsAuthentication {
 
-  @Secret @NotBlank private String clientId;
-  @Secret @NotBlank private String tenantId;
-  @Secret @NotBlank private String clientSecret;
-  @Secret @NotBlank private String token;
+  @NotBlank private String clientId;
+  @NotBlank private String tenantId;
+  @NotBlank private String clientSecret;
+  @NotBlank private String token;
 
   @Override
   public GraphServiceClient<Request> buildAndGetGraphServiceClient(

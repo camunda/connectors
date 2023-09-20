@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.rabbitmq.inbound.model;
 
-import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.rabbitmq.common.model.RabbitMqAuthentication;
 import io.camunda.connector.rabbitmq.common.model.RabbitMqRouting;
 import jakarta.validation.Valid;
@@ -16,11 +15,11 @@ import java.util.Map;
 import java.util.Objects;
 
 public class RabbitMqInboundProperties {
-  @Valid @NotNull @Secret private RabbitMqAuthentication authentication;
-  @Valid @Secret private RabbitMqRouting routing;
-  @Secret @NotBlank private String queueName;
-  @Secret private String consumerTag;
-  @Valid @Secret private Map<String, Object> arguments;
+  @Valid @NotNull private RabbitMqAuthentication authentication;
+  @Valid private RabbitMqRouting routing;
+  @NotBlank private String queueName;
+  private String consumerTag;
+  @Valid private Map<String, Object> arguments;
   private boolean exclusive;
 
   public RabbitMqAuthentication getAuthentication() {

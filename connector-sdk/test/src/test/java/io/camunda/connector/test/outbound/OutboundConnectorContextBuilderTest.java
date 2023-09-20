@@ -31,7 +31,7 @@ public class OutboundConnectorContextBuilderTest {
   public void shouldProvideVariablesAsString() {
     var json = "{ \"foo\" : \"FOO\" }";
     var context = OutboundConnectorContextBuilder.create().variables(json).build();
-    assertThat(context.getVariables()).isEqualTo("{\"foo\":\"FOO\"}");
+    assertThat(context.getJobContext().getVariables()).isEqualTo("{\"foo\":\"FOO\"}");
   }
 
   @Test

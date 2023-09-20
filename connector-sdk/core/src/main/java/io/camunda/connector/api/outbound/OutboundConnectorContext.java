@@ -16,8 +16,6 @@
  */
 package io.camunda.connector.api.outbound;
 
-import java.util.Map;
-
 /**
  * The context object provided to a connector function. The context allows to fetch information
  * injected by the environment runtime.
@@ -25,22 +23,11 @@ import java.util.Map;
 public interface OutboundConnectorContext {
 
   /**
-   * Custom headers found under zeebe:taskHeaders.
+   * Context information about the activated job.
    *
-   * @return job headers.
+   * @return
    */
-  Map<String, String> getCustomHeaders();
-
-  /**
-   * Low-level variable access. For a more convenient access, use {@link #bindVariables(Class)}.
-   *
-   * <p>Note: this method doesn't perform validation. Secret replacement is performed using the
-   * {@link io.camunda.connector.api.secret.SecretProvider} implementations registered in the
-   * runtime.
-   *
-   * @return the raw variables input as JSON String
-   */
-  String getVariables();
+  JobContext getJobContext();
 
   /**
    * High-level variable access method. Allows to deserialize variables into a given type.
@@ -60,11 +47,4 @@ public interface OutboundConnectorContext {
    * @return deserialized and validated variables with secrets replaced
    */
   <T> T bindVariables(Class<T> cls);
-
-  /**
-   * Deprecated: use {@link #bindVariables(Class)} instead, where validation is performed
-   * automatically.
-   */
-  @Deprecated(forRemoval = true)
-  void validate(Object input);
 }

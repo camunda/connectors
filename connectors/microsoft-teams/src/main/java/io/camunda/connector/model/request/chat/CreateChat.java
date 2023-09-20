@@ -13,7 +13,6 @@ import com.microsoft.graph.models.ConversationMember;
 import com.microsoft.graph.requests.ConversationMemberCollectionPage;
 import com.microsoft.graph.requests.ConversationMemberCollectionResponse;
 import com.microsoft.graph.requests.GraphServiceClient;
-import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.model.Member;
 import io.camunda.connector.model.request.MSTeamsRequestData;
 import jakarta.validation.constraints.NotBlank;
@@ -26,7 +25,7 @@ import okhttp3.Request;
 public class CreateChat extends MSTeamsRequestData {
 
   @NotBlank private String chatType;
-  @NotNull @Secret private List<Member> members;
+  @NotNull private List<Member> members;
 
   @Override
   public Object invoke(final GraphServiceClient<Request> graphClient) {

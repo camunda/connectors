@@ -9,7 +9,6 @@ package io.camunda.connector.model.request.channel;
 import com.microsoft.graph.requests.ChatMessageCollectionPage;
 import com.microsoft.graph.requests.ChatMessageCollectionRequest;
 import com.microsoft.graph.requests.GraphServiceClient;
-import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.model.request.MSTeamsRequestData;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -19,8 +18,8 @@ import okhttp3.Request;
 public class ListChannelMessages extends MSTeamsRequestData {
   private static final String EXPAND_VALUE = "replies";
 
-  @NotBlank @Secret private String groupId;
-  @NotBlank @Secret private String channelId;
+  @NotBlank private String groupId;
+  @NotBlank private String channelId;
   private String isExpand;
 
   @Pattern(regexp = "^([0-9])*$")

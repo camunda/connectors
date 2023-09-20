@@ -6,14 +6,13 @@
  */
 package io.camunda.connector.awslambda.model;
 
-import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.aws.model.impl.AwsBaseRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
 public class AwsLambdaRequest extends AwsBaseRequest {
 
-  @Valid @NotNull @Secret private FunctionRequestData awsFunction;
+  @Valid @NotNull private FunctionRequestData awsFunction;
 
   public FunctionRequestData getAwsFunction() {
     return awsFunction;

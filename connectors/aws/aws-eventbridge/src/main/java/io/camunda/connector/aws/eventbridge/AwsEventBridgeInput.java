@@ -6,16 +6,15 @@
  */
 package io.camunda.connector.aws.eventbridge;
 
-import io.camunda.connector.api.annotation.Secret;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.util.Objects;
 
 public class AwsEventBridgeInput {
-  @NotBlank @Secret private String source;
-  @NotBlank @Secret private String detailType;
-  @NotBlank @Secret private String eventBusName;
-  @NotNull @Secret private Object detail;
+  @NotBlank private String source;
+  @NotBlank private String detailType;
+  @NotBlank private String eventBusName;
+  @NotNull private Object detail;
 
   public String getSource() {
     return source;

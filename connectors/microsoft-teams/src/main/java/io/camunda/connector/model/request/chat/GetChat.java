@@ -10,7 +10,6 @@ import static io.camunda.connector.RemoveNullFieldsUtil.removeNullFieldsInObject
 
 import com.microsoft.graph.requests.ChatRequest;
 import com.microsoft.graph.requests.GraphServiceClient;
-import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.model.request.MSTeamsRequestData;
 import jakarta.validation.constraints.NotBlank;
 import java.util.List;
@@ -18,7 +17,7 @@ import java.util.Objects;
 import okhttp3.Request;
 
 public class GetChat extends MSTeamsRequestData {
-  @NotBlank @Secret private String chatId;
+  @NotBlank private String chatId;
   private String expand;
 
   private static final List<String> availableExpandList = List.of("members", "lastMessagePreview");

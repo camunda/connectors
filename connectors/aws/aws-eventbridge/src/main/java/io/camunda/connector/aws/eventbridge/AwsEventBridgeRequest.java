@@ -6,14 +6,13 @@
  */
 package io.camunda.connector.aws.eventbridge;
 
-import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.aws.model.impl.AwsBaseRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.util.Objects;
 
 public class AwsEventBridgeRequest extends AwsBaseRequest {
-  @Valid @NotNull @Secret private AwsEventBridgeInput input;
+  @Valid @NotNull private AwsEventBridgeInput input;
 
   public AwsEventBridgeInput getInput() {
     return input;

@@ -6,14 +6,13 @@
  */
 package io.camunda.connector.rabbitmq.common.model;
 
-import io.camunda.connector.api.annotation.Secret;
 import java.util.Objects;
 
 public class RabbitMqRouting {
 
-  @Secret protected String virtualHost;
-  @Secret protected String hostName;
-  @Secret protected String port;
+  protected String virtualHost;
+  protected String hostName;
+  protected String port;
 
   public String getVirtualHost() {
     return virtualHost;

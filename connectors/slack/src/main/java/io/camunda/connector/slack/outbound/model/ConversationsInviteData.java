@@ -10,7 +10,6 @@ import com.slack.api.methods.MethodsClient;
 import com.slack.api.methods.SlackApiException;
 import com.slack.api.methods.request.conversations.ConversationsInviteRequest;
 import com.slack.api.methods.response.conversations.ConversationsInviteResponse;
-import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.slack.outbound.SlackRequestData;
 import io.camunda.connector.slack.outbound.SlackResponse;
 import io.camunda.connector.slack.outbound.utils.DataLookupService;
@@ -23,8 +22,8 @@ import java.util.Objects;
 
 public class ConversationsInviteData implements SlackRequestData {
 
-  @NotBlank @Secret private String channelName;
-  @NotNull @Secret private Object users;
+  @NotBlank private String channelName;
+  @NotNull private Object users;
 
   @Override
   public SlackResponse invoke(MethodsClient methodsClient) throws SlackApiException, IOException {

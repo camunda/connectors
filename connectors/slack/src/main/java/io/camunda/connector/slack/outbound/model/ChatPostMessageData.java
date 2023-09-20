@@ -10,7 +10,6 @@ import com.slack.api.methods.MethodsClient;
 import com.slack.api.methods.SlackApiException;
 import com.slack.api.methods.request.chat.ChatPostMessageRequest;
 import com.slack.api.methods.response.chat.ChatPostMessageResponse;
-import io.camunda.connector.api.annotation.Secret;
 import io.camunda.connector.slack.outbound.SlackRequestData;
 import io.camunda.connector.slack.outbound.SlackResponse;
 import io.camunda.connector.slack.outbound.utils.DataLookupService;
@@ -21,8 +20,8 @@ import org.apache.commons.text.StringEscapeUtils;
 
 public class ChatPostMessageData implements SlackRequestData {
 
-  @NotBlank @Secret private String channel;
-  @NotBlank @Secret private String text;
+  @NotBlank private String channel;
+  @NotBlank private String text;
 
   @Override
   public SlackResponse invoke(MethodsClient methodsClient) throws SlackApiException, IOException {
