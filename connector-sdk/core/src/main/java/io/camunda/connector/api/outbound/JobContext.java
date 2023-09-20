@@ -57,4 +57,6 @@ public interface JobContext {
   String getElementId();
 
   long getElementInstanceKey();
+
+  String getTenantId();
 }
