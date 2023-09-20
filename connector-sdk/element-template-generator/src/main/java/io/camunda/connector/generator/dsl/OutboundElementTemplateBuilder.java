@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.generator.dsl;
 
+import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskDefinitionType;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -59,6 +60,7 @@ public class OutboundElementTemplateBuilder {
               .value(type)
               .id("taskDefinitionType")
               .group("taskDefinitionType")
+              .feel(FeelMode.disabled)
               .build();
     } else {
       property =

@@ -44,18 +44,19 @@ import java.io.IOException;
     },
     type = "io.camunda:http-json:1")
 @ElementTemplate(
-    id = "generated-http-json",
-    name = "Generated REST Connector",
-    description = "Generated REST Connector",
+    id = "io.camunda.connectors.HttpJson.v2",
+    name = "REST Connector",
+    description = "Invoke REST API",
     inputDataClass = HttpJsonRequest.class,
-    version = 1,
+    version = 3,
     propertyGroups = {
       @PropertyGroup(id = "authentication", label = "Authentication"),
       @PropertyGroup(id = "endpoint", label = "HTTP Endpoint"),
       @PropertyGroup(id = "timeout", label = "Connection timeout"),
       @PropertyGroup(id = "payload", label = "Payload")
     },
-    documentationRef = "https://docs.camunda.io/docs/components/connectors/protocol/rest/")
+    documentationRef = "https://docs.camunda.io/docs/components/connectors/protocol/rest/",
+    icon = "icon.svg")
 public class HttpJsonFunction implements OutboundConnectorFunction {
 
   private final HttpService httpService;

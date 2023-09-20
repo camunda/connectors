@@ -59,7 +59,7 @@ Note that the plugin will not resolve transitive dependencies of the specified d
 ## Hybrid mode
 
 If you want to generate an element template for a Connector that should work in Hybrid mode
-(multiple runtimes running against the same Camunda cluster), you can use the 
+(multiple runtimes running against the same Camunda cluster), you can use the
 `generate-hybrid-templates` parameter:
 
 ```xml
@@ -93,5 +93,5 @@ the file name by setting the `templateFileName` configuration parameter:
 
 In this case, the generated element template will be stored in `my-custom-template.json`.
 
-If used together with `generateHybridTemplates`, the file name of the hybrid template will be 
+If used together with `generateHybridTemplates`, the file name of the hybrid template will be
 `my-custom-template-hybrid.json`.

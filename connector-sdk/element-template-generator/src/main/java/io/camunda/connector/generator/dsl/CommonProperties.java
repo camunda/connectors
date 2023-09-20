@@ -24,7 +24,7 @@ public class CommonProperties {
       TextProperty.builder()
           .id("resultExpression")
           .group("output")
-          .label("Result Expression")
+          .label("Result expression")
           .description("Expression to map the response into process variables")
           .feel(FeelMode.required);
 
@@ -32,14 +32,14 @@ public class CommonProperties {
       StringProperty.builder()
           .id("resultVariable")
           .group("output")
-          .label("Result Variable")
+          .label("Result variable")
           .description("Name of variable to store the response in")
           .feel(FeelMode.disabled);
 
   public static final PropertyBuilder ERROR_EXPRESSION =
       TextProperty.builder()
           .id("errorExpression")
-          .label("Error Expression")
+          .label("Error expression")
           .group("error")
           .description(
               "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.")

@@ -84,6 +84,9 @@ public class JakartaValidationFieldProcessor implements FieldProcessor {
   private Pair<String, String> hasPatternAnnotation(Field field) {
     var patternAnnotation = field.getAnnotation(Pattern.class);
     if (patternAnnotation != null) {
+      if (patternAnnotation.message().equals("{jakarta.validation.constraints.Pattern.message}")) {
+        return Pair.of(patternAnnotation.regexp(), null);
+      }
       return Pair.of(patternAnnotation.regexp(), patternAnnotation.message());
     }
     return null;

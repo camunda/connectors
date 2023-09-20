@@ -33,18 +33,23 @@ public class HttpCommonRequest {
 
   @FEEL
   @NotNull
-  @TemplateProperty(group = "endpoint", id = "method", defaultValue = "get")
+  @TemplateProperty(group = "endpoint", id = "method", defaultValue = "GET")
   private HttpMethod method;
 
   @FEEL
   @NotBlank
-  @Pattern(regexp = "^(=|http://|https://|secrets|\\{\\{).*$")
+  @Pattern(regexp = "^(=|http://|https://|secrets|\\{\\{).*$", message = "Must be a http(s) URL")
   @TemplateProperty(group = "endpoint", label = "URL")
   private String url;
 
   @Valid private Authentication authentication;
 
-  @TemplateProperty(group = "timeout", defaultValue = "20", optional = true)
+  @TemplateProperty(
+      group = "timeout",
+      defaultValue = "20",
+      optional = true,
+      description =
+          "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout")
   private Integer connectionTimeoutInSeconds;
 
   @FEEL
@@ -57,6 +62,8 @@ public class HttpCommonRequest {
 
   @FEEL
   @TemplateProperty(
+      label = "Request body",
+      description = "Payload to send with the request",
       feel = FeelMode.optional,
       group = "payload",
       type = PropertyType.Text,
@@ -64,7 +71,7 @@ public class HttpCommonRequest {
       condition =
           @PropertyCondition(
               property = "method",
-              oneOf = {"post", "put", "patch", "delete"}))
+              oneOf = {"POST", "PUT", "PATCH", "DELETE"}))
   private Object body;
 
   @FEEL
