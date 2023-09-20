@@ -28,6 +28,7 @@ import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
 import io.camunda.connector.generator.dsl.OutboundElementTemplate.ElementType;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.dsl.PropertyBinding;
+import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskHeader;
 import io.camunda.connector.generator.dsl.PropertyCondition;
 import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
 import io.camunda.connector.generator.dsl.PropertyConstraints.Pattern;
@@ -114,6 +115,17 @@ public class OutboundTemplateGeneratorTest extends BaseTest {
       assertThat(property.getType()).isEqualTo("Text");
       assertThat(property.getBinding().type()).isEqualTo("zeebe:taskHeader");
       assertThat(property.getFeel()).isEqualTo(FeelMode.required);
+    }
+
+    @Test
+    void retryBackoffProperty() {
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class);
+      var property = getPropertyByLabel("Retry backoff", template);
+      assertThat(property.getType()).isEqualTo("Hidden");
+      assertThat(property.getBinding().type()).isEqualTo("zeebe:taskHeader");
+      assertThat(((ZeebeTaskHeader) property.getBinding()).key()).isEqualTo("retryBackoff");
+      assertThat(property.getGroup()).isEqualTo("retries");
+      assertThat(property.getValue()).isEqualTo("PT0S");
     }
   }
 
@@ -299,7 +311,8 @@ public class OutboundTemplateGeneratorTest extends BaseTest {
               Map.entry("group1", "Group 1"),
               Map.entry("group2", "Group 2"),
               Map.entry("output", "Output mapping"),
-              Map.entry("error", "Error handling")),
+              Map.entry("error", "Error handling"),
+              Map.entry("retries", "Retries")),
           template,
           false);
     }
@@ -312,7 +325,8 @@ public class OutboundTemplateGeneratorTest extends BaseTest {
               Map.entry("group2", "Group Two"),
               Map.entry("group1", "Group One"),
               Map.entry("output", "Output mapping"),
-              Map.entry("error", "Error handling")),
+              Map.entry("error", "Error handling"),
+              Map.entry("retries", "Retries")),
           template,
           true);
     }

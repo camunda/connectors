@@ -123,9 +123,17 @@ public class OutboundElementTemplateGenerator
                     .binding(new ZeebeTaskHeader("errorExpression"))
                     .build())
             .build();
+    var retriesGroup =
+        PropertyGroup.builder()
+            .id("retries")
+            .label("Retries")
+            .properties(
+                CommonProperties.RETRY_BACKOFF.binding(new ZeebeTaskHeader("retryBackoff")).build())
+            .build();
 
     mergedGroups.add(outputGroup);
     mergedGroups.add(errorGroup);
+    mergedGroups.add(retriesGroup);
 
     var nonGroupedProperties =
         properties.stream().filter(property -> property.build().getGroup() == null).toList();
