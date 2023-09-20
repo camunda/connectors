@@ -52,16 +52,4 @@ public sealed interface PropertyBinding {
       return NAME;
     }
   }
-
-  final class ZeebeTaskDefinitionRetries implements PropertyBinding {
-
-    private ZeebeTaskDefinitionRetries() {}
-
-    public static ZeebeTaskDefinitionRetries INSTANCE = new ZeebeTaskDefinitionRetries();
-
-    @Override
-    public String type() {
-      return "zeebe:taskDefinition:retries";
-    }
-  }
 }

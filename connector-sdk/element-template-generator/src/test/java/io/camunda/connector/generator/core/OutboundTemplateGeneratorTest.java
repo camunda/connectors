@@ -118,24 +118,12 @@ public class OutboundTemplateGeneratorTest extends BaseTest {
     }
 
     @Test
-    void retryCountProperty() {
-      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class);
-      var property = getPropertyByLabel("Retry count", template);
-      assertThat(property.getType()).isEqualTo("String");
-      assertThat(property.getBinding().type()).isEqualTo("zeebe:taskDefinition:retries");
-      assertThat(property.getFeel()).isEqualTo(FeelMode.optional);
-      assertThat(property.getGroup()).isEqualTo("retries");
-      assertThat(property.getValue()).isEqualTo("3");
-    }
-
-    @Test
     void retryBackoffProperty() {
       var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class);
       var property = getPropertyByLabel("Retry backoff", template);
-      assertThat(property.getType()).isEqualTo("String");
+      assertThat(property.getType()).isEqualTo("Hidden");
       assertThat(property.getBinding().type()).isEqualTo("zeebe:taskHeader");
       assertThat(((ZeebeTaskHeader) property.getBinding()).key()).isEqualTo("retryBackoff");
-      assertThat(property.getFeel()).isEqualTo(FeelMode.optional);
       assertThat(property.getGroup()).isEqualTo("retries");
       assertThat(property.getValue()).isEqualTo("PT0S");
     }

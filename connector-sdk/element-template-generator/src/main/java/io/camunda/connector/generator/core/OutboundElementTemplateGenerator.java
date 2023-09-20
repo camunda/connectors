@@ -128,7 +128,6 @@ public class OutboundElementTemplateGenerator
             .id("retries")
             .label("Retries")
             .properties(
-                CommonProperties.RETRY_COUNT.build(),
                 CommonProperties.RETRY_BACKOFF.binding(new ZeebeTaskHeader("retryBackoff")).build())
             .build();
 
