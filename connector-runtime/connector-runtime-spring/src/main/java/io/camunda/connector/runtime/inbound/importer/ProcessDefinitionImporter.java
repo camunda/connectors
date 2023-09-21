@@ -94,6 +94,7 @@ public class ProcessDefinitionImporter {
     registeredProcessDefinitionKeys.addAll(
         notYetRegistered.stream().map(ProcessDefinition::getKey).toList());
     registeredProcessDefinitionKeys.removeAll(deleted);
+    registeredProcessDefinitionKeys.removeAll(oldProcessDefinitionKeys);
 
     notYetRegistered.forEach(
         definition -> versionByBpmnProcessId.put(definition.getBpmnProcessId(), definition));
