@@ -1,6 +1,6 @@
 Run via Maven / IDE:
 
-Run `io.camunda.connector.runtime.app.LocalConnectorRuntime` class via your favorite IDE.
+Run `io.camunda.coonnector.runtime.app.LocalConnectorRuntime` class via your favorite IDE.
 You can add an `application.properties` file to `src/test/resources` containing your configurations.
 
 Run via command line
