@@ -329,7 +329,7 @@ class ConnectorJobHandlerTest {
       }
 
       @Test
-      void shouldFail_MappingNonExistingKeys() {
+      void shouldNotFail_MappingNonExistingKeys() {
         // given
         var jobHandler = newConnectorJobHandler((context) -> Map.of());
         var resultExpression = "{\"processedOutput\": response.callStatus }";
@@ -338,11 +338,10 @@ class ConnectorJobHandlerTest {
         var result =
             JobBuilder.create()
                 .withResultExpressionHeader(resultExpression)
-                .executeAndCaptureResult(jobHandler, false);
+                .executeAndCaptureResult(jobHandler, true);
 
         // then
-        assertThat(result.getErrorMessage())
-            .contains("context contains no entry with key 'callStatus'");
+        assertThat(result).isNotNull();
       }
 
       @Test

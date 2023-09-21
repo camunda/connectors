@@ -17,6 +17,7 @@
 package io.camunda.connector.feel;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
 import java.util.Map;
@@ -167,22 +168,23 @@ class FeelEngineWrapperExpressionEvaluationTest {
   }
 
   @Test
-  void evaluateToJson_ShouldFail_WhenFeelEngineRaisesException() {
+  void evaluateToJson_ShouldNotFail_WhenCallingNonExistingFunction() {
     // given
     // FEEL expression -> {"processedOutput": camel case(response.callStatus)}
     // camel case function does not exist in FEEL
     final var resultExpression = "{\"processedOutput\": camel case(response.callStatus) }";
     // Response from service -> {"callStatus":"done"}
     final var variables = Map.of("callStatus", "done");
+    assertThatNoException()
+        .isThrownBy(() -> objectUnderTest.evaluateToJson(resultExpression, variables));
+  }
 
-    // when
-    final var exception =
-        catchThrowable(() -> objectUnderTest.evaluateToJson(resultExpression, variables));
-
-    // then
-    assertThat(exception)
-        .isInstanceOf(FeelEngineWrapperException.class)
-        .hasMessageContaining("no function found with name 'camel case'");
+  @Test
+  void evaluateToJson_ShouldNotFail_WhenCallingNonProperty() {
+    final var resultExpression = "{\"processedOutput\": my.non.existing.property }";
+    final var variables = Map.of("callStatus", "done");
+    assertThatNoException()
+        .isThrownBy(() -> objectUnderTest.evaluateToJson(resultExpression, variables));
   }
 
   @Test
