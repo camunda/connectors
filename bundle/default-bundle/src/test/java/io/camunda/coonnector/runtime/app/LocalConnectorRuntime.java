@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.app;
+package io.camunda.coonnector.runtime.app;
 
 import io.camunda.connector.runtime.app.ConnectorRuntimeApplication;
 import org.springframework.boot.SpringApplication;
