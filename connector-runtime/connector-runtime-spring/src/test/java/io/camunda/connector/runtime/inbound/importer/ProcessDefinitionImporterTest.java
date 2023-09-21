@@ -76,6 +76,10 @@ public class ProcessDefinitionImporterTest {
     verify(manager, times(1)).handleNewProcessDefinitions(new HashSet<>(first));
     verify(manager, times(1)).handleDeletedProcessDefinitions(Set.of(first.get(0).getVersion()));
     verify(manager, times(1)).handleNewProcessDefinitions(Set.of(second.get(1)));
+
+    // verify old version was deregistered and no action is taken on the next polling iteration
+    importer.handleImportedDefinitions(second);
+    verifyNoMoreInteractions(manager);
   }
 
   @Test
