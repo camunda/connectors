@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.runtime.app;
 
-import io.camunda.connector.runtime.app.ConnectorRuntimeApplication;
 import org.springframework.boot.SpringApplication;
 
 public class LocalConnectorRuntime {
