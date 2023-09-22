@@ -20,11 +20,14 @@ import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.InboundConnectorResult;
 import io.camunda.connector.api.inbound.correlation.MessageCorrelationPoint;
+import io.camunda.connector.api.inbound.correlation.MessageStartEventCorrelationPoint;
 import io.camunda.connector.api.inbound.correlation.StartEventCorrelationPoint;
 import io.camunda.connector.api.inbound.result.CorrelatedMessage;
+import io.camunda.connector.api.inbound.result.CorrelatedMessageStart;
 import io.camunda.connector.api.inbound.result.CorrelationErrorData;
 import io.camunda.connector.api.inbound.result.CorrelationErrorData.CorrelationErrorReason;
 import io.camunda.connector.api.inbound.result.MessageCorrelationResult;
+import io.camunda.connector.api.inbound.result.MessageStartCorrelationResult;
 import io.camunda.connector.api.inbound.result.ProcessInstance;
 import io.camunda.connector.api.inbound.result.StartEventCorrelationResult;
 import io.camunda.connector.feel.FeelEngineWrapper;
@@ -32,6 +35,7 @@ import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.core.ConnectorHelper;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
 import io.camunda.zeebe.client.ZeebeClient;
+import io.camunda.zeebe.client.api.command.ClientStatusException;
 import io.camunda.zeebe.client.api.response.ProcessInstanceEvent;
 import io.camunda.zeebe.client.api.response.PublishMessageResponse;
 import org.slf4j.Logger;
@@ -59,6 +63,9 @@ public class InboundCorrelationHandler {
     }
     if (correlationPoint instanceof MessageCorrelationPoint msgCorPoint) {
       return triggerMessage(definition, msgCorPoint, variables);
+    }
+    if (correlationPoint instanceof MessageStartEventCorrelationPoint msgStartCorPoint) {
+      return triggerMessageStartEvent(definition, msgStartCorPoint, variables);
     }
     throw new ConnectorException(
         "Process correlation point "
@@ -100,6 +107,70 @@ public class InboundCorrelationHandler {
     } catch (Exception e) {
       throw new ConnectorException(
           "Failed to start process instance via StartEvent: " + correlationPoint, e);
+    }
+  }
+
+  protected InboundConnectorResult<CorrelatedMessageStart> triggerMessageStartEvent(
+      InboundConnectorDefinitionImpl definition,
+      MessageStartEventCorrelationPoint correlationPoint,
+      Object variables) {
+
+    if (!isActivationConditionMet(definition, variables)) {
+      LOG.debug("Activation condition didn't match: {}", correlationPoint);
+      return new MessageStartCorrelationResult(
+          correlationPoint.messageName(),
+          new CorrelationErrorData(CorrelationErrorReason.ACTIVATION_CONDITION_NOT_MET));
+    }
+
+    String messageId = extractMessageKey(correlationPoint, variables);
+    if (correlationPoint.messageIdExpression() != null
+        && !correlationPoint.messageIdExpression().isBlank()
+        && messageId == null) {
+      LOG.debug(
+          "Wasn't able to obtain idempotency key for expression {}.",
+          correlationPoint.messageIdExpression());
+      return new MessageStartCorrelationResult(
+          correlationPoint.messageName(),
+          new CorrelationErrorData(CorrelationErrorReason.FAULT_IDEMPOTENCY_KEY));
+    }
+
+    Object extractedVariables = extractVariables(variables, definition);
+
+    try {
+      PublishMessageResponse result =
+          zeebeClient
+              .newPublishMessageCommand()
+              .messageName(correlationPoint.messageName())
+              // correlation key must be empty to start a new process, see:
+              // https://docs.camunda.io/docs/components/modeler/bpmn/message-events/#message-start-events
+              .correlationKey("")
+              .messageId(messageId)
+              .tenantId(definition.tenantId())
+              .variables(extractedVariables)
+              .send()
+              .join();
+
+      LOG.info("Published message with key: " + result.getMessageKey());
+
+      return new MessageStartCorrelationResult(
+          correlationPoint.messageName(),
+          new CorrelatedMessageStart(
+              result.getMessageKey(),
+              messageId,
+              correlationPoint.bpmnProcessId(),
+              correlationPoint.processDefinitionKey(),
+              correlationPoint.version()));
+
+    } catch (ClientStatusException e1) {
+      // gracefully handle zeebe rejections, such as idempotency key rejection
+      LOG.info("Failed to publish message: ", e1);
+      return new MessageStartCorrelationResult(
+          correlationPoint.messageName(),
+          new CorrelationErrorData(
+              CorrelationErrorReason.FAULT_ZEEBE_CLIENT_STATUS, e1.getMessage()));
+    } catch (Exception e2) {
+      throw new ConnectorException(
+          "Failed to publish process message for subscription: " + correlationPoint, e2);
     }
   }
 
@@ -159,6 +230,18 @@ public class InboundCorrelationHandler {
     String correlationKeyExpression = point.correlationKeyExpression();
     try {
       return feelEngine.evaluate(correlationKeyExpression, context, String.class);
+    } catch (Exception e) {
+      throw new ConnectorInputException(e);
+    }
+  }
+
+  protected String extractMessageKey(MessageStartEventCorrelationPoint point, Object context) {
+    final String messageIdExpression = point.messageIdExpression();
+    if (messageIdExpression == null || messageIdExpression.isBlank()) {
+      return "";
+    }
+    try {
+      return feelEngine.evaluate(messageIdExpression, context, String.class);
     } catch (Exception e) {
       throw new ConnectorInputException(e);
     }

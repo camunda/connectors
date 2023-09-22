@@ -14,16 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.api.inbound.result;
+package io.camunda.connector.api.inbound.correlation;
 
-public record CorrelationErrorData(CorrelationErrorReason reason, String message) {
-  public enum CorrelationErrorReason {
-    ACTIVATION_CONDITION_NOT_MET,
-    FAULT_ZEEBE_CLIENT_STATUS,
-    FAULT_IDEMPOTENCY_KEY
+public record MessageStartEventCorrelationPoint(
+    String messageName,
+    String messageIdExpression,
+    String bpmnProcessId,
+    int version,
+    long processDefinitionKey)
+    implements ProcessCorrelationPoint {
+
+  @Override
+  public String getId() {
+    return messageName;
   }
 
-  public CorrelationErrorData(CorrelationErrorReason reason) {
-    this(reason, null);
+  @Override
+  public int compareTo(ProcessCorrelationPoint o) {
+    if (!this.getClass().equals(o.getClass())) {
+      return 1;
+    }
+    MessageStartEventCorrelationPoint other = (MessageStartEventCorrelationPoint) o;
+    return messageName.compareTo(other.messageName);
   }
 }

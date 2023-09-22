@@ -18,9 +18,11 @@ package io.camunda.connector.runtime.inbound.importer;
 
 import static io.camunda.connector.runtime.core.Keywords.CORRELATION_KEY_EXPRESSION_KEYWORD;
 import static io.camunda.connector.runtime.core.Keywords.INBOUND_TYPE_KEYWORD;
+import static io.camunda.connector.runtime.core.Keywords.START_MESSAGE_EVENT_MESSAGE_ID_EXPRESSION;
 
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
 import io.camunda.connector.api.inbound.correlation.MessageCorrelationPoint;
+import io.camunda.connector.api.inbound.correlation.MessageStartEventCorrelationPoint;
 import io.camunda.connector.api.inbound.correlation.ProcessCorrelationPoint;
 import io.camunda.connector.api.inbound.correlation.StartEventCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
@@ -182,14 +184,14 @@ public class ProcessDefinitionInspector {
   private Optional<ProcessCorrelationPoint> getCorrelationPointForElement(
       BaseElement element, Process process, ProcessDefinition definition) {
 
-    if (element instanceof StartEvent) {
-      return getCorrelationPointForStartEvent(process, definition);
-    } else if (element instanceof IntermediateCatchEvent) {
-      return getCorrelationPointForIntermediateCatchEvent((IntermediateCatchEvent) element);
-    } else if (element instanceof BoundaryEvent) {
-      return getCorrelationPointForIntermediateBoundaryEvent((BoundaryEvent) element);
-    } else if (element instanceof ReceiveTask) {
-      return getCorrelationPointForReceiveTask((ReceiveTask) element);
+    if (element instanceof StartEvent se) {
+      return getCorrelationPointForStartEvent(se, process, definition);
+    } else if (element instanceof IntermediateCatchEvent ice) {
+      return getCorrelationPointForIntermediateCatchEvent(ice);
+    } else if (element instanceof BoundaryEvent be) {
+      return getCorrelationPointForIntermediateBoundaryEvent(be);
+    } else if (element instanceof ReceiveTask rt) {
+      return getCorrelationPointForReceiveTask(rt);
     }
     LOG.warn("Unsupported Inbound element type: " + element.getClass());
     return Optional.empty();
@@ -226,7 +228,26 @@ public class ProcessDefinitionInspector {
   }
 
   private Optional<ProcessCorrelationPoint> getCorrelationPointForStartEvent(
-      Process process, ProcessDefinition definition) {
+      StartEvent startEvent, Process process, ProcessDefinition definition) {
+
+    MessageEventDefinition msgDef =
+        (MessageEventDefinition)
+            startEvent.getEventDefinitions().stream()
+                .filter(def -> def instanceof MessageEventDefinition)
+                .findAny()
+                .orElse(null);
+
+    if (msgDef != null) {
+      String messageId =
+          extractRequiredProperty(startEvent, START_MESSAGE_EVENT_MESSAGE_ID_EXPRESSION);
+      return Optional.of(
+          new MessageStartEventCorrelationPoint(
+              msgDef.getMessage().getName(),
+              messageId,
+              process.getId(),
+              definition.getVersion().intValue(),
+              definition.getKey()));
+    }
 
     return Optional.of(
         new StartEventCorrelationPoint(
@@ -260,6 +281,6 @@ public class ProcessDefinitionInspector {
         .filter(property -> property.getName().equals(name))
         .findAny()
         .map(ZeebeProperty::getValue)
-        .orElseThrow(() -> new IllegalStateException("Missing required property " + name));
+        .orElse("");
   }
 }

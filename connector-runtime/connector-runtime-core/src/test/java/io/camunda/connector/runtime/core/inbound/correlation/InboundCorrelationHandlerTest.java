@@ -26,8 +26,10 @@ import static org.mockito.Mockito.when;
 
 import io.camunda.connector.api.inbound.InboundConnectorResult;
 import io.camunda.connector.api.inbound.correlation.MessageCorrelationPoint;
+import io.camunda.connector.api.inbound.correlation.MessageStartEventCorrelationPoint;
 import io.camunda.connector.api.inbound.correlation.StartEventCorrelationPoint;
 import io.camunda.connector.api.inbound.result.CorrelationErrorData.CorrelationErrorReason;
+import io.camunda.connector.api.inbound.result.MessageStartCorrelationResult;
 import io.camunda.connector.api.inbound.result.ProcessInstance;
 import io.camunda.connector.api.inbound.result.StartEventCorrelationResult;
 import io.camunda.connector.feel.FeelEngineWrapper;
@@ -104,6 +106,55 @@ public class InboundCorrelationHandlerTest {
 
       verify(dummyCommand).messageName(point.messageName());
       verify(dummyCommand).correlationKey(correlationKeyValue);
+      verify(dummyCommand).send();
+    }
+
+    @Test
+    void startMessageEvent_shouldCallCorrectZeebeMethod() {
+      // given
+      var point = new MessageStartEventCorrelationPoint("test", "", "1", 1, 0);
+      var definition = mock(InboundConnectorDefinitionImpl.class);
+      when(definition.correlationPoint()).thenReturn(point);
+
+      var dummyCommand = Mockito.spy(new PublishMessageCommandDummy());
+      when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
+
+      // when
+      handler.correlate(definition, Collections.emptyMap());
+
+      // then
+      verify(zeebeClient).newPublishMessageCommand();
+      verifyNoMoreInteractions(zeebeClient);
+
+      verify(dummyCommand).messageName("test");
+      verify(dummyCommand).correlationKey("");
+      verify(dummyCommand).send();
+    }
+
+    @Test
+    void startMessageEvent_idempotencyKeyEvaluated() {
+      // given
+      var point = new MessageStartEventCorrelationPoint("test", "=myVar", "1", 1, 0);
+      var definition = mock(InboundConnectorDefinitionImpl.class);
+      when(definition.correlationPoint()).thenReturn(point);
+
+      var dummyCommand = Mockito.spy(new PublishMessageCommandDummy());
+      when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
+
+      // when
+      handler.correlate(
+          definition,
+          Map.of("myVar", "myValue", "myOtherMap", Map.of("myOtherKey", "myOtherValue")));
+
+      // then
+      verify(zeebeClient).newPublishMessageCommand();
+      verifyNoMoreInteractions(zeebeClient);
+
+      ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+      verify(dummyCommand).messageName("test");
+      verify(dummyCommand).correlationKey("");
+      verify(dummyCommand).messageId(captor.capture());
+      assertThat(captor.getValue()).isEqualTo("myValue");
       verify(dummyCommand).send();
     }
   }
@@ -235,6 +286,116 @@ public class InboundCorrelationHandlerTest {
       assertThat(instance.getProcessDefinitionKey()).isEqualTo(point.processDefinitionKey());
       assertThat(instance.getBpmnProcessId()).isEqualTo(point.bpmnProcessId());
       assertThat(instance.getVersion()).isEqualTo(point.version());
+    }
+
+    @Test
+    void messageStartEvent_activationConditionFalse_shouldNotCorrelate() {
+      // given
+      var point = new MessageStartEventCorrelationPoint("testMsg", "=myVar", "1", 1, 0);
+      var definition = mock(InboundConnectorDefinitionImpl.class);
+      when(definition.correlationPoint()).thenReturn(point);
+      when(definition.activationCondition()).thenReturn("=testKey=\"otherValue\"");
+
+      Map<String, Object> variables = Map.of("testKey", "testValue");
+
+      // when
+      InboundConnectorResult<?> result = handler.correlate(definition, variables);
+
+      // then
+      verifyNoMoreInteractions(zeebeClient);
+
+      assertThat(result).isInstanceOf(MessageStartCorrelationResult.class);
+      assertThat(result.getCorrelationPointId()).isEqualTo("testMsg");
+      assertThat(result.getType()).isEqualTo(MessageStartCorrelationResult.TYPE_NAME);
+      assertFalse(result.getResponseData().isPresent());
+      assertFalse(result.isActivated());
+      assertThat(result.getErrorData().isPresent()).isTrue();
+      assertThat(result.getErrorData().get().reason())
+          .isEqualTo(CorrelationErrorReason.ACTIVATION_CONDITION_NOT_MET);
+    }
+
+    @Test
+    void messageStartEvent_activationConditionTrue_shouldCorrelate() {
+      // given
+      var dummyCommand = Mockito.spy(new PublishMessageCommandDummy());
+      when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
+
+      var point = new MessageStartEventCorrelationPoint("testMsg", "=myVar", "1", 1, 0);
+      var definition = mock(InboundConnectorDefinitionImpl.class);
+      when(definition.correlationPoint()).thenReturn(point);
+      when(definition.activationCondition()).thenReturn("=myOtherMap.myOtherKey=\"myOtherValue\"");
+
+      Map<String, Object> variables =
+          Map.of("myVar", "myValue", "myOtherMap", Map.of("myOtherKey", "myOtherValue"));
+
+      // when
+      InboundConnectorResult<?> result = handler.correlate(definition, variables);
+
+      // then
+      verify(zeebeClient).newPublishMessageCommand();
+
+      assertThat(result).isInstanceOf(MessageStartCorrelationResult.class);
+      assertThat(result.getCorrelationPointId()).isEqualTo("testMsg");
+      assertThat(result.getType()).isEqualTo(MessageStartCorrelationResult.TYPE_NAME);
+      assertThat(result.isActivated()).isTrue();
+      assertThat(result.getResponseData().isPresent()).isTrue();
+      assertThat(result.getErrorData().isPresent()).isFalse();
+    }
+
+    @Test
+    void messageStartEvent_activationConditionNull_shouldCorrelate() {
+      // given
+      var dummyCommand = Mockito.spy(new PublishMessageCommandDummy());
+      when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
+
+      var point = new MessageStartEventCorrelationPoint("testMsg", "=myVar", "1", 1, 0);
+      var definition = mock(InboundConnectorDefinitionImpl.class);
+      when(definition.correlationPoint()).thenReturn(point);
+      when(definition.activationCondition()).thenReturn(null);
+
+      Map<String, Object> variables =
+          Map.of("myVar", "myValue", "myOtherMap", Map.of("myOtherKey", "myOtherValue"));
+
+      // when
+      InboundConnectorResult<?> result = handler.correlate(definition, variables);
+
+      // then
+      verify(zeebeClient).newPublishMessageCommand();
+
+      assertThat(result).isInstanceOf(MessageStartCorrelationResult.class);
+      assertThat(result.getCorrelationPointId()).isEqualTo("testMsg");
+      assertThat(result.getType()).isEqualTo(MessageStartCorrelationResult.TYPE_NAME);
+      assertThat(result.isActivated()).isTrue();
+      assertThat(result.getResponseData().isPresent()).isTrue();
+      assertThat(result.getErrorData().isPresent()).isFalse();
+    }
+
+    @Test
+    void messageStartEvent_activationConditionBlank_shouldCorrelate() {
+      // given
+      var dummyCommand = Mockito.spy(new PublishMessageCommandDummy());
+      when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
+
+      var point = new MessageStartEventCorrelationPoint("testMsg", "=myVar", "1", 1, 0);
+      var definition = mock(InboundConnectorDefinitionImpl.class);
+      when(definition.correlationPoint()).thenReturn(point);
+      when(definition.activationCondition()).thenReturn("  ");
+
+      Map<String, Object> variables =
+          Map.of("myVar", "myValue", "myOtherMap", Map.of("myOtherKey", "myOtherValue"));
+
+      // when
+      InboundConnectorResult<?> result = handler.correlate(definition, variables);
+
+      // then
+      verify(zeebeClient).newPublishMessageCommand();
+
+      assertThat(result).isInstanceOf(MessageStartCorrelationResult.class);
+      assertThat(result.getCorrelationPointId()).isEqualTo("testMsg");
+      assertThat(result.getType()).isEqualTo(MessageStartCorrelationResult.TYPE_NAME);
+      assertThat(result.isActivated()).isTrue();
+      assertThat(result.getResponseData().isPresent()).isTrue();
+      assertThat(result.getErrorData().isPresent()).isFalse();
     }
   }
 
