@@ -110,7 +110,7 @@ limitations under the License.</license.inlineheader>
     <version.testcontainers>1.19.0</version.testcontainers>
     <version.awaitility>4.2.0</version.awaitility>
 
-    <version.snappy-java>1.1.10.3</version.snappy-java>
+    <version.snappy-java>1.1.10.4</version.snappy-java>
     <version.commons-codec>1.16.0</version.commons-codec>
     <version.guava>32.1.2-jre</version.guava>
     <version.javax.xml.bind>2.4.0-b180830.0359</version.javax.xml.bind>
