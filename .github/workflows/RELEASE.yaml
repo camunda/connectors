@@ -2,17 +2,8 @@ name: Release a new version
 run-name: Release a new version ${{ inputs.version }}
 
 on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Semantic version number of release: ^[0-9]+.[0-9]+.[0-9]+(-[a-zA-Z0-9.-]+){0,1}$'
-        required: true
-      nextVersion:
-        description: 'Semantic version number to use as next SNAPSHOT version: ^[0-9]+.[0-9]+.[0-9]+(-[a-zA-Z0-9.-]+){0,1}$'
-        required: true
-      branch:
-        description: 'Git branch to be used in the release'
-        default: 'main'
+  release:
+    types: [ published ]
 
 jobs:
   build-and-push:
@@ -21,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.branch }}
+          ref: ${{ github.event.release.tag_name }}
           fetch-depth: 0
 
       - name: Import Secrets
@@ -85,7 +76,9 @@ jobs:
       - name: Check if new version implies pre-release
         id: check_prerelease
         run: |
-          if [[ ${{ github.event.inputs.version }} =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          if [[ ${{github.event.release.prerelease}} == "false" ]]; then
+            PRE_RELEASE=true
+          elif [[ ${{ github.event.release.tag_name }} =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             PRE_RELEASE=false
           else
             PRE_RELEASE=true
@@ -108,7 +101,7 @@ jobs:
       - name: Set Connectors release version
         run:  mvn -B versions:set -DnewVersion=${RELEASE_VERSION} -DgenerateBackupPoms=false -f parent
         env:
-          RELEASE_VERSION: ${{ github.event.inputs.version }}
+          RELEASE_VERSION: ${{ github.event.release.tag_name }}
 
       - name: Deploy artifacts to Artifactory and Maven Central
         run: mvn -B compile generate-sources source:jar javadoc:jar deploy -PcheckFormat -Psonatype-oss-release
@@ -124,15 +117,7 @@ jobs:
           git commit -am "ci: release version ${RELEASE_VERSION}"
           git tag -a ${RELEASE_VERSION} -m "ci: release version ${RELEASE_VERSION}"
         env:
-          RELEASE_VERSION: ${{ github.event.inputs.version }}
-
-      - name: Set next development patch version
-        run: |
-          mvn -B versions:set -DnewVersion=${NEXT_VERSION}-SNAPSHOT -DgenerateBackupPoms=false -f parent
-          git commit -am "ci: set next development version"
-          git push --follow-tags
-        env:
-          NEXT_VERSION: ${{ github.event.inputs.nextVersion }}
+          RELEASE_VERSION: ${{ github.event.release.tag_name }}
 
       - name: Generate sbom reports
         run: |
@@ -154,30 +139,30 @@ jobs:
 
       # Build & push bundle docker images (with version tag)
 
-      - name: Build and Push Docker Image tag ${{ github.event.inputs.version }} - connector-runtime
+      - name: Build and Push Docker Image tag ${{ github.event.release.tag_name }} - connector-runtime
         uses: docker/build-push-action@v5
         with:
           context: connector-runtime/connector-runtime-application/
           push: ${{ github.ref == 'refs/heads/main' }}
-          tags: camunda/connectors:${{ github.event.inputs.version }}
+          tags: camunda/connectors:${{ github.event.release.tag_name }}
           platforms: linux/amd64,linux/arm64
           provenance: false
 
-      - name: Build and Push Docker Image tag ${{ github.event.inputs.version }} - bundle-default
+      - name: Build and Push Docker Image tag ${{ github.event.release.tag_name }} - bundle-default
         uses: docker/build-push-action@v5
         with:
           context: bundle/default-bundle/
           push: ${{ github.ref == 'refs/heads/main' }}
-          tags: camunda/connectors-bundle:${{ github.event.inputs.version }}
+          tags: camunda/connectors-bundle:${{ github.event.release.tag_name }}
           platforms: linux/amd64,linux/arm64
           provenance: false
 
-      - name: Build and Push Docker Image tag ${{ github.event.inputs.version }} - bundle-saas
+      - name: Build and Push Docker Image tag ${{ github.event.release.tag_name }} - bundle-saas
         uses: docker/build-push-action@v5
         with:
           context: bundle/camunda-saas-bundle/
           push: ${{ github.ref == 'refs/heads/main' }}
-          tags: camunda/connectors-bundle-saas:${{ github.event.inputs.version }}
+          tags: camunda/connectors-bundle-saas:${{ github.event.release.tag_name }}
           platforms: linux/amd64,linux/arm64
           provenance: false
 
@@ -238,19 +223,19 @@ jobs:
           readme_file: bundle/README.md
           short_description: 'Camunda out-of-the-box Connectors Bundle for SaaS'
 
-    # Create GitHub release
+    # Update GitHub release
 
       - name: Bundle element templates
         run: bash bundle/bundle-templates.sh ${RELEASE_VERSION}
         env:
-          RELEASE_VERSION: ${{ github.event.inputs.version }}
+          RELEASE_VERSION: ${{ github.event.release.tag_name }}
 
       - name: Build Changelog
         id: changelog
         uses: Requarks/changelog-action@v1
         with:
           token: ${{ github.token }}
-          fromTag: ${{ github.event.inputs.version }}
+          fromTag: ${{ github.event.release.tag_name }}
           toTag: ${{ steps.get_previous_tag.outputs.previousTag }}
           writeToFile: false
           excludeTypes: build,docs,other,style,ci
@@ -260,9 +245,10 @@ jobs:
         with:
           prerelease: ${{ steps.check_prerelease.outputs.isPreRelease }}
           body: ${{ steps.changelog.outputs.changes }}
-          tag_name: ${{ github.event.inputs.version }}
+          name: ${{ github.event.release.name }}
+          tag_name: ${{ github.event.release.tag_name }}
           files: |
             bundle/default-bundle/target/connectors-bundle-sbom.json
             bundle/default-bundle/target/connectors-bundle-sbom.xml
-            connectors-bundle-templates-${{ github.event.inputs.version }}.tar.gz
-            connectors-bundle-templates-${{ github.event.inputs.version }}.zip
+            connectors-bundle-templates-${{ github.event.release.tag_name }}.tar.gz
+            connectors-bundle-templates-${{ github.event.release.tag_name }}.zip

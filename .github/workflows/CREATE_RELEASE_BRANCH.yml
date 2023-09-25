@@ -1,0 +1,55 @@
+name: Create release branch
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Semantic version number of release: ^[0-9]+.[0-9]+.[0-9]+(-[a-zA-Z0-9.-]+){0,1}$'
+        required: true
+      setVersionOnMain:
+        description: 'Set the new snapshot version on main branch?'
+        type: boolean
+        required: true
+        default: true
+
+jobs:
+  create-release-branch:
+    name: Create release branch
+    runs-on: ubuntu-latest
+    steps:
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
+
+      - name: Prepare Java and Maven settings
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+
+      - name: Configure git user
+        run: |
+          # https://github.com/actions/checkout/issues/13#issuecomment-724415212
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Create branch and set release version
+        run: |
+          git checkout -b release/${{ github.event.inputs.version }}
+          mvn -B versions:set -DnewVersion=${RELEASE_VERSION} -DgenerateBackupPoms=false -f parent
+          git add parent/pom.xml
+          git commit -am "ci: set next release version"
+          git push --follow-tags
+        env:
+          RELEASE_VERSION: ${{ github.event.inputs.version }}
+
+      - name: Set snapshot version on main branch
+        if: ${{ github.event.inputs.setVersionOnMain == 'true' }}
+        run: |
+          git checkout main
+          mvn -B versions:set -DnewVersion=${SNAPSHOT_VERSION} -DgenerateBackupPoms=false -f parent
+          git add parent/pom.xml
+          git commit -am "ci: set next snapshot version"
+          git push
