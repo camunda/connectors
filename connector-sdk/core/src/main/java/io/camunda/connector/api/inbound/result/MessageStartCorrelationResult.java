@@ -16,14 +16,17 @@
  */
 package io.camunda.connector.api.inbound.result;
 
-public record CorrelationErrorData(CorrelationErrorReason reason, String message) {
-  public enum CorrelationErrorReason {
-    ACTIVATION_CONDITION_NOT_MET,
-    FAULT_ZEEBE_CLIENT_STATUS,
-    FAULT_IDEMPOTENCY_KEY
+public class MessageStartCorrelationResult
+    extends AbstractInboundConnectorResult<CorrelatedMessageStart> {
+
+  public static final String TYPE_NAME = "MESSAGE_START";
+
+  public MessageStartCorrelationResult(
+      String messageName, CorrelatedMessageStart correlatedMessageStart) {
+    super(TYPE_NAME, messageName, true, correlatedMessageStart, null);
   }
 
-  public CorrelationErrorData(CorrelationErrorReason reason) {
-    this(reason, null);
+  public MessageStartCorrelationResult(String messageName, CorrelationErrorData errorData) {
+    super(TYPE_NAME, messageName, false, null, errorData);
   }
 }

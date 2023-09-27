@@ -34,28 +34,28 @@ import org.springframework.util.ResourceUtils;
 public class ProcessDefinitionInspectorUtilTests {
 
   @Test
-  public void testSingleWebhookInCollaboration() throws Exception {
+  public void testSingleWebhookInCollaboration() {
     var inboundConnectors = fromModel("single-webhook-collaboration.bpmn", "process");
     assertEquals(1, inboundConnectors.size());
     assertEquals("start_event", inboundConnectors.get(0).elementId());
   }
 
   @Test
-  public void testMultipleWebhooksInCollaborationP1() throws Exception {
+  public void testMultipleWebhooksInCollaborationP1() {
     var inboundConnectors = fromModel("multi-webhook-collaboration.bpmn", "process1");
     assertEquals(1, inboundConnectors.size());
     assertEquals("start_event", inboundConnectors.get(0).elementId());
   }
 
   @Test
-  public void testMultipleWebhooksInCollaborationP2() throws Exception {
+  public void testMultipleWebhooksInCollaborationP2() {
     var inboundConnectors = fromModel("multi-webhook-collaboration.bpmn", "process2");
     assertEquals(1, inboundConnectors.size());
     assertEquals("intermediate_event", inboundConnectors.get(0).elementId());
   }
 
   @Test
-  public void testMultipleWebhookStartEventsInCollaborationP1() throws Exception {
+  public void testMultipleWebhookStartEventsInCollaborationP1() {
     var inboundConnectors = fromModel("multi-webhook-start-collaboration.bpmn", "process1");
     inboundConnectors.sort(Comparator.comparing(InboundConnectorDefinition::elementId));
     assertEquals(1, inboundConnectors.size());
@@ -63,7 +63,7 @@ public class ProcessDefinitionInspectorUtilTests {
   }
 
   @Test
-  public void testMultipleWebhookStartEventsInCollaborationP2() throws Exception {
+  public void testMultipleWebhookStartEventsInCollaborationP2() {
     var inboundConnectors = fromModel("multi-webhook-start-collaboration.bpmn", "process2");
     inboundConnectors.sort(Comparator.comparing(InboundConnectorDefinition::elementId));
     assertEquals(1, inboundConnectors.size());
@@ -71,25 +71,34 @@ public class ProcessDefinitionInspectorUtilTests {
   }
 
   @Test
-  public void testSingleWebhookBoundaryEvent() throws Exception {
+  public void testSingleWebhookBoundaryEvent() {
     var inboundConnectors = fromModel("single-webhook-boundary.bpmn", "BoundaryEventTest");
     assertEquals(1, inboundConnectors.size());
     assertEquals("boundary_event", inboundConnectors.get(0).elementId());
   }
 
   @Test
-  public void testSingleWebhookSubprocess() throws Exception {
+  public void testSingleWebhookSubprocess() {
     var inboundConnectors = fromModel("single-webhook-subprocess.bpmn", "subprocess_webhook");
     assertEquals(1, inboundConnectors.size());
     assertEquals("webhook_in_subprocess", inboundConnectors.get(0).elementId());
   }
 
   @Test
-  public void testSingleKafkaSubprocess() throws Exception {
+  public void testSingleKafkaSubprocess() {
     var inboundConnectors =
         fromModel("single-kafka-consumer-subprocess.bpmn", "kafka-consumer-subprocess");
     assertEquals(1, inboundConnectors.size());
     assertEquals("kafka_in_subprocess", inboundConnectors.get(0).elementId());
+  }
+
+  @Test
+  public void testMultiWebhookStartMessage() {
+    var inboundConnectors =
+        fromModel("multi-webhook-start-message.bpmn", "multi-webhook-start-message");
+    assertEquals(2, inboundConnectors.size());
+    assertEquals("wh-start-msg-1", inboundConnectors.get(0).elementId());
+    assertEquals("wh-start-msg-2", inboundConnectors.get(1).elementId());
   }
 
   private List<InboundConnectorDefinitionImpl> fromModel(String fileName, String processId) {

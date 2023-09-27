@@ -16,14 +16,9 @@
  */
 package io.camunda.connector.api.inbound.result;
 
-public record CorrelationErrorData(CorrelationErrorReason reason, String message) {
-  public enum CorrelationErrorReason {
-    ACTIVATION_CONDITION_NOT_MET,
-    FAULT_ZEEBE_CLIENT_STATUS,
-    FAULT_IDEMPOTENCY_KEY
-  }
-
-  public CorrelationErrorData(CorrelationErrorReason reason) {
-    this(reason, null);
-  }
-}
+public record CorrelatedMessageStart(
+    long messageKey,
+    String messageId,
+    String bpmnProcessId,
+    long processDefinitionKey,
+    int version) {}
