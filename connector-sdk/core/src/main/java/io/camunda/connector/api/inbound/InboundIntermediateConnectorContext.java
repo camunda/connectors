@@ -16,25 +16,34 @@
  */
 package io.camunda.connector.api.inbound;
 
-import io.camunda.connector.api.inbound.operate.ProcessInstance;
 import java.util.List;
 
 /**
- * Extended context object for inbound connectors, providing additional capabilities specific to
- * intermediate processing stages. This context provides methods to interact with process instances
- * associated with it, including the ability to fetch the latest state of these instances
- * dynamically. The method {@link #getProcessInstances()} returns a list of process instances with
- * their associated variables. Note that the variables associated with each process instance are
- * updated every time the method is invoked, reflecting the latest state of the process instances at
- * the time of the call.
+ * An advanced interface for inbound intermediate connectors extending the {@link
+ * InboundConnectorContext}. This interface provides added functionalities for detailed interactions
+ * with active process instances.
+ *
+ * <p>In addition to the inherited capabilities, this interface permits:
+ *
+ * <ul>
+ *   <li>Fetching context information of active process instances, specifically, the keys and
+ *       corresponding variables of active processes.
+ *   <li>Managing dynamic properties in real-time.
+ *   <li>Transforming and validating properties specific to intermediate connectors using provided
+ *       data.
+ * </ul>
+ *
+ * <p>Intended for scenarios where adaptability to changing process conditions is needed or deeper
+ * interactions with active processes are required.
  */
 public interface InboundIntermediateConnectorContext extends InboundConnectorContext {
+
   /**
-   * Retrieves a list of process instances associated with this context, including their latest
-   * variables. The variables are dynamically updated every time this method is invoked, allowing
-   * the connector to have access to the most recent state of the process instances.
+   * Gathers the context information for active process instances. This is achieved by obtaining the
+   * process instance keys and their respective variables. It provides a comprehensive view into the
+   * active processes, enabling informed decisions.
    *
-   * @return a list of {@link ProcessInstance} with updated variables
+   * @return A list of context information corresponding to each active process instance.
    */
-  List<ProcessInstance> getProcessInstances();
+  List<ProcessInstanceContext> getProcessInstanceContexts();
 }

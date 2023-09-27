@@ -20,7 +20,7 @@ package io.camunda.connector.api.inbound;
  * Base interface for inbound connectors. The environment-specific Connector Runtime uses this
  * interface to control the execution inbound Connectors.
  */
-public interface InboundConnectorExecutable {
+public interface InboundConnectorExecutable<T extends InboundConnectorContext> {
 
   /**
    * Activation trigger for the inbound Connector executable.
@@ -35,7 +35,7 @@ public interface InboundConnectorExecutable {
    *
    * @param context Runtime-specific information
    */
-  void activate(InboundConnectorContext context) throws Exception;
+  void activate(T context) throws Exception;
 
   /**
    * Gentle shutdown hook for inbound connectors. Must release all resources used by the

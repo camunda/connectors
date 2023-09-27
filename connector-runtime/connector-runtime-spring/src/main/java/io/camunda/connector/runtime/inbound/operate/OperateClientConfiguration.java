@@ -14,12 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.api.inbound;
+package io.camunda.connector.runtime.inbound.operate;
 
-/**
- * Defines the behavior for a connector that performs polling operations.
- *
- * <p>This interface extends {@link InboundConnectorExecutable} to specify functionality for
- * connectors that periodically query an external system to fetch information or detect changes.
- */
-public interface PollingConnectorExecutable extends InboundConnectorExecutable {}
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.runtime.core.inbound.OperateClientAdapter;
+import io.camunda.operate.CamundaOperateClient;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class OperateClientConfiguration {
+  @Bean
+  public OperateClientAdapter springOperateClientAdapter(
+      CamundaOperateClient camundaOperateClient, ObjectMapper mapper) {
+    return new OperateClientAdapterImpl(camundaOperateClient, mapper);
+  }
+}

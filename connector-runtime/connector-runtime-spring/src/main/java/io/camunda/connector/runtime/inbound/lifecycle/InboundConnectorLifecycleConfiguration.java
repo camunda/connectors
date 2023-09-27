@@ -16,14 +16,10 @@
  */
 package io.camunda.connector.runtime.inbound.lifecycle;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.inbound.DefaultInboundConnectorFactory;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorContextFactory;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
-import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
-import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionInspector;
-import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,7 +28,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
 @Configuration
-@Import(InboundConnectorRestController.class)
+@Import({InboundConnectorRestController.class})
 public class InboundConnectorLifecycleConfiguration {
 
   @Bean
@@ -42,23 +38,15 @@ public class InboundConnectorLifecycleConfiguration {
 
   @Bean
   public InboundConnectorManager inboundConnectorManager(
-      ObjectMapper mapper,
       InboundConnectorFactory connectorFactory,
-      InboundCorrelationHandler correlationHandler,
+      InboundConnectorContextFactory connectorContextFactory,
       ProcessDefinitionInspector processDefinitionInspector,
-      ProcessDefinitionSearch processDefinitionSearch,
-      SecretProviderAggregator secretProviderAggregator,
-      @Autowired(required = false) ValidationProvider validationProvider,
       MetricsRecorder metricsRecorder,
       @Autowired(required = false) WebhookConnectorRegistry webhookConnectorRegistry) {
     return new InboundConnectorManager(
-        mapper,
         connectorFactory,
-        correlationHandler,
+        connectorContextFactory,
         processDefinitionInspector,
-        processDefinitionSearch,
-        secretProviderAggregator,
-        validationProvider,
         metricsRecorder,
         webhookConnectorRegistry);
   }

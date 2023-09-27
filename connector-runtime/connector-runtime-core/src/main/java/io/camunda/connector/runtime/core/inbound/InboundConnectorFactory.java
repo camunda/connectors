@@ -16,9 +16,11 @@
  */
 package io.camunda.connector.runtime.core.inbound;
 
+import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.runtime.core.ConnectorFactory;
 import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
 
 public interface InboundConnectorFactory
-    extends ConnectorFactory<InboundConnectorExecutable, InboundConnectorConfiguration> {}
+    extends ConnectorFactory<
+        InboundConnectorExecutable<InboundConnectorContext>, InboundConnectorConfiguration> {}

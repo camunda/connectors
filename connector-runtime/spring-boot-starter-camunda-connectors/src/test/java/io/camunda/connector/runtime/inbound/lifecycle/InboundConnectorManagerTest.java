@@ -35,11 +35,14 @@ import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.correlation.MessageCorrelationPoint;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.app.TestInboundConnector;
 import io.camunda.connector.runtime.app.TestWebhookConnector;
 import io.camunda.connector.runtime.core.ConnectorUtil;
 import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
+import io.camunda.connector.runtime.core.inbound.DefaultInboundConnectorContextFactory;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorContextFactory;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
@@ -47,8 +50,9 @@ import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationH
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.inbound.ProcessDefinitionTestUtil;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionInspector;
-import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
+import io.camunda.connector.runtime.inbound.operate.OperateClientAdapterImpl;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
+import io.camunda.operate.CamundaOperateClient;
 import io.camunda.operate.dto.ProcessDefinition;
 import io.camunda.zeebe.spring.client.metrics.DefaultNoopMetricsRecorder;
 import java.util.Collections;
@@ -62,6 +66,7 @@ public class InboundConnectorManagerTest {
   private InboundConnectorManager manager;
   private ProcessDefinitionTestUtil procDefUtil;
   private InboundConnectorFactory factory;
+  private InboundConnectorContextFactory contextFactory;
   private InboundConnectorExecutable inboundConnectorExecutable;
   private WebhookConnectorExecutable webhookConnectorExecutable;
   private WebhookConnectorRegistry webhookRegistry;
@@ -82,19 +87,20 @@ public class InboundConnectorManagerTest {
     secretProviderAggregator = mock(SecretProviderAggregator.class);
 
     ProcessDefinitionInspector inspector = mock(ProcessDefinitionInspector.class);
-    ProcessDefinitionSearch processDefinitionSearch = mock(ProcessDefinitionSearch.class);
+    CamundaOperateClient camundaOperateClient = mock(CamundaOperateClient.class);
+
+    contextFactory =
+        new DefaultInboundConnectorContextFactory(
+            mapper,
+            correlationHandler,
+            secretProviderAggregator,
+            v -> {},
+            new OperateClientAdapterImpl(camundaOperateClient, mapper),
+            new FeelEngineWrapper());
 
     manager =
         new InboundConnectorManager(
-            mapper,
-            factory,
-            correlationHandler,
-            inspector,
-            processDefinitionSearch,
-            secretProviderAggregator,
-            v -> {},
-            new DefaultNoopMetricsRecorder(),
-            webhookRegistry);
+            factory, contextFactory, inspector, new DefaultNoopMetricsRecorder(), webhookRegistry);
     procDefUtil = new ProcessDefinitionTestUtil(manager, inspector);
   }
 
@@ -190,20 +196,11 @@ public class InboundConnectorManagerTest {
   void shouldNotActivateWebhookWhenDisabled() throws Exception {
     // Given
     ProcessDefinitionInspector inspector = mock(ProcessDefinitionInspector.class);
-    ProcessDefinitionSearch processDefinitionSearch = mock(ProcessDefinitionSearch.class);
     // webhook connector registry is set to null,
     // emulating camunda.connector.webhook.enabled=false
     manager =
         new InboundConnectorManager(
-            mapper,
-            factory,
-            correlationHandler,
-            inspector,
-            processDefinitionSearch,
-            secretProviderAggregator,
-            v -> {},
-            new DefaultNoopMetricsRecorder(),
-            null);
+            factory, contextFactory, inspector, new DefaultNoopMetricsRecorder(), null);
     procDefUtil = new ProcessDefinitionTestUtil(manager, inspector);
 
     when(factory.getInstance("io.camunda:test-webhook:1")).thenReturn(webhookConnectorExecutable);

@@ -16,24 +16,16 @@
  */
 package io.camunda.connector.runtime.inbound.importer;
 
-import io.camunda.connector.api.inbound.operate.ProcessInstance;
 import io.camunda.operate.CamundaOperateClient;
 import io.camunda.operate.dto.ProcessDefinition;
-import io.camunda.operate.dto.ProcessInstanceState;
 import io.camunda.operate.dto.SearchResult;
-import io.camunda.operate.dto.Variable;
 import io.camunda.operate.exception.OperateException;
-import io.camunda.operate.search.ProcessInstanceFilter;
 import io.camunda.operate.search.SearchQuery;
 import io.camunda.operate.search.Sort;
 import io.camunda.operate.search.SortOrder;
-import io.camunda.operate.search.VariableFilter;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
@@ -84,95 +76,5 @@ public class ProcessDefinitionSearch {
     } while (processDefinitionResult.getItems().size() > 0);
 
     resultHandler.accept(processDefinitions);
-  }
-
-  /**
-   * Fetches a list of process instances associated with a given process definition key, including
-   * the variables for each instance. The variables represent the current state of each process
-   * instance and may be updated over the lifetime of the instance.
-   *
-   * @param processDefinitionKey The unique identifier for the process definition to retrieve
-   *     instances of.
-   * @return A list of {@link ProcessInstance} objects, each representing a process instance and its
-   *     associated variables.
-   * @throws RuntimeException If an error occurs during the fetch operation.
-   */
-  public List<ProcessInstance> fetchProcessInstancesWithVariables(final Long processDefinitionKey) {
-    List<Object> processPaginationIndex = null;
-    SearchResult<io.camunda.operate.dto.ProcessInstance> searchResult;
-    List<ProcessInstance> result = new ArrayList<>();
-
-    do {
-      try {
-        ProcessInstanceFilter processInstanceFilter =
-            new ProcessInstanceFilter.Builder()
-                .processDefinitionKey(processDefinitionKey)
-                .state(ProcessInstanceState.ACTIVE)
-                .build();
-        SearchQuery processInstanceQuery =
-            new SearchQuery.Builder()
-                .filter(processInstanceFilter)
-                .searchAfter(processPaginationIndex)
-                .size(20)
-                .build();
-        searchResult =
-            camundaOperateClient.search(
-                processInstanceQuery, io.camunda.operate.dto.ProcessInstance.class);
-      } catch (OperateException e) {
-        throw new RuntimeException(e);
-      }
-      processPaginationIndex = searchResult.getSortValues();
-      searchResult
-          .getItems()
-          .forEach(
-              processInstance -> {
-                Map<String, String> variables =
-                    fetchProcessInstanceVariables(processInstance.getKey());
-                result.add(new ProcessInstance(processInstance.getKey(), variables));
-              });
-
-    } while (searchResult.getItems().size() > 0);
-    return result;
-  }
-
-  /**
-   * Fetches the variables associated with a given process instance key. The variables represent the
-   * dynamic state of the process instance.
-   *
-   * @param processInstanceKey The unique identifier for the process instance to retrieve variables
-   *     of.
-   * @return A map containing the variables associated with the process instance. The keys represent
-   *     variable names, and the values are the variable values.
-   * @throws RuntimeException If an error occurs during the fetch operation.
-   */
-  private Map<String, String> fetchProcessInstanceVariables(final Long processInstanceKey) {
-    List<Object> variablePaginationIndex = null;
-    SearchResult<io.camunda.operate.dto.Variable> searchResult;
-    Map<String, String> processVariables = new HashMap<>();
-    do {
-      try {
-        VariableFilter variableFilter =
-            new VariableFilter.Builder().processInstanceKey(processInstanceKey).build();
-        SearchQuery variableQuery =
-            new SearchQuery.Builder()
-                .filter(variableFilter)
-                .searchAfter(variablePaginationIndex)
-                .size(20)
-                .build();
-        searchResult =
-            camundaOperateClient.search(variableQuery, io.camunda.operate.dto.Variable.class);
-      } catch (OperateException e) {
-        throw new RuntimeException(e);
-      }
-      List<Object> newPaginationIdx = searchResult.getSortValues();
-      processVariables.putAll(
-          searchResult.getItems().stream()
-              .collect(Collectors.toMap(Variable::getName, Variable::getValue)));
-      if (!CollectionUtils.isEmpty(newPaginationIdx)) {
-        variablePaginationIndex = newPaginationIdx;
-      }
-
-    } while (searchResult.getItems().size() > 0);
-    return processVariables;
   }
 }
