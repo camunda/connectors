@@ -64,7 +64,7 @@
     },
     {
       "label": "Access key",
-      "description": "Provide AWS IAM access key that has permission to send to desired SQS",
+      "description": "Provide AWS IAM access key that has permission to read from desired SQS",
       "group": "authentication",
       "type": "String",
       "binding": {
@@ -77,7 +77,7 @@
     },
     {
       "label": "Secret key",
-      "description": "Provide AWS IAM secret key that has permission to send to desired SQS",
+      "description": "Provide AWS IAM secret key that has permission to read from desired SQS",
       "group": "authentication",
       "type": "String",
       "binding": {
@@ -90,7 +90,7 @@
     },
     {
       "label": "Queue URL",
-      "description": "Specify the URL of the SQS queue where you would like to send message to",
+      "description": "Specify the URL of the SQS queue where you would like to subscribe to",
       "group": "queueProperties",
       "type": "String",
       "binding": {
