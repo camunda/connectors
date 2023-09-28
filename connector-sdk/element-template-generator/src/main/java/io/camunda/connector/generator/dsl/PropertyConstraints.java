@@ -22,6 +22,8 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 @JsonInclude(Include.NON_NULL)
 public record PropertyConstraints(
     Boolean notEmpty, Integer minLength, Integer maxLength, Pattern pattern) {
+
+  @JsonInclude(Include.NON_NULL)
   public record Pattern(String value, String message) {}
 
   public static PropertyConstraintsBuilder builder() {

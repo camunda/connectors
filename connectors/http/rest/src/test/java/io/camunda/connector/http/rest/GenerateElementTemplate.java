@@ -14,29 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.http.base.auth;
+package io.camunda.connector.http.rest;
 
-import com.google.api.client.http.HttpHeaders;
-import io.camunda.connector.generator.annotation.TemplateSubType;
+import io.camunda.connector.generator.core.OutboundElementTemplateGenerator;
+import org.testcontainers.shaded.com.fasterxml.jackson.core.JsonProcessingException;
+import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 
-@TemplateSubType(id = "noAuth", label = "None")
-public final class NoAuthentication extends Authentication {
+public class GenerateElementTemplate {
 
-  @Override
-  public void setHeaders(final HttpHeaders headers) {}
-
-  @Override
-  public boolean equals(final Object o) {
-    return super.equals(o);
-  }
-
-  @Override
-  public int hashCode() {
-    return super.hashCode();
-  }
-
-  @Override
-  public String toString() {
-    return super.toString();
+  public static void main(String[] args) throws JsonProcessingException {
+    System.out.println(
+        new ObjectMapper()
+            .writeValueAsString(
+                new OutboundElementTemplateGenerator().generate(HttpJsonFunction.class)));
   }
 }

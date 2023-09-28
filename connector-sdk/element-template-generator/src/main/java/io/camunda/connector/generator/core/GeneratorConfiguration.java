@@ -14,29 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.http.base.auth;
+package io.camunda.connector.generator.core;
 
-import com.google.api.client.http.HttpHeaders;
-import io.camunda.connector.generator.annotation.TemplateSubType;
-
-@TemplateSubType(id = "noAuth", label = "None")
-public final class NoAuthentication extends Authentication {
-
-  @Override
-  public void setHeaders(final HttpHeaders headers) {}
-
-  @Override
-  public boolean equals(final Object o) {
-    return super.equals(o);
+/** Configuration for the element template generator */
+public record GeneratorConfiguration(
+    /*
+     * Connectors in hybrid mode have a configurable task definition type (for outbound), or a
+     * configurable connector type (for inbound) property. This allows to run multiple connector
+     * runtimes against the same Camunda cluster and distiguish between them on the BPMN level.
+     */
+    ConnectorMode connectorMode) {
+  public enum ConnectorMode {
+    NORMAL,
+    HYBRID
   }
 
-  @Override
-  public int hashCode() {
-    return super.hashCode();
-  }
-
-  @Override
-  public String toString() {
-    return super.toString();
-  }
+  public static final GeneratorConfiguration DEFAULT =
+      new GeneratorConfiguration(ConnectorMode.NORMAL);
 }

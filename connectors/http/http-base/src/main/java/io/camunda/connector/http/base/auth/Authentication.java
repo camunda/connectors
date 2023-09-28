@@ -19,6 +19,7 @@ package io.camunda.connector.http.base.auth;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.google.api.client.http.HttpHeaders;
+import io.camunda.connector.generator.annotation.TemplateDiscriminatorProperty;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
@@ -28,6 +29,12 @@ import com.google.api.client.http.HttpHeaders;
   @JsonSubTypes.Type(value = OAuthAuthentication.class, name = "oauth-client-credentials-flow"),
   @JsonSubTypes.Type(value = BearerAuthentication.class, name = "bearer")
 })
+@TemplateDiscriminatorProperty(
+    label = "Type",
+    group = "authentication",
+    name = "type",
+    defaultValue = "noAuth",
+    description = "Choose the authentication type. Select 'None' if no authentication is necessary")
 public abstract sealed class Authentication
     permits BasicAuthentication,
         BearerAuthentication,

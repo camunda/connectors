@@ -17,6 +17,8 @@
 package io.camunda.connector.generator;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.generator.core.GeneratorConfiguration;
+import io.camunda.connector.generator.core.GeneratorConfiguration.ConnectorMode;
 import io.camunda.connector.generator.core.OutboundElementTemplateGenerator;
 import io.camunda.connector.generator.dsl.OutboundElementTemplate;
 import java.io.File;
@@ -52,6 +54,12 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
 
   @Parameter(property = "outputDirectory", defaultValue = "${project.basedir}/element-templates")
   private String outputDirectory;
+
+  @Parameter(property = "templateFileName")
+  private String templateFileName;
+
+  @Parameter(property = "generateHybridTemplates", defaultValue = "false")
+  private boolean generateHybridTemplates;
 
   private static final ObjectMapper mapper = new ObjectMapper();
   private OutboundElementTemplateGenerator generator;
@@ -104,8 +112,22 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
       for (String className : connectorClasses) {
         getLog().info("Generating element template for " + className);
         Class<?> clazz = classLoader.loadClass(className);
-        OutboundElementTemplate template = generateElementTemplate(clazz);
-        writeElementTemplate(template);
+        OutboundElementTemplate template = generator.generate(clazz);
+
+        var basicFileName =
+            templateFileName == null
+                ? transformConnectorNameToTemplateFileName(template.name())
+                : templateFileName + ".json";
+
+        writeElementTemplate(template, basicFileName);
+
+        if (generateHybridTemplates) {
+          getLog().info("Generating hybrid element template for " + className);
+          OutboundElementTemplate hybridTemplate =
+              generator.generate(clazz, new GeneratorConfiguration(ConnectorMode.HYBRID));
+          var name = basicFileName.replace(".json", "-hybrid.json");
+          writeElementTemplate(hybridTemplate, name);
+        }
       }
 
     } catch (ClassNotFoundException e) {
@@ -120,13 +142,8 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
     }
   }
 
-  private OutboundElementTemplate generateElementTemplate(Class<?> clazz) {
-    return generator.generate(clazz);
-  }
-
-  private void writeElementTemplate(OutboundElementTemplate template) {
+  private void writeElementTemplate(OutboundElementTemplate template, String fileName) {
     try {
-      String fileName = transformConnectorNameToTemplateFileName(template.name());
       File file = new File(outputDirectory, fileName);
       file.getParentFile().mkdirs();
       mapper.writerWithDefaultPrettyPrinter().writeValue(file, template);

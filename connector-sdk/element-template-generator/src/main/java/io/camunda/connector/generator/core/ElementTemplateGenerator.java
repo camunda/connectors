@@ -26,5 +26,20 @@ import io.camunda.connector.generator.dsl.ElementTemplateBase;
  */
 public interface ElementTemplateGenerator<T extends ElementTemplateBase> {
 
+  /**
+   * Generate Connector using default configuration
+   *
+   * @param connectorDefinition the connector definition class
+   * @return the generated element template
+   */
   T generate(Class<?> connectorDefinition);
+
+  /**
+   * Generate Connector using custom configuration
+   *
+   * @param connectorDefinition the connector definition class
+   * @param configuration the generator configuration
+   * @return the generated element template
+   */
+  T generate(Class<?> connectorDefinition, GeneratorConfiguration configuration);
 }

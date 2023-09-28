@@ -55,3 +55,43 @@ by adding the following configuration to the plugin:
 ```
 
 Note that the plugin will not resolve transitive dependencies of the specified dependencies.
+
+## Hybrid mode
+
+If you want to generate an element template for a Connector that should work in Hybrid mode
+(multiple runtimes running against the same Camunda cluster), you can use the
+`generate-hybrid-templates` parameter:
+
+```xml
+<configuration>
+  <connectorClasses>
+    <connectorClass>io.camunda.connector.MyConnector</connectorClass>
+  </connectorClasses>
+  <generateHybridTemplates>true</generateHybridTemplates>
+</configuration>
+```
+
+The default value is `false`.
+
+Note that if this parameter is set to `true`, both element templates (normal one and hybrid one)
+will be generated.
+
+## Custom file name
+
+By default, the generated element template will be stored in a file with a name derived from
+the element template ID (configurable via `@ElementTemplate` annotation). You can override
+the file name by setting the `templateFileName` configuration parameter:
+
+```xml
+<configuration>
+  <connectorClasses>
+    <connectorClass>io.camunda.connector.MyConnector</connectorClass>
+  </connectorClasses>
+  <templateFileName>my-custom-template</templateFileName>
+</configuration>
+```
+
+In this case, the generated element template will be stored in `my-custom-template.json`.
+
+If used together with `generateHybridTemplates`, the file name of the hybrid template will be
+`my-custom-template-hybrid.json`.

@@ -18,6 +18,7 @@ package io.camunda.connector.generator.core;
 
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.generator.annotation.ElementTemplate;
+import io.camunda.connector.generator.core.GeneratorConfiguration.ConnectorMode;
 import io.camunda.connector.generator.core.util.ReflectionUtil;
 import io.camunda.connector.generator.core.util.TemplatePropertiesUtil;
 import io.camunda.connector.generator.dsl.CommonProperties;
@@ -38,9 +39,20 @@ public class OutboundElementTemplateGenerator
     implements ElementTemplateGenerator<OutboundElementTemplate> {
 
   private final ClassLoader classLoader;
+  private final GeneratorConfiguration defaultConfiguration;
+
+  public OutboundElementTemplateGenerator(
+      ClassLoader classLoader, GeneratorConfiguration configuration) {
+    this.classLoader = classLoader;
+    this.defaultConfiguration = configuration;
+  }
 
   public OutboundElementTemplateGenerator(ClassLoader classLoader) {
-    this.classLoader = classLoader;
+    this(classLoader, GeneratorConfiguration.DEFAULT);
+  }
+
+  public OutboundElementTemplateGenerator(GeneratorConfiguration configuration) {
+    this(Thread.currentThread().getContextClassLoader(), configuration);
   }
 
   public OutboundElementTemplateGenerator() {
@@ -49,6 +61,13 @@ public class OutboundElementTemplateGenerator
 
   @Override
   public OutboundElementTemplate generate(Class<?> connectorDefinition) {
+    return generate(connectorDefinition, defaultConfiguration);
+  }
+
+  @Override
+  public OutboundElementTemplate generate(
+      Class<?> connectorDefinition, GeneratorConfiguration configuration) {
+
     var connector =
         ReflectionUtil.getRequiredAnnotation(connectorDefinition, OutboundConnector.class);
     var template = ReflectionUtil.getRequiredAnnotation(connectorDefinition, ElementTemplate.class);
@@ -142,7 +161,7 @@ public class OutboundElementTemplateGenerator
 
     return OutboundElementTemplate.builder()
         .id(template.id())
-        .type(connector.type())
+        .type(connector.type(), ConnectorMode.HYBRID.equals(configuration.connectorMode()))
         .name(template.name())
         .version(template.version())
         .icon(icon)

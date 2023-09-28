@@ -17,6 +17,10 @@
 package io.camunda.connector.http.base.model;
 
 import io.camunda.connector.api.annotation.FEEL;
+import io.camunda.connector.generator.annotation.TemplateProperty;
+import io.camunda.connector.generator.annotation.TemplateProperty.PropertyCondition;
+import io.camunda.connector.generator.annotation.TemplateProperty.PropertyType;
+import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.http.base.auth.Authentication;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -28,21 +32,55 @@ import java.util.Objects;
 public class HttpCommonRequest {
 
   @FEEL
-  @NotBlank
-  @Pattern(regexp = "^(=|http://|https://|secrets|\\{\\{).*$")
-  private String url;
+  @NotNull
+  @TemplateProperty(group = "endpoint", id = "method", defaultValue = "GET")
+  private HttpMethod method;
 
-  @FEEL @NotNull private HttpMethod method;
+  @FEEL
+  @NotBlank
+  @Pattern(regexp = "^(=|http://|https://|secrets|\\{\\{).*$", message = "Must be a http(s) URL")
+  @TemplateProperty(group = "endpoint", label = "URL")
+  private String url;
 
   @Valid private Authentication authentication;
 
+  @TemplateProperty(
+      group = "timeout",
+      defaultValue = "20",
+      optional = true,
+      description =
+          "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout")
   private Integer connectionTimeoutInSeconds;
 
-  @FEEL private Map<String, String> headers;
+  @FEEL
+  @TemplateProperty(
+      feel = FeelMode.required,
+      group = "endpoint",
+      optional = true,
+      description = "Map of HTTP headers to add to the request")
+  private Map<String, String> headers;
 
-  @FEEL private Object body;
+  @FEEL
+  @TemplateProperty(
+      label = "Request body",
+      description = "Payload to send with the request",
+      feel = FeelMode.optional,
+      group = "payload",
+      type = PropertyType.Text,
+      optional = true,
+      condition =
+          @PropertyCondition(
+              property = "method",
+              oneOf = {"POST", "PUT", "PATCH", "DELETE"}))
+  private Object body;
 
-  @FEEL private Map<String, String> queryParameters;
+  @FEEL
+  @TemplateProperty(
+      feel = FeelMode.required,
+      group = "endpoint",
+      optional = true,
+      description = "Map of query parameters to add to the request URL")
+  private Map<String, String> queryParameters;
 
   public Object getBody() {
     return body;

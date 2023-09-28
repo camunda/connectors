@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.generator.dsl;
 
+import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskDefinitionType;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -44,16 +45,33 @@ public class OutboundElementTemplateBuilder {
     return this;
   }
 
-  public OutboundElementTemplateBuilder type(String type) {
+  public OutboundElementTemplateBuilder type(String type, boolean configurable) {
     if (isTypeAssigned()) {
       throw new IllegalStateException("type is already assigned");
     }
-    properties.add(
-        HiddenProperty.builder()
-            .value(type)
-            .binding(PropertyBinding.ZeebeTaskDefinitionType.INSTANCE)
-            .build());
+    Property property;
+    if (configurable) {
+      groups.add(
+          0,
+          PropertyGroup.builder().id("taskDefinitionType").label("Task definition type").build());
+      property =
+          StringProperty.builder()
+              .binding(ZeebeTaskDefinitionType.INSTANCE)
+              .value(type)
+              .id("taskDefinitionType")
+              .group("taskDefinitionType")
+              .feel(FeelMode.disabled)
+              .build();
+    } else {
+      property =
+          HiddenProperty.builder().binding(ZeebeTaskDefinitionType.INSTANCE).value(type).build();
+    }
+    properties.add(property);
     return this;
+  }
+
+  public OutboundElementTemplateBuilder type(String type) {
+    return type(type, false);
   }
 
   public OutboundElementTemplateBuilder name(String name) {

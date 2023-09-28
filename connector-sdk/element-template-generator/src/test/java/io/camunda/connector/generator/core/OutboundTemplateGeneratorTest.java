@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import io.camunda.connector.generator.core.GeneratorConfiguration.ConnectorMode;
 import io.camunda.connector.generator.core.example.MyConnectorFunction;
 import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.dsl.DropdownProperty;
@@ -93,7 +94,7 @@ public class OutboundTemplateGeneratorTest extends BaseTest {
     @Test
     void resultVariableProperty() {
       var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class);
-      var property = getPropertyByLabel("Result Variable", template);
+      var property = getPropertyByLabel("Result variable", template);
       assertThat(property.getType()).isEqualTo("String");
       assertThat(property.getBinding().type()).isEqualTo("zeebe:taskHeader");
       assertThat(property.getFeel()).isNull();
@@ -102,7 +103,7 @@ public class OutboundTemplateGeneratorTest extends BaseTest {
     @Test
     void resultExpressionProperty() {
       var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class);
-      var property = getPropertyByLabel("Result Expression", template);
+      var property = getPropertyByLabel("Result expression", template);
       assertThat(property.getType()).isEqualTo("Text");
       assertThat(property.getBinding().type()).isEqualTo("zeebe:taskHeader");
       assertThat(property.getFeel()).isEqualTo(FeelMode.required);
@@ -111,7 +112,7 @@ public class OutboundTemplateGeneratorTest extends BaseTest {
     @Test
     void errorExpressionProperty() {
       var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class);
-      var property = getPropertyByLabel("Error Expression", template);
+      var property = getPropertyByLabel("Error expression", template);
       assertThat(property.getType()).isEqualTo("Text");
       assertThat(property.getBinding().type()).isEqualTo("zeebe:taskHeader");
       assertThat(property.getFeel()).isEqualTo(FeelMode.required);
@@ -126,6 +127,18 @@ public class OutboundTemplateGeneratorTest extends BaseTest {
       assertThat(((ZeebeTaskHeader) property.getBinding()).key()).isEqualTo("retryBackoff");
       assertThat(property.getGroup()).isEqualTo("retries");
       assertThat(property.getValue()).isEqualTo("PT0S");
+    }
+
+    @Test
+    void hybridMode_taskDefinitionTypePropertyPresent() {
+      var template =
+          generator.generate(
+              MyConnectorFunction.MinimallyAnnotated.class,
+              new GeneratorConfiguration(ConnectorMode.HYBRID));
+      var property = getPropertyById("taskDefinitionType", template);
+      assertThat(property.getType()).isEqualTo("String");
+      assertThat(property.getGroup()).isEqualTo("taskDefinitionType");
+      assertThat(property.getFeel()).isEqualTo(null);
     }
   }
 
@@ -343,6 +356,24 @@ public class OutboundTemplateGeneratorTest extends BaseTest {
           .containsExactlyInAnyOrder(
               getPropertyByLabel("Annotated and renamed string property", template),
               getPropertyByLabel("Property for group 1", template));
+    }
+
+    @Test
+    void hybridMode_groupPresentAndIsOnTop() {
+      var template =
+          generator.generate(
+              MyConnectorFunction.MinimallyAnnotated.class,
+              new GeneratorConfiguration(ConnectorMode.HYBRID));
+      checkPropertyGroups(
+          List.of(
+              Map.entry("taskDefinitionType", "Task definition type"),
+              Map.entry("group2", "Group 2"),
+              Map.entry("group1", "Group 1"),
+              Map.entry("output", "Output mapping"),
+              Map.entry("error", "Error handling"),
+              Map.entry("retries", "Retries")),
+          template,
+          true);
     }
   }
 
