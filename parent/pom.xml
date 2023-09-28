@@ -105,7 +105,7 @@ limitations under the License.</license.inlineheader>
     <version.bcprov-jdk15on>1.70</version.bcprov-jdk15on>
     <version.sendGrid>4.9.3</version.sendGrid>
 
-    <version.slack>1.32.1</version.slack>
+    <version.slack>1.32.2</version.slack>
 
     <version.testcontainers>1.19.0</version.testcontainers>
     <version.awaitility>4.2.0</version.awaitility>
