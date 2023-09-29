@@ -1,8 +1,8 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "Slack connector",
+  "name": "Slack Outbound Connector",
   "id": "io.camunda.connectors.Slack.v1",
-  "version": 1,
+  "version": 2,
   "description": "Create a channel or send a message to a channel or user",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/slack/",
   "icon": {

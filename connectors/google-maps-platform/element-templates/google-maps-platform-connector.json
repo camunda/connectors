@@ -1,8 +1,8 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "Google Maps Platform connector",
+  "name": "Google Maps Platform Outbound Connector",
   "id": "io.camunda.connectors.GoogleMapsPlatform.v1",
-  "version": 2,
+  "version": 3,
   "description": "The Google Maps connector validates addresses, retrieves postal addresses and calculates distances",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-maps-platform/",
   "category": {

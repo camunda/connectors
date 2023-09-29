@@ -1,8 +1,8 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "RabbitMQ connector",
+  "name": "RabbitMQ Intermediate Catch Event Connector",
   "id": "io.camunda.connectors.inbound.RabbitMQ.Intermediate.v1",
-  "version": 2,
+  "version": 3,
   "description": "Receive a message from RabbitMQ",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq-inbound",
   "category": {

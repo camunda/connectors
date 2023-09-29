@@ -1,8 +1,8 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "Amazon SQS connector",
+  "name": "Amazon SQS Outbound Connector",
   "id": "io.camunda.connectors.AWSSQS.v1",
-  "version": 6,
+  "version": 8,
   "description": "Send message to queue",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-sqs/",
   "appliesTo": [

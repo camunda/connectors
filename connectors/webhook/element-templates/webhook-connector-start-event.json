@@ -1,8 +1,8 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "Webhook connector",
+  "name": "Webhook Start Event Connector",
   "id": "io.camunda.connectors.webhook.WebhookConnector.v1",
-  "version": 6,
+  "version": 7,
   "description": "Configure webhook to receive callbacks",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/",
   "category": {

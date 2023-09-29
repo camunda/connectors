@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "Kafka Consumer Connector",
+  "name": "Kafka Intermediate Catch Event Connector",
   "id": "io.camunda.connectors.inbound.KafkaIntermediate.avro-v1",
   "version": 1,
   "description": "Consume Kafka messages",

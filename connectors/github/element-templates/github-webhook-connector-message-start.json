@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "GitHub webhook connector",
+  "name": "GitHub Webhook Message Start Event Connector",
   "id": "io.camunda.connectors.webhook.GithubWebhookConnectorMessageStart.v1",
   "version": 1,
   "description": "Receive events from GitHub",

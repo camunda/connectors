@@ -1,8 +1,8 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "Twilio connector",
+  "name": "Twilio Intermediate Catch Event Connector",
   "id": "io.camunda.connectors.Twilio.Webhook.Intermediate.v1",
-  "version": 1,
+  "version": 2,
   "description": "Receive incoming message with Twilio service",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/twilio-webhook/",
   "category": {

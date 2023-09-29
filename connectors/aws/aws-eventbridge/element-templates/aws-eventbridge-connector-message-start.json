@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "Amazon EventBridge Connector",
+  "name": "Amazon EventBridge Message Start Event Connector",
   "id": "io.camunda.connectors.AWSEventBridge.MessageStart.v1",
   "version": 1,
   "description": "Receive events from AWS EventBridge",

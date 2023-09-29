@@ -1,8 +1,8 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "Blue Prism connector",
+  "name": "Blue Prism Outbound Connector",
   "id": "io.camunda.connectors.BluePrism.v1",
-  "version": 2,
+  "version": 3,
   "description": "Orchestrate your Blue Prism queue with Camunda. You can create new queue items and get the result from it",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/blueprism/",
   "category": {

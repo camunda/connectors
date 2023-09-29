@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "Webhook connector",
+  "name": "Webhook Intermediate Catch Event Connector",
   "id": "io.camunda.connectors.webhook.WebhookConnectorIntermediate.v1",
   "version": 4,
   "description": "Configure webhook to receive callbacks",

@@ -1,8 +1,8 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "Amazon SQS connector",
+  "name": "Amazon SQS Start Event Connector",
   "id": "io.camunda.connectors.AWSSQS.StartEvent.v1",
-  "version": 5,
+  "version": 6,
   "description": "Receive message from a queue",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-sqs-inbound/",
   "appliesTo": [

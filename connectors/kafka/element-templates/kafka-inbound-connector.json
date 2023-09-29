@@ -1,8 +1,8 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "Kafka Consumer Connector",
+  "name": "Kafka Start Event Connector",
   "id": "io.camunda.connectors.inbound.KAFKA.v1",
-  "version": 1,
+  "version": 2,
   "description": "Consume Kafka messages",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka-inbound/",
   "category": {

@@ -1,9 +1,9 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "SNS HTTPS subscription",
+  "name": "SNS HTTPS Start Event Connector",
   "id": "io.camunda.connectors.inbound.AWSSNS.StartEvent.v1",
   "description": "Receive events from AWS SNS",
-  "version": 1,
+  "version": 2,
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-sns-inbound/",
   "category": {
     "id": "connectors",
