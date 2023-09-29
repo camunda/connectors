@@ -1,6 +1,6 @@
 # Camunda out-of-the-box connectors
 
-Find the user documentation in our [Camunda Platform 8 Docs](https://docs.camunda.io/docs/components/integration-framework/connectors/out-of-the-box-connectors/available-connectors-overview/)
+Find the user documentation in our [Camunda Docs](https://docs.camunda.io/docs/components/integration-framework/connectors/out-of-the-box-connectors/available-connectors-overview/)
 
 ## Test locally
 

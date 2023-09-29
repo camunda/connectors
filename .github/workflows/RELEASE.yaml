@@ -234,7 +234,7 @@ jobs:
           destination_container_repo: camunda/connectors-bundle
           provider: dockerhub
           readme_file: bundle/README.md
-          short_description: 'Camunda 8 out-of-the-box Connectors Bundle'
+          short_description: 'Camunda out-of-the-box Connectors Bundle'
 
       - name: Push README to Dockerhub - bundle-saas
         if: ${{ steps.check_prerelease.outputs.isPreRelease == 'false' }}
@@ -246,7 +246,7 @@ jobs:
           destination_container_repo: camunda/connectors-bundle-saas
           provider: dockerhub
           readme_file: bundle/README.md
-          short_description: 'Camunda 8 out-of-the-box Connectors Bundle for SaaS'
+          short_description: 'Camunda out-of-the-box Connectors Bundle for SaaS'
 
     # Create GitHub release
 
