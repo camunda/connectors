@@ -1,6 +1,6 @@
 # Camunda HTTP JSON Connector
 
-Find the user documentation in our [Camunda Platform 8 Docs](https://docs.camunda.io/docs/components/integration-framework/connectors/out-of-the-box-connectors/rest/).
+Find the user documentation in our [Camunda](https://docs.camunda.io/docs/components/integration-framework/connectors/out-of-the-box-connectors/rest/).
 
 ## Build
 

@@ -1,6 +1,6 @@
 # Camunda AWS Lambda Connector
 
-Find the user documentation in our [Camunda Platform 8 Docs](https://docs.camunda.io/docs/components/integration-framework/connectors/out-of-the-box-connectors/aws-lambda).
+Find the user documentation in our [Camunda Docs](https://docs.camunda.io/docs/components/integration-framework/connectors/out-of-the-box-connectors/aws-lambda).
 
 ## Build
 

@@ -1,17 +1,17 @@
 > This is in developer preview and can be subject to breaking changes.
 
-# Camunda 8 Connectors
+# Camunda Connectors
 
 [![CI](https://github.com/camunda/connectors-bundle/actions/workflows/DEPLOY.yaml/badge.svg)](https://github.com/camunda/connectors-bundle/actions/workflows/DEPLOY.yml)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.camunda.connector/connector-core/badge.svg?style=flat)](https://maven-badges.herokuapp.com/maven-central/io.camunda.connector/connector-core)
 [![Outbound template](https://img.shields.io/badge/outbound_connector-use_template-blue)](https://github.com/camunda/connector-template-outbound)
 [![Inbound template](https://img.shields.io/badge/inbound_connector-use_template-blue)](https://github.com/camunda/connector-template-inbound)
 
-This is the repository for Camunda 8 Connectors. It manages all parts of the Connectors ecosystem,
-including the Connector SDK, out-of-the-box Connectors available in Camunda 8, the Connector Runtime, and the Docker images.
+This is the repository for Camunda Connectors. It manages all parts of the Connectors ecosystem,
+including the Connector SDK, out-of-the-box Connectors available in Camunda, the Connector Runtime, and the Docker images.
 
 For more information on Connectors, refer to the
-[Camunda 8 documentation](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/available-connectors-overview/).
+[Camunda documentation](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/available-connectors-overview/).
 
 ## Contents
 
@@ -35,10 +35,10 @@ This is a multi-module project with different licenses applied to different modu
 * [Connector Runtime](connector-runtime) and all its submodules
 * [HTTP Outbound Connector](connectors/http-json)
 
-### Modules available under [Camunda Platform Self-Managed Free Edition license](https://camunda.com/legal/terms/cloud-terms-and-conditions/camunda-cloud-self-managed-free-edition-terms/)
+### Modules available under [Camunda Self-Managed Free Edition license](https://camunda.com/legal/terms/cloud-terms-and-conditions/camunda-cloud-self-managed-free-edition-terms/)
 
 * All [Out-of-the-Box Connectors](connectors) except for REST Connector (see above)
-* [Docker images](bundle) of the out-of-the-box Connectors for Camunda 8, bundled with a runtime
+* [Docker images](bundle) of the out-of-the-box Connectors for Camunda, bundled with a runtime
 
 When in doubt, refer to the `LICENSE` file in the respective module.
 

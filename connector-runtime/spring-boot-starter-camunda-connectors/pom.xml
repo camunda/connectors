@@ -13,7 +13,7 @@
   <artifactId>spring-boot-starter-camunda-connectors</artifactId>
 
   <description>
-    An implementation of the Camunda 8 Connectors Runtime based on Spring Zeebe.
+    An implementation of the Camunda Connector Runtime based on Spring Zeebe.
   </description>
 
   <properties>

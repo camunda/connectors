@@ -1,7 +1,7 @@
-# Camunda 8 Operate Connector
+# Camunda Operate Connector
 
 The **Operate Connector** allows you to query data from [Camunda Operate](https://camunda.com/platform/operate/).
-This Connector can be used to call Operate deployments both in Camunda 8 SaaS and Self-Managed clusters.
+This Connector can be used to call Operate deployments both in Camunda SaaS and Self-Managed clusters.
 
 This Connector reuses the base implementation of [HTTP JSON Connector](../http-json) by providing a compatible element template.
 

@@ -1,6 +1,6 @@
-# Camunda 8 Connectors Bundle
+# Camunda Connectors Bundle
 
-The Connectors Bundle contains all out-of-the-box Connectors for Camunda 8. It's an easy way to try them out in your local setup or in k8s.
+The Connectors Bundle contains all out-of-the-box Connectors for Camunda. It's an easy way to try them out in your local setup or in k8s.
 
 The [`Dockerfile`](./default-bundle/Dockerfile) provides an image including the [Connector Runtime]
 and all [out-of-the-box Connectors](https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/available-connectors-overview/)
@@ -11,7 +11,7 @@ To add more connectors to the image, follow the examples in the [Connector Runti
 
 # Docker Compose
 
-The Connectors Bundle is also part of the Camunda Platform 8 [docker-compose resources](https://github.com/camunda/camunda-platform).
+The Connectors Bundle is also part of the Camunda [docker-compose resources](https://github.com/camunda/camunda-platform) Docker Compose release.
 
 # Secrets
 

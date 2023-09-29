@@ -1,10 +1,10 @@
 # Camunda Connector Runtime
 
-Modules in this directory contain the standard implementation of a **Connector runtime** for Camunda 8 Connectors.
+Modules in this directory contain the standard implementation of a **Connector runtime** for Camunda Connectors.
 
 ## Runtime modules
 
-Camunda 8 Connector runtime is shipped as 3 artifacts:
+Camunda Connector runtime is shipped as 3 artifacts:
 
 * [`connector-runtime-core`](connector-runtime-core): The core runtime classes and utilities, independent of any framework.
 This module only provides a basic library that can be used to build a custom Connector runtime.
@@ -112,11 +112,11 @@ You can also set those configuration options via environment variables (then nam
 
 In general, the Connector Runtime will respect all properties known to [Spring Zeebe](https://github.com/camunda-community-hub/spring-zeebe), which allows to specify some more options.
 
-### Configure Camunda Platform
+### Configure Camunda
 
 #### SaaS
 
-To use Camunda Platform 8 SaaS specify the connection properties:
+To use Camunda SaaS specify the connection properties:
 
 ```properties
 zeebe.client.cloud.cluster-id=xxx

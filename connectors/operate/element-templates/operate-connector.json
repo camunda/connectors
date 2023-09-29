@@ -65,11 +65,11 @@
       "value": "saas",
       "choices": [
         {
-          "name": "Camunda 8 SaaS",
+          "name": "Camunda SaaS",
           "value": "saas"
         },
         {
-          "name": "Camunda 8 self-managed",
+          "name": "Camunda Self-managed",
           "value": "sm"
         }
       ],
