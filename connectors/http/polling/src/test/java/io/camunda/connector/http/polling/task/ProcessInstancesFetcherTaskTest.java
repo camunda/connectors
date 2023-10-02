@@ -36,7 +36,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class PollingOperateTaskTest {
+public class ProcessInstancesFetcherTaskTest {
 
   @Mock private InboundIntermediateConnectorContext mockContext;
   @Mock private HttpService mockHttpService;
@@ -49,7 +49,7 @@ public class PollingOperateTaskTest {
 
   @Captor private ArgumentCaptor<Runnable> runnableCaptor;
 
-  private PollingOperateTask task;
+  private ProcessInstancesFetcherTask task;
   private PollingIntervalConfiguration config;
 
   @BeforeEach
@@ -61,7 +61,7 @@ public class PollingOperateTaskTest {
     when(mockInboundConnectorDefinition.elementId()).thenReturn("someElementId");
     when(mockContext.bindProperties(PollingIntervalConfiguration.class)).thenReturn(config);
     when(mockExecutorService.getExecutorService()).thenReturn(mockScheduledExecutorService);
-    task = new PollingOperateTask(mockContext, mockHttpService, mockExecutorService);
+    task = new ProcessInstancesFetcherTask(mockContext, mockHttpService, mockExecutorService);
   }
 
   @Test

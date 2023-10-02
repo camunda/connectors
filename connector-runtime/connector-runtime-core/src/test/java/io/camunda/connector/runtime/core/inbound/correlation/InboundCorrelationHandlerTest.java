@@ -88,7 +88,7 @@ public class InboundCorrelationHandlerTest {
     void message_shouldCallCorrectZeebeMethod() {
       // given
       var correlationKeyValue = "someTestCorrelationKeyValue";
-      var point = new MessageCorrelationPoint("msg1", "=correlationKey");
+      var point = new MessageCorrelationPoint("msg1", "=correlationKey", null);
       var definition = mock(InboundConnectorDefinitionImpl.class);
       when(definition.correlationPoint()).thenReturn(point);
 

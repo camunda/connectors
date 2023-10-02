@@ -15,7 +15,7 @@ import io.camunda.connector.http.base.components.HttpTransportComponentSupplier;
 import io.camunda.connector.http.base.constants.Constants;
 import io.camunda.connector.http.base.services.HttpService;
 import io.camunda.connector.http.polling.service.SharedExecutorService;
-import io.camunda.connector.http.polling.task.PollingOperateTask;
+import io.camunda.connector.http.polling.task.ProcessInstancesFetcherTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,7 +27,7 @@ public class HttpPollingConnector
   private final HttpService httpService;
   private final SharedExecutorService executorService;
 
-  private PollingOperateTask pollingOperateTask;
+  private ProcessInstancesFetcherTask processInstancesFetcherTask;
 
   public HttpPollingConnector() {
     this(ConnectorConfigurationUtil.getProperty(Constants.PROXY_FUNCTION_URL_ENV_NAME));
@@ -50,13 +50,14 @@ public class HttpPollingConnector
 
   @Override
   public void activate(final InboundIntermediateConnectorContext context) {
-    pollingOperateTask = new PollingOperateTask(context, httpService, executorService);
-    pollingOperateTask.start();
+    processInstancesFetcherTask =
+        new ProcessInstancesFetcherTask(context, httpService, executorService);
+    processInstancesFetcherTask.start();
   }
 
   @Override
   public void deactivate() {
     LOGGER.debug("Deactivating the HttpPolling connector");
-    pollingOperateTask.stop();
+    processInstancesFetcherTask.stop();
   }
 }

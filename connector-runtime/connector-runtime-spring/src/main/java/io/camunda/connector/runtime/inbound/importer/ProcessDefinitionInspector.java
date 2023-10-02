@@ -18,9 +18,10 @@ package io.camunda.connector.runtime.inbound.importer;
 
 import static io.camunda.connector.runtime.core.Keywords.CORRELATION_KEY_EXPRESSION_KEYWORD;
 import static io.camunda.connector.runtime.core.Keywords.INBOUND_TYPE_KEYWORD;
-import static io.camunda.connector.runtime.core.Keywords.START_MESSAGE_EVENT_MESSAGE_ID_EXPRESSION;
+import static io.camunda.connector.runtime.core.Keywords.MESSAGE_ID_EXPRESSION;
 
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
+import io.camunda.connector.api.inbound.correlation.BoundaryEventCorrelationPoint;
 import io.camunda.connector.api.inbound.correlation.MessageCorrelationPoint;
 import io.camunda.connector.api.inbound.correlation.MessageStartEventCorrelationPoint;
 import io.camunda.connector.api.inbound.correlation.ProcessCorrelationPoint;
@@ -224,7 +225,23 @@ public class ProcessDefinitionInspector {
     String correlationKeyExpression =
         extractRequiredProperty(catchEvent, CORRELATION_KEY_EXPRESSION_KEYWORD);
 
-    return Optional.of(new MessageCorrelationPoint(name, correlationKeyExpression));
+    String messageIdExpression = extractProperty(catchEvent, MESSAGE_ID_EXPRESSION).orElse(null);
+
+    ProcessCorrelationPoint correlationPoint;
+    if (BoundaryEvent.class.isAssignableFrom(catchEvent.getClass())) {
+      var boundaryEvent = (BoundaryEvent) catchEvent;
+      var attachedTo = boundaryEvent.getAttachedTo();
+      var activity =
+          new BoundaryEventCorrelationPoint.Activity(attachedTo.getId(), attachedTo.getName());
+      correlationPoint =
+          new BoundaryEventCorrelationPoint(
+              name, correlationKeyExpression, messageIdExpression, activity);
+    } else {
+      correlationPoint =
+          new MessageCorrelationPoint(name, correlationKeyExpression, messageIdExpression);
+    }
+
+    return Optional.of(correlationPoint);
   }
 
   private Optional<ProcessCorrelationPoint> getCorrelationPointForStartEvent(
@@ -238,14 +255,13 @@ public class ProcessDefinitionInspector {
                 .orElse(null);
 
     if (msgDef != null) {
-      String messageId =
-          extractRequiredProperty(startEvent, START_MESSAGE_EVENT_MESSAGE_ID_EXPRESSION);
-      String correlationKeyExpression =
-          extractRequiredProperty(startEvent, CORRELATION_KEY_EXPRESSION_KEYWORD);
-      return Optional.of(
+      String messageIdExpression = extractRequiredProperty(startEvent, MESSAGE_ID_EXPRESSION);
+        String correlationKeyExpression =
+                extractRequiredProperty(startEvent, CORRELATION_KEY_EXPRESSION_KEYWORD);
+        return Optional.of(
           new MessageStartEventCorrelationPoint(
               msgDef.getMessage().getName(),
-              messageId,
+              messageIdExpression,
               correlationKeyExpression,
               process.getId(),
               definition.getVersion().intValue(),
@@ -262,7 +278,10 @@ public class ProcessDefinitionInspector {
     Message message = receiveTask.getMessage();
     String correlationKeyExpression =
         extractRequiredProperty(receiveTask, CORRELATION_KEY_EXPRESSION_KEYWORD);
-    return Optional.of(new MessageCorrelationPoint(message.getName(), correlationKeyExpression));
+    String messageIdExpression = extractProperty(receiveTask, MESSAGE_ID_EXPRESSION).orElse(null);
+    return Optional.of(
+        new MessageCorrelationPoint(
+            message.getName(), correlationKeyExpression, messageIdExpression));
   }
 
   private Map<String, String> getRawProperties(BaseElement element) {
@@ -276,14 +295,19 @@ public class ProcessDefinitionInspector {
   }
 
   private String extractRequiredProperty(BaseElement element, String name) {
+    return extractProperty(element, name)
+        .orElseThrow(() -> new IllegalStateException("Missing required property " + name));
+  }
+
+  private Optional<String> extractProperty(BaseElement element, String name) {
     ZeebeProperties zeebeProperties = element.getSingleExtensionElement(ZeebeProperties.class);
-    if (zeebeProperties == null) {
-      throw new IllegalStateException("Missing required property " + name);
-    }
-    return zeebeProperties.getProperties().stream()
-        .filter(property -> property.getName().equals(name))
-        .findAny()
-        .map(ZeebeProperty::getValue)
-        .orElse("");
+    return Optional.ofNullable(zeebeProperties)
+        .map(ZeebeProperties::getProperties)
+        .flatMap(
+            props ->
+                props.stream()
+                    .filter(property -> property.getName().equals(name))
+                    .findAny()
+                    .map(ZeebeProperty::getValue));
   }
 }

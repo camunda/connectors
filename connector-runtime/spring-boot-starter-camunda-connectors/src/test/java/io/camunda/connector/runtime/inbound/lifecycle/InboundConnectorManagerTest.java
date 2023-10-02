@@ -233,7 +233,7 @@ public class InboundConnectorManagerTest {
   private static InboundConnectorDefinitionImpl inboundConnector(ProcessDefinition procDef) {
     return new InboundConnectorDefinitionImpl(
         Map.of(Keywords.INBOUND_TYPE_KEYWORD, connectorConfig.type()),
-        new MessageCorrelationPoint("", ""),
+        new MessageCorrelationPoint("", "", null),
         procDef.getBpmnProcessId(),
         procDef.getVersion().intValue(),
         procDef.getKey(),
@@ -248,7 +248,7 @@ public class InboundConnectorManagerTest {
             webhookConfig.type(),
             "inbound.context",
             "myWebhookEndpoint"),
-        new MessageCorrelationPoint("", ""),
+        new MessageCorrelationPoint("", "", null),
         procDef.getBpmnProcessId(),
         procDef.getVersion().intValue(),
         procDef.getKey(),

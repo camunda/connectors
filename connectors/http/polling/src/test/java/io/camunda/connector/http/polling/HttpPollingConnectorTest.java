@@ -16,7 +16,7 @@ import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.http.base.services.HttpService;
 import io.camunda.connector.http.polling.model.PollingIntervalConfiguration;
 import io.camunda.connector.http.polling.service.SharedExecutorService;
-import io.camunda.connector.http.polling.task.PollingOperateTask;
+import io.camunda.connector.http.polling.task.ProcessInstancesFetcherTask;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,7 +51,7 @@ public class HttpPollingConnectorTest {
     // Then
     verify(mockScheduledExecutorService, times(1))
         .scheduleWithFixedDelay(
-            any(PollingOperateTask.class),
+            any(ProcessInstancesFetcherTask.class),
             eq(0L),
             eq(DEFAULT_OPERATE_INTERVAL),
             eq(TimeUnit.MILLISECONDS));

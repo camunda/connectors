@@ -31,7 +31,7 @@ public class InboundConnectorDefinitionImplTest {
     // given
     var testObj =
         new InboundConnectorDefinitionImpl(
-            Map.of("auth", "abc"), new MessageCorrelationPoint("", ""), "", 0, 0L, "", "");
+            Map.of("auth", "abc"), new MessageCorrelationPoint("", "", null), "", 0, 0L, "", "");
 
     // when
     var result = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.writeValueAsString(testObj);
@@ -45,7 +45,7 @@ public class InboundConnectorDefinitionImplTest {
     // given
     var testObj =
         new InboundConnectorDefinitionImpl(
-            Map.of("auth", "abc"), new MessageCorrelationPoint("", ""), "", 0, 0L, "", "");
+            Map.of("auth", "abc"), new MessageCorrelationPoint("", "", null), "", 0, 0L, "", "");
 
     // when
     var result = testObj.toString();

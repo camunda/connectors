@@ -1,4 +1,4 @@
-# Camunda 8 Connector Runtime
+# Camunda Connector Runtime
 
 This repository the Docker image for Camunda 8 Connector Runtime.
 

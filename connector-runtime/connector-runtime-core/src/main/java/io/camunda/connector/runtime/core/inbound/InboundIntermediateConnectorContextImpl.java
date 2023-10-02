@@ -23,6 +23,7 @@ import io.camunda.connector.api.inbound.InboundConnectorDefinition;
 import io.camunda.connector.api.inbound.InboundConnectorResult;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.api.inbound.ProcessInstanceContext;
+import io.camunda.connector.api.inbound.correlation.BoundaryEventCorrelationPoint;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
@@ -61,9 +62,14 @@ public class InboundIntermediateConnectorContextImpl
 
   @Override
   public List<ProcessInstanceContext> getProcessInstanceContexts() {
+    var elementId = getDefinition().elementId();
+    if (getDefinition().correlationPoint() instanceof BoundaryEventCorrelationPoint point) {
+      elementId = point.attachedTo().elementId();
+    }
+
     List<FlowNodeInstance> activeProcessInstanceKeys =
         operateClient.fetchActiveProcessInstanceKeyByDefinitionKeyAndElementId(
-            getDefinition().processDefinitionKey(), getDefinition().elementId());
+            getDefinition().processDefinitionKey(), elementId);
 
     return activeProcessInstanceKeys.stream()
         .map(this::createProcessInstanceContext)
@@ -81,7 +87,6 @@ public class InboundIntermediateConnectorContextImpl
         feelEngineWrapper,
         correlationHandler,
         objectMapper,
-        getProperties(),
         variableSupplier);
   }
 
