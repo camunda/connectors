@@ -41,7 +41,7 @@ class InboundConnectorContextImplTest {
     InboundConnectorDefinitionImpl definition =
         new InboundConnectorDefinitionImpl(
             Map.of("stringMap", "={{\"key\":\"value\"}"),
-            new MessageCorrelationPoint("", ""),
+            new MessageCorrelationPoint("", "", null),
             "bool",
             0,
             0L,
@@ -64,7 +64,7 @@ class InboundConnectorContextImplTest {
     InboundConnectorDefinitionImpl definition =
         new InboundConnectorDefinitionImpl(
             Map.of("stringMap", "={\"keyString\":null}"),
-            new MessageCorrelationPoint("", ""),
+            new MessageCorrelationPoint("", "", null),
             "bool",
             0,
             0L,
@@ -89,7 +89,7 @@ class InboundConnectorContextImplTest {
         new InboundConnectorDefinitionImpl(
             Map.of(
                 "mapWithStringListWithNumbers", "={key:[\"34\", \"45\", \"890\",\"0\",\"16785\"]}"),
-            new MessageCorrelationPoint("", ""),
+            new MessageCorrelationPoint("", "", null),
             "bool",
             0,
             0L,
@@ -132,7 +132,7 @@ class InboundConnectorContextImplTest {
                 "=[\"34\", \"-45\", \"890\", \"0\", \"-16785\"]",
                 "stringObjectMap",
                 "={\"innerObject\":{\"stringList\":[\"innerList\"], \"bool\":true}}"),
-            new MessageCorrelationPoint("", ""),
+            new MessageCorrelationPoint("", "", null),
             "bool",
             0,
             0L,
@@ -154,7 +154,7 @@ class InboundConnectorContextImplTest {
     InboundConnectorDefinitionImpl definition =
         new InboundConnectorDefinitionImpl(
             Map.of("stringMap", "={\"keyString\":null}"),
-            new MessageCorrelationPoint("", ""),
+            new MessageCorrelationPoint("", "", null),
             "bool",
             0,
             0L,

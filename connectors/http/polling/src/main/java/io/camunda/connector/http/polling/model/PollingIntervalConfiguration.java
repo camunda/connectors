@@ -11,7 +11,6 @@ import java.time.Duration;
 import java.util.Objects;
 
 public class PollingIntervalConfiguration {
-
   private static final Duration DEFAULT_HTTP_REQUEST_INTERVAL = Duration.ofSeconds(50);
   private static final Duration DEFAULT_OPERATE_INTERVAL = Duration.ofSeconds(5);
   @FEEL private Duration httpRequestInterval;

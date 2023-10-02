@@ -16,21 +16,21 @@
  */
 package io.camunda.connector.api.inbound.correlation;
 
-/** Properties of a message published by an Inbound Connector */
-public record MessageCorrelationPoint(
-    String messageName, String correlationKeyExpression, String messageIdExpression)
+public record BoundaryEventCorrelationPoint(
+    String messageName,
+    String correlationKeyExpression,
+    String messageIdExpression,
+    Activity attachedTo)
     implements ProcessCorrelationPoint {
   @Override
   public String getId() {
-    return messageName;
+    return null;
   }
 
   @Override
   public int compareTo(ProcessCorrelationPoint o) {
-    if (!this.getClass().equals(o.getClass())) {
-      return 1;
-    }
-    MessageCorrelationPoint other = (MessageCorrelationPoint) o;
-    return messageName.compareTo(other.messageName);
+    return 0;
   }
+
+  public record Activity(String elementId, String name) {}
 }

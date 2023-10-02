@@ -23,8 +23,8 @@ import org.slf4j.LoggerFactory;
  * PollingOperateTask is responsible for handling HTTP polling operations. Each instance of this
  * class is used for one flowNode and manages polling across all its corresponding processInstances.
  */
-public class PollingOperateTask implements Runnable {
-  private static final Logger LOGGER = LoggerFactory.getLogger(PollingOperateTask.class);
+public class ProcessInstancesFetcherTask implements Runnable {
+  private static final Logger LOGGER = LoggerFactory.getLogger(ProcessInstancesFetcherTask.class);
 
   private final InboundIntermediateConnectorContext context;
   private final HttpService httpService;
@@ -32,7 +32,7 @@ public class PollingOperateTask implements Runnable {
   private final PollingIntervalConfiguration config;
   private final ConcurrentHashMap<String, ScheduledFuture<?>> runningHttpRequestTaskIds;
 
-  public PollingOperateTask(
+  public ProcessInstancesFetcherTask(
       final InboundIntermediateConnectorContext context,
       final HttpService httpService,
       final SharedExecutorService executorService) {
@@ -49,7 +49,7 @@ public class PollingOperateTask implements Runnable {
       List<ProcessInstanceContext> processInstanceContexts = context.getProcessInstanceContexts();
       if (processInstanceContexts != null) {
         removeInactiveTasks(processInstanceContexts);
-        scheduleNewTasks(processInstanceContexts);
+        processInstanceContexts.forEach(this::scheduleRequest);
       }
     } catch (Exception e) {
       LOGGER.error("An error occurred: {}", e.getMessage(), e);
@@ -59,10 +59,12 @@ public class PollingOperateTask implements Runnable {
   private void removeInactiveTasks(final List<ProcessInstanceContext> processInstanceContexts) {
     List<String> activeTasks =
         processInstanceContexts.stream().map(this::getRequestTaskKey).toList();
+
     List<Map.Entry<String, ScheduledFuture<?>>> inactiveTasks =
         runningHttpRequestTaskIds.entrySet().stream()
             .filter(entry -> !activeTasks.contains(entry.getKey()))
             .toList();
+
     inactiveTasks.forEach(
         entry -> {
           entry.getValue().cancel(true);
@@ -70,19 +72,16 @@ public class PollingOperateTask implements Runnable {
         });
   }
 
-  private void scheduleNewTasks(List<ProcessInstanceContext> contexts) {
-    contexts.forEach(
-        processInstanceContext -> {
-          String taskKey = getRequestTaskKey(processInstanceContext);
-          runningHttpRequestTaskIds.computeIfAbsent(
-              taskKey,
-              (key) -> {
-                var task = new HttpRequestTask(httpService, processInstanceContext);
-                return this.executorService
-                    .getExecutorService()
-                    .scheduleWithFixedDelay(
-                        task, 0, config.getHttpRequestInterval().toMillis(), TimeUnit.MILLISECONDS);
-              });
+  private void scheduleRequest(ProcessInstanceContext processInstanceContext) {
+    String taskKey = getRequestTaskKey(processInstanceContext);
+    runningHttpRequestTaskIds.computeIfAbsent(
+        taskKey,
+        (key) -> {
+          var task = new HttpRequestTask(httpService, processInstanceContext);
+          return this.executorService
+              .getExecutorService()
+              .scheduleWithFixedDelay(
+                  task, 0, config.getHttpRequestInterval().toMillis(), TimeUnit.MILLISECONDS);
         });
   }
 

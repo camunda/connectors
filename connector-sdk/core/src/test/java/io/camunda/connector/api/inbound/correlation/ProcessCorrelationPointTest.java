@@ -30,8 +30,8 @@ public class ProcessCorrelationPointTest {
     ProcessCorrelationPoint p1 = new StartEventCorrelationPoint("process1", 0, 0);
     ProcessCorrelationPoint p2 = new StartEventCorrelationPoint("process1", 2, 1);
     ProcessCorrelationPoint p3 = new StartEventCorrelationPoint("process2", 1, 0);
-    ProcessCorrelationPoint p4 = new MessageCorrelationPoint("jobCompleted", "=vars.jobId");
-    ProcessCorrelationPoint p5 = new MessageCorrelationPoint("jobCompleted1", "vars.jobId");
+    ProcessCorrelationPoint p4 = new MessageCorrelationPoint("jobCompleted", "=vars.jobId", null);
+    ProcessCorrelationPoint p5 = new MessageCorrelationPoint("jobCompleted1", "vars.jobId", null);
 
     // when
     List<ProcessCorrelationPoint> sortedPoints = List.of(p5, p1, p2, p3, p4);

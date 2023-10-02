@@ -60,7 +60,7 @@ public class Keywords {
    */
   public static final String CORRELATION_KEY_EXPRESSION_KEYWORD = "correlationKeyExpression";
 
-  public static final String START_MESSAGE_EVENT_MESSAGE_ID_EXPRESSION = "messageIdExpression";
+  public static final String MESSAGE_ID_EXPRESSION = "messageIdExpression";
 
   /**
    * The keyword that identifies the source of `activation condition` property of a Connector.

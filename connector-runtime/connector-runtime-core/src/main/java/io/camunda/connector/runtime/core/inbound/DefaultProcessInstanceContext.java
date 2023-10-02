@@ -35,7 +35,6 @@ public final class DefaultProcessInstanceContext implements ProcessInstanceConte
   private final ValidationProvider validationProvider;
   private final FeelEngineWrapper feelEngineWrapper;
   private final ObjectMapper objectMapper;
-  private final Map<String, Object> contextProperties;
   private final Supplier<Map<String, Object>> operatePropertiesSupplier;
   private final InboundCorrelationHandler correlationHandler;
 
@@ -46,7 +45,6 @@ public final class DefaultProcessInstanceContext implements ProcessInstanceConte
       final FeelEngineWrapper feelEngineWrapper,
       final InboundCorrelationHandler correlationHandler,
       final ObjectMapper objectMapper,
-      final Map<String, Object> contextProperties,
       final Supplier<Map<String, Object>> operateVariables) {
     this.context = context;
     this.flowNodeInstance = flowNodeInstance;
@@ -57,7 +55,6 @@ public final class DefaultProcessInstanceContext implements ProcessInstanceConte
     this.feelEngineWrapper = feelEngineWrapper;
     this.correlationHandler = correlationHandler;
     this.objectMapper = objectMapper;
-    this.contextProperties = contextProperties;
     this.operatePropertiesSupplier = operateVariables;
   }
 
@@ -68,7 +65,8 @@ public final class DefaultProcessInstanceContext implements ProcessInstanceConte
 
   @Override
   public <T> T bind(final Class<T> cls) {
-    HashMap<String, Object> copyOfProperties = new HashMap<>(contextProperties);
+    // TODO we should improve caching to avoid fetching variables for very bind.
+    HashMap<String, Object> copyOfProperties = new HashMap<>(context.getProperties());
     Map<String, Object> processVariables = operatePropertiesSupplier.get();
     evaluateAndPrepareForBinding(copyOfProperties, processVariables);
     copyOfProperties.putAll(processVariables);

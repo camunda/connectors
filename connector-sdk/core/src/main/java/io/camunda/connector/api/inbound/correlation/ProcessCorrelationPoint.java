@@ -24,7 +24,10 @@ package io.camunda.connector.api.inbound.correlation;
  * inbound candidates are executed in the natural order).
  */
 public sealed interface ProcessCorrelationPoint extends Comparable<ProcessCorrelationPoint>
-    permits MessageCorrelationPoint, StartEventCorrelationPoint, MessageStartEventCorrelationPoint {
+    permits MessageCorrelationPoint,
+        StartEventCorrelationPoint,
+        MessageStartEventCorrelationPoint,
+        BoundaryEventCorrelationPoint {
 
   /**
    * Returns the ID of the correlation point, which also serves as a deduplication key. Correlation
