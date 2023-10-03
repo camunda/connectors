@@ -73,7 +73,7 @@
       "label": "Type",
       "id": "authenticationType",
       "group": "authentication",
-      "description": "Choose the authentication type. Select 'None' if no authentication is necessary",
+      "tooltip": "Choose the authentication type. Select 'None' if no authentication is necessary",
       "value": "noAuth",
       "type": "Dropdown",
       "choices": [
@@ -151,7 +151,7 @@
     },
     {
       "label": "Query parameters",
-      "description": "Map of query parameters to add to the request URL",
+      "tooltip": "Map of query parameters to add to the request URL",
       "group": "endpoint",
       "type": "Text",
       "feel": "required",
@@ -163,7 +163,7 @@
     },
     {
       "label": "HTTP headers",
-      "description": "Map of HTTP headers to add to the request",
+      "tooltip": "Map of HTTP headers to add to the request",
       "group": "endpoint",
       "type": "Text",
       "feel": "required",
@@ -175,7 +175,7 @@
     },
     {
       "label": "Interval",
-      "description": "The delay between HTTP requests, defined as ISO 8601 durations format. <a href='https://docs.camunda.io/docs/components/modeler/bpmn/timer-events/#time-duration' target='_blank'>How to configure a time duration</a>",
+      "tooltip": "The delay between HTTP requests, defined as ISO 8601 durations format. <a href='https://docs.camunda.io/docs/components/modeler/bpmn/timer-events/#time-duration' target='_blank'>How to configure a time duration</a>. The default interval is 50 seconds",
       "group": "endpoint",
       "type": "String",
       "feel": "optional",
@@ -214,7 +214,7 @@
     },
     {
       "label": "OAuth token endpoint",
-      "description": "The OAuth token endpoint",
+      "tooltip": "The OAuth token endpoint",
       "group": "authentication",
       "type": "String",
       "feel": "optional",
@@ -232,7 +232,7 @@
     },
     {
       "label": "Client ID",
-      "description": "Your application's client ID from the OAuth client",
+      "tooltip": "Your application's client ID from the OAuth client",
       "group": "authentication",
       "type": "String",
       "feel": "optional",
@@ -250,7 +250,7 @@
     },
     {
       "label": "Client secret",
-      "description": "Your application's client secret from the OAuth client",
+      "tooltip": "Your application's client secret from the OAuth client",
       "group": "authentication",
       "type": "String",
       "feel": "optional",
@@ -268,7 +268,7 @@
     },
     {
       "label": "Scopes",
-      "description": "The scopes which you want to request authorization for (e.g.read:contacts)",
+      "tooltip": "The scopes which you want to request authorization for (e.g.read:contacts)",
       "group": "authentication",
       "type": "String",
       "feel": "optional",
@@ -284,7 +284,7 @@
     },
     {
       "label": "Audience",
-      "description": "The unique identifier of the target API you want to access",
+      "tooltip": "The unique identifier of the target API you want to access",
       "group": "authentication",
       "type": "String",
       "feel": "optional",
@@ -302,7 +302,7 @@
       "label": "Client authentication",
       "id": "authenticationType",
       "group": "authentication",
-      "description": "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body",
+      "tooltip": "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body",
       "value": "basicAuthHeader",
       "type": "Dropdown",
       "choices": [
@@ -360,7 +360,7 @@
     },
     {
       "label": "Request body",
-      "description": "Payload to send with the request",
+      "tooltip": "Payload to send with the request",
       "group": "input",
       "type": "Text",
       "feel": "optional",
@@ -383,7 +383,7 @@
       "type": "String",
       "group": "activation",
       "feel": "required",
-      "description": "Sets up the correlation key from process variables",
+      "tooltip": "Sets up the correlation key from process variables",
       "binding": {
         "type": "bpmn:Message#zeebe:subscription#property",
         "name": "correlationKey"
@@ -401,7 +401,7 @@
         "type": "zeebe:property",
         "name": "correlationKeyExpression"
       },
-      "description": "Extracts the correlation key from the incoming message payload",
+      "tooltip": "Extracts the correlation key from the incoming message payload",
       "constraints": {
         "notEmpty": true
       }
@@ -416,11 +416,11 @@
         "type": "zeebe:property",
         "name": "activationCondition"
       },
-      "description": "Condition under which the connector triggers. Leave empty to catch all events. <a href='https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/#make-your-http-webhook-connector-for-receiving-messages-executable' target='_blank'>See documentation</a>"
+      "tooltip": "Condition under which the connector triggers. Leave empty to catch all events. <a href='https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/#make-your-http-webhook-connector-for-receiving-messages-executable' target='_blank'>See documentation</a>"
     },
     {
       "label": "Connection timeout",
-      "description": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
+      "tooltip": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
       "group": "endpoint",
       "type": "String",
       "value": "20",
@@ -447,7 +447,7 @@
         "type": "zeebe:property",
         "name": "resultVariable"
       },
-      "description": "Name of variable to store the result of the connector in"
+      "tooltip": "Name of variable to store the result of the connector in"
     },
     {
       "label": "Result expression",
@@ -459,7 +459,7 @@
         "type": "zeebe:property",
         "name": "resultExpression"
       },
-      "description": "Expression to map the inbound payload to process variables"
+      "tooltip": "Expression to map the inbound payload to process variables"
     }
   ]
 }
