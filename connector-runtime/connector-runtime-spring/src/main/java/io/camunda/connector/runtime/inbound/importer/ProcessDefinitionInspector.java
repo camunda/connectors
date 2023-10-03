@@ -240,10 +240,13 @@ public class ProcessDefinitionInspector {
     if (msgDef != null) {
       String messageId =
           extractRequiredProperty(startEvent, START_MESSAGE_EVENT_MESSAGE_ID_EXPRESSION);
+      String correlationKeyExpression =
+          extractRequiredProperty(startEvent, CORRELATION_KEY_EXPRESSION_KEYWORD);
       return Optional.of(
           new MessageStartEventCorrelationPoint(
               msgDef.getMessage().getName(),
               messageId,
+              correlationKeyExpression,
               process.getId(),
               definition.getVersion().intValue(),
               definition.getKey()));

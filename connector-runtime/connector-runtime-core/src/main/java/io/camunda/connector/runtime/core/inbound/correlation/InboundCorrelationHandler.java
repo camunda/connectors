@@ -143,13 +143,14 @@ public class InboundCorrelationHandler {
     Object extractedVariables = extractVariables(variables, definition);
 
     try {
+      String correlationKey = extractCorrelationKey(correlationPoint, variables);
       PublishMessageResponse result =
           zeebeClient
               .newPublishMessageCommand()
               .messageName(correlationPoint.messageName())
               // correlation key must be empty to start a new process, see:
               // https://docs.camunda.io/docs/components/modeler/bpmn/message-events/#message-start-events
-              .correlationKey("")
+              .correlationKey(correlationKey)
               .messageId(messageId)
               .tenantId(definition.tenantId())
               .variables(extractedVariables)
@@ -236,6 +237,18 @@ public class InboundCorrelationHandler {
 
   protected String extractCorrelationKey(MessageCorrelationPoint point, Object context) {
     String correlationKeyExpression = point.correlationKeyExpression();
+    try {
+      return feelEngine.evaluate(correlationKeyExpression, context, String.class);
+    } catch (Exception e) {
+      throw new ConnectorInputException(e);
+    }
+  }
+
+  protected String extractCorrelationKey(MessageStartEventCorrelationPoint point, Object context) {
+    String correlationKeyExpression = point.correlationKeyExpression();
+    if (correlationKeyExpression == null || correlationKeyExpression.isBlank()) {
+      return "";
+    }
     try {
       return feelEngine.evaluate(correlationKeyExpression, context, String.class);
     } catch (Exception e) {
