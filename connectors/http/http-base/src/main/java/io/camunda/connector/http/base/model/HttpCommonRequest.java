@@ -71,7 +71,7 @@ public class HttpCommonRequest {
       condition =
           @PropertyCondition(
               property = "method",
-              oneOf = {"POST", "PUT", "PATCH", "DELETE"}))
+              oneOf = {"POST", "PUT", "PATCH"}))
   private Object body;
 
   @FEEL
