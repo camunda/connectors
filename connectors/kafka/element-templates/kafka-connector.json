@@ -1,8 +1,8 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "Kafka producer connector",
+  "name": "Kafka Outbound Connector",
   "id": "io.camunda.connectors.KAFKA.v1",
-  "version": 1,
+  "version": 2,
   "description": "Produce Kafka message",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/",
   "category": {

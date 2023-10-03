@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "HTTP Polling Connector",
+  "name": "HTTP Polling Intermediate Catch Event Connector",
   "id": "io.camunda.connectors.http.Polling",
   "version": 1,
   "description": "Polls endpoint at regular intervals",

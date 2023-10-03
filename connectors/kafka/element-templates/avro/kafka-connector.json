@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "Kafka producer connector",
+  "name": "Kafka Outbound Connector",
   "id": "io.camunda.connectors.KAFKA.avro-v1",
   "version": 1,
   "description": "Produce Kafka message",

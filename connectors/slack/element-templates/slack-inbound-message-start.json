@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "Slack Webhook",
+  "name": "Slack Webhook Message Start Event Connector",
   "id": "io.camunda.connectors.inbound.Slack.MessageStartEvent.v1",
   "description": "Receive events from Slack",
   "version": 1,

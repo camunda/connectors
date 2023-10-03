@@ -1,8 +1,8 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "Camunda Operate connector",
+  "name": "Camunda Operate Outbound connector",
   "id": "io.camunda.connectors.CamundaOperate.v1",
-  "version": 2,
+  "version": 3,
   "description": "Fetch data from Camunda Operate API",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/operate/",
   "category": {

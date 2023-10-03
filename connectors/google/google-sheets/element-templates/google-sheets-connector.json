@@ -1,8 +1,8 @@
 {
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "Google Sheets connector",
+  "name": "Google Sheets Outbound Connector",
   "id": "io.camunda.connectors.GoogleSheets.v1",
-  "version": 1,
+  "version": 2,
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/",
   "description": "Work with spreadsheets",
   "category": {
