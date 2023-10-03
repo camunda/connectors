@@ -336,7 +336,7 @@
     },
     "condition" : {
       "property" : "method",
-      "oneOf" : [ "POST", "PUT", "PATCH", "DELETE" ]
+      "oneOf" : [ "POST", "PUT", "PATCH" ]
     },
     "type" : "Text"
   }, {
