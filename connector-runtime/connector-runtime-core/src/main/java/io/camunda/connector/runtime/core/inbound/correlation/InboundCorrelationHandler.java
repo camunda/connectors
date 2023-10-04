@@ -19,6 +19,7 @@ package io.camunda.connector.runtime.core.inbound.correlation;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.InboundConnectorResult;
+import io.camunda.connector.api.inbound.correlation.BoundaryEventCorrelationPoint;
 import io.camunda.connector.api.inbound.correlation.MessageCorrelationPoint;
 import io.camunda.connector.api.inbound.correlation.MessageStartEventCorrelationPoint;
 import io.camunda.connector.api.inbound.correlation.StartEventCorrelationPoint;
@@ -62,16 +63,30 @@ public class InboundCorrelationHandler {
 
   public InboundConnectorResult<?> correlate(
       InboundConnectorDefinitionImpl definition, Object variables, String messageId) {
+
     var correlationPoint = definition.correlationPoint();
 
     if (correlationPoint instanceof StartEventCorrelationPoint startCorPoint) {
       return triggerStartEvent(definition, startCorPoint, variables);
     }
     if (correlationPoint instanceof MessageCorrelationPoint msgCorPoint) {
-      return triggerMessage(definition, msgCorPoint, variables, messageId);
+      return triggerMessage(
+          definition,
+          msgCorPoint.messageName(),
+          msgCorPoint.correlationKeyExpression(),
+          variables,
+          messageId);
     }
     if (correlationPoint instanceof MessageStartEventCorrelationPoint msgStartCorPoint) {
       return triggerMessageStartEvent(definition, msgStartCorPoint, variables);
+    }
+    if (correlationPoint instanceof BoundaryEventCorrelationPoint boundaryEventCorrelationPoint) {
+      return triggerMessage(
+          definition,
+          boundaryEventCorrelationPoint.messageName(),
+          boundaryEventCorrelationPoint.correlationKeyExpression(),
+          variables,
+          boundaryEventCorrelationPoint.messageIdExpression());
     }
     throw new ConnectorException(
         "Process correlation point "
@@ -143,7 +158,8 @@ public class InboundCorrelationHandler {
     Object extractedVariables = extractVariables(variables, definition);
 
     try {
-      String correlationKey = extractCorrelationKey(correlationPoint, variables);
+      String correlationKey =
+          extractCorrelationKey(correlationPoint.correlationKeyExpression(), variables);
       PublishMessageResponse result =
           zeebeClient
               .newPublishMessageCommand()
@@ -183,16 +199,17 @@ public class InboundCorrelationHandler {
 
   protected InboundConnectorResult<CorrelatedMessage> triggerMessage(
       InboundConnectorDefinitionImpl definition,
-      MessageCorrelationPoint correlationPoint,
+      String messageName,
+      String correlationKeyExpression,
       Object variables,
       String messageId) {
 
-    String correlationKey = extractCorrelationKey(correlationPoint, variables);
+    String correlationKey = extractCorrelationKey(correlationKeyExpression, variables);
 
     if (!isActivationConditionMet(definition, variables)) {
-      LOG.debug("Activation condition didn't match: {}", correlationPoint);
+      LOG.debug("Activation condition didn't match: {}", definition.correlationPoint());
       return new MessageCorrelationResult(
-          correlationPoint.messageName(),
+          messageName,
           new CorrelationErrorData(CorrelationErrorReason.ACTIVATION_CONDITION_NOT_MET));
     }
 
@@ -202,7 +219,7 @@ public class InboundCorrelationHandler {
       PublishMessageResponse response =
           zeebeClient
               .newPublishMessageCommand()
-              .messageName(correlationPoint.messageName())
+              .messageName(messageName)
               .correlationKey(correlationKey)
               .messageId(messageId)
               .tenantId(definition.tenantId())
@@ -211,11 +228,12 @@ public class InboundCorrelationHandler {
               .join();
 
       LOG.info("Published message with key: " + response.getMessageKey());
-      return new MessageCorrelationResult(correlationPoint.messageName(), response.getMessageKey());
+      return new MessageCorrelationResult(messageName, response.getMessageKey());
 
     } catch (Exception e) {
       throw new ConnectorException(
-          "Failed to publish process message for subscription: " + correlationPoint, e);
+          "Failed to publish process message for subscription: " + definition.correlationPoint(),
+          e);
     }
   }
 
@@ -235,17 +253,7 @@ public class InboundCorrelationHandler {
     }
   }
 
-  protected String extractCorrelationKey(MessageCorrelationPoint point, Object context) {
-    String correlationKeyExpression = point.correlationKeyExpression();
-    try {
-      return feelEngine.evaluate(correlationKeyExpression, context, String.class);
-    } catch (Exception e) {
-      throw new ConnectorInputException(e);
-    }
-  }
-
-  protected String extractCorrelationKey(MessageStartEventCorrelationPoint point, Object context) {
-    String correlationKeyExpression = point.correlationKeyExpression();
+  protected String extractCorrelationKey(String correlationKeyExpression, Object context) {
     if (correlationKeyExpression == null || correlationKeyExpression.isBlank()) {
       return "";
     }
