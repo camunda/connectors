@@ -34,6 +34,10 @@
       "label": "Activation"
     },
     {
+      "id": "correlation",
+      "label": "Subprocess correlation"
+    },
+    {
       "id": "variable-mapping",
       "label": "Variable mapping"
     },
@@ -387,6 +391,64 @@
         "name": "activationCondition"
       },
       "description": "Condition under which the connector triggers. Leave empty to catch all events. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/#make-your-http-webhook-connector-for-receiving-messages-executable' target='_blank'>See documentation</a>"
+    },
+    {
+      "label": "Correlation required",
+      "description": "Indicates whether correlation is required. This is needed for event-based subprocess message start events",
+      "id": "correlationRequired",
+      "group": "correlation",
+      "type": "Dropdown",
+      "value": "notRequired",
+      "choices": [
+        {
+          "name": "Correlation not required",
+          "value": "notRequired"
+        },
+        {
+          "name": "Correlation required",
+          "value": "required"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:property",
+        "name": "correlationRequired"
+      }
+    },
+    {
+      "label": "Correlation key (process)",
+      "type": "String",
+      "group": "correlation",
+      "feel": "required",
+      "description": "Sets up the correlation key from process variables",
+      "binding": {
+        "type": "bpmn:Message#zeebe:subscription#property",
+        "name": "correlationKey"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "correlationRequired",
+        "equals": "required"
+      }
+    },
+    {
+      "label": "Correlation key (payload)",
+      "type": "String",
+      "group": "correlation",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "correlationKeyExpression"
+      },
+      "description": "Extracts the correlation key from the incoming message payload",
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "correlationRequired",
+        "equals": "required"
+      }
     },
     {
       "label": "Result variable",
