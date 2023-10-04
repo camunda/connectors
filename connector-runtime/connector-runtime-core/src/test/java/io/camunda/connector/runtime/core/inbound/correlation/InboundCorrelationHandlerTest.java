@@ -25,6 +25,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.api.inbound.InboundConnectorResult;
+import io.camunda.connector.api.inbound.correlation.BoundaryEventCorrelationPoint;
 import io.camunda.connector.api.inbound.correlation.MessageCorrelationPoint;
 import io.camunda.connector.api.inbound.correlation.MessageStartEventCorrelationPoint;
 import io.camunda.connector.api.inbound.correlation.StartEventCorrelationPoint;
@@ -157,6 +158,31 @@ public class InboundCorrelationHandlerTest {
       assertThat(captor.getValue()).isEqualTo("myValue");
       verify(dummyCommand).send();
     }
+  }
+
+  @Test
+  void boundaryMessageEvent_shouldCallCorrectZeebeMethod() {
+    // given
+    var point =
+        new BoundaryEventCorrelationPoint(
+            "test-boundary", "", "123", new BoundaryEventCorrelationPoint.Activity("123", "test"));
+    var definition = mock(InboundConnectorDefinitionImpl.class);
+    when(definition.correlationPoint()).thenReturn(point);
+
+    var dummyCommand = Mockito.spy(new PublishMessageCommandDummy());
+    when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
+
+    // when
+    handler.correlate(definition, Collections.emptyMap());
+
+    // then
+    verify(zeebeClient).newPublishMessageCommand();
+    verifyNoMoreInteractions(zeebeClient);
+
+    verify(dummyCommand).messageName("test-boundary");
+    verify(dummyCommand).correlationKey("");
+    verify(dummyCommand).messageId("123");
+    verify(dummyCommand).send();
   }
 
   @Nested
