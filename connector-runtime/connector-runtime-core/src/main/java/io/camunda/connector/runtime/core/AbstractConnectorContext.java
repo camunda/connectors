@@ -18,8 +18,8 @@ package io.camunda.connector.runtime.core;
 
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
-import io.camunda.connector.api.validation.ValidationUtil;
 import io.camunda.connector.runtime.core.secret.SecretHandler;
+import io.camunda.connector.runtime.core.validation.ValidationUtil;
 
 public abstract class AbstractConnectorContext {
 

@@ -18,7 +18,7 @@ package io.camunda.connector.validation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.camunda.connector.api.validation.ValidationUtil;
+import io.camunda.connector.runtime.core.validation.ValidationUtil;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import org.junit.jupiter.api.Test;
 
