@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.kafka.outbound.model;
 
+import io.camunda.connector.api.annotation.FEEL;
 import jakarta.validation.constraints.NotEmpty;
 import java.util.Objects;
 import java.util.Properties;
@@ -13,8 +14,9 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 
 public class KafkaTopic {
 
-  @NotEmpty private String bootstrapServers;
-  @NotEmpty private String topicName;
+  @FEEL @NotEmpty private String bootstrapServers;
+
+  @FEEL @NotEmpty private String topicName;
 
   public KafkaTopic() {}
 
