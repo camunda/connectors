@@ -22,11 +22,6 @@ public record StartEventCorrelationPoint(
     implements ProcessCorrelationPoint {
 
   @Override
-  public String getId() {
-    return bpmnProcessId + "-" + version + "-" + processDefinitionKey;
-  }
-
-  @Override
   public int compareTo(ProcessCorrelationPoint o) {
     if (!this.getClass().equals(o.getClass())) {
       return -1;

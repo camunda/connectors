@@ -27,11 +27,4 @@ public sealed interface ProcessCorrelationPoint extends Comparable<ProcessCorrel
     permits MessageCorrelationPoint,
         StartEventCorrelationPoint,
         MessageStartEventCorrelationPoint,
-        BoundaryEventCorrelationPoint {
-
-  /**
-   * Returns the ID of the correlation point, which also serves as a deduplication key. Correlation
-   * points with the same ID logically represent the same inbound connector execution.
-   */
-  String getId();
-}
+        BoundaryEventCorrelationPoint {}
