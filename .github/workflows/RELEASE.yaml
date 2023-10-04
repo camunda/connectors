@@ -171,16 +171,6 @@ jobs:
           tags: camunda/connectors-bundle:${{ github.event.inputs.version }}
           platforms: linux/amd64,linux/arm64
           provenance: false
-          
-      - name: Build and Push Docker Image tag ${{ github.event.inputs.version }}-focal - bundle-default
-        uses: docker/build-push-action@v5
-        with:
-          context: bundle/default-bundle/
-          push: ${{ github.ref == 'refs/heads/main' }}
-          tags: camunda/connectors-bundle:${{ github.event.inputs.version }}-focal
-          platforms: linux/amd64,linux/arm64
-          provenance: false
-          file: bundle/default-bundle/Dockerfile-focal
 
       - name: Build and Push Docker Image tag ${{ github.event.inputs.version }} - bundle-saas
         uses: docker/build-push-action@v5
