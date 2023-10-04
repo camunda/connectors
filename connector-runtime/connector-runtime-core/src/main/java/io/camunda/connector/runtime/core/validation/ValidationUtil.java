@@ -14,8 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.api.validation;
+package io.camunda.connector.runtime.core.validation;
 
+import io.camunda.connector.api.validation.ValidationProvider;
 import java.util.ServiceLoader;
 
 public class ValidationUtil {
