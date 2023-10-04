@@ -255,10 +255,10 @@ public class ProcessDefinitionInspector {
                 .orElse(null);
 
     if (msgDef != null) {
-      String messageIdExpression = extractRequiredProperty(startEvent, MESSAGE_ID_EXPRESSION);
-        String correlationKeyExpression =
-                extractRequiredProperty(startEvent, CORRELATION_KEY_EXPRESSION_KEYWORD);
-        return Optional.of(
+      String messageIdExpression = extractProperty(startEvent, MESSAGE_ID_EXPRESSION).orElse(null);
+      String correlationKeyExpression =
+          extractProperty(startEvent, CORRELATION_KEY_EXPRESSION_KEYWORD).orElse(null);
+      return Optional.of(
           new MessageStartEventCorrelationPoint(
               msgDef.getMessage().getName(),
               messageIdExpression,
