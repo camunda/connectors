@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.http.base.services;
 
+import static io.camunda.connector.http.base.constants.Constants.PROXY_FUNCTION_URL_ENV_NAME;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
@@ -37,15 +39,11 @@ public class HttpService {
 
   private final ObjectMapper objectMapper;
   private final HttpRequestFactory requestFactory;
-  private final String proxyFunctionUrl;
+  private final String proxyFunctionUrl = System.getenv(PROXY_FUNCTION_URL_ENV_NAME);
 
-  public HttpService(
-      final ObjectMapper objectMapper,
-      final HttpRequestFactory requestFactory,
-      final String proxyFunctionUrl) {
+  public HttpService(final ObjectMapper objectMapper, final HttpRequestFactory requestFactory) {
     this.objectMapper = objectMapper;
     this.requestFactory = requestFactory;
-    this.proxyFunctionUrl = proxyFunctionUrl;
   }
 
   public HttpCommonResult executeConnectorRequest(final HttpCommonRequest request)

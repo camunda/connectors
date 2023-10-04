@@ -33,6 +33,7 @@ import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpResponse;
 import com.google.api.client.http.HttpResponseException;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.http.base.constants.Constants;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.connector.http.base.model.HttpMethod;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
@@ -49,8 +50,11 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
+import uk.org.webcompere.systemstubs.jupiter.SystemStub;
+import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension;
 
-@ExtendWith(MockitoExtension.class)
+@ExtendWith({MockitoExtension.class, SystemStubsExtension.class})
 @MockitoSettings(strictness = Strictness.LENIENT)
 public class HttpJsonFunctionProxyTest extends BaseTest {
 
@@ -63,11 +67,15 @@ public class HttpJsonFunctionProxyTest extends BaseTest {
   @Mock private HttpRequest httpRequest;
   @Mock private HttpResponse httpResponse;
 
+  @SystemStub
+  private final EnvironmentVariables variables =
+      new EnvironmentVariables(Constants.PROXY_FUNCTION_URL_ENV_NAME, PROXY_FUNCTION_URL);
+
   private HttpJsonFunction functionUnderTest;
 
   @BeforeEach
   public void setup() {
-    functionUnderTest = new HttpJsonFunction(objectMapper, requestFactory, PROXY_FUNCTION_URL);
+    functionUnderTest = new HttpJsonFunction(objectMapper, requestFactory);
     when(httpRequest.getHeaders()).thenReturn(Mockito.mock(HttpHeaders.class));
   }
 

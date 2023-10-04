@@ -79,7 +79,7 @@ public class HttpJsonFunctionTest extends BaseTest {
 
   @BeforeEach
   public void setup() {
-    functionUnderTest = new HttpJsonFunction(objectMapper, requestFactory, null);
+    functionUnderTest = new HttpJsonFunction(objectMapper, requestFactory);
   }
 
   @ParameterizedTest(name = "Executing test case: {0}")
