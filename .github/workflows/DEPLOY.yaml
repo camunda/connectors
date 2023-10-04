@@ -32,8 +32,8 @@ jobs:
       - name: Setup Java Build
         uses: actions/setup-java@v3
         with:
-          distribution: 'temurin'
-          java-version: '17'
+          distribution: 'corretto'
+          java-version: '21'
           cache: 'maven'
           server-id: camunda-nexus
           server-username: MAVEN_USERNAME

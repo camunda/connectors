@@ -41,7 +41,7 @@
   </licenses>
 
   <properties>
-    <version.java>17</version.java>
+    <version.java>21</version.java>
     <maven.compiler.target>${java.version}</maven.compiler.target>
     <maven.compiler.source>${java.version}</maven.compiler.source>
 
@@ -124,6 +124,7 @@ limitations under the License.</license.inlineheader>
     <!-- maven plugins (not managed by parent) -->
     <plugin.version.maven-enforcer-plugin>3.1.0</plugin.version.maven-enforcer-plugin>
     <plugin.version.maven-exec-plugin>3.1.0</plugin.version.maven-exec-plugin>
+    <plugin.version.maven-jar-plugin>3.3.0</plugin.version.maven-jar-plugin>
     <plugin.version.maven-install-plugin>3.1.1</plugin.version.maven-install-plugin>
     <plugin.version.license>4.3</plugin.version.license>
     <plugin.version.license.codehaus>2.2.0</plugin.version.license.codehaus>

@@ -1,2 +1,2 @@
-java temurin-17.0.8+101
+java corretto-21.0.0.35.1
 maven 3.8.4

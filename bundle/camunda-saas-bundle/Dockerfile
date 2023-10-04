@@ -1,4 +1,4 @@
-FROM eclipse-temurin:17.0.8.1_1-jre
+FROM amazoncorretto:21.0.0-alpine3.18
 
 RUN mkdir /opt/app
 

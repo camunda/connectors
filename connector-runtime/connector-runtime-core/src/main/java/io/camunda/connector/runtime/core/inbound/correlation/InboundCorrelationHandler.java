@@ -63,35 +63,26 @@ public class InboundCorrelationHandler {
 
   public InboundConnectorResult<?> correlate(
       InboundConnectorDefinitionImpl definition, Object variables, String messageId) {
-
     var correlationPoint = definition.correlationPoint();
-
-    if (correlationPoint instanceof StartEventCorrelationPoint startCorPoint) {
-      return triggerStartEvent(definition, startCorPoint, variables);
-    }
-    if (correlationPoint instanceof MessageCorrelationPoint msgCorPoint) {
-      return triggerMessage(
-          definition,
-          msgCorPoint.messageName(),
-          msgCorPoint.correlationKeyExpression(),
-          variables,
-          messageId);
-    }
-    if (correlationPoint instanceof MessageStartEventCorrelationPoint msgStartCorPoint) {
-      return triggerMessageStartEvent(definition, msgStartCorPoint, variables);
-    }
-    if (correlationPoint instanceof BoundaryEventCorrelationPoint boundaryEventCorrelationPoint) {
-      return triggerMessage(
+    return switch (correlationPoint) {
+      case StartEventCorrelationPoint startCorPoint -> triggerStartEvent(
+          definition, startCorPoint, variables);
+      case BoundaryEventCorrelationPoint boundaryEventCorrelationPoint -> triggerMessage(
           definition,
           boundaryEventCorrelationPoint.messageName(),
           boundaryEventCorrelationPoint.correlationKeyExpression(),
           variables,
           boundaryEventCorrelationPoint.messageIdExpression());
-    }
-    throw new ConnectorException(
-        "Process correlation point "
-            + correlationPoint.getClass()
-            + " is not supported by Runtime");
+      case MessageCorrelationPoint messageCorrelationPoint -> triggerMessage(
+          definition,
+          messageCorrelationPoint.messageName(),
+          messageCorrelationPoint.correlationKeyExpression(),
+          variables,
+          messageId);
+      case MessageStartEventCorrelationPoint
+      messageStartEventCorrelationPoint -> triggerMessageStartEvent(
+          definition, messageStartEventCorrelationPoint, variables);
+    };
   }
 
   protected InboundConnectorResult<ProcessInstance> triggerStartEvent(
