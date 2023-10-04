@@ -22,10 +22,6 @@ public record BoundaryEventCorrelationPoint(
     String messageIdExpression,
     Activity attachedTo)
     implements ProcessCorrelationPoint {
-  @Override
-  public String getId() {
-    return null;
-  }
 
   @Override
   public int compareTo(ProcessCorrelationPoint o) {

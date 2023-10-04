@@ -26,11 +26,6 @@ public record MessageStartEventCorrelationPoint(
     implements ProcessCorrelationPoint {
 
   @Override
-  public String getId() {
-    return messageName;
-  }
-
-  @Override
   public int compareTo(ProcessCorrelationPoint o) {
     if (!this.getClass().equals(o.getClass())) {
       return 1;

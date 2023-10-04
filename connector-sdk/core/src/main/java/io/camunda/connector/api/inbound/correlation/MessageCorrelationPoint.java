@@ -20,10 +20,6 @@ package io.camunda.connector.api.inbound.correlation;
 public record MessageCorrelationPoint(
     String messageName, String correlationKeyExpression, String messageIdExpression)
     implements ProcessCorrelationPoint {
-  @Override
-  public String getId() {
-    return messageName;
-  }
 
   @Override
   public int compareTo(ProcessCorrelationPoint o) {
