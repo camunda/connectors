@@ -23,14 +23,4 @@ public record MessageStartEventCorrelationPoint(
     String bpmnProcessId,
     int version,
     long processDefinitionKey)
-    implements ProcessCorrelationPoint {
-
-  @Override
-  public int compareTo(ProcessCorrelationPoint o) {
-    if (!this.getClass().equals(o.getClass())) {
-      return 1;
-    }
-    MessageStartEventCorrelationPoint other = (MessageStartEventCorrelationPoint) o;
-    return messageName.compareTo(other.messageName);
-  }
-}
+    implements ProcessCorrelationPoint {}

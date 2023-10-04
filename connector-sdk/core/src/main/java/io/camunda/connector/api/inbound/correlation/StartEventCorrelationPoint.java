@@ -19,17 +19,4 @@ package io.camunda.connector.api.inbound.correlation;
 /** Properties of a StartEvent triggered by an Inbound Connector */
 public record StartEventCorrelationPoint(
     String bpmnProcessId, int version, long processDefinitionKey)
-    implements ProcessCorrelationPoint {
-
-  @Override
-  public int compareTo(ProcessCorrelationPoint o) {
-    if (!this.getClass().equals(o.getClass())) {
-      return -1;
-    }
-    StartEventCorrelationPoint other = (StartEventCorrelationPoint) o;
-    if (!bpmnProcessId.equals(other.bpmnProcessId)) {
-      return bpmnProcessId.compareTo(other.bpmnProcessId);
-    }
-    return Integer.compare(version, other.version);
-  }
-}
+    implements ProcessCorrelationPoint {}
