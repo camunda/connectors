@@ -7,12 +7,10 @@
 package io.camunda.connector.http.polling;
 
 import io.camunda.connector.api.annotation.InboundConnector;
-import io.camunda.connector.api.config.ConnectorConfigurationUtil;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.http.base.components.HttpTransportComponentSupplier;
-import io.camunda.connector.http.base.constants.Constants;
 import io.camunda.connector.http.base.services.HttpService;
 import io.camunda.connector.http.polling.service.SharedExecutorService;
 import io.camunda.connector.http.polling.task.PollingOperateTask;
@@ -30,15 +28,10 @@ public class HttpPollingConnector
   private PollingOperateTask pollingOperateTask;
 
   public HttpPollingConnector() {
-    this(ConnectorConfigurationUtil.getProperty(Constants.PROXY_FUNCTION_URL_ENV_NAME));
-  }
-
-  public HttpPollingConnector(final String proxyFunctionUrl) {
     this(
         new HttpService(
             ConnectorsObjectMapperSupplier.getCopy(),
-            HttpTransportComponentSupplier.httpRequestFactoryInstance(),
-            proxyFunctionUrl),
+            HttpTransportComponentSupplier.httpRequestFactoryInstance()),
         SharedExecutorService.getInstance());
   }
 

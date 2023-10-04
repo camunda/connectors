@@ -19,14 +19,12 @@ package io.camunda.connector.http.rest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.http.HttpRequestFactory;
 import io.camunda.connector.api.annotation.OutboundConnector;
-import io.camunda.connector.api.config.ConnectorConfigurationUtil;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.generator.annotation.ElementTemplate;
 import io.camunda.connector.generator.annotation.ElementTemplate.PropertyGroup;
 import io.camunda.connector.http.base.components.HttpTransportComponentSupplier;
-import io.camunda.connector.http.base.constants.Constants;
 import io.camunda.connector.http.base.services.HttpService;
 import io.camunda.connector.http.rest.model.HttpJsonRequest;
 import java.io.IOException;
@@ -62,21 +60,14 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
   private final HttpService httpService;
 
   public HttpJsonFunction() {
-    this(ConnectorConfigurationUtil.getProperty(Constants.PROXY_FUNCTION_URL_ENV_NAME));
-  }
-
-  public HttpJsonFunction(String proxyFunctionUrl) {
     this(
         ConnectorsObjectMapperSupplier.getCopy(),
-        HttpTransportComponentSupplier.httpRequestFactoryInstance(),
-        proxyFunctionUrl);
+        HttpTransportComponentSupplier.httpRequestFactoryInstance());
   }
 
   public HttpJsonFunction(
-      final ObjectMapper objectMapper,
-      final HttpRequestFactory requestFactory,
-      final String proxyFunctionUrl) {
-    this.httpService = new HttpService(objectMapper, requestFactory, proxyFunctionUrl);
+      final ObjectMapper objectMapper, final HttpRequestFactory requestFactory) {
+    this.httpService = new HttpService(objectMapper, requestFactory);
   }
 
   @Override

@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.runtime.core.secret;
 
-import io.camunda.connector.api.error.ConnectorSecretException;
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.secret.SecretProvider;
 import java.util.Optional;
 import java.util.function.Function;
@@ -34,8 +34,8 @@ public class SecretHandler {
             Optional.ofNullable(secretProvider.getSecret(name))
                 .orElseThrow(
                     () ->
-                        new ConnectorSecretException(
-                            String.format("Secret with name '%s' is not available", name)));
+                        new ConnectorInputException(
+                            String.format("Secret with name '%s' is not available", name), null));
   }
 
   public String replaceSecrets(String input) {

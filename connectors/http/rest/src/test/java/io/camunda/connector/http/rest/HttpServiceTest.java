@@ -33,8 +33,6 @@ import com.google.api.client.json.Json;
 import com.google.api.client.testing.http.MockHttpTransport;
 import com.google.api.client.testing.http.MockLowLevelHttpRequest;
 import com.google.api.client.testing.http.MockLowLevelHttpResponse;
-import io.camunda.connector.api.config.ConnectorConfigurationUtil;
-import io.camunda.connector.http.base.constants.Constants;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.connector.http.base.model.HttpMethod;
 import io.camunda.connector.http.base.services.AuthenticationService;
@@ -122,11 +120,7 @@ class HttpServiceTest extends BaseTest {
     HttpRequestFactory requestFactory = transport.createRequestFactory();
 
     // when
-    HttpService httpService =
-        new HttpService(
-            objectMapper,
-            requestFactory,
-            ConnectorConfigurationUtil.getProperty(Constants.PROXY_FUNCTION_URL_ENV_NAME));
+    HttpService httpService = new HttpService(objectMapper, requestFactory);
 
     Object result = httpService.executeConnectorRequest(httpJsonRequest);
 

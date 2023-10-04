@@ -17,13 +17,11 @@
 package io.camunda.connector.runtime;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.api.config.ConnectorPropertyResolver;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
-import io.camunda.connector.runtime.env.SpringConnectorPropertyResolver;
 import io.camunda.connector.runtime.env.SpringEnvironmentSecretProvider;
 import io.camunda.connector.runtime.outbound.OutboundConnectorRuntimeConfiguration;
 import java.util.LinkedList;
@@ -82,12 +80,6 @@ public class OutboundConnectorsAutoConfiguration {
       matchIfMissing = true)
   public SpringEnvironmentSecretProvider defaultSecretProvider(Environment environment) {
     return new SpringEnvironmentSecretProvider(environment);
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
-  public ConnectorPropertyResolver springConnectorPropertyResolver(Environment environment) {
-    return new SpringConnectorPropertyResolver(environment);
   }
 
   @Bean

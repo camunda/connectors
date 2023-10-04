@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchException;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import io.camunda.connector.api.error.ConnectorSecretException;
+import io.camunda.connector.api.error.ConnectorInputException;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
@@ -89,7 +89,7 @@ public class InboundConnectorContextBuilderTest {
         InboundConnectorContextBuilder.create().properties("{}").secret("x", "FOO").build();
     Executable replacement = () -> context.getSecretHandler().replaceSecrets("secrets.foo");
     assertThrows(
-        ConnectorSecretException.class, replacement, "Secret with name 'foo' is not available");
+        ConnectorInputException.class, replacement, "Secret with name 'foo' is not available");
   }
 
   @Test
