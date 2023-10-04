@@ -23,7 +23,7 @@ package io.camunda.connector.api.inbound.correlation;
  * <p>Comparable interface defines the priorities among inbound connector execution (suitable
  * inbound candidates are executed in the natural order).
  */
-public sealed interface ProcessCorrelationPoint extends Comparable<ProcessCorrelationPoint>
+public sealed interface ProcessCorrelationPoint
     permits MessageCorrelationPoint,
         StartEventCorrelationPoint,
         MessageStartEventCorrelationPoint,

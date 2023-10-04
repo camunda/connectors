@@ -23,10 +23,5 @@ public record BoundaryEventCorrelationPoint(
     Activity attachedTo)
     implements ProcessCorrelationPoint {
 
-  @Override
-  public int compareTo(ProcessCorrelationPoint o) {
-    return 0;
-  }
-
   public record Activity(String elementId, String name) {}
 }
