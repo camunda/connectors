@@ -373,8 +373,7 @@
         "oneOf": [
           "post",
           "put",
-          "patch",
-          "delete"
+          "patch"
         ]
       },
       "optional": true

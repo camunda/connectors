@@ -1,6 +1,6 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "REST Outbound Connector",
+  "name" : "REST Connector",
   "id" : "io.camunda.connectors.HttpJson.v2",
   "description" : "Invoke REST API",
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/rest/",
@@ -336,7 +336,7 @@
     },
     "condition" : {
       "property" : "method",
-      "oneOf" : [ "POST", "PUT", "PATCH", "DELETE" ]
+      "oneOf" : [ "POST", "PUT", "PATCH" ]
     },
     "type" : "Text"
   }, {
