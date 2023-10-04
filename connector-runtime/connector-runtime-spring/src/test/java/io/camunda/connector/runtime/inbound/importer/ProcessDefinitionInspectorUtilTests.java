@@ -97,8 +97,8 @@ public class ProcessDefinitionInspectorUtilTests {
     var inboundConnectors =
         fromModel("multi-webhook-start-message.bpmn", "multi-webhook-start-message");
     assertEquals(2, inboundConnectors.size());
-    assertEquals("wh-start-msg-1", inboundConnectors.get(0).elementId());
-    assertEquals("wh-start-msg-2", inboundConnectors.get(1).elementId());
+    assertEquals("wh-start-msg-2", inboundConnectors.get(0).elementId());
+    assertEquals("wh-start-msg-1", inboundConnectors.get(1).elementId());
   }
 
   private List<InboundConnectorDefinitionImpl> fromModel(String fileName, String processId) {

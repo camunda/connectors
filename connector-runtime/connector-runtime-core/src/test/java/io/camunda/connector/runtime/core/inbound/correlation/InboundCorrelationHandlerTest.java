@@ -112,7 +112,7 @@ public class InboundCorrelationHandlerTest {
     @Test
     void startMessageEvent_shouldCallCorrectZeebeMethod() {
       // given
-      var point = new MessageStartEventCorrelationPoint("test", "", "1", 1, 0);
+      var point = new MessageStartEventCorrelationPoint("test", "", "", "1", 1, 0);
       var definition = mock(InboundConnectorDefinitionImpl.class);
       when(definition.correlationPoint()).thenReturn(point);
 
@@ -134,7 +134,7 @@ public class InboundCorrelationHandlerTest {
     @Test
     void startMessageEvent_idempotencyKeyEvaluated() {
       // given
-      var point = new MessageStartEventCorrelationPoint("test", "=myVar", "1", 1, 0);
+      var point = new MessageStartEventCorrelationPoint("test", "=myVar", "", "1", 1, 0);
       var definition = mock(InboundConnectorDefinitionImpl.class);
       when(definition.correlationPoint()).thenReturn(point);
 
@@ -291,7 +291,7 @@ public class InboundCorrelationHandlerTest {
     @Test
     void messageStartEvent_activationConditionFalse_shouldNotCorrelate() {
       // given
-      var point = new MessageStartEventCorrelationPoint("testMsg", "=myVar", "1", 1, 0);
+      var point = new MessageStartEventCorrelationPoint("testMsg", "=myVar", "", "1", 1, 0);
       var definition = mock(InboundConnectorDefinitionImpl.class);
       when(definition.correlationPoint()).thenReturn(point);
       when(definition.activationCondition()).thenReturn("=testKey=\"otherValue\"");
@@ -320,7 +320,7 @@ public class InboundCorrelationHandlerTest {
       var dummyCommand = Mockito.spy(new PublishMessageCommandDummy());
       when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
 
-      var point = new MessageStartEventCorrelationPoint("testMsg", "=myVar", "1", 1, 0);
+      var point = new MessageStartEventCorrelationPoint("testMsg", "=myVar", "", "1", 1, 0);
       var definition = mock(InboundConnectorDefinitionImpl.class);
       when(definition.correlationPoint()).thenReturn(point);
       when(definition.activationCondition()).thenReturn("=myOtherMap.myOtherKey=\"myOtherValue\"");
@@ -348,7 +348,7 @@ public class InboundCorrelationHandlerTest {
       var dummyCommand = Mockito.spy(new PublishMessageCommandDummy());
       when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
 
-      var point = new MessageStartEventCorrelationPoint("testMsg", "=myVar", "1", 1, 0);
+      var point = new MessageStartEventCorrelationPoint("testMsg", "=myVar", "", "1", 1, 0);
       var definition = mock(InboundConnectorDefinitionImpl.class);
       when(definition.correlationPoint()).thenReturn(point);
       when(definition.activationCondition()).thenReturn(null);
@@ -376,7 +376,7 @@ public class InboundCorrelationHandlerTest {
       var dummyCommand = Mockito.spy(new PublishMessageCommandDummy());
       when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
 
-      var point = new MessageStartEventCorrelationPoint("testMsg", "=myVar", "1", 1, 0);
+      var point = new MessageStartEventCorrelationPoint("testMsg", "=myVar", "", "1", 1, 0);
       var definition = mock(InboundConnectorDefinitionImpl.class);
       when(definition.correlationPoint()).thenReturn(point);
       when(definition.activationCondition()).thenReturn("  ");

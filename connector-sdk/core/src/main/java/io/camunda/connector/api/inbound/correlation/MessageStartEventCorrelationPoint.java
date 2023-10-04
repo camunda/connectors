@@ -19,6 +19,7 @@ package io.camunda.connector.api.inbound.correlation;
 public record MessageStartEventCorrelationPoint(
     String messageName,
     String messageIdExpression,
+    String correlationKeyExpression,
     String bpmnProcessId,
     int version,
     long processDefinitionKey)
