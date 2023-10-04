@@ -65,7 +65,7 @@ public final class DefaultProcessInstanceContext implements ProcessInstanceConte
 
   @Override
   public <T> T bind(final Class<T> cls) {
-    // TODO we should improve caching to avoid fetching variables for very bind.
+    // TODO Replace with https://github.com/camunda/connectors/issues/1161
     HashMap<String, Object> copyOfProperties = new HashMap<>(context.getProperties());
     Map<String, Object> processVariables = operatePropertiesSupplier.get();
     evaluateAndPrepareForBinding(copyOfProperties, processVariables);
