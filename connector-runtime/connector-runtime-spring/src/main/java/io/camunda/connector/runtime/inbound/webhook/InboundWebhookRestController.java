@@ -139,14 +139,15 @@ public class InboundWebhookRestController {
   // this data may be returned to the webhook caller.
   private WebhookResultContext toWebhookResultContext(WebhookResult processedResult) {
     if (processedResult == null) {
-      return new WebhookResultContext(null, null);
+      return new WebhookResultContext(null, null, null);
     }
     return new WebhookResultContext(
         new MappedHttpRequest(
             Optional.ofNullable(processedResult.request().body()).orElse(emptyMap()),
             Optional.ofNullable(processedResult.request().headers()).orElse(emptyMap()),
             Optional.ofNullable(processedResult.request().params()).orElse(emptyMap())),
-        Optional.ofNullable(processedResult.connectorData()).orElse(emptyMap()));
+        Optional.ofNullable(processedResult.connectorData()).orElse(emptyMap()),
+        Map.of());
   }
 
   private ResponseEntity<?> handleWebhookConnectorException(WebhookConnectorException e) {
