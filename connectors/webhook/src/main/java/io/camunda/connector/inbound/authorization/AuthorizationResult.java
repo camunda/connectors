@@ -6,8 +6,8 @@
  */
 package io.camunda.connector.inbound.authorization;
 
-import io.camunda.connector.api.error.WebhookConnectorException.WebhookSecurityException;
-import io.camunda.connector.api.error.WebhookConnectorException.WebhookSecurityException.Reason;
+import io.camunda.connector.api.inbound.webhook.WebhookConnectorException.WebhookSecurityException;
+import io.camunda.connector.api.inbound.webhook.WebhookConnectorException.WebhookSecurityException.Reason;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
 public abstract sealed class AuthorizationResult {

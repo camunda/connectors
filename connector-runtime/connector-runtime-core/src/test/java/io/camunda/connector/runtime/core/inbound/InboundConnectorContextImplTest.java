@@ -21,11 +21,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.FEEL;
-import io.camunda.connector.api.inbound.correlation.MessageCorrelationPoint;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.FooBarSecretProvider;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImplTest.TestPropertiesClass.InnerObject;
+import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;

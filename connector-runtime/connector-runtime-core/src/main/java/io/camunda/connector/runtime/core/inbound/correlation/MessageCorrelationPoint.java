@@ -14,13 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.api.inbound.correlation;
+package io.camunda.connector.runtime.core.inbound.correlation;
 
-public record MessageStartEventCorrelationPoint(
-    String messageName,
-    String messageIdExpression,
-    String correlationKeyExpression,
-    String bpmnProcessId,
-    int version,
-    long processDefinitionKey)
+/** Properties of a message published by an Inbound Connector */
+public record MessageCorrelationPoint(
+    String messageName, String correlationKeyExpression, String messageIdExpression)
     implements ProcessCorrelationPoint {}

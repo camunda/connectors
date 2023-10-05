@@ -14,7 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.api.error;
+package io.camunda.connector.api.inbound.webhook;
+
+import io.camunda.connector.api.error.ConnectorException;
 
 /**
  * Unchecked exception indicating issues with a webhook connector. Must define an HTTP status code

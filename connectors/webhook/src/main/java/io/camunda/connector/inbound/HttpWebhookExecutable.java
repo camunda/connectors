@@ -10,11 +10,11 @@ import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.di
 import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.enabled;
 
 import io.camunda.connector.api.annotation.InboundConnector;
-import io.camunda.connector.api.error.WebhookConnectorException;
-import io.camunda.connector.api.error.WebhookConnectorException.WebhookSecurityException;
-import io.camunda.connector.api.error.WebhookConnectorException.WebhookSecurityException.Reason;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
+import io.camunda.connector.api.inbound.webhook.WebhookConnectorException;
+import io.camunda.connector.api.inbound.webhook.WebhookConnectorException.WebhookSecurityException;
+import io.camunda.connector.api.inbound.webhook.WebhookConnectorException.WebhookSecurityException.Reason;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookResult;

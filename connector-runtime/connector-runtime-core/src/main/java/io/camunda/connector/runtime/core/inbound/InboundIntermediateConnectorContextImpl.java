@@ -23,9 +23,9 @@ import io.camunda.connector.api.inbound.InboundConnectorDefinition;
 import io.camunda.connector.api.inbound.InboundConnectorResult;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.api.inbound.ProcessInstanceContext;
-import io.camunda.connector.api.inbound.correlation.BoundaryEventCorrelationPoint;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.FeelEngineWrapper;
+import io.camunda.connector.runtime.core.inbound.correlation.BoundaryEventCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import java.util.List;
 import java.util.Map;
@@ -63,7 +63,8 @@ public class InboundIntermediateConnectorContextImpl
   @Override
   public List<ProcessInstanceContext> getProcessInstanceContexts() {
     var elementId = getDefinition().elementId();
-    if (getDefinition().correlationPoint() instanceof BoundaryEventCorrelationPoint point) {
+    var definition = (InboundConnectorDefinitionImpl) getDefinition();
+    if (definition.correlationPoint() instanceof BoundaryEventCorrelationPoint point) {
       elementId = point.attachedTo().elementId();
     }
 

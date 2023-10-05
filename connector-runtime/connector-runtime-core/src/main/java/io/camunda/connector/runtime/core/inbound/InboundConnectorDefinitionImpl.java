@@ -18,8 +18,8 @@ package io.camunda.connector.runtime.core.inbound;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
-import io.camunda.connector.api.inbound.correlation.ProcessCorrelationPoint;
 import io.camunda.connector.runtime.core.Keywords;
+import io.camunda.connector.runtime.core.inbound.correlation.ProcessCorrelationPoint;
 import java.util.Map;
 import java.util.Optional;
 

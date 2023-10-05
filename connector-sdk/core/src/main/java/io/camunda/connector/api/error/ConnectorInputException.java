@@ -16,10 +16,12 @@
  */
 package io.camunda.connector.api.error;
 
+import java.io.Serial;
+
 /** Unchecked exception indicating issues with a connector's input. */
 public class ConnectorInputException extends RuntimeException {
 
-  private static final long serialVersionUID = 1L;
+  @Serial private static final long serialVersionUID = 1L;
 
   /**
    * Constructs a new exception with the specified cause and a detail message of {@code (cause==null
