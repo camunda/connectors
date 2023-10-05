@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.inbound.importer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -97,8 +98,16 @@ public class ProcessDefinitionInspectorUtilTests {
     var inboundConnectors =
         fromModel("multi-webhook-start-message.bpmn", "multi-webhook-start-message");
     assertEquals(2, inboundConnectors.size());
-    assertEquals("wh-start-msg-2", inboundConnectors.get(0).elementId());
-    assertEquals("wh-start-msg-1", inboundConnectors.get(1).elementId());
+    assertNotNull(
+        inboundConnectors.stream()
+            .filter(ic -> ic.elementId().equals("wh-start-msg-1"))
+            .findFirst()
+            .get());
+    assertNotNull(
+        inboundConnectors.stream()
+            .filter(ic -> ic.elementId().equals("wh-start-msg-2"))
+            .findFirst()
+            .get());
   }
 
   private List<InboundConnectorDefinitionImpl> fromModel(String fileName, String processId) {
