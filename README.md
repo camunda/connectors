@@ -148,5 +148,5 @@ mvn clean package
 
 ## Build a release
 
-Trigger the [release action](https://github.com/camunda/connector-sdk/actions/workflows/RELEASE.yml) manually with the version `x.y.z` you want to release.
-You can choose the branch to execute the action on as described in the [GitHub documentation](https://docs.github.com/en/actions/managing-workflow-runs/manually-running-a-workflow).
+1. For minor releases (x.y.0), create a new branch `release/x.y` from `main` in advance and rebase it onto `main` from time to time. This can be done using the `CREATE_RELEASE_BRANCH` workflow.
+2. To trigger the release, publish a new GitHub release and name the tag according to the version you want to release (e.g. `1.0.0`). This will trigger a GitHub workflow that builds and publishes the release artifacts, generates a changelog and bundles the element templates into an archive.
