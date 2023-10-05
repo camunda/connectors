@@ -93,13 +93,7 @@ public class ProcessDefinitionInspector {
         processes.stream()
             .flatMap(process -> inspectBpmnProcess(process, processDefinition).stream())
             .collect(
-                Collectors.groupingBy(
-                    def ->
-                        def.processDefinitionKey()
-                            + "-"
-                            + def.bpmnProcessId()
-                            + "-"
-                            + def.elementId()));
+                Collectors.groupingBy(def -> def.processDefinitionKey() + "-" + def.elementId()));
 
     return connectorDefinitions.entrySet().stream()
         .map(
