@@ -17,8 +17,8 @@ import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
+import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
-import io.camunda.connector.api.inbound.InboundConnectorResult;
 import io.camunda.connector.inbound.model.SqsInboundProperties;
 import io.camunda.connector.inbound.model.SqsInboundQueueProperties;
 import io.camunda.connector.inbound.model.message.SqsInboundMessage;
@@ -42,7 +42,7 @@ public class SqsQueueConsumerTest {
   @Mock private ReceiveMessageResult receiveMessageResult;
   @Mock private List<Message> messages;
   private Message message;
-  @Mock private InboundConnectorResult result;
+  @Mock private CorrelationResult result;
   @Captor private ArgumentCaptor<ReceiveMessageRequest> requestArgumentCaptor;
   private List<Message> emptyMessageList;
 

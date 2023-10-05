@@ -15,9 +15,9 @@ import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.ShutdownSignalException;
 import io.camunda.connector.api.error.ConnectorInputException;
+import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
-import io.camunda.connector.api.inbound.InboundConnectorResult;
 import io.camunda.connector.rabbitmq.inbound.model.RabbitMqInboundResult;
 import io.camunda.connector.rabbitmq.inbound.model.RabbitMqInboundResult.RabbitMqInboundMessage;
 import io.camunda.connector.rabbitmq.supplier.ObjectMapperSupplier;
@@ -46,7 +46,7 @@ public class RabbitMqConsumer extends DefaultConsumer {
     LOGGER.debug("Received AMQP message with delivery tag {}", envelope.getDeliveryTag());
     try {
       RabbitMqInboundResult variables = prepareVariables(consumerTag, properties, body);
-      InboundConnectorResult<?> result = context.correlate(variables);
+      CorrelationResult<?> result = context.correlate(variables);
 
       if (result != null && result.isActivated()) {
         LOGGER.debug("ACK - inbound event correlated successfully: {}", result.getResponseData());

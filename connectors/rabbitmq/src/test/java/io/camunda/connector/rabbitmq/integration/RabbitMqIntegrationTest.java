@@ -10,7 +10,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
 
-import io.camunda.connector.api.inbound.result.MessageCorrelationResult;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.rabbitmq.BaseTest;
@@ -29,6 +28,7 @@ import io.camunda.connector.rabbitmq.outbound.RabbitMqResult;
 import io.camunda.connector.rabbitmq.outbound.model.RabbitMqOutboundRouting;
 import io.camunda.connector.rabbitmq.outbound.model.RabbitMqRequest;
 import io.camunda.connector.rabbitmq.supplier.ObjectMapperSupplier;
+import io.camunda.connector.runtime.core.inbound.result.MessageCorrelationResult;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder.TestInboundConnectorContext;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;

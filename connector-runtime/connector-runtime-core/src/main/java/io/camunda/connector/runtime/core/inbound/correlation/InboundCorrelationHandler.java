@@ -18,19 +18,19 @@ package io.camunda.connector.runtime.core.inbound.correlation;
 
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorInputException;
-import io.camunda.connector.api.inbound.InboundConnectorResult;
-import io.camunda.connector.api.inbound.result.CorrelatedMessage;
-import io.camunda.connector.api.inbound.result.CorrelatedMessageStart;
-import io.camunda.connector.api.inbound.result.CorrelationErrorData;
-import io.camunda.connector.api.inbound.result.CorrelationErrorData.CorrelationErrorReason;
-import io.camunda.connector.api.inbound.result.MessageCorrelationResult;
-import io.camunda.connector.api.inbound.result.MessageStartCorrelationResult;
-import io.camunda.connector.api.inbound.result.ProcessInstance;
-import io.camunda.connector.api.inbound.result.StartEventCorrelationResult;
+import io.camunda.connector.api.inbound.CorrelationErrorData;
+import io.camunda.connector.api.inbound.CorrelationErrorData.CorrelationErrorReason;
+import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.core.ConnectorHelper;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
+import io.camunda.connector.runtime.core.inbound.result.CorrelatedMessage;
+import io.camunda.connector.runtime.core.inbound.result.CorrelatedMessageStart;
+import io.camunda.connector.runtime.core.inbound.result.MessageCorrelationResult;
+import io.camunda.connector.runtime.core.inbound.result.MessageStartCorrelationResult;
+import io.camunda.connector.runtime.core.inbound.result.ProcessInstance;
+import io.camunda.connector.runtime.core.inbound.result.StartEventCorrelationResult;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.client.api.command.ClientStatusException;
 import io.camunda.zeebe.client.api.response.ProcessInstanceEvent;
@@ -52,12 +52,12 @@ public class InboundCorrelationHandler {
     this.feelEngine = feelEngine;
   }
 
-  public InboundConnectorResult<?> correlate(
+  public CorrelationResult<?> correlate(
       InboundConnectorDefinitionImpl definition, Object variables) {
     return correlate(definition, variables, UUID.randomUUID().toString());
   }
 
-  public InboundConnectorResult<?> correlate(
+  public CorrelationResult<?> correlate(
       InboundConnectorDefinitionImpl definition, Object variables, String messageId) {
 
     var correlationPoint = definition.correlationPoint();
@@ -90,7 +90,7 @@ public class InboundCorrelationHandler {
             + " is not supported by Runtime");
   }
 
-  protected InboundConnectorResult<ProcessInstance> triggerStartEvent(
+  protected CorrelationResult<ProcessInstance> triggerStartEvent(
       InboundConnectorDefinitionImpl definition,
       StartEventCorrelationPoint correlationPoint,
       Object variables) {
@@ -127,7 +127,7 @@ public class InboundCorrelationHandler {
     }
   }
 
-  protected InboundConnectorResult<CorrelatedMessageStart> triggerMessageStartEvent(
+  protected CorrelationResult<CorrelatedMessageStart> triggerMessageStartEvent(
       InboundConnectorDefinitionImpl definition,
       MessageStartEventCorrelationPoint correlationPoint,
       Object variables) {
@@ -193,7 +193,7 @@ public class InboundCorrelationHandler {
     }
   }
 
-  protected InboundConnectorResult<CorrelatedMessage> triggerMessage(
+  protected CorrelationResult<CorrelatedMessage> triggerMessage(
       InboundConnectorDefinitionImpl definition,
       String messageName,
       String correlationKeyExpression,

@@ -34,15 +34,13 @@ public interface InboundConnectorContext {
    * io.camunda.connector.api.error.ConnectorException} will be thrown.
    *
    * @param variables - an object containing inbound connector variables
-   * @return either {@link io.camunda.connector.api.inbound.result.MessageCorrelationResult} or
-   *     {@link io.camunda.connector.api.inbound.result.StartEventCorrelationResult}, depending on
-   *     the type of the underlying correlation point.
+   * @return {@link io.camunda.connector.api.inbound.CorrelationResult}
    * @throws io.camunda.connector.api.error.ConnectorInputException if the correlation fails due to
    *     invalid input. In this case, correlation should not be retried.
    * @throws io.camunda.connector.api.error.ConnectorException if the correlation fails due to
    *     unexpected runtime error. Such errors may be temporary and can be retried.
    */
-  InboundConnectorResult<?> correlate(Object variables);
+  CorrelationResult<?> correlate(Object variables);
 
   /**
    * Signals to the Connector runtime that inbound Connector execution was interrupted. As a result

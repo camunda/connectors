@@ -14,11 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.api.inbound.result;
+package io.camunda.connector.runtime.core.inbound.result;
 
-public record CorrelatedMessageStart(
-    long messageKey,
-    String messageId,
-    String bpmnProcessId,
-    long processDefinitionKey,
-    int version) {}
+import io.camunda.connector.api.inbound.CorrelationErrorData;
+
+public class MessageStartCorrelationResult
+    extends AbstractCorrelationResult<CorrelatedMessageStart> {
+
+  public static final String TYPE_NAME = "MESSAGE_START";
+
+  public MessageStartCorrelationResult(
+      String messageName, CorrelatedMessageStart correlatedMessageStart) {
+    super(TYPE_NAME, messageName, true, correlatedMessageStart, null);
+  }
+
+  public MessageStartCorrelationResult(String messageName, CorrelationErrorData errorData) {
+    super(TYPE_NAME, messageName, false, null, errorData);
+  }
+}

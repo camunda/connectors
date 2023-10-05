@@ -14,9 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.api.inbound.result;
+package io.camunda.connector.runtime.core.inbound.result;
 
-public class MessageCorrelationResult extends AbstractInboundConnectorResult<CorrelatedMessage> {
+import io.camunda.connector.api.inbound.CorrelationErrorData;
+
+public class MessageCorrelationResult extends AbstractCorrelationResult<CorrelatedMessage> {
 
   public static final String TYPE_NAME = "MESSAGE";
 

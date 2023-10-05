@@ -11,8 +11,8 @@ import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 import io.camunda.connector.api.error.ConnectorInputException;
+import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
-import io.camunda.connector.api.inbound.InboundConnectorResult;
 import io.camunda.connector.inbound.model.SqsInboundProperties;
 import java.util.List;
 import java.util.Optional;
@@ -65,8 +65,7 @@ public class SqsQueueConsumer implements Runnable {
   }
 
   private void correlate(final Message message) {
-    InboundConnectorResult<?> correlate =
-        context.correlate(MessageMapper.toSqsInboundMessage(message));
+    CorrelationResult<?> correlate = context.correlate(MessageMapper.toSqsInboundMessage(message));
     if (correlate.isActivated()) {
       LOGGER.debug("Inbound event correlated successfully: {}", correlate.getResponseData());
     } else {

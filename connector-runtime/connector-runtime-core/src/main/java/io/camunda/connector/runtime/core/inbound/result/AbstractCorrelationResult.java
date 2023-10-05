@@ -14,13 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.api.inbound.result;
+package io.camunda.connector.runtime.core.inbound.result;
 
-import io.camunda.connector.api.inbound.InboundConnectorResult;
+import io.camunda.connector.api.inbound.CorrelationErrorData;
+import io.camunda.connector.api.inbound.CorrelationResult;
 import java.util.Objects;
 import java.util.Optional;
 
-public abstract class AbstractInboundConnectorResult<T> implements InboundConnectorResult<T> {
+public abstract class AbstractCorrelationResult<T> implements CorrelationResult<T> {
 
   protected final String type;
   protected final String correlationPointId;
@@ -28,7 +29,7 @@ public abstract class AbstractInboundConnectorResult<T> implements InboundConnec
   protected final T responseData;
   protected final CorrelationErrorData errorData;
 
-  public AbstractInboundConnectorResult(
+  public AbstractCorrelationResult(
       String type,
       String correlationPointId,
       boolean activated,
@@ -39,16 +40,6 @@ public abstract class AbstractInboundConnectorResult<T> implements InboundConnec
     this.activated = activated;
     this.responseData = responseData;
     this.errorData = errorData;
-  }
-
-  @Override
-  public String getType() {
-    return type;
-  }
-
-  @Override
-  public String getCorrelationPointId() {
-    return correlationPointId;
   }
 
   @Override
@@ -74,7 +65,7 @@ public abstract class AbstractInboundConnectorResult<T> implements InboundConnec
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    AbstractInboundConnectorResult<?> that = (AbstractInboundConnectorResult<?>) o;
+    AbstractCorrelationResult<?> that = (AbstractCorrelationResult<?>) o;
     return activated == that.activated
         && Objects.equals(type, that.type)
         && Objects.equals(correlationPointId, that.correlationPointId)

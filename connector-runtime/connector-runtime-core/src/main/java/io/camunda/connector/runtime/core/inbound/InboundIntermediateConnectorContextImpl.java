@@ -17,10 +17,10 @@
 package io.camunda.connector.runtime.core.inbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
-import io.camunda.connector.api.inbound.InboundConnectorResult;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.api.inbound.ProcessInstanceContext;
 import io.camunda.connector.api.validation.ValidationProvider;
@@ -92,7 +92,7 @@ public class InboundIntermediateConnectorContextImpl
   }
 
   @Override
-  public InboundConnectorResult<?> correlate(final Object variables) {
+  public CorrelationResult<?> correlate(final Object variables) {
     return inboundContext.correlate(variables);
   }
 

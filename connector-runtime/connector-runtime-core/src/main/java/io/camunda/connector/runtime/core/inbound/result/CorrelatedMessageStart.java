@@ -14,17 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.api.inbound.result;
+package io.camunda.connector.runtime.core.inbound.result;
 
-public class StartEventCorrelationResult extends AbstractInboundConnectorResult<ProcessInstance> {
-
-  public static final String TYPE_NAME = "START_EVENT";
-
-  public StartEventCorrelationResult(long processDefinitionKey, ProcessInstance responseData) {
-    super(TYPE_NAME, String.valueOf(processDefinitionKey), true, responseData, null);
-  }
-
-  public StartEventCorrelationResult(long processDefinitionKey, CorrelationErrorData errorData) {
-    super(TYPE_NAME, String.valueOf(processDefinitionKey), false, null, errorData);
-  }
-}
+public record CorrelatedMessageStart(
+    long messageKey,
+    String messageId,
+    String bpmnProcessId,
+    long processDefinitionKey,
+    int version) {}

@@ -22,7 +22,7 @@ import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 import static org.springframework.web.bind.annotation.RequestMethod.PUT;
 
-import io.camunda.connector.api.inbound.InboundConnectorResult;
+import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorException;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorException.WebhookSecurityException;
@@ -92,7 +92,7 @@ public class InboundWebhookRestController {
       var webhookResult =
           ((WebhookConnectorExecutable) connector.executable()).triggerWebhook(payload);
       var ctxData = toWebhookTriggerResultContext(webhookResult);
-      InboundConnectorResult<?> result = connector.context().correlate(ctxData);
+      CorrelationResult<?> result = connector.context().correlate(ctxData);
       var processVariablesContext = toWebhookResultContext(webhookResult, result);
       if (webhookResult.response() != null) {
         connectorResponse = ResponseEntity.ok(webhookResult.response().body());
@@ -135,7 +135,7 @@ public class InboundWebhookRestController {
   // In other words, depending on the response body expression,
   // this data may be returned to the webhook caller.
   private WebhookResultContext toWebhookResultContext(
-      WebhookResult processedResult, InboundConnectorResult<?> result) {
+      WebhookResult processedResult, CorrelationResult<?> result) {
     if (processedResult == null) {
       return new WebhookResultContext(null, null, null);
     }

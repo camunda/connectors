@@ -29,9 +29,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.api.inbound.InboundConnectorResult;
-import io.camunda.connector.api.inbound.result.ProcessInstance;
-import io.camunda.connector.api.inbound.result.StartEventCorrelationResult;
+import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookHttpResponse;
@@ -42,6 +40,8 @@ import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
+import io.camunda.connector.runtime.core.inbound.result.ProcessInstance;
+import io.camunda.connector.runtime.core.inbound.result.StartEventCorrelationResult;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.inbound.lifecycle.ActiveInboundConnector;
 import io.camunda.connector.runtime.inbound.webhook.FeelExpressionErrorResponse;
@@ -112,8 +112,8 @@ class WebhookControllerTestZeebeTests {
 
     deployProcess("processA");
 
-    ResponseEntity<InboundConnectorResult<?>> responseEntity =
-        (ResponseEntity<InboundConnectorResult<?>>)
+    ResponseEntity<CorrelationResult<?>> responseEntity =
+        (ResponseEntity<CorrelationResult<?>>)
             controller.inbound(
                 "myPath",
                 new HashMap<>(),
@@ -190,7 +190,7 @@ class WebhookControllerTestZeebeTests {
         .thenReturn(webhookResult);
 
     var correlationHandlerMock = mock(InboundCorrelationHandler.class);
-    var correlationResultMock = mock(InboundConnectorResult.class);
+    var correlationResultMock = mock(CorrelationResult.class);
     when(correlationResultMock.isActivated()).thenReturn(false);
     when(correlationHandlerMock.correlate(any(), any())).thenReturn(correlationResultMock);
 
@@ -203,8 +203,8 @@ class WebhookControllerTestZeebeTests {
     webhookConnectorRegistry.register(
         new ActiveInboundConnector(webhookConnectorExecutable, webhookContext));
 
-    ResponseEntity<InboundConnectorResult<?>> responseEntity =
-        (ResponseEntity<InboundConnectorResult<?>>)
+    ResponseEntity<CorrelationResult<?>> responseEntity =
+        (ResponseEntity<CorrelationResult<?>>)
             controller.inbound(
                 "myPath",
                 new HashMap<>(),
