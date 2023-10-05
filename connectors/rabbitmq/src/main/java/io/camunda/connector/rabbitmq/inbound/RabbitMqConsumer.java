@@ -15,7 +15,6 @@ import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.ShutdownSignalException;
 import io.camunda.connector.api.error.ConnectorInputException;
-import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.rabbitmq.inbound.model.RabbitMqInboundResult;
@@ -46,19 +45,8 @@ public class RabbitMqConsumer extends DefaultConsumer {
     LOGGER.debug("Received AMQP message with delivery tag {}", envelope.getDeliveryTag());
     try {
       RabbitMqInboundResult variables = prepareVariables(consumerTag, properties, body);
-      CorrelationResult<?> result = context.correlate(variables);
-
-      if (result != null && result.isActivated()) {
-        LOGGER.debug("ACK - inbound event correlated successfully: {}", result.getResponseData());
-        getChannel().basicAck(envelope.getDeliveryTag(), false);
-      } else if (result != null) {
-        LOGGER.debug("NACK (no requeue) - inbound event not correlated: {}", result.getErrorData());
-        getChannel().basicReject(envelope.getDeliveryTag(), false);
-      } else {
-        LOGGER.error("NACK (requeue) - no response from correlation");
-        getChannel().basicReject(envelope.getDeliveryTag(), true);
-      }
-
+      context.correlate(variables);
+      getChannel().basicAck(envelope.getDeliveryTag(), false);
     } catch (ConnectorInputException e) {
       LOGGER.warn("NACK (no requeue) - failed to parse AMQP message body: {}", e.getMessage());
       getChannel().basicReject(envelope.getDeliveryTag(), false);

@@ -17,31 +17,24 @@
 package io.camunda.connector.runtime.inbound;
 
 import static io.camunda.connector.runtime.inbound.WebhookControllerPlainJavaTests.webhookDefinition;
-import static io.camunda.zeebe.process.test.assertions.BpmnAssert.assertThat;
-import static io.camunda.zeebe.spring.test.ZeebeTestThreadSupport.waitForProcessInstanceCompleted;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookHttpResponse;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookResult;
-import io.camunda.connector.api.inbound.webhook.WebhookResultContext;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
-import io.camunda.connector.runtime.core.inbound.result.ProcessInstance;
-import io.camunda.connector.runtime.core.inbound.result.StartEventCorrelationResult;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.inbound.lifecycle.ActiveInboundConnector;
 import io.camunda.connector.runtime.inbound.webhook.FeelExpressionErrorResponse;
@@ -49,11 +42,9 @@ import io.camunda.connector.runtime.inbound.webhook.InboundWebhookRestController
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.model.bpmn.Bpmn;
-import io.camunda.zeebe.process.test.inspections.model.InspectedProcessInstance;
 import io.camunda.zeebe.spring.test.ZeebeSpringTest;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -97,7 +88,6 @@ class WebhookControllerTestZeebeTests {
     WebhookConnectorExecutable webhookConnectorExecutable = mock(WebhookConnectorExecutable.class);
     WebhookResult webhookResult = mock(WebhookResult.class);
     when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));
-    when(webhookResult.responseBodyExpression()).thenReturn(WebhookResultContext::correlation);
     when(webhookConnectorExecutable.triggerWebhook(any(WebhookProcessingPayload.class)))
         .thenReturn(webhookResult);
 
@@ -112,33 +102,16 @@ class WebhookControllerTestZeebeTests {
 
     deployProcess("processA");
 
-    ResponseEntity<CorrelationResult<?>> responseEntity =
-        (ResponseEntity<CorrelationResult<?>>)
-            controller.inbound(
-                "myPath",
-                new HashMap<>(),
-                "{}".getBytes(),
-                new HashMap<>(),
-                new MockHttpServletRequest());
+    ResponseEntity<?> responseEntity =
+        controller.inbound(
+            "myPath",
+            new HashMap<>(),
+            "{}".getBytes(),
+            new HashMap<>(),
+            new MockHttpServletRequest());
 
     assertEquals(200, responseEntity.getStatusCode().value());
-    assertTrue(Objects.requireNonNull(responseEntity.getBody()).isActivated());
-    assertFalse(responseEntity.getBody().getErrorData().isPresent());
-    assertTrue(responseEntity.getBody().getResponseData().isPresent());
-    assertInstanceOf(ProcessInstance.class, responseEntity.getBody().getResponseData().get());
-    assertEquals(
-        "processA",
-        ((ProcessInstance) responseEntity.getBody().getResponseData().get()).getBpmnProcessId());
-    assertEquals(
-        1L, ((ProcessInstance) responseEntity.getBody().getResponseData().get()).getVersion());
-
-    var result = responseEntity.getBody();
-    assertInstanceOf(StartEventCorrelationResult.class, result);
-    ProcessInstance processInstance =
-        ((StartEventCorrelationResult) result).getResponseData().get();
-
-    waitForProcessInstanceCompleted(processInstance.getProcessInstanceKey());
-    assertThat(new InspectedProcessInstance(processInstance.getProcessInstanceKey())).isCompleted();
+    assertNull(responseEntity.getBody());
   }
 
   @Test
@@ -185,14 +158,11 @@ class WebhookControllerTestZeebeTests {
     WebhookConnectorExecutable webhookConnectorExecutable = mock(WebhookConnectorExecutable.class);
     WebhookResult webhookResult = mock(WebhookResult.class);
     when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));
-    when(webhookResult.responseBodyExpression()).thenReturn(WebhookResultContext::correlation);
+    when(webhookResult.responseBodyExpression()).thenReturn((WebhookResultContext) -> Map.of());
     when(webhookConnectorExecutable.triggerWebhook(any(WebhookProcessingPayload.class)))
         .thenReturn(webhookResult);
 
     var correlationHandlerMock = mock(InboundCorrelationHandler.class);
-    var correlationResultMock = mock(CorrelationResult.class);
-    when(correlationResultMock.isActivated()).thenReturn(false);
-    when(correlationHandlerMock.correlate(any(), any())).thenReturn(correlationResultMock);
 
     var webhookDef = webhookDefinition("nonExistingProcess", 1, "myPath");
     var webhookContext =
@@ -203,18 +173,16 @@ class WebhookControllerTestZeebeTests {
     webhookConnectorRegistry.register(
         new ActiveInboundConnector(webhookConnectorExecutable, webhookContext));
 
-    ResponseEntity<CorrelationResult<?>> responseEntity =
-        (ResponseEntity<CorrelationResult<?>>)
-            controller.inbound(
-                "myPath",
-                new HashMap<>(),
-                "{}".getBytes(),
-                new HashMap<>(),
-                new MockHttpServletRequest());
+    ResponseEntity<?> responseEntity =
+        controller.inbound(
+            "myPath",
+            new HashMap<>(),
+            "{}".getBytes(),
+            new HashMap<>(),
+            new MockHttpServletRequest());
 
     assertEquals(200, responseEntity.getStatusCode().value());
-    assertFalse(Objects.requireNonNull(responseEntity.getBody()).isActivated());
-    assertFalse(responseEntity.getBody().getResponseData().isPresent());
+    assertNotNull(responseEntity.getBody());
   }
 
   @Test

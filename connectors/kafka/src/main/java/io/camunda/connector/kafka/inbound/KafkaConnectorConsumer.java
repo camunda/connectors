@@ -20,7 +20,6 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.scala.DefaultScalaModule$;
 import io.camunda.connector.api.error.ConnectorInputException;
-import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import java.time.Duration;
@@ -171,12 +170,7 @@ public class KafkaConnectorConsumer {
     LOG.trace("Kafka message received: key = {}, value = {}", record.key(), record.value());
     var reader = avroObjectReader != null ? avroObjectReader : objectMapper.reader();
     var mappedMessage = convertConsumerRecordToKafkaInboundMessage(record, reader);
-    CorrelationResult<?> result = this.context.correlate(mappedMessage);
-    if (result.isActivated()) {
-      LOG.debug("Inbound event correlated successfully: {}", result.getResponseData());
-    } else {
-      LOG.debug("Inbound event not correlated: {}", result.getErrorData());
-    }
+    this.context.correlate(mappedMessage);
   }
 
   public void stopConsumer() throws ExecutionException, InterruptedException {

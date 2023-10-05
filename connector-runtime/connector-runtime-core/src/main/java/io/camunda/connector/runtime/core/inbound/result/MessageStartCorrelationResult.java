@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.runtime.core.inbound.result;
 
-import io.camunda.connector.api.inbound.CorrelationErrorData;
+import io.camunda.connector.runtime.core.inbound.correlation.CorrelationErrorData;
 
 public class MessageStartCorrelationResult
     extends AbstractCorrelationResult<CorrelatedMessageStart> {

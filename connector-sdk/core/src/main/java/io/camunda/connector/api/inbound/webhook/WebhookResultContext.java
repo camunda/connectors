@@ -16,8 +16,6 @@
  */
 package io.camunda.connector.api.inbound.webhook;
 
-import io.camunda.connector.api.inbound.CorrelationResult;
 import java.util.Map;
 
-public record WebhookResultContext(
-    MappedHttpRequest request, Map<String, Object> connectorData, CorrelationResult correlation) {}
+public record WebhookResultContext(MappedHttpRequest request, Map<String, Object> connectorData) {}

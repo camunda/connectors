@@ -19,7 +19,6 @@ package io.camunda.connector.runtime.core.inbound;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
@@ -63,8 +62,8 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   }
 
   @Override
-  public CorrelationResult<?> correlate(Object variables) {
-    return correlationHandler.correlate(definition, variables);
+  public void correlate(Object variables) {
+    correlationHandler.correlate(definition, variables);
   }
 
   @Override

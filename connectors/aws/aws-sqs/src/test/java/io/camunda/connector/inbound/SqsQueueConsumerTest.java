@@ -17,7 +17,6 @@ import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
-import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.inbound.model.SqsInboundProperties;
 import io.camunda.connector.inbound.model.SqsInboundQueueProperties;
@@ -42,7 +41,6 @@ public class SqsQueueConsumerTest {
   @Mock private ReceiveMessageResult receiveMessageResult;
   @Mock private List<Message> messages;
   private Message message;
-  @Mock private CorrelationResult result;
   @Captor private ArgumentCaptor<ReceiveMessageRequest> requestArgumentCaptor;
   private List<Message> emptyMessageList;
 
@@ -75,8 +73,6 @@ public class SqsQueueConsumerTest {
     when(messages.iterator())
         .thenReturn(Collections.singletonList(message).iterator())
         .thenReturn(emptyMessageList.iterator());
-    when(context.correlate(MessageMapper.toSqsInboundMessage(message))).thenReturn(result);
-    when(result.isActivated()).thenReturn(true);
     // when
     Thread thread =
         new Thread(
@@ -108,8 +104,6 @@ public class SqsQueueConsumerTest {
     when(messages.iterator())
         .thenReturn(Collections.singletonList(message).iterator())
         .thenReturn(emptyMessageList.iterator());
-    when(context.correlate(MessageMapper.toSqsInboundMessage(message))).thenReturn(result);
-    when(result.isActivated()).thenReturn(true);
     // when
     Thread thread =
         new Thread(

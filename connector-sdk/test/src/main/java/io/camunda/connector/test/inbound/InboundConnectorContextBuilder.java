@@ -19,7 +19,6 @@ package io.camunda.connector.test.inbound;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
@@ -27,6 +26,7 @@ import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
+import io.camunda.connector.runtime.core.inbound.correlation.CorrelationResult;
 import io.camunda.connector.runtime.core.inbound.result.MessageCorrelationResult;
 import io.camunda.connector.test.ConnectorContextTestUtil;
 import java.util.ArrayList;
@@ -209,9 +209,8 @@ public class InboundConnectorContextBuilder {
     }
 
     @Override
-    public CorrelationResult<?> correlate(Object variables) {
+    public void correlate(Object variables) {
       correlatedEvents.add(variables);
-      return result;
     }
 
     @Override

@@ -18,13 +18,11 @@ package io.camunda.connector.runtime.core.inbound.correlation;
 
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorInputException;
-import io.camunda.connector.api.inbound.CorrelationErrorData;
-import io.camunda.connector.api.inbound.CorrelationErrorData.CorrelationErrorReason;
-import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.core.ConnectorHelper;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
+import io.camunda.connector.runtime.core.inbound.correlation.CorrelationErrorData.CorrelationErrorReason;
 import io.camunda.connector.runtime.core.inbound.result.CorrelatedMessage;
 import io.camunda.connector.runtime.core.inbound.result.CorrelatedMessageStart;
 import io.camunda.connector.runtime.core.inbound.result.MessageCorrelationResult;
