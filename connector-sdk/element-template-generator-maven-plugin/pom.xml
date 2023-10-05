@@ -16,8 +16,8 @@
 
   <properties>
     <version.java>17</version.java>
-    <maven.compiler.target>${java.version}</maven.compiler.target>
-    <maven.compiler.source>${java.version}</maven.compiler.source>
+    <maven.compiler.target>17</maven.compiler.target>
+    <maven.compiler.source>17</maven.compiler.source>
     <version.maven-plugin-api>3.9.5</version.maven-plugin-api>
     <version.maven-plugin-annotations>3.9.0</version.maven-plugin-annotations>
     <version.maven-plugin-plugin>3.9.0</version.maven-plugin-plugin>
