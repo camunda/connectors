@@ -41,9 +41,9 @@
   </licenses>
 
   <properties>
-    <java.version>17</java.version>
-    <maven.compiler.target>${java.version}</maven.compiler.target>
-    <maven.compiler.source>${java.version}</maven.compiler.source>
+    <version.java>17</version.java>
+    <maven.compiler.target>${version.java}</maven.compiler.target>
+    <maven.compiler.source>${version.java}</maven.compiler.source>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
     <!-- an inline header will allow usage in downstream connectors -->
