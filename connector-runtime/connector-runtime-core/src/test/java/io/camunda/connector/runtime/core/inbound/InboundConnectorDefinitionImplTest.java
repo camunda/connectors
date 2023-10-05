@@ -19,8 +19,8 @@ package io.camunda.connector.runtime.core.inbound;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import io.camunda.connector.api.inbound.correlation.MessageCorrelationPoint;
 import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 

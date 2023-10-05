@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.api.inbound;
 
-import io.camunda.connector.api.inbound.correlation.ProcessCorrelationPoint;
 import java.util.Map;
 
 /**
@@ -37,7 +36,7 @@ public interface InboundConnectorContext {
    * @param variables - an object containing inbound connector variables
    * @return either {@link io.camunda.connector.api.inbound.result.MessageCorrelationResult} or
    *     {@link io.camunda.connector.api.inbound.result.StartEventCorrelationResult}, depending on
-   *     the type of the underlying {@link ProcessCorrelationPoint}.
+   *     the type of the underlying correlation point.
    * @throws io.camunda.connector.api.error.ConnectorInputException if the correlation fails due to
    *     invalid input. In this case, correlation should not be retried.
    * @throws io.camunda.connector.api.error.ConnectorException if the correlation fails due to

@@ -20,13 +20,12 @@ import static io.camunda.connector.runtime.core.Keywords.CORRELATION_KEY_EXPRESS
 import static io.camunda.connector.runtime.core.Keywords.INBOUND_TYPE_KEYWORD;
 import static io.camunda.connector.runtime.core.Keywords.MESSAGE_ID_EXPRESSION;
 
-import io.camunda.connector.api.inbound.InboundConnectorDefinition;
-import io.camunda.connector.api.inbound.correlation.BoundaryEventCorrelationPoint;
-import io.camunda.connector.api.inbound.correlation.MessageCorrelationPoint;
-import io.camunda.connector.api.inbound.correlation.MessageStartEventCorrelationPoint;
-import io.camunda.connector.api.inbound.correlation.ProcessCorrelationPoint;
-import io.camunda.connector.api.inbound.correlation.StartEventCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
+import io.camunda.connector.runtime.core.inbound.correlation.BoundaryEventCorrelationPoint;
+import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint;
+import io.camunda.connector.runtime.core.inbound.correlation.MessageStartEventCorrelationPoint;
+import io.camunda.connector.runtime.core.inbound.correlation.ProcessCorrelationPoint;
+import io.camunda.connector.runtime.core.inbound.correlation.StartEventCorrelationPoint;
 import io.camunda.operate.CamundaOperateClient;
 import io.camunda.operate.dto.ProcessDefinition;
 import io.camunda.operate.exception.OperateException;
@@ -93,7 +92,14 @@ public class ProcessDefinitionInspector {
     var connectorDefinitions =
         processes.stream()
             .flatMap(process -> inspectBpmnProcess(process, processDefinition).stream())
-            .collect(Collectors.groupingBy(InboundConnectorDefinition::correlationPoint));
+            .collect(
+                Collectors.groupingBy(
+                    def ->
+                        def.processDefinitionKey()
+                            + "-"
+                            + def.bpmnProcessId()
+                            + "-"
+                            + def.elementId()));
 
     return connectorDefinitions.entrySet().stream()
         .map(

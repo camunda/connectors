@@ -16,18 +16,10 @@
  */
 package io.camunda.connector.api.inbound;
 
-import io.camunda.connector.api.inbound.correlation.ProcessCorrelationPoint;
-
 public interface InboundConnectorDefinition {
 
   /** Returns the connector type. It is used by the runtime to find the connector implementation. */
   String type();
-
-  /**
-   * Returns the correlation point for this connector. Correlation point represents the point in
-   * process diagram where the connector is invoked.
-   */
-  ProcessCorrelationPoint correlationPoint();
 
   /** Returns the BPMN process id of the process definition that contains the connector. */
   String bpmnProcessId();

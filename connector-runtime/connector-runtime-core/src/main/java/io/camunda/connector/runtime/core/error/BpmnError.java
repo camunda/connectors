@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package io.camunda.connector.api.error;
+package io.camunda.connector.runtime.core.error;
 
 import java.util.Objects;
 
