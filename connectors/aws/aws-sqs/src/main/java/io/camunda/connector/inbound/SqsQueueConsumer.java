@@ -11,7 +11,6 @@ import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 import io.camunda.connector.api.error.ConnectorInputException;
-import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.inbound.model.SqsInboundProperties;
 import java.util.List;
@@ -51,7 +50,7 @@ public class SqsQueueConsumer implements Runnable {
         List<Message> messages = receiveMessageResult.getMessages();
         for (Message message : messages) {
           try {
-            correlate(message);
+            context.correlate(MessageMapper.toSqsInboundMessage(message));
             sqsClient.deleteMessage(properties.getQueue().getUrl(), message.getReceiptHandle());
           } catch (ConnectorInputException e) {
             LOGGER.warn("NACK - failed to parse SQS message body: {}", e.getMessage());
@@ -62,15 +61,6 @@ public class SqsQueueConsumer implements Runnable {
       }
     } while (queueConsumerActive.get());
     LOGGER.info("Stopping SQS consumer for queue {}", properties.getQueue().getUrl());
-  }
-
-  private void correlate(final Message message) {
-    CorrelationResult<?> correlate = context.correlate(MessageMapper.toSqsInboundMessage(message));
-    if (correlate.isActivated()) {
-      LOGGER.debug("Inbound event correlated successfully: {}", correlate.getResponseData());
-    } else {
-      LOGGER.debug("Inbound event was correlated but not activated: {}", correlate.getErrorData());
-    }
   }
 
   private ReceiveMessageRequest createReceiveMessageRequest() {

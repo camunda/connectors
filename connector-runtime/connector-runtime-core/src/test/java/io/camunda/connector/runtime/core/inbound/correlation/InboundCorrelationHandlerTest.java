@@ -24,10 +24,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import io.camunda.connector.api.inbound.CorrelationErrorData.CorrelationErrorReason;
-import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
+import io.camunda.connector.runtime.core.inbound.correlation.CorrelationErrorData.CorrelationErrorReason;
 import io.camunda.connector.runtime.core.inbound.result.MessageStartCorrelationResult;
 import io.camunda.connector.runtime.core.inbound.result.ProcessInstance;
 import io.camunda.connector.runtime.core.inbound.result.StartEventCorrelationResult;

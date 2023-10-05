@@ -16,8 +16,8 @@
  */
 package io.camunda.connector.runtime.core.inbound.result;
 
-import io.camunda.connector.api.inbound.CorrelationErrorData;
-import io.camunda.connector.api.inbound.CorrelationResult;
+import io.camunda.connector.runtime.core.inbound.correlation.CorrelationErrorData;
+import io.camunda.connector.runtime.core.inbound.correlation.CorrelationResult;
 import java.util.Objects;
 import java.util.Optional;
 

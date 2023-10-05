@@ -8,10 +8,10 @@ package io.camunda.connector.rabbitmq.inbound;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
@@ -193,7 +193,7 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
   void consumer_shouldNackAndRequeue_UnexpectedError() throws IOException {
     // Given that correlation throws random exception
     var mockContext = mock(InboundConnectorContext.class);
-    when(mockContext.correlate(any())).thenThrow(new RuntimeException("Meh, Zeebe is broken"));
+    doThrow(new RuntimeException("Meh, Zeebe is broken")).when(mockContext).correlate(any());
     var consumer = new RabbitMqConsumer(mockChannel, mockContext);
 
     ArgumentCaptor<RabbitMqInboundResult> captor =
@@ -223,8 +223,10 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
   void consumer_shouldNackAndNoRequeue_ConnectorInputException() throws IOException {
     // Given that correlation error is wrapped into ConnectorInputException
     var mockContext = mock(InboundConnectorContext.class);
-    when(mockContext.correlate(any()))
-        .thenThrow(new ConnectorInputException(new RuntimeException("Payload is invalid")));
+    doThrow(new ConnectorInputException(new RuntimeException("Payload is invalid")))
+        .when(mockContext)
+        .correlate(any());
+
     var consumer = new RabbitMqConsumer(mockChannel, mockContext);
 
     ArgumentCaptor<RabbitMqInboundResult> captor =

@@ -22,7 +22,6 @@ import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 import static org.springframework.web.bind.annotation.RequestMethod.PUT;
 
-import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorException;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorException.WebhookSecurityException;
@@ -92,14 +91,18 @@ public class InboundWebhookRestController {
       var webhookResult =
           ((WebhookConnectorExecutable) connector.executable()).triggerWebhook(payload);
       var ctxData = toWebhookTriggerResultContext(webhookResult);
-      CorrelationResult<?> result = connector.context().correlate(ctxData);
-      var processVariablesContext = toWebhookResultContext(webhookResult, result);
+      connector.context().correlate(ctxData);
+      var processVariablesContext = toWebhookResultContext(webhookResult);
       if (webhookResult.response() != null) {
         connectorResponse = ResponseEntity.ok(webhookResult.response().body());
       } else {
-        var httpResponseData =
-            webhookResult.responseBodyExpression().apply(processVariablesContext);
-        connectorResponse = ResponseEntity.ok(httpResponseData);
+        if (webhookResult.responseBodyExpression() != null) {
+          var httpResponseData =
+              webhookResult.responseBodyExpression().apply(processVariablesContext);
+          connectorResponse = ResponseEntity.ok(httpResponseData);
+        } else {
+          connectorResponse = ResponseEntity.ok().build();
+        }
       }
     } catch (Exception e) {
       LOG.info("Webhook failed with exception", e);
@@ -134,18 +137,16 @@ public class InboundWebhookRestController {
   // This data will be used to compose a response.
   // In other words, depending on the response body expression,
   // this data may be returned to the webhook caller.
-  private WebhookResultContext toWebhookResultContext(
-      WebhookResult processedResult, CorrelationResult<?> result) {
+  private WebhookResultContext toWebhookResultContext(WebhookResult processedResult) {
     if (processedResult == null) {
-      return new WebhookResultContext(null, null, null);
+      return new WebhookResultContext(null, null);
     }
     return new WebhookResultContext(
         new MappedHttpRequest(
             Optional.ofNullable(processedResult.request().body()).orElse(emptyMap()),
             Optional.ofNullable(processedResult.request().headers()).orElse(emptyMap()),
             Optional.ofNullable(processedResult.request().params()).orElse(emptyMap())),
-        Optional.ofNullable(processedResult.connectorData()).orElse(emptyMap()),
-        result);
+        Optional.ofNullable(processedResult.connectorData()).orElse(emptyMap()));
   }
 
   private ResponseEntity<?> handleWebhookConnectorException(WebhookConnectorException e) {
