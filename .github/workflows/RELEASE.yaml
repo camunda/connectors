@@ -116,7 +116,7 @@ jobs:
         run: |
           git commit -am "ci: release version ${RELEASE_VERSION}"
           git tag -fa ${RELEASE_VERSION} -m "ci: release version ${RELEASE_VERSION}"
-          git push -f origin ${RELEASE_VERSION}
+          git push --force origin ${RELEASE_VERSION}
 
         env:
           RELEASE_VERSION: ${{ github.event.release.tag_name }}
