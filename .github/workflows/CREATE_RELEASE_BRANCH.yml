@@ -37,21 +37,30 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Create branch and set release version
-        run: |
-          MINOR_VERSION=${RELEASE_VERSION%.*}
-          git checkout -b release/${MINOR_VERSION}
-          mvn -B versions:set -DnewVersion=${RELEASE_VERSION}-SNAPSHOT -DgenerateBackupPoms=false -f parent
-          git add parent/pom.xml
-          git commit -am "ci: set next release version"
-          git push --set-upstream origin release/${MINOR_VERSION}
-        env:
-          RELEASE_VERSION: ${{ github.event.inputs.version }}
-
       - name: Set snapshot version on main branch
         if: ${{ github.event.inputs.setVersionOnMain == 'true' }}
         run: |
           git checkout main
+          mvn -B versions:set -DnewVersion=${RELEASE_VERSION}-SNAPSHOT -DgenerateBackupPoms=false -f parent
+          git add parent/pom.xml
+          git commit -am "ci: set next snapshot version"
+          git push
+        env:
+          RELEASE_VERSION: ${{ github.event.inputs.version }}
+
+      - name: Create branch and set release version
+        run: |
+          MINOR_VERSION=${RELEASE_VERSION%.*}
+          git checkout -b release/${MINOR_VERSION}
+          git push --set-upstream origin release/${MINOR_VERSION}
+        env:
+          RELEASE_VERSION: ${{ github.event.inputs.version }}
+
+      - name: Set snapshot version on release branch (if not set on main)
+        if: ${{ github.event.inputs.setVersionOnMain == 'false' }}
+        run: |
+          MINOR_VERSION=${RELEASE_VERSION%.*}
+          git checkout release/${MINOR_VERSION}
           mvn -B versions:set -DnewVersion=${RELEASE_VERSION}-SNAPSHOT -DgenerateBackupPoms=false -f parent
           git add parent/pom.xml
           git commit -am "ci: set next snapshot version"
