@@ -6,6 +6,7 @@ on:
     types: [ created ]
 
 jobs:
+
   build-and-push:
     name: Build and push Docker images
     runs-on: ubuntu-latest
