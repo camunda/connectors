@@ -115,9 +115,8 @@ jobs:
       - name: Commit and tag
         run: |
           git commit -am "ci: release version ${RELEASE_VERSION}"
-          git push origin ${{ github.event.release.target_commitish }}
-          git tag -a ${RELEASE_VERSION} -m "ci: release version ${RELEASE_VERSION}"
-          git push origin --tags
+          git tag -fa ${RELEASE_VERSION} -m "ci: release version ${RELEASE_VERSION}"
+          git push -f origin ${RELEASE_VERSION}
 
         env:
           RELEASE_VERSION: ${{ github.event.release.tag_name }}
