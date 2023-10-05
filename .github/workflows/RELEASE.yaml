@@ -3,7 +3,7 @@ run-name: Release a new version ${{ inputs.version }}
 
 on:
   release:
-    types: [ published ]
+    types: [ created ]
 
 jobs:
   build-and-push:
@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.release.tag_name }}
+          ref: ${{ github.event.release.target_commitish }}
           fetch-depth: 0
 
       - name: Import Secrets
@@ -89,9 +89,9 @@ jobs:
         id: get_previous_tag
         run: |
           if [[ ${{steps.check_prerelease.outputs.isPreRelease}} == "true" ]]; then
-            TAG_NAME=$(git --no-pager tag --sort=-creatordate | head -2 | tail -1)
+            TAG_NAME=$(git --no-pager tag --sort=-creatordate | head -1)
           else
-            TAG_NAME=$(git --no-pager tag --sort=-creatordate | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | head -2 | tail -1)
+            TAG_NAME=$(git --no-pager tag --sort=-creatordate | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
           fi
           echo "previousTag: $TAG_NAME"
           echo "previousTag=${TAG_NAME}" >> $GITHUB_OUTPUT
@@ -104,7 +104,7 @@ jobs:
           RELEASE_VERSION: ${{ github.event.release.tag_name }}
 
       - name: Deploy artifacts to Artifactory and Maven Central
-        run: mvn -B compile generate-sources source:jar javadoc:jar deploy -PcheckFormat -Psonatype-oss-release
+        run: mvn -B compile generate-sources source:jar javadoc:jar deploy -PcheckFormat -Psonatype-oss-release -DskipTests
         env:
           NEXUS_USR: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
           NEXUS_PSW: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
@@ -115,7 +115,10 @@ jobs:
       - name: Commit and tag
         run: |
           git commit -am "ci: release version ${RELEASE_VERSION}"
+          git push origin ${{ github.event.release.target_commitish }}
           git tag -a ${RELEASE_VERSION} -m "ci: release version ${RELEASE_VERSION}"
+          git push origin --tags
+
         env:
           RELEASE_VERSION: ${{ github.event.release.tag_name }}
 
@@ -245,7 +248,6 @@ jobs:
         with:
           prerelease: ${{ steps.check_prerelease.outputs.isPreRelease }}
           body: ${{ steps.changelog.outputs.changes }}
-          name: ${{ github.event.release.name }}
           tag_name: ${{ github.event.release.tag_name }}
           files: |
             bundle/default-bundle/target/connectors-bundle-sbom.json
