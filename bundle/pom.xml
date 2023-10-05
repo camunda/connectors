@@ -9,7 +9,7 @@
     <groupId>io.camunda.connector</groupId>
     <artifactId>connector-parent</artifactId>
     <relativePath>../parent/pom.xml</relativePath>
-    <version>0.24.0-alpha2</version>
+    <version>0.24.0-SNAPSHOT</version>
   </parent>
 
   <modules>
