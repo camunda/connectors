@@ -18,4 +18,5 @@ package io.camunda.connector.api.inbound.webhook;
 
 import java.util.Map;
 
-public record WebhookResultContext(MappedHttpRequest request, Map<String, Object> connectorData) {}
+public record WebhookResultContext(
+    MappedHttpRequest request, Map<String, Object> connectorData, @Deprecated Object correlation) {}
