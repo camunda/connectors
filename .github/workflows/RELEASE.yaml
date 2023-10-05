@@ -89,9 +89,9 @@ jobs:
         id: get_previous_tag
         run: |
           if [[ ${{steps.check_prerelease.outputs.isPreRelease}} == "true" ]]; then
-            TAG_NAME=$(git --no-pager tag --sort=-creatordate | head -1)
+            TAG_NAME=$(git --no-pager tag --sort=-creatordate | head -2 | tail -1)
           else
-            TAG_NAME=$(git --no-pager tag --sort=-creatordate | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+            TAG_NAME=$(git --no-pager tag --sort=-creatordate | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | head -2 | tail -1)
           fi
           echo "previousTag: $TAG_NAME"
           echo "previousTag=${TAG_NAME}" >> $GITHUB_OUTPUT
