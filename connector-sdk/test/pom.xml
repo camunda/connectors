@@ -14,12 +14,6 @@
   <artifactId>connector-test</artifactId>
   <packaging>jar</packaging>
 
-  <properties>
-    <version.java>17</version.java>
-    <maven.compiler.target>17</maven.compiler.target>
-    <maven.compiler.source>17</maven.compiler.source>
-  </properties>
-
   <dependencies>
     <dependency>
       <groupId>io.camunda.connector</groupId>

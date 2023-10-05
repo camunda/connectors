@@ -11,12 +11,6 @@
   <artifactId>jackson-datatype-feel</artifactId>
   <description>Jackson module to evaluate FEEL expressions on deserialization</description>
 
-  <properties>
-    <version.java>17</version.java>
-    <maven.compiler.target>17</maven.compiler.target>
-    <maven.compiler.source>17</maven.compiler.source>
-  </properties>
-
   <dependencies>
     <dependency>
       <groupId>io.camunda.connector</groupId>
