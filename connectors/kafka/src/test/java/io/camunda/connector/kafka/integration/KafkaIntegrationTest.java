@@ -14,7 +14,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.camunda.connector.api.inbound.result.MessageCorrelationResult;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.kafka.inbound.KafkaConnectorConsumer;
@@ -28,6 +27,7 @@ import io.camunda.connector.kafka.outbound.model.KafkaConnectorRequest;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorResponse;
 import io.camunda.connector.kafka.outbound.model.KafkaMessage;
 import io.camunda.connector.kafka.outbound.model.KafkaTopic;
+import io.camunda.connector.runtime.core.inbound.result.MessageCorrelationResult;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
 import io.camunda.connector.test.inbound.InboundConnectorDefinitionBuilder;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;

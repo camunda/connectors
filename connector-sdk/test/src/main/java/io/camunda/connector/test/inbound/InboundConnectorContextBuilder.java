@@ -19,15 +19,15 @@ package io.camunda.connector.test.inbound;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
-import io.camunda.connector.api.inbound.InboundConnectorResult;
-import io.camunda.connector.api.inbound.result.MessageCorrelationResult;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
+import io.camunda.connector.runtime.core.inbound.result.MessageCorrelationResult;
 import io.camunda.connector.test.ConnectorContextTestUtil;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -42,7 +42,7 @@ public class InboundConnectorContextBuilder {
   protected SecretProvider secretProvider = secrets::get;
   protected Map<String, Object> properties;
   protected InboundConnectorDefinition definition;
-  protected InboundConnectorResult<?> result = new MessageCorrelationResult("mockMsg", 0);
+  protected CorrelationResult<?> result = new MessageCorrelationResult("mockMsg", 0);
   protected ValidationProvider validationProvider;
 
   protected ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER;
@@ -158,7 +158,7 @@ public class InboundConnectorContextBuilder {
    * @param result - correlation result
    * @return builder for fluent API
    */
-  public InboundConnectorContextBuilder result(InboundConnectorResult<?> result) {
+  public InboundConnectorContextBuilder result(CorrelationResult<?> result) {
     this.result = result;
     return this;
   }
@@ -209,7 +209,7 @@ public class InboundConnectorContextBuilder {
     }
 
     @Override
-    public InboundConnectorResult<?> correlate(Object variables) {
+    public CorrelationResult<?> correlate(Object variables) {
       correlatedEvents.add(variables);
       return result;
     }

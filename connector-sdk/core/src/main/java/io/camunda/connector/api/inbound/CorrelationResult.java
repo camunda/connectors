@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.api.inbound;
 
-import io.camunda.connector.api.inbound.result.CorrelationErrorData;
 import java.util.Optional;
 
 /**
@@ -26,13 +25,7 @@ import java.util.Optional;
  * message name in case of an IntermediateEvent target, or process definition key in case of a
  * StartEvent target.
  */
-public interface InboundConnectorResult<T> {
-
-  /** Type of process correlation point, e.g. StartEvent or Message */
-  String getType();
-
-  /** ID of a process correlation point (unique within its type, see {@link #getType()} */
-  String getCorrelationPointId();
+public interface CorrelationResult<T> {
 
   /** Whether connector was activated */
   boolean isActivated();

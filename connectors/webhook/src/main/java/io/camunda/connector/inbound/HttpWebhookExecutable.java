@@ -123,4 +123,7 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
     props = new WebhookConnectorProperties(wrappedProps);
     authChecker = WebhookAuthorizationHandler.getHandlerForAuth(props.auth());
   }
+
+  @Override
+  public void deactivate() throws Exception {}
 }
