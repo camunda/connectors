@@ -42,8 +42,8 @@
 
   <properties>
     <version.java>17</version.java>
-    <maven.compiler.target>${java.version}</maven.compiler.target>
-    <maven.compiler.source>${java.version}</maven.compiler.source>
+    <maven.compiler.target>17</maven.compiler.target>
+    <maven.compiler.source>17</maven.compiler.source>
 
     <!-- an inline header will allow usage in downstream connectors -->
     <license.inlineheader>Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
