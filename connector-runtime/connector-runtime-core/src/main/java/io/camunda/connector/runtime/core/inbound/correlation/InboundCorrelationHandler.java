@@ -52,7 +52,7 @@ public class InboundCorrelationHandler {
 
   public CorrelationResult<?> correlate(
       InboundConnectorDefinitionImpl definition, Object variables) {
-    return correlate(definition, variables, UUID.randomUUID().toString());
+    return correlate(definition, variables, null);
   }
 
   public CorrelationResult<?> correlate(
@@ -69,7 +69,7 @@ public class InboundCorrelationHandler {
           msgCorPoint.messageName(),
           msgCorPoint.correlationKeyExpression(),
           variables,
-          messageId);
+          resolveMessageId(msgCorPoint.messageIdExpression(), messageId, variables));
     }
     if (correlationPoint instanceof MessageStartEventCorrelationPoint msgStartCorPoint) {
       return triggerMessageStartEvent(definition, msgStartCorPoint, variables);
@@ -80,7 +80,8 @@ public class InboundCorrelationHandler {
           boundaryEventCorrelationPoint.messageName(),
           boundaryEventCorrelationPoint.correlationKeyExpression(),
           variables,
-          boundaryEventCorrelationPoint.messageIdExpression());
+          resolveMessageId(
+              boundaryEventCorrelationPoint.messageIdExpression(), messageId, variables));
     }
     throw new ConnectorException(
         "Process correlation point "
@@ -137,7 +138,7 @@ public class InboundCorrelationHandler {
           new CorrelationErrorData(CorrelationErrorReason.ACTIVATION_CONDITION_NOT_MET));
     }
 
-    String messageId = extractMessageKey(correlationPoint, variables);
+    String messageId = extractMessageId(correlationPoint.messageIdExpression(), variables);
     if (correlationPoint.messageIdExpression() != null
         && !correlationPoint.messageIdExpression().isBlank()
         && messageId == null) {
@@ -258,8 +259,7 @@ public class InboundCorrelationHandler {
     }
   }
 
-  protected String extractMessageKey(MessageStartEventCorrelationPoint point, Object context) {
-    final String messageIdExpression = point.messageIdExpression();
+  protected String extractMessageId(String messageIdExpression, Object context) {
     if (messageIdExpression == null || messageIdExpression.isBlank()) {
       return "";
     }
@@ -274,5 +274,16 @@ public class InboundCorrelationHandler {
       Object rawVariables, InboundConnectorDefinitionImpl definition) {
     return ConnectorHelper.createOutputVariables(
         rawVariables, definition.resultVariable(), definition.resultExpression());
+  }
+
+  private String resolveMessageId(String messageId, String messageIdExpression, Object context) {
+    if (messageId == null) {
+      if (messageIdExpression != null) {
+        return extractMessageId(messageIdExpression, context);
+      } else {
+        return UUID.randomUUID().toString();
+      }
+    }
+    return messageId;
   }
 }
