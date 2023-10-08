@@ -1,0 +1,472 @@
+{
+  "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name": "HTTP Polling Boundary Catch Event Connector",
+  "id": "io.camunda.connectors.http.Polling",
+  "version": 1,
+  "description": "Polls endpoint at regular intervals",
+  "icon": {
+    "contents": "data:image/svg+xml;utf8,%3C%3Fxml version='1.0'%3F%3E%3Csvg width='18' height='18' xmlns='http://www.w3.org/2000/svg' xmlns:svg='http://www.w3.org/2000/svg'%3E%3Cg class='layer'%3E%3Ctitle%3ELayer 1%3C/title%3E%3Cpath d='m17.03,9c0,4.45 -3.6,8.05 -8.05,8.05c-4.45,0 -8.05,-3.6 -8.05,-8.05c0,-4.45 3.6,-8.05 8.05,-8.05c4.45,0 8.05,3.6 8.05,8.05z' fill='%23505562' id='svg_1'/%3E%3Cpath d='m4.93,14.16l1.85,-10.45l3.36,0c1.05,0 1.84,0.27 2.37,0.81c0.54,0.53 0.8,1.21 0.8,2.06c0,0.86 -0.24,1.58 -0.73,2.13c-0.47,0.55 -1.12,0.93 -1.95,1.14l-0.48,0.09l-0.53,0.03l-0.6,0.05l-1.79,0l-0.73,4.14l-1.58,0zm2.57,-5.57l1.74,0c0.76,0 1.35,-0.17 1.78,-0.5c0.44,-0.35 0.65,-0.82 0.65,-1.42c0,-0.48 -0.15,-0.85 -0.44,-1.12c-0.3,-0.28 -0.77,-0.42 -1.42,-0.42l-1.7,0l-0.61,3.46z' fill='white' id='svg_2'/%3E%3C/g%3E%3C/svg%3E"
+  },
+  "documentationRef": "https://docs.camunda.io/docs/components/connectors/protocol/polling/",
+  "category": {
+    "id": "connectors",
+    "name": "Connectors"
+  },
+  "appliesTo": [
+    "bpmn:BoundaryEvent"
+  ],
+  "elementType": {
+    "value": "bpmn:BoundaryEvent",
+    "eventDefinition": "bpmn:MessageEventDefinition"
+  },
+  "groups": [
+    {
+      "id": "authentication",
+      "label": "Authentication"
+    },
+    {
+      "id": "endpoint",
+      "label": "HTTP Polling configuration"
+    },
+    {
+      "id": "input",
+      "label": "Payload"
+    },
+    {
+      "id": "activation",
+      "label": "Condition to proceed"
+    },
+    {
+      "id": "timer",
+      "label": "Timer"
+    },
+    {
+      "id": "timeout",
+      "label": "Connect timeout"
+    },
+    {
+      "id": "variable-mapping",
+      "label": "Response mapping"
+    }
+  ],
+  "properties": [
+    {
+      "type": "Hidden",
+      "value": "io.camunda:http-polling:1",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.type"
+      }
+    },
+    {
+      "type": "Hidden",
+      "generatedValue": {
+        "type": "uuid"
+      },
+      "binding": {
+        "type": "bpmn:Message#property",
+        "name": "name"
+      }
+    },
+    {
+      "label": "Type",
+      "id": "authenticationType",
+      "group": "authentication",
+      "description": "Choose the authentication type. Select 'None' if no authentication is necessary",
+      "value": "noAuth",
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "None",
+          "value": "noAuth"
+        },
+        {
+          "name": "Basic",
+          "value": "basic"
+        },
+        {
+          "name": "Bearer token",
+          "value": "bearer"
+        },
+        {
+          "name": "OAuth 2.0",
+          "value": "oauth-client-credentials-flow"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:property",
+        "name": "authentication.type"
+      }
+    },
+    {
+      "id": "method",
+      "label": "Method",
+      "group": "endpoint",
+      "type": "Dropdown",
+      "value": "get",
+      "choices": [
+        {
+          "name": "GET",
+          "value": "get"
+        },
+        {
+          "name": "POST",
+          "value": "post"
+        },
+        {
+          "name": "PATCH",
+          "value": "patch"
+        },
+        {
+          "name": "PUT",
+          "value": "put"
+        },
+        {
+          "name": "DELETE",
+          "value": "delete"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:property",
+        "name": "method"
+      }
+    },
+    {
+      "label": "URL",
+      "group": "endpoint",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "url"
+      },
+      "constraints": {
+        "notEmpty": true,
+        "pattern": {
+          "value": "^(=|https?://|secrets\\..+|\\{\\{secrets\\..+\\}\\}).*$",
+          "message": "must be a http(s) URL"
+        }
+      }
+    },
+    {
+      "label": "Query parameters",
+      "description": "Map of query parameters to add to the request URL",
+      "group": "endpoint",
+      "type": "Text",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "queryParameters"
+      },
+      "optional": true
+    },
+    {
+      "label": "HTTP headers",
+      "description": "Map of HTTP headers to add to the request",
+      "group": "endpoint",
+      "type": "Text",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "headers"
+      },
+      "optional": true
+    },
+    {
+      "label": "Interval",
+      "description": "The delay between HTTP requests, defined as ISO 8601 durations format. <a href='https://docs.camunda.io/docs/components/modeler/bpmn/timer-events/#time-duration' target='_blank'>How to configure a time duration</a>",
+      "group": "endpoint",
+      "type": "String",
+      "feel": "optional",
+      "value": "PT50S",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "httpRequestInterval"
+      },
+      "constraints": {
+        "notEmpty": true,
+        "pattern": {
+          "value": "^P(?=\\d|T\\d)(?:\\d+Y)?(?:\\d+M)?(?:\\d+W)?(?:\\d+D)?(?:T(?:\\d+H)?(?:\\d+M)?(?:\\d+(?:\\.\\d{1,3})?S)?)$",
+          "message": "value must be defined"
+        }
+      },
+      "optional": false
+    },
+    {
+      "group": "endpoint",
+      "type": "Hidden",
+      "value": "PT5S",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "operatePollingInterval"
+      },
+      "optional": true
+    },
+    {
+      "label": "Bearer token",
+      "group": "authentication",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "authentication.token"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "bearer"
+      }
+    },
+    {
+      "label": "OAuth token endpoint",
+      "description": "The OAuth token endpoint",
+      "group": "authentication",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "authentication.oauthTokenEndpoint"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "oauth-client-credentials-flow"
+      }
+    },
+    {
+      "label": "Client ID",
+      "description": "Your application's client ID from the OAuth client",
+      "group": "authentication",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "authentication.clientId"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "oauth-client-credentials-flow"
+      }
+    },
+    {
+      "label": "Client secret",
+      "description": "Your application's client secret from the OAuth client",
+      "group": "authentication",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "authentication.clientSecret"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "oauth-client-credentials-flow"
+      }
+    },
+    {
+      "label": "Scopes",
+      "description": "The scopes which you want to request authorization for (e.g.read:contacts)",
+      "group": "authentication",
+      "type": "String",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:property",
+        "name": "authentication.scopes"
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "oauth-client-credentials-flow"
+      }
+    },
+    {
+      "label": "Audience",
+      "description": "The unique identifier of the target API you want to access",
+      "group": "authentication",
+      "type": "String",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:property",
+        "name": "authentication.audience"
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "oauth-client-credentials-flow"
+      }
+    },
+    {
+      "label": "Client authentication",
+      "id": "authenticationType",
+      "group": "authentication",
+      "description": "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body",
+      "value": "basicAuthHeader",
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Send client credentials in body",
+          "value": "credentialsBody"
+        },
+        {
+          "name": "Send as Basic Auth header",
+          "value": "basicAuthHeader"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:property",
+        "name": "authentication.clientAuthentication"
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "oauth-client-credentials-flow"
+      }
+    },
+    {
+      "label": "Username",
+      "group": "authentication",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "authentication.username"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "basic"
+      }
+    },
+    {
+      "label": "Password",
+      "group": "authentication",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "authentication.password"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "basic"
+      }
+    },
+    {
+      "label": "Request body",
+      "description": "Payload to send with the request",
+      "group": "input",
+      "type": "Text",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "body"
+      },
+      "condition": {
+        "property": "method",
+        "oneOf": [
+          "post",
+          "put",
+          "patch"
+        ]
+      },
+      "optional": true
+    },
+    {
+      "label": "Correlation key (process)",
+      "type": "String",
+      "group": "activation",
+      "feel": "required",
+      "description": "Sets up the correlation key from process variables",
+      "binding": {
+        "type": "bpmn:Message#zeebe:subscription#property",
+        "name": "correlationKey"
+      },
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
+      "label": "Correlation key (payload)",
+      "type": "String",
+      "group": "activation",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "correlationKeyExpression"
+      },
+      "description": "Extracts the correlation key from the incoming message payload",
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
+      "label": "Condition",
+      "type": "String",
+      "group": "activation",
+      "feel": "required",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:property",
+        "name": "activationCondition"
+      },
+      "description": "Condition under which the connector triggers. Leave empty to catch all events. <a href='https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/#make-your-http-webhook-connector-for-receiving-messages-executable' target='_blank'>See documentation</a>"
+    },
+    {
+      "label": "Connection timeout",
+      "description": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
+      "group": "endpoint",
+      "type": "String",
+      "value": "20",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "connectionTimeoutInSeconds"
+      },
+      "optional": true,
+      "feel": "optional",
+      "constraints": {
+        "notEmpty": false,
+        "pattern": {
+          "value": "^(=.+|[0-9]+|secrets\\..+|\\{\\{secrets\\..+\\}\\})$",
+          "message": "must be a timeout in seconds (default value is 20 seconds) or a FEEL expression"
+        }
+      }
+    },
+    {
+      "label": "Result variable",
+      "type": "String",
+      "group": "variable-mapping",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:property",
+        "name": "resultVariable"
+      },
+      "description": "Name of variable to store the result of the connector in"
+    },
+    {
+      "label": "Result expression",
+      "type": "String",
+      "group": "variable-mapping",
+      "feel": "required",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:property",
+        "name": "resultExpression"
+      },
+      "description": "Expression to map the inbound payload to process variables"
+    }
+  ]
+}
