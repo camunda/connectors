@@ -276,7 +276,7 @@ public class InboundCorrelationHandler {
         rawVariables, definition.resultVariable(), definition.resultExpression());
   }
 
-  private String resolveMessageId(String messageId, String messageIdExpression, Object context) {
+  private String resolveMessageId(String messageIdExpression, String messageId, Object context) {
     if (messageId == null) {
       if (messageIdExpression != null) {
         return extractMessageId(messageIdExpression, context);

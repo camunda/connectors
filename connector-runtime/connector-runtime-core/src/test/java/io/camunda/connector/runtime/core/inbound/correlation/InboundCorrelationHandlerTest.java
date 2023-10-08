@@ -35,6 +35,7 @@ import io.camunda.connector.runtime.core.util.command.PublishMessageCommandDummy
 import io.camunda.zeebe.client.ZeebeClient;
 import java.util.Collections;
 import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -504,6 +505,59 @@ public class InboundCorrelationHandlerTest {
                       "testKey", "testValue"),
                   "otherKeyAlias",
                   "otherValue"));
+    }
+  }
+
+  @Nested
+  class ResolveMessageId {
+
+    @Test
+    void messageIdIsNull_expressionIsNull_usesRandomUuid() {
+      // given
+      var point = new MessageCorrelationPoint("msg1", "=correlationKey", null);
+      var definition = mock(InboundConnectorDefinitionImpl.class);
+      when(definition.correlationPoint()).thenReturn(point);
+
+      var dummyCommand = spy(new PublishMessageCommandDummy());
+      when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
+      // when
+      handler.correlate(definition, Collections.emptyMap());
+      // then
+      ArgumentCaptor<String> messageIdCaptor = ArgumentCaptor.forClass(String.class);
+      verify(dummyCommand).messageId(messageIdCaptor.capture());
+
+      String resolvedMessageId = messageIdCaptor.getValue();
+      assertThat(UUID.fromString(resolvedMessageId))
+          .isNotNull(); // If this doesn't throw an exception, it's a UUID.
+    }
+
+    @Test
+    void messageIdIsNull_expressionIsProvided_usesExtractedMessageId() {
+      // given
+      var point = new MessageCorrelationPoint("msg1", "=correlationKey", "=extractedId");
+      var definition = mock(InboundConnectorDefinitionImpl.class);
+      when(definition.correlationPoint()).thenReturn(point);
+      var dummyCommand = spy(new PublishMessageCommandDummy());
+      when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
+      Map<String, Object> variables = Map.of("extractedId", "resolvedIdValue");
+      // when
+      handler.correlate(definition, variables);
+      // then
+      verify(dummyCommand).messageId("resolvedIdValue");
+    }
+
+    @Test
+    void messageIdIsProvided_usesGivenMessageId() {
+      // given
+      var point = new MessageCorrelationPoint("msg1", "=correlationKey", null);
+      var definition = mock(InboundConnectorDefinitionImpl.class);
+      when(definition.correlationPoint()).thenReturn(point);
+      var dummyCommand = spy(new PublishMessageCommandDummy());
+      when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
+      // when
+      handler.correlate(definition, Collections.emptyMap(), "providedIdValue");
+      // then
+      verify(dummyCommand).messageId("providedIdValue");
     }
   }
 }
