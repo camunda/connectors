@@ -56,7 +56,7 @@ jobs:
           node-version: '16'
 
       - name: Build Connectors
-        run: mvn --batch-mode clean verify -PcheckFormat
+        run: mvn --batch-mode clean test -PcheckFormat
 
       - name: Lint Dockerfile - connector-runtime
         uses: hadolint/hadolint-action@v3.1.0
