@@ -104,7 +104,7 @@ jobs:
           RELEASE_VERSION: ${{ github.event.release.tag_name }}
 
       - name: Deploy artifacts to Artifactory and Maven Central
-        run: mvn -B compile generate-sources source:jar javadoc:jar deploy -PcheckFormat -Psonatype-oss-release -DskipTests
+        run: mvn -B compile generate-sources source:jar javadoc:jar deploy -PcheckFormat -Psonatype-oss-release
         env:
           NEXUS_USR: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
           NEXUS_PSW: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
