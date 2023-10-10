@@ -248,6 +248,7 @@ jobs:
           toTag: ${{ steps.get_previous_tag.outputs.previousTag }}
           writeToFile: false
           excludeTypes: build,docs,other,style,ci
+          excludeScopes: deps
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
