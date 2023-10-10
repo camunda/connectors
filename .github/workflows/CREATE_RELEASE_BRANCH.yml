@@ -34,6 +34,7 @@ jobs:
           java-version: '17'
 
       - name: Set snapshot version on release branch
+        id: set-snapshot-version
         run: |
           MINOR_VERSION=${RELEASE_VERSION%.*}
           mvn -B versions:set -DnewVersion=${RELEASE_VERSION}-SNAPSHOT -DgenerateBackupPoms=false -f parent
@@ -45,7 +46,7 @@ jobs:
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ steps.create-branch.outputs.branchName }}
+          branch: ${{ steps.set-snapshot-version.outputs.branchName }}
           commit-message: "ci: set next snapshot version"
           committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
           base: main
