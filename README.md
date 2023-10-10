@@ -1,5 +1,3 @@
-> This is in developer preview and can be subject to breaking changes.
-
 # Camunda Connectors
 
 [![CI](https://github.com/camunda/connectors-bundle/actions/workflows/DEPLOY.yaml/badge.svg)](https://github.com/camunda/connectors-bundle/actions/workflows/DEPLOY.yml)
