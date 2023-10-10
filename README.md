@@ -1,8 +1,6 @@
-> This is in developer preview and can be subject to breaking changes.
-
 # Camunda Connectors
 
-[![CI](https://github.com/camunda/connectors-bundle/actions/workflows/DEPLOY.yaml/badge.svg)](https://github.com/camunda/connectors-bundle/actions/workflows/DEPLOY.yml)
+[![CI](https://github.com/camunda/connectors-bundle/actions/workflows/DEPLOY_SNAPSHOTS.yaml/badge.svg)](https://github.com/camunda/connectors-bundle/actions/workflows/DEPLOY_SNAPSHOTS.yaml)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.camunda.connector/connector-core/badge.svg?style=flat)](https://maven-badges.herokuapp.com/maven-central/io.camunda.connector/connector-core)
 [![Outbound template](https://img.shields.io/badge/outbound_connector-use_template-blue)](https://github.com/camunda/connector-template-outbound)
 [![Inbound template](https://img.shields.io/badge/inbound_connector-use_template-blue)](https://github.com/camunda/connector-template-inbound)
