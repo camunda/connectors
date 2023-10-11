@@ -110,7 +110,8 @@ public class ConnectorJobHandler implements JobHandler {
               job.getCustomHeaders().get(Keywords.RESULT_EXPRESSION_KEYWORD));
       result = new ConnectorResult.SuccessResult(response, responseVariables);
     } catch (Exception ex) {
-      LOGGER.debug("Exception while processing job: {} for tenant: {}", job.getKey(), job.getTenantId(), ex);
+      LOGGER.debug(
+          "Exception while processing job: {} for tenant: {}", job.getKey(), job.getTenantId(), ex);
       result =
           new ConnectorResult.ErrorResult(
               Map.of("error", exceptionToMap(ex)), ex, job.getRetries() - 1, retryBackoff);
@@ -127,7 +128,8 @@ public class ConnectorJobHandler implements JobHandler {
               },
               () -> {
                 if (finalResult instanceof SuccessResult successResult) {
-                  LOGGER.debug("Completing job: {} for tenant: {}", job.getKey(), job.getTenantId());
+                  LOGGER.debug(
+                      "Completing job: {} for tenant: {}", job.getKey(), job.getTenantId());
                   completeJob(client, job, successResult);
                 } else {
                   var errorResult = (ErrorResult) finalResult;
@@ -152,7 +154,8 @@ public class ConnectorJobHandler implements JobHandler {
   }
 
   protected void logError(ActivatedJob job, Exception ex) {
-    LOGGER.error("Exception while processing job: {} for tenant: {}", job.getKey(), job.getTenantId(), ex);
+    LOGGER.error(
+        "Exception while processing job: {} for tenant: {}", job.getKey(), job.getTenantId(), ex);
   }
 
   protected void completeJob(

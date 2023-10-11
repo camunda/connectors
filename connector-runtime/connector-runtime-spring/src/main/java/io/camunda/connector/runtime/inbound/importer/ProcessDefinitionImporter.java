@@ -131,7 +131,11 @@ public class ProcessDefinitionImporter {
     LOG.info("Detected changes in process definitions");
     LOG.info(". {} newly deployed", brandNew.size());
     for (ProcessDefinition pd : brandNew) {
-      LOG.info(". Process: {}, version: {} for tenant: {}", pd.getBpmnProcessId(), pd.getVersion(), pd.getTenantId());
+      LOG.info(
+          ". Process: {}, version: {} for tenant: {}",
+          pd.getBpmnProcessId(),
+          pd.getVersion(),
+          pd.getTenantId());
     }
     LOG.info(". {} replaced with new version", upgraded.size());
     for (ProcessDefinition pd : upgraded) {
