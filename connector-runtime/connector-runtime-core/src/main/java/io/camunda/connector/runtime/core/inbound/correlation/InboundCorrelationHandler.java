@@ -33,6 +33,7 @@ import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.client.api.command.ClientStatusException;
 import io.camunda.zeebe.client.api.response.ProcessInstanceEvent;
 import io.camunda.zeebe.client.api.response.PublishMessageResponse;
+import java.util.Optional;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -153,7 +154,7 @@ public class InboundCorrelationHandler {
     Object extractedVariables = extractVariables(variables, definition);
 
     try {
-      String correlationKey =
+      var correlationKey =
           extractCorrelationKey(correlationPoint.correlationKeyExpression(), variables);
       PublishMessageResponse result =
           zeebeClient
@@ -161,7 +162,7 @@ public class InboundCorrelationHandler {
               .messageName(correlationPoint.messageName())
               // correlation key must be empty to start a new process, see:
               // https://docs.camunda.io/docs/components/modeler/bpmn/message-events/#message-start-events
-              .correlationKey(correlationKey)
+              .correlationKey(correlationKey.orElse(""))
               .messageId(messageId)
               .tenantId(definition.tenantId())
               .variables(extractedVariables)
@@ -198,18 +199,20 @@ public class InboundCorrelationHandler {
       String correlationKeyExpression,
       Object variables,
       String messageId) {
-
-    String correlationKey = extractCorrelationKey(correlationKeyExpression, variables);
-
     if (!isActivationConditionMet(definition, variables)) {
       LOG.debug("Activation condition didn't match: {}", definition.correlationPoint());
       return new MessageCorrelationResult(
           messageName,
           new CorrelationErrorData(CorrelationErrorReason.ACTIVATION_CONDITION_NOT_MET));
     }
+    String correlationKey =
+        extractCorrelationKey(correlationKeyExpression, variables)
+            .orElseThrow(
+                () ->
+                    new ConnectorException(
+                        "Correlation key not resolved: " + correlationKeyExpression));
 
     Object extractedVariables = extractVariables(variables, definition);
-
     try {
       PublishMessageResponse response =
           zeebeClient
@@ -224,7 +227,6 @@ public class InboundCorrelationHandler {
 
       LOG.info("Published message with key: " + response.getMessageKey());
       return new MessageCorrelationResult(messageName, response.getMessageKey());
-
     } catch (Exception e) {
       throw new ConnectorException(
           "Failed to publish process message for subscription: " + definition.correlationPoint(),
@@ -248,15 +250,21 @@ public class InboundCorrelationHandler {
     }
   }
 
-  protected String extractCorrelationKey(String correlationKeyExpression, Object context) {
-    if (correlationKeyExpression == null || correlationKeyExpression.isBlank()) {
-      return "";
+  protected Optional<String> extractCorrelationKey(
+      String correlationKeyExpression, Object context) {
+    Optional<String> correlationKey;
+    if (correlationKeyExpression != null && !correlationKeyExpression.isBlank()) {
+      try {
+        correlationKey =
+            Optional.ofNullable(
+                feelEngine.evaluate(correlationKeyExpression, context, String.class));
+      } catch (Exception e) {
+        correlationKey = Optional.empty();
+      }
+    } else {
+      correlationKey = Optional.empty();
     }
-    try {
-      return feelEngine.evaluate(correlationKeyExpression, context, String.class);
-    } catch (Exception e) {
-      throw new ConnectorInputException(e);
-    }
+    return correlationKey;
   }
 
   protected String extractMessageId(String messageIdExpression, Object context) {
