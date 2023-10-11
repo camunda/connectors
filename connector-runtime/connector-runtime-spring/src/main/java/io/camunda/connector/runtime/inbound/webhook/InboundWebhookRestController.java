@@ -22,6 +22,7 @@ import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 import static org.springframework.web.bind.annotation.RequestMethod.PUT;
 
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorException;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorException.WebhookSecurityException;
@@ -31,6 +32,7 @@ import io.camunda.connector.api.inbound.webhook.WebhookResult;
 import io.camunda.connector.api.inbound.webhook.WebhookResultContext;
 import io.camunda.connector.api.inbound.webhook.WebhookTriggerResultContext;
 import io.camunda.connector.feel.FeelEngineWrapperException;
+import io.camunda.connector.runtime.core.error.BpmnError;
 import io.camunda.connector.runtime.inbound.lifecycle.ActiveInboundConnector;
 import io.camunda.connector.runtime.inbound.webhook.model.HttpServletRequestWebhookProcessingPayload;
 import jakarta.servlet.http.HttpServletRequest;
@@ -105,14 +107,20 @@ public class InboundWebhookRestController {
         }
       }
     } catch (Exception e) {
-      LOG.info("Webhook failed with exception", e);
+      LOG.info("Webhook: {} failed with exception", connector.context().getDefinition(), e);
       if (e instanceof FeelEngineWrapperException feelEngineWrapperException) {
         var error =
             new FeelExpressionErrorResponse(
                 feelEngineWrapperException.getReason(), feelEngineWrapperException.getExpression());
         connectorResponse = ResponseEntity.unprocessableEntity().body(error);
-      } else if (e instanceof WebhookConnectorException webhookConnectorException) {
-        connectorResponse = handleWebhookConnectorException(webhookConnectorException);
+      } else if (e instanceof ConnectorException connectorException) {
+        if (e instanceof WebhookConnectorException webhookConnectorException) {
+          connectorResponse = handleWebhookConnectorException(webhookConnectorException);
+        } else {
+          connectorResponse =
+              ResponseEntity.unprocessableEntity()
+                  .body(new BpmnError("WEBHOOK_NOT_PROCESSED", connectorException.getMessage()));
+        }
       } else {
         connectorResponse = ResponseEntity.internalServerError().build();
       }

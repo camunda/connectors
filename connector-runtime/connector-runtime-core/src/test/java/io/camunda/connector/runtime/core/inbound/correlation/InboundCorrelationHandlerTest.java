@@ -161,7 +161,10 @@ public class InboundCorrelationHandlerTest {
     // given
     var point =
         new BoundaryEventCorrelationPoint(
-            "test-boundary", "", "123", new BoundaryEventCorrelationPoint.Activity("123", "test"));
+            "test-boundary",
+            "=\"test\"",
+            "123",
+            new BoundaryEventCorrelationPoint.Activity("123", "test"));
     var definition = mock(InboundConnectorDefinitionImpl.class);
     when(definition.correlationPoint()).thenReturn(point);
 
@@ -176,7 +179,7 @@ public class InboundCorrelationHandlerTest {
     verifyNoMoreInteractions(zeebeClient);
 
     verify(dummyCommand).messageName("test-boundary");
-    verify(dummyCommand).correlationKey("");
+    verify(dummyCommand).correlationKey("test");
     verify(dummyCommand).messageId("123");
     verify(dummyCommand).send();
   }
@@ -521,7 +524,7 @@ public class InboundCorrelationHandlerTest {
       var dummyCommand = spy(new PublishMessageCommandDummy());
       when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
       // when
-      handler.correlate(definition, Collections.emptyMap());
+      handler.correlate(definition, Collections.singletonMap("correlationKey", "testkey"));
       // then
       ArgumentCaptor<String> messageIdCaptor = ArgumentCaptor.forClass(String.class);
       verify(dummyCommand).messageId(messageIdCaptor.capture());
@@ -534,7 +537,7 @@ public class InboundCorrelationHandlerTest {
     @Test
     void messageIdIsNull_expressionIsProvided_usesExtractedMessageId() {
       // given
-      var point = new MessageCorrelationPoint("msg1", "=correlationKey", "=extractedId");
+      var point = new MessageCorrelationPoint("msg1", "=extractedId", "=extractedId");
       var definition = mock(InboundConnectorDefinitionImpl.class);
       when(definition.correlationPoint()).thenReturn(point);
       var dummyCommand = spy(new PublishMessageCommandDummy());
@@ -549,7 +552,7 @@ public class InboundCorrelationHandlerTest {
     @Test
     void messageIdIsProvided_usesGivenMessageId() {
       // given
-      var point = new MessageCorrelationPoint("msg1", "=correlationKey", null);
+      var point = new MessageCorrelationPoint("msg1", "=123", null);
       var definition = mock(InboundConnectorDefinitionImpl.class);
       when(definition.correlationPoint()).thenReturn(point);
       var dummyCommand = spy(new PublishMessageCommandDummy());

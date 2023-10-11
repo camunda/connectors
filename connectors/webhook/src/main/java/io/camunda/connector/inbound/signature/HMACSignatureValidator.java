@@ -6,12 +6,12 @@
  */
 package io.camunda.connector.inbound.signature;
 
+import io.camunda.connector.api.error.ConnectorException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Map;
-import java.util.Objects;
 import java.util.TreeMap;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -41,11 +41,21 @@ public class HMACSignatureValidator {
     this.hmacHeader = hmacHeader;
     this.hmacSecretKey = hmacSecretKey;
     this.hmacAlgo = hmacAlgo;
-    Objects.requireNonNull(requestBody, "Request body must not be null");
-    Objects.requireNonNull(headers, "Headers must not be null");
-    Objects.requireNonNull(hmacHeader, "HMAC header must not be null");
-    Objects.requireNonNull(hmacSecretKey, "HMAC secret key must not be null");
-    Objects.requireNonNull(hmacAlgo, "HMAC algorithm must not be null");
+    if (requestBody == null) {
+      throw new ConnectorException("Request body must not be null");
+    }
+    if (headers == null) {
+      throw new ConnectorException("Headers must not be null");
+    }
+    if (hmacHeader == null) {
+      throw new ConnectorException("HMAC header must not be null");
+    }
+    if (hmacSecretKey == null) {
+      throw new ConnectorException("HMAC secret key must not be null");
+    }
+    if (hmacAlgo == null) {
+      throw new ConnectorException("HMAC algorithm key must not be null");
+    }
   }
 
   public boolean isRequestValid()
@@ -54,7 +64,7 @@ public class HMACSignatureValidator {
     caseInsensitiveHeaders.putAll(headers);
 
     if (!caseInsensitiveHeaders.containsKey(hmacHeader)) {
-      throw new IOException("Expected HMAC header " + hmacHeader + ", but was not present");
+      throw new ConnectorException("Expected HMAC header " + hmacHeader + ", but was not present");
     }
     final String providedHmac = caseInsensitiveHeaders.get(hmacHeader);
     LOG.debug("Given HMAC from webhook call: {}", providedHmac);
