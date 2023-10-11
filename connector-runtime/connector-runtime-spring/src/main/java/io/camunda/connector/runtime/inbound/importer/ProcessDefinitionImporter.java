@@ -131,16 +131,21 @@ public class ProcessDefinitionImporter {
     LOG.info("Detected changes in process definitions");
     LOG.info(". {} newly deployed", brandNew.size());
     for (ProcessDefinition pd : brandNew) {
-      LOG.info(". . {}, version {}", pd.getBpmnProcessId(), pd.getVersion());
+      LOG.info(
+          ". Process: {}, version: {} for tenant: {}",
+          pd.getBpmnProcessId(),
+          pd.getVersion(),
+          pd.getTenantId());
     }
     LOG.info(". {} replaced with new version", upgraded.size());
     for (ProcessDefinition pd : upgraded) {
       var oldVersion = versionByBpmnProcessId.get(pd.getBpmnProcessId()).getVersion();
       LOG.info(
-          ". . {}, version {} - replaced with version {}",
+          ". Process: {}, version {} - replaced with version {} for tenant: {}",
           pd.getBpmnProcessId(),
           oldVersion,
-          pd.getVersion());
+          pd.getVersion(),
+          pd.getTenantId());
     }
     LOG.info(". {} deleted", deleted.size());
     for (Long key : deleted) {

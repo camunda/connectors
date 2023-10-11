@@ -86,7 +86,7 @@ public class ConnectorJobHandler implements JobHandler {
 
   @Override
   public void handle(final JobClient client, final ActivatedJob job) {
-    LOGGER.info("Received job {}", job.getKey());
+    LOGGER.info("Received job: {} for tenant: {}", job.getKey(), job.getTenantId());
 
     Duration retryBackoff;
     try {
@@ -110,7 +110,8 @@ public class ConnectorJobHandler implements JobHandler {
               job.getCustomHeaders().get(Keywords.RESULT_EXPRESSION_KEYWORD));
       result = new ConnectorResult.SuccessResult(response, responseVariables);
     } catch (Exception ex) {
-      LOGGER.debug("Exception while processing job {}", job.getKey(), ex);
+      LOGGER.debug(
+          "Exception while processing job: {} for tenant: {}", job.getKey(), job.getTenantId(), ex);
       result =
           new ConnectorResult.ErrorResult(
               Map.of("error", exceptionToMap(ex)), ex, job.getRetries() - 1, retryBackoff);
@@ -127,7 +128,8 @@ public class ConnectorJobHandler implements JobHandler {
               },
               () -> {
                 if (finalResult instanceof SuccessResult successResult) {
-                  LOGGER.debug("Completing job {}", job.getKey());
+                  LOGGER.debug(
+                      "Completing job: {} for tenant: {}", job.getKey(), job.getTenantId());
                   completeJob(client, job, successResult);
                 } else {
                   var errorResult = (ErrorResult) finalResult;
@@ -152,7 +154,8 @@ public class ConnectorJobHandler implements JobHandler {
   }
 
   protected void logError(ActivatedJob job, Exception ex) {
-    LOGGER.error("Exception while processing job {}", job.getKey(), ex);
+    LOGGER.error(
+        "Exception while processing job: {} for tenant: {}", job.getKey(), job.getTenantId(), ex);
   }
 
   protected void completeJob(
@@ -205,7 +208,6 @@ public class ConnectorJobHandler implements JobHandler {
 
   protected static FinalCommandStep<Void> prepareThrowBpmnErrorCommand(
       JobClient client, ActivatedJob job, BpmnError error) {
-
     return client
         .newThrowErrorCommand(job)
         .errorCode(error.getCode())
