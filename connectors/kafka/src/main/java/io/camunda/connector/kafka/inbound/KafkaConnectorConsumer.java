@@ -49,13 +49,15 @@ public class KafkaConnectorConsumer {
 
   private final InboundConnectorContext context;
 
-  private ExecutorService executorService;
+  private final ExecutorService executorService;
 
   public CompletableFuture<?> future;
 
   Consumer<String, Object> consumer;
 
   KafkaConnectorProperties elementProps;
+
+  private Health consumerStatus = Health.up();
 
   public static ObjectMapper objectMapper =
       new ObjectMapper()
@@ -145,8 +147,7 @@ public class KafkaConnectorConsumer {
         pollAndPublish();
         reportUp();
       } catch (Exception ex) {
-        LOG.error("Failed to execute connector: {}", ex.getMessage());
-        context.reportHealth(Health.down(ex));
+        reportDown(ex);
         if (ex instanceof OffsetOutOfRangeException) {
           throw ex;
         }
@@ -189,6 +190,29 @@ public class KafkaConnectorConsumer {
     details.put("group-id", consumer.groupMetadata().groupId());
     details.put("group-instance-id", consumer.groupMetadata().groupInstanceId().orElse("unknown"));
     details.put("group-generation-id", consumer.groupMetadata().generationId());
-    context.reportHealth(Health.up(details));
+    var newStatus = Health.up(details);
+    if (!newStatus.equals(consumerStatus)) {
+      consumerStatus = newStatus;
+      context.reportHealth(Health.up(details));
+      LOG.info(
+          "Consumer status changed to UP, process {}, version {}, element {} ",
+          context.getDefinition().bpmnProcessId(),
+          context.getDefinition().version(),
+          context.getDefinition().elementId());
+    }
+  }
+
+  private void reportDown(Throwable error) {
+    var newStatus = Health.down(error);
+    if (!newStatus.equals(consumerStatus)) {
+      consumerStatus = newStatus;
+      context.reportHealth(Health.down(error));
+      LOG.error(
+          "Kafka Consumer status changed to DOWN, process {}, version {}, element {}",
+          context.getDefinition().bpmnProcessId(),
+          context.getDefinition().version(),
+          context.getDefinition().elementId(),
+          error);
+    }
   }
 }
