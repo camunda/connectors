@@ -43,10 +43,10 @@ import java.io.IOException;
     type = "io.camunda:http-json:1")
 @ElementTemplate(
     id = "io.camunda.connectors.HttpJson.v2",
-    name = "REST Connector",
+    name = "REST Outbound Connector",
     description = "Invoke REST API",
     inputDataClass = HttpJsonRequest.class,
-    version = 3,
+    version = 4,
     propertyGroups = {
       @PropertyGroup(id = "authentication", label = "Authentication"),
       @PropertyGroup(id = "endpoint", label = "HTTP Endpoint"),

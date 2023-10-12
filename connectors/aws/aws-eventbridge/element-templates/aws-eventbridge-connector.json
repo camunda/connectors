@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Amazon EventBridge Outbound Connector",
   "id": "io.camunda.connectors.AWSEventBridge.v1",
-  "version": 2,
+  "version": 3,
   "description": "Send events to AWS EventBridge",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-eventbridge/",
   "category": {
@@ -51,7 +51,7 @@
     },
     {
       "label": "Access key",
-      "description": "Provide an access key of a user with permissions. Details in the <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/aws-eventbridge/\" target=\"_blank\">documentation</a>",
+      "description": "Provide an access key of a user with permissions. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-eventbridge/\" target=\"_blank\">documentation</a>",
       "group": "authentication",
       "type": "String",
       "binding": {
@@ -64,7 +64,7 @@
     },
     {
       "label": "Secret key",
-      "description": "Provide a secret key of a user with permissions. Details in the <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/aws-eventbridge/\" target=\"_blank\">documentation</a>",
+      "description": "Provide a secret key of a user with permissions. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-eventbridge/\" target=\"_blank\">documentation</a>",
       "group": "authentication",
       "type": "String",
       "binding": {
