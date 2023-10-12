@@ -33,12 +33,23 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      - name: Configure git user
+        run: |
+          # https://github.com/actions/checkout/issues/13#issuecomment-724415212
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
       - name: Set snapshot version on release branch
         id: set-snapshot-version
         run: |
           MINOR_VERSION=${RELEASE_VERSION%.*}
+          git checkout -b release/${MINOR_VERSION}
           mvn -B versions:set -DnewVersion=${RELEASE_VERSION}-SNAPSHOT -DgenerateBackupPoms=false -f parent
-          echo "branchName=release/${RELEASE_VERSION%.*}" >> $GITHUB_OUTPUT
+          git commit -am "ci: set next snapshot version"
+          git push origin release/${MINOR_VERSION}
+          git checkout main
+          git cherry-pick release/${MINOR_VERSION}
+          echo "branchName=temp-release/${RELEASE_VERSION%.*}" >> $GITHUB_OUTPUT
         env:
           RELEASE_VERSION: ${{ github.event.inputs.version }}
 
@@ -49,6 +60,7 @@ jobs:
           branch: ${{ steps.set-snapshot-version.outputs.branchName }}
           commit-message: "ci: set next snapshot version"
           committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
+          delete-branch: true
           base: main
           title: "ci: set next snapshot version"
           body: |
@@ -56,7 +68,7 @@ jobs:
             
             Checklist:
             - [ ] the PR should be accepted via the "Rebase and merge" option
-            - [ ] the branch must **not** be deleted after merging
+            - [ ] this temporary branch can be safely deleted after merging
             - [ ] the PR contains exactly one commit with the version change
             
             If this PR has conflicts, re-run the `Create release branch` workflow. No need to close the PR or delete the branch.
