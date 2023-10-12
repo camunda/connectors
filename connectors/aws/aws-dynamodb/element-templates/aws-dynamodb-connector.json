@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "AWS DynamoDB Outbound Connector",
   "id": "io.camunda.connectors.AWSDynamoDB.v1",
-  "version": 4,
+  "version": 5,
   "description": "Work with tables and items using AWS DynamoDB service",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/",
   "category": {
@@ -132,7 +132,7 @@
     },
     {
       "label": "Access key",
-      "description": "Provide an access key of a user with permissions. Details in the <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>",
+      "description": "Provide an access key of a user with permissions. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>",
       "group": "authentication",
       "type": "String",
       "feel": "optional",
@@ -147,7 +147,7 @@
     },
     {
       "label": "Secret key",
-      "description": "Provide a secret key of a user with permissions. Details in the <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>",
+      "description": "Provide a secret key of a user with permissions. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>",
       "group": "authentication",
       "type": "String",
       "feel": "optional",
@@ -225,7 +225,7 @@
     },
     {
       "label": "Partition key",
-      "description": "Partition key. Details in the <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>",
+      "description": "Partition key. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -243,7 +243,7 @@
     },
     {
       "label": "Partition key role",
-      "description": "The role that this key attribute will assume. Details in the <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>",
+      "description": "The role that this key attribute will assume. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>",
       "group": "input",
       "type": "Dropdown",
       "optional": false,
@@ -303,7 +303,7 @@
     },
     {
       "label": "Sort key",
-      "description": "Sort key. Details in the <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>",
+      "description": "Sort key. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -382,7 +382,7 @@
     },
     {
       "label": "Read capacity units",
-      "description": "Total number of read capacity units. Details in the <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>",
+      "description": "Total number of read capacity units. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -405,7 +405,7 @@
     },
     {
       "label": "Write capacity units",
-      "description": "Total number of write capacity units. Details in the <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>",
+      "description": "Total number of write capacity units. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -428,7 +428,7 @@
     },
     {
       "label": "Billing mode",
-      "description": "Controls how you are charged for read and write throughput. Details in the <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>",
+      "description": "Controls how you are charged for read and write throughput. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>",
       "group": "input",
       "type": "Dropdown",
       "optional": true,
@@ -485,7 +485,7 @@
     },
     {
       "label": "Filter expression",
-      "description": "Filter expressions for scan. Details in the <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>",
+      "description": "Filter expressions for scan. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -527,7 +527,7 @@
     },
     {
       "label": "Expression attribute names",
-      "description": " Is a placeholder that you use as an alternative to an actual attribute name. Details in the <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>",
+      "description": " Is a placeholder that you use as an alternative to an actual attribute name. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>",
       "group": "input",
       "type": "String",
       "feel": "required",
@@ -548,7 +548,7 @@
     },
     {
       "label": "Expression attribute values",
-      "description": "Expression attribute values. Details in the <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>",
+      "description": "Expression attribute values. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>",
       "group": "input",
       "type": "String",
       "feel": "required",
@@ -611,7 +611,7 @@
     },
     {
       "label": "Key attributes",
-      "description": "DynamoDB key attributes. Details in the <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>",
+      "description": "DynamoDB key attributes. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>",
       "group": "input",
       "type": "String",
       "feel": "required",
