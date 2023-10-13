@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -153,6 +154,25 @@ public class FeelFunctionDeserializerTest {
 
     // then
     InputContextString inputContext = new InputContextString("foo", "bar");
+    OutputContext result = targetType.function().apply(inputContext);
+    assertThat(result).isInstanceOf(OutputContext.class);
+    assertThat(result.result).isEqualTo("foobar");
+  }
+
+  @Test
+  void feelFunctionDeserialization_contextAware_mergedWithInput() throws IOException {
+    // given
+    var json = """
+        { "function": "= { result: a + c }" }
+        """;
+    var contextualReader =
+        FeelContextAwareObjectReader.of(mapper).withStaticContext(Map.of("c", "bar"));
+
+    // when
+    TargetTypeObject targetType = contextualReader.readValue(json, TargetTypeObject.class);
+
+    // then
+    InputContextString inputContext = new InputContextString("foo", null);
     OutputContext result = targetType.function().apply(inputContext);
     assertThat(result).isInstanceOf(OutputContext.class);
     assertThat(result.result).isEqualTo("foobar");

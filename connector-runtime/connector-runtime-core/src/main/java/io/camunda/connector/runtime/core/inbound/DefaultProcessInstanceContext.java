@@ -16,15 +16,14 @@
  */
 package io.camunda.connector.runtime.core.inbound;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.api.inbound.ProcessInstanceContext;
 import io.camunda.connector.api.validation.ValidationProvider;
-import io.camunda.connector.feel.FeelEngineWrapper;
-import io.camunda.connector.feel.FeelEngineWrapperException;
+import io.camunda.connector.feel.jackson.FeelContextAwareObjectReader;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.validation.ValidationUtil;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -33,16 +32,16 @@ public final class DefaultProcessInstanceContext implements ProcessInstanceConte
   private final InboundIntermediateConnectorContext context;
   private final FlowNodeInstance flowNodeInstance;
   private final ValidationProvider validationProvider;
-  private final FeelEngineWrapper feelEngineWrapper;
   private final ObjectMapper objectMapper;
   private final Supplier<Map<String, Object>> operatePropertiesSupplier;
   private final InboundCorrelationHandler correlationHandler;
+
+  private final JsonNode processDefinitionProperties;
 
   public DefaultProcessInstanceContext(
       final InboundIntermediateConnectorContext context,
       final FlowNodeInstance flowNodeInstance,
       final ValidationProvider validationProvider,
-      final FeelEngineWrapper feelEngineWrapper,
       final InboundCorrelationHandler correlationHandler,
       final ObjectMapper objectMapper,
       final Supplier<Map<String, Object>> operateVariables) {
@@ -52,10 +51,11 @@ public final class DefaultProcessInstanceContext implements ProcessInstanceConte
         validationProvider == null
             ? ValidationUtil.discoverDefaultValidationProviderImplementation()
             : validationProvider;
-    this.feelEngineWrapper = feelEngineWrapper;
     this.correlationHandler = correlationHandler;
     this.objectMapper = objectMapper;
     this.operatePropertiesSupplier = operateVariables;
+
+    processDefinitionProperties = objectMapper.valueToTree(context.getProperties());
   }
 
   @Override
@@ -65,32 +65,16 @@ public final class DefaultProcessInstanceContext implements ProcessInstanceConte
 
   @Override
   public <T> T bind(final Class<T> cls) {
-    // TODO Replace with https://github.com/camunda/connectors/issues/1161
-    HashMap<String, Object> copyOfProperties = new HashMap<>(context.getProperties());
-    Map<String, Object> processVariables = operatePropertiesSupplier.get();
-    evaluateAndPrepareForBinding(copyOfProperties, processVariables);
-    copyOfProperties.putAll(processVariables);
-    T mappedObject = objectMapper.convertValue(copyOfProperties, cls);
-    validationProvider.validate(mappedObject);
-    return mappedObject;
-  }
-
-  private void evaluateAndPrepareForBinding(
-      final HashMap<String, Object> properties, final Map<String, Object> processVariables) {
-    for (Map.Entry<String, Object> entry : properties.entrySet()) {
-      String value = entry.getValue().toString();
-      if (isFeelExpression(value)) {
-        Object evaluatedValue = feelEngineWrapper.evaluate(value, processVariables);
-        if (evaluatedValue == null) {
-          throw new FeelEngineWrapperException("Evaluated value is null", value, properties);
-        }
-        entry.setValue(evaluatedValue);
-      }
+    try {
+      T mappedObject =
+          FeelContextAwareObjectReader.of(objectMapper)
+              .withContextSupplier(operatePropertiesSupplier)
+              .readValue(processDefinitionProperties, cls);
+      validationProvider.validate(mappedObject);
+      return mappedObject;
+    } catch (Exception e) {
+      throw new RuntimeException(e);
     }
-  }
-
-  private boolean isFeelExpression(String value) {
-    return value != null && value.trim().startsWith("=");
   }
 
   @Override

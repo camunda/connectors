@@ -68,14 +68,12 @@ public class InboundConnectorRuntimeConfiguration {
       InboundCorrelationHandler correlationHandler,
       SecretProviderAggregator secretProviderAggregator,
       @Autowired(required = false) ValidationProvider validationProvider,
-      OperateClientAdapter operateClientAdapter,
-      FeelEngineWrapper feelEngineWrapper) {
+      OperateClientAdapter operateClientAdapter) {
     return new DefaultInboundConnectorContextFactory(
         mapper,
         correlationHandler,
         secretProviderAggregator,
         validationProvider,
-        operateClientAdapter,
-        feelEngineWrapper);
+        operateClientAdapter);
   }
 }

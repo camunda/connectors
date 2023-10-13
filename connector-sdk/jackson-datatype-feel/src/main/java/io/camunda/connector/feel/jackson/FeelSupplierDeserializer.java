@@ -23,12 +23,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 import io.camunda.connector.feel.FeelEngineWrapper;
-import java.util.Map;
 import java.util.function.Supplier;
 
 class FeelSupplierDeserializer<OUT> extends AbstractFeelDeserializer<Supplier<OUT>> {
 
-  private JavaType outputType;
+  private final JavaType outputType;
 
   protected FeelSupplierDeserializer(JavaType outputType, FeelEngineWrapper feelEngineWrapper) {
     super(feelEngineWrapper, false);
@@ -36,9 +35,8 @@ class FeelSupplierDeserializer<OUT> extends AbstractFeelDeserializer<Supplier<OU
   }
 
   @Override
-  protected Supplier<OUT> doDeserialize(JsonNode node, ObjectMapper mapper) {
-    // evaluate eagerly to fail fast
-    return () -> feelEngineWrapper.evaluate(node.textValue(), Map.of(), outputType);
+  protected Supplier<OUT> doDeserialize(JsonNode node, ObjectMapper mapper, JsonNode context) {
+    return () -> feelEngineWrapper.evaluate(node.textValue(), context, outputType);
   }
 
   @Override
