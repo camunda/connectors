@@ -11,7 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.auth0.jwk.Jwk;
 import com.auth0.jwk.JwkProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.inbound.authorization.AuthorizationResult.Failure.Forbidden;
 import io.camunda.connector.inbound.authorization.AuthorizationResult.Failure.InvalidCredentials;

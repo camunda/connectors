@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.api.annotation;
+package io.camunda.connector.feel.annotation;
 
 import com.fasterxml.jackson.annotation.JacksonAnnotationsInside;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -24,7 +24,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Marks an inbound connector property that needs to be deserialized as FEEL expression.
+ * Marks a property that needs to be deserialized as FEEL expression.
  *
  * <p>Consider the following properties class:
  *
@@ -44,8 +44,6 @@ import java.lang.annotation.Target;
  *   MyInboundConnectorProperties properties = ctx.bindProperties(MyInboundConnectorProperties.class);
  *   properties.property(); // returns "foobar"
  * </pre>
- *
- * See also: {@link io.camunda.connector.api.inbound.InboundConnectorContext#bindProperties(Class)}.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.PARAMETER, ElementType.FIELD})

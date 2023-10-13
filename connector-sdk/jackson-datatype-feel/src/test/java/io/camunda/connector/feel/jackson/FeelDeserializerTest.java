@@ -24,8 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.api.annotation.FEEL;
-import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.feel.annotation.FEEL;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -33,7 +32,8 @@ import org.junit.jupiter.api.Test;
 
 public class FeelDeserializerTest {
 
-  private final ObjectMapper mapper = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER;
+  private final ObjectMapper mapper =
+      new ObjectMapper().registerModule(new JacksonModuleFeelFunction());
 
   @Test
   void feelDeserializer_deserializeMap() throws JsonProcessingException {

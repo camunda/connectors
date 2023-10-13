@@ -46,6 +46,7 @@ public class JacksonModuleFeelFunction extends SimpleModule {
     addDeserializer(
         Supplier.class,
         new FeelSupplierDeserializer<>(TypeFactory.unknownType(), feelEngineWrapper));
+    context.insertAnnotationIntrospector(new FeelAnnotationIntrospector());
     super.setupModule(context);
   }
 }

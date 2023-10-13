@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.feel;
+package io.camunda.connector.api.json;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.MapperFeature;
@@ -23,7 +23,6 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import io.camunda.connector.feel.jackson.FeelAnnotationIntrospector;
 import io.camunda.connector.feel.jackson.JacksonModuleFeelFunction;
 
 /** Default ObjectMapper supplier to be used by the connector runtime. */
@@ -33,7 +32,6 @@ public class ConnectorsObjectMapperSupplier {
 
   public static ObjectMapper DEFAULT_MAPPER =
       JsonMapper.builder()
-          .annotationIntrospector(new FeelAnnotationIntrospector())
           .addModules(new JacksonModuleFeelFunction(), new Jdk8Module(), new JavaTimeModule())
           .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
           .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)

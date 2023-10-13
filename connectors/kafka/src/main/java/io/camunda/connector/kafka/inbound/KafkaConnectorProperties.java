@@ -7,7 +7,7 @@
 package io.camunda.connector.kafka.inbound;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.camunda.connector.api.annotation.FEEL;
+import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.kafka.model.Avro;
 import io.camunda.connector.kafka.outbound.model.KafkaAuthentication;
 import io.camunda.connector.kafka.outbound.model.KafkaTopic;

@@ -10,7 +10,7 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
-import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorRequest;
 import java.util.Properties;
 import org.apache.commons.text.StringEscapeUtils;

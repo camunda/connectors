@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.kafka.outbound.model;
 
-import io.camunda.connector.api.annotation.FEEL;
+import io.camunda.connector.feel.annotation.FEEL;
 import jakarta.validation.constraints.NotEmpty;
 import java.util.Objects;
 import java.util.Properties;

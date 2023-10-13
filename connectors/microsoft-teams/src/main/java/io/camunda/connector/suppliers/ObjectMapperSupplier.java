@@ -8,7 +8,7 @@ package io.camunda.connector.suppliers;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 
 public final class ObjectMapperSupplier {
 

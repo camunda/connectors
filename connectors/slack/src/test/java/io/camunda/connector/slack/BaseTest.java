@@ -11,8 +11,8 @@ import static java.nio.file.Files.readString;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
-import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.File;
