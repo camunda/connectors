@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.http.polling.model;
 
-import io.camunda.connector.api.annotation.FEEL;
+import io.camunda.connector.feel.annotation.FEEL;
 import java.time.Duration;
 import java.util.Objects;
 

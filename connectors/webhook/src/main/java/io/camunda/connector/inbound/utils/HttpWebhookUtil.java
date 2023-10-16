@@ -8,7 +8,7 @@ package io.camunda.connector.inbound.utils;
 
 import com.google.common.net.HttpHeaders;
 import com.google.common.net.MediaType;
-import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;

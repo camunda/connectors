@@ -24,15 +24,16 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.api.annotation.FEEL;
-import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.feel.annotation.FEEL;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 import org.junit.jupiter.api.Test;
 
 public class FeelDeserializerTest {
 
-  private final ObjectMapper mapper = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER;
+  private final ObjectMapper mapper =
+      new ObjectMapper().registerModule(new JacksonModuleFeelFunction());
 
   @Test
   void feelDeserializer_deserializeMap() throws JsonProcessingException {
@@ -183,6 +184,39 @@ public class FeelDeserializerTest {
     // when && then
     var targetType = assertDoesNotThrow(() -> mapper.readValue(json, TargetTypeString.class));
     assertThat(targetType.props).isEqualTo("a, b, c");
+  }
+
+  @Test
+  void feelDeserializer_contextSupplied_valid() {
+    // given
+    String json = """
+        { "props": "= { first: a, second: b }" }
+        """;
+    Supplier<Map<String, String>> supplier = () -> Map.of("a", "value1", "b", "value2");
+    var objectReader = FeelContextAwareObjectReader.of(mapper).withContextSupplier(supplier);
+
+    // when && then
+    var targetType = assertDoesNotThrow(() -> objectReader.readValue(json, TargetTypeMap.class));
+    assertThat(targetType.props).containsEntry("first", "value1");
+    assertThat(targetType.props).containsEntry("second", "value2");
+  }
+
+  @Test
+  void feelDeserializer_contextSupplied_invalidObjectProvided() {
+    // given
+    String json = """
+        { "props": "= { first: a, second: b }" }
+        """;
+    var objectReader =
+        mapper
+            .readerFor(TargetTypeMap.class)
+            .withAttribute(
+                FeelContextAwareObjectReader.FEEL_CONTEXT_ATTRIBUTE,
+                Map.of("a", "value1", "b", "value2")); // map is not a supplier
+
+    // when && then
+    var e = assertThrows(JsonMappingException.class, () -> objectReader.readValue(json));
+    assertThat(e.getMessage()).contains("Attribute FEEL_CONTEXT must be a Supplier");
   }
 
   private record TargetTypeMap(@FEEL Map<String, String> props) {}

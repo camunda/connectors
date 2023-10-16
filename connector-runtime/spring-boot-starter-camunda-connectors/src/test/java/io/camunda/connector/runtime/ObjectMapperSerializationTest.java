@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.api.annotation.FEEL;
+import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
 import io.camunda.zeebe.client.api.JsonMapper;
 import io.camunda.zeebe.spring.test.ZeebeSpringTest;

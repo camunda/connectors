@@ -18,7 +18,7 @@ package io.camunda.connector.feel.jackson;
 
 import com.fasterxml.jackson.databind.introspect.Annotated;
 import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
-import io.camunda.connector.api.annotation.FEEL;
+import io.camunda.connector.feel.annotation.FEEL;
 
 public class FeelAnnotationIntrospector extends JacksonAnnotationIntrospector {
 

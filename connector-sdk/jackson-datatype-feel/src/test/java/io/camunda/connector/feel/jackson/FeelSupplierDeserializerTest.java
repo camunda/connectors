@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -28,7 +28,8 @@ import org.junit.jupiter.api.Test;
 
 public class FeelSupplierDeserializerTest {
 
-  private final ObjectMapper mapper = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER;
+  private final ObjectMapper mapper =
+      new ObjectMapper().registerModule(new JacksonModuleFeelFunction());
 
   @Test
   void feelSupplierDeserialization_objectResult() throws JsonProcessingException {
@@ -148,6 +149,25 @@ public class FeelSupplierDeserializerTest {
     OutputContext result = targetType.supplier().get();
     assertThat(result).isInstanceOf(OutputContext.class);
     assertThat(result.result).isEqualTo("foobar");
+  }
+
+  @Test
+  void feelSupplierDeserialization_contextProvided() throws IOException {
+    // given
+    var json = """
+        { "supplier": "= ctx.foo + ctx.bar" }
+                """;
+    var context = Map.of("ctx", Map.of("foo", "foo", "bar", "bar"));
+
+    // when
+    TargetTypeString targetType =
+        FeelContextAwareObjectReader.of(mapper)
+            .withStaticContext(context)
+            .readValue(json, TargetTypeString.class);
+
+    // then
+    String result = targetType.supplier().get();
+    assertThat(result).isEqualTo("foobar");
   }
 
   private record OutputContext(String result) {}

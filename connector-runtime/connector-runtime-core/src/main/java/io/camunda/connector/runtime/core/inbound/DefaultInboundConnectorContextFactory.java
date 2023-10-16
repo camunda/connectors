@@ -21,7 +21,6 @@ import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.api.validation.ValidationProvider;
-import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import java.lang.reflect.ParameterizedType;
@@ -34,21 +33,18 @@ public class DefaultInboundConnectorContextFactory implements InboundConnectorCo
   private final SecretProviderAggregator secretProviderAggregator;
   private final ValidationProvider validationProvider;
   private final OperateClientAdapter operateClientAdapter;
-  private final FeelEngineWrapper feelEngineWrapper;
 
   public DefaultInboundConnectorContextFactory(
       final ObjectMapper mapper,
       final InboundCorrelationHandler correlationHandler,
       final SecretProviderAggregator secretProviderAggregator,
       final ValidationProvider validationProvider,
-      final OperateClientAdapter operateClientAdapter,
-      final FeelEngineWrapper feelEngineWrapper) {
+      final OperateClientAdapter operateClientAdapter) {
     this.objectMapper = mapper;
     this.correlationHandler = correlationHandler;
     this.secretProviderAggregator = secretProviderAggregator;
     this.validationProvider = validationProvider;
     this.operateClientAdapter = operateClientAdapter;
-    this.feelEngineWrapper = feelEngineWrapper;
   }
 
   @Override
@@ -72,7 +68,6 @@ public class DefaultInboundConnectorContextFactory implements InboundConnectorCo
               inboundContext,
               operateClientAdapter,
               validationProvider,
-              feelEngineWrapper,
               objectMapper,
               correlationHandler);
     }

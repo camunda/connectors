@@ -22,6 +22,7 @@
     <module>connector-sdk/core</module>
     <module>connector-sdk/validation</module>
     <module>connector-sdk/test</module>
+    <module>connector-sdk/feel-wrapper</module>
     <module>connector-sdk/jackson-datatype-feel</module>
     <module>connector-sdk/element-template-generator</module>
     <module>connector-sdk/element-template-generator-maven-plugin</module>

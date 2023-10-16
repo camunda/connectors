@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.http.base.model;
 
-import io.camunda.connector.api.annotation.FEEL;
+import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.generator.annotation.TemplateProperty;
 import io.camunda.connector.generator.annotation.TemplateProperty.PropertyCondition;
 import io.camunda.connector.generator.annotation.TemplateProperty.PropertyType;

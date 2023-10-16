@@ -23,7 +23,6 @@ import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.api.validation.ValidationProvider;
-import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import java.util.function.Consumer;
@@ -41,7 +40,6 @@ class DefaultInboundConnectorContextFactoryTest {
   @Mock private SecretProviderAggregator secretProviderAggregator;
   @Mock private ValidationProvider validationProvider;
   @Mock private OperateClientAdapter operateClientAdapter;
-  @Mock private FeelEngineWrapper feelEngineWrapper;
   @Mock private Consumer<Throwable> cancellationCallback;
   @Mock private InboundConnectorDefinitionImpl newConnector;
   private DefaultInboundConnectorContextFactory factory;
@@ -54,8 +52,7 @@ class DefaultInboundConnectorContextFactoryTest {
             correlationHandler,
             secretProviderAggregator,
             validationProvider,
-            operateClientAdapter,
-            feelEngineWrapper);
+            operateClientAdapter);
   }
 
   @Test

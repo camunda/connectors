@@ -6,8 +6,8 @@
  */
 package io.camunda.connector.inbound.model;
 
-import io.camunda.connector.api.annotation.FEEL;
 import io.camunda.connector.api.inbound.webhook.WebhookResultContext;
+import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.inbound.utils.HttpMethods;
 import java.util.function.Function;
 

@@ -33,8 +33,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
-import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
-import io.camunda.connector.feel.FeelEngineWrapper;
+import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.app.TestInboundConnector;
 import io.camunda.connector.runtime.app.TestWebhookConnector;
 import io.camunda.connector.runtime.core.ConnectorUtil;
@@ -95,8 +94,7 @@ public class InboundConnectorManagerTest {
             correlationHandler,
             secretProviderAggregator,
             v -> {},
-            new OperateClientAdapterImpl(camundaOperateClient, mapper),
-            new FeelEngineWrapper());
+            new OperateClientAdapterImpl(camundaOperateClient, mapper));
 
     manager =
         new InboundConnectorManager(

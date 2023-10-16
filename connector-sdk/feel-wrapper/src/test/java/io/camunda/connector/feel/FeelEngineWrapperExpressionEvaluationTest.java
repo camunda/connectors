@@ -17,10 +17,9 @@
 package io.camunda.connector.feel;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNoException;
-import static org.assertj.core.api.Assertions.catchThrowable;
 
 import java.util.Map;
+import org.assertj.core.api.Assertions;
 import org.json.JSONException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -145,9 +144,9 @@ class FeelEngineWrapperExpressionEvaluationTest {
 
     // when & then
     final var exception =
-        catchThrowable(() -> objectUnderTest.evaluateToJson(resultExpression, null));
+        Assertions.catchThrowable(() -> objectUnderTest.evaluateToJson(resultExpression, null));
 
-    assertThat(exception)
+    Assertions.assertThat(exception)
         .isInstanceOf(FeelEngineWrapperException.class)
         .hasMessageContaining("Context is null");
   }
@@ -160,9 +159,10 @@ class FeelEngineWrapperExpressionEvaluationTest {
 
     // when & then
     final var exception =
-        catchThrowable(() -> objectUnderTest.evaluateToJson(resultExpression, "I am not a map"));
+        Assertions.catchThrowable(
+            () -> objectUnderTest.evaluateToJson(resultExpression, "I am not a map"));
 
-    assertThat(exception)
+    Assertions.assertThat(exception)
         .isInstanceOf(FeelEngineWrapperException.class)
         .hasMessageContaining("Unable to parse 'I am not a map' as context");
   }
@@ -175,7 +175,7 @@ class FeelEngineWrapperExpressionEvaluationTest {
     final var resultExpression = "{\"processedOutput\": camel case(response.callStatus) }";
     // Response from service -> {"callStatus":"done"}
     final var variables = Map.of("callStatus", "done");
-    assertThatNoException()
+    Assertions.assertThatNoException()
         .isThrownBy(() -> objectUnderTest.evaluateToJson(resultExpression, variables));
   }
 
@@ -183,7 +183,7 @@ class FeelEngineWrapperExpressionEvaluationTest {
   void evaluateToJson_ShouldNotFail_WhenCallingNonProperty() {
     final var resultExpression = "{\"processedOutput\": my.non.existing.property }";
     final var variables = Map.of("callStatus", "done");
-    assertThatNoException()
+    Assertions.assertThatNoException()
         .isThrownBy(() -> objectUnderTest.evaluateToJson(resultExpression, variables));
   }
 
@@ -202,16 +202,5 @@ class FeelEngineWrapperExpressionEvaluationTest {
     assertThat(result).isEqualTo(Map.of("processedOutput", "200 OK", "response", variables));
   }
 
-  class TestPojo {
-
-    private final String value;
-
-    public TestPojo(String value) {
-      this.value = value;
-    }
-
-    public String getValue() {
-      return value;
-    }
-  }
+  record TestPojo(String value) {}
 }

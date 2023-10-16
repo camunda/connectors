@@ -8,7 +8,7 @@ package io.camunda.connector.inbound.authorization;
 
 import com.auth0.jwk.JwkProviderBuilder;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
-import io.camunda.connector.feel.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.inbound.authorization.AuthorizationResult.Success;
 import io.camunda.connector.inbound.authorization.WebhookAuthorizationHandler.NoOpAuthorizationHandler;
 import io.camunda.connector.inbound.model.WebhookAuthorization;

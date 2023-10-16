@@ -23,7 +23,6 @@ import io.camunda.connector.api.inbound.InboundConnectorDefinition;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.api.inbound.ProcessInstanceContext;
 import io.camunda.connector.api.validation.ValidationProvider;
-import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.core.inbound.correlation.BoundaryEventCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import java.util.List;
@@ -40,7 +39,6 @@ public class InboundIntermediateConnectorContextImpl
   private final InboundConnectorContext inboundContext;
   private final OperateClientAdapter operateClient;
   private final ValidationProvider validationProvider;
-  private final FeelEngineWrapper feelEngineWrapper;
   private final ObjectMapper objectMapper;
   private final InboundCorrelationHandler correlationHandler;
 
@@ -48,13 +46,11 @@ public class InboundIntermediateConnectorContextImpl
       final InboundConnectorContext inboundContext,
       final OperateClientAdapter operateClient,
       final ValidationProvider validationProvider,
-      final FeelEngineWrapper feelEngineWrapper,
       final ObjectMapper objectMapper,
       final InboundCorrelationHandler correlationHandler) {
     this.inboundContext = inboundContext;
     this.operateClient = operateClient;
     this.validationProvider = validationProvider;
-    this.feelEngineWrapper = feelEngineWrapper;
     this.objectMapper = objectMapper;
     this.correlationHandler = correlationHandler;
   }
@@ -81,13 +77,7 @@ public class InboundIntermediateConnectorContextImpl
         () -> operateClient.fetchVariablesByProcessInstanceKey(node.processInstanceKey());
 
     return new DefaultProcessInstanceContext(
-        this,
-        node,
-        validationProvider,
-        feelEngineWrapper,
-        correlationHandler,
-        objectMapper,
-        variableSupplier);
+        this, node, validationProvider, correlationHandler, objectMapper, variableSupplier);
   }
 
   @Override

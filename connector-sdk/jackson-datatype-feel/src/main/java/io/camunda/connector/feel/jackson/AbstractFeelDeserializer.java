@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.deser.ContextualDeserializer;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import java.io.IOException;
+import java.util.function.Supplier;
 
 public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
     implements ContextualDeserializer {
@@ -46,7 +47,20 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
     ObjectMapper mapper = (ObjectMapper) parser.getCodec();
 
     if (isFeelExpression(node.textValue()) || relaxed) {
-      return doDeserialize(node, mapper);
+      var feelContextSupplier =
+          context.getAttribute(FeelContextAwareObjectReader.FEEL_CONTEXT_ATTRIBUTE);
+
+      if (feelContextSupplier == null) {
+        return doDeserialize(node, mapper, mapper.createObjectNode());
+      }
+      if (feelContextSupplier instanceof Supplier<?> supplier) {
+        return doDeserialize(node, mapper, mapper.valueToTree(supplier.get()));
+      }
+      throw new IOException(
+          "Attribute "
+              + FeelContextAwareObjectReader.FEEL_CONTEXT_ATTRIBUTE
+              + " must be a Supplier, but was: "
+              + feelContextSupplier.getClass());
     }
     throw new IOException(
         "Invalid input: expected a FEEL expression (starting with '=') or a JSON object/array/etc. "
@@ -58,5 +72,6 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
     return value != null && value.startsWith("=");
   }
 
-  protected abstract T doDeserialize(JsonNode node, ObjectMapper mapper) throws IOException;
+  protected abstract T doDeserialize(JsonNode node, ObjectMapper mapper, JsonNode feelContext)
+      throws IOException;
 }

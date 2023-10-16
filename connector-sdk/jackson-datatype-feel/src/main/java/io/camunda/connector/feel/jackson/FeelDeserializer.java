@@ -29,7 +29,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -52,52 +51,66 @@ public class FeelDeserializer extends AbstractFeelDeserializer<Object> {
   }
 
   @Override
-  protected Object doDeserialize(JsonNode node, ObjectMapper mapper)
+  protected Object doDeserialize(JsonNode node, ObjectMapper mapper, JsonNode feelContext)
       throws JsonProcessingException {
+
     if (isFeelExpression(node.textValue())) {
-      var jsonNode = feelEngineWrapper.evaluate(node.textValue(), Map.of(), JsonNode.class);
-      if (outputType.getRawClass() == String.class && jsonNode.isObject()) {
-        return mapper.writeValueAsString(jsonNode);
-      } else {
-        return mapper.treeToValue(jsonNode, outputType);
-      }
+      return handleFeelExpression(node, mapper, feelContext);
     }
+
     if (node.isTextual()) {
-      var textValue = node.textValue();
+      String textValue = node.textValue();
       if (outputType.isCollectionLikeType()
           && outputType.hasContentType()
           && !textValue.trim().startsWith("[")) {
         // Support legacy list like formats like: a,b,c | 1,2,3
-        if (outputType.getContentType().hasRawClass(Long.class)) {
-          return convertStringToListOfLongs(textValue);
-        } else if (outputType.getContentType().hasRawClass(Integer.class)) {
-          return convertStringToListOfIntegers(textValue);
-        } else if (outputType.getContentType().hasRawClass(String.class)) {
-          return convertStringToListOfStrings(textValue);
-        } else {
-          throw new IllegalArgumentException("Unsupported output type: " + outputType);
-        }
+        return handleListLikeFormat(textValue);
       } else {
         try {
           // check if this string contains a JSON object/array/etc inside (i.e. it's not just a
           // string)
           var convertedValue = mapper.readValue(textValue, JsonNode.class);
-          if (outputType.getRawClass() == String.class) {
-            return mapper.writeValueAsString(convertedValue);
-          }
-          return mapper.treeToValue(convertedValue, outputType);
+          return handleNormalJsonNode(convertedValue, mapper);
         } catch (IOException e) {
           // ignore, this is just a string, we will take care of it below
         }
       }
     }
+    return handleNormalJsonNode(node, mapper);
+  }
+
+  protected Object handleFeelExpression(JsonNode node, ObjectMapper mapper, JsonNode feelContext)
+      throws JsonProcessingException {
+    var jsonNode = feelEngineWrapper.evaluate(node.textValue(), feelContext, JsonNode.class);
+    if (outputType.getRawClass() == String.class && jsonNode.isObject()) {
+      return mapper.writeValueAsString(jsonNode);
+    } else {
+      return mapper.treeToValue(jsonNode, outputType);
+    }
+  }
+
+  protected Object handleNormalJsonNode(JsonNode node, ObjectMapper mapper)
+      throws JsonProcessingException {
+
     if (outputType.getRawClass() == String.class && node.isObject()) {
       return mapper.writeValueAsString(node);
     }
     return mapper.treeToValue(node, outputType);
   }
 
-  public static List<Long> convertStringToListOfLongs(String string) {
+  protected Object handleListLikeFormat(String textValue) {
+    if (outputType.getContentType().hasRawClass(Long.class)) {
+      return convertStringToListOfLongs(textValue);
+    } else if (outputType.getContentType().hasRawClass(Integer.class)) {
+      return convertStringToListOfIntegers(textValue);
+    } else if (outputType.getContentType().hasRawClass(String.class)) {
+      return convertStringToListOfStrings(textValue);
+    } else {
+      throw new IllegalArgumentException("Unsupported output type: " + outputType);
+    }
+  }
+
+  private static List<Long> convertStringToListOfLongs(String string) {
     var value = string.trim();
     if (value.isBlank()) {
       return new ArrayList<>();
@@ -107,7 +120,7 @@ public class FeelDeserializer extends AbstractFeelDeserializer<Object> {
         .collect(Collectors.toList());
   }
 
-  public static List<Integer> convertStringToListOfIntegers(String string) {
+  private static List<Integer> convertStringToListOfIntegers(String string) {
     var value = string.trim();
     if (value.isBlank()) {
       return new ArrayList<>();
@@ -117,7 +130,7 @@ public class FeelDeserializer extends AbstractFeelDeserializer<Object> {
         .collect(Collectors.toList());
   }
 
-  public static List<String> convertStringToListOfStrings(String string) {
+  private static List<String> convertStringToListOfStrings(String string) {
     var value = string.trim();
     if (value.isBlank()) {
       return new ArrayList<>();
