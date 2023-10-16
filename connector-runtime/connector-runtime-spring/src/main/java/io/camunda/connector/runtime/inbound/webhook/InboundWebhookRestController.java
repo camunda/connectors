@@ -32,7 +32,6 @@ import io.camunda.connector.api.inbound.webhook.WebhookResult;
 import io.camunda.connector.api.inbound.webhook.WebhookResultContext;
 import io.camunda.connector.api.inbound.webhook.WebhookTriggerResultContext;
 import io.camunda.connector.feel.FeelEngineWrapperException;
-import io.camunda.connector.runtime.core.error.BpmnError;
 import io.camunda.connector.runtime.inbound.lifecycle.ActiveInboundConnector;
 import io.camunda.connector.runtime.inbound.webhook.model.HttpServletRequestWebhookProcessingPayload;
 import jakarta.servlet.http.HttpServletRequest;
@@ -119,7 +118,9 @@ public class InboundWebhookRestController {
         } else {
           connectorResponse =
               ResponseEntity.unprocessableEntity()
-                  .body(new BpmnError("WEBHOOK_NOT_PROCESSED", connectorException.getMessage()));
+                  .body(
+                      new ErrorResponse(
+                          connectorException.getErrorCode(), connectorException.getMessage()));
         }
       } else {
         connectorResponse = ResponseEntity.internalServerError().build();
