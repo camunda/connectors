@@ -45,8 +45,9 @@ class JobBuilder {
     private final ThrowErrorCommandStep1 throwCommand;
     private final ThrowErrorCommandStep1.ThrowErrorCommandStep2 throwCommandStep2;
 
-    public JobBuilderStep() {
+    private final ThrowErrorCommandStep1.ThrowErrorCommandStep2 throwCommandStep2_2;
 
+    public JobBuilderStep() {
       this.jobClient = mock(JobClient.class);
       this.job = mock(ActivatedJob.class);
       this.completeCommand = mock(CompleteJobCommandStep1.class, RETURNS_DEEP_STUBS);
@@ -56,12 +57,15 @@ class JobBuilder {
       this.throwCommand = mock(ThrowErrorCommandStep1.class, RETURNS_DEEP_STUBS);
       this.throwCommandStep2 =
           mock(ThrowErrorCommandStep1.ThrowErrorCommandStep2.class, RETURNS_DEEP_STUBS);
+      this.throwCommandStep2_2 =
+          mock(ThrowErrorCommandStep1.ThrowErrorCommandStep2.class, RETURNS_DEEP_STUBS);
 
       when(jobClient.newCompleteCommand(any())).thenReturn(completeCommand);
       when(jobClient.newFailCommand(any())).thenReturn(failCommand);
       when(failCommand.retries(anyInt())).thenReturn(failCommandStep2);
       when(jobClient.newThrowErrorCommand(any())).thenReturn(throwCommand);
       when(throwCommand.errorCode(any())).thenReturn(throwCommandStep2);
+      when(throwCommandStep2.variables(any(Map.class))).thenReturn(throwCommandStep2_2);
       when(job.getKey()).thenReturn(-1L);
     }
 
@@ -72,7 +76,6 @@ class JobBuilder {
 
     public JobBuilderStep withHeaders(Map<String, String> headers) {
       when(job.getCustomHeaders()).thenReturn(headers);
-
       return this;
     }
 
@@ -122,15 +125,18 @@ class JobBuilder {
       } else if (expectBpmnError) {
         // then
         var errorCodeCaptor = ArgumentCaptor.forClass(String.class);
+        var variablesCaptor = ArgumentCaptor.forClass(Map.class);
         var errorMessageCaptor = ArgumentCaptor.forClass(String.class);
         verify(throwCommand).errorCode(errorCodeCaptor.capture());
-        verify(throwCommandStep2).errorMessage(errorMessageCaptor.capture());
-        return new JobResult(errorCodeCaptor.getValue(), errorMessageCaptor.getValue());
+        verify(throwCommandStep2).variables(variablesCaptor.capture());
+        verify(throwCommandStep2_2).errorMessage(errorMessageCaptor.capture());
+        return new JobResult(
+            errorCodeCaptor.getValue(), errorMessageCaptor.getValue(), variablesCaptor.getValue());
       } else {
         var errorMessageCaptor = ArgumentCaptor.forClass(String.class);
         verify(failCommand).retries(job.getRetries() == 0 ? 0 : job.getRetries() - 1);
         verify(failCommandStep2).errorMessage(errorMessageCaptor.capture());
-        return new JobResult(null, errorMessageCaptor.getValue());
+        return new JobResult(null, errorMessageCaptor.getValue(), null);
       }
     }
 
@@ -149,9 +155,10 @@ class JobBuilder {
       this.variables = variables;
     }
 
-    public JobResult(String errorCode, String errorMessage) {
+    public JobResult(String errorCode, String errorMessage, Map<String, Object> variables) {
       this.errorCode = errorCode;
       this.errorMessage = errorMessage;
+      this.variables = variables;
     }
 
     public Map<String, Object> getVariables() {

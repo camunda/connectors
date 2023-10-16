@@ -17,6 +17,8 @@
 
 package io.camunda.connector.runtime.core.error;
 
+import java.util.Collections;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -27,11 +29,19 @@ public class BpmnError {
   private String code;
   private String message;
 
+  private Map<String, Object> variables = Collections.emptyMap();
+
   public BpmnError() {}
 
   public BpmnError(String errorCode, String errorMessage) {
     this.code = errorCode;
     this.message = errorMessage;
+  }
+
+  public BpmnError(String errorCode, String errorMessage, Map<String, Object> errorVariables) {
+    this.code = errorCode;
+    this.message = errorMessage;
+    this.variables = errorVariables;
   }
 
   public String getCode() {
@@ -50,29 +60,44 @@ public class BpmnError {
     this.message = message;
   }
 
+  public Map<String, Object> getVariables() {
+    return variables;
+  }
+
+  public void setVariables(Map<String, Object> variables) {
+    this.variables = variables;
+  }
+
   public boolean hasCode() {
     return code != null;
   }
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
     BpmnError bpmnError = (BpmnError) o;
-    return Objects.equals(code, bpmnError.code) && Objects.equals(message, bpmnError.message);
+    return Objects.equals(code, bpmnError.code)
+        && Objects.equals(message, bpmnError.message)
+        && Objects.equals(variables, bpmnError.variables);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(code, message);
+    return Objects.hash(code, message, variables);
   }
 
   @Override
   public String toString() {
-    return "BpmnError{" + "code='" + code + '\'' + ", message='" + message + '\'' + '}';
+    return "BpmnError{"
+        + "code='"
+        + code
+        + '\''
+        + ", message='"
+        + message
+        + '\''
+        + ", variables="
+        + variables
+        + '}';
   }
 }

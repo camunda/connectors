@@ -211,6 +211,7 @@ public class ConnectorJobHandler implements JobHandler {
     return client
         .newThrowErrorCommand(job)
         .errorCode(error.getCode())
+        .variables(error.getVariables())
         .errorMessage(truncateErrorMessage(error.getMessage()));
   }
 

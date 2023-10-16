@@ -17,6 +17,9 @@
 package io.camunda.connector.feel;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrowsExactly;
 
 import java.util.Map;
 import org.assertj.core.api.Assertions;
@@ -203,4 +206,52 @@ class FeelEngineWrapperExpressionEvaluationTest {
   }
 
   record TestPojo(String value) {}
+
+  @Test
+  void bpmnErrorFunction() {
+    // given
+    final var resultExpression = "=bpmnError(\"test\", \"test message\")";
+    final var variables = Map.of("code", "TestCode", "message", "TestMessage");
+    // when
+    Map<String, Object> result = objectUnderTest.evaluate(resultExpression, variables);
+    assertEquals("test", result.get("code"));
+    assertEquals("test message", result.get("message"));
+    assertNull(result.get("variables"));
+  }
+
+  @Test
+  void bpmnErrorFunctionWithVars() {
+    // given
+    final var resultExpression = "=bpmnError(\"test\", \"test message\", errorVariables)";
+    final var errorVariables = Map.of("errorVariable", "test");
+    final var variables =
+        Map.of("code", "TestCode", "message", "TestMessage", "errorVariables", errorVariables);
+    // when
+    Map<String, Object> result = objectUnderTest.evaluate(resultExpression, variables);
+    assertEquals("test", result.get("code"));
+    assertEquals("test message", result.get("message"));
+    Map<String, Object> resultErrorVariables = (Map<String, Object>) result.get("variables");
+    assertEquals(errorVariables.get("errorVariable"), resultErrorVariables.get("errorVariable"));
+  }
+
+  @Test
+  void bpmnErrorFunctionWithCodeOnly() {
+    // given
+    final var resultExpression = "=bpmnError(\"test\")";
+    final var variables = Map.of("code", "TestCode");
+    // when
+    final var result = objectUnderTest.evaluate(resultExpression, variables);
+    assertNull(result);
+  }
+
+  @Test
+  void bpmnErrorFunctionWithVarsButWrongDatatype() {
+    // given
+    final var resultExpression = "=bpmnError(\"test\", \"test\", \"test\")";
+    final var variables = Map.of("code", "TestCode");
+    // when
+    assertThrowsExactly(
+        FeelEngineWrapperException.class,
+        () -> objectUnderTest.evaluate(resultExpression, variables));
+  }
 }
