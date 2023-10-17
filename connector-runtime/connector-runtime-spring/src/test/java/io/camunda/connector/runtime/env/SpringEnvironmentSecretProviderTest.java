@@ -16,22 +16,20 @@
  */
 package io.camunda.connector.runtime.env;
 
-import io.camunda.connector.api.secret.SecretProvider;
-import org.springframework.core.env.Environment;
+import static org.assertj.core.api.Assertions.*;
 
-public class SpringEnvironmentSecretProvider implements SecretProvider {
+import org.junit.jupiter.api.Test;
+import org.springframework.mock.env.MockEnvironment;
 
-  private final Environment environment;
-  private final String prefix;
+public class SpringEnvironmentSecretProviderTest {
 
-  public SpringEnvironmentSecretProvider(Environment environment, String prefix) {
-    this.environment = environment;
-    this.prefix = prefix;
-  }
-
-  @Override
-  public String getSecret(String name) {
-    String prefixedName = prefix == null ? name : prefix + name;
-    return environment.getProperty(prefixedName);
+  @Test
+  void shouldApplyPrefix() {
+    MockEnvironment env = new MockEnvironment();
+    env.setProperty("secrets.MY_TOTAL_SECRET", "beebop");
+    SpringEnvironmentSecretProvider secretProvider =
+        new SpringEnvironmentSecretProvider(env, "secrets.");
+    String myTotalSecret = secretProvider.getSecret("MY_TOTAL_SECRET");
+    assertThat(myTotalSecret).isEqualTo("beebop");
   }
 }

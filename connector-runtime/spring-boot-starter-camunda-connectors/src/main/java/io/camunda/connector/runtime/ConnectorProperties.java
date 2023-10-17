@@ -38,5 +38,5 @@ public record ConnectorProperties(Polling polling, Webhook webhook, SecretProvid
   /**
    * Configuration for the {@link org.springframework.core.env.Environment} based secret provider
    */
-  public record Environment(boolean enabled) {}
+  public record Environment(boolean enabled, String prefix) {}
 }
