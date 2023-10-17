@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.kafka.inbound;
 
+import java.util.Map;
 import java.util.Objects;
 
 public class KafkaInboundMessage {
@@ -15,6 +16,8 @@ public class KafkaInboundMessage {
   private String rawValue;
 
   private Object value;
+
+  private Map<String, Object> headers;
 
   public String getKey() {
     return key;
@@ -40,6 +43,14 @@ public class KafkaInboundMessage {
     this.value = value;
   }
 
+  public Map<String, Object> getHeaders() {
+    return headers;
+  }
+
+  public void setHeaders(final Map<String, Object> headers) {
+    this.headers = headers;
+  }
+
   @Override
   public String toString() {
     return "KafkaInboundMessage{"
@@ -51,6 +62,8 @@ public class KafkaInboundMessage {
         + '\''
         + ", value="
         + value
+        + ", headers="
+        + headers
         + '}';
   }
 
@@ -61,11 +74,12 @@ public class KafkaInboundMessage {
     KafkaInboundMessage that = (KafkaInboundMessage) o;
     return Objects.equals(key, that.key)
         && Objects.equals(rawValue, that.rawValue)
-        && Objects.equals(value, that.value);
+        && Objects.equals(value, that.value)
+        && Objects.equals(headers, that.headers);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(key, rawValue, value);
+    return Objects.hash(key, rawValue, value, headers);
   }
 }

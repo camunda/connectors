@@ -61,6 +61,8 @@ public class KafkaIntegrationTest {
 
   private static final String TOPIC = "test-topic-" + UUID.randomUUID();
   private static final String AVRO_TOPIC = "avro-test-topic-" + UUID.randomUUID();
+  private static final Map<String, String> HEADERS =
+      Map.of("header1", "value1", "header2", "value2");
 
   private static String BOOTSTRAP_SERVERS;
 
@@ -376,5 +378,79 @@ public class KafkaIntegrationTest {
     assertEquals(40, ((ObjectNode) value1).get("age").asInt());
     assertEquals(
         "test@camunda.com", ((ObjectNode) value1).get("emails").elements().next().asText());
+  }
+
+  @Test
+  @Order(8)
+  void publishMessageWithHeaders() throws Exception {
+    // Given
+    OutboundConnectorFunction function = new KafkaConnectorFunction();
+
+    KafkaConnectorRequest request = new KafkaConnectorRequest();
+    KafkaMessage kafkaMessage = new KafkaMessage();
+    kafkaMessage.setKey("8");
+    kafkaMessage.setValue(Map.of("message", "Test message"));
+    KafkaTopic kafkaTopic = new KafkaTopic();
+    kafkaTopic.setTopicName(TOPIC);
+    kafkaTopic.setBootstrapServers(BOOTSTRAP_SERVERS);
+    KafkaAuthentication kafkaAuthentication = new KafkaAuthentication();
+    request.setMessage(kafkaMessage);
+    request.setTopic(kafkaTopic);
+    request.setAuthentication(kafkaAuthentication);
+    request.setHeaders(HEADERS);
+
+    var json = KafkaConnectorConsumer.objectMapper.writeValueAsString(request);
+
+    OutboundConnectorContext context =
+        OutboundConnectorContextBuilder.create().variables(json).build();
+    // When
+    var result = function.execute(context);
+    // Then
+    assertInstanceOf(KafkaConnectorResponse.class, result);
+    // check headers in next test case
+  }
+
+  @Test
+  @Order(9)
+  void consumeMessageWithHeaders() throws Exception {
+    // Given
+    KafkaTopic kafkaTopic = new KafkaTopic();
+    kafkaTopic.setTopicName(TOPIC);
+    kafkaTopic.setBootstrapServers(BOOTSTRAP_SERVERS);
+    KafkaConnectorProperties kafkaConnectorProperties = new KafkaConnectorProperties();
+    kafkaConnectorProperties.setAutoOffsetReset(KafkaConnectorProperties.AutoOffsetReset.EARLIEST);
+    kafkaConnectorProperties.setAuthenticationType(
+        KafkaConnectorProperties.AuthenticationType.custom);
+    kafkaConnectorProperties.setTopic(kafkaTopic);
+
+    InboundConnectorContextBuilder.TestInboundConnectorContext context =
+        InboundConnectorContextBuilder.create()
+            .result(new MessageCorrelationResult("", 0))
+            .properties(kafkaConnectorProperties)
+            .definition(InboundConnectorDefinitionBuilder.create().bpmnProcessId(processId).build())
+            .build();
+    KafkaExecutable executable = new KafkaExecutable();
+
+    // When
+    executable.activate(context);
+    await().atMost(Duration.ofSeconds(5)).until(() -> context.getCorrelations().size() > 0);
+    executable.deactivate();
+
+    // Then
+    var message =
+        context.getCorrelations().stream()
+            .filter(
+                m -> {
+                  var kafkaInboundMessage = (KafkaInboundMessage) m;
+                  return !(kafkaInboundMessage.getValue() instanceof String)
+                      && kafkaInboundMessage.getKey().equals("8");
+                })
+            .findFirst()
+            .get();
+
+    assertInstanceOf(KafkaInboundMessage.class, message);
+    KafkaInboundMessage castedResult1 = (KafkaInboundMessage) message;
+
+    assertThat(castedResult1.getHeaders()).isEqualTo(HEADERS);
   }
 }

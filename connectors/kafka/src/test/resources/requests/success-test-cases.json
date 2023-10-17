@@ -15,6 +15,25 @@
     }
   },
   {
+    "testDescription": "Regular happy case with headers",
+    "authentication":{
+      "username":"myLogin",
+      "password":"mySecretPassword"
+    },
+    "topic":{
+      "bootstrapServers":"kafka-stub.kafka.cloud:1234",
+      "topicName":"some-awesome-topic"
+    },
+    "message":{
+      "key":"Happy",
+      "value":"Case"
+    },
+    "headers": {
+      "headerKey1":"headerValue",
+      "headerKey2":"headerValue2"
+    }
+  },
+  {
     "testDescription": "Regular happy case with Avro Schema",
     "authentication":{
       "username":"myLogin",

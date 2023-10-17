@@ -31,6 +31,7 @@ import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
@@ -180,10 +181,12 @@ public class KafkaExecutableTest {
   @Test
   public void testConvertConsumerRecordToKafkaInboundMessage() {
     // When
+    ConsumerRecord<String, Object> consumerRecord =
+        new ConsumerRecord<>("my-topic", 0, 0, "my-key", "{\"foo\": \"bar\"}");
+    consumerRecord.headers().add("header", "headerValue".getBytes());
     KafkaInboundMessage kafkaInboundMessage =
         KafkaPropertyTransformer.convertConsumerRecordToKafkaInboundMessage(
-            new ConsumerRecord<>("my-topic", 0, 0, "my-key", "{\"foo\": \"bar\"}"),
-            KafkaConnectorConsumer.objectMapper.reader());
+            consumerRecord, KafkaConnectorConsumer.objectMapper.reader());
 
     // Then
     assertEquals("my-key", kafkaInboundMessage.getKey());
@@ -191,6 +194,7 @@ public class KafkaExecutableTest {
     ObjectNode expectedValue = JsonNodeFactory.instance.objectNode();
     expectedValue.set("foo", JsonNodeFactory.instance.textNode("bar"));
     assertEquals(expectedValue, kafkaInboundMessage.getValue());
+    assertEquals("headerValue", ((Map) kafkaInboundMessage.getHeaders()).get("header"));
   }
 
   public KafkaExecutable getConsumerMock() {

@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Kafka Outbound Connector",
   "id": "io.camunda.connectors.KAFKA.v1",
-  "version": 2,
+  "version": 3,
   "description": "Produce Kafka message",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/",
   "category": {
@@ -93,6 +93,18 @@
       },
       "constraints": {
         "notEmpty": true
+      }
+    },
+    {
+      "label": "Headers",
+      "description": "Provide Kafka producer headers in JSON",
+      "group": "kafka",
+      "type": "String",
+      "optional": true,
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "headers"
       }
     },
     {
