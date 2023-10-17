@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Kafka Start Event Connector",
   "id": "io.camunda.connectors.inbound.KAFKA.v1",
-  "version": 1,
+  "version": 2,
   "description": "Consume Kafka messages in hybrid mode",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka-inbound/",
   "category": {
@@ -146,6 +146,18 @@
       "constraints": {
         "notEmpty": false,
         "maxLength": 250
+      }
+    },
+    {
+      "label": "Headers",
+      "description": "Provide Kafka producer headers in JSON",
+      "group": "kafka",
+      "type": "String",
+      "optional": true,
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "headers"
       }
     },
     {

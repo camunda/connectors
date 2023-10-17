@@ -36,6 +36,7 @@ public class KafkaConnectorRequest {
   @Valid private Avro avro;
 
   private Map<String, Object> additionalProperties = new HashMap<>();
+  private Map<String, String> headers = new HashMap<>();
 
   public KafkaAuthentication getAuthentication() {
     return authentication;
@@ -67,6 +68,14 @@ public class KafkaConnectorRequest {
 
   public void setAdditionalProperties(Map<String, Object> additionalProperties) {
     this.additionalProperties = additionalProperties;
+  }
+
+  public Map<String, String> getHeaders() {
+    return headers;
+  }
+
+  public void setHeaders(final Map<String, String> headers) {
+    this.headers = headers;
   }
 
   public Avro getAvro() {
@@ -139,12 +148,13 @@ public class KafkaConnectorRequest {
     return authentication.equals(that.authentication)
         && topic.equals(that.topic)
         && message.equals(that.message)
-        && Objects.equals(additionalProperties, that.additionalProperties);
+        && Objects.equals(additionalProperties, that.additionalProperties)
+        && Objects.equals(headers, that.headers);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(authentication, topic, message, additionalProperties);
+    return Objects.hash(authentication, topic, message, additionalProperties, headers);
   }
 
   @Override
@@ -158,6 +168,8 @@ public class KafkaConnectorRequest {
         + message
         + ", additionalProperties="
         + additionalProperties
+        + ", headers="
+        + headers
         + '}';
   }
 }

@@ -17,6 +17,8 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorRequest;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorResponse;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -30,7 +32,14 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 
 @OutboundConnector(
     name = "Kafka Producer",
-    inputVariables = {"authentication", "topic", "message", "additionalProperties", "avro"},
+    inputVariables = {
+      "authentication",
+      "topic",
+      "message",
+      "additionalProperties",
+      "headers",
+      "avro"
+    },
     type = "io.camunda:connector-kafka:1")
 public class KafkaConnectorFunction implements OutboundConnectorFunction {
 
@@ -79,12 +88,19 @@ public class KafkaConnectorFunction implements OutboundConnectorFunction {
                 ? (String) request.getMessage().getValue()
                 : objectMapper.writeValueAsString(request.getMessage().getValue());
       }
-      Future<RecordMetadata> kafkaResponse =
-          producer.send(
-              new ProducerRecord<>(
-                  request.getTopic().getTopicName(),
-                  String.valueOf(request.getMessage().getKey()),
-                  transformedValue));
+
+      ProducerRecord<String, Object> producerRecord =
+          new ProducerRecord<>(
+              request.getTopic().getTopicName(),
+              null,
+              null,
+              String.valueOf(request.getMessage().getKey()),
+              transformedValue);
+
+      addHeadersToProducerRecord(producerRecord, request.getHeaders());
+
+      Future<RecordMetadata> kafkaResponse = producer.send(producerRecord);
+
       KafkaConnectorResponse result = new KafkaConnectorResponse();
       recordMetadata = kafkaResponse.get(45, TimeUnit.SECONDS);
       result.setTopic(recordMetadata.topic());
@@ -96,6 +112,17 @@ public class KafkaConnectorFunction implements OutboundConnectorFunction {
       throw new ConnectorException("FAIL", "Kafka Producer execution exception", e);
     } finally {
       producer.close();
+    }
+  }
+
+  private void addHeadersToProducerRecord(
+      ProducerRecord<String, Object> producerRecord, Map<String, String> headers) {
+    if (headers != null) {
+      for (Map.Entry<String, String> header : headers.entrySet()) {
+        producerRecord
+            .headers()
+            .add(header.getKey(), header.getValue().getBytes(StandardCharsets.UTF_8));
+      }
     }
   }
 }

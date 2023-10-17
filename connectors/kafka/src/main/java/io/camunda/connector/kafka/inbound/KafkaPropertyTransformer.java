@@ -6,26 +6,23 @@
  */
 package io.camunda.connector.kafka.inbound;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorRequest;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.Properties;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.config.TopicConfig;
+import org.apache.kafka.common.header.Header;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class KafkaPropertyTransformer {
 
   private static final Logger LOG = LoggerFactory.getLogger(KafkaPropertyTransformer.class);
-
-  private static final ObjectMapper objectMapper =
-      ConnectorsObjectMapperSupplier.getCopy().enable(JsonParser.Feature.ALLOW_SINGLE_QUOTES);
 
   static final String DEFAULT_GROUP_ID_PREFIX = "kafka-inbound-connector";
 
@@ -40,7 +37,6 @@ public class KafkaPropertyTransformer {
     KafkaConnectorRequest connectorRequest = new KafkaConnectorRequest();
     connectorRequest.setTopic(props.getTopic());
     connectorRequest.setAuthentication(props.getAuthentication());
-    connectorRequest.setAdditionalProperties(props.getAdditionalProperties());
     connectorRequest.setAdditionalProperties(props.getAdditionalProperties());
     final Properties kafkaProps = connectorRequest.assembleKafkaClientProperties();
 
@@ -87,6 +83,17 @@ public class KafkaPropertyTransformer {
       ConsumerRecord<String, Object> consumerRecord, ObjectReader objectReader) {
     KafkaInboundMessage kafkaInboundMessage = new KafkaInboundMessage();
     kafkaInboundMessage.setKey(consumerRecord.key());
+
+    if (consumerRecord.headers() != null) {
+      var headerMap = new HashMap<String, Object>();
+      for (Header header : consumerRecord.headers()) {
+        headerMap.put(header.key(), new String(header.value(), StandardCharsets.UTF_8));
+      }
+      if (!headerMap.isEmpty()) {
+        kafkaInboundMessage.setHeaders(headerMap);
+      }
+    }
+
     try {
       if (consumerRecord.value() instanceof byte[]) {
         var jsonNode = objectReader.readTree((byte[]) consumerRecord.value());
