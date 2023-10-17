@@ -30,7 +30,7 @@ import com.google.api.client.http.HttpResponseException;
 import com.google.api.client.json.gson.GsonFactory;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorInputException;
-import io.camunda.connector.http.base.services.HttpInteractionService;
+import io.camunda.connector.http.base.services.HttpRequestMapper;
 import io.camunda.connector.http.graphql.model.GraphQLRequest;
 import io.camunda.connector.http.graphql.model.GraphQLResult;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
@@ -213,7 +213,7 @@ public class GraphQLFunctionTest extends BaseTest {
     final var context =
         OutboundConnectorContextBuilder.create().variables(input).secrets(name -> "foo").build();
     HttpHeaders headers =
-        HttpInteractionService.extractRequestHeaders(
+        HttpRequestMapper.extractRequestHeaders(
             objectMapper.readValue(
                 objectMapper.readValue(input, ObjectNode.class).get("graphql").toString(),
                 GraphQLRequest.class));

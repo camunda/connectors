@@ -29,6 +29,7 @@ import io.camunda.connector.http.base.model.HttpMethod;
 import io.camunda.connector.http.base.services.AuthenticationService;
 import io.camunda.connector.http.base.services.HttpInteractionService;
 import io.camunda.connector.http.base.services.HttpProxyService;
+import io.camunda.connector.http.base.services.HttpRequestMapper;
 import io.camunda.connector.http.graphql.components.HttpTransportComponentSupplier;
 import io.camunda.connector.http.graphql.model.GraphQLRequest;
 import io.camunda.connector.http.graphql.model.GraphQLRequestWrapper;
@@ -108,7 +109,7 @@ public class GraphQLFunction implements OutboundConnectorFunction {
     }
 
     final com.google.api.client.http.HttpRequest httpRequest =
-        createRequest(httpInteractionService, connectorRequest, bearerToken);
+        createRequest(connectorRequest, bearerToken);
     HttpResponse httpResponse = httpInteractionService.executeHttpRequest(httpRequest);
     return httpInteractionService.toHttpResponse(httpResponse, GraphQLResult.class);
   }
@@ -135,13 +136,10 @@ public class GraphQLFunction implements OutboundConnectorFunction {
   }
 
   public com.google.api.client.http.HttpRequest createRequest(
-      final HttpInteractionService httpInteractionService,
-      final GraphQLRequest request,
-      String bearerToken)
-      throws IOException {
+      final GraphQLRequest request, String bearerToken) throws IOException {
     final GenericUrl genericUrl = new GenericUrl(request.getUrl());
     HttpContent content = null;
-    final HttpHeaders headers = httpInteractionService.createHeaders(request, bearerToken);
+    final HttpHeaders headers = HttpRequestMapper.createHeaders(request, bearerToken);
     final Map<String, Object> queryAndVariablesMap =
         JsonSerializeHelper.queryAndVariablesToMap(request);
     if (HttpMethod.POST.equals(request.getMethod())) {

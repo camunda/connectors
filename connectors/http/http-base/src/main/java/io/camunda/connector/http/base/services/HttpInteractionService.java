@@ -16,10 +16,7 @@
  */
 package io.camunda.connector.http.base.services;
 
-import static org.apache.http.entity.ContentType.APPLICATION_JSON;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpResponse;
 import com.google.api.client.http.HttpResponseException;
 import com.google.gson.JsonElement;
@@ -27,8 +24,9 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 import com.google.gson.stream.JsonReader;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.http.base.blocklist.DefaultHttpBlocklistManager;
+import io.camunda.connector.http.base.blocklist.HttpBlockListManager;
 import io.camunda.connector.http.base.model.ErrorResponse;
-import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import java.io.IOException;
 import java.io.InputStream;
@@ -45,34 +43,11 @@ public class HttpInteractionService {
   private static final Logger LOGGER = LoggerFactory.getLogger(HttpInteractionService.class);
 
   private final ObjectMapper objectMapper;
+  private final HttpBlockListManager httpBlocklistManager;
 
   public HttpInteractionService(final ObjectMapper objectMapper) {
     this.objectMapper = objectMapper;
-  }
-
-  public HttpHeaders createHeaders(final HttpCommonRequest request, String bearerToken) {
-    final HttpHeaders httpHeaders = new HttpHeaders();
-    if (request.getMethod().supportsBody) {
-      httpHeaders.setContentType(APPLICATION_JSON.getMimeType());
-    }
-    if (request.hasAuthentication()) {
-      if (bearerToken != null && !bearerToken.isEmpty()) {
-        httpHeaders.setAuthorization("Bearer " + bearerToken);
-      }
-      request.getAuthentication().setHeaders(httpHeaders);
-    }
-    httpHeaders.putAll(extractRequestHeaders(request));
-    return httpHeaders;
-  }
-
-  public static HttpHeaders extractRequestHeaders(final HttpCommonRequest httpCommonRequest) {
-    if (httpCommonRequest.hasHeaders()) {
-      final HttpHeaders httpHeaders = new HttpHeaders();
-      httpCommonRequest.getHeaders().forEach(httpHeaders::set);
-      return httpHeaders;
-    }
-
-    return new HttpHeaders();
+    this.httpBlocklistManager = new DefaultHttpBlocklistManager();
   }
 
   public HttpResponse executeHttpRequest(com.google.api.client.http.HttpRequest externalRequest)
@@ -84,6 +59,7 @@ public class HttpInteractionService {
       com.google.api.client.http.HttpRequest externalRequest, boolean isProxyCall)
       throws IOException {
     try {
+      httpBlocklistManager.validateUrlAgainstBlocklist(externalRequest.getUrl());
       return externalRequest.execute();
     } catch (HttpResponseException hrex) {
       var errorCode = String.valueOf(hrex.getStatusCode());
