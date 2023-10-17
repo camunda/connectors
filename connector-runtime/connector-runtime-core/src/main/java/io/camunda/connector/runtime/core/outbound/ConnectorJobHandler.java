@@ -123,7 +123,7 @@ public class ConnectorJobHandler implements JobHandler {
           .ifPresentOrElse(
               error -> {
                 LOGGER.debug(
-                    "Throwing BPMN error for job {} with code {}", job.getKey(), error.getCode());
+                    "Throwing BPMN error for job {} with code {}", job.getKey(), error.code());
                 throwBpmnError(client, job, error);
               },
               () -> {
@@ -210,8 +210,9 @@ public class ConnectorJobHandler implements JobHandler {
       JobClient client, ActivatedJob job, BpmnError error) {
     return client
         .newThrowErrorCommand(job)
-        .errorCode(error.getCode())
-        .errorMessage(truncateErrorMessage(error.getMessage()));
+        .errorCode(error.code())
+        .variables(error.variables())
+        .errorMessage(truncateErrorMessage(error.message()));
   }
 
   private static Duration getBackoffDuration(ActivatedJob job) {

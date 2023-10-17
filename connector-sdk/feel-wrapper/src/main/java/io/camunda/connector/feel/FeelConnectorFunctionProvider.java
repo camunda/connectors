@@ -17,6 +17,7 @@
 package io.camunda.connector.feel;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import org.camunda.feel.context.Context;
@@ -33,6 +34,8 @@ public class FeelConnectorFunctionProvider extends JavaFunctionProvider {
 
   private static final String BPMN_ERROR_FUNCTION_NAME = "bpmnError";
   private static final List<String> BPMN_ERROR_ARGUMENTS = List.of("code", "message");
+  private static final List<String> BPMN_ERROR_ARGUMENTS_WITH_VARS =
+      List.of("code", "message", "variables");
   private static final JavaFunction BPMN_ERROR_FUNCTION =
       new JavaFunction(
           BPMN_ERROR_ARGUMENTS,
@@ -46,12 +49,32 @@ public class FeelConnectorFunctionProvider extends JavaFunctionProvider {
                           toString(args, 1)),
                       Map$.MODULE$.empty())));
 
-  private static final java.util.Map<String, JavaFunction> functions =
-      java.util.Map.of(BPMN_ERROR_FUNCTION_NAME, BPMN_ERROR_FUNCTION);
+  private static final JavaFunction BPMN_ERROR_FUNCTION_WITH_VARS =
+      new JavaFunction(
+          BPMN_ERROR_ARGUMENTS_WITH_VARS,
+          args ->
+              new ValContext(
+                  new Context.StaticContext(
+                      new Map.Map3<>(
+                          BPMN_ERROR_ARGUMENTS.get(0),
+                          toString(args, 0),
+                          BPMN_ERROR_ARGUMENTS.get(1),
+                          toString(args, 1),
+                          BPMN_ERROR_ARGUMENTS_WITH_VARS.get(2),
+                          toContext(args, 2)),
+                      Map$.MODULE$.empty())));
+  private static final java.util.Map<String, List<JavaFunction>> functions =
+      java.util.Map.of(
+          BPMN_ERROR_FUNCTION_NAME, List.of(BPMN_ERROR_FUNCTION, BPMN_ERROR_FUNCTION_WITH_VARS));
 
   @Override
   public Optional<JavaFunction> resolveFunction(String functionName) {
-    return Optional.ofNullable(functions.get(functionName));
+    throw new IllegalStateException("Should not be invoked.");
+  }
+
+  @Override
+  public List<JavaFunction> resolveFunctions(String functionName) {
+    return functions.getOrDefault(functionName, Collections.emptyList());
   }
 
   @Override
@@ -68,5 +91,16 @@ public class FeelConnectorFunctionProvider extends JavaFunctionProvider {
         String.format(
             "Parameter '%s' of function '%s' must be a String",
             BPMN_ERROR_ARGUMENTS.get(index), BPMN_ERROR_FUNCTION_NAME));
+  }
+
+  private static ValContext toContext(List<Val> arguments, int index) {
+    Val value = arguments.get(index);
+    if (value instanceof ValContext map) {
+      return map;
+    }
+    throw new IllegalArgumentException(
+        String.format(
+            "Parameter '%s' of function '%s' must be a Context",
+            BPMN_ERROR_ARGUMENTS_WITH_VARS.get(index), BPMN_ERROR_FUNCTION_NAME));
   }
 }
