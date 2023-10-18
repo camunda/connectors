@@ -17,18 +17,37 @@
 package io.camunda.connector.runtime.env;
 
 import io.camunda.connector.api.secret.SecretProvider;
+import jakarta.annotation.PostConstruct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
+import org.springframework.util.StringUtils;
 
 public class SpringEnvironmentSecretProvider implements SecretProvider {
-
+  private static final Logger LOG = LoggerFactory.getLogger(SpringEnvironmentSecretProvider.class);
   private final Environment environment;
+  private final String prefix;
 
-  public SpringEnvironmentSecretProvider(Environment environment) {
+  public SpringEnvironmentSecretProvider(Environment environment, String prefix) {
     this.environment = environment;
+    this.prefix = prefix;
+  }
+
+  @PostConstruct
+  public void init() {
+    if (!StringUtils.hasText(prefix)) {
+      LOG.info(
+          "No prefix has been configured, all environment variables are available as connector secrets");
+    } else {
+      LOG.debug(
+          "Prefix '{}' has been configured, only environment variables with this prefix are available as connector secrets",
+          prefix);
+    }
   }
 
   @Override
   public String getSecret(String name) {
-    return environment.getProperty(name);
+    String prefixedName = !StringUtils.hasText(prefix) ? name : prefix + name;
+    return environment.getProperty(prefixedName);
   }
 }

@@ -27,12 +27,15 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest(
     classes = {TestConnectorRuntimeApplication.class},
-    properties = {"camunda.connector.secretprovider.discovery.enabled=false"})
+    properties = {
+      "camunda.connector.secretprovider.discovery.enabled=false",
+      "camunda.connector.secretprovider.environment.prefix=secrets."
+    })
 public class SpringEnvironmentSecretProviderTest {
 
   @Autowired SecretProviderAggregator secretProviderAggregator;
 
-  @Value("${test.secret}")
+  @Value("${secrets.test.secret}")
   String expectedSecretValue;
 
   @Test
