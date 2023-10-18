@@ -26,10 +26,10 @@ public class SpringEnvironmentSecretProviderTest {
   @Test
   void shouldApplyPrefix() {
     MockEnvironment env = new MockEnvironment();
-    env.setProperty("secrets.MY_TOTAL_SECRET", "beebop");
+    env.setProperty("secrets.my-total-secret", "beebop");
     SpringEnvironmentSecretProvider secretProvider =
         new SpringEnvironmentSecretProvider(env, "secrets.");
-    String myTotalSecret = secretProvider.getSecret("MY_TOTAL_SECRET");
+    String myTotalSecret = secretProvider.getSecret("my-total-secret");
     assertThat(myTotalSecret).isEqualTo("beebop");
   }
 }
