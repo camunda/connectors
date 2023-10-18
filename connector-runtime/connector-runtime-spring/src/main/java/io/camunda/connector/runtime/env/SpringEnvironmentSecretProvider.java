@@ -36,7 +36,7 @@ public class SpringEnvironmentSecretProvider implements SecretProvider {
   @PostConstruct
   public void init() {
     if (!StringUtils.hasText(prefix)) {
-      LOG.warn(
+      LOG.info(
           "No prefix has been configured, all environment variables are available as connector secrets");
     } else {
       LOG.debug(
