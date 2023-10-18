@@ -49,7 +49,7 @@ public class OutboundConnectorsAutoConfiguration {
   @Value("${camunda.connector.secretprovider.discovery.enabled:true}")
   Boolean secretProviderLookupEnabled;
 
-  @Value("${camunda.connector.secret-provider.environment.prefix:}")
+  @Value("${camunda.connector.secretprovider.environment.prefix:}")
   String environmentSecretProviderPrefix;
 
   private static final Logger LOG =
@@ -78,7 +78,7 @@ public class OutboundConnectorsAutoConfiguration {
 
   @Bean
   @ConditionalOnProperty(
-      name = "camunda.connector.secret-provider.environment.enabled",
+      name = "camunda.connector.secretprovider.environment.enabled",
       havingValue = "true",
       matchIfMissing = true)
   public SpringEnvironmentSecretProvider defaultSecretProvider(Environment environment) {
