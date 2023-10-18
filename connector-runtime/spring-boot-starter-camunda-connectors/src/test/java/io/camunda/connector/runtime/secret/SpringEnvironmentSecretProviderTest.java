@@ -29,7 +29,7 @@ import org.springframework.boot.test.context.SpringBootTest;
     classes = {TestConnectorRuntimeApplication.class},
     properties = {
       "camunda.connector.secretprovider.discovery.enabled=false",
-      "camunda.connector.secret-provider.environment.prefix=secrets."
+      "camunda.connector.secretprovider.environment.prefix=secrets."
     })
 public class SpringEnvironmentSecretProviderTest {
 
