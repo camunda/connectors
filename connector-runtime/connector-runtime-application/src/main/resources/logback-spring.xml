@@ -1,18 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-  <if condition='property("CONNECTORS_LOG_APPENDER").equalsIgnoreCase("stackdriver")'>
-    <then>
-      <include resource="com/google/cloud/spring/logging/logback-json-appender.xml"/>
-      <root level="INFO">
-        <appender-ref ref="CONSOLE_JSON"/>
-      </root>
-    </then>
-    <else>
-      <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
-      <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
-      <root level="INFO">
-        <appender-ref ref="CONSOLE"/>
-      </root>
-    </else>
-  </if>
+  <springProperty name="connectorsLogAppender" source="connectors.log.appender"
+                  defaultValue="default"/>
+  <springProfile name="!test">
+    <if condition='property("connectorsLogAppender").equalsIgnoreCase("stackdriver")'>
+      <then>
+        <include resource="com/google/cloud/spring/logging/logback-json-appender.xml"/>
+        <root level="INFO">
+          <appender-ref ref="CONSOLE_JSON"/>
+        </root>
+      </then>
+      <else>
+        <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+        <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+        <root level="INFO">
+          <appender-ref ref="CONSOLE"/>
+        </root>
+      </else>
+    </if>
+  </springProfile>
+  <springProfile name="test">
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+    <root level="INFO">
+      <appender-ref ref="CONSOLE"/>
+    </root>
+  </springProfile>
 </configuration>

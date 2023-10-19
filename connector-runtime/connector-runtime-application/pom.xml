@@ -25,12 +25,10 @@
     <dependency>
       <groupId>com.google.cloud</groupId>
       <artifactId>spring-cloud-gcp-logging</artifactId>
-      <version>4.8.2</version>
     </dependency>
     <dependency>
       <groupId>org.codehaus.janino</groupId>
       <artifactId>janino</artifactId>
-      <version>3.1.10</version>
     </dependency>
   </dependencies>
 
