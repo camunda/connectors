@@ -28,7 +28,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-@TemplateSubType(id = "oauth-client-credentials-flow", label = "OAuth 2.0")
+@TemplateSubType(id = OAuthAuthentication.TYPE, label = "OAuth 2.0")
 public final class OAuthAuthentication extends Authentication {
   @TemplateProperty(ignore = true)
   private final String grantType = "client_credentials";
@@ -205,4 +205,6 @@ public final class OAuthAuthentication extends Authentication {
         + "} "
         + super.toString();
   }
+
+  public static final String TYPE = "oauth-client-credentials-flow";
 }

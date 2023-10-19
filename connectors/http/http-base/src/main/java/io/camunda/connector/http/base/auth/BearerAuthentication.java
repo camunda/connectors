@@ -68,4 +68,6 @@ public final class BearerAuthentication extends Authentication {
   public String toString() {
     return "BearerAuthentication{" + "token='[REDACTED]'" + "}; Super: " + super.toString();
   }
+
+  public static final String TYPE = "bearer";
 }

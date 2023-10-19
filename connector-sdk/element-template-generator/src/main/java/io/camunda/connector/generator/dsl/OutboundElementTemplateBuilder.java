@@ -36,7 +36,7 @@ public class OutboundElementTemplateBuilder {
 
   private OutboundElementTemplateBuilder() {}
 
-  static OutboundElementTemplateBuilder create() {
+  public static OutboundElementTemplateBuilder create() {
     return new OutboundElementTemplateBuilder();
   }
 

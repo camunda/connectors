@@ -94,4 +94,6 @@ public final class CustomAuthentication extends Authentication {
         + outputHeaders
         + "}";
   }
+
+  public static final String TYPE = "credentialsInBody";
 }
