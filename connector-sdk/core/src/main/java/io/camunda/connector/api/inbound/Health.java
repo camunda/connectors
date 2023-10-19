@@ -124,6 +124,7 @@ public class Health {
 
     @Override
     public Health details(Map<String, Object> details) {
+      this.details = details;
       return new Health(this);
     }
   }
