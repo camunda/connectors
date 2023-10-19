@@ -206,5 +206,6 @@ public final class OAuthAuthentication extends Authentication {
         + super.toString();
   }
 
+  @TemplateProperty(ignore = true)
   public static final String TYPE = "oauth-client-credentials-flow";
 }

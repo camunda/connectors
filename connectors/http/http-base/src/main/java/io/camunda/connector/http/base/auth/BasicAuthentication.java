@@ -93,5 +93,6 @@ public final class BasicAuthentication extends Authentication {
         + super.toString();
   }
 
+  @TemplateProperty(ignore = true)
   public static final String TYPE = "basic";
 }

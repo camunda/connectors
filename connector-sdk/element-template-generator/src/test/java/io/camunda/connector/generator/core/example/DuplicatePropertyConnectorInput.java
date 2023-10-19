@@ -14,33 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.http.base.auth;
+package io.camunda.connector.generator.core.example;
 
-import com.google.api.client.http.HttpHeaders;
 import io.camunda.connector.generator.annotation.TemplateProperty;
-import io.camunda.connector.generator.annotation.TemplateSubType;
 
-@TemplateSubType(id = NoAuthentication.TYPE, label = "None")
-public final class NoAuthentication extends Authentication {
-
-  @Override
-  public void setHeaders(final HttpHeaders headers) {}
-
-  @Override
-  public boolean equals(final Object o) {
-    return super.equals(o);
-  }
-
-  @Override
-  public int hashCode() {
-    return super.hashCode();
-  }
-
-  @Override
-  public String toString() {
-    return super.toString();
-  }
-
-  @TemplateProperty(ignore = true)
-  public static final String TYPE = "noAuth";
-}
+public record DuplicatePropertyConnectorInput(
+    @TemplateProperty(id = "prop") String prop1, @TemplateProperty(id = "prop") String prop2) {}

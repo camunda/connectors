@@ -134,6 +134,7 @@ public class HttpOutboundElementTemplateBuilder {
     if (servers.size() == 1) {
       return PropertyGroup.builder()
           .id("server")
+          .label("Server")
           .properties(
               HiddenProperty.builder().id("baseUrl").value(servers.iterator().next().baseUrl()))
           .build();
@@ -141,6 +142,7 @@ public class HttpOutboundElementTemplateBuilder {
 
     return PropertyGroup.builder()
         .id("server")
+        .label("Server")
         .properties(
             DropdownProperty.builder()
                 .choices(
@@ -149,6 +151,7 @@ public class HttpOutboundElementTemplateBuilder {
                         .collect(Collectors.toList()))
                 .id("baseUrl")
                 .label("Server")
+                .group("server")
                 .build())
         .build();
   }
@@ -157,6 +160,7 @@ public class HttpOutboundElementTemplateBuilder {
     if (operations.size() == 1) {
       return PropertyGroup.builder()
           .id("operation")
+          .label("Operation")
           .properties(
               HiddenProperty.builder().id("operationId").value(operations.iterator().next().id()))
           .build();
@@ -164,6 +168,7 @@ public class HttpOutboundElementTemplateBuilder {
 
     return PropertyGroup.builder()
         .id("operation")
+        .label("Operation")
         .properties(
             DropdownProperty.builder()
                 .choices(
@@ -172,6 +177,7 @@ public class HttpOutboundElementTemplateBuilder {
                         .collect(Collectors.toList()))
                 .id("operationId")
                 .label("Operation")
+                .group("operation")
                 .build())
         .build();
   }

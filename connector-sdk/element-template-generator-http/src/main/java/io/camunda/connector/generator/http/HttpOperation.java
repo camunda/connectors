@@ -54,4 +54,8 @@ public record HttpOperation(
     PATCH,
     DELETE
   }
+
+  public static HttpOperationBuilder builder() {
+    return HttpOperationBuilder.create();
+  }
 }

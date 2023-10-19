@@ -21,18 +21,19 @@ import io.camunda.connector.generator.http.HttpOperation.ConnectorHttpMethod;
 import io.camunda.connector.http.base.auth.Authentication;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 
 public class HttpOperationBuilder {
   private String id;
   private String label;
   private ConnectorHttpMethod method;
-  private String pathFeelExpression;
-  private String bodyFeelExpression;
-  private Map<String, String> headers;
-  private Map<String, String> queryParameters;
+  private String pathFeelExpression = "";
+  private String bodyFeelExpression = "";
+  private Map<String, String> headers = Map.of();
+  private Map<String, String> queryParameters = Map.of();
   private Authentication authenticationOverride = null;
-  private Collection<PropertyBuilder> properties;
+  private Collection<PropertyBuilder> properties = Collections.emptyList();
 
   public static HttpOperationBuilder create() {
     return new HttpOperationBuilder();
@@ -123,6 +124,19 @@ public class HttpOperationBuilder {
 
   public HttpOperation build() {
     // TODO: validate by parsing FEEL: are all mentioned properties provided?
+    if (method == null) {
+      throw new IllegalStateException("HTTP method is not defined");
+    }
+    if (id == null) {
+      throw new IllegalStateException("Operation id is not defined");
+    }
+    if (label == null) {
+      throw new IllegalStateException("Operation label is not defined");
+    }
+    // shade property ids with operation id as they may be duplicate
+    // TODO: rename properties in the path, body template/expressions accordingly
+    properties.forEach(prop -> prop.id(id + "_" + prop.getId()));
+
     return new HttpOperation(
         id,
         label,
