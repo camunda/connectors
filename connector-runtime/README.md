@@ -125,7 +125,8 @@ zeebe.client.cloud.client-secret=xxx
 zeebe.client.cloud.region=bru-2
 ```
 
-You can further configure separate connection properties for Camunda Operate (othewise it will use the properties configured for Zeebe above):
+You can further configure separate connection properties for Camunda Operate (othewise it will use the properties configured for Zeebe above).
+For this you need to create client credentials in Console to access Operate:
 
 ```properties
 camunda.operate.client.client-id=xxx
@@ -149,7 +150,8 @@ camunda.operate.client.username=demo
 camunda.operate.client.password=demo
 ```
 
-When running against a self-managed environment you might also need to configure the keycloak endpoint to not use Operate username/password authentication:
+When running against a self-managed environment you might also need to configure the keycloak endpoint to not use Operate username/password authentication.
+For this you either need to use the existing connectors client-id and client-secret (see in Identity) or create a new client in Identity that has permission to access the operate-api (read:*)
 
 ```properties
 camunda.operate.client.keycloak-url=http://localhost:18080
