@@ -7,5 +7,5 @@
 package io.camunda.connector.aws.model;
 
 public interface AwsConfiguration {
-  String getRegion();
+  String region();
 }

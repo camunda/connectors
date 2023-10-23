@@ -6,12 +6,11 @@
  */
 package io.camunda.connector.awslambda.model;
 
+import static io.camunda.connector.aws.model.impl.AwsAuthentication.AwsStaticCredentialsAuthentication;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.camunda.connector.api.error.ConnectorInputException;
-import io.camunda.connector.aws.model.impl.AwsBaseAuthentication;
-import io.camunda.connector.aws.model.impl.AwsBaseConfiguration;
 import io.camunda.connector.awslambda.BaseTest;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,8 +24,6 @@ class AwsLambdaRequestTest extends BaseTest {
   @BeforeEach
   public void beforeEach() {
     request = new AwsLambdaRequest();
-    request.setAuthentication(new AwsBaseAuthentication());
-    request.setConfiguration(new AwsBaseConfiguration());
     request.setAwsFunction(new FunctionRequestData());
   }
 
@@ -59,10 +56,12 @@ class AwsLambdaRequestTest extends BaseTest {
             .validation(new DefaultValidationProvider())
             .build();
     request = context.bindVariables(AwsLambdaRequest.class);
+    AwsStaticCredentialsAuthentication sca =
+        (AwsStaticCredentialsAuthentication) request.getAuthentication();
     // Then
-    assertThat(request.getAuthentication().getSecretKey()).isEqualTo(ACTUAL_SECRET_KEY);
-    assertThat(request.getAuthentication().getAccessKey()).isEqualTo(ACTUAL_ACCESS_KEY);
-    assertThat(request.getConfiguration().getRegion()).isEqualTo(ACTUAL_FUNCTION_REGION);
+    assertThat(sca.secretKey()).isEqualTo(ACTUAL_SECRET_KEY);
+    assertThat(sca.accessKey()).isEqualTo(ACTUAL_ACCESS_KEY);
+    assertThat(request.getConfiguration().region()).isEqualTo(ACTUAL_FUNCTION_REGION);
     assertThat(request.getAwsFunction().getFunctionName()).isEqualTo(ACTUAL_FUNCTION_NAME);
   }
 }

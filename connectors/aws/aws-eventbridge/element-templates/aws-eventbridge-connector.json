@@ -2,9 +2,9 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Amazon EventBridge Outbound Connector",
   "id": "io.camunda.connectors.AWSEventBridge.v1",
-  "version": 3,
+  "version": 4,
   "description": "Send events to AWS EventBridge",
-  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-eventbridge/",
+  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/",
   "category": {
     "id": "connectors",
     "name": "Connectors"
@@ -50,8 +50,34 @@
       }
     },
     {
+      "id": "authenticationType",
+      "label": "Authentication",
+      "description": "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/\" target=\"_blank\">documentation page</a>",
+      "group": "authentication",
+      "type": "Dropdown",
+      "optional": false,
+      "value": "credentials",
+      "choices": [
+        {
+          "name": "Credentials",
+          "value": "credentials"
+        },
+        {
+          "name": "Default Credentials Chain (Hybrid/Self-Managed only)",
+          "value": "defaultCredentialsChain"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.type"
+      },
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
       "label": "Access key",
-      "description": "Provide an access key of a user with permissions. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-eventbridge/\" target=\"_blank\">documentation</a>",
+      "description": "Provide an access key of a user with permissions. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/\" target=\"_blank\">documentation</a>",
       "group": "authentication",
       "type": "String",
       "binding": {
@@ -60,11 +86,15 @@
       },
       "constraints": {
         "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "credentials"
       }
     },
     {
       "label": "Secret key",
-      "description": "Provide a secret key of a user with permissions. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-eventbridge/\" target=\"_blank\">documentation</a>",
+      "description": "Provide a secret key of a user with permissions. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/\" target=\"_blank\">documentation</a>",
       "group": "authentication",
       "type": "String",
       "binding": {
@@ -73,6 +103,10 @@
       },
       "constraints": {
         "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "credentials"
       }
     },
     {

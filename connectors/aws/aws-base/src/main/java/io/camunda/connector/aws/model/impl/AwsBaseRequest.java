@@ -12,15 +12,15 @@ import java.util.Objects;
 
 public class AwsBaseRequest {
 
-  @Valid @NotNull private AwsBaseAuthentication authentication;
+  @Valid @NotNull private AwsAuthentication authentication;
 
   private AwsBaseConfiguration configuration;
 
-  public AwsBaseAuthentication getAuthentication() {
+  public AwsAuthentication getAuthentication() {
     return authentication;
   }
 
-  public void setAuthentication(final AwsBaseAuthentication authentication) {
+  public void setAuthentication(final AwsAuthentication authentication) {
     this.authentication = authentication;
   }
 

@@ -44,7 +44,7 @@ public class EventBridgeFunction implements OutboundConnectorFunction {
     AmazonEventBridge amazonEventBridgeClient =
         awsEventBridgeClientSupplier.getAmazonEventBridgeClient(
             CredentialsProviderSupport.credentialsProvider(eventBridgeRequest),
-            eventBridgeRequest.getConfiguration().getRegion());
+            eventBridgeRequest.getConfiguration().region());
     return objectMapper.convertValue(
         putEvents(amazonEventBridgeClient, eventBridgeRequest.getInput()), Object.class);
   }

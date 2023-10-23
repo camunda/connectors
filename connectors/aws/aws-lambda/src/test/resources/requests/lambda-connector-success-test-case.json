@@ -5,11 +5,18 @@
       "accessKey": "{{secrets.ACCESS_KEY}}"
     },
     "awsFunction": {
-      "payload": {"key":{"key1":{"key2":"value"}}},
+      "payload": {
+        "key": {
+          "key1": {
+            "key2": "value"
+          }
+        }
+      },
       "functionName": "{{secrets.FUNCTION_NAME}}",
       "region": "{{secrets.REGION_KEY}}"
     }
-  },{
+  },
+  {
     "authentication": {
       "secretKey": "{{secrets.SECRET_KEY}}",
       "accessKey": "{{secrets.ACCESS_KEY}}"
@@ -18,7 +25,13 @@
       "region": "{{secrets.REGION_KEY}}"
     },
     "awsFunction": {
-      "payload": {"key":{"key1":{"key2":"value"}}},
+      "payload": {
+        "key": {
+          "key1": {
+            "key2": "value"
+          }
+        }
+      },
       "functionName": "{{secrets.FUNCTION_NAME}}"
     }
   },
@@ -31,7 +44,9 @@
       "region": "test-region"
     },
     "awsFunction": {
-      "payload": {"key":"value"},
+      "payload": {
+        "key": "value"
+      },
       "functionName": "arn:aws:lambda:test-region:123456789:function:test"
     }
   },
@@ -44,7 +59,147 @@
       "region": "test-region"
     },
     "awsFunction": {
-      "payload": {"key":{"key":"value"}},
+      "payload": {
+        "key": {
+          "key": "value"
+        }
+      },
+      "functionName": "test"
+    }
+  },
+  {
+    "authentication": {
+      "type": "credentials",
+      "secretKey": "{{secrets.SECRET_KEY}}",
+      "accessKey": "{{secrets.ACCESS_KEY}}"
+    },
+    "awsFunction": {
+      "payload": {
+        "key": {
+          "key1": {
+            "key2": "value"
+          }
+        }
+      },
+      "functionName": "{{secrets.FUNCTION_NAME}}",
+      "region": "{{secrets.REGION_KEY}}"
+    }
+  },
+  {
+    "authentication": {
+      "type": "credentials",
+      "secretKey": "{{secrets.SECRET_KEY}}",
+      "accessKey": "{{secrets.ACCESS_KEY}}"
+    },
+    "configuration": {
+      "region": "{{secrets.REGION_KEY}}"
+    },
+    "awsFunction": {
+      "payload": {
+        "key": {
+          "key1": {
+            "key2": "value"
+          }
+        }
+      },
+      "functionName": "{{secrets.FUNCTION_NAME}}"
+    }
+  },
+  {
+    "authentication": {
+      "type": "credentials",
+      "secretKey": "testSecretKey12345",
+      "accessKey": "testAccessKey123456"
+    },
+    "configuration": {
+      "region": "test-region"
+    },
+    "awsFunction": {
+      "payload": {
+        "key": "value"
+      },
+      "functionName": "arn:aws:lambda:test-region:123456789:function:test"
+    }
+  },
+  {
+    "authentication": {
+      "type": "credentials",
+      "secretKey": "testSecretKey12345",
+      "accessKey": "testAccessKey123456"
+    },
+    "configuration": {
+      "region": "test-region"
+    },
+    "awsFunction": {
+      "payload": {
+        "key": {
+          "key": "value"
+        }
+      },
+      "functionName": "test"
+    }
+  },
+  {
+    "authentication": {
+      "type": "defaultCredentialsChain"
+    },
+    "awsFunction": {
+      "payload": {
+        "key": {
+          "key1": {
+            "key2": "value"
+          }
+        }
+      },
+      "functionName": "{{secrets.FUNCTION_NAME}}",
+      "region": "{{secrets.REGION_KEY}}"
+    }
+  },
+  {
+    "authentication": {
+      "type": "defaultCredentialsChain"
+    },
+    "configuration": {
+      "region": "{{secrets.REGION_KEY}}"
+    },
+    "awsFunction": {
+      "payload": {
+        "key": {
+          "key1": {
+            "key2": "value"
+          }
+        }
+      },
+      "functionName": "{{secrets.FUNCTION_NAME}}"
+    }
+  },
+  {
+    "authentication": {
+      "type": "defaultCredentialsChain"
+    },
+    "configuration": {
+      "region": "test-region"
+    },
+    "awsFunction": {
+      "payload": {
+        "key": "value"
+      },
+      "functionName": "arn:aws:lambda:test-region:123456789:function:test"
+    }
+  },
+  {
+    "authentication": {
+      "type": "defaultCredentialsChain"
+    },
+    "configuration": {
+      "region": "test-region"
+    },
+    "awsFunction": {
+      "payload": {
+        "key": {
+          "key": "value"
+        }
+      },
       "functionName": "test"
     }
   }

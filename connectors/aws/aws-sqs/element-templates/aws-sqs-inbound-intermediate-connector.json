@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Amazon SQS Intermediate Message Catch Event connector",
   "id": "io.camunda.connectors.AWSSQS.intermediate.v1",
-  "version": 6,
+  "version": 7,
   "description": "Receive message from a queue",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-sqs-inbound/",
   "appliesTo": [
@@ -63,6 +63,32 @@
       }
     },
     {
+      "id": "authenticationType",
+      "label": "Authentication",
+      "description": "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/\" target=\"_blank\">documentation page</a>",
+      "group": "authentication",
+      "type": "Dropdown",
+      "optional": false,
+      "value": "credentials",
+      "choices": [
+        {
+          "name": "Credentials",
+          "value": "credentials"
+        },
+        {
+          "name": "Default Credentials Chain (Hybrid/Self-Managed only)",
+          "value": "defaultCredentialsChain"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:property",
+        "name": "authentication.type"
+      },
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
       "label": "Access key",
       "description": "Provide AWS IAM access key that has permission to read from desired SQS",
       "group": "authentication",
@@ -73,6 +99,10 @@
       },
       "constraints": {
         "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "credentials"
       }
     },
     {
@@ -86,6 +116,10 @@
       },
       "constraints": {
         "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "credentials"
       }
     },
     {

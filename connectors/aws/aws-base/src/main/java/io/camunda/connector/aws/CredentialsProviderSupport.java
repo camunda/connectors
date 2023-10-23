@@ -6,17 +6,29 @@
  */
 package io.camunda.connector.aws;
 
+import static io.camunda.connector.aws.model.impl.AwsAuthentication.AwsStaticCredentialsAuthentication;
+
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
-import io.camunda.connector.aws.model.impl.AwsBaseAuthentication;
+import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
+import io.camunda.connector.aws.model.impl.AwsAuthentication;
 import io.camunda.connector.aws.model.impl.AwsBaseRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CredentialsProviderSupport {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(CredentialsProviderSupport.class);
+
   public static AWSCredentialsProvider credentialsProvider(AwsBaseRequest request) {
-    AwsBaseAuthentication authentication = request.getAuthentication();
-    return new AWSStaticCredentialsProvider(
-        new BasicAWSCredentials(authentication.getAccessKey(), authentication.getSecretKey()));
+    AwsAuthentication authentication = request.getAuthentication();
+    if (authentication instanceof AwsStaticCredentialsAuthentication sca) {
+      LOGGER.debug("Using AwsStaticCredentialsAuthentication for AWS authentication");
+      return new AWSStaticCredentialsProvider(
+          new BasicAWSCredentials(sca.accessKey(), sca.secretKey()));
+    }
+    LOGGER.debug("Falling to DefaultAWSCredentialsProviderChain for AWS authentication");
+    return new DefaultAWSCredentialsProviderChain();
   }
 }
