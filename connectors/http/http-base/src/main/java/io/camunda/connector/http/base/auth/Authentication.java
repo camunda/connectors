@@ -23,17 +23,17 @@ import io.camunda.connector.generator.annotation.TemplateDiscriminatorProperty;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
-  @JsonSubTypes.Type(value = BasicAuthentication.class, name = "basic"),
-  @JsonSubTypes.Type(value = NoAuthentication.class, name = "noAuth"),
-  @JsonSubTypes.Type(value = CustomAuthentication.class, name = "credentialsInBody"),
-  @JsonSubTypes.Type(value = OAuthAuthentication.class, name = "oauth-client-credentials-flow"),
-  @JsonSubTypes.Type(value = BearerAuthentication.class, name = "bearer")
+  @JsonSubTypes.Type(value = BasicAuthentication.class, name = BasicAuthentication.TYPE),
+  @JsonSubTypes.Type(value = NoAuthentication.class, name = NoAuthentication.TYPE),
+  @JsonSubTypes.Type(value = CustomAuthentication.class, name = CustomAuthentication.TYPE),
+  @JsonSubTypes.Type(value = OAuthAuthentication.class, name = OAuthAuthentication.TYPE),
+  @JsonSubTypes.Type(value = BearerAuthentication.class, name = BearerAuthentication.TYPE)
 })
 @TemplateDiscriminatorProperty(
     label = "Type",
     group = "authentication",
     name = "type",
-    defaultValue = "noAuth",
+    defaultValue = NoAuthentication.TYPE,
     description = "Choose the authentication type. Select 'None' if no authentication is necessary")
 public abstract sealed class Authentication
     permits BasicAuthentication,

@@ -21,6 +21,7 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -65,7 +66,17 @@ public record OutboundElementTemplate(
     }
     if (properties == null) {
       errors.add("properties is required");
+    } else {
+      Set<String> propIdOccurrences = new HashSet<>();
+      for (var property : properties) {
+        if (property.id == null) continue;
+        if (propIdOccurrences.contains(property.id)) {
+          errors.add("duplicate property " + property.id);
+        }
+        propIdOccurrences.add(property.id);
+      }
     }
+
     if (!errors.isEmpty()) {
       throw new IllegalArgumentException(String.join(", ", errors));
     }

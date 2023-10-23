@@ -24,7 +24,7 @@ import io.camunda.connector.generator.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotEmpty;
 import java.util.function.Function;
 
-@TemplateSubType(id = "basic", label = "Basic")
+@TemplateSubType(id = BasicAuthentication.TYPE, label = "Basic")
 public final class BasicAuthentication extends Authentication {
   @TemplateProperty(ignore = true)
   private static final String SPEC_PASSWORD_EMPTY_PATTERN = "SPEC_PASSWORD_EMPTY_PATTERN";
@@ -92,4 +92,7 @@ public final class BasicAuthentication extends Authentication {
         + "}; Super: "
         + super.toString();
   }
+
+  @TemplateProperty(ignore = true)
+  public static final String TYPE = "basic";
 }

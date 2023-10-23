@@ -36,7 +36,7 @@ public class OutboundElementTemplateBuilder {
 
   private OutboundElementTemplateBuilder() {}
 
-  static OutboundElementTemplateBuilder create() {
+  public static OutboundElementTemplateBuilder create() {
     return new OutboundElementTemplateBuilder();
   }
 
@@ -127,6 +127,7 @@ public class OutboundElementTemplateBuilder {
     if (!isTypeAssigned()) {
       throw new IllegalStateException("type is not assigned");
     }
+    verifyUniquePropertyIds();
     return new OutboundElementTemplate(
         id, name, version, documentationRef, description, groups, properties, icon);
   }
@@ -135,4 +136,6 @@ public class OutboundElementTemplateBuilder {
     return this.properties.stream()
         .anyMatch(property -> property.binding.type().equals(ZeebeTaskDefinitionType.NAME));
   }
+
+  private void verifyUniquePropertyIds() {}
 }

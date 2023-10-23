@@ -84,4 +84,15 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
       inputDataClass = MyConnectorInput.class,
       icon = "my-connector-icon.png")
   public static class MinimallyAnnotatedWithPngIcon extends MyConnectorFunction {}
+
+  @OutboundConnector(
+      name = "my-connector",
+      type = "my-connector-type",
+      inputVariables = {})
+  @ElementTemplate(
+      id = MyConnectorFunction.ID,
+      name = MyConnectorFunction.NAME,
+      inputDataClass = DuplicatePropertyConnectorInput.class,
+      icon = "my-connector-icon.png")
+  public static class WithDuplicatePropertyIds extends MyConnectorFunction {}
 }

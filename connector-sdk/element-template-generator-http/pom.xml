@@ -9,29 +9,24 @@
     <version>8.4.0-SNAPSHOT</version>
   </parent>
 
-  <name>element-template-generator</name>
-  <description>Camunda Connector template generator</description>
-  <artifactId>element-template-generator</artifactId>
+  <name>element-template-generator-http</name>
+  <description>Template generator for the HTTP Connector family</description>
+  <artifactId>element-template-generator-http</artifactId>
   <packaging>jar</packaging>
 
   <dependencies>
     <dependency>
       <groupId>io.camunda.connector</groupId>
-      <artifactId>connector-core</artifactId>
+      <artifactId>element-template-generator</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-databind</artifactId>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-http-base</artifactId>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>jakarta.validation</groupId>
-      <artifactId>jakarta.validation-api</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-lang3</artifactId>
-      <version>3.13.0</version>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-feel-wrapper</artifactId>
     </dependency>
 
     <dependency>
@@ -49,6 +44,10 @@
       <artifactId>jsonassert</artifactId>
       <scope>test</scope>
     </dependency>
-
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>jackson-datatype-feel</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 </project>

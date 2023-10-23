@@ -241,6 +241,16 @@ public class OutboundTemplateGeneratorTest extends BaseTest {
           .isEqualTo(
               new PropertyCondition.OneOf("annotatedStringProperty", List.of("value1", "value2")));
     }
+
+    @Test
+    void duplicatePropertyId_throwsException() {
+      var exception =
+          assertThrows(
+              IllegalArgumentException.class,
+              () -> generator.generate(MyConnectorFunction.WithDuplicatePropertyIds.class));
+
+      assertThat(exception.getMessage()).contains("duplicate property prop");
+    }
   }
 
   @Nested
