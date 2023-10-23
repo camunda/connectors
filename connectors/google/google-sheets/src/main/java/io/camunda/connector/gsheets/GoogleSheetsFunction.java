@@ -9,7 +9,7 @@ package io.camunda.connector.gsheets;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import io.camunda.connector.generator.annotation.ElementTemplate;
+import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.gsheets.model.request.GoogleSheetsRequest;
 import io.camunda.connector.gsheets.operation.GoogleSheetOperation;
 import org.slf4j.Logger;

@@ -18,10 +18,10 @@ package io.camunda.connector.http.base.auth;
 
 import com.google.api.client.http.HttpHeaders;
 import io.camunda.connector.feel.annotation.FEEL;
-import io.camunda.connector.generator.annotation.TemplateProperty;
-import io.camunda.connector.generator.annotation.TemplateProperty.DropdownPropertyChoice;
-import io.camunda.connector.generator.annotation.TemplateProperty.PropertyType;
-import io.camunda.connector.generator.annotation.TemplateSubType;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.DropdownPropertyChoice;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
+import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.http.base.constants.Constants;
 import jakarta.validation.constraints.NotEmpty;
 import java.util.HashMap;

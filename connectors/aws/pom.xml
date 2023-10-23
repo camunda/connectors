@@ -35,7 +35,7 @@ except in compliance with the proprietary license.</license.inlineheader>
   <dependencies>
     <dependency>
       <groupId>io.camunda.connector</groupId>
-      <artifactId>element-template-generator</artifactId>
+      <artifactId>element-template-generator-core</artifactId>
     </dependency>
   </dependencies>
 

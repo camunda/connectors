@@ -18,8 +18,8 @@ package io.camunda.connector.http.base.auth;
 
 import com.google.api.client.http.HttpHeaders;
 import io.camunda.connector.feel.annotation.FEEL;
-import io.camunda.connector.generator.annotation.TemplateProperty;
-import io.camunda.connector.generator.annotation.TemplateSubType;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
