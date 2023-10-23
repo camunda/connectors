@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.generator.http;
 
+import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.generator.dsl.PropertyBuilder;
 import io.camunda.connector.generator.http.HttpOperation.ConnectorHttpMethod;
 import io.camunda.connector.http.base.auth.Authentication;
@@ -34,6 +35,8 @@ public class HttpOperationBuilder {
   private Map<String, String> queryParameters = Map.of();
   private Authentication authenticationOverride = null;
   private Collection<PropertyBuilder> properties = Collections.emptyList();
+
+  private final FeelEngineWrapper feelEngine = new FeelEngineWrapper();
 
   public static HttpOperationBuilder create() {
     return new HttpOperationBuilder();
@@ -66,6 +69,11 @@ public class HttpOperationBuilder {
    */
   public HttpOperationBuilder pathFeelExpression(String pathFeelExpression) {
     this.pathFeelExpression = pathFeelExpression;
+    return this;
+  }
+
+  public HttpOperationBuilder pathFeelExpression(HttpPathFeelBuilder builder) {
+    this.pathFeelExpression = builder.build();
     return this;
   }
 
@@ -134,7 +142,7 @@ public class HttpOperationBuilder {
       throw new IllegalStateException("Operation label is not defined");
     }
     // shade property ids with operation id as they may be duplicate
-    // TODO: rename properties in the path, body template/expressions accordingly
+    // TODO: is it possible that properties will contain conditions and this will break them?
     properties.forEach(prop -> prop.id(id + "_" + prop.getId()));
 
     return new HttpOperation(

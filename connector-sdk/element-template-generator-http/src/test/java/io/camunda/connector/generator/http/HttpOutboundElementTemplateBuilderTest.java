@@ -16,22 +16,27 @@
  */
 package io.camunda.connector.generator.http;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
 import io.camunda.connector.generator.dsl.StringProperty;
 import io.camunda.connector.generator.http.HttpOperation.ConnectorHttpMethod;
 import io.camunda.connector.http.base.auth.BasicAuthentication;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
+import org.json.JSONException;
 import org.junit.jupiter.api.Test;
+import org.skyscreamer.jsonassert.JSONAssert;
 
 public class HttpOutboundElementTemplateBuilderTest {
 
   private final ObjectMapper mapper = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER;
 
   @Test
-  void sampleTest() throws JsonProcessingException {
+  void sampleTest() throws IOException, JSONException, URISyntaxException {
     var auth = new BasicAuthentication();
     auth.setUsername("john_doe");
     auth.setPassword("C0NN3CT0R5@CAMUNDA");
@@ -54,10 +59,10 @@ public class HttpOutboundElementTemplateBuilderTest {
                     .label("Some GET request")
                     .method(ConnectorHttpMethod.GET)
                     .pathFeelExpression(
-                        """
-                            "/examples/" + exampleId
-                            """
-                            .stripIndent())
+                        HttpPathFeelBuilder.create()
+                            .part("/examples/")
+                            .property("exampleId")
+                            .build())
                     .properties(
                         StringProperty.builder()
                             .id("exampleId")
@@ -85,9 +90,13 @@ public class HttpOutboundElementTemplateBuilderTest {
                     .build())
             .build();
 
+    // when
     var result = mapper.writeValueAsString(template);
 
-    // TODO: json check
-    System.out.println(result);
+    // then
+    var path =
+        Path.of(ClassLoader.getSystemResource("http-outbound-test-element-template.json").toURI());
+    var referenceJsonString = Files.readString(path);
+    JSONAssert.assertEquals(referenceJsonString, result, true);
   }
 }

@@ -23,6 +23,7 @@ import io.camunda.connector.generator.dsl.HiddenProperty;
 import io.camunda.connector.generator.dsl.OutboundElementTemplate;
 import io.camunda.connector.generator.dsl.OutboundElementTemplateBuilder;
 import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
 import io.camunda.connector.generator.dsl.PropertyCondition;
 import io.camunda.connector.generator.dsl.PropertyGroup;
 import io.camunda.connector.http.base.auth.Authentication;
@@ -136,7 +137,10 @@ public class HttpOutboundElementTemplateBuilder {
           .id("server")
           .label("Server")
           .properties(
-              HiddenProperty.builder().id("baseUrl").value(servers.iterator().next().baseUrl()))
+              HiddenProperty.builder()
+                  .id("baseUrl")
+                  .value(servers.iterator().next().baseUrl())
+                  .binding(new ZeebeInput("baseUrl")))
           .build();
     }
 
@@ -150,8 +154,10 @@ public class HttpOutboundElementTemplateBuilder {
                         .map(server -> new DropdownChoice(server.label(), server.baseUrl()))
                         .collect(Collectors.toList()))
                 .id("baseUrl")
+                .value(servers.iterator().next().baseUrl())
                 .label("Server")
                 .group("server")
+                .binding(new ZeebeInput("baseUrl"))
                 .build())
         .build();
   }
@@ -162,7 +168,10 @@ public class HttpOutboundElementTemplateBuilder {
           .id("operation")
           .label("Operation")
           .properties(
-              HiddenProperty.builder().id("operationId").value(operations.iterator().next().id()))
+              HiddenProperty.builder()
+                  .id("operationId")
+                  .value(operations.iterator().next().id())
+                  .binding(new ZeebeInput("operation")))
           .build();
     }
 
@@ -178,6 +187,8 @@ public class HttpOutboundElementTemplateBuilder {
                 .id("operationId")
                 .label("Operation")
                 .group("operation")
+                .value(operations.iterator().next().id())
+                .binding(new ZeebeInput("operation"))
                 .build())
         .build();
   }

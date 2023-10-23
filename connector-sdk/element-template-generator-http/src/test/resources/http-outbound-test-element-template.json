@@ -1,0 +1,121 @@
+{
+  "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name": "Test template",
+  "id": "testTemplate",
+  "description": "My test template",
+  "documentationRef": "https://docs.camunda.io",
+  "version": 42,
+  "category": {
+    "id": "connectors",
+    "name": "Connectors"
+  },
+  "appliesTo": [
+    "bpmn:Task"
+  ],
+  "elementType": {
+    "value": "bpmn:ServiceTask"
+  },
+  "groups": [
+    {
+      "id": "server",
+      "label": "Server"
+    },
+    {
+      "id": "operation",
+      "label": "Operation"
+    }
+  ],
+  "properties": [
+    {
+      "value": "io.camunda:http-json:1",
+      "binding": {
+        "type": "zeebe:taskDefinition:type"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "baseUrl",
+      "label": "Server",
+      "value": "https://prod.camunda.com",
+      "group": "server",
+      "binding": {
+        "name": "baseUrl",
+        "type": "zeebe:input"
+      },
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Production",
+          "value": "https://prod.camunda.com"
+        },
+        {
+          "name": "Development",
+          "value": "https://dev.camunda.com"
+        }
+      ]
+    },
+    {
+      "id": "operationId",
+      "label": "Operation",
+      "value": "someGetRequest",
+      "group": "operation",
+      "binding": {
+        "name": "operation",
+        "type": "zeebe:input"
+      },
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Some GET request",
+          "value": "someGetRequest"
+        },
+        {
+          "name": "Some POST request",
+          "value": "somePostRequest"
+        }
+      ]
+    },
+    {
+      "id": "someGetRequest_exampleId",
+      "label": "Example ID",
+      "feel": "optional",
+      "binding": {
+        "name": "exampleId",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "someGetRequest"
+      },
+      "type": "String"
+    },
+    {
+      "id": "somePostRequest_exampleId",
+      "label": "Example ID",
+      "feel": "optional",
+      "binding": {
+        "name": "exampleId",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "somePostRequest"
+      },
+      "type": "String"
+    },
+    {
+      "id": "somePostRequest_exampleName",
+      "label": "exampleName",
+      "feel": "optional",
+      "binding": {
+        "name": "exampleName",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "somePostRequest"
+      },
+      "type": "String"
+    }
+  ]
+}
