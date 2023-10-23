@@ -14,27 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.generator.core.util;
+package io.camunda.connector.generator.java;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
-
-public class TemplatePropertiesUtilTest {
-
-  @ParameterizedTest
-  @CsvSource({
-    "myProperty, My property",
-    "myPropertyWithCamelCase, My property with camel case",
-    "myPropertyWithCamelCaseAndNumbers123, My property with camel case and numbers 123",
-    "MY_UPPERCASE_PROPERTY,MY_UPPERCASE_PROPERTY"
-  })
-  void transformIntoLabel(String input, String expected) {
-    // when
-    var actual = TemplatePropertiesUtil.transformIdIntoLabel(input);
-
-    // then
-    assertThat(actual).isEqualTo(expected);
+/** Configuration for the element template generator */
+public record GeneratorConfiguration(
+    /*
+     * Connectors in hybrid mode have a configurable task definition type (for outbound), or a
+     * configurable connector type (for inbound) property. This allows to run multiple connector
+     * runtimes against the same Camunda cluster and distiguish between them on the BPMN level.
+     */
+    ConnectorMode connectorMode) {
+  public enum ConnectorMode {
+    NORMAL,
+    HYBRID
   }
+
+  public static final GeneratorConfiguration DEFAULT =
+      new GeneratorConfiguration(ConnectorMode.NORMAL);
 }

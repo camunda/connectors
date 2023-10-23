@@ -12,7 +12,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.gdrive.model.GoogleDriveResult;
 import io.camunda.connector.gdrive.model.request.GoogleDriveRequest;
 import io.camunda.connector.gdrive.supliers.GoogleDocsServiceSupplier;
-import io.camunda.connector.generator.annotation.ElementTemplate;
+import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.google.supplier.GoogleDriveServiceSupplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

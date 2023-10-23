@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.generator.core.example;
+package io.camunda.connector.generator.java.example;
 
-import io.camunda.connector.generator.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
 
 public record DuplicatePropertyConnectorInput(
     @TemplateProperty(id = "prop") String prop1, @TemplateProperty(id = "prop") String prop2) {}

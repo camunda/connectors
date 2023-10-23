@@ -17,10 +17,10 @@
 package io.camunda.connector.generator;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.generator.core.GeneratorConfiguration;
-import io.camunda.connector.generator.core.GeneratorConfiguration.ConnectorMode;
-import io.camunda.connector.generator.core.OutboundElementTemplateGenerator;
 import io.camunda.connector.generator.dsl.OutboundElementTemplate;
+import io.camunda.connector.generator.java.GeneratorConfiguration;
+import io.camunda.connector.generator.java.GeneratorConfiguration.ConnectorMode;
+import io.camunda.connector.generator.java.OutboundClassBasedTemplateGenerator;
 import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -62,7 +62,7 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
   private boolean generateHybridTemplates;
 
   private static final ObjectMapper mapper = new ObjectMapper();
-  private OutboundElementTemplateGenerator generator;
+  private OutboundClassBasedTemplateGenerator generator;
 
   private static final String COMPILED_CLASSES_DIR = "target" + File.separator + "classes";
 
@@ -107,7 +107,7 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
 
       // ensures that resources and classes from the project are loaded by the classloader
       Thread.currentThread().setContextClassLoader(classLoader);
-      generator = new OutboundElementTemplateGenerator();
+      generator = new OutboundClassBasedTemplateGenerator();
 
       for (String className : connectorClasses) {
         getLog().info("Generating element template for " + className);

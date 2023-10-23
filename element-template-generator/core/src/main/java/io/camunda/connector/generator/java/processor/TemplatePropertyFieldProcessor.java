@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.generator.core.processor;
+package io.camunda.connector.generator.java.processor;
 
-import io.camunda.connector.generator.annotation.TemplateProperty;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownPropertyBuilder;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.dsl.PropertyBuilder;
 import io.camunda.connector.generator.dsl.PropertyCondition;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import java.lang.reflect.Field;
 import java.util.Arrays;
 

@@ -17,10 +17,10 @@
 package io.camunda.connector.http.base.model;
 
 import io.camunda.connector.feel.annotation.FEEL;
-import io.camunda.connector.generator.annotation.TemplateProperty;
-import io.camunda.connector.generator.annotation.TemplateProperty.PropertyCondition;
-import io.camunda.connector.generator.annotation.TemplateProperty.PropertyType;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
 import io.camunda.connector.http.base.auth.Authentication;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;

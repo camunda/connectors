@@ -14,12 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.generator.core.processor;
+package io.camunda.connector.generator.java.util;
 
-import io.camunda.connector.generator.dsl.PropertyBuilder;
-import java.lang.reflect.Field;
+import static org.assertj.core.api.Assertions.assertThat;
 
-public interface FieldProcessor {
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
-  void process(Field field, PropertyBuilder propertyBuilder);
+public class TemplatePropertiesUtilTest {
+
+  @ParameterizedTest
+  @CsvSource({
+    "myProperty, My property",
+    "myPropertyWithCamelCase, My property with camel case",
+    "myPropertyWithCamelCaseAndNumbers123, My property with camel case and numbers 123",
+    "MY_UPPERCASE_PROPERTY,MY_UPPERCASE_PROPERTY"
+  })
+  void transformIntoLabel(String input, String expected) {
+    // when
+    var actual = TemplatePropertiesUtil.transformIdIntoLabel(input);
+
+    // then
+    assertThat(actual).isEqualTo(expected);
+  }
 }

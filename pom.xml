@@ -27,6 +27,7 @@
     <module>element-template-generator/core</module>
     <module>element-template-generator/maven-plugin</module>
     <module>element-template-generator/http</module>
+    <module>element-template-generator/openapi-parser</module>
     <module>secret-providers/gcp-secret-provider</module>
     <module>connector-runtime/connector-runtime-core</module>
     <module>connector-runtime/connector-runtime-spring</module>

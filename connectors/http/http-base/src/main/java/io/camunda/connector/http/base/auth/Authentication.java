@@ -19,7 +19,7 @@ package io.camunda.connector.http.base.auth;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.google.api.client.http.HttpHeaders;
-import io.camunda.connector.generator.annotation.TemplateDiscriminatorProperty;
+import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({

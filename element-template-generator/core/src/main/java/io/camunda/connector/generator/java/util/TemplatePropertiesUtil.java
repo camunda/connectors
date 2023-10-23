@@ -14,19 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.generator.core.util;
+package io.camunda.connector.generator.java.util;
 
-import static io.camunda.connector.generator.core.util.ReflectionUtil.getAllFields;
+import static io.camunda.connector.generator.java.util.ReflectionUtil.getAllFields;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import io.camunda.connector.generator.annotation.TemplateDiscriminatorProperty;
-import io.camunda.connector.generator.annotation.TemplateProperty;
-import io.camunda.connector.generator.annotation.TemplateProperty.DropdownPropertyChoice;
-import io.camunda.connector.generator.annotation.TemplateProperty.PropertyType;
-import io.camunda.connector.generator.annotation.TemplateSubType;
-import io.camunda.connector.generator.core.processor.FieldProcessor;
-import io.camunda.connector.generator.core.processor.JakartaValidationFieldProcessor;
-import io.camunda.connector.generator.core.processor.TemplatePropertyFieldProcessor;
 import io.camunda.connector.generator.dsl.BooleanProperty;
 import io.camunda.connector.generator.dsl.DropdownProperty;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
@@ -42,6 +34,14 @@ import io.camunda.connector.generator.dsl.PropertyGroup;
 import io.camunda.connector.generator.dsl.PropertyGroup.PropertyGroupBuilder;
 import io.camunda.connector.generator.dsl.StringProperty;
 import io.camunda.connector.generator.dsl.TextProperty;
+import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.DropdownPropertyChoice;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
+import io.camunda.connector.generator.java.annotation.TemplateSubType;
+import io.camunda.connector.generator.java.processor.FieldProcessor;
+import io.camunda.connector.generator.java.processor.JakartaValidationFieldProcessor;
+import io.camunda.connector.generator.java.processor.TemplatePropertyFieldProcessor;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.util.ArrayList;

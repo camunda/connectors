@@ -14,21 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.generator.core;
+package io.camunda.connector.generator.java.processor;
 
-/** Configuration for the element template generator */
-public record GeneratorConfiguration(
-    /*
-     * Connectors in hybrid mode have a configurable task definition type (for outbound), or a
-     * configurable connector type (for inbound) property. This allows to run multiple connector
-     * runtimes against the same Camunda cluster and distiguish between them on the BPMN level.
-     */
-    ConnectorMode connectorMode) {
-  public enum ConnectorMode {
-    NORMAL,
-    HYBRID
-  }
+import io.camunda.connector.generator.dsl.PropertyBuilder;
+import java.lang.reflect.Field;
 
-  public static final GeneratorConfiguration DEFAULT =
-      new GeneratorConfiguration(ConnectorMode.NORMAL);
+public interface FieldProcessor {
+
+  void process(Field field, PropertyBuilder propertyBuilder);
 }

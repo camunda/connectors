@@ -14,13 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.generator.core;
+package io.camunda.connector.generator.java;
 
 import io.camunda.connector.api.annotation.OutboundConnector;
-import io.camunda.connector.generator.annotation.ElementTemplate;
-import io.camunda.connector.generator.core.GeneratorConfiguration.ConnectorMode;
-import io.camunda.connector.generator.core.util.ReflectionUtil;
-import io.camunda.connector.generator.core.util.TemplatePropertiesUtil;
 import io.camunda.connector.generator.dsl.CommonProperties;
 import io.camunda.connector.generator.dsl.ElementTemplateIcon;
 import io.camunda.connector.generator.dsl.OutboundElementTemplate;
@@ -29,33 +25,37 @@ import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskHeader;
 import io.camunda.connector.generator.dsl.PropertyBuilder;
 import io.camunda.connector.generator.dsl.PropertyGroup;
 import io.camunda.connector.generator.dsl.PropertyGroup.PropertyGroupBuilder;
+import io.camunda.connector.generator.java.GeneratorConfiguration.ConnectorMode;
+import io.camunda.connector.generator.java.annotation.ElementTemplate;
+import io.camunda.connector.generator.java.util.ReflectionUtil;
+import io.camunda.connector.generator.java.util.TemplatePropertiesUtil;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 
-public class OutboundElementTemplateGenerator
-    implements ElementTemplateGenerator<OutboundElementTemplate> {
+public class OutboundClassBasedTemplateGenerator
+    implements ClassBasedTemplateGenerator<OutboundElementTemplate> {
 
   private final ClassLoader classLoader;
   private final GeneratorConfiguration defaultConfiguration;
 
-  public OutboundElementTemplateGenerator(
+  public OutboundClassBasedTemplateGenerator(
       ClassLoader classLoader, GeneratorConfiguration configuration) {
     this.classLoader = classLoader;
     this.defaultConfiguration = configuration;
   }
 
-  public OutboundElementTemplateGenerator(ClassLoader classLoader) {
+  public OutboundClassBasedTemplateGenerator(ClassLoader classLoader) {
     this(classLoader, GeneratorConfiguration.DEFAULT);
   }
 
-  public OutboundElementTemplateGenerator(GeneratorConfiguration configuration) {
+  public OutboundClassBasedTemplateGenerator(GeneratorConfiguration configuration) {
     this(Thread.currentThread().getContextClassLoader(), configuration);
   }
 
-  public OutboundElementTemplateGenerator() {
+  public OutboundClassBasedTemplateGenerator() {
     this(Thread.currentThread().getContextClassLoader());
   }
 

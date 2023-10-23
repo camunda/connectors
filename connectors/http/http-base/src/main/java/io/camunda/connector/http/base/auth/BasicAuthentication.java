@@ -19,8 +19,8 @@ package io.camunda.connector.http.base.auth;
 import com.google.api.client.http.HttpHeaders;
 import com.google.common.base.Objects;
 import io.camunda.connector.feel.annotation.FEEL;
-import io.camunda.connector.generator.annotation.TemplateProperty;
-import io.camunda.connector.generator.annotation.TemplateSubType;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotEmpty;
 import java.util.function.Function;
 

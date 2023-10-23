@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.generator.core.example;
+package io.camunda.connector.generator.java.example;
 
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import io.camunda.connector.generator.annotation.ElementTemplate;
-import io.camunda.connector.generator.annotation.ElementTemplate.PropertyGroup;
+import io.camunda.connector.generator.java.annotation.ElementTemplate;
+import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
 
 public abstract class MyConnectorFunction implements OutboundConnectorFunction {
 

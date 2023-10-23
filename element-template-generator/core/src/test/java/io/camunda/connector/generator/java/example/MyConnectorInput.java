@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.generator.core.example;
+package io.camunda.connector.generator.java.example;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import io.camunda.connector.generator.annotation.TemplateDiscriminatorProperty;
-import io.camunda.connector.generator.annotation.TemplateProperty;
-import io.camunda.connector.generator.annotation.TemplateProperty.PropertyCondition;
-import io.camunda.connector.generator.annotation.TemplateProperty.PropertyType;
-import io.camunda.connector.generator.annotation.TemplateSubType;
-import io.camunda.connector.generator.core.example.MyConnectorInput.AnnotatedSealedType.FirstAnnotatedSubType;
-import io.camunda.connector.generator.core.example.MyConnectorInput.AnnotatedSealedType.IgnoredSubType;
-import io.camunda.connector.generator.core.example.MyConnectorInput.AnnotatedSealedType.SecondAnnotatedSubType;
-import io.camunda.connector.generator.core.example.MyConnectorInput.NonAnnotatedSealedType.FirstSubType;
-import io.camunda.connector.generator.core.example.MyConnectorInput.NonAnnotatedSealedType.SecondSubType;
+import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
+import io.camunda.connector.generator.java.annotation.TemplateSubType;
+import io.camunda.connector.generator.java.example.MyConnectorInput.AnnotatedSealedType.FirstAnnotatedSubType;
+import io.camunda.connector.generator.java.example.MyConnectorInput.AnnotatedSealedType.IgnoredSubType;
+import io.camunda.connector.generator.java.example.MyConnectorInput.AnnotatedSealedType.SecondAnnotatedSubType;
+import io.camunda.connector.generator.java.example.MyConnectorInput.NonAnnotatedSealedType.FirstSubType;
+import io.camunda.connector.generator.java.example.MyConnectorInput.NonAnnotatedSealedType.SecondSubType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;

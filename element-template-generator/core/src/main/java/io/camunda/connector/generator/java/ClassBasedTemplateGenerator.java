@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.generator.core;
+package io.camunda.connector.generator.java;
 
 import io.camunda.connector.generator.dsl.ElementTemplateBase;
 
@@ -24,7 +24,7 @@ import io.camunda.connector.generator.dsl.ElementTemplateBase;
  *
  * @param <T> the type of the element template to generate
  */
-public interface ElementTemplateGenerator<T extends ElementTemplateBase> {
+public interface ClassBasedTemplateGenerator<T extends ElementTemplateBase> {
 
   /**
    * Generate Connector using default configuration

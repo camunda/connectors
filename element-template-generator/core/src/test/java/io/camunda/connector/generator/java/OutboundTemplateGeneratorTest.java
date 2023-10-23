@@ -14,15 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.generator.core;
+package io.camunda.connector.generator.java;
 
 import static java.nio.file.Files.readAllBytes;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import io.camunda.connector.generator.core.GeneratorConfiguration.ConnectorMode;
-import io.camunda.connector.generator.core.example.MyConnectorFunction;
 import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.dsl.DropdownProperty;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
@@ -35,6 +33,8 @@ import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
 import io.camunda.connector.generator.dsl.PropertyConstraints.Pattern;
 import io.camunda.connector.generator.dsl.StringProperty;
 import io.camunda.connector.generator.dsl.TextProperty;
+import io.camunda.connector.generator.java.GeneratorConfiguration.ConnectorMode;
+import io.camunda.connector.generator.java.example.MyConnectorFunction;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Base64;
@@ -47,7 +47,8 @@ import org.junit.jupiter.api.Test;
 
 public class OutboundTemplateGeneratorTest extends BaseTest {
 
-  private final OutboundElementTemplateGenerator generator = new OutboundElementTemplateGenerator();
+  private final OutboundClassBasedTemplateGenerator generator =
+      new OutboundClassBasedTemplateGenerator();
 
   @Nested
   class Basic {
