@@ -69,6 +69,7 @@ public record OutboundElementTemplate(
     } else {
       Set<String> propIdOccurrences = new HashSet<>();
       for (var property : properties) {
+        if (property.id == null) continue;
         if (propIdOccurrences.contains(property.id)) {
           errors.add("duplicate property " + property.id);
         }
