@@ -46,7 +46,7 @@ public record PropertyGroup(
 
     private String id;
     private String label;
-    private List<Property> properties = new ArrayList<>();
+    private final List<Property> properties = new ArrayList<>();
 
     private PropertyGroupBuilder() {}
 

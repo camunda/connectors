@@ -98,10 +98,5 @@ public abstract sealed class PropertyBuilder
     return this;
   }
 
-  PropertyBuilder type(String type) {
-    this.type = type;
-    return this;
-  }
-
   public abstract Property build();
 }

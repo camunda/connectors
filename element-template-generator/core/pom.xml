@@ -9,9 +9,9 @@
     <version>8.4.0-SNAPSHOT</version>
   </parent>
 
-  <name>element-template-generator</name>
+  <name>core</name>
   <description>Camunda Connector template generator</description>
-  <artifactId>element-template-generator</artifactId>
+  <artifactId>element-template-generator-core</artifactId>
   <packaging>jar</packaging>
 
   <dependencies>

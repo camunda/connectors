@@ -17,7 +17,7 @@ You can customize and extend the functionality by using more annotations (see be
 
 ## Usage
 
-For most use cases, we recommend using the [Maven plugin](../element-template-generator-maven-plugin) to invoke the Template Generator.
+For most use cases, we recommend using the [Maven plugin](../maven-plugin) to invoke the Template Generator.
 
 The Generator can be invoked directly from Java code as well. To do so, create an instance of the
 `OutboundElementTemplateGenerator` class and invoke its `generate` method.
@@ -263,7 +263,7 @@ The icon file must be available as a resource in the classpath. By default, it i
 `src/main/resources` directory.
 
 When running in a multi-module Maven environment using the
-[Maven Plugin](../element-template-generator-maven-plugin), the resources of a connector module are
+[Maven Plugin](../maven-plugin), the resources of a connector module are
 not visible to the Template Generator's default class loader. To mitigate this, the Maven Plugin
 adds the individual connector resources to the custom class loader that can be consumed by the
 Template Generator either via `Thread.currentThread().getContextClassLoader()` or directly via

@@ -24,9 +24,9 @@
     <module>connector-sdk/test</module>
     <module>connector-sdk/feel-wrapper</module>
     <module>connector-sdk/jackson-datatype-feel</module>
-    <module>connector-sdk/element-template-generator</module>
-    <module>connector-sdk/element-template-generator-maven-plugin</module>
-    <module>connector-sdk/element-template-generator-http</module>
+    <module>element-template-generator/core</module>
+    <module>element-template-generator/maven-plugin</module>
+    <module>element-template-generator/http</module>
     <module>secret-providers/gcp-secret-provider</module>
     <module>connector-runtime/connector-runtime-core</module>
     <module>connector-runtime/connector-runtime-spring</module>

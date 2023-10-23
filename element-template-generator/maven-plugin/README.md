@@ -4,7 +4,7 @@ This plugin generates [Connector Templates](https://docs.camunda.io/docs/compone
 based on Connector code.
 
 To use the plugin, your Connector must be annotated with `@ElementTemplate` annotation.
-See the [Element Template Generator](../element-template-generator) module for more information.
+See the [Element Template Generator](../core) module for more information.
 
 ## Usage
 
