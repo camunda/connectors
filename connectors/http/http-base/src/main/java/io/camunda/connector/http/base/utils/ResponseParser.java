@@ -24,10 +24,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+@Deprecated
 public final class ResponseParser {
 
   private ResponseParser() {}
 
+  @Deprecated
   public static Map<String, String> extractPropertiesFromBody(
       final Map<String, String> requestedProperties,
       final String strResponse,

@@ -61,6 +61,7 @@ public class AuthenticationService {
         .orElse(null);
   }
 
+  @Deprecated() // use only CustomAuthentication
   public void fillRequestFromCustomAuthResponseData(
       final HttpCommonRequest request,
       final CustomAuthentication authentication,
