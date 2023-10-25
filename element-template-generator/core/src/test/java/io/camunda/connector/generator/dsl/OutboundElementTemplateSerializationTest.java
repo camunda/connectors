@@ -17,9 +17,12 @@
 package io.camunda.connector.generator.dsl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskHeader;
+import io.camunda.connector.generator.dsl.PropertyCondition.AllMatch;
+import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -65,13 +68,26 @@ public class OutboundElementTemplateSerializationTest {
                     .label("Compose")
                     .properties(
                         DropdownProperty.builder()
-                            .choices(
-                                List.of(
-                                    new DropdownProperty.DropdownChoice(
-                                        "message", "Compose a message")))
+                            .choices(List.of(new DropdownChoice("message", "Compose a message")))
                             .label("Type")
                             .description("The type of message to compose")
                             .binding(new ZeebeInput("compose.type")),
+                        DropdownProperty.builder()
+                            .choices(
+                                List.of(
+                                    new DropdownChoice("With topic", "withTopic"),
+                                    new DropdownChoice("Without topic", "withoutTopic")))
+                            .label("With topic?")
+                            .binding(new ZeebeInput("compose.withTopic")),
+                        TextProperty.builder()
+                            .label("Topic")
+                            .description("The topic of the message")
+                            .feel(FeelMode.optional)
+                            .binding(new ZeebeInput("compose.topic"))
+                            .condition(
+                                new AllMatch(
+                                    new Equals("compose.type", "message"),
+                                    new Equals("compose.withTopic", "withTopic"))),
                         TextProperty.builder()
                             .label("Message")
                             .feel(FeelMode.optional)

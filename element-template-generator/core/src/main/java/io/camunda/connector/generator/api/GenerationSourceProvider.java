@@ -14,24 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.generator.dsl;
+package io.camunda.connector.generator.api;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import java.util.Collection;
-import java.util.List;
-
-public sealed interface PropertyCondition {
-
-  record OneOf(@JsonProperty String property, @JsonProperty List<String> oneOf)
-      implements PropertyCondition {}
-
-  record Equals(@JsonProperty String property, @JsonProperty String equals)
-      implements PropertyCondition {}
-
-  record AllMatch(@JsonProperty Collection<PropertyCondition> allMatch)
-      implements PropertyCondition {
-    public AllMatch(PropertyCondition... conditions) {
-      this(List.of(conditions));
-    }
-  }
-}
+public interface GenerationSourceProvider<IN> {}

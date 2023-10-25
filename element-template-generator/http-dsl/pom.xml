@@ -9,25 +9,24 @@
     <version>8.4.0-SNAPSHOT</version>
   </parent>
 
-  <name>openapi-parser</name>
-  <description>OpenAPI parser library for generating connector templates</description>
-  <artifactId>openapi-parser</artifactId>
+  <name>element-template-generator-http</name>
+  <description>Template generator for the HTTP Connector family</description>
+  <artifactId>element-template-generator-http-dsl</artifactId>
   <packaging>jar</packaging>
-
-  <properties>
-    <version.swagger-parser>2.1.16</version.swagger-parser>
-  </properties>
 
   <dependencies>
     <dependency>
       <groupId>io.camunda.connector</groupId>
-      <artifactId>element-template-generator-http-dsl</artifactId>
+      <artifactId>element-template-generator-core</artifactId>
     </dependency>
-
     <dependency>
-      <groupId>io.swagger.parser.v3</groupId>
-      <artifactId>swagger-parser</artifactId>
-      <version>${version.swagger-parser}</version>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-http-base</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-feel-wrapper</artifactId>
     </dependency>
 
     <dependency>
