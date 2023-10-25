@@ -1,0 +1,319 @@
+{
+  "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name": "Test template",
+  "id": "testTemplate",
+  "description": "My test template",
+  "documentationRef": "https://docs.camunda.io",
+  "version": 42,
+  "category": {
+    "id": "connectors",
+    "name": "Connectors"
+  },
+  "appliesTo": [
+    "bpmn:Task"
+  ],
+  "elementType": {
+    "value": "bpmn:ServiceTask"
+  },
+  "groups": [
+    {
+      "id": "server",
+      "label": "Server"
+    },
+    {
+      "id": "authentication",
+      "label": "Authentication"
+    },
+    {
+      "id": "operation",
+      "label": "Operation"
+    },
+    {
+      "id": "parameters",
+      "label": "Parameters"
+    },
+    {
+      "id": "requestBody",
+      "label": "Request body"
+    }
+  ],
+  "properties": [
+    {
+      "value": "io.camunda:http-json:1",
+      "binding": {
+        "type": "zeebe:taskDefinition:type"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "url",
+      "value": "= baseUrl + operationPath",
+      "group": "server",
+      "binding": {
+        "name": "url",
+        "type": "zeebe:input"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "baseUrl",
+      "label": "Server",
+      "group": "server",
+      "binding": {
+        "name": "baseUrl",
+        "type": "zeebe:input"
+      },
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Production",
+          "value": "https://prod.camunda.com"
+        },
+        {
+          "name": "Development",
+          "value": "https://dev.camunda.com"
+        }
+      ]
+    },
+    {
+      "id": "authType",
+      "value": "basic",
+      "group": "authentication",
+      "binding": {
+        "name": "authType",
+        "type": "zeebe:input"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "authentication.username",
+      "label": "Username",
+      "optional": false,
+      "constraints": {
+        "notEmpty": true
+      },
+      "feel": "optional",
+      "group": "authentication",
+      "binding": {
+        "name": "authentication.username",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "allMatch": [
+          {
+            "property": "authType",
+            "equals": "basic"
+          },
+          {
+            "property": "operationId",
+            "oneOf": [
+              "someGetRequest",
+              "somePostRequest"
+            ]
+          }
+        ]
+      },
+      "type": "String"
+    },
+    {
+      "id": "authentication.password",
+      "label": "Password",
+      "optional": false,
+      "constraints": {
+        "notEmpty": true
+      },
+      "feel": "optional",
+      "group": "authentication",
+      "binding": {
+        "name": "authentication.password",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "allMatch": [
+          {
+            "property": "authType",
+            "equals": "basic"
+          },
+          {
+            "property": "operationId",
+            "oneOf": [
+              "someGetRequest",
+              "somePostRequest"
+            ]
+          }
+        ]
+      },
+      "type": "String"
+    },
+    {
+      "id": "operationId",
+      "label": "Operation",
+      "value": "someGetRequest",
+      "group": "operation",
+      "binding": {
+        "name": "operationId",
+        "type": "zeebe:input"
+      },
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Some GET request",
+          "value": "someGetRequest"
+        },
+        {
+          "name": "Some POST request",
+          "value": "somePostRequest"
+        }
+      ]
+    },
+    {
+      "id": "someGetRequest_path",
+      "value": "=\"/examples/\"+exampleId",
+      "group": "parameters",
+      "binding": {
+        "name": "operationPath",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "someGetRequest"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "someGetRequest_headers",
+      "value": "={}",
+      "group": "parameters",
+      "binding": {
+        "name": "headers",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "someGetRequest"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "someGetRequest_queryParameters",
+      "value": "={}",
+      "group": "parameters",
+      "binding": {
+        "name": "queryParameters",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "someGetRequest"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "someGetRequest_method",
+      "value": "GET",
+      "group": "parameters",
+      "binding": {
+        "name": "method",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "someGetRequest"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "someGetRequest_exampleId",
+      "label": "exampleId",
+      "description": "Example ID",
+      "optional": false,
+      "value": "42",
+      "constraints": {
+        "notEmpty": true
+      },
+      "feel": "optional",
+      "group": "parameters",
+      "binding": {
+        "name": "exampleId",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "someGetRequest"
+      },
+      "type": "String"
+    },
+    {
+      "id": "somePostRequest_path",
+      "value": "\"/examples\"",
+      "group": "parameters",
+      "binding": {
+        "name": "operationPath",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "somePostRequest"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "somePostRequest_headers",
+      "value": "={}",
+      "group": "parameters",
+      "binding": {
+        "name": "headers",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "somePostRequest"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "somePostRequest_queryParameters",
+      "value": "={}",
+      "group": "parameters",
+      "binding": {
+        "name": "queryParameters",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "somePostRequest"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "somePostRequest_method",
+      "value": "POST",
+      "group": "parameters",
+      "binding": {
+        "name": "method",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "somePostRequest"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "somePostRequest_body",
+      "label": "Request body",
+      "value": "={\"id\": exampleId, \"name\": exampleName}\n",
+      "feel": "required",
+      "group": "requestBody",
+      "binding": {
+        "name": "body",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "equals": "somePostRequest"
+      },
+      "type": "String"
+    }
+  ]
+}

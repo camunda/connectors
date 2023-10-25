@@ -226,7 +226,7 @@ limitations under the License.</license.inlineheader>
 
       <dependency>
         <groupId>io.camunda.connector</groupId>
-        <artifactId>element-template-generator-http</artifactId>
+        <artifactId>element-template-generator-http-dsl</artifactId>
         <version>${project.version}</version>
       </dependency>
 

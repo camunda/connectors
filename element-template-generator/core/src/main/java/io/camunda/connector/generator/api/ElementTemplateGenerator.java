@@ -14,24 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.generator.dsl;
+package io.camunda.connector.generator.api;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import java.util.Collection;
-import java.util.List;
+import io.camunda.connector.generator.dsl.ElementTemplateBase;
 
-public sealed interface PropertyCondition {
+/**
+ * Base interface for any element template generator
+ *
+ * @param <IN> Data source for template generation
+ * @param <OUT> Generation output type
+ */
+public interface ElementTemplateGenerator<IN, OUT extends ElementTemplateBase> {
 
-  record OneOf(@JsonProperty String property, @JsonProperty List<String> oneOf)
-      implements PropertyCondition {}
+  /** Generate an element template from source using the provided configuration */
+  OUT generate(IN source, GeneratorConfiguration configuration);
 
-  record Equals(@JsonProperty String property, @JsonProperty String equals)
-      implements PropertyCondition {}
-
-  record AllMatch(@JsonProperty Collection<PropertyCondition> allMatch)
-      implements PropertyCondition {
-    public AllMatch(PropertyCondition... conditions) {
-      this(List.of(conditions));
-    }
+  /** Generate an element template from source using the default configuration */
+  default OUT generate(IN source) {
+    return generate(source, GeneratorConfiguration.DEFAULT);
   }
 }

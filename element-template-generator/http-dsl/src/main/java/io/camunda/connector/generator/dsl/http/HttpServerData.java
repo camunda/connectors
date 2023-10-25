@@ -14,24 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.generator.dsl;
+package io.camunda.connector.generator.dsl.http;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import java.util.Collection;
-import java.util.List;
-
-public sealed interface PropertyCondition {
-
-  record OneOf(@JsonProperty String property, @JsonProperty List<String> oneOf)
-      implements PropertyCondition {}
-
-  record Equals(@JsonProperty String property, @JsonProperty String equals)
-      implements PropertyCondition {}
-
-  record AllMatch(@JsonProperty Collection<PropertyCondition> allMatch)
-      implements PropertyCondition {
-    public AllMatch(PropertyCondition... conditions) {
-      this(List.of(conditions));
-    }
-  }
-}
+/** Data for the HTTP base URL selector property of the generated element template. */
+public record HttpServerData(String baseUrl, String label) {}
