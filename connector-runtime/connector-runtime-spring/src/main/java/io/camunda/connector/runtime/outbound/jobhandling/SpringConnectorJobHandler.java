@@ -32,12 +32,16 @@ import io.camunda.zeebe.client.api.worker.JobClient;
 import io.camunda.zeebe.spring.client.jobhandling.CommandExceptionHandlingStrategy;
 import io.camunda.zeebe.spring.client.jobhandling.CommandWrapper;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * An enhanced implementation of a {@link ConnectorJobHandler} that adds metrics, asynchronous
  * command execution, and retries.
  */
 public class SpringConnectorJobHandler extends ConnectorJobHandler {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(SpringConnectorJobHandler.class);
 
   private final CommandExceptionHandlingStrategy commandExceptionHandlingStrategy;
   private final MetricsRecorder metricsRecorder;
@@ -74,7 +78,7 @@ public class SpringConnectorJobHandler extends ConnectorJobHandler {
                 Outbound.METRIC_NAME_INVOCATIONS,
                 Outbound.ACTION_FAILED,
                 connectorConfiguration.type());
-            System.out.println("Failed to handle job: " + job);
+            LOGGER.warn("Failed to handle job: " + job);
           }
         });
   }

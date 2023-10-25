@@ -4,7 +4,7 @@
   "id": "io.camunda.connectors.AWSSNS.v1",
   "description": "Send message to topic",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-sns/",
-  "version": 5,
+  "version": 6,
   "appliesTo": [
     "bpmn:Task"
   ],
@@ -46,6 +46,32 @@
       }
     },
     {
+      "id": "authenticationType",
+      "label": "Authentication",
+      "description": "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sns/\" target=\"_blank\">documentation page</a>",
+      "group": "authentication",
+      "type": "Dropdown",
+      "optional": false,
+      "value": "credentials",
+      "choices": [
+        {
+          "name": "Credentials",
+          "value": "credentials"
+        },
+        {
+          "name": "Default Credentials Chain (Hybrid/Self-Managed only)",
+          "value": "defaultCredentialsChain"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.type"
+      },
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
       "label": "Access key",
       "description": "Provide AWS IAM access key that has permission to publish to desired SNS topic",
       "group": "authentication",
@@ -56,6 +82,10 @@
       },
       "constraints": {
         "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "credentials"
       }
     },
     {
@@ -69,6 +99,10 @@
       },
       "constraints": {
         "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "credentials"
       }
     },
     {

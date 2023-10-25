@@ -1,6 +1,6 @@
 [
   {
-    "testDescription": "Deprecated case where region in topic, but must be supported",
+    "testDescription": "Deprecated case where region in topic, but must be supported, no auth type",
     "authentication":{
       "secretKey":"{{secrets.AWS_SECRET_KEY}}",
       "accessKey":"{{secrets.AWS_ACCESS_KEY}}"
@@ -14,7 +14,7 @@
     }
   },
   {
-    "testDescription": "Request with secrets",
+    "testDescription": "Request with secrets, no auth type",
     "authentication":{
       "secretKey":"{{secrets.AWS_SECRET_KEY}}",
       "accessKey":"{{secrets.AWS_ACCESS_KEY}}"
@@ -30,7 +30,7 @@
     }
   },
   {
-    "testDescription": "Request with attributes",
+    "testDescription": "Request with attributes, no auth type",
     "authentication":{
       "secretKey":"{{secrets.AWS_SECRET_KEY}}",
       "accessKey":"{{secrets.AWS_ACCESS_KEY}}"
@@ -55,7 +55,7 @@
     }
   },
   {
-    "testDescription": "Request without attributes",
+    "testDescription": "Request without attributes, no auth type",
     "authentication":{
       "secretKey":"{{secrets.AWS_SECRET_KEY}}",
       "accessKey":"{{secrets.AWS_ACCESS_KEY}}"
@@ -70,7 +70,7 @@
     }
   },
   {
-    "testDescription": "Request without secrets",
+    "testDescription": "Request without secrets, no auth type",
     "authentication":{
       "secretKey":"AAAABBBBCCCDDD",
       "accessKey":"4W553CR3TK3Y"
@@ -86,7 +86,7 @@
     }
   },
   {
-    "testDescription": "Request with secrets for ARN",
+    "testDescription": "Request with secrets for ARN, no auth type",
     "authentication":{
       "secretKey":"{{secrets.AWS_SECRET_KEY}}",
       "accessKey":"{{secrets.AWS_ACCESS_KEY}}"
@@ -102,7 +102,7 @@
     }
   },
   {
-    "testDescription": "Request with secrets for region",
+    "testDescription": "Request with secrets for region, no auth type",
     "authentication":{
       "secretKey":"{{secrets.AWS_SECRET_KEY}}",
       "accessKey":"{{secrets.AWS_ACCESS_KEY}}"
@@ -118,10 +118,276 @@
     }
   },
   {
-    "testDescription": "Request without subject",
+    "testDescription": "Request without subject, no auth type",
     "authentication":{
       "secretKey":"{{secrets.AWS_SECRET_KEY}}",
       "accessKey":"{{secrets.AWS_ACCESS_KEY}}"
+    },
+    "configuration": {
+      "region":"us-east-1"
+    },
+    "topic":{
+      "message":"Hello",
+      "messageAttributes":{},
+      "topicArn":"arn:aws:sns:us-east-1:036433529947:MyCamundaDemo"
+    }
+  },
+  {
+    "testDescription": "Deprecated case where region in topic, but must be supported, static creds auth",
+    "authentication":{
+      "type": "credentials",
+      "secretKey":"{{secrets.AWS_SECRET_KEY}}",
+      "accessKey":"{{secrets.AWS_ACCESS_KEY}}"
+    },
+    "topic":{
+      "message":"Hello",
+      "messageAttributes":{},
+      "subject":"MySubject",
+      "region":"us-east-1",
+      "topicArn":"arn:aws:sns:us-east-1:036433529947:MyCamundaDemo"
+    }
+  },
+  {
+    "testDescription": "Request with secrets, static creds auth",
+    "authentication":{
+      "type": "credentials",
+      "secretKey":"{{secrets.AWS_SECRET_KEY}}",
+      "accessKey":"{{secrets.AWS_ACCESS_KEY}}"
+    },
+    "configuration": {
+      "region":"us-east-1"
+    },
+    "topic":{
+      "message":"Hello",
+      "messageAttributes":{},
+      "subject":"MySubject",
+      "topicArn":"arn:aws:sns:us-east-1:036433529947:MyCamundaDemo"
+    }
+  },
+  {
+    "testDescription": "Request with attributes, static creds auth",
+    "authentication":{
+      "type": "credentials",
+      "secretKey":"{{secrets.AWS_SECRET_KEY}}",
+      "accessKey":"{{secrets.AWS_ACCESS_KEY}}"
+    },
+    "configuration": {
+      "region":"us-east-1"
+    },
+    "topic":{
+      "message":"Hello",
+      "messageAttributes":{
+        "attribute2":{
+          "StringValue":"attribute 2 value",
+          "DataType":"String"
+        },
+        "attribute1":{
+          "StringValue":"attribute 1 value",
+          "DataType":"String"
+        }
+      },
+      "subject":"MySubject",
+      "topicArn":"{{secrets.AWS_TOPIC_ARN}}"
+    }
+  },
+  {
+    "testDescription": "Request without attributes, static creds auth",
+    "authentication":{
+      "type": "credentials",
+      "secretKey":"{{secrets.AWS_SECRET_KEY}}",
+      "accessKey":"{{secrets.AWS_ACCESS_KEY}}"
+    },
+    "configuration": {
+      "region":"us-east-1"
+    },
+    "topic":{
+      "message":"Hello",
+      "subject":"MySubject",
+      "topicArn":"{{secrets.AWS_TOPIC_ARN}}"
+    }
+  },
+  {
+    "testDescription": "Request without secrets, static creds auth",
+    "authentication":{
+      "type": "credentials",
+      "secretKey":"AAAABBBBCCCDDD",
+      "accessKey":"4W553CR3TK3Y"
+    },
+    "configuration": {
+      "region":"us-east-1"
+    },
+    "topic":{
+      "message":"Hello",
+      "messageAttributes":{},
+      "subject":"MySubject",
+      "topicArn":"arn:aws:sns:us-east-1:036433529947:MyCamundaDemo"
+    }
+  },
+  {
+    "testDescription": "Request with secrets for ARN, static creds auth",
+    "authentication":{
+      "type": "credentials",
+      "secretKey":"{{secrets.AWS_SECRET_KEY}}",
+      "accessKey":"{{secrets.AWS_ACCESS_KEY}}"
+    },
+    "configuration": {
+      "region":"us-east-1"
+    },
+    "topic":{
+      "message":"Hello",
+      "messageAttributes":{},
+      "subject":"MySubject",
+      "topicArn":"{{secrets.AWS_TOPIC_ARN}}"
+    }
+  },
+  {
+    "testDescription": "Request with secrets for region, static creds auth",
+    "authentication":{
+      "type": "credentials",
+      "secretKey":"{{secrets.AWS_SECRET_KEY}}",
+      "accessKey":"{{secrets.AWS_ACCESS_KEY}}"
+    },
+    "configuration": {
+      "region":"{{secrets.AWS_TOPIC_REGION}}"
+    },
+    "topic":{
+      "message":"Hello",
+      "messageAttributes":{},
+      "subject":"MySubject",
+      "topicArn":"arn:aws:sns:us-east-1:036433529947:MyCamundaDemo"
+    }
+  },
+  {
+    "testDescription": "Request without subject, static creds auth",
+    "authentication":{
+      "type": "credentials",
+      "secretKey":"{{secrets.AWS_SECRET_KEY}}",
+      "accessKey":"{{secrets.AWS_ACCESS_KEY}}"
+    },
+    "configuration": {
+      "region":"us-east-1"
+    },
+    "topic":{
+      "message":"Hello",
+      "messageAttributes":{},
+      "topicArn":"arn:aws:sns:us-east-1:036433529947:MyCamundaDemo"
+    }
+  },
+  {
+    "testDescription": "Deprecated case where region in topic, but must be supported, default chain creds",
+    "authentication":{
+      "type": "defaultCredentialsChain"
+    },
+    "topic":{
+      "message":"Hello",
+      "messageAttributes":{},
+      "subject":"MySubject",
+      "region":"us-east-1",
+      "topicArn":"arn:aws:sns:us-east-1:036433529947:MyCamundaDemo"
+    }
+  },
+  {
+    "testDescription": "Request with secrets, default chain creds",
+    "authentication":{
+      "type": "defaultCredentialsChain"
+    },
+    "configuration": {
+      "region":"us-east-1"
+    },
+    "topic":{
+      "message":"Hello",
+      "messageAttributes":{},
+      "subject":"MySubject",
+      "topicArn":"arn:aws:sns:us-east-1:036433529947:MyCamundaDemo"
+    }
+  },
+  {
+    "testDescription": "Request with attributes, default chain creds",
+    "authentication":{
+      "type": "defaultCredentialsChain"
+    },
+    "configuration": {
+      "region":"us-east-1"
+    },
+    "topic":{
+      "message":"Hello",
+      "messageAttributes":{
+        "attribute2":{
+          "StringValue":"attribute 2 value",
+          "DataType":"String"
+        },
+        "attribute1":{
+          "StringValue":"attribute 1 value",
+          "DataType":"String"
+        }
+      },
+      "subject":"MySubject",
+      "topicArn":"{{secrets.AWS_TOPIC_ARN}}"
+    }
+  },
+  {
+    "testDescription": "Request without attributes, default chain creds",
+    "authentication":{
+      "type": "defaultCredentialsChain"
+    },
+    "configuration": {
+      "region":"us-east-1"
+    },
+    "topic":{
+      "message":"Hello",
+      "subject":"MySubject",
+      "topicArn":"{{secrets.AWS_TOPIC_ARN}}"
+    }
+  },
+  {
+    "testDescription": "Request without secrets, default chain creds",
+    "authentication":{
+      "type": "defaultCredentialsChain"
+    },
+    "configuration": {
+      "region":"us-east-1"
+    },
+    "topic":{
+      "message":"Hello",
+      "messageAttributes":{},
+      "subject":"MySubject",
+      "topicArn":"arn:aws:sns:us-east-1:036433529947:MyCamundaDemo"
+    }
+  },
+  {
+    "testDescription": "Request with secrets for ARN, default chain creds",
+    "authentication":{
+      "type": "defaultCredentialsChain"
+    },
+    "configuration": {
+      "region":"us-east-1"
+    },
+    "topic":{
+      "message":"Hello",
+      "messageAttributes":{},
+      "subject":"MySubject",
+      "topicArn":"{{secrets.AWS_TOPIC_ARN}}"
+    }
+  },
+  {
+    "testDescription": "Request with secrets for region, default chain creds",
+    "authentication":{
+      "type": "defaultCredentialsChain"
+    },
+    "configuration": {
+      "region":"{{secrets.AWS_TOPIC_REGION}}"
+    },
+    "topic":{
+      "message":"Hello",
+      "messageAttributes":{},
+      "subject":"MySubject",
+      "topicArn":"arn:aws:sns:us-east-1:036433529947:MyCamundaDemo"
+    }
+  },
+  {
+    "testDescription": "Request without subject, default chain creds",
+    "authentication":{
+      "type": "defaultCredentialsChain"
     },
     "configuration": {
       "region":"us-east-1"

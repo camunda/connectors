@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "AWS Lambda Outbound Connector",
   "id": "io.camunda.connectors.AWSLAMBDA.v2",
-  "version": 3,
+  "version": 4,
   "description": "Invoke a function",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/",
   "category": {
@@ -50,6 +50,32 @@
       }
     },
     {
+      "id": "authenticationType",
+      "label": "Authentication",
+      "description": "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/\" target=\"_blank\">documentation page</a>",
+      "group": "authentication",
+      "type": "Dropdown",
+      "optional": false,
+      "value": "credentials",
+      "choices": [
+        {
+          "name": "Credentials",
+          "value": "credentials"
+        },
+        {
+          "name": "Default Credentials Chain (Hybrid/Self-Managed only)",
+          "value": "defaultCredentialsChain"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authentication.type"
+      },
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
       "label": "Access key",
       "description": "Provide an access key of a user with permissions to invoke specified AWS Lambda function",
       "group": "authentication",
@@ -60,6 +86,10 @@
       },
       "constraints": {
         "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "credentials"
       }
     },
     {
@@ -73,6 +103,10 @@
       },
       "constraints": {
         "notEmpty": true
+      },
+      "condition": {
+        "property": "authenticationType",
+        "equals": "credentials"
       }
     },
     {

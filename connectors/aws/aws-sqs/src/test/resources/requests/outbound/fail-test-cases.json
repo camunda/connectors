@@ -1,19 +1,5 @@
 [
   {
-    "testDescription": "No authentication",
-    "configuration": {
-      "region":"us-east-1"
-    },
-    "queue":{
-      "messageAttributes":{},
-      "messageBody":{
-        "data":"ok"
-      },
-      "region":"us-east-1",
-      "url":"{{secrets.SQS_QUEUE_URL}}"
-    }
-  },
-  {
     "testDescription": "No access key",
     "authentication":{
       "secretKey":"{{secrets.AWS_SECRET_KEY}}"
