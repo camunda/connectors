@@ -27,6 +27,7 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
+import io.camunda.connector.api.inbound.webhook.VerifiableWebhook;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookHttpResponse;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
@@ -50,6 +51,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.ResponseEntity;
@@ -63,6 +66,7 @@ import org.springframework.mock.web.MockHttpServletRequest;
     })
 @ZeebeSpringTest
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class WebhookControllerTestZeebeTests {
 
   @Autowired private WebhookConnectorRegistry webhookConnectorRegistry;
@@ -307,6 +311,48 @@ class WebhookControllerTestZeebeTests {
     assertEquals(422, responseEntity.getStatusCode().value());
     assertEquals("reason", responseEntity.getBody().reason());
     assertEquals("expression", responseEntity.getBody().expression());
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void testSuccessfulProcessingWithVerification() throws Exception {
+    WebhookConnectorExecutable webhookConnectorExecutable = mock(WebhookConnectorExecutable.class);
+    WebhookResult webhookResult = mock(WebhookResult.class);
+    when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));
+    when(webhookResult.response())
+        .thenReturn(new WebhookHttpResponse(Map.of("keyResponse", "valueResponse"), null));
+    when(webhookConnectorExecutable.triggerWebhook(any(WebhookProcessingPayload.class)))
+        .thenReturn(webhookResult);
+    when(webhookConnectorExecutable.verify(any(WebhookProcessingPayload.class)))
+        .thenReturn(
+            new VerifiableWebhook.WebhookHttpVerificationResult(Map.of("result", "GOOD"), 201));
+
+    var webhookDef = webhookDefinition("processA", 1, "myPath");
+    var webhookContext =
+        new InboundConnectorContextImpl(
+            secretProvider, v -> {}, webhookDef, correlationHandler, (e) -> {}, mapper);
+
+    // Register webhook function 'implementation'
+    webhookConnectorRegistry.register(
+        new ActiveInboundConnector(webhookConnectorExecutable, webhookContext));
+
+    deployProcess("processA");
+
+    ResponseEntity<Map> responseEntity =
+        (ResponseEntity<Map>)
+            controller.inbound(
+                "myPath",
+                new HashMap<>(),
+                "{}".getBytes(),
+                new HashMap<>(),
+                new MockHttpServletRequest());
+
+    assertEquals(201, responseEntity.getStatusCode().value());
+    assertEquals(null, responseEntity.getBody().get("keyResponse"));
+    assertEquals("GOOD", responseEntity.getBody().get("result"));
+
+    var result = responseEntity.getBody();
+    assertInstanceOf(Map.class, result);
   }
 
   public void deployProcess(String bpmnProcessId) {

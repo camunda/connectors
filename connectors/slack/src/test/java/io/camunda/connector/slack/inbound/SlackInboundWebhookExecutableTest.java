@@ -13,6 +13,7 @@ import static io.camunda.connector.slack.inbound.SlackInboundWebhookExecutable.C
 import static io.camunda.connector.slack.inbound.SlackInboundWebhookExecutable.FORM_VALUE_COMMAND;
 import static io.camunda.connector.slack.inbound.SlackInboundWebhookExecutable.HEADER_SLACK_REQUEST_TIMESTAMP;
 import static io.camunda.connector.slack.inbound.SlackInboundWebhookExecutable.HEADER_SLACK_SIGNATURE;
+import static io.camunda.connector.slack.inbound.model.SlackWebhookProperties.SlackConnectorPropertiesWrapper;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.time.ZonedDateTime.now;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -25,8 +26,11 @@ import com.google.common.net.HttpHeaders;
 import com.google.common.net.MediaType;
 import com.slack.api.app_backend.SlackSignature;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
+import io.camunda.connector.api.inbound.webhook.VerifiableWebhook.WebhookHttpVerificationResult;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
+import io.camunda.connector.slack.inbound.model.SlackWebhookProperties;
 import java.util.Map;
+import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -44,6 +48,12 @@ class SlackInboundWebhookExecutableTest {
 
   private static final String ARBITRARY_SLACK_REQUEST =
       "{\"token\":\"qQqQqQqQqQqQqQqQqQ\",\"type\":\"myType\",\"event\":{\"user\":{\"id\":\"aAaAaAaAaAaAaA\"}}}";
+
+  private static final Function<Map<String, Object>, WebhookHttpVerificationResult>
+      CHALLENGE_RESPONSE_VERIFICATION_FUNCTION =
+          (ctx) ->
+              new WebhookHttpVerificationResult(
+                  Map.of("challenge", ((Map) ctx.get("body")).get("challenge")));
 
   private static final String SLASH_COMMAND =
       "token=qwertyuiop"
@@ -70,15 +80,14 @@ class SlackInboundWebhookExecutableTest {
 
   @BeforeEach
   void beforeEach() {
+    SlackWebhookProperties props = new SlackWebhookProperties("slackTest", SLACK_SIGNING_KEY, null);
+    SlackConnectorPropertiesWrapper wrapper = new SlackConnectorPropertiesWrapper(props);
+    when(ctx.bindProperties(SlackConnectorPropertiesWrapper.class)).thenReturn(wrapper);
     testObject = new SlackInboundWebhookExecutable();
   }
 
   @Test
   void triggerWebhook_RegularEvent_HappyCase() throws Exception {
-    Map<String, Object> props =
-        Map.of("inbound", Map.of("context", "slackTest", "slackSigningSecret", SLACK_SIGNING_KEY));
-    when(ctx.getProperties()).thenReturn(props);
-
     final var requestTimeStamp = String.valueOf(now().toInstant().toEpochMilli());
     Map<String, String> headers =
         Map.of(
@@ -101,10 +110,6 @@ class SlackInboundWebhookExecutableTest {
 
   @Test
   void triggerWebhook_InvalidSignature_ThrowsException() throws Exception {
-    Map<String, Object> props =
-        Map.of("inbound", Map.of("context", "slackTest", "slackSigningSecret", SLACK_SIGNING_KEY));
-    when(ctx.getProperties()).thenReturn(props);
-
     final var requestTimeStamp = String.valueOf(now().toInstant().toEpochMilli());
     Map<String, String> headers =
         Map.of(
@@ -125,10 +130,12 @@ class SlackInboundWebhookExecutableTest {
 
   @Test
   void triggerWebhook_UrlVerificationEvent_ReturnsChallengeBack() throws Exception {
-    Map<String, Object> props =
-        Map.of("inbound", Map.of("context", "slackTest", "slackSigningSecret", SLACK_SIGNING_KEY));
-    when(ctx.getProperties()).thenReturn(props);
-
+    SlackWebhookProperties props =
+        new SlackWebhookProperties(
+            "slackTest", SLACK_SIGNING_KEY, CHALLENGE_RESPONSE_VERIFICATION_FUNCTION);
+    SlackConnectorPropertiesWrapper wrapper = new SlackConnectorPropertiesWrapper(props);
+    when(ctx.bindProperties(SlackConnectorPropertiesWrapper.class)).thenReturn(wrapper);
+    testObject = new SlackInboundWebhookExecutable();
     final var requestTimeStamp = String.valueOf(now().toInstant().toEpochMilli());
     Map<String, String> headers =
         Map.of(
@@ -142,20 +149,16 @@ class SlackInboundWebhookExecutableTest {
     when(payload.rawBody()).thenReturn(URL_VERIFICATION_REQUEST.getBytes(UTF_8));
 
     testObject.activate(ctx);
-    final var result = testObject.triggerWebhook(payload);
+    final var result = testObject.verify(payload);
 
     assertNotNull(result);
-    assertThat(result.request().body()).isInstanceOf(Map.class);
-    assertThat((Map) result.request().body())
-        .containsEntry(FIELD_CHALLENGE, "aAaAaAaAaAaAaAaAaAaA");
+    assertThat(result).isInstanceOf(WebhookHttpVerificationResult.class);
+    assertThat(result.body()).isInstanceOf(Map.class);
+    assertThat((Map) result.body()).containsEntry(FIELD_CHALLENGE, "aAaAaAaAaAaAaAaAaAaA");
   }
 
   @Test
   void triggerWebhook_SlashCommand_HappyCase() throws Exception {
-    Map<String, Object> props =
-        Map.of("inbound", Map.of("context", "slackTest", "slackSigningSecret", SLACK_SIGNING_KEY));
-    when(ctx.getProperties()).thenReturn(props);
-
     final var requestTimeStamp = String.valueOf(now().toInstant().toEpochMilli());
     Map<String, String> headers =
         Map.of(
@@ -185,10 +188,6 @@ class SlackInboundWebhookExecutableTest {
 
   @Test
   void triggerWebhook_SlashCommandMalformedContentType_HappyCase() throws Exception {
-    Map<String, Object> props =
-        Map.of("inbound", Map.of("context", "slackTest", "slackSigningSecret", SLACK_SIGNING_KEY));
-    when(ctx.getProperties()).thenReturn(props);
-
     final var requestTimeStamp = String.valueOf(now().toInstant().toEpochMilli());
     Map<String, String> headers =
         Map.of(

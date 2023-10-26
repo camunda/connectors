@@ -145,6 +145,24 @@ public class FeelFunctionDeserializerTest {
   }
 
   @Test
+  void feelSupplierDeserialization_foldedMapResult() throws JsonProcessingException {
+    // given
+    String json = """
+        { "function": "= { foo: {bar: a + b, baz: b - a} }" }
+        """;
+
+    // when
+    TargetTypeFoldedMap targetType = mapper.readValue(json, TargetTypeFoldedMap.class);
+
+    // then
+    InputContextInteger inputContext = new InputContextInteger(3, 5);
+    var result = targetType.function().apply(inputContext);
+    assertThat(result).containsKey("foo");
+    assertThat((Map) result.get("foo")).containsEntry("bar", 8L);
+    assertThat((Map) result.get("foo")).containsEntry("baz", 2L);
+  }
+
+  @Test
   void feelFunctionDeserialization_convertFromMap() {
     // given
     var jsonAsMap = Map.of("function", "= { result: a + b }");
@@ -195,4 +213,6 @@ public class FeelFunctionDeserializerTest {
   private record TargetTypeList(Function<InputContextInteger, List<Long>> function) {}
 
   private record TargetTypeMap(Function<InputContextInteger, Map<String, Long>> function) {}
+
+  private record TargetTypeFoldedMap(Function<InputContextInteger, Map<String, Object>> function) {}
 }

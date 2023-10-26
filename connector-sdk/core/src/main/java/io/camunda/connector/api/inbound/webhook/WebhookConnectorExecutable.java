@@ -24,7 +24,7 @@ import io.camunda.connector.api.inbound.InboundConnectorExecutable;
  * supports HTTP webhooks uses this interface to control the execution of inbound webhook
  * Connectors.
  */
-public interface WebhookConnectorExecutable extends InboundConnectorExecutable {
+public interface WebhookConnectorExecutable extends InboundConnectorExecutable, VerifiableWebhook {
 
   /**
    * Entry-point method whenever webhook was triggered. The purpose of the method is to perform
