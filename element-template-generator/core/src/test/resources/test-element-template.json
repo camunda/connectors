@@ -117,11 +117,13 @@
         "allMatch": [
           {
             "property": "compose.type",
-            "equals": "message"
+            "equals": "message",
+            "type": "simple"
           },
           {
             "property": "compose.withTopic",
-            "equals": "withTopic"
+            "equals": "withTopic",
+            "type": "simple"
           }
         ]
       },
@@ -140,7 +142,8 @@
       },
       "condition": {
         "property": "compose.type",
-        "equals": "message"
+        "equals": "message",
+        "type": "simple"
       },
       "type": "Text"
     },

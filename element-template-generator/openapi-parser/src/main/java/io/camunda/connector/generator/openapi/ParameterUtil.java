@@ -19,6 +19,7 @@ package io.camunda.connector.generator.openapi;
 import io.camunda.connector.generator.dsl.http.HttpOperationProperty;
 import io.camunda.connector.generator.dsl.http.HttpOperationProperty.Target;
 import io.swagger.v3.oas.models.Components;
+import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.parameters.Parameter;
 import java.util.Arrays;
 import java.util.Map;
@@ -43,17 +44,14 @@ public class ParameterUtil {
   }
 
   private static HttpOperationProperty fromSchema(Parameter parameter, Components components) {
-    var schema = parameter.getSchema();
-    if (schema.get$ref() != null) {
-      schema = components.getSchemas().get(schema.get$ref().replace("#/components/schemas/", ""));
-    }
 
-    String example = "";
+    String example;
     if (parameter.getExample() != null) {
       example = parameter.getExample().toString();
-    } else if (schema.getExample() != null) {
-      example = schema.getExample().toString();
+    } else {
+      example = getExampleFromSchema(parameter.getSchema(), components);
     }
+    var schema = getSchemaOrFromComponents(parameter.getSchema(), components);
 
     if (schema.getEnum() != null) {
       return HttpOperationProperty.createEnumProperty(
@@ -87,5 +85,23 @@ public class ParameterUtil {
           example);
     }
     throw new IllegalArgumentException("Unsupported parameter type: " + schema.getType());
+  }
+
+  public static String getExampleFromSchema(Schema schema, Components components) {
+    schema = getSchemaOrFromComponents(schema, components);
+    if (schema.getExample() != null) {
+      return schema.getExample().toString();
+    }
+    if (schema.getExamples() != null && !schema.getExamples().isEmpty()) {
+      return schema.getExamples().get(0).toString();
+    }
+    return null;
+  }
+
+  public static Schema getSchemaOrFromComponents(Schema schema, Components components) {
+    if (schema.get$ref() != null) {
+      return components.getSchemas().get(schema.get$ref().replace("#/components/schemas/", ""));
+    }
+    return schema;
   }
 }

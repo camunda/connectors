@@ -112,6 +112,7 @@ public interface HttpAuthentication {
   }
 
   class NoAuth implements HttpAuthentication {
+
     public static final NoAuth INSTANCE = new NoAuth();
 
     @Override
@@ -126,6 +127,7 @@ public interface HttpAuthentication {
   }
 
   class BasicAuth implements HttpAuthentication {
+
     public static final BasicAuth INSTANCE = new BasicAuth();
 
     @Override
@@ -140,6 +142,7 @@ public interface HttpAuthentication {
   }
 
   class BearerAuth implements HttpAuthentication {
+
     public static final BearerAuth INSTANCE = new BearerAuth();
 
     @Override
@@ -154,6 +157,7 @@ public interface HttpAuthentication {
   }
 
   record OAuth2(String tokenUrl, Set<String> scopes) implements HttpAuthentication {
+
     @Override
     public String label() {
       return "OAuth 2.0";

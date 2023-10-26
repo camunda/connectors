@@ -21,8 +21,10 @@ import static io.camunda.connector.generator.openapi.SecurityUtil.parseAuthentic
 import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.OutboundTemplateGenerator;
 import io.camunda.connector.generator.dsl.OutboundElementTemplate;
+import io.camunda.connector.generator.dsl.http.HttpAuthentication.NoAuth;
 import io.camunda.connector.generator.dsl.http.HttpOperation;
 import io.camunda.connector.generator.dsl.http.HttpOperationBuilder;
+import io.camunda.connector.generator.dsl.http.HttpOperationProperty;
 import io.camunda.connector.generator.dsl.http.HttpOutboundElementTemplateBuilder;
 import io.camunda.connector.generator.dsl.http.HttpPathFeelBuilder;
 import io.camunda.connector.generator.dsl.http.HttpServerData;
@@ -53,6 +55,7 @@ public class OpenApiOutboundTemplateGenerator
     var builder =
         HttpOutboundElementTemplateBuilder.create()
             .id(getIdFromApiTitle(info.getTitle()))
+            .name(info.getTitle())
             .version(processVersion(info.getVersion()));
 
     List<HttpOperationBuilder> operations =
@@ -63,9 +66,14 @@ public class OpenApiOutboundTemplateGenerator
     builder.operations(
         operations.stream().map(HttpOperationBuilder::build).collect(Collectors.toList()));
 
+    var authentication = parseAuthentication(openAPI.getSecurity(), openAPI.getComponents());
+    if (authentication.isEmpty()) {
+      authentication = List.of(NoAuth.INSTANCE);
+    }
+
     return builder
         .servers(extractServers(openAPI.getServers()))
-        .authentication(parseAuthentication(openAPI.getSecurity(), openAPI.getComponents()))
+        .authentication(authentication)
         .build();
   }
 
@@ -104,49 +112,66 @@ public class OpenApiOutboundTemplateGenerator
               List<HttpOperationBuilder> operations = new ArrayList<>();
               if (pathItem.getGet() != null) {
                 operations.add(
-                    extractOperation(pathItem.getGet(), components).method(HttpMethod.GET));
+                    extractOperation(
+                        pathEntry.getKey(), HttpMethod.GET, pathItem.getGet(), components));
               }
               if (pathItem.getPost() != null) {
                 operations.add(
-                    extractOperation(pathItem.getPost(), components).method(HttpMethod.POST));
+                    extractOperation(
+                        pathEntry.getKey(), HttpMethod.POST, pathItem.getPost(), components));
               }
               if (pathItem.getPut() != null) {
                 operations.add(
-                    extractOperation(pathItem.getPut(), components).method(HttpMethod.PUT));
+                    extractOperation(
+                        pathEntry.getKey(), HttpMethod.PUT, pathItem.getPut(), components));
               }
               if (pathItem.getPatch() != null) {
                 operations.add(
-                    extractOperation(pathItem.getPatch(), components).method(HttpMethod.PATCH));
+                    extractOperation(
+                        pathEntry.getKey(), HttpMethod.PATCH, pathItem.getPatch(), components));
               }
               if (pathItem.getDelete() != null) {
                 operations.add(
-                    extractOperation(pathItem.getDelete(), components).method(HttpMethod.DELETE));
+                    extractOperation(
+                        pathEntry.getKey(), HttpMethod.DELETE, pathItem.getDelete(), components));
               }
               operations.forEach(operation -> operation.pathFeelExpression(path));
               return operations.stream();
             })
         .filter(
-            operation -> includeOperations == null || includeOperations.contains(operation.getId()))
+            operation ->
+                includeOperations == null
+                    || includeOperations.isEmpty()
+                    || includeOperations.contains(operation.getId()))
         .collect(Collectors.toList());
   }
 
-  private HttpOperationBuilder extractOperation(Operation operation, Components components) {
+  private HttpOperationBuilder extractOperation(
+      String path, HttpMethod method, Operation operation, Components components) {
     var parameters = operation.getParameters();
-    var properties =
-        parameters.stream()
-            .map(parameter -> ParameterUtil.transformToProperty(parameter, components))
-            .collect(Collectors.toSet());
+    Set<HttpOperationProperty> properties =
+        parameters == null
+            ? Collections.emptySet()
+            : parameters.stream()
+                .map(parameter -> ParameterUtil.transformToProperty(parameter, components))
+                .collect(Collectors.toSet());
 
-    var bodyExample = extractBodyExample(operation.getRequestBody());
+    var bodyExample = extractBodyExample(operation.getRequestBody(), components);
+    var label = extractLabel(operation, path, method);
 
-    var authenticationOverride = parseAuthentication(operation.getSecurity(), components);
-
-    return HttpOperation.builder()
-        .id(operation.getOperationId())
-        .label(operation.getSummary())
-        .bodyExample(bodyExample)
-        .authenticationOverride(authenticationOverride)
-        .properties(properties);
+    try {
+      var authenticationOverride = parseAuthentication(operation.getSecurity(), components);
+      return HttpOperation.builder()
+          .id(operation.getOperationId())
+          .label(label)
+          .bodyExample(bodyExample)
+          .authenticationOverride(authenticationOverride)
+          .method(method)
+          .properties(properties);
+    } catch (Exception e) {
+      throw new IllegalArgumentException(
+          "Failed to parse security schemes for operation " + operation.getOperationId(), e);
+    }
   }
 
   private HttpPathFeelBuilder extractPath(String rawPath) {
@@ -172,17 +197,30 @@ public class OpenApiOutboundTemplateGenerator
     return builder;
   }
 
-  private String extractBodyExample(RequestBody body) {
+  private String extractBodyExample(RequestBody body, Components components) {
     if (body == null) {
       return "";
     }
     var content = body.getContent();
     for (String mediaType : SUPPORTED_BODY_MEDIA_TYPES) {
       if (content.containsKey(mediaType)) {
-        return content.get(mediaType).getExample().toString();
+        var mt = content.get(mediaType);
+        var example = mt.getExample();
+        if (example == null) {
+          example = ParameterUtil.getExampleFromSchema(mt.getSchema(), components);
+        }
+        return example == null ? "" : example.toString();
       }
     }
     throw new IllegalArgumentException("No supported media type found in bodyFeelExpression");
+  }
+
+  private String extractLabel(Operation operation, String path, HttpMethod method) {
+    if (operation.getDescription() != null && operation.getDescription().length() < 50) {
+      return operation.getDescription();
+    } else {
+      return method.name() + " " + path;
+    }
   }
 
   private List<HttpServerData> extractServers(List<Server> servers) {

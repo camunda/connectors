@@ -118,8 +118,8 @@ public class HttpOutboundElementTemplateBuilder {
     builder.propertyGroups(
         List.of(
             PropertyUtil.serverPropertyGroup(servers),
-            PropertyUtil.authPropertyGroup(authentication, operations),
             PropertyUtil.operationDiscriminatorPropertyGroup(operations),
+            PropertyUtil.authPropertyGroup(authentication, operations),
             PropertyUtil.parametersPropertyGroup(operations),
             PropertyUtil.requestBodyPropertyGroup(operations)));
 
