@@ -85,7 +85,8 @@
     },
     "condition" : {
       "property" : "authentication.type",
-      "equals" : "basic"
+      "equals" : "basic",
+      "type" : "simple"
     },
     "type" : "String"
   }, {
@@ -103,7 +104,8 @@
     },
     "condition" : {
       "property" : "authentication.type",
-      "equals" : "basic"
+      "equals" : "basic",
+      "type" : "simple"
     },
     "type" : "String"
   }, {
@@ -121,7 +123,8 @@
     },
     "condition" : {
       "property" : "authentication.type",
-      "equals" : "bearer"
+      "equals" : "bearer",
+      "type" : "simple"
     },
     "type" : "String"
   }, {
@@ -140,7 +143,8 @@
     },
     "condition" : {
       "property" : "authentication.type",
-      "equals" : "oauth-client-credentials-flow"
+      "equals" : "oauth-client-credentials-flow",
+      "type" : "simple"
     },
     "type" : "String"
   }, {
@@ -159,7 +163,8 @@
     },
     "condition" : {
       "property" : "authentication.type",
-      "equals" : "oauth-client-credentials-flow"
+      "equals" : "oauth-client-credentials-flow",
+      "type" : "simple"
     },
     "type" : "String"
   }, {
@@ -178,7 +183,8 @@
     },
     "condition" : {
       "property" : "authentication.type",
-      "equals" : "oauth-client-credentials-flow"
+      "equals" : "oauth-client-credentials-flow",
+      "type" : "simple"
     },
     "type" : "String"
   }, {
@@ -194,7 +200,8 @@
     },
     "condition" : {
       "property" : "authentication.type",
-      "equals" : "oauth-client-credentials-flow"
+      "equals" : "oauth-client-credentials-flow",
+      "type" : "simple"
     },
     "type" : "String"
   }, {
@@ -212,7 +219,8 @@
     },
     "condition" : {
       "property" : "authentication.type",
-      "equals" : "oauth-client-credentials-flow"
+      "equals" : "oauth-client-credentials-flow",
+      "type" : "simple"
     },
     "type" : "Dropdown",
     "choices" : [ {
@@ -235,7 +243,8 @@
     },
     "condition" : {
       "property" : "authentication.type",
-      "equals" : "oauth-client-credentials-flow"
+      "equals" : "oauth-client-credentials-flow",
+      "type" : "simple"
     },
     "type" : "String"
   }, {
@@ -336,7 +345,8 @@
     },
     "condition" : {
       "property" : "method",
-      "oneOf" : [ "POST", "PUT", "PATCH" ]
+      "oneOf" : [ "POST", "PUT", "PATCH" ],
+      "type" : "simple"
     },
     "type" : "Text"
   }, {

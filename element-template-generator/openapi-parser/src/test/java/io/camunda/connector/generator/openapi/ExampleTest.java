@@ -14,37 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.generator.dsl;
+package io.camunda.connector.generator.openapi;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import java.util.Collection;
-import java.util.List;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.swagger.v3.parser.OpenAPIV3Parser;
+import java.util.Set;
+import org.junit.jupiter.api.Test;
 
-public sealed interface PropertyCondition {
+public class ExampleTest {
 
-  record OneOf(@JsonProperty String property, @JsonProperty List<String> oneOf)
-      implements PropertyCondition {
+  private final ObjectMapper mapper = new ObjectMapper();
 
-    @JsonProperty
-    public String getType() {
-      return "simple";
-    }
-  }
+  @Test
+  void swaggerPetstoreTest() throws JsonProcessingException {
+    // given
+    var parser = new OpenAPIV3Parser();
+    var openApi = parser.read("https://modeler.cloud.camunda.io/v3/api-docs/api-v1");
+    var generator = new OpenApiOutboundTemplateGenerator();
 
-  record Equals(@JsonProperty String property, @JsonProperty String equals)
-      implements PropertyCondition {
+    // when
+    var template = generator.generate(new OpenApiGenerationSource(openApi, Set.of()), null);
 
-    @JsonProperty
-    public String getType() {
-      return "simple";
-    }
-  }
-
-  record AllMatch(@JsonProperty Collection<PropertyCondition> allMatch)
-      implements PropertyCondition {
-
-    public AllMatch(PropertyCondition... conditions) {
-      this(List.of(conditions));
-    }
+    // then
+    System.out.println(mapper.writeValueAsString(template));
   }
 }

@@ -21,12 +21,12 @@
       "label": "Server"
     },
     {
-      "id": "authentication",
-      "label": "Authentication"
-    },
-    {
       "id": "operation",
       "label": "Operation"
+    },
+    {
+      "id": "authentication",
+      "label": "Authentication"
     },
     {
       "id": "parameters",
@@ -76,12 +76,41 @@
       ]
     },
     {
+      "id": "operationId",
+      "label": "Operation",
+      "value": "someGetRequest",
+      "group": "operation",
+      "binding": {
+        "name": "operationId",
+        "type": "zeebe:input"
+      },
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Some GET request",
+          "value": "someGetRequest"
+        },
+        {
+          "name": "Some POST request",
+          "value": "somePostRequest"
+        }
+      ]
+    },
+    {
       "id": "authType",
       "value": "basic",
       "group": "authentication",
       "binding": {
         "name": "authType",
         "type": "zeebe:input"
+      },
+      "condition": {
+        "property": "operationId",
+        "oneOf": [
+          "someGetRequest",
+          "somePostRequest"
+        ],
+        "type": "simple"
       },
       "type": "Hidden"
     },
@@ -102,14 +131,16 @@
         "allMatch": [
           {
             "property": "authType",
-            "equals": "basic"
+            "equals": "basic",
+            "type": "simple"
           },
           {
             "property": "operationId",
             "oneOf": [
               "someGetRequest",
               "somePostRequest"
-            ]
+            ],
+            "type": "simple"
           }
         ]
       },
@@ -132,39 +163,20 @@
         "allMatch": [
           {
             "property": "authType",
-            "equals": "basic"
+            "equals": "basic",
+            "type": "simple"
           },
           {
             "property": "operationId",
             "oneOf": [
               "someGetRequest",
               "somePostRequest"
-            ]
+            ],
+            "type": "simple"
           }
         ]
       },
       "type": "String"
-    },
-    {
-      "id": "operationId",
-      "label": "Operation",
-      "value": "someGetRequest",
-      "group": "operation",
-      "binding": {
-        "name": "operationId",
-        "type": "zeebe:input"
-      },
-      "type": "Dropdown",
-      "choices": [
-        {
-          "name": "Some GET request",
-          "value": "someGetRequest"
-        },
-        {
-          "name": "Some POST request",
-          "value": "somePostRequest"
-        }
-      ]
     },
     {
       "id": "someGetRequest_path",
@@ -176,7 +188,8 @@
       },
       "condition": {
         "property": "operationId",
-        "equals": "someGetRequest"
+        "equals": "someGetRequest",
+        "type": "simple"
       },
       "type": "Hidden"
     },
@@ -190,7 +203,8 @@
       },
       "condition": {
         "property": "operationId",
-        "equals": "someGetRequest"
+        "equals": "someGetRequest",
+        "type": "simple"
       },
       "type": "Hidden"
     },
@@ -204,7 +218,8 @@
       },
       "condition": {
         "property": "operationId",
-        "equals": "someGetRequest"
+        "equals": "someGetRequest",
+        "type": "simple"
       },
       "type": "Hidden"
     },
@@ -218,7 +233,8 @@
       },
       "condition": {
         "property": "operationId",
-        "equals": "someGetRequest"
+        "equals": "someGetRequest",
+        "type": "simple"
       },
       "type": "Hidden"
     },
@@ -239,7 +255,8 @@
       },
       "condition": {
         "property": "operationId",
-        "equals": "someGetRequest"
+        "equals": "someGetRequest",
+        "type": "simple"
       },
       "type": "String"
     },
@@ -253,7 +270,8 @@
       },
       "condition": {
         "property": "operationId",
-        "equals": "somePostRequest"
+        "equals": "somePostRequest",
+        "type": "simple"
       },
       "type": "Hidden"
     },
@@ -267,7 +285,8 @@
       },
       "condition": {
         "property": "operationId",
-        "equals": "somePostRequest"
+        "equals": "somePostRequest",
+        "type": "simple"
       },
       "type": "Hidden"
     },
@@ -281,7 +300,8 @@
       },
       "condition": {
         "property": "operationId",
-        "equals": "somePostRequest"
+        "equals": "somePostRequest",
+        "type": "simple"
       },
       "type": "Hidden"
     },
@@ -295,7 +315,8 @@
       },
       "condition": {
         "property": "operationId",
-        "equals": "somePostRequest"
+        "equals": "somePostRequest",
+        "type": "simple"
       },
       "type": "Hidden"
     },
@@ -311,7 +332,8 @@
       },
       "condition": {
         "property": "operationId",
-        "equals": "somePostRequest"
+        "equals": "somePostRequest",
+        "type": "simple"
       },
       "type": "String"
     }

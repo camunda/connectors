@@ -23,16 +23,27 @@ import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.security.SecurityScheme.Type;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SecurityUtil {
 
+  private static final Logger LOG = LoggerFactory.getLogger(SecurityUtil.class);
+
   public static List<HttpAuthentication> parseAuthentication(
       List<SecurityRequirement> security, Components components) {
+    if (security == null) {
+      return Collections.emptyList();
+    }
 
     List<HttpAuthentication> result = new ArrayList<>();
+    AtomicBoolean foundErrors = new AtomicBoolean(false);
 
     security.stream()
         .filter(
@@ -55,12 +66,19 @@ public class SecurityUtil {
             schemeRef -> {
               var customScopes = new HashSet<>(schemeRef.getValue());
               var scheme = components.getSecuritySchemes().get(schemeRef.getKey());
-              return transformToAuthentication(scheme, customScopes);
+              try {
+                return transformToAuthentication(scheme, customScopes);
+              } catch (Exception e) {
+                foundErrors.set(true);
+                LOG.warn("Could not parse security scheme {}", schemeRef.getKey(), e);
+                return null;
+              }
             })
+        .filter(Objects::nonNull)
         .forEach(result::add);
 
-    if (result.isEmpty()) {
-      result.add(NoAuth.INSTANCE);
+    if (result.isEmpty() && foundErrors.get()) {
+      throw new IllegalArgumentException("Could not parse any security scheme");
     }
     return result;
   }

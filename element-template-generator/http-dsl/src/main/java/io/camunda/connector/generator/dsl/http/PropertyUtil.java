@@ -16,8 +16,6 @@
  */
 package io.camunda.connector.generator.dsl.http;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.generator.dsl.DropdownProperty;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
 import io.camunda.connector.generator.dsl.HiddenProperty;
@@ -41,8 +39,6 @@ public class PropertyUtil {
   static final String AUTH_DISCRIMINATOR_PROPERTY_ID = "authType";
   static final String OPERATION_PATH_INPUT_NAME = "operationPath";
 
-  private static final ObjectMapper mapper = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER;
-
   /**
    * Create a pre-configured property builder for the auth type discriminator. Add a condition if
    * necessary.
@@ -61,9 +57,10 @@ public class PropertyUtil {
     return DropdownProperty.builder()
         .choices(choices)
         .id("authType")
+        .group("authentication")
         .label("Authentication")
         .optional(false)
-        .binding(new ZeebeInput("authType"))
+        .binding(new ZeebeInput("authentication.type"))
         .value(choices.get(0).value());
   }
 
@@ -161,12 +158,11 @@ public class PropertyUtil {
 
       var discriminator =
           authDiscriminatorPropertyPrefab(authentications)
-              .group("authentication")
               .condition(
                   new OneOf(OPERATION_DISCRIMINATOR_PROPERTY_ID, operationsWithoutCustomAuth))
               .build();
       properties.add(discriminator);
-    } else {
+    } else if (!authentications.isEmpty()) {
       // only one auth type, no need for discriminator
       properties.add(
           HiddenProperty.builder()
@@ -174,6 +170,8 @@ public class PropertyUtil {
               .group("authentication")
               .value(authentications.iterator().next().id())
               .binding(new ZeebeInput(AUTH_DISCRIMINATOR_PROPERTY_ID))
+              .condition(
+                  new OneOf(OPERATION_DISCRIMINATOR_PROPERTY_ID, operationsWithoutCustomAuth))
               .build());
     }
 
@@ -201,21 +199,36 @@ public class PropertyUtil {
       if (operation.authenticationOverride() == null) {
         continue;
       }
+      var authDiscriminator = operation.id() + "_" + "authType";
+      final boolean addedDiscriminator;
+      if (operation.authenticationOverride().size() > 1) {
+        addedDiscriminator = true;
+        properties.add(
+            authDiscriminatorPropertyPrefab(operation.authenticationOverride())
+                .id(authDiscriminator)
+                .condition(new Equals(OPERATION_DISCRIMINATOR_PROPERTY_ID, operation.id()))
+                .build());
+      } else {
+        addedDiscriminator = false;
+      }
       for (var authentication : operation.authenticationOverride()) {
         var authProperties =
             HttpAuthentication.getPropertyPrefabs(authentication).stream()
                 .map(
-                    builder ->
-                        builder
-                            .id(operation.id() + "_" + builder.getId()) // shade property ids
-                            .condition(
-                                new AllMatch(
-                                    new Equals(AUTH_DISCRIMINATOR_PROPERTY_ID, authentication.id()),
-                                    new Equals(
-                                        OPERATION_DISCRIMINATOR_PROPERTY_ID, operation.id())))
-                            .build())
+                    builder -> {
+                      builder.id(operation.id() + "_" + builder.getId()); // shade property ids
+                      if (addedDiscriminator) {
+                        builder.condition(
+                            new AllMatch(
+                                new Equals(authDiscriminator, authentication.id()),
+                                new Equals(OPERATION_DISCRIMINATOR_PROPERTY_ID, operation.id())));
+                      } else {
+                        builder.condition(
+                            new Equals(OPERATION_DISCRIMINATOR_PROPERTY_ID, operation.id()));
+                      }
+                      return builder.build();
+                    })
                 .toList();
-
         properties.addAll(authProperties);
       }
     }
