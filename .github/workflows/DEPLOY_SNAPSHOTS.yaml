@@ -85,7 +85,6 @@ jobs:
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
-        if: github.ref == 'refs/heads/main'
         with:
           username: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
           password: ${{ steps.secrets.outputs.DOCKERHUB_PASSWORD }}
@@ -94,7 +93,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: connector-runtime/connector-runtime-application/
-          push: ${{ github.ref == 'refs/heads/main' }}
+          push: true
           tags: camunda/connectors:SNAPSHOT
           platforms: linux/amd64,linux/arm64
           provenance: false
@@ -103,7 +102,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: bundle/default-bundle/
-          push: ${{ github.ref == 'refs/heads/main' }}
+          push: true
           tags: camunda/connectors-bundle:SNAPSHOT
           platforms: linux/amd64,linux/arm64
           provenance: false
@@ -112,7 +111,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: bundle/camunda-saas-bundle/
-          push: ${{ github.ref == 'refs/heads/main' }}
+          push: true
           tags: camunda/connectors-bundle-saas:SNAPSHOT
           platforms: linux/amd64,linux/arm64
           provenance: false
