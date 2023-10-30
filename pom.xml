@@ -35,6 +35,8 @@
     <module>connector-runtime/connector-runtime-application</module>
     <module>connectors</module>
     <module>bundle</module>
+    <module>connectors-e2e-test/connectors-e2e-test-base</module>
+    <module>connectors-e2e-test/connector-http-json-test</module>
   </modules>
 
 </project>

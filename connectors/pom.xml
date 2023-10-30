@@ -10,11 +10,11 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <artifactId>connector-function-parent</artifactId>
+  <artifactId>connectors-parent</artifactId>
   <packaging>pom</packaging>
 
-  <name>connector-function-parent</name>
-  <description>Parent POM for Connector function implementations</description>
+  <name>connectors-parent</name>
+  <description>Parent POM for Connectors implementations</description>
   <inceptionYear>2022</inceptionYear>
 
   <modules>
