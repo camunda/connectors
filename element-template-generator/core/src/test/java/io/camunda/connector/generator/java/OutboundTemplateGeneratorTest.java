@@ -136,7 +136,7 @@ public class OutboundTemplateGeneratorTest extends BaseTest {
       var template =
           generator.generate(
               MyConnectorFunction.MinimallyAnnotated.class,
-              new GeneratorConfiguration(ConnectorMode.HYBRID));
+              new GeneratorConfiguration(ConnectorMode.HYBRID, null, null, null));
       var property = getPropertyById("taskDefinitionType", template);
       assertThat(property.getType()).isEqualTo("String");
       assertThat(property.getGroup()).isEqualTo("taskDefinitionType");
@@ -375,7 +375,7 @@ public class OutboundTemplateGeneratorTest extends BaseTest {
       var template =
           generator.generate(
               MyConnectorFunction.MinimallyAnnotated.class,
-              new GeneratorConfiguration(ConnectorMode.HYBRID));
+              new GeneratorConfiguration(ConnectorMode.HYBRID, null, null, null));
       checkPropertyGroups(
           List.of(
               Map.entry("taskDefinitionType", "Task definition type"),

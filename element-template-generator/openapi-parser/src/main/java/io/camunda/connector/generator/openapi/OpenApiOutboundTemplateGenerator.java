@@ -18,60 +18,115 @@ package io.camunda.connector.generator.openapi;
 
 import static io.camunda.connector.generator.openapi.SecurityUtil.parseAuthentication;
 
+import io.camunda.connector.generator.api.CliCompatibleTemplateGenerator;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
-import io.camunda.connector.generator.api.OutboundTemplateGenerator;
+import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
 import io.camunda.connector.generator.dsl.OutboundElementTemplate;
 import io.camunda.connector.generator.dsl.http.HttpAuthentication.NoAuth;
-import io.camunda.connector.generator.dsl.http.HttpOperation;
 import io.camunda.connector.generator.dsl.http.HttpOperationBuilder;
-import io.camunda.connector.generator.dsl.http.HttpOperationProperty;
 import io.camunda.connector.generator.dsl.http.HttpOutboundElementTemplateBuilder;
-import io.camunda.connector.generator.dsl.http.HttpPathFeelBuilder;
 import io.camunda.connector.generator.dsl.http.HttpServerData;
-import io.camunda.connector.http.base.model.HttpMethod;
-import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.Operation;
-import io.swagger.v3.oas.models.parameters.RequestBody;
 import io.swagger.v3.oas.models.servers.Server;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class OpenApiOutboundTemplateGenerator
-    implements OutboundTemplateGenerator<OpenApiGenerationSource> {
+    implements CliCompatibleTemplateGenerator<OpenApiGenerationSource, OutboundElementTemplate> {
 
-  // ordered by priority if endpoint allows multiple
-  private static final List<String> SUPPORTED_BODY_MEDIA_TYPES =
-      List.of("application/json", "text/plain");
+  private static final Logger LOG = LoggerFactory.getLogger(OpenApiOutboundTemplateGenerator.class);
+
+  @Override
+  public String getGeneratorId() {
+    return "openapi-outbound";
+  }
+
+  @Override
+  public OpenApiGenerationSource prepareInput(List<String> parameters) {
+    return new OpenApiGenerationSource(parameters);
+  }
+
+  @Override
+  public ScanResult scan(OpenApiGenerationSource input) {
+    var operations = OperationUtil.extractOperations(input.openAPI(), input.includeOperations());
+    var supportedOperations =
+        operations.stream()
+            .filter(OperationParseResult::supported)
+            .map(OperationParseResult::builder)
+            .toList();
+    var template =
+        buildTemplate(input.openAPI(), supportedOperations, GeneratorConfiguration.DEFAULT);
+    return new ScanResult(
+        template.id(),
+        template.name(),
+        template.version(),
+        template.properties().stream()
+            .filter(p -> p.getBinding().type().equals("zeebe:taskDefinition:type"))
+            .findFirst()
+            .orElseThrow()
+            .getValue(),
+        operations);
+  }
 
   @Override
   public OutboundElementTemplate generate(
       OpenApiGenerationSource source, GeneratorConfiguration configuration) {
-    var openAPI = source.openAPI();
-    var info = openAPI.getInfo();
-    var builder =
-        HttpOutboundElementTemplateBuilder.create()
-            .id(getIdFromApiTitle(info.getTitle()))
-            .name(info.getTitle())
-            .version(processVersion(info.getVersion()));
 
-    List<HttpOperationBuilder> operations =
-        extractOperations(source.openAPI(), source.includeOperations());
+    var operations = OperationUtil.extractOperations(source.openAPI(), source.includeOperations());
     if (operations.isEmpty()) {
       throw new IllegalArgumentException("No operations found in OpenAPI document");
     }
-    builder.operations(
-        operations.stream().map(HttpOperationBuilder::build).collect(Collectors.toList()));
+    var supportedOperations =
+        operations.stream()
+            .filter(
+                op -> {
+                  if (op.supported()) {
+                    return true;
+                  }
+                  LOG.warn(
+                      "Operation {} is not supported, reason: {}. It will be skipped",
+                      op.id(),
+                      op.info());
+                  return false;
+                })
+            .map(OperationParseResult::builder)
+            .toList();
+    return buildTemplate(source.openAPI(), supportedOperations, configuration);
+  }
 
+  private OutboundElementTemplate buildTemplate(
+      OpenAPI openAPI,
+      List<HttpOperationBuilder> operationBuilders,
+      GeneratorConfiguration configuration) {
+
+    if (configuration == null) {
+      configuration = GeneratorConfiguration.DEFAULT;
+    }
+
+    var info = openAPI.getInfo();
     var authentication = parseAuthentication(openAPI.getSecurity(), openAPI.getComponents());
     if (authentication.isEmpty()) {
       authentication = List.of(NoAuth.INSTANCE);
     }
-
-    return builder
+    return HttpOutboundElementTemplateBuilder.create(
+            ConnectorMode.HYBRID.equals(configuration.connectorMode()))
+        .id(
+            configuration.templateId() != null
+                ? configuration.templateId()
+                : getIdFromApiTitle(info.getTitle()))
+        .name(configuration.templateName() != null ? configuration.templateName() : info.getTitle())
+        .version(
+            processVersion(
+                configuration.templateVersion() != null
+                    ? configuration.templateVersion().toString()
+                    : info.getVersion()))
+        .operations(
+            operationBuilders.stream()
+                .map(HttpOperationBuilder::build)
+                .collect(Collectors.toList()))
         .servers(extractServers(openAPI.getServers()))
         .authentication(authentication)
         .build();
@@ -91,135 +146,6 @@ public class OpenApiOutboundTemplateGenerator
       return Integer.parseInt(onlyNumbers);
     } else {
       return openAPIDocVersion.chars().sum();
-    }
-  }
-
-  private List<HttpOperationBuilder> extractOperations(
-      OpenAPI openAPI, Set<String> includeOperations) {
-    var components = openAPI.getComponents();
-    return openAPI.getPaths().entrySet().stream()
-        .flatMap(
-            pathEntry -> {
-              var path = extractPath(pathEntry.getKey());
-              var pathItem = pathEntry.getValue();
-              if (pathItem.get$ref() != null) {
-                pathItem =
-                    components
-                        .getPathItems()
-                        .get(pathItem.get$ref().replace("#/components/pathItems/", ""));
-              }
-
-              List<HttpOperationBuilder> operations = new ArrayList<>();
-              if (pathItem.getGet() != null) {
-                operations.add(
-                    extractOperation(
-                        pathEntry.getKey(), HttpMethod.GET, pathItem.getGet(), components));
-              }
-              if (pathItem.getPost() != null) {
-                operations.add(
-                    extractOperation(
-                        pathEntry.getKey(), HttpMethod.POST, pathItem.getPost(), components));
-              }
-              if (pathItem.getPut() != null) {
-                operations.add(
-                    extractOperation(
-                        pathEntry.getKey(), HttpMethod.PUT, pathItem.getPut(), components));
-              }
-              if (pathItem.getPatch() != null) {
-                operations.add(
-                    extractOperation(
-                        pathEntry.getKey(), HttpMethod.PATCH, pathItem.getPatch(), components));
-              }
-              if (pathItem.getDelete() != null) {
-                operations.add(
-                    extractOperation(
-                        pathEntry.getKey(), HttpMethod.DELETE, pathItem.getDelete(), components));
-              }
-              operations.forEach(operation -> operation.pathFeelExpression(path));
-              return operations.stream();
-            })
-        .filter(
-            operation ->
-                includeOperations == null
-                    || includeOperations.isEmpty()
-                    || includeOperations.contains(operation.getId()))
-        .collect(Collectors.toList());
-  }
-
-  private HttpOperationBuilder extractOperation(
-      String path, HttpMethod method, Operation operation, Components components) {
-    var parameters = operation.getParameters();
-    Set<HttpOperationProperty> properties =
-        parameters == null
-            ? Collections.emptySet()
-            : parameters.stream()
-                .map(parameter -> ParameterUtil.transformToProperty(parameter, components))
-                .collect(Collectors.toSet());
-
-    var bodyExample = extractBodyExample(operation.getRequestBody(), components);
-    var label = extractLabel(operation, path, method);
-
-    try {
-      var authenticationOverride = parseAuthentication(operation.getSecurity(), components);
-      return HttpOperation.builder()
-          .id(operation.getOperationId())
-          .label(label)
-          .bodyExample(bodyExample)
-          .authenticationOverride(authenticationOverride)
-          .method(method)
-          .properties(properties);
-    } catch (Exception e) {
-      throw new IllegalArgumentException(
-          "Failed to parse security schemes for operation " + operation.getOperationId(), e);
-    }
-  }
-
-  private HttpPathFeelBuilder extractPath(String rawPath) {
-    // split path into parts, each part is either a variable or a constant
-    String[] pathParts = rawPath.split("\\{");
-    var builder = HttpPathFeelBuilder.create();
-    if (pathParts.length == 1) {
-      // no variables
-      builder.part(rawPath);
-    } else {
-      for (String pathPart : pathParts) {
-        if (pathPart.contains("}")) {
-          String[] variableParts = pathPart.split("}");
-          builder.property(variableParts[0]);
-          if (variableParts.length > 1) {
-            builder.part(variableParts[1]);
-          }
-        } else {
-          builder.part(pathPart);
-        }
-      }
-    }
-    return builder;
-  }
-
-  private String extractBodyExample(RequestBody body, Components components) {
-    if (body == null) {
-      return "";
-    }
-    var content = body.getContent();
-    for (String mediaType : SUPPORTED_BODY_MEDIA_TYPES) {
-      if (content.containsKey(mediaType)) {
-        var mt = content.get(mediaType);
-        var example = mt.getExample();
-        if (example == null) {
-          example = ParameterUtil.getExampleFromSchema(mt.getSchema(), components);
-        }
-        return example == null ? "" : example.toString();
-      }
-    }
-    throw new IllegalArgumentException("No supported media type found in bodyFeelExpression");
-  }
-
-  private String extractLabel(Operation operation, String path, HttpMethod method) {
-    if (operation.getDescription() != null && operation.getDescription().length() < 50) {
-      return operation.getDescription();
-    } else {
-      return method.name() + " " + path;
     }
   }
 

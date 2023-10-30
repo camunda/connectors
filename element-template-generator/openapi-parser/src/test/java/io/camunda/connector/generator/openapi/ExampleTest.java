@@ -27,7 +27,7 @@ public class ExampleTest {
   private final ObjectMapper mapper = new ObjectMapper();
 
   @Test
-  void swaggerPetstoreTest() throws JsonProcessingException {
+  void generate() throws JsonProcessingException {
     // given
     var parser = new OpenAPIV3Parser();
     var openApi = parser.read("https://modeler.cloud.camunda.io/v3/api-docs/api-v1");
@@ -38,5 +38,15 @@ public class ExampleTest {
 
     // then
     System.out.println(mapper.writeValueAsString(template));
+  }
+
+  @Test
+  void scan() {
+    var parser = new OpenAPIV3Parser();
+    var openApi = parser.read("https://modeler.cloud.camunda.io/v3/api-docs/api-v1");
+    var generator = new OpenApiOutboundTemplateGenerator();
+
+    var scanResult = generator.scan(new OpenApiGenerationSource(openApi, Set.of()));
+    System.out.println(scanResult);
   }
 }

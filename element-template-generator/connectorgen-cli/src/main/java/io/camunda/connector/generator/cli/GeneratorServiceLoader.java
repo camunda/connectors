@@ -14,10 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.generator.api;
+package io.camunda.connector.generator.cli;
 
-import io.camunda.connector.generator.dsl.OutboundElementTemplate;
+import io.camunda.connector.generator.api.CliCompatibleTemplateGenerator;
+import java.util.Map;
+import java.util.ServiceLoader;
+import java.util.stream.Collectors;
 
-/** Shortcut interface for outbound template generators. */
-public interface OutboundTemplateGenerator<IN>
-    extends ElementTemplateGenerator<IN, OutboundElementTemplate> {}
+public class GeneratorServiceLoader {
+
+  public static Map<String, CliCompatibleTemplateGenerator<?, ?>> loadGenerators() {
+    return ServiceLoader.load(CliCompatibleTemplateGenerator.class).stream()
+        .map(ServiceLoader.Provider::get)
+        .collect(
+            Collectors.toMap(
+                CliCompatibleTemplateGenerator::getGeneratorId,
+                g -> (CliCompatibleTemplateGenerator<?, ?>) g));
+  }
+}

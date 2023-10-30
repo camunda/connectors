@@ -124,7 +124,8 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
         if (generateHybridTemplates) {
           getLog().info("Generating hybrid element template for " + className);
           OutboundElementTemplate hybridTemplate =
-              generator.generate(clazz, new GeneratorConfiguration(ConnectorMode.HYBRID));
+              generator.generate(
+                  clazz, new GeneratorConfiguration(ConnectorMode.HYBRID, null, null, null));
           var name = basicFileName.replace(".json", "-hybrid.json");
           writeElementTemplate(hybridTemplate, name);
         }

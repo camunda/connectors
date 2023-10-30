@@ -35,12 +35,16 @@ public class HttpOutboundElementTemplateBuilder {
   private Collection<HttpOperation> operations;
   private List<HttpAuthentication> authentication = List.of(NoAuth.INSTANCE);
 
-  private HttpOutboundElementTemplateBuilder() {
-    builder = OutboundElementTemplateBuilder.create().type(CONNECTOR_TYPE);
+  private HttpOutboundElementTemplateBuilder(boolean configurable) {
+    builder = OutboundElementTemplateBuilder.create().type(CONNECTOR_TYPE, configurable);
   }
 
   public static HttpOutboundElementTemplateBuilder create() {
-    return new HttpOutboundElementTemplateBuilder();
+    return new HttpOutboundElementTemplateBuilder(false);
+  }
+
+  public static HttpOutboundElementTemplateBuilder create(boolean configurable) {
+    return new HttpOutboundElementTemplateBuilder(configurable);
   }
 
   public HttpOutboundElementTemplateBuilder id(String id) {
