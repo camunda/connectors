@@ -57,6 +57,9 @@ jobs:
         with:
           node-version: '16'
 
+      - name: Install element templates CLI
+        run: npm install --global element-templates-cli
+
       - name: Build Connectors
         run: mvn --batch-mode clean test -PcheckFormat
 
