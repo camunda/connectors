@@ -18,17 +18,18 @@ package io.camunda.connector.generator.api;
 
 /** Configuration for the element template generator */
 public record GeneratorConfiguration(
-    /*
-     * Connectors in hybrid mode have a configurable task definition type (for outbound), or a
-     * configurable connector type (for inbound) property. This allows to run multiple connector
-     * runtimes against the same Camunda cluster and distinguish between them on the BPMN level.
-     */
-    ConnectorMode connectorMode) {
+    ConnectorMode connectorMode, String templateId, String templateName, Integer templateVersion) {
+
+  /**
+   * Connectors in hybrid mode have a configurable task definition type (for outbound), or a
+   * configurable connector type (for inbound) property. This allows to run multiple connector
+   * runtimes against the same Camunda cluster and distinguish between them on the BPMN level.
+   */
   public enum ConnectorMode {
     NORMAL,
     HYBRID
   }
 
   public static final GeneratorConfiguration DEFAULT =
-      new GeneratorConfiguration(ConnectorMode.NORMAL);
+      new GeneratorConfiguration(ConnectorMode.NORMAL, null, null, null);
 }

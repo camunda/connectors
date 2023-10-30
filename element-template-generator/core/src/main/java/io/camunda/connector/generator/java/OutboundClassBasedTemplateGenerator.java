@@ -18,9 +18,9 @@ package io.camunda.connector.generator.java;
 
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.generator.dsl.BpmnType;
+import io.camunda.connector.generator.api.ElementTemplateGenerator;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
-import io.camunda.connector.generator.api.OutboundTemplateGenerator;
 import io.camunda.connector.generator.dsl.CommonProperties;
 import io.camunda.connector.generator.dsl.ElementTemplateIcon;
 import io.camunda.connector.generator.dsl.OutboundElementTemplate;
@@ -38,7 +38,8 @@ import java.util.Base64;
 import java.util.HashSet;
 import java.util.List;
 
-public class OutboundClassBasedTemplateGenerator implements OutboundTemplateGenerator<Class<?>> {
+public class OutboundClassBasedTemplateGenerator
+    implements ElementTemplateGenerator<Class<?>, OutboundElementTemplate> {
 
   private final ClassLoader classLoader;
 

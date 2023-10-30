@@ -14,6 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.generator.api;
+package io.camunda.connector.generator.openapi;
 
-public interface GenerationSourceProvider<IN> {}
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import io.camunda.connector.generator.dsl.http.HttpOperationBuilder;
+
+record OperationParseResult(
+    String id,
+    String path,
+    boolean supported,
+    @JsonInclude(Include.NON_EMPTY) String info,
+    @JsonIgnore HttpOperationBuilder builder) {}

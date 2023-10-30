@@ -78,7 +78,8 @@ public class SecurityUtil {
         .forEach(result::add);
 
     if (result.isEmpty() && foundErrors.get()) {
-      throw new IllegalArgumentException("Could not parse any security scheme");
+      throw new IllegalArgumentException(
+          "Security schemes are not supported by the REST Connector");
     }
     return result;
   }

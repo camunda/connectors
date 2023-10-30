@@ -17,6 +17,8 @@
 package io.camunda.connector.generator.openapi;
 
 import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.parser.OpenAPIV3Parser;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -24,4 +26,23 @@ import java.util.Set;
  * @param includeOperations IDs of operations that should be processed. If null/empty, all
  *     operations will be taken into account.
  */
-public record OpenApiGenerationSource(OpenAPI openAPI, Set<String> includeOperations) {}
+public record OpenApiGenerationSource(OpenAPI openAPI, Set<String> includeOperations) {
+
+  public OpenApiGenerationSource(List<String> cliParams) {
+    this(fetchOpenApi(cliParams), extractOperationIds(cliParams));
+  }
+
+  private static OpenAPI fetchOpenApi(List<String> cliParams) {
+    if (cliParams.size() < 1) {
+      throw new IllegalArgumentException(
+          "OpenAPI file path or URL must be provided as first parameter");
+    }
+    var openApiPath = cliParams.get(0);
+    var openApiParser = new OpenAPIV3Parser();
+    return openApiParser.readLocation(openApiPath, null, null).getOpenAPI();
+  }
+
+  private static Set<String> extractOperationIds(List<String> cliParams) {
+    return cliParams.size() > 1 ? Set.copyOf(cliParams.subList(1, cliParams.size())) : Set.of();
+  }
+}
