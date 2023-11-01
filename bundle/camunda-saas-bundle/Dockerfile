@@ -1,5 +1,7 @@
 FROM eclipse-temurin:17.0.8.1_1-jre
 
+VOLUME /tmp
+
 RUN mkdir /opt/app
 
 # Download connectors from maven central
