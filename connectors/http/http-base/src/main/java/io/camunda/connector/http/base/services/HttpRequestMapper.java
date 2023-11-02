@@ -84,6 +84,7 @@ public class HttpRequestMapper {
     if (request.hasQueryParameters()) {
       genericUrl.putAll(request.getQueryParameters());
     }
+
     if (request.hasBody() && request.getBody() instanceof String) {
       String unescapeBody = StringEscapeUtils.unescapeJson((String) request.getBody());
       request.setBody(unescapeBody);

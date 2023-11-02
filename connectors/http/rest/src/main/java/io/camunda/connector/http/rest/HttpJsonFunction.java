@@ -40,7 +40,7 @@ import java.io.IOException;
       "connectionTimeoutInSeconds",
       "body"
     },
-    type = "io.camunda:http-json:1")
+    type = HttpJsonFunction.TYPE)
 @ElementTemplate(
     id = "io.camunda.connectors.HttpJson.v2",
     name = "REST Outbound Connector",
@@ -56,6 +56,8 @@ import java.io.IOException;
     documentationRef = "https://docs.camunda.io/docs/components/connectors/protocol/rest/",
     icon = "icon.svg")
 public class HttpJsonFunction implements OutboundConnectorFunction {
+
+  public static final String TYPE = "io.camunda:http-json:1";
 
   private final HttpService httpService;
 
