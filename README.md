@@ -31,7 +31,7 @@ This is a multi-module project with different licenses applied to different modu
 * [Connector SDK](connector-sdk) including all supporting libraries
 * [Connector Secret providers](secret-providers) implementations
 * [Connector Runtime](connector-runtime) and all its submodules
-* [HTTP Outbound Connector](connectors/http-json)
+* [Http Json Outbound Connector](connectors/http/rest)
 
 ### Modules available under [Camunda Self-Managed Free Edition license](https://camunda.com/legal/terms/cloud-terms-and-conditions/camunda-cloud-self-managed-free-edition-terms/)
 
