@@ -18,7 +18,6 @@ package io.camunda.connector.generator.cli.command;
 
 import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
-import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
@@ -53,10 +52,5 @@ public class ConnectorGen {
   GeneratorConfiguration generatorConfiguration() {
     return new GeneratorConfiguration(
         hybrid ? ConnectorMode.HYBRID : ConnectorMode.NORMAL, templateId, templateName, null);
-  }
-
-  public static void main(String... args) {
-    int exitCode = new CommandLine(new ConnectorGen()).execute(args);
-    System.exit(exitCode);
   }
 }
