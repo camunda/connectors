@@ -19,6 +19,7 @@ import io.camunda.connector.api.inbound.webhook.WebhookResult;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.slack.inbound.model.SlackWebhookProcessingResult;
 import io.camunda.connector.slack.inbound.model.SlackWebhookProperties;
+import io.camunda.connector.slack.inbound.model.SlackWebhookProperties.SlackConnectorPropertiesWrapper;
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -26,6 +27,7 @@ import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
@@ -55,15 +57,7 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
   @Override
   public WebhookResult triggerWebhook(WebhookProcessingPayload webhookProcessingPayload)
       throws Exception {
-    if (!props
-        .signatureVerifier()
-        .isValid(
-            webhookProcessingPayload.headers().get(HEADER_SLACK_REQUEST_TIMESTAMP),
-            new String(webhookProcessingPayload.rawBody(), StandardCharsets.UTF_8),
-            webhookProcessingPayload.headers().get(HEADER_SLACK_SIGNATURE),
-            ZonedDateTime.now().toInstant().toEpochMilli())) {
-      throw new Exception("HMAC signature did not match");
-    }
+    verifySlackRequestAuthentic(webhookProcessingPayload);
 
     Map bodyAsMap =
         bodyAsMap(webhookProcessingPayload.headers(), webhookProcessingPayload.rawBody());
@@ -89,7 +83,23 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
     if (context == null) {
       throw new Exception("Inbound connector context cannot be null");
     }
-    props = new SlackWebhookProperties(context.getProperties());
+    var wrapperProps = context.bindProperties(SlackConnectorPropertiesWrapper.class);
+    props = new SlackWebhookProperties(wrapperProps);
+  }
+
+  @Override
+  public WebhookHttpVerificationResult verify(WebhookProcessingPayload payload) throws Exception {
+    verifySlackRequestAuthentic(payload);
+    return Optional.ofNullable(props.verificationExpression())
+        .orElse(stringObjectMap -> null)
+        .apply(
+            Map.of(
+                "body",
+                bodyAsMap(payload.headers(), payload.rawBody()),
+                "headers",
+                payload.headers(),
+                "params",
+                payload.params()));
   }
 
   private Map bodyAsMap(Map<String, String> headers, byte[] rawBody) throws IOException {
@@ -107,6 +117,19 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
     } else {
       // Do our best to parse to JSON (throws exception otherwise)
       return objectMapper.readValue(rawBody, Map.class);
+    }
+  }
+
+  private void verifySlackRequestAuthentic(WebhookProcessingPayload webhookProcessingPayload)
+      throws Exception {
+    if (!props
+        .signatureVerifier()
+        .isValid(
+            webhookProcessingPayload.headers().get(HEADER_SLACK_REQUEST_TIMESTAMP),
+            new String(webhookProcessingPayload.rawBody(), StandardCharsets.UTF_8),
+            webhookProcessingPayload.headers().get(HEADER_SLACK_SIGNATURE),
+            ZonedDateTime.now().toInstant().toEpochMilli())) {
+      throw new Exception("HMAC signature did not match");
     }
   }
 

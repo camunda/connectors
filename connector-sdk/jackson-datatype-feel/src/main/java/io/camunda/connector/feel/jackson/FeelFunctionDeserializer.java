@@ -17,6 +17,7 @@
 package io.camunda.connector.feel.jackson;
 
 import com.fasterxml.jackson.annotation.JsonMerge;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.BeanProperty;
 import com.fasterxml.jackson.databind.DeserializationContext;
@@ -46,9 +47,20 @@ class FeelFunctionDeserializer<IN, OUT> extends AbstractFeelDeserializer<Functio
   @Override
   protected Function<IN, OUT> doDeserialize(
       JsonNode node, ObjectMapper mapper, JsonNode feelContext) {
-    return (input) ->
-        feelEngineWrapper.evaluate(
-            node.textValue(), mergeContexts(input, feelContext, mapper), outputType);
+    return (input) -> {
+      var jsonNode =
+          feelEngineWrapper.evaluate(
+              node.textValue(), mergeContexts(input, feelContext, mapper), JsonNode.class);
+      try {
+        if (outputType.getRawClass() == String.class && jsonNode.isObject()) {
+          return (OUT) mapper.writeValueAsString(jsonNode);
+        } else {
+          return mapper.treeToValue(jsonNode, outputType);
+        }
+      } catch (JsonProcessingException e) {
+        throw new RuntimeException(e);
+      }
+    };
   }
 
   private Object mergeContexts(Object inputContext, Object feelContext, ObjectMapper mapper) {
