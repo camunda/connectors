@@ -74,6 +74,14 @@
       }
     },
     {
+      "type": "Hidden",
+      "value": "=if (body.type != null and body.type = \"url_verification\") then {body:{\"challenge\":body.challenge}, statusCode: 200} else null",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.verificationExpression"
+      }
+    },
+    {
       "label": "Condition",
       "type": "String",
       "group": "activation",
