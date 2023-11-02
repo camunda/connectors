@@ -23,6 +23,7 @@ import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskHeader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.skyscreamer.jsonassert.JSONAssert;
 
@@ -38,6 +39,8 @@ public class OutboundElementTemplateSerializationTest {
             .id("io.camunda.connector.Template.v1")
             .type("io.camunda:template:1")
             .name("Template: Some Function")
+            .appliesTo(Set.of("bpmn:Task"))
+            .elementType("bpmn:ServiceTask")
             .version(1)
             .documentationRef(
                 "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/available-connectors-overview/")

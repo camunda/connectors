@@ -48,6 +48,10 @@ public abstract sealed class PropertyBuilder
     return id;
   }
 
+  public PropertyBinding getBinding() {
+    return binding;
+  }
+
   public PropertyBuilder id(String name) {
     this.id = name;
     return this;

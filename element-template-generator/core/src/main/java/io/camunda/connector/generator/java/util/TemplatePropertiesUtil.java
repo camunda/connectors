@@ -26,6 +26,7 @@ import io.camunda.connector.generator.dsl.HiddenProperty;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.dsl.PropertyBinding;
+import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
 import io.camunda.connector.generator.dsl.PropertyBuilder;
 import io.camunda.connector.generator.dsl.PropertyCondition;
 import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
@@ -140,6 +141,7 @@ public class TemplatePropertiesUtil {
   private static PropertyBuilder buildProperty(Field field) {
     var annotation = field.getAnnotation(TemplateProperty.class);
     String name, label;
+    String fieldName = field.getName();
     if (annotation != null) {
       if (annotation.ignore()) {
         return null;
@@ -160,7 +162,10 @@ public class TemplatePropertiesUtil {
     }
 
     PropertyBuilder propertyBuilder =
-        createPropertyBuilder(field, annotation).id(name).label(label);
+        createPropertyBuilder(field, annotation)
+            .id(name)
+            .label(label)
+            .binding(createBinding(fieldName));
 
     for (FieldProcessor processor : fieldProcessors) {
       processor.process(field, propertyBuilder);
@@ -170,6 +175,13 @@ public class TemplatePropertiesUtil {
 
   private static PropertyBuilder addPathPrefix(PropertyBuilder builder, String path) {
     builder.id(path + "." + builder.getId());
+    var binding = builder.getBinding();
+
+    if (binding instanceof ZeebeInput) {
+      // TODO: consider inbound support
+      builder.binding(createBinding(path + "." + ((ZeebeInput) binding).name()));
+    }
+
     var built = builder.build();
     if (built.getCondition() != null) {
       if (built.getCondition() instanceof OneOf oneOfCondition) {
@@ -288,6 +300,7 @@ public class TemplatePropertiesUtil {
                     .map(entry -> new DropdownChoice(entry.getValue(), entry.getKey()))
                     .collect(Collectors.toList()))
             .id(discriminatorIdAndName.getKey())
+            .binding(createBinding(discriminatorIdAndName.getKey()))
             .group(
                 discriminatorAnnotation == null || discriminatorAnnotation.group().isBlank()
                     ? null
@@ -358,5 +371,10 @@ public class TemplatePropertiesUtil {
         && !type.isArray()
         && !Collection.class.isAssignableFrom(type)
         && !Map.class.isAssignableFrom(type);
+  }
+
+  private static PropertyBinding createBinding(String propertyName) {
+    // TODO: consider inbound, support zeebe:property
+    return new PropertyBinding.ZeebeInput(propertyName);
   }
 }

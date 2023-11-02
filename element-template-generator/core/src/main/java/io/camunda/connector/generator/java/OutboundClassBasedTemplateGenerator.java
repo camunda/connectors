@@ -17,10 +17,10 @@
 package io.camunda.connector.generator.java;
 
 import io.camunda.connector.api.annotation.OutboundConnector;
+import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.dsl.CommonProperties;
 import io.camunda.connector.generator.dsl.ElementTemplateIcon;
 import io.camunda.connector.generator.dsl.OutboundElementTemplate;
-import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskHeader;
 import io.camunda.connector.generator.dsl.PropertyBuilder;
 import io.camunda.connector.generator.dsl.PropertyGroup;
@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.HashSet;
 import java.util.List;
 
 public class OutboundClassBasedTemplateGenerator
@@ -74,9 +75,7 @@ public class OutboundClassBasedTemplateGenerator
     var connectorInput = template.inputDataClass();
 
     List<PropertyBuilder> properties =
-        TemplatePropertiesUtil.extractTemplatePropertiesFromType(connectorInput).stream()
-            .map(builder -> builder.binding(new ZeebeInput(builder.getId())))
-            .toList();
+        TemplatePropertiesUtil.extractTemplatePropertiesFromType(connectorInput);
 
     var groupsDefinedInProperties =
         new ArrayList<>(TemplatePropertiesUtil.groupProperties(properties));
@@ -159,11 +158,23 @@ public class OutboundClassBasedTemplateGenerator
 
     var icon = template.icon().isBlank() ? null : resolveIcon(template.icon());
 
+    var appliesTo = template.appliesTo();
+    if (appliesTo == null || appliesTo.length == 0) {
+      appliesTo = new String[] {BpmnType.TASK.getName()};
+    }
+
+    var elementType = template.elementType();
+    if (elementType.isBlank()) {
+      elementType = BpmnType.SERVICE_TASK.getName();
+    }
+
     return OutboundElementTemplate.builder()
         .id(template.id())
         .type(connector.type(), ConnectorMode.HYBRID.equals(configuration.connectorMode()))
         .name(template.name())
         .version(template.version())
+        .appliesTo(new HashSet<>(Arrays.asList(appliesTo)))
+        .elementType(elementType)
         .icon(icon)
         .documentationRef(
             template.documentationRef().isEmpty() ? null : template.documentationRef())

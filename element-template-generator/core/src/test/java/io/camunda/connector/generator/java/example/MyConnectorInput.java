@@ -64,6 +64,7 @@ public record MyConnectorInput(
     @TemplateProperty(type = PropertyType.Text)
         @Pattern(regexp = "^(=.*|[0-9]+|\\{\\{secrets\\..+}})$", message = "Pattern violated")
         String propertyWithPattern,
+    @TemplateProperty(id = "idNotEqualToBinding") String propertyWithDifferentIdAndBinding,
     @Size(min = 1, max = 10) String propertyWithMinMax,
     @Size(min = Integer.MIN_VALUE, max = 10) String propertyWithMaxSize,
     @NotEmpty String stringPropertyWithNotEmpty,

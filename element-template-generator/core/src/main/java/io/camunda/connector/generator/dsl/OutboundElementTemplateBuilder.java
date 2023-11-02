@@ -16,12 +16,14 @@
  */
 package io.camunda.connector.generator.dsl;
 
+import io.camunda.connector.generator.dsl.OutboundElementTemplate.ElementType;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskDefinitionType;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 public class OutboundElementTemplateBuilder {
 
@@ -31,6 +33,8 @@ public class OutboundElementTemplateBuilder {
   private ElementTemplateIcon icon;
   private String documentationRef;
   private String description;
+  private Set<String> appliesTo;
+  private String elementType;
   private final List<PropertyGroup> groups = new ArrayList<>();
   private final List<Property> properties = new ArrayList<>();
 
@@ -99,6 +103,16 @@ public class OutboundElementTemplateBuilder {
     return this;
   }
 
+  public OutboundElementTemplateBuilder appliesTo(Set<String> appliesTo) {
+    this.appliesTo = appliesTo;
+    return this;
+  }
+
+  public OutboundElementTemplateBuilder elementType(String elementType) {
+    this.elementType = elementType;
+    return this;
+  }
+
   public OutboundElementTemplateBuilder propertyGroups(PropertyGroup... groups) {
     this.groups.addAll(Arrays.asList(groups));
     this.properties.addAll(
@@ -129,7 +143,16 @@ public class OutboundElementTemplateBuilder {
     }
     verifyUniquePropertyIds();
     return new OutboundElementTemplate(
-        id, name, version, documentationRef, description, groups, properties, icon);
+        id,
+        name,
+        version,
+        documentationRef,
+        description,
+        appliesTo,
+        new ElementType(elementType),
+        groups,
+        properties,
+        icon);
   }
 
   private boolean isTypeAssigned() {
