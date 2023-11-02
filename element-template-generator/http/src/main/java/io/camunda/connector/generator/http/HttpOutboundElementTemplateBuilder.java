@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class HttpOutboundElementTemplateBuilder {
@@ -128,6 +129,7 @@ public class HttpOutboundElementTemplateBuilder {
     }
     builder.propertyGroups(List.of(serverPropertyGroup(), operationPropertyGroup()));
     builder.properties(businessLogicPropertyGroups());
+    builder.elementType("bpmn:ServiceTask").appliesTo(Set.of("bpmn:Task"));
     return builder.build();
   }
 

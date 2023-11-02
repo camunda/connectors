@@ -88,7 +88,27 @@ public @interface ElementTemplate {
    */
   String icon() default "";
 
+  /**
+   * BPMN element types the template is applicable to, e.g. "bpmn:Task".
+   *
+   * <p>If not specified, the default value is chosen by the underlying generator implementation.
+   *
+   * @see #elementType() allows to configure the resulting element type.
+   */
+  String[] appliesTo() default {};
+
+  /**
+   * The target element type of the template, e.g. "bpmn:ServiceTask". When template is applied, the
+   * element is transformed to this type.
+   *
+   * <p>If not specified, the default value is chosen by the underlying generator implementation.
+   *
+   * @see #appliesTo() allows to configure the types the template can be applied to.
+   */
+  String elementType() default "";
+
   @interface PropertyGroup {
+
     String id();
 
     String label() default "";

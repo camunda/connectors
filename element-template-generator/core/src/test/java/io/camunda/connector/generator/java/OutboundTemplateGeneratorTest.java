@@ -24,9 +24,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.dsl.DropdownProperty;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
+import io.camunda.connector.generator.dsl.OutboundElementTemplate;
 import io.camunda.connector.generator.dsl.OutboundElementTemplate.ElementType;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.dsl.PropertyBinding;
+import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskHeader;
 import io.camunda.connector.generator.dsl.PropertyCondition;
 import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
@@ -61,15 +63,27 @@ public class OutboundTemplateGeneratorTest extends BaseTest {
     }
 
     @Test
-    void elementType_isServiceTask() {
-      assertThat(generator.generate(MyConnectorFunction.FullyAnnotated.class).elementType())
-          .isEqualTo(new ElementType(BpmnType.SERVICE_TASK));
+    void elementType_default_isServiceTask() {
+      assertThat(generator.generate(MyConnectorFunction.MinimallyAnnotated.class).elementType())
+          .isEqualTo(new OutboundElementTemplate.ElementType(BpmnType.SERVICE_TASK.getName()));
     }
 
     @Test
-    void appliesTo_isTask() {
+    void elementType_customizable() {
+      assertThat(generator.generate(MyConnectorFunction.FullyAnnotated.class).elementType())
+          .isEqualTo(new ElementType("bpmn:ScriptTask"));
+    }
+
+    @Test
+    void appliesTo_default_isTask() {
+      assertThat(generator.generate(MyConnectorFunction.MinimallyAnnotated.class).appliesTo())
+          .isEqualTo(Set.of(BpmnType.TASK.getName()));
+    }
+
+    @Test
+    void appliesTo_customizable() {
       assertThat(generator.generate(MyConnectorFunction.FullyAnnotated.class).appliesTo())
-          .isEqualTo(Set.of(BpmnType.TASK));
+          .isEqualTo(Set.of(BpmnType.SERVICE_TASK.getName()));
     }
 
     @Test
@@ -251,6 +265,16 @@ public class OutboundTemplateGeneratorTest extends BaseTest {
               () -> generator.generate(MyConnectorFunction.WithDuplicatePropertyIds.class));
 
       assertThat(exception.getMessage()).contains("duplicate property prop");
+    }
+
+    @Test
+    void propertyWithDifferentIdAndBinding_isSupported() {
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class);
+      var property = getPropertyById("idNotEqualToBinding", template);
+
+      assertThat(property.getBinding()).isInstanceOf(ZeebeInput.class);
+      assertThat(((ZeebeInput) property.getBinding()).name())
+          .isEqualTo("propertyWithDifferentIdAndBinding");
     }
   }
 

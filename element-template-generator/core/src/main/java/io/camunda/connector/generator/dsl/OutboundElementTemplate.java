@@ -45,6 +45,8 @@ public record OutboundElementTemplate(
     @JsonProperty int version,
     @JsonProperty String documentationRef,
     @JsonProperty String description,
+    @JsonProperty Set<String> appliesTo,
+    @JsonProperty ElementType elementType,
     @JsonProperty List<PropertyGroup> groups,
     @JsonProperty List<Property> properties,
     @JsonProperty ElementTemplateIcon icon)
@@ -60,6 +62,12 @@ public record OutboundElementTemplate(
     }
     if (version < 0) {
       errors.add("version cannot be negative");
+    }
+    if (appliesTo == null || appliesTo.isEmpty() || appliesTo.stream().allMatch(String::isBlank)) {
+      errors.add("appliesTo must be defined");
+    }
+    if (elementType == null || elementType.value == null || elementType.value.isBlank()) {
+      errors.add("elementType must be defined");
     }
     if (groups == null) {
       errors.add("groups is required");
@@ -86,16 +94,6 @@ public record OutboundElementTemplate(
   }
 
   @JsonProperty
-  public Set<BpmnType> appliesTo() {
-    return Set.of(BpmnType.TASK);
-  }
-
-  @JsonProperty
-  public ElementType elementType() {
-    return new ElementType(BpmnType.SERVICE_TASK);
-  }
-
-  @JsonProperty
   public ElementTemplateCategory category() {
     return ElementTemplateCategory.CONNECTORS;
   }
@@ -104,5 +102,5 @@ public record OutboundElementTemplate(
     return OutboundElementTemplateBuilder.create();
   }
 
-  public record ElementType(@JsonProperty BpmnType value) {}
+  public record ElementType(@JsonProperty String value) {}
 }

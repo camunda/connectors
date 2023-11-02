@@ -42,6 +42,8 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
       inputVariables = {})
   @ElementTemplate(
       id = MyConnectorFunction.ID,
+      appliesTo = "bpmn:ServiceTask",
+      elementType = "bpmn:ScriptTask",
       name = MyConnectorFunction.NAME,
       version = MyConnectorFunction.VERSION,
       description = MyConnectorFunction.DESCRIPTION,
