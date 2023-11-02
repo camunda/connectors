@@ -76,7 +76,7 @@ limitations under the License.</license.inlineheader>
     <!-- Third party dependencies -->
 
     <version.jakarta-validation>3.0.2</version.jakarta-validation>
-    <version.mockito>5.6.0</version.mockito>
+    <version.mockito>5.7.0</version.mockito>
     <version.junit-jupiter>5.10.0</version.junit-jupiter>
     <version.assertj>3.24.2</version.assertj>
     <version.jackson-bom>2.15.3</version.jackson-bom>
