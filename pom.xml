@@ -36,7 +36,7 @@
     <module>connectors</module>
     <module>bundle</module>
     <module>connectors-e2e-test/connectors-e2e-test-base</module>
-    <module>connectors-e2e-test/connector-http-json-test</module>
+    <module>connectors-e2e-test/connector-e2e-test-http</module>
   </modules>
 
 </project>

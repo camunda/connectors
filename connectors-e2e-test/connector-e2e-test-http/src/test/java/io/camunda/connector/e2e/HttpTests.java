@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.e2e.rest;
+package io.camunda.connector.e2e;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.matching;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
@@ -23,6 +23,10 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMoc
 import static io.camunda.connector.test.e2e.BpmnFile.Replace.replace;
 import static io.camunda.connector.test.e2e.BpmnFile.replace;
 import static io.camunda.zeebe.process.test.assertions.BpmnAssert.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
@@ -30,15 +34,22 @@ import io.camunda.connector.http.base.auth.BasicAuthentication;
 import io.camunda.connector.http.base.auth.BearerAuthentication;
 import io.camunda.connector.http.base.auth.OAuthAuthentication;
 import io.camunda.connector.http.base.constants.Constants;
+import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
+import io.camunda.connector.runtime.inbound.lifecycle.InboundConnectorManager;
 import io.camunda.connector.test.e2e.BpmnFile;
 import io.camunda.connector.test.e2e.ElementTemplate;
 import io.camunda.connector.test.e2e.ZeebeTest;
 import io.camunda.connector.test.e2e.app.TestConnectorRuntimeApplication;
+import io.camunda.operate.CamundaOperateClient;
+import io.camunda.operate.dto.ProcessDefinition;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.model.bpmn.Bpmn;
+import io.camunda.zeebe.model.bpmn.instance.Process;
 import io.camunda.zeebe.spring.test.ZeebeSpringTest;
 import java.io.File;
 import java.util.Map;
+import java.util.Set;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -46,19 +57,20 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.web.server.LocalServerPort;
 
 @SpringBootTest(
     classes = {TestConnectorRuntimeApplication.class},
     properties = {
       "spring.main.allow-bean-definition-overriding=true",
-      "camunda.connector.webhook.enabled=false",
-      "camunda.connector.polling.enabled=false"
-    })
+      "camunda.connector.webhook.enabled=true",
+      "camunda.connector.polling.enabled=true"
+    },
+    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ZeebeSpringTest
 @ExtendWith(MockitoExtension.class)
-// TODO discuss whether we want to enable it by default
-// @EnabledIfEnvironmentVariable(named = "CONNECTORS_E2E_TEST", matches = "true")
-public class HttpJsonConnectorTest {
+public class HttpTests {
 
   @TempDir File tempDir;
 
@@ -66,7 +78,20 @@ public class HttpJsonConnectorTest {
   static WireMockExtension wm =
       WireMockExtension.newInstance().options(wireMockConfig().dynamicPort()).build();
 
-  @Autowired private ZeebeClient zeebeClient;
+  @Autowired ZeebeClient zeebeClient;
+
+  @MockBean ProcessDefinitionSearch processDefinitionSearch;
+
+  @Autowired InboundConnectorManager inboundManager;
+
+  @Autowired CamundaOperateClient camundaOperateClient;
+
+  @LocalServerPort int serverPort;
+
+  @BeforeEach
+  void beforeAll() {
+    doNothing().when(processDefinitionSearch).query(any());
+  }
 
   @Test
   void basicAuth() {
@@ -204,7 +229,7 @@ public class HttpJsonConnectorTest {
   }
 
   @Test
-  void successfulModelRun() {
+  void successfulModelRun() throws Exception {
     wm.stubFor(
         post(urlPathMatching("/mock"))
             .withQueryParam("testQueryParam", matching("testQueryParamValue"))
@@ -222,5 +247,28 @@ public class HttpJsonConnectorTest {
 
     assertThat(bpmnTest.getProcessInstanceEvent())
         .hasVariableWithValue("orderStatus", "processing");
+  }
+
+  @Test
+  void successfulWebhookModelRun() throws Exception {
+    var mockUrl = "http://localhost:" + serverPort + "/inbound/test-webhook";
+
+    var model = replace("webhook_connector.bpmn", replace("http://webhook", mockUrl));
+
+    // Prepare a mocked process definition backed by our test model
+    when(camundaOperateClient.getProcessDefinitionModel(1L)).thenReturn(model);
+    var processDef = mock(ProcessDefinition.class);
+    when(processDef.getKey()).thenReturn(1L);
+    when(processDef.getTenantId()).thenReturn(zeebeClient.getConfiguration().getDefaultTenantId());
+    when(processDef.getBpmnProcessId())
+        .thenReturn(model.getModelElementsByType(Process.class).stream().findFirst().get().getId());
+
+    // Deploy the webhook
+    inboundManager.handleNewProcessDefinitions(Set.of(processDef));
+
+    var bpmnTest =
+        ZeebeTest.with(zeebeClient).deploy(model).createInstance().waitForProcessCompletion();
+
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasVariableWithValue("webhookExecuted", true);
   }
 }

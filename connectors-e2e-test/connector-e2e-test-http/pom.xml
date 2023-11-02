@@ -10,14 +10,19 @@
   </parent>
 
   <description>Tests</description>
-  <artifactId>connector-http-json-test</artifactId>
+  <artifactId>connector-e2e-test-http</artifactId>
   <packaging>jar</packaging>
 
   <dependencies>
-    <!-- Move connector dependencies to subprojects -->
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-http-json</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-webhook</artifactId>
       <version>${project.version}</version>
     </dependency>
 

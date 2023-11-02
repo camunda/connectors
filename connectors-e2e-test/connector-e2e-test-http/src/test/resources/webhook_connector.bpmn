@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_0wnnoyi" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.16.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.3.0">
+  <bpmn:process id="Process_1bvv4g5" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1">
+      <bpmn:outgoing>Flow_0z2zjta</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="Flow_0z2zjta" sourceRef="StartEvent_1" targetRef="Gateway_059vgws" />
+    <bpmn:endEvent id="Event_0gm4i4x">
+      <bpmn:incoming>Flow_0dding6</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:intermediateCatchEvent id="Event_1bxxv4b" zeebe:modelerTemplate="io.camunda.connectors.webhook.WebhookConnectorIntermediate.v1" zeebe:modelerTemplateVersion="4" zeebe:modelerTemplateIcon="data:image/svg+xml,%3Csvg id=&#39;icon&#39; xmlns=&#39;http://www.w3.org/2000/svg&#39; width=&#39;18&#39; height=&#39;18&#39; viewBox=&#39;0 0 32 32&#39;%3E%3Cdefs%3E%3Cstyle%3E .cls-1 %7B fill: none; %7D %3C/style%3E%3C/defs%3E%3Cpath d=&#39;M24,26a3,3,0,1,0-2.8164-4H13v1a5,5,0,1,1-5-5V16a7,7,0,1,0,6.9287,8h6.2549A2.9914,2.9914,0,0,0,24,26Z&#39;/%3E%3Cpath d=&#39;M24,16a7.024,7.024,0,0,0-2.57.4873l-3.1656-5.5395a3.0469,3.0469,0,1,0-1.7326.9985l4.1189,7.2085.8686-.4976a5.0006,5.0006,0,1,1-1.851,6.8418L17.937,26.501A7.0005,7.0005,0,1,0,24,16Z&#39;/%3E%3Cpath d=&#39;M8.532,20.0537a3.03,3.03,0,1,0,1.7326.9985C11.74,18.47,13.86,14.7607,13.89,14.708l.4976-.8682-.8677-.497a5,5,0,1,1,6.812-1.8438l1.7315,1.002a7.0008,7.0008,0,1,0-10.3462,2.0356c-.457.7427-1.1021,1.8716-2.0737,3.5728Z&#39;/%3E%3Crect id=&#39;_Transparent_Rectangle_&#39; data-name=&#39;&#38;lt;Transparent Rectangle&#38;gt;&#39; class=&#39;cls-1&#39; width=&#39;32&#39; height=&#39;32&#39;/%3E%3C/svg%3E">
+      <bpmn:extensionElements>
+        <zeebe:properties>
+          <zeebe:property name="inbound.type" value="io.camunda:webhook:1" />
+          <zeebe:property name="inbound.subtype" value="ConfigurableInboundWebhook" />
+          <zeebe:property name="inbound.method" value="post" />
+          <zeebe:property name="inbound.context" value="test-webhook" />
+          <zeebe:property name="inbound.shouldValidateHmac" value="disabled" />
+          <zeebe:property name="inbound.auth.type" value="APIKEY" />
+          <zeebe:property name="inbound.auth.apiKey" value="123" />
+          <zeebe:property name="inbound.auth.apiKeyLocator" value="=split(request.headers.authorization, &#34; &#34;)[2]" />
+          <zeebe:property name="correlationKeyExpression" value="=request.body.correlationKey" />
+          <zeebe:property name="resultExpression" value="={correlationKey: request.body.correlationKey, webhookExecuted: request.body.webhookExecuted}" />
+          <zeebe:property name="inbound.responseBodyExpression" value="={correlationKey: request.body.correlationKey}" />
+        </zeebe:properties>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0iberio</bpmn:incoming>
+      <bpmn:outgoing>Flow_1o93bpm</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDefinition_1pq4s2j" messageRef="Message_0vbi0vc" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:sequenceFlow id="Flow_1o93bpm" sourceRef="Event_1bxxv4b" targetRef="Gateway_0dma4ni" />
+    <bpmn:parallelGateway id="Gateway_059vgws">
+      <bpmn:incoming>Flow_0z2zjta</bpmn:incoming>
+      <bpmn:outgoing>Flow_0iberio</bpmn:outgoing>
+      <bpmn:outgoing>Flow_0hnhvt7</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:sequenceFlow id="Flow_0iberio" sourceRef="Gateway_059vgws" targetRef="Event_1bxxv4b" />
+    <bpmn:serviceTask id="Activity_1npz1ye" name="Call Webhook" zeebe:modelerTemplate="io.camunda.connectors.HttpJson.v2" zeebe:modelerTemplateVersion="4" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAxOCAxOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE3LjAzMzUgOC45OTk5N0MxNy4wMzM1IDEzLjQ0NzUgMTMuNDI4MSAxNy4wNTI5IDguOTgwNjUgMTcuMDUyOUM0LjUzMzE2IDE3LjA1MjkgMC45Mjc3NjUgMTMuNDQ3NSAwLjkyNzc2NSA4Ljk5OTk3QzAuOTI3NzY1IDQuNTUyNDggNC41MzMxNiAwLjk0NzA4MyA4Ljk4MDY1IDAuOTQ3MDgzQzEzLjQyODEgMC45NDcwODMgMTcuMDMzNSA0LjU1MjQ4IDE3LjAzMzUgOC45OTk5N1oiIGZpbGw9IiM1MDU1NjIiLz4KPHBhdGggZD0iTTQuOTMxMjYgMTQuMTU3MUw2Ljc4MTA2IDMuNzE0NzFIMTAuMTM3NUMxMS4xOTE3IDMuNzE0NzEgMTEuOTgyNCAzLjk4MzIzIDEyLjUwOTUgNC41MjAyN0MxMy4wNDY1IDUuMDQ3MzYgMTMuMzE1IDUuNzMzNTggMTMuMzE1IDYuNTc4OTJDMTMuMzE1IDcuNDQ0MTQgMTMuMDcxNCA4LjE1NTIyIDEyLjU4NDEgOC43MTIxNUMxMi4xMDY3IDkuMjU5MTMgMTEuNDU1MyA5LjYzNzA1IDEwLjYyOTggOS44NDU5TDEyLjA2MTkgMTQuMTU3MUgxMC4zMzE1TDkuMDMzNjQgMTAuMDI0OUg3LjI0MzUxTDYuNTEyNTQgMTQuMTU3MUg0LjkzMTI2Wk03LjQ5NzExIDguNTkyODFIOS4yNDI0OEM5Ljk5ODMyIDguNTkyODEgMTAuNTkwMSA4LjQyMzc0IDExLjAxNzcgOC4wODU2MUMxMS40NTUzIDcuNzM3NTMgMTEuNjc0MSA3LjI2NTEzIDExLjY3NDEgNi42Njg0MkMxMS42NzQxIDYuMTkxMDYgMTEuNTI0OSA1LjgxODExIDExLjIyNjUgNS41NDk1OUMxMC45MjgyIDUuMjcxMTMgMTAuNDU1OCA1LjEzMTkgOS44MDkzNiA1LjEzMTlIOC4xMDg3NEw3LjQ5NzExIDguNTkyODFaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="io.camunda:http-json:1" />
+        <zeebe:ioMapping>
+          <zeebe:input source="bearer" target="authentication.type" />
+          <zeebe:input source="123" target="authentication.token" />
+          <zeebe:input source="POST" target="method" />
+          <zeebe:input source="http://webhook" target="url" />
+          <zeebe:input source="20" target="connectionTimeoutInSeconds" />
+          <zeebe:input source="={correlationKey: 123, webhookExecuted: true}" target="body" />
+        </zeebe:ioMapping>
+        <zeebe:taskHeaders>
+          <zeebe:header key="resultVariable" />
+          <zeebe:header key="resultExpression" />
+          <zeebe:header key="errorExpression" />
+          <zeebe:header key="retryBackoff" value="PT0S" />
+        </zeebe:taskHeaders>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0hnhvt7</bpmn:incoming>
+      <bpmn:outgoing>Flow_0a388ta</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_0hnhvt7" sourceRef="Gateway_059vgws" targetRef="Activity_1npz1ye" />
+    <bpmn:parallelGateway id="Gateway_0dma4ni">
+      <bpmn:incoming>Flow_0a388ta</bpmn:incoming>
+      <bpmn:incoming>Flow_1o93bpm</bpmn:incoming>
+      <bpmn:outgoing>Flow_0dding6</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:sequenceFlow id="Flow_0a388ta" sourceRef="Activity_1npz1ye" targetRef="Gateway_0dma4ni" />
+    <bpmn:sequenceFlow id="Flow_0dding6" sourceRef="Gateway_0dma4ni" targetRef="Event_0gm4i4x" />
+  </bpmn:process>
+  <bpmn:message id="Message_0vbi0vc" name="cb9ad212-41ec-4f66-9d0a-180952c7cbcf" zeebe:modelerTemplate="io.camunda.connectors.webhook.WebhookConnectorIntermediate.v1">
+    <bpmn:extensionElements>
+      <zeebe:subscription correlationKey="=&#34;123&#34;" />
+    </bpmn:extensionElements>
+  </bpmn:message>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1bvv4g5">
+      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="StartEvent_1">
+        <dc:Bounds x="179" y="162" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_0gm4i4x_di" bpmnElement="Event_0gm4i4x">
+        <dc:Bounds x="712" y="162" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1bxxv4b_di" bpmnElement="Event_1bxxv4b">
+        <dc:Bounds x="452" y="82" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_059vgws_di" bpmnElement="Gateway_059vgws">
+        <dc:Bounds x="285" y="155" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1npz1ye_di" bpmnElement="Activity_1npz1ye">
+        <dc:Bounds x="420" y="210" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_0dma4ni_di" bpmnElement="Gateway_0dma4ni">
+        <dc:Bounds x="595" y="155" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_0z2zjta_di" bpmnElement="Flow_0z2zjta">
+        <di:waypoint x="215" y="180" />
+        <di:waypoint x="285" y="180" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1o93bpm_di" bpmnElement="Flow_1o93bpm">
+        <di:waypoint x="488" y="100" />
+        <di:waypoint x="620" y="100" />
+        <di:waypoint x="620" y="155" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0iberio_di" bpmnElement="Flow_0iberio">
+        <di:waypoint x="310" y="155" />
+        <di:waypoint x="310" y="100" />
+        <di:waypoint x="452" y="100" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0hnhvt7_di" bpmnElement="Flow_0hnhvt7">
+        <di:waypoint x="310" y="205" />
+        <di:waypoint x="310" y="250" />
+        <di:waypoint x="420" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0a388ta_di" bpmnElement="Flow_0a388ta">
+        <di:waypoint x="520" y="250" />
+        <di:waypoint x="620" y="250" />
+        <di:waypoint x="620" y="205" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0dding6_di" bpmnElement="Flow_0dding6">
+        <di:waypoint x="645" y="180" />
+        <di:waypoint x="712" y="180" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
