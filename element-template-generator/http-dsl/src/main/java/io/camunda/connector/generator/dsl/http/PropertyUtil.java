@@ -290,7 +290,6 @@ public class PropertyUtil {
       properties.add(
           StringProperty.builder()
               .id(operation.id() + "_body")
-              .label("Request body")
               .feel(FeelMode.required)
               .group("requestBody")
               .value(operation.bodyFeelExpression())

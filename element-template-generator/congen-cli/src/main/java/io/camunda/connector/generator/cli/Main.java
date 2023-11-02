@@ -16,13 +16,13 @@
  */
 package io.camunda.connector.generator.cli;
 
-import io.camunda.connector.generator.cli.command.ConnectorGen;
+import io.camunda.connector.generator.cli.command.ConGen;
 import picocli.CommandLine;
 
 public class Main {
 
   public static void main(String... args) {
-    int exitCode = new CommandLine(new ConnectorGen()).execute(args);
+    int exitCode = new CommandLine(new ConGen()).execute(args);
     System.exit(exitCode);
   }
 }

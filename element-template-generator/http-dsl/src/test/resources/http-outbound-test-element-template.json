@@ -260,7 +260,7 @@
     },
     {
       "id": "someGetRequest_exampleId",
-      "label": "exampleId",
+      "label": "Example id",
       "description": "Example ID",
       "optional": false,
       "value": "42",
@@ -342,7 +342,6 @@
     },
     {
       "id": "somePostRequest_body",
-      "label": "Request body",
       "value": "={\"id\": exampleId, \"name\": exampleName}\n",
       "feel": "required",
       "group": "requestBody",

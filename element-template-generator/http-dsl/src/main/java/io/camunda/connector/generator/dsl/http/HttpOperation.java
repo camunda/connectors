@@ -23,7 +23,7 @@ import java.util.List;
 
 /**
  * @param id A unique identifier for this operation.
- * @param label A human-readable label for this operation.
+ * @param label A human-readable description for this operation.
  * @param pathFeelExpression A FEEL expression for the request path that may include variable values
  *     from properties.
  * @param method The HTTP method for this operation.

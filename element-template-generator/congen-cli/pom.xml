@@ -10,9 +10,9 @@
     <version>8.4.0-SNAPSHOT</version>
   </parent>
 
-  <name>connectorgen-cli</name>
-  <description>connectorgen CLI application</description>
-  <artifactId>connectorgen-cli</artifactId>
+  <name>congen-cli</name>
+  <description>congen CLI application</description>
+  <artifactId>congen-cli</artifactId>
   <packaging>jar</packaging>
 
   <properties>
@@ -82,7 +82,7 @@
           <programs>
             <program>
               <mainClass>io.camunda.connector.generator.cli.Main</mainClass>
-              <id>connectorgen</id>
+              <id>congen</id>
             </program>
           </programs>
         </configuration>

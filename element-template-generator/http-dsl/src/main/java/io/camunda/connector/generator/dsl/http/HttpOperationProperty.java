@@ -21,25 +21,25 @@ import java.util.List;
 public record HttpOperationProperty(
     String id,
     Target target,
-    String label,
+    String description,
     boolean required,
     Type type,
     List<String> choices,
     String example) {
 
   public static HttpOperationProperty createStringProperty(
-      String id, Target target, String label, boolean required, String example) {
-    return new HttpOperationProperty(id, target, label, required, Type.STRING, null, example);
+      String id, Target target, String description, boolean required, String example) {
+    return new HttpOperationProperty(id, target, description, required, Type.STRING, null, example);
   }
 
   public static HttpOperationProperty createEnumProperty(
-      String id, Target target, String label, boolean required, List<String> choices) {
-    return new HttpOperationProperty(id, target, label, required, Type.ENUM, choices, null);
+      String id, Target target, String description, boolean required, List<String> choices) {
+    return new HttpOperationProperty(id, target, description, required, Type.ENUM, choices, null);
   }
 
   public static HttpOperationProperty createFeelProperty(
-      String id, Target target, String label, boolean required, String example) {
-    return new HttpOperationProperty(id, target, label, required, Type.FEEL, null, example);
+      String id, Target target, String description, boolean required, String example) {
+    return new HttpOperationProperty(id, target, description, required, Type.FEEL, null, example);
   }
 
   public enum Target {

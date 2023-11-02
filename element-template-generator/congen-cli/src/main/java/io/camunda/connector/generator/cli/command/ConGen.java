@@ -23,12 +23,12 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
 @Command(
-    name = "connectorgen",
+    name = "congen",
     subcommands = {Generate.class, Scan.class},
     mixinStandardHelpOptions = true,
-    version = "connectorgen 1.0",
+    version = "congen 0.1",
     description = "Generate element templates for connectors")
-public class ConnectorGen {
+public class ConGen {
 
   @Option(
       names = {"-h", "--hybrid"},

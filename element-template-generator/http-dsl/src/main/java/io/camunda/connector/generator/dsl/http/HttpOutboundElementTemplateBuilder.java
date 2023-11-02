@@ -25,7 +25,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class HttpOutboundElementTemplateBuilder {
 
@@ -115,11 +114,8 @@ public class HttpOutboundElementTemplateBuilder {
   }
 
   public OutboundElementTemplate build() {
-    if (servers == null || servers.isEmpty()) {
-      throw new IllegalStateException("No servers configured");
-    }
     if (operations == null || operations.isEmpty()) {
-      throw new IllegalStateException("No operations configured");
+      throw new IllegalStateException("Could not find any supported operations");
     }
     builder.elementType("bpmn:ServiceTask").appliesTo(Set.of("bpmn:Task"));
     builder.propertyGroups(

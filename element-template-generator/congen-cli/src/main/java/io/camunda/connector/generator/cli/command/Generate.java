@@ -18,17 +18,19 @@ package io.camunda.connector.generator.cli.command;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.camunda.connector.generator.api.CliCompatibleTemplateGenerator;
+import io.camunda.connector.generator.cli.GeneratorServiceLoader;
+import io.camunda.connector.generator.dsl.ElementTemplateBase;
 import java.util.List;
+import java.util.concurrent.Callable;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
 import picocli.CommandLine.ParentCommand;
 
-@Command(name = "scan")
-public class Scan implements Runnable {
+@Command(name = "generate")
+public class Generate implements Callable<Integer> {
 
-  @ParentCommand ConnectorGen connectorGen;
+  @ParentCommand ConGen connectorGen;
 
   @Parameters(
       index = "0..*",
@@ -37,21 +39,49 @@ public class Scan implements Runnable {
               + " Refer to the documentation of the specific generator module for details.")
   List<String> params;
 
-  private static final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+  private static final ObjectMapper mapper = new ObjectMapper();
 
   @SuppressWarnings("unchecked")
   @Override
-  public void run() {
+  public Integer call() {
     CliCompatibleTemplateGenerator<Object, ?> generator =
-        (CliCompatibleTemplateGenerator<Object, ?>)
-            Generate.loadGenerator(connectorGen.generatorName);
-    var input = generator.prepareInput(params);
-    var result = generator.scan(input);
+        (CliCompatibleTemplateGenerator<Object, ?>) loadGenerator(connectorGen.generatorName);
+    Object input;
     try {
-      var resultString = mapper.writeValueAsString(result);
+      input = generator.prepareInput(params);
+    } catch (Exception e) {
+      System.err.println("Error while preparing input data: " + e.getMessage());
+      return -1;
+    }
+    ElementTemplateBase template;
+    try {
+      template = generator.generate(input, connectorGen.generatorConfiguration());
+    } catch (Exception e) {
+      System.err.println("Generation failed: " + e.getMessage());
+      return -1;
+    }
+    try {
+      var resultString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(template);
       System.out.println(resultString);
+      return 0;
     } catch (JsonProcessingException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  static CliCompatibleTemplateGenerator<?, ?> loadGenerator(String name) {
+    var generators = GeneratorServiceLoader.loadGenerators();
+    if (generators.isEmpty()) {
+      throw new IllegalStateException("No generators available");
+    }
+    var generator = generators.get(name);
+    if (generator == null) {
+      throw new IllegalArgumentException(
+          "No generator found with name "
+              + name
+              + ". Known generators: "
+              + String.join(", ", generators.keySet()));
+    }
+    return generator;
   }
 }

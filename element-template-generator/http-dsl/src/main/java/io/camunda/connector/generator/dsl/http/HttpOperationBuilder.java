@@ -28,6 +28,7 @@ import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
 import io.camunda.connector.generator.dsl.PropertyConstraints;
 import io.camunda.connector.generator.dsl.StringProperty;
 import io.camunda.connector.generator.dsl.http.HttpOperationProperty.Target;
+import io.camunda.connector.generator.java.util.TemplatePropertiesUtil;
 import io.camunda.connector.http.base.model.HttpMethod;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -61,7 +62,7 @@ public class HttpOperationBuilder {
     return id;
   }
 
-  /** A human-readable label for this operation. */
+  /** A human-readable description for this operation. */
   public HttpOperationBuilder label(String label) {
     this.label = label;
     return this;
@@ -148,8 +149,8 @@ public class HttpOperationBuilder {
       // shade property ids with operation id as there may be duplicates in different operations
       builder
           .id(id + "_" + property.id())
-          .label(property.id())
-          .description(property.label())
+          .label(TemplatePropertiesUtil.transformIdIntoLabel(property.id()))
+          .description(property.description())
           .optional(!property.required())
           .binding(new ZeebeInput(property.id()))
           .condition(new Equals(OPERATION_DISCRIMINATOR_PROPERTY_ID, id))
@@ -188,7 +189,7 @@ public class HttpOperationBuilder {
       throw new IllegalStateException("Operation id is not defined");
     }
     if (label == null) {
-      throw new IllegalStateException("Operation label is not defined");
+      throw new IllegalStateException("Operation description is not defined");
     }
   }
 

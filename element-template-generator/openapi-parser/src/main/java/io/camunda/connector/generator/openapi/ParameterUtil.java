@@ -16,16 +16,24 @@
  */
 package io.camunda.connector.generator.openapi;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.generator.dsl.http.HttpOperationProperty;
 import io.camunda.connector.generator.dsl.http.HttpOperationProperty.Target;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.parameters.Parameter;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Utility functions related to converting OpenAPI parameters to {@link HttpOperationProperty}s. */
 public class ParameterUtil {
+
+  private static final Logger LOG = LoggerFactory.getLogger(ParameterUtil.class);
 
   private static final Map<String, Target> targetMapping =
       Map.of(
@@ -60,7 +68,7 @@ public class ParameterUtil {
           targetMapping.get(parameter.getIn()),
           parameter.getDescription(),
           parameter.getRequired(),
-          schema.getEnum());
+          (List<String>) schema.getEnum());
     } else if (schema.getType().equals("boolean")) {
       return HttpOperationProperty.createEnumProperty(
           parameter.getName(),
@@ -90,19 +98,66 @@ public class ParameterUtil {
 
   public static String getExampleFromSchema(Schema schema, Components components) {
     schema = getSchemaOrFromComponents(schema, components);
+    if (schema == null) {
+      return null;
+    }
     if (schema.getExample() != null) {
       return schema.getExample().toString();
     }
     if (schema.getExamples() != null && !schema.getExamples().isEmpty()) {
       return schema.getExamples().get(0).toString();
     }
-    return null;
+    return generateFakeDataStringFromSchema(schema);
   }
 
-  public static Schema getSchemaOrFromComponents(Schema schema, Components components) {
+  public static Schema<?> getSchemaOrFromComponents(Schema<?> schema, Components components) {
     if (schema.get$ref() != null) {
       return components.getSchemas().get(schema.get$ref().replace("#/components/schemas/", ""));
     }
     return schema;
+  }
+
+  private static String generateFakeDataStringFromSchema(Schema<?> schema) {
+    Object data;
+    try {
+      data = generateFakeDataFromSchema(schema);
+    } catch (Exception e) {
+      return null;
+    }
+    try {
+      return ConnectorsObjectMapperSupplier.DEFAULT_MAPPER
+          .writerWithDefaultPrettyPrinter()
+          .writeValueAsString(data);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private static Object generateFakeDataFromSchema(Schema<?> schema) {
+    switch (schema.getType()) {
+      case "string" -> {
+        return "string";
+      }
+      case "object" -> {
+        Map<String, Object> nested = new HashMap<>();
+        schema
+            .getProperties()
+            .forEach((key, propSchema) -> nested.put(key, generateFakeDataFromSchema(propSchema)));
+        return nested;
+      }
+      case "array" -> {
+        var items = schema.getItems();
+        return new Object[] {generateFakeDataFromSchema(items)};
+      }
+      case "integer", "number" -> {
+        return 0;
+      }
+      case "boolean" -> {
+        return true;
+      }
+      default -> {
+        return null;
+      }
+    }
   }
 }

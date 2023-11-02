@@ -39,7 +39,15 @@ public record OpenApiGenerationSource(OpenAPI openAPI, Set<String> includeOperat
     }
     var openApiPath = cliParams.get(0);
     var openApiParser = new OpenAPIV3Parser();
-    return openApiParser.read(openApiPath);
+    try {
+      return openApiParser.read(openApiPath);
+    } catch (Exception e) {
+      throw new IllegalArgumentException(
+          "Failed to parse OpenAPI file from "
+              + openApiPath
+              + ". Make sure the location is specified correctly and does not require authentication.",
+          e);
+    }
   }
 
   private static Set<String> extractOperationIds(List<String> cliParams) {
