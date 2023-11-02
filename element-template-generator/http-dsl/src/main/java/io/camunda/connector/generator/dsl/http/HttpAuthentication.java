@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.generator.dsl.http;
 
+import io.camunda.connector.generator.dsl.HiddenProperty;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
 import io.camunda.connector.generator.dsl.PropertyBuilder;
@@ -39,6 +40,11 @@ public interface HttpAuthentication {
   static List<PropertyBuilder> getPropertyPrefabs(HttpAuthentication auth) {
     if (auth instanceof OAuth2) {
       return List.of(
+          HiddenProperty.builder()
+              .id("authentication.type")
+              .value(OAuthAuthentication.TYPE)
+              .group("authentication")
+              .binding(new ZeebeInput("authentication.type")),
           StringProperty.builder()
               .id("authentication.oauthTokenEndpoint")
               .label("Oauth token endpoint")
@@ -77,6 +83,11 @@ public interface HttpAuthentication {
     }
     if (auth instanceof BasicAuth) {
       return List.of(
+          HiddenProperty.builder()
+              .id("authentication.type")
+              .value(BasicAuthentication.TYPE)
+              .group("authentication")
+              .binding(new ZeebeInput("authentication.type")),
           StringProperty.builder()
               .id("authentication.username")
               .label("Username")
@@ -96,6 +107,11 @@ public interface HttpAuthentication {
     }
     if (auth instanceof BearerAuth) {
       return List.of(
+          HiddenProperty.builder()
+              .id("authentication.type")
+              .value(BearerAuthentication.TYPE)
+              .group("authentication")
+              .binding(new ZeebeInput("authentication.type")),
           StringProperty.builder()
               .id("authentication.token")
               .label("Bearer token")
@@ -106,7 +122,12 @@ public interface HttpAuthentication {
               .binding(new ZeebeInput("authentication.token")));
     }
     if (auth instanceof NoAuth) {
-      return List.of();
+      return List.of(
+          HiddenProperty.builder()
+              .id("authentication.type")
+              .value(NoAuthentication.TYPE)
+              .group("authentication")
+              .binding(new ZeebeInput("authentication.type")));
     }
     throw new IllegalArgumentException("Unknown authentication type: " + auth);
   }

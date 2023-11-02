@@ -124,11 +124,13 @@ public class HttpOutboundElementTemplateBuilder {
     builder.elementType("bpmn:ServiceTask").appliesTo(Set.of("bpmn:Task"));
     builder.propertyGroups(
         List.of(
-            PropertyUtil.serverPropertyGroup(servers),
+            PropertyUtil.serverDiscriminatorPropertyGroup(servers),
             PropertyUtil.operationDiscriminatorPropertyGroup(operations),
             PropertyUtil.authPropertyGroup(authentication, operations),
             PropertyUtil.parametersPropertyGroup(operations),
-            PropertyUtil.requestBodyPropertyGroup(operations)));
+            PropertyUtil.requestBodyPropertyGroup(operations),
+            PropertyUtil
+                .urlPropertyGroup())); // URL comes last to ensure proper order of FEEL evaluation
 
     return builder.build();
   }

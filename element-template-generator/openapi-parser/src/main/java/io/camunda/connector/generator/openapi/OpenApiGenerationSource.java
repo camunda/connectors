@@ -39,7 +39,7 @@ public record OpenApiGenerationSource(OpenAPI openAPI, Set<String> includeOperat
     }
     var openApiPath = cliParams.get(0);
     var openApiParser = new OpenAPIV3Parser();
-    return openApiParser.readLocation(openApiPath, null, null).getOpenAPI();
+    return openApiParser.read(openApiPath);
   }
 
   private static Set<String> extractOperationIds(List<String> cliParams) {

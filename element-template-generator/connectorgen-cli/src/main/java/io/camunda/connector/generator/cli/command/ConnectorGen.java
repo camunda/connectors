@@ -21,6 +21,7 @@ import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
+import picocli.CommandLine.Parameters;
 
 @Command(
     name = "connectorgen",
@@ -45,6 +46,9 @@ public class ConnectorGen {
       names = {"-n", "--name"},
       description = "template name to use for generation")
   String templateName;
+
+  @Parameters(index = "0", description = "name of the generator to invoke")
+  String generatorName;
 
   GeneratorConfiguration generatorConfiguration() {
     return new GeneratorConfiguration(

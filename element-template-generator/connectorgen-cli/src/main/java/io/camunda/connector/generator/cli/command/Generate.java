@@ -18,7 +18,6 @@ package io.camunda.connector.generator.cli.command;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.camunda.connector.generator.api.CliCompatibleTemplateGenerator;
 import io.camunda.connector.generator.cli.GeneratorServiceLoader;
 import java.util.List;
@@ -31,25 +30,24 @@ public class Generate implements Runnable {
 
   @ParentCommand ConnectorGen connectorGen;
 
-  @Parameters(index = "0", description = "name of the generator to invoke")
-  String generatorName;
-
   @Parameters(
-      index = "1..*",
-      description = "parameters to be passed to the generator (at least the generation source)")
+      index = "0..*",
+      description =
+          "parameters to be passed to the generator (at least the generation source)."
+              + " Refer to the documentation of the specific generator module for details.")
   List<String> params;
 
-  static final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+  private static final ObjectMapper mapper = new ObjectMapper();
 
   @SuppressWarnings("unchecked")
   @Override
   public void run() {
     CliCompatibleTemplateGenerator<Object, ?> generator =
-        (CliCompatibleTemplateGenerator<Object, ?>) loadGenerator(generatorName);
+        (CliCompatibleTemplateGenerator<Object, ?>) loadGenerator(connectorGen.generatorName);
     var input = generator.prepareInput(params);
     var template = generator.generate(input, connectorGen.generatorConfiguration());
     try {
-      var resultString = mapper.writeValueAsString(template);
+      var resultString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(template);
       System.out.println(resultString);
     } catch (JsonProcessingException e) {
       throw new RuntimeException(e);

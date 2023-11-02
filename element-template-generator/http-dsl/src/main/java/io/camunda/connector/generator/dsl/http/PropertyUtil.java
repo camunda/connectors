@@ -87,7 +87,6 @@ public class PropertyUtil {
                         .map(operation -> new DropdownChoice(operation.label(), operation.id()))
                         .collect(Collectors.toList()))
                 .id(OPERATION_DISCRIMINATOR_PROPERTY_ID)
-                .label("Operation")
                 .group("operation")
                 .value(operations.iterator().next().id())
                 .binding(new ZeebeInput(OPERATION_DISCRIMINATOR_PROPERTY_ID))
@@ -95,18 +94,8 @@ public class PropertyUtil {
         .build();
   }
 
-  static PropertyGroup serverPropertyGroup(Collection<HttpServerData> servers) {
+  static PropertyGroup serverDiscriminatorPropertyGroup(Collection<HttpServerData> servers) {
     List<Property> properties = new ArrayList<>();
-
-    // top-level property
-    var urlProperty =
-        HiddenProperty.builder()
-            .id("url")
-            .binding(new ZeebeInput("url"))
-            .group("server")
-            .value("= baseUrl + " + OPERATION_PATH_INPUT_NAME)
-            .build();
-    properties.add(urlProperty);
 
     if (servers == null || servers.isEmpty()) {
       // add a visible property for base URL, no servers configured
@@ -314,5 +303,16 @@ public class PropertyUtil {
         .label("Request body")
         .properties(properties)
         .build();
+  }
+
+  static PropertyGroup urlPropertyGroup() {
+    var urlProperty =
+        HiddenProperty.builder()
+            .id("url")
+            .binding(new ZeebeInput("url"))
+            .group("url")
+            .value("= baseUrl + " + OPERATION_PATH_INPUT_NAME)
+            .build();
+    return PropertyGroup.builder().id("url").label("URL").properties(urlProperty).build();
   }
 }

@@ -35,6 +35,10 @@
     {
       "id": "requestBody",
       "label": "Request body"
+    },
+    {
+      "id": "url",
+      "label": "URL"
     }
   ],
   "properties": [
@@ -42,16 +46,6 @@
       "value": "io.camunda:http-json:1",
       "binding": {
         "type": "zeebe:taskDefinition:type"
-      },
-      "type": "Hidden"
-    },
-    {
-      "id": "url",
-      "value": "= baseUrl + operationPath",
-      "group": "server",
-      "binding": {
-        "name": "url",
-        "type": "zeebe:input"
       },
       "type": "Hidden"
     },
@@ -77,7 +71,6 @@
     },
     {
       "id": "operationId",
-      "label": "Operation",
       "value": "someGetRequest",
       "group": "operation",
       "binding": {
@@ -111,6 +104,33 @@
           "somePostRequest"
         ],
         "type": "simple"
+      },
+      "type": "Hidden"
+    },
+    {
+      "id": "authentication.type",
+      "value": "basic",
+      "group": "authentication",
+      "binding": {
+        "name": "authentication.type",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "allMatch": [
+          {
+            "property": "authType",
+            "equals": "basic",
+            "type": "simple"
+          },
+          {
+            "property": "operationId",
+            "oneOf": [
+              "someGetRequest",
+              "somePostRequest"
+            ],
+            "type": "simple"
+          }
+        ]
       },
       "type": "Hidden"
     },
@@ -336,6 +356,16 @@
         "type": "simple"
       },
       "type": "String"
+    },
+    {
+      "id": "url",
+      "value": "= baseUrl + operationPath",
+      "group": "url",
+      "binding": {
+        "name": "url",
+        "type": "zeebe:input"
+      },
+      "type": "Hidden"
     }
   ]
 }

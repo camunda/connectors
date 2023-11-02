@@ -16,9 +16,9 @@
  */
 package io.camunda.connector.generator.cli.command;
 
-import static io.camunda.connector.generator.cli.command.Generate.mapper;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.camunda.connector.generator.api.CliCompatibleTemplateGenerator;
 import java.util.List;
 import picocli.CommandLine.Command;
@@ -30,19 +30,21 @@ public class Scan implements Runnable {
 
   @ParentCommand ConnectorGen connectorGen;
 
-  @Parameters(index = "0", description = "name of the generator to invoke")
-  String generatorName;
-
   @Parameters(
-      index = "1..*",
-      description = "parameters to be passed to the generator (at least the generation source)")
+      index = "0..*",
+      description =
+          "parameters to be passed to the generator (at least the generation source)."
+              + " Refer to the documentation of the specific generator module for details.")
   List<String> params;
+
+  private static final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
 
   @SuppressWarnings("unchecked")
   @Override
   public void run() {
     CliCompatibleTemplateGenerator<Object, ?> generator =
-        (CliCompatibleTemplateGenerator<Object, ?>) Generate.loadGenerator(generatorName);
+        (CliCompatibleTemplateGenerator<Object, ?>)
+            Generate.loadGenerator(connectorGen.generatorName);
     var input = generator.prepareInput(params);
     var result = generator.scan(input);
     try {
