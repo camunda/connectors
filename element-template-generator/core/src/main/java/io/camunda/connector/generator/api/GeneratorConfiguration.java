@@ -14,37 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.generator.dsl;
+package io.camunda.connector.generator.api;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import java.util.Collection;
-import java.util.List;
+/** Configuration for the element template generator */
+public record GeneratorConfiguration(
+    ConnectorMode connectorMode, String templateId, String templateName, Integer templateVersion) {
 
-public sealed interface PropertyCondition {
-
-  record OneOf(@JsonProperty String property, @JsonProperty List<String> oneOf)
-      implements PropertyCondition {
-
-    @JsonProperty
-    public String getType() {
-      return "simple";
-    }
+  /**
+   * Connectors in hybrid mode have a configurable task definition type (for outbound), or a
+   * configurable connector type (for inbound) property. This allows to run multiple connector
+   * runtimes against the same Camunda cluster and distinguish between them on the BPMN level.
+   */
+  public enum ConnectorMode {
+    NORMAL,
+    HYBRID
   }
 
-  record Equals(@JsonProperty String property, @JsonProperty String equals)
-      implements PropertyCondition {
-
-    @JsonProperty
-    public String getType() {
-      return "simple";
-    }
-  }
-
-  record AllMatch(@JsonProperty Collection<PropertyCondition> allMatch)
-      implements PropertyCondition {
-
-    public AllMatch(PropertyCondition... conditions) {
-      this(List.of(conditions));
-    }
-  }
+  public static final GeneratorConfiguration DEFAULT =
+      new GeneratorConfiguration(ConnectorMode.NORMAL, null, null, null);
 }

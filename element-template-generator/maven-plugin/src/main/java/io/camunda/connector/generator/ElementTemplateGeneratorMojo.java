@@ -17,9 +17,9 @@
 package io.camunda.connector.generator;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.generator.api.GeneratorConfiguration;
+import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
 import io.camunda.connector.generator.dsl.OutboundElementTemplate;
-import io.camunda.connector.generator.java.GeneratorConfiguration;
-import io.camunda.connector.generator.java.GeneratorConfiguration.ConnectorMode;
 import io.camunda.connector.generator.java.OutboundClassBasedTemplateGenerator;
 import java.io.File;
 import java.net.MalformedURLException;
@@ -124,7 +124,8 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
         if (generateHybridTemplates) {
           getLog().info("Generating hybrid element template for " + className);
           OutboundElementTemplate hybridTemplate =
-              generator.generate(clazz, new GeneratorConfiguration(ConnectorMode.HYBRID));
+              generator.generate(
+                  clazz, new GeneratorConfiguration(ConnectorMode.HYBRID, null, null, null));
           var name = basicFileName.replace(".json", "-hybrid.json");
           writeElementTemplate(hybridTemplate, name);
         }

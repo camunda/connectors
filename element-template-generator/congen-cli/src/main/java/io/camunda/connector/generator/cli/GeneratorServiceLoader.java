@@ -14,37 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.generator.dsl;
+package io.camunda.connector.generator.cli;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import java.util.Collection;
-import java.util.List;
+import io.camunda.connector.generator.api.CliCompatibleTemplateGenerator;
+import java.util.Map;
+import java.util.ServiceLoader;
+import java.util.stream.Collectors;
 
-public sealed interface PropertyCondition {
+public class GeneratorServiceLoader {
 
-  record OneOf(@JsonProperty String property, @JsonProperty List<String> oneOf)
-      implements PropertyCondition {
-
-    @JsonProperty
-    public String getType() {
-      return "simple";
-    }
-  }
-
-  record Equals(@JsonProperty String property, @JsonProperty String equals)
-      implements PropertyCondition {
-
-    @JsonProperty
-    public String getType() {
-      return "simple";
-    }
-  }
-
-  record AllMatch(@JsonProperty Collection<PropertyCondition> allMatch)
-      implements PropertyCondition {
-
-    public AllMatch(PropertyCondition... conditions) {
-      this(List.of(conditions));
-    }
+  public static Map<String, CliCompatibleTemplateGenerator<?, ?>> loadGenerators() {
+    return ServiceLoader.load(CliCompatibleTemplateGenerator.class).stream()
+        .map(ServiceLoader.Provider::get)
+        .collect(
+            Collectors.toMap(
+                CliCompatibleTemplateGenerator::getGeneratorId,
+                g -> (CliCompatibleTemplateGenerator<?, ?>) g));
   }
 }

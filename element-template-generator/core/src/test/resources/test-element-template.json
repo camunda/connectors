@@ -86,6 +86,50 @@
       ]
     },
     {
+      "label": "With topic?",
+      "group": "compose",
+      "binding": {
+        "name": "compose.withTopic",
+        "type": "zeebe:input"
+      },
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "With topic",
+          "value": "withTopic"
+        },
+        {
+          "name": "Without topic",
+          "value": "withoutTopic"
+        }
+      ]
+    },
+    {
+      "label": "Topic",
+      "description": "The topic of the message",
+      "feel": "optional",
+      "group": "compose",
+      "binding": {
+        "name": "compose.topic",
+        "type": "zeebe:input"
+      },
+      "condition": {
+        "allMatch": [
+          {
+            "property": "compose.type",
+            "equals": "message",
+            "type": "simple"
+          },
+          {
+            "property": "compose.withTopic",
+            "equals": "withTopic",
+            "type": "simple"
+          }
+        ]
+      },
+      "type": "Text"
+    },
+    {
       "label": "Message",
       "constraints": {
         "notEmpty": true
@@ -98,7 +142,8 @@
       },
       "condition": {
         "property": "compose.type",
-        "equals": "message"
+        "equals": "message",
+        "type": "simple"
       },
       "type": "Text"
     },

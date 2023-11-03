@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class OutboundElementTemplateBuilder {
 
@@ -108,8 +109,18 @@ public class OutboundElementTemplateBuilder {
     return this;
   }
 
+  public OutboundElementTemplateBuilder appliesTo(BpmnType... appliesTo) {
+    this.appliesTo = Arrays.stream(appliesTo).map(BpmnType::getName).collect(Collectors.toSet());
+    return this;
+  }
+
   public OutboundElementTemplateBuilder elementType(String elementType) {
     this.elementType = elementType;
+    return this;
+  }
+
+  public OutboundElementTemplateBuilder elementType(BpmnType elementType) {
+    this.elementType = elementType.getName();
     return this;
   }
 

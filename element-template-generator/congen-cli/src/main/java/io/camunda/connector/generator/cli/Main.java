@@ -14,37 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.generator.dsl;
+package io.camunda.connector.generator.cli;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import java.util.Collection;
-import java.util.List;
+import io.camunda.connector.generator.cli.command.ConGen;
+import picocli.CommandLine;
 
-public sealed interface PropertyCondition {
+public class Main {
 
-  record OneOf(@JsonProperty String property, @JsonProperty List<String> oneOf)
-      implements PropertyCondition {
-
-    @JsonProperty
-    public String getType() {
-      return "simple";
-    }
-  }
-
-  record Equals(@JsonProperty String property, @JsonProperty String equals)
-      implements PropertyCondition {
-
-    @JsonProperty
-    public String getType() {
-      return "simple";
-    }
-  }
-
-  record AllMatch(@JsonProperty Collection<PropertyCondition> allMatch)
-      implements PropertyCondition {
-
-    public AllMatch(PropertyCondition... conditions) {
-      this(List.of(conditions));
-    }
+  public static void main(String... args) {
+    int exitCode = new CommandLine(new ConGen()).execute(args);
+    System.exit(exitCode);
   }
 }

@@ -21,6 +21,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import io.camunda.connector.generator.api.GeneratorConfiguration;
+import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
 import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.dsl.DropdownProperty;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
@@ -35,7 +37,6 @@ import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
 import io.camunda.connector.generator.dsl.PropertyConstraints.Pattern;
 import io.camunda.connector.generator.dsl.StringProperty;
 import io.camunda.connector.generator.dsl.TextProperty;
-import io.camunda.connector.generator.java.GeneratorConfiguration.ConnectorMode;
 import io.camunda.connector.generator.java.example.MyConnectorFunction;
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -149,7 +150,7 @@ public class OutboundTemplateGeneratorTest extends BaseTest {
       var template =
           generator.generate(
               MyConnectorFunction.MinimallyAnnotated.class,
-              new GeneratorConfiguration(ConnectorMode.HYBRID));
+              new GeneratorConfiguration(ConnectorMode.HYBRID, null, null, null));
       var property = getPropertyById("taskDefinitionType", template);
       assertThat(property.getType()).isEqualTo("String");
       assertThat(property.getGroup()).isEqualTo("taskDefinitionType");
@@ -398,7 +399,7 @@ public class OutboundTemplateGeneratorTest extends BaseTest {
       var template =
           generator.generate(
               MyConnectorFunction.MinimallyAnnotated.class,
-              new GeneratorConfiguration(ConnectorMode.HYBRID));
+              new GeneratorConfiguration(ConnectorMode.HYBRID, null, null, null));
       checkPropertyGroups(
           List.of(
               Map.entry("taskDefinitionType", "Task definition type"),
