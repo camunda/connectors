@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.generator.dsl.http;
 
+import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.dsl.ElementTemplateIcon;
 import io.camunda.connector.generator.dsl.OutboundElementTemplate;
 import io.camunda.connector.generator.dsl.OutboundElementTemplateBuilder;
@@ -24,7 +25,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 
 public class HttpOutboundElementTemplateBuilder {
 
@@ -110,6 +110,7 @@ public class HttpOutboundElementTemplateBuilder {
   public HttpOutboundElementTemplateBuilder authentication(
       List<HttpAuthentication> authentication) {
     this.authentication = authentication;
+
     return this;
   }
 
@@ -117,17 +118,18 @@ public class HttpOutboundElementTemplateBuilder {
     if (operations == null || operations.isEmpty()) {
       throw new IllegalStateException("Could not find any supported operations");
     }
-    builder.elementType("bpmn:ServiceTask").appliesTo(Set.of("bpmn:Task"));
-    builder.propertyGroups(
-        List.of(
-            PropertyUtil.serverDiscriminatorPropertyGroup(servers),
-            PropertyUtil.operationDiscriminatorPropertyGroup(operations),
-            PropertyUtil.authPropertyGroup(authentication, operations),
-            PropertyUtil.parametersPropertyGroup(operations),
-            PropertyUtil.requestBodyPropertyGroup(operations),
-            PropertyUtil
-                .urlPropertyGroup())); // URL comes last to ensure proper order of FEEL evaluation
-
-    return builder.build();
+    return builder
+        .elementType(BpmnType.SERVICE_TASK)
+        .appliesTo(BpmnType.TASK)
+        .propertyGroups(
+            List.of(
+                PropertyUtil.serverDiscriminatorPropertyGroup(servers),
+                PropertyUtil.operationDiscriminatorPropertyGroup(operations),
+                PropertyUtil.authPropertyGroup(authentication, operations),
+                PropertyUtil.parametersPropertyGroup(operations),
+                PropertyUtil.requestBodyPropertyGroup(operations),
+                // URL comes last to ensure proper order of FEEL evaluation
+                PropertyUtil.urlPropertyGroup()))
+        .build();
   }
 }

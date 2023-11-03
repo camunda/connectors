@@ -30,7 +30,8 @@ public class ExampleTest {
   void generate() throws JsonProcessingException {
     // given
     var parser = new OpenAPIV3Parser();
-    var openApi = parser.read("https://modeler.cloud.camunda.io/v3/api-docs/api-v1");
+    // read resource from classpath
+    var openApi = parser.read("web-modeler-rest-api.json");
     var generator = new OpenApiOutboundTemplateGenerator();
 
     // when
@@ -43,7 +44,7 @@ public class ExampleTest {
   @Test
   void scan() {
     var parser = new OpenAPIV3Parser();
-    var openApi = parser.read("https://modeler.cloud.camunda.io/v3/api-docs/api-v1");
+    var openApi = parser.read("web-modeler-rest-api.json");
     var generator = new OpenApiOutboundTemplateGenerator();
 
     var scanResult = generator.scan(new OpenApiGenerationSource(openApi, Set.of()));
