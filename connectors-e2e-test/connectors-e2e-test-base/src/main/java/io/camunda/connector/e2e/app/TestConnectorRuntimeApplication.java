@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.test.e2e.app;
+package io.camunda.connector.e2e.app;
 
 import io.camunda.operate.CamundaOperateClient;
 import org.springframework.boot.SpringApplication;
