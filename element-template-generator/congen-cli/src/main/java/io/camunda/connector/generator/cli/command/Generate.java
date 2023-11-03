@@ -51,21 +51,22 @@ public class Generate implements Callable<Integer> {
       input = generator.prepareInput(params);
     } catch (Exception e) {
       System.err.println("Error while preparing input data: " + e.getMessage());
-      return -1;
+      return 2;
     }
     ElementTemplateBase template;
     try {
       template = generator.generate(input, connectorGen.generatorConfiguration());
     } catch (Exception e) {
       System.err.println("Generation failed: " + e.getMessage());
-      return -1;
+      return 1;
     }
     try {
       var resultString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(template);
       System.out.println(resultString);
       return 0;
     } catch (JsonProcessingException e) {
-      throw new RuntimeException(e);
+      System.err.println("Failed to serialize the result: " + e.getMessage());
+      return 1;
     }
   }
 

@@ -52,14 +52,14 @@ public class Scan implements Callable<Integer> {
       input = generator.prepareInput(params);
     } catch (Exception e) {
       System.err.println("Error while preparing input data: " + e.getMessage());
-      return -1;
+      return 2;
     }
     ScanResult result;
     try {
       result = generator.scan(input);
     } catch (Exception e) {
       System.err.println("The API is not supported: " + e.getMessage());
-      return -1;
+      return 1;
     }
     try {
       var resultString = mapper.writeValueAsString(result);
@@ -67,7 +67,7 @@ public class Scan implements Callable<Integer> {
       return 0;
     } catch (JsonProcessingException e) {
       System.err.println("Failed to serialize result: " + e.getMessage());
-      return -1;
+      return 1;
     }
   }
 }
