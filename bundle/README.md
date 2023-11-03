@@ -25,7 +25,7 @@ docker run --rm --name=connectors -d \
            -e MY_SECRET=secret \              # Set a secret with value
            -e SECRET_FROM_SHELL \             # Set a secret from the environment
            --env-file secrets.txt \           # Set secrets from a file
-           camunda/connectors-bundle:0.20.3
+           camunda/connectors-bundle:8.3.0
 ```
 
 The secret `MY_SECRET` value is specified directly in the `docker run` call,

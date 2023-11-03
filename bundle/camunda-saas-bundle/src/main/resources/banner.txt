@@ -1,0 +1,11 @@
+ _____                             _                 
+/  __ \                           | |                
+| /  \/ ___  _ __  _ __   ___  ___| |_ ___  _ __ ___ 
+| |    / _ \| '_ \| '_ \ / _ \/ __| __/ _ \| '__/ __|
+| \__/\ (_) | | | | | | |  __/ (__| || (_) | |  \__ \
+ \____/\___/|_| |_|_| |_|\___|\___|\__\___/|_|  |___/
+ 
+Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH.
+${application.title} ${application.version}
+Powered by Spring Boot ${spring-boot.version}
+                                                    
