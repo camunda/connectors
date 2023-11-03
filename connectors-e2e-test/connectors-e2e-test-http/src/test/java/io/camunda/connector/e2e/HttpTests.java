@@ -30,13 +30,13 @@ import static org.mockito.Mockito.when;
 
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
+import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.http.base.auth.BasicAuthentication;
 import io.camunda.connector.http.base.auth.BearerAuthentication;
 import io.camunda.connector.http.base.auth.OAuthAuthentication;
 import io.camunda.connector.http.base.constants.Constants;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
 import io.camunda.connector.runtime.inbound.lifecycle.InboundConnectorManager;
-import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.operate.CamundaOperateClient;
 import io.camunda.operate.dto.ProcessDefinition;
 import io.camunda.zeebe.client.ZeebeClient;
