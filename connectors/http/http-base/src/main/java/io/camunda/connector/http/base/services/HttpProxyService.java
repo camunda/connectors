@@ -61,7 +61,7 @@ public final class HttpProxyService {
             .content(content)
             .connectionTimeoutInSeconds(request.getConnectionTimeoutInSeconds())
             .followRedirects(false)
-            .headers(HttpInteractionService.extractRequestHeaders(request))
+            .headers(HttpRequestMapper.extractRequestHeaders(request))
             .build(requestFactory);
 
     try {

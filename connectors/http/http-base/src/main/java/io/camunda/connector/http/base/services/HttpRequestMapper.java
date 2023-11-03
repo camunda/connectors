@@ -27,15 +27,12 @@ import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.UrlEncodedContent;
 import com.google.api.client.http.json.JsonHttpContent;
 import com.google.api.client.json.gson.GsonFactory;
-import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.http.base.auth.OAuthAuthentication;
 import io.camunda.connector.http.base.constants.Constants;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpMethod;
 import io.camunda.connector.http.base.model.HttpRequestBuilder;
-import jakarta.validation.ValidationException;
 import java.io.IOException;
-import java.util.Optional;
 import org.apache.commons.text.StringEscapeUtils;
 
 public class HttpRequestMapper {
@@ -74,10 +71,6 @@ public class HttpRequestMapper {
       final HttpCommonRequest request,
       final String bearerToken)
       throws IOException {
-    // TODO: add more holistic solution
-    if (request.getUrl().contains("computeMetadata")) {
-      throw new ConnectorInputException(new ValidationException("The provided URL is not allowed"));
-    }
     final GenericUrl genericUrl = new GenericUrl(request.getUrl());
     final HttpHeaders headers = createHeaders(request, bearerToken);
 
@@ -110,21 +103,10 @@ public class HttpRequestMapper {
         .build(requestFactory);
   }
 
-  private static HttpHeaders createHeaders(final HttpCommonRequest request, String bearerToken) {
+  public static HttpHeaders createHeaders(final HttpCommonRequest request, String bearerToken) {
     final HttpHeaders httpHeaders = new HttpHeaders();
-    if (request.hasBody()) {
-      // set 'application/json' contentType if content type not exist in request
-      boolean isContentTypeNotSet =
-          Optional.ofNullable(request.getHeaders())
-              .map(
-                  headers ->
-                      headers.entrySet().stream()
-                          .noneMatch(header -> header.getKey().equalsIgnoreCase("content-type")))
-              .orElse(true);
-
-      if (isContentTypeNotSet) {
-        httpHeaders.setContentType(APPLICATION_JSON.getMimeType());
-      }
+    if (request.getMethod().supportsBody) {
+      httpHeaders.setContentType(APPLICATION_JSON.getMimeType());
     }
     if (request.hasAuthentication()) {
       if (bearerToken != null && !bearerToken.isEmpty()) {
@@ -132,9 +114,17 @@ public class HttpRequestMapper {
       }
       request.getAuthentication().setHeaders(httpHeaders);
     }
-    if (request.hasHeaders()) {
-      httpHeaders.putAll(request.getHeaders());
-    }
+    httpHeaders.putAll(extractRequestHeaders(request));
     return httpHeaders;
+  }
+
+  public static HttpHeaders extractRequestHeaders(final HttpCommonRequest httpCommonRequest) {
+    if (httpCommonRequest.hasHeaders()) {
+      final HttpHeaders httpHeaders = new HttpHeaders();
+      httpCommonRequest.getHeaders().forEach(httpHeaders::set);
+      return httpHeaders;
+    }
+
+    return new HttpHeaders();
   }
 }
