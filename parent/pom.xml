@@ -403,7 +403,7 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-text</artifactId>
-        <version>1.10.0</version>
+        <version>1.11.0</version>
       </dependency>
 
       <!-- FIXME: maven resolves protobuf to 3.21.x while zeebe-client is compiled for 3.22.2. This is a temporary fix to be reassessed later. -->
