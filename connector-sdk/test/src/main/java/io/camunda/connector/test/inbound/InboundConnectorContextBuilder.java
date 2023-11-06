@@ -259,6 +259,7 @@ public class InboundConnectorContextBuilder {
       return correlatedEvents;
     }
 
+    @Override
     public Health getHealth() {
       return health;
     }

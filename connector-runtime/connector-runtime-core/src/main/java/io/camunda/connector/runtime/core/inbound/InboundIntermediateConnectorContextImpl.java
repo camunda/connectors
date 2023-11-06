@@ -109,4 +109,9 @@ public class InboundIntermediateConnectorContextImpl
   public void reportHealth(final Health health) {
     inboundContext.reportHealth(health);
   }
+
+  @Override
+  public Health getHealth() {
+    return inboundContext.getHealth();
+  }
 }

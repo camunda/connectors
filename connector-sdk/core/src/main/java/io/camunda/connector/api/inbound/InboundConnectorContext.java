@@ -99,4 +99,6 @@ public interface InboundConnectorContext {
    * implementation requires it.
    */
   void reportHealth(Health health);
+
+  Health getHealth();
 }
