@@ -29,7 +29,6 @@ import io.camunda.connector.api.inbound.webhook.WebhookResult;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.inbound.HttpWebhookExecutable;
 import io.camunda.connector.inbound.utils.TestRSAKeyProvider;
-import io.camunda.connector.runtime.core.inbound.result.MessageCorrelationResult;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import java.util.Arrays;
@@ -269,7 +268,6 @@ public class JWTIntegrationTest {
 
     InboundConnectorContextBuilder.TestInboundConnectorContext context =
         InboundConnectorContextBuilder.create()
-            .result(new MessageCorrelationResult("", 0))
             .properties(props)
             .objectMapper(objectMapper)
             .build();

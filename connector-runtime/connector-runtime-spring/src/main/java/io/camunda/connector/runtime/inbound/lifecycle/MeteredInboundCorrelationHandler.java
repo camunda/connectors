@@ -18,7 +18,6 @@ package io.camunda.connector.runtime.inbound.lifecycle;
 
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
-import io.camunda.connector.runtime.core.inbound.correlation.CorrelationResult;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics.Inbound;
 import io.camunda.zeebe.client.ZeebeClient;
@@ -45,18 +44,14 @@ public class MeteredInboundCorrelationHandler extends InboundCorrelationHandler 
   }
 
   @Override
-  public CorrelationResult<?> correlate(
-      InboundConnectorDefinitionImpl definition, Object variables) {
+  public void correlate(InboundConnectorDefinitionImpl definition, Object variables) {
     metricsRecorder.increase(
         Inbound.METRIC_NAME_TRIGGERS, Inbound.ACTION_TRIGGERED, definition.type());
 
     try {
-      var result = super.correlate(definition, variables);
-      if (result.isActivated()) {
-        metricsRecorder.increase(
-            Inbound.METRIC_NAME_TRIGGERS, Inbound.ACTION_CORRELATED, definition.type());
-      }
-      return result;
+      super.correlate(definition, variables);
+      metricsRecorder.increase(
+          Inbound.METRIC_NAME_TRIGGERS, Inbound.ACTION_CORRELATED, definition.type());
     } catch (Exception e) {
       metricsRecorder.increase(
           Inbound.METRIC_NAME_TRIGGERS, Inbound.ACTION_CORRELATION_FAILED, definition.type());

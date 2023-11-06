@@ -27,7 +27,6 @@ import io.camunda.connector.kafka.outbound.model.KafkaConnectorRequest;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorResponse;
 import io.camunda.connector.kafka.outbound.model.KafkaMessage;
 import io.camunda.connector.kafka.outbound.model.KafkaTopic;
-import io.camunda.connector.runtime.core.inbound.result.MessageCorrelationResult;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
 import io.camunda.connector.test.inbound.InboundConnectorDefinitionBuilder;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
@@ -182,7 +181,6 @@ public class KafkaIntegrationTest {
 
     InboundConnectorContextBuilder.TestInboundConnectorContext context =
         InboundConnectorContextBuilder.create()
-            .result(new MessageCorrelationResult("", 0))
             .properties(kafkaConnectorProperties)
             .definition(InboundConnectorDefinitionBuilder.create().bpmnProcessId(processId).build())
             .build();
@@ -223,7 +221,6 @@ public class KafkaIntegrationTest {
 
     InboundConnectorContextBuilder.TestInboundConnectorContext context =
         InboundConnectorContextBuilder.create()
-            .result(new MessageCorrelationResult("", 0))
             .properties(kafkaConnectorProperties)
             .definition(InboundConnectorDefinitionBuilder.create().bpmnProcessId(processId).build())
             .build();
@@ -269,7 +266,6 @@ public class KafkaIntegrationTest {
 
     InboundConnectorContextBuilder.TestInboundConnectorContext context =
         InboundConnectorContextBuilder.create()
-            .result(new MessageCorrelationResult("", 0))
             .properties(kafkaConnectorProperties)
             .definition(InboundConnectorDefinitionBuilder.create().bpmnProcessId(processId).build())
             .build();
@@ -355,7 +351,6 @@ public class KafkaIntegrationTest {
 
     InboundConnectorContextBuilder.TestInboundConnectorContext context =
         InboundConnectorContextBuilder.create()
-            .result(new MessageCorrelationResult("", 0))
             .properties(kafkaConnectorProperties)
             .definition(InboundConnectorDefinitionBuilder.create().bpmnProcessId(processId).build())
             .build();
@@ -425,7 +420,6 @@ public class KafkaIntegrationTest {
 
     InboundConnectorContextBuilder.TestInboundConnectorContext context =
         InboundConnectorContextBuilder.create()
-            .result(new MessageCorrelationResult("", 0))
             .properties(kafkaConnectorProperties)
             .definition(InboundConnectorDefinitionBuilder.create().bpmnProcessId(processId).build())
             .build();

@@ -28,7 +28,6 @@ import io.camunda.connector.rabbitmq.outbound.RabbitMqResult;
 import io.camunda.connector.rabbitmq.outbound.model.RabbitMqOutboundRouting;
 import io.camunda.connector.rabbitmq.outbound.model.RabbitMqRequest;
 import io.camunda.connector.rabbitmq.supplier.ObjectMapperSupplier;
-import io.camunda.connector.runtime.core.inbound.result.MessageCorrelationResult;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder.TestInboundConnectorContext;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
@@ -121,10 +120,7 @@ public class RabbitMqIntegrationTest extends BaseTest {
     properties.setRouting(routing);
 
     TestInboundConnectorContext context =
-        InboundConnectorContextBuilder.create()
-            .result(new MessageCorrelationResult("", 0))
-            .properties(properties)
-            .build();
+        InboundConnectorContextBuilder.create().properties(properties).build();
 
     // When
     executable.activate(context);

@@ -21,7 +21,6 @@ import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.rabbitmq.inbound.model.RabbitMqInboundResult;
 import io.camunda.connector.rabbitmq.inbound.model.RabbitMqInboundResult.RabbitMqInboundMessage;
-import io.camunda.connector.runtime.core.inbound.result.MessageCorrelationResult;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder.TestInboundConnectorContext;
 import java.io.IOException;
 import java.util.Map;
@@ -50,7 +49,7 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
 
     @BeforeEach
     void init() {
-      context = getContextBuilderWithSecrets().result(new MessageCorrelationResult("", 0)).build();
+      context = getContextBuilderWithSecrets().build();
       consumer = new RabbitMqConsumer(mockChannel, context);
     }
 
