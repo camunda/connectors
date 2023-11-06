@@ -148,3 +148,10 @@ mvn clean package
 
 1. For minor releases (x.y.0), create a new branch `release/x.y` from `main` in advance and rebase it onto `main` from time to time. This can be done using the `CREATE_RELEASE_BRANCH` workflow.
 2. To trigger the release, publish a new GitHub release and name the tag according to the version you want to release (e.g. `1.0.0`). This will trigger a GitHub workflow that builds and publishes the release artifacts, generates a changelog and bundles the element templates into an archive.
+
+### Backport a PR to an older release
+
+We use `[backport-action](https://github.com/korthout/backport-action)` to backport PRs to older releases.
+For example, add a label `backport release/8.3` to backport a PR to the `release/8.3` branch. This will take effect when the PR is meged.
+
+You can also trigger this for already merged PRs by posting a comment on the PR containing `/backport`.
