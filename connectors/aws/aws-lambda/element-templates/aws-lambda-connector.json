@@ -166,9 +166,13 @@
       "group": "operationDetails",
       "type": "Text",
       "feel": "required",
+      "optional": false,
       "binding": {
         "type": "zeebe:input",
         "name": "awsFunction.payload"
+      },
+      "constraints": {
+        "notEmpty": true
       },
       "condition": {
         "property": "operationType",
