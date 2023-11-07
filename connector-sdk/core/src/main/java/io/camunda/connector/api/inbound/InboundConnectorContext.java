@@ -99,4 +99,14 @@ public interface InboundConnectorContext {
    * implementation requires it.
    */
   void reportHealth(Health health);
+
+  /**
+   * Provides a Health object to get information about the current status of the Connector with
+   * optional details.
+   *
+   * <p>Use the {@link #reportHealth(Health)} method to set this information
+   *
+   * @return Health object
+   */
+  Health getHealth();
 }

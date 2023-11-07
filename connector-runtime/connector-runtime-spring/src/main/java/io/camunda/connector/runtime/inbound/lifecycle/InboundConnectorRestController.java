@@ -17,7 +17,6 @@
 package io.camunda.connector.runtime.inbound.lifecycle;
 
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
-import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
 import io.camunda.connector.runtime.inbound.webhook.model.CommonWebhookProperties;
 import java.util.Collections;
 import java.util.HashMap;
@@ -53,7 +52,7 @@ public class InboundConnectorRestController {
 
   private ActiveInboundConnectorResponse mapToResponse(ActiveInboundConnector connector) {
     var definition = connector.context().getDefinition();
-    var health = ((InboundConnectorContextImpl) connector.context()).getHealth();
+    var health = connector.context().getHealth();
     Map<String, Object> details;
     if (connector.executable() instanceof WebhookConnectorExecutable) {
       details =
