@@ -565,6 +565,7 @@
         "type": "zeebe:input",
         "name": "githubBody"
       },
+      "optional": true,
       "condition": {
         "property": "operationType",
         "oneOf": [
