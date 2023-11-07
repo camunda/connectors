@@ -26,8 +26,6 @@ import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
-import io.camunda.connector.runtime.core.inbound.correlation.CorrelationResult;
-import io.camunda.connector.runtime.core.inbound.result.MessageCorrelationResult;
 import io.camunda.connector.test.ConnectorContextTestUtil;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -42,7 +40,6 @@ public class InboundConnectorContextBuilder {
   protected SecretProvider secretProvider = secrets::get;
   protected Map<String, Object> properties;
   protected InboundConnectorDefinition definition;
-  protected CorrelationResult<?> result = new MessageCorrelationResult("mockMsg", 0);
   protected ValidationProvider validationProvider;
 
   protected ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER;
@@ -151,15 +148,9 @@ public class InboundConnectorContextBuilder {
     }
   }
 
-  /**
-   * Assigns correlation result that will be returned on {@link InboundConnectorContext#correlate}
-   * call
-   *
-   * @param result - correlation result
-   * @return builder for fluent API
-   */
-  public InboundConnectorContextBuilder result(CorrelationResult<?> result) {
-    this.result = result;
+  /** This method is deprecated and does not have any effect anymore. */
+  @Deprecated(forRemoval = true)
+  public InboundConnectorContextBuilder result(Object result) {
     return this;
   }
 

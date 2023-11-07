@@ -17,22 +17,23 @@
 package io.camunda.connector.runtime.core.inbound.correlation;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.api.error.ConnectorCorrelationException;
+import io.camunda.connector.api.error.ConnectorCorrelationException.CorrelationErrorReason;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
-import io.camunda.connector.runtime.core.inbound.correlation.CorrelationErrorData.CorrelationErrorReason;
-import io.camunda.connector.runtime.core.inbound.result.MessageStartCorrelationResult;
-import io.camunda.connector.runtime.core.inbound.result.ProcessInstance;
-import io.camunda.connector.runtime.core.inbound.result.StartEventCorrelationResult;
 import io.camunda.connector.runtime.core.util.command.CreateCommandDummy;
 import io.camunda.connector.runtime.core.util.command.PublishMessageCommandDummy;
 import io.camunda.zeebe.client.ZeebeClient;
+import io.camunda.zeebe.client.api.command.ClientStatusException;
+import io.grpc.Status;
 import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
@@ -184,6 +185,31 @@ public class InboundCorrelationHandlerTest {
     verify(dummyCommand).send();
   }
 
+  @Test
+  void upstreamZeebeError_shouldThrow() {
+    // given
+    var point =
+        new BoundaryEventCorrelationPoint(
+            "test-boundary",
+            "=\"test\"",
+            "123",
+            new BoundaryEventCorrelationPoint.Activity("123", "test"));
+    var definition = mock(InboundConnectorDefinitionImpl.class);
+    when(definition.correlationPoint()).thenReturn(point);
+
+    when(zeebeClient.newPublishMessageCommand())
+        .thenThrow(new ClientStatusException(Status.UNAVAILABLE, null));
+
+    // when & then
+    var error =
+        assertThrows(
+            ConnectorCorrelationException.class,
+            () -> handler.correlate(definition, Collections.emptyMap()));
+
+    assertThat(error.getErrorCode()).contains("Failed to correlate");
+    assertThat(error.getReason()).isEqualTo(CorrelationErrorReason.FAULT_ZEEBE_CLIENT_STATUS);
+  }
+
   @Nested
   class ActivationCondition {
 
@@ -197,18 +223,9 @@ public class InboundCorrelationHandlerTest {
 
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
-      // when
-      CorrelationResult<?> result = handler.correlate(definition, variables);
-
-      // then
+      // when & then
+      assertDoesNotThrow(() -> handler.correlate(definition, variables));
       verifyNoMoreInteractions(zeebeClient);
-
-      assertThat(result).isInstanceOf(StartEventCorrelationResult.class);
-      assertFalse(result.getResponseData().isPresent());
-      assertFalse(result.isActivated());
-      assertThat(result.getErrorData().isPresent()).isTrue();
-      assertThat(result.getErrorData().get().reason())
-          .isEqualTo(CorrelationErrorReason.ACTIVATION_CONDITION_NOT_MET);
     }
 
     @Test
@@ -225,20 +242,10 @@ public class InboundCorrelationHandlerTest {
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
       // when
-      CorrelationResult<?> result = handler.correlate(definition, variables);
+      handler.correlate(definition, variables);
 
       // then
       verify(zeebeClient).newCreateInstanceCommand();
-
-      assertThat(result).isInstanceOf(StartEventCorrelationResult.class);
-      assertThat(result.isActivated()).isTrue();
-      assertThat(result.getResponseData().isPresent()).isTrue();
-      assertThat(result.getErrorData().isPresent()).isFalse();
-
-      ProcessInstance instance = ((StartEventCorrelationResult) result).getResponseData().get();
-      assertThat(instance.getProcessDefinitionKey()).isEqualTo(point.processDefinitionKey());
-      assertThat(instance.getBpmnProcessId()).isEqualTo(point.bpmnProcessId());
-      assertThat(instance.getVersion()).isEqualTo(point.version());
     }
 
     @Test
@@ -255,20 +262,10 @@ public class InboundCorrelationHandlerTest {
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
       // when
-      CorrelationResult<?> result = handler.correlate(definition, variables);
+      handler.correlate(definition, variables);
 
       // then
       verify(zeebeClient).newCreateInstanceCommand();
-
-      assertThat(result).isInstanceOf(StartEventCorrelationResult.class);
-      assertThat(result.isActivated()).isTrue();
-      assertThat(result.getResponseData().isPresent()).isTrue();
-      assertThat(result.getErrorData().isPresent()).isFalse();
-
-      ProcessInstance instance = ((StartEventCorrelationResult) result).getResponseData().get();
-      assertThat(instance.getProcessDefinitionKey()).isEqualTo(point.processDefinitionKey());
-      assertThat(instance.getBpmnProcessId()).isEqualTo(point.bpmnProcessId());
-      assertThat(instance.getVersion()).isEqualTo(point.version());
     }
 
     @Test
@@ -285,20 +282,10 @@ public class InboundCorrelationHandlerTest {
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
       // when
-      CorrelationResult<?> result = handler.correlate(definition, variables);
+      handler.correlate(definition, variables);
 
       // then
       verify(zeebeClient).newCreateInstanceCommand();
-
-      assertThat(result).isInstanceOf(StartEventCorrelationResult.class);
-      assertThat(result.isActivated()).isTrue();
-      assertThat(result.getResponseData().isPresent()).isTrue();
-      assertThat(result.getErrorData().isPresent()).isFalse();
-
-      ProcessInstance instance = ((StartEventCorrelationResult) result).getResponseData().get();
-      assertThat(instance.getProcessDefinitionKey()).isEqualTo(point.processDefinitionKey());
-      assertThat(instance.getBpmnProcessId()).isEqualTo(point.bpmnProcessId());
-      assertThat(instance.getVersion()).isEqualTo(point.version());
     }
 
     @Test
@@ -311,18 +298,9 @@ public class InboundCorrelationHandlerTest {
 
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
-      // when
-      CorrelationResult<?> result = handler.correlate(definition, variables);
-
-      // then
+      // when & then
+      assertDoesNotThrow(() -> handler.correlate(definition, variables));
       verifyNoMoreInteractions(zeebeClient);
-
-      assertThat(result).isInstanceOf(MessageStartCorrelationResult.class);
-      assertFalse(result.getResponseData().isPresent());
-      assertFalse(result.isActivated());
-      assertThat(result.getErrorData().isPresent()).isTrue();
-      assertThat(result.getErrorData().get().reason())
-          .isEqualTo(CorrelationErrorReason.ACTIVATION_CONDITION_NOT_MET);
     }
 
     @Test
@@ -340,15 +318,10 @@ public class InboundCorrelationHandlerTest {
           Map.of("myVar", "myValue", "myOtherMap", Map.of("myOtherKey", "myOtherValue"));
 
       // when
-      CorrelationResult<?> result = handler.correlate(definition, variables);
+      handler.correlate(definition, variables);
 
       // then
       verify(zeebeClient).newPublishMessageCommand();
-
-      assertThat(result).isInstanceOf(MessageStartCorrelationResult.class);
-      assertThat(result.isActivated()).isTrue();
-      assertThat(result.getResponseData().isPresent()).isTrue();
-      assertThat(result.getErrorData().isPresent()).isFalse();
     }
 
     @Test
@@ -366,15 +339,7 @@ public class InboundCorrelationHandlerTest {
           Map.of("myVar", "myValue", "myOtherMap", Map.of("myOtherKey", "myOtherValue"));
 
       // when
-      CorrelationResult<?> result = handler.correlate(definition, variables);
-
-      // then
-      verify(zeebeClient).newPublishMessageCommand();
-
-      assertThat(result).isInstanceOf(MessageStartCorrelationResult.class);
-      assertThat(result.isActivated()).isTrue();
-      assertThat(result.getResponseData().isPresent()).isTrue();
-      assertThat(result.getErrorData().isPresent()).isFalse();
+      handler.correlate(definition, variables);
     }
 
     @Test
@@ -392,15 +357,7 @@ public class InboundCorrelationHandlerTest {
           Map.of("myVar", "myValue", "myOtherMap", Map.of("myOtherKey", "myOtherValue"));
 
       // when
-      CorrelationResult<?> result = handler.correlate(definition, variables);
-
-      // then
-      verify(zeebeClient).newPublishMessageCommand();
-
-      assertThat(result).isInstanceOf(MessageStartCorrelationResult.class);
-      assertThat(result.isActivated()).isTrue();
-      assertThat(result.getResponseData().isPresent()).isTrue();
-      assertThat(result.getErrorData().isPresent()).isFalse();
+      handler.correlate(definition, variables);
     }
   }
 

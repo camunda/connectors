@@ -28,7 +28,6 @@ import io.camunda.connector.api.inbound.InboundConnectorDefinition;
 import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.common.suppliers.AmazonSQSClientSupplier;
 import io.camunda.connector.inbound.model.SqsInboundProperties;
-import io.camunda.connector.runtime.core.inbound.result.MessageCorrelationResult;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
 import io.camunda.connector.test.inbound.InboundConnectorDefinitionBuilder;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
@@ -140,7 +139,6 @@ class SqsExecutableTest {
         .objectMapper(objectMapper)
         .definition(definition)
         .validation(new DefaultValidationProvider())
-        .result(new MessageCorrelationResult("", 0))
         .build();
   }
 
