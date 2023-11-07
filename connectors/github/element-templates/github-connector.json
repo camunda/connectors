@@ -557,7 +557,7 @@
     },
     {
       "label": "Body",
-      "description": "The contents of the issue or release or comment",
+      "description": "The contents of the issue or release",
       "feel": "optional",
       "group": "input",
       "type": "Text",
@@ -571,7 +571,26 @@
           "createIssue",
           "updateIssue",
           "createRelease",
-          "updateRelease",
+          "updateRelease"
+        ]
+      }
+    },
+    {
+      "label": "Body",
+      "description": "The contents of the issue comment",
+      "feel": "optional",
+      "group": "input",
+      "constraints": {
+        "notEmpty": true
+      },
+      "type": "Text",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "githubBody"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
           "createIssueComment"
         ]
       }
