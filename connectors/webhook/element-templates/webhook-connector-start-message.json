@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Webhook Message Start Event Connector",
   "id": "io.camunda.connectors.webhook.WebhookConnectorStartMessage.v1",
-  "version": 1,
+  "version": 2,
   "description": "Configure webhook to receive callbacks",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/",
   "category": {
@@ -472,6 +472,18 @@
         "name": "resultExpression"
       },
       "description": "Expression to map the inbound payload to process variables"
+    },
+    {
+      "label": "One time verification response expression",
+      "description": "Specify condition and response",
+      "type": "Text",
+      "group": "webhookResponse",
+      "feel": "required",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.verificationExpression"
+      }
     },
     {
       "label": "Response body expression",
