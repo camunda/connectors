@@ -80,6 +80,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
+      - name: Install element templates CLI
+        run: npm install --global element-templates-cli
+
       - name: Check if new version implies pre-release
         id: check_prerelease
         run: |
