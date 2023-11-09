@@ -41,7 +41,6 @@ public interface HttpAuthentication {
     if (auth instanceof OAuth2) {
       return List.of(
           HiddenProperty.builder()
-              .id("authentication.type")
               .value(OAuthAuthentication.TYPE)
               .group("authentication")
               .binding(new ZeebeInput("authentication.type")),
@@ -53,6 +52,7 @@ public interface HttpAuthentication {
               .constraints(PropertyConstraints.builder().notEmpty(true).build())
               .feel(FeelMode.optional)
               .group("authentication")
+              .value(((OAuth2) auth).tokenUrl())
               .binding(new ZeebeInput("authentication.oauthTokenEndpoint")),
           StringProperty.builder()
               .id("authentication.clientId")
@@ -79,12 +79,22 @@ public interface HttpAuthentication {
               .optional(true)
               .feel(FeelMode.optional)
               .group("authentication")
-              .binding(new ZeebeInput("authentication.audience")));
+              .binding(new ZeebeInput("authentication.audience")),
+          StringProperty.builder()
+              .id("authentication.scopes")
+              .label("Scopes")
+              .optional(false)
+              .constraints(PropertyConstraints.builder().notEmpty(true).build())
+              .description(
+                  "The scopes which you want to request authorization for (e.g.read:contacts)")
+              .value(String.join(" ", ((OAuth2) auth).scopes()))
+              .feel(FeelMode.optional)
+              .group("authentication")
+              .binding(new ZeebeInput("authentication.scopes")));
     }
     if (auth instanceof BasicAuth) {
       return List.of(
           HiddenProperty.builder()
-              .id("authentication.type")
               .value(BasicAuthentication.TYPE)
               .group("authentication")
               .binding(new ZeebeInput("authentication.type")),
@@ -108,7 +118,6 @@ public interface HttpAuthentication {
     if (auth instanceof BearerAuth) {
       return List.of(
           HiddenProperty.builder()
-              .id("authentication.type")
               .value(BearerAuthentication.TYPE)
               .group("authentication")
               .binding(new ZeebeInput("authentication.type")),
@@ -124,7 +133,6 @@ public interface HttpAuthentication {
     if (auth instanceof NoAuth) {
       return List.of(
           HiddenProperty.builder()
-              .id("authentication.type")
               .value(NoAuthentication.TYPE)
               .group("authentication")
               .binding(new ZeebeInput("authentication.type")));

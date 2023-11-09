@@ -17,5 +17,40 @@
 package io.camunda.connector.generator.dsl;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.io.IOException;
+import java.util.Base64;
 
-public record ElementTemplateIcon(@JsonProperty String contents) {}
+public record ElementTemplateIcon(@JsonProperty String contents) {
+
+  public static ElementTemplateIcon from(String location, ClassLoader classLoader) {
+    if (location.startsWith("https://")) {
+      return new ElementTemplateIcon(location);
+    }
+    try {
+      return new ElementTemplateIcon(resolveIconFile(location, classLoader));
+    } catch (Exception e) {
+      throw new IllegalArgumentException(
+          "Invalid icon location: " + location + ", " + e.getMessage(), e);
+    }
+  }
+
+  private static String resolveIconFile(String path, ClassLoader classLoader) throws IOException {
+    var resource = classLoader.getResource(path);
+    if (resource == null) {
+      throw new IllegalArgumentException("Icon file not found: " + path);
+    }
+    String base64Data;
+    try (var stream = resource.openStream()) {
+      var bytes = stream.readAllBytes();
+      base64Data = Base64.getEncoder().encodeToString(bytes);
+    }
+
+    if (path.endsWith(".svg")) {
+      return "data:image/svg+xml;base64," + base64Data;
+    } else if (path.endsWith(".png")) {
+      return "data:image/png;base64," + base64Data;
+    } else {
+      throw new IllegalArgumentException("Unsupported icon file: " + path);
+    }
+  }
+}

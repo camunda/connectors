@@ -18,6 +18,7 @@ package io.camunda.connector.generator.dsl;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskHeader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -25,6 +26,37 @@ import java.util.stream.Stream;
 
 public record PropertyGroup(
     @JsonProperty String id, @JsonProperty String label, @JsonIgnore List<Property> properties) {
+
+  public static PropertyGroup OUTPUT_GROUP =
+      PropertyGroup.builder()
+          .id("output")
+          .label("Output mapping")
+          .properties(
+              CommonProperties.RESULT_VARIABLE
+                  .binding(new ZeebeTaskHeader("resultVariable"))
+                  .build(),
+              CommonProperties.RESULT_EXPRESSION
+                  .binding(new ZeebeTaskHeader("resultExpression"))
+                  .build())
+          .build();
+
+  public static PropertyGroup ERROR_GROUP =
+      PropertyGroup.builder()
+          .id("error")
+          .label("Error handling")
+          .properties(
+              CommonProperties.ERROR_EXPRESSION
+                  .binding(new ZeebeTaskHeader("errorExpression"))
+                  .build())
+          .build();
+
+  public static PropertyGroup RETRIES_GROUP =
+      PropertyGroup.builder()
+          .id("retries")
+          .label("Retries")
+          .properties(
+              CommonProperties.RETRY_BACKOFF.binding(new ZeebeTaskHeader("retryBackoff")).build())
+          .build();
 
   public PropertyGroup {
     if (id == null) {

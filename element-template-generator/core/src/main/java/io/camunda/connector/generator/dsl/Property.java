@@ -147,7 +147,7 @@ public abstract sealed class Property
   @Override
   public String toString() {
     return "Property{"
-        + "name='"
+        + "id='"
         + id
         + '\''
         + ", label='"

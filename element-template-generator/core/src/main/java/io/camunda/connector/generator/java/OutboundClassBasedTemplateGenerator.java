@@ -21,20 +21,16 @@ import io.camunda.connector.generator.api.ElementTemplateGenerator;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
 import io.camunda.connector.generator.dsl.BpmnType;
-import io.camunda.connector.generator.dsl.CommonProperties;
 import io.camunda.connector.generator.dsl.ElementTemplateIcon;
 import io.camunda.connector.generator.dsl.OutboundElementTemplate;
-import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskHeader;
 import io.camunda.connector.generator.dsl.PropertyBuilder;
 import io.camunda.connector.generator.dsl.PropertyGroup;
 import io.camunda.connector.generator.dsl.PropertyGroup.PropertyGroupBuilder;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.util.ReflectionUtil;
 import io.camunda.connector.generator.java.util.TemplatePropertiesUtil;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.HashSet;
 import java.util.List;
 
@@ -106,43 +102,15 @@ public class OutboundClassBasedTemplateGenerator
               .build());
     }
 
-    var outputGroup =
-        PropertyGroup.builder()
-            .id("output")
-            .label("Output mapping")
-            .properties(
-                CommonProperties.RESULT_VARIABLE
-                    .binding(new ZeebeTaskHeader("resultVariable"))
-                    .build(),
-                CommonProperties.RESULT_EXPRESSION
-                    .binding(new ZeebeTaskHeader("resultExpression"))
-                    .build())
-            .build();
-    var errorGroup =
-        PropertyGroup.builder()
-            .id("error")
-            .label("Error handling")
-            .properties(
-                CommonProperties.ERROR_EXPRESSION
-                    .binding(new ZeebeTaskHeader("errorExpression"))
-                    .build())
-            .build();
-    var retriesGroup =
-        PropertyGroup.builder()
-            .id("retries")
-            .label("Retries")
-            .properties(
-                CommonProperties.RETRY_BACKOFF.binding(new ZeebeTaskHeader("retryBackoff")).build())
-            .build();
-
-    mergedGroups.add(outputGroup);
-    mergedGroups.add(errorGroup);
-    mergedGroups.add(retriesGroup);
+    mergedGroups.add(PropertyGroup.OUTPUT_GROUP);
+    mergedGroups.add(PropertyGroup.ERROR_GROUP);
+    mergedGroups.add(PropertyGroup.RETRIES_GROUP);
 
     var nonGroupedProperties =
         properties.stream().filter(property -> property.build().getGroup() == null).toList();
 
-    var icon = template.icon().isBlank() ? null : resolveIcon(template.icon());
+    var icon =
+        template.icon().isBlank() ? null : ElementTemplateIcon.from(template.icon(), classLoader);
 
     var appliesTo = template.appliesTo();
     if (appliesTo == null || appliesTo.length == 0) {
@@ -168,37 +136,5 @@ public class OutboundClassBasedTemplateGenerator
         .properties(nonGroupedProperties.stream().map(PropertyBuilder::build).toList())
         .propertyGroups(mergedGroups)
         .build();
-  }
-
-  public ElementTemplateIcon resolveIcon(String iconDefinition) {
-    if (iconDefinition.startsWith("https://")) {
-      return new ElementTemplateIcon(iconDefinition);
-    }
-    try {
-      return new ElementTemplateIcon(resolveIconFile(iconDefinition));
-    } catch (Exception e) {
-      throw new IllegalArgumentException(
-          "Invalid icon definition: " + iconDefinition + ", " + e.getMessage(), e);
-    }
-  }
-
-  private String resolveIconFile(String path) throws IOException {
-    var resource = classLoader.getResource(path);
-    if (resource == null) {
-      throw new IllegalArgumentException("Icon file not found: " + path);
-    }
-    String base64Data;
-    try (var stream = resource.openStream()) {
-      var bytes = stream.readAllBytes();
-      base64Data = Base64.getEncoder().encodeToString(bytes);
-    }
-
-    if (path.endsWith(".svg")) {
-      return "data:image/svg+xml;base64," + base64Data;
-    } else if (path.endsWith(".png")) {
-      return "data:image/png;base64," + base64Data;
-    } else {
-      throw new IllegalArgumentException("Unsupported icon file: " + path);
-    }
   }
 }

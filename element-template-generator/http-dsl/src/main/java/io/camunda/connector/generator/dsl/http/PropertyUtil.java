@@ -26,6 +26,7 @@ import io.camunda.connector.generator.dsl.PropertyBuilder;
 import io.camunda.connector.generator.dsl.PropertyCondition.AllMatch;
 import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
 import io.camunda.connector.generator.dsl.PropertyCondition.OneOf;
+import io.camunda.connector.generator.dsl.PropertyConstraints;
 import io.camunda.connector.generator.dsl.PropertyGroup;
 import io.camunda.connector.generator.dsl.StringProperty;
 import java.util.ArrayList;
@@ -105,6 +106,7 @@ public class PropertyUtil {
               .group("server")
               .label("Base URL")
               .binding(new ZeebeInput("baseUrl"))
+              .constraints(PropertyConstraints.builder().notEmpty(true).build())
               .feel(FeelMode.optional)
               .build());
     } else if (servers.size() == 1) {
@@ -125,6 +127,7 @@ public class PropertyUtil {
                       .map(server -> new DropdownChoice(server.label(), server.baseUrl()))
                       .collect(Collectors.toList()))
               .id("baseUrl")
+              .value(servers.iterator().next().baseUrl())
               .label("Server")
               .group("server")
               .binding(new ZeebeInput("baseUrl"))
@@ -266,12 +269,12 @@ public class PropertyUtil {
               .condition(new Equals(OPERATION_DISCRIMINATOR_PROPERTY_ID, operation.id()))
               .build();
 
+      properties.addAll(operation.properties());
+
       properties.add(operationPathProperty);
       properties.add(operationHeadersProperty);
       properties.add(operationQueryProperty);
       properties.add(operationMethodProperty);
-
-      properties.addAll(operation.properties());
     }
     return PropertyGroup.builder()
         .id("parameters")
