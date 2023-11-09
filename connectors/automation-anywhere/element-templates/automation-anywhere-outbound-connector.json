@@ -1,0 +1,358 @@
+{
+  "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name" : "Automation Anywhere Outbound Connector",
+  "id" : "io.camunda.connectors.AutomationAnywhere",
+  "description" : "Orchestrate your Automation Anywhere bots with Camunda. You can create new queue items and get the result from it",
+  "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/automation-anywhere/",
+  "version" : 1,
+  "category" : {
+    "id" : "connectors",
+    "name" : "Connectors"
+  },
+  "appliesTo" : [ "bpmn:Task" ],
+  "elementType" : {
+    "value" : "bpmn:ServiceTask"
+  },
+  "groups" : [ {
+    "id" : "operation",
+    "label" : "Operation"
+  }, {
+    "id" : "configuration",
+    "label" : "Configuration"
+  }, {
+    "id" : "authentication",
+    "label" : "Authentication"
+  }, {
+    "id" : "input",
+    "label" : "Input"
+  }, {
+    "id" : "timeout",
+    "label" : "Timeout"
+  }, {
+    "id" : "output",
+    "label" : "Output mapping"
+  }, {
+    "id" : "error",
+    "label" : "Error handling"
+  }, {
+    "id" : "retries",
+    "label" : "Retries"
+  } ],
+  "properties" : [ {
+    "value" : "io.camunda:connector-automationanywhere:1",
+    "binding" : {
+      "type" : "zeebe:taskDefinition:type"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "operation.type",
+    "label" : "Type",
+    "group" : "operation",
+    "binding" : {
+      "name" : "operation.type",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Add work item to the queue",
+      "value" : "addWorkItemsToTheQueue"
+    }, {
+      "name" : "Get work item result from queue by ID",
+      "value" : "listWorkItemsInQueue"
+    } ]
+  }, {
+    "id" : "configuration.controlRoomUrl",
+    "label" : "Control room URL",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "configuration",
+    "binding" : {
+      "name" : "configuration.controlRoomUrl",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.type",
+    "label" : "Type",
+    "description" : "Choose the authentication type. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/automation-anywhere/\" target=\"_blank\">documentation</a>",
+    "value" : "passwordBasedAuthentication",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.type",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Authenticate (username and password)",
+      "value" : "passwordBasedAuthentication"
+    }, {
+      "name" : "Authenticate (username and API key)",
+      "value" : "apiKeyAuthentication"
+    }, {
+      "name" : "Authentication (refresh) token",
+      "value" : "tokenBasedAuthentication"
+    } ]
+  }, {
+    "id" : "authentication.passwordBassesUsername",
+    "label" : "Username",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.username",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "passwordBasedAuthentication",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.password",
+    "label" : "Password",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.password",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "passwordBasedAuthentication",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.multipleLogin",
+    "label" : "Multiple login",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.multipleLogin",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "passwordBasedAuthentication",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "TRUE",
+      "value" : "true"
+    }, {
+      "name" : "FALSE",
+      "value" : "false"
+    } ]
+  }, {
+    "id" : "authentication.apiUsername",
+    "label" : "Username",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.username",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "apiKeyAuthentication",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.apiKey",
+    "label" : "API key",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.apiKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "apiKeyAuthentication",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.token",
+    "label" : "Token",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.token",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "tokenBasedAuthentication",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "operation.queueId",
+    "label" : "Work queue ID",
+    "description" : "The queue ID of the item",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "input",
+    "binding" : {
+      "name" : "operation.queueId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "operation.type",
+      "equals" : "addWorkItemsToTheQueue",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "operation.data",
+    "label" : "Work item json data",
+    "description" : "Work item json input data. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/automation-anywhere/\" target=\"_blank\">documentation</a>",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "input",
+    "binding" : {
+      "name" : "operation.data",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "operation.type",
+      "equals" : "addWorkItemsToTheQueue",
+      "type" : "simple"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "operation.workQueueId",
+    "label" : "Work queue ID",
+    "description" : "The queue ID of the item",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "input",
+    "binding" : {
+      "name" : "operation.queueId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "operation.type",
+      "equals" : "listWorkItemsInQueue",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "operation.workItemId",
+    "label" : "Work item ID",
+    "description" : "The queue item identifier to be fetched from queue",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "input",
+    "binding" : {
+      "name" : "operation.workItemId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "operation.type",
+      "equals" : "listWorkItemsInQueue",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "configuration.connectionTimeoutInSeconds",
+    "label" : "Connection timeout in seconds",
+    "description" : "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
+    "optional" : true,
+    "value" : "20",
+    "feel" : "optional",
+    "group" : "timeout",
+    "binding" : {
+      "name" : "configuration.connectionTimeoutInSeconds",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "resultVariable",
+    "label" : "Result variable",
+    "description" : "Name of variable to store the response in",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultVariable",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  }, {
+    "id" : "resultExpression",
+    "label" : "Result expression",
+    "description" : "Expression to map the response into process variables",
+    "feel" : "required",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "errorExpression",
+    "label" : "Error expression",
+    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "error",
+    "binding" : {
+      "key" : "errorExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "retryBackoff",
+    "label" : "Retry backoff",
+    "description" : "ISO-8601 duration to wait between retries",
+    "value" : "PT0S",
+    "group" : "retries",
+    "binding" : {
+      "key" : "retryBackoff",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Hidden"
+  } ],
+  "icon" : {
+    "contents" : "data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PScwIDAgNjUyIDY1Micgc3R5bGU9J2VuYWJsZS1iYWNrZ3JvdW5kOm5ldyAwIDAgNjUyIDY1MjsnIHhtbG5zPSdodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2Zyc+CiAgICA8ZGVmcz4KICAgICAgICA8c3R5bGUgdHlwZT0ndGV4dC9jc3MnPi5zdDB7Y2xpcC1wYXRoOnVybCgjU1ZHSURfMl8pO2ZpbGw6dXJsKCNTVkdJRF8zXyk7fSAuc3Qxe29wYWNpdHk6MC4zO30KICAgICAgICAgICAgLnN0MntjbGlwLXBhdGg6dXJsKCNTVkdJRF81Xyk7ZmlsbDp1cmwoI1NWR0lEXzZfKTt9IC5zdDN7ZmlsbDojNDA0MDQxO30gLnN0NHtmaWxsOiNGNzk4Mzc7fQogICAgICAgIDwvc3R5bGU+CiAgICA8L2RlZnM+CiAgICA8ZyBzdHlsZT0nJyB0cmFuc2Zvcm09J21hdHJpeCgyLjgzODk0NiwgMCwgMCwgMi44MDcxMjYsIC00NC41MzQzNjMsIC01NzguMzQzMzg0KSc+CiAgICAgICAgPGc+CiAgICAgICAgICAgIDxkZWZzPgogICAgICAgICAgICAgICAgPHBhdGggaWQ9J1NWR0lEXzFfJwogICAgICAgICAgICAgICAgICAgICAgZD0nTTE5OS41LDQxMi43bC0wLjItMC41bC0wLjUtMWwtMTEuNy0zMS41YzExLjEsNS4xLDIxLjQsMTEuOCwzMC43LDIwLjFsMCwwYzEuMiwwLjksMi4yLDIuMiwzLDMuNyBjMC45LDEuNywxLjQsMy41LDEuNCw1LjVjMCw2LjQtNS4yLDExLjYtMTEuNiwxMS42QzIwNS41LDQyMC42LDIwMS4xLDQxNy40LDE5OS41LDQxMi43IE0xMDMuMywyMjkuNmMxLjUtNC4xLDQuOS02LjksOC43LTcgYzAsMCwwLjEsMCwwLjEsMGMzLjgsMC4yLDcuMiwyLjksOC43LDdsNDguMywxMzIuNmMtMTAuNy0yLjctMjEuNy00LjEtMzIuOS00LjFjLTIzLjUsMC00Ni43LDYuMi02Ni45LDE4IGMtOS44LDUuNy0xOC44LDEyLjctMjYuOSwyMC42TDEwMy4zLDIyOS42eiBNMTEwLjksMjEyYy03LjgsMC42LTE0LjcsNi0xNy42LDE0TDIxLDQyNC41Yy0xLDIuOCwwLjQsNS44LDMuMiw2LjggYzAuNiwwLjIsMS4yLDAuMywxLjgsMC4zYzEuNywwLDMuMy0wLjgsNC4zLTIuMmMwLjItMC4yLDAuMy0wLjQsMC41LTAuN2MxMC43LTE4LDI1LjgtMzMuMSw0My45LTQzLjYgYzE4LjYtMTAuOCwzOS45LTE2LjYsNjEuNi0xNi42YzEyLjksMCwyNS42LDIsMzcuNiw1LjlsMTUuMyw0MS4xbDAuNSwwLjljMy4yLDguOCwxMS41LDE0LjcsMjAuOSwxNC43YzEyLjMsMCwyMi4yLTEwLDIyLjItMjIuMiBjMC0zLjYtMC45LTcuMy0yLjYtMTAuNWMtMC43LTEuMi0xLjQtMi4zLTIuMi0zLjRjLTAuMy0wLjUtMC42LTEtMS0xLjRjLTEzLjEtMTIuMi0yOC40LTIxLjUtNDQuOS0yNy42bC0xLjEtMi44bC0wLjEsMCBMMTMwLjgsMjI2Yy0yLjktNy45LTkuNy0xMy4zLTE3LjYtMTRjLTAuMywwLTAuNi0wLjEtMC45LTAuMWMtMC4xLDAtMC4yLDAtMC4yLDBjLTAuMSwwLTAuMiwwLTAuMiwwIEMxMTEuNSwyMTEuOSwxMTEuMiwyMTIsMTEwLjksMjEyJy8+CiAgICAgICAgICAgIDwvZGVmcz4KICAgICAgICAgICAgPGNsaXBQYXRoIGlkPSdTVkdJRF8yXyc+CiAgICAgICAgICAgICAgICA8cGF0aCBkPSdNMTk5LjUsNDEyLjdsLTAuMi0wLjVsLTAuNS0xbC0xMS43LTMxLjVjMTEuMSw1LjEsMjEuNCwxMS44LDMwLjcsMjAuMWwwLDBjMS4yLDAuOSwyLjIsMi4yLDMsMy43IGMwLjksMS43LDEuNCwzLjUsMS40LDUuNWMwLDYuNC01LjIsMTEuNi0xMS42LDExLjZDMjA1LjUsNDIwLjYsMjAxLjEsNDE3LjQsMTk5LjUsNDEyLjcgTTEwMy4zLDIyOS42YzEuNS00LjEsNC45LTYuOSw4LjctNyBjMCwwLDAuMSwwLDAuMSwwYzMuOCwwLjIsNy4yLDIuOSw4LjcsN2w0OC4zLDEzMi42Yy0xMC43LTIuNy0yMS43LTQuMS0zMi45LTQuMWMtMjMuNSwwLTQ2LjcsNi4yLTY2LjksMTggYy05LjgsNS43LTE4LjgsMTIuNy0yNi45LDIwLjZMMTAzLjMsMjI5LjZ6IE0xMTAuOSwyMTJjLTcuOCwwLjYtMTQuNyw2LTE3LjYsMTRMMjEsNDI0LjVjLTEsMi44LDAuNCw1LjgsMy4yLDYuOCBjMC42LDAuMiwxLjIsMC4zLDEuOCwwLjNjMS43LDAsMy4zLTAuOCw0LjMtMi4yYzAuMi0wLjIsMC4zLTAuNCwwLjUtMC43YzEwLjctMTgsMjUuOC0zMy4xLDQzLjktNDMuNiBjMTguNi0xMC44LDM5LjktMTYuNiw2MS42LTE2LjZjMTIuOSwwLDI1LjYsMiwzNy42LDUuOWwxNS4zLDQxLjFsMC41LDAuOWMzLjIsOC44LDExLjUsMTQuNywyMC45LDE0LjdjMTIuMywwLDIyLjItMTAsMjIuMi0yMi4yIGMwLTMuNi0wLjktNy4zLTIuNi0xMC41Yy0wLjctMS4yLTEuNC0yLjMtMi4yLTMuNGMtMC4zLTAuNS0wLjYtMS0xLTEuNGMtMTMuMS0xMi4yLTI4LjQtMjEuNS00NC45LTI3LjZsLTEuMS0yLjhsLTAuMSwwIEwxMzAuOCwyMjZjLTIuOS03LjktOS43LTEzLjMtMTcuNi0xNGMtMC4zLDAtMC42LTAuMS0wLjktMC4xYy0wLjEsMC0wLjIsMC0wLjIsMGMtMC4xLDAtMC4yLDAtMC4yLDAgQzExMS41LDIxMS45LDExMS4yLDIxMiwxMTAuOSwyMTInCiAgICAgICAgICAgICAgICAgICAgICB0cmFuc2Zvcm09J21hdHJpeCgxLCAwLCAwLCAxLCAwLCAwKScgc3R5bGU9J292ZXJmbG93OiB2aXNpYmxlOycvPgogICAgICAgICAgICA8L2NsaXBQYXRoPgogICAgICAgICAgICA8bGluZWFyR3JhZGllbnQgaWQ9J1NWR0lEXzNfJyBncmFkaWVudFVuaXRzPSd1c2VyU3BhY2VPblVzZScgeDE9Jy00LjkzOCcgeTE9Jzc0My4wMjAzJyB4Mj0nMS45NzkyJwogICAgICAgICAgICAgICAgICAgICAgICAgICAgeTI9Jzc0My4wMjAzJyBncmFkaWVudFRyYW5zZm9ybT0nbWF0cml4KDMwLjY1OCAwIDAgLTMwLjY1OCAxNzIuMDgwMyAyMzEwMS4zNDE4KSc+CiAgICAgICAgICAgICAgICA8c3RvcCBvZmZzZXQ9JzAnIHN0eWxlPSdzdG9wLWNvbG9yOiNGRkREMTUnLz4KICAgICAgICAgICAgICAgIDxzdG9wIG9mZnNldD0nMC4wMzQzJyBzdHlsZT0nc3RvcC1jb2xvcjojRkVEMjE3Jy8+CiAgICAgICAgICAgICAgICA8c3RvcCBvZmZzZXQ9JzAuMTY2Mycgc3R5bGU9J3N0b3AtY29sb3I6I0ZBQUQxQycvPgogICAgICAgICAgICAgICAgPHN0b3Agb2Zmc2V0PScwLjMwNDknIHN0eWxlPSdzdG9wLWNvbG9yOiNGNjhGMjAnLz4KICAgICAgICAgICAgICAgIDxzdG9wIG9mZnNldD0nMC40NScgc3R5bGU9J3N0b3AtY29sb3I6I0YzNzgyNCcvPgogICAgICAgICAgICAgICAgPHN0b3Agb2Zmc2V0PScwLjYwNDUnIHN0eWxlPSdzdG9wLWNvbG9yOiNGMTY3MjYnLz4KICAgICAgICAgICAgICAgIDxzdG9wIG9mZnNldD0nMC43NzQ3JyBzdHlsZT0nc3RvcC1jb2xvcjojRjA1RDI4Jy8+CiAgICAgICAgICAgICAgICA8c3RvcCBvZmZzZXQ9JzAuOTkxJyBzdHlsZT0nc3RvcC1jb2xvcjojRjA1QTI4Jy8+CiAgICAgICAgICAgICAgICA8c3RvcCBvZmZzZXQ9JzEnIHN0eWxlPSdzdG9wLWNvbG9yOiNGMDVBMjgnLz4KICAgICAgICAgICAgPC9saW5lYXJHcmFkaWVudD4KICAgICAgICAgICAgPHJlY3QgeD0nMjAnIHk9JzIxMS45JyBjbGFzcz0nc3QwJyB3aWR0aD0nMjEyLjgnIGhlaWdodD0nMjE5LjcnLz4KICAgICAgICA8L2c+CiAgICAgICAgPGc+CiAgICAgICAgICAgIDxnIGNsYXNzPSdzdDEnPgogICAgICAgICAgICAgICAgPGc+CiAgICAgICAgICAgICAgICAgICAgPGc+CiAgICAgICAgICAgICAgICAgICAgICAgIDxkZWZzPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgPHBhdGggaWQ9J1NWR0lEXzRfJwogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgZD0nTTE4Ny4zLDM4MC4zYzExLjEsNS4xLDIxLjQsMTEuOCwzMC43LDIwbDAsMGMxLjIsMSwyLjIsMi4yLDMsMy43YzAuOSwxLjcsMS40LDMuNSwxLjQsNS41SDIzMyBjMC0zLjYtMC45LTcuMy0yLjYtMTAuNWMtMC42LTEuMi0xLjQtMi4zLTIuMi0zLjRjLTAuMy0wLjUtMC42LTEtMS0xLjRjLTEzLjEtMTIuMi0yOC40LTIxLjUtNDQuOS0yNy42TDE4Ny4zLDM4MC4zeiBNNjkuNSwzNzYuN2MtOS44LDUuNy0xOC44LDEyLjctMjYuOSwyMC42bC0xMi4yLDMyLjhjMC4yLTAuMiwwLjMtMC40LDAuNS0wLjdjMTAuNy0xOCwyNS45LTMzLjEsNDMuOS00My42IGMxOC42LTEwLjgsMzkuOS0xNi42LDYxLjYtMTYuNmMxMi4xLDAsMjUuMSwxLjksMzcuNiw1LjlsLTQuNy0xMi40Yy0xMC43LTIuNy0yMS43LTQuMS0zMi45LTQuMSBDMTEyLjksMzU4LjcsODkuOCwzNjQuOSw2OS41LDM3Ni43Jy8+CiAgICAgICAgICAgICAgICAgICAgICAgIDwvZGVmcz4KICAgICAgICAgICAgICAgICAgICAgICAgPGNsaXBQYXRoIGlkPSdTVkdJRF81Xyc+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICA8cGF0aCBkPSdNMTg3LjMsMzgwLjNjMTEuMSw1LjEsMjEuNCwxMS44LDMwLjcsMjBsMCwwYzEuMiwxLDIuMiwyLjIsMywzLjdjMC45LDEuNywxLjQsMy41LDEuNCw1LjVIMjMzIGMwLTMuNi0wLjktNy4zLTIuNi0xMC41Yy0wLjYtMS4yLTEuNC0yLjMtMi4yLTMuNGMtMC4zLTAuNS0wLjYtMS0xLTEuNGMtMTMuMS0xMi4yLTI4LjQtMjEuNS00NC45LTI3LjZMMTg3LjMsMzgwLjN6IE02OS41LDM3Ni43Yy05LjgsNS43LTE4LjgsMTIuNy0yNi45LDIwLjZsLTEyLjIsMzIuOGMwLjItMC4yLDAuMy0wLjQsMC41LTAuN2MxMC43LTE4LDI1LjktMzMuMSw0My45LTQzLjYgYzE4LjYtMTAuOCwzOS45LTE2LjYsNjEuNi0xNi42YzEyLjEsMCwyNS4xLDEuOSwzNy42LDUuOWwtNC43LTEyLjRjLTEwLjctMi43LTIxLjctNC4xLTMyLjktNC4xIEMxMTIuOSwzNTguNyw4OS44LDM2NC45LDY5LjUsMzc2LjcnCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICB0cmFuc2Zvcm09J21hdHJpeCgxLCAwLCAwLCAxLCAwLCAwKScgc3R5bGU9J292ZXJmbG93OiB2aXNpYmxlOycvPgogICAgICAgICAgICAgICAgICAgICAgICA8L2NsaXBQYXRoPgogICAgICAgICAgICAgICAgICAgICAgICA8bGluZWFyR3JhZGllbnQgaWQ9J1NWR0lEXzZfJyBncmFkaWVudFVuaXRzPSd1c2VyU3BhY2VPblVzZScgeDE9Jy01LjQwNDInIHkxPSc3NDEuNDczJwogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgeDI9JzEuNTEzMScgeTI9Jzc0MS40NzMnCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBncmFkaWVudFRyYW5zZm9ybT0nbWF0cml4KDI5LjI3NDggMCAwIC0yOS4yNzQ4IDE4OC43MTUyIDIyMTAwLjg0NzcpJz4KICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxzdG9wIG9mZnNldD0nMCcgc3R5bGU9J3N0b3AtY29sb3I6I0ZGRkZGRicvPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgPHN0b3Agb2Zmc2V0PScwLjMyODUnIHN0eWxlPSdzdG9wLWNvbG9yOiNGRkZGRkYnLz4KICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxzdG9wIG9mZnNldD0nMC4zNzQ1JyBzdHlsZT0nc3RvcC1jb2xvcjojRkJGQkZCJy8+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICA8c3RvcCBvZmZzZXQ9JzAuNDIzMycgc3R5bGU9J3N0b3AtY29sb3I6I0VFRUVFRScvPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgPHN0b3Agb2Zmc2V0PScwLjQ3MzUnIHN0eWxlPSdzdG9wLWNvbG9yOiNEOUQ5RDknLz4KICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxzdG9wIG9mZnNldD0nMC41MjQ2JyBzdHlsZT0nc3RvcC1jb2xvcjojQkNCQkJCJy8+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICA8c3RvcCBvZmZzZXQ9JzAuNTc2NCcgc3R5bGU9J3N0b3AtY29sb3I6Izk2OTU5NScvPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgPHN0b3Agb2Zmc2V0PScwLjYyODgnIHN0eWxlPSdzdG9wLWNvbG9yOiM2ODY2NjYnLz4KICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxzdG9wIG9mZnNldD0nMC42ODA4JyBzdHlsZT0nc3RvcC1jb2xvcjojMzMyRjMwJy8+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICA8c3RvcCBvZmZzZXQ9JzAuNjk0OCcgc3R5bGU9J3N0b3AtY29sb3I6IzIzMUYyMCcvPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgPHN0b3Agb2Zmc2V0PScwLjkzMDEnIHN0eWxlPSdzdG9wLWNvbG9yOiNGRkZGRkYnLz4KICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxzdG9wIG9mZnNldD0nMScgc3R5bGU9J3N0b3AtY29sb3I6I0ZGRkZGRicvPgogICAgICAgICAgICAgICAgICAgICAgICA8L2xpbmVhckdyYWRpZW50PgogICAgICAgICAgICAgICAgICAgICAgICA8cmVjdCB4PSczMC41JyB5PSczNTguNycgY2xhc3M9J3N0Micgd2lkdGg9JzE4JyBoZWlnaHQ9JzE4Jy8+CiAgICAgICAgICAgICAgICAgICAgPC9nPgogICAgICAgICAgICAgICAgPC9nPgogICAgICAgICAgICA8L2c+CiAgICAgICAgPC9nPgogICAgICAgIDxnLz4KICAgIDwvZz4KPC9zdmc+"
+  }
+}

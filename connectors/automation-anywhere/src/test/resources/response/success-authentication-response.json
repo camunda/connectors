@@ -1,0 +1,61 @@
+[
+  {
+    "token": "thisIsTestToken.0123344567890qwertyuiopASDFGHJKLxcvbnm-Ug",
+    "user": {
+      "id": 9,
+      "email": "a@a.com",
+      "username": "jdoe",
+      "domain": null,
+      "firstName": "",
+      "lastName": "",
+      "version": 9,
+      "principalId": 9,
+      "deleted": false,
+      "roles": [
+        {
+          "name": "API_Key_Generation",
+          "id": 23,
+          "version": 0
+        },
+        {
+          "name": "AAE_Basic",
+          "id": 2,
+          "version": 0
+        },
+        {
+          "name": "Docrole1",
+          "id": 18,
+          "version": 0
+        },
+        {
+          "name": "AAE_Meta Bot Designer",
+          "id": 13,
+          "version": 0
+        }
+      ],
+      "sysAssignedRoles": [],
+      "groupNames": [],
+      "permissions": [
+      ],
+      "licenseFeatures": [
+        "RUNTIME"
+      ],
+      "emailVerified": true,
+      "passwordSet": true,
+      "questionsSet": true,
+      "enableAutoLogin": false,
+      "disabled": false,
+      "clientRegistered": false,
+      "description": "",
+      "createdBy": 1,
+      "createdOn": "2019-10-10T13:39:56-05:00",
+      "updatedBy": 1,
+      "updatedOn": "2019-10-13T02:09:38-05:00",
+      "publicKey": null,
+      "appType": null,
+      "routingName": null,
+      "appUrl": null
+    }
+  },
+  {}
+]

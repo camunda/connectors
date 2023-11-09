@@ -18,15 +18,16 @@
   <inceptionYear>2022</inceptionYear>
 
   <modules>
+    <module>automation-anywhere</module>
     <module>aws</module>
+    <module>google</module>
+    <module>http</module>
+    <module>kafka</module>
+    <module>microsoft-teams</module>
     <module>rabbitmq</module>
     <module>sendgrid</module>
-    <module>kafka</module>
-    <module>http</module>
-    <module>microsoft-teams</module>
     <module>slack</module>
     <module>webhook</module>
-    <module>google</module>
   </modules>
 
   <properties>

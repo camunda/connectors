@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Objects;
 
 @TemplateSubType(ignore = true)
+@Deprecated
 public final class CustomAuthentication extends Authentication {
 
   @FEEL @NotNull @Valid private HttpCommonRequest request;
