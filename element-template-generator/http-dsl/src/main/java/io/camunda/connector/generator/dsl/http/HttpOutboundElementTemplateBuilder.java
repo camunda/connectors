@@ -20,6 +20,7 @@ import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.dsl.ElementTemplateIcon;
 import io.camunda.connector.generator.dsl.OutboundElementTemplate;
 import io.camunda.connector.generator.dsl.OutboundElementTemplateBuilder;
+import io.camunda.connector.generator.dsl.PropertyGroup;
 import io.camunda.connector.generator.dsl.http.HttpAuthentication.NoAuth;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -37,7 +38,10 @@ public class HttpOutboundElementTemplateBuilder {
   private List<HttpAuthentication> authentication = List.of(NoAuth.INSTANCE);
 
   private HttpOutboundElementTemplateBuilder(boolean configurable) {
-    builder = OutboundElementTemplateBuilder.create().type(CONNECTOR_TYPE, configurable);
+    builder =
+        OutboundElementTemplateBuilder.create()
+            .type(CONNECTOR_TYPE, configurable)
+            .icon(ElementTemplateIcon.from("rest-connector-icon.svg", getClass().getClassLoader()));
   }
 
   public static HttpOutboundElementTemplateBuilder create() {
@@ -123,13 +127,18 @@ public class HttpOutboundElementTemplateBuilder {
         .appliesTo(BpmnType.TASK)
         .propertyGroups(
             List.of(
+                // Property order is important, parameters must come before their targets (URL,
+                // headers, or body)
+                // otherwise they will not be resolved correctly by the FEEL engine in Zeebe
                 PropertyUtil.serverDiscriminatorPropertyGroup(servers),
                 PropertyUtil.operationDiscriminatorPropertyGroup(operations),
                 PropertyUtil.authPropertyGroup(authentication, operations),
                 PropertyUtil.parametersPropertyGroup(operations),
                 PropertyUtil.requestBodyPropertyGroup(operations),
-                // URL comes last to ensure proper order of FEEL evaluation
-                PropertyUtil.urlPropertyGroup()))
+                PropertyUtil.urlPropertyGroup(),
+                PropertyGroup.OUTPUT_GROUP,
+                PropertyGroup.ERROR_GROUP,
+                PropertyGroup.RETRIES_GROUP))
         .build();
   }
 }

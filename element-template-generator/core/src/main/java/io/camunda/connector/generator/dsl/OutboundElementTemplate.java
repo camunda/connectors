@@ -40,16 +40,16 @@ import java.util.Set;
 })
 @JsonInclude(Include.NON_NULL)
 public record OutboundElementTemplate(
-    @JsonProperty String id,
-    @JsonProperty String name,
-    @JsonProperty int version,
-    @JsonProperty String documentationRef,
-    @JsonProperty String description,
-    @JsonProperty Set<String> appliesTo,
-    @JsonProperty ElementType elementType,
-    @JsonProperty List<PropertyGroup> groups,
-    @JsonProperty List<Property> properties,
-    @JsonProperty ElementTemplateIcon icon)
+    String id,
+    String name,
+    int version,
+    String documentationRef,
+    String description,
+    Set<String> appliesTo,
+    ElementType elementType,
+    List<PropertyGroup> groups,
+    List<Property> properties,
+    ElementTemplateIcon icon)
     implements ElementTemplateBase {
 
   public OutboundElementTemplate {
@@ -102,5 +102,5 @@ public record OutboundElementTemplate(
     return OutboundElementTemplateBuilder.create();
   }
 
-  public record ElementType(@JsonProperty String value) {}
+  public record ElementType(String value) {}
 }
