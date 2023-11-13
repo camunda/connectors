@@ -15,6 +15,30 @@ jobs:
           ref: ${{ github.event.release.target_commitish }}
           fetch-depth: 0
 
+      - name: Check if new version implies pre-release
+        id: check_prerelease
+        run: |
+          if [[ ${{github.event.release.prerelease}} == "true" ]]; then
+            PRE_RELEASE=true
+          elif [[ ${{ github.event.release.tag_name }} =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            PRE_RELEASE=false
+          else
+            PRE_RELEASE=true
+          fi
+          echo "isPreRelease=${PRE_RELEASE}" >> $GITHUB_OUTPUT
+
+      - name: Get previous tag for changelog
+        id: get_previous_tag
+        run: |
+          git pull --tags
+          if [[ ${{steps.check_prerelease.outputs.isPreRelease}} == "true" ]]; then
+            TAG_NAME=$(git --no-pager tag --sort=-creatordate | head -2 | tail -1)
+          else
+            TAG_NAME=$(git --no-pager tag --sort=-creatordate | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | head -2 | tail -1)
+          fi
+          echo "previousTag: $TAG_NAME"
+          echo "previousTag=${TAG_NAME}" >> $GITHUB_OUTPUT
+
       - name: Import Secrets
         id: secrets
         uses: hashicorp/vault-action@v2.7.4
@@ -82,29 +106,6 @@ jobs:
 
       - name: Install element templates CLI
         run: npm install --global element-templates-cli
-
-      - name: Check if new version implies pre-release
-        id: check_prerelease
-        run: |
-          if [[ ${{github.event.release.prerelease}} == "true" ]]; then
-            PRE_RELEASE=true
-          elif [[ ${{ github.event.release.tag_name }} =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            PRE_RELEASE=false
-          else
-            PRE_RELEASE=true
-          fi
-          echo "isPreRelease=${PRE_RELEASE}" >> $GITHUB_OUTPUT
-
-      - name: Get previous tag for changelog
-        id: get_previous_tag
-        run: |
-          if [[ ${{steps.check_prerelease.outputs.isPreRelease}} == "true" ]]; then
-            TAG_NAME=$(git --no-pager tag --sort=-creatordate | head -2 | tail -1)
-          else
-            TAG_NAME=$(git --no-pager tag --sort=-creatordate | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | head -2 | tail -1)
-          fi
-          echo "previousTag: $TAG_NAME"
-          echo "previousTag=${TAG_NAME}" >> $GITHUB_OUTPUT
 
     # Maven build & version bump
 
