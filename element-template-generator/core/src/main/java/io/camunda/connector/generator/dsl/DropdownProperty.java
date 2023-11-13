@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.generator.dsl;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
 public final class DropdownProperty extends Property {
@@ -56,7 +55,7 @@ public final class DropdownProperty extends Property {
     return choices;
   }
 
-  public record DropdownChoice(@JsonProperty String name, @JsonProperty String value) {}
+  public record DropdownChoice(String name, String value) {}
 
   public static DropdownPropertyBuilder builder() {
     return new DropdownPropertyBuilder();

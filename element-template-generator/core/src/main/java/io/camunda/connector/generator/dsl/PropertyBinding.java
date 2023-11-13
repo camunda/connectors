@@ -23,7 +23,7 @@ public sealed interface PropertyBinding {
   @JsonProperty("type")
   String type();
 
-  record ZeebeInput(@JsonProperty String name) implements PropertyBinding {
+  record ZeebeInput(String name) implements PropertyBinding {
 
     @Override
     public String type() {
@@ -31,7 +31,7 @@ public sealed interface PropertyBinding {
     }
   }
 
-  record ZeebeTaskHeader(@JsonProperty String key) implements PropertyBinding {
+  record ZeebeTaskHeader(String key) implements PropertyBinding {
 
     @Override
     public String type() {

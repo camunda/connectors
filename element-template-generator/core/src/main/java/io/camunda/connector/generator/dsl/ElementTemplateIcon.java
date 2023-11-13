@@ -16,11 +16,10 @@
  */
 package io.camunda.connector.generator.dsl;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import java.io.IOException;
 import java.util.Base64;
 
-public record ElementTemplateIcon(@JsonProperty String contents) {
+public record ElementTemplateIcon(String contents) {
 
   public static ElementTemplateIcon from(String location, ClassLoader classLoader) {
     if (location.startsWith("https://")) {

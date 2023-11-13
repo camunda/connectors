@@ -16,32 +16,26 @@
  */
 package io.camunda.connector.generator.dsl;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Collection;
 import java.util.List;
 
 public sealed interface PropertyCondition {
 
-  record OneOf(@JsonProperty String property, @JsonProperty List<String> oneOf)
-      implements PropertyCondition {
+  record OneOf(String property, List<String> oneOf) implements PropertyCondition {
 
-    @JsonProperty
     public String getType() {
       return "simple";
     }
   }
 
-  record Equals(@JsonProperty String property, @JsonProperty String equals)
-      implements PropertyCondition {
+  record Equals(String property, String equals) implements PropertyCondition {
 
-    @JsonProperty
     public String getType() {
       return "simple";
     }
   }
 
-  record AllMatch(@JsonProperty Collection<PropertyCondition> allMatch)
-      implements PropertyCondition {
+  record AllMatch(Collection<PropertyCondition> allMatch) implements PropertyCondition {
 
     public AllMatch(PropertyCondition... conditions) {
       this(List.of(conditions));

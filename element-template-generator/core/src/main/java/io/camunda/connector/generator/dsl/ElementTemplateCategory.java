@@ -16,9 +16,7 @@
  */
 package io.camunda.connector.generator.dsl;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-
-public record ElementTemplateCategory(@JsonProperty String id, @JsonProperty String name) {
+public record ElementTemplateCategory(String id, String name) {
 
   public static final ElementTemplateCategory CONNECTORS =
       new ElementTemplateCategory("connectors", "Connectors");

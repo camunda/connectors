@@ -17,15 +17,13 @@
 package io.camunda.connector.generator.dsl;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskHeader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
 
-public record PropertyGroup(
-    @JsonProperty String id, @JsonProperty String label, @JsonIgnore List<Property> properties) {
+public record PropertyGroup(String id, String label, @JsonIgnore List<Property> properties) {
 
   public static PropertyGroup OUTPUT_GROUP =
       PropertyGroup.builder()
