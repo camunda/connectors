@@ -6,7 +6,7 @@
     <groupId>io.camunda.connector</groupId>
     <artifactId>connector-parent</artifactId>
     <relativePath>../../parent/pom.xml</relativePath>
-    <version>8.3.2-SNAPSHOT</version>
+    <version>8.3.1</version>
   </parent>
 
   <name>connector-core</name>
