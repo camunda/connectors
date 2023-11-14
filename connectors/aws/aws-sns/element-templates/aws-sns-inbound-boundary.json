@@ -3,7 +3,7 @@
   "name": "SNS HTTPS Boundary Event Connector",
   "id": "io.camunda.connectors.inbound.AWSSNS.Boundary.v1",
   "description": "Receive events from AWS SNS",
-  "version": 1,
+  "version": 2,
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-sns-inbound/",
   "category": {
     "id": "connectors",
@@ -137,6 +137,18 @@
       "constraints": {
         "notEmpty": true
       }
+    },
+    {
+      "label": "Message ID expression",
+      "feel": "required",
+      "type": "String",
+      "optional": true,
+      "group": "activation",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "messageIdExpression"
+      },
+      "description": "Expression to extract unique identifier of a message"
     },
     {
       "label": "Condition",

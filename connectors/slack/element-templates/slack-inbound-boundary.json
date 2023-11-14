@@ -3,7 +3,7 @@
   "name": "Slack Webhook Boundary Event Connector",
   "id": "io.camunda.connectors.inbound.Slack.BoundaryEvent.v1",
   "description": "Receive events from Slack",
-  "version": 1,
+  "version": 2,
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/slack-inbound/",
   "category": {
     "id": "connectors",
@@ -119,6 +119,18 @@
       "constraints": {
         "notEmpty": true
       }
+    },
+    {
+      "label": "Message ID expression",
+      "feel": "required",
+      "type": "String",
+      "optional": true,
+      "group": "activation",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "messageIdExpression"
+      },
+      "description": "Expression to extract unique identifier of a message"
     },
     {
       "label": "Condition",
