@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Twilio Intermediate Catch Event Connector",
   "id": "io.camunda.connectors.Twilio.Webhook.Intermediate.v1",
-  "version": 2,
+  "version": 3,
   "description": "Receive incoming message with Twilio service",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/twilio-webhook/",
   "category": {
@@ -206,6 +206,18 @@
       "constraints": {
         "notEmpty": true
       }
+    },
+    {
+      "label": "Message ID expression",
+      "feel": "required",
+      "type": "String",
+      "optional": true,
+      "group": "activation",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "messageIdExpression"
+      },
+      "description": "Expression to extract unique identifier of a message"
     },
     {
       "label": "Condition",

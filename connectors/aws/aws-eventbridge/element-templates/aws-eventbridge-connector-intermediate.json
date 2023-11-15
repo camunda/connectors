@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Amazon EventBridge Intermediate Catch Event Connector",
   "id": "io.camunda.connectors.AWSEventBridge.intermediate.v1",
-  "version": 2,
+  "version": 3,
   "description": "Receive events from AWS EventBridge",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-eventbridge/",
   "category": {
@@ -300,6 +300,18 @@
       "constraints": {
         "notEmpty": true
       }
+    },
+    {
+      "label": "Message ID expression",
+      "feel": "required",
+      "type": "String",
+      "optional": true,
+      "group": "activation",
+      "binding": {
+        "type": "zeebe:property",
+        "name": "messageIdExpression"
+      },
+      "description": "Expression to extract unique identifier of a message"
     },
     {
       "label": "Condition",
