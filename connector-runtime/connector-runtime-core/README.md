@@ -58,6 +58,7 @@ Outbound Connector configuration example:
 CONNECTOR_SLACK_FUNCTION=io.camunda.connector.runtime.util.outbound.SlackFunction
 CONNECTOR_SLACK_TYPE=io.camunda.connector:SLACK
 CONNECTOR_SLACK_INPUT_VARIABLES=foo,bar
+CONNECTOR_SLACK_TIMEOUT=10000 # optional
 ```
 
 Inbound Connector configuration example:

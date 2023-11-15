@@ -147,7 +147,8 @@ public class OutboundConnectorDiscoveryTest {
             "ANNOTATED",
             new String[] {"foo", "bar"},
             "io.camunda:annotated",
-            NotAnnotatedFunction.class));
+            NotAnnotatedFunction.class,
+            0L));
 
     // then
     var registrations = factory.getConfigurations();

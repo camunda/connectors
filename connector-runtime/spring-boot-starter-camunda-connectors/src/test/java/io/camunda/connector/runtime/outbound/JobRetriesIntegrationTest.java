@@ -91,7 +91,8 @@ public class JobRetriesIntegrationTest {
                       testConnectorType,
                       new String[0],
                       testConnectorType,
-                      OutboundConnectorFunction.class)));
+                      OutboundConnectorFunction.class,
+                      0L)));
       when(mock.getInstance(testConnectorType)).thenReturn(function);
       return mock;
     }

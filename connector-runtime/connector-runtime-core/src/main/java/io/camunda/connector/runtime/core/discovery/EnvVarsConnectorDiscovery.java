@@ -114,7 +114,11 @@ public class EnvVarsConnectorDiscovery {
           getEnv(name, "TYPE")
               .or(() -> annotationConfig.map(OutboundConnectorConfiguration::type))
               .orElseThrow(() -> envMissing("Type not specified", name, "TYPE")),
-          cls);
+          cls,
+          getEnv(name, "TIMEOUT")
+              .map(Long::parseLong)
+              .or(() -> annotationConfig.map(OutboundConnectorConfiguration::timeout))
+              .orElse(0L));
 
     } catch (ClassNotFoundException | ClassCastException e) {
       throw loadFailed("Failed to load " + functionFqdn, e);
