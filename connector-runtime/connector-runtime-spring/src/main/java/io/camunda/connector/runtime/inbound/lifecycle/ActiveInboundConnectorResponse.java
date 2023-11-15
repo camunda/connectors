@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.inbound.lifecycle;
 
 import io.camunda.connector.api.inbound.Health;
+import io.camunda.connector.api.inbound.HealthError;
 import java.util.Map;
 
 public record ActiveInboundConnectorResponse(
@@ -26,4 +27,5 @@ public record ActiveInboundConnectorResponse(
     String type,
     String tenantId,
     Map<String, Object> data,
-    Health.Status status) {}
+    Health.Status status,
+    HealthError healthError) {}

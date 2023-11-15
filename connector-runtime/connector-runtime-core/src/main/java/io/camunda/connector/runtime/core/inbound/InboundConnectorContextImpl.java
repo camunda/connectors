@@ -123,7 +123,11 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   @Override
   public void reportHealth(Health health) {
-    this.health = health;
+    if (this.health == null) {
+      this.health = health;
+      return;
+    }
+    this.health = this.health.merge(health);
   }
 
   @Override

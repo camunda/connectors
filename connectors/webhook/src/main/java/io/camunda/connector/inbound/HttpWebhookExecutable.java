@@ -10,6 +10,7 @@ import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.di
 import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.enabled;
 
 import io.camunda.connector.api.annotation.InboundConnector;
+import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.VerifiableWebhook;
@@ -120,10 +121,15 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable, Verifi
   @Override
   public void activate(InboundConnectorContext context) throws Exception {
     if (context == null) {
+      context.reportHealth(
+          Health.down(
+              Health.ReservedDetailKeyword.ERROR.getValue(),
+              "Inbound connector context cannot be null"));
       throw new Exception("Inbound connector context cannot be null");
     }
     var wrappedProps = context.bindProperties(WebhookConnectorPropertiesWrapper.class);
     props = new WebhookConnectorProperties(wrappedProps);
+    context.reportHealth(Health.up(Health.ReservedDetailKeyword.PATH.getValue(), props.context()));
     authChecker = WebhookAuthorizationHandler.getHandlerForAuth(props.auth());
   }
 

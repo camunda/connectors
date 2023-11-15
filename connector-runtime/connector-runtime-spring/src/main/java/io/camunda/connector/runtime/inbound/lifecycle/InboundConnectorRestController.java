@@ -16,13 +16,7 @@
  */
 package io.camunda.connector.runtime.inbound.lifecycle;
 
-import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
-import io.camunda.connector.runtime.inbound.webhook.model.CommonWebhookProperties;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,28 +47,14 @@ public class InboundConnectorRestController {
   private ActiveInboundConnectorResponse mapToResponse(ActiveInboundConnector connector) {
     var definition = connector.context().getDefinition();
     var health = connector.context().getHealth();
-    Map<String, Object> details;
-    if (connector.executable() instanceof WebhookConnectorExecutable) {
-      details =
-          new HashMap<>(Optional.ofNullable(health.getDetails()).orElse(Collections.emptyMap()));
-      try {
-        var castedProps = connector.context().bindProperties(CommonWebhookProperties.class);
-        var path = Optional.ofNullable(castedProps.getContext());
-        details.put("path", path.orElse(""));
-      } catch (Exception e) {
-        LOG.error("ERROR: webhook connector doesn't have context path property", e);
-        details.put("path", "");
-      }
-    } else {
-      details = health.getDetails();
-    }
     return new ActiveInboundConnectorResponse(
         definition.bpmnProcessId(),
         definition.version(),
         definition.elementId(),
         definition.type(),
         definition.tenantId(),
-        details,
-        health.getStatus());
+        health.getDetails(),
+        health.getStatus(),
+        health.getError());
   }
 }

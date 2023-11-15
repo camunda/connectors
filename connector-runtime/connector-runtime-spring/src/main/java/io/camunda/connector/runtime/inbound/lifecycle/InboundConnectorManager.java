@@ -143,7 +143,6 @@ public class InboundConnectorManager {
         webhookConnectorRegistry.register(connector);
         LOG.trace("Registering webhook: " + newConnector.type());
       }
-      inboundContext.reportHealth(Health.up());
       metricsRecorder.increase(
           Inbound.METRIC_NAME_ACTIVATIONS, Inbound.ACTION_ACTIVATED, newConnector.type());
     } catch (Exception e) {
