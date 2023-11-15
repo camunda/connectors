@@ -65,8 +65,7 @@ public class OutboundConnectorAnnotationProcessor extends AbstractZeebeAnnotatio
             outboundConnector.inputVariables(),
             outboundConnector.type(),
             (Class<? extends OutboundConnectorFunction>) beanInfo.getTargetClass(),
-            () -> (OutboundConnectorFunction) beanInfo.getBean(),
-            outboundConnector.timeout());
+            () -> (OutboundConnectorFunction) beanInfo.getBean());
     LOGGER.info(
         "Configuring outbound connector {} of bean '{}'", configuration, beanInfo.getBeanName());
     outboundConnectorFactory.registerConfiguration(configuration);

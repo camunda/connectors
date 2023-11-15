@@ -43,11 +43,7 @@ public final class ConnectorUtil {
           Optional.ofNullable(env.get(normalizedConnectorName)).orElse(annotation.get().type());
       return Optional.of(
           new OutboundConnectorConfiguration(
-              annotation.get().name(),
-              annotation.get().inputVariables(),
-              type,
-              cls,
-              annotation.get().timeout()));
+              annotation.get().name(), annotation.get().inputVariables(), type, cls));
     }
     return Optional.empty();
   }

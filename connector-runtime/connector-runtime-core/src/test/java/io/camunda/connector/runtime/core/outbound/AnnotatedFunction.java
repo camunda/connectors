@@ -23,8 +23,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 @OutboundConnector(
     name = "ANNOTATED",
     inputVariables = {"a", "b"},
-    type = "io.camunda:annotated",
-    timeout = 20000)
+    type = "io.camunda:annotated")
 public class AnnotatedFunction implements OutboundConnectorFunction {
 
   @Override

@@ -80,7 +80,7 @@ public class OutboundConnectorDiscoveryTest {
         "io.camunda:annotated",
         new String[] {"a", "b"},
         AnnotatedFunction.class.getName(),
-        20000L);
+        null);
 
     assertRegistration(
         registrations,
@@ -139,7 +139,7 @@ public class OutboundConnectorDiscoveryTest {
         "io.camunda:annotated",
         new String[] {"a", "b"},
         AnnotatedFunction.class.getName(),
-        20000L);
+        null);
   }
 
   @Test
@@ -154,8 +154,7 @@ public class OutboundConnectorDiscoveryTest {
             "ANNOTATED",
             new String[] {"foo", "bar"},
             "io.camunda:annotated",
-            NotAnnotatedFunction.class,
-            null));
+            NotAnnotatedFunction.class));
 
     // then
     var registrations = factory.getConfigurations();
