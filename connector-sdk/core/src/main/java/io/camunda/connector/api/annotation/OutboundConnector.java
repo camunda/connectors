@@ -35,6 +35,6 @@ public @interface OutboundConnector {
   /** Job / task type the connector registers for */
   String type();
 
-  /** Zeebe job timeout */
+  /** Zeebe job timeout in ms */
   long timeout() default 0;
 }

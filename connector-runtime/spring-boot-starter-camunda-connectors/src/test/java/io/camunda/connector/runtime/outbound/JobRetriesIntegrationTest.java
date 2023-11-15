@@ -92,7 +92,7 @@ public class JobRetriesIntegrationTest {
                       new String[0],
                       testConnectorType,
                       OutboundConnectorFunction.class,
-                      0L)));
+                      null)));
       when(mock.getInstance(testConnectorType)).thenReturn(function);
       return mock;
     }

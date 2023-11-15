@@ -118,7 +118,7 @@ public class EnvVarsConnectorDiscovery {
           getEnv(name, "TIMEOUT")
               .map(Long::parseLong)
               .or(() -> annotationConfig.map(OutboundConnectorConfiguration::timeout))
-              .orElse(0L));
+              .orElse(null));
 
     } catch (ClassNotFoundException | ClassCastException e) {
       throw loadFailed("Failed to load " + functionFqdn, e);

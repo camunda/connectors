@@ -25,14 +25,14 @@ public record OutboundConnectorConfiguration(
     String type,
     Class<? extends OutboundConnectorFunction> connectorClass,
     Supplier<OutboundConnectorFunction> customInstanceSupplier,
-    long timeout)
+    Long timeout)
     implements ConnectorConfiguration {
   public OutboundConnectorConfiguration(
       String name,
       String[] inputVariables,
       String type,
       Class<? extends OutboundConnectorFunction> connectorClass,
-      long timeout) {
+      Long timeout) {
     this(name, inputVariables, type, connectorClass, null, timeout);
   }
 }
