@@ -61,4 +61,14 @@ public class HttpPathFeelBuilderTest {
     var builder = HttpPathFeelBuilder.create().part("doesNotStartWithASlash");
     assertThrows(IllegalArgumentException.class, builder::build);
   }
+
+  @Test
+  void feelOperatorCharacters() {
+    var builder = HttpPathFeelBuilder.create();
+    var ex =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> builder.part("/documents/").property("document-id"));
+    assertThat(ex.getMessage()).contains(HttpPathFeelBuilder.FEEL_OPERATOR_CHARACTERS);
+  }
 }

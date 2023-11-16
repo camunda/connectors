@@ -37,6 +37,12 @@ import org.slf4j.LoggerFactory;
 public class OpenApiOutboundTemplateGenerator
     implements CliCompatibleTemplateGenerator<OpenApiGenerationSource, OutboundElementTemplate> {
 
+  public OpenApiOutboundTemplateGenerator() {
+    super();
+    // workaround for https://github.com/swagger-api/swagger-parser/issues/1857 (large yaml files)
+    System.setProperty("maxYamlCodePoints", String.valueOf(Integer.MAX_VALUE));
+  }
+
   private static final Logger LOG = LoggerFactory.getLogger(OpenApiOutboundTemplateGenerator.class);
 
   @Override

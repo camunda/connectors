@@ -92,6 +92,7 @@ public class OperationUtil {
                   });
               return operations.stream();
             })
+        .filter(OperationParseResult::supported)
         .filter(
             operation ->
                 includeOperations == null
@@ -112,7 +113,7 @@ public class OperationUtil {
                   .collect(Collectors.toSet());
 
       var bodyExample = extractBodyExample(operation.getRequestBody(), components);
-      var label = extractLabel(operation, path, method);
+      var label = method.name() + " " + path;
 
       var authenticationOverride = parseAuthentication(operation.getSecurity(), components);
       var opBuilder =
@@ -141,7 +142,9 @@ public class OperationUtil {
       for (String pathPart : pathParts) {
         if (pathPart.contains("}")) {
           String[] variableParts = pathPart.split("}");
-          builder.property(variableParts[0]);
+          // replace dashes in variable names with underscores, same must be done for properties
+          var property = variableParts[0].replace("-", "_");
+          builder.property(property);
           if (variableParts.length > 1) {
             builder.part(variableParts[1]);
           }
@@ -157,6 +160,13 @@ public class OperationUtil {
     if (body == null) {
       return "";
     }
+    if (body.get$ref() != null) {
+      body =
+          components
+              .getRequestBodies()
+              .get(body.get$ref().replace("#/components/requestBodies/", ""));
+    }
+
     var content = body.getContent();
     for (String mediaType : SUPPORTED_BODY_MEDIA_TYPES) {
       if (content.containsKey(mediaType)) {
@@ -170,13 +180,5 @@ public class OperationUtil {
     }
     throw new IllegalArgumentException(
         "Request body media types are not supported by the REST Connector");
-  }
-
-  private static String extractLabel(Operation operation, String path, HttpMethod method) {
-    if (operation.getDescription() != null && operation.getDescription().length() < 50) {
-      return operation.getDescription();
-    } else {
-      return method.name() + " " + path;
-    }
   }
 }

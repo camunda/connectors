@@ -29,9 +29,13 @@ import io.camunda.connector.generator.dsl.PropertyCondition.OneOf;
 import io.camunda.connector.generator.dsl.PropertyConstraints;
 import io.camunda.connector.generator.dsl.PropertyGroup;
 import io.camunda.connector.generator.dsl.StringProperty;
+import io.camunda.connector.generator.dsl.http.HttpOperationProperty.Target;
+import io.camunda.connector.generator.java.util.TemplatePropertiesUtil;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class PropertyUtil {
@@ -236,40 +240,59 @@ public class PropertyUtil {
     List<Property> properties = new ArrayList<>();
 
     for (var operation : operations) {
+      Set<String> headerProperties = new HashSet<>();
+      Set<String> queryProperties = new HashSet<>();
+      List<Property> transformedProperties = new ArrayList<>();
+
+      for (var property : operation.properties()) {
+        var transformed = transformProperty(operation.id(), property);
+        if (!(transformed.getBinding() instanceof ZeebeInput binding)) {
+          throw new RuntimeException(
+              "Unexpected binding type: " + transformed.getBinding().getClass());
+        }
+
+        if (property.target() == Target.HEADER) {
+          headerProperties.add(binding.name());
+        } else if (property.target() == Target.QUERY) {
+          queryProperties.add(binding.name());
+        }
+        transformedProperties.add(transformed);
+      }
+
       var operationPathProperty =
           HiddenProperty.builder()
-              .id(operation.id() + "_path")
+              .id(operation.id() + "_$path")
               .group("parameters")
               .binding(new ZeebeInput(OPERATION_PATH_INPUT_NAME))
-              .value(operation.pathFeelExpression())
+              .value(operation.pathFeelExpression().build())
               .condition(new Equals(OPERATION_DISCRIMINATOR_PROPERTY_ID, operation.id()))
               .build();
       var operationHeadersProperty =
           HiddenProperty.builder()
-              .id(operation.id() + "_headers")
+              .id(operation.id() + "_$headers")
               .group("parameters")
-              .value(operation.headersFeelExpression())
+              .value(buildContextExpression(headerProperties))
               .binding(new ZeebeInput("headers"))
               .condition(new Equals(OPERATION_DISCRIMINATOR_PROPERTY_ID, operation.id()))
               .build();
       var operationQueryProperty =
           HiddenProperty.builder()
-              .id(operation.id() + "_queryParameters")
+              .id(operation.id() + "_$queryParameters")
               .group("parameters")
-              .value(operation.queryParamsFeelExpression())
+              .value(buildContextExpression(queryProperties))
               .binding(new ZeebeInput("queryParameters"))
               .condition(new Equals(OPERATION_DISCRIMINATOR_PROPERTY_ID, operation.id()))
               .build();
       var operationMethodProperty =
           HiddenProperty.builder()
-              .id(operation.id() + "_method")
+              .id(operation.id() + "_$method")
               .group("parameters")
               .value(operation.method().name())
               .binding(new ZeebeInput("method"))
               .condition(new Equals(OPERATION_DISCRIMINATOR_PROPERTY_ID, operation.id()))
               .build();
 
-      properties.addAll(operation.properties());
+      properties.addAll(transformedProperties);
 
       properties.add(operationPathProperty);
       properties.add(operationHeadersProperty);
@@ -281,6 +304,35 @@ public class PropertyUtil {
         .label("Parameters")
         .properties(properties)
         .build();
+  }
+
+  private static Property transformProperty(String operationId, HttpOperationProperty property) {
+    PropertyBuilder builder =
+        switch (property.type()) {
+          case STRING -> StringProperty.builder().value(property.example()).feel(FeelMode.optional);
+          case ENUM -> DropdownProperty.builder()
+              .choices(
+                  property.choices().stream()
+                      .map(choice -> new DropdownChoice(choice, choice))
+                      .toList());
+          case FEEL -> StringProperty.builder().value(property.example()).feel(FeelMode.required);
+        };
+
+    // shade property id with operation id as there may be duplicates in different operations
+    builder
+        .id(operationId + "_" + property.id())
+        .label(TemplatePropertiesUtil.transformIdIntoLabel(property.id()))
+        .description(property.description())
+        .optional(!property.required())
+        .binding(new ZeebeInput(property.id()))
+        .condition(new Equals(OPERATION_DISCRIMINATOR_PROPERTY_ID, operationId))
+        .group("parameters");
+
+    if (property.required()) {
+      builder.constraints(PropertyConstraints.builder().notEmpty(true).build());
+    }
+
+    return builder.build();
   }
 
   static PropertyGroup requestBodyPropertyGroup(Collection<HttpOperation> operations) {
@@ -316,5 +368,20 @@ public class PropertyUtil {
             .value("= baseUrl + " + OPERATION_PATH_INPUT_NAME)
             .build();
     return PropertyGroup.builder().id("url").label("URL").properties(urlProperty).build();
+  }
+
+  private static String buildContextExpression(Set<String> properties) {
+    StringBuilder sb = new StringBuilder();
+    sb.append("={");
+    var it = properties.iterator();
+    while (it.hasNext()) {
+      var prop = it.next();
+      sb.append(prop).append(": ").append(prop);
+      if (it.hasNext()) {
+        sb.append(", ");
+      }
+    }
+    sb.append("}");
+    return sb.toString();
   }
 }
