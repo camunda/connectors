@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.api.inbound;
 
+import io.camunda.connector.api.error.ConnectorCorrelationException;
+import io.camunda.connector.api.error.ConnectorInputException;
 import java.util.Map;
 
 /**
@@ -27,23 +29,29 @@ public interface InboundConnectorContext {
   /**
    * Correlates the inbound event to the matching process definition
    *
-   * <p>Correlation may not succeed due to Connector configuration (e.g. if activation condition
-   * specified by user is not met). In this case, the response will contain error details.
-   *
-   * <p>In case of an unexpected runtime error, an unchecked {@link
-   * io.camunda.connector.api.error.ConnectorException} will be thrown.
-   *
-   * @param variables - an object containing inbound connector variables
-   * @throws io.camunda.connector.api.error.ConnectorInputException if the correlation fails due to
-   *     invalid input. In this case, correlation should not be retried.
-   * @throws io.camunda.connector.api.error.ConnectorException if the correlation fails due to
-   *     unexpected runtime error. Such errors may be temporary and can be retried.
+   * @deprecated since 8.4. Use {@link #correlateWithResult(Object)} instead.
    */
+  @Deprecated(since = "8.4")
   void correlate(Object variables);
 
   /**
-   * Signals to the Connector runtime that inbound Connector execution was interrupted. As a result
-   * of this call, the runtime may attempt to retry the execution or provide the user with an
+   * Correlates the inbound event to the matching process definition and returns the result.
+   *
+   * <p>Correlation may not succeed due to Connector configuration (e.g. if activation condition
+   * specified by user is not met). In this case, the response will contain the corresponding error
+   * code.
+   *
+   * @param variables - an object containing inbound connector variables
+   * @throws ConnectorInputException if the correlation fails due to invalid input. In this case,
+   *     correlation should not be retried.
+   * @throws ConnectorCorrelationException if the correlation fails due to unexpected runtime error.
+   *     Such errors may be temporary and can be retried.
+   */
+  CorrelationResult correlateWithResult(Object variables);
+
+  /**
+   * /** Signals to the Connector runtime that inbound Connector execution was interrupted. As a
+   * result of this call, the runtime may attempt to retry the execution or provide the user with an
    * appropriate alert.
    */
   void cancel(Throwable exception);

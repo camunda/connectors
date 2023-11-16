@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.core.inbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
@@ -36,6 +37,7 @@ import java.util.stream.Collectors;
  */
 public class InboundIntermediateConnectorContextImpl
     implements InboundIntermediateConnectorContext {
+
   private final InboundConnectorContext inboundContext;
   private final OperateClientAdapter operateClient;
   private final ValidationProvider validationProvider;
@@ -81,8 +83,14 @@ public class InboundIntermediateConnectorContextImpl
   }
 
   @Override
+  @Deprecated
   public void correlate(final Object variables) {
     inboundContext.correlate(variables);
+  }
+
+  @Override
+  public CorrelationResult correlateWithResult(Object variables) {
+    return inboundContext.correlateWithResult(variables);
   }
 
   @Override

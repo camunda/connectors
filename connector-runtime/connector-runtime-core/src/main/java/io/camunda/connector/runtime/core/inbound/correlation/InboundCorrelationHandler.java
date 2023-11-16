@@ -16,10 +16,14 @@
  */
 package io.camunda.connector.runtime.core.inbound.correlation;
 
+import static io.camunda.connector.api.inbound.CorrelationResult.CorrelationResultCode.ACTIVATION_CONDITION_NOT_MET;
+import static io.camunda.connector.api.inbound.CorrelationResult.CorrelationResultCode.OK;
+
 import io.camunda.connector.api.error.ConnectorCorrelationException;
 import io.camunda.connector.api.error.ConnectorCorrelationException.CorrelationErrorReason;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorInputException;
+import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.core.ConnectorHelper;
@@ -46,14 +50,19 @@ public class InboundCorrelationHandler {
     this.feelEngine = feelEngine;
   }
 
-  public void correlate(InboundConnectorDefinitionImpl definition, Object variables) {
-    correlate(definition, variables, null);
+  public CorrelationResult correlate(InboundConnectorDefinitionImpl definition, Object variables) {
+    return correlate(definition, variables, null);
   }
 
-  public void correlate(
+  public CorrelationResult correlate(
       InboundConnectorDefinitionImpl definition, Object variables, String messageId) {
 
     var correlationPoint = definition.correlationPoint();
+
+    if (!isActivationConditionMet(definition, variables)) {
+      LOG.info("Activation condition didn't match: {}", correlationPoint);
+      return new CorrelationResult(ACTIVATION_CONDITION_NOT_MET);
+    }
 
     if (correlationPoint instanceof StartEventCorrelationPoint startCorPoint) {
       triggerStartEvent(definition, startCorPoint, variables);
@@ -81,6 +90,7 @@ public class InboundCorrelationHandler {
               + correlationPoint.getClass()
               + " is not supported by Runtime");
     }
+    return new CorrelationResult(OK);
   }
 
   protected void triggerStartEvent(
@@ -88,10 +98,6 @@ public class InboundCorrelationHandler {
       StartEventCorrelationPoint correlationPoint,
       Object variables) {
 
-    if (!isActivationConditionMet(definition, variables)) {
-      LOG.info("Activation condition didn't match: {}", correlationPoint);
-      return;
-    }
     Object extractedVariables = extractVariables(variables, definition);
 
     try {
@@ -120,11 +126,6 @@ public class InboundCorrelationHandler {
       InboundConnectorDefinitionImpl definition,
       MessageStartEventCorrelationPoint correlationPoint,
       Object variables) {
-
-    if (!isActivationConditionMet(definition, variables)) {
-      LOG.info("Activation condition didn't match: {}", correlationPoint);
-      return;
-    }
 
     String messageId = extractMessageId(correlationPoint.messageIdExpression(), variables);
     if (correlationPoint.messageIdExpression() != null
@@ -171,10 +172,6 @@ public class InboundCorrelationHandler {
       String correlationKeyExpression,
       Object variables,
       String messageId) {
-    if (!isActivationConditionMet(definition, variables)) {
-      LOG.info("Activation condition didn't match: {}", definition.correlationPoint());
-      return;
-    }
     String correlationKey =
         extractCorrelationKey(correlationKeyExpression, variables)
             .orElseThrow(

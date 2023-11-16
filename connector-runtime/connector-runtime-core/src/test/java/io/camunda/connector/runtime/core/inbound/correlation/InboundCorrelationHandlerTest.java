@@ -27,6 +27,7 @@ import static org.mockito.Mockito.when;
 
 import io.camunda.connector.api.error.ConnectorCorrelationException;
 import io.camunda.connector.api.error.ConnectorCorrelationException.CorrelationErrorReason;
+import io.camunda.connector.api.inbound.CorrelationResult.CorrelationResultCode;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
 import io.camunda.connector.runtime.core.util.command.CreateCommandDummy;
@@ -224,8 +225,9 @@ public class InboundCorrelationHandlerTest {
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
       // when & then
-      assertDoesNotThrow(() -> handler.correlate(definition, variables));
+      var result = assertDoesNotThrow(() -> handler.correlate(definition, variables));
       verifyNoMoreInteractions(zeebeClient);
+      assertThat(result.code()).isEqualTo(CorrelationResultCode.ACTIVATION_CONDITION_NOT_MET);
     }
 
     @Test
@@ -242,10 +244,11 @@ public class InboundCorrelationHandlerTest {
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
       // when
-      handler.correlate(definition, variables);
+      var result = handler.correlate(definition, variables);
 
       // then
       verify(zeebeClient).newCreateInstanceCommand();
+      assertThat(result.code()).isEqualTo(CorrelationResultCode.OK);
     }
 
     @Test
@@ -262,10 +265,11 @@ public class InboundCorrelationHandlerTest {
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
       // when
-      handler.correlate(definition, variables);
+      var result = handler.correlate(definition, variables);
 
       // then
       verify(zeebeClient).newCreateInstanceCommand();
+      assertThat(result.code()).isEqualTo(CorrelationResultCode.OK);
     }
 
     @Test
@@ -282,10 +286,11 @@ public class InboundCorrelationHandlerTest {
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
       // when
-      handler.correlate(definition, variables);
+      var result = handler.correlate(definition, variables);
 
       // then
       verify(zeebeClient).newCreateInstanceCommand();
+      assertThat(result.code()).isEqualTo(CorrelationResultCode.OK);
     }
 
     @Test
@@ -299,8 +304,9 @@ public class InboundCorrelationHandlerTest {
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
       // when & then
-      assertDoesNotThrow(() -> handler.correlate(definition, variables));
+      var result = assertDoesNotThrow(() -> handler.correlate(definition, variables));
       verifyNoMoreInteractions(zeebeClient);
+      assertThat(result.code()).isEqualTo(CorrelationResultCode.ACTIVATION_CONDITION_NOT_MET);
     }
 
     @Test
@@ -318,10 +324,11 @@ public class InboundCorrelationHandlerTest {
           Map.of("myVar", "myValue", "myOtherMap", Map.of("myOtherKey", "myOtherValue"));
 
       // when
-      handler.correlate(definition, variables);
+      var result = handler.correlate(definition, variables);
 
       // then
       verify(zeebeClient).newPublishMessageCommand();
+      assertThat(result.code()).isEqualTo(CorrelationResultCode.OK);
     }
 
     @Test
@@ -339,7 +346,11 @@ public class InboundCorrelationHandlerTest {
           Map.of("myVar", "myValue", "myOtherMap", Map.of("myOtherKey", "myOtherValue"));
 
       // when
-      handler.correlate(definition, variables);
+      var result = handler.correlate(definition, variables);
+
+      // then
+      verify(zeebeClient).newPublishMessageCommand();
+      assertThat(result.code()).isEqualTo(CorrelationResultCode.OK);
     }
 
     @Test
@@ -357,7 +368,11 @@ public class InboundCorrelationHandlerTest {
           Map.of("myVar", "myValue", "myOtherMap", Map.of("myOtherKey", "myOtherValue"));
 
       // when
-      handler.correlate(definition, variables);
+      var result = handler.correlate(definition, variables);
+
+      // then
+      verify(zeebeClient).newPublishMessageCommand();
+      assertThat(result.code()).isEqualTo(CorrelationResultCode.OK);
     }
   }
 
