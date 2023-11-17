@@ -68,7 +68,7 @@ limitations under the License.</license.inlineheader>
     <nexus.sonatype.url>https://s01.oss.sonatype.org</nexus.sonatype.url>
 
     <!-- Camunda internal libraries -->
-    <version.zeebe>8.3.2</version.zeebe>
+    <version.zeebe>8.3.3</version.zeebe>
     <version.spring-zeebe>8.3.1</version.spring-zeebe>
     <version.feel-engine>1.17.1</version.feel-engine>
     <version.operate-client>8.3.0.1</version.operate-client>
@@ -79,7 +79,7 @@ limitations under the License.</license.inlineheader>
     <version.mockito>5.7.0</version.mockito>
     <version.junit-jupiter>5.10.1</version.junit-jupiter>
     <version.assertj>3.24.2</version.assertj>
-    <version.jackson-bom>2.15.3</version.jackson-bom>
+    <version.jackson-bom>2.16.0</version.jackson-bom>
     <version.jackson-datatype-jsr310>2.16.0</version.jackson-datatype-jsr310>
     <version.hibernate-validator>8.0.1.Final</version.hibernate-validator>
     <version.jsonassert>1.5.1</version.jsonassert>
@@ -87,7 +87,7 @@ limitations under the License.</license.inlineheader>
     <version.spring-boot>3.1.5</version.spring-boot>
     <version.spring-cloud-gcp-starter-logging>4.8.4</version.spring-cloud-gcp-starter-logging>
 
-    <version.aws-java-sdk>1.12.590</version.aws-java-sdk>
+    <version.aws-java-sdk>1.12.591</version.aws-java-sdk>
 
     <version.google-api-client>2.2.0</version.google-api-client>
     <version.google-api-services-drive>v3-rev20230822-2.0.0</version.google-api-services-drive>
@@ -125,7 +125,7 @@ limitations under the License.</license.inlineheader>
 
     <!-- maven plugins (not managed by parent) -->
     <plugin.version.maven-enforcer-plugin>3.1.0</plugin.version.maven-enforcer-plugin>
-    <plugin.version.maven-exec-plugin>3.1.0</plugin.version.maven-exec-plugin>
+    <plugin.version.maven-exec-plugin>3.1.1</plugin.version.maven-exec-plugin>
     <plugin.version.maven-install-plugin>3.1.1</plugin.version.maven-install-plugin>
     <plugin.version.license>4.3</plugin.version.license>
     <plugin.version.license.codehaus>2.3.0</plugin.version.license.codehaus>
