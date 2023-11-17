@@ -20,7 +20,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.CorrelationResult;
-import io.camunda.connector.api.inbound.CorrelationResult.CorrelationResultCode;
+import io.camunda.connector.api.inbound.CorrelationResult.Success;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
@@ -216,8 +216,7 @@ public class InboundConnectorContextBuilder {
     @Override
     public CorrelationResult correlateWithResult(Object variables) {
       correlate(variables);
-      return Objects.requireNonNullElseGet(
-          result, () -> new CorrelationResult(CorrelationResultCode.OK));
+      return Objects.requireNonNullElse(result, Success.INSTANCE);
     }
 
     @Override

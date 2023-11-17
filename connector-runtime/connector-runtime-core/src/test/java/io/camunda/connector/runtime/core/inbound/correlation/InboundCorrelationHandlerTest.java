@@ -18,16 +18,15 @@ package io.camunda.connector.runtime.core.inbound.correlation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import io.camunda.connector.api.error.ConnectorCorrelationException;
-import io.camunda.connector.api.error.ConnectorCorrelationException.CorrelationErrorReason;
-import io.camunda.connector.api.inbound.CorrelationResult.CorrelationResultCode;
+import io.camunda.connector.api.inbound.CorrelationResult.ErrorCode;
+import io.camunda.connector.api.inbound.CorrelationResult.Failure;
+import io.camunda.connector.api.inbound.CorrelationResult.Success;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
 import io.camunda.connector.runtime.core.util.command.CreateCommandDummy;
@@ -202,13 +201,9 @@ public class InboundCorrelationHandlerTest {
         .thenThrow(new ClientStatusException(Status.UNAVAILABLE, null));
 
     // when & then
-    var error =
-        assertThrows(
-            ConnectorCorrelationException.class,
-            () -> handler.correlate(definition, Collections.emptyMap()));
-
-    assertThat(error.getErrorCode()).contains("Failed to correlate");
-    assertThat(error.getReason()).isEqualTo(CorrelationErrorReason.FAULT_ZEEBE_CLIENT_STATUS);
+    var error = assertDoesNotThrow(() -> handler.correlate(definition, Collections.emptyMap()));
+    assertThat(error).isInstanceOf(Failure.class);
+    assertThat(((Failure) error).code()).isEqualTo(ErrorCode.FAULT_ZEEBE_CLIENT_STATUS);
   }
 
   @Nested
@@ -227,7 +222,7 @@ public class InboundCorrelationHandlerTest {
       // when & then
       var result = assertDoesNotThrow(() -> handler.correlate(definition, variables));
       verifyNoMoreInteractions(zeebeClient);
-      assertThat(result.code()).isEqualTo(CorrelationResultCode.ACTIVATION_CONDITION_NOT_MET);
+      assertThat(result).isEqualTo(new Failure(ErrorCode.ACTIVATION_CONDITION_NOT_MET, null, null));
     }
 
     @Test
@@ -248,7 +243,7 @@ public class InboundCorrelationHandlerTest {
 
       // then
       verify(zeebeClient).newCreateInstanceCommand();
-      assertThat(result.code()).isEqualTo(CorrelationResultCode.OK);
+      assertThat(result).isEqualTo(Success.INSTANCE);
     }
 
     @Test
@@ -269,7 +264,7 @@ public class InboundCorrelationHandlerTest {
 
       // then
       verify(zeebeClient).newCreateInstanceCommand();
-      assertThat(result.code()).isEqualTo(CorrelationResultCode.OK);
+      assertThat(result).isEqualTo(Success.INSTANCE);
     }
 
     @Test
@@ -290,7 +285,7 @@ public class InboundCorrelationHandlerTest {
 
       // then
       verify(zeebeClient).newCreateInstanceCommand();
-      assertThat(result.code()).isEqualTo(CorrelationResultCode.OK);
+      assertThat(result).isEqualTo(Success.INSTANCE);
     }
 
     @Test
@@ -306,7 +301,7 @@ public class InboundCorrelationHandlerTest {
       // when & then
       var result = assertDoesNotThrow(() -> handler.correlate(definition, variables));
       verifyNoMoreInteractions(zeebeClient);
-      assertThat(result.code()).isEqualTo(CorrelationResultCode.ACTIVATION_CONDITION_NOT_MET);
+      assertThat(result).isEqualTo(new Failure(ErrorCode.ACTIVATION_CONDITION_NOT_MET, null, null));
     }
 
     @Test
@@ -328,7 +323,7 @@ public class InboundCorrelationHandlerTest {
 
       // then
       verify(zeebeClient).newPublishMessageCommand();
-      assertThat(result.code()).isEqualTo(CorrelationResultCode.OK);
+      assertThat(result).isEqualTo(Success.INSTANCE);
     }
 
     @Test
@@ -350,7 +345,7 @@ public class InboundCorrelationHandlerTest {
 
       // then
       verify(zeebeClient).newPublishMessageCommand();
-      assertThat(result.code()).isEqualTo(CorrelationResultCode.OK);
+      assertThat(result).isEqualTo(Success.INSTANCE);
     }
 
     @Test
@@ -372,7 +367,7 @@ public class InboundCorrelationHandlerTest {
 
       // then
       verify(zeebeClient).newPublishMessageCommand();
-      assertThat(result.code()).isEqualTo(CorrelationResultCode.OK);
+      assertThat(result).isEqualTo(Success.INSTANCE);
     }
   }
 

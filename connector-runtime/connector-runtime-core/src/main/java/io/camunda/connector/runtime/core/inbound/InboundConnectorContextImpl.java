@@ -19,7 +19,10 @@ package io.camunda.connector.runtime.core.inbound;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.CorrelationResult;
+import io.camunda.connector.api.inbound.CorrelationResult.ErrorCode;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
@@ -64,12 +67,36 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   @Override
   public void correlate(Object variables) {
-    correlationHandler.correlate(definition, variables);
+    var result = correlationHandler.correlate(definition, variables);
+    if (result instanceof CorrelationResult.Failure failure
+        && ErrorCode.ACTIVATION_CONDITION_NOT_MET != failure.code()) {
+
+      if (failure.error() == null) {
+        throw new ConnectorException(
+            String.format(
+                "Failed to correlate inbound event: %s, error code: %s",
+                failure.code(), failure.message()));
+      }
+      if (failure.error() instanceof ConnectorException
+          || failure.error() instanceof ConnectorInputException) {
+        throw (RuntimeException) failure.error();
+      }
+      throw new ConnectorException(
+          String.format(
+              "Failed to correlate inbound event: %s, error code: %s",
+              failure.code(), failure.message()),
+          failure.error());
+    }
   }
 
   @Override
   public CorrelationResult correlateWithResult(Object variables) {
-    return correlationHandler.correlate(definition, variables);
+    try {
+      return correlationHandler.correlate(definition, variables);
+    } catch (Exception e) {
+      LOG.error("Failed to correlate inbound event", e);
+      return new CorrelationResult.Failure(ErrorCode.UNKNOWN, e.getMessage(), e);
+    }
   }
 
   @Override

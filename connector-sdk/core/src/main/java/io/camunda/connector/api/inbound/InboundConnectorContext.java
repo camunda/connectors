@@ -16,8 +16,6 @@
  */
 package io.camunda.connector.api.inbound;
 
-import io.camunda.connector.api.error.ConnectorCorrelationException;
-import io.camunda.connector.api.error.ConnectorInputException;
 import java.util.Map;
 
 /**
@@ -41,11 +39,10 @@ public interface InboundConnectorContext {
    * specified by user is not met). In this case, the response will contain the corresponding error
    * code.
    *
+   * <p>This method does not throw any exceptions. If correlation fails, the error is returned as a
+   * part of the response.
+   *
    * @param variables - an object containing inbound connector variables
-   * @throws ConnectorInputException if the correlation fails due to invalid input. In this case,
-   *     correlation should not be retried.
-   * @throws ConnectorCorrelationException if the correlation fails due to unexpected runtime error.
-   *     Such errors may be temporary and can be retried.
    */
   CorrelationResult correlateWithResult(Object variables);
 

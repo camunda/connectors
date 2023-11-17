@@ -16,20 +16,30 @@
  */
 package io.camunda.connector.api.inbound;
 
-public record CorrelationResult(CorrelationResultCode code) {
+public sealed interface CorrelationResult {
 
-  public enum CorrelationResultCode {
-    OK(true),
-    ACTIVATION_CONDITION_NOT_MET(false);
+  final class Success implements CorrelationResult {
 
-    private final boolean isCorrelated;
+    public static final Success INSTANCE = new Success();
+  }
 
-    public boolean isCorrelated() {
-      return isCorrelated;
+  record Failure(ErrorCode code, String message, Throwable error) implements CorrelationResult {}
+
+  enum ErrorCode {
+    INVALID_INPUT(false),
+    ACTIVATION_CONDITION_NOT_MET(false),
+    FAULT_ZEEBE_CLIENT_STATUS(true),
+    FAULT_IDEMPOTENCY_KEY(false),
+    UNKNOWN(true);
+
+    private final boolean retryable;
+
+    public boolean isRetryable() {
+      return retryable;
     }
 
-    CorrelationResultCode(boolean isCorrelated) {
-      this.isCorrelated = isCorrelated;
+    ErrorCode(boolean retryable) {
+      this.retryable = retryable;
     }
   }
 }
