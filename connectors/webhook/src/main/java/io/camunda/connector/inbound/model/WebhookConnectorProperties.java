@@ -6,9 +6,12 @@
  */
 package io.camunda.connector.inbound.model;
 
+import static io.camunda.connector.api.inbound.webhook.VerifiableWebhook.WebhookHttpVerificationResult;
+
 import io.camunda.connector.api.inbound.webhook.WebhookResultContext;
 import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.inbound.utils.HttpMethods;
+import java.util.Map;
 import java.util.function.Function;
 
 public record WebhookConnectorProperties(
@@ -20,7 +23,8 @@ public record WebhookConnectorProperties(
     String hmacAlgorithm,
     @FEEL HMACScope[] hmacScopes,
     WebhookAuthorization auth,
-    Function<WebhookResultContext, Object> responseBodyExpression) {
+    Function<WebhookResultContext, Object> responseBodyExpression,
+    Function<Map<String, Object>, WebhookHttpVerificationResult> verificationExpression) {
 
   public WebhookConnectorProperties(WebhookConnectorPropertiesWrapper wrapper) {
     this(
@@ -33,7 +37,8 @@ public record WebhookConnectorProperties(
         // default to BODY if no scopes are provided
         getOrDefault(wrapper.inbound.hmacScopes, new HMACScope[] {HMACScope.BODY}),
         getOrDefault(wrapper.inbound.auth, new WebhookAuthorization.None()),
-        wrapper.inbound.responseBodyExpression);
+        wrapper.inbound.responseBodyExpression,
+        wrapper.inbound.verificationExpression);
   }
 
   public record WebhookConnectorPropertiesWrapper(WebhookConnectorProperties inbound) {}

@@ -316,19 +316,23 @@ class WebhookControllerTestZeebeTests {
     assertEquals("expression", responseEntity.getBody().expression());
   }
 
+  interface MyVerifiableWebhook extends WebhookConnectorExecutable, VerifiableWebhook {}
+
   @Test
   @SuppressWarnings("unchecked")
   public void testSuccessfulProcessingWithVerification() throws Exception {
-    WebhookConnectorExecutable webhookConnectorExecutable = mock(WebhookConnectorExecutable.class);
+    var webhookConnectorExecutable = mock(MyVerifiableWebhook.class);
     WebhookResult webhookResult = mock(WebhookResult.class);
     when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));
     when(webhookResult.response())
         .thenReturn(new WebhookHttpResponse(Map.of("keyResponse", "valueResponse"), null));
     when(webhookConnectorExecutable.triggerWebhook(any(WebhookProcessingPayload.class)))
         .thenReturn(webhookResult);
+
     when(webhookConnectorExecutable.verify(any(WebhookProcessingPayload.class)))
         .thenReturn(
-            new VerifiableWebhook.WebhookHttpVerificationResult(Map.of("result", "GOOD"), 201));
+            new VerifiableWebhook.WebhookHttpVerificationResult(
+                Map.of("result", "GOOD"), Map.of(), 201));
 
     var webhookDef = webhookDefinition("processA", 1, "myPath");
     var webhookContext =

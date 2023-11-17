@@ -310,4 +310,183 @@ class HttpWebhookExecutableTest {
     assertThat(((WebhookConnectorException) exception).getStatusCode())
         .isEqualTo(HttpResponseStatus.UNAUTHORIZED.code());
   }
+
+  @Test
+  void triggerWebhook_VerificationExpression_ReturnsChallenge() throws Exception {
+    final var verificationExpression =
+        "=if request.body.challenge != null then {\"body\": {\"challenge\":request.body.challenge}} else null";
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context",
+                        "webhookContext",
+                        "method",
+                        "any",
+                        "auth",
+                        Map.of("type", "NONE"),
+                        "verificationExpression",
+                        verificationExpression)))
+            .build();
+
+    WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
+    Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
+    Mockito.when(payload.headers())
+        .thenReturn(Map.of(HttpHeaders.CONTENT_TYPE, MediaType.JSON_UTF_8.toString()));
+    Mockito.when(payload.rawBody())
+        .thenReturn("{\"challenge\": \"12345\"}".getBytes(StandardCharsets.UTF_8));
+
+    testObject.activate(ctx);
+    var result = testObject.verify(payload);
+
+    assertThat(result.statusCode()).isEqualTo(200);
+    assertThat(result.body()).isInstanceOf(Map.class);
+    assertThat((Map) result.body()).containsEntry("challenge", "12345");
+  }
+
+  @Test
+  void triggerWebhook_VerificationExpressionWithModifiedBody_ReturnsChallenge() throws Exception {
+    final var verificationExpression =
+        "=if request.body.challenge != null then {\"body\": {\"challenge123\":request.body.challenge + \"QQQ\"}} else null";
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context",
+                        "webhookContext",
+                        "method",
+                        "any",
+                        "auth",
+                        Map.of("type", "NONE"),
+                        "verificationExpression",
+                        verificationExpression)))
+            .build();
+
+    WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
+    Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
+    Mockito.when(payload.headers())
+        .thenReturn(Map.of(HttpHeaders.CONTENT_TYPE, MediaType.JSON_UTF_8.toString()));
+    Mockito.when(payload.rawBody())
+        .thenReturn("{\"challenge\": \"12345\"}".getBytes(StandardCharsets.UTF_8));
+
+    testObject.activate(ctx);
+    var result = testObject.verify(payload);
+
+    assertThat(result.statusCode()).isEqualTo(200);
+    assertThat(result.body()).isInstanceOf(Map.class);
+    assertThat((Map) result.body()).containsEntry("challenge123", "12345QQQ");
+  }
+
+  @Test
+  void triggerWebhook_VerificationExpressionWithFoldedBody_ReturnsChallenge() throws Exception {
+    final var verificationExpression =
+        "=if request.body.event_type = \"verification\" then {\"body\": {\"challenge\":request.body.event.challenge}} else null";
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context",
+                        "webhookContext",
+                        "method",
+                        "any",
+                        "auth",
+                        Map.of("type", "NONE"),
+                        "verificationExpression",
+                        verificationExpression)))
+            .build();
+
+    WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
+    Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
+    Mockito.when(payload.headers())
+        .thenReturn(Map.of(HttpHeaders.CONTENT_TYPE, MediaType.JSON_UTF_8.toString()));
+    Mockito.when(payload.rawBody())
+        .thenReturn(
+            "{\"event_type\": \"verification\", \"event\": {\"challenge\": \"12345\"}}"
+                .getBytes(StandardCharsets.UTF_8));
+
+    testObject.activate(ctx);
+    var result = testObject.verify(payload);
+
+    assertThat(result.statusCode()).isEqualTo(200);
+    assertThat(result.body()).isInstanceOf(Map.class);
+    assertThat((Map) result.body()).containsEntry("challenge", "12345");
+  }
+
+  @Test
+  void triggerWebhook_VerificationExpressionWithStatusCode_ReturnsChallenge() throws Exception {
+    final var verificationExpression =
+        "=if request.body.challenge != null then {\"body\": {\"challenge\":request.body.challenge}, \"statusCode\": 409} else null";
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context",
+                        "webhookContext",
+                        "method",
+                        "any",
+                        "auth",
+                        Map.of("type", "NONE"),
+                        "verificationExpression",
+                        verificationExpression)))
+            .build();
+
+    WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
+    Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
+    Mockito.when(payload.headers())
+        .thenReturn(Map.of(HttpHeaders.CONTENT_TYPE, MediaType.JSON_UTF_8.toString()));
+    Mockito.when(payload.rawBody())
+        .thenReturn("{\"challenge\": \"12345\"}".getBytes(StandardCharsets.UTF_8));
+
+    testObject.activate(ctx);
+    var result = testObject.verify(payload);
+
+    assertThat(result.statusCode()).isEqualTo(409);
+    assertThat(result.body()).isInstanceOf(Map.class);
+    assertThat((Map) result.body()).containsEntry("challenge", "12345");
+  }
+
+  @Test
+  void triggerWebhook_VerificationExpressionWithCustomHeaders_ReturnsChallenge() throws Exception {
+    final var verificationExpression =
+        "=if request.body.challenge != null then {\"body\": {\"challenge\":request.body.challenge}, \"headers\":{\"Content-Type\":\"application/camunda-bin\"}} else null";
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context",
+                        "webhookContext",
+                        "method",
+                        "any",
+                        "auth",
+                        Map.of("type", "NONE"),
+                        "verificationExpression",
+                        verificationExpression)))
+            .build();
+
+    WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
+    Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
+    Mockito.when(payload.headers())
+        .thenReturn(Map.of(HttpHeaders.CONTENT_TYPE, MediaType.JSON_UTF_8.toString()));
+    Mockito.when(payload.rawBody())
+        .thenReturn("{\"challenge\": \"12345\"}".getBytes(StandardCharsets.UTF_8));
+
+    testObject.activate(ctx);
+    var result = testObject.verify(payload);
+
+    assertThat(result.statusCode()).isEqualTo(200);
+    assertThat(result.body()).isInstanceOf(Map.class);
+    assertThat((Map) result.body()).containsEntry("challenge", "12345");
+    assertThat(result.headers()).containsEntry("Content-Type", "application/camunda-bin");
+    assertThat(result.headers()).hasSize(1);
+  }
 }

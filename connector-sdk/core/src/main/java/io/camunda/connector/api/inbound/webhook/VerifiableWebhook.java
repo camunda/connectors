@@ -19,25 +19,12 @@ package io.camunda.connector.api.inbound.webhook;
 import java.util.Map;
 
 public interface VerifiableWebhook {
-  default WebhookHttpVerificationResult verify(WebhookProcessingPayload payload) throws Exception {
-    return null;
-  }
+  WebhookHttpVerificationResult verify(WebhookProcessingPayload payload);
 
-  record WebhookHttpVerificationResult(Object body, Map<String, String> headers, int statusCode) {
-    public WebhookHttpVerificationResult() {
-      this(Map.of(), null, 200);
-    }
-
-    public WebhookHttpVerificationResult(Object body) {
-      this(body, null, 200);
-    }
-
-    public WebhookHttpVerificationResult(Object body, int statusCode) {
-      this(body, null, statusCode);
-    }
-
-    public WebhookHttpVerificationResult(Object body, Map<String, String> headers) {
-      this(body, headers, 200);
+  record WebhookHttpVerificationResult(
+      Object body, Map<String, String> headers, Integer statusCode) {
+    public WebhookHttpVerificationResult {
+      statusCode = statusCode == null || statusCode < 100 ? 200 : statusCode;
     }
   }
 }
