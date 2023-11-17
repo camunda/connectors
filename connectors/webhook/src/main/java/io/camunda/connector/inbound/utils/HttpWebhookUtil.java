@@ -27,12 +27,10 @@ public class HttpWebhookUtil {
     return caseInsensitiveMap.getOrDefault(HttpHeaders.CONTENT_TYPE, "").toString();
   }
 
-  public static Map transformRawBodyToMap(byte[] rawBody, String contentTypeHeader)
-      throws IOException {
+  public static Map transformRawBodyToMap(byte[] rawBody, String contentTypeHeader) {
     if (rawBody == null) {
       return Collections.emptyMap();
     }
-
     if (MediaType.FORM_DATA.toString().equalsIgnoreCase(contentTypeHeader)) {
       String bodyAsString =
           URLDecoder.decode(new String(rawBody, StandardCharsets.UTF_8), StandardCharsets.UTF_8);
@@ -42,7 +40,11 @@ public class HttpWebhookUtil {
           .collect(Collectors.toMap(param -> param[0], param -> param.length == 1 ? "" : param[1]));
     } else {
       // Do our best to parse to JSON (throws exception otherwise)
-      return ConnectorsObjectMapperSupplier.getCopy().readValue(rawBody, Map.class);
+      try {
+        return ConnectorsObjectMapperSupplier.getCopy().readValue(rawBody, Map.class);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
     }
   }
 }
