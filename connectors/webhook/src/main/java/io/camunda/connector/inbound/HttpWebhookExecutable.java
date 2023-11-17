@@ -12,6 +12,8 @@ import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.en
 import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
+import io.camunda.connector.api.inbound.webhook.VerifiableWebhook;
+import io.camunda.connector.api.inbound.webhook.VerifiableWebhook.WebhookHttpVerificationResult;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorException;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorException.WebhookSecurityException;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorException.WebhookSecurityException.Reason;
@@ -33,12 +35,13 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @InboundConnector(name = "Webhook", type = "io.camunda:webhook:1")
-public class HttpWebhookExecutable implements WebhookConnectorExecutable {
+public class HttpWebhookExecutable implements WebhookConnectorExecutable, VerifiableWebhook {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(HttpWebhookExecutable.class);
 
@@ -126,4 +129,27 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
 
   @Override
   public void deactivate() throws Exception {}
+
+  @Override
+  public WebhookHttpVerificationResult verify(final WebhookProcessingPayload payload) {
+    WebhookHttpVerificationResult result = null;
+    if (props.verificationExpression() != null) {
+      result =
+          props
+              .verificationExpression()
+              .apply(
+                  Map.of(
+                      "request",
+                      Map.of(
+                          "body",
+                          HttpWebhookUtil.transformRawBodyToMap(
+                              payload.rawBody(),
+                              HttpWebhookUtil.extractContentType(payload.headers())),
+                          "headers",
+                          payload.headers(),
+                          "params",
+                          payload.params())));
+    }
+    return result;
+  }
 }

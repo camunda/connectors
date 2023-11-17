@@ -428,6 +428,18 @@
       "description": "Expression to map the inbound payload to process variables"
     },
     {
+      "label": "One time verification response expression",
+      "description": "Specify condition and response",
+      "type": "Text",
+      "group": "webhookResponse",
+      "feel": "required",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:property",
+        "name": "inbound.verificationExpression"
+      }
+    },
+    {
       "label": "Response body expression",
       "type": "Text",
       "group": "webhookResponse",

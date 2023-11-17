@@ -125,7 +125,12 @@ public class InboundWebhookRestController {
   protected ResponseEntity verify(
       WebhookConnectorExecutable connectorHook, WebhookProcessingPayload payload) throws Exception {
     ResponseEntity response = null;
-    var verificationResult = connectorHook.verify(payload);
+
+    VerifiableWebhook.WebhookHttpVerificationResult verificationResult = null;
+    if (connectorHook instanceof VerifiableWebhook verifiableWebhook) {
+      verificationResult = verifiableWebhook.verify(payload);
+    }
+
     if (verificationResult != null) {
       HttpHeaders headers = new HttpHeaders();
       Optional.of(verificationResult)

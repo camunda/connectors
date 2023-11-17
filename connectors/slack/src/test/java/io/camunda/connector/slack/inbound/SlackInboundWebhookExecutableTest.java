@@ -53,7 +53,7 @@ class SlackInboundWebhookExecutableTest {
       CHALLENGE_RESPONSE_VERIFICATION_FUNCTION =
           (ctx) ->
               new WebhookHttpVerificationResult(
-                  Map.of("challenge", ((Map) ctx.get("body")).get("challenge")));
+                  Map.of("challenge", ((Map) ctx.get("body")).get("challenge")), Map.of(), 200);
 
   private static final String SLASH_COMMAND =
       "token=qwertyuiop"
