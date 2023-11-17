@@ -29,7 +29,7 @@ import java.util.Map;
 import java.util.Objects;
 
 @TemplateSubType(id = OAuthAuthentication.TYPE, label = "OAuth 2.0")
-public final class OAuthAuthentication extends Authentication {
+public final class OAuthAuthentication implements Authentication {
   @TemplateProperty(ignore = true)
   private final String grantType = "client_credentials";
 

@@ -4,7 +4,7 @@
   "id" : "io.camunda.connectors.HttpJson.v2",
   "description" : "Invoke REST API",
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/rest/",
-  "version" : 4,
+  "version" : 5,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -53,6 +53,9 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
+      "name" : "API key",
+      "value" : "apiKey"
+    }, {
       "name" : "Basic",
       "value" : "basic"
     }, {
@@ -65,6 +68,71 @@
       "name" : "OAuth 2.0",
       "value" : "oauth-client-credentials-flow"
     } ]
+  }, {
+    "id" : "authentication.apiKeyLocation",
+    "label" : "Api key location",
+    "description" : "Choose type: Send API key in header or as query parameter.",
+    "optional" : false,
+    "value" : "headers",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.apiKeyLocation",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "apiKey",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Headers",
+      "value" : "headers"
+    }, {
+      "name" : "Query parameters",
+      "value" : "query"
+    } ]
+  }, {
+    "id" : "authentication.name",
+    "label" : "API key name",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.name",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "apiKey",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.value",
+    "label" : "API key value",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.value",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "apiKey",
+      "type" : "simple"
+    },
+    "type" : "String"
   }, {
     "id" : "authentication.username",
     "label" : "Username",

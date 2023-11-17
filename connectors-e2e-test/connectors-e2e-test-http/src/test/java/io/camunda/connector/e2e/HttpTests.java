@@ -31,6 +31,7 @@ import static org.mockito.Mockito.when;
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
+import io.camunda.connector.http.base.auth.ApiKeyAuthentication;
 import io.camunda.connector.http.base.auth.BasicAuthentication;
 import io.camunda.connector.http.base.auth.BearerAuthentication;
 import io.camunda.connector.http.base.auth.OAuthAuthentication;
@@ -176,6 +177,90 @@ public class HttpTests {
   }
 
   @Test
+  void ApiKeyAuthenticationWithApiKeyInHeaders() {
+    // Prepare an HTTP mock server
+    wm.stubFor(
+        post(urlPathMatching("/mock"))
+            .withHeader("api-auth", matching("apiKey"))
+            .willReturn(
+                ResponseDefinitionBuilder.okForJson(
+                    Map.of("order", Map.of("status", "processing")))));
+
+    var mockUrl = "http://localhost:" + wm.getPort() + "/mock";
+
+    var model =
+        Bpmn.createProcess().executable().startEvent().serviceTask("restTask").endEvent().done();
+
+    var elementTemplate =
+        ElementTemplate.from(
+                "../../connectors/http/rest/element-templates/http-json-connector.json")
+            .property("url", mockUrl)
+            .property("method", "post")
+            .property("authentication.type", ApiKeyAuthentication.TYPE)
+            .property("authentication.apiKeyLocation", "headers")
+            .property("authentication.name", "api-auth")
+            .property("authentication.value", "apiKey")
+            .property("resultExpression", "={orderStatus: response.body.order.status}")
+            .writeTo(new File(tempDir, "template.json"));
+
+    var updatedModel =
+        new BpmnFile(model)
+            .writeToFile(new File(tempDir, "test.bpmn"))
+            .apply(elementTemplate, "restTask", new File(tempDir, "result.bpmn"));
+
+    var bpmnTest =
+        ZeebeTest.with(zeebeClient)
+            .deploy(updatedModel)
+            .createInstance()
+            .waitForProcessCompletion();
+
+    assertThat(bpmnTest.getProcessInstanceEvent())
+        .hasVariableWithValue("orderStatus", "processing");
+  }
+
+  @Test
+  void ApiKeyAuthenticationWithApiKeyInQueryParameters() {
+    // Prepare an HTTP mock server
+    wm.stubFor(
+        post(urlPathMatching("/mock"))
+            .withQueryParam("api-auth", matching("apiKey"))
+            .willReturn(
+                ResponseDefinitionBuilder.okForJson(
+                    Map.of("order", Map.of("status", "processing")))));
+
+    var mockUrl = "http://localhost:" + wm.getPort() + "/mock";
+
+    var model =
+        Bpmn.createProcess().executable().startEvent().serviceTask("restTask").endEvent().done();
+
+    var elementTemplate =
+        ElementTemplate.from(
+                "../../connectors/http/rest/element-templates/http-json-connector.json")
+            .property("url", mockUrl)
+            .property("method", "post")
+            .property("authentication.type", ApiKeyAuthentication.TYPE)
+            .property("authentication.apiKeyLocation", "query")
+            .property("authentication.name", "api-auth")
+            .property("authentication.value", "apiKey")
+            .property("resultExpression", "={orderStatus: response.body.order.status}")
+            .writeTo(new File(tempDir, "template.json"));
+
+    var updatedModel =
+        new BpmnFile(model)
+            .writeToFile(new File(tempDir, "test.bpmn"))
+            .apply(elementTemplate, "restTask", new File(tempDir, "result.bpmn"));
+
+    var bpmnTest =
+        ZeebeTest.with(zeebeClient)
+            .deploy(updatedModel)
+            .createInstance()
+            .waitForProcessCompletion();
+
+    assertThat(bpmnTest.getProcessInstanceEvent())
+        .hasVariableWithValue("orderStatus", "processing");
+  }
+
+  @Test
   void oAuth() {
     // Prepare an HTTP mock server
     wm.stubFor(
@@ -226,7 +311,7 @@ public class HttpTests {
   }
 
   @Test
-  void successfulModelRun() throws Exception {
+  void successfulModelRun() {
     wm.stubFor(
         post(urlPathMatching("/mock"))
             .withQueryParam("testQueryParam", matching("testQueryParamValue"))
