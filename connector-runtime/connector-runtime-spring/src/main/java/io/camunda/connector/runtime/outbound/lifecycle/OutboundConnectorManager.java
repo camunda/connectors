@@ -84,6 +84,7 @@ public class OutboundConnectorManager {
             .setName(connector.name())
             .setType(connector.type())
             .setFetchVariables(connector.inputVariables())
+            .setTimeout(connector.timeout())
             .setAutoComplete(true);
 
     OutboundConnectorFunction connectorFunction = connectorFactory.getInstance(connector.type());

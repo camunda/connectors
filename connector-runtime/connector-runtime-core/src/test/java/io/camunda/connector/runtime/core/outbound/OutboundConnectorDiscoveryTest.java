@@ -21,6 +21,7 @@ import static io.camunda.connector.runtime.core.util.TestUtil.withEnvVars;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -42,6 +43,8 @@ public class OutboundConnectorDiscoveryTest {
           "io.camunda.connector.runtime.core.outbound.AnnotatedFunction",
           "CONNECTOR_ANNOTATED_OVERRIDE_TYPE",
           "io.camunda:annotated-override",
+          "CONNECTOR_ANNOTATED_OVERRIDE_TIMEOUT",
+          "30000",
 
           // shall be picked up with meta-data
           "CONNECTOR_ANNOTATED_FUNCTION",
@@ -68,21 +71,24 @@ public class OutboundConnectorDiscoveryTest {
         "ANNOTATED_OVERRIDE",
         "io.camunda:annotated-override",
         new String[] {"a", "b"},
-        AnnotatedFunction.class.getName());
+        AnnotatedFunction.class.getName(),
+        30000L);
 
     assertRegistration(
         registrations,
         "ANNOTATED",
         "io.camunda:annotated",
         new String[] {"a", "b"},
-        AnnotatedFunction.class.getName());
+        AnnotatedFunction.class.getName(),
+        null);
 
     assertRegistration(
         registrations,
         "NOT_ANNOTATED",
         "io.camunda:not-annotated",
         new String[] {"foo", "bar"},
-        NotAnnotatedFunction.class.getName());
+        NotAnnotatedFunction.class.getName(),
+        null);
   }
 
   @Test
@@ -132,7 +138,8 @@ public class OutboundConnectorDiscoveryTest {
         "ANNOTATED",
         "io.camunda:annotated",
         new String[] {"a", "b"},
-        AnnotatedFunction.class.getName());
+        AnnotatedFunction.class.getName(),
+        null);
   }
 
   @Test
@@ -157,7 +164,8 @@ public class OutboundConnectorDiscoveryTest {
         "ANNOTATED",
         "io.camunda:annotated",
         new String[] {"foo", "bar"},
-        NotAnnotatedFunction.class.getName());
+        NotAnnotatedFunction.class.getName(),
+        null);
   }
 
   private static void assertRegistration(
@@ -165,7 +173,8 @@ public class OutboundConnectorDiscoveryTest {
       String name,
       String type,
       String[] inputVariables,
-      String functionCls) {
+      String functionCls,
+      Long timeout) {
 
     Assertions.assertThatList(registrations)
         .anyMatch(
@@ -173,6 +182,7 @@ public class OutboundConnectorDiscoveryTest {
                 (registration.name().equals(name)
                     && registration.type().equals(type)
                     && Arrays.equals(registration.inputVariables(), inputVariables)
-                    && registration.connectorClass().getName().equals(functionCls)));
+                    && registration.connectorClass().getName().equals(functionCls)
+                    && Objects.equals(registration.timeout(), timeout)));
   }
 }
