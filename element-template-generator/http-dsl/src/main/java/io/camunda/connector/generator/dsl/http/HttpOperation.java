@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.generator.dsl.http;
 
-import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.http.base.model.HttpMethod;
 import java.util.Collection;
 import java.util.List;
@@ -29,9 +28,6 @@ import java.util.List;
  * @param method The HTTP method for this operation.
  * @param bodyFeelExpression A FEEL expression for the request bodyFeelExpression that may include
  *     variable values from properties.
- * @param headersFeelExpression Headers defined for this operation (FEEL context expression).
- * @param queryParamsFeelExpression Query parameters defined for this operation (FEEL context
- *     expression).
  * @param properties Custom properties defined for this operation. This should not include technical
  *     properties like the path or the method, i.e. only properties that are relevant for the
  *     business logic.
@@ -39,12 +35,10 @@ import java.util.List;
 public record HttpOperation(
     String id,
     String label,
-    String pathFeelExpression,
+    HttpPathFeelBuilder pathFeelExpression,
     HttpMethod method,
     String bodyFeelExpression,
-    String headersFeelExpression,
-    String queryParamsFeelExpression,
-    Collection<Property> properties,
+    Collection<HttpOperationProperty> properties,
     List<HttpAuthentication> authenticationOverride) {
 
   public static HttpOperationBuilder builder() {

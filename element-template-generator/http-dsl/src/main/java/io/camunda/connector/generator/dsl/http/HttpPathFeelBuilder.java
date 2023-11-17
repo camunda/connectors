@@ -31,6 +31,8 @@ public class HttpPathFeelBuilder {
   private final Set<String> propertySet = new HashSet<>();
   private static final FeelEngineWrapper feelEngineWrapper = new FeelEngineWrapper();
 
+  public static final String FEEL_OPERATOR_CHARACTERS = "!=<>+-*/[]{}@ ";
+
   private HttpPathFeelBuilder() {}
 
   public static HttpPathFeelBuilder create() {
@@ -52,6 +54,15 @@ public class HttpPathFeelBuilder {
 
   /** Add a variable property to the path */
   public HttpPathFeelBuilder property(String property) {
+    if (property == null || property.isEmpty()) {
+      throw new IllegalArgumentException("Property must not be null or empty");
+    }
+    for (char c : FEEL_OPERATOR_CHARACTERS.toCharArray()) {
+      if (property.contains(String.valueOf(c))) {
+        throw new IllegalArgumentException(
+            "Property must not contain FEEL operator characters: " + FEEL_OPERATOR_CHARACTERS);
+      }
+    }
     if (sb.isEmpty()) {
       sb.append("=");
     } else {
@@ -74,7 +85,7 @@ public class HttpPathFeelBuilder {
   }
 
   /** Transform the constructed path into a FEEL expression string */
-  public String build() {
+  String build() {
     String result = sb.toString();
     evaluateFeel(result, propertySet);
     return result;

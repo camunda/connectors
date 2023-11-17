@@ -16,19 +16,8 @@
  */
 package io.camunda.connector.generator.dsl.http;
 
-import static io.camunda.connector.generator.dsl.http.PropertyUtil.OPERATION_DISCRIMINATOR_PROPERTY_ID;
-
-import io.camunda.connector.generator.dsl.DropdownProperty;
-import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
 import io.camunda.connector.generator.dsl.Property;
-import io.camunda.connector.generator.dsl.Property.FeelMode;
-import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
-import io.camunda.connector.generator.dsl.PropertyBuilder;
-import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
-import io.camunda.connector.generator.dsl.PropertyConstraints;
-import io.camunda.connector.generator.dsl.StringProperty;
 import io.camunda.connector.generator.dsl.http.HttpOperationProperty.Target;
-import io.camunda.connector.generator.java.util.TemplatePropertiesUtil;
 import io.camunda.connector.http.base.model.HttpMethod;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -43,13 +32,24 @@ public class HttpOperationBuilder {
   private String id;
   private String label;
   private HttpMethod method;
-  private String pathFeelExpression = "";
+  private HttpPathFeelBuilder pathFeelExpression;
   private String bodyExample = "";
   private List<HttpAuthentication> authenticationOverride = null;
-  private Collection<HttpOperationProperty> properties = Collections.emptyList();
+  private List<HttpOperationProperty> properties = Collections.emptyList();
 
   public static HttpOperationBuilder create() {
     return new HttpOperationBuilder();
+  }
+
+  public static HttpOperationBuilder createForUpdate(HttpOperation operation) {
+    return new HttpOperationBuilder()
+        .id(operation.id())
+        .label(operation.label())
+        .method(operation.method())
+        .pathFeelExpression(operation.pathFeelExpression())
+        .bodyExample(operation.bodyFeelExpression())
+        .authenticationOverride(operation.authenticationOverride())
+        .properties(operation.properties());
   }
 
   /** A unique identifier for this operation. */
@@ -80,14 +80,12 @@ public class HttpOperationBuilder {
    *
    * <p>Example: {@code = "/foo/" + bar} <br>
    * The variable {@code bar} should be present in {@link #properties(Collection)}.
+   *
+   * <p>Usage of {@link HttpPathFeelBuilder} is enforced to avoid complex string transformations and
+   * to avoid errors.
    */
-  public HttpOperationBuilder pathFeelExpression(String pathFeelExpression) {
-    this.pathFeelExpression = pathFeelExpression;
-    return this;
-  }
-
   public HttpOperationBuilder pathFeelExpression(HttpPathFeelBuilder builder) {
-    this.pathFeelExpression = builder.build();
+    this.pathFeelExpression = builder;
     return this;
   }
 
@@ -122,8 +120,12 @@ public class HttpOperationBuilder {
     if (this.properties != null && !this.properties.isEmpty()) {
       throw new IllegalStateException("Properties already set");
     }
-    this.properties = properties;
+    this.properties = new ArrayList<>(properties);
     return this;
+  }
+
+  public List<HttpOperationProperty> getProperties() {
+    return properties;
   }
 
   public HttpOperation build() {
@@ -133,35 +135,6 @@ public class HttpOperationBuilder {
     Set<String> queryParamProperties = new HashSet<>();
 
     for (var property : properties) {
-      PropertyBuilder builder =
-          switch (property.type()) {
-            case STRING -> StringProperty.builder()
-                .value(property.example())
-                .feel(FeelMode.optional);
-            case ENUM -> DropdownProperty.builder()
-                .choices(
-                    property.choices().stream()
-                        .map(choice -> new DropdownChoice(choice, choice))
-                        .toList());
-            case FEEL -> StringProperty.builder().value(property.example()).feel(FeelMode.required);
-          };
-
-      // shade property ids with operation id as there may be duplicates in different operations
-      builder
-          .id(id + "_" + property.id())
-          .label(TemplatePropertiesUtil.transformIdIntoLabel(property.id()))
-          .description(property.description())
-          .optional(!property.required())
-          .binding(new ZeebeInput(property.id()))
-          .condition(new Equals(OPERATION_DISCRIMINATOR_PROPERTY_ID, id))
-          .group("parameters");
-
-      if (property.required()) {
-        builder.constraints(PropertyConstraints.builder().notEmpty(true).build());
-      }
-
-      transformedProperties.add(builder.build());
-
       if (property.target() == Target.HEADER) {
         headerProperties.add(property.id());
       } else if (property.target() == Target.QUERY) {
@@ -170,15 +143,7 @@ public class HttpOperationBuilder {
     }
 
     return new HttpOperation(
-        id,
-        label,
-        pathFeelExpression,
-        method,
-        bodyExample,
-        buildContextExpression(headerProperties),
-        buildContextExpression(queryParamProperties),
-        transformedProperties,
-        authenticationOverride);
+        id, label, pathFeelExpression, method, bodyExample, properties, authenticationOverride);
   }
 
   private void validate() {
@@ -191,20 +156,5 @@ public class HttpOperationBuilder {
     if (label == null) {
       throw new IllegalStateException("Operation description is not defined");
     }
-  }
-
-  private String buildContextExpression(Set<String> properties) {
-    StringBuilder sb = new StringBuilder();
-    sb.append("={");
-    var it = properties.iterator();
-    while (it.hasNext()) {
-      var prop = it.next();
-      sb.append(prop).append(": ").append(prop);
-      if (it.hasNext()) {
-        sb.append(", ");
-      }
-    }
-    sb.append("}");
-    return sb.toString();
   }
 }
