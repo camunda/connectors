@@ -39,11 +39,17 @@ public final class ConnectorUtil {
     if (annotation.isPresent()) {
       final var normalizedConnectorName =
           toConnectorTypeEnvVariable(toNormalizedConnectorName(annotation.get().name()));
+      final var normalizedConnectorTimeout =
+          toConnectorTimeoutEnvVariable(toNormalizedConnectorName(annotation.get().name()));
       final var type =
           Optional.ofNullable(env.get(normalizedConnectorName)).orElse(annotation.get().type());
+      final var timeout =
+          Optional.ofNullable(env.get(normalizedConnectorTimeout))
+              .map(Long::parseLong)
+              .orElse(null);
       return Optional.of(
           new OutboundConnectorConfiguration(
-              annotation.get().name(), annotation.get().inputVariables(), type, cls));
+              annotation.get().name(), annotation.get().inputVariables(), type, cls, timeout));
     }
     return Optional.empty();
   }
@@ -105,5 +111,9 @@ public final class ConnectorUtil {
 
   private static String toConnectorTypeEnvVariable(final String normalizedConnectorName) {
     return "CONNECTOR_" + normalizedConnectorName + "_TYPE";
+  }
+
+  private static String toConnectorTimeoutEnvVariable(final String normalizedConnectorName) {
+    return "CONNECTOR_" + normalizedConnectorName + "_TIMEOUT";
   }
 }
