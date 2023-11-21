@@ -413,7 +413,7 @@
     },
     "condition" : {
       "property" : "method",
-      "oneOf" : [ "POST", "PUT", "PATCH" ],
+      "oneOf" : [ "POST", "PUT", "PATCH", "post", "put", "patch" ],
       "type" : "simple"
     },
     "type" : "Text"
