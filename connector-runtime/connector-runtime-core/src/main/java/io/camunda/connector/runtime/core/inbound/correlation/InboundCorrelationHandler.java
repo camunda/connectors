@@ -29,6 +29,7 @@ import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.client.api.command.ClientStatusException;
 import io.camunda.zeebe.client.api.response.ProcessInstanceEvent;
 import io.camunda.zeebe.client.api.response.PublishMessageResponse;
+import io.grpc.Status;
 import java.util.Optional;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -121,7 +122,7 @@ public class InboundCorrelationHandler {
 
     } catch (ClientStatusException e1) {
       LOG.info("Failed to publish message: ", e1);
-      return new CorrelationResult.Failure(ErrorCode.FAULT_ZEEBE_CLIENT_STATUS, null, e1);
+      return new CorrelationResult.Failure(ErrorCode.ZEEBE_CLIENT_STATUS, null, e1);
     } catch (Exception e2) {
       return new Failure(ErrorCode.UNKNOWN, e2.getMessage(), e2);
     }
@@ -140,7 +141,7 @@ public class InboundCorrelationHandler {
           "Wasn't able to obtain idempotency key for expression {}.",
           correlationPoint.messageIdExpression());
       return new CorrelationResult.Failure(
-          ErrorCode.FAULT_IDEMPOTENCY_KEY,
+          ErrorCode.INVALID_INPUT,
           "Wasn't able to obtain idempotency key for expression "
               + correlationPoint.messageIdExpression(),
           null);
@@ -169,7 +170,15 @@ public class InboundCorrelationHandler {
 
     } catch (ClientStatusException e1) {
       LOG.info("Failed to publish message: ", e1);
-      return new CorrelationResult.Failure(ErrorCode.FAULT_ZEEBE_CLIENT_STATUS, null, e1);
+      if (Status.ALREADY_EXISTS.equals(e1.getStatus())) {
+        return new CorrelationResult.Failure(
+            ErrorCode.MESSAGE_ALREADY_CORRELATED,
+            "Message with idempotency key "
+                + messageId
+                + " already exists. Duplicate message was rejected by Zeebe.",
+            e1);
+      }
+      return new CorrelationResult.Failure(ErrorCode.ZEEBE_CLIENT_STATUS, null, e1);
     }
   }
 
@@ -179,12 +188,14 @@ public class InboundCorrelationHandler {
       String correlationKeyExpression,
       Object variables,
       String messageId) {
-    String correlationKey =
-        extractCorrelationKey(correlationKeyExpression, variables)
-            .orElseThrow(
-                () ->
-                    new ConnectorException(
-                        "Correlation key not resolved: " + correlationKeyExpression));
+
+    var correlationKey = extractCorrelationKey(correlationKeyExpression, variables);
+    if (correlationKey.isEmpty()) {
+      return new CorrelationResult.Failure(
+          ErrorCode.INVALID_INPUT,
+          "Wasn't able to obtain correlation key for expression " + correlationKeyExpression,
+          null);
+    }
 
     Object extractedVariables = extractVariables(variables, definition);
     try {
@@ -192,7 +203,7 @@ public class InboundCorrelationHandler {
           zeebeClient
               .newPublishMessageCommand()
               .messageName(messageName)
-              .correlationKey(correlationKey)
+              .correlationKey(correlationKey.get())
               .messageId(messageId)
               .tenantId(definition.tenantId())
               .variables(extractedVariables)
@@ -204,7 +215,15 @@ public class InboundCorrelationHandler {
 
     } catch (ClientStatusException e1) {
       LOG.info("Failed to publish message: ", e1);
-      return new CorrelationResult.Failure(ErrorCode.FAULT_ZEEBE_CLIENT_STATUS, null, e1);
+      if (Status.ALREADY_EXISTS.equals(e1.getStatus())) {
+        return new CorrelationResult.Failure(
+            ErrorCode.MESSAGE_ALREADY_CORRELATED,
+            "Message with idempotency key "
+                + messageId
+                + " already exists. Duplicate message was rejected by Zeebe.",
+            e1);
+      }
+      return new CorrelationResult.Failure(ErrorCode.ZEEBE_CLIENT_STATUS, null, e1);
     } catch (Exception e2) {
       return new Failure(ErrorCode.UNKNOWN, e2.getMessage(), e2);
     }

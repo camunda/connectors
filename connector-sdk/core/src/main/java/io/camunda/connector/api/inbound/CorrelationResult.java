@@ -28,8 +28,8 @@ public sealed interface CorrelationResult {
   enum ErrorCode {
     INVALID_INPUT(false),
     ACTIVATION_CONDITION_NOT_MET(false),
-    FAULT_ZEEBE_CLIENT_STATUS(true),
-    FAULT_IDEMPOTENCY_KEY(false),
+    ZEEBE_CLIENT_STATUS(true),
+    MESSAGE_ALREADY_CORRELATED(false),
     UNKNOWN(true);
 
     private final boolean retryable;

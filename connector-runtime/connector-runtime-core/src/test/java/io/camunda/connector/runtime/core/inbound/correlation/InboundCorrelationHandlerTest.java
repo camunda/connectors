@@ -155,6 +155,30 @@ public class InboundCorrelationHandlerTest {
       assertThat(captor.getValue()).isEqualTo("myValue");
       verify(dummyCommand).send();
     }
+
+    @Test
+    void messageEvent_idempotencyCheckFailed() {
+      var point = new MessageStartEventCorrelationPoint("test", "=myVar", "", "1", 1, 0);
+      var definition = mock(InboundConnectorDefinitionImpl.class);
+      when(definition.correlationPoint()).thenReturn(point);
+
+      var dummyCommand = Mockito.spy(new PublishMessageCommandDummy());
+      when(dummyCommand.send()).thenThrow(new ClientStatusException(Status.ALREADY_EXISTS, null));
+      when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
+
+      // when
+      var result =
+          handler.correlate(
+              definition,
+              Map.of("myVar", "myValue", "myOtherMap", Map.of("myOtherKey", "myOtherValue")));
+
+      // then
+      verify(zeebeClient).newPublishMessageCommand();
+      verifyNoMoreInteractions(zeebeClient);
+
+      assertThat(result).isInstanceOf(Failure.class);
+      assertThat(((Failure) result).code()).isEqualTo(ErrorCode.MESSAGE_ALREADY_CORRELATED);
+    }
   }
 
   @Test
@@ -203,7 +227,7 @@ public class InboundCorrelationHandlerTest {
     // when & then
     var error = assertDoesNotThrow(() -> handler.correlate(definition, Collections.emptyMap()));
     assertThat(error).isInstanceOf(Failure.class);
-    assertThat(((Failure) error).code()).isEqualTo(ErrorCode.FAULT_ZEEBE_CLIENT_STATUS);
+    assertThat(((Failure) error).code()).isEqualTo(ErrorCode.ZEEBE_CLIENT_STATUS);
   }
 
   @Nested
