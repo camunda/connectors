@@ -19,8 +19,10 @@ package io.camunda.connector.runtime.core.inbound.correlation;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.CorrelationResult;
-import io.camunda.connector.api.inbound.CorrelationResult.ErrorCode;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure;
+import io.camunda.connector.api.inbound.CorrelationResult.Failure.ActivationConditionNotMet;
+import io.camunda.connector.api.inbound.CorrelationResult.Failure.MessageAlreadyCorrelated;
+import io.camunda.connector.api.inbound.CorrelationResult.Failure.Other;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.core.ConnectorHelper;
@@ -60,14 +62,12 @@ public class InboundCorrelationHandler {
     try {
       if (!isActivationConditionMet(definition, variables)) {
         LOG.info("Activation condition didn't match: {}", correlationPoint);
-        return new CorrelationResult.Failure(ErrorCode.ACTIVATION_CONDITION_NOT_MET, null, null);
+        return ActivationConditionNotMet.INSTANCE;
       }
     } catch (ConnectorInputException e) {
       LOG.info("Failed to evaluate activation condition: {}", correlationPoint);
-      return new CorrelationResult.Failure(
-          ErrorCode.INVALID_INPUT,
-          "Failed to evaluate activation condition against the provided input",
-          e);
+      return new CorrelationResult.Failure.InvalidInput(
+          "Failed to evaluate activation condition against the provided input", e);
     }
 
     if (correlationPoint instanceof StartEventCorrelationPoint startCorPoint) {
@@ -122,9 +122,10 @@ public class InboundCorrelationHandler {
 
     } catch (ClientStatusException e1) {
       LOG.info("Failed to publish message: ", e1);
-      return new CorrelationResult.Failure(ErrorCode.ZEEBE_CLIENT_STATUS, null, e1);
-    } catch (Exception e2) {
-      return new Failure(ErrorCode.UNKNOWN, e2.getMessage(), e2);
+      return new CorrelationResult.Failure.ZeebeClientStatus(
+          e1.getStatus().getCode().name(), e1.getMessage());
+    } catch (Throwable e2) {
+      return new Other(e2);
     }
   }
 
@@ -140,8 +141,7 @@ public class InboundCorrelationHandler {
       LOG.debug(
           "Wasn't able to obtain idempotency key for expression {}.",
           correlationPoint.messageIdExpression());
-      return new CorrelationResult.Failure(
-          ErrorCode.INVALID_INPUT,
+      return new CorrelationResult.Failure.InvalidInput(
           "Wasn't able to obtain idempotency key for expression "
               + correlationPoint.messageIdExpression(),
           null);
@@ -171,14 +171,10 @@ public class InboundCorrelationHandler {
     } catch (ClientStatusException e1) {
       LOG.info("Failed to publish message: ", e1);
       if (Status.ALREADY_EXISTS.equals(e1.getStatus())) {
-        return new CorrelationResult.Failure(
-            ErrorCode.MESSAGE_ALREADY_CORRELATED,
-            "Message with idempotency key "
-                + messageId
-                + " already exists. Duplicate message was rejected by Zeebe.",
-            e1);
+        return MessageAlreadyCorrelated.INSTANCE;
       }
-      return new CorrelationResult.Failure(ErrorCode.ZEEBE_CLIENT_STATUS, null, e1);
+      return new CorrelationResult.Failure.ZeebeClientStatus(
+          e1.getStatus().getCode().name(), e1.getMessage());
     }
   }
 
@@ -191,10 +187,8 @@ public class InboundCorrelationHandler {
 
     var correlationKey = extractCorrelationKey(correlationKeyExpression, variables);
     if (correlationKey.isEmpty()) {
-      return new CorrelationResult.Failure(
-          ErrorCode.INVALID_INPUT,
-          "Wasn't able to obtain correlation key for expression " + correlationKeyExpression,
-          null);
+      return new CorrelationResult.Failure.InvalidInput(
+          "Wasn't able to obtain correlation key for expression " + correlationKeyExpression, null);
     }
 
     Object extractedVariables = extractVariables(variables, definition);
@@ -216,16 +210,12 @@ public class InboundCorrelationHandler {
     } catch (ClientStatusException e1) {
       LOG.info("Failed to publish message: ", e1);
       if (Status.ALREADY_EXISTS.equals(e1.getStatus())) {
-        return new CorrelationResult.Failure(
-            ErrorCode.MESSAGE_ALREADY_CORRELATED,
-            "Message with idempotency key "
-                + messageId
-                + " already exists. Duplicate message was rejected by Zeebe.",
-            e1);
+        return MessageAlreadyCorrelated.INSTANCE;
       }
-      return new CorrelationResult.Failure(ErrorCode.ZEEBE_CLIENT_STATUS, null, e1);
+      return new CorrelationResult.Failure.ZeebeClientStatus(
+          e1.getStatus().getCode().name(), e1.getMessage());
     } catch (Exception e2) {
-      return new Failure(ErrorCode.UNKNOWN, e2.getMessage(), e2);
+      return new Failure.Other(e2);
     }
   }
 

@@ -22,7 +22,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.CorrelationResult;
-import io.camunda.connector.api.inbound.CorrelationResult.ErrorCode;
+import io.camunda.connector.api.inbound.CorrelationResult.Failure.ActivationConditionNotMet;
+import io.camunda.connector.api.inbound.CorrelationResult.Failure.Other;
+import io.camunda.connector.api.inbound.CorrelationResult.Success;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
@@ -68,25 +70,19 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   @Override
   public void correlate(Object variables) {
     var result = correlationHandler.correlate(definition, variables);
-    if (result instanceof CorrelationResult.Failure failure
-        && ErrorCode.ACTIVATION_CONDITION_NOT_MET != failure.code()) {
-
-      if (failure.error() == null) {
-        throw new ConnectorException(
-            String.format(
-                "Failed to correlate inbound event: %s, error code: %s",
-                failure.code(), failure.message()));
-      }
-      if (failure.error() instanceof ConnectorException
-          || failure.error() instanceof ConnectorInputException) {
-        throw (RuntimeException) failure.error();
-      }
-      throw new ConnectorException(
-          String.format(
-              "Failed to correlate inbound event: %s, error code: %s",
-              failure.code(), failure.message()),
-          failure.error());
+    if (result == null) {
+      throw new ConnectorException("Failed to correlate inbound event, result is null");
     }
+    if (result instanceof ActivationConditionNotMet || result instanceof Success) {
+      return;
+    }
+    if (result instanceof CorrelationResult.Failure.InvalidInput invalidInput) {
+      throw new ConnectorInputException(invalidInput.message(), invalidInput.error());
+    }
+    if (result instanceof Other exception) {
+      throw new ConnectorException(exception.error());
+    }
+    throw new ConnectorException("Failed to correlate inbound event, details: " + result);
   }
 
   @Override
@@ -95,7 +91,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       return correlationHandler.correlate(definition, variables);
     } catch (Exception e) {
       LOG.error("Failed to correlate inbound event", e);
-      return new CorrelationResult.Failure(ErrorCode.UNKNOWN, e.getMessage(), e);
+      return new CorrelationResult.Failure.Other(e);
     }
   }
 

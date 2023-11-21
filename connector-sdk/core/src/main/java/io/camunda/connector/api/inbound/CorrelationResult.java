@@ -23,23 +23,34 @@ public sealed interface CorrelationResult {
     public static final Success INSTANCE = new Success();
   }
 
-  record Failure(ErrorCode code, String message, Throwable error) implements CorrelationResult {}
+  sealed interface Failure extends CorrelationResult {
 
-  enum ErrorCode {
-    INVALID_INPUT(false),
-    ACTIVATION_CONDITION_NOT_MET(false),
-    ZEEBE_CLIENT_STATUS(true),
-    MESSAGE_ALREADY_CORRELATED(false),
-    UNKNOWN(true);
-
-    private final boolean retryable;
-
-    public boolean isRetryable() {
-      return retryable;
+    default boolean isRetryable() {
+      return false;
     }
 
-    ErrorCode(boolean retryable) {
-      this.retryable = retryable;
+    record InvalidInput(String message, Throwable error) implements Failure {}
+
+    record ActivationConditionNotMet() implements Failure {
+      public static final ActivationConditionNotMet INSTANCE = new ActivationConditionNotMet();
+    }
+
+    record ZeebeClientStatus(String status, String message) implements Failure {
+      @Override
+      public boolean isRetryable() {
+        return true;
+      }
+    }
+
+    record MessageAlreadyCorrelated() implements Failure {
+      public static final MessageAlreadyCorrelated INSTANCE = new MessageAlreadyCorrelated();
+    }
+
+    record Other(Throwable error) implements Failure {
+      @Override
+      public boolean isRetryable() {
+        return true;
+      }
     }
   }
 }

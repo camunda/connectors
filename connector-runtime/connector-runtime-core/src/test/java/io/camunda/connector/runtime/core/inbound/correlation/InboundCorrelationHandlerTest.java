@@ -24,13 +24,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import io.camunda.connector.api.inbound.CorrelationResult.ErrorCode;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure;
 import io.camunda.connector.api.inbound.CorrelationResult.Success;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
-import io.camunda.connector.runtime.core.util.command.CreateCommandDummy;
-import io.camunda.connector.runtime.core.util.command.PublishMessageCommandDummy;
+import io.camunda.connector.runtime.core.testutil.command.CreateCommandDummy;
+import io.camunda.connector.runtime.core.testutil.command.PublishMessageCommandDummy;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.client.api.command.ClientStatusException;
 import io.grpc.Status;
@@ -176,8 +175,7 @@ public class InboundCorrelationHandlerTest {
       verify(zeebeClient).newPublishMessageCommand();
       verifyNoMoreInteractions(zeebeClient);
 
-      assertThat(result).isInstanceOf(Failure.class);
-      assertThat(((Failure) result).code()).isEqualTo(ErrorCode.MESSAGE_ALREADY_CORRELATED);
+      assertThat(result).isInstanceOf(Failure.MessageAlreadyCorrelated.class);
     }
   }
 
@@ -226,8 +224,8 @@ public class InboundCorrelationHandlerTest {
 
     // when & then
     var error = assertDoesNotThrow(() -> handler.correlate(definition, Collections.emptyMap()));
-    assertThat(error).isInstanceOf(Failure.class);
-    assertThat(((Failure) error).code()).isEqualTo(ErrorCode.ZEEBE_CLIENT_STATUS);
+    assertThat(error).isInstanceOf(Failure.ZeebeClientStatus.class);
+    assertThat(((Failure.ZeebeClientStatus) error).status()).isEqualTo("UNAVAILABLE");
   }
 
   @Nested
@@ -246,7 +244,7 @@ public class InboundCorrelationHandlerTest {
       // when & then
       var result = assertDoesNotThrow(() -> handler.correlate(definition, variables));
       verifyNoMoreInteractions(zeebeClient);
-      assertThat(result).isEqualTo(new Failure(ErrorCode.ACTIVATION_CONDITION_NOT_MET, null, null));
+      assertThat(result).isInstanceOf(Failure.ActivationConditionNotMet.class);
     }
 
     @Test
@@ -325,7 +323,7 @@ public class InboundCorrelationHandlerTest {
       // when & then
       var result = assertDoesNotThrow(() -> handler.correlate(definition, variables));
       verifyNoMoreInteractions(zeebeClient);
-      assertThat(result).isEqualTo(new Failure(ErrorCode.ACTIVATION_CONDITION_NOT_MET, null, null));
+      assertThat(result).isInstanceOf(Failure.ActivationConditionNotMet.class);
     }
 
     @Test
