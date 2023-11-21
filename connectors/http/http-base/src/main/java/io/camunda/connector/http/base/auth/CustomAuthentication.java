@@ -28,7 +28,7 @@ import java.util.Objects;
 
 @TemplateSubType(ignore = true)
 @Deprecated
-public final class CustomAuthentication extends Authentication {
+public final class CustomAuthentication implements Authentication {
 
   @FEEL @NotNull @Valid private HttpCommonRequest request;
 

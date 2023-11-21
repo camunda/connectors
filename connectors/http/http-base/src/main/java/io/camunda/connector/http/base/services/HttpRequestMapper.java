@@ -27,6 +27,7 @@ import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.UrlEncodedContent;
 import com.google.api.client.http.json.JsonHttpContent;
 import com.google.api.client.json.gson.GsonFactory;
+import io.camunda.connector.http.base.auth.ApiKeyAuthentication;
 import io.camunda.connector.http.base.auth.OAuthAuthentication;
 import io.camunda.connector.http.base.constants.Constants;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
@@ -76,6 +77,12 @@ public class HttpRequestMapper {
 
     if (request.hasQueryParameters()) {
       genericUrl.putAll(request.getQueryParameters());
+    }
+
+    if (request.hasAuthentication()
+        && request.getAuthentication() instanceof ApiKeyAuthentication authentication
+        && authentication.isQueryLocationApiKeyAuthentication()) {
+      genericUrl.put(authentication.name(), authentication.value());
     }
 
     if (request.hasBody() && request.getBody() instanceof String) {
