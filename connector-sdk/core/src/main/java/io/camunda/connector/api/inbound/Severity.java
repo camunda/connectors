@@ -16,4 +16,10 @@
  */
 package io.camunda.connector.api.inbound;
 
-public record HealthError(Severity severity, String text, String log, String title) {}
+public enum Severity {
+  DEBUG,
+  INFO,
+  WARNING,
+  ERROR,
+  FATAL
+}

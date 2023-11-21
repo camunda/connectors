@@ -25,6 +25,8 @@ import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure.ActivationConditionNotMet;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure.Other;
 import io.camunda.connector.api.inbound.CorrelationResult.Success;
+import com.google.common.collect.EvictingQueue;
+import io.camunda.connector.api.inbound.ActivityLog;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
@@ -34,6 +36,7 @@ import io.camunda.connector.runtime.core.AbstractConnectorContext;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Queue;
 import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,6 +54,8 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   private final Consumer<Throwable> cancellationCallback;
 
   private Health health = Health.unknown();
+
+  private EvictingQueue<ActivityLog> logs = EvictingQueue.create(10);
 
   public InboundConnectorContextImpl(
       SecretProvider secretProvider,
@@ -133,6 +138,16 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   @Override
   public Health getHealth() {
     return health;
+  }
+
+  @Override
+  public void log(ActivityLog log) {
+    this.logs.add(log);
+  }
+
+  @Override
+  public Queue<ActivityLog> getLogs() {
+    return this.logs;
   }
 
   private Map<String, Object> propertiesWithSecrets;

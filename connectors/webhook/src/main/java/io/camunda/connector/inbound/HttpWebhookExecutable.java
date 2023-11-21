@@ -10,8 +10,10 @@ import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.di
 import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.enabled;
 
 import io.camunda.connector.api.annotation.InboundConnector;
+import io.camunda.connector.api.inbound.ActivityLog;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
+import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.VerifiableWebhook;
 import io.camunda.connector.api.inbound.webhook.VerifiableWebhook.WebhookHttpVerificationResult;
@@ -49,11 +51,22 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable, Verifi
   private WebhookConnectorProperties props;
   private WebhookAuthorizationHandler<?> authChecker;
 
+  private InboundConnectorContext context;
+
   @Override
   public WebhookResult triggerWebhook(WebhookProcessingPayload payload)
       throws NoSuchAlgorithmException, InvalidKeyException, IOException {
     LOGGER.trace("Triggered webhook with context " + props.context() + " and payload " + payload);
-
+    this.context.log(
+        ActivityLog.level(Severity.INFO)
+            .tag(payload.method())
+            .message(
+                "Polled url: "
+                    + payload.requestURL()
+                    + ", params: "
+                    + payload.params()
+                    + ", headers: "
+                    + payload.headers()));
     if (!HttpMethods.any.name().equalsIgnoreCase(props.method())
         && !payload.method().equalsIgnoreCase(props.method())) {
       throw new WebhookConnectorException(
@@ -127,6 +140,7 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable, Verifi
               "Inbound connector context cannot be null"));
       throw new Exception("Inbound connector context cannot be null");
     }
+    this.context = context;
     var wrappedProps = context.bindProperties(WebhookConnectorPropertiesWrapper.class);
     props = new WebhookConnectorProperties(wrappedProps);
     context.reportHealth(Health.up(Health.ReservedDetailKeyword.PATH.getValue(), props.context()));

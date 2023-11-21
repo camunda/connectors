@@ -80,7 +80,7 @@ public class ProcessInstancesFetcherTask implements Runnable {
     runningHttpRequestTaskIds.computeIfAbsent(
         taskKey,
         (key) -> {
-          var task = new HttpRequestTask(httpService, processInstanceContext);
+          var task = new HttpRequestTask(httpService, processInstanceContext, this.context);
           return this.executorService
               .getExecutorService()
               .scheduleWithFixedDelay(

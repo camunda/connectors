@@ -80,11 +80,7 @@ public class Health {
 
   @Override
   public String toString() {
-    return "Health{" +
-            "status=" + status +
-            ", details=" + details +
-            ", error=" + error +
-            '}';
+    return "Health{" + "status=" + status + ", details=" + details + ", error=" + error + '}';
   }
 
   static DetailsStep status(Status status) {
@@ -139,7 +135,7 @@ public class Health {
 
   public static Health down(Throwable ex, String title) {
     HealthError healthError =
-        new HealthError(HealthErrorSeverity.ERROR, ex.getMessage(), getStackTrace(ex), title);
+        new HealthError(Severity.ERROR, ex.getMessage(), getStackTrace(ex), title);
     return Health.status(Status.DOWN).error(healthError);
   }
 

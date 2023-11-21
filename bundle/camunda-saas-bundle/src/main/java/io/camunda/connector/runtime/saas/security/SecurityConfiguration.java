@@ -46,10 +46,10 @@ public class SecurityConfiguration {
   public WebSecurityCustomizer webSecurityCustomizer() {
     return (web) ->
         web.ignoring()
-            .requestMatchers(HttpMethod.POST, "/inbound/*")
-            .requestMatchers(HttpMethod.GET, "/inbound/*")
-            .requestMatchers(HttpMethod.PUT, "/inbound/*")
-            .requestMatchers(HttpMethod.DELETE, "/inbound/*")
+            .requestMatchers(HttpMethod.POST, "/inbound/**")
+            .requestMatchers(HttpMethod.GET, "/inbound/**")
+            .requestMatchers(HttpMethod.PUT, "/inbound/**")
+            .requestMatchers(HttpMethod.DELETE, "/inbound/**")
             .requestMatchers("/actuator/**");
   }
 

@@ -16,11 +16,14 @@
  */
 package io.camunda.connector.runtime.inbound.lifecycle;
 
+import io.camunda.connector.api.inbound.ActivityLog;
 import java.util.List;
+import java.util.Queue;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -41,10 +44,23 @@ public class InboundConnectorRestController {
       @RequestParam(required = false) String type) {
     var result =
         inboundManager.query(new ActiveInboundConnectorQuery(bpmnProcessId, elementId, type));
-    return result.stream().map(this::mapToResponse).collect(Collectors.toList());
+    return result.stream().map(this::mapToInboundResponse).collect(Collectors.toList());
   }
 
-  private ActiveInboundConnectorResponse mapToResponse(ActiveInboundConnector connector) {
+  @GetMapping("/inbound/{bpmnProcessId}/{elementId}/logs")
+  public List<Queue<ActivityLog>> getActiveInboundConnectorLogs(
+      @PathVariable String bpmnProcessId, @PathVariable String elementId) {
+    var result =
+        inboundManager.query(new ActiveInboundConnectorQuery(bpmnProcessId, elementId, null));
+    return result.stream().map(this::mapToInboundLogsResponse).collect(Collectors.toList());
+  }
+
+  private Queue<ActivityLog> mapToInboundLogsResponse(ActiveInboundConnector connector) {
+    var logs = connector.context().getLogs();
+    return logs;
+  }
+
+  private ActiveInboundConnectorResponse mapToInboundResponse(ActiveInboundConnector connector) {
     var definition = connector.context().getDefinition();
     var health = connector.context().getHealth();
     return new ActiveInboundConnectorResponse(

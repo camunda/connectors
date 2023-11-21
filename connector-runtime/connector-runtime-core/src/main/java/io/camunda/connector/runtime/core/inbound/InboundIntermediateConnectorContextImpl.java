@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.core.inbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.CorrelationResult;
+import io.camunda.connector.api.inbound.ActivityLog;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
@@ -28,6 +29,7 @@ import io.camunda.connector.runtime.core.inbound.correlation.BoundaryEventCorrel
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -121,5 +123,15 @@ public class InboundIntermediateConnectorContextImpl
   @Override
   public Health getHealth() {
     return inboundContext.getHealth();
+  }
+
+  @Override
+  public void log(ActivityLog log) {
+    inboundContext.log(log);
+  }
+
+  @Override
+  public Queue<ActivityLog> getLogs() {
+    return inboundContext.getLogs();
   }
 }

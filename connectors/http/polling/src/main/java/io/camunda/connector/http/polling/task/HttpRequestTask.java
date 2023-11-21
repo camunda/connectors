@@ -6,7 +6,10 @@
  */
 package io.camunda.connector.http.polling.task;
 
+import io.camunda.connector.api.inbound.ActivityLog;
+import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.api.inbound.ProcessInstanceContext;
+import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.connector.http.base.services.HttpService;
@@ -19,10 +22,15 @@ public class HttpRequestTask implements Runnable {
   private final HttpService httpService;
   private final ProcessInstanceContext processInstanceContext;
 
+  private final InboundIntermediateConnectorContext context;
+
   public HttpRequestTask(
-      final HttpService httpService, final ProcessInstanceContext processInstanceContext) {
+      final HttpService httpService,
+      final ProcessInstanceContext processInstanceContext,
+      final InboundIntermediateConnectorContext context) {
     this.httpService = httpService;
     this.processInstanceContext = processInstanceContext;
+    this.context = context;
   }
 
   @Override
@@ -33,6 +41,16 @@ public class HttpRequestTask implements Runnable {
         try {
           HttpCommonResult httpResponse = httpService.executeConnectorRequest(httpRequest);
           processInstanceContext.correlate(httpResponse);
+          this.context.log(
+              ActivityLog.level(Severity.INFO)
+                  .tag(httpRequest.getMethod().toString())
+                  .message(
+                      "Polled url: "
+                          + httpRequest.getUrl()
+                          + ", body: "
+                          + httpRequest.getBody()
+                          + ", processInstanceKey: "
+                          + processInstanceContext.getKey()));
         } catch (Exception e) {
           LOGGER.warn(
               "Exception encountered while executing HTTP request for process instance {}: {}",
