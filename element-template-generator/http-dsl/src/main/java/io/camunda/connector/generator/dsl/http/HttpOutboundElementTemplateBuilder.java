@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.generator.dsl.http;
 
+import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElementType;
 import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.dsl.ElementTemplateIcon;
 import io.camunda.connector.generator.dsl.OutboundElementTemplate;
@@ -118,12 +119,17 @@ public class HttpOutboundElementTemplateBuilder {
     return this;
   }
 
+  public HttpOutboundElementTemplateBuilder elementType(ConnectorElementType elementType) {
+    builder.elementType(elementType.elementType());
+    builder.appliesTo(elementType.appliesTo());
+    return this;
+  }
+
   public OutboundElementTemplate build() {
     if (operations == null || operations.isEmpty()) {
       throw new IllegalStateException("Could not find any supported operations");
     }
     return builder
-        .elementType(BpmnType.SERVICE_TASK)
         .appliesTo(BpmnType.TASK)
         .propertyGroups(
             List.of(

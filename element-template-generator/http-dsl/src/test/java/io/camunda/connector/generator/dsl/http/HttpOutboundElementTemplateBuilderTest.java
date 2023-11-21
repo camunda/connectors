@@ -18,6 +18,8 @@ package io.camunda.connector.generator.dsl.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElementType;
+import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.dsl.DropdownProperty;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
 import io.camunda.connector.generator.dsl.OutboundElementTemplate;
@@ -392,6 +394,7 @@ public class HttpOutboundElementTemplateBuilderTest {
         .servers(servers)
         .authentication(authentications)
         .operations(operations)
+        .elementType(new ConnectorElementType(Set.of(BpmnType.TASK), BpmnType.SERVICE_TASK))
         .build();
   }
 

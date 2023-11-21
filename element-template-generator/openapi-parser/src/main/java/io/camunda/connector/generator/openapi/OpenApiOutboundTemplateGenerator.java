@@ -20,8 +20,11 @@ import static io.camunda.connector.generator.openapi.SecurityUtil.parseAuthentic
 
 import io.camunda.connector.generator.api.CliCompatibleTemplateGenerator;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
+import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElementType;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
+import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.dsl.OutboundElementTemplate;
+import io.camunda.connector.generator.dsl.http.HttpAuthentication;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskDefinition;
 import io.camunda.connector.generator.dsl.http.HttpAuthentication.NoAuth;
 import io.camunda.connector.generator.dsl.http.HttpOperationBuilder;
@@ -29,14 +32,21 @@ import io.camunda.connector.generator.dsl.http.HttpOutboundElementTemplateBuilde
 import io.camunda.connector.generator.dsl.http.HttpServerData;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.servers.Server;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class OpenApiOutboundTemplateGenerator
     implements CliCompatibleTemplateGenerator<OpenApiGenerationSource, OutboundElementTemplate> {
+
+  private static final Set<BpmnType> SUPPORTED_ELEMENT_TYPES =
+      Set.of(BpmnType.SERVICE_TASK, BpmnType.INTERMEDIATE_THROW_EVENT);
+  private static final ConnectorElementType DEFAULT_ELEMENT_TYPE =
+      new ConnectorElementType(Set.of(BpmnType.TASK), BpmnType.SERVICE_TASK);
 
   public OpenApiOutboundTemplateGenerator() {
     super();
@@ -64,8 +74,12 @@ public class OpenApiOutboundTemplateGenerator
             .filter(OperationParseResult::supported)
             .map(OperationParseResult::builder)
             .toList();
-    var template =
-        buildTemplate(input.openAPI(), supportedOperations, GeneratorConfiguration.DEFAULT);
+    var templates =
+        buildTemplates(input.openAPI(), supportedOperations, GeneratorConfiguration.DEFAULT);
+    if (templates.isEmpty()) {
+      throw new IllegalArgumentException("No operations found in OpenAPI document");
+    }
+    var template = templates.get(0);
     return new ScanResult(
         template.id(),
         template.name(),
@@ -79,7 +93,7 @@ public class OpenApiOutboundTemplateGenerator
   }
 
   @Override
-  public OutboundElementTemplate generate(
+  public List<OutboundElementTemplate> generate(
       OpenApiGenerationSource source, GeneratorConfiguration configuration) {
 
     var operations = OperationUtil.extractOperations(source.openAPI(), source.includeOperations());
@@ -101,10 +115,11 @@ public class OpenApiOutboundTemplateGenerator
                 })
             .map(OperationParseResult::builder)
             .toList();
-    return buildTemplate(source.openAPI(), supportedOperations, configuration);
+
+    return buildTemplates(source.openAPI(), supportedOperations, configuration);
   }
 
-  private OutboundElementTemplate buildTemplate(
+  private List<OutboundElementTemplate> buildTemplates(
       OpenAPI openAPI,
       List<HttpOperationBuilder> operationBuilders,
       GeneratorConfiguration configuration) {
@@ -113,11 +128,39 @@ public class OpenApiOutboundTemplateGenerator
       configuration = GeneratorConfiguration.DEFAULT;
     }
 
-    var info = openAPI.getInfo();
     var authentication = parseAuthentication(openAPI.getSecurity(), openAPI.getComponents());
     if (authentication.isEmpty()) {
       authentication = List.of(NoAuth.INSTANCE);
     }
+
+    var elementTypes = configuration.elementTypes();
+    elementTypes.stream()
+        .filter(t -> !SUPPORTED_ELEMENT_TYPES.contains(t.elementType()))
+        .findFirst()
+        .ifPresent(
+            t -> {
+              throw new IllegalArgumentException(
+                  String.format("Unsupported element type '%s'", t.elementType().getName()));
+            });
+    if (elementTypes.isEmpty()) {
+      elementTypes = Set.of(DEFAULT_ELEMENT_TYPE);
+    }
+
+    List<OutboundElementTemplate> templates = new ArrayList<>();
+    for (var elementType : elementTypes) {
+      var template = buildTemplate(openAPI, operationBuilders, configuration, authentication);
+      template.elementType(elementType);
+      templates.add(template.build());
+    }
+    return templates;
+  }
+
+  private HttpOutboundElementTemplateBuilder buildTemplate(
+      OpenAPI openAPI,
+      List<HttpOperationBuilder> operationBuilders,
+      GeneratorConfiguration configuration,
+      List<HttpAuthentication> authentication) {
+    var info = openAPI.getInfo();
     return HttpOutboundElementTemplateBuilder.create(
             ConnectorMode.HYBRID.equals(configuration.connectorMode()))
         .id(
@@ -135,8 +178,7 @@ public class OpenApiOutboundTemplateGenerator
                 .map(HttpOperationBuilder::build)
                 .collect(Collectors.toList()))
         .servers(extractServers(openAPI.getServers()))
-        .authentication(authentication)
-        .build();
+        .authentication(authentication);
   }
 
   private String getIdFromApiTitle(String title) {

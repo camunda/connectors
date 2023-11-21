@@ -46,7 +46,7 @@ public record OutboundElementTemplate(
     String documentationRef,
     String description,
     Set<String> appliesTo,
-    ElementType elementType,
+    ElementTypeWrapper elementType,
     List<PropertyGroup> groups,
     List<Property> properties,
     ElementTemplateIcon icon)
@@ -102,5 +102,5 @@ public record OutboundElementTemplate(
     return OutboundElementTemplateBuilder.create();
   }
 
-  public record ElementType(String value) {}
+  public record ElementTypeWrapper(String value) {}
 }

@@ -14,24 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.generator.api;
+package io.camunda.connector.generator.dsl;
 
-import io.camunda.connector.generator.dsl.ElementTemplateBase;
-import java.util.List;
+import io.camunda.connector.generator.BaseTest;
+import org.junit.jupiter.api.Test;
 
-/**
- * Base interface for any element template generator
- *
- * @param <IN> Data source for template generation
- * @param <OUT> Generation output type
- */
-public interface ElementTemplateGenerator<IN, OUT extends ElementTemplateBase> {
+public class OutboundElementTypeSupportTest extends BaseTest {
 
-  /** Generate an element template from source using the provided configuration */
-  List<OUT> generate(IN source, GeneratorConfiguration configuration);
+  @Test
+  void serviceTask() {}
 
-  /** Generate an element template from source using the default configuration */
-  default List<OUT> generate(IN source) {
-    return generate(source, GeneratorConfiguration.DEFAULT);
-  }
+  @Test
+  void intermediateThrowEvent() {}
+
+  @Test
+  void scriptTask() {}
+
+  @Test
+  void messageEndEvent() {}
 }

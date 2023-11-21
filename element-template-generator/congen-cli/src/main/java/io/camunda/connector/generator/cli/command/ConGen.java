@@ -51,6 +51,6 @@ public class ConGen {
 
   GeneratorConfiguration generatorConfiguration() {
     return new GeneratorConfiguration(
-        hybrid ? ConnectorMode.HYBRID : ConnectorMode.NORMAL, templateId, templateName, null);
+        hybrid ? ConnectorMode.HYBRID : ConnectorMode.NORMAL, templateId, templateName, null, null);
   }
 }

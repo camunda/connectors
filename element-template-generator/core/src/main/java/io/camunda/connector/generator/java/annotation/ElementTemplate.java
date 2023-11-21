@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.generator.java.annotation;
 
+import io.camunda.connector.generator.dsl.BpmnType;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -88,29 +89,37 @@ public @interface ElementTemplate {
    */
   String icon() default "";
 
-  /**
-   * BPMN element types the template is applicable to, e.g. "bpmn:Task".
-   *
-   * <p>If not specified, the default value is chosen by the underlying generator implementation.
-   *
-   * @see #elementType() allows to configure the resulting element type.
-   */
-  String[] appliesTo() default {};
-
-  /**
-   * The target element type of the template, e.g. "bpmn:ServiceTask". When template is applied, the
-   * element is transformed to this type.
-   *
-   * <p>If not specified, the default value is chosen by the underlying generator implementation.
-   *
-   * @see #appliesTo() allows to configure the types the template can be applied to.
-   */
-  String elementType() default "";
+  ConnectorElementType[] elementTypes() default {};
 
   @interface PropertyGroup {
 
     String id();
 
     String label() default "";
+  }
+
+  @interface ConnectorElementType {
+
+    /**
+     * BPMN element types the template is applicable to, e.g. "bpmn:Task".
+     *
+     * <p>If not specified, the default value is chosen by the underlying generator implementation.
+     *
+     * @see #elementType() allows to configure the resulting element type.
+     */
+    BpmnType[] appliesTo() default {};
+
+    /**
+     * The target element types of the template, e.g. "bpmn:ServiceTask". When template is applied,
+     * the element is transformed to this type.
+     *
+     * <p>Multiple element types are supported. If not specified, the default value is chosen by the
+     * underlying generator implementation. If another value is specified in {@link
+     * io.camunda.connector.generator.api.GeneratorConfiguration#elementTypes()}, the value from the
+     * configuration will be used.
+     *
+     * @see #appliesTo() allows to configure the types the template can be applied to.
+     */
+    BpmnType elementType();
   }
 }

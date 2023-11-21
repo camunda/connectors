@@ -112,22 +112,15 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
       for (String className : connectorClasses) {
         getLog().info("Generating element template for " + className);
         Class<?> clazz = classLoader.loadClass(className);
-        OutboundElementTemplate template = generator.generate(clazz);
-
-        var basicFileName =
-            templateFileName == null
-                ? transformConnectorNameToTemplateFileName(template.name())
-                : templateFileName + ".json";
-
-        writeElementTemplate(template, basicFileName);
+        var templates = generator.generate(clazz);
+        writeElementTemplates(templates);
 
         if (generateHybridTemplates) {
           getLog().info("Generating hybrid element template for " + className);
-          OutboundElementTemplate hybridTemplate =
+          var hybridTemplates =
               generator.generate(
-                  clazz, new GeneratorConfiguration(ConnectorMode.HYBRID, null, null, null));
-          var name = basicFileName.replace(".json", "-hybrid.json");
-          writeElementTemplate(hybridTemplate, name);
+                  clazz, new GeneratorConfiguration(ConnectorMode.HYBRID, null, null, null, null));
+          writeElementTemplates(hybridTemplates);
         }
       }
 
@@ -140,6 +133,25 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
           e);
     } catch (Exception e) {
       throw new MojoFailureException("Failed to generate element templates: " + e.getMessage(), e);
+    }
+  }
+
+  private void writeElementTemplates(List<OutboundElementTemplate> templates) {
+    if (templates.size() == 1) {
+      var fileName =
+          templateFileName == null
+              ? transformConnectorNameToTemplateFileName(templates.get(0).name())
+              : templateFileName + ".json";
+      writeElementTemplate(templates.get(0), fileName);
+    } else {
+      for (var template : templates) {
+        var fileName =
+            templateFileName == null
+                ? transformConnectorNameToTemplateFileName(template.name())
+                : templateFileName + "-" + template.elementType() + ".json";
+
+        writeElementTemplate(template, fileName);
+      }
     }
   }
 
