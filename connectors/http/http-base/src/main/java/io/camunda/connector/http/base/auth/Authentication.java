@@ -27,7 +27,8 @@ import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorPrope
   @JsonSubTypes.Type(value = NoAuthentication.class, name = NoAuthentication.TYPE),
   @JsonSubTypes.Type(value = CustomAuthentication.class, name = CustomAuthentication.TYPE),
   @JsonSubTypes.Type(value = OAuthAuthentication.class, name = OAuthAuthentication.TYPE),
-  @JsonSubTypes.Type(value = BearerAuthentication.class, name = BearerAuthentication.TYPE)
+  @JsonSubTypes.Type(value = BearerAuthentication.class, name = BearerAuthentication.TYPE),
+  @JsonSubTypes.Type(value = ApiKeyAuthentication.class, name = ApiKeyAuthentication.TYPE)
 })
 @TemplateDiscriminatorProperty(
     label = "Type",
@@ -35,12 +36,13 @@ import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorPrope
     name = "type",
     defaultValue = NoAuthentication.TYPE,
     description = "Choose the authentication type. Select 'None' if no authentication is necessary")
-public abstract sealed class Authentication
-    permits BasicAuthentication,
+public sealed interface Authentication
+    permits ApiKeyAuthentication,
+        BasicAuthentication,
         BearerAuthentication,
         CustomAuthentication,
         NoAuthentication,
         OAuthAuthentication {
 
-  public abstract void setHeaders(HttpHeaders headers);
+  void setHeaders(HttpHeaders headers);
 }

@@ -70,7 +70,7 @@ limitations under the License.</license.inlineheader>
     <!-- Camunda internal libraries -->
     <version.zeebe>8.3.3</version.zeebe>
     <version.spring-zeebe>8.3.1</version.spring-zeebe>
-    <version.feel-engine>1.17.2</version.feel-engine>
+    <version.feel-engine>1.17.3</version.feel-engine>
     <version.operate-client>8.3.0.1</version.operate-client>
 
     <!-- Third party dependencies -->
@@ -87,7 +87,7 @@ limitations under the License.</license.inlineheader>
     <version.spring-boot>3.1.5</version.spring-boot>
     <version.spring-cloud-gcp-starter-logging>4.8.4</version.spring-cloud-gcp-starter-logging>
 
-    <version.aws-java-sdk>1.12.592</version.aws-java-sdk>
+    <version.aws-java-sdk>1.12.594</version.aws-java-sdk>
 
     <version.google-api-client>2.2.0</version.google-api-client>
     <version.google-api-services-drive>v3-rev20230822-2.0.0</version.google-api-services-drive>
@@ -108,9 +108,9 @@ limitations under the License.</license.inlineheader>
     <version.bcprov-jdk15on>1.70</version.bcprov-jdk15on>
     <version.sendGrid>4.10.1</version.sendGrid>
 
-    <version.slack>1.36.0</version.slack>
+    <version.slack>1.36.1</version.slack>
 
-    <version.testcontainers>1.19.2</version.testcontainers>
+    <version.testcontainers>1.19.3</version.testcontainers>
     <version.awaitility>4.2.0</version.awaitility>
     <version.json-path>2.8.0</version.json-path>
 
@@ -408,7 +408,7 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-lang3</artifactId>
-        <version>3.13.0</version>
+        <version>3.14.0</version>
       </dependency>
 
       <!-- FIXME: maven resolves protobuf to 3.21.x while zeebe-client is compiled for 3.22.2. This is a temporary fix to be reassessed later. -->

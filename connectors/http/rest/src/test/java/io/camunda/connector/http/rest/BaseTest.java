@@ -47,6 +47,8 @@ public class BaseTest {
       String CLIENT_SECRET = "CLIENT_SECRET_KEY";
       String CLIENT_AUTHENTICATION = "CLIENT_AUTHENTICATION_KEY";
       String AUDIENCE = "AUDIENCE_KEY";
+      String API_KEY_NAME = "API_KEY_NAME";
+      String API_KEY_VALUE = "API_KEY_VALUE";
     }
 
     interface QueryParameters {
@@ -85,6 +87,8 @@ public class BaseTest {
       String CLIENT_SECRET = "Bzw6SL12345678934562eqg4fJM72EeeM2JQiF4BfbyYZUDCur7ntB";
       String CLIENT_AUTHENTICATION = "Bearer test token";
       String AUDIENCE = "https://test/api/v2/";
+      String API_KEY_NAME = "api-key-auth";
+      String API_KEY_VALUE = "my-api-key-value";
     }
 
     interface QueryParameters {
@@ -141,6 +145,10 @@ public class BaseTest {
             SecretsConstant.Authentication.CLIENT_AUTHENTICATION,
             ActualValue.Authentication.CLIENT_AUTHENTICATION)
         .secret(SecretsConstant.Authentication.AUDIENCE, ActualValue.Authentication.AUDIENCE)
+        .secret(
+            SecretsConstant.Authentication.API_KEY_NAME, ActualValue.Authentication.API_KEY_NAME)
+        .secret(
+            SecretsConstant.Authentication.API_KEY_VALUE, ActualValue.Authentication.API_KEY_VALUE)
         .secret(SecretsConstant.QueryParameters.QUEUE, ActualValue.QueryParameters.QUEUE)
         .secret(SecretsConstant.QueryParameters.PRIORITY, ActualValue.QueryParameters.PRIORITY)
         .secret(SecretsConstant.Headers.ID, ActualValue.Headers.CLUSTER_ID)

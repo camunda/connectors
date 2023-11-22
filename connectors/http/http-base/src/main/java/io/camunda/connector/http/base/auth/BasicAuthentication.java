@@ -25,7 +25,7 @@ import jakarta.validation.constraints.NotEmpty;
 import java.util.function.Function;
 
 @TemplateSubType(id = BasicAuthentication.TYPE, label = "Basic")
-public final class BasicAuthentication extends Authentication {
+public final class BasicAuthentication implements Authentication {
   @TemplateProperty(ignore = true)
   private static final String SPEC_PASSWORD_EMPTY_PATTERN = "SPEC_PASSWORD_EMPTY_PATTERN";
 

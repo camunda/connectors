@@ -24,7 +24,7 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotEmpty;
 
 @TemplateSubType(id = "bearer", label = "Bearer token")
-public final class BearerAuthentication extends Authentication {
+public final class BearerAuthentication implements Authentication {
 
   @FEEL
   @NotEmpty
