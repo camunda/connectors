@@ -25,6 +25,7 @@ import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.ConnectorHelper;
 import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.connector.runtime.core.error.BpmnError;
+import io.camunda.connector.runtime.core.error.Incident;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult.ErrorResult;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult.SuccessResult;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
@@ -122,9 +123,22 @@ public class ConnectorJobHandler implements JobHandler {
       ConnectorHelper.examineErrorExpression(result.responseValue(), job.getCustomHeaders())
           .ifPresentOrElse(
               error -> {
-                LOGGER.debug(
-                    "Throwing BPMN error for job {} with code {}", job.getKey(), error.code());
-                throwBpmnError(client, job, error);
+                if (error instanceof BpmnError bpmnError) {
+                  LOGGER.debug(
+                      "Throwing BPMN error for job {} with code {}",
+                      job.getKey(),
+                      bpmnError.code());
+                  throwBpmnError(client, job, bpmnError);
+                } else if (error instanceof Incident incident) {
+                  LOGGER.debug("Throwing incident for job {}", job.getKey());
+                  failJob(
+                      client,
+                      job,
+                      new ErrorResult(
+                          Map.of("error", incident.message()),
+                          new RuntimeException(incident.message()),
+                          0));
+                }
               },
               () -> {
                 if (finalResult instanceof SuccessResult successResult) {
@@ -179,8 +193,8 @@ public class ConnectorJobHandler implements JobHandler {
       result.put(
           "message", message.substring(0, Math.min(message.length(), MAX_ERROR_MESSAGE_LENGTH)));
     }
-    if (exception instanceof ConnectorException) {
-      var code = ((ConnectorException) exception).getErrorCode();
+    if (exception instanceof ConnectorException connectorException) {
+      var code = connectorException.getErrorCode();
       if (code != null) {
         result.put("code", code);
       }

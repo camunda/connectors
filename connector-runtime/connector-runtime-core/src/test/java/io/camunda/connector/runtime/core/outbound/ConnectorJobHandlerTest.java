@@ -652,7 +652,7 @@ class ConnectorJobHandlerTest {
       // given
       var errorExpression =
           "if error.code != null then "
-              + "{ \"code\": error.code, \"message\": \"Message: \" + error.message} "
+              + "{ \"errorType\": \"bpmnError\", \"code\": error.code, \"message\": \"Message: \" + error.message} "
               + "else {}";
       var jobHandler =
           newConnectorJobHandler(
@@ -734,6 +734,31 @@ class ConnectorJobHandlerTest {
               .executeAndCaptureResult(jobHandler, false, true);
       // then
       assertThat(result.getErrorCode()).isEqualTo("1013");
+      assertThat(result.getErrorMessage()).isEqualTo("Message: exception message");
+    }
+
+    @Test
+    void shouldCreateIncident_UsingExceptionCodeAsSecondConditionAfterResponsePropert() {
+      // given
+      var errorExpression =
+          """
+          if response.testProperty = "foo" then
+            incident("Message for foo value on test property")
+          else if error.code != null then
+            incident("Message: " + error.message)
+          else {}
+          """;
+      var jobHandler =
+          newConnectorJobHandler(
+              context -> {
+                throw new ConnectorException("1013", "exception message");
+              });
+      // when
+      var result =
+          JobBuilder.create()
+              .withErrorExpressionHeader(errorExpression)
+              .executeAndCaptureResult(jobHandler, false, false);
+      // then
       assertThat(result.getErrorMessage()).isEqualTo("Message: exception message");
     }
 

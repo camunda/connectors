@@ -23,6 +23,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.core.error.BpmnError;
+import io.camunda.connector.runtime.core.error.ConnectorError;
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
@@ -61,14 +62,22 @@ public class ConnectorHelper {
     return outputVariables;
   }
 
-  public static Optional<BpmnError> examineErrorExpression(
+  public static Optional<ConnectorError> examineErrorExpression(
       final Object responseContent, final Map<String, String> jobHeaders) {
     final var errorExpression = jobHeaders.get(Keywords.ERROR_EXPRESSION_KEYWORD);
     return Optional.ofNullable(errorExpression)
         .filter(s -> !s.isBlank())
         .map(expression -> FEEL_ENGINE_WRAPPER.evaluateToJson(expression, responseContent))
-        .map(json -> parseJsonVarsAsTypeOrThrow(json, BpmnError.class, errorExpression))
-        .filter(BpmnError::hasCode);
+        .filter(json -> !json.equals("null"))
+        .filter(json -> !parseJsonVarsAsTypeOrThrow(json, Map.class, errorExpression).isEmpty())
+        .map(json -> parseJsonVarsAsTypeOrThrow(json, ConnectorError.class, errorExpression))
+        .filter(
+            error -> {
+              if (error instanceof BpmnError bpmnError) {
+                return bpmnError.hasCode();
+              }
+              return true;
+            });
   }
 
   public static <T> T instantiateConnector(Class<? extends T> connectorClass) {

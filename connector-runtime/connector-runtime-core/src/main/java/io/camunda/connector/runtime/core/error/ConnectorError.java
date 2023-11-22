@@ -14,25 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package io.camunda.connector.runtime.core.error;
 
-import java.util.Collections;
-import java.util.Map;
+import static io.camunda.connector.feel.FeelConnectorFunctionProvider.*;
 
-/**
- * Container record for BPMN error data. This is used to indicate when a BPMN error should be
- * thrown.
- */
-public record BpmnError(String code, String message, Map<String, Object> variables)
-    implements ConnectorError {
-  public BpmnError {
-    if (variables == null) {
-      variables = Collections.emptyMap();
-    }
-  }
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
 
-  public boolean hasCode() {
-    return code != null;
-  }
-}
+@JsonTypeInfo(use = Id.NAME, property = ERROR_TYPE_PROPERTY)
+@JsonSubTypes({
+  @Type(value = BpmnError.class, name = BPMN_ERROR_TYPE_VALUE),
+  @Type(value = Incident.class, name = INCIDENT_TYPE_VALUE)
+})
+public sealed interface ConnectorError permits BpmnError, Incident {}

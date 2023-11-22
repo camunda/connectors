@@ -31,7 +31,11 @@ import scala.collection.immutable.Map$;
 
 /** Provider of Connector-related FEEL functions like 'bpmnError'. */
 public class FeelConnectorFunctionProvider extends JavaFunctionProvider {
+  public static final String ERROR_TYPE_PROPERTY = "errorType";
+  public static final String BPMN_ERROR_TYPE_VALUE = "bpmnError";
+  public static final String INCIDENT_TYPE_VALUE = "incident";
 
+  // BPMN error
   private static final String BPMN_ERROR_FUNCTION_NAME = "bpmnError";
   private static final List<String> BPMN_ERROR_ARGUMENTS = List.of("code", "message");
   private static final List<String> BPMN_ERROR_ARGUMENTS_WITH_VARS =
@@ -42,7 +46,9 @@ public class FeelConnectorFunctionProvider extends JavaFunctionProvider {
           args ->
               new ValContext(
                   new Context.StaticContext(
-                      new Map.Map2<>(
+                      new Map.Map3<>(
+                          ERROR_TYPE_PROPERTY,
+                          BPMN_ERROR_TYPE_VALUE,
                           BPMN_ERROR_ARGUMENTS.get(0),
                           toString(args, 0),
                           BPMN_ERROR_ARGUMENTS.get(1),
@@ -55,7 +61,9 @@ public class FeelConnectorFunctionProvider extends JavaFunctionProvider {
           args ->
               new ValContext(
                   new Context.StaticContext(
-                      new Map.Map3<>(
+                      new Map.Map4<>(
+                          ERROR_TYPE_PROPERTY,
+                          BPMN_ERROR_TYPE_VALUE,
                           BPMN_ERROR_ARGUMENTS.get(0),
                           toString(args, 0),
                           BPMN_ERROR_ARGUMENTS.get(1),
@@ -63,24 +71,29 @@ public class FeelConnectorFunctionProvider extends JavaFunctionProvider {
                           BPMN_ERROR_ARGUMENTS_WITH_VARS.get(2),
                           toContext(args, 2)),
                       Map$.MODULE$.empty())));
+
+  // Incident
+  private static final String INCIDENT_FUNCTION_NAME = "incident";
+  private static final List<String> INCIDENT_FUNCTION_ARGUMENTS = List.of("message");
+  private static final JavaFunction INCIDENT_FUNCTION =
+      new JavaFunction(
+          INCIDENT_FUNCTION_ARGUMENTS,
+          args ->
+              new ValContext(
+                  new Context.StaticContext(
+                      new Map.Map2<>(
+                          ERROR_TYPE_PROPERTY,
+                          INCIDENT_TYPE_VALUE,
+                          INCIDENT_FUNCTION_ARGUMENTS.get(0),
+                          toString(args, 0)),
+                      Map$.MODULE$.empty())));
+
   private static final java.util.Map<String, List<JavaFunction>> functions =
       java.util.Map.of(
-          BPMN_ERROR_FUNCTION_NAME, List.of(BPMN_ERROR_FUNCTION, BPMN_ERROR_FUNCTION_WITH_VARS));
-
-  @Override
-  public Optional<JavaFunction> resolveFunction(String functionName) {
-    throw new IllegalStateException("Should not be invoked.");
-  }
-
-  @Override
-  public List<JavaFunction> resolveFunctions(String functionName) {
-    return functions.getOrDefault(functionName, Collections.emptyList());
-  }
-
-  @Override
-  public Collection<String> getFunctionNames() {
-    return List.of(BPMN_ERROR_FUNCTION_NAME);
-  }
+          BPMN_ERROR_FUNCTION_NAME,
+          List.of(BPMN_ERROR_FUNCTION, BPMN_ERROR_FUNCTION_WITH_VARS),
+          INCIDENT_FUNCTION_NAME,
+          List.of(INCIDENT_FUNCTION));
 
   private static String toString(List<Val> arguments, int index) {
     Val value = arguments.get(index);
@@ -102,5 +115,20 @@ public class FeelConnectorFunctionProvider extends JavaFunctionProvider {
         String.format(
             "Parameter '%s' of function '%s' must be a Context",
             BPMN_ERROR_ARGUMENTS_WITH_VARS.get(index), BPMN_ERROR_FUNCTION_NAME));
+  }
+
+  @Override
+  public Optional<JavaFunction> resolveFunction(String functionName) {
+    throw new IllegalStateException("Should not be invoked.");
+  }
+
+  @Override
+  public List<JavaFunction> resolveFunctions(String functionName) {
+    return functions.getOrDefault(functionName, Collections.emptyList());
+  }
+
+  @Override
+  public Collection<String> getFunctionNames() {
+    return List.of(BPMN_ERROR_FUNCTION_NAME);
   }
 }
