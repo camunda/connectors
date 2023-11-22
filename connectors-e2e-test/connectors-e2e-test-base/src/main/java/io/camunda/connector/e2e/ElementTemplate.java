@@ -40,9 +40,13 @@ public class ElementTemplate {
     return new ElementTemplate(new File(file));
   }
 
-  public ElementTemplate property(String property, String value) {
-    documentContext =
-        documentContext.put("$..properties[?(@.id=='" + property + "')]", "value", value);
+  public ElementTemplate property(String propertyId, String value) {
+    try {
+      documentContext =
+          documentContext.put("$..properties[?(@.id=='" + propertyId + "')]", "value", value);
+    } catch (com.jayway.jsonpath.PathNotFoundException e) {
+      throw new RuntimeException("Property path not found for property ID: " + propertyId, e);
+    }
     return this;
   }
 
