@@ -19,6 +19,7 @@ package io.camunda.connector.runtime.inbound.lifecycle;
 import io.camunda.connector.api.inbound.ActivityLog;
 import java.util.List;
 import java.util.Queue;
+import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,13 +48,24 @@ public class InboundConnectorRestController {
     return result.stream().map(this::mapToInboundResponse).collect(Collectors.toList());
   }
 
-  @GetMapping("/inbound/{bpmnProcessId}/{elementId}/logs")
+  @GetMapping("/inbound/{bpmnProcessId}/{elementId}/{tenantId}/logs")
   public List<Queue<ActivityLog>> getActiveInboundConnectorLogs(
-      @PathVariable String bpmnProcessId, @PathVariable String elementId) {
+      @PathVariable String bpmnProcessId,
+      @PathVariable String elementId,
+      @PathVariable String tenantId) {
     var result =
         inboundManager.query(new ActiveInboundConnectorQuery(bpmnProcessId, elementId, null));
-    return result.stream().map(this::mapToInboundLogsResponse).collect(Collectors.toList());
+    return result.stream()
+        .filter(r -> tenantIdMatch.test(r, tenantId))
+        .map(this::mapToInboundLogsResponse)
+        .collect(Collectors.toList());
   }
+
+  BiPredicate<ActiveInboundConnector, String> tenantIdMatch =
+      (connector, tenantId) -> {
+        var definition = connector.context().getDefinition();
+        return tenantId != null && tenantId.equals(definition.tenantId());
+      };
 
   private Queue<ActivityLog> mapToInboundLogsResponse(ActiveInboundConnector connector) {
     var logs = connector.context().getLogs();
