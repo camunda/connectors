@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.inbound.lifecycle;
 
+import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
@@ -44,14 +45,15 @@ public class MeteredInboundCorrelationHandler extends InboundCorrelationHandler 
   }
 
   @Override
-  public void correlate(InboundConnectorDefinitionImpl definition, Object variables) {
+  public CorrelationResult correlate(InboundConnectorDefinitionImpl definition, Object variables) {
     metricsRecorder.increase(
         Inbound.METRIC_NAME_TRIGGERS, Inbound.ACTION_TRIGGERED, definition.type());
 
     try {
-      super.correlate(definition, variables);
+      var result = super.correlate(definition, variables);
       metricsRecorder.increase(
           Inbound.METRIC_NAME_TRIGGERS, Inbound.ACTION_CORRELATED, definition.type());
+      return result;
     } catch (Exception e) {
       metricsRecorder.increase(
           Inbound.METRIC_NAME_TRIGGERS, Inbound.ACTION_CORRELATION_FAILED, definition.type());

@@ -26,6 +26,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.VerifiableWebhook;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
@@ -167,6 +168,8 @@ class WebhookControllerTestZeebeTests {
         .thenReturn(webhookResult);
 
     var correlationHandlerMock = mock(InboundCorrelationHandler.class);
+    when(correlationHandlerMock.correlate(any(), any()))
+        .thenReturn(new CorrelationResult.Failure.ActivationConditionNotMet());
 
     var webhookDef = webhookDefinition("nonExistingProcess", 1, "myPath");
     var webhookContext =
