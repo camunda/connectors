@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.core.util.command;
+package io.camunda.connector.runtime.core.testutil.command;
 
-import io.camunda.connector.runtime.core.util.response.ProcessInstanceEventDummy;
+import io.camunda.connector.runtime.core.testutil.response.ProcessInstanceEventDummy;
 import io.camunda.zeebe.client.api.ZeebeFuture;
 import io.camunda.zeebe.client.api.command.CreateProcessInstanceCommandStep1;
 import io.camunda.zeebe.client.api.command.FinalCommandStep;
