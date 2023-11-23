@@ -19,6 +19,12 @@ package io.camunda.connector.runtime.core.inbound;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.error.ConnectorInputException;
+import io.camunda.connector.api.inbound.CorrelationResult;
+import io.camunda.connector.api.inbound.CorrelationResult.Failure.ActivationConditionNotMet;
+import io.camunda.connector.api.inbound.CorrelationResult.Failure.Other;
+import io.camunda.connector.api.inbound.CorrelationResult.Success;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
@@ -63,7 +69,30 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   @Override
   public void correlate(Object variables) {
-    correlationHandler.correlate(definition, variables);
+    var result = correlationHandler.correlate(definition, variables);
+    if (result == null) {
+      throw new ConnectorException("Failed to correlate inbound event, result is null");
+    }
+    if (result instanceof ActivationConditionNotMet || result instanceof Success) {
+      return;
+    }
+    if (result instanceof CorrelationResult.Failure.InvalidInput invalidInput) {
+      throw new ConnectorInputException(invalidInput.message(), invalidInput.error());
+    }
+    if (result instanceof Other exception) {
+      throw new ConnectorException(exception.error());
+    }
+    throw new ConnectorException("Failed to correlate inbound event, details: " + result);
+  }
+
+  @Override
+  public CorrelationResult correlateWithResult(Object variables) {
+    try {
+      return correlationHandler.correlate(definition, variables);
+    } catch (Exception e) {
+      LOG.error("Failed to correlate inbound event", e);
+      return new CorrelationResult.Failure.Other(e);
+    }
   }
 
   @Override

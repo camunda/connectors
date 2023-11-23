@@ -19,6 +19,8 @@ package io.camunda.connector.test.inbound;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.inbound.CorrelationResult;
+import io.camunda.connector.api.inbound.CorrelationResult.Success;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
@@ -31,6 +33,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 /** Test helper class for creating an {@link InboundConnectorContext} with a fluent API. */
@@ -43,6 +46,8 @@ public class InboundConnectorContextBuilder {
   protected ValidationProvider validationProvider;
 
   protected ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER;
+
+  protected CorrelationResult result;
 
   public static InboundConnectorContextBuilder create() {
     return new InboundConnectorContextBuilder();
@@ -148,12 +153,6 @@ public class InboundConnectorContextBuilder {
     }
   }
 
-  /** This method is deprecated and does not have any effect anymore. */
-  @Deprecated(forRemoval = true)
-  public InboundConnectorContextBuilder result(Object result) {
-    return this;
-  }
-
   public InboundConnectorContextBuilder validation(ValidationProvider validationProvider) {
     this.validationProvider = validationProvider;
     return this;
@@ -171,12 +170,17 @@ public class InboundConnectorContextBuilder {
     return this;
   }
 
+  public InboundConnectorContextBuilder result(CorrelationResult result) {
+    this.result = result;
+    return this;
+  }
+
   /**
    * @return the {@link io.camunda.connector.api.inbound.InboundConnectorContext} including all
    *     previously defined properties
    */
   public TestInboundConnectorContext build() {
-    return new TestInboundConnectorContext(secretProvider, validationProvider);
+    return new TestInboundConnectorContext(secretProvider, validationProvider, result);
   }
 
   public class TestInboundConnectorContext extends AbstractConnectorContext
@@ -188,9 +192,14 @@ public class InboundConnectorContextBuilder {
 
     private final String propertiesWithSecrets;
 
+    private final CorrelationResult result;
+
     protected TestInboundConnectorContext(
-        SecretProvider secretProvider, ValidationProvider validationProvider) {
+        SecretProvider secretProvider,
+        ValidationProvider validationProvider,
+        CorrelationResult result) {
       super(secretProvider, validationProvider);
+      this.result = result;
       try {
         propertiesWithSecrets =
             getSecretHandler().replaceSecrets(objectMapper.writeValueAsString(properties));
@@ -202,6 +211,12 @@ public class InboundConnectorContextBuilder {
     @Override
     public void correlate(Object variables) {
       correlatedEvents.add(variables);
+    }
+
+    @Override
+    public CorrelationResult correlateWithResult(Object variables) {
+      correlate(variables);
+      return Objects.requireNonNullElse(result, Success.INSTANCE);
     }
 
     @Override

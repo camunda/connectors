@@ -18,19 +18,18 @@ package io.camunda.connector.runtime.core.inbound.correlation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import io.camunda.connector.api.error.ConnectorCorrelationException;
-import io.camunda.connector.api.error.ConnectorCorrelationException.CorrelationErrorReason;
+import io.camunda.connector.api.inbound.CorrelationResult.Failure;
+import io.camunda.connector.api.inbound.CorrelationResult.Success;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
-import io.camunda.connector.runtime.core.util.command.CreateCommandDummy;
-import io.camunda.connector.runtime.core.util.command.PublishMessageCommandDummy;
+import io.camunda.connector.runtime.core.testutil.command.CreateCommandDummy;
+import io.camunda.connector.runtime.core.testutil.command.PublishMessageCommandDummy;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.client.api.command.ClientStatusException;
 import io.grpc.Status;
@@ -155,6 +154,29 @@ public class InboundCorrelationHandlerTest {
       assertThat(captor.getValue()).isEqualTo("myValue");
       verify(dummyCommand).send();
     }
+
+    @Test
+    void messageEvent_idempotencyCheckFailed() {
+      var point = new MessageStartEventCorrelationPoint("test", "=myVar", "", "1", 1, 0);
+      var definition = mock(InboundConnectorDefinitionImpl.class);
+      when(definition.correlationPoint()).thenReturn(point);
+
+      var dummyCommand = Mockito.spy(new PublishMessageCommandDummy());
+      when(dummyCommand.send()).thenThrow(new ClientStatusException(Status.ALREADY_EXISTS, null));
+      when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
+
+      // when
+      var result =
+          handler.correlate(
+              definition,
+              Map.of("myVar", "myValue", "myOtherMap", Map.of("myOtherKey", "myOtherValue")));
+
+      // then
+      verify(zeebeClient).newPublishMessageCommand();
+      verifyNoMoreInteractions(zeebeClient);
+
+      assertThat(result).isInstanceOf(Failure.MessageAlreadyCorrelated.class);
+    }
   }
 
   @Test
@@ -201,13 +223,9 @@ public class InboundCorrelationHandlerTest {
         .thenThrow(new ClientStatusException(Status.UNAVAILABLE, null));
 
     // when & then
-    var error =
-        assertThrows(
-            ConnectorCorrelationException.class,
-            () -> handler.correlate(definition, Collections.emptyMap()));
-
-    assertThat(error.getErrorCode()).contains("Failed to correlate");
-    assertThat(error.getReason()).isEqualTo(CorrelationErrorReason.FAULT_ZEEBE_CLIENT_STATUS);
+    var error = assertDoesNotThrow(() -> handler.correlate(definition, Collections.emptyMap()));
+    assertThat(error).isInstanceOf(Failure.ZeebeClientStatus.class);
+    assertThat(((Failure.ZeebeClientStatus) error).status()).isEqualTo("UNAVAILABLE");
   }
 
   @Nested
@@ -224,8 +242,9 @@ public class InboundCorrelationHandlerTest {
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
       // when & then
-      assertDoesNotThrow(() -> handler.correlate(definition, variables));
+      var result = assertDoesNotThrow(() -> handler.correlate(definition, variables));
       verifyNoMoreInteractions(zeebeClient);
+      assertThat(result).isInstanceOf(Failure.ActivationConditionNotMet.class);
     }
 
     @Test
@@ -242,10 +261,11 @@ public class InboundCorrelationHandlerTest {
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
       // when
-      handler.correlate(definition, variables);
+      var result = handler.correlate(definition, variables);
 
       // then
       verify(zeebeClient).newCreateInstanceCommand();
+      assertThat(result).isEqualTo(Success.INSTANCE);
     }
 
     @Test
@@ -262,10 +282,11 @@ public class InboundCorrelationHandlerTest {
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
       // when
-      handler.correlate(definition, variables);
+      var result = handler.correlate(definition, variables);
 
       // then
       verify(zeebeClient).newCreateInstanceCommand();
+      assertThat(result).isEqualTo(Success.INSTANCE);
     }
 
     @Test
@@ -282,10 +303,11 @@ public class InboundCorrelationHandlerTest {
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
       // when
-      handler.correlate(definition, variables);
+      var result = handler.correlate(definition, variables);
 
       // then
       verify(zeebeClient).newCreateInstanceCommand();
+      assertThat(result).isEqualTo(Success.INSTANCE);
     }
 
     @Test
@@ -299,8 +321,9 @@ public class InboundCorrelationHandlerTest {
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
       // when & then
-      assertDoesNotThrow(() -> handler.correlate(definition, variables));
+      var result = assertDoesNotThrow(() -> handler.correlate(definition, variables));
       verifyNoMoreInteractions(zeebeClient);
+      assertThat(result).isInstanceOf(Failure.ActivationConditionNotMet.class);
     }
 
     @Test
@@ -318,10 +341,11 @@ public class InboundCorrelationHandlerTest {
           Map.of("myVar", "myValue", "myOtherMap", Map.of("myOtherKey", "myOtherValue"));
 
       // when
-      handler.correlate(definition, variables);
+      var result = handler.correlate(definition, variables);
 
       // then
       verify(zeebeClient).newPublishMessageCommand();
+      assertThat(result).isEqualTo(Success.INSTANCE);
     }
 
     @Test
@@ -339,7 +363,11 @@ public class InboundCorrelationHandlerTest {
           Map.of("myVar", "myValue", "myOtherMap", Map.of("myOtherKey", "myOtherValue"));
 
       // when
-      handler.correlate(definition, variables);
+      var result = handler.correlate(definition, variables);
+
+      // then
+      verify(zeebeClient).newPublishMessageCommand();
+      assertThat(result).isEqualTo(Success.INSTANCE);
     }
 
     @Test
@@ -357,7 +385,11 @@ public class InboundCorrelationHandlerTest {
           Map.of("myVar", "myValue", "myOtherMap", Map.of("myOtherKey", "myOtherValue"));
 
       // when
-      handler.correlate(definition, variables);
+      var result = handler.correlate(definition, variables);
+
+      // then
+      verify(zeebeClient).newPublishMessageCommand();
+      assertThat(result).isEqualTo(Success.INSTANCE);
     }
   }
 
