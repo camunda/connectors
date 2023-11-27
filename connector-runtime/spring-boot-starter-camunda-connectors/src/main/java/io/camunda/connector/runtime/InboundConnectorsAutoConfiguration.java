@@ -17,10 +17,18 @@
 package io.camunda.connector.runtime;
 
 import io.camunda.connector.runtime.inbound.InboundConnectorRuntimeConfiguration;
+import io.camunda.identity.sdk.Identity;
+import io.camunda.identity.sdk.authentication.Tokens;
 import io.camunda.operate.CamundaOperateClient;
+import io.camunda.operate.auth.AuthInterface;
+import io.camunda.operate.auth.JwtAuthentication;
+import io.camunda.operate.exception.OperateException;
 import io.camunda.zeebe.spring.client.CamundaAutoConfiguration;
 import io.camunda.zeebe.spring.client.configuration.OperateClientProdAutoConfiguration;
 import io.camunda.zeebe.spring.client.properties.OperateClientConfigurationProperties;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Proxy;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -42,17 +50,57 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableConfigurationProperties(OperateClientConfigurationProperties.class)
 public class InboundConnectorsAutoConfiguration {
 
+  @Value("${operate.token.audience:operate}")
+  private String operateAudience;
+
   @Bean
   @ConditionalOnMissingBean
   public CamundaOperateClient myOperateClient(
       OperateClientProdAutoConfiguration configuration,
-      OperateClientConfigurationProperties properties) {
-    return configuration.camundaOperateClient(properties);
+      OperateClientConfigurationProperties properties,
+      Identity identity) {
+    return configuration.camundaOperateClient(operatePropertiesProxy(properties, identity));
   }
 
   @Bean
   @ConditionalOnMissingBean
   public OperateClientProdAutoConfiguration operateClientProdAutoConfiguration() {
     return new OperateClientProdAutoConfiguration();
+  }
+
+  private OperateClientConfigurationProperties operatePropertiesProxy(
+      OperateClientConfigurationProperties properties,
+      Identity identity) {
+    return (OperateClientConfigurationProperties) Proxy.newProxyInstance(
+        OperateClientConfigurationProperties.class.getClassLoader(),
+        new Class[] {OperateClientConfigurationProperties.class},
+        (proxy, method, args) -> {
+          try {
+            if (method.getReturnType().equals(AuthInterface.class)
+                && identity.authentication().isAvailable()) {
+              return new IdentityAuth(identity, operateAudience);
+            }
+
+            return method.invoke(properties, args);
+          } catch (final InvocationTargetException e) {
+            throw e.getCause();
+          }
+        });
+  }
+
+  private static class IdentityAuth extends JwtAuthentication {
+    final private Identity identity;
+    final private String audience;
+
+    public IdentityAuth(Identity identity, String audience) {
+      this.identity = identity;
+      this.audience = audience;
+    }
+
+    @Override
+    public void authenticate(CamundaOperateClient camundaOperateClient) throws OperateException {
+      Tokens tokens = identity.authentication().requestToken(audience);
+      this.setToken(camundaOperateClient, tokens.getAccessToken());
+    }
   }
 }
