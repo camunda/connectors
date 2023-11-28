@@ -30,7 +30,8 @@ import picocli.CommandLine.ParentCommand;
 @Command(name = "generate")
 public class Generate implements Callable<Integer> {
 
-  @ParentCommand ConGen connectorGen;
+  @ParentCommand
+  ConGen connectorGen;
 
   @Parameters(
       index = "0..*",
@@ -63,11 +64,8 @@ public class Generate implements Callable<Integer> {
       return 1;
     }
     try {
-      for (var template : templates) {
-        var resultString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(template);
-        System.out.println("---\n");
-        System.out.println(resultString);
-      }
+      var resultString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(templates);
+      System.out.println(resultString);
       return 0;
     } catch (JsonProcessingException e) {
       System.err.println("Failed to serialize the result: " + e.getMessage());
