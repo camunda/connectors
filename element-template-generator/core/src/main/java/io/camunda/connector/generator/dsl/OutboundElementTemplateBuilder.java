@@ -35,7 +35,7 @@ public class OutboundElementTemplateBuilder {
   private String documentationRef;
   private String description;
   private Set<String> appliesTo;
-  private String elementType;
+  private BpmnType elementType;
   private final List<PropertyGroup> groups = new ArrayList<>();
   private final List<Property> properties = new ArrayList<>();
 
@@ -114,8 +114,7 @@ public class OutboundElementTemplateBuilder {
   }
 
   public OutboundElementTemplateBuilder elementType(BpmnType elementType) {
-    this.elementType = elementType.getName();
-    // TODO: if message, add message property
+    this.elementType = elementType;
     return this;
   }
 
@@ -155,7 +154,7 @@ public class OutboundElementTemplateBuilder {
         documentationRef,
         description,
         appliesTo,
-        new ElementTypeWrapper(elementType),
+        ElementTypeWrapper.from(elementType),
         groups,
         properties,
         icon);

@@ -40,4 +40,13 @@ public enum BpmnType {
   public String getName() {
     return name;
   }
+
+  public static BpmnType fromName(String name) {
+    for (BpmnType type : values()) {
+      if (type.getName().equals(name)) {
+        return type;
+      }
+    }
+    throw new IllegalArgumentException("Unknown BPMN type: " + name);
+  }
 }

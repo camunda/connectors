@@ -71,13 +71,13 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
     void elementType_default_isServiceTask() {
       assertThat(
               generator.generate(MyConnectorFunction.MinimallyAnnotated.class).get(0).elementType())
-          .isEqualTo(new ElementTypeWrapper(BpmnType.SERVICE_TASK.getName()));
+          .isEqualTo(ElementTypeWrapper.from(BpmnType.SERVICE_TASK));
     }
 
     @Test
     void elementType_customizable() {
       assertThat(generator.generate(MyConnectorFunction.FullyAnnotated.class).get(0).elementType())
-          .isEqualTo(new ElementTypeWrapper("bpmn:ScriptTask"));
+          .isEqualTo(ElementTypeWrapper.from(BpmnType.SCRIPT_TASK));
     }
 
     @Test
@@ -205,21 +205,17 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
           hasMessageThrowEvent = false,
           hasMessageEndEvent = false;
       for (var template : templates) {
-        if (template
-            .elementType()
-            .equals(new ElementTypeWrapper(BpmnType.SERVICE_TASK.getName()))) {
+        if (template.elementType().equals(ElementTypeWrapper.from(BpmnType.SERVICE_TASK))) {
           hasServiceTask = true;
-        } else if (template
-            .elementType()
-            .equals(new ElementTypeWrapper(BpmnType.SCRIPT_TASK.getName()))) {
+        } else if (template.elementType().equals(ElementTypeWrapper.from(BpmnType.SCRIPT_TASK))) {
           hasScriptTask = true;
         } else if (template
             .elementType()
-            .equals(new ElementTypeWrapper(BpmnType.INTERMEDIATE_THROW_EVENT.getName()))) {
+            .equals(ElementTypeWrapper.from(BpmnType.INTERMEDIATE_THROW_EVENT))) {
           hasMessageThrowEvent = true;
         } else if (template
             .elementType()
-            .equals(new ElementTypeWrapper(BpmnType.MESSAGE_END_EVENT.getName()))) {
+            .equals(ElementTypeWrapper.from(BpmnType.MESSAGE_END_EVENT))) {
           hasMessageEndEvent = true;
         }
       }
@@ -246,13 +242,11 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
       var templates = generator.generate(MyConnectorFunction.FullyAnnotated.class, config);
       boolean hasServiceTask = false, hasMessageThrowEvent = false;
       for (var template : templates) {
-        if (template
-            .elementType()
-            .equals(new ElementTypeWrapper(BpmnType.SERVICE_TASK.getName()))) {
+        if (template.elementType().equals(ElementTypeWrapper.from(BpmnType.SERVICE_TASK))) {
           hasServiceTask = true;
         } else if (template
             .elementType()
-            .equals(new ElementTypeWrapper(BpmnType.INTERMEDIATE_THROW_EVENT.getName()))) {
+            .equals(ElementTypeWrapper.from(BpmnType.INTERMEDIATE_THROW_EVENT))) {
           hasMessageThrowEvent = true;
         }
       }
@@ -277,21 +271,17 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
           hasMessageThrowEvent = false,
           hasMessageEndEvent = false;
       for (var template : templates) {
-        if (template
-            .elementType()
-            .equals(new ElementTypeWrapper(BpmnType.SERVICE_TASK.getName()))) {
+        if (template.elementType().equals(ElementTypeWrapper.from(BpmnType.SERVICE_TASK))) {
           hasServiceTask = true;
-        } else if (template
-            .elementType()
-            .equals(new ElementTypeWrapper(BpmnType.SCRIPT_TASK.getName()))) {
+        } else if (template.elementType().equals(ElementTypeWrapper.from(BpmnType.SCRIPT_TASK))) {
           hasScriptTask = true;
         } else if (template
             .elementType()
-            .equals(new ElementTypeWrapper(BpmnType.INTERMEDIATE_THROW_EVENT.getName()))) {
+            .equals(ElementTypeWrapper.from(BpmnType.INTERMEDIATE_THROW_EVENT))) {
           hasMessageThrowEvent = true;
         } else if (template
             .elementType()
-            .equals(new ElementTypeWrapper(BpmnType.MESSAGE_END_EVENT.getName()))) {
+            .equals(ElementTypeWrapper.from(BpmnType.MESSAGE_END_EVENT))) {
           hasMessageEndEvent = true;
         }
       }

@@ -113,14 +113,14 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
         getLog().info("Generating element template for " + className);
         Class<?> clazz = classLoader.loadClass(className);
         var templates = generator.generate(clazz);
-        writeElementTemplates(templates);
+        writeElementTemplates(templates, false);
 
         if (generateHybridTemplates) {
           getLog().info("Generating hybrid element template for " + className);
           var hybridTemplates =
               generator.generate(
                   clazz, new GeneratorConfiguration(ConnectorMode.HYBRID, null, null, null, null));
-          writeElementTemplates(hybridTemplates);
+          writeElementTemplates(hybridTemplates, true);
         }
       }
 
@@ -136,12 +136,15 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
     }
   }
 
-  private void writeElementTemplates(List<OutboundElementTemplate> templates) {
+  private void writeElementTemplates(List<OutboundElementTemplate> templates, boolean hybrid) {
     if (templates.size() == 1) {
       var fileName =
           templateFileName == null
               ? transformConnectorNameToTemplateFileName(templates.get(0).name())
               : templateFileName + ".json";
+      if (hybrid) {
+        fileName = fileName.replace(".json", "-hybrid.json");
+      }
       writeElementTemplate(templates.get(0), fileName);
     } else {
       for (var template : templates) {
