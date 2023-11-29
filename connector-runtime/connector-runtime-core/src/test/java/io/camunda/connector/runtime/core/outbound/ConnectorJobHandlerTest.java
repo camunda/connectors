@@ -31,6 +31,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.runtime.core.Keywords;
@@ -738,14 +739,15 @@ class ConnectorJobHandlerTest {
     }
 
     @Test
-    void shouldCreateIncident_UsingExceptionCodeAsSecondConditionAfterResponsePropert() {
+    void shouldCreateIncident_UsingExceptionCodeAsSecondConditionAfterResponseProperty()
+        throws JsonProcessingException {
       // given
       var errorExpression =
           """
           if response.testProperty = "foo" then
-            incident("Message for foo value on test property")
+            failJob("Message for foo value on test property")
           else if error.code != null then
-            incident("Message: " + error.message)
+            failJob("Message: " + error.message)
           else {}
           """;
       var jobHandler =

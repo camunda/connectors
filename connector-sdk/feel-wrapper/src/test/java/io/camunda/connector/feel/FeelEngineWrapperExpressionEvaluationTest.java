@@ -16,11 +16,11 @@
  */
 package io.camunda.connector.feel;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrowsExactly;
+import static org.assertj.core.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.*;
 
+import java.time.Duration;
+import java.util.Collections;
 import java.util.Map;
 import org.assertj.core.api.Assertions;
 import org.json.JSONException;
@@ -205,8 +205,6 @@ class FeelEngineWrapperExpressionEvaluationTest {
     assertThat(result).isEqualTo(Map.of("processedOutput", "200 OK", "response", variables));
   }
 
-  record TestPojo(String value) {}
-
   @Test
   void bpmnErrorFunction() {
     // given
@@ -245,6 +243,66 @@ class FeelEngineWrapperExpressionEvaluationTest {
   }
 
   @Test
+  void failJobFunctionWithAllParameters() {
+    // given
+    final var resultExpression = "=failJob(message, {}, 2, @\"PT1M\")";
+    final var variables = Map.of("message", "some Message");
+    // when
+    final Map<String, Object> result = objectUnderTest.evaluate(resultExpression, variables);
+    assertThat(result)
+        .containsEntry("retries", 2)
+        .containsEntry("retryBackoff", Duration.ofMinutes(1))
+        .containsEntry("variables", Collections.emptyMap())
+        .containsEntry("errorType", "failJob")
+        .containsEntry("message", "some Message");
+  }
+
+  @Test
+  void failJobFunctionWithoutRetryBackoff() {
+    // given
+    final var resultExpression = "=failJob(message, {}, 2)";
+    final var variables = Map.of("message", "some Message");
+    // when
+    final Map<String, Object> result = objectUnderTest.evaluate(resultExpression, variables);
+    assertThat(result)
+        .containsEntry("retries", 2)
+        .containsEntry("retryBackoff", Duration.ZERO)
+        .containsEntry("variables", Collections.emptyMap())
+        .containsEntry("errorType", "failJob")
+        .containsEntry("message", "some Message");
+  }
+
+  @Test
+  void failJobFunctionWithoutRetries() {
+    // given
+    final var resultExpression = "=failJob(message, {})";
+    final var variables = Map.of("message", "some Message");
+    // when
+    final Map<String, Object> result = objectUnderTest.evaluate(resultExpression, variables);
+    assertThat(result)
+        .containsEntry("retries", 0)
+        .containsEntry("retryBackoff", Duration.ZERO)
+        .containsEntry("variables", Collections.emptyMap())
+        .containsEntry("errorType", "failJob")
+        .containsEntry("message", "some Message");
+  }
+
+  @Test
+  void failJobFunctionWithoutVariables() {
+    // given
+    final var resultExpression = "=failJob(message)";
+    final var variables = Map.of("message", "some Message");
+    // when
+    final Map<String, Object> result = objectUnderTest.evaluate(resultExpression, variables);
+    assertThat(result)
+        .containsEntry("retries", 0)
+        .containsEntry("retryBackoff", Duration.ZERO)
+        .containsEntry("variables", Collections.emptyMap())
+        .containsEntry("errorType", "failJob")
+        .containsEntry("message", "some Message");
+  }
+
+  @Test
   void bpmnErrorFunctionWithVarsButWrongDatatype() {
     // given
     final var resultExpression = "=bpmnError(\"test\", \"test\", \"test\")";
@@ -254,4 +312,6 @@ class FeelEngineWrapperExpressionEvaluationTest {
         FeelEngineWrapperException.class,
         () -> objectUnderTest.evaluate(resultExpression, variables));
   }
+
+  record TestPojo(String value) {}
 }

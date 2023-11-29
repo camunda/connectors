@@ -26,6 +26,6 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
 @JsonTypeInfo(use = Id.NAME, property = ERROR_TYPE_PROPERTY)
 @JsonSubTypes({
   @Type(value = BpmnError.class, name = BPMN_ERROR_TYPE_VALUE),
-  @Type(value = Incident.class, name = INCIDENT_TYPE_VALUE)
+  @Type(value = FailJob.class, name = FAIL_JOB_TYPE_VALUE)
 })
-public sealed interface ConnectorError permits BpmnError, Incident {}
+public sealed interface ConnectorError permits BpmnError, FailJob {}
