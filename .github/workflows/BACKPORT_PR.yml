@@ -19,7 +19,7 @@ jobs:
     # https://github.com/backport-action bot user (user id: 97796249)
     if: >
       (
-        github.event_name == 'pull_request' &&
+        github.event_name == 'pull_request_target' &&
         github.event.pull_request.merged
       ) || (
         github.event_name == 'issue_comment' &&
