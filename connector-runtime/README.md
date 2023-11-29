@@ -73,7 +73,7 @@ For example:
 We generally recommend preferring this approach.
 
 
-The **second approach (Classpath)** has the advantage, that you con build a runtime by pure
+The **second approach (Classpath)** has the advantage, that you can build a runtime by pure
 command line or Docker instructions, without any Java knowledge.
 
 
