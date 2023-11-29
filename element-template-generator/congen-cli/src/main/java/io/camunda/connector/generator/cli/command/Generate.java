@@ -30,8 +30,7 @@ import picocli.CommandLine.ParentCommand;
 @Command(name = "generate")
 public class Generate implements Callable<Integer> {
 
-  @ParentCommand
-  ConGen connectorGen;
+  @ParentCommand ConGen connectorGen;
 
   @Parameters(
       index = "0..*",
