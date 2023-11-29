@@ -73,8 +73,13 @@ public class SecurityConfigurationTest {
   }
 
   @Test
+  public void inboundEndpoint_noAuth_returns401_tenant_specific() throws Exception {
+    mvc.perform(get("/tenants/tenantId/inbound")).andExpect(status().isUnauthorized());
+  }
+
+  @Test
   public void inboundEndpoint_noAuth_returns401_logs() throws Exception {
-    mvc.perform(get("/inbound/bpmnProcessId/elementId/tenantId/logs"))
+    mvc.perform(get("/tenants/tenantId/inbound/bpmnProcessId/elementId/logs"))
         .andExpect(status().isUnauthorized());
   }
 
@@ -85,9 +90,15 @@ public class SecurityConfigurationTest {
   }
 
   @Test
+  public void inboundEndpoint_invalidJwt_returns401_tenant_specific() throws Exception {
+    mvc.perform(get("/tenants/tenantId/inbound").header("Authorization", "Bearer TOKEN"))
+        .andExpect(status().isUnauthorized());
+  }
+
+  @Test
   public void inboundEndpoint_invalidJwt_returns401_logs() throws Exception {
     mvc.perform(
-            get("/inbound/bpmnProcessId/elementId/tenantId/logs")
+            get("/tenants/tenantId/inbound/bpmnProcessId/elementId/logs")
                 .header("Authorization", "Bearer TOKEN"))
         .andExpect(status().isUnauthorized());
   }

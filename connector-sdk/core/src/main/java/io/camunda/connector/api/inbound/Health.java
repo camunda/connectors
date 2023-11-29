@@ -28,8 +28,6 @@ public class Health {
   private final Status status;
   private final Map<String, Object> details;
 
-  private HealthError error;
-
   public enum Status {
     UP,
     UNKNOWN,
@@ -59,18 +57,12 @@ public class Health {
     return details;
   }
 
-  public HealthError getError() {
-    return error;
-  }
-
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
     Health health = (Health) o;
-    return status == health.status
-        && Objects.equals(details, health.details)
-        && Objects.equals(error, health.error);
+    return status == health.status && Objects.equals(details, health.details);
   }
 
   @Override
@@ -80,20 +72,15 @@ public class Health {
 
   @Override
   public String toString() {
-    return "Health{" + "status=" + status + ", details=" + details + ", error=" + error + '}';
+    return "Health{" + "status=" + status + ", details=" + details + '}';
   }
 
   static DetailsStep status(Status status) {
     return new Builder(status);
   }
 
-  public Health error(final HealthError error) {
-    this.error = error;
-    return this;
-  }
-
   public static Health up() {
-    return new Health(Status.UP, null, null);
+    return new Health(Status.UP, null);
   }
 
   public static Health up(String key, Object value) {
@@ -101,11 +88,11 @@ public class Health {
   }
 
   public static Health up(Map<String, Object> details) {
-    return new Health(Status.UP, details, null);
+    return new Health(Status.UP, details);
   }
 
   public static Health unknown() {
-    return new Health(Status.UNKNOWN, null, null);
+    return new Health(Status.UNKNOWN, null);
   }
 
   public static Health unknown(String key, String value) {
@@ -117,7 +104,7 @@ public class Health {
   }
 
   public static Health down() {
-    return new Health(Status.DOWN, null, null);
+    return new Health(Status.DOWN, null);
   }
 
   public static Health down(String key, Object value) {
@@ -130,13 +117,19 @@ public class Health {
 
   public static Health down(Throwable ex) {
     String error = ex.getClass().getName() + ": " + ex.getMessage();
-    return Health.status(Status.DOWN).detail("error", error);
+    return down(ex, error);
   }
 
   public static Health down(Throwable ex, String title) {
-    HealthError healthError =
-        new HealthError(Severity.ERROR, ex.getMessage(), getStackTrace(ex), title);
-    return Health.status(Status.DOWN).error(healthError);
+    HealthError healthError = new HealthError(title, getStackTrace(ex));
+    return Health.status(Status.DOWN)
+        .detail(Health.ReservedDetailKeyword.ERROR.getValue(), healthError);
+  }
+
+  public static Health down(String message) {
+    HealthError healthError = new HealthError(null, message);
+    return Health.status(Status.DOWN)
+        .detail(Health.ReservedDetailKeyword.ERROR.getValue(), healthError);
   }
 
   public Health merge(Health newHealth) {
@@ -145,7 +138,7 @@ public class Health {
     if (newHealth.getDetails() != null && !newHealth.getDetails().isEmpty()) {
       mergedDetails.putAll(newHealth.getDetails());
     }
-    return Health.status(newHealth.getStatus()).details(mergedDetails).error(newHealth.getError());
+    return Health.status(newHealth.getStatus()).details(mergedDetails);
   }
 
   public static String getStackTrace(Throwable e) {
@@ -158,8 +151,6 @@ public class Health {
     Health detail(String key, Object value);
 
     Health details(Map<String, Object> details);
-
-    Health error(HealthError error);
   }
 
   public static class Builder implements DetailsStep {
@@ -170,12 +161,6 @@ public class Health {
 
     Builder(Status status) {
       this.status = status;
-    }
-
-    @Override
-    public Health error(HealthError error) {
-      this.error = error;
-      return new Health(this);
     }
 
     @Override
@@ -194,12 +179,10 @@ public class Health {
   private Health(Builder builder) {
     this.status = builder.status;
     this.details = builder.details;
-    this.error = builder.error;
   }
 
-  private Health(Status status, Map<String, Object> details, HealthError error) {
+  private Health(Status status, Map<String, Object> details) {
     this.status = status;
     this.details = details;
-    this.error = error;
   }
 }

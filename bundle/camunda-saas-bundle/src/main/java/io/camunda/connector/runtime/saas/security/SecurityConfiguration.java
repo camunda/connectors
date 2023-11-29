@@ -59,7 +59,7 @@ public class SecurityConfiguration {
         .authorizeHttpRequests(
             auth -> {
               auth.requestMatchers("/inbound").hasAuthority("SCOPE_inbound:read");
-              auth.requestMatchers("/inbound/*/*/*/logs").hasAuthority("SCOPE_inbound:read");
+              auth.requestMatchers("/tenants/**").hasAuthority("SCOPE_inbound:read");
             })
         .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.decoder(jwtDecoder())));
     return http.build();

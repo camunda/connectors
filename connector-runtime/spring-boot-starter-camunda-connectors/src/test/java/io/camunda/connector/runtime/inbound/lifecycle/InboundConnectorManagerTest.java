@@ -146,7 +146,7 @@ public class InboundConnectorManagerTest {
     assertTrue(manager.isProcessDefinitionRegistered(process.getKey()));
     assertTrue(
         manager
-            .query(new ActiveInboundConnectorQuery(process.getBpmnProcessId(), null, null))
+            .query(new ActiveInboundConnectorQuery(process.getBpmnProcessId(), null, null, null))
             .isEmpty());
 
     verify(inboundConnectorExecutable, times(1)).activate(eq(inboundContext(connector)));
@@ -211,7 +211,7 @@ public class InboundConnectorManagerTest {
     // Then
     verify(webhookConnectorExecutable, times(0)).activate(eq(inboundContext(webhook)));
 
-    var query = new ActiveInboundConnectorQuery("webhook1", null, null);
+    var query = new ActiveInboundConnectorQuery("webhook1", null, null, null);
     var activeInboundConnectors = manager.query(query);
     assertEquals(
         "webhook1", activeInboundConnectors.get(0).context().getDefinition().bpmnProcessId());

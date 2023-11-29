@@ -16,4 +16,5 @@
  */
 package io.camunda.connector.runtime.inbound.lifecycle;
 
-public record ActiveInboundConnectorQuery(String bpmnProcessId, String elementId, String type) {}
+public record ActiveInboundConnectorQuery(
+    String bpmnProcessId, String elementId, String type, String tenantId) {}

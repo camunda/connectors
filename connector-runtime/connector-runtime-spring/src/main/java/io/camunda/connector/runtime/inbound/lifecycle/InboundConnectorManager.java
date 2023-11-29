@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -208,8 +209,25 @@ public class InboundConnectorManager {
   public List<ActiveInboundConnector> query(ActiveInboundConnectorQuery request) {
     var filteredByBpmnProcessId = filterByBpmnProcessId(request.bpmnProcessId());
     var filteredByType = filterByConnectorType(filteredByBpmnProcessId, request.type());
-    return filterByElementId(filteredByType, request.elementId());
+    var filteredByTenantId = filterByTenantId(filteredByType, request.tenantId());
+    return filterByElementId(filteredByTenantId, request.elementId());
   }
+
+  private List<ActiveInboundConnector> filterByTenantId(
+      List<ActiveInboundConnector> connectors, String tenantId) {
+    if (tenantId == null) {
+      return connectors;
+    }
+    return connectors.stream()
+        .filter(r -> tenantIdMatch.test(r, tenantId))
+        .collect(Collectors.toList());
+  }
+
+  private BiPredicate<ActiveInboundConnector, String> tenantIdMatch =
+      (connector, tenantId) -> {
+        var definition = connector.context().getDefinition();
+        return tenantId != null && tenantId.equals(definition.tenantId());
+      };
 
   private List<ActiveInboundConnector> filterByBpmnProcessId(String bpmnProcessId) {
     if (bpmnProcessId != null) {

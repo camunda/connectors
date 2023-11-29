@@ -38,8 +38,7 @@ import java.util.stream.Collectors;
  * InboundConnectorContext} and enables runtime updates of context properties from Operate.
  */
 public class InboundIntermediateConnectorContextImpl
-    implements InboundIntermediateConnectorContext {
-
+    implements InboundIntermediateConnectorContext, InboundConnectorReportingContext {
   private final InboundConnectorContext inboundContext;
   private final OperateClientAdapter operateClient;
   private final ValidationProvider validationProvider;
@@ -122,7 +121,7 @@ public class InboundIntermediateConnectorContextImpl
 
   @Override
   public Health getHealth() {
-    return inboundContext.getHealth();
+    return ((InboundConnectorReportingContext) inboundContext).getHealth();
   }
 
   @Override
@@ -132,6 +131,6 @@ public class InboundIntermediateConnectorContextImpl
 
   @Override
   public Queue<ActivityLog> getLogs() {
-    return inboundContext.getLogs();
+    return ((InboundConnectorReportingContext) inboundContext).getLogs();
   }
 }

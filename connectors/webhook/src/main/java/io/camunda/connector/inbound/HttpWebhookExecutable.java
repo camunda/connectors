@@ -61,7 +61,7 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable, Verifi
         ActivityLog.level(Severity.INFO)
             .tag(payload.method())
             .message(
-                "Polled url: "
+                "Url: "
                     + payload.requestURL()
                     + ", params: "
                     + payload.params()
@@ -134,16 +134,13 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable, Verifi
   @Override
   public void activate(InboundConnectorContext context) throws Exception {
     if (context == null) {
-      context.reportHealth(
-          Health.down(
-              Health.ReservedDetailKeyword.ERROR.getValue(),
-              "Inbound connector context cannot be null"));
+      context.reportHealth(Health.down("Inbound connector context cannot be null"));
       throw new Exception("Inbound connector context cannot be null");
     }
     this.context = context;
     var wrappedProps = context.bindProperties(WebhookConnectorPropertiesWrapper.class);
     props = new WebhookConnectorProperties(wrappedProps);
-    context.reportHealth(Health.up(Health.ReservedDetailKeyword.PATH.getValue(), props.context()));
+    context.reportHealth(Health.up());
     authChecker = WebhookAuthorizationHandler.getHandlerForAuth(props.auth());
   }
 

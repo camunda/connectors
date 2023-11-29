@@ -42,7 +42,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class InboundConnectorContextImpl extends AbstractConnectorContext
-    implements InboundConnectorContext {
+    implements InboundConnectorContext, InboundConnectorReportingContext {
 
   private final Logger LOG = LoggerFactory.getLogger(InboundConnectorContextImpl.class);
   private final InboundConnectorDefinitionImpl definition;

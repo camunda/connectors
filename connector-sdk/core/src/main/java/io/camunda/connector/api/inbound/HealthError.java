@@ -16,4 +16,4 @@
  */
 package io.camunda.connector.api.inbound;
 
-public record HealthError(Severity severity, String text, String log, String title) {}
+public record HealthError(String title, String message) {}

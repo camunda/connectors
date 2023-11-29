@@ -17,7 +17,6 @@
 package io.camunda.connector.api.inbound;
 
 import java.util.Map;
-import java.util.Queue;
 
 /**
  * The context object provided to an inbound connector function. The context allows to fetch
@@ -107,16 +106,6 @@ public interface InboundConnectorContext {
   void reportHealth(Health health);
 
   /**
-   * Provides a Health object to get information about the current status of the Connector with
-   * optional details.
-   *
-   * <p>Use the {@link #reportHealth(Health)} method to set this information
-   *
-   * @return Health object
-   */
-  Health getHealth();
-
-  /**
    * Report an activity to allow other components to access the activity log of the Connector. The
    * data can be used to report data about processed requests or failures.
    *
@@ -124,14 +113,4 @@ public interface InboundConnectorContext {
    * implementation requires it.
    */
   void log(ActivityLog log);
-
-  /**
-   * Provides a list of ActivityLog objects to get information about the current activities of the
-   * Connector with optional details.
-   *
-   * <p>Use the {@link #log(ActivityLog)} method to add an entry to this list
-   *
-   * @return List<ActivityLog> list
-   */
-  Queue<ActivityLog> getLogs();
 }

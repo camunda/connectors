@@ -31,6 +31,7 @@ import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorReportingContext;
 import io.camunda.connector.test.ConnectorContextTestUtil;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -189,7 +190,7 @@ public class InboundConnectorContextBuilder {
   }
 
   public class TestInboundConnectorContext extends AbstractConnectorContext
-      implements InboundConnectorContext {
+      implements InboundConnectorContext, InboundConnectorReportingContext {
 
     private final List<Object> correlatedEvents = new ArrayList<>();
 
