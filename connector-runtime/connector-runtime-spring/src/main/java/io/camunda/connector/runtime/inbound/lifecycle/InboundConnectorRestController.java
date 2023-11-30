@@ -17,15 +17,11 @@
 package io.camunda.connector.runtime.inbound.lifecycle;
 
 import io.camunda.connector.api.inbound.ActivityLog;
-import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorReportingContext;
 import io.camunda.connector.runtime.inbound.webhook.model.CommonWebhookProperties;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Queue;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -83,24 +79,17 @@ public class InboundConnectorRestController {
     return result.stream().map(this::mapToInboundResponse).collect(Collectors.toList());
   }
 
-  private Map<String, Object> getExtendedDetails(ActiveInboundConnector connector) {
-    var health = ((InboundConnectorReportingContext) connector.context()).getHealth();
-    Map<String, Object> details;
+  private Map<String, Object> getData(ActiveInboundConnector connector) {
+    Map<String, Object> data = Map.of();
     if (connector.executable() instanceof WebhookConnectorExecutable) {
-      details =
-          new HashMap<>(Optional.ofNullable(health.getDetails()).orElse(Collections.emptyMap()));
       try {
         var castedProps = connector.context().bindProperties(CommonWebhookProperties.class);
-        var path = Optional.ofNullable(castedProps.getContext());
-        details.put(Health.ReservedDetailKeyword.PATH.getValue(), path.orElse(""));
+        data = Map.of("path", castedProps.getContext());
       } catch (Exception e) {
         LOG.error("ERROR: webhook connector doesn't have context path property", e);
-        details.put("path", "");
       }
-    } else {
-      details = health.getDetails();
     }
-    return details;
+    return data;
   }
 
   private ActiveInboundConnectorResponse mapToInboundResponse(ActiveInboundConnector connector) {
@@ -112,7 +101,8 @@ public class InboundConnectorRestController {
         definition.elementId(),
         definition.type(),
         definition.tenantId(),
-        getExtendedDetails(connector),
-        health.getStatus());
+        (connector.executable() instanceof WebhookConnectorExecutable) ? "webhook" : "",
+        getData(connector),
+        health);
   }
 }

@@ -16,37 +16,23 @@
  */
 package io.camunda.connector.api.inbound;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
 public class Health {
 
   private final Status status;
+  private final Message message;
+
   private final Map<String, Object> details;
+
+  public record Message(Severity severity, String message) {}
 
   public enum Status {
     UP,
     UNKNOWN,
     DOWN
-  }
-
-  public enum ReservedDetailKeyword {
-    ERROR("error"),
-    PATH("path");
-
-    private final String value;
-
-    ReservedDetailKeyword(String value) {
-      this.value = value;
-    }
-
-    public String getValue() {
-      return value;
-    }
   }
 
   public Status getStatus() {
@@ -57,30 +43,38 @@ public class Health {
     return details;
   }
 
+  public Message getMessage() {
+    return message;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
     Health health = (Health) o;
-    return status == health.status && Objects.equals(details, health.details);
+    return status == health.status && Objects.equals(message, health.message) && Objects.equals(details, health.details);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(status, details);
+    return Objects.hash(status, message, details);
   }
 
   @Override
   public String toString() {
-    return "Health{" + "status=" + status + ", details=" + details + '}';
+    return "Health{" + "status=" + status + ", message=" + message + ", details=" + details + '}';
   }
 
   static DetailsStep status(Status status) {
-    return new Builder(status);
+    return new Builder(status, null);
+  }
+
+  static DetailsStep status(Status status, Message message) {
+    return new Builder(status, message);
   }
 
   public static Health up() {
-    return new Health(Status.UP, null);
+    return new Health(Status.UP, null, null);
   }
 
   public static Health up(String key, Object value) {
@@ -88,11 +82,11 @@ public class Health {
   }
 
   public static Health up(Map<String, Object> details) {
-    return new Health(Status.UP, details);
+    return new Health(Status.UP, null, details);
   }
 
   public static Health unknown() {
-    return new Health(Status.UNKNOWN, null);
+    return new Health(Status.UNKNOWN, null, null);
   }
 
   public static Health unknown(String key, String value) {
@@ -104,11 +98,23 @@ public class Health {
   }
 
   public static Health down() {
-    return new Health(Status.DOWN, null);
+    return new Health(Status.DOWN, null, null);
+  }
+
+  public static Health down(Message message) {
+    return new Health(Status.DOWN, message, null);
   }
 
   public static Health down(String key, Object value) {
     return Health.status(Status.DOWN).detail(key, value);
+  }
+
+  public static Health down(Message message, Map<String, Object> details) {
+    return new Health(Status.DOWN, message, details);
+  }
+
+  public static Health down(String message, Map<String, Object> details) {
+    return new Health(Status.DOWN, new Message(Severity.ERROR, message), details);
   }
 
   public static Health down(Map<String, Object> details) {
@@ -116,35 +122,11 @@ public class Health {
   }
 
   public static Health down(Throwable ex) {
-    String error = ex.getClass().getName() + ": " + ex.getMessage();
-    return down(ex, error);
-  }
-
-  public static Health down(Throwable ex, String title) {
-    HealthError healthError = new HealthError(title, getStackTrace(ex));
-    return Health.status(Status.DOWN)
-        .detail(Health.ReservedDetailKeyword.ERROR.getValue(), healthError);
+    return new Health(Status.DOWN, new Message(Severity.ERROR, ex.toString()), null);
   }
 
   public static Health down(String message) {
-    HealthError healthError = new HealthError(null, message);
-    return Health.status(Status.DOWN)
-        .detail(Health.ReservedDetailKeyword.ERROR.getValue(), healthError);
-  }
-
-  public Health merge(Health newHealth) {
-    Map<String, Object> mergedDetails =
-        this.getDetails() != null ? this.getDetails() : new HashMap<>();
-    if (newHealth.getDetails() != null && !newHealth.getDetails().isEmpty()) {
-      mergedDetails.putAll(newHealth.getDetails());
-    }
-    return Health.status(newHealth.getStatus()).details(mergedDetails);
-  }
-
-  public static String getStackTrace(Throwable e) {
-    StringWriter sw = new StringWriter();
-    e.printStackTrace(new PrintWriter(sw));
-    return sw.toString();
+    return new Health(Status.DOWN, new Message(Severity.ERROR, message), null);
   }
 
   interface DetailsStep {
@@ -156,11 +138,11 @@ public class Health {
   public static class Builder implements DetailsStep {
     private final Health.Status status;
     private Map<String, Object> details;
+    private final Message message;
 
-    private HealthError error;
-
-    Builder(Status status) {
+    Builder(Status status, Message message) {
       this.status = status;
+      this.message = message;
     }
 
     @Override
@@ -178,11 +160,13 @@ public class Health {
 
   private Health(Builder builder) {
     this.status = builder.status;
+    this.message = builder.message;
     this.details = builder.details;
   }
 
-  private Health(Status status, Map<String, Object> details) {
+  private Health(Status status, Message message, Map<String, Object> details) {
     this.status = status;
+    this.message = message;
     this.details = details;
   }
 }

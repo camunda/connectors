@@ -55,7 +55,7 @@ public class ProcessInstancesFetcherTask implements Runnable {
       }
     } catch (Exception e) {
       LOGGER.error("An error occurred: {}", e.getMessage(), e);
-      context.reportHealth(Health.down(e, "An error occurred"));
+      context.reportHealth(Health.down(e));
     }
   }
 
