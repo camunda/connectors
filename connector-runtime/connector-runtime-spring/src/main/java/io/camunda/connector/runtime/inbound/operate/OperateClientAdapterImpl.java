@@ -18,15 +18,14 @@ package io.camunda.connector.runtime.inbound.operate;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.runtime.core.inbound.FlowNodeInstance;
 import io.camunda.connector.runtime.core.inbound.OperateClientAdapter;
 import io.camunda.operate.CamundaOperateClient;
-import io.camunda.operate.dto.FlownodeInstance;
-import io.camunda.operate.dto.FlownodeInstanceState;
-import io.camunda.operate.dto.SearchResult;
-import io.camunda.operate.dto.Variable;
 import io.camunda.operate.exception.OperateException;
-import io.camunda.operate.search.FlownodeInstanceFilter;
+import io.camunda.operate.model.FlowNodeInstance;
+import io.camunda.operate.model.FlowNodeInstanceState;
+import io.camunda.operate.model.SearchResult;
+import io.camunda.operate.model.Variable;
+import io.camunda.operate.search.FlowNodeInstanceFilter;
 import io.camunda.operate.search.SearchQuery;
 import io.camunda.operate.search.VariableFilter;
 import java.util.ArrayList;
@@ -63,23 +62,25 @@ public class OperateClientAdapterImpl implements OperateClientAdapter {
    *     node instances from.
    * @param elementId The identifier of the specific flow node element within the process
    *     definition.
-   * @return A list of active {@link io.camunda.operate.dto.FlownodeInstance} objects.
+   * @return A list of active {@link io.camunda.connector.runtime.core.inbound.FlowNodeInstance}
+   *     objects.
    * @throws RuntimeException If an error occurs during the fetch operation.
    */
-  public List<FlowNodeInstance> fetchActiveProcessInstanceKeyByDefinitionKeyAndElementId(
-      final Long processDefinitionKey, final String elementId) {
+  public List<io.camunda.connector.runtime.core.inbound.FlowNodeInstance>
+      fetchActiveProcessInstanceKeyByDefinitionKeyAndElementId(
+          final Long processDefinitionKey, final String elementId) {
     fetchActiveProcessLock.lock();
     try {
       List<Object> processPaginationIndex = null;
-      SearchResult<FlownodeInstance> searchResult;
-      List<FlownodeInstance> result = new ArrayList<>();
+      SearchResult<FlowNodeInstance> searchResult;
+      List<FlowNodeInstance> result = new ArrayList<>();
       do {
         try {
-          FlownodeInstanceFilter flownodeInstanceFilter =
-              new FlownodeInstanceFilter.Builder()
+          FlowNodeInstanceFilter flownodeInstanceFilter =
+              FlowNodeInstanceFilter.builder()
                   .processDefinitionKey(processDefinitionKey)
                   .flowNodeId(elementId)
-                  .state(FlownodeInstanceState.ACTIVE)
+                  .state(FlowNodeInstanceState.ACTIVE)
                   .build();
           SearchQuery processInstanceQuery =
               new SearchQuery.Builder()
@@ -87,7 +88,7 @@ public class OperateClientAdapterImpl implements OperateClientAdapter {
                   .searchAfter(processPaginationIndex)
                   .size(PAGE_SIZE)
                   .build();
-          searchResult = camundaOperateClient.search(processInstanceQuery, FlownodeInstance.class);
+          searchResult = camundaOperateClient.searchFlowNodeInstanceResults(processInstanceQuery);
         } catch (OperateException e) {
           throw new RuntimeException(e);
         }
@@ -98,7 +99,7 @@ public class OperateClientAdapterImpl implements OperateClientAdapter {
       return result.stream()
           .map(
               node ->
-                  new FlowNodeInstance(
+                  new io.camunda.connector.runtime.core.inbound.FlowNodeInstance(
                       node.getKey(),
                       node.getProcessInstanceKey(),
                       node.getProcessDefinitionKey(),
@@ -124,12 +125,12 @@ public class OperateClientAdapterImpl implements OperateClientAdapter {
     fetchVariablesLock.lock();
     try {
       List<Object> variablePaginationIndex = null;
-      SearchResult<io.camunda.operate.dto.Variable> searchResult;
+      SearchResult<Variable> searchResult;
       Map<String, Object> processVariables = new HashMap<>();
       do {
         try {
           VariableFilter variableFilter =
-              new VariableFilter.Builder()
+              VariableFilter.builder()
                   .scopeKey(processInstanceKey)
                   .processInstanceKey(processInstanceKey)
                   .build();
@@ -139,8 +140,7 @@ public class OperateClientAdapterImpl implements OperateClientAdapter {
                   .searchAfter(variablePaginationIndex)
                   .size(PAGE_SIZE)
                   .build();
-          searchResult =
-              camundaOperateClient.search(variableQuery, io.camunda.operate.dto.Variable.class);
+          searchResult = camundaOperateClient.searchVariableResults(variableQuery);
         } catch (OperateException e) {
           throw new RuntimeException(e);
         }

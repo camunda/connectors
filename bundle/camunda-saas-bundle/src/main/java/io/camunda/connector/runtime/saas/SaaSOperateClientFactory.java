@@ -16,9 +16,13 @@
  */
 package io.camunda.connector.runtime.saas;
 
+import io.camunda.common.auth.Authentication;
+import io.camunda.common.auth.JwtConfig;
+import io.camunda.common.auth.JwtCredential;
+import io.camunda.common.auth.Product;
+import io.camunda.common.auth.SaaSAuthentication;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.operate.CamundaOperateClient;
-import io.camunda.operate.auth.SaasAuthentication;
 import io.camunda.operate.exception.OperateException;
 import io.camunda.zeebe.spring.client.properties.OperateClientConfigurationProperties;
 import org.slf4j.Logger;
@@ -51,14 +55,12 @@ public class SaaSOperateClientFactory {
       OperateClientConfigurationProperties properties) throws OperateException {
     String operateClientId = internalSecretProvider.getSecret(SECRET_NAME_CLIENT_ID);
     String operateClientSecret = internalSecretProvider.getSecret(SECRET_NAME_SECRET);
-    return new CamundaOperateClient.Builder()
+    JwtConfig jwtConfig = new JwtConfig();
+    jwtConfig.addProduct(Product.OPERATE, new JwtCredential(operateClientId, operateClientSecret));
+    Authentication authentication = SaaSAuthentication.builder().jwtConfig(jwtConfig).build();
+    return CamundaOperateClient.builder()
         .operateUrl(properties.getOperateUrl())
-        .authentication(
-            new SaasAuthentication(
-                properties.getAuthUrl(),
-                properties.getAudience(),
-                operateClientId,
-                operateClientSecret))
+        .authentication(authentication)
         .build();
   }
 }

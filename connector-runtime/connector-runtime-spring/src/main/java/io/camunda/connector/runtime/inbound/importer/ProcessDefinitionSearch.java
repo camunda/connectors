@@ -17,9 +17,9 @@
 package io.camunda.connector.runtime.inbound.importer;
 
 import io.camunda.operate.CamundaOperateClient;
-import io.camunda.operate.dto.ProcessDefinition;
-import io.camunda.operate.dto.SearchResult;
 import io.camunda.operate.exception.OperateException;
+import io.camunda.operate.model.ProcessDefinition;
+import io.camunda.operate.model.SearchResult;
 import io.camunda.operate.search.SearchQuery;
 import io.camunda.operate.search.Sort;
 import io.camunda.operate.search.SortOrder;
@@ -61,7 +61,7 @@ public class ProcessDefinitionSearch {
                 .size(PAGE_SIZE)
                 .build();
         processDefinitionResult =
-            camundaOperateClient.search(processDefinitionQuery, ProcessDefinition.class);
+            camundaOperateClient.searchProcessDefinitionResults(processDefinitionQuery);
       } catch (OperateException e) {
         throw new RuntimeException(e);
       }

@@ -69,9 +69,8 @@ limitations under the License.</license.inlineheader>
 
     <!-- Camunda internal libraries -->
     <version.zeebe>8.3.3</version.zeebe>
-    <version.spring-zeebe>8.3.1</version.spring-zeebe>
+    <version.spring-zeebe>8.3.2-rc1</version.spring-zeebe>
     <version.feel-engine>1.17.3</version.feel-engine>
-    <version.operate-client>8.3.0.1</version.operate-client>
 
     <!-- Third party dependencies -->
 
@@ -244,11 +243,6 @@ limitations under the License.</license.inlineheader>
 
       <dependency>
         <groupId>io.camunda.spring</groupId>
-        <artifactId>spring-client-zeebe</artifactId>
-        <version>${version.spring-zeebe}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.camunda.spring</groupId>
         <artifactId>spring-boot-starter-camunda</artifactId>
         <version>${version.spring-zeebe}</version>
       </dependency>
@@ -257,11 +251,15 @@ limitations under the License.</license.inlineheader>
         <artifactId>spring-boot-starter-camunda-test</artifactId>
         <version>${version.spring-zeebe}</version>
       </dependency>
-
       <dependency>
-        <groupId>io.camunda</groupId>
-        <artifactId>camunda-operate-client-java</artifactId>
-        <version>${version.operate-client}</version>
+        <groupId>io.camunda.spring</groupId>
+        <artifactId>java-client-operate</artifactId>
+        <version>${version.spring-zeebe}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.camunda.spring</groupId>
+        <artifactId>spring-client-zeebe</artifactId>
+        <version>${version.spring-zeebe}</version>
       </dependency>
 
       <dependency>
