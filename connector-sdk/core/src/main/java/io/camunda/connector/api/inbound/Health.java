@@ -52,7 +52,9 @@ public class Health {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
     Health health = (Health) o;
-    return status == health.status && Objects.equals(message, health.message) && Objects.equals(details, health.details);
+    return status == health.status
+        && Objects.equals(message, health.message)
+        && Objects.equals(details, health.details);
   }
 
   @Override
