@@ -25,6 +25,5 @@ public record ActiveInboundConnectorResponse(
     String elementId,
     String type,
     String tenantId,
-    String category,
     Map<String, Object> data,
     Health health) {}

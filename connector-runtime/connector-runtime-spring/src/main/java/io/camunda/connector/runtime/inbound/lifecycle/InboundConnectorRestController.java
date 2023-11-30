@@ -101,7 +101,6 @@ public class InboundConnectorRestController {
         definition.elementId(),
         definition.type(),
         definition.tenantId(),
-        (connector.executable() instanceof WebhookConnectorExecutable) ? "webhook" : "",
         getData(connector),
         health);
   }
