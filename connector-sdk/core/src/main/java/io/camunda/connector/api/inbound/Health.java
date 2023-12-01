@@ -23,11 +23,11 @@ import java.util.Objects;
 public class Health {
 
   private final Status status;
-  private final Message message;
+  private final Error error;
 
   private final Map<String, Object> details;
 
-  public record Message(Severity severity, String message) {}
+  private record Error(String message) {}
 
   public enum Status {
     UP,
@@ -43,8 +43,8 @@ public class Health {
     return details;
   }
 
-  public Message getMessage() {
-    return message;
+  public Error getError() {
+    return error;
   }
 
   @Override
@@ -53,26 +53,22 @@ public class Health {
     if (o == null || getClass() != o.getClass()) return false;
     Health health = (Health) o;
     return status == health.status
-        && Objects.equals(message, health.message)
+        && Objects.equals(error, health.error)
         && Objects.equals(details, health.details);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(status, message, details);
+    return Objects.hash(status, error, details);
   }
 
   @Override
   public String toString() {
-    return "Health{" + "status=" + status + ", message=" + message + ", details=" + details + '}';
+    return "Health{" + "status=" + status + ", error=" + error + ", details=" + details + '}';
   }
 
   static DetailsStep status(Status status) {
     return new Builder(status, null);
-  }
-
-  static DetailsStep status(Status status, Message message) {
-    return new Builder(status, message);
   }
 
   public static Health up() {
@@ -103,20 +99,16 @@ public class Health {
     return new Health(Status.DOWN, null, null);
   }
 
-  public static Health down(Message message) {
-    return new Health(Status.DOWN, message, null);
+  public static Health down(String message) {
+    return new Health(Status.DOWN, new Error(message), null);
   }
 
   public static Health down(String key, Object value) {
     return Health.status(Status.DOWN).detail(key, value);
   }
 
-  public static Health down(Message message, Map<String, Object> details) {
-    return new Health(Status.DOWN, message, details);
-  }
-
   public static Health down(String message, Map<String, Object> details) {
-    return new Health(Status.DOWN, new Message(Severity.ERROR, message), details);
+    return new Health(Status.DOWN, new Error(message), details);
   }
 
   public static Health down(Map<String, Object> details) {
@@ -124,11 +116,7 @@ public class Health {
   }
 
   public static Health down(Throwable ex) {
-    return new Health(Status.DOWN, new Message(Severity.ERROR, ex.toString()), null);
-  }
-
-  public static Health down(String message) {
-    return new Health(Status.DOWN, new Message(Severity.ERROR, message), null);
+    return new Health(Status.DOWN, new Error(ex.toString()), null);
   }
 
   interface DetailsStep {
@@ -140,11 +128,11 @@ public class Health {
   public static class Builder implements DetailsStep {
     private final Health.Status status;
     private Map<String, Object> details;
-    private final Message message;
+    private Error error;
 
-    Builder(Status status, Message message) {
+    private Builder(Status status, Error error) {
       this.status = status;
-      this.message = message;
+      this.error = error;
     }
 
     @Override
@@ -162,13 +150,13 @@ public class Health {
 
   private Health(Builder builder) {
     this.status = builder.status;
-    this.message = builder.message;
+    this.error = builder.error;
     this.details = builder.details;
   }
 
-  private Health(Status status, Message message, Map<String, Object> details) {
+  private Health(Status status, Error error, Map<String, Object> details) {
     this.status = status;
-    this.message = message;
+    this.error = error;
     this.details = details;
   }
 }
