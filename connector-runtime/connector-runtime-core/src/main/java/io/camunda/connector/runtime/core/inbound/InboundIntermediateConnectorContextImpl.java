@@ -19,6 +19,7 @@ package io.camunda.connector.runtime.core.inbound;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.ActivityLog;
+import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
@@ -125,12 +126,12 @@ public class InboundIntermediateConnectorContextImpl
   }
 
   @Override
-  public void log(ActivityLog log) {
+  public void log(Activity log) {
     inboundContext.log(log);
   }
 
   @Override
-  public Queue<ActivityLog> getLogs() {
+  public Queue<Activity> getLogs() {
     return ((InboundConnectorReportingContext) inboundContext).getLogs();
   }
 }

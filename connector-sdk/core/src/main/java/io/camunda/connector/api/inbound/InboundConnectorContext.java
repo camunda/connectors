@@ -112,5 +112,5 @@ public interface InboundConnectorContext {
    * <p>This method can be called as often as needed and the internal state of the inbound Connector
    * implementation requires it.
    */
-  void log(ActivityLog log);
+  void log(Activity log);
 }

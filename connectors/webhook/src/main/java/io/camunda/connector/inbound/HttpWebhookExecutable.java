@@ -10,7 +10,7 @@ import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.di
 import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.enabled;
 
 import io.camunda.connector.api.annotation.InboundConnector;
-import io.camunda.connector.api.inbound.ActivityLog;
+import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.Severity;
@@ -58,7 +58,7 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable, Verifi
       throws NoSuchAlgorithmException, InvalidKeyException, IOException {
     LOGGER.trace("Triggered webhook with context " + props.context() + " and payload " + payload);
     this.context.log(
-        ActivityLog.level(Severity.INFO)
+        Activity.level(Severity.INFO)
             .tag(payload.method())
             .message(
                 "Url: "

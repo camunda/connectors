@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.http.polling.task;
 
-import io.camunda.connector.api.inbound.ActivityLog;
+import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.api.inbound.ProcessInstanceContext;
 import io.camunda.connector.api.inbound.Severity;
@@ -42,7 +42,7 @@ public class HttpRequestTask implements Runnable {
           HttpCommonResult httpResponse = httpService.executeConnectorRequest(httpRequest);
           processInstanceContext.correlate(httpResponse);
           this.context.log(
-              ActivityLog.level(Severity.INFO)
+              Activity.level(Severity.INFO)
                   .tag(httpRequest.getMethod().toString())
                   .message(
                       "Polled url: "

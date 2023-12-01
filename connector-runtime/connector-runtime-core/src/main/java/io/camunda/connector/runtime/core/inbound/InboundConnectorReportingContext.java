@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.runtime.core.inbound;
 
-import io.camunda.connector.api.inbound.ActivityLog;
+import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.Health;
 import java.util.Queue;
 
@@ -38,10 +38,10 @@ public interface InboundConnectorReportingContext {
    * Provides a list of ActivityLog objects to get information about the current activities of the
    * Connector with optional details.
    *
-   * <p>Use the {@link #io.camunda.connector.api.inbound.InboundConnectorContext.log(ActivityLog)}
+   * <p>Use the {@link #io.camunda.connector.api.inbound.InboundConnectorContext.log(Activity)}
    * method to add an entry to this list
    *
    * @return List<ActivityLog> list
    */
-  Queue<ActivityLog> getLogs();
+  Queue<Activity> getLogs();
 }

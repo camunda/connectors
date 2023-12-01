@@ -27,7 +27,7 @@ public class Health {
 
   private final Map<String, Object> details;
 
-  private record Error(String message) {}
+  private record Error(String code, String message) {}
 
   public enum Status {
     UP,
@@ -100,23 +100,31 @@ public class Health {
   }
 
   public static Health down(String message) {
-    return new Health(Status.DOWN, new Error(message), null);
+    return new Health(Status.DOWN, new Error(null, message), null);
   }
 
   public static Health down(String key, Object value) {
     return Health.status(Status.DOWN).detail(key, value);
   }
 
+  public static Health down(String code, String message, Map<String, Object> details) {
+    return new Health(Status.DOWN, new Error(code, message), details);
+  }
+
   public static Health down(String message, Map<String, Object> details) {
-    return new Health(Status.DOWN, new Error(message), details);
+    return new Health(Status.DOWN, new Error(null, message), details);
   }
 
   public static Health down(Map<String, Object> details) {
     return Health.status(Status.DOWN).details(details);
   }
 
+  public static Health down(String code, Throwable ex) {
+    return new Health(Status.DOWN, new Error(code, ex.toString()), null);
+  }
+
   public static Health down(Throwable ex) {
-    return new Health(Status.DOWN, new Error(ex.toString()), null);
+    return new Health(Status.DOWN, new Error(ex.getClass().getSimpleName(), ex.toString()), null);
   }
 
   interface DetailsStep {

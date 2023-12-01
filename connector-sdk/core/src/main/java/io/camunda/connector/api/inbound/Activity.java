@@ -18,7 +18,7 @@ package io.camunda.connector.api.inbound;
 
 import java.time.OffsetDateTime;
 
-public record ActivityLog(Severity severity, String tag, OffsetDateTime timestamp, String message) {
+public record Activity(Severity severity, String tag, OffsetDateTime timestamp, String message) {
 
   public static BuilderStep level(Severity severity) {
     return new BuilderStep(severity);
@@ -29,7 +29,7 @@ public record ActivityLog(Severity severity, String tag, OffsetDateTime timestam
 
     private Severity severity;
 
-    public BuilderStep(Severity severity) {
+    private BuilderStep(Severity severity) {
       this.severity = severity;
     }
 
@@ -45,14 +45,14 @@ public record ActivityLog(Severity severity, String tag, OffsetDateTime timestam
     String tag;
     OffsetDateTime timestamp;
 
-    public Builder(Severity severity, String tag) {
+    private Builder(Severity severity, String tag) {
       this.severity = severity;
       this.tag = tag;
       this.timestamp = OffsetDateTime.now();
     }
 
-    public ActivityLog message(String message) {
-      return new ActivityLog(severity, tag, timestamp, message);
+    public Activity message(String message) {
+      return new Activity(severity, tag, timestamp, message);
     }
   }
 }

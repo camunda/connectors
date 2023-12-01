@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.CorrelationResult.Success;
 import io.camunda.connector.api.inbound.ActivityLog;
+import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
@@ -277,10 +278,10 @@ public class InboundConnectorContextBuilder {
     }
 
     @Override
-    public void log(ActivityLog activityLog) {}
+    public void log(Activity activity) {}
 
     @Override
-    public Queue<ActivityLog> getLogs() {
+    public Queue<Activity> getLogs() {
       return new ConcurrentLinkedQueue<>();
     }
   }

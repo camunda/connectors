@@ -26,7 +26,7 @@ import io.camunda.connector.api.inbound.CorrelationResult.Failure.ActivationCond
 import io.camunda.connector.api.inbound.CorrelationResult.Failure.Other;
 import io.camunda.connector.api.inbound.CorrelationResult.Success;
 import com.google.common.collect.EvictingQueue;
-import io.camunda.connector.api.inbound.ActivityLog;
+import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
@@ -55,7 +55,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   private Health health = Health.unknown();
 
-  private EvictingQueue<ActivityLog> logs = EvictingQueue.create(10);
+  private EvictingQueue<Activity> logs = EvictingQueue.create(10);
 
   public InboundConnectorContextImpl(
       SecretProvider secretProvider,
@@ -137,12 +137,12 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   }
 
   @Override
-  public void log(ActivityLog log) {
+  public void log(Activity log) {
     this.logs.add(log);
   }
 
   @Override
-  public Queue<ActivityLog> getLogs() {
+  public Queue<Activity> getLogs() {
     return this.logs;
   }
 

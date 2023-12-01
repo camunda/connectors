@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.runtime.inbound.lifecycle;
 
-import io.camunda.connector.api.inbound.ActivityLog;
+import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorReportingContext;
 import io.camunda.connector.runtime.inbound.webhook.model.CommonWebhookProperties;
@@ -59,7 +59,7 @@ public class InboundConnectorRestController {
   }
 
   @GetMapping("/tenants/{tenantId}/inbound/{bpmnProcessId}/{elementId}/logs")
-  public List<Queue<ActivityLog>> getActiveInboundConnectorLogs(
+  public List<Queue<Activity>> getActiveInboundConnectorLogs(
       @PathVariable String tenantId,
       @PathVariable String bpmnProcessId,
       @PathVariable String elementId) {
