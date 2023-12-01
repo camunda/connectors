@@ -22,6 +22,7 @@ import io.camunda.connector.generator.api.CliCompatibleTemplateGenerator;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
 import io.camunda.connector.generator.dsl.OutboundElementTemplate;
+import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskDefinition;
 import io.camunda.connector.generator.dsl.http.HttpAuthentication.NoAuth;
 import io.camunda.connector.generator.dsl.http.HttpOperationBuilder;
 import io.camunda.connector.generator.dsl.http.HttpOutboundElementTemplateBuilder;
@@ -70,7 +71,7 @@ public class OpenApiOutboundTemplateGenerator
         template.name(),
         template.version(),
         template.properties().stream()
-            .filter(p -> p.getBinding().type().equals("zeebe:taskDefinition:type"))
+            .filter(p -> p.getBinding().equals(ZeebeTaskDefinition.TYPE))
             .findFirst()
             .orElseThrow()
             .getValue(),

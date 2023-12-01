@@ -31,6 +31,7 @@ import io.camunda.connector.generator.dsl.OutboundElementTemplate.ElementType;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.dsl.PropertyBinding;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
+import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskDefinition;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskHeader;
 import io.camunda.connector.generator.dsl.PropertyCondition;
 import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
@@ -138,11 +139,35 @@ public class OutboundTemplateGeneratorTest extends BaseTest {
     void retryBackoffProperty() {
       var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class);
       var property = getPropertyByLabel("Retry backoff", template);
-      assertThat(property.getType()).isEqualTo("Hidden");
+      assertThat(property.getType()).isEqualTo("String");
       assertThat(property.getBinding().type()).isEqualTo("zeebe:taskHeader");
       assertThat(((ZeebeTaskHeader) property.getBinding()).key()).isEqualTo("retryBackoff");
       assertThat(property.getGroup()).isEqualTo("retries");
       assertThat(property.getValue()).isEqualTo("PT0S");
+    }
+
+    @Test
+    void retryCountProperty() {
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class);
+      var property = getPropertyByLabel("Retries", template);
+      assertThat(property.getType()).isEqualTo("String");
+      assertThat(property.getBinding().type()).isEqualTo("zeebe:taskDefinition");
+      assertThat(((ZeebeTaskDefinition) property.getBinding()).property()).isEqualTo("retries");
+      assertThat(property.getGroup()).isEqualTo("retries");
+      assertThat(property.getValue()).isEqualTo("3");
+    }
+
+    @Test
+    void normalMode_taskDefinitionTypeProperty_hidden() {
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class);
+      var property =
+          template.properties().stream()
+              .filter(p -> "zeebe:taskDefinition".equals(p.getBinding().type()))
+              .findFirst()
+              .orElseThrow();
+      assertThat(property.getType()).isEqualTo("Hidden");
+      assertThat(property.getBinding().type()).isEqualTo("zeebe:taskDefinition");
+      assertThat(((ZeebeTaskDefinition) property.getBinding()).property()).isEqualTo("type");
     }
 
     @Test
@@ -155,6 +180,8 @@ public class OutboundTemplateGeneratorTest extends BaseTest {
       assertThat(property.getType()).isEqualTo("String");
       assertThat(property.getGroup()).isEqualTo("taskDefinitionType");
       assertThat(property.getFeel()).isEqualTo(null);
+      assertThat(property.getBinding().type()).isEqualTo("zeebe:taskDefinition");
+      assertThat(((ZeebeTaskDefinition) property.getBinding()).property()).isEqualTo("type");
     }
   }
 
