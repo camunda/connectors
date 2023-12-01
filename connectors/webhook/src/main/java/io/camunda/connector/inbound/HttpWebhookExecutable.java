@@ -132,11 +132,7 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable, Verifi
   }
 
   @Override
-  public void activate(InboundConnectorContext context) throws Exception {
-    if (context == null) {
-      context.reportHealth(Health.down("Inbound connector context cannot be null"));
-      throw new Exception("Inbound connector context cannot be null");
-    }
+  public void activate(InboundConnectorContext context) {
     this.context = context;
     var wrappedProps = context.bindProperties(WebhookConnectorPropertiesWrapper.class);
     props = new WebhookConnectorProperties(wrappedProps);
@@ -145,7 +141,7 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable, Verifi
   }
 
   @Override
-  public void deactivate() throws Exception {}
+  public void deactivate() {}
 
   @Override
   public WebhookHttpVerificationResult verify(final WebhookProcessingPayload payload) {

@@ -27,7 +27,7 @@ public record Activity(Severity severity, String tag, OffsetDateTime timestamp, 
   // Before builder
   public static final class BuilderStep {
 
-    private Severity severity;
+    private final Severity severity;
 
     private BuilderStep(Severity severity) {
       this.severity = severity;
