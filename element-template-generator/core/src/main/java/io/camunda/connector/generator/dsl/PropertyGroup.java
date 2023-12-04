@@ -17,6 +17,7 @@
 package io.camunda.connector.generator.dsl;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskDefinition;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskHeader;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -53,6 +54,7 @@ public record PropertyGroup(String id, String label, @JsonIgnore List<Property> 
           .id("retries")
           .label("Retries")
           .properties(
+              CommonProperties.RETRY_COUNT.binding(ZeebeTaskDefinition.RETRIES).build(),
               CommonProperties.RETRY_BACKOFF.binding(new ZeebeTaskHeader("retryBackoff")).build())
           .build();
 

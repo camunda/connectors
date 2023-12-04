@@ -39,17 +39,14 @@ public sealed interface PropertyBinding {
     }
   }
 
-  final class ZeebeTaskDefinitionType implements PropertyBinding {
+  record ZeebeTaskDefinition(String property) implements PropertyBinding {
 
-    public static final String NAME = "zeebe:taskDefinition:type";
-
-    private ZeebeTaskDefinitionType() {}
-
-    public static ZeebeTaskDefinitionType INSTANCE = new ZeebeTaskDefinitionType();
+    public static ZeebeTaskDefinition TYPE = new ZeebeTaskDefinition("type");
+    public static ZeebeTaskDefinition RETRIES = new ZeebeTaskDefinition("retries");
 
     @Override
     public String type() {
-      return NAME;
+      return "zeebe:taskDefinition";
     }
   }
 }

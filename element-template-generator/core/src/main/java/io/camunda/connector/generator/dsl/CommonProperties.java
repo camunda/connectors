@@ -45,8 +45,16 @@ public class CommonProperties {
               "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.")
           .feel(FeelMode.required);
 
+  public static final PropertyBuilder RETRY_COUNT =
+      StringProperty.builder()
+          .id("retryCount")
+          .label("Retries")
+          .description("Number of retries")
+          .group("retries")
+          .value("3");
+
   public static final PropertyBuilder RETRY_BACKOFF =
-      HiddenProperty.builder()
+      StringProperty.builder()
           .id("retryBackoff")
           .label("Retry backoff")
           .description("ISO-8601 duration to wait between retries")

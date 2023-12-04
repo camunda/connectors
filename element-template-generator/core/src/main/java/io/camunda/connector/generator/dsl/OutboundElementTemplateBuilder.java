@@ -18,7 +18,7 @@ package io.camunda.connector.generator.dsl;
 
 import io.camunda.connector.generator.dsl.OutboundElementTemplate.ElementType;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
-import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskDefinitionType;
+import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskDefinition;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -61,15 +61,14 @@ public class OutboundElementTemplateBuilder {
           PropertyGroup.builder().id("taskDefinitionType").label("Task definition type").build());
       property =
           StringProperty.builder()
-              .binding(ZeebeTaskDefinitionType.INSTANCE)
+              .binding(ZeebeTaskDefinition.TYPE)
               .value(type)
               .id("taskDefinitionType")
               .group("taskDefinitionType")
               .feel(FeelMode.disabled)
               .build();
     } else {
-      property =
-          HiddenProperty.builder().binding(ZeebeTaskDefinitionType.INSTANCE).value(type).build();
+      property = HiddenProperty.builder().binding(ZeebeTaskDefinition.TYPE).value(type).build();
     }
     properties.add(property);
     return this;
@@ -168,7 +167,7 @@ public class OutboundElementTemplateBuilder {
 
   private boolean isTypeAssigned() {
     return this.properties.stream()
-        .anyMatch(property -> property.binding.type().equals(ZeebeTaskDefinitionType.NAME));
+        .anyMatch(property -> property.binding.equals(ZeebeTaskDefinition.TYPE));
   }
 
   private void verifyUniquePropertyIds() {}
