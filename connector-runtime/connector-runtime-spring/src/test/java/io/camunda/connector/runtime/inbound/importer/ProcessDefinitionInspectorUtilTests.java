@@ -24,7 +24,7 @@ import static org.mockito.Mockito.when;
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
 import io.camunda.operate.CamundaOperateClient;
-import io.camunda.operate.dto.ProcessDefinition;
+import io.camunda.operate.model.ProcessDefinition;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import java.io.FileInputStream;
 import java.util.Comparator;
