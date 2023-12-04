@@ -220,7 +220,13 @@ public class InboundConnectorManagerTest {
 
   private InboundConnectorContext inboundContext(InboundConnectorDefinitionImpl definition) {
     return new InboundConnectorContextImpl(
-        secretProviderAggregator, v -> {}, definition, correlationHandler, (event) -> {}, mapper, EvictingQueue.create(10));
+        secretProviderAggregator,
+        v -> {},
+        definition,
+        correlationHandler,
+        (event) -> {},
+        mapper,
+        EvictingQueue.create(10));
   }
 
   private static final InboundConnectorConfiguration connectorConfig =

@@ -62,7 +62,7 @@ public class InboundConnectorManager {
       new HashMap<>();
   private Set<Long> registeredProcessDefinitions = new HashSet<>();
 
-  @Value( "${camunda.connector.inbound.log.size:10}" )
+  @Value("${camunda.connector.inbound.log.size:10}")
   private int inboundLogsSize;
 
   public InboundConnectorManager(
@@ -130,7 +130,10 @@ public class InboundConnectorManager {
 
     InboundConnectorContext inboundContext =
         connectorContextFactory.createContext(
-            newConnector, cancellationCallback, executable.getClass(), EvictingQueue.create(inboundLogsSize));
+            newConnector,
+            cancellationCallback,
+            executable.getClass(),
+            EvictingQueue.create(inboundLogsSize));
 
     var connector = new ActiveInboundConnector(executable, inboundContext);
 
