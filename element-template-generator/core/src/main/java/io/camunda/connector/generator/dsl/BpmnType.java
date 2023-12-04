@@ -21,9 +21,14 @@ import com.fasterxml.jackson.annotation.JsonValue;
 public enum BpmnType {
   TASK("bpmn:Task"),
   SERVICE_TASK("bpmn:ServiceTask"),
+  RECEIVE_TASK("bpmn:ReceiveTask"),
+  SCRIPT_TASK("bpmn:ScriptTask"),
   START_EVENT("bpmn:StartEvent"),
   INTERMEDIATE_CATCH_EVENT("bpmn:IntermediateCatchEvent"),
-  INTERMEDIATE_THROW_EVENT("bpmn:IntermediateThrowEvent");
+  INTERMEDIATE_THROW_EVENT("bpmn:IntermediateThrowEvent"),
+  MESSAGE_START_EVENT("bpmn:MessageStartEvent"),
+  END_EVENT("bpmn:EndEvent"),
+  MESSAGE_END_EVENT("bpmn:MessageEndEvent");
 
   private final String name;
 
@@ -34,5 +39,14 @@ public enum BpmnType {
   @JsonValue
   public String getName() {
     return name;
+  }
+
+  public static BpmnType fromName(String name) {
+    for (BpmnType type : values()) {
+      if (type.getName().equals(name)) {
+        return type;
+      }
+    }
+    throw new IllegalArgumentException("Unknown BPMN type: " + name);
   }
 }

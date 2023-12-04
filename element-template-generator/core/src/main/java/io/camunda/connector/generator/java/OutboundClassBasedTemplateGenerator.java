@@ -27,16 +27,25 @@ import io.camunda.connector.generator.dsl.PropertyBuilder;
 import io.camunda.connector.generator.dsl.PropertyGroup;
 import io.camunda.connector.generator.dsl.PropertyGroup.PropertyGroupBuilder;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
+import io.camunda.connector.generator.java.util.ConfigurationUtil;
 import io.camunda.connector.generator.java.util.ReflectionUtil;
 import io.camunda.connector.generator.java.util.TemplatePropertiesUtil;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class OutboundClassBasedTemplateGenerator
     implements ElementTemplateGenerator<Class<?>, OutboundElementTemplate> {
 
+  private static final Set<BpmnType> SUPPORTED_ELEMENT_TYPES =
+      Set.of(
+          BpmnType.SERVICE_TASK,
+          BpmnType.INTERMEDIATE_THROW_EVENT,
+          BpmnType.SCRIPT_TASK,
+          BpmnType.MESSAGE_END_EVENT);
+  private static final GeneratorConfiguration.ConnectorElementType DEFAULT_ELEMENT_TYPE =
+      new GeneratorConfiguration.ConnectorElementType(Set.of(BpmnType.TASK), BpmnType.SERVICE_TASK);
   private final ClassLoader classLoader;
 
   public OutboundClassBasedTemplateGenerator(ClassLoader classLoader) {
@@ -48,13 +57,27 @@ public class OutboundClassBasedTemplateGenerator
   }
 
   @Override
-  public OutboundElementTemplate generate(
+  public List<OutboundElementTemplate> generate(
       Class<?> connectorDefinition, GeneratorConfiguration configuration) {
 
     var connector =
         ReflectionUtil.getRequiredAnnotation(connectorDefinition, OutboundConnector.class);
     var template = ReflectionUtil.getRequiredAnnotation(connectorDefinition, ElementTemplate.class);
     var connectorInput = template.inputDataClass();
+
+    GeneratorConfiguration mergedConfig = ConfigurationUtil.fromAnnotation(template, configuration);
+    var elementTypes = mergedConfig.elementTypes();
+    if (elementTypes.isEmpty()) {
+      elementTypes = Set.of(DEFAULT_ELEMENT_TYPE);
+    }
+    elementTypes.stream()
+        .filter(t -> !SUPPORTED_ELEMENT_TYPES.contains(t.elementType()))
+        .findFirst()
+        .ifPresent(
+            t -> {
+              throw new IllegalArgumentException(
+                  String.format("Unsupported element type '%s'", t.elementType().getName()));
+            });
 
     List<PropertyBuilder> properties =
         TemplatePropertiesUtil.extractTemplatePropertiesFromType(connectorInput);
@@ -63,7 +86,7 @@ public class OutboundClassBasedTemplateGenerator
         new ArrayList<>(TemplatePropertiesUtil.groupProperties(properties));
     var manuallyDefinedGroups = Arrays.asList(template.propertyGroups());
 
-    List<PropertyGroup> mergedGroups = new ArrayList<>();
+    final List<PropertyGroup> mergedGroups = new ArrayList<>();
 
     if (!manuallyDefinedGroups.isEmpty()) {
       for (ElementTemplate.PropertyGroup group : manuallyDefinedGroups) {
@@ -87,9 +110,9 @@ public class OutboundClassBasedTemplateGenerator
                 .build());
       }
     } else {
-      mergedGroups =
+      mergedGroups.addAll(
           new ArrayList<>(
-              groupsDefinedInProperties.stream().map(PropertyGroupBuilder::build).toList());
+              groupsDefinedInProperties.stream().map(PropertyGroupBuilder::build).toList()));
     }
 
     if (groupsDefinedInProperties.isEmpty()) {
@@ -112,29 +135,25 @@ public class OutboundClassBasedTemplateGenerator
     var icon =
         template.icon().isBlank() ? null : ElementTemplateIcon.from(template.icon(), classLoader);
 
-    var appliesTo = template.appliesTo();
-    if (appliesTo == null || appliesTo.length == 0) {
-      appliesTo = new String[] {BpmnType.TASK.getName()};
-    }
-
-    var elementType = template.elementType();
-    if (elementType.isBlank()) {
-      elementType = BpmnType.SERVICE_TASK.getName();
-    }
-
-    return OutboundElementTemplate.builder()
-        .id(template.id())
-        .type(connector.type(), ConnectorMode.HYBRID.equals(configuration.connectorMode()))
-        .name(template.name())
-        .version(template.version())
-        .appliesTo(new HashSet<>(Arrays.asList(appliesTo)))
-        .elementType(elementType)
-        .icon(icon)
-        .documentationRef(
-            template.documentationRef().isEmpty() ? null : template.documentationRef())
-        .description(template.description().isEmpty() ? null : template.description())
-        .properties(nonGroupedProperties.stream().map(PropertyBuilder::build).toList())
-        .propertyGroups(mergedGroups)
-        .build();
+    return elementTypes.stream()
+        .map(
+            elementType ->
+                OutboundElementTemplate.builder()
+                    .id(template.id())
+                    .type(
+                        connector.type(),
+                        ConnectorMode.HYBRID.equals(configuration.connectorMode()))
+                    .name(template.name())
+                    .version(template.version())
+                    .appliesTo(elementType.appliesTo())
+                    .elementType(elementType.elementType())
+                    .icon(icon)
+                    .documentationRef(
+                        template.documentationRef().isEmpty() ? null : template.documentationRef())
+                    .description(template.description().isEmpty() ? null : template.description())
+                    .properties(nonGroupedProperties.stream().map(PropertyBuilder::build).toList())
+                    .propertyGroups(mergedGroups)
+                    .build())
+        .toList();
   }
 }
