@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.core.inbound;
 
+import com.google.common.collect.EvictingQueue;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import java.util.function.Consumer;
@@ -48,5 +49,6 @@ public interface InboundConnectorContextFactory {
   <T extends InboundConnectorExecutable<?>> InboundConnectorContext createContext(
       final InboundConnectorDefinitionImpl definition,
       final Consumer<Throwable> cancellationCallback,
-      final Class<T> executableClass);
+      final Class<T> executableClass,
+      final EvictingQueue queue);
 }

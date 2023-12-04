@@ -30,6 +30,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.EvictingQueue;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
@@ -219,7 +220,7 @@ public class InboundConnectorManagerTest {
 
   private InboundConnectorContext inboundContext(InboundConnectorDefinitionImpl definition) {
     return new InboundConnectorContextImpl(
-        secretProviderAggregator, v -> {}, definition, correlationHandler, (event) -> {}, mapper);
+        secretProviderAggregator, v -> {}, definition, correlationHandler, (event) -> {}, mapper, EvictingQueue.create(10));
   }
 
   private static final InboundConnectorConfiguration connectorConfig =

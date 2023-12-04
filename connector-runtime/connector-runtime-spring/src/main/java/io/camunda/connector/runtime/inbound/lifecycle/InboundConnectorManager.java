@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.inbound.lifecycle;
 
+import com.google.common.collect.EvictingQueue;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
@@ -44,6 +45,7 @@ import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 
 public class InboundConnectorManager {
 
@@ -59,6 +61,9 @@ public class InboundConnectorManager {
   private final Map<Long, Set<ActiveInboundConnector>> activeConnectorsByProcDefKey =
       new HashMap<>();
   private Set<Long> registeredProcessDefinitions = new HashSet<>();
+
+  @Value( "${camunda.connector.inbound.log.size:10}" )
+  private int inboundLogsSize;
 
   public InboundConnectorManager(
       InboundConnectorFactory connectorFactory,
@@ -125,7 +130,7 @@ public class InboundConnectorManager {
 
     InboundConnectorContext inboundContext =
         connectorContextFactory.createContext(
-            newConnector, cancellationCallback, executable.getClass());
+            newConnector, cancellationCallback, executable.getClass(), EvictingQueue.create(inboundLogsSize));
 
     var connector = new ActiveInboundConnector(executable, inboundContext);
 
