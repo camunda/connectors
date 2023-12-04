@@ -62,13 +62,11 @@ public class OperateClientAdapterImpl implements OperateClientAdapter {
    *     node instances from.
    * @param elementId The identifier of the specific flow node element within the process
    *     definition.
-   * @return A list of active {@link io.camunda.connector.runtime.core.inbound.FlowNodeInstance}
-   *     objects.
+   * @return A list of active {@link FlowNodeInstance} objects.
    * @throws RuntimeException If an error occurs during the fetch operation.
    */
-  public List<io.camunda.connector.runtime.core.inbound.FlowNodeInstance>
-      fetchActiveProcessInstanceKeyByDefinitionKeyAndElementId(
-          final Long processDefinitionKey, final String elementId) {
+  public List<FlowNodeInstance> fetchActiveProcessInstanceKeyByDefinitionKeyAndElementId(
+      final Long processDefinitionKey, final String elementId) {
     fetchActiveProcessLock.lock();
     try {
       List<Object> processPaginationIndex = null;
@@ -96,17 +94,7 @@ public class OperateClientAdapterImpl implements OperateClientAdapter {
         result.addAll(searchResult.getItems());
 
       } while (searchResult.getItems().size() > 0);
-      return result.stream()
-          .map(
-              node ->
-                  new io.camunda.connector.runtime.core.inbound.FlowNodeInstance(
-                      node.getKey(),
-                      node.getProcessInstanceKey(),
-                      node.getProcessDefinitionKey(),
-                      node.getFlowNodeId(),
-                      node.getFlowNodeName(),
-                      node.getTenantId()))
-          .collect(Collectors.toList());
+      return searchResult.getItems();
     } finally {
       fetchActiveProcessLock.unlock();
     }
