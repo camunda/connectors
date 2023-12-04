@@ -89,10 +89,15 @@ public class FeelEngineWrapper {
     return scala.collection.immutable.Map.from(CollectionConverters.asScala(context));
   }
 
-  private Map<String, Object> ensureVariablesMap(final Object variables) {
+  private Map<String, Object> ensureVariablesMap(final Object[] variables) {
     try {
       Objects.requireNonNull(variables, ERROR_CONTEXT_IS_NULL);
-      return objectMapper.convertValue(variables, MAP_TYPE_REFERENCE);
+      Map<String, Object> variablesMap = new HashMap<>();
+      for (Object o : variables) {
+        Objects.requireNonNull(o, ERROR_CONTEXT_IS_NULL);
+        variablesMap.putAll(objectMapper.convertValue(o, MAP_TYPE_REFERENCE));
+      }
+      return variablesMap;
     } catch (IllegalArgumentException ex) {
       throw new IllegalArgumentException(
           String.format("Unable to parse '%s' as context", variables), ex);
@@ -113,7 +118,9 @@ public class FeelEngineWrapper {
           StreamSupport.stream(CollectionConverters.asJava(scalaIterable).spliterator(), false)
               .map(this::sanitizeScalaOutput)
               .collect(Collectors.toList());
-    } else return output;
+    } else {
+      return output;
+    }
   }
 
   /**
@@ -126,7 +133,7 @@ public class FeelEngineWrapper {
    * @throws FeelEngineWrapperException when there is an exception message as a result of the
    *     evaluation or the result cannot be cast to the given type
    */
-  public <T> T evaluate(final String expression, final Object variables) {
+  public <T> T evaluate(final String expression, final Object... variables) {
     try {
       return (T) evaluateInternal(expression, variables);
     } catch (Exception e) {
@@ -134,12 +141,12 @@ public class FeelEngineWrapper {
     }
   }
 
-  public <T> T evaluate(final String expression, final Object variables, final Class<T> clazz) {
+  public <T> T evaluate(final String expression, final Class<T> clazz, final Object... variables) {
     Object result = evaluate(expression, variables);
     return sanitizeScalaOutput(objectMapper.convertValue(result, clazz));
   }
 
-  public <T> T evaluate(final String expression, final Object variables, final JavaType clazz) {
+  public <T> T evaluate(final String expression, final JavaType clazz, final Object... variables) {
     Object result = evaluate(expression, variables);
     return sanitizeScalaOutput(objectMapper.convertValue(result, clazz));
   }
@@ -153,7 +160,7 @@ public class FeelEngineWrapper {
    * @throws FeelEngineWrapperException when there is an exception message as a result of the
    *     evaluation or the result cannot be parsed as JSON
    */
-  public String evaluateToJson(final String expression, final Object variables) {
+  public String evaluateToJson(final String expression, final Object... variables) {
     try {
       return resultToJson(evaluateInternal(expression, variables));
     } catch (Exception e) {
@@ -161,7 +168,7 @@ public class FeelEngineWrapper {
     }
   }
 
-  private Object evaluateInternal(final String expression, final Object variables) {
+  private Object evaluateInternal(final String expression, final Object[] variables) {
     var variablesAsMap = ensureVariablesMap(variables);
     var variablesAsMapAsScalaMap = toScalaMap(variablesAsMap);
 

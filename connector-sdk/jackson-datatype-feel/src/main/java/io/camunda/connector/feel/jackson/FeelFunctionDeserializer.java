@@ -50,7 +50,7 @@ class FeelFunctionDeserializer<IN, OUT> extends AbstractFeelDeserializer<Functio
     return (input) -> {
       var jsonNode =
           feelEngineWrapper.evaluate(
-              node.textValue(), mergeContexts(input, feelContext, mapper), JsonNode.class);
+              node.textValue(), JsonNode.class, mergeContexts(input, feelContext, mapper));
       try {
         if (outputType.getRawClass() == String.class && jsonNode.isObject()) {
           return (OUT) mapper.writeValueAsString(jsonNode);

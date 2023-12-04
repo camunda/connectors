@@ -40,7 +40,7 @@ import scala.math.BigDecimal;
 public class FeelConnectorFunctionProvider extends JavaFunctionProvider {
   public static final String ERROR_TYPE_PROPERTY = "errorType";
   public static final String BPMN_ERROR_TYPE_VALUE = "bpmnError";
-  public static final String FAIL_JOB_TYPE_VALUE = "failJob";
+  public static final String JOB_ERROR_TYPE_VALUE = "jobError";
 
   // BPMN error
   private static final String BPMN_ERROR_FUNCTION_NAME = "bpmnError";
@@ -78,69 +78,72 @@ public class FeelConnectorFunctionProvider extends JavaFunctionProvider {
                           BPMN_ERROR_ARGUMENTS_WITH_VARS.get(2),
                           toContext(args, 2)),
                       Map$.MODULE$.empty())));
-  private static final String FAIL_JOB_FUNCTION_NAME = "failJob";
+  private static final String JOB_ERROR_FUNCTION_NAME = "jobError";
   // Fail Job
 
-  private static final ValContext FAIL_JOB_DEFAULT_ARG_VARIABLES =
+  private static final ValContext JOB_ERROR_DEFAULT_ARG_VARIABLES =
       new ValContext(new StaticContext(Map$.MODULE$.empty(), Map$.MODULE$.empty()));
-  private static final ValNumber FAIL_JOB_DEFAULT_ARG_RETRIES =
+  private static final ValNumber JOB_ERROR_DEFAULT_ARG_RETRIES =
       new ValNumber(new BigDecimal(new java.math.BigDecimal(0)));
-  private static final ValDayTimeDuration FAIL_JOB_DEFAULT_ARG_RETRY_BACKOFF =
+  private static final ValDayTimeDuration JOB_ERROR_DEFAULT_ARG_RETRY_BACKOFF =
       new ValDayTimeDuration(Duration.ZERO);
-  private static final List<String> FAIL_JOB_FUNCTION_ARGUMENTS =
+  private static final List<String> JOB_ERROR_FUNCTION_ARGUMENTS =
       List.of("message", "variables", "retries", "retryBackoff");
-  private static final JavaFunction FAIL_JOB_FUNCTION_4 =
+  private static final JavaFunction JOB_ERROR_FUNCTION_4 =
       new JavaFunction(
-          FAIL_JOB_FUNCTION_ARGUMENTS,
+          JOB_ERROR_FUNCTION_ARGUMENTS,
           args ->
-              createFailJobContext(
+              createJobErrorContext(
                   (ValString) args.get(0),
                   (ValContext) args.get(1),
                   (ValNumber) args.get(2),
                   (ValDayTimeDuration) args.get(3)));
-  private static final JavaFunction FAIL_JOB_FUNCTION_3 =
+  private static final JavaFunction JOB_ERROR_FUNCTION_3 =
       new JavaFunction(
-          FAIL_JOB_FUNCTION_ARGUMENTS.subList(0, 3),
+          JOB_ERROR_FUNCTION_ARGUMENTS.subList(0, 3),
           args ->
-              createFailJobContext(
+              createJobErrorContext(
                   (ValString) args.get(0),
                   (ValContext) args.get(1),
                   (ValNumber) args.get(2),
-                  FAIL_JOB_DEFAULT_ARG_RETRY_BACKOFF));
-  private static final JavaFunction FAIL_JOB_FUNCTION_2 =
+                  JOB_ERROR_DEFAULT_ARG_RETRY_BACKOFF));
+  private static final JavaFunction JOB_ERROR_FUNCTION_2 =
       new JavaFunction(
-          FAIL_JOB_FUNCTION_ARGUMENTS.subList(0, 2),
+          JOB_ERROR_FUNCTION_ARGUMENTS.subList(0, 2),
           args ->
-              createFailJobContext(
+              createJobErrorContext(
                   (ValString) args.get(0),
                   (ValContext) args.get(1),
-                  FAIL_JOB_DEFAULT_ARG_RETRIES,
-                  FAIL_JOB_DEFAULT_ARG_RETRY_BACKOFF));
-  private static final JavaFunction FAIL_JOB_FUNCTION_1 =
+                  JOB_ERROR_DEFAULT_ARG_RETRIES,
+                  JOB_ERROR_DEFAULT_ARG_RETRY_BACKOFF));
+  private static final JavaFunction JOB_ERROR_FUNCTION_1 =
       new JavaFunction(
-          FAIL_JOB_FUNCTION_ARGUMENTS.subList(0, 1),
+          JOB_ERROR_FUNCTION_ARGUMENTS.subList(0, 1),
           args ->
-              createFailJobContext(
+              createJobErrorContext(
                   (ValString) args.get(0),
-                  FAIL_JOB_DEFAULT_ARG_VARIABLES,
-                  FAIL_JOB_DEFAULT_ARG_RETRIES,
-                  FAIL_JOB_DEFAULT_ARG_RETRY_BACKOFF));
+                  JOB_ERROR_DEFAULT_ARG_VARIABLES,
+                  JOB_ERROR_DEFAULT_ARG_RETRIES,
+                  JOB_ERROR_DEFAULT_ARG_RETRY_BACKOFF));
   private static final java.util.Map<String, List<JavaFunction>> functions =
       java.util.Map.of(
           BPMN_ERROR_FUNCTION_NAME,
           List.of(BPMN_ERROR_FUNCTION, BPMN_ERROR_FUNCTION_WITH_VARS),
-          FAIL_JOB_FUNCTION_NAME,
+          JOB_ERROR_FUNCTION_NAME,
           List.of(
-              FAIL_JOB_FUNCTION_1, FAIL_JOB_FUNCTION_2, FAIL_JOB_FUNCTION_3, FAIL_JOB_FUNCTION_4));
+              JOB_ERROR_FUNCTION_1,
+              JOB_ERROR_FUNCTION_2,
+              JOB_ERROR_FUNCTION_3,
+              JOB_ERROR_FUNCTION_4));
 
-  private static ValContext createFailJobContext(
+  private static ValContext createJobErrorContext(
       ValString message, ValContext variables, ValNumber retries, ValDayTimeDuration retryBackoff) {
     java.util.Map<String, Object> javaMap = new HashMap<>();
-    javaMap.put(ERROR_TYPE_PROPERTY, FAIL_JOB_TYPE_VALUE);
-    javaMap.put(FAIL_JOB_FUNCTION_ARGUMENTS.get(0), message.value());
-    javaMap.put(FAIL_JOB_FUNCTION_ARGUMENTS.get(1), JavaConverters.asJava(variables.properties()));
-    javaMap.put(FAIL_JOB_FUNCTION_ARGUMENTS.get(2), retries.value());
-    javaMap.put(FAIL_JOB_FUNCTION_ARGUMENTS.get(3), retryBackoff.value());
+    javaMap.put(ERROR_TYPE_PROPERTY, JOB_ERROR_TYPE_VALUE);
+    javaMap.put(JOB_ERROR_FUNCTION_ARGUMENTS.get(0), message.value());
+    javaMap.put(JOB_ERROR_FUNCTION_ARGUMENTS.get(1), JavaConverters.asJava(variables.properties()));
+    javaMap.put(JOB_ERROR_FUNCTION_ARGUMENTS.get(2), retries.value());
+    javaMap.put(JOB_ERROR_FUNCTION_ARGUMENTS.get(3), retryBackoff.value());
     return new ValContext(
         new Context.StaticContext(Map.from(JavaConverters.asScala(javaMap)), Map$.MODULE$.empty()));
   }

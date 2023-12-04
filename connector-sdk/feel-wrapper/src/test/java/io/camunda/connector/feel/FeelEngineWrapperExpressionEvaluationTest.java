@@ -197,7 +197,7 @@ class FeelEngineWrapperExpressionEvaluationTest {
     final var variables = Map.of("callStatus", "200 OK");
 
     // when
-    final var result = objectUnderTest.evaluate(expression, variables, Object.class);
+    final var result = objectUnderTest.evaluate(expression, Object.class, variables);
 
     // then
     // result is not a scala map
@@ -245,22 +245,22 @@ class FeelEngineWrapperExpressionEvaluationTest {
   @Test
   void failJobFunctionWithAllParameters() {
     // given
-    final var resultExpression = "=failJob(message, {}, 2, @\"PT1M\")";
-    final var variables = Map.of("message", "some Message");
+    final var resultExpression = "=jobError(message, {}, job.retries - 1, @\"PT1M\")";
+    final var variables = Map.of("message", "some Message", "job", Map.of("retries", 3));
     // when
     final Map<String, Object> result = objectUnderTest.evaluate(resultExpression, variables);
     assertThat(result)
         .containsEntry("retries", 2)
         .containsEntry("retryBackoff", Duration.ofMinutes(1))
         .containsEntry("variables", Collections.emptyMap())
-        .containsEntry("errorType", "failJob")
+        .containsEntry("errorType", "jobError")
         .containsEntry("message", "some Message");
   }
 
   @Test
   void failJobFunctionWithoutRetryBackoff() {
     // given
-    final var resultExpression = "=failJob(message, {}, 2)";
+    final var resultExpression = "=jobError(message, {}, 2)";
     final var variables = Map.of("message", "some Message");
     // when
     final Map<String, Object> result = objectUnderTest.evaluate(resultExpression, variables);
@@ -268,14 +268,14 @@ class FeelEngineWrapperExpressionEvaluationTest {
         .containsEntry("retries", 2)
         .containsEntry("retryBackoff", Duration.ZERO)
         .containsEntry("variables", Collections.emptyMap())
-        .containsEntry("errorType", "failJob")
+        .containsEntry("errorType", "jobError")
         .containsEntry("message", "some Message");
   }
 
   @Test
   void failJobFunctionWithoutRetries() {
     // given
-    final var resultExpression = "=failJob(message, {})";
+    final var resultExpression = "=jobError(message, {})";
     final var variables = Map.of("message", "some Message");
     // when
     final Map<String, Object> result = objectUnderTest.evaluate(resultExpression, variables);
@@ -283,14 +283,14 @@ class FeelEngineWrapperExpressionEvaluationTest {
         .containsEntry("retries", 0)
         .containsEntry("retryBackoff", Duration.ZERO)
         .containsEntry("variables", Collections.emptyMap())
-        .containsEntry("errorType", "failJob")
+        .containsEntry("errorType", "jobError")
         .containsEntry("message", "some Message");
   }
 
   @Test
   void failJobFunctionWithoutVariables() {
     // given
-    final var resultExpression = "=failJob(message)";
+    final var resultExpression = "=jobError(message)";
     final var variables = Map.of("message", "some Message");
     // when
     final Map<String, Object> result = objectUnderTest.evaluate(resultExpression, variables);
@@ -298,7 +298,7 @@ class FeelEngineWrapperExpressionEvaluationTest {
         .containsEntry("retries", 0)
         .containsEntry("retryBackoff", Duration.ZERO)
         .containsEntry("variables", Collections.emptyMap())
-        .containsEntry("errorType", "failJob")
+        .containsEntry("errorType", "jobError")
         .containsEntry("message", "some Message");
   }
 

@@ -25,9 +25,10 @@ import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.ConnectorHelper;
 import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.connector.runtime.core.error.BpmnError;
-import io.camunda.connector.runtime.core.error.FailJob;
+import io.camunda.connector.runtime.core.error.JobError;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult.ErrorResult;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult.SuccessResult;
+import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext.ErrorExpressionJob;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
 import io.camunda.zeebe.client.api.command.FinalCommandStep;
@@ -115,6 +116,9 @@ public class ConnectorJobHandler implements JobHandler {
     if (backoff != null) {
       command = command.retryBackoff(backoff);
     }
+    if (result.responseValue() != null) {
+      command = command.variables(result.responseValue());
+    }
     return command;
   }
 
@@ -164,6 +168,7 @@ public class ConnectorJobHandler implements JobHandler {
     }
 
     ConnectorResult result;
+
     try {
       var context =
           new JobHandlerContext(job, getSecretProvider(), validationProvider, objectMapper);
@@ -184,7 +189,10 @@ public class ConnectorJobHandler implements JobHandler {
 
     try {
       final ConnectorResult finalResult = result;
-      ConnectorHelper.examineErrorExpression(result.responseValue(), job.getCustomHeaders())
+      ConnectorHelper.examineErrorExpression(
+              result.responseValue(),
+              job.getCustomHeaders(),
+              new ErrorExpressionJobContext(new ErrorExpressionJob(job.getRetries())))
           .ifPresentOrElse(
               error -> {
                 if (error instanceof BpmnError bpmnError) {
@@ -193,16 +201,16 @@ public class ConnectorJobHandler implements JobHandler {
                       job.getKey(),
                       bpmnError.code());
                   throwBpmnError(client, job, bpmnError);
-                } else if (error instanceof FailJob failJob) {
+                } else if (error instanceof JobError jobError) {
                   LOGGER.debug("Throwing incident for job {}", job.getKey());
                   failJob(
                       client,
                       job,
                       new ErrorResult(
-                          Map.of("error", failJob.message()),
-                          new RuntimeException(failJob.message()),
-                          failJob.retries(),
-                          failJob.retryBackoff()));
+                          Map.of("error", jobError.message()),
+                          new RuntimeException(jobError.message()),
+                          jobError.retries(),
+                          jobError.retryBackoff()));
                 }
               },
               () -> {

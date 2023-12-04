@@ -19,6 +19,6 @@ package io.camunda.connector.runtime.core.error;
 import java.time.Duration;
 import java.util.Map;
 
-public record FailJob(
+public record JobError(
     String message, Map<String, Object> variables, Integer retries, Duration retryBackoff)
     implements ConnectorError {}
