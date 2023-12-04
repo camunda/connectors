@@ -20,6 +20,7 @@ import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElementType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import java.util.Arrays;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class ConfigurationUtil {
@@ -30,14 +31,9 @@ public class ConfigurationUtil {
     if (override.templateId() != null) {
       templateId = override.templateId();
     }
-    var templateName = annotation.name();
-    if (override.templateName() != null) {
-      templateName = override.templateName();
-    }
-    var templateVersion = annotation.version();
-    if (override.templateVersion() != null) {
-      templateVersion = override.templateVersion();
-    }
+    var templateName = Optional.ofNullable(override.templateName()).orElseGet(annotation::name);
+    var templateVersion =
+        Optional.ofNullable(override.templateVersion()).orElseGet(annotation::version);
     var connectorMode = override.connectorMode();
     var elementTypes =
         Arrays.stream(annotation.elementTypes())

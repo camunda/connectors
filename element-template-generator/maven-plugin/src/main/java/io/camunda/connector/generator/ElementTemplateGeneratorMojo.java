@@ -28,6 +28,7 @@ import java.net.URLClassLoader;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoFailureException;
@@ -139,9 +140,9 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
   private void writeElementTemplates(List<OutboundElementTemplate> templates, boolean hybrid) {
     if (templates.size() == 1) {
       var fileName =
-          templateFileName == null
-              ? transformConnectorNameToTemplateFileName(templates.get(0).name())
-              : templateFileName + ".json";
+          Optional.ofNullable(templateFileName)
+              .map(name -> name + ".json")
+              .orElse(transformConnectorNameToTemplateFileName(templates.get(0).name()));
       if (hybrid) {
         fileName = fileName.replace(".json", "-hybrid.json");
       }
@@ -149,9 +150,9 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
     } else {
       for (var template : templates) {
         var fileName =
-            templateFileName == null
-                ? transformConnectorNameToTemplateFileName(template.name())
-                : templateFileName + "-" + template.elementType() + ".json";
+            Optional.ofNullable(templateFileName)
+                .map(name -> name + "-" + template.elementType() + ".json")
+                .orElse(transformConnectorNameToTemplateFileName(template.name()));
 
         writeElementTemplate(template, fileName);
       }

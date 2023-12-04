@@ -21,6 +21,7 @@ import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElemen
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
 import io.camunda.connector.generator.dsl.BpmnType;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import picocli.CommandLine.Command;
@@ -61,14 +62,17 @@ public class ConGen {
 
   GeneratorConfiguration generatorConfiguration() {
     var bpmnTypes =
-        elementTypes == null
-            ? null
-            : elementTypes.stream()
-                .map(BpmnType::fromName)
-                .map(
-                    bpmnType ->
-                        new ConnectorElementType(getAppliesToFromBpmnType(bpmnType), bpmnType))
-                .collect(Collectors.toSet());
+        Optional.ofNullable(elementTypes)
+            .map(
+                types ->
+                    types.stream()
+                        .map(BpmnType::fromName)
+                        .map(
+                            bpmnType ->
+                                new ConnectorElementType(
+                                    getAppliesToFromBpmnType(bpmnType), bpmnType))
+                        .collect(Collectors.toSet()))
+            .orElse(null);
     return new GeneratorConfiguration(
         hybrid ? ConnectorMode.HYBRID : ConnectorMode.NORMAL,
         templateId,
