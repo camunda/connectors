@@ -153,8 +153,8 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
     @Test
     void retryCountProperty() {
-      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class);
-      var property = getPropertyByLabel("Retries", template);
+      var templates = generator.generate(MyConnectorFunction.MinimallyAnnotated.class);
+      var property = getPropertyByLabel("Retries", templates.get(0));
       assertThat(property.getType()).isEqualTo("String");
       assertThat(property.getBinding().type()).isEqualTo("zeebe:taskDefinition");
       assertThat(((ZeebeTaskDefinition) property.getBinding()).property()).isEqualTo("retries");
@@ -164,9 +164,9 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
     @Test
     void normalMode_taskDefinitionTypeProperty_hidden() {
-      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class);
+      var templates = generator.generate(MyConnectorFunction.MinimallyAnnotated.class);
       var property =
-          template.properties().stream()
+          templates.get(0).properties().stream()
               .filter(p -> "zeebe:taskDefinition".equals(p.getBinding().type()))
               .findFirst()
               .orElseThrow();

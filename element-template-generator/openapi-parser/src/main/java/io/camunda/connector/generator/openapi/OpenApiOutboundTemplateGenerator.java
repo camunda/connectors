@@ -24,8 +24,8 @@ import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElemen
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
 import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.dsl.OutboundElementTemplate;
-import io.camunda.connector.generator.dsl.http.HttpAuthentication;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskDefinition;
+import io.camunda.connector.generator.dsl.http.HttpAuthentication;
 import io.camunda.connector.generator.dsl.http.HttpAuthentication.NoAuth;
 import io.camunda.connector.generator.dsl.http.HttpOperationBuilder;
 import io.camunda.connector.generator.dsl.http.HttpOutboundElementTemplateBuilder;
