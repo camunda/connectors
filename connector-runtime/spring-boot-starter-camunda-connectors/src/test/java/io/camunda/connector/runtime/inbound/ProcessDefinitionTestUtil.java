@@ -21,8 +21,8 @@ import static org.mockito.Mockito.when;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionInspector;
 import io.camunda.connector.runtime.inbound.lifecycle.InboundConnectorManager;
-import io.camunda.operate.dto.ProcessDefinition;
 import io.camunda.operate.exception.OperateException;
+import io.camunda.operate.model.ProcessDefinition;
 import java.util.List;
 import java.util.Map;
 

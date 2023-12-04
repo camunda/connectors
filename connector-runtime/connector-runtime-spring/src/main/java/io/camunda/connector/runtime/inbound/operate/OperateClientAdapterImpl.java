@@ -94,7 +94,7 @@ public class OperateClientAdapterImpl implements OperateClientAdapter {
         result.addAll(searchResult.getItems());
 
       } while (searchResult.getItems().size() > 0);
-      return searchResult.getItems();
+      return result;
     } finally {
       fetchActiveProcessLock.unlock();
     }
