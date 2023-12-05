@@ -53,7 +53,7 @@ public class KafkaConnectorConsumer {
 
   public CompletableFuture<?> future;
 
-  Consumer<String, Object> consumer;
+  Consumer<Object, Object> consumer;
 
   KafkaConnectorProperties elementProps;
 
@@ -73,10 +73,10 @@ public class KafkaConnectorConsumer {
 
   boolean shouldLoop = true;
 
-  private final Function<Properties, Consumer<String, Object>> consumerCreatorFunction;
+  private final Function<Properties, Consumer<Object, Object>> consumerCreatorFunction;
 
   public KafkaConnectorConsumer(
-      final Function<Properties, Consumer<String, Object>> consumerCreatorFunction,
+      final Function<Properties, Consumer<Object, Object>> consumerCreatorFunction,
       final InboundConnectorContext connectorContext,
       final KafkaConnectorProperties elementProps) {
     this.consumerCreatorFunction = consumerCreatorFunction;
@@ -117,7 +117,7 @@ public class KafkaConnectorConsumer {
   }
 
   private List<TopicPartition> assignTopicPartitions(
-      Consumer<String, Object> consumer, String topic) {
+      Consumer<Object, Object> consumer, String topic) {
     // dynamically assign partitions to be able to handle offsets
     List<PartitionInfo> partitions = consumer.partitionsFor(topic);
     List<TopicPartition> topicPartitions =
@@ -129,7 +129,7 @@ public class KafkaConnectorConsumer {
   }
 
   private void seekOffsets(
-      Consumer<String, ?> consumer, List<TopicPartition> partitions, List<Long> offsets) {
+      Consumer<Object, ?> consumer, List<TopicPartition> partitions, List<Long> offsets) {
     if (partitions.size() != offsets.size()) {
       throw new ConnectorInputException(
           new IllegalArgumentException(
@@ -158,8 +158,8 @@ public class KafkaConnectorConsumer {
 
   private void pollAndPublish() {
     LOG.debug("Polling the topics: {}", this.consumer.assignment());
-    ConsumerRecords<String, Object> records = this.consumer.poll(Duration.ofMillis(500));
-    for (ConsumerRecord<String, Object> record : records) {
+    ConsumerRecords<Object, Object> records = this.consumer.poll(Duration.ofMillis(500));
+    for (ConsumerRecord<Object, Object> record : records) {
       handleMessage(record);
     }
     if (!records.isEmpty()) {
@@ -167,7 +167,7 @@ public class KafkaConnectorConsumer {
     }
   }
 
-  private void handleMessage(ConsumerRecord<String, Object> record) {
+  private void handleMessage(ConsumerRecord<Object, Object> record) {
     LOG.trace("Kafka message received: key = {}, value = {}", record.key(), record.value());
     var reader = avroObjectReader != null ? avroObjectReader : objectMapper.reader();
     var mappedMessage = convertConsumerRecordToKafkaInboundMessage(record, reader);

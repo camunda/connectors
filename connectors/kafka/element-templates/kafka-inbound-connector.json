@@ -44,8 +44,8 @@
     },
     {
       "label": "Authentication type",
-      "description": "Username/password or custom",
       "id": "authenticationType",
+      "description": "Username/password or custom",
       "group": "authentication",
       "type": "Dropdown",
       "value": "credentials",
@@ -66,6 +66,7 @@
     },
     {
       "label": "Username",
+      "id": "authentication.username",
       "description": "Provide the username (must have permissions to produce message to the topic)",
       "group": "authentication",
       "type": "String",
@@ -82,6 +83,7 @@
     },
     {
       "label": "Password",
+      "id": "authentication.password",
       "description": "Provide a password for the user",
       "group": "authentication",
       "type": "String",
@@ -98,6 +100,7 @@
     },
     {
       "label": "Bootstrap servers",
+      "id": "topic.bootstrapServers",
       "description": "Provide bootstrap server(s), comma-delimited if there are multiple",
       "group": "kafka",
       "type": "String",
@@ -112,6 +115,7 @@
     },
     {
       "label": "Topic",
+      "id": "topic.topicName",
       "description": "Provide the topic name",
       "group": "kafka",
       "type": "String",
@@ -126,6 +130,7 @@
     },
     {
       "label": "Consumer Group ID",
+      "id": "groupId",
       "description": "Provide the consumer group ID used by the connector. Leave empty for an automatically generated one",
       "group": "kafka",
       "type": "String",
@@ -142,6 +147,7 @@
     },
     {
       "label": "Additional properties",
+      "id": "additionalProperties",
       "description": "Provide additional Kafka consumer properties in JSON",
       "group": "kafka",
       "type": "String",
@@ -154,6 +160,7 @@
     },
     {
       "label": "Offsets",
+      "id": "offsets",
       "description": "List of offsets, e.g. '10' or '=[10, 23]'. If specified, it has to have the same number of values as the number of partitions",
       "group": "kafka",
       "type": "String",
@@ -166,8 +173,8 @@
     },
     {
       "label": "Auto offset reset",
-      "description": "What to do when there is no initial offset in Kafka or if the current offset does not exist any more on the server. You should only select none if you specified the offsets",
       "id": "autoOffsetReset",
+      "description": "What to do when there is no initial offset in Kafka or if the current offset does not exist any more on the server. You should only select none if you specified the offsets",
       "group": "kafka",
       "type": "Dropdown",
       "value": "latest",
@@ -192,6 +199,7 @@
     },
     {
       "label": "Activation condition",
+      "id": "activationCondition",
       "type": "String",
       "group": "activation",
       "feel": "required",
@@ -204,6 +212,7 @@
     },
     {
       "label": "Result variable",
+      "id": "resultVariable",
       "type": "String",
       "group": "variable-mapping",
       "optional": true,
@@ -215,6 +224,7 @@
     },
     {
       "label": "Result expression",
+      "id": "resultExpression",
       "description": "Expression to map the inbound payload to process variables",
       "group": "variable-mapping",
       "type": "Text",

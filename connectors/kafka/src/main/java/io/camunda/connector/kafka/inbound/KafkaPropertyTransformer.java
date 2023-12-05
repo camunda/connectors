@@ -80,10 +80,16 @@ public class KafkaPropertyTransformer {
   }
 
   public static KafkaInboundMessage convertConsumerRecordToKafkaInboundMessage(
-      ConsumerRecord<String, Object> consumerRecord, ObjectReader objectReader) {
+      ConsumerRecord<Object, Object> consumerRecord, ObjectReader objectReader) {
     KafkaInboundMessage kafkaInboundMessage = new KafkaInboundMessage();
-    kafkaInboundMessage.setKey(consumerRecord.key());
+    kafkaInboundMessage.setKey(parseKey(consumerRecord, objectReader));
+    setValue(consumerRecord, objectReader, kafkaInboundMessage);
+    setHeadersIfPresent(consumerRecord, kafkaInboundMessage);
+    return kafkaInboundMessage;
+  }
 
+  private static void setHeadersIfPresent(
+      ConsumerRecord<Object, Object> consumerRecord, KafkaInboundMessage kafkaInboundMessage) {
     if (consumerRecord.headers() != null) {
       var headerMap = new HashMap<String, Object>();
       for (Header header : consumerRecord.headers()) {
@@ -93,22 +99,34 @@ public class KafkaPropertyTransformer {
         kafkaInboundMessage.setHeaders(headerMap);
       }
     }
+  }
 
+  private static Object parseKey(
+      ConsumerRecord<Object, Object> consumerRecord, ObjectReader objectReader) {
+    try {
+      return objectReader.readTree((String) consumerRecord.key());
+    } catch (Exception e) {
+      LOG.debug("Cannot parse key to json object -> use as string");
+      return StringEscapeUtils.unescapeJson((String) consumerRecord.key());
+    }
+  }
+
+  private static void setValue(
+      ConsumerRecord<Object, Object> consumerRecord,
+      ObjectReader objectReader,
+      KafkaInboundMessage kafkaInboundMessage) {
     try {
       if (consumerRecord.value() instanceof byte[]) {
-        var jsonNode = objectReader.readTree((byte[]) consumerRecord.value());
-        kafkaInboundMessage.setValue(jsonNode);
+        kafkaInboundMessage.setValue(objectReader.readTree((byte[]) consumerRecord.value()));
       } else {
         String value = (String) consumerRecord.value();
         kafkaInboundMessage.setRawValue(value);
         var json = StringEscapeUtils.unescapeJson(value);
-        var jsonNode = objectReader.readTree(json);
-        kafkaInboundMessage.setValue(jsonNode);
+        kafkaInboundMessage.setValue(objectReader.readTree(json));
       }
     } catch (Exception e) {
       LOG.debug("Cannot parse value to json object -> use the raw value");
       kafkaInboundMessage.setValue(kafkaInboundMessage.getRawValue());
     }
-    return kafkaInboundMessage;
   }
 }

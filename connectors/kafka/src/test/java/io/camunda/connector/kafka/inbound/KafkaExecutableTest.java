@@ -19,9 +19,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.camunda.connector.kafka.outbound.model.KafkaTopic;
@@ -31,7 +28,6 @@ import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
@@ -54,15 +50,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 public class KafkaExecutableTest {
-  private final ObjectMapper objectMapper =
-      new ObjectMapper()
-          .configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false)
-          .configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
   private InboundConnectorContextBuilder.TestInboundConnectorContext context;
   private InboundConnectorContextBuilder.TestInboundConnectorContext originalContext;
   private List<PartitionInfo> topicPartitions;
   private KafkaConnectorProperties kafkaConnectorProperties;
-  @Mock private KafkaConsumer<String, Object> mockConsumer;
+  @Mock private KafkaConsumer<Object, Object> mockConsumer;
 
   private String topic;
 
@@ -181,7 +173,7 @@ public class KafkaExecutableTest {
   @Test
   public void testConvertConsumerRecordToKafkaInboundMessage() {
     // When
-    ConsumerRecord<String, Object> consumerRecord =
+    ConsumerRecord<Object, Object> consumerRecord =
         new ConsumerRecord<>("my-topic", 0, 0, "my-key", "{\"foo\": \"bar\"}");
     consumerRecord.headers().add("header", "headerValue".getBytes());
     KafkaInboundMessage kafkaInboundMessage =
@@ -194,7 +186,7 @@ public class KafkaExecutableTest {
     ObjectNode expectedValue = JsonNodeFactory.instance.objectNode();
     expectedValue.set("foo", JsonNodeFactory.instance.textNode("bar"));
     assertEquals(expectedValue, kafkaInboundMessage.getValue());
-    assertEquals("headerValue", ((Map) kafkaInboundMessage.getHeaders()).get("header"));
+    assertEquals("headerValue", kafkaInboundMessage.getHeaders().get("header"));
   }
 
   public KafkaExecutable getConsumerMock() {

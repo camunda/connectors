@@ -39,6 +39,7 @@
     <module>connectors-e2e-test/connectors-e2e-test-base</module>
     <module>connectors-e2e-test/connectors-e2e-test-http</module>
     <module>connectors-e2e-test/connectors-e2e-test-automation-anywhere</module>
+    <module>connectors-e2e-test/connectors-e2e-test-kafka</module>
   </modules>
 
 </project>
