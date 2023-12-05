@@ -100,7 +100,7 @@ limitations under the License.</license.inlineheader>
 
     <version.httpcore>4.4.16</version.httpcore>
 
-    <version.kafka-clients>3.6.0</version.kafka-clients>
+    <version.kafka-clients>3.6.1</version.kafka-clients>
 
     <version.microsoft-graph>5.77.0</version.microsoft-graph>
     <version.azure-identity>1.11.1</version.azure-identity>
