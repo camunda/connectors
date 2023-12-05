@@ -47,6 +47,7 @@
     },
     {
       "label": "Username",
+      "id": "authentication.username",
       "description": "Provide the username (must have permissions to produce message to the topic)",
       "group": "authentication",
       "type": "String",
@@ -58,6 +59,7 @@
     },
     {
       "label": "Password",
+      "id": "authentication.password",
       "description": "Provide a password for the user",
       "group": "authentication",
       "type": "String",
@@ -69,6 +71,7 @@
     },
     {
       "label": "Bootstrap servers",
+      "id": "topic.bootstrapServers",
       "description": "Provide bootstrap server(s), comma-delimited if there are multiple",
       "group": "kafka",
       "type": "String",
@@ -83,6 +86,7 @@
     },
     {
       "label": "Topic",
+      "id": "topic.topicName",
       "description": "Provide topic name",
       "group": "kafka",
       "type": "String",
@@ -97,6 +101,7 @@
     },
     {
       "label": "Headers",
+      "id": "headers",
       "description": "Provide Kafka producer headers in JSON",
       "group": "kafka",
       "type": "String",
@@ -109,6 +114,7 @@
     },
     {
       "label": "Additional properties",
+      "id": "additionalProperties",
       "description": "Provide additional Kafka producer properties in JSON",
       "group": "kafka",
       "type": "String",
@@ -121,6 +127,7 @@
     },
     {
       "label": "Key",
+      "id": "message.key",
       "description": "Provide message key",
       "group": "message",
       "type": "String",
@@ -135,6 +142,7 @@
     },
     {
       "label": "Value",
+      "id": "message.value",
       "description": "Provide message value",
       "group": "message",
       "type": "String",
@@ -149,6 +157,7 @@
     },
     {
       "label": "Result variable",
+      "id": "resultVariable",
       "description": "Name of variable to store the response in. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-variable\" target=\"_blank\">documentation</a>",
       "group": "output",
       "type": "String",
@@ -159,6 +168,7 @@
     },
     {
       "label": "Result expression",
+      "id": "resultExpression",
       "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
       "group": "output",
       "type": "Text",
@@ -170,6 +180,7 @@
     },
     {
       "label": "Error expression",
+      "id": "errorExpression",
       "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
       "group": "errors",
       "type": "Text",

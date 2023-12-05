@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.generator.dsl;
 
-import io.camunda.connector.generator.dsl.OutboundElementTemplate.ElementType;
+import io.camunda.connector.generator.dsl.OutboundElementTemplate.ElementTypeWrapper;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskDefinition;
 import java.util.ArrayList;
@@ -35,7 +35,7 @@ public class OutboundElementTemplateBuilder {
   private String documentationRef;
   private String description;
   private Set<String> appliesTo;
-  private String elementType;
+  private BpmnType elementType;
   private final List<PropertyGroup> groups = new ArrayList<>();
   private final List<Property> properties = new ArrayList<>();
 
@@ -103,8 +103,8 @@ public class OutboundElementTemplateBuilder {
     return this;
   }
 
-  public OutboundElementTemplateBuilder appliesTo(Set<String> appliesTo) {
-    this.appliesTo = appliesTo;
+  public OutboundElementTemplateBuilder appliesTo(Set<BpmnType> appliesTo) {
+    this.appliesTo = appliesTo.stream().map(BpmnType::getName).collect(Collectors.toSet());
     return this;
   }
 
@@ -113,13 +113,8 @@ public class OutboundElementTemplateBuilder {
     return this;
   }
 
-  public OutboundElementTemplateBuilder elementType(String elementType) {
-    this.elementType = elementType;
-    return this;
-  }
-
   public OutboundElementTemplateBuilder elementType(BpmnType elementType) {
-    this.elementType = elementType.getName();
+    this.elementType = elementType;
     return this;
   }
 
@@ -159,7 +154,7 @@ public class OutboundElementTemplateBuilder {
         documentationRef,
         description,
         appliesTo,
-        new ElementType(elementType),
+        ElementTypeWrapper.from(elementType),
         groups,
         properties,
         icon);

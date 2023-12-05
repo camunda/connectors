@@ -19,7 +19,9 @@ package io.camunda.connector.generator.java.example;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
+import io.camunda.connector.generator.java.annotation.ElementTemplate.ConnectorElementType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
 
 public abstract class MyConnectorFunction implements OutboundConnectorFunction {
@@ -42,8 +44,9 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
       inputVariables = {})
   @ElementTemplate(
       id = MyConnectorFunction.ID,
-      appliesTo = "bpmn:ServiceTask",
-      elementType = "bpmn:ScriptTask",
+      elementTypes = {
+        @ConnectorElementType(appliesTo = BpmnType.SERVICE_TASK, elementType = BpmnType.SCRIPT_TASK)
+      },
       name = MyConnectorFunction.NAME,
       version = MyConnectorFunction.VERSION,
       description = MyConnectorFunction.DESCRIPTION,
@@ -97,4 +100,25 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
       inputDataClass = DuplicatePropertyConnectorInput.class,
       icon = "my-connector-icon.png")
   public static class WithDuplicatePropertyIds extends MyConnectorFunction {}
+
+  @OutboundConnector(
+      name = "my-connector",
+      type = "my-connector-type",
+      inputVariables = {})
+  @ElementTemplate(
+      id = MyConnectorFunction.ID,
+      name = MyConnectorFunction.NAME,
+      inputDataClass = MyConnectorInput.class,
+      elementTypes = {
+        @ConnectorElementType(appliesTo = BpmnType.TASK, elementType = BpmnType.SERVICE_TASK),
+        @ConnectorElementType(appliesTo = BpmnType.TASK, elementType = BpmnType.SCRIPT_TASK),
+        @ConnectorElementType(
+            appliesTo = BpmnType.END_EVENT,
+            elementType = BpmnType.MESSAGE_END_EVENT),
+        @ConnectorElementType(
+            appliesTo = BpmnType.INTERMEDIATE_THROW_EVENT,
+            elementType = BpmnType.INTERMEDIATE_THROW_EVENT)
+      },
+      icon = "my-connector-icon.png")
+  public static class WithMultipleElementTypes extends MyConnectorFunction {}
 }

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.generator.java;
+package io.camunda.connector.generator;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

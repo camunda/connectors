@@ -7,6 +7,7 @@
 package io.camunda.connector.kafka.outbound;
 
 import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.avro.AvroMapper;
 import com.fasterxml.jackson.dataformat.avro.AvroSchema;
@@ -77,42 +78,33 @@ public class KafkaConnectorFunction implements OutboundConnectorFunction {
   private KafkaConnectorResponse executeConnector(final KafkaConnectorRequest request) {
     Properties props = request.assembleKafkaClientProperties();
     Producer<String, Object> producer = producerCreatorFunction.apply(props);
-    RecordMetadata recordMetadata;
     try {
-      Object transformedValue = null;
-      if (request.getAvro() != null) {
-        transformedValue = produceAvroMessage(request);
-      } else {
-        transformedValue =
-            request.getMessage().getValue() instanceof String
-                ? (String) request.getMessage().getValue()
-                : objectMapper.writeValueAsString(request.getMessage().getValue());
-      }
-
-      ProducerRecord<String, Object> producerRecord =
-          new ProducerRecord<>(
-              request.getTopic().getTopicName(),
-              null,
-              null,
-              String.valueOf(request.getMessage().getKey()),
-              transformedValue);
-
+      ProducerRecord<String, Object> producerRecord = createProducerRecord(request);
       addHeadersToProducerRecord(producerRecord, request.getHeaders());
-
       Future<RecordMetadata> kafkaResponse = producer.send(producerRecord);
-
-      KafkaConnectorResponse result = new KafkaConnectorResponse();
-      recordMetadata = kafkaResponse.get(45, TimeUnit.SECONDS);
-      result.setTopic(recordMetadata.topic());
-      result.setPartition(recordMetadata.partition());
-      result.setOffset(recordMetadata.offset());
-      result.setTimestamp(recordMetadata.timestamp());
-      return result;
+      return constructKafkaConnectorResponse(kafkaResponse.get(45, TimeUnit.SECONDS));
     } catch (Exception e) {
       throw new ConnectorException("FAIL", "Kafka Producer execution exception", e);
     } finally {
       producer.close();
     }
+  }
+
+  private ProducerRecord<String, Object> createProducerRecord(final KafkaConnectorRequest request)
+      throws Exception {
+    Object transformedValue = null;
+    if (request.getAvro() != null) {
+      transformedValue = produceAvroMessage(request);
+    } else {
+      transformedValue = transformData(request.getMessage().getValue());
+    }
+    String transformedKey = transformData(request.getMessage().getKey());
+    return new ProducerRecord<>(
+        request.getTopic().getTopicName(), null, null, transformedKey, transformedValue);
+  }
+
+  public static String transformData(Object data) throws JsonProcessingException {
+    return data instanceof String ? (String) data : objectMapper.writeValueAsString(data);
   }
 
   private void addHeadersToProducerRecord(
@@ -124,5 +116,14 @@ public class KafkaConnectorFunction implements OutboundConnectorFunction {
             .add(header.getKey(), header.getValue().getBytes(StandardCharsets.UTF_8));
       }
     }
+  }
+
+  private KafkaConnectorResponse constructKafkaConnectorResponse(RecordMetadata recordMetadata) {
+    KafkaConnectorResponse result = new KafkaConnectorResponse();
+    result.setTopic(recordMetadata.topic());
+    result.setPartition(recordMetadata.partition());
+    result.setOffset(recordMetadata.offset());
+    result.setTimestamp(recordMetadata.timestamp());
+    return result;
   }
 }

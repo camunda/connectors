@@ -86,7 +86,7 @@ limitations under the License.</license.inlineheader>
     <version.spring-boot>3.1.5</version.spring-boot>
     <version.spring-cloud-gcp-starter-logging>4.8.4</version.spring-cloud-gcp-starter-logging>
 
-    <version.aws-java-sdk>1.12.604</version.aws-java-sdk>
+    <version.aws-java-sdk>1.12.605</version.aws-java-sdk>
 
     <version.google-api-client>2.2.0</version.google-api-client>
     <version.google-api-services-drive>v3-rev20231120-2.0.0</version.google-api-services-drive>
@@ -131,7 +131,7 @@ limitations under the License.</license.inlineheader>
     <plugin.version.maven-resources-plugin>3.2.0</plugin.version.maven-resources-plugin>
     <plugin.version.maven-shade-plugin>3.5.1</plugin.version.maven-shade-plugin>
     <plugin.version.maven-surefire-plugin>3.2.2</plugin.version.maven-surefire-plugin>
-    <plugin.version.spotless-maven-plugin>2.41.0</plugin.version.spotless-maven-plugin>
+    <plugin.version.spotless-maven-plugin>2.41.1</plugin.version.spotless-maven-plugin>
   </properties>
 
   <dependencyManagement>

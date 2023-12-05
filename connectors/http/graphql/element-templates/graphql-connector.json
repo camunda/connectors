@@ -166,7 +166,7 @@
       "feel": "optional",
       "binding": {
         "type": "zeebe:input",
-        "name": "graphql.authentication.token"
+        "name": "authentication.token"
       },
       "constraints": {
         "notEmpty": true
