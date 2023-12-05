@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -245,7 +246,11 @@ public class PropertyUtil {
       List<Property> transformedProperties = new ArrayList<>();
 
       for (var property : operation.properties()) {
-        var transformed = transformProperty(operation.id(), property);
+        if (property.target() == Target.BODY) {
+          // body properties are handled separately
+          continue;
+        }
+        var transformed = transformProperty(operation.id(), property, "parameters");
         if (!(transformed.getBinding() instanceof ZeebeInput binding)) {
           throw new RuntimeException(
               "Unexpected binding type: " + transformed.getBinding().getClass());
@@ -306,7 +311,7 @@ public class PropertyUtil {
         .build();
   }
 
-  private static Property transformProperty(String operationId, HttpOperationProperty property) {
+  private static Property transformProperty(String operationId, HttpOperationProperty property, String group) {
     PropertyBuilder builder =
         switch (property.type()) {
           case STRING -> StringProperty.builder().value(property.example()).feel(FeelMode.optional);
@@ -326,7 +331,7 @@ public class PropertyUtil {
         .optional(!property.required())
         .binding(new ZeebeInput(property.id()))
         .condition(new Equals(OPERATION_DISCRIMINATOR_PROPERTY_ID, operationId))
-        .group("parameters");
+        .group(group);
 
     if (property.required()) {
       builder.constraints(PropertyConstraints.builder().notEmpty(true).build());
@@ -342,15 +347,40 @@ public class PropertyUtil {
       if (!operation.method().supportsBody) {
         continue;
       }
-      properties.add(
-          StringProperty.builder()
-              .id(operation.id() + "_body")
-              .feel(FeelMode.required)
-              .group("requestBody")
-              .value(operation.bodyFeelExpression())
-              .condition(new Equals(OPERATION_DISCRIMINATOR_PROPERTY_ID, operation.id()))
-              .binding(new ZeebeInput("body"))
-              .build());
+
+      var bodyProperties = operation.properties().stream()
+          .filter(p -> p.target() == Target.BODY)
+          .map(p -> transformProperty(operation.id(), p, "requestBody"))
+          .toList();
+
+      Property bodyAggregationProperty = null;
+      if (bodyProperties.isEmpty()) {
+        bodyAggregationProperty = StringProperty.builder()
+            .id(operation.id() + "_body")
+            .feel(FeelMode.required)
+            .group("requestBody")
+            .value(
+                Optional.ofNullable(operation.bodyFeelExpression())
+                    .map(HttpFeelBuilder::build)
+                    .orElse(""))
+            .condition(new Equals(OPERATION_DISCRIMINATOR_PROPERTY_ID, operation.id()))
+            .binding(new ZeebeInput("body"))
+            .build();
+      } else {
+        bodyAggregationProperty = HiddenProperty.builder()
+            .id(operation.id() + "_$body")
+            .group("requestBody")
+            .value(
+                Optional.ofNullable(operation.bodyFeelExpression())
+                    .map(HttpFeelBuilder::build)
+                    .orElse(""))
+            .condition(new Equals(OPERATION_DISCRIMINATOR_PROPERTY_ID, operation.id()))
+            .binding(new ZeebeInput("body"))
+            .build();
+      }
+
+      properties.addAll(bodyProperties);
+      properties.add(bodyAggregationProperty);
     }
     return PropertyGroup.builder()
         .id("requestBody")

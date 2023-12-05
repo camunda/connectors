@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.generator.openapi;
+package io.camunda.connector.generator.openapi.util;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
@@ -112,7 +112,7 @@ public class ParameterUtil {
     if (schema.getExamples() != null && !schema.getExamples().isEmpty()) {
       return schema.getExamples().get(0).toString();
     }
-    return generateFakeDataStringFromSchema(schema);
+    return generateFakeDataStringFromSchema(schema, components);
   }
 
   public static Schema<?> getSchemaOrFromComponents(Schema<?> schema, Components components) {
@@ -122,10 +122,10 @@ public class ParameterUtil {
     return schema;
   }
 
-  private static String generateFakeDataStringFromSchema(Schema<?> schema) {
+  static String generateFakeDataStringFromSchema(Schema<?> schema, Components components) {
     Object data;
     try {
-      data = generateFakeDataFromSchema(schema);
+      data = generateFakeDataFromSchema(schema, components);
     } catch (Exception e) {
       return null;
     }
@@ -143,16 +143,22 @@ public class ParameterUtil {
     }
   }
 
-  private static Object generateFakeDataFromSchema(Schema<?> schema) {
+  private static Object generateFakeDataFromSchema(Schema<?> schema, Components components) {
     switch (schema.getType()) {
       case "string" -> {
         return "string";
       }
       case "object" -> {
         Map<String, Object> nested = new HashMap<>();
-        schema
-            .getProperties()
-            .forEach((key, propSchema) -> nested.put(key, generateFakeDataFromSchema(propSchema)));
+        schema.getProperties().entrySet().stream()
+            .map(
+                entry ->
+                    Map.entry(
+                        entry.getKey(), getSchemaOrFromComponents(entry.getValue(), components)))
+            .forEach(
+                entry ->
+                    nested.put(
+                        entry.getKey(), generateFakeDataFromSchema(entry.getValue(), components)));
         return nested;
       }
       case "array" -> {
@@ -160,7 +166,7 @@ public class ParameterUtil {
         if (items.getEnum() != null && !items.getEnum().isEmpty()) {
           return items.getEnum();
         }
-        return new Object[] {generateFakeDataFromSchema(items)};
+        return new Object[] {generateFakeDataFromSchema(items, components)};
       }
       case "integer", "number" -> {
         return 0;

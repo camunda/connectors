@@ -16,6 +16,10 @@
  */
 package io.camunda.connector.generator.cli.command;
 
+import static io.camunda.connector.generator.cli.ReturnCodes.GENERATION_FAILED;
+import static io.camunda.connector.generator.cli.ReturnCodes.INPUT_PREPARATION_FAILED;
+import static io.camunda.connector.generator.cli.ReturnCodes.SUCCESS;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.generator.api.CliCompatibleTemplateGenerator;
@@ -32,8 +36,11 @@ public class Generate implements Callable<Integer> {
 
   @ParentCommand ConGen connectorGen;
 
+  @Parameters(index = "0", description = "name of the generator to invoke")
+  String generatorName;
+
   @Parameters(
-      index = "0..*",
+      index = "1..*",
       description =
           "parameters to be passed to the generator (at least the generation source)."
               + " Refer to the documentation of the specific generator module for details.")
@@ -45,13 +52,13 @@ public class Generate implements Callable<Integer> {
   @Override
   public Integer call() {
     CliCompatibleTemplateGenerator<Object, ?> generator =
-        (CliCompatibleTemplateGenerator<Object, ?>) loadGenerator(connectorGen.generatorName);
+        (CliCompatibleTemplateGenerator<Object, ?>) loadGenerator(generatorName);
     Object input;
     try {
       input = generator.prepareInput(params);
     } catch (Exception e) {
       System.err.println("Error while preparing input data: " + e.getMessage());
-      return 2;
+      return INPUT_PREPARATION_FAILED.getCode();
     }
     List<ElementTemplateBase> templates;
     try {
@@ -60,15 +67,15 @@ public class Generate implements Callable<Integer> {
               generator.generate(input, connectorGen.generatorConfiguration());
     } catch (Exception e) {
       System.err.println("Generation failed: " + e.getMessage());
-      return 1;
+      return GENERATION_FAILED.getCode();
     }
     try {
       var resultString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(templates);
       System.out.println(resultString);
-      return 0;
+      return SUCCESS.getCode();
     } catch (JsonProcessingException e) {
       System.err.println("Failed to serialize the result: " + e.getMessage());
-      return 1;
+      return GENERATION_FAILED.getCode();
     }
   }
 

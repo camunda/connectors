@@ -18,6 +18,7 @@ package io.camunda.connector.generator.openapi;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.camunda.connector.generator.openapi.util.ParameterUtil;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.parameters.Parameter;
 import java.util.List;

@@ -16,14 +16,4 @@
  */
 package io.camunda.connector.generator.openapi;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import io.camunda.connector.generator.dsl.http.HttpOperationBuilder;
-
-public record OperationParseResult(
-    String id,
-    String path,
-    boolean supported,
-    @JsonInclude(Include.NON_EMPTY) String info,
-    @JsonIgnore HttpOperationBuilder builder) {}
+public class BodyUtilTest {}

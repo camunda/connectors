@@ -14,21 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.generator.openapi;
+package io.camunda.connector.generator.openapi.util;
 
-import static io.camunda.connector.generator.openapi.SecurityUtil.parseAuthentication;
+import static io.camunda.connector.generator.openapi.util.SecurityUtil.parseAuthentication;
 
+import io.camunda.connector.generator.dsl.http.HttpFeelBuilder;
 import io.camunda.connector.generator.dsl.http.HttpOperation;
 import io.camunda.connector.generator.dsl.http.HttpOperationProperty;
-import io.camunda.connector.generator.dsl.http.HttpPathFeelBuilder;
+import io.camunda.connector.generator.openapi.OpenApiGenerationSource.Options;
+import io.camunda.connector.generator.openapi.OperationParseResult;
+import io.camunda.connector.generator.openapi.util.BodyUtil.BodyParseResult;
 import io.camunda.connector.http.base.model.HttpMethod;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
-import io.swagger.v3.oas.models.parameters.RequestBody;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -38,12 +42,8 @@ import java.util.stream.Collectors;
  */
 public class OperationUtil {
 
-  // ordered by priority if endpoint allows multiple
-  private static final List<String> SUPPORTED_BODY_MEDIA_TYPES =
-      List.of("application/json", "text/plain");
-
-  static List<OperationParseResult> extractOperations(
-      OpenAPI openAPI, Set<String> includeOperations) {
+  public static List<OperationParseResult> extractOperations(
+      OpenAPI openAPI, Set<String> includeOperations, Options options) {
     var components = openAPI.getComponents();
     return openAPI.getPaths().entrySet().stream()
         .flatMap(
@@ -60,27 +60,47 @@ public class OperationUtil {
               if (pathItem.getGet() != null) {
                 operations.add(
                     extractOperation(
-                        pathEntry.getKey(), HttpMethod.GET, pathItem.getGet(), components));
+                        pathEntry.getKey(),
+                        HttpMethod.GET,
+                        pathItem.getGet(),
+                        components,
+                        options));
               }
               if (pathItem.getPost() != null) {
                 operations.add(
                     extractOperation(
-                        pathEntry.getKey(), HttpMethod.POST, pathItem.getPost(), components));
+                        pathEntry.getKey(),
+                        HttpMethod.POST,
+                        pathItem.getPost(),
+                        components,
+                        options));
               }
               if (pathItem.getPut() != null) {
                 operations.add(
                     extractOperation(
-                        pathEntry.getKey(), HttpMethod.PUT, pathItem.getPut(), components));
+                        pathEntry.getKey(),
+                        HttpMethod.PUT,
+                        pathItem.getPut(),
+                        components,
+                        options));
               }
               if (pathItem.getPatch() != null) {
                 operations.add(
                     extractOperation(
-                        pathEntry.getKey(), HttpMethod.PATCH, pathItem.getPatch(), components));
+                        pathEntry.getKey(),
+                        HttpMethod.PATCH,
+                        pathItem.getPatch(),
+                        components,
+                        options));
               }
               if (pathItem.getDelete() != null) {
                 operations.add(
                     extractOperation(
-                        pathEntry.getKey(), HttpMethod.DELETE, pathItem.getDelete(), components));
+                        pathEntry.getKey(),
+                        HttpMethod.DELETE,
+                        pathItem.getDelete(),
+                        components,
+                        options));
               }
               var path = extractPath(pathEntry.getKey());
 
@@ -102,25 +122,36 @@ public class OperationUtil {
   }
 
   private static OperationParseResult extractOperation(
-      String path, HttpMethod method, Operation operation, Components components) {
+      String path, HttpMethod method, Operation operation, Components components, Options options) {
     try {
       var parameters = operation.getParameters();
       Set<HttpOperationProperty> properties =
-          parameters == null
-              ? Collections.emptySet()
-              : parameters.stream()
-                  .map(parameter -> ParameterUtil.transformToProperty(parameter, components))
-                  .collect(Collectors.toSet());
+          new HashSet<>(
+              parameters == null
+                  ? Collections.emptySet()
+                  : parameters.stream()
+                      .map(parameter -> ParameterUtil.transformToProperty(parameter, components))
+                      .collect(Collectors.toSet()));
 
-      var bodyExample = extractBodyExample(operation.getRequestBody(), components);
       var label = method.name() + " " + path;
 
       var authenticationOverride = parseAuthentication(operation.getSecurity(), components);
+
+      var body = BodyUtil.parseBody(operation.getRequestBody(), components, options);
+      HttpFeelBuilder bodyFeelExpression = null;
+
+      if (body instanceof BodyParseResult.Raw raw) {
+        bodyFeelExpression = HttpFeelBuilder.create().part(raw.rawBody());
+      } else {
+        bodyFeelExpression = ((BodyParseResult.Detailed) body).feelBuilder();
+        properties.addAll(((BodyParseResult.Detailed) body).properties());
+      }
+
       var opBuilder =
           HttpOperation.builder()
-              .id(operation.getOperationId())
+              .id(Optional.ofNullable(operation.getOperationId()).orElse(label.replace(" ", "_")))
               .label(label)
-              .bodyExample(bodyExample)
+              .bodyFeelExpression(bodyFeelExpression)
               .authenticationOverride(authenticationOverride)
               .method(method)
               .properties(properties);
@@ -131,10 +162,10 @@ public class OperationUtil {
     }
   }
 
-  private static HttpPathFeelBuilder extractPath(String rawPath) {
+  private static HttpFeelBuilder extractPath(String rawPath) {
     // split path into parts, each part is either a variable or a constant
     String[] pathParts = rawPath.split("\\{");
-    var builder = HttpPathFeelBuilder.create();
+    var builder = HttpFeelBuilder.create();
     if (pathParts.length == 1) {
       // no variables
       builder.part(rawPath);
@@ -154,31 +185,5 @@ public class OperationUtil {
       }
     }
     return builder;
-  }
-
-  private static String extractBodyExample(RequestBody body, Components components) {
-    if (body == null) {
-      return "";
-    }
-    if (body.get$ref() != null) {
-      body =
-          components
-              .getRequestBodies()
-              .get(body.get$ref().replace("#/components/requestBodies/", ""));
-    }
-
-    var content = body.getContent();
-    for (String mediaType : SUPPORTED_BODY_MEDIA_TYPES) {
-      if (content.containsKey(mediaType)) {
-        var mt = content.get(mediaType);
-        var example = mt.getExample();
-        if (example == null) {
-          example = ParameterUtil.getExampleFromSchema(mt.getSchema(), components);
-        }
-        return example == null ? "" : example.toString();
-      }
-    }
-    throw new IllegalArgumentException(
-        "Request body media types are not supported by the REST Connector");
   }
 }

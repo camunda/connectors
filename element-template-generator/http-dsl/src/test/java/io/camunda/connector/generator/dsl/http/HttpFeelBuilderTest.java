@@ -21,12 +21,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.Test;
 
-public class HttpPathFeelBuilderTest {
+public class HttpFeelBuilderTest {
 
   @Test
   void severalConstantPartsPath() {
     // when
-    String s = HttpPathFeelBuilder.create().part("/hello").part("/world").build();
+    String s = HttpFeelBuilder.create().part("/hello").part("/world").build();
 
     // then
     assertThat(s).isEqualTo("=\"/hello\"+\"/world\"");
@@ -35,7 +35,7 @@ public class HttpPathFeelBuilderTest {
   @Test
   void mixedPath() {
     // when
-    String s = HttpPathFeelBuilder.create().part("/example/").property("myProp").build();
+    String s = HttpFeelBuilder.create().part("/example/").property("myProp").build();
 
     // then
     assertThat(s).isEqualTo("=\"/example/\"+myProp");
@@ -45,7 +45,7 @@ public class HttpPathFeelBuilderTest {
   void duplicatePropertyName() {
     // when
     String s =
-        HttpPathFeelBuilder.create()
+        HttpFeelBuilder.create()
             .part("/example/")
             .property("myProp")
             .slash()
@@ -57,18 +57,12 @@ public class HttpPathFeelBuilderTest {
   }
 
   @Test
-  void invalidPath() {
-    var builder = HttpPathFeelBuilder.create().part("doesNotStartWithASlash");
-    assertThrows(IllegalArgumentException.class, builder::build);
-  }
-
-  @Test
   void feelOperatorCharacters() {
-    var builder = HttpPathFeelBuilder.create();
+    var builder = HttpFeelBuilder.create();
     var ex =
         assertThrows(
             IllegalArgumentException.class,
             () -> builder.part("/documents/").property("document-id"));
-    assertThat(ex.getMessage()).contains(HttpPathFeelBuilder.FEEL_OPERATOR_CHARACTERS);
+    assertThat(ex.getMessage()).contains(HttpFeelBuilder.FEEL_OPERATOR_CHARACTERS);
   }
 }

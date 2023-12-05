@@ -45,7 +45,8 @@ public record HttpOperationProperty(
   public enum Target {
     PATH,
     QUERY,
-    HEADER
+    HEADER,
+    BODY
   }
 
   public enum Type {

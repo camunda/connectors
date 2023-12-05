@@ -14,16 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.generator.openapi;
+package io.camunda.connector.generator.cli;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import io.camunda.connector.generator.dsl.http.HttpOperationBuilder;
+public enum ReturnCodes {
+  SUCCESS(0),
+  GENERATION_FAILED(1),
+  INPUT_PREPARATION_FAILED(2);
 
-public record OperationParseResult(
-    String id,
-    String path,
-    boolean supported,
-    @JsonInclude(Include.NON_EMPTY) String info,
-    @JsonIgnore HttpOperationBuilder builder) {}
+  private final int code;
+
+  ReturnCodes(int code) {
+    this.code = code;
+  }
+
+  public int getCode() {
+    return code;
+  }
+}

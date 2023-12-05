@@ -16,6 +16,10 @@
  */
 package io.camunda.connector.generator.cli.command;
 
+import static io.camunda.connector.generator.cli.ReturnCodes.GENERATION_FAILED;
+import static io.camunda.connector.generator.cli.ReturnCodes.INPUT_PREPARATION_FAILED;
+import static io.camunda.connector.generator.cli.ReturnCodes.SUCCESS;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -32,8 +36,11 @@ public class Scan implements Callable<Integer> {
 
   @ParentCommand ConGen connectorGen;
 
+  @Parameters(index = "0", description = "name of the generator to invoke")
+  String generatorName;
+
   @Parameters(
-      index = "0..*",
+      index = "1..*",
       description =
           "parameters to be passed to the generator (at least the generation source)."
               + " Refer to the documentation of the specific generator module for details.")
@@ -46,28 +53,28 @@ public class Scan implements Callable<Integer> {
   public Integer call() {
     CliCompatibleTemplateGenerator<Object, ?> generator =
         (CliCompatibleTemplateGenerator<Object, ?>)
-            Generate.loadGenerator(connectorGen.generatorName);
+            Generate.loadGenerator(generatorName);
     Object input;
     try {
       input = generator.prepareInput(params);
     } catch (Exception e) {
       System.err.println("Error while preparing input data: " + e.getMessage());
-      return 2;
+      return INPUT_PREPARATION_FAILED.getCode();
     }
     ScanResult result;
     try {
       result = generator.scan(input);
     } catch (Exception e) {
       System.err.println("The API is not supported: " + e.getMessage());
-      return 1;
+      return GENERATION_FAILED.getCode();
     }
     try {
       var resultString = mapper.writeValueAsString(result);
       System.out.println(resultString);
-      return 0;
+      return SUCCESS.getCode();
     } catch (JsonProcessingException e) {
       System.err.println("Failed to serialize result: " + e.getMessage());
-      return 1;
+      return GENERATION_FAILED.getCode();
     }
   }
 }

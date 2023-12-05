@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.generator.openapi;
 
-import static io.camunda.connector.generator.openapi.SecurityUtil.parseAuthentication;
+import static io.camunda.connector.generator.openapi.util.SecurityUtil.parseAuthentication;
 
 import io.camunda.connector.generator.api.CliCompatibleTemplateGenerator;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
@@ -30,6 +30,7 @@ import io.camunda.connector.generator.dsl.http.HttpAuthentication.NoAuth;
 import io.camunda.connector.generator.dsl.http.HttpOperationBuilder;
 import io.camunda.connector.generator.dsl.http.HttpOutboundElementTemplateBuilder;
 import io.camunda.connector.generator.dsl.http.HttpServerData;
+import io.camunda.connector.generator.openapi.util.OperationUtil;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.servers.Server;
 import java.util.ArrayList;
@@ -66,9 +67,15 @@ public class OpenApiOutboundTemplateGenerator
     return new OpenApiGenerationSource(parameters);
   }
 
+  public String getUsage() {
+    return OpenApiGenerationSource.USAGE;
+  }
+
   @Override
   public ScanResult scan(OpenApiGenerationSource input) {
-    var operations = OperationUtil.extractOperations(input.openAPI(), input.includeOperations());
+    var operations =
+        OperationUtil.extractOperations(
+            input.openAPI(), input.includeOperations(), input.options());
     var supportedOperations =
         operations.stream()
             .filter(OperationParseResult::supported)
@@ -96,7 +103,9 @@ public class OpenApiOutboundTemplateGenerator
   public List<OutboundElementTemplate> generate(
       OpenApiGenerationSource source, GeneratorConfiguration configuration) {
 
-    var operations = OperationUtil.extractOperations(source.openAPI(), source.includeOperations());
+    var operations =
+        OperationUtil.extractOperations(
+            source.openAPI(), source.includeOperations(), source.options());
     if (operations.isEmpty()) {
       throw new IllegalArgumentException("No operations found in OpenAPI document");
     }
@@ -134,6 +143,9 @@ public class OpenApiOutboundTemplateGenerator
     }
 
     var elementTypes = configuration.elementTypes();
+    if (elementTypes == null) {
+      elementTypes = Set.of(DEFAULT_ELEMENT_TYPE);
+    }
     elementTypes.stream()
         .filter(t -> !SUPPORTED_ELEMENT_TYPES.contains(t.elementType()))
         .findFirst()
