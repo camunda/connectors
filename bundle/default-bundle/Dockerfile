@@ -13,7 +13,7 @@ COPY start.sh /start.sh
 RUN chmod +x start.sh
 
 # Create an unprivileged user / group and switch to that user
-RUN addgroup --gid 1003 connectors && useradd -g connectors -u 1003 -M connectors
-USER connectors:connectors
+RUN addgroup --gid 1001 camunda && useradd --no-create-home --gid 1001 --uid 1001 camunda
+USER 1001:1001
 
 ENTRYPOINT ["/start.sh"]
