@@ -8,7 +8,7 @@ RUN mkdir /opt/app
 COPY target/*-with-dependencies.jar /opt/app/
 
 # Create an unprivileged user / group and switch to that user
-RUN addgroup --gid 1001 1001 && useradd -g 1001 -u 1001 -M 1001
+RUN addgroup --gid 1001 camunda && useradd --no-create-home --gid 1001 --uid 1001 camunda
 USER 1001:1001
 
 # Using entry point to allow downstream images to add JVM arguments using CMD
