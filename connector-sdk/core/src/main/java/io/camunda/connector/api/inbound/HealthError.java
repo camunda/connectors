@@ -16,8 +16,11 @@
  */
 package io.camunda.connector.api.inbound;
 
-public record Error(String code, String message) {
-  public static Error from(Throwable ex) {
-    return new Error(ex.getClass().getSimpleName(), ex.toString());
+public record HealthError(String title, String message, String detail) {
+  public static HealthError from(Throwable ex) {
+    return new HealthError(
+        ex.getClass().getSimpleName(),
+        "An error occurred, please copy the error logs to see the details",
+        ex.toString());
   }
 }
