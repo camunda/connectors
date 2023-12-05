@@ -46,7 +46,7 @@ public record OutboundElementTemplate(
     String documentationRef,
     String description,
     Set<String> appliesTo,
-    ElementType elementType,
+    ElementTypeWrapper elementType,
     List<PropertyGroup> groups,
     List<Property> properties,
     ElementTemplateIcon icon)
@@ -77,7 +77,9 @@ public record OutboundElementTemplate(
     } else {
       Set<String> propIdOccurrences = new HashSet<>();
       for (var property : properties) {
-        if (property.id == null) continue;
+        if (property.id == null) {
+          continue;
+        }
         if (propIdOccurrences.contains(property.id)) {
           errors.add("duplicate property " + property.id);
         }
@@ -102,5 +104,20 @@ public record OutboundElementTemplate(
     return OutboundElementTemplateBuilder.create();
   }
 
-  public record ElementType(String value) {}
+  @JsonInclude(Include.NON_NULL)
+  public record ElementTypeWrapper(String value, String eventDefinition) {
+
+    public static ElementTypeWrapper from(BpmnType value) {
+      var haveEventDefinition =
+          Set.of(
+              BpmnType.INTERMEDIATE_CATCH_EVENT,
+              BpmnType.INTERMEDIATE_THROW_EVENT,
+              BpmnType.MESSAGE_START_EVENT,
+              BpmnType.MESSAGE_END_EVENT);
+      var messageEventDefinition = "bpmn:MessageEventDefinition";
+
+      return new ElementTypeWrapper(
+          value.getName(), haveEventDefinition.contains(value) ? messageEventDefinition : null);
+    }
+  }
 }

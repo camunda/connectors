@@ -17,6 +17,7 @@
 package io.camunda.connector.generator.api;
 
 import io.camunda.connector.generator.dsl.ElementTemplateBase;
+import java.util.List;
 
 /**
  * Base interface for any element template generator
@@ -27,10 +28,10 @@ import io.camunda.connector.generator.dsl.ElementTemplateBase;
 public interface ElementTemplateGenerator<IN, OUT extends ElementTemplateBase> {
 
   /** Generate an element template from source using the provided configuration */
-  OUT generate(IN source, GeneratorConfiguration configuration);
+  List<OUT> generate(IN source, GeneratorConfiguration configuration);
 
   /** Generate an element template from source using the default configuration */
-  default OUT generate(IN source) {
+  default List<OUT> generate(IN source) {
     return generate(source, GeneratorConfiguration.DEFAULT);
   }
 }

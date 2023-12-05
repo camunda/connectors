@@ -28,6 +28,7 @@ import java.net.URLClassLoader;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoFailureException;
@@ -112,22 +113,15 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
       for (String className : connectorClasses) {
         getLog().info("Generating element template for " + className);
         Class<?> clazz = classLoader.loadClass(className);
-        OutboundElementTemplate template = generator.generate(clazz);
-
-        var basicFileName =
-            templateFileName == null
-                ? transformConnectorNameToTemplateFileName(template.name())
-                : templateFileName + ".json";
-
-        writeElementTemplate(template, basicFileName);
+        var templates = generator.generate(clazz);
+        writeElementTemplates(templates, false);
 
         if (generateHybridTemplates) {
           getLog().info("Generating hybrid element template for " + className);
-          OutboundElementTemplate hybridTemplate =
+          var hybridTemplates =
               generator.generate(
-                  clazz, new GeneratorConfiguration(ConnectorMode.HYBRID, null, null, null));
-          var name = basicFileName.replace(".json", "-hybrid.json");
-          writeElementTemplate(hybridTemplate, name);
+                  clazz, new GeneratorConfiguration(ConnectorMode.HYBRID, null, null, null, null));
+          writeElementTemplates(hybridTemplates, true);
         }
       }
 
@@ -140,6 +134,28 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
           e);
     } catch (Exception e) {
       throw new MojoFailureException("Failed to generate element templates: " + e.getMessage(), e);
+    }
+  }
+
+  private void writeElementTemplates(List<OutboundElementTemplate> templates, boolean hybrid) {
+    if (templates.size() == 1) {
+      var fileName =
+          Optional.ofNullable(templateFileName)
+              .map(name -> name + ".json")
+              .orElse(transformConnectorNameToTemplateFileName(templates.get(0).name()));
+      if (hybrid) {
+        fileName = fileName.replace(".json", "-hybrid.json");
+      }
+      writeElementTemplate(templates.get(0), fileName);
+    } else {
+      for (var template : templates) {
+        var fileName =
+            Optional.ofNullable(templateFileName)
+                .map(name -> name + "-" + template.elementType() + ".json")
+                .orElse(transformConnectorNameToTemplateFileName(template.name()));
+
+        writeElementTemplate(template, fileName);
+      }
     }
   }
 
