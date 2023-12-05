@@ -129,8 +129,9 @@ You can further configure separate connection properties for Camunda Operate (ot
 For this you need to create client credentials in Console to access Operate:
 
 ```properties
-camunda.operate.client.client-id=xxx
-camunda.operate.client.client-secret=xxx
+operate.client.enabled=true
+operate.client.client-id=xxx
+operate.client.client-secret=xxx
 ```
 
 #### Local installation
@@ -145,19 +146,20 @@ zeebe.client.security.plaintext=true
 Connect to Operate locally using username and password:
 
 ```properties
-camunda.operate.client.url=http://localhost:8081
-camunda.operate.client.username=demo
-camunda.operate.client.password=demo
+operate.client.url=http://localhost:8081
+operate.client.username=demo
+operate.client.password=demo
 ```
 
 When running against a self-managed environment you might also need to configure the keycloak endpoint to not use Operate username/password authentication.
 For this you either need to use the existing connectors client-id and client-secret (see in Identity) or create a new client in Identity that has permission to access the operate-api (read:*)
 
 ```properties
-camunda.operate.client.keycloak-url=http://localhost:18080
-camunda.operate.client.keycloak-realm=camunda-platform
-camunda.operate.client.client-id=xxx
-camunda.operate.client.client-secret=xxx
+operate.client.enabled=true
+operate.client.keycloak-url=http://localhost:18080
+operate.client.keycloak-realm=camunda-platform
+operate.client.client-id=xxx
+operate.client.client-secret=xxx
 ```
 
 ### Adding Connectors
