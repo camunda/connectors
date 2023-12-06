@@ -68,7 +68,7 @@ limitations under the License.</license.inlineheader>
     <nexus.sonatype.url>https://s01.oss.sonatype.org</nexus.sonatype.url>
 
     <!-- Camunda internal libraries -->
-    <version.zeebe>8.3.3</version.zeebe>
+    <version.zeebe>8.3.4</version.zeebe>
     <version.spring-zeebe>8.3.2-rc3-SNAPSHOT</version.spring-zeebe>
     <version.feel-engine>1.17.3</version.feel-engine>
 
@@ -86,7 +86,7 @@ limitations under the License.</license.inlineheader>
     <version.spring-boot>3.1.5</version.spring-boot>
     <version.spring-cloud-gcp-starter-logging>4.8.4</version.spring-cloud-gcp-starter-logging>
 
-    <version.aws-java-sdk>1.12.605</version.aws-java-sdk>
+    <version.aws-java-sdk>1.12.606</version.aws-java-sdk>
 
     <version.google-api-client>2.2.0</version.google-api-client>
     <version.google-api-services-drive>v3-rev20231120-2.0.0</version.google-api-services-drive>
