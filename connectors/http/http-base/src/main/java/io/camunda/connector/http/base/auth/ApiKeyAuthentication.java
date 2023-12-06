@@ -54,7 +54,9 @@ public record ApiKeyAuthentication(
 
   @Override
   public void setHeaders(final HttpHeaders headers) {
-    headers.set(name, value);
+    if (ApiKeyLocation.HEADERS == apiKeyLocation) {
+      headers.set(name, value);
+    }
   }
 
   public boolean isQueryLocationApiKeyAuthentication() {
