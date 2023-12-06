@@ -475,7 +475,7 @@
     },
     {
       "label": "One time verification response expression",
-      "description": "Specify condition and response",
+      "description": "Specify condition and response. Learn more in the <a href='https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/#verification-expression' target='_blank'>documentation</a>",
       "type": "Text",
       "group": "webhookResponse",
       "feel": "required",
