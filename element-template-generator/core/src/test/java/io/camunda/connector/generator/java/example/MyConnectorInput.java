@@ -17,6 +17,7 @@
 package io.camunda.connector.generator.java.example;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
@@ -24,8 +25,12 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyT
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.generator.java.example.MyConnectorInput.AnnotatedSealedType.FirstAnnotatedSubType;
 import io.camunda.connector.generator.java.example.MyConnectorInput.AnnotatedSealedType.IgnoredSubType;
+import io.camunda.connector.generator.java.example.MyConnectorInput.AnnotatedSealedType.NestedAnnotatedSealedType;
+import io.camunda.connector.generator.java.example.MyConnectorInput.AnnotatedSealedType.NestedAnnotatedSealedType.NestedAnnotatedSubType;
 import io.camunda.connector.generator.java.example.MyConnectorInput.AnnotatedSealedType.SecondAnnotatedSubType;
 import io.camunda.connector.generator.java.example.MyConnectorInput.NonAnnotatedSealedType.FirstSubType;
+import io.camunda.connector.generator.java.example.MyConnectorInput.NonAnnotatedSealedType.NestedSealedType;
+import io.camunda.connector.generator.java.example.MyConnectorInput.NonAnnotatedSealedType.NestedSealedType.NestedSubType;
 import io.camunda.connector.generator.java.example.MyConnectorInput.NonAnnotatedSealedType.SecondSubType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -46,9 +51,12 @@ public record MyConnectorInput(
     JsonNode jsonNodeProperty,
     MyEnum enumProperty,
     NestedA nestedProperty,
-    @TemplateProperty(addNestedPath = false) NestedB customPathNestedProperty,
+    @NestedProperties(addNestedPath = false) NestedB customPathNestedProperty,
     NonAnnotatedSealedType nonAnnotatedSealedType,
     AnnotatedSealedType annotatedSealedType,
+    @NestedProperties(
+            condition = @PropertyCondition(property = "annotatedStringProperty", equals = "value"))
+        SealedTypeWithCondition sealedTypeWithCondition,
     @TemplateProperty(
             condition = @PropertyCondition(property = "annotatedStringProperty", equals = "value"))
         String conditionalPropertyEquals,
@@ -71,16 +79,24 @@ public record MyConnectorInput(
     @NotBlank String stringPropertyWithNotBlank,
     @NotNull Object objectPropertyWithNotNull) {
 
-  sealed interface NonAnnotatedSealedType permits FirstSubType, SecondSubType {
+  sealed interface NonAnnotatedSealedType permits FirstSubType, NestedSealedType, SecondSubType {
 
     record FirstSubType(String firstSubTypeValue) implements NonAnnotatedSealedType {}
 
     record SecondSubType(String secondSubTypeValue) implements NonAnnotatedSealedType {}
+
+    sealed interface NestedSealedType extends NonAnnotatedSealedType permits NestedSubType {
+
+      record NestedSubType(String thirdSubTypeValue) implements NestedSealedType {}
+    }
   }
 
   @TemplateDiscriminatorProperty(name = "annotatedTypeOverride", label = "Annotated type override")
   sealed interface AnnotatedSealedType
-      permits IgnoredSubType, FirstAnnotatedSubType, SecondAnnotatedSubType {
+      permits FirstAnnotatedSubType,
+          IgnoredSubType,
+          NestedAnnotatedSealedType,
+          SecondAnnotatedSubType {
 
     @TemplateSubType(id = "firstAnnotatedOverride", label = "First annotated override")
     record FirstAnnotatedSubType(
@@ -94,6 +110,35 @@ public record MyConnectorInput(
 
     @TemplateSubType(ignore = true)
     record IgnoredSubType() implements AnnotatedSealedType {}
+
+    @TemplateSubType(
+        id = "nestedAnnotatedSealedType",
+        label = "Nested annotated sealed type override")
+    @TemplateDiscriminatorProperty(
+        name = "nestedSubTypeOverride",
+        label = "Nested discriminator property")
+    sealed interface NestedAnnotatedSealedType extends AnnotatedSealedType
+        permits NestedAnnotatedSubType {
+
+      @TemplateSubType(id = "firstNestedSubTypeOverride", label = "First nested sub type override")
+      record NestedAnnotatedSubType(
+          @TemplateProperty(
+                  label = "First nested sub type override value",
+                  condition =
+                      @PropertyCondition(property = "annotatedStringProperty", equals = "value"))
+              String firstNestedSubTypeValue)
+          implements NestedAnnotatedSealedType {}
+    }
+  }
+
+  @TemplateDiscriminatorProperty(
+      name = "conditionalDiscriminator",
+      label = "Conditional discriminator")
+  sealed interface SealedTypeWithCondition {
+    @TemplateSubType(id = "conditionalSubType", label = "Conditional sub type")
+    record ConditionalSubType(
+        @TemplateProperty(label = "Conditional sub type value") String conditionalSubTypeValue)
+        implements SealedTypeWithCondition {}
   }
 
   enum MyEnum {

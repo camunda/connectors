@@ -21,7 +21,7 @@ import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorPrope
 @TemplateDiscriminatorProperty(
     label = "Type",
     group = "authentication",
-    name = "type",
+    name = "authentication.type",
     defaultValue = "passwordBasedAuthentication",
     description =
         "Choose the authentication type. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/automation-anywhere/\" target=\"_blank\">documentation</a>")

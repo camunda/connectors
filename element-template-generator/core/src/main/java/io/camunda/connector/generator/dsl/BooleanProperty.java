@@ -49,7 +49,7 @@ public final class BooleanProperty extends Property {
     return new BooleanPropertyBuilder();
   }
 
-  public static final class BooleanPropertyBuilder extends PropertyBuilder {
+  public static class BooleanPropertyBuilder extends PropertyBuilder {
 
     private BooleanPropertyBuilder() {}
 

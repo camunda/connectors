@@ -28,13 +28,13 @@ import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.dsl.PropertyBinding;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
 import io.camunda.connector.generator.dsl.PropertyBuilder;
-import io.camunda.connector.generator.dsl.PropertyCondition;
+import io.camunda.connector.generator.dsl.PropertyCondition.AllMatch;
 import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
-import io.camunda.connector.generator.dsl.PropertyCondition.OneOf;
 import io.camunda.connector.generator.dsl.PropertyGroup;
 import io.camunda.connector.generator.dsl.PropertyGroup.PropertyGroupBuilder;
 import io.camunda.connector.generator.dsl.StringProperty;
 import io.camunda.connector.generator.dsl.TextProperty;
+import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.DropdownPropertyChoice;
@@ -92,17 +92,25 @@ public class TemplatePropertiesUtil {
 
     for (Field field : fields) {
       if (isContainerType(field.getType())) {
-        var propertyAnnotation = field.getAnnotation(TemplateProperty.class);
+        var nestedPropertiesAnnotation = field.getAnnotation(NestedProperties.class);
 
         // analyze recursively
         var nestedProperties =
             extractTemplatePropertiesFromType(field.getType()).stream()
-                .map(
+                .peek(
                     builder -> {
-                      if (propertyAnnotation == null || propertyAnnotation.addNestedPath()) {
-                        return addPathPrefix(builder, field.getName());
-                      } else {
-                        return builder;
+                      if (nestedPropertiesAnnotation == null
+                          || nestedPropertiesAnnotation.addNestedPath()) {
+                        addPathPrefix(builder, field.getName());
+                      }
+                    })
+                .peek(
+                    builder -> {
+                      if (nestedPropertiesAnnotation != null
+                          && nestedPropertiesAnnotation.condition() != null) {
+                        builder.condition(
+                            TemplatePropertyFieldProcessor.transformToCondition(
+                                nestedPropertiesAnnotation.condition()));
                       }
                     })
                 .toList();
@@ -174,23 +182,16 @@ public class TemplatePropertiesUtil {
   }
 
   private static PropertyBuilder addPathPrefix(PropertyBuilder builder, String path) {
+    if (builder instanceof DiscriminatorPropertyBuilder) {
+      // discriminator property is never prefixed
+      return builder;
+    }
     builder.id(path + "." + builder.getId());
     var binding = builder.getBinding();
 
     if (binding instanceof ZeebeInput) {
       // TODO: consider inbound support
       builder.binding(createBinding(path + "." + ((ZeebeInput) binding).name()));
-    }
-
-    var built = builder.build();
-    if (built.getCondition() != null) {
-      if (built.getCondition() instanceof OneOf oneOfCondition) {
-        builder.condition(
-            new OneOf(path + "." + oneOfCondition.property(), oneOfCondition.oneOf()));
-      } else if (built.getCondition() instanceof Equals equalsCondition) {
-        builder.condition(
-            new Equals(path + "." + equalsCondition.property(), equalsCondition.equals()));
-      }
     }
     return builder;
   }
@@ -277,11 +278,29 @@ public class TemplatePropertiesUtil {
 
       var currentSubTypeProperties =
           extractTemplatePropertiesFromType(subType).stream()
-              .map(
-                  property ->
-                      property.condition(
-                          new PropertyCondition.Equals(
-                              discriminatorIdAndName.getKey(), subTypeIdAndName.getKey())))
+              .peek(
+                  property -> {
+                    if (property.getCondition() == null) {
+                      var condition =
+                          new Equals(discriminatorIdAndName.getKey(), subTypeIdAndName.getKey());
+                      property.condition(condition);
+                    } else {
+                      if (property.getCondition() instanceof AllMatch allMatch) {
+                        var conditions = new ArrayList<>(allMatch.allMatch());
+                        conditions.add(
+                            new Equals(discriminatorIdAndName.getKey(), subTypeIdAndName.getKey()));
+                        property.condition(new AllMatch(conditions));
+                      } else {
+                        property.condition(
+                            new AllMatch(
+                                List.of(
+                                    property.getCondition(),
+                                    new Equals(
+                                        discriminatorIdAndName.getKey(),
+                                        subTypeIdAndName.getKey()))));
+                      }
+                    }
+                  })
               .toList();
 
       properties.addAll(currentSubTypeProperties);
@@ -293,7 +312,7 @@ public class TemplatePropertiesUtil {
 
     var discriminatorAnnotation = type.getAnnotation(TemplateDiscriminatorProperty.class);
     var discriminator =
-        DropdownProperty.builder()
+        new DiscriminatorPropertyBuilder()
             .choices(
                 values.entrySet().stream()
                     .filter(Objects::nonNull)
@@ -331,7 +350,9 @@ public class TemplatePropertiesUtil {
     if (annotation != null) {
       var id = idExtractor.apply(annotation);
       var name = labelExtractor.apply(annotation);
-      if (name.isBlank()) name = transformIdIntoLabel(type.getSimpleName());
+      if (name.isBlank()) {
+        name = transformIdIntoLabel(type.getSimpleName());
+      }
       return Map.entry(id, name);
     } else {
       return Map.entry(
