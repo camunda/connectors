@@ -311,7 +311,8 @@ public class PropertyUtil {
         .build();
   }
 
-  private static Property transformProperty(String operationId, HttpOperationProperty property, String group) {
+  private static Property transformProperty(
+      String operationId, HttpOperationProperty property, String group) {
     PropertyBuilder builder =
         switch (property.type()) {
           case STRING -> StringProperty.builder().value(property.example()).feel(FeelMode.optional);
@@ -348,35 +349,38 @@ public class PropertyUtil {
         continue;
       }
 
-      var bodyProperties = operation.properties().stream()
-          .filter(p -> p.target() == Target.BODY)
-          .map(p -> transformProperty(operation.id(), p, "requestBody"))
-          .toList();
+      var bodyProperties =
+          operation.properties().stream()
+              .filter(p -> p.target() == Target.BODY)
+              .map(p -> transformProperty(operation.id(), p, "requestBody"))
+              .toList();
 
       Property bodyAggregationProperty = null;
       if (bodyProperties.isEmpty()) {
-        bodyAggregationProperty = StringProperty.builder()
-            .id(operation.id() + "_body")
-            .feel(FeelMode.required)
-            .group("requestBody")
-            .value(
-                Optional.ofNullable(operation.bodyFeelExpression())
-                    .map(HttpFeelBuilder::build)
-                    .orElse(""))
-            .condition(new Equals(OPERATION_DISCRIMINATOR_PROPERTY_ID, operation.id()))
-            .binding(new ZeebeInput("body"))
-            .build();
+        bodyAggregationProperty =
+            StringProperty.builder()
+                .id(operation.id() + "_body")
+                .feel(FeelMode.required)
+                .group("requestBody")
+                .value(
+                    Optional.ofNullable(operation.bodyFeelExpression())
+                        .map(HttpFeelBuilder::build)
+                        .orElse(""))
+                .condition(new Equals(OPERATION_DISCRIMINATOR_PROPERTY_ID, operation.id()))
+                .binding(new ZeebeInput("body"))
+                .build();
       } else {
-        bodyAggregationProperty = HiddenProperty.builder()
-            .id(operation.id() + "_$body")
-            .group("requestBody")
-            .value(
-                Optional.ofNullable(operation.bodyFeelExpression())
-                    .map(HttpFeelBuilder::build)
-                    .orElse(""))
-            .condition(new Equals(OPERATION_DISCRIMINATOR_PROPERTY_ID, operation.id()))
-            .binding(new ZeebeInput("body"))
-            .build();
+        bodyAggregationProperty =
+            HiddenProperty.builder()
+                .id(operation.id() + "_$body")
+                .group("requestBody")
+                .value(
+                    Optional.ofNullable(operation.bodyFeelExpression())
+                        .map(HttpFeelBuilder::build)
+                        .orElse(""))
+                .condition(new Equals(OPERATION_DISCRIMINATOR_PROPERTY_ID, operation.id()))
+                .binding(new ZeebeInput("body"))
+                .build();
       }
 
       properties.addAll(bodyProperties);

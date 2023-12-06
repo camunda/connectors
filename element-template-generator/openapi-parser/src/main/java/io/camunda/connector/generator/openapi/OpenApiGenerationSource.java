@@ -32,8 +32,7 @@ public record OpenApiGenerationSource(
 
   public record Options(boolean rawBody) {}
 
-  static final String USAGE =
-      "openapi-outbound [openapi-file] [operation-id]... [--raw-body]";
+  static final String USAGE = "openapi-outbound [openapi-file] [operation-id]... [--raw-body]";
 
   public OpenApiGenerationSource(List<String> cliParams) {
     this(fetchOpenApi(cliParams), extractOperationIds(cliParams), extractOptions(cliParams));

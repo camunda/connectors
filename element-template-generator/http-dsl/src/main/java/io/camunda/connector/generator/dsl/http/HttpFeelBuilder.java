@@ -86,7 +86,7 @@ public class HttpFeelBuilder {
   }
 
   /** Transform into a FEEL expression string */
-  String build() {
+  public String build() {
     String result = sb.toString();
     evaluateFeel(result, propertySet);
     return result;

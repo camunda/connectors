@@ -36,7 +36,7 @@ public class BodyUtil {
   private static final List<String> SUPPORTED_BODY_MEDIA_TYPES =
       List.of("application/json", "text/plain");
 
-  sealed interface BodyParseResult permits BodyParseResult.Detailed, BodyParseResult.Raw {
+  public sealed interface BodyParseResult permits BodyParseResult.Detailed, BodyParseResult.Raw {
 
     record Detailed(HttpFeelBuilder feelBuilder, List<HttpOperationProperty> properties)
         implements BodyParseResult {}

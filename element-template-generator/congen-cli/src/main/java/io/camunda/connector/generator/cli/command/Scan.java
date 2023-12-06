@@ -52,8 +52,7 @@ public class Scan implements Callable<Integer> {
   @Override
   public Integer call() {
     CliCompatibleTemplateGenerator<Object, ?> generator =
-        (CliCompatibleTemplateGenerator<Object, ?>)
-            Generate.loadGenerator(generatorName);
+        (CliCompatibleTemplateGenerator<Object, ?>) Generate.loadGenerator(generatorName);
     Object input;
     try {
       input = generator.prepareInput(params);
