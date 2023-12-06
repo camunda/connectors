@@ -1,5 +1,5 @@
 {
-  "odata_schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Microsoft Office 365 Mail Connector",
   "id": "io.camunda.connectors.MSFT.O365.Mail.v1",
   "version": 1,
@@ -291,6 +291,7 @@
       "label": "Query parameters",
       "description": "Query parameters. Supporting <a href='https://learn.microsoft.com/en-us/graph/query-parameters?tabs=http' target='_blank'>OData query parameters</a>",
       "group": "parameters",
+      "optional": true,
       "feel": "required",
       "binding": {
         "name": "queryParameters",
@@ -479,6 +480,7 @@
       "label": "Query parameters",
       "description": "Query parameters. Supporting <a href='https://learn.microsoft.com/en-us/graph/query-parameters?tabs=http' target='_blank'>OData query parameters</a>",
       "group": "parameters",
+      "optional": true,
       "feel": "required",
       "binding": {
         "name": "queryParameters",
