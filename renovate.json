@@ -9,5 +9,5 @@
       "automerge": true
     }
   ],
-  "baseBranches": ["main", "/^release\\/.*/"]
+  "baseBranches": ["main", "release/8.3"]
 }
