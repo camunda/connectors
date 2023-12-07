@@ -106,7 +106,7 @@ limitations under the License.</license.inlineheader>
     <version.azure-identity>1.11.1</version.azure-identity>
 
     <version.bcprov-jdk15on>1.70</version.bcprov-jdk15on>
-    <version.sendGrid>4.10.0</version.sendGrid>
+    <version.sendGrid>4.10.1</version.sendGrid>
 
     <version.slack>1.36.0</version.slack>
 
