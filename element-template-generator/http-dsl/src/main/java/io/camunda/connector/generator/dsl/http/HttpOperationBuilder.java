@@ -32,8 +32,8 @@ public class HttpOperationBuilder {
   private String id;
   private String label;
   private HttpMethod method;
-  private HttpPathFeelBuilder pathFeelExpression;
-  private String bodyExample = "";
+  private HttpFeelBuilder pathFeelExpression;
+  private HttpFeelBuilder bodyFeelExpression;
   private List<HttpAuthentication> authenticationOverride = null;
   private List<HttpOperationProperty> properties = Collections.emptyList();
 
@@ -47,7 +47,7 @@ public class HttpOperationBuilder {
         .label(operation.label())
         .method(operation.method())
         .pathFeelExpression(operation.pathFeelExpression())
-        .bodyExample(operation.bodyFeelExpression())
+        .bodyFeelExpression(operation.bodyFeelExpression())
         .authenticationOverride(operation.authenticationOverride())
         .properties(operation.properties());
   }
@@ -81,16 +81,16 @@ public class HttpOperationBuilder {
    * <p>Example: {@code = "/foo/" + bar} <br>
    * The variable {@code bar} should be present in {@link #properties(Collection)}.
    *
-   * <p>Usage of {@link HttpPathFeelBuilder} is enforced to avoid complex string transformations and
-   * to avoid errors.
+   * <p>Usage of {@link HttpFeelBuilder} is enforced to avoid complex string transformations and to
+   * avoid errors.
    */
-  public HttpOperationBuilder pathFeelExpression(HttpPathFeelBuilder builder) {
+  public HttpOperationBuilder pathFeelExpression(HttpFeelBuilder builder) {
     this.pathFeelExpression = builder;
     return this;
   }
 
-  public HttpOperationBuilder bodyExample(String bodyExample) {
-    this.bodyExample = bodyExample;
+  public HttpOperationBuilder bodyFeelExpression(HttpFeelBuilder bodyFeelExpression) {
+    this.bodyFeelExpression = bodyFeelExpression;
     return this;
   }
 
@@ -143,7 +143,13 @@ public class HttpOperationBuilder {
     }
 
     return new HttpOperation(
-        id, label, pathFeelExpression, method, bodyExample, properties, authenticationOverride);
+        id,
+        label,
+        pathFeelExpression,
+        method,
+        bodyFeelExpression,
+        properties,
+        authenticationOverride);
   }
 
   private void validate() {

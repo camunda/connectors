@@ -34,6 +34,7 @@ Run `congen -h` to see the usage information and a list of available parameters.
 `congen` supports the following commands:
 - `generate` invokes the selected generator implementation and prints the generated template to the standard output.
 - `scan` invokes the generator in a dry-run mode and prints the information
+- `list` prints the list of available generators and usage information for each generator
 
 ### Examples
 

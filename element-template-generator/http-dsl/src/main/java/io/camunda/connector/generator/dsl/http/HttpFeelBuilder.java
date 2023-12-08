@@ -23,9 +23,10 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Fluent API to avoid the complex string transformations when creating HTTP path FEEL expressions.
+ * Fluent API to avoid the complex string transformations when creating HTTP path or body FEEL
+ * expressions.
  */
-public class HttpPathFeelBuilder {
+public class HttpFeelBuilder {
 
   private final StringBuilder sb = new StringBuilder();
   private final Set<String> propertySet = new HashSet<>();
@@ -33,14 +34,14 @@ public class HttpPathFeelBuilder {
 
   public static final String FEEL_OPERATOR_CHARACTERS = "!=<>+-*/[]{}@ ";
 
-  private HttpPathFeelBuilder() {}
+  private HttpFeelBuilder() {}
 
-  public static HttpPathFeelBuilder create() {
-    return new HttpPathFeelBuilder();
+  public static HttpFeelBuilder create() {
+    return new HttpFeelBuilder();
   }
 
-  /** Add a constant part to the path */
-  public HttpPathFeelBuilder part(String part) {
+  /** Add a constant part to the FEEL expression */
+  public HttpFeelBuilder part(String part) {
     if (sb.isEmpty()) {
       sb.append("=");
     } else {
@@ -52,8 +53,8 @@ public class HttpPathFeelBuilder {
     return this;
   }
 
-  /** Add a variable property to the path */
-  public HttpPathFeelBuilder property(String property) {
+  /** Add a variable property to the FEEL expression */
+  public HttpFeelBuilder property(String property) {
     if (property == null || property.isEmpty()) {
       throw new IllegalArgumentException("Property must not be null or empty");
     }
@@ -73,8 +74,8 @@ public class HttpPathFeelBuilder {
     return this;
   }
 
-  /** Append a '/' slash symbol to the URL */
-  public HttpPathFeelBuilder slash() {
+  /** Append a '/' slash symbol, useful for URLs */
+  public HttpFeelBuilder slash() {
     if (sb.isEmpty()) {
       sb.append("=");
     } else {
@@ -84,8 +85,8 @@ public class HttpPathFeelBuilder {
     return this;
   }
 
-  /** Transform the constructed path into a FEEL expression string */
-  String build() {
+  /** Transform into a FEEL expression string */
+  public String build() {
     String result = sb.toString();
     evaluateFeel(result, propertySet);
     return result;
@@ -94,9 +95,6 @@ public class HttpPathFeelBuilder {
   static void evaluateFeel(String expression, Set<String> propertyList) {
     Map<String, String> mockPropertyContext =
         propertyList.stream().collect(Collectors.toMap(property -> property, property -> "mock"));
-    String resultingPath = feelEngineWrapper.evaluate(expression, mockPropertyContext);
-    if (!resultingPath.startsWith("/")) {
-      throw new IllegalArgumentException("Operation path must start with '/'");
-    }
+    feelEngineWrapper.evaluate(expression, mockPropertyContext);
   }
 }

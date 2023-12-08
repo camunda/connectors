@@ -146,7 +146,6 @@ public class OutboundElementTemplateBuilder {
     if (!isTypeAssigned()) {
       throw new IllegalStateException("type is not assigned");
     }
-    verifyUniquePropertyIds();
     return new OutboundElementTemplate(
         id,
         name,
@@ -164,6 +163,4 @@ public class OutboundElementTemplateBuilder {
     return this.properties.stream()
         .anyMatch(property -> property.binding.equals(ZeebeTaskDefinition.TYPE));
   }
-
-  private void verifyUniquePropertyIds() {}
 }

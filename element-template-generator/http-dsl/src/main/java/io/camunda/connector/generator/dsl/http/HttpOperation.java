@@ -35,9 +35,9 @@ import java.util.List;
 public record HttpOperation(
     String id,
     String label,
-    HttpPathFeelBuilder pathFeelExpression,
+    HttpFeelBuilder pathFeelExpression,
     HttpMethod method,
-    String bodyFeelExpression,
+    HttpFeelBuilder bodyFeelExpression,
     Collection<HttpOperationProperty> properties,
     List<HttpAuthentication> authenticationOverride) {
 
