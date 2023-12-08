@@ -17,6 +17,8 @@
 package io.camunda.connector.feel.jackson;
 
 import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.ObjectCodec;
+import com.fasterxml.jackson.databind.DeserializationConfig;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -44,7 +46,15 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
     if (node == null || node.isNull()) {
       return null;
     }
-    ObjectMapper mapper = (ObjectMapper) parser.getCodec();
+    ObjectCodec codec = parser.getCodec();
+    ObjectMapper mapper;
+    if (!(codec instanceof ObjectMapper)) {
+      DeserializationConfig config = context.getConfig();
+      mapper = new ObjectMapper();
+      mapper.setConfig(config);
+    } else {
+      mapper = (ObjectMapper) codec;
+    }
 
     if (isFeelExpression(node.textValue()) || relaxed) {
       var feelContextSupplier =
