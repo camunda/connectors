@@ -2,6 +2,8 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Microsoft Office 365 Mail Connector",
   "id": "io.camunda.connectors.MSFT.O365.Mail.v1",
+  "description": "Work with Office 365 Mail via your BPMN process",
+  "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-o365-mail/",
   "version": 1,
   "category": {
     "id": "connectors",
@@ -19,20 +21,20 @@
       "label": "Server"
     },
     {
-      "id": "operation",
-      "label": "Operation"
-    },
-    {
       "id": "authentication",
       "label": "Authentication"
     },
     {
-      "id": "parameters",
-      "label": "Parameters"
+      "id": "operation",
+      "label": "Operation"
     },
     {
       "id": "requestBody",
       "label": "Request"
+    },
+    {
+      "id": "parameters",
+      "label": "Parameters"
     },
     {
       "id": "url",
@@ -601,6 +603,7 @@
     {
       "id": "users.user.sendMail_to_recipients",
       "label": "To recipients",
+      "description": "Target recipients. Must be an array of emails",
       "optional": false,
       "value": "=[\"myuser@mycompany.com\"]",
       "constraints": {
@@ -622,6 +625,7 @@
     {
       "id": "users.user.sendMail_cc_recipients",
       "label": "CC recipients",
+      "description": "Copy recipients. Must be an array of emails",
       "optional": true,
       "value": "=[\"myuser@mycompany.com\"]",
       "feel": "required",
