@@ -25,11 +25,16 @@ import java.util.Set;
  * @param openAPI Parsed OpenAPI schema
  * @param includeOperations IDs of operations that should be processed. If null/empty, all
  *     operations will be taken into account.
- * @param rawBody If true, the request body won't be broken down into individual fields.
+ * @param options Additional options for the generation process
  */
 public record OpenApiGenerationSource(
     OpenAPI openAPI, Set<String> includeOperations, Options options) {
 
+  /**
+   * @param rawBody If true, the generated template will contain a JSON property "body" that
+   *     contains the raw request body example. If false, the body will be parsed and transformed
+   *     into individual properties when possible. Default: false.
+   */
   public record Options(boolean rawBody) {}
 
   static final String USAGE = "openapi-outbound [openapi-file] [operation-id]... [--raw-body]";
