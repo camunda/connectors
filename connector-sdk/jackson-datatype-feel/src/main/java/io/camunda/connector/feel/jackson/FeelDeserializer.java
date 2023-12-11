@@ -81,7 +81,7 @@ public class FeelDeserializer extends AbstractFeelDeserializer<Object> {
 
   protected Object handleFeelExpression(JsonNode node, ObjectMapper mapper, JsonNode feelContext)
       throws JsonProcessingException {
-    var jsonNode = feelEngineWrapper.evaluate(node.textValue(), feelContext, JsonNode.class);
+    var jsonNode = feelEngineWrapper.evaluate(node.textValue(), JsonNode.class, feelContext);
     if (outputType.getRawClass() == String.class && jsonNode.isObject()) {
       return mapper.writeValueAsString(jsonNode);
     } else {

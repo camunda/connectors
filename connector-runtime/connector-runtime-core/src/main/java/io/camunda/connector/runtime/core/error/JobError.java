@@ -14,25 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package io.camunda.connector.runtime.core.error;
 
-import java.util.Collections;
+import java.time.Duration;
 import java.util.Map;
 
-/**
- * Container record for BPMN error data. This is used to indicate when a BPMN error should be
- * thrown.
- */
-public record BpmnError(String code, String message, Map<String, Object> variables)
-    implements ConnectorError {
-  public BpmnError {
-    if (variables == null) {
-      variables = Collections.emptyMap();
-    }
-  }
-
-  public boolean hasCode() {
-    return code != null;
-  }
-}
+public record JobError(
+    String message, Map<String, Object> variables, Integer retries, Duration retryBackoff)
+    implements ConnectorError {}

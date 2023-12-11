@@ -22,15 +22,14 @@ import static io.camunda.connector.runtime.core.Keywords.RESULT_EXPRESSION_KEYWO
 import static io.camunda.connector.runtime.core.Keywords.RESULT_VARIABLE_KEYWORD;
 import static io.camunda.connector.runtime.core.outbound.ConnectorJobHandlerTest.OutputTests.ResultVariableTests.newConnectorJobHandler;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.runtime.core.Keywords;
@@ -494,6 +493,8 @@ class ConnectorJobHandlerTest {
       when(firstStepMock.retries(anyInt())).thenReturn(secondStepMock);
       when(secondStepMock.retryBackoff(any())).thenReturn(secondStepMock);
       when(secondStepMock.errorMessage(any())).thenReturn(secondStepMock);
+      when(secondStepMock.variables(anyMap())).thenReturn(secondStepMock);
+      when(secondStepMock.variables(any(Object.class))).thenReturn(secondStepMock);
       jobClient = mock(JobClient.class);
       when(jobClient.newFailCommand(any())).thenReturn(firstStepMock);
     }
@@ -652,7 +653,7 @@ class ConnectorJobHandlerTest {
       // given
       var errorExpression =
           "if error.code != null then "
-              + "{ \"code\": error.code, \"message\": \"Message: \" + error.message} "
+              + "{ \"errorType\": \"bpmnError\", \"code\": error.code, \"message\": \"Message: \" + error.message} "
               + "else {}";
       var jobHandler =
           newConnectorJobHandler(
@@ -735,6 +736,76 @@ class ConnectorJobHandlerTest {
       // then
       assertThat(result.getErrorCode()).isEqualTo("1013");
       assertThat(result.getErrorMessage()).isEqualTo("Message: exception message");
+    }
+
+    @Test
+    void shouldCreateJobErrpr_UsingExceptionCodeAsSecondConditionAfterResponseProperty()
+        throws JsonProcessingException {
+      // given
+      var errorExpression =
+          """
+          if response.testProperty = "foo" then
+            jobError("Message for foo value on test property")
+          else if error.code != null then
+            jobError("Message: " + error.message)
+          else {}
+          """;
+      var jobHandler =
+          newConnectorJobHandler(
+              context -> {
+                throw new ConnectorException("1013", "exception message");
+              });
+      // when
+      var result =
+          JobBuilder.create()
+              .withErrorExpressionHeader(errorExpression)
+              .executeAndCaptureResult(jobHandler, false, false);
+      // then
+      assertThat(result.getErrorMessage()).isEqualTo("Message: exception message");
+    }
+
+    @Test
+    void shouldCreateJobError_UsingResponseProperty() throws JsonProcessingException {
+      // given
+      var errorExpression =
+          """
+          if response.testProperty = "foo" then
+            jobError("Message for foo value on test property")
+          else if error.code != null then
+            jobError("Message: " + error.message)
+          else {}
+          """;
+      var jobHandler = newConnectorJobHandler(context -> Map.of("testProperty", "foo"));
+      // when
+      var result =
+          JobBuilder.create()
+              .withErrorExpressionHeader(errorExpression)
+              .executeAndCaptureResult(jobHandler, false, false);
+      // then
+      assertThat(result.getErrorMessage()).isEqualTo("Message for foo value on test property");
+    }
+
+    @Test
+    void shouldCreateJobError_UsingResponsePropertySettingRetriesRelativeToCurrentRetries() {
+      // given
+      var errorExpression =
+          """
+          if response.testProperty = "foo" then
+            jobError("Message for foo value on test property", {}, job.retries - 1)
+          else if error.code != null then
+            jobError("Message: " + error.message)
+          else {}
+          """;
+      var jobHandler = newConnectorJobHandler(context -> Map.of("testProperty", "foo"));
+      // when
+      var result =
+          JobBuilder.create()
+              .withErrorExpressionHeader(errorExpression)
+              .withRetries(5)
+              .executeAndCaptureResult(jobHandler, false, false);
+      // then
+      assertThat(result.getErrorMessage()).isEqualTo("Message for foo value on test property");
+      assertThat(result.getRetries()).isEqualTo(4);
     }
 
     @Test

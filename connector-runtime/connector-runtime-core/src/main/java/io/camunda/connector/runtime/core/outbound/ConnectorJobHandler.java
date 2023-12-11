@@ -25,8 +25,10 @@ import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.ConnectorHelper;
 import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.connector.runtime.core.error.BpmnError;
+import io.camunda.connector.runtime.core.error.JobError;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult.ErrorResult;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult.SuccessResult;
+import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext.ErrorExpressionJob;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
 import io.camunda.zeebe.client.api.command.FinalCommandStep;
@@ -45,11 +47,9 @@ import org.slf4j.LoggerFactory;
 /** {@link JobHandler} that wraps an {@link OutboundConnectorFunction} */
 public class ConnectorJobHandler implements JobHandler {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(ConnectorJobHandler.class);
-
   // Protects Zeebe from enormously large messages it cannot handle
   public static final int MAX_ERROR_MESSAGE_LENGTH = 6000;
-
+  private static final Logger LOGGER = LoggerFactory.getLogger(ConnectorJobHandler.class);
   protected final OutboundConnectorFunction call;
   protected SecretProvider secretProvider;
 
@@ -84,6 +84,75 @@ public class ConnectorJobHandler implements JobHandler {
     this.objectMapper = objectMapper;
   }
 
+  protected static Map<String, Object> exceptionToMap(Exception exception) {
+    Map<String, Object> result = new HashMap<>();
+    result.put("type", exception.getClass().getName());
+    var message = exception.getMessage();
+    if (message != null) {
+      result.put(
+          "message", message.substring(0, Math.min(message.length(), MAX_ERROR_MESSAGE_LENGTH)));
+    }
+    if (exception instanceof ConnectorException connectorException) {
+      var code = connectorException.getErrorCode();
+      if (code != null) {
+        result.put("code", code);
+      }
+    }
+    return Map.copyOf(result);
+  }
+
+  protected static FinalCommandStep<CompleteJobResponse> prepareCompleteJobCommand(
+      JobClient client, ActivatedJob job, ConnectorResult.SuccessResult result) {
+    return client.newCompleteCommand(job).variables(result.variables());
+  }
+
+  protected static FinalCommandStep<FailJobResponse> prepareFailJobCommand(
+      JobClient client, ActivatedJob job, ConnectorResult.ErrorResult result) {
+    var retries = result.retries();
+    var errorMessage = truncateErrorMessage(result.exception().getMessage());
+    Duration backoff = result.retryBackoff();
+    var command =
+        client.newFailCommand(job).retries(Math.max(retries, 0)).errorMessage(errorMessage);
+    if (backoff != null) {
+      command = command.retryBackoff(backoff);
+    }
+    if (result.responseValue() != null) {
+      command = command.variables(result.responseValue());
+    }
+    return command;
+  }
+
+  protected static FinalCommandStep<Void> prepareThrowBpmnErrorCommand(
+      JobClient client, ActivatedJob job, BpmnError error) {
+    return client
+        .newThrowErrorCommand(job)
+        .errorCode(error.code())
+        .variables(error.variables())
+        .errorMessage(truncateErrorMessage(error.message()));
+  }
+
+  private static Duration getBackoffDuration(ActivatedJob job) {
+    String backoffHeader = job.getCustomHeaders().get(Keywords.RETRY_BACKOFF_KEYWORD);
+    if (backoffHeader == null) {
+      return null;
+    }
+    try {
+      return Duration.parse(backoffHeader);
+    } catch (DateTimeParseException e) {
+      throw new RuntimeException(
+          "Failed to parse retry backoff header. Expected ISO-8601 duration, e.g. PT5M, "
+              + "got: "
+              + job.getCustomHeaders().get(Keywords.RETRY_BACKOFF_KEYWORD),
+          e);
+    }
+  }
+
+  private static String truncateErrorMessage(String message) {
+    return message != null
+        ? message.substring(0, Math.min(message.length(), MAX_ERROR_MESSAGE_LENGTH))
+        : null;
+  }
+
   @Override
   public void handle(final JobClient client, final ActivatedJob job) {
     LOGGER.info("Received job: {} for tenant: {}", job.getKey(), job.getTenantId());
@@ -99,6 +168,7 @@ public class ConnectorJobHandler implements JobHandler {
     }
 
     ConnectorResult result;
+
     try {
       var context =
           new JobHandlerContext(job, getSecretProvider(), validationProvider, objectMapper);
@@ -119,12 +189,29 @@ public class ConnectorJobHandler implements JobHandler {
 
     try {
       final ConnectorResult finalResult = result;
-      ConnectorHelper.examineErrorExpression(result.responseValue(), job.getCustomHeaders())
+      ConnectorHelper.examineErrorExpression(
+              result.responseValue(),
+              job.getCustomHeaders(),
+              new ErrorExpressionJobContext(new ErrorExpressionJob(job.getRetries())))
           .ifPresentOrElse(
               error -> {
-                LOGGER.debug(
-                    "Throwing BPMN error for job {} with code {}", job.getKey(), error.code());
-                throwBpmnError(client, job, error);
+                if (error instanceof BpmnError bpmnError) {
+                  LOGGER.debug(
+                      "Throwing BPMN error for job {} with code {}",
+                      job.getKey(),
+                      bpmnError.code());
+                  throwBpmnError(client, job, bpmnError);
+                } else if (error instanceof JobError jobError) {
+                  LOGGER.debug("Throwing incident for job {}", job.getKey());
+                  failJob(
+                      client,
+                      job,
+                      new ErrorResult(
+                          Map.of("error", jobError.message()),
+                          new RuntimeException(jobError.message()),
+                          jobError.retries(),
+                          jobError.retryBackoff()));
+                }
               },
               () -> {
                 if (finalResult instanceof SuccessResult successResult) {
@@ -169,71 +256,5 @@ public class ConnectorJobHandler implements JobHandler {
 
   protected void throwBpmnError(JobClient client, ActivatedJob job, BpmnError value) {
     prepareThrowBpmnErrorCommand(client, job, value).send().join();
-  }
-
-  protected static Map<String, Object> exceptionToMap(Exception exception) {
-    Map<String, Object> result = new HashMap<>();
-    result.put("type", exception.getClass().getName());
-    var message = exception.getMessage();
-    if (message != null) {
-      result.put(
-          "message", message.substring(0, Math.min(message.length(), MAX_ERROR_MESSAGE_LENGTH)));
-    }
-    if (exception instanceof ConnectorException) {
-      var code = ((ConnectorException) exception).getErrorCode();
-      if (code != null) {
-        result.put("code", code);
-      }
-    }
-    return Map.copyOf(result);
-  }
-
-  protected static FinalCommandStep<CompleteJobResponse> prepareCompleteJobCommand(
-      JobClient client, ActivatedJob job, ConnectorResult.SuccessResult result) {
-    return client.newCompleteCommand(job).variables(result.variables());
-  }
-
-  protected static FinalCommandStep<FailJobResponse> prepareFailJobCommand(
-      JobClient client, ActivatedJob job, ConnectorResult.ErrorResult result) {
-    var retries = result.retries();
-    var errorMessage = truncateErrorMessage(result.exception().getMessage());
-    Duration backoff = result.retryBackoff();
-    var command =
-        client.newFailCommand(job).retries(Math.max(retries, 0)).errorMessage(errorMessage);
-    if (backoff != null) {
-      command = command.retryBackoff(backoff);
-    }
-    return command;
-  }
-
-  protected static FinalCommandStep<Void> prepareThrowBpmnErrorCommand(
-      JobClient client, ActivatedJob job, BpmnError error) {
-    return client
-        .newThrowErrorCommand(job)
-        .errorCode(error.code())
-        .variables(error.variables())
-        .errorMessage(truncateErrorMessage(error.message()));
-  }
-
-  private static Duration getBackoffDuration(ActivatedJob job) {
-    String backoffHeader = job.getCustomHeaders().get(Keywords.RETRY_BACKOFF_KEYWORD);
-    if (backoffHeader == null) {
-      return null;
-    }
-    try {
-      return Duration.parse(backoffHeader);
-    } catch (DateTimeParseException e) {
-      throw new RuntimeException(
-          "Failed to parse retry backoff header. Expected ISO-8601 duration, e.g. PT5M, "
-              + "got: "
-              + job.getCustomHeaders().get(Keywords.RETRY_BACKOFF_KEYWORD),
-          e);
-    }
-  }
-
-  private static String truncateErrorMessage(String message) {
-    return message != null
-        ? message.substring(0, Math.min(message.length(), MAX_ERROR_MESSAGE_LENGTH))
-        : null;
   }
 }

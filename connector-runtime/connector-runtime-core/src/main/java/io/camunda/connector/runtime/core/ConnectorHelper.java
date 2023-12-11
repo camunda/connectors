@@ -18,11 +18,14 @@ package io.camunda.connector.runtime.core;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.core.error.BpmnError;
+import io.camunda.connector.runtime.core.error.ConnectorError;
+import io.camunda.connector.runtime.core.outbound.ErrorExpressionJobContext;
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
@@ -33,7 +36,8 @@ public class ConnectorHelper {
 
   public static FeelEngineWrapper FEEL_ENGINE_WRAPPER = new FeelEngineWrapper();
   // TODO: Check if this is properly configured
-  public static ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+  public static ObjectMapper OBJECT_MAPPER =
+      new ObjectMapper().registerModule(new JavaTimeModule());
 
   private static final String ERROR_CANNOT_PARSE_VARIABLES = "Cannot parse '%s' as '%s'.";
 
@@ -61,14 +65,26 @@ public class ConnectorHelper {
     return outputVariables;
   }
 
-  public static Optional<BpmnError> examineErrorExpression(
-      final Object responseContent, final Map<String, String> jobHeaders) {
+  public static Optional<ConnectorError> examineErrorExpression(
+      final Object responseContent,
+      final Map<String, String> jobHeaders,
+      ErrorExpressionJobContext jobContext) {
     final var errorExpression = jobHeaders.get(Keywords.ERROR_EXPRESSION_KEYWORD);
     return Optional.ofNullable(errorExpression)
         .filter(s -> !s.isBlank())
-        .map(expression -> FEEL_ENGINE_WRAPPER.evaluateToJson(expression, responseContent))
-        .map(json -> parseJsonVarsAsTypeOrThrow(json, BpmnError.class, errorExpression))
-        .filter(BpmnError::hasCode);
+        .map(
+            expression ->
+                FEEL_ENGINE_WRAPPER.evaluateToJson(expression, responseContent, jobContext))
+        .filter(json -> !json.equals("null"))
+        .filter(json -> !parseJsonVarsAsTypeOrThrow(json, Map.class, errorExpression).isEmpty())
+        .map(json -> parseJsonVarsAsTypeOrThrow(json, ConnectorError.class, errorExpression))
+        .filter(
+            error -> {
+              if (error instanceof BpmnError bpmnError) {
+                return bpmnError.hasCode();
+              }
+              return true;
+            });
   }
 
   public static <T> T instantiateConnector(Class<? extends T> connectorClass) {

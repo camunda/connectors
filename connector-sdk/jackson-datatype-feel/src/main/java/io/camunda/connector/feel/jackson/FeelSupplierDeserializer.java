@@ -36,7 +36,7 @@ class FeelSupplierDeserializer<OUT> extends AbstractFeelDeserializer<Supplier<OU
 
   @Override
   protected Supplier<OUT> doDeserialize(JsonNode node, ObjectMapper mapper, JsonNode context) {
-    return () -> feelEngineWrapper.evaluate(node.textValue(), context, outputType);
+    return () -> feelEngineWrapper.evaluate(node.textValue(), outputType, context);
   }
 
   @Override

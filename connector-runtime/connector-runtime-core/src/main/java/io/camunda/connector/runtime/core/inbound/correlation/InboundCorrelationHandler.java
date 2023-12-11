@@ -242,7 +242,7 @@ public class InboundCorrelationHandler {
       try {
         correlationKey =
             Optional.ofNullable(
-                feelEngine.evaluate(correlationKeyExpression, context, String.class));
+                feelEngine.evaluate(correlationKeyExpression, String.class, context));
       } catch (Exception e) {
         correlationKey = Optional.empty();
       }
@@ -257,7 +257,7 @@ public class InboundCorrelationHandler {
       return "";
     }
     try {
-      return feelEngine.evaluate(messageIdExpression, context, String.class);
+      return feelEngine.evaluate(messageIdExpression, String.class, context);
     } catch (Exception e) {
       throw new ConnectorInputException(e);
     }
