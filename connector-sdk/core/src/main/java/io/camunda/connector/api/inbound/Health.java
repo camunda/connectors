@@ -22,8 +22,14 @@ import java.util.Objects;
 
 public class Health {
 
+  public record Error(String code, String message) {
+    public static Error from(Throwable ex) {
+      return new Error(ex.getClass().getSimpleName(), ex.toString());
+    }
+  }
+
   private final Status status;
-  private final HealthError error;
+  private final Error error;
   private final Map<String, Object> details;
 
   public enum Status {
@@ -40,7 +46,7 @@ public class Health {
     return details;
   }
 
-  public HealthError getError() {
+  public Error getError() {
     return error;
   }
 
@@ -96,7 +102,7 @@ public class Health {
     return new Health(Status.DOWN, null, null);
   }
 
-  public static Health down(HealthError error) {
+  public static Health down(Error error) {
     return new Health(Status.DOWN, error, null);
   }
 
@@ -108,12 +114,12 @@ public class Health {
     return Health.status(Status.DOWN).details(details);
   }
 
-  public static Health down(HealthError error, Map<String, Object> details) {
+  public static Health down(Error error, Map<String, Object> details) {
     return Health.status(Status.DOWN).details(details);
   }
 
   public static Health down(Throwable ex) {
-    return new Health(Status.DOWN, HealthError.from(ex), null);
+    return new Health(Status.DOWN, Error.from(ex), null);
   }
 
   interface DetailsStep {
@@ -125,9 +131,9 @@ public class Health {
   public static class Builder implements DetailsStep {
     private final Health.Status status;
     private Map<String, Object> details;
-    private HealthError error;
+    private Error error;
 
-    private Builder(Status status, HealthError error) {
+    private Builder(Status status, Error error) {
       this.status = status;
       this.error = error;
     }
@@ -151,7 +157,7 @@ public class Health {
     this.details = builder.details;
   }
 
-  private Health(Status status, HealthError error, Map<String, Object> details) {
+  private Health(Status status, Error error, Map<String, Object> details) {
     this.status = status;
     this.error = error;
     this.details = details;
