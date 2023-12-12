@@ -15,5 +15,5 @@ import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorPrope
   @JsonSubTypes.Type(value = AddWorkItemOperationData.class, name = "addWorkItemsToTheQueue"),
   @JsonSubTypes.Type(value = GetWorkItemOperationData.class, name = "listWorkItemsInQueue")
 })
-@TemplateDiscriminatorProperty(label = "Type", group = "operation", name = "type")
+@TemplateDiscriminatorProperty(label = "Type", group = "operation", name = "operation.type")
 public sealed interface OperationData permits AddWorkItemOperationData, GetWorkItemOperationData {}

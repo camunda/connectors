@@ -49,7 +49,7 @@ public final class TextProperty extends Property {
     return new TextPropertyBuilder();
   }
 
-  public static final class TextPropertyBuilder extends PropertyBuilder {
+  public static class TextPropertyBuilder extends PropertyBuilder {
 
     private TextPropertyBuilder() {}
 

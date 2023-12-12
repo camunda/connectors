@@ -61,11 +61,11 @@ public final class DropdownProperty extends Property {
     return new DropdownPropertyBuilder();
   }
 
-  public static final class DropdownPropertyBuilder extends PropertyBuilder {
+  public static class DropdownPropertyBuilder extends PropertyBuilder {
 
     private List<DropdownChoice> choices;
 
-    private DropdownPropertyBuilder() {}
+    public DropdownPropertyBuilder() {}
 
     public DropdownPropertyBuilder choices(List<DropdownChoice> choices) {
       this.choices = choices;

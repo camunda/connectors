@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.generator.BaseTest;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElementType;
@@ -37,6 +38,7 @@ import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskDefinition;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskHeader;
 import io.camunda.connector.generator.dsl.PropertyCondition;
+import io.camunda.connector.generator.dsl.PropertyCondition.AllMatch;
 import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
 import io.camunda.connector.generator.dsl.PropertyConstraints.Pattern;
 import io.camunda.connector.generator.dsl.StringProperty;
@@ -432,6 +434,16 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
       assertThat(((ZeebeInput) property.getBinding()).name())
           .isEqualTo("propertyWithDifferentIdAndBinding");
     }
+
+    @Test
+    void nested_conditionIsNotChanged() {
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).get(0);
+      var property = getPropertyByLabel("First nested sub type override value", template);
+
+      assertThat(property.getCondition()).isInstanceOf(AllMatch.class);
+      assertThat(((AllMatch) property.getCondition()).allMatch())
+          .contains(new PropertyCondition.Equals("annotatedStringProperty", "value"));
+    }
   }
 
   @Nested
@@ -449,9 +461,10 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
       assertThat(discriminatorProperty).isInstanceOf(DropdownProperty.class);
       assertThat(discriminatorProperty.getType()).isEqualTo("Dropdown");
       assertThat(((DropdownProperty) discriminatorProperty).getChoices())
-          .containsExactly(
+          .containsExactlyInAnyOrder(
               new DropdownChoice("First sub type", "firstsubtype"),
-              new DropdownChoice("Second sub type", "secondsubtype"));
+              new DropdownChoice("Second sub type", "secondsubtype"),
+              new DropdownChoice("Nested sealed type", "nestedsealedtype"));
 
       var firstSubTypeValueProperty =
           template.properties().stream()
@@ -463,15 +476,35 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
       var secondSubTypeValueProperty =
           template.properties().stream()
-              .filter(p -> "Second sub type value".equals(p.getLabel()))
+              .filter(p -> "Nested sealed type".equals(p.getLabel()))
               .findFirst()
               .orElseThrow();
       assertThat(secondSubTypeValueProperty.getCondition())
-          .isEqualTo(new Equals(discriminatorProperty.getId(), "secondsubtype"));
+          .isEqualTo(new Equals(discriminatorProperty.getId(), "nestedsealedtype"));
+
+      var nestedSubTypeDiscriminator =
+          template.properties().stream()
+              .filter(p -> "Nested sealed type".equals(p.getLabel()))
+              .findFirst()
+              .orElseThrow();
+      assertThat(nestedSubTypeDiscriminator.getCondition())
+          .isEqualTo(new Equals(discriminatorProperty.getId(), "nestedsealedtype"));
+
+      var nestedSubTypeValueProperty =
+          template.properties().stream()
+              .filter(p -> "Third sub type value".equals(p.getLabel()))
+              .findFirst()
+              .orElseThrow();
+
+      assertThat(nestedSubTypeValueProperty.getCondition()).isInstanceOf(AllMatch.class);
+      assertThat(((AllMatch) nestedSubTypeValueProperty.getCondition()).allMatch())
+          .containsExactlyInAnyOrder(
+              new Equals(discriminatorProperty.getId(), "nestedsealedtype"),
+              new Equals(nestedSubTypeDiscriminator.getId(), "nestedsubtype"));
     }
 
     @Test
-    void annotated_sealedType_followsAnnotations() {
+    void annotated_sealedType_followsAnnotations() throws JsonProcessingException {
       var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).get(0);
       var discriminatorProperty =
           template.properties().stream()
@@ -482,9 +515,11 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
       assertThat(discriminatorProperty).isInstanceOf(DropdownProperty.class);
       assertThat(discriminatorProperty.getType()).isEqualTo("Dropdown");
       assertThat(((DropdownProperty) discriminatorProperty).getChoices())
-          .containsExactly(
+          .containsExactlyInAnyOrder(
               new DropdownChoice("First annotated override", "firstAnnotatedOverride"),
-              new DropdownChoice("Second annotated override", "secondAnnotatedOverride"));
+              new DropdownChoice("Second annotated override", "secondAnnotatedOverride"),
+              new DropdownChoice(
+                  "Nested annotated sealed type override", "nestedAnnotatedSealedType"));
 
       var firstSubTypeValueProperty =
           template.properties().stream()
@@ -501,6 +536,48 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
               .orElseThrow();
       assertThat(secondSubTypeValueProperty.getCondition())
           .isEqualTo(new Equals(discriminatorProperty.getId(), "secondAnnotatedOverride"));
+
+      var nestedSubTypeDiscriminator =
+          template.properties().stream()
+              .filter(p -> "Nested discriminator property".equals(p.getLabel()))
+              .findFirst()
+              .orElseThrow();
+
+      assertThat(nestedSubTypeDiscriminator.getCondition())
+          .isEqualTo(new Equals(discriminatorProperty.getId(), "nestedAnnotatedSealedType"));
+
+      var nestedSubTypeValueProperty =
+          template.properties().stream()
+              .filter(p -> "First nested sub type override value".equals(p.getLabel()))
+              .findFirst()
+              .orElseThrow();
+
+      assertThat(nestedSubTypeValueProperty.getCondition()).isInstanceOf(AllMatch.class);
+      assertThat(((AllMatch) nestedSubTypeValueProperty.getCondition()).allMatch())
+          .containsExactlyInAnyOrder(
+              new Equals(discriminatorProperty.getId(), "nestedAnnotatedSealedType"),
+              new Equals(nestedSubTypeDiscriminator.getId(), "firstNestedSubTypeOverride"),
+              new Equals("annotatedStringProperty", "value"));
+    }
+
+    @Test
+    void discriminatorProperty_withCondition() {
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).get(0);
+      var discriminatorProperty =
+          template.properties().stream()
+              .filter(p -> "Conditional discriminator".equals(p.getLabel()))
+              .findFirst()
+              .orElseThrow();
+
+      assertThat(discriminatorProperty).isInstanceOf(DropdownProperty.class);
+      assertThat(discriminatorProperty.getType()).isEqualTo("Dropdown");
+      assertThat(((DropdownProperty) discriminatorProperty).getChoices())
+          .containsExactlyInAnyOrder(
+              new DropdownChoice("Conditional sub type", "conditionalSubType"));
+
+      var annotatedStringProperty =
+          assertThat(discriminatorProperty.getCondition())
+              .isEqualTo(new Equals("annotatedStringProperty", "value"));
     }
   }
 
