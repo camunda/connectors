@@ -94,7 +94,7 @@ public class BodyUtilTest {
     // then
     assertThat(result).isInstanceOf(BodyUtil.BodyParseResult.Detailed.class);
     var detailedResult = (BodyUtil.BodyParseResult.Detailed) result;
-    assertThat(detailedResult.feelBuilder().build()).isEqualTo("=\"{\"+\"foo\"+\":\"+foo+\"}\"");
+    assertThat(detailedResult.feelBuilder().build()).isEqualTo("={foo:foo}");
     assertThat(detailedResult.properties()).hasSize(1);
     assertThat(detailedResult.properties().get(0).id()).isEqualTo("foo");
     assertThat(detailedResult.properties().get(0).target())

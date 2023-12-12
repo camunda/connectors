@@ -141,7 +141,7 @@ public class OperationUtil {
       HttpFeelBuilder bodyFeelExpression = null;
 
       if (body instanceof BodyParseResult.Raw raw) {
-        bodyFeelExpression = HttpFeelBuilder.create().part(raw.rawBody());
+        bodyFeelExpression = HttpFeelBuilder.preFormatted("=" + raw.rawBody());
       } else {
         bodyFeelExpression = ((BodyParseResult.Detailed) body).feelBuilder();
         properties.addAll(((BodyParseResult.Detailed) body).properties());
@@ -165,7 +165,7 @@ public class OperationUtil {
   private static HttpFeelBuilder extractPath(String rawPath) {
     // split path into parts, each part is either a variable or a constant
     String[] pathParts = rawPath.split("\\{");
-    var builder = HttpFeelBuilder.create();
+    var builder = HttpFeelBuilder.string();
     if (pathParts.length == 1) {
       // no variables
       builder.part(rawPath);

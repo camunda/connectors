@@ -84,17 +84,16 @@ public class BodyUtil {
 
   private static Detailed buildDetailedBody(Schema<?> schema, Components components) {
 
-    var feelBuilder = HttpFeelBuilder.create();
+    HttpFeelBuilder feelBuilder = null;
 
     List<HttpOperationProperty> properties = new ArrayList<>();
 
     if (schema.getProperties() != null) {
+      var contextBuilder = HttpFeelBuilder.context();
 
-      feelBuilder.part("{");
       var entries = schema.getProperties().entrySet().stream().toList();
 
-      for (int i = 0; i < entries.size(); i++) {
-        var entry = entries.get(i);
+      for (java.util.Map.Entry<String, Schema> entry : entries) {
         var propertySchema = ParameterUtil.getSchemaOrFromComponents(entry.getValue(), components);
         var name = entry.getKey();
         if ("object".equals(propertySchema.getType()) || "array".equals(propertySchema.getType())) {
@@ -103,15 +102,12 @@ public class BodyUtil {
         }
         var property = fromSchema(name, propertySchema, components);
         properties.add(property);
-        feelBuilder.part(name).part(":").property(name);
-        if (i < entries.size() - 1) {
-          feelBuilder.part(",");
-        }
+        contextBuilder.property(name, property.id());
+        feelBuilder = contextBuilder;
       }
-      feelBuilder.part("}");
     } else {
       properties.add(fromSchema("body", schema, components));
-      feelBuilder.property("body");
+      feelBuilder = HttpFeelBuilder.string().property("body");
     }
     return new Detailed(feelBuilder, properties);
   }

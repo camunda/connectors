@@ -26,63 +26,29 @@ import java.util.stream.Collectors;
  * Fluent API to avoid the complex string transformations when creating HTTP path or body FEEL
  * expressions.
  */
-public class HttpFeelBuilder {
+public abstract class HttpFeelBuilder {
 
-  private final StringBuilder sb = new StringBuilder();
-  private final Set<String> propertySet = new HashSet<>();
+  protected final StringBuilder sb = new StringBuilder();
+  protected final Set<String> propertySet = new HashSet<>();
   private static final FeelEngineWrapper feelEngineWrapper = new FeelEngineWrapper();
 
   public static final String FEEL_OPERATOR_CHARACTERS = "!=<>+-*/[]{}@ ";
 
-  private HttpFeelBuilder() {}
-
-  public static HttpFeelBuilder create() {
-    return new HttpFeelBuilder();
+  public static HttpFeelStringBuilder string() {
+    return new HttpFeelStringBuilder();
   }
 
-  /** Add a constant part to the FEEL expression */
-  public HttpFeelBuilder part(String part) {
-    if (sb.isEmpty()) {
-      sb.append("=");
-    } else {
-      sb.append("+");
-    }
-    sb.append("\"");
-    sb.append(part);
-    sb.append("\"");
-    return this;
+  public static HttpFeelContextBuilder context() {
+    return new HttpFeelContextBuilder();
   }
 
-  /** Add a variable property to the FEEL expression */
-  public HttpFeelBuilder property(String property) {
-    if (property == null || property.isEmpty()) {
-      throw new IllegalArgumentException("Property must not be null or empty");
-    }
-    for (char c : FEEL_OPERATOR_CHARACTERS.toCharArray()) {
-      if (property.contains(String.valueOf(c))) {
-        throw new IllegalArgumentException(
-            "Property must not contain FEEL operator characters: " + FEEL_OPERATOR_CHARACTERS);
+  public static HttpFeelBuilder preFormatted(String preFormatted) {
+    return new HttpFeelBuilder() {
+      @Override
+      public String build() {
+        return preFormatted;
       }
-    }
-    if (sb.isEmpty()) {
-      sb.append("=");
-    } else {
-      sb.append("+");
-    }
-    sb.append(property);
-    propertySet.add(property);
-    return this;
-  }
-
-  /** Append a '/' slash symbol, useful for URLs */
-  public HttpFeelBuilder slash() {
-    if (sb.isEmpty()) {
-      sb.append("=");
-    } else {
-      sb.append("+");
-    }
-    sb.append("\"/\"");
-    return this;
+    };
   }
 
   /** Transform into a FEEL expression string */
@@ -96,5 +62,76 @@ public class HttpFeelBuilder {
     Map<String, String> mockPropertyContext =
         propertyList.stream().collect(Collectors.toMap(property -> property, property -> "mock"));
     feelEngineWrapper.evaluate(expression, mockPropertyContext);
+  }
+
+  public static class HttpFeelStringBuilder extends HttpFeelBuilder {
+
+    /** Add a constant part to the FEEL expression */
+    public HttpFeelStringBuilder part(String part) {
+      if (sb.isEmpty()) {
+        sb.append("=");
+      } else {
+        sb.append("+");
+      }
+      sb.append("\"");
+      sb.append(part);
+      sb.append("\"");
+      return this;
+    }
+
+    /** Add a variable property to the FEEL expression */
+    public HttpFeelStringBuilder property(String property) {
+      if (property == null || property.isEmpty()) {
+        throw new IllegalArgumentException("Property must not be null or empty");
+      }
+      for (char c : FEEL_OPERATOR_CHARACTERS.toCharArray()) {
+        if (property.contains(String.valueOf(c))) {
+          throw new IllegalArgumentException(
+              "Property must not contain FEEL operator characters: " + FEEL_OPERATOR_CHARACTERS);
+        }
+      }
+      if (sb.isEmpty()) {
+        sb.append("=");
+      } else {
+        sb.append("+");
+      }
+      sb.append(property);
+      propertySet.add(property);
+      return this;
+    }
+
+    /** Append a '/' slash symbol, useful for URLs */
+    public HttpFeelStringBuilder slash() {
+      if (sb.isEmpty()) {
+        sb.append("=");
+      } else {
+        sb.append("+");
+      }
+      sb.append("\"/\"");
+      return this;
+    }
+  }
+
+  public static class HttpFeelContextBuilder extends HttpFeelBuilder {
+
+    public HttpFeelContextBuilder property(String targetName, String propertySourceName) {
+      if (sb.isEmpty()) {
+        sb.append("={");
+      } else {
+        sb.append(",");
+      }
+      sb.append(targetName);
+      sb.append(":");
+      sb.append(propertySourceName);
+
+      propertySet.add(propertySourceName);
+      return this;
+    }
+
+    @Override
+    public String build() {
+      sb.append("}");
+      return super.build();
+    }
   }
 }
