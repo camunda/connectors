@@ -41,7 +41,7 @@ Run `congen -h` to see the usage information and a list of available parameters.
 The following command will invoke the generator named `openapi-outbound` and pass the specified OpenAPI specification.
 
 ```shell
-congen openapi-outbound generate https://petstore3.swagger.io/api/v3/openapi.json
+congen generate openapi-outbound https://petstore3.swagger.io/api/v3/openapi.json
 ```
 
 Note that `congen` will pass all parameters specified after the command name to the generator implementation.
@@ -51,11 +51,14 @@ followed by an optional list of operation IDs to include in the generated templa
 The following command will ask the generator to include only the `findPetsById` and `addPet` operations.
 
 ```shell
-congen openapi-outbound generate https://petstore3.swagger.io/api/v3/openapi.json findPetsById addPet
+congen generate openapi-outbound https://petstore3.swagger.io/api/v3/openapi.json findPetsById addPet
 ```
 
 The command below will generate the template with the custom element template ID.
 
 ```shell
-congen --id my-element-template openapi-outbound generate https://petstore3.swagger.io/api/v3/openapi.json
+congen --id my-element-template generate openapi-outbound https://petstore3.swagger.io/api/v3/openapi.json
 ```
+
+Refer to the [OpenAPI generator documentation](../openapi-parser/README.md) for more information on
+how to use it.
