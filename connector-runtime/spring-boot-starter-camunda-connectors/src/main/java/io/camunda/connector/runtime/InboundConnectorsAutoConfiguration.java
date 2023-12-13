@@ -69,28 +69,28 @@ public class InboundConnectorsAutoConfiguration {
   }
 
   private OperateClientConfigurationProperties operatePropertiesProxy(
-      OperateClientConfigurationProperties properties,
-      Identity identity) {
-    return (OperateClientConfigurationProperties) Proxy.newProxyInstance(
-        OperateClientConfigurationProperties.class.getClassLoader(),
-        new Class[] {OperateClientConfigurationProperties.class},
-        (proxy, method, args) -> {
-          try {
-            if (method.getReturnType().equals(AuthInterface.class)
-                && identity.authentication().isAvailable()) {
-              return new IdentityAuth(identity, operateAudience);
-            }
+      OperateClientConfigurationProperties properties, Identity identity) {
+    return (OperateClientConfigurationProperties)
+        Proxy.newProxyInstance(
+            OperateClientConfigurationProperties.class.getClassLoader(),
+            new Class[] {OperateClientConfigurationProperties.class},
+            (proxy, method, args) -> {
+              try {
+                if (method.getReturnType().equals(AuthInterface.class)
+                    && identity.authentication().isAvailable()) {
+                  return new IdentityAuth(identity, operateAudience);
+                }
 
-            return method.invoke(properties, args);
-          } catch (final InvocationTargetException e) {
-            throw e.getCause();
-          }
-        });
+                return method.invoke(properties, args);
+              } catch (final InvocationTargetException e) {
+                throw e.getCause();
+              }
+            });
   }
 
   private static class IdentityAuth extends JwtAuthentication {
-    final private Identity identity;
-    final private String audience;
+    private final Identity identity;
+    private final String audience;
 
     public IdentityAuth(Identity identity, String audience) {
       this.identity = identity;
