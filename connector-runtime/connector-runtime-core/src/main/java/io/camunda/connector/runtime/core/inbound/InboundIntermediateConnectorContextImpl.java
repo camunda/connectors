@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.core.inbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
@@ -28,6 +29,7 @@ import io.camunda.connector.runtime.core.inbound.correlation.BoundaryEventCorrel
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -36,16 +38,15 @@ import java.util.stream.Collectors;
  * InboundConnectorContext} and enables runtime updates of context properties from Operate.
  */
 public class InboundIntermediateConnectorContextImpl
-    implements InboundIntermediateConnectorContext {
-
-  private final InboundConnectorContext inboundContext;
+    implements InboundIntermediateConnectorContext, InboundConnectorReportingContext {
+  private final InboundConnectorReportingContext inboundContext;
   private final OperateClientAdapter operateClient;
   private final ValidationProvider validationProvider;
   private final ObjectMapper objectMapper;
   private final InboundCorrelationHandler correlationHandler;
 
   public InboundIntermediateConnectorContextImpl(
-      final InboundConnectorContext inboundContext,
+      final InboundConnectorReportingContext inboundContext,
       final OperateClientAdapter operateClient,
       final ValidationProvider validationProvider,
       final ObjectMapper objectMapper,
@@ -121,5 +122,15 @@ public class InboundIntermediateConnectorContextImpl
   @Override
   public Health getHealth() {
     return inboundContext.getHealth();
+  }
+
+  @Override
+  public void log(Activity log) {
+    inboundContext.log(log);
+  }
+
+  @Override
+  public Queue<Activity> getLogs() {
+    return inboundContext.getLogs();
   }
 }

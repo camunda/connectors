@@ -19,15 +19,19 @@ package io.camunda.connector.test.inbound;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.CorrelationResult.Success;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
+import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
+import io.camunda.connector.api.inbound.ProcessInstanceContext;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorReportingContext;
 import io.camunda.connector.test.ConnectorContextTestUtil;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -35,6 +39,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /** Test helper class for creating an {@link InboundConnectorContext} with a fluent API. */
 public class InboundConnectorContextBuilder {
@@ -184,7 +190,7 @@ public class InboundConnectorContextBuilder {
   }
 
   public class TestInboundConnectorContext extends AbstractConnectorContext
-      implements InboundConnectorContext {
+      implements InboundConnectorContext, InboundConnectorReportingContext {
 
     private final List<Object> correlatedEvents = new ArrayList<>();
 
@@ -268,6 +274,36 @@ public class InboundConnectorContextBuilder {
     @Override
     public Health getHealth() {
       return health;
+    }
+
+    @Override
+    public void log(Activity activity) {}
+
+    @Override
+    public Queue<Activity> getLogs() {
+      return new ConcurrentLinkedQueue<>();
+    }
+  }
+
+  /**
+   * @return the {@link io.camunda.connector.api.inbound.InboundIntermediateConnectorContext}
+   *     including all previously defined properties
+   */
+  public TestInboundIntermediateConnectorContext buildIntermediateConnectorContext() {
+    return new TestInboundIntermediateConnectorContext(secretProvider, validationProvider);
+  }
+
+  public class TestInboundIntermediateConnectorContext extends TestInboundConnectorContext
+      implements InboundIntermediateConnectorContext {
+
+    protected TestInboundIntermediateConnectorContext(
+        SecretProvider secretProvider, ValidationProvider validationProvider) {
+      super(secretProvider, validationProvider, result);
+    }
+
+    @Override
+    public List<ProcessInstanceContext> getProcessInstanceContexts() {
+      return null;
     }
   }
 }

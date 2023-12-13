@@ -30,6 +30,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.EvictingQueue;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
@@ -146,7 +147,7 @@ public class InboundConnectorManagerTest {
     assertTrue(manager.isProcessDefinitionRegistered(process.getKey()));
     assertTrue(
         manager
-            .query(new ActiveInboundConnectorQuery(process.getBpmnProcessId(), null, null))
+            .query(new ActiveInboundConnectorQuery(process.getBpmnProcessId(), null, null, null))
             .isEmpty());
 
     verify(inboundConnectorExecutable, times(1)).activate(eq(inboundContext(connector)));
@@ -211,7 +212,7 @@ public class InboundConnectorManagerTest {
     // Then
     verify(webhookConnectorExecutable, times(0)).activate(eq(inboundContext(webhook)));
 
-    var query = new ActiveInboundConnectorQuery("webhook1", null, null);
+    var query = new ActiveInboundConnectorQuery("webhook1", null, null, null);
     var activeInboundConnectors = manager.query(query);
     assertEquals(
         "webhook1", activeInboundConnectors.get(0).context().getDefinition().bpmnProcessId());
@@ -219,7 +220,13 @@ public class InboundConnectorManagerTest {
 
   private InboundConnectorContext inboundContext(InboundConnectorDefinitionImpl definition) {
     return new InboundConnectorContextImpl(
-        secretProviderAggregator, v -> {}, definition, correlationHandler, (event) -> {}, mapper);
+        secretProviderAggregator,
+        v -> {},
+        definition,
+        correlationHandler,
+        (event) -> {},
+        mapper,
+        EvictingQueue.create(10));
   }
 
   private static final InboundConnectorConfiguration connectorConfig =

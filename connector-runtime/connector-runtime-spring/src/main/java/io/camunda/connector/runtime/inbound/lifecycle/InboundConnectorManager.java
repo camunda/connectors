@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.inbound.lifecycle;
 
+import com.google.common.collect.EvictingQueue;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
@@ -37,12 +38,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 
 public class InboundConnectorManager {
 
@@ -58,6 +61,9 @@ public class InboundConnectorManager {
   private final Map<Long, Set<ActiveInboundConnector>> activeConnectorsByProcDefKey =
       new HashMap<>();
   private Set<Long> registeredProcessDefinitions = new HashSet<>();
+
+  @Value("${camunda.connector.inbound.log.size:10}")
+  private int inboundLogsSize;
 
   public InboundConnectorManager(
       InboundConnectorFactory connectorFactory,
@@ -124,7 +130,10 @@ public class InboundConnectorManager {
 
     InboundConnectorContext inboundContext =
         connectorContextFactory.createContext(
-            newConnector, cancellationCallback, executable.getClass());
+            newConnector,
+            cancellationCallback,
+            executable.getClass(),
+            EvictingQueue.create(inboundLogsSize));
 
     var connector = new ActiveInboundConnector(executable, inboundContext);
 
@@ -143,7 +152,6 @@ public class InboundConnectorManager {
         webhookConnectorRegistry.register(connector);
         LOG.trace("Registering webhook: " + newConnector.type());
       }
-      inboundContext.reportHealth(Health.up());
       metricsRecorder.increase(
           Inbound.METRIC_NAME_ACTIVATIONS, Inbound.ACTION_ACTIVATED, newConnector.type());
     } catch (Exception e) {
@@ -209,8 +217,25 @@ public class InboundConnectorManager {
   public List<ActiveInboundConnector> query(ActiveInboundConnectorQuery request) {
     var filteredByBpmnProcessId = filterByBpmnProcessId(request.bpmnProcessId());
     var filteredByType = filterByConnectorType(filteredByBpmnProcessId, request.type());
-    return filterByElementId(filteredByType, request.elementId());
+    var filteredByTenantId = filterByTenantId(filteredByType, request.tenantId());
+    return filterByElementId(filteredByTenantId, request.elementId());
   }
+
+  private List<ActiveInboundConnector> filterByTenantId(
+      List<ActiveInboundConnector> connectors, String tenantId) {
+    if (tenantId == null) {
+      return connectors;
+    }
+    return connectors.stream()
+        .filter(r -> tenantIdMatch.test(r, tenantId))
+        .collect(Collectors.toList());
+  }
+
+  private BiPredicate<ActiveInboundConnector, String> tenantIdMatch =
+      (connector, tenantId) -> {
+        var definition = connector.context().getDefinition();
+        return tenantId != null && tenantId.equals(definition.tenantId());
+      };
 
   private List<ActiveInboundConnector> filterByBpmnProcessId(String bpmnProcessId) {
     if (bpmnProcessId != null) {

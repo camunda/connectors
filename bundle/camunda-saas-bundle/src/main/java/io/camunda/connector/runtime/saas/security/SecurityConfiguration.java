@@ -57,7 +57,9 @@ public class SecurityConfiguration {
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
     http.csrf(csrf -> csrf.ignoringRequestMatchers("/inbound/**"))
         .authorizeHttpRequests(
-            auth -> auth.requestMatchers("/inbound").hasAuthority("SCOPE_inbound:read"))
+            auth -> {
+              auth.requestMatchers("/inbound", "/tenants/**").hasAuthority("SCOPE_inbound:read");
+            })
         .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.decoder(jwtDecoder())));
     return http.build();
   }

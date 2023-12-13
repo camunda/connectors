@@ -19,6 +19,7 @@ package io.camunda.connector.runtime.core.inbound;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.EvictingQueue;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
@@ -59,7 +60,10 @@ class DefaultInboundConnectorContextFactoryTest {
   void shouldCreateInboundConnectorContext() {
     InboundConnectorContext result =
         factory.createContext(
-            newConnector, cancellationCallback, ExecutableWithInboundContext.class);
+            newConnector,
+            cancellationCallback,
+            ExecutableWithInboundContext.class,
+            EvictingQueue.create(10));
 
     assertThat(result).isExactlyInstanceOf(InboundConnectorContextImpl.class);
   }
@@ -68,7 +72,10 @@ class DefaultInboundConnectorContextFactoryTest {
   void shouldCreateInboundConnectorContextWhenParameterizedTypeIsEmpty() {
     InboundConnectorContext result =
         factory.createContext(
-            newConnector, cancellationCallback, ExecutableWithEmptyParameterizedType.class);
+            newConnector,
+            cancellationCallback,
+            ExecutableWithEmptyParameterizedType.class,
+            EvictingQueue.create(10));
 
     assertThat(result).isExactlyInstanceOf(InboundConnectorContextImpl.class);
   }
@@ -77,7 +84,11 @@ class DefaultInboundConnectorContextFactoryTest {
   void shouldCreateInboundIntermediateConnectorContext() {
 
     InboundConnectorContext result =
-        factory.createContext(newConnector, cancellationCallback, ExecutableWithIntermediate.class);
+        factory.createContext(
+            newConnector,
+            cancellationCallback,
+            ExecutableWithIntermediate.class,
+            EvictingQueue.create(10));
 
     assertThat(result).isExactlyInstanceOf(InboundIntermediateConnectorContextImpl.class);
   }

@@ -16,17 +16,18 @@
  */
 package io.camunda.connector.runtime.inbound.lifecycle;
 
+import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorReportingContext;
 import io.camunda.connector.runtime.inbound.webhook.model.CommonWebhookProperties;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Queue;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -45,36 +46,62 @@ public class InboundConnectorRestController {
       @RequestParam(required = false) String bpmnProcessId,
       @RequestParam(required = false) String elementId,
       @RequestParam(required = false) String type) {
-    var result =
-        inboundManager.query(new ActiveInboundConnectorQuery(bpmnProcessId, elementId, type));
-    return result.stream().map(this::mapToResponse).collect(Collectors.toList());
+    return getActiveInboundConnectors(bpmnProcessId, elementId, type, null);
   }
 
-  private ActiveInboundConnectorResponse mapToResponse(ActiveInboundConnector connector) {
-    var definition = connector.context().getDefinition();
-    var health = connector.context().getHealth();
-    Map<String, Object> details;
+  @GetMapping("/tenants/{tenantId}/inbound")
+  public List<ActiveInboundConnectorResponse> getActiveInboundConnectorsForTenantId(
+      @PathVariable String tenantId,
+      @RequestParam(required = false) String bpmnProcessId,
+      @RequestParam(required = false) String elementId,
+      @RequestParam(required = false) String type) {
+    return getActiveInboundConnectors(bpmnProcessId, elementId, type, tenantId);
+  }
+
+  @GetMapping("/tenants/{tenantId}/inbound/{bpmnProcessId}/{elementId}/logs")
+  public List<Queue<Activity>> getActiveInboundConnectorLogs(
+      @PathVariable String tenantId,
+      @PathVariable String bpmnProcessId,
+      @PathVariable String elementId) {
+    var result =
+        inboundManager.query(
+            new ActiveInboundConnectorQuery(bpmnProcessId, elementId, null, tenantId));
+    return result.stream()
+        .map(connector -> ((InboundConnectorReportingContext) connector.context()).getLogs())
+        .collect(Collectors.toList());
+  }
+
+  private List<ActiveInboundConnectorResponse> getActiveInboundConnectors(
+      String bpmnProcessId, String elementId, String type, String tenantId) {
+    var result =
+        inboundManager.query(
+            new ActiveInboundConnectorQuery(bpmnProcessId, elementId, type, tenantId));
+    return result.stream().map(this::mapToInboundResponse).collect(Collectors.toList());
+  }
+
+  private Map<String, Object> getData(ActiveInboundConnector connector) {
+    Map<String, Object> data = Map.of();
     if (connector.executable() instanceof WebhookConnectorExecutable) {
-      details =
-          new HashMap<>(Optional.ofNullable(health.getDetails()).orElse(Collections.emptyMap()));
       try {
         var castedProps = connector.context().bindProperties(CommonWebhookProperties.class);
-        var path = Optional.ofNullable(castedProps.getContext());
-        details.put("path", path.orElse(""));
+        data = Map.of("path", castedProps.getContext());
       } catch (Exception e) {
         LOG.error("ERROR: webhook connector doesn't have context path property", e);
-        details.put("path", "");
       }
-    } else {
-      details = health.getDetails();
     }
+    return data;
+  }
+
+  private ActiveInboundConnectorResponse mapToInboundResponse(ActiveInboundConnector connector) {
+    var definition = connector.context().getDefinition();
+    var health = ((InboundConnectorReportingContext) connector.context()).getHealth();
     return new ActiveInboundConnectorResponse(
         definition.bpmnProcessId(),
         definition.version(),
         definition.elementId(),
         definition.type(),
         definition.tenantId(),
-        details,
-        health.getStatus());
+        getData(connector),
+        health);
   }
 }

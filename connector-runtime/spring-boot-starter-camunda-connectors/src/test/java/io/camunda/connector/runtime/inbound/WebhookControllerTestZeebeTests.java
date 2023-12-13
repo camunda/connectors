@@ -26,6 +26,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.EvictingQueue;
 import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.VerifiableWebhook;
@@ -99,7 +100,13 @@ class WebhookControllerTestZeebeTests {
     var webhookDef = webhookDefinition("processA", 1, "myPath");
     var webhookContext =
         new InboundConnectorContextImpl(
-            secretProvider, v -> {}, webhookDef, correlationHandler, (e) -> {}, mapper);
+            secretProvider,
+            v -> {},
+            webhookDef,
+            correlationHandler,
+            (e) -> {},
+            mapper,
+            EvictingQueue.create(10));
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
@@ -133,7 +140,13 @@ class WebhookControllerTestZeebeTests {
     var webhookDef = webhookDefinition("processA", 1, "myPath");
     var webhookContext =
         new InboundConnectorContextImpl(
-            secretProvider, v -> {}, webhookDef, correlationHandler, (e) -> {}, mapper);
+            secretProvider,
+            v -> {},
+            webhookDef,
+            correlationHandler,
+            (e) -> {},
+            mapper,
+            EvictingQueue.create(10));
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
@@ -174,7 +187,13 @@ class WebhookControllerTestZeebeTests {
     var webhookDef = webhookDefinition("nonExistingProcess", 1, "myPath");
     var webhookContext =
         new InboundConnectorContextImpl(
-            secretProvider, v -> {}, webhookDef, correlationHandlerMock, (e) -> {}, mapper);
+            secretProvider,
+            v -> {},
+            webhookDef,
+            correlationHandlerMock,
+            (e) -> {},
+            mapper,
+            EvictingQueue.create(10));
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
@@ -206,7 +225,13 @@ class WebhookControllerTestZeebeTests {
     var webhookDef = webhookDefinition("processA", 1, "myPath");
     var webhookContext =
         new InboundConnectorContextImpl(
-            secretProvider, v -> {}, webhookDef, correlationHandler, (e) -> {}, mapper);
+            secretProvider,
+            v -> {},
+            webhookDef,
+            correlationHandler,
+            (e) -> {},
+            mapper,
+            EvictingQueue.create(10));
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
@@ -238,7 +263,13 @@ class WebhookControllerTestZeebeTests {
     var webhookDefinition = webhookDefinition("processA", 1, "myPath");
     var webhookContext =
         new InboundConnectorContextImpl(
-            secretProvider, v -> {}, webhookDefinition, correlationHandler, (e) -> {}, mapper);
+            secretProvider,
+            v -> {},
+            webhookDefinition,
+            correlationHandler,
+            (e) -> {},
+            mapper,
+            EvictingQueue.create(10));
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
@@ -265,7 +296,13 @@ class WebhookControllerTestZeebeTests {
     var webhookDef = webhookDefinition("processA", 1, "myPath");
     var webhookContext =
         new InboundConnectorContextImpl(
-            secretProvider, v -> {}, webhookDef, correlationHandler, (e) -> {}, mapper);
+            secretProvider,
+            v -> {},
+            webhookDef,
+            correlationHandler,
+            (e) -> {},
+            mapper,
+            EvictingQueue.create(10));
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
@@ -294,7 +331,13 @@ class WebhookControllerTestZeebeTests {
     var webhookDef = webhookDefinition("processA", 1, "myPath");
     var webhookContext =
         new InboundConnectorContextImpl(
-            secretProvider, v -> {}, webhookDef, correlationHandler, (e) -> {}, mapper);
+            secretProvider,
+            v -> {},
+            webhookDef,
+            correlationHandler,
+            (e) -> {},
+            mapper,
+            EvictingQueue.create(10));
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
@@ -337,7 +380,13 @@ class WebhookControllerTestZeebeTests {
     var webhookDef = webhookDefinition("processA", 1, "myPath");
     var webhookContext =
         new InboundConnectorContextImpl(
-            secretProvider, v -> {}, webhookDef, correlationHandler, (e) -> {}, mapper);
+            secretProvider,
+            v -> {},
+            webhookDef,
+            correlationHandler,
+            (e) -> {},
+            mapper,
+            EvictingQueue.create(10));
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(

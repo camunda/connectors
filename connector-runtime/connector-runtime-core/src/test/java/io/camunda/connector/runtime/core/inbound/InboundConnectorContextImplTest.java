@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.EvictingQueue;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.feel.annotation.FEEL;
@@ -49,7 +50,13 @@ class InboundConnectorContextImplTest {
             "");
     InboundConnectorContextImpl inboundConnectorContext =
         new InboundConnectorContextImpl(
-            secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper);
+            secretProvider,
+            (e) -> {},
+            definition,
+            null,
+            (e) -> {},
+            mapper,
+            EvictingQueue.create(10));
     // when and then
     RuntimeException exception =
         assertThrows(
@@ -72,7 +79,13 @@ class InboundConnectorContextImplTest {
             "");
     InboundConnectorContextImpl inboundConnectorContext =
         new InboundConnectorContextImpl(
-            secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper);
+            secretProvider,
+            (e) -> {},
+            definition,
+            null,
+            (e) -> {},
+            mapper,
+            EvictingQueue.create(10));
     // when
     TestPropertiesClass propertiesAsType =
         inboundConnectorContext.bindProperties(TestPropertiesClass.class);
@@ -97,7 +110,13 @@ class InboundConnectorContextImplTest {
             "");
     InboundConnectorContextImpl inboundConnectorContext =
         new InboundConnectorContextImpl(
-            secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper);
+            secretProvider,
+            (e) -> {},
+            definition,
+            null,
+            (e) -> {},
+            mapper,
+            EvictingQueue.create(10));
     // when
     TestPropertiesClass propertiesAsType =
         inboundConnectorContext.bindProperties(TestPropertiesClass.class);
@@ -140,7 +159,13 @@ class InboundConnectorContextImplTest {
             "");
     InboundConnectorContextImpl inboundConnectorContext =
         new InboundConnectorContextImpl(
-            secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper);
+            secretProvider,
+            (e) -> {},
+            definition,
+            null,
+            (e) -> {},
+            mapper,
+            EvictingQueue.create(10));
     // when
     TestPropertiesClass propertiesAsType =
         inboundConnectorContext.bindProperties(TestPropertiesClass.class);
@@ -163,7 +188,13 @@ class InboundConnectorContextImplTest {
 
     InboundConnectorContextImpl inboundConnectorContext =
         new InboundConnectorContextImpl(
-            secretProvider, (e) -> {}, definition, null, (e) -> {}, mapper);
+            secretProvider,
+            (e) -> {},
+            definition,
+            null,
+            (e) -> {},
+            mapper,
+            EvictingQueue.create(10));
 
     // when
     Map<String, Object> properties = inboundConnectorContext.getProperties();

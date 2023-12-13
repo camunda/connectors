@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.http.polling.task;
 
+import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.api.inbound.ProcessInstanceContext;
 import io.camunda.connector.http.base.services.HttpService;
@@ -50,9 +51,11 @@ public class ProcessInstancesFetcherTask implements Runnable {
       if (processInstanceContexts != null) {
         removeInactiveTasks(processInstanceContexts);
         processInstanceContexts.forEach(this::scheduleRequest);
+        context.reportHealth(Health.up("Process instances", processInstanceContexts.size()));
       }
     } catch (Exception e) {
       LOGGER.error("An error occurred: {}", e.getMessage(), e);
+      context.reportHealth(Health.down(e));
     }
   }
 
@@ -77,7 +80,7 @@ public class ProcessInstancesFetcherTask implements Runnable {
     runningHttpRequestTaskIds.computeIfAbsent(
         taskKey,
         (key) -> {
-          var task = new HttpRequestTask(httpService, processInstanceContext);
+          var task = new HttpRequestTask(httpService, processInstanceContext, this.context);
           return this.executorService
               .getExecutorService()
               .scheduleWithFixedDelay(
