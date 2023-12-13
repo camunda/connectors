@@ -162,7 +162,7 @@ public class ParameterUtil {
         return nested;
       }
       case "array" -> {
-        var items = schema.getItems();
+        var items = getSchemaOrFromComponents(schema.getItems(), components);
         if (items.getEnum() != null && !items.getEnum().isEmpty()) {
           return items.getEnum();
         }

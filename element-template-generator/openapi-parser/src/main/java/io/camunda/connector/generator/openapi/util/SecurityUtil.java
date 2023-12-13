@@ -54,13 +54,6 @@ public class SecurityUtil {
               }
               return true;
             })
-        .peek(
-            s -> {
-              if (s.size() > 1) {
-                throw new IllegalArgumentException(
-                    "Only one SecurityScheme per SecurityRequirement object is supported");
-              }
-            })
         .flatMap(s -> s.entrySet().stream())
         .map(
             schemeRef -> {
