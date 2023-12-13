@@ -27,8 +27,8 @@ import io.camunda.connector.runtime.core.inbound.correlation.MessageStartEventCo
 import io.camunda.connector.runtime.core.inbound.correlation.ProcessCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.correlation.StartEventCorrelationPoint;
 import io.camunda.operate.CamundaOperateClient;
-import io.camunda.operate.dto.ProcessDefinition;
 import io.camunda.operate.exception.OperateException;
+import io.camunda.operate.model.ProcessDefinition;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.BaseElement;
 import io.camunda.zeebe.model.bpmn.instance.BoundaryEvent;

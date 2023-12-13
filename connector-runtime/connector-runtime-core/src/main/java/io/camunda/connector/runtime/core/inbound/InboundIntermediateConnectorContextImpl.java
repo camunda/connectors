@@ -27,6 +27,7 @@ import io.camunda.connector.api.inbound.ProcessInstanceContext;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.inbound.correlation.BoundaryEventCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
+import io.camunda.operate.model.FlowNodeInstance;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
@@ -77,7 +78,7 @@ public class InboundIntermediateConnectorContextImpl
 
   private ProcessInstanceContext createProcessInstanceContext(FlowNodeInstance node) {
     Supplier<Map<String, Object>> variableSupplier =
-        () -> operateClient.fetchVariablesByProcessInstanceKey(node.processInstanceKey());
+        () -> operateClient.fetchVariablesByProcessInstanceKey(node.getProcessInstanceKey());
 
     return new DefaultProcessInstanceContext(
         this, node, validationProvider, correlationHandler, objectMapper, variableSupplier);

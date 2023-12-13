@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.core.inbound;
 
+import io.camunda.operate.model.FlowNodeInstance;
 import java.util.List;
 import java.util.Map;
 

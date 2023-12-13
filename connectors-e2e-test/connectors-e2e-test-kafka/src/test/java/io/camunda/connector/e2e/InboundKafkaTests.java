@@ -21,8 +21,8 @@ import static org.mockito.Mockito.when;
 
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.e2e.helper.KafkaTestProducer;
-import io.camunda.operate.dto.ProcessDefinition;
 import io.camunda.operate.exception.OperateException;
+import io.camunda.operate.model.ProcessDefinition;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.Process;
 import io.camunda.zeebe.process.test.assertions.BpmnAssert;

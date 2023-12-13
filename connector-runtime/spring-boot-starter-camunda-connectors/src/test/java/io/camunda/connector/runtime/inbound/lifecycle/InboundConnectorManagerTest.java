@@ -53,7 +53,7 @@ import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionInspector;
 import io.camunda.connector.runtime.inbound.operate.OperateClientAdapterImpl;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.operate.CamundaOperateClient;
-import io.camunda.operate.dto.ProcessDefinition;
+import io.camunda.operate.model.ProcessDefinition;
 import io.camunda.zeebe.spring.client.metrics.DefaultNoopMetricsRecorder;
 import java.util.Collections;
 import java.util.Map;

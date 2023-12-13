@@ -35,10 +35,9 @@
       <groupId>io.camunda.spring</groupId>
       <artifactId>spring-client-zeebe</artifactId>
     </dependency>
-
     <dependency>
-      <groupId>io.camunda</groupId>
-      <artifactId>camunda-operate-client-java</artifactId>
+      <groupId>io.camunda.spring</groupId>
+      <artifactId>java-client-operate</artifactId>
     </dependency>
 
     <dependency>
