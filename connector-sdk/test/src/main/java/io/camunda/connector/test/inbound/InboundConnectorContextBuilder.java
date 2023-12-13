@@ -298,7 +298,7 @@ public class InboundConnectorContextBuilder {
 
     protected TestInboundIntermediateConnectorContext(
         SecretProvider secretProvider, ValidationProvider validationProvider) {
-      super(secretProvider, validationProvider);
+      super(secretProvider, validationProvider, result);
     }
 
     @Override
