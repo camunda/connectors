@@ -118,7 +118,8 @@ public class InboundCorrelationHandler {
               .join();
 
       LOG.info("Created a process instance with key" + result.getProcessInstanceKey());
-      return CorrelationResult.Success.INSTANCE;
+      return new CorrelationResult.Success.ProcessInstanceCreated(
+          result.getProcessInstanceKey(), result.getTenantId());
 
     } catch (ClientStatusException e1) {
       LOG.info("Failed to publish message: ", e1);
@@ -148,11 +149,11 @@ public class InboundCorrelationHandler {
     }
 
     Object extractedVariables = extractVariables(variables, definition);
-
+    CorrelationResult result;
     try {
       var correlationKey =
           extractCorrelationKey(correlationPoint.correlationKeyExpression(), variables);
-      PublishMessageResponse result =
+      PublishMessageResponse response =
           zeebeClient
               .newPublishMessageCommand()
               .messageName(correlationPoint.messageName())
@@ -164,18 +165,21 @@ public class InboundCorrelationHandler {
               .variables(extractedVariables)
               .send()
               .join();
-
-      LOG.info("Published message with key: " + result.getMessageKey());
-      return CorrelationResult.Success.INSTANCE;
-
+      LOG.info("Published message with key: " + response.getMessageKey());
+      result =
+          new CorrelationResult.Success.MessagePublished(
+              response.getMessageKey(), response.getTenantId());
     } catch (ClientStatusException e1) {
       LOG.info("Failed to publish message: ", e1);
       if (Status.ALREADY_EXISTS.equals(e1.getStatus())) {
-        return MessageAlreadyCorrelated.INSTANCE;
+        result = MessageAlreadyCorrelated.INSTANCE;
+      } else {
+        result =
+            new CorrelationResult.Failure.ZeebeClientStatus(
+                e1.getStatus().getCode().name(), e1.getMessage());
       }
-      return new CorrelationResult.Failure.ZeebeClientStatus(
-          e1.getStatus().getCode().name(), e1.getMessage());
     }
+    return result;
   }
 
   protected CorrelationResult triggerMessage(
@@ -192,6 +196,7 @@ public class InboundCorrelationHandler {
     }
 
     Object extractedVariables = extractVariables(variables, definition);
+    CorrelationResult result;
     try {
       PublishMessageResponse response =
           zeebeClient
@@ -205,18 +210,22 @@ public class InboundCorrelationHandler {
               .join();
 
       LOG.info("Published message with key: " + response.getMessageKey());
-      return CorrelationResult.Success.INSTANCE;
-
-    } catch (ClientStatusException e1) {
-      LOG.info("Failed to publish message: ", e1);
-      if (Status.ALREADY_EXISTS.equals(e1.getStatus())) {
-        return MessageAlreadyCorrelated.INSTANCE;
+      result =
+          new CorrelationResult.Success.MessagePublished(
+              response.getMessageKey(), response.getTenantId());
+    } catch (ClientStatusException ex) {
+      LOG.info("Failed to publish message: ", ex);
+      if (Status.ALREADY_EXISTS.equals(ex.getStatus())) {
+        result = MessageAlreadyCorrelated.INSTANCE;
+      } else {
+        result =
+            new CorrelationResult.Failure.ZeebeClientStatus(
+                ex.getStatus().getCode().name(), ex.getMessage());
       }
-      return new CorrelationResult.Failure.ZeebeClientStatus(
-          e1.getStatus().getCode().name(), e1.getMessage());
-    } catch (Exception e2) {
-      return new Failure.Other(e2);
+    } catch (Exception ex) {
+      result = new Failure.Other(ex);
     }
+    return result;
   }
 
   protected boolean isActivationConditionMet(

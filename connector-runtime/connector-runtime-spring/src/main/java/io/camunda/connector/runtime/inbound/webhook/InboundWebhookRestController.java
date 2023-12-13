@@ -23,6 +23,7 @@ import static org.springframework.web.bind.annotation.RequestMethod.POST;
 import static org.springframework.web.bind.annotation.RequestMethod.PUT;
 
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.VerifiableWebhook;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorException;
@@ -89,42 +90,33 @@ public class InboundWebhookRestController {
 
   private ResponseEntity<?> processWebhook(
       ActiveInboundConnector connector, WebhookProcessingPayload payload) {
-    ResponseEntity<?> connectorResponse;
+    ResponseEntity<?> response;
     try {
       WebhookConnectorExecutable connectorHook =
           (WebhookConnectorExecutable) connector.executable();
-
       // Step 1: verification
       // This is required for cases, when we need to get a message from an external source
       // but at the same time, not triggering correlation
       // Such use-case can be echoing webhook verification challenge
-      connectorResponse = verify(connectorHook, payload);
-      if (connectorResponse == null) {
+      response = verify(connectorHook, payload);
+      if (response == null) {
         // when verification was skipped
         // Step 2: trigger and correlate
         var webhookResult = connectorHook.triggerWebhook(payload);
         var ctxData = toWebhookTriggerResultContext(webhookResult);
-        connector.context().correlate(ctxData);
-        var processVariablesContext = toWebhookResultContext(webhookResult);
-        if (webhookResult.response() != null) {
-          // Step 3a: return response crafted by webhook itself
-          connectorResponse = ResponseEntity.ok(webhookResult.response().body());
-        } else {
-          // Step 3b: response body expression was defined and evaluated, or 200 OK otherwise
-          connectorResponse =
-              buildBodyExpressionResponseOrOk(webhookResult, processVariablesContext);
-        }
+        var correlationResult = connector.context().correlateWithResult(ctxData);
+        response = buildResponse(webhookResult, correlationResult);
       }
     } catch (Exception e) {
       LOG.info("Webhook: {} failed with exception", connector.context().getDefinition(), e);
-      connectorResponse = buildErrorResponse(e);
+      response = buildErrorResponse(e);
     }
-    return connectorResponse;
+    return response;
   }
 
-  protected ResponseEntity verify(
+  protected ResponseEntity<?> verify(
       WebhookConnectorExecutable connectorHook, WebhookProcessingPayload payload) throws Exception {
-    ResponseEntity response = null;
+    ResponseEntity<?> response = null;
 
     VerifiableWebhook.WebhookHttpVerificationResult verificationResult = null;
     if (connectorHook instanceof VerifiableWebhook verifiableWebhook) {
@@ -139,12 +131,58 @@ public class InboundWebhookRestController {
       response =
           new ResponseEntity<>(verificationResult.body(), headers, verificationResult.statusCode());
     }
+
     return response;
   }
 
-  protected ResponseEntity buildBodyExpressionResponseOrOk(
+  private ResponseEntity<?> buildResponse(
+      WebhookResult webhookResult, CorrelationResult correlationResult) {
+    ResponseEntity<?> response;
+    if (correlationResult instanceof CorrelationResult.Success success) {
+      response = buildSuccessfulResponse(webhookResult, success);
+    } else {
+      if (correlationResult instanceof CorrelationResult.Failure failure) {
+        if (failure instanceof CorrelationResult.Failure.MessageAlreadyCorrelated) {
+          response = buildSuccessfulResponse(webhookResult, null);
+        } else if (failure instanceof CorrelationResult.Failure.ActivationConditionNotMet) {
+          response = buildSuccessfulResponse(webhookResult, null);
+        } else {
+          response = buildErrorResponse(failure);
+        }
+      } else {
+        throw new IllegalStateException("Illegal correlation result : " + correlationResult);
+      }
+    }
+    return response;
+  }
+
+  private ResponseEntity<?> buildErrorResponse(CorrelationResult.Failure failure) {
+    ResponseEntity<?> response;
+    if (failure instanceof CorrelationResult.Failure.Other) {
+      response = ResponseEntity.internalServerError().build();
+    } else {
+      response = ResponseEntity.unprocessableEntity().body(failure);
+    }
+    return response;
+  }
+
+  private ResponseEntity<?> buildSuccessfulResponse(
+      WebhookResult webhookResult, CorrelationResult.Success correlationResult) {
+    ResponseEntity<?> response;
+    var processVariablesContext = toWebhookResultContext(webhookResult, correlationResult);
+    if (webhookResult.response() != null) {
+      // Step 3a: return response crafted by webhook itself
+      response = ResponseEntity.ok(webhookResult.response().body());
+    } else {
+      // Step 3b: response body expression was defined and evaluated, or 200 OK otherwise
+      response = buildBodyExpressionResponseOrOk(webhookResult, processVariablesContext);
+    }
+    return response;
+  }
+
+  protected ResponseEntity<?> buildBodyExpressionResponseOrOk(
       WebhookResult webhookResult, WebhookResultContext processVariablesContext) {
-    ResponseEntity response = null;
+    ResponseEntity<?> response;
     if (webhookResult.responseBodyExpression() != null) {
       var httpResponseData = webhookResult.responseBodyExpression().apply(processVariablesContext);
       response = ResponseEntity.ok(httpResponseData);
@@ -154,8 +192,8 @@ public class InboundWebhookRestController {
     return response;
   }
 
-  protected ResponseEntity buildErrorResponse(Exception e) {
-    ResponseEntity response = null;
+  protected ResponseEntity<?> buildErrorResponse(Exception e) {
+    ResponseEntity<?> response;
     if (e instanceof FeelEngineWrapperException feelEngineWrapperException) {
       var error =
           new FeelExpressionErrorResponse(
@@ -196,7 +234,8 @@ public class InboundWebhookRestController {
   // This data will be used to compose a response.
   // In other words, depending on the response body expression,
   // this data may be returned to the webhook caller.
-  private WebhookResultContext toWebhookResultContext(WebhookResult processedResult) {
+  private WebhookResultContext toWebhookResultContext(
+      WebhookResult processedResult, CorrelationResult.Success correlationResult) {
     WebhookResultContext ctx = new WebhookResultContext(null, null, null);
     if (processedResult != null) {
       ctx =
@@ -206,7 +245,7 @@ public class InboundWebhookRestController {
                   Optional.ofNullable(processedResult.request().headers()).orElse(emptyMap()),
                   Optional.ofNullable(processedResult.request().params()).orElse(emptyMap())),
               Optional.ofNullable(processedResult.connectorData()).orElse(emptyMap()),
-              Map.of());
+              Optional.ofNullable((Object) correlationResult).orElse(emptyMap()));
     }
     return ctx;
   }

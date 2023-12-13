@@ -265,7 +265,7 @@ public class InboundCorrelationHandlerTest {
 
       // then
       verify(zeebeClient).newCreateInstanceCommand();
-      assertThat(result).isEqualTo(Success.INSTANCE);
+      assertThat(result).isInstanceOf(Success.ProcessInstanceCreated.class);
     }
 
     @Test
@@ -286,7 +286,7 @@ public class InboundCorrelationHandlerTest {
 
       // then
       verify(zeebeClient).newCreateInstanceCommand();
-      assertThat(result).isEqualTo(Success.INSTANCE);
+      assertThat(result).isInstanceOf(Success.ProcessInstanceCreated.class);
     }
 
     @Test
@@ -307,7 +307,7 @@ public class InboundCorrelationHandlerTest {
 
       // then
       verify(zeebeClient).newCreateInstanceCommand();
-      assertThat(result).isEqualTo(Success.INSTANCE);
+      assertThat(result).isInstanceOf(Success.ProcessInstanceCreated.class);
     }
 
     @Test
@@ -345,7 +345,7 @@ public class InboundCorrelationHandlerTest {
 
       // then
       verify(zeebeClient).newPublishMessageCommand();
-      assertThat(result).isEqualTo(Success.INSTANCE);
+      assertThat(result).isInstanceOf(Success.MessagePublished.class);
     }
 
     @Test
@@ -367,7 +367,7 @@ public class InboundCorrelationHandlerTest {
 
       // then
       verify(zeebeClient).newPublishMessageCommand();
-      assertThat(result).isEqualTo(Success.INSTANCE);
+      assertThat(result).isInstanceOf(Success.MessagePublished.class);
     }
 
     @Test
@@ -389,7 +389,7 @@ public class InboundCorrelationHandlerTest {
 
       // then
       verify(zeebeClient).newPublishMessageCommand();
-      assertThat(result).isEqualTo(Success.INSTANCE);
+      assertThat(result).isInstanceOf(Success.MessagePublished.class);
     }
   }
 
