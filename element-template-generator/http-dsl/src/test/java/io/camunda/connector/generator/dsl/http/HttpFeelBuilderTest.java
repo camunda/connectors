@@ -26,7 +26,7 @@ public class HttpFeelBuilderTest {
   @Test
   void severalConstantPartsPath() {
     // when
-    String s = HttpFeelBuilder.create().part("/hello").part("/world").build();
+    String s = HttpFeelBuilder.string().part("/hello").part("/world").build();
 
     // then
     assertThat(s).isEqualTo("=\"/hello\"+\"/world\"");
@@ -35,7 +35,7 @@ public class HttpFeelBuilderTest {
   @Test
   void mixedPath() {
     // when
-    String s = HttpFeelBuilder.create().part("/example/").property("myProp").build();
+    String s = HttpFeelBuilder.string().part("/example/").property("myProp").build();
 
     // then
     assertThat(s).isEqualTo("=\"/example/\"+myProp");
@@ -45,7 +45,7 @@ public class HttpFeelBuilderTest {
   void duplicatePropertyName() {
     // when
     String s =
-        HttpFeelBuilder.create()
+        HttpFeelBuilder.string()
             .part("/example/")
             .property("myProp")
             .slash()
@@ -58,7 +58,7 @@ public class HttpFeelBuilderTest {
 
   @Test
   void feelOperatorCharacters() {
-    var builder = HttpFeelBuilder.create();
+    var builder = HttpFeelBuilder.string();
     var ex =
         assertThrows(
             IllegalArgumentException.class,

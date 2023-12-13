@@ -49,7 +49,7 @@ public class HttpOutboundElementTemplateBuilderTest {
             .id("someGetRequest")
             .label("Some GET request")
             .method(HttpMethod.GET)
-            .pathFeelExpression(HttpFeelBuilder.create().part("/examples/").property("exampleId"))
+            .pathFeelExpression(HttpFeelBuilder.string().part("/examples/").property("exampleId"))
             .properties(
                 HttpOperationProperty.createStringProperty(
                     "exampleId", Target.PATH, "Example ID", true, "42"),
@@ -214,7 +214,7 @@ public class HttpOutboundElementTemplateBuilderTest {
           .id("someGetRequest")
           .label("Some GET request")
           .method(HttpMethod.GET)
-          .pathFeelExpression(HttpFeelBuilder.create().part("/examples/").property("exampleId"))
+          .pathFeelExpression(HttpFeelBuilder.string().part("/examples/").property("exampleId"))
           .properties(
               HttpOperationProperty.createStringProperty(
                   "exampleId", Target.PATH, "Example ID", true, "42"),
@@ -230,7 +230,7 @@ public class HttpOutboundElementTemplateBuilderTest {
           .id("somePostRequest")
           .label("Some POST request")
           .method(HttpMethod.POST)
-          .pathFeelExpression(HttpFeelBuilder.create().part("/examples/").property("exampleId"))
+          .pathFeelExpression(HttpFeelBuilder.string().part("/examples/").property("exampleId"))
           .properties(
               HttpOperationProperty.createStringProperty(
                   "exampleId", Target.PATH, "Example ID", true, "42"),
@@ -373,7 +373,7 @@ public class HttpOutboundElementTemplateBuilderTest {
                   .label("Some GET request")
                   .method(HttpMethod.GET)
                   .pathFeelExpression(
-                      HttpFeelBuilder.create().part("/examples/").property("exampleId"))
+                      HttpFeelBuilder.string().part("/examples/").property("exampleId"))
                   .properties(
                       HttpOperationProperty.createStringProperty(
                           "exampleId", Target.PATH, "Example ID", true, "42"),
