@@ -106,12 +106,11 @@ public interface InboundConnectorContext {
   void reportHealth(Health health);
 
   /**
-   * Provides a Health object to get information about the current status of the Connector with
-   * optional details.
+   * Report an activity to allow other components to access the activity log of the Connector. The
+   * data can be used to report data about processed requests or failures.
    *
-   * <p>Use the {@link #reportHealth(Health)} method to set this information
-   *
-   * @return Health object
+   * <p>This method can be called as often as needed and the internal state of the inbound Connector
+   * implementation requires it.
    */
-  Health getHealth();
+  void log(Activity activity);
 }

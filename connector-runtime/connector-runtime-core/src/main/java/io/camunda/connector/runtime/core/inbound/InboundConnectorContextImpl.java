@@ -19,8 +19,10 @@ package io.camunda.connector.runtime.core.inbound;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.EvictingQueue;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorInputException;
+import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure.ActivationConditionNotMet;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure.Other;
@@ -34,12 +36,13 @@ import io.camunda.connector.runtime.core.AbstractConnectorContext;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Queue;
 import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class InboundConnectorContextImpl extends AbstractConnectorContext
-    implements InboundConnectorContext {
+    implements InboundConnectorContext, InboundConnectorReportingContext {
 
   private final Logger LOG = LoggerFactory.getLogger(InboundConnectorContextImpl.class);
   private final InboundConnectorDefinitionImpl definition;
@@ -52,19 +55,23 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   private Health health = Health.unknown();
 
+  private EvictingQueue<Activity> logs;
+
   public InboundConnectorContextImpl(
       SecretProvider secretProvider,
       ValidationProvider validationProvider,
       InboundConnectorDefinitionImpl definition,
       InboundCorrelationHandler correlationHandler,
       Consumer<Throwable> cancellationCallback,
-      ObjectMapper objectMapper) {
+      ObjectMapper objectMapper,
+      EvictingQueue logs) {
     super(secretProvider, validationProvider);
     this.correlationHandler = correlationHandler;
     this.definition = definition;
     this.properties = InboundPropertyHandler.readWrappedProperties(definition.rawProperties());
     this.objectMapper = objectMapper;
     this.cancellationCallback = cancellationCallback;
+    this.logs = logs;
   }
 
   @Override
@@ -129,6 +136,16 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   @Override
   public Health getHealth() {
     return health;
+  }
+
+  @Override
+  public void log(Activity log) {
+    this.logs.add(log);
+  }
+
+  @Override
+  public Queue<Activity> getLogs() {
+    return this.logs;
   }
 
   private Map<String, Object> propertiesWithSecrets;

@@ -112,12 +112,22 @@ The generated Element Template will contain two properties:
 
 As shown in the example, the property ID is composed of the field names of the nested properties
 separated by a dot.
-This behavior is enabled by default to prevent name clashes. You can disable it by setting
-the `addNestedPath` property
-of the `TemplateProperty` annotation to `false`, like this:
+This behavior is enabled by default to prevent name clashes. You can disable it by annotating
+the field that contains nested properties with `@NestedProperties(addNestedPath = false)`.
 
 ```java
-@TemplateProperty(addNestedPath = false)
+@NestedProperties(addNestedPath = false)
+private MyNestedInput nested;
+```
+
+This annotation also allows to apply the same condition to all nested properties of a class.
+For example, if you want to add a condition for the nested properties of the `MyNestedInput`
+class, you can annotate the field with `@NestedProperties` and define the condition there:
+
+```java
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
+
+@NestedProperties(condition = @PropertyCondition(property = "someProperty", equals = "someValue"))
 private MyNestedInput nested;
 ```
 
@@ -152,6 +162,9 @@ operations are different or only partially overlapping. Another example of this 
 The Template Generator supports sealed hierarchies by default. For each sealed hierarchy, it generates
 an additional discriminator property of type `Dropdown` that gets mapped to a `type` variable in the resulting JSON.
 
+Nested sealed hierarchies are supported as well. The discriminator property is implicitly considered
+part of the nested type.
+
 The discriminator property can be configured by using the `@TemplateDiscriminatorProperty`.
 It should be placed on the class level of the sealed hierarchy root class.
 
@@ -181,9 +194,11 @@ public final class BasicAuthentication extends Authentication {
 If you are relying on Jackson to deserialize the polymorphic type, make sure to align the
 discriminator property name and subtype IDs with the Jackson configuration.
 
-Note that the [nested properties rules](#nested-properties) also apply to the discriminator property
-and the sealed variants. The discriminator property is implicitly considered part of the nested
-type.
+Note that the [nested properties rules](#nested-properties) also apply to sealed hierarchies.
+The only difference is that the discriminator property is not considered part of the nested type,
+so it will never be prefixed with the nested path.
+Therefore, **the discriminator property ID must always be unique** within the Connector input data
+model.
 
 ## Property groups
 

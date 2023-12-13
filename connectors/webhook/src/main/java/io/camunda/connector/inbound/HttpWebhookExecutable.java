@@ -10,7 +10,10 @@ import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.di
 import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.enabled;
 
 import io.camunda.connector.api.annotation.InboundConnector;
+import io.camunda.connector.api.inbound.Activity;
+import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
+import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.VerifiableWebhook;
 import io.camunda.connector.api.inbound.webhook.VerifiableWebhook.WebhookHttpVerificationResult;
@@ -48,11 +51,16 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable, Verifi
   private WebhookConnectorProperties props;
   private WebhookAuthorizationHandler<?> authChecker;
 
+  private InboundConnectorContext context;
+
   @Override
   public WebhookResult triggerWebhook(WebhookProcessingPayload payload)
       throws NoSuchAlgorithmException, InvalidKeyException, IOException {
     LOGGER.trace("Triggered webhook with context " + props.context() + " and payload " + payload);
-
+    this.context.log(
+        Activity.level(Severity.INFO)
+            .tag(payload.method())
+            .message("Url: " + payload.requestURL()));
     if (!HttpMethods.any.name().equalsIgnoreCase(props.method())
         && !payload.method().equalsIgnoreCase(props.method())) {
       throw new WebhookConnectorException(
@@ -118,17 +126,16 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable, Verifi
   }
 
   @Override
-  public void activate(InboundConnectorContext context) throws Exception {
-    if (context == null) {
-      throw new Exception("Inbound connector context cannot be null");
-    }
+  public void activate(InboundConnectorContext context) {
+    this.context = context;
     var wrappedProps = context.bindProperties(WebhookConnectorPropertiesWrapper.class);
     props = new WebhookConnectorProperties(wrappedProps);
+    context.reportHealth(Health.up());
     authChecker = WebhookAuthorizationHandler.getHandlerForAuth(props.auth());
   }
 
   @Override
-  public void deactivate() throws Exception {}
+  public void deactivate() {}
 
   @Override
   public WebhookHttpVerificationResult verify(final WebhookProcessingPayload payload) {

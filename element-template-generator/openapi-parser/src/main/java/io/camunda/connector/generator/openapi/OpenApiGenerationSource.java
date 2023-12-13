@@ -25,11 +25,22 @@ import java.util.Set;
  * @param openAPI Parsed OpenAPI schema
  * @param includeOperations IDs of operations that should be processed. If null/empty, all
  *     operations will be taken into account.
+ * @param options Additional options for the generation process
  */
-public record OpenApiGenerationSource(OpenAPI openAPI, Set<String> includeOperations) {
+public record OpenApiGenerationSource(
+    OpenAPI openAPI, Set<String> includeOperations, Options options) {
+
+  /**
+   * @param rawBody If true, the generated template will contain a JSON property "body" that
+   *     contains the raw request body example. If false, the body will be parsed and transformed
+   *     into individual properties when possible. Default: false.
+   */
+  public record Options(boolean rawBody) {}
+
+  static final String USAGE = "openapi-outbound [openapi-file] [operation-id]... [--raw-body]";
 
   public OpenApiGenerationSource(List<String> cliParams) {
-    this(fetchOpenApi(cliParams), extractOperationIds(cliParams));
+    this(fetchOpenApi(cliParams), extractOperationIds(cliParams), extractOptions(cliParams));
   }
 
   private static OpenAPI fetchOpenApi(List<String> cliParams) {
@@ -51,6 +62,15 @@ public record OpenApiGenerationSource(OpenAPI openAPI, Set<String> includeOperat
   }
 
   private static Set<String> extractOperationIds(List<String> cliParams) {
-    return cliParams.size() > 1 ? Set.copyOf(cliParams.subList(1, cliParams.size())) : Set.of();
+    var cliParamsWithoutOptions =
+        cliParams.stream().filter(param -> !param.startsWith("--")).toList();
+    if (cliParamsWithoutOptions.size() < 2) {
+      return Set.of();
+    }
+    return Set.copyOf(cliParamsWithoutOptions.subList(1, cliParamsWithoutOptions.size()));
+  }
+
+  private static Options extractOptions(List<String> cliParams) {
+    return new Options(cliParams.stream().anyMatch(param -> param.equals("--raw-body")));
   }
 }

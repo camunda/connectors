@@ -25,6 +25,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.EvictingQueue;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookResult;
@@ -121,7 +122,8 @@ public class WebhookControllerPlainJavaTests {
         def,
         mock(InboundCorrelationHandler.class),
         e -> {},
-        mapper);
+        mapper,
+        EvictingQueue.create(10));
   }
 
   public static InboundConnectorDefinitionImpl webhookDefinition(

@@ -49,7 +49,7 @@ public final class HiddenProperty extends Property {
     return new HiddenPropertyBuilder();
   }
 
-  public static final class HiddenPropertyBuilder extends PropertyBuilder {
+  public static class HiddenPropertyBuilder extends PropertyBuilder {
 
     private HiddenPropertyBuilder() {}
 

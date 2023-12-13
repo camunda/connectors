@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.generator.openapi;
+package io.camunda.connector.generator.openapi.util;
 
 import io.camunda.connector.generator.dsl.http.HttpAuthentication;
 import io.camunda.connector.generator.dsl.http.HttpAuthentication.NoAuth;
@@ -53,13 +53,6 @@ public class SecurityUtil {
                 return false;
               }
               return true;
-            })
-        .peek(
-            s -> {
-              if (s.size() > 1) {
-                throw new IllegalArgumentException(
-                    "Only one SecurityScheme per SecurityRequirement object is supported");
-              }
             })
         .flatMap(s -> s.entrySet().stream())
         .map(

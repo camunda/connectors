@@ -16,19 +16,9 @@
  */
 package io.camunda.connector.generator.dsl;
 
-import io.camunda.connector.generator.dsl.BooleanProperty.BooleanPropertyBuilder;
-import io.camunda.connector.generator.dsl.DropdownProperty.DropdownPropertyBuilder;
-import io.camunda.connector.generator.dsl.HiddenProperty.HiddenPropertyBuilder;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
-import io.camunda.connector.generator.dsl.StringProperty.StringPropertyBuilder;
-import io.camunda.connector.generator.dsl.TextProperty.TextPropertyBuilder;
 
-public abstract sealed class PropertyBuilder
-    permits BooleanPropertyBuilder,
-        DropdownPropertyBuilder,
-        HiddenPropertyBuilder,
-        StringPropertyBuilder,
-        TextPropertyBuilder {
+public abstract class PropertyBuilder {
 
   protected String id;
   protected String label;
@@ -50,6 +40,10 @@ public abstract sealed class PropertyBuilder
 
   public PropertyBinding getBinding() {
     return binding;
+  }
+
+  public PropertyCondition getCondition() {
+    return condition;
   }
 
   public PropertyBuilder id(String name) {

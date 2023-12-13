@@ -77,29 +77,6 @@ public @interface TemplateProperty {
   String group() default "";
 
   /**
-   * Whether to add the nested path to the property name. Consider the example:
-   *
-   * <pre>{@code
-   * MyNestedType foo;
-   *
-   * }</pre>
-   *
-   * where MyNestedType is defined like this:
-   *
-   * <pre>{@code
-   * record MyNestedType(String bar) {}
-   *
-   * }</pre>
-   *
-   * In the example above, if this property is set to true, the property name in the generated
-   * element template will be "foo.bar". If it is set to false, the property name will be "bar".
-   *
-   * <p>Disabling this setting can be used to define custom element template structure, overriding
-   * the default behavior of nesting properties.
-   */
-  boolean addNestedPath() default true;
-
-  /**
    * Condition for the property. Conditions can reference other properties to decide whether the
    * property should be rendered by the Modeler. This field can either be an 'Equals' condition or a
    * 'One of' condition.

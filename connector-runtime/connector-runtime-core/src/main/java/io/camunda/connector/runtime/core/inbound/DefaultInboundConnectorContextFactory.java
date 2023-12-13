@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.core.inbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.EvictingQueue;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
@@ -51,16 +52,18 @@ public class DefaultInboundConnectorContextFactory implements InboundConnectorCo
   public <T extends InboundConnectorExecutable<?>> InboundConnectorContext createContext(
       final InboundConnectorDefinitionImpl newConnector,
       final Consumer<Throwable> cancellationCallback,
-      final Class<T> executableClass) {
+      final Class<T> executableClass,
+      final EvictingQueue queue) {
 
-    InboundConnectorContext inboundContext =
+    InboundConnectorReportingContext inboundContext =
         new InboundConnectorContextImpl(
             secretProviderAggregator,
             validationProvider,
             newConnector,
             correlationHandler,
             cancellationCallback,
-            objectMapper);
+            objectMapper,
+            queue);
 
     if (isIntermediateContext(executableClass)) {
       inboundContext =

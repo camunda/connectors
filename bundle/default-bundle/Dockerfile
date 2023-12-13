@@ -3,7 +3,7 @@ FROM eclipse-temurin:17.0.8.1_1-jre
 VOLUME /tmp
 
 # The /opt/app is used for the Connectors runtime, and out-of-the-box connectors
-# Use the /opt/additionalLibs to mount your own connectors, secret providers, or include other jars into the classpath
+# Use the /opt/custom to mount your own connectors, secret providers, or include other jars into the classpath
 RUN mkdir /opt/app && mkdir /opt/custom
 
 COPY target/*-with-dependencies.jar /opt/app/

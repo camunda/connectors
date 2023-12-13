@@ -18,6 +18,7 @@ package io.camunda.connector.generator.openapi;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.generator.openapi.OpenApiGenerationSource.Options;
 import io.swagger.v3.parser.OpenAPIV3Parser;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
@@ -35,7 +36,9 @@ public class ExampleTest {
     var generator = new OpenApiOutboundTemplateGenerator();
 
     // when
-    var template = generator.generate(new OpenApiGenerationSource(openApi, Set.of()), null);
+    var template =
+        generator.generate(
+            new OpenApiGenerationSource(openApi, Set.of(), new Options(false)), null);
 
     // then
     System.out.println(mapper.writeValueAsString(template));
@@ -47,7 +50,8 @@ public class ExampleTest {
     var openApi = parser.read("web-modeler-rest-api.json");
     var generator = new OpenApiOutboundTemplateGenerator();
 
-    var scanResult = generator.scan(new OpenApiGenerationSource(openApi, Set.of()));
+    var scanResult =
+        generator.scan(new OpenApiGenerationSource(openApi, Set.of(), new Options(false)));
     System.out.println(scanResult);
   }
 }

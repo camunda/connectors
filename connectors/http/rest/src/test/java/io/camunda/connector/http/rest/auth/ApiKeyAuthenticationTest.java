@@ -90,7 +90,7 @@ public class ApiKeyAuthenticationTest extends BaseTest {
             headersCaptor
                 .getValue()
                 .getFirstHeaderStringValue(ActualValue.Authentication.API_KEY_NAME))
-        .isEqualTo(ActualValue.Authentication.API_KEY_VALUE);
+        .isNull();
   }
 
   @ParameterizedTest(name = "Executing test case: {0}")

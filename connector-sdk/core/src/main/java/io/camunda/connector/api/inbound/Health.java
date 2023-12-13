@@ -22,7 +22,14 @@ import java.util.Objects;
 
 public class Health {
 
+  public record Error(String code, String message) {
+    public static Error from(Throwable ex) {
+      return new Error(ex.getClass().getSimpleName(), ex.toString());
+    }
+  }
+
   private final Status status;
+  private final Error error;
   private final Map<String, Object> details;
 
   public enum Status {
@@ -39,30 +46,36 @@ public class Health {
     return details;
   }
 
+  public Error getError() {
+    return error;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
     Health health = (Health) o;
-    return status == health.status && Objects.equals(details, health.details);
+    return status == health.status
+        && Objects.equals(error, health.error)
+        && Objects.equals(details, health.details);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(status, details);
+    return Objects.hash(status, error, details);
   }
 
   @Override
   public String toString() {
-    return "Health{" + "status=" + status + ", details=" + details + '}';
+    return "Health{" + "status=" + status + ", error=" + error + ", details=" + details + '}';
   }
 
   static DetailsStep status(Status status) {
-    return new Builder(status);
+    return new Builder(status, null);
   }
 
   public static Health up() {
-    return new Health(Status.UP, null);
+    return new Health(Status.UP, null, null);
   }
 
   public static Health up(String key, Object value) {
@@ -70,11 +83,11 @@ public class Health {
   }
 
   public static Health up(Map<String, Object> details) {
-    return new Health(Status.UP, details);
+    return new Health(Status.UP, null, details);
   }
 
   public static Health unknown() {
-    return new Health(Status.UNKNOWN, null);
+    return new Health(Status.UNKNOWN, null, null);
   }
 
   public static Health unknown(String key, String value) {
@@ -86,7 +99,11 @@ public class Health {
   }
 
   public static Health down() {
-    return new Health(Status.DOWN, null);
+    return new Health(Status.DOWN, null, null);
+  }
+
+  public static Health down(Error error) {
+    return new Health(Status.DOWN, error, null);
   }
 
   public static Health down(String key, Object value) {
@@ -97,9 +114,12 @@ public class Health {
     return Health.status(Status.DOWN).details(details);
   }
 
+  public static Health down(Error error, Map<String, Object> details) {
+    return Health.status(Status.DOWN).details(details);
+  }
+
   public static Health down(Throwable ex) {
-    String error = ex.getClass().getName() + ": " + ex.getMessage();
-    return Health.status(Status.DOWN).detail("error", error);
+    return new Health(Status.DOWN, Error.from(ex), null);
   }
 
   interface DetailsStep {
@@ -111,9 +131,11 @@ public class Health {
   public static class Builder implements DetailsStep {
     private final Health.Status status;
     private Map<String, Object> details;
+    private Error error;
 
-    Builder(Status status) {
+    private Builder(Status status, Error error) {
       this.status = status;
+      this.error = error;
     }
 
     @Override
@@ -131,11 +153,13 @@ public class Health {
 
   private Health(Builder builder) {
     this.status = builder.status;
+    this.error = builder.error;
     this.details = builder.details;
   }
 
-  private Health(Status status, Map<String, Object> details) {
+  private Health(Status status, Error error, Map<String, Object> details) {
     this.status = status;
+    this.error = error;
     this.details = details;
   }
 }

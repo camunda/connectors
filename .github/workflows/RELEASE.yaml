@@ -15,29 +15,16 @@ jobs:
           ref: ${{ github.event.release.target_commitish }}
           fetch-depth: 0
 
-      - name: Check if new version implies pre-release
-        id: check_prerelease
+      - name: Validate release tag and determine previous tag
+        id: validate_tag
         run: |
-          if [[ ${{github.event.release.prerelease}} == "true" ]]; then
-            PRE_RELEASE=true
-          elif [[ ${{ github.event.release.tag_name }} =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            PRE_RELEASE=false
-          else
-            PRE_RELEASE=true
+          OUTPUT="$(.github/workflows/scripts/prev_tag.sh ${{ github.event.release.tag_name }})"
+          if [ $? -ne 0 ]; then
+            echo "Script failed"
+            exit 1
           fi
-          echo "isPreRelease=${PRE_RELEASE}" >> $GITHUB_OUTPUT
-
-      - name: Get previous tag for changelog
-        id: get_previous_tag
-        run: |
-          git pull --tags
-          if [[ ${{steps.check_prerelease.outputs.isPreRelease}} == "true" ]]; then
-            TAG_NAME=$(git --no-pager tag --sort=-creatordate | head -2 | tail -1)
-          else
-            TAG_NAME=$(git --no-pager tag --sort=-creatordate | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | head -2 | tail -1)
-          fi
-          echo "previousTag: $TAG_NAME"
-          echo "previousTag=${TAG_NAME}" >> $GITHUB_OUTPUT
+          echo "type=$( echo $OUTPUT | cut -d ' ' -f1 )" >> $GITHUB_OUTPUT
+          echo "previousTag=$( echo $OUTPUT | cut -d ' ' -f2 )" >> $GITHUB_OUTPUT
 
       - name: Import Secrets
         id: secrets
@@ -107,10 +94,10 @@ jobs:
       - name: Install element templates CLI
         run: npm install --global element-templates-cli
 
-    # Maven build & version bump
+      # Maven build & version bump
 
       - name: Set Connectors release version
-        run:  mvn -B versions:set -DnewVersion=${RELEASE_VERSION} -DgenerateBackupPoms=false -f parent
+        run: mvn -B versions:set -DnewVersion=${RELEASE_VERSION} -DgenerateBackupPoms=false -f parent
         env:
           RELEASE_VERSION: ${{ github.event.release.tag_name }}
 
@@ -191,7 +178,7 @@ jobs:
           provenance: false
 
       - name: Build and Push Docker Image tag latest - bundle-default
-        if: ${{ steps.check_prerelease.outputs.isPreRelease == 'false' }}
+        if: ${{ steps.validate_tag.outputs.type == 'NORMAL' }}
         uses: docker/build-push-action@v5
         with:
           context: bundle/default-bundle/
@@ -201,7 +188,7 @@ jobs:
           provenance: false
 
       - name: Build and Push Docker Image tag latest - bundle-saas
-        if: ${{ steps.check_prerelease.outputs.isPreRelease == 'false' }}
+        if: ${{ steps.validate_tag.outputs.type == 'NORMAL' }}
         uses: docker/build-push-action@v5
         with:
           context: bundle/camunda-saas-bundle/
@@ -213,7 +200,7 @@ jobs:
       # Update README in Dockerhub
 
       - name: Push README to Dockerhub - bundle-default
-        if: ${{ steps.check_prerelease.outputs.isPreRelease == 'false' }}
+        if: ${{ steps.validate_tag.outputs.type == 'NORMAL' }}
         uses: christian-korneck/update-container-description-action@v1
         env:
           DOCKER_USER: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
@@ -225,7 +212,7 @@ jobs:
           short_description: 'Camunda out-of-the-box Connectors Bundle'
 
       - name: Push README to Dockerhub - bundle-saas
-        if: ${{ steps.check_prerelease.outputs.isPreRelease == 'false' }}
+        if: ${{ steps.validate_tag.outputs.type == 'NORMAL' }}
         uses: christian-korneck/update-container-description-action@v1
         env:
           DOCKER_USER: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
@@ -236,7 +223,7 @@ jobs:
           readme_file: bundle/README.md
           short_description: 'Camunda out-of-the-box Connectors Bundle for SaaS'
 
-    # Update GitHub release
+      # Update GitHub release
 
       - name: Bundle element templates
         run: bash bundle/bundle-templates.sh ${RELEASE_VERSION}
@@ -249,7 +236,7 @@ jobs:
         with:
           token: ${{ github.token }}
           fromTag: ${{ github.event.release.tag_name }}
-          toTag: ${{ steps.get_previous_tag.outputs.previousTag }}
+          toTag: ${{ steps.validate_tag.outputs.previousTag }}
           writeToFile: false
           excludeTypes: build,docs,other,style,ci
           excludeScopes: deps
@@ -257,7 +244,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          prerelease: ${{ steps.check_prerelease.outputs.isPreRelease }}
+          prerelease: ${{ steps.validate_tag.outputs.type != 'NORMAL' }}
           body: ${{ steps.changelog.outputs.changes }}
           tag_name: ${{ github.event.release.tag_name }}
           files: |

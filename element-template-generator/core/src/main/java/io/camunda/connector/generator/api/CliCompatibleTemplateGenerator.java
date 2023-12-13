@@ -31,6 +31,9 @@ public interface CliCompatibleTemplateGenerator<IN, OUT extends ElementTemplateB
    */
   IN prepareInput(List<String> parameters);
 
+  /** Provides a usage description for the generator. This description is used in the CLI help. */
+  String getUsage();
+
   /** Scan the source and do a dry run of the generation process. */
   ScanResult scan(IN input);
 

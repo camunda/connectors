@@ -21,7 +21,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import io.camunda.connector.generator.dsl.http.HttpOperationBuilder;
 
-record OperationParseResult(
+public record OperationParseResult(
     String id,
     String path,
     boolean supported,

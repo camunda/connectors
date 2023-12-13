@@ -26,11 +26,10 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
-import picocli.CommandLine.Parameters;
 
 @Command(
     name = "congen",
-    subcommands = {Generate.class, Scan.class},
+    subcommands = {Generate.class, Scan.class, ListGenerators.class},
     mixinStandardHelpOptions = true,
     version = "congen 0.1",
     description = "Generate element templates for connectors")
@@ -56,9 +55,6 @@ public class ConGen {
       names = {"-e", "--element-types"},
       description = "target element types for the resulting connector")
   List<String> elementTypes;
-
-  @Parameters(index = "0", description = "name of the generator to invoke")
-  String generatorName;
 
   GeneratorConfiguration generatorConfiguration() {
     var bpmnTypes =

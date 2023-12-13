@@ -60,6 +60,12 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
     if (conditionAnnotation.equals().isBlank() && conditionAnnotation.oneOf().length == 0) {
       throw new IllegalStateException("InvalidCondition must have either 'equals' or 'oneOf' set");
     }
+    return transformToCondition(conditionAnnotation);
+  }
+
+  public static PropertyCondition transformToCondition(
+      TemplateProperty.PropertyCondition conditionAnnotation) {
+
     if (!conditionAnnotation.equals().isBlank()) {
       return new PropertyCondition.Equals(
           conditionAnnotation.property(), conditionAnnotation.equals());

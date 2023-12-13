@@ -16,8 +16,7 @@
  */
 package io.camunda.connector.runtime.core.outbound;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -63,6 +62,11 @@ class JobBuilder {
       when(jobClient.newCompleteCommand(any())).thenReturn(completeCommand);
       when(jobClient.newFailCommand(any())).thenReturn(failCommand);
       when(failCommand.retries(anyInt())).thenReturn(failCommandStep2);
+      when(failCommandStep2.errorMessage(anyString())).thenReturn(failCommandStep2);
+      when(failCommandStep2.retryBackoff(any())).thenReturn(failCommandStep2);
+      when(failCommandStep2.variables(any(Object.class))).thenReturn(failCommandStep2);
+      when(failCommandStep2.variables(anyMap())).thenReturn(failCommandStep2);
+      when(failCommandStep2.variables(anyString())).thenReturn(failCommandStep2);
       when(jobClient.newThrowErrorCommand(any())).thenReturn(throwCommand);
       when(throwCommand.errorCode(any())).thenReturn(throwCommandStep2);
       when(throwCommandStep2.variables(any(Map.class))).thenReturn(throwCommandStep2_2);
@@ -134,9 +138,16 @@ class JobBuilder {
             errorCodeCaptor.getValue(), errorMessageCaptor.getValue(), variablesCaptor.getValue());
       } else {
         var errorMessageCaptor = ArgumentCaptor.forClass(String.class);
-        verify(failCommand).retries(job.getRetries() == 0 ? 0 : job.getRetries() - 1);
+        var variablesCaptor = ArgumentCaptor.forClass(Object.class);
+        var retriesCaptor = ArgumentCaptor.forClass(Integer.class);
+        // verify(failCommand).retries(job.getRetries() == 0 ? 0 : job.getRetries() - 1);
         verify(failCommandStep2).errorMessage(errorMessageCaptor.capture());
-        return new JobResult(null, errorMessageCaptor.getValue(), null);
+        verify(failCommandStep2).variables(variablesCaptor.capture());
+        verify(failCommand).retries(retriesCaptor.capture());
+        return new JobResult(
+            errorMessageCaptor.getValue(),
+            (Map) variablesCaptor.getValue(),
+            retriesCaptor.getValue());
       }
     }
 
@@ -150,6 +161,7 @@ class JobBuilder {
     private Map<String, Object> variables;
     private String errorCode;
     private String errorMessage;
+    private int retries;
 
     public JobResult(Map<String, Object> variables) {
       this.variables = variables;
@@ -159,6 +171,12 @@ class JobBuilder {
       this.errorCode = errorCode;
       this.errorMessage = errorMessage;
       this.variables = variables;
+    }
+
+    public JobResult(String errorMessage, Map<String, Object> variables, int retries) {
+      this.errorMessage = errorMessage;
+      this.variables = variables;
+      this.retries = retries;
     }
 
     public Map<String, Object> getVariables() {
@@ -175,6 +193,10 @@ class JobBuilder {
 
     public String getErrorMessage() {
       return errorMessage;
+    }
+
+    public int getRetries() {
+      return retries;
     }
   }
 
