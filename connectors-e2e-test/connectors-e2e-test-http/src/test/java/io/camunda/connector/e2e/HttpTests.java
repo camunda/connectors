@@ -38,7 +38,7 @@ import io.camunda.connector.http.base.constants.Constants;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
 import io.camunda.connector.runtime.inbound.lifecycle.InboundConnectorManager;
 import io.camunda.operate.CamundaOperateClient;
-import io.camunda.operate.dto.ProcessDefinition;
+import io.camunda.operate.model.ProcessDefinition;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.instance.Process;

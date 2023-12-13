@@ -18,16 +18,14 @@ package io.camunda.connector.runtime.inbound.operate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.runtime.core.inbound.FlowNodeInstance;
 import io.camunda.connector.runtime.core.inbound.OperateClientAdapter;
 import io.camunda.operate.CamundaOperateClient;
-import io.camunda.operate.dto.FlownodeInstance;
-import io.camunda.operate.dto.SearchResult;
-import io.camunda.operate.dto.Variable;
+import io.camunda.operate.model.FlowNodeInstance;
+import io.camunda.operate.model.SearchResult;
+import io.camunda.operate.model.Variable;
 import io.camunda.operate.search.SearchQuery;
 import java.util.Arrays;
 import java.util.Collections;
@@ -57,18 +55,17 @@ class OperateClientAdapterImplTest {
     // Given
     Long processDefinitionKey = 123L;
     String elementId = "task1";
-    // io.camunda.operate.dto.FlownodeInstance
-    FlownodeInstance flownodeInstance1 =
+    FlowNodeInstance flownodeInstance1 =
         createFlownodeInstance(456L, 123456L, 187L, "flowNodeId1", "flowNodeName1", "tenantId1");
-    FlownodeInstance flownodeInstance2 =
+    FlowNodeInstance flownodeInstance2 =
         createFlownodeInstance(789L, 234567L, 203L, "flowNodeId2", "flowNodeName2", "tenantId2");
 
-    SearchResult<FlownodeInstance> flownodeInstanceSearchResult =
+    SearchResult<FlowNodeInstance> flownodeInstanceSearchResult =
         createSearchResult(flownodeInstance1, flownodeInstance2);
-    SearchResult<FlownodeInstance> flownodeInstanceEmptySearchResult = createEmptySearchResult();
+    SearchResult<FlowNodeInstance> flownodeInstanceEmptySearchResult = createEmptySearchResult();
     flownodeInstanceSearchResult.setSortValues(List.of(456L, 789L));
 
-    when(camundaOperateClient.search(any(SearchQuery.class), eq(FlownodeInstance.class)))
+    when(camundaOperateClient.searchFlowNodeInstanceResults(any(SearchQuery.class)))
         .thenReturn(flownodeInstanceSearchResult)
         .thenReturn(flownodeInstanceEmptySearchResult);
 
@@ -80,25 +77,26 @@ class OperateClientAdapterImplTest {
     // Then
     assertThat(result.size()).isEqualTo(2);
     FlowNodeInstance actualFlowNodeInstance1 = result.get(0);
-    assertThat(actualFlowNodeInstance1.flowNodeId()).isEqualTo(flownodeInstance1.getFlowNodeId());
-    assertThat(actualFlowNodeInstance1.flowNodeName())
+    assertThat(actualFlowNodeInstance1.getFlowNodeId())
+        .isEqualTo(flownodeInstance1.getFlowNodeId());
+    assertThat(actualFlowNodeInstance1.getFlowNodeName())
         .isEqualTo(flownodeInstance1.getFlowNodeName());
-    assertThat(actualFlowNodeInstance1.processDefinitionKey())
+    assertThat(actualFlowNodeInstance1.getProcessDefinitionKey())
         .isEqualTo(flownodeInstance1.getProcessDefinitionKey());
-    assertThat(actualFlowNodeInstance1.key()).isEqualTo(flownodeInstance1.getKey());
-    assertThat(actualFlowNodeInstance1.processInstanceKey())
+    assertThat(actualFlowNodeInstance1.getKey()).isEqualTo(flownodeInstance1.getKey());
+    assertThat(actualFlowNodeInstance1.getProcessInstanceKey())
         .isEqualTo(flownodeInstance1.getProcessInstanceKey());
-    assertThat(actualFlowNodeInstance1.tenantId()).isEqualTo(flownodeInstance1.getTenantId());
+    assertThat(actualFlowNodeInstance1.getTenantId()).isEqualTo(flownodeInstance1.getTenantId());
   }
 
-  private FlownodeInstance createFlownodeInstance(
+  private FlowNodeInstance createFlownodeInstance(
       Long key,
       Long processInstanceKey,
       final long definitionKey,
       final String flowNodeId,
       final String flowNodeName,
       final String tenantId) {
-    FlownodeInstance instance = new FlownodeInstance();
+    FlowNodeInstance instance = new FlowNodeInstance();
     instance.setKey(key);
     instance.setProcessInstanceKey(processInstanceKey);
     instance.setProcessDefinitionKey(definitionKey);
@@ -122,7 +120,7 @@ class OperateClientAdapterImplTest {
     SearchResult<Variable> variableSearchResult = createSearchResult(variable1, variable2);
     SearchResult<Variable> variableEmptySearchResult = createEmptySearchResult();
 
-    when(camundaOperateClient.search(any(SearchQuery.class), eq(Variable.class)))
+    when(camundaOperateClient.searchVariableResults(any(SearchQuery.class)))
         .thenReturn(variableSearchResult)
         .thenReturn(variableEmptySearchResult);
 

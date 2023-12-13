@@ -18,14 +18,9 @@ package io.camunda.connector.runtime.inbound.importer;
 
 import io.camunda.connector.runtime.inbound.lifecycle.InboundConnectorManager;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics.Inbound;
-import io.camunda.operate.dto.ProcessDefinition;
+import io.camunda.operate.model.ProcessDefinition;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
