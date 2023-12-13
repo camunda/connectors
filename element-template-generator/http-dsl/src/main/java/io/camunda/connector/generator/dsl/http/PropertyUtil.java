@@ -146,7 +146,8 @@ public class PropertyUtil {
 
     var operationsWithoutCustomAuth =
         operations.stream()
-            .filter(op -> op.authenticationOverride() == null)
+            .filter(
+                op -> op.authenticationOverride() == null || op.authenticationOverride().isEmpty())
             .map(HttpOperation::id)
             .toList();
 
