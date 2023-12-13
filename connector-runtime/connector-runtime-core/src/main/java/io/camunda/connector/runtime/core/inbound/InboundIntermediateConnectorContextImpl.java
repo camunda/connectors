@@ -39,14 +39,14 @@ import java.util.stream.Collectors;
  */
 public class InboundIntermediateConnectorContextImpl
     implements InboundIntermediateConnectorContext, InboundConnectorReportingContext {
-  private final InboundConnectorContext inboundContext;
+  private final InboundConnectorReportingContext inboundContext;
   private final OperateClientAdapter operateClient;
   private final ValidationProvider validationProvider;
   private final ObjectMapper objectMapper;
   private final InboundCorrelationHandler correlationHandler;
 
   public InboundIntermediateConnectorContextImpl(
-      final InboundConnectorContext inboundContext,
+      final InboundConnectorReportingContext inboundContext,
       final OperateClientAdapter operateClient,
       final ValidationProvider validationProvider,
       final ObjectMapper objectMapper,
@@ -121,7 +121,7 @@ public class InboundIntermediateConnectorContextImpl
 
   @Override
   public Health getHealth() {
-    return ((InboundConnectorReportingContext) inboundContext).getHealth();
+    return inboundContext.getHealth();
   }
 
   @Override
@@ -131,6 +131,6 @@ public class InboundIntermediateConnectorContextImpl
 
   @Override
   public Queue<Activity> getLogs() {
-    return ((InboundConnectorReportingContext) inboundContext).getLogs();
+    return inboundContext.getLogs();
   }
 }

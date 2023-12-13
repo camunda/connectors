@@ -18,9 +18,10 @@ package io.camunda.connector.runtime.core.inbound;
 
 import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.Health;
+import io.camunda.connector.api.inbound.InboundConnectorContext;
 import java.util.Queue;
 
-public interface InboundConnectorReportingContext {
+public interface InboundConnectorReportingContext extends InboundConnectorContext {
 
   /**
    * Provides a Health object to get information about the current status of the Connector with

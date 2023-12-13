@@ -60,13 +60,7 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable, Verifi
     this.context.log(
         Activity.level(Severity.INFO)
             .tag(payload.method())
-            .message(
-                "Url: "
-                    + payload.requestURL()
-                    + ", params: "
-                    + payload.params()
-                    + ", headers: "
-                    + payload.headers()));
+            .message("Url: " + payload.requestURL()));
     if (!HttpMethods.any.name().equalsIgnoreCase(props.method())
         && !payload.method().equalsIgnoreCase(props.method())) {
       throw new WebhookConnectorException(

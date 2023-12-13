@@ -44,13 +44,7 @@ public class HttpRequestTask implements Runnable {
           this.context.log(
               Activity.level(Severity.INFO)
                   .tag(httpRequest.getMethod().toString())
-                  .message(
-                      "Polled url: "
-                          + httpRequest.getUrl()
-                          + ", body: "
-                          + httpRequest.getBody()
-                          + ", processInstanceKey: "
-                          + processInstanceContext.getKey()));
+                  .message("Polled url: " + httpRequest.getUrl()));
         } catch (Exception e) {
           LOGGER.warn(
               "Exception encountered while executing HTTP request for process instance {}: {}",

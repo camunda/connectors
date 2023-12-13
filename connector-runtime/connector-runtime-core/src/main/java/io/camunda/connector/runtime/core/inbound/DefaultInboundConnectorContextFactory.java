@@ -55,7 +55,7 @@ public class DefaultInboundConnectorContextFactory implements InboundConnectorCo
       final Class<T> executableClass,
       final EvictingQueue queue) {
 
-    InboundConnectorContext inboundContext =
+    InboundConnectorReportingContext inboundContext =
         new InboundConnectorContextImpl(
             secretProviderAggregator,
             validationProvider,
