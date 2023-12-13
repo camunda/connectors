@@ -142,16 +142,23 @@ public class InboundWebhookRestController {
       response = buildSuccessfulResponse(webhookResult, success);
     } else {
       if (correlationResult instanceof CorrelationResult.Failure failure) {
-        if (failure instanceof CorrelationResult.Failure.MessageAlreadyCorrelated) {
-          response = buildSuccessfulResponse(webhookResult, null);
-        } else if (failure instanceof CorrelationResult.Failure.ActivationConditionNotMet) {
-          response = buildSuccessfulResponse(webhookResult, null);
-        } else {
-          response = buildErrorResponse(failure);
-        }
+        response = buildResponse(webhookResult, failure);
       } else {
         throw new IllegalStateException("Illegal correlation result : " + correlationResult);
       }
+    }
+    return response;
+  }
+
+  private ResponseEntity<?> buildResponse(
+      WebhookResult webhookResult, CorrelationResult.Failure failure) {
+    ResponseEntity<?> response;
+    if (failure instanceof CorrelationResult.Failure.MessageAlreadyCorrelated) {
+      response = buildSuccessfulResponse(webhookResult, null);
+    } else if (failure instanceof CorrelationResult.Failure.ActivationConditionNotMet) {
+      response = buildSuccessfulResponse(webhookResult, null);
+    } else {
+      response = buildErrorResponse(failure);
     }
     return response;
   }
