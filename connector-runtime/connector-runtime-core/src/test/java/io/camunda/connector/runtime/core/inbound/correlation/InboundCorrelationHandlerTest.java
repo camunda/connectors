@@ -175,7 +175,7 @@ public class InboundCorrelationHandlerTest {
       verify(zeebeClient).newPublishMessageCommand();
       verifyNoMoreInteractions(zeebeClient);
 
-      assertThat(result).isInstanceOf(Failure.MessageAlreadyCorrelated.class);
+      assertThat(result).isInstanceOf(Success.MessageAlreadyCorrelated.class);
     }
   }
 

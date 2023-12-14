@@ -21,8 +21,8 @@ import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure.ActivationConditionNotMet;
-import io.camunda.connector.api.inbound.CorrelationResult.Failure.MessageAlreadyCorrelated;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure.Other;
+import io.camunda.connector.api.inbound.CorrelationResult.Success.MessageAlreadyCorrelated;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.core.ConnectorHelper;
@@ -214,10 +214,10 @@ public class InboundCorrelationHandler {
           new CorrelationResult.Success.MessagePublished(
               response.getMessageKey(), response.getTenantId());
     } catch (ClientStatusException ex) {
-      LOG.info("Failed to publish message: ", ex);
       if (Status.ALREADY_EXISTS.equals(ex.getStatus())) {
         result = MessageAlreadyCorrelated.INSTANCE;
       } else {
+        LOG.info("Failed to publish message: ", ex);
         result =
             new CorrelationResult.Failure.ZeebeClientStatus(
                 ex.getStatus().getCode().name(), ex.getMessage());

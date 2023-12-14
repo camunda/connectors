@@ -24,6 +24,8 @@ import static org.springframework.web.bind.annotation.RequestMethod.PUT;
 
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.inbound.CorrelationResult;
+import io.camunda.connector.api.inbound.CorrelationResult.Success.MessagePublished;
+import io.camunda.connector.api.inbound.CorrelationResult.Success.ProcessInstanceCreated;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.VerifiableWebhook;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorException;
@@ -153,9 +155,7 @@ public class InboundWebhookRestController {
   private ResponseEntity<?> buildResponse(
       WebhookResult webhookResult, CorrelationResult.Failure failure) {
     ResponseEntity<?> response;
-    if (failure instanceof CorrelationResult.Failure.MessageAlreadyCorrelated) {
-      response = buildSuccessfulResponse(webhookResult, null);
-    } else if (failure instanceof CorrelationResult.Failure.ActivationConditionNotMet) {
+    if (failure instanceof CorrelationResult.Failure.ActivationConditionNotMet) {
       response = buildSuccessfulResponse(webhookResult, null);
     } else {
       response = buildErrorResponse(failure);
@@ -245,6 +245,11 @@ public class InboundWebhookRestController {
       WebhookResult processedResult, CorrelationResult.Success correlationResult) {
     WebhookResultContext ctx = new WebhookResultContext(null, null, null);
     if (processedResult != null) {
+      Object correlation = null;
+      if (correlationResult instanceof ProcessInstanceCreated
+          || correlationResult instanceof MessagePublished) {
+        correlation = correlationResult;
+      }
       ctx =
           new WebhookResultContext(
               new MappedHttpRequest(
@@ -252,7 +257,7 @@ public class InboundWebhookRestController {
                   Optional.ofNullable(processedResult.request().headers()).orElse(emptyMap()),
                   Optional.ofNullable(processedResult.request().params()).orElse(emptyMap())),
               Optional.ofNullable(processedResult.connectorData()).orElse(emptyMap()),
-              Optional.ofNullable((Object) correlationResult).orElse(emptyMap()));
+              Optional.ofNullable(correlation).orElse(emptyMap()));
     }
     return ctx;
   }
