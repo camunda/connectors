@@ -18,9 +18,14 @@ package io.camunda.connector.api.inbound;
 
 public sealed interface CorrelationResult {
 
-  final class Success implements CorrelationResult {
+  sealed interface Success extends CorrelationResult {
+    record ProcessInstanceCreated(Long processInstanceKey, String tenantId) implements Success {}
 
-    public static final Success INSTANCE = new Success();
+    record MessagePublished(Long messageKey, String tenantId) implements Success {}
+
+    record MessageAlreadyCorrelated() implements Success {
+      public static final MessageAlreadyCorrelated INSTANCE = new MessageAlreadyCorrelated();
+    }
   }
 
   sealed interface Failure extends CorrelationResult {
@@ -40,10 +45,6 @@ public sealed interface CorrelationResult {
       public boolean isRetryable() {
         return true;
       }
-    }
-
-    record MessageAlreadyCorrelated() implements Failure {
-      public static final MessageAlreadyCorrelated INSTANCE = new MessageAlreadyCorrelated();
     }
 
     record Other(Throwable error) implements Failure {

@@ -216,7 +216,7 @@ public class InboundConnectorContextBuilder {
     @Override
     public CorrelationResult correlateWithResult(Object variables) {
       correlate(variables);
-      return Objects.requireNonNullElse(result, Success.INSTANCE);
+      return Objects.requireNonNullElse(result, new Success.ProcessInstanceCreated(1L, "test"));
     }
 
     @Override
