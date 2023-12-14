@@ -39,7 +39,7 @@ public interface InboundConnectorReportingContext extends InboundConnectorContex
    *
    * <p>Use the {@link #log(Activity)} method to add an entry to this list
    *
-   * @return List<Activity> list
+   * @return Queue containing the activities
    */
   Queue<Activity> getLogs();
 }
