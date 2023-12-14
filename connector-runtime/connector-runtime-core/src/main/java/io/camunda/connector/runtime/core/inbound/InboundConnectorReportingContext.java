@@ -27,9 +27,7 @@ public interface InboundConnectorReportingContext extends InboundConnectorContex
    * Provides a Health object to get information about the current status of the Connector with
    * optional details.
    *
-   * <p>Use the {@link
-   * #io.camunda.connector.api.inbound.InboundConnectorContext.reportHealth(Health)} method to set
-   * this information
+   * <p>Use the {@link #reportHealth(Health)} method to set this information
    *
    * @return Health object
    */
@@ -39,10 +37,9 @@ public interface InboundConnectorReportingContext extends InboundConnectorContex
    * Provides a list of ActivityLog objects to get information about the current activities of the
    * Connector with optional details.
    *
-   * <p>Use the {@link #io.camunda.connector.api.inbound.InboundConnectorContext.log(Activity)}
-   * method to add an entry to this list
+   * <p>Use the {@link #log(Activity)} method to add an entry to this list
    *
-   * @return List<ActivityLog> list
+   * @return List<Activity> list
    */
   Queue<Activity> getLogs();
 }
