@@ -586,7 +586,7 @@
       },
       "constraints": {
         "notEmpty": true,
-        "maxLength": 100
+        "maxLength": 50000
       },
       "condition": {
         "property": "operationType",
