@@ -34,6 +34,7 @@ import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookHttpResponse;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookResult;
+import io.camunda.connector.api.inbound.webhook.WebhookResultContext;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
@@ -89,7 +90,6 @@ class WebhookControllerTestZeebeTests {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void testSuccessfulProcessingWithActivation() throws Exception {
     WebhookConnectorExecutable webhookConnectorExecutable = mock(WebhookConnectorExecutable.class);
     WebhookResult webhookResult = mock(WebhookResult.class);
@@ -171,7 +171,6 @@ class WebhookControllerTestZeebeTests {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void testSuccessfulProcessingWithFailedActivation() throws Exception {
     WebhookConnectorExecutable webhookConnectorExecutable = mock(WebhookConnectorExecutable.class);
     WebhookResult webhookResult = mock(WebhookResult.class);
@@ -183,6 +182,46 @@ class WebhookControllerTestZeebeTests {
     var correlationHandlerMock = mock(InboundCorrelationHandler.class);
     when(correlationHandlerMock.correlate(any(), any()))
         .thenReturn(new CorrelationResult.Failure.ActivationConditionNotMet());
+
+    var webhookDef = webhookDefinition("nonExistingProcess", 1, "myPath");
+    var webhookContext =
+        new InboundConnectorContextImpl(
+            secretProvider,
+            v -> {},
+            webhookDef,
+            correlationHandlerMock,
+            (e) -> {},
+            mapper,
+            EvictingQueue.create(10));
+
+    // Register webhook function 'implementation'
+    webhookConnectorRegistry.register(
+        new ActiveInboundConnector(webhookConnectorExecutable, webhookContext));
+
+    ResponseEntity<?> responseEntity =
+        controller.inbound(
+            "myPath",
+            new HashMap<>(),
+            "{}".getBytes(),
+            new HashMap<>(),
+            new MockHttpServletRequest());
+
+    assertEquals(200, responseEntity.getStatusCode().value());
+    assertNotNull(responseEntity.getBody());
+  }
+
+  @Test
+  public void testSuccessfulProcessingWithDuplicateMessage() throws Exception {
+    WebhookConnectorExecutable webhookConnectorExecutable = mock(WebhookConnectorExecutable.class);
+    WebhookResult webhookResult = mock(WebhookResult.class);
+    when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));
+    when(webhookResult.responseBodyExpression()).thenReturn((WebhookResultContext) -> Map.of());
+    when(webhookConnectorExecutable.triggerWebhook(any(WebhookProcessingPayload.class)))
+        .thenReturn(webhookResult);
+
+    var correlationHandlerMock = mock(InboundCorrelationHandler.class);
+    when(correlationHandlerMock.correlate(any(), any()))
+        .thenReturn(new CorrelationResult.Success.MessageAlreadyCorrelated());
 
     var webhookDef = webhookDefinition("nonExistingProcess", 1, "myPath");
     var webhookContext =
@@ -404,11 +443,57 @@ class WebhookControllerTestZeebeTests {
                 new MockHttpServletRequest());
 
     assertEquals(201, responseEntity.getStatusCode().value());
-    assertEquals(null, responseEntity.getBody().get("keyResponse"));
+    assertNull(responseEntity.getBody().get("keyResponse"));
     assertEquals("GOOD", responseEntity.getBody().get("result"));
 
     var result = responseEntity.getBody();
     assertInstanceOf(Map.class, result);
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void testSuccessfulProcessingWithResponseBodyExpression() throws Exception {
+    var webhookConnectorExecutable = mock(WebhookConnectorExecutable.class);
+
+    var correlationHandlerMock = mock(InboundCorrelationHandler.class);
+    when(correlationHandlerMock.correlate(any(), any()))
+        .thenReturn(new CorrelationResult.Success.ProcessInstanceCreated(1L, "test"));
+
+    WebhookResult webhookResult = mock(WebhookResult.class);
+    when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));
+    when(webhookResult.responseBodyExpression()).thenReturn((WebhookResultContext::correlation));
+    when(webhookConnectorExecutable.triggerWebhook(any(WebhookProcessingPayload.class)))
+        .thenReturn(webhookResult);
+
+    var webhookDef = webhookDefinition("processA", 1, "myPath");
+    var webhookContext =
+        new InboundConnectorContextImpl(
+            secretProvider,
+            v -> {},
+            webhookDef,
+            correlationHandlerMock,
+            (e) -> {},
+            mapper,
+            EvictingQueue.create(10));
+
+    // Register webhook function 'implementation'
+    webhookConnectorRegistry.register(
+        new ActiveInboundConnector(webhookConnectorExecutable, webhookContext));
+
+    deployProcess("processA");
+
+    ResponseEntity<CorrelationResult.Success.ProcessInstanceCreated> responseEntity =
+        (ResponseEntity<CorrelationResult.Success.ProcessInstanceCreated>)
+            controller.inbound(
+                "myPath",
+                new HashMap<>(),
+                "{}".getBytes(),
+                new HashMap<>(),
+                new MockHttpServletRequest());
+
+    assertEquals(200, responseEntity.getStatusCode().value());
+    assertEquals(1L, responseEntity.getBody().processInstanceKey());
+    assertEquals("test", responseEntity.getBody().tenantId());
   }
 
   public void deployProcess(String bpmnProcessId) {
