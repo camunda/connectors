@@ -71,9 +71,13 @@ public class ProcessDefinitionSearch {
         paginationIndex = newPaginationIdx;
       }
 
-      processDefinitions.addAll(processDefinitionResult.getItems());
+      var items = processDefinitionResult.getItems();
+      if (items != null) {
+        processDefinitions.addAll(items);
+      }
 
-    } while (processDefinitionResult.getItems().size() > 0);
+    } while (processDefinitionResult.getItems() != null
+        && !processDefinitionResult.getItems().isEmpty());
 
     resultHandler.accept(processDefinitions);
   }
