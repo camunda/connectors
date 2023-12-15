@@ -23,7 +23,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.generator.BaseTest;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElementType;
@@ -504,7 +503,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
     }
 
     @Test
-    void annotated_sealedType_followsAnnotations() throws JsonProcessingException {
+    void annotated_sealedType_followsAnnotations() {
       var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).get(0);
       var discriminatorProperty =
           template.properties().stream()

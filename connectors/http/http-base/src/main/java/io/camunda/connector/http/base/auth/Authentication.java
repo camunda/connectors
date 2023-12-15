@@ -33,7 +33,7 @@ import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorPrope
 @TemplateDiscriminatorProperty(
     label = "Type",
     group = "authentication",
-    name = "authentication.type",
+    name = "type",
     defaultValue = NoAuthentication.TYPE,
     description = "Choose the authentication type. Select 'None' if no authentication is necessary")
 public sealed interface Authentication

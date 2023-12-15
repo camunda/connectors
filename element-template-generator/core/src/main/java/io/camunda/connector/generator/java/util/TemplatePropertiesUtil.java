@@ -28,8 +28,10 @@ import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.dsl.PropertyBinding;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
 import io.camunda.connector.generator.dsl.PropertyBuilder;
+import io.camunda.connector.generator.dsl.PropertyCondition;
 import io.camunda.connector.generator.dsl.PropertyCondition.AllMatch;
 import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
+import io.camunda.connector.generator.dsl.PropertyCondition.OneOf;
 import io.camunda.connector.generator.dsl.PropertyGroup;
 import io.camunda.connector.generator.dsl.PropertyGroup.PropertyGroupBuilder;
 import io.camunda.connector.generator.dsl.StringProperty;
@@ -182,18 +184,46 @@ public class TemplatePropertiesUtil {
   }
 
   private static PropertyBuilder addPathPrefix(PropertyBuilder builder, String path) {
-    if (builder instanceof DiscriminatorPropertyBuilder) {
-      // discriminator property is never prefixed
-      return builder;
-    }
-    builder.id(path + "." + builder.getId());
+    var originalId = builder.getId();
+    builder.id(path + "." + originalId);
     var binding = builder.getBinding();
 
     if (binding instanceof ZeebeInput) {
       // TODO: consider inbound support
       builder.binding(createBinding(path + "." + ((ZeebeInput) binding).name()));
     }
+
+    if (builder instanceof DiscriminatorPropertyBuilder discriminatorPropertyBuilder) {
+      discriminatorPropertyBuilder
+          .getDependantProperties()
+          .forEach(
+              dependant ->
+                  dependant.condition(
+                      addConditionPrefix(dependant.getCondition(), path, originalId)));
+    }
     return builder;
+  }
+
+  private static PropertyCondition addConditionPrefix(
+      PropertyCondition condition, String path, String discriminatorPropertyId) {
+    if (condition instanceof AllMatch allMatchCondition) {
+      return new AllMatch(
+          allMatchCondition.allMatch().stream()
+              .map(subCondition -> addConditionPrefix(subCondition, path, discriminatorPropertyId))
+              .toList());
+    } else if (condition instanceof Equals equalsCondition) {
+      if (!equalsCondition.property().equals(discriminatorPropertyId)) {
+        return equalsCondition;
+      }
+      return new Equals(path + "." + equalsCondition.property(), equalsCondition.equals());
+    } else if (condition instanceof OneOf oneOfCondition) {
+      if (!oneOfCondition.property().equals(discriminatorPropertyId)) {
+        return oneOfCondition;
+      }
+      return new OneOf(path + "." + oneOfCondition.property(), oneOfCondition.oneOf());
+    } else {
+      throw new IllegalStateException("Unknown condition type: " + condition.getClass());
+    }
   }
 
   private static PropertyBuilder createPropertyBuilder(Field field, TemplateProperty annotation) {
@@ -313,6 +343,7 @@ public class TemplatePropertiesUtil {
     var discriminatorAnnotation = type.getAnnotation(TemplateDiscriminatorProperty.class);
     var discriminator =
         new DiscriminatorPropertyBuilder()
+            .dependantProperties(properties)
             .choices(
                 values.entrySet().stream()
                     .filter(Objects::nonNull)

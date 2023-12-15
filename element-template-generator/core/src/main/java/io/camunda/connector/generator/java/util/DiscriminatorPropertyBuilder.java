@@ -17,8 +17,28 @@
 package io.camunda.connector.generator.java.util;
 
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownPropertyBuilder;
+import io.camunda.connector.generator.dsl.PropertyBuilder;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Marker class for the template generator to know that this property is a discriminator property.
  */
-public class DiscriminatorPropertyBuilder extends DropdownPropertyBuilder {}
+public class DiscriminatorPropertyBuilder extends DropdownPropertyBuilder {
+
+  private final List<PropertyBuilder> dependantProperties = new ArrayList<>();
+
+  public DiscriminatorPropertyBuilder dependantProperty(PropertyBuilder propertyBuilder) {
+    dependantProperties.add(propertyBuilder);
+    return this;
+  }
+
+  public DiscriminatorPropertyBuilder dependantProperties(List<PropertyBuilder> propertyBuilders) {
+    dependantProperties.addAll(propertyBuilders);
+    return this;
+  }
+
+  public List<PropertyBuilder> getDependantProperties() {
+    return dependantProperties;
+  }
+}
