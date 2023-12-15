@@ -77,7 +77,7 @@ public class ProcessDefinitionSearch {
       }
 
     } while (processDefinitionResult.getItems() != null
-        && processDefinitionResult.getItems().size() > 0);
+        && !processDefinitionResult.getItems().isEmpty());
 
     resultHandler.accept(processDefinitions);
   }
