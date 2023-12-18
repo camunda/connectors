@@ -470,7 +470,6 @@
       },
       "constraints": {
         "notEmpty": true,
-        "maxLength": 100,
         "pattern": {
           "value": "[A-Z]+",
           "message": "Must contains only capital letters."
@@ -494,7 +493,6 @@
       },
       "constraints": {
         "notEmpty": true,
-        "maxLength": 100,
         "pattern": {
           "value": "^([0-9]*$)",
           "message": "Must contains only numbers."
