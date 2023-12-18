@@ -245,8 +245,7 @@
         "name": "operation.spreadsheetName"
       },
       "constraints": {
-        "notEmpty": true,
-        "maxLength": 255
+        "notEmpty": true
       },
       "condition": {
         "property": "operationType",
