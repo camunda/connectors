@@ -22,6 +22,7 @@ import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
 import io.camunda.connector.generator.dsl.PropertyBuilder;
 import io.camunda.connector.generator.dsl.PropertyConstraints;
 import io.camunda.connector.generator.dsl.StringProperty;
+import io.camunda.connector.http.base.auth.ApiKeyAuthentication;
 import io.camunda.connector.http.base.auth.BasicAuthentication;
 import io.camunda.connector.http.base.auth.BearerAuthentication;
 import io.camunda.connector.http.base.auth.NoAuthentication;
@@ -137,6 +138,37 @@ public interface HttpAuthentication {
               .group("authentication")
               .binding(new ZeebeInput("authentication.type")));
     }
+
+    if (auth instanceof ApiKey apiKey) {
+      return List.of(
+          HiddenProperty.builder()
+              .value(ApiKeyAuthentication.TYPE)
+              .group("authentication")
+              .binding(new ZeebeInput("authentication.type")),
+          HiddenProperty.builder()
+              .value(apiKey.in)
+              .group("authentication")
+              .binding(new ZeebeInput("authentication.apiKeyLocation")),
+          StringProperty.builder()
+              .id("authentication.name")
+              .label("API key name")
+              .value(apiKey.key() != null ? apiKey.key() : "")
+              .optional(false)
+              .constraints(PropertyConstraints.builder().notEmpty(true).build())
+              .feel(FeelMode.optional)
+              .group("authentication")
+              .binding(new ZeebeInput("authentication.name")),
+          StringProperty.builder()
+              .id("authentication.value")
+              .label("API key value")
+              .value(apiKey.value() != null ? apiKey.value() : "")
+              .optional(false)
+              .constraints(PropertyConstraints.builder().notEmpty(true).build())
+              .feel(FeelMode.optional)
+              .group("authentication")
+              .binding(new ZeebeInput("authentication.value")));
+    }
+
     throw new IllegalArgumentException("Unknown authentication type: " + auth);
   }
 
@@ -167,6 +199,19 @@ public interface HttpAuthentication {
     @Override
     public String id() {
       return BasicAuthentication.TYPE;
+    }
+  }
+
+  record ApiKey(String in, String key, String value) implements HttpAuthentication {
+
+    @Override
+    public String label() {
+      return "API key";
+    }
+
+    @Override
+    public String id() {
+      return ApiKeyAuthentication.TYPE;
     }
   }
 

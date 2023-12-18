@@ -35,6 +35,10 @@
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
+      <artifactId>postman-collections-parser</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
       <artifactId>jackson-datatype-feel</artifactId>
     </dependency>
     <dependency>

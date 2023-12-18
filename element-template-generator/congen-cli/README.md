@@ -38,6 +38,8 @@ Run `congen -h` to see the usage information and a list of available parameters.
 
 ### Examples
 
+#### Open API
+
 The following command will invoke the generator named `openapi-outbound` and pass the specified OpenAPI specification.
 
 ```shell
@@ -70,4 +72,34 @@ congen --id my-element-template generate openapi-outbound https://petstore3.swag
 ```
 
 Refer to the [OpenAPI generator documentation](../openapi-parser/README.md) for more information on
+how to use it.
+
+#### Postman Collections
+
+The following command will invoke the generator named `postman-collections-outbound` and pass the specified Postman Collections v.2.1.0 specification:
+
+```shell
+congen generate postman-collections-outbound https://raw.githubusercontent.com/camunda-community-hub/camunda-8-api-postman-collection/main/Operate%20Public%20API%20-%20SaaS.postman_collection.json
+```
+
+The following command will ask the generator to include only the `/Process instances/Search for process instances` operation.
+
+```shell
+congen generate postman-collections-outbound https://raw.githubusercontent.com/camunda-community-hub/camunda-8-api-postman-collection/main/Operate%20Public%20API%20-%20SaaS.postman_collection.json "/Process instances/Search for process instances"
+```
+
+Note that not all operations in the Postman Collections specification can be converted to a template. The generator will
+ignore operations that cannot be converted. To see the list of operations that can be converted, use the `scan` command.
+
+```shell
+congen scan postman-collections-outbound https://raw.githubusercontent.com/camunda-community-hub/camunda-8-api-postman-collection/main/Operate%20Public%20API%20-%20SaaS.postman_collection.json
+```
+
+The command below will generate the template with the custom element template ID.
+
+```shell
+congen --id my-element-template generate postman-collections-outbound https://raw.githubusercontent.com/camunda-community-hub/camunda-8-api-postman-collection/main/Operate%20Public%20API%20-%20SaaS.postman_collection.json
+```
+
+Refer to the [Postman Collections generator documentation](../postman-collections-parser/README.md) for more information on
 how to use it.
