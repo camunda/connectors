@@ -585,8 +585,7 @@
         "name": "operation.values"
       },
       "constraints": {
-        "notEmpty": true,
-        "maxLength": 50000
+        "notEmpty": true
       },
       "condition": {
         "property": "operationType",
@@ -605,8 +604,7 @@
         "name": "operation.value"
       },
       "constraints": {
-        "notEmpty": true,
-        "maxLength": 50000
+        "notEmpty": true
       },
       "condition": {
         "property": "operationType",
