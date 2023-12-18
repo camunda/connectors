@@ -316,8 +316,7 @@
         "name": "operation.worksheetName"
       },
       "constraints": {
-        "notEmpty": false,
-        "maxLength": 100
+        "notEmpty": false
       },
       "condition": {
         "property": "operationType",
