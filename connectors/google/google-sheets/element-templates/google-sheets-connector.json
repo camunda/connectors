@@ -417,7 +417,6 @@
       },
       "constraints": {
         "notEmpty": false,
-        "maxLength": 100,
         "pattern": {
           "value": "^([0-9]*$)",
           "message": "Must contains only numbers."
