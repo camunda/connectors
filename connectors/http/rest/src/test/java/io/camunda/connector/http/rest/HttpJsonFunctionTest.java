@@ -66,8 +66,6 @@ public class HttpJsonFunctionTest extends BaseTest {
 
   private static final String SUCCESS_CASES_OAUTH_RESOURCE_PATH =
       "src/test/resources/requests/success-test-cases-oauth.json";
-  private static final String SUCCESS_CASES_CUSTOM_AUTH_RESOURCE_PATH =
-      "src/test/resources/requests/success-test-custom-auth.json";
   private static final String FAIL_CASES_RESOURCE_PATH =
       "src/test/resources/requests/fail-test-cases.json";
 
@@ -91,24 +89,6 @@ public class HttpJsonFunctionTest extends BaseTest {
 
     // then
     verify(httpRequest).execute();
-    assertThat(functionCallResponseAsObject).isInstanceOf(HttpCommonResult.class);
-    assertThat(((HttpCommonResult) functionCallResponseAsObject).getHeaders())
-        .containsValue(APPLICATION_JSON.getMimeType());
-  }
-
-  @ParameterizedTest(name = "Executing test case: {0}")
-  @MethodSource("successCasesCustomAuth")
-  void shouldReturnResultCustom_WhenExecuted(final String input)
-      throws IOException, InstantiationException, IllegalAccessException {
-    String response =
-        "{\"token\":\"eyJhbJNtIbehBWQLAGapcHIctws7gavjTCSCCC0Xd5sIn7DaB52Pwmabdj-9AkrVru_fZwLQseAq38n1-DkiyAaewxB0VbQgQ\",\"user\":{\"id\":331707,\"principalId\":331707,\"deleted\":false,\"permissions\":[{\"id\":13044559,\"resourceType\":\"processdiscovery\"},{\"id\":13044527,\"resourceType\":\"credentials\"}],\"emailVerified\":true,\"passwordSet\":true},\"tenantUuid\":\"08b93cfe-a6dd-4d6b-94aa-9369fdd2a026\"}";
-
-    when(httpResponse.parseAsString()).thenReturn(response);
-    when(httpResponse.isSuccessStatusCode()).thenReturn(true);
-    Object functionCallResponseAsObject = arrange(input);
-
-    // then
-    verify(httpRequest, times(2)).execute();
     assertThat(functionCallResponseAsObject).isInstanceOf(HttpCommonResult.class);
     assertThat(((HttpCommonResult) functionCallResponseAsObject).getHeaders())
         .containsValue(APPLICATION_JSON.getMimeType());
@@ -268,10 +248,6 @@ public class HttpJsonFunctionTest extends BaseTest {
 
   private static Stream<String> successCasesOauth() throws IOException {
     return loadTestCasesFromResourceFile(SUCCESS_CASES_OAUTH_RESOURCE_PATH);
-  }
-
-  private static Stream<String> successCasesCustomAuth() throws IOException {
-    return loadTestCasesFromResourceFile(SUCCESS_CASES_CUSTOM_AUTH_RESOURCE_PATH);
   }
 
   private static Stream<String> failCases() throws IOException {

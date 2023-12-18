@@ -23,7 +23,6 @@ import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpResponse;
 import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.http.base.auth.CustomAuthentication;
 import io.camunda.connector.http.base.auth.OAuthAuthentication;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
@@ -57,25 +56,10 @@ public class HttpService {
       throws IOException, InstantiationException, IllegalAccessException {
     String bearerToken = null;
     HttpInteractionService httpInteractionService = new HttpInteractionService(objectMapper);
-    AuthenticationService authService = new AuthenticationService(objectMapper, requestFactory);
-    if (request.getAuthentication() != null) {
-      if (request.getAuthentication() instanceof OAuthAuthentication) {
-        bearerToken = getTokenFromOAuthRequest(request, httpInteractionService, authService);
-      } else if (request.getAuthentication() instanceof CustomAuthentication authentication) {
-        final var httpRequest =
-            HttpRequestMapper.toHttpRequest(requestFactory, authentication.getRequest());
-        HttpResponse httpResponse = httpInteractionService.executeHttpRequest(httpRequest);
-        if (httpResponse.isSuccessStatusCode()) {
-          authService.fillRequestFromCustomAuthResponseData(request, authentication, httpResponse);
-        } else {
-          throw new RuntimeException(
-              "Authenticate is fail; status code : ["
-                  + httpResponse.getStatusCode()
-                  + "], message : ["
-                  + httpResponse.getStatusMessage()
-                  + "]");
-        }
-      }
+    if (request.getAuthentication() != null
+        && request.getAuthentication() instanceof OAuthAuthentication) {
+      AuthenticationService authService = new AuthenticationService(objectMapper, requestFactory);
+      bearerToken = getTokenFromOAuthRequest(request, httpInteractionService, authService);
     }
     com.google.api.client.http.HttpRequest httpRequest =
         HttpRequestMapper.toHttpRequest(requestFactory, request, bearerToken);

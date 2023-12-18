@@ -98,10 +98,10 @@ public class GraphQLFunction implements OutboundConnectorFunction {
     // connector logic
     LOGGER.debug("Executing graphql connector with request {}", connectorRequest);
     HttpInteractionService httpInteractionService = new HttpInteractionService(objectMapper);
-    AuthenticationService authService = new AuthenticationService(objectMapper, requestFactory);
     String bearerToken = null;
     if (connectorRequest.getAuthentication() != null
         && connectorRequest.getAuthentication() instanceof OAuthAuthentication) {
+      AuthenticationService authService = new AuthenticationService(objectMapper, requestFactory);
       final com.google.api.client.http.HttpRequest oauthRequest =
           authService.createOAuthRequest(connectorRequest);
       final HttpResponse oauthResponse = httpInteractionService.executeHttpRequest(oauthRequest);
