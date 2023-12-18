@@ -516,7 +516,6 @@
       },
       "constraints": {
         "notEmpty": false,
-        "maxLength": 100,
         "pattern": {
           "value": "^([0-9]*$)",
           "message": "Must be a number."
@@ -540,7 +539,6 @@
       },
       "constraints": {
         "notEmpty": false,
-        "maxLength": 100,
         "pattern": {
           "value": "^([0-9]*$)",
           "message": "Must be a number."
