@@ -561,8 +561,7 @@
         "name": "operation.cellId"
       },
       "constraints": {
-        "notEmpty": true,
-        "maxLength": 100
+        "notEmpty": true
       },
       "condition": {
         "property": "operationType",
