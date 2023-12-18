@@ -341,7 +341,6 @@
       },
       "constraints": {
         "notEmpty": false,
-        "maxLength": 5,
         "pattern": {
           "value": "^([0-9]*$)",
           "message": "Must be a number."
