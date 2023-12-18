@@ -25,8 +25,10 @@ import org.springframework.test.context.ActiveProfiles;
     classes = SaaSConnectorRuntimeApplication.class,
     properties = {
       "camunda.saas.secrets.projectId=42",
-      "camunda.connector.polling.enabled=false",
-      "zeebe.client.security.plaintext=true"
+      "zeebe.client.cloud.cluster-id=42",
+      "zeebe.client.security.plaintext=true",
+      "camunda.connector.auth.audience=connectors.dev.ultrawombat.com",
+      "camunda.connector.auth.issuer=https://weblogin.cloud.dev.ultrawombat.com/"
     })
 @ActiveProfiles("test")
 public class TestSpringContextStartup {
