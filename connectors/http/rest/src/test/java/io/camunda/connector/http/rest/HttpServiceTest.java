@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.http.rest;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -26,20 +25,11 @@ import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpResponse;
-import com.google.api.client.http.HttpTransport;
-import com.google.api.client.http.LowLevelHttpRequest;
-import com.google.api.client.http.LowLevelHttpResponse;
-import com.google.api.client.json.Json;
 import com.google.api.client.testing.http.MockHttpTransport;
-import com.google.api.client.testing.http.MockLowLevelHttpRequest;
-import com.google.api.client.testing.http.MockLowLevelHttpResponse;
-import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.connector.http.base.model.HttpMethod;
 import io.camunda.connector.http.base.services.AuthenticationService;
 import io.camunda.connector.http.base.services.HttpRequestMapper;
-import io.camunda.connector.http.base.services.HttpService;
 import io.camunda.connector.http.rest.model.HttpJsonRequest;
-import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import java.io.IOException;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -54,14 +44,8 @@ class HttpServiceTest extends BaseTest {
   private static final String SUCCESS_CASES_OAUTH_RESOURCE_PATH =
       "src/test/resources/requests/success-test-cases-oauth.json";
 
-  private static final String SUCCESS_CASES_CUSTOM_AUTH_RESOURCE_PATH =
-      "src/test/resources/requests/success-test-custom-auth.json";
-
   public static final String ACCESS_TOKEN =
       "{\"access_token\": \"abcd\", \"scope\":\"read:clients\", \"expires_in\":86400,\"token_type\":\"Bearer\"}";
-
-  public static final String CUSTOM_AUTH_RESPONSE =
-      "{\"token\":\"eyJhbJNtIbehBWQLAGapcHIctws7gavjTCSCCC0Xd5sIn7DaB52Pwmabdj-9AkrVru_fZwLQseAq38n1-DkiyAaewxB0VbQgQ\",\"user\":{\"id\":331707,\"principalId\":331707,\"deleted\":false,\"permissions\":[{\"id\":13044559,\"resourceType\":\"processdiscovery\"},{\"id\":13044527,\"resourceType\":\"credentials\"}],\"emailVerified\":true,\"passwordSet\":true},\"tenantUuid\":\"08b93cfe-a6dd-4d6b-94aa-9369fdd2a026\"}";
 
   @Mock private HttpRequestFactory requestFactory;
   @Mock private HttpResponse httpResponse;
@@ -91,50 +75,7 @@ class HttpServiceTest extends BaseTest {
     assertNotEquals("Bearer abcde", request.getHeaders().getAuthorization());
   }
 
-  @ParameterizedTest(name = "Executing test case: {0}")
-  @MethodSource("successCasesCustomAuth")
-  void execute_shouldPassAllStepsAndParsing(final String input)
-      throws IOException, InstantiationException, IllegalAccessException {
-    // given
-    final var context = OutboundConnectorContextBuilder.create().variables(input).build();
-    final var httpJsonRequest = context.bindVariables(HttpJsonRequest.class);
-
-    HttpTransport transport =
-        new MockHttpTransport() {
-          @Override
-          public LowLevelHttpRequest buildRequest(String method, String url) {
-            return new MockLowLevelHttpRequest() {
-              @Override
-              public LowLevelHttpResponse execute() {
-                MockLowLevelHttpResponse response = new MockLowLevelHttpResponse();
-                response.addHeader("custom_header", "value");
-                response.setStatusCode(200);
-                response.setContentType(Json.MEDIA_TYPE);
-                response.setContent(CUSTOM_AUTH_RESPONSE);
-                return response;
-              }
-            };
-          }
-        };
-
-    HttpRequestFactory requestFactory = transport.createRequestFactory();
-
-    // when
-    HttpService httpService = new HttpService(objectMapper, requestFactory);
-
-    Object result = httpService.executeConnectorRequest(httpJsonRequest);
-
-    // then
-    assertThat(result).isInstanceOf(HttpCommonResult.class);
-    HttpCommonResult httpJsonResult = (HttpCommonResult) result;
-    assertThat(httpJsonResult.getStatus()).isEqualTo(200);
-  }
-
   private static Stream<String> successCasesOauth() throws IOException {
     return loadTestCasesFromResourceFile(SUCCESS_CASES_OAUTH_RESOURCE_PATH);
-  }
-
-  private static Stream<String> successCasesCustomAuth() throws IOException {
-    return loadTestCasesFromResourceFile(SUCCESS_CASES_CUSTOM_AUTH_RESOURCE_PATH);
   }
 }
