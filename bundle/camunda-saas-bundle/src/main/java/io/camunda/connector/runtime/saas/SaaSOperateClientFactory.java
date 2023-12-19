@@ -23,20 +23,16 @@ import io.camunda.common.auth.Product;
 import io.camunda.common.auth.SaaSAuthentication;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.operate.CamundaOperateClient;
-import io.camunda.operate.exception.OperateException;
-import io.camunda.zeebe.spring.client.properties.OperateClientConfigurationProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 
 @Configuration
 @Profile("!test")
-@EnableConfigurationProperties(OperateClientConfigurationProperties.class)
 public class SaaSOperateClientFactory {
 
   private static final Logger LOG = LoggerFactory.getLogger(SaaSOperateClientFactory.class);
@@ -45,22 +41,33 @@ public class SaaSOperateClientFactory {
 
   private final SecretProvider internalSecretProvider;
 
+  @Value("${camunda.operate.client.baseUrl}")
+  private String operateBaseUrl;
+
+  @Value("${camunda.operate.client.authUrl}")
+  private String operateAuthUrl;
+
+  @Value("${camunda.operate.client.url}")
+  private String operateUrl;
+
   public SaaSOperateClientFactory(@Autowired SaaSConfiguration saaSConfiguration) {
     this.internalSecretProvider = saaSConfiguration.getInternalSecretProvider();
   }
 
   @Bean
-  @Primary
-  public CamundaOperateClient camundaOperateClientBundle(
-      OperateClientConfigurationProperties properties) throws OperateException {
+  public CamundaOperateClient camundaOperateClientBundle() {
     String operateClientId = internalSecretProvider.getSecret(SECRET_NAME_CLIENT_ID);
     String operateClientSecret = internalSecretProvider.getSecret(SECRET_NAME_SECRET);
     JwtConfig jwtConfig = new JwtConfig();
-    jwtConfig.addProduct(Product.OPERATE, new JwtCredential(operateClientId, operateClientSecret));
+    jwtConfig.addProduct(
+        Product.OPERATE,
+        new JwtCredential(operateClientId, operateClientSecret, operateBaseUrl, operateAuthUrl));
+
     Authentication authentication = SaaSAuthentication.builder().jwtConfig(jwtConfig).build();
     return CamundaOperateClient.builder()
-        .operateUrl(properties.getOperateUrl())
+        .operateUrl(operateUrl)
         .authentication(authentication)
+        .setup()
         .build();
   }
 }

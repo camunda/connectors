@@ -50,7 +50,9 @@ import org.springframework.test.web.servlet.MockMvc;
     properties = {
       "camunda.saas.secrets.projectId=42",
       "zeebe.client.cloud.cluster-id=42",
-      "zeebe.client.security.plaintext=true"
+      "zeebe.client.security.plaintext=true",
+      "camunda.connector.auth.audience=connectors.dev.ultrawombat.com",
+      "camunda.connector.auth.issuer=https://weblogin.cloud.dev.ultrawombat.com/"
     })
 @DirtiesContext
 @ActiveProfiles("test")

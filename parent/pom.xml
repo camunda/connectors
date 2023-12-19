@@ -41,7 +41,7 @@
   </licenses>
 
   <properties>
-    <version.java>17</version.java>
+    <version.java>21</version.java>
     <maven.compiler.target>${version.java}</maven.compiler.target>
     <maven.compiler.source>${version.java}</maven.compiler.source>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -68,8 +68,8 @@ limitations under the License.</license.inlineheader>
     <nexus.sonatype.url>https://s01.oss.sonatype.org</nexus.sonatype.url>
 
     <!-- Camunda internal libraries -->
-    <version.zeebe>8.3.4</version.zeebe>
-    <version.spring-zeebe>8.3.4.1</version.spring-zeebe>
+    <version.zeebe>8.4.0-alpha2</version.zeebe>
+    <version.spring-zeebe>8.4.0-alpha2-rc3</version.spring-zeebe>
     <version.feel-engine>1.17.3</version.feel-engine>
 
     <!-- Third party dependencies -->
@@ -132,6 +132,7 @@ limitations under the License.</license.inlineheader>
     <plugin.version.maven-shade-plugin>3.5.1</plugin.version.maven-shade-plugin>
     <plugin.version.maven-surefire-plugin>3.2.3</plugin.version.maven-surefire-plugin>
     <plugin.version.spotless-maven-plugin>2.41.1</plugin.version.spotless-maven-plugin>
+    <plugin.version.maven-jar-plugin>3.3.0</plugin.version.maven-jar-plugin>
   </properties>
 
   <dependencyManagement>
@@ -689,6 +690,19 @@ limitations under the License.</license.inlineheader>
         <plugin>
           <artifactId>maven-dependency-plugin</artifactId>
           <version>3.6.1</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-jar-plugin</artifactId>
+          <version>${plugin.version.maven-jar-plugin}</version>
+          <configuration combine.self="override">
+            <archive>
+              <!-- explicitly specify manifestFile because otherwise it overrides the generated one from bundle-plugin -->
+              <manifest>
+                <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+              </manifest>
+            </archive>
+          </configuration>
         </plugin>
       </plugins>
     </pluginManagement>
