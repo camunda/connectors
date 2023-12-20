@@ -86,6 +86,7 @@ limitations under the License.</license.inlineheader>
 
     <version.spring-boot>3.1.5</version.spring-boot>
     <version.spring-cloud-gcp-starter-logging>4.9.0</version.spring-cloud-gcp-starter-logging>
+    <version.logback>1.4.14</version.logback>
 
     <version.aws-java-sdk>1.12.618</version.aws-java-sdk>
 
@@ -158,6 +159,17 @@ limitations under the License.</license.inlineheader>
         <version>${version.spring-boot}</version>
         <scope>import</scope>
         <type>pom</type>
+      </dependency>
+
+      <dependency>
+        <groupId>ch.qos.logback</groupId>
+        <artifactId>logback-core</artifactId>
+        <version>${version.logback}</version>
+      </dependency>
+      <dependency>
+        <groupId>ch.qos.logback</groupId>
+        <artifactId>logback-classic</artifactId>
+        <version>${version.logback}</version>
       </dependency>
 
       <!-- Google libraries BOM -->
