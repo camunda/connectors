@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import org.camunda.feel.FeelEngine;
 import org.camunda.feel.impl.JavaValueMapper;
+import org.camunda.feel.impl.SpiServiceLoader;
 import scala.collection.Iterable;
 import scala.jdk.javaapi.CollectionConverters;
 
@@ -52,7 +53,7 @@ public class FeelEngineWrapper {
     this.feelEngine =
         new FeelEngine.Builder()
             .customValueMapper(new JavaValueMapper())
-            .functionProvider(new FeelConnectorFunctionProvider())
+            .functionProvider(SpiServiceLoader.loadFunctionProvider())
             .build();
     this.objectMapper =
         new ObjectMapper()
