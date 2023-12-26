@@ -19,11 +19,27 @@ import io.camunda.connector.aws.CredentialsProviderSupport;
 import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.awslambda.model.AwsLambdaRequest;
 import io.camunda.connector.awslambda.model.AwsLambdaResult;
+import io.camunda.connector.generator.java.annotation.ElementTemplate;
 
 @OutboundConnector(
     name = "AWS Lambda",
     inputVariables = {"authentication", "configuration", "awsFunction"},
     type = "io.camunda:aws-lambda:1")
+@ElementTemplate(
+    id = "io.camunda.connectors.AWSLAMBDA.v2",
+    name = "AWS Lambda Outbound Connector",
+    description = "Invoke a function",
+    inputDataClass = AwsLambdaRequest.class,
+    version = 5,
+    propertyGroups = {
+      @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
+      @ElementTemplate.PropertyGroup(id = "configuration", label = "Configuration"),
+      @ElementTemplate.PropertyGroup(id = "operation", label = "Select operation"),
+      @ElementTemplate.PropertyGroup(id = "operationDetails", label = "Operation details")
+    },
+    documentationRef =
+        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/",
+    icon = "icon.svg")
 public class LambdaConnectorFunction implements OutboundConnectorFunction {
 
   private final AwsLambdaSupplier awsLambdaSupplier;

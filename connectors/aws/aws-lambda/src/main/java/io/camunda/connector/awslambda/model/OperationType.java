@@ -8,5 +8,5 @@ package io.camunda.connector.awslambda.model;
 
 public enum OperationType {
   sync,
-  async
+  async;
 }
