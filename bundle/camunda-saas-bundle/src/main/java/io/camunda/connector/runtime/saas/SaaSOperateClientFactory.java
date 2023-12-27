@@ -16,22 +16,20 @@
  */
 package io.camunda.connector.runtime.saas;
 
+import io.camunda.common.auth.Authentication;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.operate.CamundaOperateClient;
-import io.camunda.operate.auth.SaasAuthentication;
-import io.camunda.operate.exception.OperateException;
 import io.camunda.zeebe.spring.client.properties.OperateClientConfigurationProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
-import org.springframework.context.annotation.Profile;
 
 @Configuration
-@Profile("!test")
 @EnableConfigurationProperties(OperateClientConfigurationProperties.class)
 public class SaaSOperateClientFactory {
 
@@ -41,24 +39,43 @@ public class SaaSOperateClientFactory {
 
   private final SecretProvider internalSecretProvider;
 
+  @Value("${camunda.operate.client.url}")
+  private String operateUrl;
+
   public SaaSOperateClientFactory(@Autowired SaaSConfiguration saaSConfiguration) {
     this.internalSecretProvider = saaSConfiguration.getInternalSecretProvider();
   }
 
   @Bean
-  @Primary
-  public CamundaOperateClient camundaOperateClientBundle(
-      OperateClientConfigurationProperties properties) throws OperateException {
-    String operateClientId = internalSecretProvider.getSecret(SECRET_NAME_CLIENT_ID);
-    String operateClientSecret = internalSecretProvider.getSecret(SECRET_NAME_SECRET);
-    return new CamundaOperateClient.Builder()
-        .operateUrl(properties.getOperateUrl())
-        .authentication(
-            new SaasAuthentication(
-                properties.getAuthUrl(),
-                properties.getAudience(),
-                operateClientId,
-                operateClientSecret))
+  public OperatePropertiesPostProcessor operatePropertiesPostProcessor() {
+    return new OperatePropertiesPostProcessor();
+  }
+
+  @Bean
+  public CamundaOperateClient camundaOperateClientBundle(Authentication authentication) {
+    return CamundaOperateClient.builder()
+        .operateUrl(operateUrl)
+        .authentication(authentication)
+        .setup()
         .build();
+  }
+
+  public class OperatePropertiesPostProcessor implements BeanPostProcessor {
+
+    public OperatePropertiesPostProcessor() {
+      LOG.info("OperatePropertiesPostProcessor created");
+    }
+
+    @Override
+    public Object postProcessBeforeInitialization(Object bean, String beanName) {
+      if (bean instanceof OperateClientConfigurationProperties operateProperties) {
+        String operateClientId = internalSecretProvider.getSecret(SECRET_NAME_CLIENT_ID);
+        String operateClientSecret = internalSecretProvider.getSecret(SECRET_NAME_SECRET);
+        operateProperties.setClientId(operateClientId);
+        operateProperties.setClientSecret(operateClientSecret);
+        return operateProperties;
+      }
+      return bean;
+    }
   }
 }

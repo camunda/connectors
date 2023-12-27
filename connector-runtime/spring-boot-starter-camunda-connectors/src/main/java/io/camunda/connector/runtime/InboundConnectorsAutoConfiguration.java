@@ -19,7 +19,7 @@ package io.camunda.connector.runtime;
 import io.camunda.connector.runtime.inbound.InboundConnectorRuntimeConfiguration;
 import io.camunda.operate.CamundaOperateClient;
 import io.camunda.zeebe.spring.client.CamundaAutoConfiguration;
-import io.camunda.zeebe.spring.client.configuration.OperateClientProdAutoConfiguration;
+import io.camunda.zeebe.spring.client.configuration.OperateClientConfiguration;
 import io.camunda.zeebe.spring.client.properties.OperateClientConfigurationProperties;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
@@ -45,14 +45,13 @@ public class InboundConnectorsAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public CamundaOperateClient myOperateClient(
-      OperateClientProdAutoConfiguration configuration,
-      OperateClientConfigurationProperties properties) {
+      OperateClientConfiguration configuration, OperateClientConfigurationProperties properties) {
     return configuration.camundaOperateClient(properties);
   }
 
   @Bean
   @ConditionalOnMissingBean
-  public OperateClientProdAutoConfiguration operateClientProdAutoConfiguration() {
-    return new OperateClientProdAutoConfiguration();
+  public OperateClientConfiguration operateClientProdAutoConfiguration() {
+    return new OperateClientConfiguration();
   }
 }
