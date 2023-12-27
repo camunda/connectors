@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.app;
 
 import io.camunda.operate.CamundaOperateClient;
+import io.camunda.zeebe.spring.client.configuration.CommonClientConfiguration;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -28,7 +29,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
   io.camunda.connector.runtime.OutboundConnectorsAutoConfiguration.class,
   io.camunda.connector.runtime.WebhookConnectorAutoConfiguration.class
 })
-@MockBean(CamundaOperateClient.class)
+@MockBean({CamundaOperateClient.class, CommonClientConfiguration.class})
 public class TestConnectorRuntimeApplication {
 
   public static void main(String[] args) {
