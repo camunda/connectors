@@ -29,6 +29,8 @@ import com.amazonaws.services.lambda.AWSLambda;
 import com.amazonaws.services.lambda.AWSLambdaClientBuilder;
 import com.amazonaws.services.lambda.model.CreateFunctionRequest;
 import com.amazonaws.services.lambda.model.FunctionCode;
+import com.amazonaws.services.lambda.model.FunctionConfiguration;
+import com.amazonaws.services.lambda.model.ListFunctionsResult;
 import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
@@ -49,6 +51,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -66,6 +70,7 @@ import org.testcontainers.utility.DockerImageName;
 @ZeebeSpringTest
 @ExtendWith(MockitoExtension.class)
 public class AwsLambdaTest {
+  private static final Logger LOGGER = LoggerFactory.getLogger(AwsLambdaTest.class);
 
   protected static final String ELEMENT_TEMPLATE_PATH =
       "../../connectors/aws/aws-lambda/element-templates/aws-lambda-outbound-connector.json";
@@ -88,6 +93,7 @@ public class AwsLambdaTest {
 
   @BeforeAll
   public static void setUp() throws IOException {
+    LOGGER.info("setUp"); // todo delete
     localstack =
         new LocalStackContainer(localstackImage)
             .withServices(S3, LAMBDA)
@@ -134,6 +140,12 @@ public class AwsLambdaTest {
 
   @Test
   public void testLambdaFunction() throws Exception {
+
+    ListFunctionsResult listFunctionsResult = lambdaClient.listFunctions();
+    LOGGER.info("Available Lambda Functions:"); // todo delete all this
+    for (FunctionConfiguration function : listFunctionsResult.getFunctions()) {
+      LOGGER.info(" - Function Name: " + function.getFunctionName());
+    }
 
     var model = Bpmn.createProcess().executable().startEvent().serviceTask("aws").endEvent().done();
 

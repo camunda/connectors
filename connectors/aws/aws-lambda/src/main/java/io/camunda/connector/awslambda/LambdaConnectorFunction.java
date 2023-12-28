@@ -22,6 +22,8 @@ import io.camunda.connector.awslambda.model.AwsLambdaRequest;
 import io.camunda.connector.awslambda.model.AwsLambdaResult;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @OutboundConnector(
     name = "AWS Lambda",
@@ -43,6 +45,8 @@ import java.util.Optional;
         "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/",
     icon = "icon.svg")
 public class LambdaConnectorFunction implements OutboundConnectorFunction {
+  private static final Logger LOGGER =
+      LoggerFactory.getLogger(LambdaConnectorFunction.class); // todo delete
 
   private final AwsLambdaSupplier awsLambdaSupplier;
   private final ObjectMapper objectMapper;
@@ -59,17 +63,26 @@ public class LambdaConnectorFunction implements OutboundConnectorFunction {
 
   @Override
   public Object execute(OutboundConnectorContext context) {
+    LOGGER.info("start executing connector"); // todo delete all this
+
     var request = context.bindVariables(AwsLambdaRequest.class);
     return new AwsLambdaResult(invokeLambdaFunction(request), objectMapper);
   }
 
   private InvokeResult invokeLambdaFunction(AwsLambdaRequest request) {
+    LOGGER.info("invokeLambdaFunction"); // todo delete all this
+
     var region =
         AwsUtils.extractRegionOrDefault(
             request.getConfiguration(), request.getAwsFunction().getRegion());
     AWSLambda awsLambda = createAwsLambdaClient(request, region);
-
+    LOGGER.info("REGION : {}", region); // todo delete all this
+    LOGGER.info(
+        "FUNCTION NAME : {}", request.getAwsFunction().getFunctionName()); // todo delete all this
+    LOGGER.info("PAYLOAD : {}", request.getAwsFunction().getPayload()); // todo delete all this
+    LOGGER.info("PAYLOAD : {}", request.getAwsFunction().getPayload()); // todo delete all this
     try {
+
       final InvokeRequest invokeRequest =
           new InvokeRequest()
               .withFunctionName(request.getAwsFunction().getFunctionName())
@@ -78,6 +91,7 @@ public class LambdaConnectorFunction implements OutboundConnectorFunction {
     } catch (JsonProcessingException e) {
       throw new RuntimeException("Error mapping payload to json.");
     } finally {
+      LOGGER.info("FINISH "); // todo delete all this
       if (awsLambda != null) {
         awsLambda.shutdown();
       }
@@ -85,8 +99,11 @@ public class LambdaConnectorFunction implements OutboundConnectorFunction {
   }
 
   private AWSLambda createAwsLambdaClient(AwsLambdaRequest request, String region) {
+    LOGGER.info("createAwsLambdaClient"); // todo delete all this
+
     Optional<String> endpoint =
         Optional.ofNullable(request.getConfiguration()).map(AwsBaseConfiguration::endpoint);
+    LOGGER.info("ENDPOINT : {}", endpoint); // todo delete all this
 
     var credentialsProvider = CredentialsProviderSupport.credentialsProvider(request);
     return endpoint
