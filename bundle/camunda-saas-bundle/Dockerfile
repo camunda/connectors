@@ -11,5 +11,6 @@ COPY target/*-with-dependencies.jar /opt/app/
 RUN addgroup --gid 1003 connectors && useradd -g connectors -u 1003 -M connectors
 USER connectors:connectors
 
+ENV ZEEBE_CLIENT_CONFIG_PATH=/tmp/connectors
 # Using entry point to allow downstream images to add JVM arguments using CMD
 ENTRYPOINT ["java", "-cp", "/opt/app/*", "io.camunda.connector.runtime.saas.SaaSConnectorRuntimeApplication"]
