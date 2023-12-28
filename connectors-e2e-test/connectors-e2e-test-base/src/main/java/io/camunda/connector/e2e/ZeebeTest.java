@@ -24,6 +24,7 @@ import io.camunda.zeebe.model.bpmn.instance.Process;
 import io.camunda.zeebe.spring.test.ZeebeTestThreadSupport;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalUnit;
 import org.junit.jupiter.api.Assertions;
 
 public class ZeebeTest {
@@ -66,8 +67,12 @@ public class ZeebeTest {
   }
 
   public ZeebeTest waitForProcessCompletion() {
+    return waitForProcessCompletion(10, ChronoUnit.SECONDS);
+  }
+
+  public ZeebeTest waitForProcessCompletion(long amount, TemporalUnit unit) {
     ZeebeTestThreadSupport.waitForProcessInstanceCompleted(
-        processInstanceEvent, Duration.of(10, ChronoUnit.SECONDS));
+        processInstanceEvent, Duration.of(amount, unit));
     return this;
   }
 
