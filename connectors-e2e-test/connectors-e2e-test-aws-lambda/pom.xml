@@ -25,19 +25,6 @@
     </plugins>
   </build>
 
-
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>com.amazonaws</groupId>
-        <artifactId>aws-java-sdk-bom</artifactId>
-        <version>${version.aws-java-sdk}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
-
   <dependencies>
 
     <dependency>
@@ -46,7 +33,13 @@
       <version>${version.localstack}</version>
       <scope>test</scope>
     </dependency>
-
+    <dependency>
+      <groupId>com.amazonaws</groupId>
+      <artifactId>aws-java-sdk-bom</artifactId>
+      <version>${version.aws-java-sdk}</version>
+      <type>pom</type>
+      <scope>test</scope>
+    </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-aws-lambda</artifactId>

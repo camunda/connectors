@@ -43,7 +43,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.time.temporal.ChronoUnit;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -173,7 +172,7 @@ public class AwsLambdaTest {
         ZeebeTest.with(zeebeClient)
             .deploy(updatedModel)
             .createInstance()
-            .waitForProcessCompletion(60, ChronoUnit.SECONDS); // todo
+            .waitForProcessCompletion();
 
     Object expectedResult =
         ObjectMapperSupplier.getMapperInstance()
