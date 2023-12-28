@@ -15,4 +15,5 @@ RUN addgroup --gid 1003 connectors && useradd -g connectors -u 1003 -M connector
 USER connectors:connectors
 
 # Use entry point to allow downstream images to add JVM arguments using CMD
+ENV ZEEBE_CLIENT_CONFIG_PATH=/tmp/connectors
 ENTRYPOINT ["/start.sh"]

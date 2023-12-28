@@ -16,4 +16,5 @@ RUN chmod +x start.sh
 RUN addgroup --gid 1003 connectors && useradd -g connectors -u 1003 -M connectors
 USER connectors:connectors
 
+ENV ZEEBE_CLIENT_CONFIG_PATH=/tmp/connectors
 ENTRYPOINT ["/start.sh"]
