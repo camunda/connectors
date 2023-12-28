@@ -8,4 +8,6 @@ package io.camunda.connector.aws.model;
 
 public interface AwsConfiguration {
   String region();
+
+  String endpoint();
 }

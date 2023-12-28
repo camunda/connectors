@@ -7,5 +7,18 @@
 package io.camunda.connector.aws.model.impl;
 
 import io.camunda.connector.aws.model.AwsConfiguration;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
 
-public record AwsBaseConfiguration(String region) implements AwsConfiguration {}
+public record AwsBaseConfiguration(
+    @TemplateProperty(
+            group = "configuration",
+            description = "Specify the AWS region",
+            optional = true)
+        String region,
+    @TemplateProperty(
+            group = "configuration",
+            description = "Specify endpoint if need to use custom endpoint",
+            type = TemplateProperty.PropertyType.Hidden,
+            optional = true)
+        String endpoint)
+    implements AwsConfiguration {}
