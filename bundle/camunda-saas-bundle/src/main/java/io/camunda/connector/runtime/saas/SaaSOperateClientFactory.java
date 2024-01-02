@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.saas;
 
+import io.camunda.common.auth.Authentication;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.operate.CamundaOperateClient;
 import io.camunda.zeebe.spring.client.properties.OperateClientConfigurationProperties;
@@ -26,6 +27,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 
 @Configuration
 public class SaaSOperateClientFactory {
@@ -49,8 +51,13 @@ public class SaaSOperateClientFactory {
   }
 
   @Bean
-  public CamundaOperateClient camundaOperateClientBundle() {
-    return CamundaOperateClient.builder().operateUrl(operateUrl).setup().build();
+  @Primary
+  public CamundaOperateClient camundaOperateClientBundle(Authentication authentication) {
+    return CamundaOperateClient.builder()
+        .operateUrl(operateUrl)
+        .authentication(authentication)
+        .setup()
+        .build();
   }
 
   public class OperatePropertiesPostProcessor implements BeanPostProcessor {

@@ -19,4 +19,5 @@ RUN addgroup --gid 1001 camunda && useradd --no-create-home --gid 1001 --uid 100
 USER 1001:1001
 
 # Use entry point to allow downstream images to add JVM arguments using CMD
+ENV ZEEBE_CLIENT_CONFIG_PATH=/tmp/connectors
 ENTRYPOINT ["/start.sh"]
