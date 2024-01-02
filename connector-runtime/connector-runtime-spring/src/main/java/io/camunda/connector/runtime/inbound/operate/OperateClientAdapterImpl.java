@@ -91,9 +91,11 @@ public class OperateClientAdapterImpl implements OperateClientAdapter {
           throw new RuntimeException(e);
         }
         processPaginationIndex = searchResult.getSortValues();
-        result.addAll(searchResult.getItems());
+        if (searchResult.getItems() != null) {
+          result.addAll(searchResult.getItems());
+        }
 
-      } while (searchResult.getItems().size() > 0);
+      } while (!CollectionUtils.isEmpty(searchResult.getItems()));
       return result;
     } finally {
       fetchActiveProcessLock.unlock();
@@ -133,16 +135,18 @@ public class OperateClientAdapterImpl implements OperateClientAdapter {
           throw new RuntimeException(e);
         }
         List<Object> newPaginationIdx = searchResult.getSortValues();
-        processVariables.putAll(
-            searchResult.getItems().stream()
-                .collect(
-                    Collectors.toMap(
-                        Variable::getName, variable -> unwrapValue(variable.getValue()))));
+        if (searchResult.getItems() != null) {
+          processVariables.putAll(
+              searchResult.getItems().stream()
+                  .collect(
+                      Collectors.toMap(
+                          Variable::getName, variable -> unwrapValue(variable.getValue()))));
+        }
         if (!CollectionUtils.isEmpty(newPaginationIdx)) {
           variablePaginationIndex = newPaginationIdx;
         }
 
-      } while (searchResult.getItems().size() > 0);
+      } while (!CollectionUtils.isEmpty(searchResult.getItems()));
       return processVariables;
     } finally {
       fetchVariablesLock.unlock();

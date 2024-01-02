@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime;
+package io.camunda.connector.runtime.saas;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -26,7 +26,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import io.camunda.connector.runtime.saas.SaaSConnectorRuntimeApplication;
 import io.camunda.operate.CamundaOperateClient;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,13 +45,16 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest(
     webEnvironment = WebEnvironment.RANDOM_PORT,
-    classes = {SaaSConnectorRuntimeApplication.class},
+    classes = {SaaSConnectorRuntimeApplication.class, MockSaaSConfiguration.class},
     properties = {
       "camunda.saas.secrets.projectId=42",
       "zeebe.client.cloud.cluster-id=42",
       "zeebe.client.security.plaintext=true",
       "camunda.connector.auth.audience=connectors.dev.ultrawombat.com",
-      "camunda.connector.auth.issuer=https://weblogin.cloud.dev.ultrawombat.com/"
+      "camunda.connector.auth.issuer=https://weblogin.cloud.dev.ultrawombat.com/",
+      "camunda.operate.client.url=" + MockSaaSConfiguration.OPERATE_CLIENT_URL,
+      "camunda.operate.client.authUrl=" + MockSaaSConfiguration.OPERATE_CLIENT_AUTH_URL,
+      "camunda.operate.client.baseUrl=" + MockSaaSConfiguration.OPERATE_CLIENT_BASEURL
     })
 @DirtiesContext
 @ActiveProfiles("test")

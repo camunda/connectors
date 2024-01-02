@@ -68,8 +68,8 @@ limitations under the License.</license.inlineheader>
     <nexus.sonatype.url>https://s01.oss.sonatype.org</nexus.sonatype.url>
 
     <!-- Camunda internal libraries -->
-    <version.zeebe>8.4.0-SNAPSHOT</version.zeebe>
-    <version.spring-zeebe>8.4.0-alpha2-rc3</version.spring-zeebe>
+    <version.zeebe>8.4.0-alpha2</version.zeebe>
+    <version.spring-zeebe>8.4.0-alpha2-rc4</version.spring-zeebe>
     <version.feel-engine>1.17.3</version.feel-engine>
 
     <!-- Third party dependencies -->
@@ -79,12 +79,13 @@ limitations under the License.</license.inlineheader>
     <version.junit-jupiter>5.10.1</version.junit-jupiter>
     <version.assertj>3.24.2</version.assertj>
     <version.jackson-bom>2.16.0</version.jackson-bom>
-    <version.jackson-datatype-jsr310>2.16.0</version.jackson-datatype-jsr310>
+    <version.jackson-datatype-jsr310>2.16.1</version.jackson-datatype-jsr310>
     <version.hibernate-validator>8.0.1.Final</version.hibernate-validator>
     <version.jsonassert>1.5.1</version.jsonassert>
 
     <version.spring-boot>3.1.5</version.spring-boot>
     <version.spring-cloud-gcp-starter-logging>4.9.0</version.spring-cloud-gcp-starter-logging>
+    <version.logback>1.4.14</version.logback>
 
     <version.aws-java-sdk>1.12.611</version.aws-java-sdk>
 
@@ -158,6 +159,17 @@ limitations under the License.</license.inlineheader>
         <version>${version.spring-boot}</version>
         <scope>import</scope>
         <type>pom</type>
+      </dependency>
+
+      <dependency>
+        <groupId>ch.qos.logback</groupId>
+        <artifactId>logback-core</artifactId>
+        <version>${version.logback}</version>
+      </dependency>
+      <dependency>
+        <groupId>ch.qos.logback</groupId>
+        <artifactId>logback-classic</artifactId>
+        <version>${version.logback}</version>
       </dependency>
 
       <!-- Google libraries BOM -->
