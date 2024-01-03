@@ -1,0 +1,232 @@
+{
+  "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name" : "AWS Lambda Outbound Connector",
+  "id" : "io.camunda.connectors.AWSLAMBDA.v2",
+  "description" : "Invoke a function",
+  "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/",
+  "version" : 5,
+  "category" : {
+    "id" : "connectors",
+    "name" : "Connectors"
+  },
+  "appliesTo" : [ "bpmn:Task" ],
+  "elementType" : {
+    "value" : "bpmn:ServiceTask"
+  },
+  "groups" : [ {
+    "id" : "authentication",
+    "label" : "Authentication"
+  }, {
+    "id" : "configuration",
+    "label" : "Configuration"
+  }, {
+    "id" : "operation",
+    "label" : "Select operation"
+  }, {
+    "id" : "operationDetails",
+    "label" : "Operation details"
+  }, {
+    "id" : "output",
+    "label" : "Output mapping"
+  }, {
+    "id" : "error",
+    "label" : "Error handling"
+  }, {
+    "id" : "retries",
+    "label" : "Retries"
+  } ],
+  "properties" : [ {
+    "value" : "io.camunda:aws-lambda:1",
+    "binding" : {
+      "property" : "type",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "authentication.type",
+    "label" : "Authentication",
+    "description" : "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/\" target=\"_blank\">documentation page</a>",
+    "value" : "credentials",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.type",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Default Credentials Chain (Hybrid/Self-Managed only)",
+      "value" : "defaultCredentialsChain"
+    }, {
+      "name" : "Credentials",
+      "value" : "credentials"
+    } ]
+  }, {
+    "id" : "authentication.accessKey",
+    "label" : "Access key",
+    "description" : "Provide an access key of a user with permissions to invoke specified AWS Lambda function",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.accessKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "credentials",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.secretKey",
+    "label" : "Secret key",
+    "description" : "Provide a secret key of a user with permissions to invoke specified AWS Lambda function",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.secretKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "credentials",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "configuration.region",
+    "label" : "Region",
+    "description" : "Specify the AWS region",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "configuration",
+    "binding" : {
+      "name" : "configuration.region",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "configuration.endpoint",
+    "label" : "Endpoint",
+    "description" : "Specify endpoint if need to use custom endpoint",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "configuration",
+    "binding" : {
+      "name" : "configuration.endpoint",
+      "type" : "zeebe:input"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "awsFunction.operationType",
+    "label" : "Operation type",
+    "optional" : false,
+    "value" : "sync",
+    "group" : "operation",
+    "binding" : {
+      "name" : "awsFunction.operationType",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Invoke function (sync)",
+      "value" : "sync"
+    } ]
+  }, {
+    "id" : "awsFunction.functionName",
+    "label" : "Function name",
+    "description" : "Enter a name, ARN or alias of your function",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "operationDetails",
+    "binding" : {
+      "name" : "awsFunction.functionName",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "awsFunction.payload",
+    "label" : "Payload",
+    "description" : "Provide payload for your function as JSON",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "operationDetails",
+    "binding" : {
+      "name" : "awsFunction.payload",
+      "type" : "zeebe:input"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "resultVariable",
+    "label" : "Result variable",
+    "description" : "Name of variable to store the response in",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultVariable",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  }, {
+    "id" : "resultExpression",
+    "label" : "Result expression",
+    "description" : "Expression to map the response into process variables",
+    "feel" : "required",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "errorExpression",
+    "label" : "Error expression",
+    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "error",
+    "binding" : {
+      "key" : "errorExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "retryCount",
+    "label" : "Retries",
+    "description" : "Number of retries",
+    "value" : "3",
+    "feel" : "optional",
+    "group" : "retries",
+    "binding" : {
+      "property" : "retries",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "String"
+  }, {
+    "id" : "retryBackoff",
+    "label" : "Retry backoff",
+    "description" : "ISO-8601 duration to wait between retries",
+    "value" : "PT0S",
+    "feel" : "optional",
+    "group" : "retries",
+    "binding" : {
+      "key" : "retryBackoff",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  } ],
+  "icon" : {
+    "contents" : "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0nMTgnIGhlaWdodD0nMTgnIHZpZXdCb3g9JzAgMCA0OCA0OCcgdmVyc2lvbj0nMS4xJyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnCiAgICAgeG1sbnM6eGxpbms9J2h0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsnPgogICAgPHRpdGxlPkljb24tUmVzb3VyY2UvQ29tcHV0ZS9SZXNfQW1hem9uLUxhbWJkYV9MYW1iZGEtRnVuY3Rpb25fNDhfTGlnaHQ8L3RpdGxlPgogICAgPGcgaWQ9J0ljb24tUmVzb3VyY2UvQ29tcHV0ZS9SZXNfQW1hem9uLUxhbWJkYV9MYW1iZGEtRnVuY3Rpb25fNDgnIHN0cm9rZT0nbm9uZScgc3Ryb2tlLXdpZHRoPScxJyBmaWxsPSdub25lJwogICAgICAgZmlsbC1ydWxlPSdldmVub2RkJz4KICAgICAgICA8cGF0aCBkPSdNMjQsNDQgQzEyLjk3Miw0NCA0LDM1LjAyOCA0LDI0IEM0LDEyLjk3MiAxMi45NzIsNCAyNCw0IEMzNS4wMjgsNCA0NCwxMi45NzIgNDQsMjQgQzQ0LDM1LjAyOCAzNS4wMjgsNDQgMjQsNDQgTDI0LDQ0IFogTTI0LDIgQzExLjg2OSwyIDIsMTEuODY5IDIsMjQgQzIsMzYuMTMxIDExLjg2OSw0NiAyNCw0NiBDMzYuMTMxLDQ2IDQ2LDM2LjEzMSA0NiwyNCBDNDYsMTEuODY5IDM2LjEzMSwyIDI0LDIgTDI0LDIgWiBNMTcuMjMxLDM1LjI1IEwxMS44NzYsMzUuMjUgTDE4LjIyMSwyMS45NTkgTDIwLjkwMiwyNy40OTIgTDE3LjIzMSwzNS4yNSBaIE0xOS4xMTQsMTkuMjE1IEMxOC45NDYsMTguODcgMTguNTk3LDE4LjY1MSAxOC4yMTQsMTguNjUxIEwxOC4yMTEsMTguNjUxIEMxNy44MjYsMTguNjUyIDE3LjQ3NywxOC44NzQgMTcuMzEyLDE5LjIyMSBMOS4zODksMzUuODE5IEM5LjI0LDM2LjEyOSA5LjI2MiwzNi40OTMgOS40NDUsMzYuNzgzIEM5LjYyOCwzNy4wNzQgOS45NDcsMzcuMjUgMTAuMjkxLDM3LjI1IEwxNy44NjQsMzcuMjUgQzE4LjI1MSwzNy4yNSAxOC42MDMsMzcuMDI3IDE4Ljc2OSwzNi42NzggTDIyLjkxNSwyNy45MTUgQzIzLjA0NCwyNy42NDIgMjMuMDQzLDI3LjMyMyAyMi45MTEsMjcuMDUxIEwxOS4xMTQsMTkuMjE1IFogTTM2LjEyNSwzNS4yNSBMMzAuNjczLDM1LjI1IEwyMC43NjEsMTMuOTUzIEMyMC41OTcsMTMuNjAxIDIwLjI0MywxMy4zNzUgMTkuODU0LDEzLjM3NSBMMTYuMjUxLDEzLjM3NSBMMTYuMjU1LDkuMjUgTDIzLjQ3NSw5LjI1IEwzMy4zMzksMzAuNTQ1IEMzMy41MDMsMzAuODk4IDMzLjg1NiwzMS4xMjUgMzQuMjQ2LDMxLjEyNSBMMzYuMTI1LDMxLjEyNSBMMzYuMTI1LDM1LjI1IFogTTM3LjEyNSwyOS4xMjUgTDM0Ljg4NSwyOS4xMjUgTDI1LjAyMSw3LjgzIEMyNC44NTYsNy40NzcgMjQuNTAzLDcuMjUgMjQuMTEzLDcuMjUgTDE1LjI1Niw3LjI1IEMxNC43MDQsNy4yNSAxNC4yNTcsNy42OTcgMTQuMjU2LDguMjQ5IEwxNC4yNSwxNC4zNzQgQzE0LjI1LDE0LjY0IDE0LjM1NSwxNC44OTQgMTQuNTQzLDE1LjA4MiBDMTQuNzMsMTUuMjcgMTQuOTg0LDE1LjM3NSAxNS4yNSwxNS4zNzUgTDE5LjIxNywxNS4zNzUgTDI5LjEyOSwzNi42NzIgQzI5LjI5MywzNy4wMjQgMjkuNjQ2LDM3LjI1IDMwLjAzNSwzNy4yNSBMMzcuMTI1LDM3LjI1IEMzNy42NzgsMzcuMjUgMzguMTI1LDM2LjgwMyAzOC4xMjUsMzYuMjUgTDM4LjEyNSwzMC4xMjUgQzM4LjEyNSwyOS41NzIgMzcuNjc4LDI5LjEyNSAzNy4xMjUsMjkuMTI1IEwzNy4xMjUsMjkuMTI1IFonCiAgICAgICAgICAgICAgaWQ9J0FtYXpvbi1MYW1iZGEtTGFtYmRhLUZ1bmN0aW9uX1Jlc291cmNlLUljb25fbGlnaHQtYmcnIGZpbGw9JyNENDVCMDcnPjwvcGF0aD4KICAgIDwvZz4KPC9zdmc+"
+  }
+}
