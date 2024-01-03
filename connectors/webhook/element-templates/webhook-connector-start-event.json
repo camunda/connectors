@@ -104,7 +104,7 @@
       "constraints": {
         "notEmpty": true,
         "pattern": {
-          "value": "^[^-\\]_.~!*'();:@&=+$,/?%#[A-z0-9]+$",
+          "value": "^[-\\]_.~!*'();:@&=+$,\/?%#[A-z0-9]+$",
           "message": "must only contain valid URI characters"
         }
       }
