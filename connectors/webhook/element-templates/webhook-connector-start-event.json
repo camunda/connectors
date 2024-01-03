@@ -105,7 +105,7 @@
         "notEmpty": true,
         "pattern": {
           "value": "^[^-\\]_.~!*'();:@&=+$,/?%#[A-z0-9]+$",
-          "message": "Must only contain valid URI characters"
+          "message": "must only contain valid URI characters"
         }
       }
     },
