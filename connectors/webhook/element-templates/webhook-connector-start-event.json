@@ -102,7 +102,11 @@
       },
       "description": "The webhook ID is a part of the URL",
       "constraints": {
-        "notEmpty": true
+        "notEmpty": true,
+        "pattern": {
+          "value": "^[^-\\]_.~!*'();:@&=+$,/?%#[A-z0-9]+$",
+          "message": "Must only contain valid URI characters"
+        }
       }
     },
     {
