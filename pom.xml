@@ -40,6 +40,7 @@
     <module>connectors-e2e-test/connectors-e2e-test-http</module>
     <module>connectors-e2e-test/connectors-e2e-test-automation-anywhere</module>
     <module>connectors-e2e-test/connectors-e2e-test-kafka</module>
+    <module>connectors-e2e-test/connectors-e2e-test-aws</module>
   </modules>
 
 </project>
