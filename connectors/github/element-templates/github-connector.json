@@ -79,6 +79,10 @@
         {
           "name": "Code scanning",
           "value": "codeScanning"
+        },
+        {
+          "name": "Actions",
+          "value": "actions"
         }
       ],
       "binding": {
