@@ -708,7 +708,7 @@
     },
     {
       "label": "Workflow ID",
-      "description": "ID of the Github Actions workflow",
+      "description": "ID or file name of the Github Actions workflow",
       "group": "configuration",
       "type": "String",
       "feel": "optional",
