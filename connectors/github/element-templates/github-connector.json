@@ -728,6 +728,24 @@
       }
     },
     {
+      "label": "Workflow inputs",
+      "description": "Keys and values in a single JSON object",
+      "id": "workflowInputs",
+      "group": "input",
+      "type": "String",
+      "value": "",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "workflowInputs"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createWorkflowDispatchEvent"
+        ]
+      }
+    },
+    {
       "label": "Milestone",
       "description": "The number of the milestone to associate this issue with",
       "group": "input",
