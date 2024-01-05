@@ -478,7 +478,8 @@
           "updateRepo",
           "listRepoContributors",
           "listAlertsForRepo",
-          "listCommits"
+          "listCommits",
+          "createWorkflowDispatchEvent"
         ]
       }
     },
