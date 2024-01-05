@@ -687,7 +687,7 @@
     },
     {
       "label": "Git reference",
-      "description": "Git reference for the workflow. This can be a branch name or a tag name",
+      "description": "Branch or tag name for the workflow",
       "group": "input",
       "type": "String",
       "feel": "optional",
