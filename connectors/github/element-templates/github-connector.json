@@ -686,6 +686,27 @@
       }
     },
     {
+      "label": "Workflow ID",
+      "description": "ID of the Github Actions workflow",
+      "group": "configuration",
+      "type": "String",
+      "feel": "optional",
+      "value": "",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "workflow_id"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createWorkflowDispatchEvent"
+        ]
+      }
+    },
+    {
       "label": "Milestone",
       "description": "The number of the milestone to associate this issue with",
       "group": "input",
