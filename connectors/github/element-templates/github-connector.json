@@ -686,6 +686,27 @@
       }
     },
     {
+      "label": "Git reference",
+      "description": "Git reference for the workflow. This can be a branch name or a tag name",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "value": "",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "gitReference"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createWorkflowDispatchEvent"
+        ]
+      }
+    },
+    {
       "label": "Workflow ID",
       "description": "ID of the Github Actions workflow",
       "group": "configuration",
