@@ -729,7 +729,7 @@
     },
     {
       "label": "Workflow inputs",
-      "description": "Keys and values in a single JSON object",
+      "description": "Key-value pairs in a single JSON object",
       "id": "workflowInputs",
       "group": "input",
       "type": "String",
