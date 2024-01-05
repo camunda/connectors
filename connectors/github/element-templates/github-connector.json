@@ -274,6 +274,29 @@
       }
     },
     {
+      "label": "Operation type",
+      "id": "operationType",
+      "group": "operation",
+      "type": "Dropdown",
+      "value": "createWorkflowDispatchEvent",
+      "choices": [
+        {
+          "name": "Create a workflow dispatch event",
+          "value": "createWorkflowDispatchEvent"
+        }
+      ],
+      "condition": {
+        "property": "operationGroup",
+        "oneOf": [
+          "actions"
+        ]
+      },
+      "binding": {
+        "type": "zeebe:input",
+        "name": "operationType"
+      }
+    },
+    {
       "type": "Hidden",
       "label": "Type",
       "id": "authenticationType",
