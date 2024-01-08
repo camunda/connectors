@@ -1341,6 +1341,22 @@
     {
       "group": "input",
       "type": "Hidden",
+      "value": "={\"ref\": if gitReference = null then null else gitReference, \"inputs\": if workflowInputs = null then null else workflowInputs}",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createWorkflowDispatchEvent"
+        ]
+      },
+      "optional": true
+    },
+    {
+      "group": "input",
+      "type": "Hidden",
       "value": "={\"type\": repoType, \"sort\": repoSortOrder, \"direction\": repoSortOrder}",
       "binding": {
         "type": "zeebe:input",
