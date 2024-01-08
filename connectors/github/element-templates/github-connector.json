@@ -732,7 +732,8 @@
       "description": "Key-value pairs in a single JSON object",
       "id": "workflowInputs",
       "group": "input",
-      "type": "String",
+      "type": "Text",
+      "feel": "required",
       "value": "",
       "binding": {
         "type": "zeebe:input",
@@ -1341,7 +1342,7 @@
     {
       "group": "input",
       "type": "Hidden",
-      "value": "={\"ref\": if gitReference = null then null else gitReference, \"inputs\": if workflowInputs = null then null else workflowInputs}",
+      "value": "={\"ref\": if gitReference = null then null else gitReference, \"inputs\":workflowInputs}",
       "binding": {
         "type": "zeebe:input",
         "name": "body"
