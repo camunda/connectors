@@ -1707,7 +1707,7 @@
     },
     {
       "type": "Hidden",
-      "value": "=baseUrl + \"/repos/\" + owner + \"/\" + repo + \"/actions/workflows/\" + workflowId + \"dispatches\"",
+      "value": "=baseUrl + \"/repos/\" + owner + \"/\" + repo + \"/actions/workflows/\" + workflowId + \"/dispatches\"",
       "binding": {
         "type": "zeebe:input",
         "name": "url"
