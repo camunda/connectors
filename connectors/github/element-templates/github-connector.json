@@ -278,7 +278,6 @@
       "id": "operationType",
       "group": "operation",
       "type": "Dropdown",
-      "value": "createWorkflowDispatchEvent",
       "choices": [
         {
           "name": "Create a workflow dispatch event",
