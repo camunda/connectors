@@ -714,7 +714,7 @@
       "value": "",
       "binding": {
         "type": "zeebe:input",
-        "name": "workflow_id"
+        "name": "workflowId"
       },
       "constraints": {
         "notEmpty": true
@@ -1700,6 +1700,20 @@
         "property": "operationType",
         "oneOf": [
           "createIssue"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "=baseUrl + \"/repos/\" + owner + \"/\" + repo + \"/actions/workflows/\" + workflowId + \"dispatches\"",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "url"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createWorkflowDispatchEvent"
         ]
       }
     },
