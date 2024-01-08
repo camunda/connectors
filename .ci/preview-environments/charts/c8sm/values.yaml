@@ -266,9 +266,6 @@ camunda-platform:
     webapp:
       # image:
       #   repository: web-modeler-ee/modeler-webapp
-      image:
-        repository: web-modeler/modeler-webapp-self-managed
-        tag: latest
       resources:
         limits:
           cpu: 100m
