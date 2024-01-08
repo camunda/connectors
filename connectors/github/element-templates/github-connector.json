@@ -341,7 +341,8 @@
           "mergeBranch",
           "createOrganizationRepo",
           "orgInvitation",
-          "createIssueComment"
+          "createIssueComment",
+          "createWorkflowDispatchEvent"
         ]
       }
     },
