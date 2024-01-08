@@ -737,6 +737,7 @@
         "type": "zeebe:input",
         "name": "workflowInputs"
       },
+      "optional": true,
       "condition": {
         "property": "operationType",
         "oneOf": [
