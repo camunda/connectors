@@ -1307,7 +1307,6 @@
     {
       "label": "Workflow inputs",
       "description": "Key-value pairs in a single JSON object",
-      "id": "workflowInputs",
       "group": "input",
       "type": "Text",
       "feel": "required",
