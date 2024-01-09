@@ -686,68 +686,6 @@
       }
     },
     {
-      "label": "Git reference",
-      "description": "Branch or tag name for the workflow",
-      "group": "input",
-      "type": "String",
-      "feel": "optional",
-      "value": "",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "gitReference"
-      },
-      "constraints": {
-        "notEmpty": true
-      },
-      "condition": {
-        "property": "operationType",
-        "oneOf": [
-          "createWorkflowDispatchEvent"
-        ]
-      }
-    },
-    {
-      "label": "Workflow ID",
-      "description": "ID or file name of the Github Actions workflow",
-      "group": "configuration",
-      "type": "String",
-      "feel": "optional",
-      "value": "",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "workflowId"
-      },
-      "constraints": {
-        "notEmpty": true
-      },
-      "condition": {
-        "property": "operationType",
-        "oneOf": [
-          "createWorkflowDispatchEvent"
-        ]
-      }
-    },
-    {
-      "label": "Workflow inputs",
-      "description": "Key-value pairs in a single JSON object",
-      "id": "workflowInputs",
-      "group": "input",
-      "type": "Text",
-      "feel": "required",
-      "value": "",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "workflowInputs"
-      },
-      "optional": true,
-      "condition": {
-        "property": "operationType",
-        "oneOf": [
-          "createWorkflowDispatchEvent"
-        ]
-      }
-    },
-    {
       "label": "Milestone",
       "description": "The number of the milestone to associate this issue with",
       "group": "input",
@@ -1244,6 +1182,7 @@
         ]
       }
     },
+
     {
       "group": "configuration",
       "type": "Hidden",
@@ -1322,6 +1261,68 @@
         ]
       },
       "optional": true
+    },
+    {
+      "label": "Git reference",
+      "description": "Branch or tag name for the workflow",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "value": "",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "gitReference"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createWorkflowDispatchEvent"
+        ]
+      }
+    },
+    {
+      "label": "Workflow ID",
+      "description": "ID or file name of the Github Actions workflow",
+      "group": "configuration",
+      "type": "String",
+      "feel": "optional",
+      "value": "",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "workflowId"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createWorkflowDispatchEvent"
+        ]
+      }
+    },
+    {
+      "label": "Workflow inputs",
+      "description": "Key-value pairs in a single JSON object",
+      "id": "workflowInputs",
+      "group": "input",
+      "type": "Text",
+      "feel": "required",
+      "value": "",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "workflowInputs"
+      },
+      "optional": true,
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createWorkflowDispatchEvent"
+        ]
+      }
     },
     {
       "group": "input",
@@ -1724,20 +1725,6 @@
     },
     {
       "type": "Hidden",
-      "value": "=baseUrl + \"/repos/\" + owner + \"/\" + repo + \"/actions/workflows/\" + workflowId + \"/dispatches\"",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "url"
-      },
-      "condition": {
-        "property": "operationType",
-        "oneOf": [
-          "createWorkflowDispatchEvent"
-        ]
-      }
-    },
-    {
-      "type": "Hidden",
       "value": "=baseUrl + \"/repos/\" + owner + \"/\" + repo + \"/commits\"",
       "binding": {
         "type": "zeebe:input",
@@ -1963,6 +1950,20 @@
         "property": "operationType",
         "oneOf": [
           "searchIssues"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "=baseUrl + \"/repos/\" + owner + \"/\" + repo + \"/actions/workflows/\" + workflowId + \"/dispatches\"",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "url"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createWorkflowDispatchEvent"
         ]
       }
     },
