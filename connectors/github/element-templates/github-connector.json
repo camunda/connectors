@@ -1182,7 +1182,67 @@
         ]
       }
     },
-
+    {
+      "label": "Git reference",
+      "description": "Branch or tag name for the workflow",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "value": "",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "gitReference"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createWorkflowDispatchEvent"
+        ]
+      }
+    },
+    {
+      "label": "Workflow ID",
+      "description": "ID or file name of the Github Actions workflow",
+      "group": "configuration",
+      "type": "String",
+      "feel": "optional",
+      "value": "",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "workflowId"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createWorkflowDispatchEvent"
+        ]
+      }
+    },
+    {
+      "label": "Workflow inputs",
+      "description": "Key-value pairs in a single JSON object",
+      "group": "input",
+      "type": "Text",
+      "feel": "required",
+      "value": "={}",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "workflowInputs"
+      },
+      "optional": true,
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createWorkflowDispatchEvent"
+        ]
+      }
+    },
     {
       "group": "configuration",
       "type": "Hidden",
@@ -1261,67 +1321,6 @@
         ]
       },
       "optional": true
-    },
-    {
-      "label": "Git reference",
-      "description": "Branch or tag name for the workflow",
-      "group": "input",
-      "type": "String",
-      "feel": "optional",
-      "value": "",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "gitReference"
-      },
-      "constraints": {
-        "notEmpty": true
-      },
-      "condition": {
-        "property": "operationType",
-        "oneOf": [
-          "createWorkflowDispatchEvent"
-        ]
-      }
-    },
-    {
-      "label": "Workflow ID",
-      "description": "ID or file name of the Github Actions workflow",
-      "group": "configuration",
-      "type": "String",
-      "feel": "optional",
-      "value": "",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "workflowId"
-      },
-      "constraints": {
-        "notEmpty": true
-      },
-      "condition": {
-        "property": "operationType",
-        "oneOf": [
-          "createWorkflowDispatchEvent"
-        ]
-      }
-    },
-    {
-      "label": "Workflow inputs",
-      "description": "Key-value pairs in a single JSON object",
-      "group": "input",
-      "type": "Text",
-      "feel": "required",
-      "value": "={}",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "workflowInputs"
-      },
-      "optional": true,
-      "condition": {
-        "property": "operationType",
-        "oneOf": [
-          "createWorkflowDispatchEvent"
-        ]
-      }
     },
     {
       "group": "input",
