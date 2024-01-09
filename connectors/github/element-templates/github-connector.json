@@ -1310,7 +1310,7 @@
       "group": "input",
       "type": "Text",
       "feel": "required",
-      "value": "",
+      "value": "={}",
       "binding": {
         "type": "zeebe:input",
         "name": "workflowInputs"
