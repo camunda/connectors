@@ -1,3 +1,4 @@
+DO NOT MERGE - Test workflow runs from public forks (preview environment)
 # Camunda Connectors
 
 [![CI](https://github.com/camunda/connectors-bundle/actions/workflows/DEPLOY_SNAPSHOTS.yaml/badge.svg)](https://github.com/camunda/connectors-bundle/actions/workflows/DEPLOY_SNAPSHOTS.yaml)
