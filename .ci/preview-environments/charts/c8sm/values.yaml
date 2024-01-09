@@ -75,6 +75,12 @@ camunda-platform:
     env:
     - name: JAVA_OPTS
       value: "-Xms512m -Xmx512m"
+    - name: CAMUNDA_CONNECTOR_SECRETPROVIDER_ENVIRONMENT_ENABLED
+      value: "true"
+    - name: CAMUNDA_CONNECTOR_SECRETPROVIDER_ENVIRONMENT_PREFIX
+      value: SUPER_SECRETS_
+    - name: SUPER_SECRETS_MY_SECRET
+      value: foo
     resources:
       limits:
         cpu: 1
