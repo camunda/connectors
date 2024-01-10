@@ -6,14 +6,19 @@
  */
 package io.camunda.connector.aws.model.impl;
 
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.util.Objects;
 
 public class AwsBaseRequest {
 
-  @Valid @NotNull private AwsAuthentication authentication;
+  @TemplateProperty(group = "authentication", id = "type")
+  @Valid
+  @NotNull
+  private AwsAuthentication authentication;
 
+  @TemplateProperty(group = "configuration")
   private AwsBaseConfiguration configuration;
 
   public AwsAuthentication getAuthentication() {
