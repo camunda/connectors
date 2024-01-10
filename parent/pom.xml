@@ -69,7 +69,7 @@ limitations under the License.</license.inlineheader>
 
     <!-- Camunda internal libraries -->
     <version.zeebe>8.3.4</version.zeebe>
-    <version.spring-zeebe>8.3.4.7</version.spring-zeebe>
+    <version.spring-zeebe>8.3.4.8</version.spring-zeebe>
     <version.feel-engine>1.17.4</version.feel-engine>
 
     <!-- Third party dependencies -->
