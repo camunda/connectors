@@ -129,7 +129,7 @@ limitations under the License.</license.inlineheader>
     <version.auth0.jwks>0.22.1</version.auth0.jwks>
 
     <!-- maven plugins (not managed by parent) -->
-    <plugin.version.maven-enforcer-plugin>3.1.0</plugin.version.maven-enforcer-plugin>
+    <plugin.version.maven-enforcer-plugin>3.4.1</plugin.version.maven-enforcer-plugin>
     <plugin.version.maven-exec-plugin>3.1.1</plugin.version.maven-exec-plugin>
     <plugin.version.maven-install-plugin>3.1.1</plugin.version.maven-install-plugin>
     <plugin.version.license>4.3</plugin.version.license>
