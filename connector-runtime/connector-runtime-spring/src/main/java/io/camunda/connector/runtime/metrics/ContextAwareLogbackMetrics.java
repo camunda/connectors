@@ -33,6 +33,7 @@ import io.micrometer.core.instrument.binder.BaseUnits;
 import io.micrometer.core.instrument.binder.logging.LogbackMetrics;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
 
@@ -148,7 +149,7 @@ public class ContextAwareLogbackMetrics extends LogbackMetrics {
         Counter debugCounter,
         Counter traceCounter) {}
 
-    private final Map<String, Counters> countersByLoggerName = new HashMap<>();
+    private final Map<String, Counters> countersByLoggerName = new ConcurrentHashMap<>();
 
     MetricsTurboFilter(MeterRegistry registry, Iterable<Tag> tags) {
       this.registry = registry;
