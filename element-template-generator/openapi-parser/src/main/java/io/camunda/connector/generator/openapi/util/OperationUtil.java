@@ -112,7 +112,6 @@ public class OperationUtil {
                   });
               return operations.stream();
             })
-        .filter(OperationParseResult::supported)
         .filter(
             operation ->
                 includeOperations == null
@@ -138,7 +137,7 @@ public class OperationUtil {
       var authenticationOverride = parseAuthentication(operation.getSecurity(), components);
 
       var body = BodyUtil.parseBody(operation.getRequestBody(), components, options);
-      HttpFeelBuilder bodyFeelExpression = null;
+      HttpFeelBuilder bodyFeelExpression;
 
       if (body instanceof BodyParseResult.Raw raw) {
         bodyFeelExpression = HttpFeelBuilder.preFormatted("=" + raw.rawBody());
