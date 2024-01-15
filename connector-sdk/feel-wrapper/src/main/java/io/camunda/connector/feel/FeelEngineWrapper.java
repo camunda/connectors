@@ -18,14 +18,18 @@ package io.camunda.connector.feel;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.scala.DefaultScalaModule$;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import org.camunda.feel.FeelEngine;
@@ -143,13 +147,73 @@ public class FeelEngineWrapper {
   }
 
   public <T> T evaluate(final String expression, final Class<T> clazz, final Object... variables) {
-    Object result = evaluate(expression, variables);
-    return sanitizeScalaOutput(objectMapper.convertValue(result, clazz));
+    Function<JsonNode, T> converter =
+        (JsonNode jsonNode) -> {
+          try {
+            return objectMapper.treeToValue(jsonNode, clazz);
+          } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+          }
+        };
+    var type = objectMapper.getTypeFactory().constructType(clazz);
+    return evaluateAndConvert(expression, type, converter, variables);
   }
 
   public <T> T evaluate(final String expression, final JavaType clazz, final Object... variables) {
+    Function<JsonNode, T> converter =
+        (JsonNode jsonNode) -> {
+          try {
+            return objectMapper.treeToValue(jsonNode, clazz);
+          } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+          }
+        };
+    return evaluateAndConvert(expression, clazz, converter, variables);
+  }
+
+  /**
+   * For use in custom deserializers where there is a need to use the deserialization context. This
+   * allows to preserve custom settings and registered jackson modules when evaluating expressions.
+   */
+  public <T> T evaluate(
+      final DeserializationContext ctx,
+      final String expression,
+      final JavaType clazz,
+      final Object... variables) {
+    Function<JsonNode, T> converter =
+        (JsonNode jsonNode) -> {
+          try {
+            if (jsonNode == null || jsonNode.isNull()) {
+              return null;
+            }
+            return ctx.readTreeAsValue(jsonNode, clazz);
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
+        };
+    return evaluateAndConvert(expression, clazz, converter, variables);
+  }
+
+  @SuppressWarnings("unchecked")
+  private <T> T evaluateAndConvert(
+      final String expression,
+      final JavaType clazz,
+      Function<JsonNode, T> converter,
+      final Object... variables) {
+
     Object result = evaluate(expression, variables);
-    return sanitizeScalaOutput(objectMapper.convertValue(result, clazz));
+    JsonNode jsonNode = objectMapper.convertValue(result, JsonNode.class);
+
+    try {
+      if (clazz.getRawClass().equals(String.class) && jsonNode.isObject()) {
+        return (T) objectMapper.writeValueAsString(jsonNode);
+      } else {
+        return sanitizeScalaOutput(converter.apply(jsonNode));
+      }
+    } catch (Exception e) {
+      throw new FeelEngineWrapperException(
+          "Failed to convert FEEL evaluation result to the target type", expression, variables, e);
+    }
   }
 
   /**

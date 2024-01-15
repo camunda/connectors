@@ -20,7 +20,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -29,7 +31,9 @@ import org.junit.jupiter.api.Test;
 public class FeelFunctionDeserializerTest {
 
   private final ObjectMapper mapper =
-      new ObjectMapper().registerModule(new JacksonModuleFeelFunction());
+      new ObjectMapper()
+          .registerModule(new JacksonModuleFeelFunction())
+          .registerModule(new JavaTimeModule());
 
   @Test
   void feelFunctionDeserialization_objectResult() throws JsonProcessingException {
@@ -196,6 +200,24 @@ public class FeelFunctionDeserializerTest {
     assertThat(result.result).isEqualTo("foobar");
   }
 
+  @Test
+  void feelFunctionDeserlization_contextAware_knowsJava8Time() throws IOException {
+    // given
+    var json = """
+        { "function": "= string(date(2021, 1, 1))" }
+        """;
+    var contextualReader =
+        FeelContextAwareObjectReader.of(mapper).withStaticContext(Map.of("c", "bar"));
+
+    // when
+    TargetTypeJava8Time targetType = contextualReader.readValue(json, TargetTypeJava8Time.class);
+
+    // then
+    InputContextInteger inputContext = new InputContextInteger(3, 5);
+    LocalDate result = targetType.function().apply(inputContext);
+    assertThat(result).isEqualTo(LocalDate.of(2021, 1, 1));
+  }
+
   private record InputContextString(String a, String b) {}
 
   private record InputContextInteger(Integer a, Integer b) {}
@@ -215,4 +237,6 @@ public class FeelFunctionDeserializerTest {
   private record TargetTypeMap(Function<InputContextInteger, Map<String, Long>> function) {}
 
   private record TargetTypeFoldedMap(Function<InputContextInteger, Map<String, Object>> function) {}
+
+  private record TargetTypeJava8Time(Function<InputContextInteger, LocalDate> function) {}
 }

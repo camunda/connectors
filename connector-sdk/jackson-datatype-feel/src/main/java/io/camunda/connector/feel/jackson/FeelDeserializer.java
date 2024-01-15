@@ -16,13 +16,12 @@
  */
 package io.camunda.connector.feel.jackson;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.BeanProperty;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import java.io.IOException;
@@ -51,11 +50,11 @@ public class FeelDeserializer extends AbstractFeelDeserializer<Object> {
   }
 
   @Override
-  protected Object doDeserialize(JsonNode node, ObjectMapper mapper, JsonNode feelContext)
-      throws JsonProcessingException {
+  protected Object doDeserialize(
+      JsonNode node, JsonNode feelContext, DeserializationContext jacksonCtx) throws IOException {
 
     if (isFeelExpression(node.textValue())) {
-      return handleFeelExpression(node, mapper, feelContext);
+      return feelEngineWrapper.evaluate(jacksonCtx, node.textValue(), outputType, feelContext);
     }
 
     if (node.isTextual()) {
@@ -66,36 +65,32 @@ public class FeelDeserializer extends AbstractFeelDeserializer<Object> {
         // Support legacy list like formats like: a,b,c | 1,2,3
         return handleListLikeFormat(textValue);
       } else {
-        try {
+        var jsonFactory = jacksonCtx.getParser().getCodec().getFactory();
+        try (JsonParser jsonParser = jsonFactory.createParser(textValue)) {
           // check if this string contains a JSON object/array/etc inside (i.e. it's not just a
           // string)
-          var convertedValue = mapper.readValue(textValue, JsonNode.class);
-          return handleNormalJsonNode(convertedValue, mapper);
+          JsonNode jsonNode = jsonParser.readValueAsTree();
+          if (jsonNode != null && !jsonNode.isNull()) {
+            return handleNormalJsonNode(jsonNode, jacksonCtx);
+          }
         } catch (IOException e) {
           // ignore, this is just a string, we will take care of it below
         }
       }
     }
-    return handleNormalJsonNode(node, mapper);
+    return handleNormalJsonNode(node, jacksonCtx);
   }
 
-  protected Object handleFeelExpression(JsonNode node, ObjectMapper mapper, JsonNode feelContext)
-      throws JsonProcessingException {
-    var jsonNode = feelEngineWrapper.evaluate(node.textValue(), JsonNode.class, feelContext);
-    if (outputType.getRawClass() == String.class && jsonNode.isObject()) {
-      return mapper.writeValueAsString(jsonNode);
-    } else {
-      return mapper.treeToValue(jsonNode, outputType);
+  protected Object handleNormalJsonNode(JsonNode node, DeserializationContext context)
+      throws IOException {
+
+    if (node == null || node.isNull()) {
+      return null;
     }
-  }
-
-  protected Object handleNormalJsonNode(JsonNode node, ObjectMapper mapper)
-      throws JsonProcessingException {
-
     if (outputType.getRawClass() == String.class && node.isObject()) {
-      return mapper.writeValueAsString(node);
+      return BLANK_OBJECT_MAPPER.writeValueAsString(node);
     }
-    return mapper.treeToValue(node, outputType);
+    return context.readTreeAsValue(node, outputType);
   }
 
   protected Object handleListLikeFormat(String textValue) {
