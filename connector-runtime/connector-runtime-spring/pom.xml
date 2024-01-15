@@ -29,6 +29,18 @@
       <artifactId>tomcat-embed-core</artifactId>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-core</artifactId>
+      <scope>provided</scope>
+    </dependency>
+
+    <!-- The runtime provides enhanced metrics for logback if it is present -->
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <optional>true</optional>
+    </dependency>
 
     <!-- Camunda dependencies -->
     <dependency>
