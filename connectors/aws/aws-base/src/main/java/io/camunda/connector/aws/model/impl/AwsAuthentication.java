@@ -33,7 +33,7 @@ import jakarta.validation.constraints.NotBlank;
     name = "type",
     defaultValue = "credentials",
     description =
-        "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/\" target=\"_blank\">documentation page</a>")
+        "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/#aws-authentication-types\" target=\"_blank\">documentation page</a>")
 public sealed interface AwsAuthentication
     permits AwsDefaultCredentialsChainAuthentication, AwsStaticCredentialsAuthentication {
   @TemplateSubType(id = "credentials", label = "Credentials")
@@ -42,7 +42,7 @@ public sealed interface AwsAuthentication
               group = "authentication",
               label = "Access key",
               description =
-                  "Provide an access key of a user with permissions to invoke specified AWS Lambda function")
+                  "Provide an IAM access key tailored to a user, equipped with the necessary permissions")
           @NotBlank
           String accessKey,
       @TemplateProperty(

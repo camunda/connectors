@@ -7,6 +7,7 @@
 package io.camunda.connector.aws.model.impl;
 
 import io.camunda.connector.aws.model.AwsConfiguration;
+import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 
 public record AwsBaseConfiguration(
@@ -19,6 +20,7 @@ public record AwsBaseConfiguration(
             group = "configuration",
             description = "Specify endpoint if need to use custom endpoint",
             type = TemplateProperty.PropertyType.Hidden,
+            feel = Property.FeelMode.disabled,
             optional = true)
         String endpoint)
     implements AwsConfiguration {}

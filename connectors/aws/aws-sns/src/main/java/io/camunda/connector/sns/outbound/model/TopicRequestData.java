@@ -7,6 +7,9 @@
 package io.camunda.connector.sns.outbound.model;
 
 import com.amazonaws.services.sns.model.MessageAttributeValue;
+import io.camunda.connector.feel.annotation.FEEL;
+import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -18,15 +21,39 @@ import java.util.function.Function;
 
 public class TopicRequestData {
 
-  @NotBlank private String topicArn;
-  @Deprecated private String region;
+  @TemplateProperty(
+      group = "configuration",
+      label = "Topic ARN",
+      description = "Specify the topic you want to publish to")
+  @NotBlank
+  private String topicArn;
+
+  @TemplateProperty(ignore = true)
+  @Deprecated
+  private String region;
 
   @Size(max = 99)
+  @TemplateProperty(
+      group = "input",
+      label = "Subject",
+      description = "Specify the subject of the message you want to publish in the SNS topic")
   private String subject;
 
   // we don't need to know the customer message as we will pass it as-is
-  @NotNull private Object message;
+  @TemplateProperty(
+      group = "input",
+      label = "Message",
+      type = TemplateProperty.PropertyType.Text,
+      description = "Data to publish in the SNS topic")
+  @NotNull
+  private Object message;
 
+  @FEEL
+  @TemplateProperty(
+      group = "input",
+      feel = Property.FeelMode.required,
+      label = "messageAttributes",
+      description = "Message attributes metadata")
   private Map<String, SnsMessageAttribute> messageAttributes;
 
   public String getTopicArn() {

@@ -45,7 +45,7 @@
   }, {
     "id" : "authentication.type",
     "label" : "Authentication",
-    "description" : "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/\" target=\"_blank\">documentation page</a>",
+    "description" : "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/#aws-authentication-types\" target=\"_blank\">documentation page</a>",
     "value" : "credentials",
     "group" : "authentication",
     "binding" : {
@@ -63,7 +63,7 @@
   }, {
     "id" : "authentication.accessKey",
     "label" : "Access key",
-    "description" : "Provide an access key of a user with permissions to invoke specified AWS Lambda function",
+    "description" : "Provide an IAM access key tailored to a user, equipped with the necessary permissions",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -117,7 +117,6 @@
     "label" : "Endpoint",
     "description" : "Specify endpoint if need to use custom endpoint",
     "optional" : true,
-    "feel" : "optional",
     "group" : "configuration",
     "binding" : {
       "name" : "configuration.endpoint",
