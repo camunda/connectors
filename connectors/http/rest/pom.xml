@@ -6,7 +6,7 @@
   <parent>
     <groupId>io.camunda.connector</groupId>
     <artifactId>connector-http-parent</artifactId>
-    <version>8.4.0-SNAPSHOT</version>
+    <version>8.5.0-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -31,7 +31,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.</license.inlineheader>
 
-    <version.system-stubs>2.1.5</version.system-stubs>
+    <version.system-stubs>2.1.6</version.system-stubs>
   </properties>
 
   <dependencies>

@@ -17,8 +17,6 @@
 package io.camunda.connector.feel.jackson;
 
 import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.ObjectCodec;
-import com.fasterxml.jackson.databind.DeserializationConfig;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -34,6 +32,16 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
   protected FeelEngineWrapper feelEngineWrapper;
   protected boolean relaxed;
 
+  /**
+   * A blank object mapper object for use in inheriting classes.
+   *
+   * <p>NOTE: This object mapper does not preserve the original deserialization context nor is it
+   * aware of any registered modules. It should not be used to deserialize the final result. For
+   * final results, use the {@link DeserializationContext} object passed to {@link
+   * #doDeserialize(JsonNode, JsonNode, DeserializationContext)} instead.
+   */
+  protected static final ObjectMapper BLANK_OBJECT_MAPPER = new ObjectMapper();
+
   protected AbstractFeelDeserializer(FeelEngineWrapper feelEngineWrapper, boolean relaxed) {
     super(String.class);
     this.feelEngineWrapper = feelEngineWrapper;
@@ -42,18 +50,9 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
 
   @Override
   public T deserialize(JsonParser parser, DeserializationContext context) throws IOException {
-    JsonNode node = parser.getCodec().readTree(parser);
+    JsonNode node = parser.readValueAsTree();
     if (node == null || node.isNull()) {
       return null;
-    }
-    ObjectCodec codec = parser.getCodec();
-    ObjectMapper mapper;
-    if (!(codec instanceof ObjectMapper)) {
-      DeserializationConfig config = context.getConfig();
-      mapper = new ObjectMapper();
-      mapper.setConfig(config);
-    } else {
-      mapper = (ObjectMapper) codec;
     }
 
     if (isFeelExpression(node.textValue()) || relaxed) {
@@ -61,10 +60,10 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
           context.getAttribute(FeelContextAwareObjectReader.FEEL_CONTEXT_ATTRIBUTE);
 
       if (feelContextSupplier == null) {
-        return doDeserialize(node, mapper, mapper.createObjectNode());
+        return doDeserialize(node, BLANK_OBJECT_MAPPER.createObjectNode(), context);
       }
       if (feelContextSupplier instanceof Supplier<?> supplier) {
-        return doDeserialize(node, mapper, mapper.valueToTree(supplier.get()));
+        return doDeserialize(node, BLANK_OBJECT_MAPPER.valueToTree(supplier.get()), context);
       }
       throw new IOException(
           "Attribute "
@@ -82,6 +81,7 @@ public abstract class AbstractFeelDeserializer<T> extends StdDeserializer<T>
     return value != null && value.startsWith("=");
   }
 
-  protected abstract T doDeserialize(JsonNode node, ObjectMapper mapper, JsonNode feelContext)
+  protected abstract T doDeserialize(
+      JsonNode node, JsonNode feelContext, DeserializationContext deserializationContext)
       throws IOException;
 }

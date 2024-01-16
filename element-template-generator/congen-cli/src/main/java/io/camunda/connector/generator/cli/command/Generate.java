@@ -70,7 +70,12 @@ public class Generate implements Callable<Integer> {
       return GENERATION_FAILED.getCode();
     }
     try {
-      var resultString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(templates);
+      String resultString;
+      if (templates.size() == 1) {
+        resultString = mapper.writeValueAsString(templates.getFirst());
+      } else {
+        resultString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(templates);
+      }
       System.out.println(resultString);
       return SUCCESS.getCode();
     } catch (JsonProcessingException e) {

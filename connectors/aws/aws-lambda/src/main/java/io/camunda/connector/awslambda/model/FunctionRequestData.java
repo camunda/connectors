@@ -6,17 +6,42 @@
  */
 package io.camunda.connector.awslambda.model;
 
-import jakarta.validation.constraints.NotEmpty;
+import io.camunda.connector.feel.annotation.FEEL;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.util.Objects;
 
 public class FunctionRequestData {
 
-  @NotEmpty private String functionName;
-  @NotNull private Object payload;
+  @TemplateProperty(
+      group = "operation",
+      type = TemplateProperty.PropertyType.Dropdown,
+      defaultValue = "sync",
+      choices = {
+        @TemplateProperty.DropdownPropertyChoice(value = "sync", label = "Invoke function (sync)")
+      })
   private OperationType operationType; // this is not use and not implemented yet
 
-  @Deprecated private String region;
+  @NotBlank
+  @TemplateProperty(
+      group = "operationDetails",
+      label = "Function name",
+      description = "Enter a name, ARN or alias of your function")
+  private String functionName;
+
+  @NotNull
+  @FEEL
+  @TemplateProperty(
+      group = "operationDetails",
+      label = "Payload",
+      type = TemplateProperty.PropertyType.Text,
+      description = "Provide payload for your function as JSON")
+  private Object payload;
+
+  @TemplateProperty(ignore = true)
+  @Deprecated
+  private String region;
 
   public String getFunctionName() {
     return functionName;

@@ -6,7 +6,7 @@
     <groupId>io.camunda.connector</groupId>
     <artifactId>connectors-bundle-parent</artifactId>
     <relativePath>../../pom.xml</relativePath>
-    <version>8.4.0-SNAPSHOT</version>
+    <version>8.5.0-SNAPSHOT</version>
   </parent>
 
   <name>connector-runtime-core</name>
@@ -15,7 +15,7 @@
   <packaging>jar</packaging>
 
   <properties>
-    <system-stubs.version>2.1.5</system-stubs.version>
+    <system-stubs.version>2.1.6</system-stubs.version>
   </properties>
 
   <dependencies>

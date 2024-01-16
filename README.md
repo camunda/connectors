@@ -152,7 +152,7 @@ mvn clean package
 
 ### Backport a PR to an older release
 
-We use `[backport-action](https://github.com/korthout/backport-action)` to backport PRs to older releases.
+We use [backport-action](https://github.com/korthout/backport-action) to backport PRs to older releases.
 For example, add a label `backport release/8.3` to backport a PR to the `release/8.3` branch. This will take effect when the PR is meged.
 
 You can also trigger this for already merged PRs by posting a comment on the PR containing `/backport`.
