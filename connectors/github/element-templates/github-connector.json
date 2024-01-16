@@ -1226,7 +1226,7 @@
     },
     {
       "label": "Workflow inputs",
-      "description": "An object containing key-value pairs",
+      "description": "An object containing up to 10 key-value pairs",
       "group": "input",
       "type": "Text",
       "feel": "required",
