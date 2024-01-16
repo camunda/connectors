@@ -67,7 +67,7 @@ public class PropertyUtil {
         .label("Authentication")
         .optional(false)
         .binding(new ZeebeInput("authentication.type"))
-        .value(choices.get(0).value());
+        .value(choices.getFirst().value());
   }
 
   static PropertyGroup operationDiscriminatorPropertyGroup(Collection<HttpOperation> operations) {
@@ -327,7 +327,7 @@ public class PropertyUtil {
 
     // shade property id with operation id as there may be duplicates in different operations
     builder
-        .id(operationId + "_" + property.id())
+        .id(operationId + "_" + property.target().name().toLowerCase() + "_" + property.id())
         .label(TemplatePropertiesUtil.transformIdIntoLabel(property.id()))
         .description(property.description())
         .optional(!property.required())
@@ -356,7 +356,7 @@ public class PropertyUtil {
               .map(p -> transformProperty(operation.id(), p, "requestBody"))
               .toList();
 
-      Property bodyAggregationProperty = null;
+      Property bodyAggregationProperty;
       if (bodyProperties.isEmpty()) {
         bodyAggregationProperty =
             StringProperty.builder()

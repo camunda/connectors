@@ -48,11 +48,20 @@ Note that `congen` will pass all parameters specified after the command name to 
 For example, the OpenAPI generator accepts the path or URL of the OpenAPI specification as the first parameter,
 followed by an optional list of operation IDs to include in the generated template.
 
-The following command will ask the generator to include only the `findPetsById` and `addPet` operations.
+The following command will ask the generator to include only the `placeOrder` operation.
 
 ```shell
-congen generate openapi-outbound https://petstore3.swagger.io/api/v3/openapi.json findPetsById addPet
+congen generate openapi-outbound https://petstore3.swagger.io/api/v3/openapi.json placeOrder
 ```
+
+Note that not all operations in the OpenAPI specification can be converted to a template. The generator will
+ignore operations that cannot be converted. To see the list of operations that can be converted, use the `scan` command.
+
+```shell
+congen scan openapi-outbound https://petstore3.swagger.io/api/v3/openapi.json
+```
+
+```shell
 
 The command below will generate the template with the custom element template ID.
 
