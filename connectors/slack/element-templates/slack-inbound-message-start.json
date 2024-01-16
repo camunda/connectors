@@ -4,7 +4,7 @@
   "id": "io.camunda.connectors.inbound.Slack.MessageStartEvent.v1",
   "description": "Receive events from Slack",
   "version": 2,
-  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/slack-inbound/",
+  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/slack/?slack=inbound",
   "category": {
     "id": "connectors",
     "name": "Connectors"

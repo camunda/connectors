@@ -4,7 +4,7 @@
   "id": "io.camunda.connectors.inbound.KafkaBoundary.v1",
   "version": 2,
   "description": "Consume Kafka messages",
-  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka-inbound/",
+  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=inbound",
   "category": {
     "id": "connectors",
     "name": "Connectors"

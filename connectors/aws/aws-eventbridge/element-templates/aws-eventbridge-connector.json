@@ -4,7 +4,7 @@
   "id": "io.camunda.connectors.AWSEventBridge.v1",
   "version": 4,
   "description": "Send events to AWS EventBridge",
-  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/",
+  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound",
   "category": {
     "id": "connectors",
     "name": "Connectors"
@@ -52,7 +52,7 @@
     {
       "id": "authenticationType",
       "label": "Authentication",
-      "description": "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/\" target=\"_blank\">documentation page</a>",
+      "description": "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound\" target=\"_blank\">documentation page</a>",
       "group": "authentication",
       "type": "Dropdown",
       "optional": false,
@@ -77,7 +77,7 @@
     },
     {
       "label": "Access key",
-      "description": "Provide an access key of a user with permissions. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/\" target=\"_blank\">documentation</a>",
+      "description": "Provide an access key of a user with permissions. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound\" target=\"_blank\">documentation</a>",
       "group": "authentication",
       "type": "String",
       "binding": {
@@ -94,7 +94,7 @@
     },
     {
       "label": "Secret key",
-      "description": "Provide a secret key of a user with permissions. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/\" target=\"_blank\">documentation</a>",
+      "description": "Provide a secret key of a user with permissions. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound\" target=\"_blank\">documentation</a>",
       "group": "authentication",
       "type": "String",
       "binding": {

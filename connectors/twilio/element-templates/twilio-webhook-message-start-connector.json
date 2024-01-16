@@ -4,7 +4,7 @@
   "id": "io.camunda.connectors.TwilioWebhookMessageStart.v1",
   "version": 1,
   "description": "Receive incoming message with Twilio service",
-  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/twilio-webhook/",
+  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/twilio/?twilio=inbound",
   "category": {
     "id": "connectors",
     "name": "Connectors"
