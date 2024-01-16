@@ -1226,7 +1226,7 @@
     },
     {
       "label": "Workflow inputs",
-      "description": "Key-value pairs in a single JSON object",
+      "description": "An object containing key-value pairs",
       "group": "input",
       "type": "Text",
       "feel": "required",
