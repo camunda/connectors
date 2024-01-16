@@ -20,7 +20,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -29,7 +31,9 @@ import org.junit.jupiter.api.Test;
 public class FeelSupplierDeserializerTest {
 
   private final ObjectMapper mapper =
-      new ObjectMapper().registerModule(new JacksonModuleFeelFunction());
+      new ObjectMapper()
+          .registerModule(new JacksonModuleFeelFunction())
+          .registerModule(new JavaTimeModule());
 
   @Test
   void feelSupplierDeserialization_objectResult() throws JsonProcessingException {
@@ -170,6 +174,21 @@ public class FeelSupplierDeserializerTest {
     assertThat(result).isEqualTo("foobar");
   }
 
+  @Test
+  void feelSupplierDeserialization_java8Time() throws IOException {
+    // given
+    var json = """
+        { "supplier": "= string(date(2021,1,1))" }
+        """;
+
+    // when
+    TargetTypeJava8Time targetType = mapper.readValue(json, TargetTypeJava8Time.class);
+
+    // then
+    LocalDate result = targetType.supplier().get();
+    assertThat(result).isEqualTo(LocalDate.of(2021, 1, 1));
+  }
+
   private record OutputContext(String result) {}
 
   private record TargetTypeObject(Supplier<OutputContext> supplier) {}
@@ -183,4 +202,6 @@ public class FeelSupplierDeserializerTest {
   private record TargetTypeList(Supplier<List<Long>> supplier) {}
 
   private record TargetTypeMap(Supplier<Map<String, String>> supplier) {}
+
+  private record TargetTypeJava8Time(Supplier<LocalDate> supplier) {}
 }
