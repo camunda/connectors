@@ -1205,7 +1205,7 @@
     },
     {
       "label": "Workflow ID",
-      "description": "ID or file name of the Github Actions workflow",
+      "description": "The ID of the workflow. You can also pass the workflow file name as a string.",
       "group": "configuration",
       "type": "String",
       "feel": "optional",
