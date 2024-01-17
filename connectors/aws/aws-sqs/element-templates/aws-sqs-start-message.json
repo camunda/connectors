@@ -4,7 +4,7 @@
   "id": "io.camunda.connectors.AWSSQS.startmessage.v1",
   "version": 2,
   "description": "Receive message from a queue",
-  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-sqs-inbound/",
+  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound",
   "appliesTo": [
     "bpmn:StartEvent"
   ],
@@ -157,7 +157,7 @@
     },
     {
       "label": "Polling wait time",
-      "description": "The duration (in seconds) for which the call waits for a message to arrive in the queue before returning. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-sqs-inbound/\" target=\"_blank\">documentation</a> for details",
+      "description": "The duration (in seconds) for which the call waits for a message to arrive in the queue before returning. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound\" target=\"_blank\">documentation</a> for details",
       "group": "messagePollingProperties",
       "type": "String",
       "optional":false,
@@ -177,7 +177,7 @@
     },
     {
       "label": "Attribute names",
-      "description": "Array of queue attribute names. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-sqs-inbound/\" target=\"_blank\">documentation</a> for details",
+      "description": "Array of queue attribute names. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound\" target=\"_blank\">documentation</a> for details",
       "group": "input",
       "type": "String",
       "optional": true,
@@ -189,7 +189,7 @@
     },
     {
       "label": "Message attribute names",
-      "description": "Array of message attribute names. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-sqs-inbound/\" target=\"_blank\">documentation</a> for details",
+      "description": "Array of message attribute names. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound\" target=\"_blank\">documentation</a> for details",
       "group": "input",
       "type": "String",
       "optional": true,
