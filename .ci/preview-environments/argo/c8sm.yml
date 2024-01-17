@@ -13,7 +13,7 @@ spec:
     - /data/tls.key
     - /metadata/annotations/replicator.v1.mittwald.de~1replicated-from-version
     kind: Secret
-    name: "*-wildcard-certificate-tls"
+    name: connectors-wildcard-certificate-tls
   project: connectors-previews
   source:
     helm:
@@ -26,4 +26,3 @@ spec:
       selfHeal: true
     syncOptions:
     - CreateNamespace=true
-    - RespectIgnoreDifferences=true

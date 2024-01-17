@@ -67,4 +67,4 @@ spec:
   tls:
   - hosts:
     - {{ include "ingress.domain" $ | quote }}
-    secretName: {{ include "camundaPlatform.fullname" $camundaPlatform }}-wildcard-certificate-tls
+    secretName: connectors-wildcard-certificate-tls
