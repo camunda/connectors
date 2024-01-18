@@ -7,6 +7,7 @@
 package io.camunda.connector.sns.suppliers;
 
 import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.sns.AmazonSNS;
 import com.amazonaws.services.sns.AmazonSNSClientBuilder;
 import com.amazonaws.services.sns.message.SnsMessageManager;
@@ -18,6 +19,16 @@ public class SnsClientSupplier {
     return AmazonSNSClientBuilder.standard()
         .withCredentials(credentialsProvider)
         .withRegion(region)
+        .build();
+  }
+
+  public AmazonSNS getSnsClient(
+      final AWSCredentialsProvider credentialsProvider,
+      final String region,
+      final String endpoint) {
+    return AmazonSNSClientBuilder.standard()
+        .withCredentials(credentialsProvider)
+        .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(endpoint, region))
         .build();
   }
 

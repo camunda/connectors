@@ -33,7 +33,7 @@ import org.junit.jupiter.api.Test;
 
 public class AwsLambdaTest extends BaseAwsTest {
 
-  protected static final String ELEMENT_TEMPLATE_PATH =
+  private static final String ELEMENT_TEMPLATE_PATH =
       "../../connectors/aws/aws-lambda/element-templates/aws-lambda-outbound-connector.json";
   private static final String FUNCTION_NAME = "myLambdaFunction";
   private static final String LAMBDA_FUNCTION_ZIP_FILE_PATH = "src/test/resources/function.zip";
