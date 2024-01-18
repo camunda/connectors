@@ -79,7 +79,7 @@ public abstract class BaseAwsTest {
             .withEnv("LAMBDA_RUNTIME_ENVIRONMENT_TIMEOUT", "30");
     localstack.start();
 
-    AwsLambdaTestHelper.waitForLocalStackToBeHealthy(localstack);
+    AwsTestHelper.waitForLocalStackToBeHealthy(localstack);
   }
 
   @BeforeEach
@@ -91,6 +91,6 @@ public abstract class BaseAwsTest {
   @AfterAll
   public static void cleanUpAfterTests() {
     localstack.stop();
-    AwsLambdaTestHelper.removeLambdaContainers();
+    AwsTestHelper.removeLambdaContainers();
   }
 }

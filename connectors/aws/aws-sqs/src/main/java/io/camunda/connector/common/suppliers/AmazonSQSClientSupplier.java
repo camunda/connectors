@@ -11,4 +11,6 @@ import com.amazonaws.services.sqs.AmazonSQS;
 
 public interface AmazonSQSClientSupplier {
   AmazonSQS sqsClient(AWSCredentialsProvider credentialsProvider, String region);
+
+  AmazonSQS sqsClient(AWSCredentialsProvider credentialsProvider, String region, String endpoint);
 }

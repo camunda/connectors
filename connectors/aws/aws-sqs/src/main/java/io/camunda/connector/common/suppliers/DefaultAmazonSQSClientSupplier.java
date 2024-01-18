@@ -7,6 +7,7 @@
 package io.camunda.connector.common.suppliers;
 
 import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
 
@@ -17,6 +18,16 @@ public class DefaultAmazonSQSClientSupplier implements AmazonSQSClientSupplier {
     return AmazonSQSClientBuilder.standard()
         .withCredentials(credentialsProvider)
         .withRegion(region)
+        .build();
+  }
+
+  public AmazonSQS sqsClient(
+      final AWSCredentialsProvider credentialsProvider,
+      final String region,
+      final String endpoint) {
+    return AmazonSQSClientBuilder.standard()
+        .withCredentials(credentialsProvider)
+        .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(endpoint, region))
         .build();
   }
 }
