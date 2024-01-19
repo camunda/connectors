@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.runtime.inbound.webhook;
 
+import io.camunda.connector.api.inbound.Activity;
+import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.runtime.inbound.lifecycle.ActiveInboundConnector;
 import io.camunda.connector.runtime.inbound.webhook.model.CommonWebhookProperties;
 import java.util.HashMap;
@@ -37,6 +39,13 @@ public class WebhookConnectorRegistry {
   public void register(ActiveInboundConnector connector) {
     var properties = connector.context().bindProperties(CommonWebhookProperties.class);
     var context = properties.getContext();
+
+    if (context.contains("€")) {
+      connector.context().log(
+              Activity.level(Severity.WARNING).tag("tag").message("message")
+      );
+    }
+
     var existingEndpoint = activeEndpointsByContext.putIfAbsent(context, connector);
     if (existingEndpoint != null) {
       var bpmnProcessId = existingEndpoint.context().getDefinition().bpmnProcessId();

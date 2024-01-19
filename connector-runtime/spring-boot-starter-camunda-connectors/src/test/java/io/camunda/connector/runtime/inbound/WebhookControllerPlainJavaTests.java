@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrowsExactly;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.EvictingQueue;
@@ -102,6 +102,20 @@ public class WebhookControllerPlainJavaTests {
     assertFalse(webhook.getWebhookConnectorByContextPath("myPath").isPresent());
   }
 
+  @Test
+  public void webhookIdUriInvalidCharactersLogWarn() {
+    WebhookConnectorRegistry webhook = new WebhookConnectorRegistry();
+
+    // given
+    var processA1 = buildConnector(webhookDefinition("processA", 1, "invalidChar€"));
+
+    // when
+    webhook.register(processA1);
+
+    //then
+    verify(processA1.context(), times(1)).log(any());
+  }
+
   private static long nextProcessDefinitionKey = 0L;
 
   public static ActiveInboundConnector buildConnector(InboundConnectorDefinitionImpl definition) {
@@ -116,7 +130,7 @@ public class WebhookControllerPlainJavaTests {
   }
 
   public static InboundConnectorContextImpl buildContext(InboundConnectorDefinitionImpl def) {
-    return new InboundConnectorContextImpl(
+    var context = new InboundConnectorContextImpl(
         name -> null,
         new DefaultValidationProvider(),
         def,
@@ -124,6 +138,8 @@ public class WebhookControllerPlainJavaTests {
         e -> {},
         mapper,
         EvictingQueue.create(10));
+
+    return spy(context);
   }
 
   public static InboundConnectorDefinitionImpl webhookDefinition(
