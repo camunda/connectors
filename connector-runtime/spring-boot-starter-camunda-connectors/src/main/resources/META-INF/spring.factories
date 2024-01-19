@@ -1,4 +1,5 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
 io.camunda.connector.runtime.InboundConnectorsAutoConfiguration,\
 io.camunda.connector.runtime.OutboundConnectorsAutoConfiguration,\
-io.camunda.connector.runtime.WebhookConnectorAutoConfiguration
+io.camunda.connector.runtime.WebhookConnectorAutoConfiguration,\
+io.camunda.connector.runtime.ContextAwareLogbackMetricsAutoConfiguration

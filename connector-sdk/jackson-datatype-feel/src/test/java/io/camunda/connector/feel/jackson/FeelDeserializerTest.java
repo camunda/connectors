@@ -24,7 +24,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.camunda.connector.feel.annotation.FEEL;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -33,7 +35,9 @@ import org.junit.jupiter.api.Test;
 public class FeelDeserializerTest {
 
   private final ObjectMapper mapper =
-      new ObjectMapper().registerModule(new JacksonModuleFeelFunction());
+      new ObjectMapper()
+          .registerModule(new JacksonModuleFeelFunction())
+          .registerModule(new JavaTimeModule());
 
   @Test
   void feelDeserializer_deserializeMap() throws JsonProcessingException {
@@ -219,6 +223,32 @@ public class FeelDeserializerTest {
     assertThat(e.getMessage()).contains("Attribute FEEL_CONTEXT must be a Supplier");
   }
 
+  @Test
+  void feelDeserializer_notFeel_java8Time_parsed() {
+    // this test is to ensure that deserialization takes active jackson modules into account
+
+    // given
+    String json = """
+        { "props": "2019-01-01" }
+        """;
+
+    // when && then
+    var targetType = assertDoesNotThrow(() -> mapper.readValue(json, TargetTypeJava8Time.class));
+    assertThat(targetType.props).isEqualTo(LocalDate.of(2019, 1, 1));
+  }
+
+  @Test
+  void feelDeserializer_notFeel_null_parsed() {
+    // given
+    String json = """
+        { "props": null }
+        """;
+
+    // when && then
+    var targetType = assertDoesNotThrow(() -> mapper.readValue(json, TargetTypeString.class));
+    assertThat(targetType.props).isNull();
+  }
+
   private record TargetTypeMap(@FEEL Map<String, String> props) {}
 
   private record TargetTypeObject(@FEEL StubObject stubObject) {}
@@ -234,4 +264,6 @@ public class FeelDeserializerTest {
   private record TargetTypeListLong(@FEEL List<Long> props) {}
 
   private record TargetTypeListInteger(@FEEL List<Integer> props) {}
+
+  private record TargetTypeJava8Time(@FEEL LocalDate props) {}
 }

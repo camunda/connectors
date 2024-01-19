@@ -6,7 +6,7 @@
   <parent>
     <groupId>io.camunda.connector</groupId>
     <artifactId>connector-parent</artifactId>
-    <version>8.4.0-SNAPSHOT</version>
+    <version>8.5.0-SNAPSHOT</version>
     <relativePath>parent/pom.xml</relativePath>
   </parent>
 
@@ -40,6 +40,7 @@
     <module>connectors-e2e-test/connectors-e2e-test-http</module>
     <module>connectors-e2e-test/connectors-e2e-test-automation-anywhere</module>
     <module>connectors-e2e-test/connectors-e2e-test-kafka</module>
+    <module>connectors-e2e-test/connectors-e2e-test-aws</module>
   </modules>
 
 </project>

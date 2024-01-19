@@ -6,7 +6,8 @@
  */
 package io.camunda.connector.sns.outbound;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
+import static io.camunda.connector.aws.AwsUtils.extractRegionOrDefault;
+
 import com.amazonaws.services.sns.AmazonSNS;
 import com.amazonaws.services.sns.model.PublishRequest;
 import com.amazonaws.services.sns.model.PublishResult;
@@ -15,22 +16,35 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import io.camunda.connector.aws.AwsUtils;
 import io.camunda.connector.aws.CredentialsProviderSupport;
 import io.camunda.connector.aws.ObjectMapperSupplier;
+import io.camunda.connector.aws.model.impl.AwsBaseConfiguration;
+import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.sns.outbound.model.SnsConnectorRequest;
 import io.camunda.connector.sns.outbound.model.SnsConnectorResult;
 import io.camunda.connector.sns.suppliers.SnsClientSupplier;
+import java.util.Optional;
 import org.apache.commons.text.StringEscapeUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @OutboundConnector(
     name = "AWS SNS Outbound",
     inputVariables = {"authentication", "configuration", "topic"},
     type = "io.camunda:aws-sns:1")
+@ElementTemplate(
+    id = "io.camunda.connectors.AWSSNS.v1",
+    name = "Amazon SNS Outbound connector",
+    description = "Send message to topic",
+    inputDataClass = SnsConnectorRequest.class,
+    version = 7,
+    propertyGroups = {
+      @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
+      @ElementTemplate.PropertyGroup(id = "configuration", label = "Topic properties"),
+      @ElementTemplate.PropertyGroup(id = "input", label = "Input message data")
+    },
+    documentationRef =
+        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sns/?amazonsns=outbound",
+    icon = "icon.svg")
 public class SnsConnectorFunction implements OutboundConnectorFunction {
-  private static final Logger LOGGER = LoggerFactory.getLogger(SnsConnectorFunction.class);
 
   private final SnsClientSupplier snsClientSupplier;
   private final ObjectMapper objectMapper;
@@ -48,11 +62,19 @@ public class SnsConnectorFunction implements OutboundConnectorFunction {
   @Override
   public Object execute(final OutboundConnectorContext context) {
     final var request = context.bindVariables(SnsConnectorRequest.class);
-    var region =
-        AwsUtils.extractRegionOrDefault(request.getConfiguration(), request.getTopic().getRegion());
-    AWSCredentialsProvider provider = CredentialsProviderSupport.credentialsProvider(request);
-    AmazonSNS snsClient = snsClientSupplier.getSnsClient(provider, region);
+    AmazonSNS snsClient = createSnsClient(request);
     return new SnsConnectorResult(sendMsgToSns(snsClient, request).getMessageId());
+  }
+
+  private AmazonSNS createSnsClient(final SnsConnectorRequest request) {
+    Optional<String> endpoint =
+        Optional.ofNullable(request.getConfiguration()).map(AwsBaseConfiguration::endpoint);
+    var credentialsProvider = CredentialsProviderSupport.credentialsProvider(request);
+    var region = extractRegionOrDefault(request.getConfiguration(), request.getTopic().getRegion());
+
+    return endpoint
+        .map(ep -> snsClientSupplier.getSnsClient(credentialsProvider, region, ep))
+        .orElseGet(() -> snsClientSupplier.getSnsClient(credentialsProvider, region));
   }
 
   private PublishResult sendMsgToSns(final AmazonSNS snsClient, SnsConnectorRequest request) {

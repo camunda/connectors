@@ -17,14 +17,12 @@
 package io.camunda.connector.feel.jackson;
 
 import com.fasterxml.jackson.annotation.JsonMerge;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.BeanProperty;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import java.io.IOException;
@@ -45,32 +43,42 @@ class FeelFunctionDeserializer<IN, OUT> extends AbstractFeelDeserializer<Functio
   private final FeelEngineWrapper feelEngineWrapper = new FeelEngineWrapper();
 
   @Override
+  @SuppressWarnings("unchecked")
   protected Function<IN, OUT> doDeserialize(
-      JsonNode node, ObjectMapper mapper, JsonNode feelContext) {
+      JsonNode node, JsonNode feelContext, DeserializationContext deserializationContext) {
     return (input) -> {
-      var jsonNode =
+      JsonNode jsonNode =
           feelEngineWrapper.evaluate(
-              node.textValue(), JsonNode.class, mergeContexts(input, feelContext, mapper));
+              deserializationContext,
+              node.textValue(),
+              deserializationContext.getTypeFactory().constructType(JsonNode.class),
+              mergeContexts(input, feelContext));
       try {
-        if (outputType.getRawClass() == String.class && jsonNode.isObject()) {
-          return (OUT) mapper.writeValueAsString(jsonNode);
-        } else {
-          return mapper.treeToValue(jsonNode, outputType);
+        if (jsonNode == null || jsonNode.isNull()) {
+          return null;
         }
-      } catch (JsonProcessingException e) {
+        if (outputType.getRawClass() == String.class && jsonNode.isObject()) {
+          return (OUT) BLANK_OBJECT_MAPPER.writeValueAsString(jsonNode);
+        } else {
+          return deserializationContext.readTreeAsValue(jsonNode, outputType);
+        }
+      } catch (IOException e) {
         throw new RuntimeException(e);
       }
     };
   }
 
-  private Object mergeContexts(Object inputContext, Object feelContext, ObjectMapper mapper) {
+  private Object mergeContexts(Object inputContext, Object feelContext) {
     try {
-      var wrappedInput = new MergedContext(mapper.convertValue(inputContext, MAP_TYPE_REF));
-      var wrappedFeelContext = new MergedContext(mapper.convertValue(feelContext, MAP_TYPE_REF));
+      var wrappedInput =
+          new MergedContext(BLANK_OBJECT_MAPPER.convertValue(inputContext, MAP_TYPE_REF));
+      var wrappedFeelContext =
+          new MergedContext(BLANK_OBJECT_MAPPER.convertValue(feelContext, MAP_TYPE_REF));
       var merged =
-          mapper
+          BLANK_OBJECT_MAPPER
               .readerForUpdating(wrappedInput)
-              .treeToValue(mapper.valueToTree(wrappedFeelContext), MergedContext.class);
+              .treeToValue(
+                  BLANK_OBJECT_MAPPER.valueToTree(wrappedFeelContext), MergedContext.class);
       return merged.context;
     } catch (IOException e) {
       throw new RuntimeException(e);

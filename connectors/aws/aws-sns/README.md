@@ -50,4 +50,4 @@ mvn clean package
 ## Element Template
 
 The element templates can be found in
-the [element-templates/aws-sns-connector.json](element-templates/aws-sns-connector.json) file.
+the [element-templates/aws-sns-outbound-connector.json](element-templates/aws-sns-outbound-connector.json) file.
