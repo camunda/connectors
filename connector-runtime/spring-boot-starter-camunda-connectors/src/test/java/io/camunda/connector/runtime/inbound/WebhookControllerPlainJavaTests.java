@@ -110,7 +110,8 @@ public class WebhookControllerPlainJavaTests {
   private static Stream<Arguments> webhookPathLogIfInvalidCharacters() {
     return Stream.of(
         Arguments.of(0, "validAlphaOnly"),
-              Arguments.of(1, "€")
+              Arguments.of(1, "€"),
+            Arguments.of(1, "-my-path")
     );
   }
 

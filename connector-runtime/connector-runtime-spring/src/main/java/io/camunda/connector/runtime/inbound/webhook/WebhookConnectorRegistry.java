@@ -23,6 +23,8 @@ import io.camunda.connector.runtime.inbound.webhook.model.CommonWebhookPropertie
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.regex.Pattern;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,6 +34,8 @@ public class WebhookConnectorRegistry {
 
   private final Map<String, ActiveInboundConnector> activeEndpointsByContext = new HashMap<>();
 
+  private static Pattern pattern = Pattern.compile("^[a-zA-Z0-9]([a-zA-Z0-9_-]*)?$");
+
   public Optional<ActiveInboundConnector> getWebhookConnectorByContextPath(String context) {
     return Optional.ofNullable(activeEndpointsByContext.get(context));
   }
@@ -40,7 +44,7 @@ public class WebhookConnectorRegistry {
     var properties = connector.context().bindProperties(CommonWebhookProperties.class);
     var context = properties.getContext();
 
-    if (context.contains("€")) {
+    if (!pattern.matcher(context).matches()) {
       connector.context().log(
               Activity.level(Severity.WARNING).tag("tag").message("message")
       );
