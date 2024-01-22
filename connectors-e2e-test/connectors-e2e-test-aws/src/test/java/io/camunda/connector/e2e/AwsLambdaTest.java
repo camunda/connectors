@@ -54,10 +54,10 @@ public class AwsLambdaTest extends BaseAwsTest {
                     localstack.getEndpoint().toString(), localstack.getRegion()))
             .build();
 
-    AwsLambdaTestHelper.waitForLambdaClientInitialization(lambdaClient);
-    AwsLambdaTestHelper.initializeLambdaFunction(
+    AwsTestHelper.waitForLambdaClientInitialization(lambdaClient);
+    AwsTestHelper.initializeLambdaFunction(
         lambdaClient, LAMBDA_FUNCTION_ZIP_FILE_PATH, FUNCTION_NAME);
-    AwsLambdaTestHelper.waitForLambdaFunctionToBeReady(lambdaClient, FUNCTION_NAME);
+    AwsTestHelper.waitForLambdaFunctionToBeReady(lambdaClient, FUNCTION_NAME);
   }
 
   @AfterAll
