@@ -42,20 +42,20 @@ public class WebhookConnectorRegistry {
 
   public void register(ActiveInboundConnector connector) {
     var properties = connector.context().bindProperties(CommonWebhookProperties.class);
-    var context = properties.getContext();
+    var webhookPath = properties.getContext();
 
-    if (!pattern.matcher(context).matches()) {
+    if (!pattern.matcher(webhookPath).matches()) {
       connector.context().log(
               Activity.level(Severity.WARNING).tag("tag").message("message")
       );
     }
 
-    var existingEndpoint = activeEndpointsByContext.putIfAbsent(context, connector);
+    var existingEndpoint = activeEndpointsByContext.putIfAbsent(webhookPath, connector);
     if (existingEndpoint != null) {
       var bpmnProcessId = existingEndpoint.context().getDefinition().bpmnProcessId();
       var elementId = existingEndpoint.context().getDefinition().elementId();
       var logMessage =
-          "Context: " + context + " already in use by " + bpmnProcessId + "/" + elementId + ".";
+          "Context: " + webhookPath + " already in use by " + bpmnProcessId + "/" + elementId + ".";
       LOG.debug(logMessage);
       throw new RuntimeException(logMessage);
     }
