@@ -4,7 +4,7 @@
   "id" : "io.camunda.connectors.AutomationAnywhere",
   "description" : "Orchestrate your Automation Anywhere bots with Camunda. You can create new queue items and get the result from it",
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/automation-anywhere/",
-  "version" : 1,
+  "version" : 2,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
