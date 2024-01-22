@@ -86,7 +86,7 @@ public class OpenApiOutboundTemplateGenerator
     if (templates.isEmpty()) {
       throw new IllegalArgumentException("No operations found in OpenAPI document");
     }
-    var template = templates.get(0);
+    var template = templates.getFirst();
     return new ScanResult(
         template.id(),
         template.name(),
@@ -207,7 +207,7 @@ public class OpenApiOutboundTemplateGenerator
     // otherwise we transform characters to their ascii value and sum them up
 
     String onlyNumbers = openAPIDocVersion.replaceAll("[^0-9]", "");
-    if (onlyNumbers.length() > 0) {
+    if (!onlyNumbers.isEmpty()) {
       return Integer.parseInt(onlyNumbers);
     } else {
       return openAPIDocVersion.chars().sum();
