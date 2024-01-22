@@ -34,7 +34,7 @@ public class WebhookConnectorRegistry {
 
   private final Map<String, ActiveInboundConnector> activeEndpointsByContext = new HashMap<>();
 
-  private static Pattern pattern = Pattern.compile("^[a-zA-Z0-9]([a-zA-Z0-9_-]*[a-zA-Z0-9])?$");
+  private static Pattern suitableWebhookPathPattern = Pattern.compile("^[a-zA-Z0-9]([a-zA-Z0-9_-]*[a-zA-Z0-9])?$");
 
   public Optional<ActiveInboundConnector> getWebhookConnectorByContextPath(String context) {
     return Optional.ofNullable(activeEndpointsByContext.get(context));
@@ -42,22 +42,30 @@ public class WebhookConnectorRegistry {
 
   public void register(ActiveInboundConnector connector) {
     var properties = connector.context().bindProperties(CommonWebhookProperties.class);
-    var webhookPath = properties.getContext();
+    var context = properties.getContext();
 
-    if (!pattern.matcher(webhookPath).matches()) {
+    logIfWebhookPathUnsuitable(connector, context);
+
+    var existingEndpoint = activeEndpointsByContext.putIfAbsent(context, connector);
+    if (existingEndpoint != null) {
+      logExistingEndpoint(existingEndpoint, context);
+    }
+  }
+
+  private void logExistingEndpoint(ActiveInboundConnector existingEndpoint, String context) {
+    var bpmnProcessId = existingEndpoint.context().getDefinition().bpmnProcessId();
+    var elementId = existingEndpoint.context().getDefinition().elementId();
+    var logMessage =
+        "Context: " + context + " already in use by " + bpmnProcessId + "/" + elementId + ".";
+    LOG.debug(logMessage);
+    throw new RuntimeException(logMessage);
+  }
+
+  private static void logIfWebhookPathUnsuitable(ActiveInboundConnector connector, String context) {
+    if (!suitableWebhookPathPattern.matcher(context).matches()) {
       connector.context().log(
               Activity.level(Severity.WARNING).tag("tag").message("message")
       );
-    }
-
-    var existingEndpoint = activeEndpointsByContext.putIfAbsent(webhookPath, connector);
-    if (existingEndpoint != null) {
-      var bpmnProcessId = existingEndpoint.context().getDefinition().bpmnProcessId();
-      var elementId = existingEndpoint.context().getDefinition().elementId();
-      var logMessage =
-          "Context: " + webhookPath + " already in use by " + bpmnProcessId + "/" + elementId + ".";
-      LOG.debug(logMessage);
-      throw new RuntimeException(logMessage);
     }
   }
 
