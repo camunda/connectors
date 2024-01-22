@@ -34,7 +34,8 @@ public class WebhookConnectorRegistry {
 
   private final Map<String, ActiveInboundConnector> activeEndpointsByContext = new HashMap<>();
 
-  private static Pattern suitableWebhookPathPattern = Pattern.compile("^[a-zA-Z0-9]([a-zA-Z0-9_-]*[a-zA-Z0-9])?$");
+  // Reflect changes to this pattern in webhook element templates
+  private static Pattern currentWebhookPathPattern = Pattern.compile("^[a-zA-Z0-9]([a-zA-Z0-9_-]*[a-zA-Z0-9])?$");
 
   public Optional<ActiveInboundConnector> getWebhookConnectorByContextPath(String context) {
     return Optional.ofNullable(activeEndpointsByContext.get(context));
@@ -62,7 +63,7 @@ public class WebhookConnectorRegistry {
   }
 
   private static void logIfWebhookPathDeprecated(ActiveInboundConnector connector, String context) {
-    if (!suitableWebhookPathPattern.matcher(context).matches()) {
+    if (!currentWebhookPathPattern.matcher(context).matches()) {
       connector.context().log(
               Activity.level(Severity.WARNING).tag("tag").message("message")
       );
