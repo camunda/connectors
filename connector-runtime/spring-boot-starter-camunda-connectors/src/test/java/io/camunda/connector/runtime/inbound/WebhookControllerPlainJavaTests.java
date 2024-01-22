@@ -38,8 +38,13 @@ import io.camunda.connector.runtime.inbound.lifecycle.ActiveInboundConnector;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.util.Map;
+import java.util.stream.Stream;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
@@ -102,32 +107,26 @@ public class WebhookControllerPlainJavaTests {
     assertFalse(webhook.getWebhookConnectorByContextPath("myPath").isPresent());
   }
 
-  @Test
-  public void webhookIdUriInvalidCharactersLogWarn() {
-    WebhookConnectorRegistry webhook = new WebhookConnectorRegistry();
-
-    // given
-    var processA1 = buildConnector(webhookDefinition("processA", 1, "invalidChar€"));
-
-    // when
-    webhook.register(processA1);
-
-    //then
-    verify(processA1.context(), times(1)).log(any());
+  private static Stream<Arguments> webhookIdLogIfInvalidCharacters() {
+    return Stream.of(
+        Arguments.of(0, "validAlphaOnly"),
+              Arguments.of(1, "€")
+    );
   }
 
-  @Test
-  public void webhookIdUrlValidNoLog() {
+  @ParameterizedTest
+  @MethodSource
+  public void webhookIdLogIfInvalidCharacters(int timesShouldLog, String webhookPath) {
     WebhookConnectorRegistry webhook = new WebhookConnectorRegistry();
 
     // given
-    var processA1 = buildConnector(webhookDefinition("processA", 1, "validAlphaOnly"));
+    var processA1 = buildConnector(webhookDefinition("processA", 1, webhookPath));
 
     // when
     webhook.register(processA1);
 
     //then
-    verify(processA1.context(), times(0)).log(any());
+    verify(processA1.context(), times(timesShouldLog)).log(any());
   }
 
   private static long nextProcessDefinitionKey = 0L;
