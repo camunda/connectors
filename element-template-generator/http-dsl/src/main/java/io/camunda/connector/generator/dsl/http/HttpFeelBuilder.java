@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
  */
 public abstract class HttpFeelBuilder {
 
-  protected final StringBuilder sb = new StringBuilder();
+  protected StringBuilder sb = new StringBuilder();
   protected final Set<String> propertySet = new HashSet<>();
   private static final FeelEngineWrapper feelEngineWrapper = new FeelEngineWrapper();
 
@@ -114,15 +114,17 @@ public abstract class HttpFeelBuilder {
 
   public static class HttpFeelContextBuilder extends HttpFeelBuilder {
 
+    StringBuilder feelContextSb = new StringBuilder();
+
     public HttpFeelContextBuilder property(String targetName, String propertySourceName) {
-      if (sb.isEmpty()) {
-        sb.append("={");
+      if (feelContextSb.isEmpty()) {
+        feelContextSb.append("={");
       } else {
-        sb.append(",");
+        feelContextSb.append(",");
       }
-      sb.append(targetName);
-      sb.append(":");
-      sb.append(propertySourceName);
+      feelContextSb.append(targetName);
+      feelContextSb.append(":");
+      feelContextSb.append(propertySourceName);
 
       propertySet.add(propertySourceName);
       return this;
@@ -130,6 +132,8 @@ public abstract class HttpFeelBuilder {
 
     @Override
     public String build() {
+      // use a copy to make this function call idempotent (i.e. avoid adding multiple curly braces)
+      sb = new StringBuilder(feelContextSb.toString());
       sb.append("}");
       return super.build();
     }

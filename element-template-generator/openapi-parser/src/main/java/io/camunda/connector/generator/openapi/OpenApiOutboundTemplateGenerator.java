@@ -152,7 +152,11 @@ public class OpenApiOutboundTemplateGenerator
         .ifPresent(
             t -> {
               throw new IllegalArgumentException(
-                  String.format("Unsupported element type '%s'", t.elementType().getName()));
+                  String.format("Unsupported element type '%s'", t.elementType().getName())
+                      + " for OpenAPI generator. Supported element types: "
+                      + SUPPORTED_ELEMENT_TYPES.stream()
+                          .map(BpmnType::getName)
+                          .collect(Collectors.joining(", ")));
             });
     if (elementTypes.isEmpty()) {
       elementTypes = Set.of(DEFAULT_ELEMENT_TYPE);

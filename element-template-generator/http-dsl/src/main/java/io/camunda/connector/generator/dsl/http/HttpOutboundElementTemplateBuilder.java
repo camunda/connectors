@@ -17,7 +17,6 @@
 package io.camunda.connector.generator.dsl.http;
 
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElementType;
-import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.dsl.ElementTemplateIcon;
 import io.camunda.connector.generator.dsl.OutboundElementTemplate;
 import io.camunda.connector.generator.dsl.OutboundElementTemplateBuilder;
@@ -130,7 +129,6 @@ public class HttpOutboundElementTemplateBuilder {
       throw new IllegalStateException("Could not find any supported operations");
     }
     return builder
-        .appliesTo(BpmnType.TASK)
         .propertyGroups(
             List.of(
                 // Property order is important, parameters must come before their targets (URL,
