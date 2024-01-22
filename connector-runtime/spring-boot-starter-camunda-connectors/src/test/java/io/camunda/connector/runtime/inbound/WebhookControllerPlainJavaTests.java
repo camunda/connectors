@@ -113,6 +113,7 @@ public class WebhookControllerPlainJavaTests {
         Arguments.of(0, "validAlphaOnly"),
               Arguments.of(0, "hello-world"),
               Arguments.of(0, "123-456_789"),
+              Arguments.of(1, "&20encoded+whitespace"),
               Arguments.of(1, "€"),
             Arguments.of(1, "-my-path"),
             Arguments.of(1, "my_path_")
