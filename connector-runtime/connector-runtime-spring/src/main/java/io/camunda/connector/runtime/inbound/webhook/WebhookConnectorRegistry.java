@@ -34,7 +34,7 @@ public class WebhookConnectorRegistry {
 
   private final Map<String, ActiveInboundConnector> activeEndpointsByContext = new HashMap<>();
 
-  private static Pattern pattern = Pattern.compile("^[a-zA-Z0-9]([a-zA-Z0-9_-]*)?$");
+  private static Pattern pattern = Pattern.compile("^[a-zA-Z0-9]([a-zA-Z0-9_-]*[a-zA-Z0-9])?$");
 
   public Optional<ActiveInboundConnector> getWebhookConnectorByContextPath(String context) {
     return Optional.ofNullable(activeEndpointsByContext.get(context));
