@@ -116,8 +116,7 @@ public class OperationUtil {
             operation ->
                 includeOperations == null
                     || includeOperations.isEmpty()
-                    || operation.builder() != null
-                        && includeOperations.contains(operation.builder().getId()))
+                    || includeOperations.contains(operation.builder().getId()))
         .collect(Collectors.toList());
   }
 
