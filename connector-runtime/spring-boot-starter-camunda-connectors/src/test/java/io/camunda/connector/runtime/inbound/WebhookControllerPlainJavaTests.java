@@ -107,7 +107,7 @@ public class WebhookControllerPlainJavaTests {
     assertFalse(webhook.getWebhookConnectorByContextPath("myPath").isPresent());
   }
 
-  private static Stream<Arguments> webhookIdLogIfInvalidCharacters() {
+  private static Stream<Arguments> webhookPathLogIfInvalidCharacters() {
     return Stream.of(
         Arguments.of(0, "validAlphaOnly"),
               Arguments.of(1, "€")
@@ -116,7 +116,7 @@ public class WebhookControllerPlainJavaTests {
 
   @ParameterizedTest
   @MethodSource
-  public void webhookIdLogIfInvalidCharacters(int timesShouldLog, String webhookPath) {
+  public void webhookPathLogIfInvalidCharacters(int timesShouldLog, String webhookPath) {
     WebhookConnectorRegistry webhook = new WebhookConnectorRegistry();
 
     // given
