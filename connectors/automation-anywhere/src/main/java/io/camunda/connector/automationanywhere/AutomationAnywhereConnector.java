@@ -30,7 +30,7 @@ import java.util.Map;
     description =
         "Orchestrate your Automation Anywhere bots with Camunda. You can create new queue items and get the result from it",
     inputDataClass = AutomationAnywhereRequest.class,
-    version = 1,
+    version = 2,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
       @ElementTemplate.PropertyGroup(id = "configuration", label = "Configuration"),
