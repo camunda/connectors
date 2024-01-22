@@ -44,24 +44,24 @@ public class WebhookConnectorRegistry {
     var properties = connector.context().bindProperties(CommonWebhookProperties.class);
     var context = properties.getContext();
 
-    logIfWebhookPathUnsuitable(connector, context);
+    logIfWebhookPathDeprecated(connector, context);
 
     var existingEndpoint = activeEndpointsByContext.putIfAbsent(context, connector);
+    logIfEndpointExists(existingEndpoint, context);
+  }
+
+  private void logIfEndpointExists(ActiveInboundConnector existingEndpoint, String context) {
     if (existingEndpoint != null) {
-      logExistingEndpoint(existingEndpoint, context);
+      var bpmnProcessId = existingEndpoint.context().getDefinition().bpmnProcessId();
+      var elementId = existingEndpoint.context().getDefinition().elementId();
+      var logMessage =
+              "Context: " + context + " already in use by " + bpmnProcessId + "/" + elementId + ".";
+      LOG.debug(logMessage);
+      throw new RuntimeException(logMessage);
     }
   }
 
-  private void logExistingEndpoint(ActiveInboundConnector existingEndpoint, String context) {
-    var bpmnProcessId = existingEndpoint.context().getDefinition().bpmnProcessId();
-    var elementId = existingEndpoint.context().getDefinition().elementId();
-    var logMessage =
-        "Context: " + context + " already in use by " + bpmnProcessId + "/" + elementId + ".";
-    LOG.debug(logMessage);
-    throw new RuntimeException(logMessage);
-  }
-
-  private static void logIfWebhookPathUnsuitable(ActiveInboundConnector connector, String context) {
+  private static void logIfWebhookPathDeprecated(ActiveInboundConnector connector, String context) {
     if (!suitableWebhookPathPattern.matcher(context).matches()) {
       connector.context().log(
               Activity.level(Severity.WARNING).tag("tag").message("message")
