@@ -41,7 +41,6 @@ import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.util.Map;
 import java.util.stream.Stream;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -60,8 +59,7 @@ public class WebhookControllerPlainJavaTests {
 
   private static final ObjectMapper mapper = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER;
 
-  @Captor
-  ArgumentCaptor<Activity> activityCaptor;
+  @Captor ArgumentCaptor<Activity> activityCaptor;
 
   @Test
   public void multipleWebhooksOnSameContextPathAreNotSupported() {
@@ -116,20 +114,18 @@ public class WebhookControllerPlainJavaTests {
 
   private static Stream<Arguments> invalidCases() {
     return Stream.of(
-            Arguments.of("&20encoded+whitespace"),
-            Arguments.of("€"),
-            Arguments.of("-my-path"),
-            Arguments.of("my_path_")
-    );
+        Arguments.of("&20encoded+whitespace"),
+        Arguments.of("€"),
+        Arguments.of("-my-path"),
+        Arguments.of("my_path_"));
   }
 
   private static Stream<Arguments> validCases() {
     return Stream.of(
-            Arguments.of( "z"),
-            Arguments.of("validAlphaOnly"),
-            Arguments.of("hello-world"),
-            Arguments.of("123-456_789")
-    );
+        Arguments.of("z"),
+        Arguments.of("validAlphaOnly"),
+        Arguments.of("hello-world"),
+        Arguments.of("123-456_789"));
   }
 
   @ParameterizedTest
@@ -143,7 +139,7 @@ public class WebhookControllerPlainJavaTests {
     // when
     webhook.register(processA1);
 
-    //then
+    // then
     verify(processA1.context(), times(1)).log(activityCaptor.capture());
     assertEquals(Severity.WARNING, activityCaptor.getValue().severity());
   }
@@ -159,7 +155,7 @@ public class WebhookControllerPlainJavaTests {
     // when
     webhook.register(processA1);
 
-    //then
+    // then
     verify(processA1.context(), times(0)).log(activityCaptor.capture());
   }
 
@@ -177,14 +173,15 @@ public class WebhookControllerPlainJavaTests {
   }
 
   public static InboundConnectorContextImpl buildContext(InboundConnectorDefinitionImpl def) {
-    var context = new InboundConnectorContextImpl(
-        name -> null,
-        new DefaultValidationProvider(),
-        def,
-        mock(InboundCorrelationHandler.class),
-        e -> {},
-        mapper,
-        EvictingQueue.create(10));
+    var context =
+        new InboundConnectorContextImpl(
+            name -> null,
+            new DefaultValidationProvider(),
+            def,
+            mock(InboundCorrelationHandler.class),
+            e -> {},
+            mapper,
+            EvictingQueue.create(10));
 
     return spy(context);
   }

@@ -24,7 +24,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Pattern;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,7 +34,8 @@ public class WebhookConnectorRegistry {
   private final Map<String, ActiveInboundConnector> activeEndpointsByContext = new HashMap<>();
 
   // Reflect changes to this pattern in webhook element templates
-  private static Pattern currentWebhookPathPattern = Pattern.compile("^[a-zA-Z0-9]([a-zA-Z0-9_-]*[a-zA-Z0-9])?$");
+  private static Pattern currentWebhookPathPattern =
+      Pattern.compile("^[a-zA-Z0-9]([a-zA-Z0-9_-]*[a-zA-Z0-9])?$");
 
   public Optional<ActiveInboundConnector> getWebhookConnectorByContextPath(String context) {
     return Optional.ofNullable(activeEndpointsByContext.get(context));
@@ -56,7 +56,7 @@ public class WebhookConnectorRegistry {
       var bpmnProcessId = existingEndpoint.context().getDefinition().bpmnProcessId();
       var elementId = existingEndpoint.context().getDefinition().elementId();
       var logMessage =
-              "Context: " + context + " already in use by " + bpmnProcessId + "/" + elementId + ".";
+          "Context: " + context + " already in use by " + bpmnProcessId + "/" + elementId + ".";
       LOG.debug(logMessage);
       throw new RuntimeException(logMessage);
     }
@@ -64,9 +64,7 @@ public class WebhookConnectorRegistry {
 
   private static void logIfWebhookPathDeprecated(ActiveInboundConnector connector, String context) {
     if (!currentWebhookPathPattern.matcher(context).matches()) {
-      connector.context().log(
-              Activity.level(Severity.WARNING).tag("tag").message("message")
-      );
+      connector.context().log(Activity.level(Severity.WARNING).tag("tag").message("message"));
     }
   }
 
