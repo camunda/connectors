@@ -116,6 +116,20 @@ public class WebhookControllerPlainJavaTests {
     verify(processA1.context(), times(1)).log(any());
   }
 
+  @Test
+  public void webhookIdUrlValidNoLog() {
+    WebhookConnectorRegistry webhook = new WebhookConnectorRegistry();
+
+    // given
+    var processA1 = buildConnector(webhookDefinition("processA", 1, "validAlphaOnly"));
+
+    // when
+    webhook.register(processA1);
+
+    //then
+    verify(processA1.context(), times(0)).log(any());
+  }
+
   private static long nextProcessDefinitionKey = 0L;
 
   public static ActiveInboundConnector buildConnector(InboundConnectorDefinitionImpl definition) {
