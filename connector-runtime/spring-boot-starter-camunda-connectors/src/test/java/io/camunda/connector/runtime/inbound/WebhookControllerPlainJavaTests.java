@@ -114,22 +114,27 @@ public class WebhookControllerPlainJavaTests {
     assertFalse(webhook.getWebhookConnectorByContextPath("myPath").isPresent());
   }
 
-  private static Stream<Arguments> webhookPathLogIfInvalidCharacters() {
+  private static Stream<Arguments> invalidCases() {
     return Stream.of(
-            Arguments.of(0, "z"),
-        Arguments.of(0, "validAlphaOnly"),
-              Arguments.of(0, "hello-world"),
-              Arguments.of(0, "123-456_789"),
-              Arguments.of(1, "&20encoded+whitespace"),
-              Arguments.of(1, "€"),
-            Arguments.of(1, "-my-path"),
-            Arguments.of(1, "my_path_")
+            Arguments.of("&20encoded+whitespace"),
+            Arguments.of("€"),
+            Arguments.of("-my-path"),
+            Arguments.of("my_path_")
+    );
+  }
+
+  private static Stream<Arguments> validCases() {
+    return Stream.of(
+            Arguments.of( "z"),
+            Arguments.of("validAlphaOnly"),
+            Arguments.of("hello-world"),
+            Arguments.of("123-456_789")
     );
   }
 
   @ParameterizedTest
-  @MethodSource
-  public void webhookPathLogIfInvalidCharacters(int timesShouldLog, String webhookPath) {
+  @MethodSource("invalidCases")
+  public void webhookPathLogIfInvalidCharacters(String webhookPath) {
     WebhookConnectorRegistry webhook = new WebhookConnectorRegistry();
 
     // given
@@ -139,11 +144,23 @@ public class WebhookControllerPlainJavaTests {
     webhook.register(processA1);
 
     //then
-    verify(processA1.context(), times(timesShouldLog)).log(activityCaptor.capture());
+    verify(processA1.context(), times(1)).log(activityCaptor.capture());
+    assertEquals(Severity.WARNING, activityCaptor.getValue().severity());
+  }
 
-    if (timesShouldLog == 1) {
-      assertEquals(Severity.WARNING, activityCaptor.getValue().severity());
-    }
+  @ParameterizedTest
+  @MethodSource("validCases")
+  public void webhookPathDontLogValidCharacters(String webhookPath) {
+    WebhookConnectorRegistry webhook = new WebhookConnectorRegistry();
+
+    // given
+    var processA1 = buildConnector(webhookDefinition("processA", 1, webhookPath));
+
+    // when
+    webhook.register(processA1);
+
+    //then
+    verify(processA1.context(), times(0)).log(activityCaptor.capture());
   }
 
   private static long nextProcessDefinitionKey = 0L;
