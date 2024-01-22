@@ -60,6 +60,7 @@ public class WebhookControllerPlainJavaTests {
     var connectorB = buildConnector(webhookDefinition("processA", 1, "myPath"));
     assertThrowsExactly(
         RuntimeException.class, () -> webhookConnectorRegistry.register(connectorB));
+    assertFalse(webhookConnectorRegistry.isRegistered(connectorB));
   }
 
   @Test
@@ -80,7 +81,10 @@ public class WebhookControllerPlainJavaTests {
 
     var connectorForPath1 = webhook.getWebhookConnectorByContextPath("myPath");
 
-    assertTrue(connectorForPath1.isPresent(), "Connector is present");
+    assertTrue(connectorForPath1.isPresent(), "A2 context is present");
+    assertTrue(webhook.isRegistered(processA2), "A2 is registered");
+    assertFalse(webhook.isRegistered(processA1), "A1 is not registered");
+    assertFalse(webhook.isRegistered(processB1), "B1 is not registered");
     assertEquals(2, connectorForPath1.get().context().getDefinition().version(), "The newest one");
 
     var connectorForPath2 = webhook.getWebhookConnectorByContextPath("myPath2");
@@ -100,6 +104,24 @@ public class WebhookControllerPlainJavaTests {
 
     // then
     assertFalse(webhook.getWebhookConnectorByContextPath("myPath").isPresent());
+    assertFalse(webhook.isRegistered(processA1));
+  }
+
+  @Test
+  public void webhookDeactivation_samePathButDifferentConnector_shouldFail() {
+    WebhookConnectorRegistry webhook = new WebhookConnectorRegistry();
+
+    // given
+    var processA1 = buildConnector(webhookDefinition("processA", 1, "myPath"));
+    var processA2 = buildConnector(webhookDefinition("processA", 2, "myPath"));
+
+    // when
+    webhook.register(processA1);
+
+    // then
+    assertThrowsExactly(RuntimeException.class, () -> webhook.deregister(processA2));
+    assertFalse(webhook.isRegistered(processA2));
+    assertTrue(webhook.isRegistered(processA1));
   }
 
   private static long nextProcessDefinitionKey = 0L;
