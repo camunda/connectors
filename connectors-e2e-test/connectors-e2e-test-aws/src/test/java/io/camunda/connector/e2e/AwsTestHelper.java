@@ -19,6 +19,8 @@ package io.camunda.connector.e2e;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.client.builder.AwsClientBuilder;
+import com.amazonaws.services.eventbridge.AmazonEventBridge;
+import com.amazonaws.services.eventbridge.AmazonEventBridgeClient;
 import com.amazonaws.services.lambda.AWSLambda;
 import com.amazonaws.services.lambda.model.CreateFunctionRequest;
 import com.amazonaws.services.lambda.model.DeleteFunctionRequest;
@@ -216,6 +218,23 @@ public class AwsTestHelper {
    */
   public static AmazonSQS initSqsClient(LocalStackContainer localstack) {
     return AmazonSQSClientBuilder.standard()
+        .withCredentials(
+            new AWSStaticCredentialsProvider(
+                new BasicAWSCredentials(localstack.getAccessKey(), localstack.getSecretKey())))
+        .withEndpointConfiguration(
+            new AwsClientBuilder.EndpointConfiguration(
+                localstack.getEndpoint().toString(), localstack.getRegion()))
+        .build();
+  }
+
+  /**
+   * Initializes an AmazonEventBridge client using LocalStack configuration.
+   *
+   * @param localstack The LocalStack container instance.
+   * @return Configured AmazonEventBridge client.
+   */
+  public static AmazonEventBridge initEventBridgeClient(LocalStackContainer localstack) {
+    return AmazonEventBridgeClient.builder()
         .withCredentials(
             new AWSStaticCredentialsProvider(
                 new BasicAWSCredentials(localstack.getAccessKey(), localstack.getSecretKey())))

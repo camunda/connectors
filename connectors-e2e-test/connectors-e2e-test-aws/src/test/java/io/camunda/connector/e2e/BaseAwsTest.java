@@ -16,11 +16,12 @@
  */
 package io.camunda.connector.e2e;
 
+import static io.camunda.connector.e2e.AwsService.EVENTBRIDGE;
+import static io.camunda.connector.e2e.AwsService.LAMBDA;
+import static io.camunda.connector.e2e.AwsService.SNS;
+import static io.camunda.connector.e2e.AwsService.SQS;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
-import static org.testcontainers.containers.localstack.LocalStackContainer.Service.LAMBDA;
-import static org.testcontainers.containers.localstack.LocalStackContainer.Service.SNS;
-import static org.testcontainers.containers.localstack.LocalStackContainer.Service.SQS;
 
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
@@ -71,7 +72,7 @@ public abstract class BaseAwsTest {
 
     localstack =
         new LocalStackContainer(localstackImage)
-            .withServices(LAMBDA, SNS, SQS)
+            .withServices(LAMBDA, SNS, SQS, EVENTBRIDGE)
             .withEnv("DEFAULT_REGION", "us-east-1")
             .withEnv("AWS_ACCESS_KEY_ID", "myTestAccessKey")
             .withEnv("AWS_SECRET_ACCESS_KEY", "myTestSecretKey")
