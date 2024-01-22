@@ -109,6 +109,7 @@ public class WebhookControllerPlainJavaTests {
 
   private static Stream<Arguments> webhookPathLogIfInvalidCharacters() {
     return Stream.of(
+            Arguments.of(0, "z"),
         Arguments.of(0, "validAlphaOnly"),
               Arguments.of(0, "hello-world"),
               Arguments.of(0, "123-456_789"),
