@@ -42,6 +42,9 @@ public @interface TemplateProperty {
   /** Custom label of the property */
   String label() default "";
 
+  /** Custom binding name of the property */
+  PropertyBinding binding() default @PropertyBinding(name = "");
+
   /** Description of the property */
   String description() default "";
 
@@ -99,6 +102,10 @@ public @interface TemplateProperty {
     String,
     Text,
     Unknown
+  }
+
+  @interface PropertyBinding {
+    String name();
   }
 
   @interface PropertyCondition {

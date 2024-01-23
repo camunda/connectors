@@ -63,7 +63,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
     @Test
     void schemaPresent() {
-      assertThat(generator.generate(MyConnectorFunction.FullyAnnotated.class).get(0).schema())
+      assertThat(generator.generate(MyConnectorFunction.FullyAnnotated.class).getFirst().schema())
           .isEqualTo(
               "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json");
     }
@@ -71,32 +71,40 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
     @Test
     void elementType_default_isServiceTask() {
       assertThat(
-              generator.generate(MyConnectorFunction.MinimallyAnnotated.class).get(0).elementType())
+              generator
+                  .generate(MyConnectorFunction.MinimallyAnnotated.class)
+                  .getFirst()
+                  .elementType())
           .isEqualTo(ElementTypeWrapper.from(BpmnType.SERVICE_TASK));
     }
 
     @Test
     void elementType_customizable() {
-      assertThat(generator.generate(MyConnectorFunction.FullyAnnotated.class).get(0).elementType())
+      assertThat(
+              generator.generate(MyConnectorFunction.FullyAnnotated.class).getFirst().elementType())
           .isEqualTo(ElementTypeWrapper.from(BpmnType.SCRIPT_TASK));
     }
 
     @Test
     void appliesTo_default_isTask() {
       assertThat(
-              generator.generate(MyConnectorFunction.MinimallyAnnotated.class).get(0).appliesTo())
+              generator
+                  .generate(MyConnectorFunction.MinimallyAnnotated.class)
+                  .getFirst()
+                  .appliesTo())
           .isEqualTo(Set.of(BpmnType.TASK.getName()));
     }
 
     @Test
     void appliesTo_customizable() {
-      assertThat(generator.generate(MyConnectorFunction.FullyAnnotated.class).get(0).appliesTo())
+      assertThat(
+              generator.generate(MyConnectorFunction.FullyAnnotated.class).getFirst().appliesTo())
           .isEqualTo(Set.of(BpmnType.SERVICE_TASK.getName()));
     }
 
     @Test
     void elementTemplateAnnotation_canDefineBasicFields() {
-      var template = generator.generate(MyConnectorFunction.FullyAnnotated.class).get(0);
+      var template = generator.generate(MyConnectorFunction.FullyAnnotated.class).getFirst();
       assertThat(template.id()).isEqualTo(MyConnectorFunction.ID);
       assertThat(template.name()).isEqualTo(MyConnectorFunction.NAME);
       assertThat(template.version()).isEqualTo(MyConnectorFunction.VERSION);
@@ -106,7 +114,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
     @Test
     void elementTemplateAnnotation_providesCorrectDefaultValues() {
-      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).get(0);
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
       assertThat(template.id()).isEqualTo(MyConnectorFunction.ID);
       assertThat(template.name()).isEqualTo(MyConnectorFunction.NAME);
       assertThat(template.version()).isEqualTo(0);
@@ -116,7 +124,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
     @Test
     void resultVariableProperty() {
-      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).get(0);
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
       var property = getPropertyByLabel("Result variable", template);
       assertThat(property.getType()).isEqualTo("String");
       assertThat(property.getBinding().type()).isEqualTo("zeebe:taskHeader");
@@ -125,7 +133,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
     @Test
     void resultExpressionProperty() {
-      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).get(0);
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
       var property = getPropertyByLabel("Result expression", template);
       assertThat(property.getType()).isEqualTo("Text");
       assertThat(property.getBinding().type()).isEqualTo("zeebe:taskHeader");
@@ -134,7 +142,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
     @Test
     void errorExpressionProperty() {
-      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).get(0);
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
       var property = getPropertyByLabel("Error expression", template);
       assertThat(property.getType()).isEqualTo("Text");
       assertThat(property.getBinding().type()).isEqualTo("zeebe:taskHeader");
@@ -143,7 +151,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
     @Test
     void retryBackoffProperty() {
-      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).get(0);
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
       var property = getPropertyByLabel("Retry backoff", template);
       assertThat(property.getType()).isEqualTo("String");
       assertThat(property.getBinding().type()).isEqualTo("zeebe:taskHeader");
@@ -155,7 +163,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
     @Test
     void retryCountProperty() {
       var templates = generator.generate(MyConnectorFunction.MinimallyAnnotated.class);
-      var property = getPropertyByLabel("Retries", templates.get(0));
+      var property = getPropertyByLabel("Retries", templates.getFirst());
       assertThat(property.getType()).isEqualTo("String");
       assertThat(property.getBinding().type()).isEqualTo("zeebe:taskDefinition");
       assertThat(((ZeebeTaskDefinition) property.getBinding()).property()).isEqualTo("retries");
@@ -167,7 +175,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
     void normalMode_taskDefinitionTypeProperty_hidden() {
       var templates = generator.generate(MyConnectorFunction.MinimallyAnnotated.class);
       var property =
-          templates.get(0).properties().stream()
+          templates.getFirst().properties().stream()
               .filter(p -> "zeebe:taskDefinition".equals(p.getBinding().type()))
               .findFirst()
               .orElseThrow();
@@ -183,7 +191,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
               .generate(
                   MyConnectorFunction.MinimallyAnnotated.class,
                   new GeneratorConfiguration(ConnectorMode.HYBRID, null, null, null, null))
-              .get(0);
+              .getFirst();
       var property = getPropertyById("taskDefinitionType", template);
       assertThat(property.getType()).isEqualTo("String");
       assertThat(property.getGroup()).isEqualTo("taskDefinitionType");
@@ -319,7 +327,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
     @Test
     void notAnnotated_StringProperty_hasCorrectDefaults() {
-      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).get(0);
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
       var property = getPropertyByLabel("Not annotated string property", template);
 
       assertThat(property).isInstanceOf(StringProperty.class);
@@ -333,7 +341,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
     @Test
     void annotated_StringProperty_definedByAnnotation() {
-      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).get(0);
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
       var property = getPropertyById("annotatedStringProperty", template);
 
       assertThat(property).isInstanceOf(TextProperty.class);
@@ -343,13 +351,12 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
       assertThat(property.getGroup()).isEqualTo("group1");
       assertThat(property.getDescription()).isEqualTo("description");
       assertThat(property.getFeel()).isEqualTo(FeelMode.optional);
-      assertThat(property.getBinding())
-          .isEqualTo(new PropertyBinding.ZeebeInput("annotatedStringProperty"));
+      assertThat(property.getBinding()).isEqualTo(new PropertyBinding.ZeebeInput("customBinding"));
     }
 
     @Test
     void objectProperty_hasRequiredFeelByDefault() {
-      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).get(0);
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
 
       var objectProperty = getPropertyByLabel("Object property", template);
       assertThat(objectProperty.getFeel()).isEqualTo(FeelMode.required);
@@ -360,7 +367,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
     @Test
     void notAnnotated_EnumProperty_hasCorrectDefaults() {
-      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).get(0);
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
       var property = getPropertyByLabel("Enum property", template);
 
       assertThat(property).isInstanceOf(DropdownProperty.class);
@@ -376,28 +383,42 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
     @Test
     void nested_addsPrefixPathByDefault() {
-      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).get(0);
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
       assertDoesNotThrow(() -> getPropertyById("nestedProperty.nestedA", template));
       assertThrows(Exception.class, () -> getPropertyById("nestedProperty.nestedB", template));
     }
 
     @Test
     void nested_disableAddPrefixPath() {
-      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).get(0);
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
       assertDoesNotThrow(() -> getPropertyById("nestedB", template));
       assertThrows(
           Exception.class, () -> getPropertyById("customPathNestedProperty.nestedB", template));
     }
 
     @Test
+    void nested_groupOverride() {
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
+      var property = getPropertyById("nestedPropertyWithGroup.nestedA", template);
+      assertThat(property.getGroup()).isEqualTo("customGroup");
+    }
+
+    @Test
+    void nested_groupOverrideWhenChildGroupIsSet() {
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
+      var property = getPropertyById("nestedPropertyWithGroupOverride.nestedB", template);
+      assertThat(property.getGroup()).isEqualTo("customGroup");
+    }
+
+    @Test
     void ignoredProperty() {
-      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).get(0);
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
       assertThat(template.properties()).noneMatch(p -> "ignoredField".equals(p.getId()));
     }
 
     @Test
     void conditionalProperty_valid_equals() {
-      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).get(0);
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
       var property = getPropertyByLabel("Conditional property equals", template);
 
       assertThat(property.getCondition())
@@ -406,7 +427,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
     @Test
     void conditionalProperty_valid_oneOf() {
-      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).get(0);
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
       var property = getPropertyByLabel("Conditional property one of", template);
 
       assertThat(property.getCondition())
@@ -426,7 +447,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
     @Test
     void propertyWithDifferentIdAndBinding_isSupported() {
-      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).get(0);
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
       var property = getPropertyById("idNotEqualToBinding", template);
 
       assertThat(property.getBinding()).isInstanceOf(ZeebeInput.class);
@@ -436,7 +457,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
     @Test
     void nested_conditionIsNotChanged() {
-      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).get(0);
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
       var property = getPropertyByLabel("First nested sub type override value", template);
 
       assertThat(property.getCondition()).isInstanceOf(AllMatch.class);
@@ -450,7 +471,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
     @Test
     void nonAnnotated_sealedType_hasCorrectDefaults() {
-      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).get(0);
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
       var discriminatorProperty =
           template.properties().stream()
               .filter(p -> "Non annotated sealed type".equals(p.getLabel()))
@@ -504,7 +525,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
     @Test
     void annotated_sealedType_followsAnnotations() {
-      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).get(0);
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
       var discriminatorProperty =
           template.properties().stream()
               .filter(p -> "Annotated type override".equals(p.getLabel()))
@@ -561,7 +582,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
     @Test
     void discriminatorProperty_withCondition() {
-      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).get(0);
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
       var discriminatorProperty =
           template.properties().stream()
               .filter(p -> "Conditional discriminator".equals(p.getLabel()))
@@ -585,9 +606,10 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
     @Test
     void propertyGroups_unordered() {
-      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).get(0);
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
       checkPropertyGroups(
           List.of(
+              Map.entry("customGroup", "Custom group"),
               Map.entry("group1", "Group 1"),
               Map.entry("group2", "Group 2"),
               Map.entry("output", "Output mapping"),
@@ -599,7 +621,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
     @Test
     void propertyGroups_orderedAndLabeledByAnnotation() {
-      var template = generator.generate(MyConnectorFunction.FullyAnnotated.class).get(0);
+      var template = generator.generate(MyConnectorFunction.FullyAnnotated.class).getFirst();
       checkPropertyGroups(
           List.of(
               Map.entry("group2", "Group Two"),
@@ -613,7 +635,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
     @Test
     void propertyGroupContents_definedByTemplatePropertyAnnotation() {
-      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).get(0);
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
       var group1 =
           template.properties().stream()
               .filter(p -> "group1".equals(p.getGroup()))
@@ -632,10 +654,11 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
               .generate(
                   MyConnectorFunction.MinimallyAnnotated.class,
                   new GeneratorConfiguration(ConnectorMode.HYBRID, null, null, null, null))
-              .get(0);
+              .getFirst();
       checkPropertyGroups(
           List.of(
               Map.entry("taskDefinitionType", "Task definition type"),
+              Map.entry("customGroup", "Custom group"),
               Map.entry("group2", "Group 2"),
               Map.entry("group1", "Group 1"),
               Map.entry("output", "Output mapping"),
@@ -651,7 +674,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
     @Test
     void validationPresent_onlyPattern() {
-      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).get(0);
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
       var property = getPropertyByLabel("Property with pattern", template);
       assertThat(property.getConstraints()).isNotNull();
       assertThat(property.getConstraints().pattern())
@@ -663,14 +686,14 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
     @Test
     void validationNotPresent() {
-      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).get(0);
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
       var property = getPropertyByLabel("Not annotated string property", template);
       assertThat(property.getConstraints()).isNull();
     }
 
     @Test
     void validationPresent_minMaxSize() {
-      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).get(0);
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
       var property = getPropertyByLabel("Property with min max", template);
       assertThat(property.getConstraints()).isNotNull();
       assertThat(property.getConstraints().minLength()).isEqualTo(1);
@@ -679,7 +702,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
     @Test
     void validationPresent_maxSizeOnly() {
-      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).get(0);
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
       var property = getPropertyByLabel("Property with max size", template);
       assertThat(property.getConstraints()).isNotNull();
       assertThat(property.getConstraints().minLength()).isNull();
@@ -688,7 +711,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
     @Test
     void validationPresent_notEmpty_stringProperty() {
-      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).get(0);
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
       var notEmptyProperty = getPropertyByLabel("String property with not empty", template);
       assertThat(notEmptyProperty.getConstraints()).isNotNull();
       assertThat(notEmptyProperty.getConstraints().notEmpty()).isTrue();
@@ -704,7 +727,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
     @Test
     void validationPresent_notEmpty_objectProperty() {
-      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).get(0);
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
       var notEmptyProperty = getPropertyByLabel("Object property with not null", template);
       assertThat(notEmptyProperty.getConstraints()).isNotNull();
       assertThat(notEmptyProperty.getConstraints().notEmpty()).isTrue();
@@ -727,7 +750,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
               + Base64.getEncoder().encodeToString(readAllBytes(Paths.get(expectedIcon.getFile())));
 
       var template =
-          generator.generate(MyConnectorFunction.MinimallyAnnotatedWithSvgIcon.class).get(0);
+          generator.generate(MyConnectorFunction.MinimallyAnnotatedWithSvgIcon.class).getFirst();
       var icon = template.icon();
 
       assertThat(icon.contents()).isEqualTo(expectedIconString);
@@ -744,7 +767,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
               + Base64.getEncoder().encodeToString(readAllBytes(Paths.get(expectedIcon.getFile())));
 
       var template =
-          generator.generate(MyConnectorFunction.MinimallyAnnotatedWithPngIcon.class).get(0);
+          generator.generate(MyConnectorFunction.MinimallyAnnotatedWithPngIcon.class).getFirst();
       var icon = template.icon();
 
       assertThat(icon.contents()).isEqualTo(expectedIconString);

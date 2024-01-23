@@ -54,4 +54,10 @@ public @interface NestedProperties {
    * the default behavior of nesting properties.
    */
   boolean addNestedPath() default true;
+
+  /**
+   * Group name for the nested properties. If specified, it will override the group names specified
+   * for the nested properties using {@link TemplateProperty#group()}.
+   */
+  String group() default "";
 }
