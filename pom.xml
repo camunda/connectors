@@ -41,6 +41,7 @@
     <module>connectors-e2e-test/connectors-e2e-test-automation-anywhere</module>
     <module>connectors-e2e-test/connectors-e2e-test-kafka</module>
     <module>connectors-e2e-test/connectors-e2e-test-aws</module>
+    <module>connectors-e2e-test/connectors-e2e-test-easy-post</module>
   </modules>
 
 </project>

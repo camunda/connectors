@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Easy Post Outbound Connector",
   "id": "io.camunda.connectors.EasyPost.v1",
-  "version": 3,
+  "version": 4,
   "description": "Allows you to create addresses, parcels, and shipments, as well as purchase and verify shipments",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/easy-post/",
   "category": {
@@ -41,8 +41,9 @@
     {
       "type": "Hidden",
       "value": "io.camunda:http-json:1",
-      "binding": {
-        "type": "zeebe:taskDefinition:type"
+      "binding" : {
+        "property" : "type",
+        "type" : "zeebe:taskDefinition"
       }
     },
     {
@@ -70,7 +71,7 @@
         },
         {
           "name": "Verify a created address",
-          "value": "verifyAddresById"
+          "value": "verifyAddressById"
         },
         {
           "name": "Retrieve a tracker by ID",
@@ -84,6 +85,7 @@
     },
     {
       "description": "Authentication type",
+      "id": "authentication.type",
       "group": "authentication",
       "type": "Hidden",
       "optional": false,
@@ -98,6 +100,7 @@
     },
     {
       "label": "API key",
+      "id": "authentication.username",
       "group": "authentication",
       "type": "String",
       "feel": "optional",
@@ -111,6 +114,7 @@
       }
     },
     {
+      "id": "authentication.password",
       "description": "This field will replace to empty string. EasyPost API use only username field for put API key",
       "group": "authentication",
       "type": "Hidden",
@@ -161,13 +165,14 @@
       "condition": {
         "property": "operationType",
         "oneOf": [
-          "verifyAddresById",
+          "verifyAddressById",
           "retrieveTracker"
         ]
       }
     },
     {
       "label": "Name",
+      "id": "body.address.name",
       "description": "Name of the person. Both name and company can be included",
       "group": "input",
       "type": "String",
@@ -189,6 +194,7 @@
     },
     {
       "label": "Company",
+      "id": "body.address.company",
       "description": "Name of the organization. Both name and company can be included",
       "group": "input",
       "type": "String",
@@ -210,6 +216,7 @@
     },
     {
       "label": "Phone",
+      "id": "body.address.phone",
       "description": "Phone number to reach the person or organization",
       "group": "input",
       "type": "String",
@@ -231,6 +238,7 @@
     },
     {
       "label": "Address line 1",
+      "id": "body.address.street1",
       "description": "First line of the address",
       "group": "input",
       "type": "String",
@@ -252,6 +260,7 @@
     },
     {
       "label": "Address line 2",
+      "id": "body.address.street2",
       "description": "Second line of the address",
       "group": "input",
       "type": "String",
@@ -273,6 +282,7 @@
     },
     {
       "label": "City",
+      "id": "body.address.city",
       "description": "City the address is located in",
       "group": "input",
       "type": "String",
@@ -294,6 +304,7 @@
     },
     {
       "label": "State or province",
+      "id": "body.address.state",
       "description": "State or province the address is located in",
       "group": "input",
       "type": "String",
@@ -315,6 +326,7 @@
     },
     {
       "label": "Email",
+      "id": "body.address.email",
       "group": "input",
       "type": "String",
       "feel": "optional",
@@ -335,6 +347,7 @@
     },
     {
       "label": "ZIP or postal code",
+      "id": "body.address.zip",
       "description": "The ZIP or postal code where the address is located",
       "group": "input",
       "type": "String",
@@ -356,6 +369,7 @@
     },
     {
       "label": "Country",
+      "id": "body.address.country",
       "description": "The country code of the address location",
       "group": "input",
       "type": "String",
@@ -377,6 +391,7 @@
     },
     {
       "label": "Federal tax ID",
+      "id": "body.address.federal_tax_id",
       "description": "Federal tax identifier of the person or organization",
       "group": "input",
       "type": "String",
@@ -398,6 +413,7 @@
     },
     {
       "label": "State tax ID",
+      "id": "body.address.state_tax_id",
       "description": "State tax identifier of the person or organization",
       "group": "input",
       "type": "String",
@@ -419,6 +435,7 @@
     },
     {
       "label": "Weight",
+      "id": "body.parcel.weight",
       "description": "Weight of parcel in oz",
       "group": "input",
       "type": "String",
@@ -440,6 +457,7 @@
     },
     {
       "label": "Length",
+      "id": "body.parcel.length",
       "description": "Required if width and/or height are present (inches)",
       "group": "input",
       "type": "String",
@@ -461,6 +479,7 @@
     },
     {
       "label": "Width",
+      "id": "body.parcel.width",
       "description": "Required if length and/or height are present (inches)",
       "group": "input",
       "type": "String",
@@ -482,6 +501,7 @@
     },
     {
       "label": "Height",
+      "id": "body.parcel.height",
       "description": "Required if length and/or width are present (inches)",
       "group": "input",
       "type": "String",
@@ -503,6 +523,7 @@
     },
     {
       "label": "Predefined package",
+      "id": "body.parcel.predefined_package",
       "description": "Optional, one of <a href=\"https://www.easypost.com/service-levels-and-parcels\" target=\"_blank\">predefined packages</a>",
       "group": "input",
       "type": "String",
@@ -524,6 +545,7 @@
     },
     {
       "label": "To address",
+      "id": "body.shipment.to_address.id",
       "description": "ID of the destination address",
       "group": "input",
       "type": "String",
@@ -545,6 +567,7 @@
     },
     {
       "label": "From address",
+      "id": "body.shipment.from_address.id",
       "description": "ID of the origin address",
       "group": "input",
       "type": "String",
@@ -566,6 +589,7 @@
     },
     {
       "label": "Parcel",
+      "id": "body.shipment.parcel.id",
       "description": "ID of the parcel",
       "group": "input",
       "type": "String",
@@ -587,6 +611,7 @@
     },
     {
       "label": "Shipment ID",
+      "id": "shipmentIdValue",
       "description": "ID of the shipment",
       "group": "input",
       "type": "String",
@@ -608,6 +633,7 @@
     },
     {
       "label": "Rate ID",
+      "id": "body.rate.id",
       "description": "ID of the actual rate quote for this service",
       "group": "input",
       "type": "String",
@@ -629,6 +655,7 @@
     },
     {
       "label": "Address ID",
+      "id": "addressIdValue",
       "description": "The ID of the address that has already been created",
       "group": "input",
       "type": "String",
@@ -644,12 +671,13 @@
       "condition": {
         "property": "operationType",
         "oneOf": [
-          "verifyAddresById"
+          "verifyAddressById"
         ]
       }
     },
     {
       "label": "Tracker ID",
+      "id": "trackerIdValue",
       "description": "ID of tracker",
       "group": "input",
       "type": "String",
@@ -671,8 +699,22 @@
     },
     {
       "type": "Hidden",
+      "id": "baseUrl",
       "optional": false,
-      "value": "https://api.easypost.com/v2/addresses",
+      "value": "https://api.easypost.com",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "baseUrl"
+      },
+      "constraints": {
+        "notEmpty": true
+      }
+    },
+    {
+      "type": "Hidden",
+      "id": "addressUrl",
+      "optional": false,
+      "value": "=baseUrl+\"/v2/addresses\"",
       "binding": {
         "type": "zeebe:input",
         "name": "url"
@@ -689,8 +731,9 @@
     },
     {
       "type": "Hidden",
+      "id": "parcelsUrl",
       "optional": false,
-      "value": "https://api.easypost.com/v2/parcels",
+      "value": "=baseUrl+ \"/v2/parcels\"",
       "binding": {
         "type": "zeebe:input",
         "name": "url"
@@ -707,8 +750,9 @@
     },
     {
       "type": "Hidden",
+      "id": "createShipmentsUrl",
       "optional": false,
-      "value": "https://api.easypost.com/v2/shipments",
+      "value": "=baseUrl+\"/v2/shipments\"",
       "binding": {
         "type": "zeebe:input",
         "name": "url"
@@ -725,8 +769,9 @@
     },
     {
       "type": "Hidden",
+      "id": "buyShipmentUrl",
       "optional": false,
-      "value": "=\"https://api.easypost.com/v2/shipments/\"+shipmentIdValue+\"/buy\"",
+      "value": "=baseUrl+\"/v2/shipments/\"+shipmentIdValue+\"/buy\"",
       "binding": {
         "type": "zeebe:input",
         "name": "url"
@@ -743,8 +788,9 @@
     },
     {
       "type": "Hidden",
+      "id": "verifyAddressUrl",
       "optional": false,
-      "value": "=\"https://api.easypost.com/v2/addresses/\"+addressIdValue+\"/verify\"",
+      "value": "=baseUrl+\"/v2/addresses/\"+addressIdValue+\"/verify\"",
       "binding": {
         "type": "zeebe:input",
         "name": "url"
@@ -755,14 +801,15 @@
       "condition": {
         "property": "operationType",
         "oneOf": [
-          "verifyAddresById"
+          "verifyAddressById"
         ]
       }
     },
     {
       "type": "Hidden",
+      "id": "retrieveTrackerByIdUrl",
       "optional": false,
-      "value": "=\"https://api.easypost.com/v2/trackers/\"+trackerIdValue",
+      "value": "=baseUrl+\"/v2/trackers/\"+trackerIdValue",
       "binding": {
         "type": "zeebe:input",
         "name": "url"
@@ -809,7 +856,7 @@
     },
     {
       "label": "Result expression",
-      "id": "resultExpressionGet",
+      "id": "resultExpressionGetAddressId",
       "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
       "group": "output",
       "type": "String",
@@ -828,7 +875,7 @@
     },
     {
       "label": "Result expression",
-      "id": "resultExpressionGet",
+      "id": "resultExpressionGetPlaceId",
       "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
       "group": "output",
       "type": "String",
@@ -847,12 +894,12 @@
     },
     {
       "label": "Result expression",
-      "id": "resultExpressionGet",
+      "id": "resultExpressionGetShipment",
       "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
       "group": "output",
       "type": "String",
       "feel": "required",
-      "value": "={priorityRate: response.body.rates[item.service = \"Priority\"], shipmentId: priorityRate[1].shipment_id, rateId: priorityRate[1].id}",
+      "value": "={shipmentId:response.body.id}",
       "binding": {
         "type": "zeebe:taskHeader",
         "key": "resultExpression"
@@ -866,7 +913,7 @@
     },
     {
       "label": "Result expression",
-      "id": "resultExpressionGet",
+      "id": "resultExpressionGetTracker",
       "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
       "group": "output",
       "type": "String",
@@ -885,7 +932,7 @@
     },
     {
       "label": "Result expression",
-      "id": "resultExpressionGet",
+      "id": "resultExpressionGetTrackerStatus",
       "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
       "group": "output",
       "type": "String",
@@ -916,20 +963,33 @@
       "condition": {
         "property": "operationType",
         "oneOf": [
-          "verifyAddresById"
+          "verifyAddressById"
         ]
       }
     },
     {
+      "id": "errorExpression",
       "label": "Error expression",
-      "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#bpmn-errors\" target=\"_blank\">documentation</a>",
-      "group": "errors",
-      "type": "Text",
+      "description": "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
       "feel": "required",
+      "group": "error",
       "binding": {
-        "type": "zeebe:taskHeader",
-        "key": "errorExpression"
-      }
+        "key": "errorExpression",
+        "type": "zeebe:taskHeader"
+      },
+      "type": "Text"
+    },
+    {
+      "id": "retryBackoff",
+      "label": "Retry backoff",
+      "description": "ISO-8601 duration to wait between retries",
+      "value": "PT0S",
+      "group": "retries",
+      "binding": {
+        "key": "retryBackoff",
+        "type": "zeebe:taskHeader"
+      },
+      "type": "Hidden"
     }
   ],
   "icon": {
