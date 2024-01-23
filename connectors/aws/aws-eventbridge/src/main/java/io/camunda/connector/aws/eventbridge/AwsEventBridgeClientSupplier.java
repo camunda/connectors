@@ -7,6 +7,7 @@
 package io.camunda.connector.aws.eventbridge;
 
 import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.eventbridge.AmazonEventBridge;
 import com.amazonaws.services.eventbridge.AmazonEventBridgeClient;
 
@@ -17,6 +18,16 @@ public class AwsEventBridgeClientSupplier {
     return AmazonEventBridgeClient.builder()
         .withCredentials(credentialsProvider)
         .withRegion(region)
+        .build();
+  }
+
+  public AmazonEventBridge getAmazonEventBridgeClient(
+      final AWSCredentialsProvider credentialsProvider,
+      final String region,
+      final String endpoint) {
+    return AmazonEventBridgeClient.builder()
+        .withCredentials(credentialsProvider)
+        .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(endpoint, region))
         .build();
   }
 }
