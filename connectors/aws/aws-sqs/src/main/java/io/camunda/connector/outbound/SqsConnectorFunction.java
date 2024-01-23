@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.outbound;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.amazonaws.services.sqs.model.SendMessageResult;
@@ -18,20 +17,34 @@ import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.aws.AwsUtils;
 import io.camunda.connector.aws.CredentialsProviderSupport;
 import io.camunda.connector.aws.ObjectMapperSupplier;
+import io.camunda.connector.aws.model.impl.AwsBaseConfiguration;
 import io.camunda.connector.common.suppliers.AmazonSQSClientSupplier;
 import io.camunda.connector.common.suppliers.DefaultAmazonSQSClientSupplier;
+import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.outbound.model.QueueRequestData;
 import io.camunda.connector.outbound.model.SqsConnectorRequest;
 import io.camunda.connector.outbound.model.SqsConnectorResult;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.Optional;
 
 @OutboundConnector(
-    name = "AWS SQS Inbound",
+    name = "AWS SQS Outbound",
     inputVariables = {"authentication", "configuration", "queue"},
     type = "io.camunda:aws-sqs:1")
+@ElementTemplate(
+    id = "io.camunda.connectors.AWSSQS.v1",
+    name = "Amazon SQS Outbound Connector",
+    description = "Send message to queue",
+    inputDataClass = SqsConnectorRequest.class,
+    version = 10,
+    propertyGroups = {
+      @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
+      @ElementTemplate.PropertyGroup(id = "configuration", label = "Queue properties"),
+      @ElementTemplate.PropertyGroup(id = "input", label = "Input message data")
+    },
+    documentationRef =
+        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=outbound",
+    icon = "icon.svg")
 public class SqsConnectorFunction implements OutboundConnectorFunction {
-  private static final Logger LOGGER = LoggerFactory.getLogger(SqsConnectorFunction.class);
 
   private final AmazonSQSClientSupplier sqsClientSupplier;
   private final ObjectMapper objectMapper;
@@ -49,11 +62,19 @@ public class SqsConnectorFunction implements OutboundConnectorFunction {
   @Override
   public Object execute(final OutboundConnectorContext context) {
     var request = context.bindVariables(SqsConnectorRequest.class);
+    AmazonSQS sqsClient = createAwsSqsClient(request);
+    return new SqsConnectorResult(sendMsgToSqs(sqsClient, request.getQueue()).getMessageId());
+  }
+
+  private AmazonSQS createAwsSqsClient(SqsConnectorRequest request) {
     var region =
         AwsUtils.extractRegionOrDefault(request.getConfiguration(), request.getQueue().getRegion());
-    AWSCredentialsProvider provider = CredentialsProviderSupport.credentialsProvider(request);
-    AmazonSQS sqsClient = sqsClientSupplier.sqsClient(provider, region);
-    return new SqsConnectorResult(sendMsgToSqs(sqsClient, request.getQueue()).getMessageId());
+    Optional<String> endpoint =
+        Optional.ofNullable(request.getConfiguration()).map(AwsBaseConfiguration::endpoint);
+    var credentialsProvider = CredentialsProviderSupport.credentialsProvider(request);
+    return endpoint
+        .map(ep -> sqsClientSupplier.sqsClient(credentialsProvider, region, ep))
+        .orElseGet(() -> sqsClientSupplier.sqsClient(credentialsProvider, region));
   }
 
   private SendMessageResult sendMsgToSqs(final AmazonSQS sqsClient, final QueueRequestData queue) {

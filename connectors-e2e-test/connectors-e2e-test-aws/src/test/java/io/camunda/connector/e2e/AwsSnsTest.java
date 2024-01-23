@@ -29,12 +29,8 @@ import com.amazonaws.services.sns.AmazonSNSClientBuilder;
 import com.amazonaws.services.sns.model.CreateTopicRequest;
 import com.amazonaws.services.sns.model.CreateTopicResult;
 import com.amazonaws.services.sqs.AmazonSQS;
-import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
-import com.amazonaws.services.sqs.model.CreateQueueRequest;
-import com.amazonaws.services.sqs.model.CreateQueueResult;
 import com.amazonaws.services.sqs.model.GetQueueAttributesRequest;
 import com.amazonaws.services.sqs.model.Message;
-import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -81,22 +77,10 @@ public class AwsSnsTest extends BaseAwsTest {
     CreateTopicResult createTopicResult = snsClient.createTopic(createTopicRequest);
 
     topicArn = createTopicResult.getTopicArn();
-
     // Initialize Amazon SQS client
-    sqsClient =
-        AmazonSQSClientBuilder.standard()
-            .withCredentials(
-                new AWSStaticCredentialsProvider(
-                    new BasicAWSCredentials(localstack.getAccessKey(), localstack.getSecretKey())))
-            .withEndpointConfiguration(
-                new AwsClientBuilder.EndpointConfiguration(
-                    localstack.getEndpoint().toString(), localstack.getRegion()))
-            .build();
+    sqsClient = AwsTestHelper.initSqsClient(localstack);
     // Create an SQS queue
-    CreateQueueResult createQueueResult =
-        sqsClient.createQueue(new CreateQueueRequest(TEST_QUEUE_NAME));
-    sqsQueueUrl = createQueueResult.getQueueUrl().replace("localhost", "127.0.0.1");
-
+    sqsQueueUrl = AwsTestHelper.createQueue(sqsClient, TEST_QUEUE_NAME, false);
     // Extract the queue ARN and subscribe the SQS queue to the SNS topic
     String queueArn =
         sqsClient
@@ -148,13 +132,7 @@ public class AwsSnsTest extends BaseAwsTest {
     assertThat(bpmnTest.getProcessInstanceEvent()).hasVariable("result");
 
     // Retrieve and validate messages from the SQS queue
-    List<Message> messages =
-        sqsClient
-            .receiveMessage(
-                new ReceiveMessageRequest(sqsQueueUrl)
-                    .withWaitTimeSeconds(5)
-                    .withMaxNumberOfMessages(1))
-            .getMessages();
+    List<Message> messages = AwsTestHelper.receiveMessages(sqsClient, sqsQueueUrl);
     assertFalse(messages.isEmpty(), "The SQS queue should have received a message");
     ObjectMapper objectMapper = new ObjectMapper();
     JsonNode jsonNode = objectMapper.readTree(messages.get(0).getBody());

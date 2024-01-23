@@ -8,6 +8,8 @@ package io.camunda.connector.outbound.model;
 
 import com.amazonaws.services.sqs.model.MessageAttributeValue;
 import com.amazonaws.util.StringUtils;
+import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -19,17 +21,62 @@ import java.util.function.Function;
 
 public class QueueRequestData {
 
-  @NotEmpty private String url;
-  @Deprecated private String region;
+  @TemplateProperty(
+      group = "configuration",
+      label = "URL",
+      description = "Specify the URL of the SQS queue where you would like to send message to")
+  @NotEmpty
+  private String url;
 
-  @NotNull private Object messageBody;
+  @TemplateProperty(ignore = true)
+  @Deprecated
+  private String region;
 
-  @NotNull private QueueType type = QueueType.standard;
+  @TemplateProperty(
+      label = "Message body",
+      group = "input",
+      feel = Property.FeelMode.required,
+      type = TemplateProperty.PropertyType.Text,
+      description = "Data to send to the SQS queue")
+  @NotNull
+  private Object messageBody;
 
+  @TemplateProperty(
+      label = "Queue type",
+      group = "configuration",
+      type = TemplateProperty.PropertyType.Dropdown,
+      defaultValue = "standard",
+      choices = {
+        @TemplateProperty.DropdownPropertyChoice(value = "standard", label = "Standard"),
+        @TemplateProperty.DropdownPropertyChoice(value = "fifo", label = "FIFO")
+      },
+      description =
+          "Specify whether the queue is a <a href=\"https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/standard-queues.html\">standard</a> or <a href=\"https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queues.html\">FIFO</a> queue")
+  @NotNull
+  private QueueType type = QueueType.standard;
+
+  @TemplateProperty(
+      label = "Message attributes",
+      group = "input",
+      type = TemplateProperty.PropertyType.Text,
+      feel = Property.FeelMode.required,
+      description = "Message attributes metadata")
   private Map<String, SqsMessageAttribute> messageAttributes;
 
+  @TemplateProperty(
+      group = "input",
+      label = "Message group ID",
+      condition = @TemplateProperty.PropertyCondition(property = "queue.type", equals = "fifo"),
+      description =
+          "Message group ID (FIFO only). See also <a href=\"https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/using-messagegroupid-property.html\">using the MessageGroupId Property</a> in the Amazon SQS developer guide")
   private String messageGroupId;
 
+  @TemplateProperty(
+      group = "input",
+      label = "Message deduplication ID",
+      condition = @TemplateProperty.PropertyCondition(property = "queue.type", equals = "fifo"),
+      description =
+          "Message deduplication ID (FIFO only). See also <a href=\"https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/using-messagededuplicationid-property.html\">using the MessageDeduplicationId Property</a> in the Amazon SQS developer guide")
   private String messageDeduplicationId;
 
   public String getUrl() {

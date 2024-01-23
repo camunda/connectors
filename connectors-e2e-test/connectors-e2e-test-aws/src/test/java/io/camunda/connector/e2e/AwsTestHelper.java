@@ -16,6 +16,9 @@
  */
 package io.camunda.connector.e2e;
 
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.lambda.AWSLambda;
 import com.amazonaws.services.lambda.model.CreateFunctionRequest;
 import com.amazonaws.services.lambda.model.DeleteFunctionRequest;
@@ -23,6 +26,14 @@ import com.amazonaws.services.lambda.model.FunctionCode;
 import com.amazonaws.services.lambda.model.GetFunctionRequest;
 import com.amazonaws.services.lambda.model.GetFunctionResult;
 import com.amazonaws.services.lambda.model.ResourceNotFoundException;
+import com.amazonaws.services.sqs.AmazonSQS;
+import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
+import com.amazonaws.services.sqs.model.CreateQueueRequest;
+import com.amazonaws.services.sqs.model.CreateQueueResult;
+import com.amazonaws.services.sqs.model.DeleteQueueRequest;
+import com.amazonaws.services.sqs.model.Message;
+import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
+import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -39,8 +50,8 @@ import org.testcontainers.containers.localstack.LocalStackContainer;
  * Utility class providing helper methods for setting up and managing AWS Lambda and LocalStack in
  * the context of end-to-end testing.
  */
-public class AwsLambdaTestHelper {
-  private static final Logger LOGGER = LoggerFactory.getLogger(AwsLambdaTestHelper.class);
+public class AwsTestHelper {
+  private static final Logger LOGGER = LoggerFactory.getLogger(AwsTestHelper.class);
 
   /**
    * Waits for LocalStack to become operational. Checks periodically if LocalStack is healthy.
@@ -195,5 +206,71 @@ public class AwsLambdaTestHelper {
     } catch (IOException | InterruptedException e) {
       LOGGER.error("Failed to stop and remove Lambda containers", e);
     }
+  }
+
+  /**
+   * Initializes an AmazonSQS client for interacting with AWS SQS service.
+   *
+   * @param localstack The LocalStack container instance.
+   * @return Initialized AmazonSQS client.
+   */
+  public static AmazonSQS initSqsClient(LocalStackContainer localstack) {
+    return AmazonSQSClientBuilder.standard()
+        .withCredentials(
+            new AWSStaticCredentialsProvider(
+                new BasicAWSCredentials(localstack.getAccessKey(), localstack.getSecretKey())))
+        .withEndpointConfiguration(
+            new AwsClientBuilder.EndpointConfiguration(
+                localstack.getEndpoint().toString(), localstack.getRegion()))
+        .build();
+  }
+
+  /**
+   * Create an SQS queue with specified attributes.
+   *
+   * @param sqsClient The AmazonSQS client.
+   * @param queueName The name of the queue to be created.
+   * @return The URL of the created queue.
+   */
+  public static String createQueue(AmazonSQS sqsClient, String queueName, boolean isFifo) {
+    CreateQueueRequest createQueueRequest = new CreateQueueRequest().withQueueName(queueName);
+    if (isFifo) {
+      createQueueRequest
+          .addAttributesEntry("FifoQueue", "true")
+          .addAttributesEntry("ContentBasedDeduplication", "true");
+    }
+    CreateQueueResult createQueueResult = sqsClient.createQueue(createQueueRequest);
+    LOGGER.info("Created SQS queue: {}", queueName);
+    return createQueueResult.getQueueUrl().replace("localhost", "127.0.0.1");
+  }
+
+  /**
+   * Deletes the specified SQS queue.
+   *
+   * @param sqsClient The AmazonSQS client.
+   * @param queueUrl The URL of the queue to be deleted.
+   */
+  public static void deleteQueue(AmazonSQS sqsClient, String queueUrl) {
+    sqsClient.deleteQueue(new DeleteQueueRequest(queueUrl));
+    LOGGER.info("Deleted SQS queue: {}", queueUrl);
+  }
+
+  /**
+   * Polls messages from the specified SQS queue.
+   *
+   * @param sqsClient The AmazonSQS client.
+   * @param queueUrl The URL of the queue to poll messages from.
+   * @return List of messages.
+   */
+  public static List<Message> receiveMessages(AmazonSQS sqsClient, String queueUrl) {
+    ReceiveMessageRequest receiveMessageRequest =
+        new ReceiveMessageRequest(queueUrl)
+            .withMessageAttributeNames("All")
+            .withWaitTimeSeconds(5)
+            .withMaxNumberOfMessages(1);
+    ReceiveMessageResult receiveMessageResult = sqsClient.receiveMessage(receiveMessageRequest);
+    List<Message> messages = receiveMessageResult.getMessages();
+    LOGGER.info("Received {} messages from SQS queue: {}", messages.size(), queueUrl);
+    return messages;
   }
 }
