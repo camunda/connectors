@@ -57,7 +57,7 @@ public class InboundConnectorManager {
   //  setup
   private final Map<Long, Set<ActiveInboundConnector>> activeConnectorsByProcDefKey =
       new HashMap<>();
-  private Set<Long> registeredProcessDefinitions = new HashSet<>();
+  private final Set<Long> registeredProcessDefinitions = new HashSet<>();
 
   public InboundConnectorManager(
       InboundConnectorFactory connectorFactory,
@@ -138,8 +138,7 @@ public class InboundConnectorManager {
 
       executable.activate(inboundContext);
 
-      if (webhookConnectorRegistry != null
-          && connector.executable() instanceof WebhookConnectorExecutable) {
+      if (isWebhookConnector(connector)) {
         webhookConnectorRegistry.register(connector);
         LOG.trace("Registering webhook: " + newConnector.type());
       }
@@ -181,8 +180,7 @@ public class InboundConnectorManager {
       activeConnectorsByProcDefKey
           .get(connector.context().getDefinition().processDefinitionKey())
           .remove(connector);
-      if (webhookConnectorRegistry != null
-          && connector.executable() instanceof WebhookConnectorExecutable) {
+      if (isWebhookConnector(connector) && webhookConnectorRegistry.isRegistered(connector)) {
         webhookConnectorRegistry.deregister(connector);
         LOG.trace("Unregistering webhook: " + connector.context().getDefinition().type());
       }
@@ -244,5 +242,10 @@ public class InboundConnectorManager {
     return connectors.stream()
         .filter(connector -> elementId.equals(connector.context().getDefinition().elementId()))
         .collect(Collectors.toList());
+  }
+
+  private boolean isWebhookConnector(ActiveInboundConnector connector) {
+    return webhookConnectorRegistry != null
+        && connector.executable() instanceof WebhookConnectorExecutable;
   }
 }
