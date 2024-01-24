@@ -41,6 +41,7 @@ import jakarta.validation.constraints.Size;
 public record MyConnectorInput(
     @TemplateProperty(
             id = "annotatedStringProperty",
+            binding = @TemplateProperty.PropertyBinding(name = "customBinding"),
             label = "Annotated and renamed string property",
             type = PropertyType.Text,
             group = "group1",
@@ -50,8 +51,10 @@ public record MyConnectorInput(
     Object objectProperty,
     JsonNode jsonNodeProperty,
     MyEnum enumProperty,
-    NestedA nestedProperty,
-    @NestedProperties(addNestedPath = false) NestedB customPathNestedProperty,
+    NestedWithoutDefinedGroup nestedProperty,
+    @NestedProperties(group = "customGroup") NestedWithoutDefinedGroup nestedPropertyWithGroup,
+    @NestedProperties(addNestedPath = false) NestedWithDefinedGroup customPathNestedProperty,
+    @NestedProperties(group = "customGroup") NestedWithDefinedGroup nestedPropertyWithGroupOverride,
     NonAnnotatedSealedType nonAnnotatedSealedType,
     AnnotatedSealedType annotatedSealedType,
     @NestedProperties(
@@ -146,7 +149,7 @@ public record MyConnectorInput(
     VALUE2
   }
 
-  record NestedA(@TemplateProperty(id = "nestedA") String a) {}
+  record NestedWithoutDefinedGroup(@TemplateProperty(id = "nestedA") String a) {}
 
-  record NestedB(@TemplateProperty(id = "nestedB") String b) {}
+  record NestedWithDefinedGroup(@TemplateProperty(id = "nestedB") String b) {}
 }
