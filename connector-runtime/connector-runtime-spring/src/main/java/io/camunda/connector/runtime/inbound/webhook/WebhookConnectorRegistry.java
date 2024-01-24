@@ -29,6 +29,8 @@ import org.slf4j.LoggerFactory;
 
 public class WebhookConnectorRegistry {
 
+  private static final String WEBHOOK_CONNECTOR_REGISTRY = "WebhookConnectorRegistry";
+  public static final String DEPRECATED_WEBHOOK_MESSAGE_PREFIX = "Deprecated webhook path: ";
   private final Logger LOG = LoggerFactory.getLogger(WebhookConnectorRegistry.class);
 
   private final Map<String, ActiveInboundConnector> activeEndpointsByContext = new HashMap<>();
@@ -62,9 +64,14 @@ public class WebhookConnectorRegistry {
     }
   }
 
-  private static void logIfWebhookPathDeprecated(ActiveInboundConnector connector, String context) {
-    if (!currentWebhookPathPattern.matcher(context).matches()) {
-      connector.context().log(Activity.level(Severity.WARNING).tag("tag").message("message"));
+  private static void logIfWebhookPathDeprecated(ActiveInboundConnector connector, String webhook) {
+
+    if (!currentWebhookPathPattern.matcher(webhook).matches()) {
+      String message = DEPRECATED_WEBHOOK_MESSAGE_PREFIX + webhook;
+
+      connector
+          .context()
+          .log(Activity.level(Severity.WARNING).tag(WEBHOOK_CONNECTOR_REGISTRY).message(message));
     }
   }
 
