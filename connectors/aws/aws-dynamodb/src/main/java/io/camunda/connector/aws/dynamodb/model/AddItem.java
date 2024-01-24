@@ -6,35 +6,26 @@
  */
 package io.camunda.connector.aws.dynamodb.model;
 
+import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateSubType;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import java.util.Objects;
 
-public final class AddItem extends TableOperation {
-  @NotNull private Object item;
-
-  public Object getItem() {
-    return item;
-  }
-
-  public void setItem(final Object item) {
-    this.item = item;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    AddItem addItem = (AddItem) o;
-    return Objects.equals(item, addItem.item);
-  }
-
-  @Override
-  public String toString() {
-    return "AddItem{" + "item=" + item + "} " + super.toString();
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(item);
-  }
-}
+@TemplateSubType(id = OperationTypes.ADD_ITEM)
+public record AddItem(
+    @TemplateProperty(
+            label = "Table name",
+            id = "addItem.tableName",
+            group = "input",
+            description = "Name of DynamoDB table")
+        @NotBlank
+        String tableName,
+    @TemplateProperty(
+            label = "Item",
+            group = "input",
+            feel = Property.FeelMode.required,
+            description = "DynamoDB item (group of attributes)")
+        @NotNull
+        Object item)
+    implements ItemInput {}

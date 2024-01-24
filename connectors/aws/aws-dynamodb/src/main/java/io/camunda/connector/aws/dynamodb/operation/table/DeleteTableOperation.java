@@ -20,13 +20,13 @@ public class DeleteTableOperation implements AwsDynamoDbOperation {
 
   @Override
   public Object invoke(final DynamoDB dynamoDB) {
-    var table = dynamoDB.getTable(deleteTableModel.getTableName());
+    var table = dynamoDB.getTable(deleteTableModel.tableName());
     table.delete();
     try {
       table.waitForDelete();
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
     }
-    return new AwsDynamoDbResult("delete Table [" + deleteTableModel.getTableName() + "]", "OK");
+    return new AwsDynamoDbResult("delete Table [" + deleteTableModel.tableName() + "]", "OK");
   }
 }

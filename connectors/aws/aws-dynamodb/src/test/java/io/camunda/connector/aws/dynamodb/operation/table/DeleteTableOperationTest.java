@@ -23,8 +23,7 @@ class DeleteTableOperationTest extends BaseDynamoDbOperationTest {
   @Test
   public void invoke_shouldDeleteDynamoDbTableAndReturnStatusOk() throws InterruptedException {
     // Given
-    DeleteTable deleteTable = new DeleteTable();
-    deleteTable.setTableName(TestDynamoDBData.ActualValue.TABLE_NAME);
+    DeleteTable deleteTable = new DeleteTable(TestDynamoDBData.ActualValue.TABLE_NAME);
     DeleteTableOperation operation = new DeleteTableOperation(deleteTable);
     // When
     Object invoke = operation.invoke(dynamoDB);
@@ -54,6 +53,6 @@ class DeleteTableOperationTest extends BaseDynamoDbOperationTest {
     // Then
     assertThat(request).isInstanceOf(DeleteTable.class);
     DeleteTable castedRequest = (DeleteTable) request;
-    assertThat(castedRequest.getTableName()).isEqualTo(TestDynamoDBData.ActualValue.TABLE_NAME);
+    assertThat(castedRequest.tableName()).isEqualTo(TestDynamoDBData.ActualValue.TABLE_NAME);
   }
 }

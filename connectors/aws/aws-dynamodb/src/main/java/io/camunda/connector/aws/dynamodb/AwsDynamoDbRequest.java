@@ -12,6 +12,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
 public class AwsDynamoDbRequest extends AwsBaseRequest {
+
   @Valid @NotNull private AwsInput input;
 
   public AwsInput getInput() {

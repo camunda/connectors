@@ -2,18 +2,6 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>21</source>
-                    <target>21</target>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
 
     <parent>
         <groupId>io.camunda.connector</groupId>
@@ -50,6 +38,25 @@
             <version>${version.aws-java-sdk}</version>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>io.camunda.connector</groupId>
+                <artifactId>element-template-generator-maven-plugin</artifactId>
+                <version>${project.version}</version>
+                <configuration>
+                    <connectorClasses>
+                        <connectorClass>io.camunda.connector.aws.dynamodb.AwsDynamoDbServiceConnectorFunction</connectorClass>
+                    </connectorClasses>
+                    <includeDependencies>
+                        <includeDependency>io.camunda.connector:connector-aws-base</includeDependency>
+                    </includeDependencies>
+                    <templateFileName>aws-dynamodb-outbound-connector</templateFileName>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>
 

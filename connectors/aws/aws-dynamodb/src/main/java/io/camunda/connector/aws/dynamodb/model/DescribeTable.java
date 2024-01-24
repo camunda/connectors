@@ -6,4 +6,17 @@
  */
 package io.camunda.connector.aws.dynamodb.model;
 
-public final class DescribeTable extends TableOperation {}
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateSubType;
+import jakarta.validation.constraints.NotBlank;
+
+@TemplateSubType(id = OperationTypes.DESCRIBE_TABLE)
+public record DescribeTable(
+    @TemplateProperty(
+            label = "Table name",
+            id = "describeTable.tableName",
+            group = "input",
+            description = "Name of DynamoDB table")
+        @NotBlank
+        String tableName)
+    implements TableInput {}

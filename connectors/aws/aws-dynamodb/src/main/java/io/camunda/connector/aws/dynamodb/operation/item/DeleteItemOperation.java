@@ -29,15 +29,14 @@ public class DeleteItemOperation implements AwsDynamoDbOperation {
 
   @Override
   public Object invoke(final DynamoDB dynamoDb) {
-    return dynamoDb.getTable(deleteItemModel.getTableName()).deleteItem(createKeyAttributes());
+    return dynamoDb.getTable(deleteItemModel.tableName()).deleteItem(createKeyAttributes());
   }
 
   private KeyAttribute[] createKeyAttributes() {
     List<KeyAttribute> keyAttributeList = new ArrayList<>();
     objectMapper
         .convertValue(
-            deleteItemModel.getPrimaryKeyComponents(),
-            new TypeReference<HashMap<String, Object>>() {})
+            deleteItemModel.primaryKeyComponents(), new TypeReference<HashMap<String, Object>>() {})
         .forEach((key, value) -> keyAttributeList.add(new KeyAttribute(key, value)));
     return keyAttributeList.toArray(KeyAttribute[]::new);
   }

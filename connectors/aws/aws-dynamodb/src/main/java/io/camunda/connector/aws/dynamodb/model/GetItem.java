@@ -6,35 +6,27 @@
  */
 package io.camunda.connector.aws.dynamodb.model;
 
+import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateSubType;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import java.util.Objects;
 
-public final class GetItem extends TableOperation {
-  @NotNull private Object primaryKeyComponents;
-
-  public Object getPrimaryKeyComponents() {
-    return primaryKeyComponents;
-  }
-
-  public void setPrimaryKeyComponents(final Object primaryKeyComponents) {
-    this.primaryKeyComponents = primaryKeyComponents;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    GetItem getItem = (GetItem) o;
-    return Objects.equals(primaryKeyComponents, getItem.primaryKeyComponents);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(primaryKeyComponents);
-  }
-
-  @Override
-  public String toString() {
-    return "GetItem{" + "primaryKeyComponents=" + primaryKeyComponents + "} " + super.toString();
-  }
-}
+@TemplateSubType(id = OperationTypes.GET_ITEM)
+public record GetItem(
+    @TemplateProperty(
+            label = "Table name",
+            id = "getItem.tableName",
+            group = "input",
+            description = "Name of DynamoDB table")
+        @NotBlank
+        String tableName,
+    @TemplateProperty(
+            label = "Primary key components",
+            id = "getItem.primaryKeyComponents",
+            group = "input",
+            feel = Property.FeelMode.required,
+            description = "Simple or composite primary key")
+        @NotNull
+        Object primaryKeyComponents)
+    implements ItemInput {}

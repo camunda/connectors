@@ -6,165 +6,120 @@
  */
 package io.camunda.connector.aws.dynamodb.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
-import java.util.Objects;
+import jakarta.validation.constraints.NotNull;
 
-public final class CreateTable extends TableOperation {
-
-  @NotBlank private String partitionKey;
-  @NotBlank private String partitionKeyRole;
-  @NotBlank private String partitionKeyType;
-  private String sortKey;
-  private String sortKeyRole;
-  private String sortKeyType;
-  private Long readCapacityUnits;
-  private Long writeCapacityUnits;
-  private String billingModeStr;
-  private boolean deletionProtection;
-
-  public String getPartitionKey() {
-    return partitionKey;
-  }
-
-  public void setPartitionKey(final String partitionKey) {
-    this.partitionKey = partitionKey;
-  }
-
-  public String getPartitionKeyRole() {
-    return partitionKeyRole;
-  }
-
-  public void setPartitionKeyRole(final String partitionKeyRole) {
-    this.partitionKeyRole = partitionKeyRole;
-  }
-
-  public String getPartitionKeyType() {
-    return partitionKeyType;
-  }
-
-  public void setPartitionKeyType(final String partitionKeyType) {
-    this.partitionKeyType = partitionKeyType;
-  }
-
-  public String getSortKey() {
-    return sortKey;
-  }
-
-  public void setSortKey(final String sortKey) {
-    this.sortKey = sortKey;
-  }
-
-  public String getSortKeyRole() {
-    return sortKeyRole;
-  }
-
-  public void setSortKeyRole(final String sortKeyRole) {
-    this.sortKeyRole = sortKeyRole;
-  }
-
-  public String getSortKeyType() {
-    return sortKeyType;
-  }
-
-  public void setSortKeyType(final String sortKeyType) {
-    this.sortKeyType = sortKeyType;
-  }
-
-  public Long getReadCapacityUnits() {
-    return readCapacityUnits;
-  }
-
-  public void setReadCapacityUnits(final Long readCapacityUnits) {
-    this.readCapacityUnits = readCapacityUnits;
-  }
-
-  public Long getWriteCapacityUnits() {
-    return writeCapacityUnits;
-  }
-
-  public void setWriteCapacityUnits(final Long writeCapacityUnits) {
-    this.writeCapacityUnits = writeCapacityUnits;
-  }
-
-  public String getBillingModeStr() {
-    return billingModeStr;
-  }
-
-  public void setBillingModeStr(final String billingModeStr) {
-    this.billingModeStr = billingModeStr;
-  }
-
-  public boolean isDeletionProtection() {
-    return deletionProtection;
-  }
-
-  public void setDeletionProtection(final boolean deletionProtection) {
-    this.deletionProtection = deletionProtection;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    CreateTable that = (CreateTable) o;
-    return deletionProtection == that.deletionProtection
-        && Objects.equals(partitionKey, that.partitionKey)
-        && Objects.equals(partitionKeyRole, that.partitionKeyRole)
-        && Objects.equals(partitionKeyType, that.partitionKeyType)
-        && Objects.equals(sortKey, that.sortKey)
-        && Objects.equals(sortKeyRole, that.sortKeyRole)
-        && Objects.equals(sortKeyType, that.sortKeyType)
-        && Objects.equals(readCapacityUnits, that.readCapacityUnits)
-        && Objects.equals(writeCapacityUnits, that.writeCapacityUnits)
-        && Objects.equals(billingModeStr, that.billingModeStr);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(
-        partitionKey,
-        partitionKeyRole,
-        partitionKeyType,
-        sortKey,
-        sortKeyRole,
-        sortKeyType,
-        readCapacityUnits,
-        writeCapacityUnits,
-        billingModeStr,
-        deletionProtection);
-  }
-
-  @Override
-  public String toString() {
-    return "CreateTable{"
-        + "partitionKey='"
-        + partitionKey
-        + '\''
-        + ", partitionKeyRole='"
-        + partitionKeyRole
-        + '\''
-        + ", partitionKeyType='"
-        + partitionKeyType
-        + '\''
-        + ", sortKey='"
-        + sortKey
-        + '\''
-        + ", sortKeyRole='"
-        + sortKeyRole
-        + '\''
-        + ", sortKeyType='"
-        + sortKeyType
-        + '\''
-        + ", readCapacityUnits="
-        + readCapacityUnits
-        + ", writeCapacityUnits="
-        + writeCapacityUnits
-        + ", billingModeStr='"
-        + billingModeStr
-        + '\''
-        + ", deletionProtection="
-        + deletionProtection
-        + "} "
-        + super.toString();
-  }
-}
+@JsonIgnoreProperties(ignoreUnknown = true)
+@TemplateSubType(id = OperationTypes.CREATE_TABLE)
+public record CreateTable(
+    @TemplateProperty(
+            label = "Table name",
+            id = "createTable.tableName",
+            group = "input",
+            description = "Name of DynamoDB table")
+        @NotBlank
+        String tableName,
+    @TemplateProperty(
+            group = "input",
+            description =
+                "Partition key role. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>")
+        @NotBlank
+        String partitionKey,
+    @TemplateProperty(
+            group = "input",
+            type = TemplateProperty.PropertyType.Dropdown,
+            choices = {
+              @TemplateProperty.DropdownPropertyChoice(value = "HASH", label = "HASH"),
+              @TemplateProperty.DropdownPropertyChoice(value = "RANGE", label = "RANGE")
+            },
+            description =
+                "The role that this key attribute will assume. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>")
+        @NotBlank
+        String partitionKeyRole,
+    @TemplateProperty(
+            label = "Partition key attribute data type",
+            group = "input",
+            type = TemplateProperty.PropertyType.Dropdown,
+            choices = {
+              @TemplateProperty.DropdownPropertyChoice(value = "B", label = "Binary"),
+              @TemplateProperty.DropdownPropertyChoice(value = "N", label = "Number"),
+              @TemplateProperty.DropdownPropertyChoice(value = "S", label = "String")
+            },
+            description = "Represents the data for an attribute")
+        @NotBlank
+        String partitionKeyType,
+    @TemplateProperty(
+            label = "Sort key",
+            group = "input",
+            optional = true,
+            description =
+                "Sort key. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>")
+        String sortKey,
+    @TemplateProperty(
+            label = "Sort key role",
+            group = "input",
+            type = TemplateProperty.PropertyType.Dropdown,
+            optional = true,
+            choices = {
+              @TemplateProperty.DropdownPropertyChoice(value = "HASH", label = "HASH"),
+              @TemplateProperty.DropdownPropertyChoice(value = "RANGE", label = "RANGE")
+            },
+            description = "The role that this key attribute will assume")
+        String sortKeyRole,
+    @TemplateProperty(
+            label = "Sort key attribute data type",
+            group = "input",
+            type = TemplateProperty.PropertyType.Dropdown,
+            optional = true,
+            choices = {
+              @TemplateProperty.DropdownPropertyChoice(value = "B", label = "Binary"),
+              @TemplateProperty.DropdownPropertyChoice(value = "N", label = "Number"),
+              @TemplateProperty.DropdownPropertyChoice(value = "S", label = "String")
+            },
+            description = "Represents the data for an attribute")
+        String sortKeyType,
+    @TemplateProperty(
+            label = "Read capacity units",
+            group = "input",
+            description =
+                "Total number of read capacity units. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>")
+        @NotNull
+        Long readCapacityUnits,
+    @TemplateProperty(
+            label = "Write capacity units",
+            group = "input",
+            description =
+                "Total number of write capacity units. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>")
+        @NotNull
+        Long writeCapacityUnits,
+    @TemplateProperty(
+            label = "Billing mode",
+            group = "input",
+            type = TemplateProperty.PropertyType.Dropdown,
+            choices = {
+              @TemplateProperty.DropdownPropertyChoice(
+                  value = "PROVISIONED",
+                  label = "PROVISIONED"),
+              @TemplateProperty.DropdownPropertyChoice(
+                  value = "PAY_PER_REQUEST",
+                  label = "PAY_PER_REQUEST")
+            },
+            description =
+                "Controls how you are charged for read and write throughput. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>")
+        @NotBlank
+        String billingModeStr,
+    @TemplateProperty(
+            label = "Deletion protection",
+            group = "input",
+            type = TemplateProperty.PropertyType.Dropdown,
+            choices = {
+              @TemplateProperty.DropdownPropertyChoice(value = "true", label = "True"),
+              @TemplateProperty.DropdownPropertyChoice(value = "false", label = "False")
+            },
+            defaultValue = "false",
+            description = "Prevents accidental table deletion")
+        boolean deletionProtection)
+    implements TableInput {}

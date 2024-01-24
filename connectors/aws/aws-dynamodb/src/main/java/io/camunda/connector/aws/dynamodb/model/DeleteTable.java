@@ -6,4 +6,17 @@
  */
 package io.camunda.connector.aws.dynamodb.model;
 
-public final class DeleteTable extends TableOperation {}
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateSubType;
+import jakarta.validation.constraints.NotBlank;
+
+@TemplateSubType(id = OperationTypes.DELETE_TABLE)
+public record DeleteTable(
+    @TemplateProperty(
+            label = "Table name",
+            id = "deleteTable.tableName",
+            group = "input",
+            description = "Name of DynamoDB table")
+        @NotBlank
+        String tableName)
+    implements TableInput {}

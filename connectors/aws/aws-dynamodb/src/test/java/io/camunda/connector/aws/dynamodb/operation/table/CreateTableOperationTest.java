@@ -32,21 +32,19 @@ class CreateTableOperationTest extends BaseDynamoDbOperationTest {
 
   @BeforeEach
   public void init() throws InterruptedException {
-    createTable = new CreateTable();
-    createTable.setTableName(TestDynamoDBData.ActualValue.TABLE_NAME);
-    // Partition key
-    createTable.setPartitionKey(TestDynamoDBData.ActualValue.PARTITION_KEY);
-    createTable.setPartitionKeyRole(TestDynamoDBData.ActualValue.PARTITION_KEY_ROLE_HASH);
-    createTable.setPartitionKeyType(TestDynamoDBData.ActualValue.PARTITION_KEY_TYPE_NUMBER);
-    // Sort key
-    createTable.setSortKey(TestDynamoDBData.ActualValue.SORT_KEY);
-    createTable.setSortKeyRole(TestDynamoDBData.ActualValue.SORT_KEY_ROLE_RANGE);
-    createTable.setSortKeyType(TestDynamoDBData.ActualValue.SORT_KEY_TYPE_STRING);
-    createTable.setDeletionProtection(true);
-    createTable.setBillingModeStr(BillingMode.PROVISIONED.name());
-    createTable.setReadCapacityUnits(TestDynamoDBData.ActualValue.READ_CAPACITY);
-    createTable.setWriteCapacityUnits(TestDynamoDBData.ActualValue.WRITE_CAPACITY);
-
+    createTable =
+        new CreateTable(
+            TestDynamoDBData.ActualValue.TABLE_NAME,
+            TestDynamoDBData.ActualValue.PARTITION_KEY,
+            TestDynamoDBData.ActualValue.PARTITION_KEY_ROLE_HASH,
+            TestDynamoDBData.ActualValue.PARTITION_KEY_TYPE_NUMBER,
+            TestDynamoDBData.ActualValue.SORT_KEY,
+            TestDynamoDBData.ActualValue.SORT_KEY_ROLE_RANGE,
+            TestDynamoDBData.ActualValue.SORT_KEY_TYPE_STRING,
+            TestDynamoDBData.ActualValue.READ_CAPACITY,
+            TestDynamoDBData.ActualValue.WRITE_CAPACITY,
+            BillingMode.PROVISIONED.name(),
+            true);
     when(dynamoDB.createTable(requestArgumentCaptor.capture())).thenReturn(table);
     when(table.waitForActive())
         .thenReturn(new TableDescription().withTableName(TestDynamoDBData.ActualValue.TABLE_NAME));
@@ -56,13 +54,19 @@ class CreateTableOperationTest extends BaseDynamoDbOperationTest {
   public void invoke_shouldCreateTableWithPartitionKeyAndAllOptionalKeys()
       throws InterruptedException {
     // Given
-    createTable.setSortKey(null);
-    createTable.setSortKeyRole(null);
-    createTable.setSortKeyType(null);
-    createTable.setBillingModeStr(BillingMode.PROVISIONED.name());
-    createTable.setReadCapacityUnits(null);
-    createTable.setWriteCapacityUnits(null);
-
+    createTable =
+        new CreateTable(
+            TestDynamoDBData.ActualValue.TABLE_NAME,
+            TestDynamoDBData.ActualValue.PARTITION_KEY,
+            TestDynamoDBData.ActualValue.PARTITION_KEY_ROLE_HASH,
+            TestDynamoDBData.ActualValue.PARTITION_KEY_TYPE_NUMBER,
+            null,
+            null,
+            null,
+            null,
+            null,
+            BillingMode.PROVISIONED.name(),
+            true);
     CreateTableOperation operation = new CreateTableOperation(createTable);
     // When
     Object invoke = operation.invoke(dynamoDB);
@@ -123,7 +127,10 @@ class CreateTableOperationTest extends BaseDynamoDbOperationTest {
                   "partitionKeyRole": "{{secrets.PARTITION_KEY}}",
                   "partitionKeyType": "{{secrets.PARTITION_KEY}}",
                   "sortKey": "{{secrets.SORT_KEY}}",
-                  "tableName": "{{secrets.TABLE_NAME_KEY}}"
+                  "tableName": "{{secrets.TABLE_NAME_KEY}}",
+                  "billingModeStr": "PAY_PER_REQUEST",
+                  "readCapacityUnits":"1",
+                  "writeCapacityUnits":"1"
                 }
                 """;
     OutboundConnectorContext context = getContextWithSecrets(input);
@@ -131,9 +138,8 @@ class CreateTableOperationTest extends BaseDynamoDbOperationTest {
     // Then
     assertThat(request).isInstanceOf(CreateTable.class);
     CreateTable castedRequest = (CreateTable) request;
-    assertThat(castedRequest.getTableName()).isEqualTo(TestDynamoDBData.ActualValue.TABLE_NAME);
-    assertThat(castedRequest.getPartitionKey())
-        .isEqualTo(TestDynamoDBData.ActualValue.PARTITION_KEY);
-    assertThat(castedRequest.getSortKey()).isEqualTo(TestDynamoDBData.ActualValue.SORT_KEY);
+    assertThat(castedRequest.tableName()).isEqualTo(TestDynamoDBData.ActualValue.TABLE_NAME);
+    assertThat(castedRequest.partitionKey()).isEqualTo(TestDynamoDBData.ActualValue.PARTITION_KEY);
+    assertThat(castedRequest.sortKey()).isEqualTo(TestDynamoDBData.ActualValue.SORT_KEY);
   }
 }
