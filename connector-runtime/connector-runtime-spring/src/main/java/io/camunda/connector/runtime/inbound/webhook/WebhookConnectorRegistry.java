@@ -30,7 +30,8 @@ import org.slf4j.LoggerFactory;
 public class WebhookConnectorRegistry {
 
   private static final String WEBHOOK_CONNECTOR_REGISTRY = "WebhookConnectorRegistry";
-  public static final String DEPRECATED_WEBHOOK_MESSAGE_PREFIX = "Deprecated webhook path: ";
+  private static final String DEPRECATED_WEBHOOK_MESSAGE_PREFIX = "Deprecated webhook path: ";
+
   private final Logger LOG = LoggerFactory.getLogger(WebhookConnectorRegistry.class);
 
   private final Map<String, ActiveInboundConnector> activeEndpointsByContext = new HashMap<>();
