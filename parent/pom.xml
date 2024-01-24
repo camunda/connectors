@@ -87,7 +87,7 @@ limitations under the License.</license.inlineheader>
     <version.spring-cloud-gcp-starter-logging>5.0.0</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.4.14</version.logback>
 
-    <version.aws-java-sdk>1.12.642</version.aws-java-sdk>
+    <version.aws-java-sdk>1.12.643</version.aws-java-sdk>
     <version.aws-lambda-java-events>3.11.4</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.2.3</version.aws-lambda-java-core>
 
