@@ -146,6 +146,11 @@ public class WebhookControllerPlainJavaTests {
     verify(processA1.context(), times(1)).log(activityCaptor.capture());
     assertEquals(Severity.WARNING, activityCaptor.getValue().severity());
 
+    assertWebhookRegistered(webhookPath, webhook, processA1);
+  }
+
+  private static void assertWebhookRegistered(
+      String webhookPath, WebhookConnectorRegistry webhook, ActiveInboundConnector processA1) {
     var existingConnector = webhook.getWebhookConnectorByContextPath(webhookPath);
     assertTrue(existingConnector.isPresent());
     assertEquals(processA1, existingConnector.get());
@@ -164,6 +169,7 @@ public class WebhookControllerPlainJavaTests {
 
     // then
     verify(processA1.context(), times(0)).log(activityCaptor.capture());
+    assertWebhookRegistered(webhookPath, webhook, processA1);
   }
 
   private static long nextProcessDefinitionKey = 0L;
