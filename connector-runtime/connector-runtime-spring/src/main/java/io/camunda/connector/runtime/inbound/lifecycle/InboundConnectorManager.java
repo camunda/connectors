@@ -22,6 +22,7 @@ import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextFactory;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionInspector;
@@ -153,6 +154,12 @@ public class InboundConnectorManager {
       }
       metricsRecorder.increase(
           Inbound.METRIC_NAME_ACTIVATIONS, Inbound.ACTION_ACTIVATED, newConnector.type());
+
+      if (inboundContext instanceof InboundConnectorContextImpl inboundContextImpl) {
+        if (Health.Status.UNKNOWN.equals(inboundContextImpl.getHealth().getStatus())) {
+          inboundContext.reportHealth(Health.up());
+        }
+      }
     } catch (Exception e) {
       inboundContext.reportHealth(Health.down(e));
       // log and continue with other connectors anyway

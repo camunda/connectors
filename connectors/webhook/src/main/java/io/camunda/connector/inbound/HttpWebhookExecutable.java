@@ -11,7 +11,6 @@ import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.en
 
 import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.inbound.Activity;
-import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
@@ -130,7 +129,6 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable, Verifi
     this.context = context;
     var wrappedProps = context.bindProperties(WebhookConnectorPropertiesWrapper.class);
     props = new WebhookConnectorProperties(wrappedProps);
-    context.reportHealth(Health.up());
     authChecker = WebhookAuthorizationHandler.getHandlerForAuth(props.auth());
   }
 

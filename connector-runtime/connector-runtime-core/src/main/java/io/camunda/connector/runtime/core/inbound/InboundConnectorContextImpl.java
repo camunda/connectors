@@ -30,8 +30,10 @@ import io.camunda.connector.api.inbound.CorrelationResult.Success;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
+import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
+import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import java.util.Map;
@@ -76,7 +78,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   @Override
   public void correlate(Object variables) {
-    var result = correlationHandler.correlate(definition, variables);
+    var result = correlateWithResult(variables);
     if (result == null) {
       throw new ConnectorException("Failed to correlate inbound event, result is null");
     }
@@ -96,6 +98,9 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   public CorrelationResult correlateWithResult(Object variables) {
     try {
       return correlationHandler.correlate(definition, variables);
+    } catch (FeelEngineWrapperException e) {
+      log(Activity.level(Severity.ERROR).tag("error").message(e.getMessage()));
+      return new CorrelationResult.Failure.Other(e);
     } catch (Exception e) {
       LOG.error("Failed to correlate inbound event", e);
       return new CorrelationResult.Failure.Other(e);
