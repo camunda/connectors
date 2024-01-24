@@ -145,6 +145,10 @@ public class WebhookControllerPlainJavaTests {
     // then
     verify(processA1.context(), times(1)).log(activityCaptor.capture());
     assertEquals(Severity.WARNING, activityCaptor.getValue().severity());
+
+    var existingConnector = webhook.getWebhookConnectorByContextPath(webhookPath);
+    assertTrue(existingConnector.isPresent());
+    assertEquals(processA1, existingConnector.get());
   }
 
   @ParameterizedTest
