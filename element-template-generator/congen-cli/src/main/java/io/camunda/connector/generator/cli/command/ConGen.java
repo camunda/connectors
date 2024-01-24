@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
@@ -38,22 +39,37 @@ public class ConGen {
   @Option(
       names = {"-h", "--hybrid"},
       usageHelp = true,
-      description = "generate a hybrid template (with configurable type)")
+      description = {
+        "Generate a hybrid template.",
+        "A hybrid template exposes its task definition type as an editable property.",
+      })
   boolean hybrid;
 
   @Option(
       names = {"-i", "--id"},
-      description = "template id to use for generation")
+      description = {
+        "Template ID to use for generation",
+        "If not specified, a sensible default will be chosen by the selected generator."
+      })
   String templateId;
 
   @Option(
       names = {"-n", "--name"},
-      description = "template name to use for generation")
+      description = {
+        "Template name to use for generation.",
+        "If not specified, a sensible default will be chosen by the selected generator."
+      })
   String templateName;
 
   @Option(
       names = {"-e", "--element-types"},
-      description = "target element types for the resulting connector")
+      description = {
+        "Target element types for the resulting connector.",
+        "Multiple values possible, for example:",
+        "-e bpmn:ServiceTask -e bpmn:IntermediateThrowEvent"
+      },
+      showDefaultValue = CommandLine.Help.Visibility.ALWAYS,
+      defaultValue = "bpmn:ServiceTask")
   List<String> elementTypes;
 
   GeneratorConfiguration generatorConfiguration() {

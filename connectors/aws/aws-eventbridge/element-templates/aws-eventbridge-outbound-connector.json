@@ -1,0 +1,246 @@
+{
+  "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name" : "Amazon EventBridge Outbound Connector",
+  "id" : "io.camunda.connectors.AWSEventBridge.v1",
+  "description" : "Send events to AWS EventBridge",
+  "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound",
+  "version" : 5,
+  "category" : {
+    "id" : "connectors",
+    "name" : "Connectors"
+  },
+  "appliesTo" : [ "bpmn:Task" ],
+  "elementType" : {
+    "value" : "bpmn:ServiceTask"
+  },
+  "groups" : [ {
+    "id" : "authentication",
+    "label" : "Authentication"
+  }, {
+    "id" : "configuration",
+    "label" : "Queue properties"
+  }, {
+    "id" : "eventDetails",
+    "label" : "eventDetails"
+  }, {
+    "id" : "eventPayload",
+    "label" : "Event Payload"
+  }, {
+    "id" : "output",
+    "label" : "Output mapping"
+  }, {
+    "id" : "error",
+    "label" : "Error handling"
+  }, {
+    "id" : "retries",
+    "label" : "Retries"
+  } ],
+  "properties" : [ {
+    "value" : "io.camunda:aws-eventbridge:1",
+    "binding" : {
+      "property" : "type",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "authentication.type",
+    "label" : "Authentication",
+    "description" : "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/#aws-authentication-types\" target=\"_blank\">documentation page</a>",
+    "value" : "credentials",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.type",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Default Credentials Chain (Hybrid/Self-Managed only)",
+      "value" : "defaultCredentialsChain"
+    }, {
+      "name" : "Credentials",
+      "value" : "credentials"
+    } ]
+  }, {
+    "id" : "authentication.accessKey",
+    "label" : "Access key",
+    "description" : "Provide an IAM access key tailored to a user, equipped with the necessary permissions",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.accessKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "credentials",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.secretKey",
+    "label" : "Secret key",
+    "description" : "Provide a secret key of a user with permissions to invoke specified AWS Lambda function",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.secretKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "credentials",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "configuration.region",
+    "label" : "Region",
+    "description" : "Specify the AWS region",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "configuration",
+    "binding" : {
+      "name" : "configuration.region",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "configuration.endpoint",
+    "label" : "Endpoint",
+    "description" : "Specify endpoint if need to use custom endpoint",
+    "optional" : true,
+    "group" : "configuration",
+    "binding" : {
+      "name" : "configuration.endpoint",
+      "type" : "zeebe:input"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "input.source",
+    "label" : "Source",
+    "description" : "Enter the event source value. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound\" target=\"_blank\">documentation</a>",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "eventDetails",
+    "binding" : {
+      "name" : "input.source",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.detailType",
+    "label" : "Detail type",
+    "description" : "Enter the event detail type. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound\" target=\"_blank\">documentation</a>",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "eventDetails",
+    "binding" : {
+      "name" : "input.detailType",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.eventBusName",
+    "label" : "Event bus name",
+    "description" : "Enter the event bus name. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound\" target=\"_blank\">documentation</a>",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "eventDetails",
+    "binding" : {
+      "name" : "input.eventBusName",
+      "type" : "zeebe:input"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "input.detail",
+    "label" : "Event payload",
+    "description" : "Provide the payload for the event as JSON. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound\" target=\"_blank\">documentation</a>",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "eventPayload",
+    "binding" : {
+      "name" : "input.detail",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "resultVariable",
+    "label" : "Result variable",
+    "description" : "Name of variable to store the response in",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultVariable",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  }, {
+    "id" : "resultExpression",
+    "label" : "Result expression",
+    "description" : "Expression to map the response into process variables",
+    "feel" : "required",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "errorExpression",
+    "label" : "Error expression",
+    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "error",
+    "binding" : {
+      "key" : "errorExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "retryCount",
+    "label" : "Retries",
+    "description" : "Number of retries",
+    "value" : "3",
+    "feel" : "optional",
+    "group" : "retries",
+    "binding" : {
+      "property" : "retries",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "String"
+  }, {
+    "id" : "retryBackoff",
+    "label" : "Retry backoff",
+    "description" : "ISO-8601 duration to wait between retries",
+    "value" : "PT0S",
+    "feel" : "optional",
+    "group" : "retries",
+    "binding" : {
+      "key" : "retryBackoff",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  } ],
+  "icon" : {
+    "contents" : "data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScxOCcgaGVpZ2h0PScxOCcgdmlld0JveD0nMCAwIDI1NiAyNTYnPgogICAgPGRlZnM+CiAgICAgICAgPGxpbmVhckdyYWRpZW50IGlkPSdsb2dvc0F3c0V2ZW50YnJpZGdlMCcgeDE9JzAlJyB4Mj0nMTAwJScgeTE9JzEwMCUnIHkyPScwJSc+CiAgICAgICAgICAgIDxzdG9wIG9mZnNldD0nMCUnIHN0b3AtY29sb3I9JyNCMDA4NEQnLz4KICAgICAgICAgICAgPHN0b3Agb2Zmc2V0PScxMDAlJyBzdG9wLWNvbG9yPScjRkY0RjhCJy8+CiAgICAgICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDwvZGVmcz4KICAgIDxwYXRoIGZpbGw9J3VybCgjbG9nb3NBd3NFdmVudGJyaWRnZTApJyBkPSdNMCAwaDI1NnYyNTZIMHonLz4KICAgIDxwYXRoIGZpbGw9JyNGRkYnCiAgICAgICAgICBkPSdNMTcxLjcwMiAyMTEuMmMtNi44NTggMC0xMi40NC01LjYxLTEyLjQ0LTEyLjUwOXM1LjU4Mi0xMi41MDkgMTIuNDQtMTIuNTA5YzYuODU3IDAgMTIuNDM4IDUuNjEgMTIuNDM4IDEyLjUxYzAgNi44OTgtNS41ODEgMTIuNTA4LTEyLjQzOCAxMi41MDhabS0yNy4yNzgtNTQuNGgtMzMuMDcxTDk0LjgxNSAxMjhsMTYuNTM4LTI4LjhoMzMuMDcxTDE2MC45NiAxMjhsLTE2LjUzNSAyOC44Wk04OC4zODcgNjkuODE4Yy02Ljg1NyAwLTEyLjQzOC01LjYxLTEyLjQzOC0xMi41MWMwLTYuODk4IDUuNTgxLTEyLjUwOCAxMi40MzgtMTIuNTA4YzYuODYxIDAgMTIuNDQzIDUuNjEgMTIuNDQzIDEyLjUwOXMtNS41ODIgMTIuNTA5LTEyLjQ0MyAxMi41MDlabTgzLjMxNSAxMDkuOTY0Yy0yLjM2MiAwLTQuNjE0LjQ1OC02LjY5OSAxLjI2MWwtMTMuNTE0LTIyLjkzMWwtLjcxMy40MjZMMTY3LjM5IDEyOS42YTMuMjI2IDMuMjI2IDAgMCAwIDAtMy4ybC0xOC4zNzQtMzJhMy4xNzcgMy4xNzcgMCAwIDAtMi43NTUtMS42aC0zMy40MzVsLjEzLS4wNzdsLTEyLjM5LTIxLjAzYzQuMDQ3LTMuNDY5IDYuNjI4LTguNjI3IDYuNjI4LTE0LjM4NGMwLTEwLjQyNi04LjQzNi0xOC45MDktMTguODA3LTE4LjkwOWMtMTAuMzY3IDAtMTguODAzIDguNDgzLTE4LjgwMyAxOC45MDljMCAxMC40MjUgOC40MzYgMTguOTA5IDE4LjgwMyAxOC45MDljMi4zNjUgMCA0LjYxOC0uNDU4IDYuNzAyLTEuMjYxbDExLjU2NyAxOS42MjVMODguMzg0IDEyNi40YTMuMjI2IDMuMjI2IDAgMCAwIDAgMy4ybDE4LjM3NyAzMmMuNTcuOTkyIDEuNjIgMS42IDIuNzU2IDEuNmgzNi43NDRjLjI2NCAwIC41MjEtLjA0Mi43Ny0uMTAybDEyLjQ5NiAyMS4yMWMtNC4wNTEgMy40NjgtNi42MjkgOC42MjYtNi42MjkgMTQuMzgzYzAgMTAuNDI2IDguNDMzIDE4LjkwOSAxOC44MDQgMTguOTA5YzEwLjM3IDAgMTguODAzLTguNDgzIDE4LjgwMy0xOC45MDljMC0xMC40MjUtOC40MzMtMTguOTA5LTE4LjgwMy0xOC45MDlabTE4Ljk2OC03Ny4wNWMtNi44NTcgMC0xMi40MzYtNS42MDktMTIuNDM2LTEyLjUwOGMwLTYuOSA1LjU3OS0xMi41MDkgMTIuNDM2LTEyLjUwOWM2Ljg1OCAwIDEyLjQ0IDUuNjEgMTIuNDQgMTIuNTA5YzAgNi45LTUuNTgyIDEyLjUwOS0xMi40NCAxMi41MDlabTIzLjMwMyAyMy42NjhsLTEyLjA4LTIxLjA0YzQuNTkyLTMuNDUzIDcuNTgtOC45NDQgNy41OC0xNS4xMzZjMC0xMC40MjYtOC40MzItMTguOTA5LTE4LjgwMy0xOC45MDljLTIuNjM4IDAtNS4xNTIuNTU0LTcuNDMzIDEuNTQ5bC05Ljg0OS0xNy4xNTVhMy4xOCAzLjE4IDAgMCAwLTIuNzU2LTEuNmgtMzkuNDQ4djYuNGgzNy42MTJsOS4xMSAxNS44NzJjLTMuNzAzIDMuNDU2LTYuMDM2IDguMzc0LTYuMDM2IDEzLjg0M2MwIDEwLjQyNiA4LjQzMyAxOC45MDkgMTguOCAxOC45MDljMS45MzIgMCAzLjgtLjI5OCA1LjU1Ni0uODQ1TDIwNy41NDUgMTI4bC0xNS44OTIgMjcuNjc0bDUuNTEyIDMuMmwxNi44MDgtMjkuMjc0YTMuMjEgMy4yMSAwIDAgMCAwLTMuMlptLTE0Ni4wNCA1MC4zOWMtNi44NiAwLTEyLjQ0Mi01LjYxMi0xMi40NDItMTIuNTA4YzAtNi45IDUuNTgxLTEyLjUxIDEyLjQ0Mi0xMi41MWM2Ljg1NyAwIDEyLjQzOSA1LjYxIDEyLjQzOSAxMi41MWMwIDYuODk2LTUuNTgyIDEyLjUwOC0xMi40NCAxMi41MDhabTEwLjM5MyAzLjIzNmM1LjA2Mi0zLjM5MiA4LjQxLTkuMTgxIDguNDEtMTUuNzQ0YzAtMTAuNDI2LTguNDM2LTE4LjkxLTE4LjgwMy0xOC45MWMtMy4wMDQgMC01LjgzMy43My04LjM1MyAxLjk5NEw0OC40NTggMTI4bDE4LjQyOC0zMi4wOTNsLTUuNTE1LTMuMkw0Mi4wMjcgMTI2LjRhMy4yMSAzLjIxIDAgMCAwIDAgMy4ybDEyLjM4OCAyMS41NjhjLTMuMjY4IDMuNDA1LTUuMjg5IDguMDIyLTUuMjg5IDEzLjExNGMwIDEwLjQyNSA4LjQzNiAxOC45MDggMTguODA3IDE4LjkwOGMxLjU2MiAwIDMuMDc0LS4yMTQgNC41MjgtLjU3OWwxMC4xNSAxNy42OGMuNTcuOTg5IDEuNjIgMS42IDIuNzU3IDEuNmgzOS40NTF2LTYuNEg4Ny4yMDRsLTguODc4LTE1LjQ2NVonLz4KPC9zdmc+Cg=="
+  }
+}

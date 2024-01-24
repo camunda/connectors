@@ -6,15 +6,46 @@
  */
 package io.camunda.connector.aws.eventbridge;
 
+import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.util.Objects;
 
 public class AwsEventBridgeInput {
-  @NotBlank private String source;
-  @NotBlank private String detailType;
-  @NotBlank private String eventBusName;
-  @NotNull private Object detail;
+  @TemplateProperty(
+      group = "eventDetails",
+      label = "Source",
+      description =
+          "Enter the event source value. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound\" target=\"_blank\">documentation</a>")
+  @NotBlank
+  private String source;
+
+  @TemplateProperty(
+      group = "eventDetails",
+      label = "Detail type",
+      description =
+          "Enter the event detail type. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound\" target=\"_blank\">documentation</a>")
+  @NotBlank
+  private String detailType;
+
+  @TemplateProperty(
+      group = "eventDetails",
+      label = "Event bus name",
+      type = TemplateProperty.PropertyType.Text,
+      feel = Property.FeelMode.required,
+      description =
+          "Enter the event bus name. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound\" target=\"_blank\">documentation</a>")
+  @NotBlank
+  private String eventBusName;
+
+  @TemplateProperty(
+      group = "eventPayload",
+      label = "Event payload",
+      description =
+          "Provide the payload for the event as JSON. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound\" target=\"_blank\">documentation</a>")
+  @NotNull
+  private Object detail;
 
   public String getSource() {
     return source;

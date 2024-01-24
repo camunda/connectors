@@ -70,4 +70,4 @@ mvn clean package
 
 ## Element Template
 
-The element templates can be found in the [element-templates/aws-eventbridge-connector.json](element-templates/aws-eventbridge-connector.json) file.
+The element templates can be found in the [element-templates/aws-eventbridge-outbound-connector.json](element-templates/aws-eventbridge-outbound-connector.json) file.

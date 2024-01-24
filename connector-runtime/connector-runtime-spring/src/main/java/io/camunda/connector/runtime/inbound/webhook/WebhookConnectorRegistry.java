@@ -43,6 +43,12 @@ public class WebhookConnectorRegistry {
     return Optional.ofNullable(activeEndpointsByContext.get(context));
   }
 
+  public boolean isRegistered(ActiveInboundConnector connector) {
+    var context = connector.context().bindProperties(CommonWebhookProperties.class).getContext();
+    return activeEndpointsByContext.containsKey(context)
+        && activeEndpointsByContext.get(context) == connector;
+  }
+
   public void register(ActiveInboundConnector connector) {
     var properties = connector.context().bindProperties(CommonWebhookProperties.class);
     var context = properties.getContext();
@@ -77,6 +83,26 @@ public class WebhookConnectorRegistry {
 
   public void deregister(ActiveInboundConnector connector) {
     var context = connector.context().bindProperties(CommonWebhookProperties.class).getContext();
+    var registeredConnector = activeEndpointsByContext.get(context);
+    if (registeredConnector == null) {
+      var logMessage = "Context: " + context + " is not registered. Cannot deregister.";
+      LOG.debug(logMessage);
+      throw new RuntimeException(logMessage);
+    }
+    if (registeredConnector != connector) {
+      var bpmnProcessId = registeredConnector.context().getDefinition().bpmnProcessId();
+      var elementId = registeredConnector.context().getDefinition().elementId();
+      var logMessage =
+          "Context: "
+              + context
+              + " is not registered by "
+              + bpmnProcessId
+              + "/"
+              + elementId
+              + ". Cannot deregister.";
+      LOG.debug(logMessage);
+      throw new RuntimeException(logMessage);
+    }
     activeEndpointsByContext.remove(context);
   }
 

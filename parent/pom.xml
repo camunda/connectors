@@ -87,7 +87,7 @@ limitations under the License.</license.inlineheader>
     <version.spring-cloud-gcp-starter-logging>5.0.0</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.4.14</version.logback>
 
-    <version.aws-java-sdk>1.12.642</version.aws-java-sdk>
+    <version.aws-java-sdk>1.12.643</version.aws-java-sdk>
     <version.aws-lambda-java-events>3.11.4</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.2.3</version.aws-lambda-java-core>
 
@@ -107,13 +107,13 @@ limitations under the License.</license.inlineheader>
 
     <version.kafka-clients>3.6.1</version.kafka-clients>
 
-    <version.microsoft-graph>5.79.0</version.microsoft-graph>
+    <version.microsoft-graph>5.80.0</version.microsoft-graph>
     <version.azure-identity>1.11.1</version.azure-identity>
 
     <version.bcprov-jdk15on>1.70</version.bcprov-jdk15on>
     <version.sendGrid>4.10.1</version.sendGrid>
 
-    <version.slack>1.37.0</version.slack>
+    <version.slack>1.38.0</version.slack>
 
     <version.testcontainers>1.19.3</version.testcontainers>
     <version.awaitility>4.2.0</version.awaitility>
@@ -133,7 +133,7 @@ limitations under the License.</license.inlineheader>
     <plugin.version.maven-exec-plugin>3.1.1</plugin.version.maven-exec-plugin>
     <plugin.version.maven-install-plugin>3.1.1</plugin.version.maven-install-plugin>
     <plugin.version.license>4.3</plugin.version.license>
-    <plugin.version.license.codehaus>2.3.0</plugin.version.license.codehaus>
+    <plugin.version.license.codehaus>2.4.0</plugin.version.license.codehaus>
     <plugin.version.maven-resources-plugin>3.2.0</plugin.version.maven-resources-plugin>
     <plugin.version.maven-shade-plugin>3.5.1</plugin.version.maven-shade-plugin>
     <plugin.version.maven-surefire-plugin>3.2.5</plugin.version.maven-surefire-plugin>
