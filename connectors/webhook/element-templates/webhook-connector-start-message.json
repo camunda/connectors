@@ -117,7 +117,11 @@
       },
       "description": "The webhook ID is a part of the URL",
       "constraints": {
-        "notEmpty": true
+        "notEmpty": true,
+        "pattern": {
+          "value": "^[a-zA-Z0-9]([a-zA-Z0-9_-]*[a-zA-Z0-9])?$",
+          "message": "must start and end with a letter or a number. Must contain only hyphens, underscores, letters, or numbers."
+        }
       }
     },
     {
