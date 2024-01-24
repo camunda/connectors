@@ -81,10 +81,7 @@ public class SlackInboundWebhookExecutable
   }
 
   @Override
-  public void activate(InboundConnectorContext context) throws Exception {
-    if (context == null) {
-      throw new Exception("Inbound connector context cannot be null");
-    }
+  public void activate(InboundConnectorContext context) {
     var wrapperProps = context.bindProperties(SlackConnectorPropertiesWrapper.class);
     props = new SlackWebhookProperties(wrapperProps);
   }
