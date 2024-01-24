@@ -56,10 +56,10 @@ public class WebhookConnectorRegistry {
     logIfWebhookPathDeprecated(connector, context);
 
     var existingEndpoint = activeEndpointsByContext.putIfAbsent(context, connector);
-    logIfEndpointExists(existingEndpoint, context);
+    checkIfEndpointExists(existingEndpoint, context);
   }
 
-  private void logIfEndpointExists(ActiveInboundConnector existingEndpoint, String context) {
+  private void checkIfEndpointExists(ActiveInboundConnector existingEndpoint, String context) {
     if (existingEndpoint != null) {
       var bpmnProcessId = existingEndpoint.context().getDefinition().bpmnProcessId();
       var elementId = existingEndpoint.context().getDefinition().elementId();
