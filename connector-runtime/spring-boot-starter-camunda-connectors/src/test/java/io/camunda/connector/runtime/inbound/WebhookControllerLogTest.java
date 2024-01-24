@@ -45,10 +45,15 @@ public class WebhookControllerLogTest {
 
   private static Stream<Arguments> invalidCases() {
     return Stream.of(
-        Arguments.of("&20encoded+whitespace"),
         Arguments.of("€"),
+        Arguments.of("!"),
+        Arguments.of("€‹›‡"),
+        Arguments.of("&20encoded+whitespace"),
         Arguments.of("-my-path"),
-        Arguments.of("my_path_"));
+        Arguments.of("my_path_"),
+        Arguments.of("/path/from/root"),
+        Arguments.of("path/oneslash"),
+        Arguments.of("<default>"));
   }
 
   @ParameterizedTest
@@ -73,8 +78,11 @@ public class WebhookControllerLogTest {
 
   private static Stream<Arguments> validCases() {
     return Stream.of(
+        Arguments.of("1"),
         Arguments.of("z"),
-        Arguments.of("validAlphaOnly"),
+        Arguments.of("abcde"),
+        Arguments.of("12345"),
+        Arguments.of("validAlphaOnlyMixedCase"),
         Arguments.of("hello-world"),
         Arguments.of("123-456_789"));
   }
