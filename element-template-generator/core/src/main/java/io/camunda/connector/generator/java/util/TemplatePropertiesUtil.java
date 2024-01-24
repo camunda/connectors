@@ -115,6 +115,13 @@ public class TemplatePropertiesUtil {
                                 nestedPropertiesAnnotation.condition()));
                       }
                     })
+                .peek(
+                    builder -> {
+                      if (nestedPropertiesAnnotation != null
+                          && !nestedPropertiesAnnotation.group().isBlank()) {
+                        builder.group(nestedPropertiesAnnotation.group());
+                      }
+                    })
                 .toList();
         properties.addAll(nestedProperties);
       } else {
@@ -152,6 +159,7 @@ public class TemplatePropertiesUtil {
     var annotation = field.getAnnotation(TemplateProperty.class);
     String name, label;
     String fieldName = field.getName();
+    String bindingName = fieldName;
     if (annotation != null) {
       if (annotation.ignore()) {
         return null;
@@ -166,6 +174,9 @@ public class TemplatePropertiesUtil {
       } else {
         label = transformIdIntoLabel(name);
       }
+      if (!annotation.binding().name().isBlank()) {
+        bindingName = annotation.binding().name();
+      }
     } else {
       name = field.getName();
       label = transformIdIntoLabel(name);
@@ -175,7 +186,7 @@ public class TemplatePropertiesUtil {
         createPropertyBuilder(field, annotation)
             .id(name)
             .label(label)
-            .binding(createBinding(fieldName));
+            .binding(createBinding(bindingName));
 
     for (FieldProcessor processor : fieldProcessors) {
       processor.process(field, propertyBuilder);
