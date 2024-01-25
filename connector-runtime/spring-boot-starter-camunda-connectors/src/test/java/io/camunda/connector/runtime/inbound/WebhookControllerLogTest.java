@@ -53,7 +53,8 @@ public class WebhookControllerLogTest {
         Arguments.of("my_path_"),
         Arguments.of("/path/from/root"),
         Arguments.of("path/oneslash"),
-        Arguments.of("<default>"));
+        Arguments.of("<default>"),
+        Arguments.of("123__-23131"));
   }
 
   @ParameterizedTest

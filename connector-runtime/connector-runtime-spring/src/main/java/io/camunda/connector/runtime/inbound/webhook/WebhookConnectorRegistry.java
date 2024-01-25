@@ -33,7 +33,7 @@ public class WebhookConnectorRegistry {
 
   // Reflect changes to this pattern in webhook element templates
   private static final Pattern CURRENT_WEBHOOK_PATH_PATTERN =
-      Pattern.compile("^[a-zA-Z0-9]([a-zA-Z0-9_-]*[a-zA-Z0-9])?$");
+      Pattern.compile("^[a-zA-Z0-9]+([-_][a-zA-Z0-9]+)*$");
   private static final String DEPRECATED_WEBHOOK_MESSAGE_PREFIX = "Deprecated webhook path: ";
   private static final String DEPRECATED_WEBHOOK_MESSAGE_SUFFIX =
       ". This may lead to unexpected behavior. Consider adjusting the path to match the pattern: "
