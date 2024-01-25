@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertThrowsExactly;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.EvictingQueue;
@@ -138,14 +139,17 @@ public class WebhookControllerPlainJavaTests {
   }
 
   public static InboundConnectorContextImpl buildContext(InboundConnectorDefinitionImpl def) {
-    return new InboundConnectorContextImpl(
-        name -> null,
-        new DefaultValidationProvider(),
-        def,
-        mock(InboundCorrelationHandler.class),
-        e -> {},
-        mapper,
-        EvictingQueue.create(10));
+    var context =
+        new InboundConnectorContextImpl(
+            name -> null,
+            new DefaultValidationProvider(),
+            def,
+            mock(InboundCorrelationHandler.class),
+            e -> {},
+            mapper,
+            EvictingQueue.create(10));
+
+    return spy(context);
   }
 
   public static InboundConnectorDefinitionImpl webhookDefinition(
