@@ -1,1 +1,2 @@
 io.camunda.connector.rabbitmq.outbound.RabbitMqFunction
+io.camunda.connector.rabbitmq.rpc.RabbitMqRpcFunction
