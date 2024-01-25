@@ -79,8 +79,7 @@ public class WebhookConnectorRegistry {
     if (!CURRENT_WEBHOOK_PATH_PATTERN.matcher(webhook).matches()) {
       String message =
           DEPRECATED_WEBHOOK_MESSAGE_PREFIX + webhook + DEPRECATED_WEBHOOK_MESSAGE_SUFFIX;
-      Activity activity =
-          Activity.level(Severity.WARNING).tag(WARNING_TAG).message(message);
+      Activity activity = Activity.level(Severity.WARNING).tag(WARNING_TAG).message(message);
 
       connector.context().log(activity);
     }
