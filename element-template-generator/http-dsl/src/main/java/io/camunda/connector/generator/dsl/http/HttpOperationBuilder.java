@@ -163,4 +163,26 @@ public class HttpOperationBuilder {
       throw new IllegalStateException("Operation description is not defined");
     }
   }
+
+  @Override
+  public String toString() {
+    return "HttpOperationBuilder{"
+        + "id='"
+        + id
+        + '\''
+        + ", label='"
+        + label
+        + '\''
+        + ", method="
+        + method
+        + ", pathFeelExpression="
+        + pathFeelExpression
+        + ", bodyFeelExpression="
+        + bodyFeelExpression
+        + ", authenticationOverride="
+        + authenticationOverride
+        + ", properties="
+        + properties
+        + '}';
+  }
 }

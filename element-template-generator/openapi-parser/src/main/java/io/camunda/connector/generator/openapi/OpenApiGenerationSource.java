@@ -44,7 +44,7 @@ public record OpenApiGenerationSource(
   }
 
   private static OpenAPI fetchOpenApi(List<String> cliParams) {
-    if (cliParams.size() < 1) {
+    if (cliParams.isEmpty()) {
       throw new IllegalArgumentException(
           "OpenAPI file path or URL must be provided as first parameter");
     }

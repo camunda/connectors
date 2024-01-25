@@ -1,0 +1,444 @@
+{
+	"info": {
+		"_postman_id": "119b9008-4a49-4540-9a19-ddcbe55dd05e",
+		"name": "Postman: An Introduction for Developers",
+		"description": "## Quick Start\n\n1. **Fork the collection** - Click the **Run in Postman** button to fork the collection to your own workspace.\n2. **Select the first folder** - Begin with the first folder labeled \"1. Sending requests & inspecting responses\", and expand the documentation from the context bar on the right. Instructions for each lesson will be in the documentation for each folder.\n    \n\n## Postman: An Introduction for Developers\n\n##### Previous session aired **January 12, 2022**\n\n**View the slides** [**here**](https://www.slideshare.net/GetPostman/postman-an-introduction-for-developers-250979026)**.**\n\nAt the end of this session, you'll walk away with all the basic skills you need to get started with Postman.  \n✅ Send an API request in Postman  \n✅ Inspect and test a response  \n✅ Save example responses to a collection  \n✅ Get and set variables  \n✅ Navigate different types of authorization  \n✅ Debug and troubleshoot unexpected behavior\n\n## Join the Postman Intergalactic Series!\n\nPostman Intergalactic is a series of educational sessions. Each lesson is taught by your favorite Postmanauts. [Sign up to be notified about upcoming sessions](https://www.postman.com/events/intergalactic/).\n\n## Additional Resources\n\nFeeling stuck or want to dig deeper into specific topics? We've got you covered:\n\n\\* [**Intro to writing tests**](https://www.postman.com/postman/workspace/postman-team-collections/collection/1559645-13bd44c4-94ec-420a-8390-8ff44b60f14d?ctx=documentation) - A collection containing examples of tests that you can use to automate your testing process.  \n\\* [**How to use the Postman Console**](https://www.postman.com/postman/workspace/postman-team-collections/collection/1559645-9349429e-3744-467b-a127-e3881f0dffc8?ctx=documentation.) - A collection designed to help you learn how to use the Postman Console to help with debugging skills.  \n\\* [**Introduction to OAuth 2.0**](https://www.postman.com/postman/workspace/postman-team-collections/collection/1559645-e1dfc9cb-3de7-4a73-82cd-602334bae284?ctx=documentation) - A collection that walks you through a few OAuth 2.0 authorization flows using the Spotify API and the PagerDuty API.  \n\\* [**30 Days of Postman - for Developers**](https://www.postman.com/postman/workspace/30-days-of-postman-for-developers/overview) - A 30 day program designed specifically for developers where you'll take on a new challenge each day.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "24436837",
+		"_collection_link": "https://www.postman.com/postman/workspace/postman-intergalactic/collection/13455110-119b9008-4a49-4540-9a19-ddcbe55dd05e?action=share&source=collection_link&creator=24436837"
+	},
+	"item": [
+		{
+			"name": "1. Sending requests & inspecting responses",
+			"item": [
+				{
+					"name": "books",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://postman-library-api.glitch.me/books",
+							"protocol": "https",
+							"host": [
+								"postman-library-api",
+								"glitch",
+								"me"
+							],
+							"path": [
+								"books"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "book",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://postman-library-api.glitch.me/books/:id",
+							"protocol": "https",
+							"host": [
+								"postman-library-api",
+								"glitch",
+								"me"
+							],
+							"path": [
+								"books",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "add book",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"One Hundred Years of Solitude\",\n    \"author\": \"Gabriel García Márquez\",\n    \"genre\": \"fiction\",\n    \"yearPublished\": 1967\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://postman-library-api.glitch.me/books",
+							"protocol": "https",
+							"host": [
+								"postman-library-api",
+								"glitch",
+								"me"
+							],
+							"path": [
+								"books"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update book",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"checkedOut\": true\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://postman-library-api.glitch.me/books/:id",
+							"protocol": "https",
+							"host": [
+								"postman-library-api",
+								"glitch",
+								"me"
+							],
+							"path": [
+								"books",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete book",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "https://postman-library-api.glitch.me/books/:id",
+							"protocol": "https",
+							"host": [
+								"postman-library-api",
+								"glitch",
+								"me"
+							],
+							"path": [
+								"books",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "This first folder will familiarize you with the basics of APIs and how to navigate them in Postman. Before diving into the specifics of sending a request, let's make sure we're on the same page vocabulary wise.\n\nAn **Application Programming Interface**, better known as an **API**, is something that sends information back and forth between a website/app and a user. \n\nAn API Endpoint is a specific subset of functions within the same API.\n\nFor this folder, we will send a series of requests to a basic API that was built specifically for learning. It is an API that simulates a library database. You can get the books in the library, add a book, update info for a book, and delete a book. You can find find documentation for the Library API [here](https://www.postman.com/postman/workspace/postman-classroom-program/documentation/15567703-da68bf1c-1aae-4f14-a79b-95926a816366). We will also get familiar with the Postman UI and understand where to look for information about the responses.\n\n### Sending requests\nThere are three parts that make up an API Request:\n1. **Method** - This is the HTTP verb that tells the API what kind of action the user is trying to make. We will cover the most common methods: GET, POST, PUT, & DELETE.\n1. **Address** - This is the base url you enter to make a request to an API.For example: `https://postman-library-api.glitch.me`\n1. **Path** - This is where you specify the specific endpoint of an API that you want to access. For example, given the previously mentioned base url of `https://postman-library-api.glitch.me`, the \"path\" would be adding `/books` to the end of it. And the entire request would be sent to `https://postman-library-api.glitch.me/books`.\n\nHere's a screenshot of how this is broken down in Postman.\n<p>\n  <img src=\"https://user-images.githubusercontent.com/9841162/122486387-d53fd200-cf8d-11eb-9170-ade88da39f80.png\">\n</p>\n\n\n### Inspecting a response\nThe Postman response viewer helps ensure the correctness of API responses, as well as providing valuable insight. An API response consists of the body, headers, and the status code. The status code and the completion time of the API call is visible next to the tabs.\n\nMore information on receiving responses can be found [in our documentation](https://learning.postman.com/docs/sending-requests/responses/)"
+		},
+		{
+			"name": "2. Test a response",
+			"item": [
+				{
+					"name": "Get a book",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://postman-library-api.glitch.me/books/:id",
+							"protocol": "https",
+							"host": [
+								"postman-library-api",
+								"glitch",
+								"me"
+							],
+							"path": [
+								"books",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "Tests allow you to ensure that your API is working as expected, to establish that integrations between services are functioning reliably, and to verify that new developments haven't broken any existing functionality. You can also use test code to aid the debugging process when something goes wrong with your API project.\n\nIn this example, we'll explore some of the pre-made code snippets available for quick testing, as well as creating custom tests to give us valuable insights on our responses.\n\nFor more information on testing, [visit our documentation](https://learning.postman.com/docs/writing-scripts/test-scripts/)."
+		},
+		{
+			"name": "3. Save response examples",
+			"item": [
+				{
+					"name": "books",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://postman-library-api.glitch.me/books",
+							"protocol": "https",
+							"host": [
+								"postman-library-api",
+								"glitch",
+								"me"
+							],
+							"path": [
+								"books"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "An example is a tightly coupled request and response pair. It can useful to save a couple of example responses with a request, such as status code, to make an API more understandable.\n\nFor this example, we'll practice saving several examples of varying types and successes.\n\nFor more information on saving examples to collections, [visit the documentation here](https://learning.postman.com/docs/sending-requests/examples/)."
+		},
+		{
+			"name": "4. Get and set variables",
+			"item": [
+				{
+					"name": "save book id",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"console.log(pm.response.json());"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://postman-library-api.glitch.me/books",
+							"protocol": "https",
+							"host": [
+								"postman-library-api",
+								"glitch",
+								"me"
+							],
+							"path": [
+								"books"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get book from id variable",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/books/{{id}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"books",
+								"{{id}}"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "Variables allow you to store and reuse values in your requests and scripts. By storing a value in a variable, you can reference it throughout your collections, environments, and requests—and if you need to update the value, you only have to change it in one place. Using variables increases your ability to work efficiently and minimizes the likelihood of error.\n\nIn this example, we'll set the base url for the Library API as a variable, as well as capture information from a response and set it as a variable to use in a future request.\n\nFor more information on using variables, [visit the documentation](https://learning.postman.com/docs/sending-requests/variables/)"
+		},
+		{
+			"name": "5. Basic authorization",
+			"item": [
+				{
+					"name": "get GitHub user info",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://api.github.com/user",
+							"protocol": "https",
+							"host": [
+								"api",
+								"github",
+								"com"
+							],
+							"path": [
+								"user"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get GitHub user repos",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://api.github.com/user/repos",
+							"protocol": "https",
+							"host": [
+								"api",
+								"github",
+								"com"
+							],
+							"path": [
+								"user",
+								"repos"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "It is a common practice for API producers to provide APIs that require authorization, because the response returned by the API could have sensitive data.\n\nFor this learning objective, we'll explore using the [GitHub API](https://developer.github.com/v3/) with authentication.\n\nTo know more about basic authentication, refer to the [Basic Access Authentication](https://en.wikipedia.org/wiki/Basic_access_authentication) wikipedia article.\n\n  \nThe article on [authentication helpers](https://www.getpostman.com/docs/helpers#basic-auth?source=echo-collection-app-onboarding) elaborates how to use the same within the Postman app.",
+			"auth": {
+				"type": "noauth"
+			}
+		},
+		{
+			"name": "6. Debug and troubleshoot",
+			"item": [
+				{
+					"name": "message types",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"console.warn(\"This is a warning!\");",
+									"console.log(\"I'm a boring old log.\");",
+									"console.info(\"I am helpful information\");",
+									"console.error(\"I am an annoying error\");",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://postman-library-api.glitch.me/books",
+							"protocol": "https",
+							"host": [
+								"postman-library-api",
+								"glitch",
+								"me"
+							],
+							"path": [
+								"books"
+							]
+						},
+						"description": "Under the **Pre-request Script** tab, view examples of various log statements that will display in the Postman console when you send this request.\n\n```\nconsole.warn(\"This is a warning!\");\nconsole.log(\"I'm a boring old log.\");\nconsole.info(\"I am helpful information\");\nconsole.error(\"I am an annoying error\");\n```"
+					},
+					"response": []
+				}
+			],
+			"description": "This folder contains examples of how you can use the [Postman console](https://learning.getpostman.com/docs/postman/sending-api-requests/debugging-and-logs/#network-calls-with-postman-console) for more visibility when debugging.\n\nTo open the Postman console, head to \"View\" in the application menu, and click on \"Show Postman Console\" or use the keyboard shortcut **(CMD/CTRL + ALT + C)**.\n\nEvery network call along with its headers, network information, and payloads will be logged to the Postman Console. Additionally, the console will display `console.log()`, `console.info()`, `console.warn()`, and `console.error()` messages from inside [the Postman scripts](https://learning.getpostman.com/docs/postman/scripts/intro-to-scripts/). Log statements can be written from either the pre-request or tests script tabs.\n\nFor more information on troubleshooting and debugging, [visit our documentation](https://learning.postman.com/docs/sending-requests/troubleshooting-api-requests/)."
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	]
+}

@@ -1,0 +1,636 @@
+{
+	"info": {
+		"_postman_id": "9d9314a2-4cff-40ab-90ea-98e28ca1f81c",
+		"name": "Operate Public API (SaaS)",
+		"description": "# 🚀 Manage process definitions, instances, and decisions\n\nOperate API is a REST API and provides searching, getting, and changing Operate data. Requests and responses are in JSON notation. Some objects have additional endpoints. For example, `process-definitions` has an endpoint to get the process-definition as XML representation. In case of errors, Operate API returns an error object.\n\n## 💪 What do you need to make it work?\n\nA detailed API description is also available as Swagger UI at `https://${base-url}/swagger-ui/index.html`.\n\nFor SaaS: `https://${REGION}.operate.camunda.io/${CLUSTER_ID}/swagger-ui.html`, and for Self-Managed installations: `http://localhost:8080/swagger-ui.html`.\n\nNOTE\n\nFind your region and cluster id under connection information in your client credentials.\n\n## Authentication[​](https://docs.camunda.io/docs/next/apis-tools/operate-api/overview/#authentication)\n\nYou need authentication to access the API endpoints.\n\n### Authentication for SaaS[​](https://docs.camunda.io/docs/next/apis-tools/operate-api/overview/#authentication-for-saas)\n\n#### Authentication via JWT access token[​](https://docs.camunda.io/docs/next/apis-tools/operate-api/overview/#authentication-via-jwt-access-token)\n\nYou must pass an access token as a header in each request to the SaaS Operate API. When you create an Operate [client](https://docs.camunda.io/docs/next/guides/setup-client-connection-credentials/), you get all the information needed to connect to Operate.\n\nThe following settings are needed to request a token:\n\n| Name | Description | Default value |\n| --- | --- | --- |\n| client id | Name of your registered client | \\- |\n| client secret | Password for your registered client | \\- |\n| audience | Permission name; if not given use default value | `operate.camunda.io` |\n| authorization server url | Token issuer server | \\- |\n\nNOTE\n\nFor more information on how to get these values for Camunda 8, read [Manage API Clients](https://docs.camunda.io/docs/components/console/manage-clusters/manage-api-clients/).\n\nSend a token issue _POST_ request to the authorization server with the required settings:\n\n```\ncurl -X POST -H 'content-type: application/json' -d '{\"client_id\": \"RgVdPv...\", \"client_secret\":\"eDS1~Hg...\",\"audience\":\"operate.camunda.io\",\"grant_type\":\"client_credentials\"}' https://login.cloud.camunda.io/oauth/token\n\n ```\n\nYou will get something like the following:\n\n```\n{  \"access_token\": \"eyJhbG...\",  \"scope\": \"f408ca38-....\",  \"expires_in\": 58847,  \"token_type\": \"Bearer\"}\n\n ```\n\nCapture the `access_token` value from the response object. In each request to the Operate API, include it as an authorization header:\n\n```\nAuthorization: Bearer eyJHb...\n\n ```\n\n## Endpoints[​](https://docs.camunda.io/docs/next/apis-tools/operate-api/overview/#endpoints)\n\n| Endpoint (HTTP verb + URL path) | Description | Notes |\n| --- | --- | --- |\n| **Process definitions** |  |  |\n| `POST /v1/process-definitions/search` | Search for process definitions |  |\n| `GET /v1/process-definitions/{key}` | Get process definition by key |  |\n| `GET /v1/process-definitions/{key}/xml` | Get process definition by key as XML |  |\n| **Process instances** |  |  |\n| `POST /v1/process-instances/search` | Search for process instances | New field added: `processDefinitionKey`  <br>New field added: `parentFlowNodeInstanceKey`  <br>  <br>**Warning**  <br>1\\. New fields could break deserialization, so ignore fields not used.  <br>2\\. The `processDefinitionKey` field will only contain data from version 8.1.8 onward |\n| `GET /v1/process-instances/{key}` | Get process instance by key | New field added: `processDefinitionKey`  <br>New field added: `parentFlowNodeInstanceKey`  <br>  <br>**Warning**  <br>1\\. New fields could break deserialization, so ignore fields not used.  <br>2\\. The `processDefinitionKey` field will only contain data from version 8.1.8 onward |\n| `DELETE /v1/process-instances/{key}` | Delete process instance _and dependent_ data by key |  |\n| `GET /v1/process-instances/{key}/statistics` | Get flow node statistic by process instance key | New endpoint |\n| `GET /v1/process-instances/{key}/sequence-flows` | Get sequence flows of process instance by key | New endpoint |\n| **Incidents** |  |  |\n| `POST /v1/incidents/search` | Search for incidents | New field added: `jobKey`  <br>  <br>**Warning**  <br>1\\. New fields could break deserialization, so ignore fields not used. |\n| `GET /v1/incidents/{key}` | Get incident by key | New field added: `jobKey`  <br>  <br>**Warning**  <br>1\\. New fields could break deserialization, so ignore fields not used. |\n| **Flownode instances** |  |  |\n| `POST /v1/flownode-instances/search` | Search for flow node instances | New fields added:  <br>`flowNodeId`  <br>`flowNodeName`  <br>`processDefinitionKey`  <br>  <br>**Warning**  <br>1\\. New fields could break deserialization, so ignore fields not used.  <br>2\\. The `processDefinitionKey` field will only contain data from version 8.1.8 onward  <br>3\\. The field `flowNodeName` is only returned if set in the BPMN diagram, so no flowNodeName is returned for flow nodes that do not have it set in the diagram. |\n| `GET /v1/flownode-instances/{key}` | Get flow node instance by key | New fields added:  <br>`flowNodeId`  <br>`flowNodeName`  <br>`processDefinitionKey`  <br>  <br>**Warning**  <br>1\\. New fields could break deserialization, so ignore fields not used.  <br>2\\. The `processDefinitionKey` field will only contain data from version 8.1.8 onward  <br>3\\. The field `flowNodeName` is only returned if set in the BPMN diagram, so no flowNodeName is returned for flow nodes that do not have it set in the diagram. |\n| **Variables** |  |  |\n| `POST /v1/variables/search` | Search for variables; results can contain truncated variable values |  |\n| `GET /v1/variables/{key}` | Get variable by key; contains the full value of variable |  |\n| **Decision definitions** |  |  |\n| `POST /v1/decision-definitions/search` | Search for decision definitions |  |\n| `GET /v1/decision-definitions/{key}` | Get decision definition by key |  |\n| **Decision requirements** |  |  |\n| `POST /v1/drd/search` | Search for decision requirements |  |\n| `GET /v1/drd/{key}` | Get decision requirements by key |  |\n| `GET /v1/drd/{key}/xml` | Get decision requirements by key as XML |  |\n| **Decision instances** |  |  |\n| `POST /v1/decision-instances/search` | Search for decision instances |  |\n| `GET /v1/decision-instances/{id}` | Get decision instance by id | The field `id` must be used here as path variable, because the `key` field is not unique for decision instances |\n\n## Multi-tenancy[​](https://docs.camunda.io/docs/next/apis-tools/operate-api/overview/#multi-tenancy)\n\nNOTE\n\nThe [multi-tenancy feature](https://docs.camunda.io/docs/next/self-managed/operate-deployment/operate-configuration/#multi-tenancy) is available in Self-Managed setups only.\n\nAll Operate endpoints for which tenant assignment is relevant will:\n\n- Return `tenantId` field in response\n- Provide `tenantId` search parameter\n    \n\nReview the Swagger documentation for the exact request and response structure.\n\n## Search[​](https://docs.camunda.io/docs/next/apis-tools/operate-api/overview/#search)\n\nEvery object has a search ```` /v1//search endpoint which can be requested by `POST` and a given query request. ### Query[​](https://docs.camunda.io/docs/next/apis-tools/operate-api/overview/#query) The query request consists of components for **filter**, **size**, **sort**, and **pagination**. ``` { \"filter\": { object fields to match }, \"size\": , \"sort\": [ {\"field\":\"\", \"order\": \"\" ], \"searchAfter\": [ ]} ``` #### Filter[​](https://docs.camunda.io/docs/next/apis-tools/operate-api/overview/#filter) Specifies which fields should match. Only items that match the given fields will be returned. The section on [object schemas](https://docs.camunda.io/docs/next/apis-tools/operate-api/overview/#object-schemas) lists all available fields for each object. ##### Filter strings, numbers, and booleans[​](https://docs.camunda.io/docs/next/apis-tools/operate-api/overview/#filter-strings-numbers-and-booleans) Fields of type string, number, and boolean need the exact value to match. NOTE When filtering process instances, `parentProcessInstanceKey` can be used instead of `parentKey` in the request JSON. The response JSON for a process instance will contain the field `parentKey`, even when `parentProcessInstanceKey` is used during input filtering. ###### Examples[​](https://docs.camunda.io/docs/next/apis-tools/operate-api/overview/#examples) Return all items with field `processInstanceKey` equals `235`: ``` { \"filter\": { \"processInstanceKey\": 235 } } ``` Return all items with field `parentKey` equals `123`. Note: `parentProcessInstanceKey` can also be used as an alias for `parentKey` and filters identically: ``` { \"filter\": { \"parentKey\": 123 } } ``` ``` { \"filter\": { \"parentProcessInstanceKey\": 123 } } ``` A filter that could be used to search for all flow node instances with field `processInstanceKey` equals `235`, `state` equals `ACTIVE` and `incident` equals `true`: ``` { \"filter\": { \"processInstanceKey\": 235, \"state\": \"ACTIVE\", \"incident\": true }} ``` ##### Filter dates[​](https://docs.camunda.io/docs/next/apis-tools/operate-api/overview/#filter-dates) Date fields need to be specified in format: `yyyy-MM-dd'T'HH:mm:ss.SSSZZ`; for example, `2022-03-17T11:50:25.729+0000`. You can use modifier to match date ranges: | Modifier | Description | | --- | --- | | ||/y | Within a year | | ||/M | Within a month | | ||/w | Within a week | | ||/d | Within a day | | ||/h | Within an hour | | ||/m | Within a minute | | ||/s | Within a second | ###### Example[​](https://docs.camunda.io/docs/next/apis-tools/operate-api/overview/#example) Return all items with field `startDate` within a minute (`||/m`) for `2022-03-17 11:50:25`. ``` { \"filter\": { \"startDate\": \"2022-03-17T11:50:25.729+0000||/m\" }} ``` #### Size[​](https://docs.camunda.io/docs/next/apis-tools/operate-api/overview/#size) Maximum items should be returned and must be a number. ##### Example[​](https://docs.camunda.io/docs/next/apis-tools/operate-api/overview/#example-1) Return maximum `23` items: ``` { \"size\": 23 } ``` #### Sort[​](https://docs.camunda.io/docs/next/apis-tools/operate-api/overview/#sort) Specify which field of the object should be sorted and whether ascending (`ASC`) or descending (`DESC`). ##### Example[​](https://docs.camunda.io/docs/next/apis-tools/operate-api/overview/#example-2) Sort by `name` **desc**ending: ``` { \"sort\": [{ \"field\": \"name\", \"order\": \"DESC\" }] } ``` #### Pagination[​](https://docs.camunda.io/docs/next/apis-tools/operate-api/overview/#pagination) Specify the item where the next search should start. For this, you need the values from previous results. Copy the values from `sortValues` field from the previous results into the `searchAfter` value of query. Refer also to [results](https://docs.camunda.io/docs/next/apis-tools/operate-api/overview/#results). ##### Example[​](https://docs.camunda.io/docs/next/apis-tools/operate-api/overview/#example-3) Get next 10 results for previous query by copying the value of `sortValues` of the previous results object. Assuming the `sortValues` value was `[\"the-name\",12345]`, put it as value for `searchAfter` in the next query. ``` { \"sort\": [{ \"field\": \"name\", \"order\": \"DESC\" }], \"searchAfter\": [\"the-name\", 12345]} ``` #### Query components combined[​](https://docs.camunda.io/docs/next/apis-tools/operate-api/overview/#query-components-combined) The query components `filter`, `size`, `sort`, and `searchAfter` can be combined. Default values are: | Component | Default value | Description | | --- | --- | --- | | filter | null | Empty (all fields match) | | size | 10 | | | sort | `[{\"field\":\"key\",\"order\":\"ASC\"}]` | Sorted ascending by key | | searchAfter | null | First items will be returned | ##### Example[​](https://docs.camunda.io/docs/next/apis-tools/operate-api/overview/#example-4) Get max `50` process instances with `processVersion` equals `2` sorted `asc`ending by `bpmnProcessId`: `POST /v1/process-instances/search` ``` { \"filter\": { \"processVersion\": 2 }, \"size\": 50, \"sort\": [ { \"field\": \"bpmnProcessId\", \"order\": \"ASC\" } ]} ``` Results are: ``` ... { \"key\": 2251799813699162, \"processVersion\": 2, \"bpmnProcessId\": \"called-process\", \"startDate\": \"2022-03-17T11:53:41.581+0000\", \"state\": \"ACTIVE\", \"processDefinitionKey\": 2251799813695996 } ], \"sortValues\": [ \"called-process\", 2251799813699162 ], \"total\": 654} ``` Take the value of `sortValues` and copy it to `searchAfter` for the next `50` items: ``` { \"filter\": { \"processVersion\": 2 }, \"size\": 50, \"sort\": [ { \"field\": \"bpmnProcessId\", \"order\": \"ASC\" } ], \"searchAfter\": [\"called-process\", 2251799813699162]} ``` ### Results[​](https://docs.camunda.io/docs/next/apis-tools/operate-api/overview/#results) The API responds with a `Results` object. It contains an `items` array, `total` amount of found items, and `sortValues` for pagination. ``` { \"items\": [ { item 1 } , { item 2 } ... ], \"total\": , \"sortValues\": []} ``` #### Items[​](https://docs.camunda.io/docs/next/apis-tools/operate-api/overview/#items) An array of objects that matches the query. #### Total[​](https://docs.camunda.io/docs/next/apis-tools/operate-api/overview/#total) The total amount of found objects. This is an exact value until 10,000. If more than this, try to make your query more specific. Refer also to [Elasticsearch max results](https://www.elastic.co/guide/en/elasticsearch/reference/7.17/index-modules.html#index-max-result-window). #### sortValues (Pagination)[​](https://docs.camunda.io/docs/next/apis-tools/operate-api/overview/#sortvalues-pagination) Use the value (an array) of this field to get the next page of results in your next query. Copy the value to `searchAfter` in your next query to get the next page. Refer also to [Elasticsearch search after](https://www.elastic.co/guide/en/elasticsearch/reference/7.17/paginate-search-results.html#search-after). ##### Example[​](https://docs.camunda.io/docs/next/apis-tools/operate-api/overview/#example-5) Results for `process-instances`: ``` { \"items\": [ { \"key\": 2251799813699213, \"processVersion\": 2, \"bpmnProcessId\": \"called-process\", \"startDate\": \"2022-03-17T11:53:41.758+0000\", \"state\": \"ACTIVE\", \"processDefinitionKey\": 2251799813695996, \"parentKey\": 4503599627370497, \"parentFlowNodeInstanceKey\": 4503599627370535 }, { \"key\": 2251799813699262, \"processVersion\": 2, \"bpmnProcessId\": \"called-process\", \"startDate\": \"2022-03-17T11:53:41.853+0000\", \"state\": \"ACTIVE\", \"processDefinitionKey\": 2251799813695996, \"parentKey\": 4503599627370497, \"parentFlowNodeInstanceKey\": 4503599627370535 } ], \"sortValues\": [\"called-process\", 2251799813699262], \"total\": 654} ``` ## Get object by key[​](https://docs.camunda.io/docs/next/apis-tools/operate-api/overview/#get-object-by-key) Every object has a `` GET /v1//{key} endpoint where `{key}` is the identifier of the object. Every object has a `key` field. One special case is for decision instances, where the identifier is the `id` field, because the `key` field is not unique. ### Example[​](https://docs.camunda.io/docs/next/apis-tools/operate-api/overview/#example-6) Get the data for process instance with key `2251799813699213`: `GET /v1/process-instances/2251799813699213` #### Result:[​](https://docs.camunda.io/docs/next/apis-tools/operate-api/overview/#result) ``` { \"key\": 2251799813699213, \"processVersion\": 2, \"bpmnProcessId\": \"called-process\", \"startDate\": \"2022-03-17T11:53:41.758+0000\", \"state\": \"ACTIVE\", \"processDefinitionKey\": 2251799813695996, \"parentKey\": 4503599627370497, \"parentFlowNodeInstanceKey\": 4503599627370535} ``` ## Change objects[​](https://docs.camunda.io/docs/next/apis-tools/operate-api/overview/#change-objects) Some objects can be changed (for example, deleted). The endpoint is the same as getting the object, but with HTTP `DELETE` instead of HTTP `GET`. The response is a `ChangeStatus` object which describes what happened and how many objects were changed. ### Example[​](https://docs.camunda.io/docs/next/apis-tools/operate-api/overview/#example-7) Delete the data for process instance (and all dependant data) with key `2251799813699213`: `DELETE /v1/process-instances/2251799813699213` #### Result[​](https://docs.camunda.io/docs/next/apis-tools/operate-api/overview/#result-1) ``` { \"message\": \"1 process instance and dependant data was deleted\", \"deleted\": 1} ``` ## Object schemas[​](https://docs.camunda.io/docs/next/apis-tools/operate-api/overview/#object-schemas) Each object has a set of fields with values. These values could be of type `string`, `number`, `boolean`, and `dateString`. | Type | Example | | | --- | --- | --- | | string | \"Operate\" | | | number | 235 | | | boolean | true | false | | dateString | \"2022-03-23T11:50:25.729+0000\" | | ### Process definition[​](https://docs.camunda.io/docs/next/apis-tools/operate-api/overview/#process-definition) ``` { \"key\": \"name\": \"version\": \"bpmnProcessId\": } ``` ### Process instance[​](https://docs.camunda.io/docs/next/apis-tools/operate-api/overview/#process-instance) ``` { \"key\": \"processVersion\": \"bpmnProcessId\": \"parentKey\": \"startDate\": \"endDate\": \"state\": \"processDefinitionKey\": \"parentFlowNodeInstanceKey\": } ``` ### Incident[​](https://docs.camunda.io/docs/next/apis-tools/operate-api/overview/#incident) ``` { \"key\": \"processDefinitionKey\": \"processInstanceKey\": \"type\": \"message\": \"creationTime\": \"state\": \"jobKey\": } ``` ### Flow node instance[​](https://docs.camunda.io/docs/next/apis-tools/operate-api/overview/#flow-node-instance) ``` { \"key\": \"processInstanceKey\": \"processDefinitionKey\": \"startDate\": \"endDate\": \"flowNodeId\": \"flowNodeName\": \"incidentKey\": \"type\": \"state\": \"incident\": } ``` The field flowNodeName is only returned if set in the BPMN diagram, so no flowNodeName is returned for flow nodes that do not have it set in the diagram. ### Variable[​](https://docs.camunda.io/docs/next/apis-tools/operate-api/overview/#variable) ``` { \"key\": \"processInstanceKey\": \"scopeKey\": \"name\": \"value\": - Always truncated if value is too big in \"search\" results. In \"get object\" result it is not truncated. \"truncated\": - If true 'value' is truncated.} ``` ### Decision definition[​](https://docs.camunda.io/docs/next/apis-tools/operate-api/overview/#decision-definition) ``` { \"id\": \"key\": - Same as \"id\" \"decisionId\": \"name\": \"version\": \"decisionRequirementsId\": \"decisionRequirementsKey\": \"decisionRequirementsName\": \"decisionRequirementsVersion\": } ``` ### Decision requirements[​](https://docs.camunda.io/docs/next/apis-tools/operate-api/overview/#decision-requirements) ``` { \"id\": \"key\": - Same as \"id\" \"decisionRequirementsId\": \"name\": \"version\": \"resourceName\": } ``` ### Decision instance[​](https://docs.camunda.io/docs/next/apis-tools/operate-api/overview/#decision-instance) ``` { \"id\": - Unique identifier \"key\": - Not unique for decision instances \"state\": - Possible values are \"FAILED\", \"EVALUATED\", \"UNKNOWN\", \"UNSPECIFIED\" \"evaluationDate\": \"evaluationFailure\": \"processDefinitionKey\": \"processInstanceKey\": \"decisionId\": \"decisionDefinitionId\": \"decisionName\": \"decisionVersion\": \"decisionType\": - Possible values are \"DECISION_TABLE\", \"LITERAL_EXPRESSION\", \"UNKNOWN\", \"UNSPECIFIED\" \"result\": \"evaluatedInputs\": - See note below \"evaluatedOutputs\": - See note below} ``` The field `evaluatedInputs` is an array of objects, where each object has the following fields: ``` { \"id\": \"name\": \"value\": } ``` The field `evaluatedOutputs` is an array of objects, where each object has the following fields: ``` { \"id\": \"name\": \"value\": \"ruleId\": \"ruleIndex\": } ``` The fields `evaluatedInputs` and `evaluatedOutputs` are not returned in search results, because they can be very large. They are only returned when requesting a specific decision instance by identifier. The fields `result`, `evaluatedInputs`, and `evaluatedOutputs` cannot be used to filter the search results. ### Change status[​](https://docs.camunda.io/docs/next/apis-tools/operate-api/overview/#change-status) ``` { \"message\": - What was changed \"deleted\": - How many items were deleted} ``` ### Error[​](https://docs.camunda.io/docs/next/apis-tools/operate-api/overview/#error) ``` { \"status\": - HTTP Status \"message\": - Details about the error. \"instance\": - UUID for look up eg. in log messages \"type\": - Type of error. Could be ServerException, ClientException, ValidationException, ResourceNotFoundException} ``` `` ````",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "24436837",
+		"_collection_link": "https://www.postman.com/camundateam/workspace/camunda-8-postman/collection/20317927-9d9314a2-4cff-40ab-90ea-98e28ca1f81c?action=share&source=collection_link&creator=24436837"
+	},
+	"item": [
+		{
+			"name": "Process definitions",
+			"item": [
+				{
+					"name": "Search for process definitions",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl+ApiVersion}}/process-definitions/search",
+							"host": [
+								"{{baseUrl+ApiVersion}}"
+							],
+							"path": [
+								"process-definitions",
+								"search"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get process definition by key",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl+ApiVersion}}/process-definitions/:key",
+							"host": [
+								"{{baseUrl+ApiVersion}}"
+							],
+							"path": [
+								"process-definitions",
+								":key"
+							],
+							"variable": [
+								{
+									"key": "key",
+									"value": "2251799813874883",
+									"description": "Key of process definition"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get process defintion by key as XML",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl+ApiVersion}}/process-definitions/:key/xml",
+							"host": [
+								"{{baseUrl+ApiVersion}}"
+							],
+							"path": [
+								"process-definitions",
+								":key",
+								"xml"
+							],
+							"variable": [
+								{
+									"key": "key",
+									"value": "2251799813874883",
+									"description": "Key of process definition"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Process instances",
+			"item": [
+				{
+					"name": "Search for process instances",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl+ApiVersion}}/process-instances/search",
+							"host": [
+								"{{baseUrl+ApiVersion}}"
+							],
+							"path": [
+								"process-instances",
+								"search"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get process instance by key",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl+ApiVersion}}/process-instances/:key",
+							"host": [
+								"{{baseUrl+ApiVersion}}"
+							],
+							"path": [
+								"process-instances",
+								":key"
+							],
+							"variable": [
+								{
+									"key": "key",
+									"value": "2251799813685484",
+									"description": "Key of process instance"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete process instance and dependant data by key",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl+ApiVersion}}/process-instances/:key",
+							"host": [
+								"{{baseUrl+ApiVersion}}"
+							],
+							"path": [
+								"process-instances",
+								":key"
+							],
+							"variable": [
+								{
+									"key": "key",
+									"value": "2251799813685484",
+									"description": "Key of process instance"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get flow node statistic by process instance id",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl+ApiVersion}}/process-instances/:key/statistics",
+							"host": [
+								"{{baseUrl+ApiVersion}}"
+							],
+							"path": [
+								"process-instances",
+								":key",
+								"statistics"
+							],
+							"variable": [
+								{
+									"key": "key",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get sequence flows of process instance by key",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl+ApiVersion}}/process-instances/:key/sequence-flows",
+							"host": [
+								"{{baseUrl+ApiVersion}}"
+							],
+							"path": [
+								"process-instances",
+								":key",
+								"sequence-flows"
+							],
+							"variable": [
+								{
+									"key": "key",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Incidents",
+			"item": [
+				{
+					"name": "Search for incidents",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{}"
+						},
+						"url": {
+							"raw": "{{baseUrl+ApiVersion}}/incidents/search",
+							"host": [
+								"{{baseUrl+ApiVersion}}"
+							],
+							"path": [
+								"incidents",
+								"search"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get incident by key",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl+ApiVersion}}/incidents/:key",
+							"host": [
+								"{{baseUrl+ApiVersion}}"
+							],
+							"path": [
+								"incidents",
+								":key"
+							],
+							"variable": [
+								{
+									"key": "key",
+									"value": "2251799813685702",
+									"description": "Key of process instance"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Flow node instances",
+			"item": [
+				{
+					"name": "Search for flow node instances",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl+ApiVersion}}/flownode-instances/search",
+							"host": [
+								"{{baseUrl+ApiVersion}}"
+							],
+							"path": [
+								"flownode-instances",
+								"search"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get flow node instance by key",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl+ApiVersion}}/flownode-instances/:key",
+							"host": [
+								"{{baseUrl+ApiVersion}}"
+							],
+							"path": [
+								"flownode-instances",
+								":key"
+							],
+							"variable": [
+								{
+									"key": "key",
+									"value": "2251799813685511",
+									"description": "Key of flownode instance"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Variables",
+			"item": [
+				{
+					"name": "Search for variables",
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {}
+					},
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl+ApiVersion}}/variables/search",
+							"host": [
+								"{{baseUrl+ApiVersion}}"
+							],
+							"path": [
+								"variables",
+								"search"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get variable by key",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl+ApiVersion}}/variables/:key",
+							"host": [
+								"{{baseUrl+ApiVersion}}"
+							],
+							"path": [
+								"variables",
+								":key"
+							],
+							"variable": [
+								{
+									"key": "key",
+									"value": "2251799813685520",
+									"description": "Key of variable"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Decision definitions",
+			"item": [
+				{
+					"name": "Search for decision definitions",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl+ApiVersion}}/decision-definitions/search",
+							"host": [
+								"{{baseUrl+ApiVersion}}"
+							],
+							"path": [
+								"decision-definitions",
+								"search"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get decision definition by key",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl+ApiVersion}}/decision-definitions/:key",
+							"host": [
+								"{{baseUrl+ApiVersion}}"
+							],
+							"path": [
+								"decision-definitions",
+								":key"
+							],
+							"variable": [
+								{
+									"key": "key",
+									"value": "2251799813874883",
+									"description": "Key of decision definition"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Decision requirements",
+			"item": [
+				{
+					"name": "Search for decision requirements",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl+ApiVersion}}/drd/search",
+							"host": [
+								"{{baseUrl+ApiVersion}}"
+							],
+							"path": [
+								"drd",
+								"search"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get decision requirements by key",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl+ApiVersion}}/drd/:key",
+							"host": [
+								"{{baseUrl+ApiVersion}}"
+							],
+							"path": [
+								"drd",
+								":key"
+							],
+							"variable": [
+								{
+									"key": "key",
+									"value": "2251799813874883",
+									"description": "Key of decision requirements"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get decision requirements by key as XML",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl+ApiVersion}}/drd/:key/xml",
+							"host": [
+								"{{baseUrl+ApiVersion}}"
+							],
+							"path": [
+								"drd",
+								":key",
+								"xml"
+							],
+							"variable": [
+								{
+									"key": "key",
+									"value": "2251799813874883",
+									"description": "Key of decision requirements"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Decision instances",
+			"item": [
+				{
+					"name": "Search for decision instances",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl+ApiVersion}}/decision-instances/search",
+							"host": [
+								"{{baseUrl+ApiVersion}}"
+							],
+							"path": [
+								"decision-instances",
+								"search"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get decision instance by key",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl+ApiVersion}}/decision-instances/:key",
+							"host": [
+								"{{baseUrl+ApiVersion}}"
+							],
+							"path": [
+								"decision-instances",
+								":key"
+							],
+							"variable": [
+								{
+									"key": "key",
+									"value": "2251799813874883-1",
+									"description": "Id of decision instance"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{bearerTokenOperate}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl+ApiVersion",
+			"value": "{{baseUrlOperate}}/{{apiVersion}}"
+		}
+	]
+}
