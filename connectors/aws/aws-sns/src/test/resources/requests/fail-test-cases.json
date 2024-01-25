@@ -154,5 +154,23 @@
       "messageAttributes":{},
       "topicArn":"arn:aws:sns:us-east-1:036433529947:MyCamundaDemo"
     }
+  },
+  {
+    "testDescription": "Request with FIFO topic without message group id",
+    "authentication":{
+      "type": "credentials",
+      "secretKey":"{{secrets.AWS_SECRET_KEY}}",
+      "accessKey":"{{secrets.AWS_ACCESS_KEY}}"
+    },
+    "configuration": {
+      "region":"{{secrets.AWS_TOPIC_REGION}}"
+    },
+    "topic":{
+      "type": "fifo",
+      "message":"Hello",
+      "messageAttributes":{},
+      "subject":"MySubject",
+      "topicArn":"arn:aws:sns:us-east-1:036433529947:MyCamundaDemo"
+    }
   }
 ]

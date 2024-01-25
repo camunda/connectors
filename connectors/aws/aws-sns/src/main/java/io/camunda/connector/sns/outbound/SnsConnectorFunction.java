@@ -87,6 +87,8 @@ public class SnsConnectorFunction implements OutboundConnectorFunction {
           new PublishRequest()
               .withTopicArn(request.getTopic().getTopicArn())
               .withMessage(topicMessage)
+              .withMessageGroupId(request.getTopic().getMessageGroupId())
+              .withMessageDeduplicationId(request.getTopic().getMessageDeduplicationId())
               .withMessageAttributes(request.getTopic().getAwsSnsNativeMessageAttributes())
               .withSubject(request.getTopic().getSubject());
       return snsClient.publish(message);
