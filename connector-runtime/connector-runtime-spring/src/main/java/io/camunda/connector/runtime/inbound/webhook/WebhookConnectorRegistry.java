@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
 
 public class WebhookConnectorRegistry {
 
-  private static final String WEBHOOK_CONNECTOR_REGISTRY = "WebhookConnectorRegistry";
+  private static final String WARNING_TAG = "Warning";
 
   // Reflect changes to this pattern in webhook element templates
   private static final Pattern CURRENT_WEBHOOK_PATH_PATTERN =
@@ -80,7 +80,7 @@ public class WebhookConnectorRegistry {
       String message =
           DEPRECATED_WEBHOOK_MESSAGE_PREFIX + webhook + DEPRECATED_WEBHOOK_MESSAGE_SUFFIX;
       Activity activity =
-          Activity.level(Severity.WARNING).tag(WEBHOOK_CONNECTOR_REGISTRY).message(message);
+          Activity.level(Severity.WARNING).tag(WARNING_TAG).message(message);
 
       connector.context().log(activity);
     }
