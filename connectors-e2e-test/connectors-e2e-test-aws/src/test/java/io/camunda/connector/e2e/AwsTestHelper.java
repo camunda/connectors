@@ -33,6 +33,7 @@ import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
 import com.amazonaws.services.sqs.model.CreateQueueRequest;
 import com.amazonaws.services.sqs.model.CreateQueueResult;
 import com.amazonaws.services.sqs.model.DeleteQueueRequest;
+import com.amazonaws.services.sqs.model.GetQueueAttributesRequest;
 import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
@@ -264,6 +265,20 @@ public class AwsTestHelper {
   }
 
   /**
+   * Retrieves the Amazon Resource Name (ARN) for a given SQS queue URL.
+   *
+   * @param sqsClient The AmazonSQS client used to interact with SQS.
+   * @param queueUrl The URL of the SQS queue for which the ARN is to be retrieved.
+   * @return The ARN of the SQS queue.
+   */
+  public static String getQueueArn(AmazonSQS sqsClient, String queueUrl) {
+    return sqsClient
+        .getQueueAttributes(new GetQueueAttributesRequest(queueUrl).withAttributeNames("QueueArn"))
+        .getAttributes()
+        .get("QueueArn");
+  }
+
+  /**
    * Deletes the specified SQS queue.
    *
    * @param sqsClient The AmazonSQS client.
@@ -284,6 +299,7 @@ public class AwsTestHelper {
   public static List<Message> receiveMessages(AmazonSQS sqsClient, String queueUrl) {
     ReceiveMessageRequest receiveMessageRequest =
         new ReceiveMessageRequest(queueUrl)
+            .withAttributeNames("All")
             .withMessageAttributeNames("All")
             .withWaitTimeSeconds(5)
             .withMaxNumberOfMessages(1);

@@ -113,6 +113,28 @@
     },
     "type" : "String"
   }, {
+    "id" : "topic.type",
+    "label" : "Topic type",
+    "description" : "Select SNS topic type. Details at <a href=\"https://aws.amazon.com/sns/features/\">AWS SNS Features</a>",
+    "optional" : false,
+    "value" : "standard",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "configuration",
+    "binding" : {
+      "name" : "topic.type",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Standard",
+      "value" : "standard"
+    }, {
+      "name" : "FIFO",
+      "value" : "fifo"
+    } ]
+  }, {
     "id" : "configuration.region",
     "label" : "Region",
     "description" : "Specify the AWS region",
@@ -135,6 +157,40 @@
       "type" : "zeebe:input"
     },
     "type" : "Hidden"
+  }, {
+    "id" : "topic.messageGroupId",
+    "label" : "Message group ID",
+    "description" : "Message group ID (FIFO only). See also <a href=\"https://docs.aws.amazon.com/sns/latest/dg/fifo-message-grouping.html\">message grouping for FIFO topics</a> in the Amazon SNS developer guide",
+    "optional" : false,
+    "feel" : "optional",
+    "group" : "input",
+    "binding" : {
+      "name" : "topic.messageGroupId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "topic.type",
+      "equals" : "fifo",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "topic.messageDeduplicationId",
+    "label" : "Message deduplication ID",
+    "description" : "Message deduplication ID. See also <a href=\"https://docs.aws.amazon.com/sns/latest/dg/fifo-message-dedup.html\">Message deduplication for FIFO topics</a> in the Amazon SNS developer guide",
+    "optional" : false,
+    "feel" : "optional",
+    "group" : "input",
+    "binding" : {
+      "name" : "topic.messageDeduplicationId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "topic.type",
+      "equals" : "fifo",
+      "type" : "simple"
+    },
+    "type" : "String"
   }, {
     "id" : "topic.subject",
     "label" : "Subject",
