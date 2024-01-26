@@ -11,8 +11,8 @@ import static org.mockito.Mockito.when;
 
 import com.amazonaws.services.dynamodbv2.document.AttributeUpdate;
 import com.amazonaws.services.dynamodbv2.document.KeyAttribute;
-import com.amazonaws.services.dynamodbv2.document.PrimaryKey;
 import com.amazonaws.services.dynamodbv2.document.UpdateItemOutcome;
+import com.amazonaws.services.dynamodbv2.document.spec.UpdateItemSpec;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.aws.dynamodb.BaseDynamoDbOperationTest;
@@ -28,23 +28,20 @@ import org.mockito.Mock;
 
 class UpdateItemOperationTest extends BaseDynamoDbOperationTest {
   private UpdateItemOperation updateItemOperation;
-  private UpdateItem updateItem;
   @Mock private UpdateItemOutcome updateItemOutcome;
-  @Captor private ArgumentCaptor<PrimaryKey> primaryKeyArgumentCaptor;
-  @Captor private ArgumentCaptor<AttributeUpdate> attributeUpdateArgumentCaptor;
+  @Captor private ArgumentCaptor<UpdateItemSpec> updateItemSpecArgumentCaptor;
   private KeyAttribute keyAttribute;
-  private AttributeUpdate attributeUpdate;
 
   @BeforeEach
   public void setUp() {
 
     keyAttribute = new KeyAttribute("id", "123");
-    attributeUpdate = new AttributeUpdate("name").addElements("John Doe");
+    AttributeUpdate attributeUpdate = new AttributeUpdate("name").addElements("John Doe");
 
     Map<String, Object> primaryKey = Map.of(keyAttribute.getName(), keyAttribute.getValue());
     Map<String, Object> attributeUpdates = Map.of(attributeUpdate.getAttributeName(), "John Doe");
 
-    updateItem =
+    UpdateItem updateItem =
         new UpdateItem(
             TestDynamoDBData.ActualValue.TABLE_NAME, primaryKey, attributeUpdates, "PUT");
     updateItemOperation = new UpdateItemOperation(updateItem);
@@ -53,19 +50,15 @@ class UpdateItemOperationTest extends BaseDynamoDbOperationTest {
   @Test
   public void testInvoke() {
     // Given
-    when(table.updateItem(
-            primaryKeyArgumentCaptor.capture(), attributeUpdateArgumentCaptor.capture()))
-        .thenReturn(updateItemOutcome);
+    when(table.updateItem(updateItemSpecArgumentCaptor.capture())).thenReturn(updateItemOutcome);
     // When
     Object result = updateItemOperation.invoke(dynamoDB);
     // Then
     assertThat(result).isInstanceOf(UpdateItemOutcome.class);
     assertThat(((UpdateItemOutcome) result).getItem()).isEqualTo(updateItemOutcome.getItem());
-    // TODO: Uncomment the following assertion after fixing the bug reported in
-    // https://github.com/camunda/connectors/issues/1804
-    // assertThat(primaryKeyArgumentCaptor.getValue().getComponents()).contains(keyAttribute);
-    assertThat(attributeUpdateArgumentCaptor.getValue().getAttributeName())
-        .isEqualTo(attributeUpdate.getAttributeName());
+    UpdateItemSpec value = updateItemSpecArgumentCaptor.getValue();
+    assertThat(value.getKeyComponents()).contains(keyAttribute);
+    assertThat(value.getValueMap()).isEqualTo(Map.of(":name", "John Doe"));
   }
 
   @Test
