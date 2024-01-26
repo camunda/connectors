@@ -72,7 +72,7 @@ public class WebhookControllerLogTest {
     verify(processA1.context(), times(1)).log(activityCaptor.capture());
     Activity passedActivity = activityCaptor.getValue();
     assertEquals(Severity.WARNING, passedActivity.severity());
-    assertEquals("Warn", passedActivity.tag());
+    assertEquals("Warning", passedActivity.tag());
     assertTrue(passedActivity.message().contains(webhookPath));
 
     assertWebhookRegistered(webhookPath, webhook, processA1);

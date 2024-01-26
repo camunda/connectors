@@ -22,7 +22,7 @@ import io.camunda.connector.runtime.inbound.lifecycle.ActiveInboundConnector;
 import java.util.regex.Pattern;
 
 final class WebhookConnectorValidationUtil {
-  private static final String WARN_TAG = "Warn";
+  private static final String WARNING_TAG = "Warning";
   // Reflect changes to this pattern in webhook element templates
   private static final Pattern CURRENT_WEBHOOK_PATH_PATTERN =
       Pattern.compile("^[a-zA-Z0-9]+([-_][a-zA-Z0-9]+)*$");
@@ -36,7 +36,7 @@ final class WebhookConnectorValidationUtil {
     if (!CURRENT_WEBHOOK_PATH_PATTERN.matcher(webhook).matches()) {
       String message =
           DEPRECATED_WEBHOOK_MESSAGE_PREFIX + webhook + DEPRECATED_WEBHOOK_MESSAGE_SUFFIX;
-      Activity activity = Activity.level(Severity.WARNING).tag(WARN_TAG).message(message);
+      Activity activity = Activity.level(Severity.WARNING).tag(WARNING_TAG).message(message);
 
       connector.context().log(activity);
     }
