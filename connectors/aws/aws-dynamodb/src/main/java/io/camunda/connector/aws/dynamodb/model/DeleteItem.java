@@ -6,36 +6,27 @@
  */
 package io.camunda.connector.aws.dynamodb.model;
 
+import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateSubType;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import java.util.Objects;
 
-public final class DeleteItem extends TableOperation {
-
-  @NotNull private Object primaryKeyComponents;
-
-  public Object getPrimaryKeyComponents() {
-    return primaryKeyComponents;
-  }
-
-  public void setPrimaryKeyComponents(final Object primaryKeyComponents) {
-    this.primaryKeyComponents = primaryKeyComponents;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    DeleteItem that = (DeleteItem) o;
-    return Objects.equals(primaryKeyComponents, that.primaryKeyComponents);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(primaryKeyComponents);
-  }
-
-  @Override
-  public String toString() {
-    return "DeleteItem{" + "primaryKeyComponents=" + primaryKeyComponents + "} " + super.toString();
-  }
-}
+@TemplateSubType(id = OperationTypes.DELETE_ITEM)
+public record DeleteItem(
+    @TemplateProperty(
+            label = "Table name",
+            id = "deleteItem.tableName",
+            group = "input",
+            description = "Name of DynamoDB table")
+        @NotBlank
+        String tableName,
+    @TemplateProperty(
+            label = "Primary key components",
+            id = "deleteItem.primaryKeyComponents",
+            group = "input",
+            feel = Property.FeelMode.required,
+            description = "Simple or composite primary key")
+        @NotNull
+        Object primaryKeyComponents)
+    implements ItemInput {}

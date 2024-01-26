@@ -28,12 +28,12 @@ public class ScanTableOperation implements AwsDynamoDbOperation {
 
     final ItemCollection<ScanOutcome> scan =
         dynamoDB
-            .getTable(scanTableModel.getTableName())
+            .getTable(scanTableModel.tableName())
             .scan(
-                scanTableModel.getFilterExpression(),
-                scanTableModel.getProjectionExpression(),
-                scanTableModel.getExpressionAttributeNames(),
-                scanTableModel.getExpressionAttributeValues());
+                scanTableModel.filterExpression(),
+                scanTableModel.projectionExpression(),
+                scanTableModel.expressionAttributeNames(),
+                scanTableModel.expressionAttributeValues());
 
     final var items = new ArrayList<>();
     for (final Item item : scan) {

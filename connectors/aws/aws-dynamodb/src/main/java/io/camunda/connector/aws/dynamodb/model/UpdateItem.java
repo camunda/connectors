@@ -6,67 +6,46 @@
  */
 package io.camunda.connector.aws.dynamodb.model;
 
+import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import java.util.Objects;
 
-public final class UpdateItem extends TableOperation {
-  @NotNull private Object primaryKeyComponents;
-
-  @NotNull private Object keyAttributes;
-
-  @NotBlank private String attributeAction;
-
-  public Object getPrimaryKeyComponents() {
-    return primaryKeyComponents;
-  }
-
-  public void setPrimaryKeyComponents(Object primaryKeyComponents) {
-    this.primaryKeyComponents = primaryKeyComponents;
-  }
-
-  public Object getKeyAttributes() {
-    return keyAttributes;
-  }
-
-  public void setKeyAttributes(final Object keyAttributes) {
-    this.keyAttributes = keyAttributes;
-  }
-
-  public String getAttributeAction() {
-    return attributeAction;
-  }
-
-  public void setAttributeAction(final String attributeAction) {
-    this.attributeAction = attributeAction;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    UpdateItem that = (UpdateItem) o;
-    return Objects.equals(primaryKeyComponents, that.primaryKeyComponents)
-        && Objects.equals(keyAttributes, that.keyAttributes)
-        && Objects.equals(attributeAction, that.attributeAction);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(primaryKeyComponents, keyAttributes, attributeAction);
-  }
-
-  @Override
-  public String toString() {
-    return "UpdateItem{"
-        + "primaryKeyComponents="
-        + primaryKeyComponents
-        + ", keyAttributes="
-        + keyAttributes
-        + ", attributeAction='"
-        + attributeAction
-        + '\''
-        + "} "
-        + super.toString();
-  }
-}
+@TemplateSubType(id = OperationTypes.UPDATE_ITEM)
+public record UpdateItem(
+    @TemplateProperty(
+            label = "Table name",
+            id = "updateTable.tableName",
+            group = "input",
+            description = "Name of DynamoDB table")
+        @NotBlank
+        String tableName,
+    @TemplateProperty(
+            label = "Primary key components",
+            id = "updateItem.primaryKeyComponents",
+            group = "input",
+            feel = Property.FeelMode.required,
+            description = "Simple or composite primary key")
+        @NotNull
+        Object primaryKeyComponents,
+    @TemplateProperty(
+            label = "Key attributes",
+            group = "input",
+            feel = Property.FeelMode.required,
+            description =
+                "DynamoDB key attributes. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>")
+        @NotNull
+        Object keyAttributes,
+    @TemplateProperty(
+            label = "Attribute action",
+            group = "input",
+            type = TemplateProperty.PropertyType.Dropdown,
+            choices = {
+              @TemplateProperty.DropdownPropertyChoice(value = "put", label = "PUT"),
+              @TemplateProperty.DropdownPropertyChoice(value = "delete", label = "DELETE")
+            },
+            description = "Specifies how to perform the update")
+        @NotBlank
+        String attributeAction)
+    implements ItemInput {}

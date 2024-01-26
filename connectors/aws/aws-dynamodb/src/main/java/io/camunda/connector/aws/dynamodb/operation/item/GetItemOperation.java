@@ -30,7 +30,7 @@ public class GetItemOperation implements AwsDynamoDbOperation {
   @Override
   public Object invoke(final DynamoDB dynamoDB) {
     return Optional.ofNullable(
-            dynamoDB.getTable(getItemModel.getTableName()).getItem(createPrimaryKey()))
+            dynamoDB.getTable(getItemModel.tableName()).getItem(createPrimaryKey()))
         .map(Item::attributes)
         .orElse(null);
   }
@@ -39,7 +39,7 @@ public class GetItemOperation implements AwsDynamoDbOperation {
     PrimaryKey primaryKey = new PrimaryKey();
     objectMapper
         .convertValue(
-            getItemModel.getPrimaryKeyComponents(), new TypeReference<HashMap<String, Object>>() {})
+            getItemModel.primaryKeyComponents(), new TypeReference<HashMap<String, Object>>() {})
         .forEach(primaryKey::addComponent);
     return primaryKey;
   }

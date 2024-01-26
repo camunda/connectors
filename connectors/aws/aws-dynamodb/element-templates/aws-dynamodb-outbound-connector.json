@@ -1,0 +1,1009 @@
+{
+  "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name" : "AWS DynamoDB Outbound Connector",
+  "id" : "io.camunda.connectors.AWSDynamoDB.v1",
+  "description" : "Work with tables and items using AWS DynamoDB service",
+  "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/",
+  "version" : 7,
+  "category" : {
+    "id" : "connectors",
+    "name" : "Connectors"
+  },
+  "appliesTo" : [ "bpmn:Task" ],
+  "elementType" : {
+    "value" : "bpmn:ServiceTask"
+  },
+  "groups" : [ {
+    "id" : "operation",
+    "label" : "Operation"
+  }, {
+    "id" : "authentication",
+    "label" : "Authentication"
+  }, {
+    "id" : "configuration",
+    "label" : "Queue properties"
+  }, {
+    "id" : "input",
+    "label" : "Input"
+  }, {
+    "id" : "output",
+    "label" : "Output mapping"
+  }, {
+    "id" : "error",
+    "label" : "Error handling"
+  }, {
+    "id" : "retries",
+    "label" : "Retries"
+  } ],
+  "properties" : [ {
+    "value" : "io.camunda:aws-dynamodb:1",
+    "binding" : {
+      "property" : "type",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "input.operationGroup",
+    "label" : "Choose category",
+    "group" : "operation",
+    "binding" : {
+      "name" : "input.operationGroup",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Table",
+      "value" : "tableOperation"
+    }, {
+      "name" : "Item",
+      "value" : "itemOperation"
+    } ]
+  }, {
+    "id" : "input.tableOperation",
+    "label" : "Select action",
+    "group" : "operation",
+    "binding" : {
+      "name" : "input.tableOperation",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "input.operationGroup",
+      "equals" : "tableOperation",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Create table",
+      "value" : "createTable"
+    }, {
+      "name" : "Delete table",
+      "value" : "deleteTable"
+    }, {
+      "name" : "Describe table",
+      "value" : "describeTable"
+    }, {
+      "name" : "Scan table",
+      "value" : "scanTable"
+    } ]
+  }, {
+    "id" : "input.itemOperation",
+    "label" : "Select action",
+    "group" : "operation",
+    "binding" : {
+      "name" : "input.itemOperation",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "input.operationGroup",
+      "equals" : "itemOperation",
+      "type" : "simple"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Add item",
+      "value" : "addItem"
+    }, {
+      "name" : "Delete item",
+      "value" : "deleteItem"
+    }, {
+      "name" : "Get item",
+      "value" : "getItem"
+    }, {
+      "name" : "Update item",
+      "value" : "updateItem"
+    } ]
+  }, {
+    "id" : "authentication.type",
+    "label" : "Authentication",
+    "description" : "Specify AWS authentication strategy. Learn more at the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-lambda/#aws-authentication-types\" target=\"_blank\">documentation page</a>",
+    "value" : "credentials",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.type",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Default Credentials Chain (Hybrid/Self-Managed only)",
+      "value" : "defaultCredentialsChain"
+    }, {
+      "name" : "Credentials",
+      "value" : "credentials"
+    } ]
+  }, {
+    "id" : "authentication.accessKey",
+    "label" : "Access key",
+    "description" : "Provide an IAM access key tailored to a user, equipped with the necessary permissions",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.accessKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "credentials",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.secretKey",
+    "label" : "Secret key",
+    "description" : "Provide a secret key of a user with permissions to invoke specified AWS Lambda function",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.secretKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "credentials",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "configuration.region",
+    "label" : "Region",
+    "description" : "Specify the AWS region",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "configuration",
+    "binding" : {
+      "name" : "configuration.region",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "configuration.endpoint",
+    "label" : "Endpoint",
+    "description" : "Specify endpoint if need to use custom endpoint",
+    "optional" : true,
+    "group" : "configuration",
+    "binding" : {
+      "name" : "configuration.endpoint",
+      "type" : "zeebe:input"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "input.createTable.tableName",
+    "label" : "Table name",
+    "description" : "Name of DynamoDB table",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "input",
+    "binding" : {
+      "name" : "input.tableName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "input.tableOperation",
+        "equals" : "createTable",
+        "type" : "simple"
+      }, {
+        "property" : "input.operationGroup",
+        "equals" : "tableOperation",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.partitionKey",
+    "label" : "Partition key",
+    "description" : "Partition key role. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "input",
+    "binding" : {
+      "name" : "input.partitionKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "input.tableOperation",
+        "equals" : "createTable",
+        "type" : "simple"
+      }, {
+        "property" : "input.operationGroup",
+        "equals" : "tableOperation",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.partitionKeyRole",
+    "label" : "Partition key role",
+    "description" : "The role that this key attribute will assume. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "input",
+    "binding" : {
+      "name" : "input.partitionKeyRole",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "input.tableOperation",
+        "equals" : "createTable",
+        "type" : "simple"
+      }, {
+        "property" : "input.operationGroup",
+        "equals" : "tableOperation",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "HASH",
+      "value" : "HASH"
+    }, {
+      "name" : "RANGE",
+      "value" : "RANGE"
+    } ]
+  }, {
+    "id" : "input.partitionKeyType",
+    "label" : "Partition key attribute data type",
+    "description" : "Represents the data for an attribute",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "input",
+    "binding" : {
+      "name" : "input.partitionKeyType",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "input.tableOperation",
+        "equals" : "createTable",
+        "type" : "simple"
+      }, {
+        "property" : "input.operationGroup",
+        "equals" : "tableOperation",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Binary",
+      "value" : "B"
+    }, {
+      "name" : "String",
+      "value" : "S"
+    }, {
+      "name" : "Number",
+      "value" : "N"
+    } ]
+  }, {
+    "id" : "input.sortKey",
+    "label" : "Sort key",
+    "description" : "Sort key. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "input",
+    "binding" : {
+      "name" : "input.sortKey",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "input.tableOperation",
+        "equals" : "createTable",
+        "type" : "simple"
+      }, {
+        "property" : "input.operationGroup",
+        "equals" : "tableOperation",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.sortKeyRole",
+    "label" : "Sort key role",
+    "description" : "The role that this key attribute will assume",
+    "optional" : true,
+    "group" : "input",
+    "binding" : {
+      "name" : "input.sortKeyRole",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "input.tableOperation",
+        "equals" : "createTable",
+        "type" : "simple"
+      }, {
+        "property" : "input.operationGroup",
+        "equals" : "tableOperation",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "HASH",
+      "value" : "HASH"
+    }, {
+      "name" : "RANGE",
+      "value" : "RANGE"
+    } ]
+  }, {
+    "id" : "input.sortKeyType",
+    "label" : "Sort key attribute data type",
+    "description" : "Represents the data for an attribute",
+    "optional" : true,
+    "group" : "input",
+    "binding" : {
+      "name" : "input.sortKeyType",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "input.tableOperation",
+        "equals" : "createTable",
+        "type" : "simple"
+      }, {
+        "property" : "input.operationGroup",
+        "equals" : "tableOperation",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Binary",
+      "value" : "B"
+    }, {
+      "name" : "String",
+      "value" : "S"
+    }, {
+      "name" : "Number",
+      "value" : "N"
+    } ]
+  }, {
+    "id" : "input.readCapacityUnits",
+    "label" : "Read capacity units",
+    "description" : "Total number of read capacity units. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "input",
+    "binding" : {
+      "name" : "input.readCapacityUnits",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "input.tableOperation",
+        "equals" : "createTable",
+        "type" : "simple"
+      }, {
+        "property" : "input.operationGroup",
+        "equals" : "tableOperation",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.writeCapacityUnits",
+    "label" : "Write capacity units",
+    "description" : "Total number of write capacity units. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "input",
+    "binding" : {
+      "name" : "input.writeCapacityUnits",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "input.tableOperation",
+        "equals" : "createTable",
+        "type" : "simple"
+      }, {
+        "property" : "input.operationGroup",
+        "equals" : "tableOperation",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.billingModeStr",
+    "label" : "Billing mode",
+    "description" : "Controls how you are charged for read and write throughput. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "input",
+    "binding" : {
+      "name" : "input.billingModeStr",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "input.tableOperation",
+        "equals" : "createTable",
+        "type" : "simple"
+      }, {
+        "property" : "input.operationGroup",
+        "equals" : "tableOperation",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "PROVISIONED",
+      "value" : "PROVISIONED"
+    }, {
+      "name" : "PAY_PER_REQUEST",
+      "value" : "PAY_PER_REQUEST"
+    } ]
+  }, {
+    "id" : "input.deletionProtection",
+    "label" : "Deletion protection",
+    "description" : "Prevents accidental table deletion",
+    "optional" : false,
+    "value" : "false",
+    "group" : "input",
+    "binding" : {
+      "name" : "input.deletionProtection",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "input.tableOperation",
+        "equals" : "createTable",
+        "type" : "simple"
+      }, {
+        "property" : "input.operationGroup",
+        "equals" : "tableOperation",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "True",
+      "value" : "true"
+    }, {
+      "name" : "False",
+      "value" : "false"
+    } ]
+  }, {
+    "id" : "input.deleteTable.tableName",
+    "label" : "Table name",
+    "description" : "Name of DynamoDB table",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "input",
+    "binding" : {
+      "name" : "input.tableName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "input.tableOperation",
+        "equals" : "deleteTable",
+        "type" : "simple"
+      }, {
+        "property" : "input.operationGroup",
+        "equals" : "tableOperation",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.describeTable.tableName",
+    "label" : "Table name",
+    "description" : "Name of DynamoDB table",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "input",
+    "binding" : {
+      "name" : "input.tableName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "input.tableOperation",
+        "equals" : "describeTable",
+        "type" : "simple"
+      }, {
+        "property" : "input.operationGroup",
+        "equals" : "tableOperation",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.scanTable.tableName",
+    "label" : "Table name",
+    "description" : "Name of DynamoDB table",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "input",
+    "binding" : {
+      "name" : "input.tableName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "input.tableOperation",
+        "equals" : "scanTable",
+        "type" : "simple"
+      }, {
+        "property" : "input.operationGroup",
+        "equals" : "tableOperation",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.filterExpression",
+    "label" : "Filter expression",
+    "description" : "Filter expressions for scan. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>",
+    "optional" : false,
+    "feel" : "optional",
+    "group" : "input",
+    "binding" : {
+      "name" : "input.filterExpression",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "input.tableOperation",
+        "equals" : "scanTable",
+        "type" : "simple"
+      }, {
+        "property" : "input.operationGroup",
+        "equals" : "tableOperation",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.projectionExpression",
+    "label" : "Projection expression",
+    "description" : "Is a string that identifies the attributes that you want. For multiple attributes, the names must be comma-separated",
+    "optional" : false,
+    "feel" : "optional",
+    "group" : "input",
+    "binding" : {
+      "name" : "input.projectionExpression",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "input.tableOperation",
+        "equals" : "scanTable",
+        "type" : "simple"
+      }, {
+        "property" : "input.operationGroup",
+        "equals" : "tableOperation",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.expressionAttributeNames",
+    "label" : "Expression attribute names",
+    "description" : "Is a placeholder that you use as an alternative to an actual attribute name. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>",
+    "optional" : false,
+    "feel" : "required",
+    "group" : "input",
+    "binding" : {
+      "name" : "input.expressionAttributeNames",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "input.tableOperation",
+        "equals" : "scanTable",
+        "type" : "simple"
+      }, {
+        "property" : "input.operationGroup",
+        "equals" : "tableOperation",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.expressionAttributeValues",
+    "label" : "Expression attribute values",
+    "description" : "Expression attribute values. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>",
+    "optional" : false,
+    "feel" : "required",
+    "group" : "input",
+    "binding" : {
+      "name" : "input.expressionAttributeValues",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "input.tableOperation",
+        "equals" : "scanTable",
+        "type" : "simple"
+      }, {
+        "property" : "input.operationGroup",
+        "equals" : "tableOperation",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.addItem.tableName",
+    "label" : "Table name",
+    "description" : "Name of DynamoDB table",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "input",
+    "binding" : {
+      "name" : "input.tableName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "input.itemOperation",
+        "equals" : "addItem",
+        "type" : "simple"
+      }, {
+        "property" : "input.operationGroup",
+        "equals" : "itemOperation",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.item",
+    "label" : "Item",
+    "description" : "DynamoDB item (group of attributes)",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "input",
+    "binding" : {
+      "name" : "input.item",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "input.itemOperation",
+        "equals" : "addItem",
+        "type" : "simple"
+      }, {
+        "property" : "input.operationGroup",
+        "equals" : "itemOperation",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.deleteItem.tableName",
+    "label" : "Table name",
+    "description" : "Name of DynamoDB table",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "input",
+    "binding" : {
+      "name" : "input.tableName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "input.itemOperation",
+        "equals" : "deleteItem",
+        "type" : "simple"
+      }, {
+        "property" : "input.operationGroup",
+        "equals" : "itemOperation",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.deleteItem.primaryKeyComponents",
+    "label" : "Primary key components",
+    "description" : "Simple or composite primary key",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "input",
+    "binding" : {
+      "name" : "input.primaryKeyComponents",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "input.itemOperation",
+        "equals" : "deleteItem",
+        "type" : "simple"
+      }, {
+        "property" : "input.operationGroup",
+        "equals" : "itemOperation",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.getItem.tableName",
+    "label" : "Table name",
+    "description" : "Name of DynamoDB table",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "input",
+    "binding" : {
+      "name" : "input.tableName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "input.itemOperation",
+        "equals" : "getItem",
+        "type" : "simple"
+      }, {
+        "property" : "input.operationGroup",
+        "equals" : "itemOperation",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.getItem.primaryKeyComponents",
+    "label" : "Primary key components",
+    "description" : "Simple or composite primary key",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "input",
+    "binding" : {
+      "name" : "input.primaryKeyComponents",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "input.itemOperation",
+        "equals" : "getItem",
+        "type" : "simple"
+      }, {
+        "property" : "input.operationGroup",
+        "equals" : "itemOperation",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.updateTable.tableName",
+    "label" : "Table name",
+    "description" : "Name of DynamoDB table",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "input",
+    "binding" : {
+      "name" : "input.tableName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "input.itemOperation",
+        "equals" : "updateItem",
+        "type" : "simple"
+      }, {
+        "property" : "input.operationGroup",
+        "equals" : "itemOperation",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.updateItem.primaryKeyComponents",
+    "label" : "Primary key components",
+    "description" : "Simple or composite primary key",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "input",
+    "binding" : {
+      "name" : "input.primaryKeyComponents",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "input.itemOperation",
+        "equals" : "updateItem",
+        "type" : "simple"
+      }, {
+        "property" : "input.operationGroup",
+        "equals" : "itemOperation",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.keyAttributes",
+    "label" : "Key attributes",
+    "description" : "DynamoDB key attributes. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "input",
+    "binding" : {
+      "name" : "input.keyAttributes",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "input.itemOperation",
+        "equals" : "updateItem",
+        "type" : "simple"
+      }, {
+        "property" : "input.operationGroup",
+        "equals" : "itemOperation",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.attributeAction",
+    "label" : "Attribute action",
+    "description" : "Specifies how to perform the update",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "input",
+    "binding" : {
+      "name" : "input.attributeAction",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "input.itemOperation",
+        "equals" : "updateItem",
+        "type" : "simple"
+      }, {
+        "property" : "input.operationGroup",
+        "equals" : "itemOperation",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "DELETE",
+      "value" : "delete"
+    }, {
+      "name" : "PUT",
+      "value" : "put"
+    } ]
+  }, {
+    "id" : "resultVariable",
+    "label" : "Result variable",
+    "description" : "Name of variable to store the response in",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultVariable",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  }, {
+    "id" : "resultExpression",
+    "label" : "Result expression",
+    "description" : "Expression to map the response into process variables",
+    "feel" : "required",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "errorExpression",
+    "label" : "Error expression",
+    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "error",
+    "binding" : {
+      "key" : "errorExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "retryCount",
+    "label" : "Retries",
+    "description" : "Number of retries",
+    "value" : "3",
+    "feel" : "optional",
+    "group" : "retries",
+    "binding" : {
+      "property" : "retries",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "String"
+  }, {
+    "id" : "retryBackoff",
+    "label" : "Retry backoff",
+    "description" : "ISO-8601 duration to wait between retries",
+    "value" : "PT0S",
+    "feel" : "optional",
+    "group" : "retries",
+    "binding" : {
+      "key" : "retryBackoff",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  } ],
+  "icon" : {
+    "contents" : "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0nMTgnIGhlaWdodD0nMTgnIHZpZXdCb3g9JzAgMCAyNTYgMjg5JyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHByZXNlcnZlQXNwZWN0UmF0aW89J3hNaWRZTWlkJz4KICAgIDxwYXRoIGQ9J00xNjUuMjU4IDI4OC41MDFoMy41MDhsNTcuMjYxLTI4LjYzNC45NTMtMS4zNDdWMjkuOTY0bC0uOTUzLTEuMzU0TDE2OC43NjYgMGgtMy41NTFsLjA0MyAyODguNTAxJwogICAgICAgICAgZmlsbD0nIzUyOTRDRicvPgogICAgPHBhdGggZD0nTTkwLjc0MSAyODguNTAxaC0zLjU1N2wtNTcuMjEyLTI4LjYzNC0xLjE2MS0xLjk5Ny0uNTg5LTIyNi43NDIgMS43NS0yLjUxOEw4Ny4xODQgMGgzLjYwMWwtLjA0NCAyODguNTAxJwogICAgICAgICAgZmlsbD0nIzFGNUI5OCcvPgogICAgPHBhdGggZD0nTTg3LjI4NSAwaDgxLjQyNnYyODguNTAxSDg3LjI4NVYweicgZmlsbD0nIzJENzJCOCcvPgogICAgPHBhdGggZD0nTTI1NiAxMzcuNzY5bC0xLjkzNS0uNDI5LTI3LjYyOC0yLjU3Ni0uNDEuMjA0LTU3LjMxMi0yLjI5MmgtODEuNDNsLTU3LjMxMyAyLjI5MlY5MS4yNjRsLS4wNi4wMzIuMDYtLjEyOCA1Ny4zMTMtMTMuMjhoODEuNDNsNTcuMzEyIDEzLjI4IDIxLjA2OSAxMS4xOTl2LTcuMmw4LjkwNC0uOTc0LS45MjItMS43OTgtMjguMTkyLTIwLjE1OS0uODU5LjI3OS01Ny4zMTItMTcuNzU5aC04MS40M0wyOS45NzIgNzIuNTE1VjI4LjYxTDAgNjMuNzIzdjMwLjY2NmwuMjMyLS4xNjggOC42NzIuOTQ2djcuMzQ4TDAgMTA3LjI4djMwLjUxM2wuMjMyLS4wMjQgOC42NzIuMTI4djEyLjgwN2wtNy40ODIuMTEyTDAgMTUwLjY4djMwLjUyNWw4LjkwNCA0Ljc4OHY3LjQzM2wtOC41MzEuOTQyLS4zNzMtLjI4djMwLjY2MWwyOS45NzIgMzUuMTE4di00My45MDFsNTcuMzEzIDE3Ljc1OWg4MS40M2w1Ny40ODEtMTcuODExLjc2NC4zMzUgMjcuODIxLTE5Ljg2MiAxLjIxOS0xLjk3OS04LjkwNC0uOTgydi03LjI4NGwtMS4xNjctLjQ2Ni0xOS4wNDMgMTAuMjY1LS42OSAxLjQ0LTU3LjQ4MSAxMy4yMDN2LjAxNmgtODEuNDN2LS4wMTZsLTU3LjMxMy0xMy4yNTl2LTQzLjg2NGw1Ny4zMTMgMi4yODR2LjA1Nmg4MS40M2w1Ny4zMTItMi4zNCAxLjMwNS42IDI2Ljc3OS0yLjMwNiAxLjg4OS0uOTIzLTguOTA0LS4xMjh2LTEyLjgwN2w4LjkwNC0uMTI4JwogICAgICAgICAgZmlsbD0nIzFBNDc2RicvPgogICAgPHBhdGggZD0nTTIyNi4wMjcgMjE1Ljk2NnY0My45MDFMMjU2IDIyNC43NDl2LTMwLjQ2MWwtMjkuOCAyMS42MjYtLjE3My4wNTJNMjI2LjAyNyAxOTcuNDIxbC4xNzMtLjA0IDI5LjgtMTYuMDI4di0zMC42NDlsLTI5Ljk3MyAyLjc1N3Y0My45Nk0yMjYuMiA5MS4yMDhsLS4xNzMtLjA0djQzLjhMMjU2IDEzNy43Njl2LTMwLjYzNGwtMjkuOC0xNS45MjdNMjI2LjIgNzIuNjg3TDI1NiA5NC4xOTNWNjMuNzMxTDIyNi4wMjcgMjguNjF2NDMuOTA1bC4xNzMuMDZ2LjExMicKICAgICAgICAgIGZpbGw9JyMyRDcyQjgnLz4KPC9zdmc+"
+  }
+}

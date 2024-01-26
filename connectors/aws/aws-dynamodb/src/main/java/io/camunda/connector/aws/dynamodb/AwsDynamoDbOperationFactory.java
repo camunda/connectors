@@ -35,24 +35,17 @@ public class AwsDynamoDbOperationFactory {
   }
 
   public AwsDynamoDbOperation createOperation(AwsInput input) {
-    if (input instanceof AddItem) {
-      return new AddItemOperation((AddItem) input);
-    } else if (input instanceof CreateTable) {
-      return new CreateTableOperation((CreateTable) input);
-    } else if (input instanceof DeleteItem) {
-      return new DeleteItemOperation((DeleteItem) input);
-    } else if (input instanceof DeleteTable) {
-      return new DeleteTableOperation((DeleteTable) input);
-    } else if (input instanceof DescribeTable) {
-      return new DescribeTableOperation((DescribeTable) input);
-    } else if (input instanceof GetItem) {
-      return new GetItemOperation((GetItem) input);
-    } else if (input instanceof ScanTable) {
-      return new ScanTableOperation((ScanTable) input);
-    } else if (input instanceof UpdateItem) {
-      return new UpdateItemOperation((UpdateItem) input);
-    } else {
-      throw new UnsupportedOperationException("Unsupported operation : [" + input.getClass() + "]");
-    }
+    return switch (input) {
+      case AddItem addItem -> new AddItemOperation(addItem);
+      case CreateTable createTable -> new CreateTableOperation(createTable);
+      case DeleteItem deleteItem -> new DeleteItemOperation(deleteItem);
+      case DeleteTable deleteTable -> new DeleteTableOperation(deleteTable);
+      case DescribeTable describeTable -> new DescribeTableOperation(describeTable);
+      case GetItem getItem -> new GetItemOperation(getItem);
+      case ScanTable scanTable -> new ScanTableOperation(scanTable);
+      case UpdateItem updateItem -> new UpdateItemOperation(updateItem);
+      default -> throw new UnsupportedOperationException(
+          "Unsupported operation: [" + input.getClass().getSimpleName() + "]");
+    };
   }
 }

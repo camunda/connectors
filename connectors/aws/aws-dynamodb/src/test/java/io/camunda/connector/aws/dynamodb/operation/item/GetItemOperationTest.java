@@ -35,9 +35,8 @@ class GetItemOperationTest extends BaseDynamoDbOperationTest {
 
   @BeforeEach
   public void setup() {
-    GetItem getItem = new GetItem();
-    getItem.setTableName(TestDynamoDBData.ActualValue.TABLE_NAME);
-    getItem.setPrimaryKeyComponents(Map.of("id", "1", "type", "user"));
+    GetItem getItem =
+        new GetItem(TestDynamoDBData.ActualValue.TABLE_NAME, Map.of("id", "1", "type", "user"));
     getItemOperation = new GetItemOperation(getItem);
   }
 
@@ -93,8 +92,8 @@ class GetItemOperationTest extends BaseDynamoDbOperationTest {
     // Then
     assertThat(request).isInstanceOf(GetItem.class);
     GetItem castedRequest = (GetItem) request;
-    assertThat(castedRequest.getTableName()).isEqualTo(TestDynamoDBData.ActualValue.TABLE_NAME);
-    assertThat(castedRequest.getPrimaryKeyComponents())
+    assertThat(castedRequest.tableName()).isEqualTo(TestDynamoDBData.ActualValue.TABLE_NAME);
+    assertThat(castedRequest.primaryKeyComponents())
         .isEqualTo(objectMapper.readValue("{\"id\":\"1234\"}", Map.class));
   }
 }

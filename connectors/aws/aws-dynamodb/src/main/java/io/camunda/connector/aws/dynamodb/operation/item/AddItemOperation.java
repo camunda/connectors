@@ -25,10 +25,10 @@ public class AddItemOperation implements AwsDynamoDbOperation {
 
   public PutItemOutcome invoke(final DynamoDB dynamoDB) throws JsonProcessingException {
     String itemStr =
-        ObjectMapperSupplier.getMapperInstance().writeValueAsString(addItemModel.getItem());
+        ObjectMapperSupplier.getMapperInstance().writeValueAsString(addItemModel.item());
     Item item = Item.fromJSON(itemStr);
 
-    final Table table = dynamoDB.getTable(addItemModel.getTableName());
+    final Table table = dynamoDB.getTable(addItemModel.tableName());
     return table.putItem(item);
   }
 }

@@ -9,11 +9,11 @@ package io.camunda.connector.aws.dynamodb.model;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
+import io.camunda.connector.generator.java.annotation.TemplateSubType;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-@JsonDeserialize(using = AwsInputDeserializer.class)
-@TemplateDiscriminatorProperty(
-    name = "operationGroup",
-    group = "operation",
-    label = "Choose category")
-public sealed interface AwsInput permits TableInput, ItemInput {}
+@JsonDeserialize()
+@TemplateSubType(label = "Item", id = "itemOperation")
+@TemplateDiscriminatorProperty(name = "itemOperation", group = "operation", label = "Select action")
+public sealed interface ItemInput extends AwsInput
+    permits AddItem, DeleteItem, GetItem, UpdateItem {}

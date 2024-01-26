@@ -21,8 +21,7 @@ class DescribeTableOperationTest extends BaseDynamoDbOperationTest {
   @Test
   public void invoke_shouldReturnDescribeTableResult() {
     // Given
-    DescribeTable describeTable = new DescribeTable();
-    describeTable.setTableName(TestDynamoDBData.ActualValue.TABLE_NAME);
+    DescribeTable describeTable = new DescribeTable(TestDynamoDBData.ActualValue.TABLE_NAME);
     DescribeTableOperation operation = new DescribeTableOperation(describeTable);
     // When
     Object invoke = operation.invoke(dynamoDB);
@@ -47,6 +46,6 @@ class DescribeTableOperationTest extends BaseDynamoDbOperationTest {
     // Then
     assertThat(request).isInstanceOf(DescribeTable.class);
     DescribeTable castedRequest = (DescribeTable) request;
-    assertThat(castedRequest.getTableName()).isEqualTo(TestDynamoDBData.ActualValue.TABLE_NAME);
+    assertThat(castedRequest.tableName()).isEqualTo(TestDynamoDBData.ActualValue.TABLE_NAME);
   }
 }

@@ -35,9 +35,8 @@ class DeleteItemOperationTest extends BaseDynamoDbOperationTest {
   public void setup() {
     Map<String, Object> primaryKeyComponents = new HashMap<>();
     primaryKeyComponents.put("id", "1234");
-    DeleteItem deleteItem = new DeleteItem();
-    deleteItem.setTableName(TestDynamoDBData.ActualValue.TABLE_NAME);
-    deleteItem.setPrimaryKeyComponents(primaryKeyComponents);
+    DeleteItem deleteItem =
+        new DeleteItem(TestDynamoDBData.ActualValue.TABLE_NAME, primaryKeyComponents);
     this.deleteItemOperation = new DeleteItemOperation(deleteItem);
   }
 
@@ -69,8 +68,8 @@ class DeleteItemOperationTest extends BaseDynamoDbOperationTest {
     // Then
     assertThat(request).isInstanceOf(DeleteItem.class);
     DeleteItem castedRequest = (DeleteItem) request;
-    assertThat(castedRequest.getTableName()).isEqualTo(TestDynamoDBData.ActualValue.TABLE_NAME);
-    assertThat(castedRequest.getPrimaryKeyComponents())
+    assertThat(castedRequest.tableName()).isEqualTo(TestDynamoDBData.ActualValue.TABLE_NAME);
+    assertThat(castedRequest.primaryKeyComponents())
         .isEqualTo(objectMapper.readValue("{\"id\":\"1234\"}", Map.class));
   }
 }

@@ -55,21 +55,19 @@ class ScanTableOperationTest extends BaseDynamoDbOperationTest {
     when(iterator.next()).thenReturn(itemList.get(0), itemList.get(1));
     when(itemCollection.iterator()).thenReturn(iterator);
 
-    scanTable = new ScanTable();
-    scanTable.setTableName(TestDynamoDBData.ActualValue.TABLE_NAME);
-    scanTable.setFilterExpression(TestDynamoDBData.ActualValue.FILTER_EXPRESSION);
-    scanTable.setExpressionAttributeNames(TestDynamoDBData.ActualValue.EXPRESSION_ATTRIBUTE_NAMES);
-    scanTable.setExpressionAttributeValues(
-        TestDynamoDBData.ActualValue.EXPRESSION_ATTRIBUTE_VALUES);
+    scanTable =
+        new ScanTable(
+            TestDynamoDBData.ActualValue.TABLE_NAME,
+            TestDynamoDBData.ActualValue.FILTER_EXPRESSION,
+            null,
+            TestDynamoDBData.ActualValue.EXPRESSION_ATTRIBUTE_NAMES,
+            TestDynamoDBData.ActualValue.EXPRESSION_ATTRIBUTE_VALUES);
   }
 
   @Test
   public void invoke_shouldScanTableWithoutFilter() {
     // Given
-    scanTable.setFilterExpression(null);
-    scanTable.setExpressionAttributeValues(null);
-    scanTable.setProjectionExpression(null);
-    scanTable.setExpressionAttributeNames(null);
+    scanTable = new ScanTable(TestDynamoDBData.ActualValue.TABLE_NAME, null, null, null, null);
     when(dynamoDB.getTable(TestDynamoDBData.ActualValue.TABLE_NAME).scan(null, null, null, null))
         .thenReturn(itemCollection);
     scanTableOperation = new ScanTableOperation(scanTable);

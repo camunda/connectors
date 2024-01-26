@@ -35,11 +35,11 @@ public class UpdateItemOperation implements AwsDynamoDbOperation {
     PrimaryKey primaryKey = new PrimaryKey();
     objectMapper
         .convertValue(
-            updateItemModel.getKeyAttributes(), new TypeReference<HashMap<String, Object>>() {})
+            updateItemModel.keyAttributes(), new TypeReference<HashMap<String, Object>>() {})
         .forEach(primaryKey::addComponent);
 
     return dynamoDB
-        .getTable(updateItemModel.getTableName())
+        .getTable(updateItemModel.tableName())
         .updateItem(primaryKey, getAttributeUpdatesArray());
   }
 
@@ -47,13 +47,13 @@ public class UpdateItemOperation implements AwsDynamoDbOperation {
     List<AttributeUpdate> attributeUpdates = new ArrayList<>();
     objectMapper
         .convertValue(
-            updateItemModel.getKeyAttributes(), new TypeReference<HashMap<String, Object>>() {})
+            updateItemModel.keyAttributes(), new TypeReference<HashMap<String, Object>>() {})
         .forEach(
             (key, value) -> {
               AttributeUpdate attributeUpdate;
               AttributeAction attributeAction =
                   AttributeAction.fromValue(
-                      updateItemModel.getAttributeAction().toUpperCase(Locale.ROOT));
+                      updateItemModel.attributeAction().toUpperCase(Locale.ROOT));
               attributeUpdate =
                   switch (attributeAction) {
                     case PUT -> new AttributeUpdate(key).put(value);

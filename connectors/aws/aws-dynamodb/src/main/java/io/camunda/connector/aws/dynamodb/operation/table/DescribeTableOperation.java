@@ -19,6 +19,6 @@ public class DescribeTableOperation implements AwsDynamoDbOperation {
 
   @Override
   public Object invoke(final DynamoDB dynamoDB) {
-    return dynamoDB.getTable(describeTableModel.getTableName()).describe();
+    return dynamoDB.getTable(describeTableModel.tableName()).describe();
   }
 }
