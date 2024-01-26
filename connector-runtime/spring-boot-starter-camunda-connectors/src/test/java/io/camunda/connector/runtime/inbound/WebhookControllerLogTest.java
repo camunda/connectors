@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.inbound;
 
+import static io.camunda.connector.api.inbound.Health.Status.UP;
 import static io.camunda.connector.runtime.inbound.WebhookControllerPlainJavaTests.buildConnector;
 import static io.camunda.connector.runtime.inbound.WebhookControllerPlainJavaTests.webhookDefinition;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -24,7 +25,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import io.camunda.connector.api.inbound.Activity;
-import io.camunda.connector.api.inbound.Severity;
+import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.runtime.inbound.lifecycle.ActiveInboundConnector;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import java.util.stream.Stream;
@@ -42,6 +43,7 @@ import org.mockito.quality.Strictness;
 @MockitoSettings(strictness = Strictness.LENIENT)
 public class WebhookControllerLogTest {
   @Captor ArgumentCaptor<Activity> activityCaptor;
+  @Captor ArgumentCaptor<Health> healthCaptor;
 
   private static Stream<Arguments> invalidCases() {
     return Stream.of(
@@ -69,11 +71,13 @@ public class WebhookControllerLogTest {
     webhook.register(processA1);
 
     // then
-    verify(processA1.context(), times(1)).log(activityCaptor.capture());
-    Activity passedActivity = activityCaptor.getValue();
-    assertEquals(Severity.WARNING, passedActivity.severity());
-    assertEquals("Warn", passedActivity.tag());
-    assertTrue(passedActivity.message().contains(webhookPath));
+    verify(processA1.context(), times(1)).reportHealth(healthCaptor.capture());
+
+    Health usedHealth = healthCaptor.getValue();
+    assertEquals(UP, usedHealth.getStatus());
+
+    String warning = (String) usedHealth.getDetails().get("Warning");
+    assertTrue(warning.contains(webhookPath));
 
     assertWebhookRegistered(webhookPath, webhook, processA1);
   }
