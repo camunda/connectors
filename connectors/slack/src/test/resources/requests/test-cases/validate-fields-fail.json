@@ -36,24 +36,6 @@
     }
   },
   {
-    "description": "without text",
-    "token": "xoxb-0123456789456-123467890987-thisIsTestToken",
-    "method": "chat.postMessage",
-    "data": {
-      "channel": "channel",
-      "text": null
-    }
-  },
-  {
-    "description": "without blank text",
-    "token": "xoxb-0123456789456-123467890987-thisIsTestToken",
-    "method": "chat.postMessage",
-    "data": {
-      "channel":"channel",
-      "text": "    "
-    }
-  },
-  {
     "description": "create channel; without visibility",
     "token": "xoxb-0123456789456-123467890987-thisIsTestToken",
     "method": "conversations.create",

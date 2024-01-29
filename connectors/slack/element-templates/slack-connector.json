@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "Slack Outbound Connector",
   "id": "io.camunda.connectors.Slack.v1",
-  "version": 2,
+  "version": 3,
   "description": "Create a channel or send a message to a channel or user",
   "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/slack/?slack=outbound",
   "icon": {
@@ -162,6 +162,28 @@
       }
     },
     {
+      "id": "message.type",
+      "label": "Message type",
+      "group": "message",
+      "type": "Dropdown",
+      "value": "plainText",
+      "optional": false,
+      "choices": [
+        {
+          "name": "Plain text",
+          "value": "plainText"
+        },
+        {
+          "name": "Message block",
+          "value": "messageBlock"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "message.type"
+      }
+    },
+    {
       "label": "Message",
       "group": "message",
       "type": "Text",
@@ -174,8 +196,27 @@
         "notEmpty": true
       },
       "condition": {
-        "property": "method",
-        "equals": "chat.postMessage"
+        "property": "message.type",
+        "equals": "plainText"
+      }
+    },
+    {
+      "label": "Message block",
+      "group": "message",
+      "description": "An array of rich message content blocks. Learn more at the <a href=\"https://api.slack.com/reference/surfaces/formatting#stack_of_blocks\" target=\"_blank\">official Slack documentation page</a>",
+      "type": "Text",
+      "value": "=[\n\t{\n\t\t\"type\": \"header\",\n\t\t\"text\": {\n\t\t\t\"type\": \"plain_text\",\n\t\t\t\"text\": \"New request\"\n\t\t}\n\t},\n\t{\n\t\t\"type\": \"section\",\n\t\t\"fields\": [\n\t\t\t{\n\t\t\t\t\"type\": \"mrkdwn\",\n\t\t\t\t\"text\": \"*Type:*\\nPaid Time Off\"\n\t\t\t},\n\t\t\t{\n\t\t\t\t\"type\": \"mrkdwn\",\n\t\t\t\t\"text\": \"*Created by:*\\n<example.com|John Dow>\"\n\t\t\t}\n\t\t]\n\t},\n\t{\n\t\t\"type\": \"section\",\n\t\t\"fields\": [\n\t\t\t{\n\t\t\t\t\"type\": \"mrkdwn\",\n\t\t\t\t\"text\": \"*When:*\\nAug 10 - Aug 13\"\n\t\t\t}\n\t\t]\n\t},\n\t{\n\t\t\"type\": \"section\",\n\t\t\"text\": {\n\t\t\t\"type\": \"mrkdwn\",\n\t\t\t\"text\": \"<https://example.com|View request>\"\n\t\t}\n\t}\n]",
+      "feel": "required",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "data.blockContent"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "message.type",
+        "equals": "messageBlock"
       }
     },
     {
