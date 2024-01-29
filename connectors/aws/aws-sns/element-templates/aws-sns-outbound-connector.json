@@ -178,7 +178,7 @@
     "id" : "topic.messageDeduplicationId",
     "label" : "Message deduplication ID",
     "description" : "Message deduplication ID. See also <a href=\"https://docs.aws.amazon.com/sns/latest/dg/fifo-message-dedup.html\">Message deduplication for FIFO topics</a> in the Amazon SNS developer guide",
-    "optional" : false,
+    "optional" : true,
     "feel" : "optional",
     "group" : "input",
     "binding" : {
@@ -195,11 +195,7 @@
     "id" : "topic.subject",
     "label" : "Subject",
     "description" : "Specify the subject of the message you want to publish in the SNS topic",
-    "optional" : false,
-    "constraints" : {
-      "minLength" : 0,
-      "maxLength" : 99
-    },
+    "optional" : true,
     "feel" : "optional",
     "group" : "input",
     "binding" : {
@@ -226,7 +222,7 @@
     "id" : "topic.messageAttributes",
     "label" : "messageAttributes",
     "description" : "Message attributes metadata",
-    "optional" : false,
+    "optional" : true,
     "feel" : "required",
     "group" : "input",
     "binding" : {

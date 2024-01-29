@@ -24,12 +24,14 @@ public record ScanTable(
     @TemplateProperty(
             label = "Filter expression",
             group = "input",
+            optional = true,
             description =
                 "Filter expressions for scan. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>")
         String filterExpression,
     @TemplateProperty(
             label = "Projection expression",
             group = "input",
+            optional = true,
             description =
                 "Is a string that identifies the attributes that you want. For multiple attributes, the names must be comma-separated")
         String projectionExpression,
@@ -37,6 +39,7 @@ public record ScanTable(
             label = "Expression attribute names",
             group = "input",
             feel = Property.FeelMode.required,
+            optional = true,
             description =
                 "Is a placeholder that you use as an alternative to an actual attribute name. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>")
         Map<String, String> expressionAttributeNames,
@@ -44,6 +47,7 @@ public record ScanTable(
             label = "Expression attribute values",
             group = "input",
             feel = Property.FeelMode.required,
+            optional = true,
             description =
                 "Expression attribute values. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>")
         Map<String, Object> expressionAttributeValues)

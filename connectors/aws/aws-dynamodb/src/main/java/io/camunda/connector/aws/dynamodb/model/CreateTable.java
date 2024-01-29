@@ -121,5 +121,6 @@ public record CreateTable(
             },
             defaultValue = "false",
             description = "Prevents accidental table deletion")
+        @NotNull
         boolean deletionProtection)
     implements TableInput {}

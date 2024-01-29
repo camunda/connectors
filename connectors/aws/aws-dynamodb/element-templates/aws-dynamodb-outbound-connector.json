@@ -486,6 +486,9 @@
     "description" : "Prevents accidental table deletion",
     "optional" : false,
     "value" : "false",
+    "constraints" : {
+      "notEmpty" : true
+    },
     "group" : "input",
     "binding" : {
       "name" : "input.deletionProtection",
@@ -592,7 +595,7 @@
     "id" : "input.filterExpression",
     "label" : "Filter expression",
     "description" : "Filter expressions for scan. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>",
-    "optional" : false,
+    "optional" : true,
     "feel" : "optional",
     "group" : "input",
     "binding" : {
@@ -615,7 +618,7 @@
     "id" : "input.projectionExpression",
     "label" : "Projection expression",
     "description" : "Is a string that identifies the attributes that you want. For multiple attributes, the names must be comma-separated",
-    "optional" : false,
+    "optional" : true,
     "feel" : "optional",
     "group" : "input",
     "binding" : {
@@ -638,7 +641,7 @@
     "id" : "input.expressionAttributeNames",
     "label" : "Expression attribute names",
     "description" : "Is a placeholder that you use as an alternative to an actual attribute name. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>",
-    "optional" : false,
+    "optional" : true,
     "feel" : "required",
     "group" : "input",
     "binding" : {
@@ -661,7 +664,7 @@
     "id" : "input.expressionAttributeValues",
     "label" : "Expression attribute values",
     "description" : "Expression attribute values. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>",
-    "optional" : false,
+    "optional" : true,
     "feel" : "required",
     "group" : "input",
     "binding" : {

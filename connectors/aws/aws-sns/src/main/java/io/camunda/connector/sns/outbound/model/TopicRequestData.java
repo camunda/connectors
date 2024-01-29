@@ -14,7 +14,6 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -60,14 +59,15 @@ public class TopicRequestData {
       group = "input",
       label = "Message deduplication ID",
       condition = @TemplateProperty.PropertyCondition(property = "topic.type", equals = "fifo"),
+      optional = true,
       description =
           "Message deduplication ID. See also <a href=\"https://docs.aws.amazon.com/sns/latest/dg/fifo-message-dedup.html\">Message deduplication for FIFO topics</a> in the Amazon SNS developer guide")
   private String messageDeduplicationId;
 
-  @Size(max = 99)
   @TemplateProperty(
       group = "input",
       label = "Subject",
+      optional = true,
       description = "Specify the subject of the message you want to publish in the SNS topic")
   private String subject;
 
@@ -85,6 +85,7 @@ public class TopicRequestData {
       group = "input",
       feel = Property.FeelMode.required,
       label = "messageAttributes",
+      optional = true,
       description = "Message attributes metadata")
   private Map<String, SnsMessageAttribute> messageAttributes;
 
