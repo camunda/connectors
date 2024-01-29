@@ -151,13 +151,17 @@ camunda.operate.client.password=demo
 ```
 
 When running against a self-managed environment you might also need to configure the keycloak endpoint to not use Operate username/password authentication.
-For this you either need to use the existing connectors client-id and client-secret (see in Identity) or create a new client in Identity that has permission to access the operate-api (read:*)
+For this you either need to use the existing connectors client-id and client-secret (see in Identity) or create a new client in Identity that has permission to access the operate-api (read:*).
+When you have the client-id and client-secret you can configure the following Identity properties:
 
 ```properties
-camunda.operate.client.keycloak-url=http://localhost:18080
-camunda.operate.client.keycloak-realm=camunda-platform
-camunda.operate.client.client-id=xxx
-camunda.operate.client.client-secret=xxx
+camunda.identity.type=keycloak
+camunda.identity.base-url=http://localhost:8084
+camunda.identity.issuer=http://localhost:18080/auth/realms/camunda-platform
+camunda.identity.client-id=connectors
+camunda.identity.client-secret=xxx
+camunda.identity.issuer-backend-url=http://localhost:18080/auth/realms/camunda-platform
+camunda.identity.audience=connectors
 ```
 
 ### Adding Connectors
