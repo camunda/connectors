@@ -1,34 +1,254 @@
-name: Manual Changelog Generation
+name: Release a new version
+run-name: Release a new version ${{ inputs.version }}
+
 on:
-  workflow_dispatch: # You can still keep this for manual triggers if needed
+  release:
+    types: [ created ]
 
 jobs:
-  generate-changelog:
+  build-and-push:
+    name: Build and push Docker images
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.release.target_commitish }}
           fetch-depth: 0
 
-      - name: Determine Previous Tag
+      - name: Validate release tag and determine previous tag
+        id: validate_tag
         run: |
-          CURRENT_TAG="8.5.0-alpha1-rc1"
-          OUTPUT="$(.github/workflows/scripts/prev_tag.sh $CURRENT_TAG)"
+          OUTPUT="$(.github/workflows/scripts/prev_tag.sh ${{ github.event.release.tag_name }})"
           if [ $? -ne 0 ]; then
             echo "Script failed"
             exit 1
           fi
-          echo "previousTag=$(echo $OUTPUT | cut -d ' ' -f2)" >> $GITHUB_OUTPUT
+          echo "type=$( echo $OUTPUT | cut -d ' ' -f1 )" >> $GITHUB_OUTPUT
+          echo "previousTag=$( echo $OUTPUT | cut -d ' ' -f2 )" >> $GITHUB_OUTPUT
+
+      - name: Import Secrets
+        id: secrets
+        uses: hashicorp/vault-action@v2.7.4
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          exportEnv: false # we rely on step outputs, no need for environment variables
+          secrets: |
+            secret/data/products/connectors/ci/common DOCKERHUB_USER;
+            secret/data/products/connectors/ci/common DOCKERHUB_PASSWORD;
+            secret/data/products/connectors/ci/common ARTIFACTORY_USR;
+            secret/data/products/connectors/ci/common ARTIFACTORY_PSW;
+            secret/data/github.com/organizations/camunda MAVEN_CENTRAL_DEPLOYMENT_USR;
+            secret/data/github.com/organizations/camunda MAVEN_CENTRAL_DEPLOYMENT_PSW;
+            secret/data/github.com/organizations/camunda MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE;
+            secret/data/github.com/organizations/camunda MAVEN_CENTRAL_GPG_SIGNING_KEY_SEC;
+
+      - name: Import GPG key
+        id: import_gpg
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ steps.secrets.outputs.MAVEN_CENTRAL_GPG_SIGNING_KEY_SEC }}
+          passphrase: ${{ steps.secrets.outputs.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}
+
+      - name: Restore cache
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Prepare Java and Maven settings
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      # Use CI Nexus as co-located pull-through cache for Maven artifacts via ~/.m2/settings.xml
+      - name: 'Create settings.xml'
+        uses: s4u/maven-settings-action@v3.0.0
+        with:
+          githubServer: false
+          servers: |
+            [{
+               "id": "camunda-nexus",
+               "username": "${{ steps.secrets.outputs.ARTIFACTORY_USR }}",
+               "password": "${{ steps.secrets.outputs.ARTIFACTORY_PSW }}"
+             },
+            {
+               "id": "central",
+               "username": "${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_USR }}",
+               "password": "${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_PSW }}"
+             }
+            ]
+          mirrors: '[{"url": "https://repository.nexus.camunda.cloud/content/groups/internal/", "id": "camunda-nexus", "mirrorOf": "camunda-nexus", "name": "camunda Nexus"}]'
+
+      - name: Configure git user
+        run: |
+          # https://github.com/actions/checkout/issues/13#issuecomment-724415212
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Install element templates CLI
+        run: npm install --global element-templates-cli
+
+      # Maven build & version bump
+
+      - name: Set Connectors release version
+        run: mvn -B versions:set -DnewVersion=${RELEASE_VERSION} -DgenerateBackupPoms=false -f parent
+        env:
+          RELEASE_VERSION: ${{ github.event.release.tag_name }}
+
+      - name: Deploy artifacts to Artifactory and Maven Central
+        run: mvn -B compile generate-sources source:jar javadoc:jar deploy -PcheckFormat -Psonatype-oss-release
+        env:
+          NEXUS_USR: ${{ steps.secrets.outputs.ARTIFACTORY_USR }}
+          NEXUS_PSW: ${{ steps.secrets.outputs.ARTIFACTORY_PSW }}
+          MAVEN_USR: ${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_USR }}
+          MAVEN_PSW: ${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_PSW }}
+          MAVEN_GPG_PASSPHRASE: ${{ steps.secrets.outputs.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}
+
+      - name: Commit and tag
+        run: |
+          git commit -am "ci: release version ${RELEASE_VERSION}"
+          git tag -fa ${RELEASE_VERSION} -m "ci: release version ${RELEASE_VERSION}"
+          git push --force origin ${RELEASE_VERSION}
+
+        env:
+          RELEASE_VERSION: ${{ github.event.release.tag_name }}
+
+      - name: Generate sbom reports
+        run: |
+          mvn cyclonedx:makeAggregateBom -pl bundle/default-bundle
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: 'arm64,arm'
+
+      - name: Set up Docker Build
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
+          password: ${{ steps.secrets.outputs.DOCKERHUB_PASSWORD }}
+
+      # Build & push bundle docker images (with version tag)
+
+      - name: Build and Push Docker Image tag ${{ github.event.release.tag_name }} - connector-runtime
+        uses: docker/build-push-action@v5
+        with:
+          context: connector-runtime/connector-runtime-application/
+          push: true
+          tags: camunda/connectors:${{ github.event.release.tag_name }}
+          platforms: linux/amd64,linux/arm64
+          provenance: false
+
+      - name: Build and Push Docker Image tag ${{ github.event.release.tag_name }} - bundle-default
+        uses: docker/build-push-action@v5
+        with:
+          context: bundle/default-bundle/
+          push: true
+          tags: camunda/connectors-bundle:${{ github.event.release.tag_name }}
+          platforms: linux/amd64,linux/arm64
+          provenance: false
+
+      - name: Build and Push Docker Image tag ${{ github.event.release.tag_name }} - bundle-saas
+        uses: docker/build-push-action@v5
+        with:
+          context: bundle/camunda-saas-bundle/
+          push: true
+          tags: camunda/connectors-bundle-saas:${{ github.event.release.tag_name }}
+          platforms: linux/amd64,linux/arm64
+          provenance: false
+
+      # Build & push bundle docker images (with 'latest' tag)
+
+      - name: Build and Push Docker Image tag latest - connector-runtime
+        uses: docker/build-push-action@v5
+        with:
+          context: connector-runtime/connector-runtime-application/
+          push: true
+          tags: camunda/connectors:latest
+          platforms: linux/amd64,linux/arm64
+          provenance: false
+
+      - name: Build and Push Docker Image tag latest - bundle-default
+        if: ${{ steps.validate_tag.outputs.type == 'NORMAL' }}
+        uses: docker/build-push-action@v5
+        with:
+          context: bundle/default-bundle/
+          push: true
+          tags: camunda/connectors-bundle:latest
+          platforms: linux/amd64,linux/arm64
+          provenance: false
+
+      - name: Build and Push Docker Image tag latest - bundle-saas
+        if: ${{ steps.validate_tag.outputs.type == 'NORMAL' }}
+        uses: docker/build-push-action@v5
+        with:
+          context: bundle/camunda-saas-bundle/
+          push: true
+          tags: camunda/connectors-bundle-saas:latest
+          platforms: linux/amd64,linux/arm64
+          provenance: false
+
+      # Update README in Dockerhub
+
+      - name: Push README to Dockerhub - bundle-default
+        if: ${{ steps.validate_tag.outputs.type == 'NORMAL' }}
+        uses: christian-korneck/update-container-description-action@v1
+        env:
+          DOCKER_USER: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
+          DOCKER_PASS: ${{ steps.secrets.outputs.DOCKERHUB_PASSWORD }}
+        with:
+          destination_container_repo: camunda/connectors-bundle
+          provider: dockerhub
+          readme_file: bundle/README.md
+          short_description: 'Camunda out-of-the-box Connectors Bundle'
+
+      - name: Push README to Dockerhub - bundle-saas
+        if: ${{ steps.validate_tag.outputs.type == 'NORMAL' }}
+        uses: christian-korneck/update-container-description-action@v1
+        env:
+          DOCKER_USER: ${{ steps.secrets.outputs.DOCKERHUB_USER }}
+          DOCKER_PASS: ${{ steps.secrets.outputs.DOCKERHUB_PASSWORD }}
+        with:
+          destination_container_repo: camunda/connectors-bundle-saas
+          provider: dockerhub
+          readme_file: bundle/README.md
+          short_description: 'Camunda out-of-the-box Connectors Bundle for SaaS'
+
+      # Update GitHub release
+
+      - name: Bundle element templates
+        run: bash bundle/bundle-templates.sh ${RELEASE_VERSION}
+        env:
+          RELEASE_VERSION: ${{ github.event.release.tag_name }}
 
       - name: Build Changelog
+        id: changelog
         uses: Requarks/changelog-action@v1
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          fromTag: ${{ steps.prev_tag.outputs.previousTag }}
-          toTag: $CURRENT_TAG
+          token: ${{ github.token }}
+          fromTag: ${{ github.event.release.tag_name }}
+          toTag: ${{ steps.validate_tag.outputs.previousTag }}
           writeToFile: false
           excludeTypes: build,docs,other,style,ci
           excludeScopes: deps
 
-      - name: Output Changelog
-        run: echo "Changelog between ${{ steps.prev_tag.outputs.previousTag }} and $CURRENT_TAG:\n${{ steps.changelog.outputs.changes }}"
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          prerelease: ${{ steps.validate_tag.outputs.type != 'NORMAL' }}
+          body: ${{ steps.changelog.outputs.changes }}
+          tag_name: ${{ github.event.release.tag_name }}
+          files: |
+            bundle/default-bundle/target/connectors-bundle-sbom.json
+            bundle/default-bundle/target/connectors-bundle-sbom.xml
+            connectors-bundle-templates-${{ github.event.release.tag_name }}.tar.gz
+            connectors-bundle-templates-${{ github.event.release.tag_name }}.zip

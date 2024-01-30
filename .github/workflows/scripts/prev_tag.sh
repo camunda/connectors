@@ -26,173 +26,150 @@
 # Release Candidates (RC) for Major Versions:
 # - For RC releases of a major version (e.g., 9.0.0-rc1), the previous tag is the base (x.0) tag of the highest minor version from the last major series (e.g., 8.9.0).
 
-# Function to determine the previous tag using 'NORMAL' logic
+PREV_TAG="not found"
+
+  # Function to determine the previous tag using 'NORMAL' logic
   determine_normal_prev_tag() {
-    local candidate=""
-    local candidateWithPatch0=""
-    # Loop through all previous tags to find the appropriate previous tag
-    for tag in "${prev_tags[@]}"; do
-      echo "$tag"
-      # Split the tag into major, minor, and patch numbers
-      IFS='.' read -r tag_major tag_minor tag_patch <<< "$tag"
-      # Split the current tag into major, minor, and patch numbers
-      IFS='.' read -r curr_major curr_minor curr_patch <<< "$current_tag"
-      # Compare each previous tag with the current tag to find the closest preceding version
-      if ((tag_major < curr_major)); then
-        candidate="$tag"
-      elif ((tag_major == curr_major)); then
-        if ((tag_minor < curr_minor)); then
-          candidate="$tag"
-        elif ((tag_minor == curr_minor)); then
-          if ((tag_patch <= curr_patch)); then
-            candidate="$tag"
+      local candidate=""
+      local candidateWithPatch0=""
+      # Loop through all previous tags to find the appropriate previous tag
+      for tag in $prev_tags; do
+          if [[ $tag != "$current_tag" ]] && [[ $tag =~ $NORMAL_PATTERN ]]; then
+              IFS='.' read -r tag_major tag_minor tag_patch <<< "$tag"
+              IFS='.' read -r curr_major curr_minor curr_patch <<< "$current_tag"
+              curr_patch=${curr_patch%%-*}
+               if [[ $tag == "$current_tag" ]] || { ((tag_major == curr_major)) && ((tag_minor == curr_minor)) && ((tag_patch == curr_patch)); }; then
+                              continue
+                          fi
+
+              IFS='.' read -r candidate_major candidate_minor candidate_patch <<< "$candidate"
+
+              # Compare each previous tag with the current tag to find the closest preceding version
+              if ((tag_major == curr_major)); then
+                  if ((tag_minor == curr_minor)) && ((tag_patch <= curr_patch)) && ([[ -z "$candidate_patch" ]] || ((tag_patch > candidate_patch))); then
+                      candidate="$tag"
+                  elif ((tag_minor < curr_minor)) && ([[ -z "$candidate_minor" ]] || ((tag_minor > candidate_minor))); then
+                      candidate="$tag"
+                  fi
+              elif ((tag_major < curr_major)) && ([[ -z "$candidate_major" ]] || ((tag_major > candidate_major))); then
+                  candidate="$tag"
+              fi
+
+              if ((tag_patch == 0)); then
+                  IFS='.' read -r candidateWithPatch0_major candidateWithPatch0_minor _ <<< "$candidateWithPatch0"
+                  if ((tag_major == curr_major)) && ((tag_minor <= curr_minor)) && ([[ -z "$candidateWithPatch0_minor" ]] || ((tag_minor > candidateWithPatch0_minor))); then
+                      candidateWithPatch0="$tag"
+                  elif ((tag_major < curr_major)) && ([[ -z "$candidateWithPatch0_major" ]] || ((tag_major > candidateWithPatch0_major))); then
+                      candidateWithPatch0="$tag"
+                  fi
+              fi
           fi
-        fi
-      fi
-      # Special handling for tags with a patch version of 0
-      if ((tag_patch == 0)) && ((tag_major <= curr_major)) && ((tag_minor <= curr_minor)); then
-        if [[ -n "$candidateWithPatch0" ]]; then
-          # Compare and update the candidate with patch 0 if it's a closer match
-          IFS='.' read -r candidate_major candidate_minor _ <<< "$candidateWithPatch0"
-          if ((candidate_major < tag_major)) || ((candidate_minor < tag_minor)); then
-            candidateWithPatch0="$tag"
+      done
+
+      # Decide the previous tag based on whether the current patch number is 0
+      if [[ "$curr_patch" == "0" ]]; then
+          if [[ -n "$candidateWithPatch0" ]]; then
+              prev_tag="$candidateWithPatch0"
+          else
+              prev_tag="$candidate"
           fi
-        else
-          candidateWithPatch0="$tag"
-        fi
-      fi
-    done
-    # Decide the previous tag based on whether the current patch number is 0
-    if [[ "$curr_patch" == "0" ]]; then
-      # If the current patch is 0, prefer the candidate with patch 0 if available
-      if [[ -n "$candidateWithPatch0" ]]; then
-        prev_tag="$candidateWithPatch0"
       else
-        prev_tag="$candidate"
+          prev_tag="$candidate"
       fi
-    else
-      # Otherwise, use the candidate determined above
-      prev_tag="$candidate"
-    fi
+       echo "$prev_tag"
   }
+
 
 # Function to determine the previous tag based on the type and version
 determine_prev_tag() {
-  local current_tag=$1
-   local type=$2
-   local major_minor
-   local rc_number
-   local prev_tags
-   local prev_tag=""
-   local prev_rc_tag
+  local current_tag="$1"
+  local type="$2"
+  local prev_tag=""
 
-   prev_tags=$(git --no-pager tag --sort=-v:refname)
-   major_minor=$(echo "$current_tag" | cut -d '.' -f 1,2)
-   rc_number=${current_tag//*-rc/}
+  local prev_tags=$(git --no-pager tag --sort=-v:refname)
 
-   case $type in
-   NORMAL)
-     determine_normal_prev_tag
-     ;;
-   RC)
-  # Check if there's a previous RC within the same minor version and with a lower RC number
-  prev_rc_tag=$(get_previous_rc_tag "$major_minor" "$current_tag" "$rc_number" "$prev_tags")
-  if [[ -n $prev_rc_tag ]]; then
-    prev_tag="$prev_rc_tag"
-    fi
-   # Fallback to 'NORMAL' logic if no previous tag found
-       if [[ -z $prev_tag ]]; then
-         determine_normal_prev_tag
-        fi
-  echo "$prev_tag"
-  ;;
-ALPHA)
-  local alpha_base
-  local alpha_version
-  local alpha_number
-alpha_base=${current_tag##*-alpha[0-9]*}
+  if [[ $type == "RC" ]]; then
+    # Extract the base version and RC version from the current tag
+    local base_version="${current_tag%-rc*}"
+    local current_rc_version=$(echo "$current_tag" | grep -oE "rc[0-9]+" | sed 's/rc//')
 
- if [[ $current_tag =~ -alpha[0-9]+-rc[0-9]+$ ]]; then
-   alpha_version=${current_tag%-rc[0-9]*}
+    # Get the previous RC tag within the same minor version and with a lower RC number
+    prev_tag=$(get_previous_rc_tag "$base_version" "$current_rc_version" "$prev_tags")
+  fi
 
-   # Check if there's a previous RC within the same alpha version and with a lower RC number
-   prev_rc_tag=$(get_previous_rc_tag_for_alpha "$alpha_version" "$current_tag" "$rc_number" "$prev_tags")
-   if [[ -z $prev_rc_tag ]]; then
-     # If no previous RC found for the same alpha version, find the highest alpha version before the current alpha
-     prev_tag=$(get_previous_alpha_tag "$alpha_base" "$alpha_version" "$prev_tags")
-     else
-     prev_tag=$prev_rc_tag
-   fi
-  elif [[ $current_tag =~ -alpha[0-9]+$ ]]; then
-    alpha_number=$(echo "$current_tag" | grep -oE "alpha[0-9]+$" | sed 's/alpha//')
-    prev_tag=$(get_previous_alpha_tag "$alpha_base" "$alpha_number" "$prev_tags")
+  if [[ $type == "ALPHA" ]] || { [[ -z $prev_tag ]] && [[ $current_tag =~ -alpha[0-9]+-rc[0-9]+$ ]]; }; then
+    # Extract the alpha base version
+    local base_version="${current_tag%-alpha*}"
+    local current_alpha_version=$(echo "$current_tag" | grep -oE "alpha[0-9]+" | sed 's/alpha//')
+    prev_tag=$(get_previous_alpha_tag "$base_version" "$current_alpha_version" "$prev_tags")
   fi
 
   # Fallback to 'NORMAL' logic if no previous tag found
   if [[ -z $prev_tag ]]; then
-    determine_normal_prev_tag
+    prev_tag=$(determine_normal_prev_tag)
   fi
-;;
 
-  esac
-  echo "$prev_tag"
+  PREV_TAG="$prev_tag"
 }
+
 
 # Function to get the previous RC tag
 get_previous_rc_tag() {
-  local major_minor=$1
-  local current_tag=$2
-  local rc_number=$3
-  local prev_tags=$4
-  local prev_rc_tag
-  local awk_script="{split(\$0, a, \"-rc\"); if (\$0 < curTag && \$0 ~ \"-rc[0-9]+$\" && (a[2] + 0 < curRc + 0)) print}"
+    local base_version=$1
+    local current_rc_version=$2
+    local prev_tags=$3
+    local candidate_tag=""
+    local candidate_rc_version=0
 
-  prev_rc_tag=$(echo "$prev_tags" | grep -E "^$major_minor\.[0-9]+-rc[0-9]+$" | awk -v curTag="$current_tag" -v curRc="$rc_number" "$awk_script" | sort -n | tail -1)
-
-  echo "$prev_rc_tag"
-}
-
-# Function to get the previous RC tag for a given alpha version
-get_previous_rc_tag_for_alpha() {
-  local alpha_version=$1
-  local current_tag=$2
-  local rc_number=$3
-  local prev_tags=$4
-  local prev_rc_tag
-  local awk_script="{split(\$0, a, \"-rc\"); if (\$0 < curTag && \$0 ~ \"-rc[0-9]+$\" && (a[2] + 0 < curRc + 0)) print}"
-
-  prev_rc_tag=$(echo "$prev_tags" | grep -E "^$alpha_version-rc[0-9]+$" | awk -v curTag="$current_tag" -v curRc="$rc_number" "$awk_script" | sort -n | tail -1)
-
-  echo "$prev_rc_tag"
+    for tag in $prev_tags; do
+      if [[ $tag == $base_version-rc* ]]; then
+        local tag_rc_version=$(echo "$tag" | grep -oE "rc[0-9]+" | sed 's/rc//')
+        if (( tag_rc_version < current_rc_version )) && (( tag_rc_version > candidate_rc_version )); then
+          candidate_tag="$tag"
+          candidate_rc_version=$tag_rc_version
+        fi
+      fi
+    done
+    echo "$candidate_tag"
 }
 
 # Function to get the previous alpha tag
 get_previous_alpha_tag() {
-  local alpha_base=$1
-  local alpha_number=$2
-  local prev_tags=$3
-  local prev_tag
-  local awk_script="BEGIN{FS=\"-alpha\"} \$2+0 < curAlpha+0"
+    local base_version=$1
+    local current_alpha_version=$2
+    local prev_tags=$3
+    local candidate_tag=""
+    local candidate_alpha_version=0
 
-  prev_tag=$(echo "$prev_tags" | grep -E "^$alpha_base-alpha[0-9]+$" | awk -v curAlpha="$alpha_number" "$awk_script" | sort -rV | head -1)
+    for tag in $prev_tags; do
+      if [[ $tag == $base_version-alpha* ]] && [[ $tag =~ $ALPHA_PATTERN ]]; then
+        local tag_alpha_version=$(echo "$tag" | grep -oE "alpha[0-9]+" | sed 's/alpha//')
+        if (( tag_alpha_version < current_alpha_version )) && (( tag_alpha_version > candidate_alpha_version )); then
+          candidate_tag="$tag"
+          candidate_alpha_version=$tag_alpha_version
+        fi
+      fi
+    done
 
-  echo "$prev_tag"
+    echo "$candidate_tag"
 }
-
 
 # validation for tag format
 if [[ ! $1 =~ ^[0-9]+\.[0-9]+\.[0-9]+(-alpha[0-9]+)?(-rc[0-9]+)?$ ]]; then
   echo "Release tag is invalid"
   exit 1
 fi
-
 # Determine the tag type
+NORMAL_PATTERN='^[0-9]+\.[0-9]+\.[0-9]+$'
+ALPHA_PATTERN='-alpha[0-9]+$'
+RC_PATTERN='-rc[0-9]+$'
+
 TYPE=""
-if [[ $1 =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+if [[ $1 =~ $NORMAL_PATTERN ]]; then
   TYPE="NORMAL"
-elif [[ $1 =~ -alpha[0-9]+(-rc[0-9]+)?$ ]]; then
+elif [[ $1 =~ $ALPHA_PATTERN ]]; then
   TYPE="ALPHA"
-elif [[ $1 =~ -rc[0-9]+$ ]]; then
+elif [[ $1 =~ $RC_PATTERN ]]; then
   TYPE="RC"
 fi
 
@@ -201,15 +178,13 @@ if [[ -z $TYPE ]]; then
   exit 1
 fi
 
-# Fetch and pull the tags from the repository
-git fetch --tags -f 1>/dev/null
-git pull --tags -f 1>/dev/null
 
 # Determine the previous tag
-prev_tag=$(determine_prev_tag "$1" "$TYPE")
-if [[ -z $prev_tag ]]; then
+determine_prev_tag "$1" "$TYPE"
+if [[ -z $PREV_TAG ]]; then
   echo "No previous tag found for the given rules"
   exit 1
 fi
 
-echo "Previous tag: $prev_tag"
+# Output the previous tag with its type
+echo "$TYPE $PREV_TAG"

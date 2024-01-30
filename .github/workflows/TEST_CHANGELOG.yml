@@ -3,34 +3,43 @@ on:
   pull_request:
 
 jobs:
-  example-job:
+  changelog:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.release.target_commitish }}
           fetch-depth: 0
 
+      - name: Access TAG NAME result
+        id: tag_name
+        run: echo "curr_tag=8.5.0-alpha1-rc1" >> $GITHUB_OUTPUT
 
-      - name: Determine Previous Tag
-        id: prev_tag
+
+      - name: Validate release tag and determine previous tag
+        id: validate_tag
         run: |
-          OUTPUT="$(.github/workflows/scripts/prev_tag.sh '8.5.0-alpha1-rc1')"
+          OUTPUT="$(.github/workflows/scripts/prev_tag.sh ${{ steps.tag_name.outputs.curr_tag }})"
           if [ $? -ne 0 ]; then
             echo "Script failed"
             exit 1
           fi
-          echo "previousTag=$(echo $OUTPUT | cut -d ' ' -f2)" >> $GITHUB_OUTPUT
+          echo "type=$( echo $OUTPUT | cut -d ' ' -f1 )" >> $GITHUB_OUTPUT
+          echo "previousTag=$( echo $OUTPUT | cut -d ' ' -f2 )" >> $GITHUB_OUTPUT
 
       - name: Build Changelog
         id: changelog
         uses: Requarks/changelog-action@v1
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          fromTag: ${{ steps.prev_tag.outputs.previousTag }}
-          toTag: ${{ github.event.inputs.currentTag }}
+          token: ${{ github.token }}
+          fromTag: ${{ steps.tag_name.outputs.curr_tag }}
+          toTag: ${{ steps.validate_tag.outputs.previousTag }}
           writeToFile: false
           excludeTypes: build,docs,other,style,ci
           excludeScopes: deps
 
+      - name: Output Release Tag
+        run: echo "${{ github.event.release.tag_name }}"
+
       - name: Output Changelog
-        run: echo "Changelog between ${{ steps.prev_tag.outputs.previousTag }} and ${{ github.event.inputs.currentTag }}:\n${{ steps.changelog.outputs.changes }}"
+        run: echo "${{ steps.changelog.outputs.changes }}"
