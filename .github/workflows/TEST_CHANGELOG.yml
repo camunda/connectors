@@ -1,0 +1,36 @@
+name: Example Workflow for Testing with Draft PR
+on:
+  pull_request:
+
+jobs:
+  example-job:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+
+      - name: Determine Previous Tag
+        id: prev_tag
+        run: |
+          OUTPUT="$(.github/workflows/scripts/prev_tag.sh ${{ github.event.inputs.currentTag }})"
+          if [ $? -ne 0 ]; then
+            echo "Script failed"
+            exit 1
+          fi
+          echo "previousTag=$(echo $OUTPUT | cut -d ' ' -f2)" >> $GITHUB_OUTPUT
+
+      - name: Build Changelog
+        id: changelog
+        uses: Requarks/changelog-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fromTag: ${{ steps.prev_tag.outputs.previousTag }}
+          toTag: ${{ github.event.inputs.currentTag }}
+          writeToFile: false
+          excludeTypes: build,docs,other,style,ci
+          excludeScopes: deps
+
+      - name: Output Changelog
+        run: echo "Changelog between ${{ steps.prev_tag.outputs.previousTag }} and ${{ github.event.inputs.currentTag }}:\n${{ steps.changelog.outputs.changes }}"
