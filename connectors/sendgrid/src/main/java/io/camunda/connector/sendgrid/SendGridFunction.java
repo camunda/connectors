@@ -16,6 +16,8 @@ import com.sendgrid.helpers.mail.objects.Personalization;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.generator.java.annotation.ElementTemplate;
+import io.camunda.connector.sendgrid.model.SendGridRequest;
 import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +26,21 @@ import org.slf4j.LoggerFactory;
     name = "SendGrid",
     inputVariables = {"apiKey", "from", "to", "template", "content"},
     type = "io.camunda:sendgrid:1")
+@ElementTemplate(
+    id = "io.camunda.connectors.SendGrid.v2",
+    name = "SendGrid Outbound Connector",
+    description = "Send an email via SendGrid",
+    inputDataClass = SendGridRequest.class,
+    version = 3,
+    propertyGroups = {
+      @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
+      @ElementTemplate.PropertyGroup(id = "sender", label = "sender"),
+      @ElementTemplate.PropertyGroup(id = "receiver", label = "Receiver"),
+      @ElementTemplate.PropertyGroup(id = "content", label = "Compose email")
+    },
+    documentationRef =
+        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/sendgrid/",
+    icon = "icon.svg")
 public class SendGridFunction implements OutboundConnectorFunction {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(SendGridFunction.class);
@@ -73,20 +90,20 @@ public class SendGridFunction implements OutboundConnectorFunction {
 
   private void addTemplateIfPresent(final Mail mail, final SendGridRequest request) {
     if (request.hasTemplate()) {
-      mail.setTemplateId(request.getTemplate().getId());
+      mail.setTemplateId(request.getTemplate().id());
       final var personalization = new Personalization();
       personalization.addTo(request.getInnerSenGridEmailTo());
-      request.getTemplate().getData().forEach(personalization::addDynamicTemplateData);
+      request.getTemplate().data().forEach(personalization::addDynamicTemplateData);
       mail.addPersonalization(personalization);
     }
   }
 
   private void addContentIfPresent(final Mail mail, final SendGridRequest request) {
     if (request.hasContent()) {
-      final SendGridContent content = request.getContent();
-      mail.setSubject(content.getSubject());
+      final SendGridRequest.Content content = request.getContent();
+      mail.setSubject(content.subject());
       mail.addContent(
-          new com.sendgrid.helpers.mail.objects.Content(content.getType(), content.getValue()));
+          new com.sendgrid.helpers.mail.objects.Content(content.type(), content.value()));
       final Personalization personalization = new Personalization();
       personalization.addTo(request.getInnerSenGridEmailTo());
       mail.addPersonalization(personalization);

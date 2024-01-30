@@ -19,6 +19,7 @@ import com.sendgrid.Request;
 import com.sendgrid.Response;
 import com.sendgrid.SendGrid;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.sendgrid.model.SendGridRequest;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import java.io.IOException;
 import java.util.List;
@@ -53,10 +54,8 @@ public class SendGridFunctionTest extends BaseTest {
   public void init() throws IOException {
     contextBuilder = getContextBuilderWithSecrets();
 
-    SendGridErrors sendGridErrors = new SendGridErrors();
-    SendGridErrors.SendGridError sendGridError = new SendGridErrors.SendGridError();
-    sendGridError.setMessage("error msg");
-    sendGridErrors.setErrors(List.of(sendGridError));
+    SendGridErrors.SendGridError sendGridError = new SendGridErrors.SendGridError("error msg");
+    SendGridErrors sendGridErrors = new SendGridErrors(List.of(sendGridError));
 
     sendGridResponse = new Response();
     sendGridResponse.setBody(objectMapper.writeValueAsString(sendGridErrors));

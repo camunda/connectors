@@ -8,38 +8,12 @@ package io.camunda.connector.sendgrid;
 
 import java.util.List;
 
-public class SendGridErrors {
-
-  List<SendGridError> errors;
-
-  public List<SendGridError> getErrors() {
-    return errors;
-  }
-
-  public void setErrors(final List<SendGridError> errors) {
-    this.errors = errors;
-  }
-
+public record SendGridErrors(List<SendGridError> errors) {
   @Override
   public String toString() {
     return "SendGrid returned the following errors: "
-        + String.join("; ", errors.stream().map(SendGridError::getMessage).toList());
+        + String.join("; ", errors.stream().map(SendGridError::message).toList());
   }
 
-  static class SendGridError {
-    String message;
-
-    public String getMessage() {
-      return message;
-    }
-
-    public void setMessage(final String message) {
-      this.message = message;
-    }
-
-    @Override
-    public String toString() {
-      return message;
-    }
-  }
+  public record SendGridError(String message) {}
 }

@@ -35,6 +35,26 @@ except in compliance with the proprietary license.</license.inlineheader>
       <groupId>com.sendgrid</groupId>
       <artifactId>sendgrid-java</artifactId>
     </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>element-template-generator-core</artifactId>
+    </dependency>
   </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>element-template-generator-maven-plugin</artifactId>
+        <version>${project.version}</version>
+        <configuration>
+          <connectorClasses>
+            <connectorClass>io.camunda.connector.sendgrid.SendGridFunction</connectorClass>
+          </connectorClasses>
+          <templateFileName>sendgrid-outbound-connector</templateFileName>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 
 </project>
