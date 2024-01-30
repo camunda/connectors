@@ -176,7 +176,7 @@
     "id" : "queue.messageAttributes",
     "label" : "Message attributes",
     "description" : "Message attributes metadata",
-    "optional" : false,
+    "optional" : true,
     "feel" : "required",
     "group" : "input",
     "binding" : {
@@ -205,7 +205,7 @@
     "id" : "queue.messageDeduplicationId",
     "label" : "Message deduplication ID",
     "description" : "Message deduplication ID (FIFO only). See also <a href=\"https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/using-messagededuplicationid-property.html\">using the MessageDeduplicationId Property</a> in the Amazon SQS developer guide",
-    "optional" : false,
+    "optional" : true,
     "feel" : "optional",
     "group" : "input",
     "binding" : {

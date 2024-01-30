@@ -59,6 +59,7 @@ public class QueueRequestData {
       label = "Message attributes",
       group = "input",
       type = TemplateProperty.PropertyType.Text,
+      optional = true,
       feel = Property.FeelMode.required,
       description = "Message attributes metadata")
   private Map<String, SqsMessageAttribute> messageAttributes;
@@ -75,6 +76,7 @@ public class QueueRequestData {
       group = "input",
       label = "Message deduplication ID",
       condition = @TemplateProperty.PropertyCondition(property = "queue.type", equals = "fifo"),
+      optional = true,
       description =
           "Message deduplication ID (FIFO only). See also <a href=\"https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/using-messagededuplicationid-property.html\">using the MessageDeduplicationId Property</a> in the Amazon SQS developer guide")
   private String messageDeduplicationId;
