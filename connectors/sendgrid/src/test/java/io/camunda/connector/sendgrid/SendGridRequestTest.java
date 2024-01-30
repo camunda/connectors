@@ -10,6 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.camunda.connector.api.error.ConnectorInputException;
+import io.camunda.connector.sendgrid.model.SendGridRequest;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -98,14 +99,12 @@ public class SendGridRequestTest extends BaseTest {
     // When
     var sendGridRequest = context.bindVariables(SendGridRequest.class);
     // Then should replace secrets
-    assertThat(sendGridRequest.getTemplate().getId()).isEqualTo(ActualValue.Template.ID);
-    assertThat(
-            sendGridRequest.getTemplate().getData().get(ActualValue.Template.Data.KEY_SHIP_ADDRESS))
+    assertThat(sendGridRequest.getTemplate().id()).isEqualTo(ActualValue.Template.ID);
+    assertThat(sendGridRequest.getTemplate().data().get(ActualValue.Template.Data.KEY_SHIP_ADDRESS))
         .isEqualTo(ActualValue.Template.Data.SHIP_ADDRESS);
-    assertThat(
-            sendGridRequest.getTemplate().getData().get(ActualValue.Template.Data.KEY_ACCOUNT_NAME))
+    assertThat(sendGridRequest.getTemplate().data().get(ActualValue.Template.Data.KEY_ACCOUNT_NAME))
         .isEqualTo(ActualValue.Template.Data.ACCOUNT_NAME);
-    assertThat(sendGridRequest.getTemplate().getData().get(ActualValue.Template.Data.KEY_SHIP_ZIP))
+    assertThat(sendGridRequest.getTemplate().data().get(ActualValue.Template.Data.KEY_SHIP_ZIP))
         .isEqualTo(ActualValue.Template.Data.SHIP_ZIP);
   }
 }
