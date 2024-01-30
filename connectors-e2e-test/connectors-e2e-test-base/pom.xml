@@ -61,5 +61,10 @@
             <artifactId>wiremock-standalone</artifactId>
             <version>${version.wiremock}</version>
         </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>${version.commons-io}</version>
+        </dependency>
     </dependencies>
 </project>
