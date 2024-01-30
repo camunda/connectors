@@ -1,0 +1,41 @@
+name: Generate Changelog
+run-name: Generate Changelog for ${{ inputs.version }}
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  generate-changelog:
+    name: Generate Changelog
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.target_commitish }}
+          fetch-depth: 0
+
+      - name: Validate release tag and determine previous tag
+        id: validate_tag
+        run: |
+          OUTPUT="$(.github/workflows/scripts/prev_tag.sh ${{ github.event.release.tag_name }})"
+          if [ $? -ne 0 ]; then
+            echo "Script failed"
+            exit 1
+          fi
+          echo "type=$( echo $OUTPUT | cut -d ' ' -f1 )" >> $GITHUB_OUTPUT
+          echo "previousTag=$( echo $OUTPUT | cut -d ' ' -f2 )" >> $GITHUB_OUTPUT
+
+      - name: Build Changelog
+        id: changelog
+        uses: Requarks/changelog-action@v1
+        with:
+          token: ${{ github.token }}
+          fromTag: ${{ steps.validate_tag.outputs.previousTag }}
+          toTag: ${{ github.event.release.tag_name }}
+          writeToFile: false
+          excludeTypes: build,docs,other,style,ci
+          excludeScopes: deps
+
+      - name: Output Changelog
+        run: echo "${{ steps.changelog.outputs.changes }}"
