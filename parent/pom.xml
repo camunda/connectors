@@ -87,7 +87,7 @@ limitations under the License.</license.inlineheader>
     <version.spring-cloud-gcp-starter-logging>5.0.1</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.4.14</version.logback>
 
-    <version.aws-java-sdk>1.12.646</version.aws-java-sdk>
+    <version.aws-java-sdk>1.12.647</version.aws-java-sdk>
 
     <version.google-api-client>2.2.0</version.google-api-client>
     <version.google-api-services-drive>v3-rev20240123-2.0.0</version.google-api-services-drive>
