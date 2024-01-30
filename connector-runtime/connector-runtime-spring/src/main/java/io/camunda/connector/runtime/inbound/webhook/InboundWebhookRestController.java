@@ -71,7 +71,7 @@ public class InboundWebhookRestController {
       method = {GET, POST, PUT, DELETE},
       path = "/inbound/{context}")
   public ResponseEntity<?> inbound(
-      @PathVariable String context,
+      @PathVariable(value = "context") String context,
       @RequestHeader Map<String, String> headers,
       @RequestBody(required = false) byte[] bodyAsByteArray,
       @RequestParam Map<String, String> params,
