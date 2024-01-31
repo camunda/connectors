@@ -74,7 +74,7 @@ public class InboundWebhookRestController {
       @PathVariable(value = "context") String context,
       @RequestHeader Map<String, String> headers,
       @RequestBody(required = false) byte[] bodyAsByteArray,
-      @RequestParam Map<String, String> params,
+      @RequestParam(value = "params") Map<String, String> params,
       HttpServletRequest httpServletRequest)
       throws IOException {
     LOG.trace("Received inbound hook on {}", context);
