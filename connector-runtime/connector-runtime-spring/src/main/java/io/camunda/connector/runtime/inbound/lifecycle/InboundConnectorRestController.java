@@ -43,26 +43,26 @@ public class InboundConnectorRestController {
 
   @GetMapping("/inbound")
   public List<ActiveInboundConnectorResponse> getActiveInboundConnectors(
-      @RequestParam(required = false) String bpmnProcessId,
-      @RequestParam(required = false) String elementId,
-      @RequestParam(required = false) String type) {
+      @RequestParam(required = false, value = "bpmnProcessId") String bpmnProcessId,
+      @RequestParam(required = false, value = "elementId") String elementId,
+      @RequestParam(required = false, value = "type") String type) {
     return getActiveInboundConnectors(bpmnProcessId, elementId, type, null);
   }
 
   @GetMapping("/tenants/{tenantId}/inbound")
   public List<ActiveInboundConnectorResponse> getActiveInboundConnectorsForTenantId(
-      @PathVariable String tenantId,
-      @RequestParam(required = false) String bpmnProcessId,
-      @RequestParam(required = false) String elementId,
-      @RequestParam(required = false) String type) {
+      @PathVariable(value = "tenantId") String tenantId,
+      @RequestParam(required = false, value = "bpmnProcessId") String bpmnProcessId,
+      @RequestParam(required = false, value = "elementId") String elementId,
+      @RequestParam(required = false, value = "type") String type) {
     return getActiveInboundConnectors(bpmnProcessId, elementId, type, tenantId);
   }
 
   @GetMapping("/tenants/{tenantId}/inbound/{bpmnProcessId}/{elementId}/logs")
   public List<Queue<Activity>> getActiveInboundConnectorLogs(
-      @PathVariable String tenantId,
-      @PathVariable String bpmnProcessId,
-      @PathVariable String elementId) {
+      @PathVariable(value = "tenantId") String tenantId,
+      @PathVariable(value = "bpmnProcessId") String bpmnProcessId,
+      @PathVariable(value = "elementId") String elementId) {
     var result =
         inboundManager.query(
             new ActiveInboundConnectorQuery(bpmnProcessId, elementId, null, tenantId));
