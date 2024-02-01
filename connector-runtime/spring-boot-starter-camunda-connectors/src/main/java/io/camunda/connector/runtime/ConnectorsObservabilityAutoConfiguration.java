@@ -16,21 +16,33 @@
  */
 package io.camunda.connector.runtime;
 
+import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionImporter;
 import io.camunda.connector.runtime.metrics.ContextAwareLogbackMetrics;
+import io.camunda.zeebe.client.ZeebeClient;
 import io.micrometer.core.instrument.binder.logging.LogbackMetrics;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.actuate.autoconfigure.metrics.LogbackMetricsAutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.availability.ApplicationAvailability;
 import org.springframework.context.annotation.Bean;
 
-@ConditionalOnClass(name = "ch.qos.logback.classic.LoggerContext")
 @AutoConfiguration
 @AutoConfigureBefore(LogbackMetricsAutoConfiguration.class)
-public class ContextAwareLogbackMetricsAutoConfiguration {
+public class ConnectorsObservabilityAutoConfiguration {
 
   @Bean
+  @ConditionalOnClass(name = "ch.qos.logback.classic.LoggerContext")
   public LogbackMetrics logbackMetrics() {
     return new ContextAwareLogbackMetrics();
+  }
+
+  @Bean
+  public ConnectorsReadinessIndicator connectorsReadinessIndicator(
+      ApplicationAvailability availability,
+      ZeebeClient zeebeClient,
+      @Autowired(required = false) ProcessDefinitionImporter processDefinitionImporter) {
+    return new ConnectorsReadinessIndicator(availability, zeebeClient, processDefinitionImporter);
   }
 }

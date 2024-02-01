@@ -37,6 +37,8 @@ public class ProcessDefinitionImporter {
   private final Set<Long> registeredProcessDefinitionKeys = new HashSet<>();
   private final Map<String, ProcessDefinition> versionByBpmnProcessId = new HashMap<>();
 
+  private boolean ready = false;
+
   @Autowired
   public ProcessDefinitionImporter(
       InboundConnectorManager inboundManager,
@@ -50,6 +52,7 @@ public class ProcessDefinitionImporter {
   @Scheduled(fixedDelayString = "${camunda.connector.polling.interval:5000}")
   public synchronized void scheduleImport() {
     search.query(this::handleImportedDefinitions);
+    ready = true;
   }
 
   public void handleImportedDefinitions(List<ProcessDefinition> unprocessedDefinitions) {
@@ -153,5 +156,9 @@ public class ProcessDefinitionImporter {
       metricsRecorder.increase(
           Inbound.METRIC_NAME_INBOUND_PROCESS_DEFINITIONS_CHECKED, null, null, count);
     }
+  }
+
+  public boolean isReady() {
+    return ready;
   }
 }
