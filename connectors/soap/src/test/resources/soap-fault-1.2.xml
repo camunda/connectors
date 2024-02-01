@@ -1,0 +1,16 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<SOAP-ENV:Envelope
+    xmlns:SOAP-ENV = "http://www.w3.org/2003/05/soap-envelope"
+    xmlns:xsi = "http://www.w3.org/1999/XMLSchema-instance"
+    xmlns:xsd = "http://www.w3.org/1999/XMLSchema">
+
+  <SOAP-ENV:Body>
+    <SOAP-ENV:Fault>
+      <faultcode>SOAP-ENV:Client</faultcode>
+      <faultstring>
+        Failed to locate method (ValidateCreditCard) in class (examplesCreditCard) at
+        /usr/local/ActivePerl-5.6/lib/site_perl/5.6.0/SOAP/Lite.pm line 1555.
+      </faultstring>
+    </SOAP-ENV:Fault>
+  </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ns1:root xmlns:ns1="http://ns1.org/xmlns">
+  <ns1:childNode1 id="1">value1</ns1:childNode1>
+</ns1:root>

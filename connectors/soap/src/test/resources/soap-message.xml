@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:a="http://www.example.com/ws/a/1.0"
+               xmlns:b="http://www.example.com/ws/b/1.0" xmlns:c="http://www.example.com/ws/c/1.0">
+  <soap:Header>
+    <wsse:Security xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" soap:mustUnderstand="true">
+      <wsse:UsernameToken wsu:Id="UsernameToken-dd18461d-172d-47b3-939b-5585b2e22f79">
+        <wsse:Username>demo</wsse:Username>
+        <wsse:Password Type="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordDigest">yttxqZY6tRluqYcecSwoRbMUCjA=</wsse:Password>
+        <wsse:Nonce EncodingType="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-soap-message-security-1.0#Base64Binary">VJFzA5V4yw9gsyGg2Z2Omg==</wsse:Nonce>
+        <wsu:Created>2023-11-10T10:59:02.511Z</wsu:Created>
+      </wsse:UsernameToken>
+    </wsse:Security>
+    <simpleHeader>simpleValue</simpleHeader>
+    <m:mode xmlns:m="http://www.example.com/xml/mode/1.0" m:attr="relevant">zoo</m:mode>
+  </soap:Header>
+  <soap:Body>
+    <a:animal>
+      <b:name>frog</b:name>
+      <c:color>green</c:color>
+    </a:animal>
+  </soap:Body>
+</soap:Envelope>

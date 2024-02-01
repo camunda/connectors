@@ -1,0 +1,9 @@
+{
+  "ns1:root": {
+    "@xmlns:ns1": "http://ns1.org/xmlns",
+    "ns1:childNode1": {
+      "@id": "1",
+      "$content": "value1"
+    }
+  }
+}

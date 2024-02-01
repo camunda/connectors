@@ -1,0 +1,16 @@
+<root>
+  <container foo="bar">
+    <item id="1">
+      <name>
+        <firstname>Peter</firstname>
+        <lastname>Parker</lastname>
+      </name>
+    </item>
+    <item id="2">
+      <name>Jack</name>
+    </item>
+    <item id="3">
+      <name>Ryan</name>
+    </item>
+  </container>
+</root>

@@ -1,0 +1,6 @@
+{
+  "ns1:root": {
+    "@xmlns:ns1": "http://ns1.org/xmlns",
+    "ns1:childNode1": "value1"
+  }
+}
