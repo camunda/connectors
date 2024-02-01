@@ -9,7 +9,19 @@ on:
     branches: [ main ]
 
 jobs:
+  commit-message-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Ensures all commits are fetched
+
+      - name: Lint Commit Messages
+        uses: wagoid/commitlint-github-action@v4
+
   run-tests:
+    needs: commit-message-check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -82,7 +94,7 @@ jobs:
         env:
           PROJECTS: bundle/default-bundle
         run: mvn --batch-mode compile generate-sources package -DskipTests --projects "${PROJECTS}" --also-make
-  
+
       - name: Set up Docker Build
         uses: docker/setup-buildx-action@v3
 
@@ -92,7 +104,7 @@ jobs:
           registry: registry.camunda.cloud
           username: ${{ steps.secrets.outputs.CI_LDAP_USER }}
           password: ${{ steps.secrets.outputs.CI_LDAP_PASSWORD }}
-      
+
       # Publish Docker images for Preview environments
       - name: Build and Push Docker Image tag ${{ env.TAG }} - bundle-default
         env:

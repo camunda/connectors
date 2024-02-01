@@ -13,6 +13,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 @TemplateSubType(id = OperationTypes.UPDATE_ITEM)
+
 public record UpdateItem(
     @TemplateProperty(
             label = "Table name",
