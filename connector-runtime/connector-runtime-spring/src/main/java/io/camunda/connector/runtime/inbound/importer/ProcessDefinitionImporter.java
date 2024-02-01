@@ -100,7 +100,7 @@ public class ProcessDefinitionImporter {
     }
 
     registeredProcessDefinitionKeys.addAll(
-            notYetRegistered.stream().map(ProcessDefinition::getKey).toList());
+        notYetRegistered.stream().map(ProcessDefinition::getKey).toList());
     registeredProcessDefinitionKeys.removeAll(deleted);
     registeredProcessDefinitionKeys.removeAll(oldProcessDefinitionKeys);
   }
