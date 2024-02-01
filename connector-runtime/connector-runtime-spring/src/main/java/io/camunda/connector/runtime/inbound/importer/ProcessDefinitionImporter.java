@@ -86,11 +86,6 @@ public class ProcessDefinitionImporter {
     logResult(brandNew, upgraded, deleted);
     meter(brandNew.size());
 
-    registeredProcessDefinitionKeys.addAll(
-        notYetRegistered.stream().map(ProcessDefinition::getKey).toList());
-    registeredProcessDefinitionKeys.removeAll(deleted);
-    registeredProcessDefinitionKeys.removeAll(oldProcessDefinitionKeys);
-
     notYetRegistered.forEach(
         definition -> versionByBpmnProcessId.put(definition.getBpmnProcessId(), definition));
 
@@ -103,6 +98,11 @@ public class ProcessDefinitionImporter {
     if (!notYetRegistered.isEmpty()) {
       connectorManager.handleNewProcessDefinitions(notYetRegistered);
     }
+
+    registeredProcessDefinitionKeys.addAll(
+            notYetRegistered.stream().map(ProcessDefinition::getKey).toList());
+    registeredProcessDefinitionKeys.removeAll(deleted);
+    registeredProcessDefinitionKeys.removeAll(oldProcessDefinitionKeys);
   }
 
   private List<ProcessDefinition> keepOnlyLatestVersions(List<ProcessDefinition> unprocessed) {

@@ -87,9 +87,9 @@ public class InboundConnectorManager {
                 d -> {
                   try {
                     return processDefinitionInspector.findInboundConnectors(d).stream();
-                  } catch (OperateException e) {
+                  } catch (Exception e) {
                     LOG.error("Failed to inspect process definition {}", d.getKey(), e);
-                    return Stream.empty();
+                    throw new RuntimeException(e);
                   }
                 })
             .toList();
