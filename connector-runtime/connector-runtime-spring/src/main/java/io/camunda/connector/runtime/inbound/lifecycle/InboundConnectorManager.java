@@ -26,7 +26,6 @@ import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionInspector;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics.Inbound;
-import io.camunda.operate.exception.OperateException;
 import io.camunda.operate.model.ProcessDefinition;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
 import java.util.Collection;
@@ -39,7 +38,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -80,9 +78,9 @@ public class InboundConnectorManager {
                 d -> {
                   try {
                     return processDefinitionInspector.findInboundConnectors(d).stream();
-                  } catch (OperateException e) {
+                  } catch (Exception e) {
                     LOG.error("Failed to inspect process definition {}", d.getKey(), e);
-                    return Stream.empty();
+                    throw new RuntimeException(e);
                   }
                 })
             .toList();
