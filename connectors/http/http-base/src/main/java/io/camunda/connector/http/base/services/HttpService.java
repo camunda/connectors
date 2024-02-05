@@ -40,9 +40,12 @@ public class HttpService {
   private final HttpRequestFactory requestFactory;
   private final String proxyFunctionUrl = System.getenv(PROXY_FUNCTION_URL_ENV_NAME);
 
+  private  final HttpInteractionService httpInteractionService;
+
   public HttpService(final ObjectMapper objectMapper, final HttpRequestFactory requestFactory) {
     this.objectMapper = objectMapper;
     this.requestFactory = requestFactory;
+    this.httpInteractionService =  new HttpInteractionService(objectMapper);
   }
 
   public HttpCommonResult executeConnectorRequest(final HttpCommonRequest request)
@@ -78,11 +81,9 @@ public class HttpService {
     return authService.extractOAuthAccessToken(oauthResponse);
   }
 
-  private HttpCommonResult executeRequestViaProxy(HttpCommonRequest request) throws IOException {
+  public HttpCommonResult executeRequestViaProxy(HttpCommonRequest request) throws IOException {
     HttpRequest httpRequest =
         HttpProxyService.toRequestViaProxy(requestFactory, request, proxyFunctionUrl);
-
-    HttpInteractionService httpInteractionService = new HttpInteractionService(objectMapper);
 
     HttpResponse httpResponse = httpInteractionService.executeHttpRequest(httpRequest, true);
 

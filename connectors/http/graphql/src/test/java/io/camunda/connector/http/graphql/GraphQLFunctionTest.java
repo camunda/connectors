@@ -27,12 +27,12 @@ import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpResponse;
 import com.google.api.client.http.HttpResponseException;
-import com.google.api.client.json.gson.GsonFactory;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorInputException;
+import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.connector.http.base.services.HttpRequestMapper;
 import io.camunda.connector.http.graphql.model.GraphQLRequest;
-import io.camunda.connector.http.graphql.model.GraphQLResult;
+import io.camunda.connector.http.graphql.utils.GraphQLRequestMapper;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.IOException;
@@ -65,7 +65,7 @@ public class GraphQLFunctionTest extends BaseTest {
 
   @BeforeEach
   public void setup() {
-    functionUnderTest = new GraphQLFunction(objectMapper, requestFactory, new GsonFactory(), null);
+    functionUnderTest = new GraphQLFunction(objectMapper, requestFactory);
   }
 
   @ParameterizedTest(name = "Executing test case: {0}")
@@ -77,8 +77,8 @@ public class GraphQLFunctionTest extends BaseTest {
 
     // then
     verify(httpRequest).execute();
-    assertThat(functionCallResponseAsObject).isInstanceOf(GraphQLResult.class);
-    assertThat(((GraphQLResult) functionCallResponseAsObject).getHeaders())
+    assertThat(functionCallResponseAsObject).isInstanceOf(HttpCommonResult.class);
+    assertThat(((HttpCommonResult) functionCallResponseAsObject).getHeaders())
         .containsValue(APPLICATION_JSON.getMimeType());
   }
 
@@ -90,8 +90,8 @@ public class GraphQLFunctionTest extends BaseTest {
 
     // then
     verify(httpRequest, times(2)).execute();
-    assertThat(functionCallResponseAsObject).isInstanceOf(GraphQLResult.class);
-    assertThat(((GraphQLResult) functionCallResponseAsObject).getHeaders())
+    assertThat(functionCallResponseAsObject).isInstanceOf(HttpCommonResult.class);
+    assertThat(((HttpCommonResult) functionCallResponseAsObject).getHeaders())
         .containsValue(APPLICATION_JSON.getMimeType());
   }
 
@@ -140,8 +140,8 @@ public class GraphQLFunctionTest extends BaseTest {
         objectMapper
                 .readValue(
                     objectMapper.readValue(input, ObjectNode.class).get("graphql").toString(),
-                    GraphQLRequest.class)
-                .getConnectionTimeoutInSeconds()
+                    GraphQLRequest.GraphQL.class)
+                .connectionTimeoutInSeconds()
             * 1000;
     when(requestFactory.buildRequest(
             anyString(), any(GenericUrl.class), nullable(HttpContent.class)))
@@ -214,9 +214,8 @@ public class GraphQLFunctionTest extends BaseTest {
         OutboundConnectorContextBuilder.create().variables(input).secrets(name -> "foo").build();
     HttpHeaders headers =
         HttpRequestMapper.extractRequestHeaders(
-            objectMapper.readValue(
-                objectMapper.readValue(input, ObjectNode.class).get("graphql").toString(),
-                GraphQLRequest.class));
+            GraphQLRequestMapper.toHttpCommonRequest(
+                objectMapper.readValue(input, GraphQLRequest.class)));
 
     when(requestFactory.buildRequest(
             anyString(), any(GenericUrl.class), nullable(HttpContent.class)))

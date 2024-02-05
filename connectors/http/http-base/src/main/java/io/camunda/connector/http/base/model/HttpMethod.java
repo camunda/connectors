@@ -25,7 +25,7 @@ public enum HttpMethod {
 
   public final boolean supportsBody;
 
-  private HttpMethod(boolean supportsBody) {
+  HttpMethod(boolean supportsBody) {
     this.supportsBody = supportsBody;
   }
 }

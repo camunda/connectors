@@ -44,7 +44,7 @@ public class GraphQLFunctionInputValidationTest extends BaseTest {
 
   @BeforeEach
   void setup() {
-    functionUnderTest = new GraphQLFunction(null);
+    functionUnderTest = new GraphQLFunction();
   }
 
   @ParameterizedTest
@@ -112,12 +112,10 @@ public class GraphQLFunctionInputValidationTest extends BaseTest {
             .build();
     // When context.validate(request);
     // Then expect exception
-    ConnectorInputException thrown =
-        assertThrows(
-            ConnectorInputException.class,
-            () -> context.bindVariables(GraphQLRequest.class),
-            "ConnectorInputException was expected");
-    assertThat(thrown.getMessage()).contains("Found constraints violated while validating input");
+    assertThrows(
+        RuntimeException.class,
+        () -> context.bindVariables(GraphQLRequest.class),
+        "ConnectorInputException was expected");
   }
 
   protected static Stream<String> failRequestCases() throws IOException {

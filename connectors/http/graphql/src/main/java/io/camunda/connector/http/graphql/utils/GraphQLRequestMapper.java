@@ -15,9 +15,12 @@ public final class GraphQLRequestMapper {
 
   public static HttpCommonRequest toHttpCommonRequest(GraphQLRequest graphQLRequest) {
     HttpCommonRequest httpCommonRequest = new HttpCommonRequest();
+
     final Map<String, Object> queryAndVariablesMap =
         JsonSerializeHelper.queryAndVariablesToMap(graphQLRequest);
-    if (graphQLRequest.getMethod().supportsBody) {
+
+    httpCommonRequest.setMethod(graphQLRequest.graphql().method());
+    if (httpCommonRequest.getMethod().supportsBody) {
       httpCommonRequest.setBody(queryAndVariablesMap);
     } else {
       final Map<String, String> queryAndVariablesStringMap =
@@ -25,10 +28,12 @@ public final class GraphQLRequestMapper {
               .collect(Collectors.toMap(Map.Entry::getKey, e -> String.valueOf(e.getValue())));
       httpCommonRequest.setQueryParameters(queryAndVariablesStringMap);
     }
-    httpCommonRequest.setAuthentication(graphQLRequest.getAuthentication());
-    httpCommonRequest.setMethod(graphQLRequest.getMethod());
-    httpCommonRequest.setUrl(graphQLRequest.getUrl());
-    httpCommonRequest.setConnectionTimeoutInSeconds(graphQLRequest.getConnectionTimeoutInSeconds());
+
+    httpCommonRequest.setAuthentication(graphQLRequest.authentication());
+    httpCommonRequest.setUrl(graphQLRequest.graphql().url());
+    httpCommonRequest.setConnectionTimeoutInSeconds(
+        graphQLRequest.graphql().connectionTimeoutInSeconds());
+
     return httpCommonRequest;
   }
 }
