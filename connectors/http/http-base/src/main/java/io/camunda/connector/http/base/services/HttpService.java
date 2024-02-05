@@ -40,12 +40,12 @@ public class HttpService {
   private final HttpRequestFactory requestFactory;
   private final String proxyFunctionUrl = System.getenv(PROXY_FUNCTION_URL_ENV_NAME);
 
-  private  final HttpInteractionService httpInteractionService;
+  private final HttpInteractionService httpInteractionService;
 
   public HttpService(final ObjectMapper objectMapper, final HttpRequestFactory requestFactory) {
     this.objectMapper = objectMapper;
     this.requestFactory = requestFactory;
-    this.httpInteractionService =  new HttpInteractionService(objectMapper);
+    this.httpInteractionService = new HttpInteractionService(objectMapper);
   }
 
   public HttpCommonResult executeConnectorRequest(final HttpCommonRequest request)
