@@ -40,7 +40,9 @@ public record GraphQLRequest(@Valid GraphQL graphql, @Valid Authentication authe
               group = "graphql")
           @NotBlank
           String query,
-      @TemplateProperty(id = "variables", group = "graphql") @FEEL Map<String, Object> variables,
+      @TemplateProperty(id = "variables", group = "graphql", feel = Property.FeelMode.required)
+          @FEEL
+          Map<String, Object> variables,
       @FEEL
           @NotNull
           @TemplateProperty(

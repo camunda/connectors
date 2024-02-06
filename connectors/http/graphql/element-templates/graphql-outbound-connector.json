@@ -381,7 +381,7 @@
     "id" : "graphql.variables",
     "label" : "Variables",
     "optional" : false,
-    "feel" : "optional",
+    "feel" : "required",
     "group" : "graphql",
     "binding" : {
       "name" : "graphql.variables",
