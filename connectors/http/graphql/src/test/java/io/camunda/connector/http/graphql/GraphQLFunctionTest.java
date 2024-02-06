@@ -214,8 +214,8 @@ public class GraphQLFunctionTest extends BaseTest {
         OutboundConnectorContextBuilder.create().variables(input).secrets(name -> "foo").build();
     HttpHeaders headers =
         HttpRequestMapper.extractRequestHeaders(
-            GraphQLRequestMapper.toHttpCommonRequest(
-                objectMapper.readValue(input, GraphQLRequest.class)));
+            new GraphQLRequestMapper(objectMapper)
+                .toHttpCommonRequest(objectMapper.readValue(input, GraphQLRequest.class)));
 
     when(requestFactory.buildRequest(
             anyString(), any(GenericUrl.class), nullable(HttpContent.class)))

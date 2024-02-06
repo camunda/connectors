@@ -59,4 +59,8 @@ public class ElementTemplate {
       throw new RuntimeException(e);
     }
   }
+
+  public String toString() {
+    return documentContext.jsonString();
+  }
 }

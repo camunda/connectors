@@ -16,7 +16,10 @@
  */
 package io.camunda.connector.e2e;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.matching;
+import static com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
@@ -352,5 +355,107 @@ public class HttpTests {
         ZeebeTest.with(zeebeClient).deploy(model).createInstance().waitForProcessCompletion();
 
     assertThat(bpmnTest.getProcessInstanceEvent()).hasVariableWithValue("webhookExecuted", true);
+  }
+
+  @Test
+  void graphQL() {
+    // Prepare an HTTP mock server
+    wm.stubFor(
+        post(urlPathMatching("/mock"))
+            .withHeader("testHeader", matching("testHeaderValue"))
+            .withBasicAuth("username", "password")
+            .withRequestBody(matchingJsonPath("$..query", equalTo("{hero { name } }")))
+            .withRequestBody(matchingJsonPath("$..variables.hello", equalTo("world")))
+            .willReturn(
+                ResponseDefinitionBuilder.okForJson(
+                    Map.of("order", Map.of("status", "processing")))));
+
+    var mockUrl = "http://localhost:" + wm.getPort() + "/mock";
+
+    var model =
+        Bpmn.createProcess().executable().startEvent().serviceTask("graphqlTask").endEvent().done();
+
+    var elementTemplatePath =
+        "../../connectors/http/graphql/element-templates/graphql-outbound-connector.json";
+    var elementTemplate =
+        ElementTemplate.from(elementTemplatePath)
+            .property("graphql.url", mockUrl)
+            .property("graphql.method", "post")
+            .property("graphql.headers", "={testHeader: \"testHeaderValue\"}")
+            .property("graphql.query", "{hero { name } }")
+            .property("graphql.variables", "={hello:\"world\"}")
+            .property("authentication.type", BasicAuthentication.TYPE)
+            .property("authentication.username", "username")
+            .property("authentication.password", "password")
+            .property("resultExpression", "={orderStatus: response.body.order.status}")
+            .writeTo(new File(tempDir, "template.json"));
+
+    var updatedElementTemplateFile = new File(tempDir, "result.bpmn");
+    var updatedModel =
+        new BpmnFile(model)
+            .writeToFile(new File(tempDir, "test.bpmn"))
+            .apply(elementTemplate, "graphqlTask", updatedElementTemplateFile);
+
+    var bpmnTest =
+        ZeebeTest.with(zeebeClient)
+            .deploy(updatedModel)
+            .createInstance()
+            .waitForProcessCompletion();
+
+    assertThat(bpmnTest.getProcessInstanceEvent())
+        .hasVariableWithValue("orderStatus", "processing");
+  }
+
+  @Test
+  void graphQLViaGet() {
+    // Prepare an HTTP mock server
+    wm.stubFor(
+        get(urlPathMatching("/mock"))
+            .withHeader("testHeader", matching("testHeaderValue"))
+            .withBasicAuth("username", "password")
+            .withQueryParams(
+                Map.of(
+                    "query",
+                    equalTo("{hero { name } }"),
+                    "variables",
+                    equalTo("{\"hello\":\"world\"}")))
+            .willReturn(
+                ResponseDefinitionBuilder.okForJson(
+                    Map.of("order", Map.of("status", "processing")))));
+
+    var mockUrl = "http://localhost:" + wm.getPort() + "/mock";
+
+    var model =
+        Bpmn.createProcess().executable().startEvent().serviceTask("graphqlTask").endEvent().done();
+
+    var elementTemplatePath =
+        "../../connectors/http/graphql/element-templates/graphql-outbound-connector.json";
+    var elementTemplate =
+        ElementTemplate.from(elementTemplatePath)
+            .property("graphql.url", mockUrl)
+            .property("graphql.method", "get")
+            .property("graphql.headers", "={testHeader: \"testHeaderValue\"}")
+            .property("graphql.query", "{hero { name } }")
+            .property("graphql.variables", "={hello:\"world\"}")
+            .property("authentication.type", BasicAuthentication.TYPE)
+            .property("authentication.username", "username")
+            .property("authentication.password", "password")
+            .property("resultExpression", "={orderStatus: response.body.order.status}")
+            .writeTo(new File(tempDir, "template.json"));
+
+    var updatedElementTemplateFile = new File(tempDir, "result.bpmn");
+    var updatedModel =
+        new BpmnFile(model)
+            .writeToFile(new File(tempDir, "test.bpmn"))
+            .apply(elementTemplate, "graphqlTask", updatedElementTemplateFile);
+
+    var bpmnTest =
+        ZeebeTest.with(zeebeClient)
+            .deploy(updatedModel)
+            .createInstance()
+            .waitForProcessCompletion();
+
+    assertThat(bpmnTest.getProcessInstanceEvent())
+        .hasVariableWithValue("orderStatus", "processing");
   }
 }

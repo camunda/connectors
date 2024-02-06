@@ -46,6 +46,8 @@ public class GraphQLFunction implements OutboundConnectorFunction {
 
   private final HttpService httpService;
 
+  private final GraphQLRequestMapper graphQLRequestMapper;
+
   public GraphQLFunction() {
     this(
         ConnectorsObjectMapperSupplier.getCopy(),
@@ -54,13 +56,14 @@ public class GraphQLFunction implements OutboundConnectorFunction {
 
   public GraphQLFunction(final ObjectMapper objectMapper, final HttpRequestFactory requestFactory) {
     this.httpService = new HttpService(objectMapper, requestFactory);
+    this.graphQLRequestMapper = new GraphQLRequestMapper(objectMapper);
   }
 
   @Override
   public Object execute(OutboundConnectorContext context)
       throws IOException, InstantiationException, IllegalAccessException {
     var graphQLRequest = context.bindVariables(GraphQLRequest.class);
-    HttpCommonRequest commonRequest = GraphQLRequestMapper.toHttpCommonRequest(graphQLRequest);
+    HttpCommonRequest commonRequest = graphQLRequestMapper.toHttpCommonRequest(graphQLRequest);
     LOGGER.debug("Executing graphql connector with request {}", commonRequest);
     return httpService.executeConnectorRequest(commonRequest);
   }

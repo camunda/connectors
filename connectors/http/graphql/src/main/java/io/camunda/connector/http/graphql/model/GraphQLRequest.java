@@ -29,8 +29,18 @@ import java.util.Map;
 public record GraphQLRequest(@Valid GraphQL graphql, @Valid Authentication authentication) {
 
   public record GraphQL(
-      @TemplateProperty(group = "graphql") @NotBlank String query,
-      @TemplateProperty(group = "graphql") @FEEL Object variables,
+      @TemplateProperty(
+              id = "query",
+              label = "Query/Mutation",
+              description =
+                  "See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/graphql/#querymutation\" target=\"_blank\">documentation</a>",
+              type = TemplateProperty.PropertyType.Text,
+              // TODO add support for language property supported by element templates: language:
+              // graphql
+              group = "graphql")
+          @NotBlank
+          String query,
+      @TemplateProperty(id = "variables", group = "graphql") @FEEL Map<String, Object> variables,
       @FEEL
           @NotNull
           @TemplateProperty(
@@ -47,7 +57,7 @@ public record GraphQLRequest(@Valid GraphQL graphql, @Valid Authentication authe
           @Pattern(
               regexp = "^(=|http://|https://|secrets|\\{\\{).*$",
               message = "Must be a http(s) URL")
-          @TemplateProperty(group = "endpoint", label = "URL")
+          @TemplateProperty(id = "url", group = "endpoint", label = "URL")
           String url,
       @FEEL
           @TemplateProperty(
