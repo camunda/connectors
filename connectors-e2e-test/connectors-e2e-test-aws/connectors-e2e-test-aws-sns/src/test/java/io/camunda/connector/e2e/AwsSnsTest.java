@@ -44,7 +44,7 @@ import org.testcontainers.containers.localstack.LocalStackContainer;
 public class AwsSnsTest extends BaseAwsTest {
 
   private static final String ELEMENT_TEMPLATE_PATH =
-      "../../connectors/aws/aws-sns/element-templates/aws-sns-outbound-connector.json";
+      "../../../connectors/aws/aws-sns/element-templates/aws-sns-outbound-connector.json";
   private static final String TEST_TOPIC_NAME = "test-sns-topic";
   private static final String TEST_QUEUE_NAME = "test-sqs-sqs-queue";
   private static final String MESSAGE_GROUP_ID = "messageGroupId";

@@ -121,7 +121,7 @@ public class AwsTestHelper {
    * @param lambdaFunctionZipFilePath The file path to the ZIP file containing the Lambda function
    *     code.
    * @param functionName The name of the Lambda function to be created.
-   * @throws IOException if an error occurs during file operations.
+   * @throws java.io.IOException if an error occurs during file operations.
    */
   static void initializeLambdaFunction(
       final AWSLambda lambdaClient,

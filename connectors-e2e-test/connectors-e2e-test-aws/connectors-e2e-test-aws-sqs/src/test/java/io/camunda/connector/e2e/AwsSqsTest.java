@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.e2e;
 
+import static io.camunda.connector.e2e.AwsTestHelper.initSqsClient;
 import static io.camunda.zeebe.process.test.assertions.BpmnAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -34,7 +35,7 @@ import org.junit.jupiter.api.Test;
 
 public class AwsSqsTest extends BaseAwsTest {
   private static final String ELEMENT_TEMPLATE_PATH =
-      "../../connectors/aws/aws-sqs/element-templates/aws-sqs-outbound-connector.json";
+      "../../../connectors/aws/aws-sqs/element-templates/aws-sqs-outbound-connector.json";
   private static final String TEST_STANDARD_QUEUE_NAME = "test-sqs-queue";
   private static final String TEST_FIFO_QUEUE_NAME = TEST_STANDARD_QUEUE_NAME + ".fifo";
   private static final String ELEMENT_ID = "sqs-standard";
@@ -53,7 +54,7 @@ public class AwsSqsTest extends BaseAwsTest {
    */
   @BeforeAll
   public static void initClient() {
-    sqsClient = AwsTestHelper.initSqsClient(localstack);
+    sqsClient = initSqsClient(localstack);
   }
 
   /**
