@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>connectors-e2e-test-aws-parent</artifactId>
+        <relativePath>../pom.xml</relativePath>
+        <version>8.5.0-SNAPSHOT</version>
+    </parent>
+
+    <name>connectors-e2e-test-aws-base</name>
+    <description>Camunda Connector AWS e2e tests base functionality</description>
+    <artifactId>connectors-e2e-test-aws-base</artifactId>
+    <packaging>jar</packaging>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>localstack</artifactId>
+            <version>${version.localstack}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-bom</artifactId>
+            <version>${version.aws-java-sdk}</version>
+            <type>pom</type>
+        </dependency>
+        <dependency>
+            <groupId>io.camunda.connector</groupId>
+            <artifactId>connector-aws-lambda</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.camunda.connector</groupId>
+            <artifactId>connector-aws-sns</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.camunda.connector</groupId>
+            <artifactId>connector-aws-sqs</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.camunda.connector</groupId>
+            <artifactId>connector-aws-eventbridge</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-sns</artifactId>
+            <version>${version.aws-java-sdk}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-lambda-java-events</artifactId>
+            <version>${version.aws-lambda-java-events}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-lambda-java-core</artifactId>
+            <version>${version.aws-lambda-java-core}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+        </dependency>
+    </dependencies>
+
+</project>

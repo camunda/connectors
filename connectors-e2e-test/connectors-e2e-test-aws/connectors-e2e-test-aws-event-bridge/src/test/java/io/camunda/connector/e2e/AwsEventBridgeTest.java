@@ -43,7 +43,7 @@ import org.junit.jupiter.api.Test;
 
 public class AwsEventBridgeTest extends BaseAwsTest {
   private static final String ELEMENT_TEMPLATE_PATH =
-      "../../connectors/aws/aws-eventbridge/element-templates/aws-eventbridge-outbound-connector.json";
+      "../../../connectors/aws/aws-eventbridge/element-templates/aws-eventbridge-outbound-connector.json";
 
   private static final String RULE_NAME = "test-rule";
   private static final String QUEUE_NAME = "test-queue";
