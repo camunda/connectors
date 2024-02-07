@@ -25,7 +25,6 @@ import org.springframework.boot.actuate.autoconfigure.metrics.LogbackMetricsAuto
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.availability.ApplicationAvailability;
 import org.springframework.context.annotation.Bean;
 
 @AutoConfiguration
@@ -38,11 +37,14 @@ public class ConnectorsObservabilityAutoConfiguration {
     return new ContextAwareLogbackMetrics();
   }
 
+  @Bean(name = "zeebeClientHealthIndicator") // overrides the health indicator from Spring Zeebe
+  public ZeebeHealthIndicator zeebeClientHealthIndicator(ZeebeClient zeebeClient) {
+    return new ZeebeHealthIndicator(zeebeClient);
+  }
+
   @Bean
-  public ConnectorsReadinessIndicator connectorsReadinessIndicator(
-      ApplicationAvailability availability,
-      ZeebeClient zeebeClient,
+  public OperateHealthIndicator operateHealthIndicator(
       @Autowired(required = false) ProcessDefinitionImporter processDefinitionImporter) {
-    return new ConnectorsReadinessIndicator(availability, zeebeClient, processDefinitionImporter);
+    return new OperateHealthIndicator(processDefinitionImporter);
   }
 }

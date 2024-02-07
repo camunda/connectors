@@ -51,8 +51,13 @@ public class ProcessDefinitionImporter {
 
   @Scheduled(fixedDelayString = "${camunda.connector.polling.interval:5000}")
   public synchronized void scheduleImport() {
-    search.query(this::handleImportedDefinitions);
-    ready = true;
+    try {
+      search.query(this::handleImportedDefinitions);
+      ready = true;
+    } catch (Exception e) {
+      LOG.error("Failed to import process definitions", e);
+      ready = false;
+    }
   }
 
   public void handleImportedDefinitions(List<ProcessDefinition> unprocessedDefinitions) {
