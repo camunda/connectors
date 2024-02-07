@@ -6,50 +6,77 @@
  */
 package io.camunda.connector.http.graphql.model;
 
-import io.camunda.connector.http.base.model.HttpCommonRequest;
+import io.camunda.connector.feel.annotation.FEEL;
+import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.http.base.auth.Authentication;
+import io.camunda.connector.http.base.model.HttpMethod;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import java.util.Objects;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import java.util.Map;
 
-public class GraphQLRequest extends HttpCommonRequest {
+/**
+ * Due to legacy reasons, the data format has to stay this way. The `graphql`
+ *
+ * <p>TODO: Restructure this data class when moving to a new connector version in the context of the
+ * switch of the underlying http library
+ *
+ * @param graphql
+ * @param authentication
+ */
+public record GraphQLRequest(@Valid GraphQL graphql, @Valid Authentication authentication) {
 
-  @NotBlank private String query;
-  private Object variables;
-
-  public boolean hasQuery() {
-    return query != null;
-  }
-
-  public String getQuery() {
-    return query;
-  }
-
-  public void setQuery(String query) {
-    this.query = query;
-  }
-
-  public Object getVariables() {
-    return variables;
-  }
-
-  public void setVariables(Object variables) {
-    this.variables = variables;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    GraphQLRequest that = (GraphQLRequest) o;
-    return query.equals(that.query) && Objects.equals(variables, that.variables);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(query, variables);
-  }
-
-  @Override
-  public String toString() {
-    return "GraphQLRequest{" + "query='" + query + '\'' + ", variables=" + variables + '}';
-  }
+  public record GraphQL(
+      @TemplateProperty(
+              id = "query",
+              label = "Query/Mutation",
+              description =
+                  "See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/graphql/#querymutation\" target=\"_blank\">documentation</a>",
+              type = TemplateProperty.PropertyType.Text,
+              // TODO add support for language property supported by element templates: language:
+              // graphql
+              group = "graphql")
+          @NotBlank
+          String query,
+      @TemplateProperty(
+              id = "variables",
+              group = "graphql",
+              feel = Property.FeelMode.required,
+              optional = true)
+          @FEEL
+          Map<String, Object> variables,
+      @FEEL
+          @NotNull
+          @TemplateProperty(
+              group = "endpoint",
+              id = "method",
+              defaultValue = "get",
+              choices = {
+                @TemplateProperty.DropdownPropertyChoice(label = "GET", value = "get"),
+                @TemplateProperty.DropdownPropertyChoice(label = "POST", value = "post")
+              })
+          HttpMethod method,
+      @FEEL
+          @NotBlank
+          @Pattern(
+              regexp = "^(=|http://|https://|secrets|\\{\\{).*$",
+              message = "Must be a http(s) URL")
+          @TemplateProperty(id = "url", group = "endpoint", label = "URL")
+          String url,
+      @FEEL
+          @TemplateProperty(
+              feel = Property.FeelMode.required,
+              group = "endpoint",
+              optional = true,
+              description = "Map of HTTP headers to add to the request")
+          Map<String, String> headers,
+      @TemplateProperty(
+              group = "timeout",
+              defaultValue = "20",
+              optional = true,
+              description =
+                  "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout")
+          Integer connectionTimeoutInSeconds) {}
 }

@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.http.graphql.utils;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.graphql.model.GraphQLRequest;
 import java.util.Map;
@@ -13,22 +15,48 @@ import java.util.stream.Collectors;
 
 public final class GraphQLRequestMapper {
 
-  public static HttpCommonRequest toHttpCommonRequest(GraphQLRequest graphQLRequest) {
+  private final ObjectMapper objectMapper;
+
+  public GraphQLRequestMapper(ObjectMapper objectMapper) {
+    this.objectMapper = objectMapper;
+  }
+
+  public HttpCommonRequest toHttpCommonRequest(GraphQLRequest graphQLRequest) {
     HttpCommonRequest httpCommonRequest = new HttpCommonRequest();
+    httpCommonRequest.setMethod(graphQLRequest.graphql().method());
+
     final Map<String, Object> queryAndVariablesMap =
         JsonSerializeHelper.queryAndVariablesToMap(graphQLRequest);
-    if (graphQLRequest.getMethod().supportsBody) {
+    if (httpCommonRequest.getMethod().supportsBody) {
       httpCommonRequest.setBody(queryAndVariablesMap);
     } else {
-      final Map<String, String> queryAndVariablesStringMap =
-          queryAndVariablesMap.entrySet().stream()
-              .collect(Collectors.toMap(Map.Entry::getKey, e -> String.valueOf(e.getValue())));
-      httpCommonRequest.setQueryParameters(queryAndVariablesStringMap);
+      httpCommonRequest.setQueryParameters(mapQueryAndVariablesToQueryParams(queryAndVariablesMap));
     }
-    httpCommonRequest.setAuthentication(graphQLRequest.getAuthentication());
-    httpCommonRequest.setMethod(graphQLRequest.getMethod());
-    httpCommonRequest.setUrl(graphQLRequest.getUrl());
-    httpCommonRequest.setConnectionTimeoutInSeconds(graphQLRequest.getConnectionTimeoutInSeconds());
+
+    httpCommonRequest.setHeaders(graphQLRequest.graphql().headers());
+    httpCommonRequest.setAuthentication(graphQLRequest.authentication());
+    httpCommonRequest.setUrl(graphQLRequest.graphql().url());
+    httpCommonRequest.setConnectionTimeoutInSeconds(
+        graphQLRequest.graphql().connectionTimeoutInSeconds());
+
     return httpCommonRequest;
+  }
+
+  private Map<String, String> mapQueryAndVariablesToQueryParams(
+      Map<String, Object> queryAndVariablesMap) {
+    return queryAndVariablesMap.entrySet().stream()
+        .collect(
+            Collectors.toMap(
+                Map.Entry::getKey,
+                e -> {
+                  if (e.getValue() instanceof Map m) {
+                    try {
+                      return objectMapper.writeValueAsString(m);
+                    } catch (JsonProcessingException ex) {
+                      throw new RuntimeException(ex);
+                    }
+                  }
+                  return String.valueOf(e.getValue());
+                }));
   }
 }
