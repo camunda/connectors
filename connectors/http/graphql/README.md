@@ -149,4 +149,4 @@ Set the specific property or environment variable to enable proxy mode as descri
 ## Element Template
 
 The element templates can be found in
-the [element-templates/graphql-connector.json](element-templates/graphql-connector.json) file.
+the [element-templates/graphql-outbound-connector.json](element-templates/graphql-outbound-connector.json) file.
