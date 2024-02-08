@@ -26,6 +26,16 @@ jobs:
           echo "type=$( echo $OUTPUT | cut -d ' ' -f1 )" >> $GITHUB_OUTPUT
           echo "previousTag=$( echo $OUTPUT | cut -d ' ' -f2 )" >> $GITHUB_OUTPUT
 
+      # We will update this branch by setting the new version and pushing it
+      - name: Determine release branch name
+        id: determine_release_branch
+        run: |
+          releaseBranch=$( git branch --contains ${RELEASE_VERSION} --format='%(refname:short)' )
+          git checkout "$releaseBranch"
+          echo "releaseBranch=$releaseBranch" >> $GITHUB_OUTPUT
+        env:
+          RELEASE_VERSION: ${{ github.event.release.tag_name }}
+
       - name: Import Secrets
         id: secrets
         uses: hashicorp/vault-action@v2.8.0
@@ -109,15 +119,6 @@ jobs:
           MAVEN_USR: ${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_USR }}
           MAVEN_PSW: ${{ steps.secrets.outputs.MAVEN_CENTRAL_DEPLOYMENT_PSW }}
           MAVEN_GPG_PASSPHRASE: ${{ steps.secrets.outputs.MAVEN_CENTRAL_GPG_SIGNING_KEY_PASSPHRASE }}
-
-      - name: Commit and tag
-        run: |
-          git commit -am "ci: release version ${RELEASE_VERSION}"
-          git tag -fa ${RELEASE_VERSION} -m "ci: release version ${RELEASE_VERSION}"
-          git push --force origin ${RELEASE_VERSION}
-
-        env:
-          RELEASE_VERSION: ${{ github.event.release.tag_name }}
 
       - name: Generate sbom reports
         run: |
@@ -241,7 +242,18 @@ jobs:
           excludeTypes: build,docs,other,style,ci
           excludeScopes: deps
 
-      - name: Create GitHub Release
+      - name: Commit and tag
+        run: |
+          git commit -am "ci: release version ${RELEASE_VERSION}"
+          git push origin ${RELEASE_BRANCH}
+          git tag -fa ${RELEASE_VERSION} -m "ci: release version ${RELEASE_VERSION}"
+          git push --force origin ${RELEASE_VERSION}
+
+        env:
+          RELEASE_VERSION: ${{ github.event.release.tag_name }}
+          RELEASE_BRANCH: ${{ steps.determine_release_branch.outputs.releaseBranch }}
+
+      - name: Update GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           prerelease: ${{ steps.validate_tag.outputs.type != 'NORMAL' }}
