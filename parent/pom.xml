@@ -41,7 +41,10 @@
   </licenses>
 
   <properties>
+    <!-- Java version for everything except Connector SDK -->
     <version.java>21</version.java>
+    <!-- Java version for Connector SDK -->
+    <version.java.sdk>17</version.java.sdk>
     <maven.compiler.target>${version.java}</maven.compiler.target>
     <maven.compiler.source>${version.java}</maven.compiler.source>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
