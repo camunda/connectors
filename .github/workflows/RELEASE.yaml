@@ -111,17 +111,6 @@ jobs:
         env:
           RELEASE_VERSION: ${{ github.event.release.tag_name }}
 
-      - name: Commit and tag
-        run: |
-          git commit -am "ci: release version ${RELEASE_VERSION}"
-          git push origin ${RELEASE_BRANCH}
-          git tag -fa ${RELEASE_VERSION} -m "ci: release version ${RELEASE_VERSION}"
-          git push --force origin ${RELEASE_VERSION}
-
-        env:
-          RELEASE_VERSION: ${{ github.event.release.tag_name }}
-          RELEASE_BRANCH: ${{ steps.determine_release_branch.outputs.releaseBranch }}
-
       - name: Deploy artifacts to Artifactory and Maven Central
         run: mvn -B compile generate-sources source:jar javadoc:jar deploy -PcheckFormat -Psonatype-oss-release
         env:
@@ -253,7 +242,18 @@ jobs:
           excludeTypes: build,docs,other,style,ci
           excludeScopes: deps
 
-      - name: Create GitHub Release
+      - name: Commit and tag
+        run: |
+          git commit -am "ci: release version ${RELEASE_VERSION}"
+          git push origin ${RELEASE_BRANCH}
+          git tag -fa ${RELEASE_VERSION} -m "ci: release version ${RELEASE_VERSION}"
+          git push --force origin ${RELEASE_VERSION}
+
+        env:
+          RELEASE_VERSION: ${{ github.event.release.tag_name }}
+          RELEASE_BRANCH: ${{ steps.determine_release_branch.outputs.releaseBranch }}
+
+      - name: Update GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           prerelease: ${{ steps.validate_tag.outputs.type != 'NORMAL' }}
