@@ -11,6 +11,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import java.util.Map;
 
 @TemplateSubType(id = OperationTypes.UPDATE_ITEM)
 public record UpdateItem(
@@ -28,7 +29,7 @@ public record UpdateItem(
             feel = Property.FeelMode.required,
             description = "Simple or composite primary key")
         @NotNull
-        Object primaryKeyComponents,
+        Map<String, Object> primaryKeyComponents,
     @TemplateProperty(
             label = "Key attributes",
             group = "input",
@@ -36,7 +37,7 @@ public record UpdateItem(
             description =
                 "DynamoDB key attributes. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/\" target=\"_blank\">documentation</a>")
         @NotNull
-        Object keyAttributes,
+        Map<String, Object> keyAttributes,
     @TemplateProperty(
             label = "Attribute action",
             group = "input",
