@@ -8,9 +8,17 @@ package io.camunda.connector.slack.outbound.model;
 
 import com.slack.api.methods.MethodsClient;
 import com.slack.api.methods.SlackApiException;
+import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
+import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.slack.outbound.SlackResponse;
 import java.io.IOException;
 
+@TemplateDiscriminatorProperty(
+    label = "Method",
+    group = "method",
+    name = "method",
+    defaultValue = "chat.postMessage")
+@TemplateSubType(id = "method", label = "Method")
 public sealed interface SlackRequestData
     permits ChatPostMessageData, ConversationsCreateData, ConversationsInviteData {
 

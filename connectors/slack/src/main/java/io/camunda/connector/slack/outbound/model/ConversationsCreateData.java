@@ -10,13 +10,34 @@ import com.slack.api.methods.MethodsClient;
 import com.slack.api.methods.SlackApiException;
 import com.slack.api.methods.request.conversations.ConversationsCreateRequest;
 import com.slack.api.methods.response.conversations.ConversationsCreateResponse;
+import io.camunda.connector.generator.dsl.Property.FeelMode;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyBinding;
+import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.slack.outbound.SlackResponse;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.io.IOException;
 
+@TemplateSubType(id = "conversations.create", label = "Create channel")
 public record ConversationsCreateData(
-    @NotBlank String newChannelName, @NotNull Visibility visibility) implements SlackRequestData {
+    @TemplateProperty(
+            label = "Channel name",
+            id = "data.newChannelName",
+            group = "channel",
+            binding = @PropertyBinding(name = "data.newChannelName"),
+            feel = FeelMode.optional)
+        @NotBlank
+        String newChannelName,
+    @TemplateProperty(
+            label = "Visibility",
+            id = "data.visibility",
+            group = "channel",
+            binding = @PropertyBinding(name = "data.visibility"),
+            feel = FeelMode.optional)
+        @NotNull
+        Visibility visibility)
+    implements SlackRequestData {
 
   public enum Visibility {
     PUBLIC,

@@ -10,6 +10,10 @@ import com.slack.api.methods.MethodsClient;
 import com.slack.api.methods.SlackApiException;
 import com.slack.api.methods.request.conversations.ConversationsInviteRequest;
 import com.slack.api.methods.response.conversations.ConversationsInviteResponse;
+import io.camunda.connector.generator.dsl.Property.FeelMode;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyBinding;
+import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.slack.outbound.SlackResponse;
 import io.camunda.connector.slack.outbound.utils.DataLookupService;
 import jakarta.validation.constraints.NotBlank;
@@ -18,7 +22,26 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 
-public record ConversationsInviteData(@NotBlank String channelName, @NotNull Object users)
+@TemplateSubType(id = "conversations.invite", label = "Invite to channel")
+public record ConversationsInviteData(
+    @TemplateProperty(
+            label = "Channel name",
+            id = "data.channelName",
+            group = "invite",
+            binding = @PropertyBinding(name = "data.channelName"),
+            feel = FeelMode.optional)
+        @NotBlank
+        String channelName,
+    @TemplateProperty(
+            label = "Users",
+            id = "data.users",
+            description =
+                "Comma-separated list of users, e.g., '@user1,@user2' or '=[ \"@user1\", \"user2@company.com\"]'",
+            group = "invite",
+            binding = @PropertyBinding(name = "data.users"),
+            feel = FeelMode.optional)
+        @NotNull
+        Object users)
     implements SlackRequestData {
   @Override
   public SlackResponse invoke(MethodsClient methodsClient) throws SlackApiException, IOException {

@@ -11,6 +11,9 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.slack.api.Slack;
 import com.slack.api.methods.MethodsClient;
 import com.slack.api.methods.SlackApiException;
+import io.camunda.connector.generator.dsl.Property.FeelMode;
+import io.camunda.connector.generator.java.annotation.NestedProperties;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.slack.outbound.model.ChatPostMessageData;
 import io.camunda.connector.slack.outbound.model.ConversationsCreateData;
 import io.camunda.connector.slack.outbound.model.ConversationsInviteData;
@@ -21,7 +24,13 @@ import jakarta.validation.constraints.NotNull;
 import java.io.IOException;
 
 public record SlackRequest<T extends SlackRequestData>(
-    @NotBlank String token,
+    @TemplateProperty(
+            id = "token",
+            label = "OAuth token",
+            group = "authentication",
+            feel = FeelMode.optional)
+        @NotBlank
+        String token,
     @JsonTypeInfo(
             use = JsonTypeInfo.Id.NAME,
             include = JsonTypeInfo.As.EXTERNAL_PROPERTY,
@@ -38,6 +47,7 @@ public record SlackRequest<T extends SlackRequestData>(
             })
         @Valid
         @NotNull
+        @NestedProperties(addNestedPath = false)
         T data) {
   public SlackResponse invoke(final Slack slack) throws SlackApiException, IOException {
     MethodsClient methods = slack.methods(token);

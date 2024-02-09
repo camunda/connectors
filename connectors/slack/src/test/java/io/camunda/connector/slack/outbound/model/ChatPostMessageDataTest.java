@@ -58,7 +58,7 @@ class ChatPostMessageDataTest {
   void invoke_shouldThrowExceptionWhenUserWithoutEmail() throws SlackApiException, IOException {
     // Given
     ChatPostMessageData chatPostMessageData =
-        new ChatPostMessageData("test@test.com", "Test text", EMPTY_JSON);
+        new ChatPostMessageData("test@test.com", "plainText", "Test text", EMPTY_JSON);
     when(methodsClient.usersLookupByEmail(any(UsersLookupByEmailRequest.class))).thenReturn(null);
     // When and then
     Throwable thrown = catchThrowable(() -> chatPostMessageData.invoke(methodsClient));
@@ -79,7 +79,8 @@ class ChatPostMessageDataTest {
       })
   void invoke_shouldFindUserIdByEmail(String email) throws SlackApiException, IOException {
     // Given
-    ChatPostMessageData chatPostMessageData = new ChatPostMessageData(email, "test", null);
+    ChatPostMessageData chatPostMessageData =
+        new ChatPostMessageData(email, "plainText", "test", null);
 
     when(methodsClient.usersLookupByEmail(any(UsersLookupByEmailRequest.class)))
         .thenReturn(lookupByEmailResponse);
@@ -101,7 +102,7 @@ class ChatPostMessageDataTest {
   void invoke_WhenTextIsGiven_ShouldInvoke() throws SlackApiException, IOException {
     // Given
     ChatPostMessageData chatPostMessageData =
-        new ChatPostMessageData("test@test.com", "test", null);
+        new ChatPostMessageData("test@test.com", "plainText", "test", null);
 
     when(methodsClient.usersLookupByEmail(any(UsersLookupByEmailRequest.class)))
         .thenReturn(lookupByEmailResponse);
@@ -167,7 +168,8 @@ class ChatPostMessageDataTest {
     var objectMapper = ConnectorsObjectMapperSupplier.getCopy();
 
     ChatPostMessageData chatPostMessageData =
-        new ChatPostMessageData("test@test.com", "test", objectMapper.readTree(blockContent));
+        new ChatPostMessageData(
+            "test@test.com", "messageBlock", "test", objectMapper.readTree(blockContent));
 
     when(methodsClient.usersLookupByEmail(any(UsersLookupByEmailRequest.class)))
         .thenReturn(lookupByEmailResponse);
@@ -202,7 +204,8 @@ class ChatPostMessageDataTest {
     var objectMapper = ConnectorsObjectMapperSupplier.getCopy();
 
     ChatPostMessageData chatPostMessageData =
-        new ChatPostMessageData("test@test.com", "test", objectMapper.readTree(blockContent));
+        new ChatPostMessageData(
+            "test@test.com", "plainText", "test", objectMapper.readTree(blockContent));
 
     when(methodsClient.usersLookupByEmail(any(UsersLookupByEmailRequest.class)))
         .thenReturn(lookupByEmailResponse);
