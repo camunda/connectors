@@ -107,6 +107,23 @@ class FeelEngineWrapperExpressionEvaluationTest {
   }
 
   @Test
+  void evaluateToJson_ShouldSucceed_WhenContextWithContextFromHttpResponse() throws JSONException {
+    // given
+    // FEEL expression which is a bit useless, but it proves 2 things
+    // 1. status is wrapped to response
+    // 2. job is not
+    final var errorExpression =
+        "if response.status = 204 then {retries: job.retries, responseRetries: response.job.retries} else null";
+    final var variables = Map.of("status", 204, "body", "", "headers", Map.of());
+    final var jobContent = Map.of("job", Map.of("retries", 3));
+    final var evaluatedResultAsJson =
+        objectUnderTest.evaluateToJson(errorExpression, variables, jobContent);
+    // then
+    JSONAssert.assertEquals(
+        "{\"retries\":3,\"responseRetries\":null}", evaluatedResultAsJson, JSONCompareMode.STRICT);
+  }
+
+  @Test
   void evaluateToJson_ShouldSucceed_WhenVariableNotFound() throws JSONException {
     // given
     // FEEL expression -> ={"processedOutput":response.doesnt-exist}
