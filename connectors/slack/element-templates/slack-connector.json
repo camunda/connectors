@@ -181,6 +181,10 @@
       "binding": {
         "type": "zeebe:input",
         "name": "message.type"
+      },
+      "condition": {
+        "property": "method",
+        "equals": "chat.postMessage"
       }
     },
     {
@@ -195,9 +199,16 @@
       "constraints": {
         "notEmpty": true
       },
-      "condition": {
-        "property": "message.type",
-        "equals": "plainText"
+      "condition" : {
+        "allMatch" : [ {
+          "property" : "message.type",
+          "equals" : "",
+          "type" : "simple"
+        }, {
+          "property" : "method",
+          "equals" : "chat.postMessage",
+          "type" : "simple"
+        } ]
       }
     },
     {
@@ -214,9 +225,16 @@
       "constraints": {
         "notEmpty": true
       },
-      "condition": {
-        "property": "message.type",
-        "equals": "messageBlock"
+      "condition" : {
+        "allMatch" : [ {
+          "property" : "message.type",
+          "equals" : "messageBlock",
+          "type" : "simple"
+        }, {
+          "property" : "method",
+          "equals" : "chat.postMessage",
+          "type" : "simple"
+        } ]
       }
     },
     {

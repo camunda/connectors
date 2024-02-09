@@ -24,7 +24,6 @@ import com.slack.api.methods.response.users.UsersLookupByEmailResponse;
 import com.slack.api.model.*;
 import com.slack.api.model.Conversation;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -54,9 +53,8 @@ public class ConversationsInviteDataTest {
   @Test
   void invoke_shouldThrowExceptionWhenUserNotFoundByEmail() throws SlackApiException, IOException {
     // Given
-    ConversationsInviteData conversationsInviteData = new ConversationsInviteData();
-    conversationsInviteData.setChannelName(CHANNEL_NAME);
-    conversationsInviteData.setUsers("test1@test.com, test2@test.com");
+    ConversationsInviteData conversationsInviteData =
+        new ConversationsInviteData(CHANNEL_NAME, List.of("test1@test.com, test2@test.com"));
     when(methodsClient.usersLookupByEmail(any(UsersLookupByEmailRequest.class))).thenReturn(null);
     // When and then
     Throwable thrown = catchThrowable(() -> conversationsInviteData.invoke(methodsClient));
@@ -68,9 +66,7 @@ public class ConversationsInviteDataTest {
   @Test
   void invoke_shouldThrowExceptionWhenNumberInputForUsers() {
     // Given number for users which is an invalid input type
-    ConversationsInviteData conversationsInviteData = new ConversationsInviteData();
-    conversationsInviteData.setChannelName(CHANNEL_NAME);
-    conversationsInviteData.setUsers(1);
+    ConversationsInviteData conversationsInviteData = new ConversationsInviteData(CHANNEL_NAME, 1);
     // When and then
     Throwable thrown = catchThrowable(() -> conversationsInviteData.invoke(methodsClient));
     assertThat(thrown)
@@ -82,9 +78,8 @@ public class ConversationsInviteDataTest {
   @Test
   void invoke_shouldThrowExceptionWhenBooleanInputForUsers() {
     // Given boolean for users which is an invalid input type
-    ConversationsInviteData conversationsInviteData = new ConversationsInviteData();
-    conversationsInviteData.setChannelName(CHANNEL_NAME);
-    conversationsInviteData.setUsers(Boolean.TRUE);
+    ConversationsInviteData conversationsInviteData =
+        new ConversationsInviteData(CHANNEL_NAME, Boolean.TRUE);
     // When and then
     Throwable thrown = catchThrowable(() -> conversationsInviteData.invoke(methodsClient));
     assertThat(thrown)
@@ -96,10 +91,8 @@ public class ConversationsInviteDataTest {
   @Test
   void invoke_shouldThrowExceptionWhenIntegerListInputForUsers() {
     // Given List<Integer> for users which is an invalid input type
-    ConversationsInviteData conversationsInviteData = new ConversationsInviteData();
-    conversationsInviteData.setChannelName(CHANNEL_NAME);
-    ArrayList<Integer> users = new ArrayList<>(Arrays.asList(1, 2));
-    conversationsInviteData.setUsers(users);
+    ConversationsInviteData conversationsInviteData =
+        new ConversationsInviteData(CHANNEL_NAME, Arrays.asList(1, 2));
     // When and then
     Throwable thrown = catchThrowable(() -> conversationsInviteData.invoke(methodsClient));
     assertThat(thrown)
@@ -119,9 +112,8 @@ public class ConversationsInviteDataTest {
   void invoke_shouldFindUserIdByEmail(final String emailList)
       throws SlackApiException, IOException {
     // Given
-    ConversationsInviteData conversationsInviteData = new ConversationsInviteData();
-    conversationsInviteData.setUsers(emailList);
-    conversationsInviteData.setChannelName(CHANNEL_NAME);
+    ConversationsInviteData conversationsInviteData =
+        new ConversationsInviteData(CHANNEL_NAME, emailList);
 
     when(methodsClient.usersLookupByEmail(any(UsersLookupByEmailRequest.class)))
         .thenReturn(lookupByEmailResponse);

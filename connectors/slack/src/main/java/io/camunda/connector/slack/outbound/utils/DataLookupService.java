@@ -39,7 +39,7 @@ public class DataLookupService {
     if (StringUtils.isBlank(string)) {
       return new ArrayList<>();
     }
-    return Arrays.stream(string.split(",")).map(s -> s.trim()).collect(Collectors.toList());
+    return Arrays.stream(string.split(",")).map(String::trim).collect(Collectors.toList());
   }
 
   public static boolean isEmail(final String str) {
@@ -65,17 +65,16 @@ public class DataLookupService {
     List<String> usernames = new ArrayList<>();
     List<String> userIds = new ArrayList<>();
 
-    validatedUserList.stream()
-        .forEach(
-            user -> {
-              if (isEmail(user)) {
-                emails.add(user);
-              } else if (user.startsWith("@")) {
-                usernames.add(user.substring(1));
-              } else {
-                userIds.add(user);
-              }
-            });
+    validatedUserList.forEach(
+        user -> {
+          if (isEmail(user)) {
+            emails.add(user);
+          } else if (user.startsWith("@")) {
+            usernames.add(user.substring(1));
+          } else {
+            userIds.add(user);
+          }
+        });
 
     List<String> idListByEmail =
         emails.stream()
@@ -120,7 +119,7 @@ public class DataLookupService {
           getIdListByUserNameList(Collections.singletonList(userName), methodsClient);
       return Optional.ofNullable(userIds)
           .filter(list -> !list.isEmpty())
-          .map(list -> list.get(0))
+          .map(List::getFirst)
           .orElseThrow(() -> new RuntimeException("Unable to find users by name: " + userName));
     } catch (RuntimeException e) {
       throw new RuntimeException("Unable to find users by name: " + userName, e);
@@ -144,7 +143,7 @@ public class DataLookupService {
               response.getMembers().stream()
                   .filter(user -> userNameList.contains(user.getRealName()))
                   .map(User::getId)
-                  .collect(Collectors.toList()));
+                  .toList());
           nextCursor = response.getResponseMetadata().getNextCursor();
         } else {
           throw new RuntimeException("Unable to get users; message: " + response.getError());

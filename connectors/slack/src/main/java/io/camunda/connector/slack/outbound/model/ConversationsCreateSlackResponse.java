@@ -9,39 +9,10 @@ package io.camunda.connector.slack.outbound.model;
 import com.slack.api.methods.response.conversations.ConversationsCreateResponse;
 import io.camunda.connector.slack.outbound.SlackResponse;
 import io.camunda.connector.slack.outbound.dto.Conversation;
-import java.util.Objects;
 
-public class ConversationsCreateSlackResponse implements SlackResponse {
-
-  private final Conversation channel;
+public record ConversationsCreateSlackResponse(Conversation channel) implements SlackResponse {
 
   public ConversationsCreateSlackResponse(ConversationsCreateResponse response) {
-    this.channel = new Conversation(response.getChannel());
-  }
-
-  public Conversation getChannel() {
-    return channel;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    ConversationsCreateSlackResponse that = (ConversationsCreateSlackResponse) o;
-    return Objects.equals(channel, that.channel);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(channel);
-  }
-
-  @Override
-  public String toString() {
-    return "ConversationsCreateSlackResponse{" + "channel=" + channel + '}';
+    this(new Conversation(response.getChannel()));
   }
 }

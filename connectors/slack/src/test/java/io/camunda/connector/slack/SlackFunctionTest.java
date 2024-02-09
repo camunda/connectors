@@ -179,9 +179,9 @@ public class SlackFunctionTest extends BaseTest {
   private static void assertThatSlackResponseIsCorrect(final Object executeResponse) {
     assertThat(executeResponse).isInstanceOf(ChatPostMessageSlackResponse.class);
     ChatPostMessageSlackResponse slackResponse = (ChatPostMessageSlackResponse) executeResponse;
-    assertThat(slackResponse.getChannel()).isEqualTo(ActualValue.USER_ID);
-    assertThat(slackResponse.getTs()).isEqualTo(ActualValue.TS);
-    assertThat(slackResponse.getMessage()).isNotNull();
+    assertThat(slackResponse.channel()).isEqualTo(ActualValue.USER_ID);
+    assertThat(slackResponse.ts()).isEqualTo(ActualValue.TS);
+    assertThat(slackResponse.message()).isNotNull();
   }
 
   @ParameterizedTest
@@ -197,10 +197,10 @@ public class SlackFunctionTest extends BaseTest {
 
     SlackRequest<ConversationsCreateData> request = context.bindVariables(SlackRequest.class);
     assertThat(conversationsCreateRequestArgumentCaptor.getValue().isPrivate())
-        .isEqualTo(request.getData().getVisibility() == ConversationsCreateData.Visibility.PRIVATE);
+        .isEqualTo(request.data().visibility() == ConversationsCreateData.Visibility.PRIVATE);
     assertThat(executeResponse).isInstanceOf(ConversationsCreateSlackResponse.class);
     ConversationsCreateSlackResponse response = (ConversationsCreateSlackResponse) executeResponse;
-    assertThat(response.getChannel()).isNotNull();
+    assertThat(response.channel()).isNotNull();
   }
 
   @ParameterizedTest
