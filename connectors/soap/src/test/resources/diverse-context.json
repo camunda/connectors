@@ -1,0 +1,17 @@
+{
+  "jsonNode": {
+    "foo": {
+      "bar": "baz",
+      "foolist": [
+        "barlist",
+        "bazlist"
+      ],
+      "barnull": null,
+      "barnum": 5,
+      "barbool": false,
+      "barcontext": {
+        "baz": "context"
+      }
+    }
+  }
+}

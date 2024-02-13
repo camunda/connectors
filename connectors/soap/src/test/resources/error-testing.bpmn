@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_1wopq27" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.17.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.3.0">
+  <bpmn:process id="ErrorTestProcess" name="Error Test" isExecutable="true">
+    <bpmn:startEvent id="ProcessStartedStartEvent" name="Process started">
+      <bpmn:outgoing>Flow_0kxpasf</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="Flow_0kxpasf" sourceRef="ProcessStartedStartEvent" targetRef="CallWorkingServiceTask" />
+    <bpmn:serviceTask id="CallWorkingServiceTask" name="Call working service" zeebe:modelerTemplate="com.camunda.consulting:soap" zeebe:modelerTemplateVersion="1" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyM3B4IiBoZWlnaHQ9IjIzcHgiIHZpZXdCb3g9IjAgMCAxOCAyMiIgdmVyc2lvbj0iMS4xIj4KPGcgaWQ9InN1cmZhY2UxIj4KPHBhdGggc3R5bGU9IiBzdHJva2U6bm9uZTtmaWxsLXJ1bGU6bm9uemVybztmaWxsOnJnYigwJSwwJSwwJSk7ZmlsbC1vcGFjaXR5OjE7IiBkPSJNIDYuNDYwOTM4IDAuODYzMjgxIEMgNS43NjE3MTkgMC45ODQzNzUgNS4yOTY4NzUgMS4yMTQ4NDQgNC44MjQyMTkgMS42ODM1OTQgQyA0LjQwMjM0NCAyLjEwMTU2MiA0LjE1MjM0NCAyLjU3MDMxMiA0LjA2MjUgMy4xMTMyODEgQyA0LjAxNTYyNSAzLjM2NzE4OCA0LjAyNzM0NCAzLjg2MzI4MSA0LjA4MjAzMSA0LjEwOTM3NSBDIDQuMjU3ODEyIDQuODgyODEyIDQuNzMwNDY5IDUuNTExNzE5IDUuNDMzNTk0IDUuOTAyMzQ0IEMgNi41NDI5NjkgNi41MTk1MzEgNy45NTcwMzEgNi4zMTI1IDguODQ3NjU2IDUuNDA2MjUgQyA5LjMzOTg0NCA0LjkwNjI1IDkuNjAxNTYyIDQuMjYxNzE5IDkuNjAxNTYyIDMuNTYyNSBDIDkuNjAxNTYyIDIuNzY1NjI1IDkuMjc3MzQ0IDIuMDcwMzEyIDguNjU2MjUgMS41NDI5NjkgQyA4LjIxODc1IDEuMTY3OTY5IDcuNzkyOTY5IDAuOTcyNjU2IDcuMjAzMTI1IDAuODc1IEMgNi44OTg0MzggMC44MjQyMTkgNi43MDMxMjUgMC44MjAzMTIgNi40NjA5MzggMC44NjMyODEgWiBNIDcuMzUxNTYyIDEuODg2NzE5IEMgNy44Mzk4NDQgMi4wNDY4NzUgOC4xOTkyMTkgMi4zMzk4NDQgOC40MTAxNTYgMi43NSBDIDguNTE5NTMxIDIuOTY4NzUgOC41NjI1IDMuMTE3MTg4IDguNTkzNzUgMy4zODY3MTkgQyA4LjY4MzU5NCA0LjI1MzkwNiA4LjE2NDA2MiA1LjAxMTcxOSA3LjMxMjUgNS4yMzQzNzUgQyA3LjA2MjUgNS4zMDA3ODEgNi41NTA3ODEgNS4zMDA3ODEgNi4zMTI1IDUuMjM0Mzc1IEMgNS40NzY1NjIgNSA0Ljk2ODc1IDQuMjkyOTY5IDUuMDE5NTMxIDMuNDI1NzgxIEMgNS4wNTg1OTQgMi43Njk1MzEgNS40MjE4NzUgMi4yNjE3MTkgNi4wNTA3ODEgMS45ODA0NjkgQyA2LjM1NTQ2OSAxLjg0NzY1NiA2LjU2MjUgMS44MDQ2ODggNi44OTg0MzggMS44MTI1IEMgNy4xMDkzNzUgMS44MjAzMTIgNy4xNzU3ODEgMS44MzIwMzEgNy4zNTE1NjIgMS44ODY3MTkgWiBNIDcuMzUxNTYyIDEuODg2NzE5ICIvPgo8cGF0aCBzdHlsZT0iIHN0cm9rZTpub25lO2ZpbGwtcnVsZTpub256ZXJvO2ZpbGw6cmdiKDAlLDAlLDAlKTtmaWxsLW9wYWNpdHk6MTsiIGQ9Ik0gNi41NDY4NzUgMi4xOTkyMTkgQyA1LjkyNTc4MSAyLjI4MTI1IDUuNDAyMzQ0IDIuODg2NzE5IDUuMzk4NDM4IDMuNTIzNDM4IEMgNS4zOTg0MzggMy42OTE0MDYgNS40MzM1OTQgMy43Njk1MzEgNS41NjI1IDMuODc4OTA2IEMgNS42NTIzNDQgMy45NTcwMzEgNS44MTY0MDYgNC4wMjczNDQgNS45MTAxNTYgNC4wMjczNDQgQyA1Ljk5MjE4OCA0LjAyNzM0NCA2LjExNzE4OCAzLjk2ODc1IDYuMTk1MzEyIDMuODk0NTMxIEMgNi4yNjE3MTkgMy44MzIwMzEgNi4yODkwNjIgMy43NzczNDQgNi4zMzU5MzggMy42MzI4MTIgQyA2LjQ0OTIxOSAzLjI2NTYyNSA2LjUyNzM0NCAzLjE5MTQwNiA2LjkxMDE1NiAzLjA4OTg0NCBDIDcuMDk3NjU2IDMuMDM5MDYyIDcuMTYwMTU2IDIuOTkyMTg4IDcuMjMwNDY5IDIuODU5Mzc1IEMgNy4yOTI5NjkgMi43MzQzNzUgNy4zMDQ2ODggMi41NTQ2ODggNy4yNTM5MDYgMi40NDE0MDYgQyA3LjIxODc1IDIuMzU5Mzc1IDcuMTI1IDIuMjczNDM4IDcuMDI3MzQ0IDIuMjM0Mzc1IEMgNi45Mjk2ODggMi4xOTUzMTIgNi43MDMxMjUgMi4xNzk2ODggNi41NDY4NzUgMi4xOTkyMTkgWiBNIDYuNTQ2ODc1IDIuMTk5MjE5ICIvPgo8cGF0aCBzdHlsZT0iIHN0cm9rZTpub25lO2ZpbGwtcnVsZTpub256ZXJvO2ZpbGw6cmdiKDAlLDAlLDAlKTtmaWxsLW9wYWNpdHk6MTsiIGQ9Ik0gMy4wNzQyMTkgNS45MjU3ODEgQyAyLjc4OTA2MiA1Ljk4NDM3NSAyLjQ5NjA5NCA2LjE1MjM0NCAyLjI2OTUzMSA2LjM4NjcxOSBDIDIuMDM1MTU2IDYuNjMyODEyIDEuOTEwMTU2IDYuODc4OTA2IDEuODYzMjgxIDcuMjE4NzUgQyAxLjgzNTkzOCA3LjQxNDA2MiAxLjg0NzY1NiA3LjU1ODU5NCAxLjkxMDE1NiA3Ljc4MTI1IEMgMi4wMTk1MzEgOC4xODc1IDIuMzIwMzEyIDguNTQyOTY5IDIuNjk5MjE5IDguNzIyNjU2IEMgMi45Njg3NSA4Ljg1MTU2MiAzLjE3MTg3NSA4Ljg5MDYyNSAzLjQ2ODc1IDguODc4OTA2IEMgMy44NzUgOC44NjMyODEgNC4yMjI2NTYgOC43MDMxMjUgNC41MDc4MTIgOC40MDIzNDQgQyA0LjY2Nzk2OSA4LjIzNDM3NSA0LjgyNDIxOSA3Ljk1NzAzMSA0Ljg3ODkwNiA3LjczMDQ2OSBDIDQuOTQ5MjE5IDcuNDM3NSA0LjkxNDA2MiA3LjA2NjQwNiA0Ljc5Mjk2OSA2LjgwMDc4MSBDIDQuNzIyNjU2IDYuNjQ4NDM4IDQuNTY2NDA2IDYuNDIxODc1IDQuNDQ5MjE5IDYuMzA0Njg4IEMgNC4xNTIzNDQgNi4wMDM5MDYgMy41MjM0MzggNS44MjgxMjUgMy4wNzQyMTkgNS45MjU3ODEgWiBNIDMuNTQyOTY5IDYuODgyODEyIEMgMy44MDQ2ODggNi45ODQzNzUgMy45NDkyMTkgNy4xNjAxNTYgMy45NTMxMjUgNy4zODY3MTkgQyAzLjk1MzEyNSA3LjYyNSAzLjgwODU5NCA3LjgyNDIxOSAzLjU3ODEyNSA3Ljg5ODQzOCBDIDMuMTEzMjgxIDguMDQ2ODc1IDIuNjcxODc1IDcuNTkzNzUgMi44ODI4MTIgNy4xODM1OTQgQyAyLjk2ODc1IDcuMDE5NTMxIDMuMjIyNjU2IDYuODI4MTI1IDMuMzU5Mzc1IDYuODI4MTI1IEMgMy4zODY3MTkgNi44MjgxMjUgMy40Njg3NSA2Ljg1MTU2MiAzLjU0Mjk2OSA2Ljg4MjgxMiBaIE0gMy41NDI5NjkgNi44ODI4MTIgIi8+CjxwYXRoIHN0eWxlPSIgc3Ryb2tlOm5vbmU7ZmlsbC1ydWxlOm5vbnplcm87ZmlsbDpyZ2IoMCUsMCUsMCUpO2ZpbGwtb3BhY2l0eToxOyIgZD0iTSA5Ljc2OTUzMSA2LjY3MTg3NSBDIDguOTUzMTI1IDYuNzczNDM4IDguMjE4NzUgNy4wNzQyMTkgNy41NzQyMTkgNy41NzAzMTIgQyA3LjE2NDA2MiA3Ljg5MDYyNSA2Ljg5ODQzOCA4LjE2MDE1NiA2LjQ0MTQwNiA4LjczODI4MSBDIDUuNzc3MzQ0IDkuNTcwMzEyIDUuNDQ5MjE5IDkuODQ3NjU2IDQuNTU0Njg4IDEwLjMxNjQwNiBDIDMuNjIxMDk0IDEwLjgwNDY4OCAyLjk3NjU2MiAxMS4yMDMxMjUgMi40NDUzMTIgMTEuNjIxMDk0IEMgMi4wMjczNDQgMTEuOTUzMTI1IDEuOTAyMzQ0IDEyLjEwOTM3NSAxLjYyMTA5NCAxMi42NjAxNTYgTCAxLjQzMzU5NCAxMy4wMTU2MjUgTCAxLjQ0MTQwNiAxNS4yNDIxODggQyAxLjQ0OTIxOSAxNi44MDQ2ODggMS40NjA5MzggMTcuNTAzOTA2IDEuNDc2NTYyIDE3LjU4OTg0NCBDIDEuNjM2NzE5IDE4LjM4NjcxOSAyLjQ1MzEyNSAxOS4zNjMyODEgMy40MTc5NjkgMTkuOTE0MDYyIEMgNC4yMzgyODEgMjAuMzgyODEyIDUuNDg0Mzc1IDIwLjgzMjAzMSA2LjUwMzkwNiAyMS4wMzEyNSBDIDcuNDg0Mzc1IDIxLjIyMjY1NiA4LjkyMTg3NSAyMS4yMTQ4NDQgOS42NTIzNDQgMjEuMDE1NjI1IEMgMTAuNjY0MDYyIDIwLjczNDM3NSAxMS4zNTkzNzUgMjAuMTYwMTU2IDEyLjA4NTkzOCAxOSBDIDEyLjU3MDMxMiAxOC4yMzA0NjkgMTIuOTg4MjgxIDE3Ljc0NjA5NCAxMy41MTE3MTkgMTcuMzcxMDk0IEMgMTMuNjE3MTg4IDE3LjI5Mjk2OSAxMy45NjQ4NDQgMTcuMDc4MTI1IDE0LjI4MTI1IDE2Ljg5NDUzMSBDIDE0Ljk4ODI4MSAxNi40ODA0NjkgMTUuMjU3ODEyIDE2LjMxMjUgMTUuNDg4MjgxIDE2LjEyMTA5NCBDIDE1LjkwMjM0NCAxNS43ODEyNSAxNi4yNjk1MzEgMTUuMjI2NTYyIDE2LjQ1MzEyNSAxNC42Njc5NjkgQyAxNi41NTg1OTQgMTQuMzQ3NjU2IDE2LjU3MDMxMiAxNC4wNzgxMjUgMTYuNTU4NTk0IDEyLjA4OTg0NCBDIDE2LjU0Njg3NSAxMC4zMDg1OTQgMTYuNTM1MTU2IDEwLjA1NDY4OCAxNi40NTMxMjUgOS44MDA3ODEgQyAxNi4zMTI1IDkuMzQ3NjU2IDE1Ljk3NjU2MiA4Ljg2NzE4OCAxNS41MTk1MzEgOC40NjA5MzggQyAxNC41ODk4NDQgNy42MzY3MTkgMTIuOTAyMzQ0IDYuOTMzNTk0IDExLjMxMjUgNi43MDMxMjUgQyAxMC45MzM1OTQgNi42NDQ1MzEgMTAuMDk3NjU2IDYuNjMyODEyIDkuNzY5NTMxIDYuNjcxODc1IFogTSAxMC42MzY3MTkgNy41OTc2NTYgQyAxMS4zMDg1OTQgNy42MzI4MTIgMTEuODA0Njg4IDcuNzI2NTYyIDEyLjUwMzkwNiA3Ljk0OTIxOSBDIDEzLjUzMTI1IDguMjczNDM4IDE0LjQzMzU5NCA4Ljc1MzkwNiAxNC45NjQ4NDQgOS4yNTM5MDYgQyAxNS4yNzM0MzggOS41NDY4NzUgMTUuNDIxODc1IDkuNzc3MzQ0IDE1LjUxNTYyNSAxMC4xMTcxODggQyAxNS41ODIwMzEgMTAuMzUxNTYyIDE1LjU4MjAzMSAxMC44MTI1IDE1LjUxOTUzMSAxMS4wNDY4NzUgQyAxNS4zODI4MTIgMTEuNTI3MzQ0IDE1LjE0NDUzMSAxMS44NDc2NTYgMTQuNjQwNjI1IDEyLjIxODc1IEMgMTQuNDUzMTI1IDEyLjM1OTM3NSAxNC4zMjgxMjUgMTIuNDM3NSAxMy44ODY3MTkgMTIuNjc5Njg4IEMgMTIuNjU2MjUgMTMuMzU5Mzc1IDEyLjAyNzM0NCAxMy45MzM1OTQgMTEuMzc4OTA2IDE0Ljk2NDg0NCBDIDEwLjk2NDg0NCAxNS42MTcxODggMTAuNjI4OTA2IDE2LjAzOTA2MiAxMC4zMTY0MDYgMTYuMjkyOTY5IEMgOS45MTQwNjIgMTYuNjIxMDk0IDkuNjQ0NTMxIDE2LjczNDM3NSA5LjAzOTA2MiAxNi44MjQyMTkgQyA4Ljc0MjE4OCAxNi44NjcxODggNy42OTUzMTIgMTYuODg2NzE5IDcuMzMyMDMxIDE2Ljg1NTQ2OSBDIDYuMDgyMDMxIDE2Ljc0NjA5NCA0LjUxMTcxOSAxNi4xODc1IDMuNTIzNDM4IDE1LjUwNzgxMiBDIDMuMjkyOTY5IDE1LjM0NzY1NiAyLjk0MTQwNiAxNS4wMDc4MTIgMi44MDg1OTQgMTQuODEyNSBDIDIuNjY0MDYyIDE0LjYwNTQ2OSAyLjU0Njg3NSAxNC4zNjMyODEgMi40NzI2NTYgMTQuMTI1IEMgMi40MTc5NjkgMTMuOTU3MDMxIDIuNDE0MDYyIDEzLjkwNjI1IDIuNDE0MDYyIDEzLjYyNSBDIDIuNDE0MDYyIDEzLjM0Mzc1IDIuNDE3OTY5IDEzLjMwMDc4MSAyLjQ3MjY1NiAxMy4xNDQ1MzEgQyAyLjU3MDMxMiAxMi44NTE1NjIgMi43OTI5NjkgMTIuNTcwMzEyIDMuMTQ4NDM4IDEyLjI4NTE1NiBDIDMuNTYyNSAxMS45NTMxMjUgMy45Mjk2ODggMTEuNzI2NTYyIDQuODQzNzUgMTEuMjQ2MDk0IEMgNi4wOTc2NTYgMTAuNTc4MTI1IDYuNDEwMTU2IDEwLjMyODEyNSA3LjA5NzY1NiA5LjQ2NDg0NCBDIDcuNTg1OTM4IDguODQzNzUgNy45MDYyNSA4LjUxOTUzMSA4LjI4OTA2MiA4LjIzODI4MSBDIDguODA4NTk0IDcuODYzMjgxIDkuNDc2NTYyIDcuNjI1IDEwLjExMzI4MSA3LjU4OTg0NCBDIDEwLjE3OTY4OCA3LjU4NTkzOCAxMC4yNDIxODggNy41ODIwMzEgMTAuMjUzOTA2IDcuNTc4MTI1IEMgMTAuMjY1NjI1IDcuNTc4MTI1IDEwLjQzNzUgNy41ODU5MzggMTAuNjM2NzE5IDcuNTk3NjU2IFogTSAxNS42MDkzNzUgMTMuMzIwMzEyIEMgMTUuNjA5Mzc1IDEzLjczODI4MSAxNS42MDE1NjIgMTMuOTAyMzQ0IDE1LjU3MDMxMiAxNC4wODIwMzEgQyAxNS40NTcwMzEgMTQuNzUzOTA2IDE1LjE4NzUgMTUuMTc5Njg4IDE0LjYzNjcxOSAxNS41NjY0MDYgQyAxNC40MzM1OTQgMTUuNzEwOTM4IDE0LjM1MTU2MiAxNS43NjE3MTkgMTMuODc1IDE2LjAyMzQzOCBDIDEyLjcwMzEyNSAxNi42Njc5NjkgMTIuMDc4MTI1IDE3LjIyMjY1NiAxMS40NjA5MzggMTguMTcxODc1IEMgMTAuOTMzNTk0IDE4Ljk4MDQ2OSAxMC43MzgyODEgMTkuMjM0Mzc1IDEwLjQyMTg3NSAxOS41MzEyNSBDIDkuODc4OTA2IDIwLjAzNTE1NiA5LjQxMDE1NiAyMC4xODM1OTQgOC4yMzQzNzUgMjAuMjA3MDMxIEMgNy42NDQ1MzEgMjAuMjIyNjU2IDcuMjU3ODEyIDIwLjE5OTIxOSA2LjgxMjUgMjAuMTIxMDk0IEMgNS41NzgxMjUgMTkuODk4NDM4IDQuMzIwMzEyIDE5LjM5ODQzOCAzLjQ5NjA5NCAxOC44MDA3ODEgQyAyLjg2NzE4OCAxOC4zNDM3NSAyLjUwNzgxMiAxNy44MTI1IDIuNDIxODc1IDE3LjIyNjU2MiBDIDIuMzcxMDk0IDE2Ljg3NSAyLjMzOTg0NCAxNS45MzM1OTQgMi4zNzUgMTUuODgyODEyIEMgMi4zOTA2MjUgMTUuODU5Mzc1IDIuNDY0ODQ0IDE1LjkxMDE1NiAyLjY3OTY4OCAxNi4wNzgxMjUgQyAyLjgzOTg0NCAxNi4xOTkyMTkgMy4wNTg1OTQgMTYuMzU1NDY5IDMuMTcxODc1IDE2LjQyOTY4OCBDIDMuOTI5Njg4IDE2LjkxMDE1NiA1LjE1MjM0NCAxNy4zOTg0MzggNi4yNDYwOTQgMTcuNjUyMzQ0IEMgNi45MTAxNTYgMTcuODA4NTk0IDcuMjY5NTMxIDE3LjgzOTg0NCA4LjIxODc1IDE3LjgyMDMxMiBDIDkuMjgxMjUgMTcuODA0Njg4IDkuNzE4NzUgMTcuNzIyNjU2IDEwLjMzOTg0NCAxNy40MzM1OTQgQyAxMC42MjEwOTQgMTcuMzAwNzgxIDEwLjg1OTM3NSAxNy4xMjEwOTQgMTEuMTc1NzgxIDE2LjgwODU5NCBDIDExLjU0Njg3NSAxNi40Mzc1IDExLjc5Njg3NSAxNi4xMTcxODggMTIuMTQ4NDM4IDE1LjU1NDY4OCBDIDEyLjQzNzUgMTUuMDk3NjU2IDEyLjY0NDUzMSAxNC44MzIwMzEgMTIuOTYwOTM4IDE0LjUxOTUzMSBDIDEzLjMyMDMxMiAxNC4xNjAxNTYgMTMuNjY3OTY5IDEzLjkxMDE1NiAxNC4yNjk1MzEgMTMuNTYyNSBDIDE0Ljg0NzY1NiAxMy4yMzA0NjkgMTUuMTMyODEyIDEzLjA1ODU5NCAxNS4zNTU0NjkgMTIuODk4NDM4IEMgMTUuNSAxMi43OTI5NjkgMTUuNTc0MjE5IDEyLjc1IDE1LjU4OTg0NCAxMi43NjU2MjUgQyAxNS42MDE1NjIgMTIuNzc3MzQ0IDE1LjYwOTM3NSAxMi45ODQzNzUgMTUuNjA5Mzc1IDEzLjMyMDMxMiBaIE0gMTUuNjA5Mzc1IDEzLjMyMDMxMiAiLz4KPC9nPgo8L3N2Zz4K">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="com.camunda.consulting:soap:1" />
+        <zeebe:ioMapping>
+          <zeebe:input source="=&#34;http://localhost:&#34; + port" target="serviceUrl" />
+          <zeebe:input source="none" target="authentication.authentication" />
+          <zeebe:input source="1.2" target="soapVersion.version" />
+          <zeebe:input source="none" target="header.type" />
+          <zeebe:input source="json" target="body.type" />
+          <zeebe:input source="={&#10;  &#34;typ:animal&#34;: {&#10;    &#34;typ:name&#34;: &#34;Eric&#34;,&#10;    &#34;typ:type&#34;: &#34;Flamingo&#34;&#10;  }&#10;}" target="body.json" />
+          <zeebe:input source="={&#10;  &#34;typ&#34;: &#34;http://my.service.com/schema/animals/1.0&#34;&#10;}" target="namespaces" />
+          <zeebe:input source="20" target="connectionTimeoutInSeconds" />
+        </zeebe:ioMapping>
+        <zeebe:taskHeaders>
+          <zeebe:header key="resultVariable" value="result" />
+          <zeebe:header key="errorExpression" value="=if &#10;  starts with(error.message,&#34;I/O error&#34;) &#10;then &#10;  bpmnError(&#34;io-error&#34;, error.message) &#10;else if&#10;  error.response.Envelope.Body.Fault.faultcode != null&#10;then&#10;  bpmnError(&#34;fault&#34;, error.message) &#10;else&#10;  null" />
+          <zeebe:header key="retryBackoff" value="PT0S" />
+        </zeebe:taskHeaders>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0kxpasf</bpmn:incoming>
+      <bpmn:outgoing>Flow_0g18120</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="ThatDidWorkEndEvent" name="That did work">
+      <bpmn:incoming>Flow_0g18120</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_0g18120" sourceRef="CallWorkingServiceTask" targetRef="ThatDidWorkEndEvent" />
+    <bpmn:endEvent id="ThatDidNotWorkEndEvent" name="That did not work">
+      <bpmn:extensionElements />
+      <bpmn:incoming>Flow_0pdaufd</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_0pdaufd" sourceRef="IOErrorBoundaryEvent" targetRef="ThatDidNotWorkEndEvent" />
+    <bpmn:boundaryEvent id="IOErrorBoundaryEvent" name="IO Error" attachedToRef="CallWorkingServiceTask">
+      <bpmn:outgoing>Flow_0pdaufd</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="ErrorEventDefinition_09kk1su" errorRef="Error_0mz0e4q" />
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="FaultBoundaryEvent" name="Fault" attachedToRef="CallWorkingServiceTask">
+      <bpmn:extensionElements />
+      <bpmn:outgoing>Flow_081c2en</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="ErrorEventDefinition_19n6ye6" errorRef="Error_0wlvjwm" />
+    </bpmn:boundaryEvent>
+    <bpmn:endEvent id="ThereWasAFaultEndEvent" name="There was a fault">
+      <bpmn:incoming>Flow_081c2en</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_081c2en" sourceRef="FaultBoundaryEvent" targetRef="ThereWasAFaultEndEvent" />
+  </bpmn:process>
+  <bpmn:error id="Error_0mz0e4q" name="IO Error" errorCode="io-error" />
+  <bpmn:error id="Error_0wlvjwm" name="Fault" errorCode="fault" />
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="ErrorTestProcess">
+      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="ProcessStartedStartEvent">
+        <dc:Bounds x="179" y="99" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="159" y="142" width="77" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1r3xdeg_di" bpmnElement="CallWorkingServiceTask">
+        <dc:Bounds x="270" y="77" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_10fx8wq_di" bpmnElement="ThatDidWorkEndEvent">
+        <dc:Bounds x="432" y="99" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="417" y="142" width="67" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1wujtft_di" bpmnElement="ThatDidNotWorkEndEvent">
+        <dc:Bounds x="442" y="222" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="418" y="265" width="85" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1b0j82c_di" bpmnElement="ThereWasAFaultEndEvent">
+        <dc:Bounds x="442" y="312" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="418" y="355" width="85" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_0cpshtl_di" bpmnElement="IOErrorBoundaryEvent">
+        <dc:Bounds x="352" y="139" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="390" y="163" width="40" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_14gkr3m_di" bpmnElement="FaultBoundaryEvent">
+        <dc:Bounds x="292" y="139" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="277" y="182" width="25" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_0kxpasf_di" bpmnElement="Flow_0kxpasf">
+        <di:waypoint x="215" y="117" />
+        <di:waypoint x="270" y="117" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0g18120_di" bpmnElement="Flow_0g18120">
+        <di:waypoint x="370" y="117" />
+        <di:waypoint x="432" y="117" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0pdaufd_di" bpmnElement="Flow_0pdaufd">
+        <di:waypoint x="370" y="175" />
+        <di:waypoint x="370" y="240" />
+        <di:waypoint x="442" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_081c2en_di" bpmnElement="Flow_081c2en">
+        <di:waypoint x="311" y="175" />
+        <di:waypoint x="310" y="330" />
+        <di:waypoint x="442" y="330" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

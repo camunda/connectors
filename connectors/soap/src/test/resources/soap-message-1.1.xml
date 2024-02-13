@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:a="http://www.example.com/ws/a/1.0"
+               xmlns:b="http://www.example.com/ws/b/1.0" xmlns:c="http://www.example.com/ws/c/1.0">
+  <soap:Header/>
+  <soap:Body>
+    <a:animal>
+      <b:name>frog</b:name>
+      <c:color>green</c:color>
+    </a:animal>
+  </soap:Body>
+</soap:Envelope>

@@ -27,6 +27,7 @@
     <module>rabbitmq</module>
     <module>sendgrid</module>
     <module>slack</module>
+    <module>soap</module>
     <module>webhook</module>
   </modules>
 

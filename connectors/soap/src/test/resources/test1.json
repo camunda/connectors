@@ -1,0 +1,6 @@
+{
+  "root": {
+    "childNode1": "value1",
+    "childNode2": "value2"
+  }
+}
