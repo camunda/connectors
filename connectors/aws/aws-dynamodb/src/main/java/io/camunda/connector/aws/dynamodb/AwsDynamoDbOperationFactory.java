@@ -15,11 +15,13 @@ import io.camunda.connector.aws.dynamodb.model.DescribeTable;
 import io.camunda.connector.aws.dynamodb.model.GetItem;
 import io.camunda.connector.aws.dynamodb.model.ScanTable;
 import io.camunda.connector.aws.dynamodb.model.UpdateItem;
+import io.camunda.connector.aws.dynamodb.model.UpdateItemWithExpression;
 import io.camunda.connector.aws.dynamodb.operation.AwsDynamoDbOperation;
 import io.camunda.connector.aws.dynamodb.operation.item.AddItemOperation;
 import io.camunda.connector.aws.dynamodb.operation.item.DeleteItemOperation;
 import io.camunda.connector.aws.dynamodb.operation.item.GetItemOperation;
 import io.camunda.connector.aws.dynamodb.operation.item.UpdateItemOperation;
+import io.camunda.connector.aws.dynamodb.operation.item.UpdateItemWithExpressionOperation;
 import io.camunda.connector.aws.dynamodb.operation.table.CreateTableOperation;
 import io.camunda.connector.aws.dynamodb.operation.table.DeleteTableOperation;
 import io.camunda.connector.aws.dynamodb.operation.table.DescribeTableOperation;
@@ -44,6 +46,8 @@ public class AwsDynamoDbOperationFactory {
       case GetItem getItem -> new GetItemOperation(getItem);
       case ScanTable scanTable -> new ScanTableOperation(scanTable);
       case UpdateItem updateItem -> new UpdateItemOperation(updateItem);
+      case UpdateItemWithExpression
+      updateItemWithExpression -> new UpdateItemWithExpressionOperation(updateItemWithExpression);
       default -> throw new UnsupportedOperationException(
           "Unsupported operation: [" + input.getClass().getSimpleName() + "]");
     };

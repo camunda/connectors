@@ -16,4 +16,4 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 @TemplateSubType(label = "Item", id = "itemOperation")
 @TemplateDiscriminatorProperty(name = "itemOperation", group = "operation", label = "Select action")
 public sealed interface ItemInput extends AwsInput
-    permits AddItem, DeleteItem, GetItem, UpdateItem {}
+    permits AddItem, DeleteItem, GetItem, UpdateItem, UpdateItemWithExpression {}

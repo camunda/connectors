@@ -21,6 +21,7 @@ import io.camunda.connector.aws.dynamodb.model.UpdateItem;
 import io.camunda.connector.aws.dynamodb.operation.AwsDynamoDbOperation;
 import java.util.Map;
 
+@Deprecated
 public class UpdateItemOperation implements AwsDynamoDbOperation {
   private static final String ACTION_PUT = "put";
   private static final String ACTION_DELETE = "delete";

@@ -19,7 +19,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
 @ElementTemplate(
     id = "io.camunda.connectors.AWSDynamoDB.v1",
     name = "AWS DynamoDB Outbound Connector",
-    version = 7,
+    version = 8,
     description = "Work with tables and items using AWS DynamoDB service",
     documentationRef =
         "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/",

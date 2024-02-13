@@ -12,7 +12,8 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-@TemplateSubType(id = OperationTypes.UPDATE_ITEM)
+@TemplateSubType(id = OperationTypes.UPDATE_ITEM, label = "Update item (Deprecated)")
+@Deprecated
 public record UpdateItem(
     @TemplateProperty(
             label = "Table name",

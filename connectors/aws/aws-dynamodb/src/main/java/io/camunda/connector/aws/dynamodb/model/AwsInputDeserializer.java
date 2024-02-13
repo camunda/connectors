@@ -50,6 +50,8 @@ public class AwsInputDeserializer extends JsonDeserializer<AwsInput> {
       case OperationTypes.DELETE_ITEM -> mapper.convertValue(node, DeleteItem.class);
       case OperationTypes.GET_ITEM -> mapper.convertValue(node, GetItem.class);
       case OperationTypes.UPDATE_ITEM -> mapper.convertValue(node, UpdateItem.class);
+      case OperationTypes.UPDATE_ITEM_WITH_EXPRESSION -> mapper.convertValue(
+          node, UpdateItemWithExpression.class);
       default -> throw new UnsupportedOperationException(
           "Unsupported action type: " + operationType);
     };

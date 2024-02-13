@@ -14,5 +14,6 @@ public interface OperationTypes {
   String ADD_ITEM = "addItem";
   String DELETE_ITEM = "deleteItem";
   String GET_ITEM = "getItem";
-  String UPDATE_ITEM = "updateItem";
+  @Deprecated String UPDATE_ITEM = "updateItem";
+  String UPDATE_ITEM_WITH_EXPRESSION = "updateItemWithExpression";
 }

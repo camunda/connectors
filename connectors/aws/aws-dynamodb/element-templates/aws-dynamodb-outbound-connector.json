@@ -4,7 +4,7 @@
   "id" : "io.camunda.connectors.AWSDynamoDB.v1",
   "description" : "Work with tables and items using AWS DynamoDB service",
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/aws-dynamodb/",
-  "version" : 7,
+  "version" : 8,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -109,8 +109,11 @@
       "name" : "Get item",
       "value" : "getItem"
     }, {
-      "name" : "Update item",
+      "name" : "Update item (Deprecated)",
       "value" : "updateItem"
+    }, {
+      "name" : "Update item",
+      "value" : "updateItemWithExpression"
     } ]
   }, {
     "id" : "authentication.type",
@@ -948,6 +951,174 @@
     }, {
       "name" : "PUT",
       "value" : "put"
+    } ]
+  }, {
+    "id" : "input.updateItem.tableName",
+    "label" : "Table name",
+    "description" : "Name of DynamoDB table",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "input",
+    "binding" : {
+      "name" : "input.tableName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "input.itemOperation",
+        "equals" : "updateItemWithExpression",
+        "type" : "simple"
+      }, {
+        "property" : "input.operationGroup",
+        "equals" : "itemOperation",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.updateItemWithExpression.primaryKeyComponents",
+    "label" : "Primary key components",
+    "description" : "Simple or composite primary key",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "input",
+    "binding" : {
+      "name" : "input.primaryKeyComponents",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "input.itemOperation",
+        "equals" : "updateItemWithExpression",
+        "type" : "simple"
+      }, {
+        "property" : "input.operationGroup",
+        "equals" : "itemOperation",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.updateExpression",
+    "label" : "Update Expression",
+    "description" : "String defining how item attributes are updated, specifying which attributes and their new values",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "input",
+    "binding" : {
+      "name" : "input.updateExpression",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "input.itemOperation",
+        "equals" : "updateItemWithExpression",
+        "type" : "simple"
+      }, {
+        "property" : "input.operationGroup",
+        "equals" : "itemOperation",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.updateItemWithExpression.expressionAttributeNames",
+    "label" : "Expression attribute values",
+    "description" : "Optional map for aliasing attribute names in the update expression to avoid conflicts with DynamoDB reserved words. Use when attribute names overlap with reserved words or to enhance readability",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "input",
+    "binding" : {
+      "name" : "input.expressionAttributeNames",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "input.itemOperation",
+        "equals" : "updateItemWithExpression",
+        "type" : "simple"
+      }, {
+        "property" : "input.operationGroup",
+        "equals" : "itemOperation",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.updateItemWithExpression.expressionAttributeValues",
+    "label" : "Expression attribute values",
+    "description" : "Map of placeholders in the update expression to their actual values. Essential for dynamically setting attribute values at runtime. Keys start with ':'",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "input",
+    "binding" : {
+      "name" : "input.expressionAttributeValues",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "input.itemOperation",
+        "equals" : "updateItemWithExpression",
+        "type" : "simple"
+      }, {
+        "property" : "input.operationGroup",
+        "equals" : "itemOperation",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "input.returnValues",
+    "label" : "Attribute action",
+    "description" : "Specifies returned data.  Details in the <a href=\"https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_UpdateItem.html\" target=\"_blank\">documentation</a>",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "input",
+    "binding" : {
+      "name" : "input.returnValues",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "input.itemOperation",
+        "equals" : "updateItemWithExpression",
+        "type" : "simple"
+      }, {
+        "property" : "input.operationGroup",
+        "equals" : "itemOperation",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "UPDATED_OLD",
+      "value" : "UPDATED_OLD"
+    }, {
+      "name" : "ALL_NEW",
+      "value" : "ALL_NEW"
+    }, {
+      "name" : "ALL_OLD",
+      "value" : "ALL_OLD"
+    }, {
+      "name" : "NONE",
+      "value" : "NONE"
+    }, {
+      "name" : "UPDATED_NEW",
+      "value" : "UPDATED_NEW"
     } ]
   }, {
     "id" : "resultVariable",
