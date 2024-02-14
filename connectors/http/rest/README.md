@@ -187,5 +187,4 @@ the [element-templates/http-json-connector.json](element-templates/http-json-con
 Additional Connector templates based on the HTTP JSON Connector:
 - [Automation Anywhere Connector](../automation-anywhere)
 - [Blue Prism Connector](../blue-prism)
-- [Power Automate Connector](../power-automate)
 - [UiPath Connector](../uipath)
