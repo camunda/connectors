@@ -6,8 +6,8 @@
  */
 package io.camunda.connector.rabbitmq.inbound.model;
 
+import io.camunda.connector.rabbitmq.common.model.FactoryRoutingData;
 import io.camunda.connector.rabbitmq.common.model.RabbitMqAuthentication;
-import io.camunda.connector.rabbitmq.common.model.RabbitMqRouting;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -16,7 +16,7 @@ import java.util.Objects;
 
 public class RabbitMqInboundProperties {
   @Valid @NotNull private RabbitMqAuthentication authentication;
-  @Valid private RabbitMqRouting routing;
+  @Valid private FactoryRoutingData routing;
   @NotBlank private String queueName;
   private String consumerTag;
   @Valid private Map<String, Object> arguments;
@@ -30,11 +30,11 @@ public class RabbitMqInboundProperties {
     this.authentication = authentication;
   }
 
-  public RabbitMqRouting getRouting() {
+  public FactoryRoutingData getRouting() {
     return routing;
   }
 
-  public void setRouting(RabbitMqRouting routing) {
+  public void setRouting(FactoryRoutingData routing) {
     this.routing = routing;
   }
 

@@ -10,6 +10,7 @@ import com.rabbitmq.client.Connection;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.rabbitmq.outbound.model.RabbitMqRequest;
 import io.camunda.connector.rabbitmq.supplier.ConnectionFactorySupplier;
 
@@ -17,6 +18,20 @@ import io.camunda.connector.rabbitmq.supplier.ConnectionFactorySupplier;
     name = "RabbitMQ Producer",
     inputVariables = {"authentication", "routing", "message"},
     type = "io.camunda:connector-rabbitmq:1")
+@ElementTemplate(
+    id = "io.camunda.connectors.RabbitMQ.v1",
+    name = "RabbitMQ Outbound Connector",
+    description = "Send message to RabbitMQ",
+    inputDataClass = RabbitMqRequest.class,
+    version = 4,
+    propertyGroups = {
+      @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
+      @ElementTemplate.PropertyGroup(id = "routing", label = "Routing"),
+      @ElementTemplate.PropertyGroup(id = "message", label = "Message")
+    },
+    documentationRef =
+        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound",
+    icon = "icon.svg")
 public class RabbitMqFunction implements OutboundConnectorFunction {
 
   private final ConnectionFactorySupplier connectionFactorySupplier;
@@ -38,14 +53,14 @@ public class RabbitMqFunction implements OutboundConnectorFunction {
   private RabbitMqResult executeConnector(final RabbitMqRequest request) throws Exception {
 
     // Getting properties and body before open new connection, because methods can throw exception
-    final var messageProperties = request.getMessage().getPropertiesAsAmqpBasicProperties();
-    final var messageInByteArray = request.getMessage().getBodyAsByteArray();
+    final var messageProperties = MessageUtil.toAmqpBasicProperties(request.message().properties());
+    final var messageInByteArray = MessageUtil.getBodyAsByteArray(request.message().body());
 
     try (Connection connection = openConnection(request)) {
       final var channel = connection.createChannel();
       channel.basicPublish(
-          request.getRouting().getExchange(),
-          request.getRouting().getRoutingKey(),
+          request.routing().exchange(),
+          request.routing().routingKey(),
           messageProperties,
           messageInByteArray);
       return RabbitMqResult.success();
@@ -54,7 +69,7 @@ public class RabbitMqFunction implements OutboundConnectorFunction {
 
   private Connection openConnection(RabbitMqRequest request) throws Exception {
     return connectionFactorySupplier
-        .createFactory(request.getAuthentication(), request.getRouting())
+        .createFactory(request.authentication(), request.routing().routingData())
         .newConnection();
   }
 }

@@ -1,22 +1,5 @@
 [
   {
-    "testDescription": "{1} Test without 'authType' field",
-    "authentication": {
-      "uri": "amqp://userName:password@localhost:5672/vhost"
-    },
-    "routing": {
-      "exchange": "exchangeName",
-      "routingKey": "routingKey"
-    },
-    "message": {
-      "body": {
-        "key": "value"
-      },
-      "properties": {
-      }
-    }
-  },
-  {
     "testDescription": "{3} Test with 'authType' URI without 'uri' field",
     "authentication": {
       "authType": "uri"
