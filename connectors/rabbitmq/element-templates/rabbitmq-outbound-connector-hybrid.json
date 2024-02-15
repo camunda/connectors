@@ -1,0 +1,300 @@
+{
+  "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name" : "RabbitMQ Outbound Connector",
+  "id" : "io.camunda.connectors.RabbitMQ.v1",
+  "description" : "Send message to RabbitMQ",
+  "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound",
+  "version" : 4,
+  "category" : {
+    "id" : "connectors",
+    "name" : "Connectors"
+  },
+  "appliesTo" : [ "bpmn:Task" ],
+  "elementType" : {
+    "value" : "bpmn:ServiceTask"
+  },
+  "groups" : [ {
+    "id" : "taskDefinitionType",
+    "label" : "Task definition type"
+  }, {
+    "id" : "authentication",
+    "label" : "Authentication"
+  }, {
+    "id" : "routing",
+    "label" : "Routing"
+  }, {
+    "id" : "message",
+    "label" : "Message"
+  }, {
+    "id" : "output",
+    "label" : "Output mapping"
+  }, {
+    "id" : "error",
+    "label" : "Error handling"
+  }, {
+    "id" : "retries",
+    "label" : "Retries"
+  } ],
+  "properties" : [ {
+    "id" : "taskDefinitionType",
+    "value" : "io.camunda:connector-rabbitmq:1",
+    "group" : "taskDefinitionType",
+    "binding" : {
+      "property" : "type",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.authType",
+    "label" : "Connection type",
+    "value" : "uri",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.authType",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "URI",
+      "value" : "uri"
+    }, {
+      "name" : "Username/Password",
+      "value" : "credentials"
+    } ]
+  }, {
+    "id" : "authentication.uri",
+    "label" : "URI",
+    "description" : "URI should contain username, password, host name, port number, and virtual host",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.uri",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.authType",
+      "equals" : "uri",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.userName",
+    "label" : "Username",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.userName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.authType",
+      "equals" : "credentials",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.password",
+    "label" : "Password",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.password",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.authType",
+      "equals" : "credentials",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "routing.exchange",
+    "label" : "Exchange",
+    "description" : "Topic exchange: get from RabbitMQ external application configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\"target=\"_blank\">documentation</a>",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "routing",
+    "binding" : {
+      "name" : "routing.exchange",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "routing.routingKey",
+    "label" : "Routing key",
+    "description" : "Routing key: a binding is a \"link\" that was set up to bind a queue to an exchange. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\"target=\"_blank\">documentation</a>",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "routing",
+    "binding" : {
+      "name" : "routing.routingKey",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "routing.virtualHost",
+    "label" : "Virtual host",
+    "description" : "Virtual name: get from RabbitMQ external application configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\"target=\"_blank\">documentation</a>",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "routing",
+    "binding" : {
+      "name" : "routing.virtualHost",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.authType",
+      "equals" : "credentials",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "routing.hostName",
+    "label" : "Host name",
+    "description" : "Host name: get from RabbitMQ external application configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\"target=\"_blank\">documentation</a>",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "routing",
+    "binding" : {
+      "name" : "routing.hostName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.authType",
+      "equals" : "credentials",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "routing.port",
+    "label" : "Port",
+    "description" : "Port: get from RabbitMQ external application configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\"target=\"_blank\">documentation</a>",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "routing",
+    "binding" : {
+      "name" : "routing.port",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.authType",
+      "equals" : "credentials",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "message.properties",
+    "label" : "Properties",
+    "description" : "Properties for the message, routing headers, etc",
+    "optional" : true,
+    "value" : "={}",
+    "feel" : "required",
+    "group" : "message",
+    "binding" : {
+      "name" : "message.properties",
+      "type" : "zeebe:input"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "message.body",
+    "label" : "Message",
+    "description" : "Data to send to RabbitMQ",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "message",
+    "binding" : {
+      "name" : "message.body",
+      "type" : "zeebe:input"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "resultVariable",
+    "label" : "Result variable",
+    "description" : "Name of variable to store the response in",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultVariable",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  }, {
+    "id" : "resultExpression",
+    "label" : "Result expression",
+    "description" : "Expression to map the response into process variables",
+    "feel" : "required",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "errorExpression",
+    "label" : "Error expression",
+    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "error",
+    "binding" : {
+      "key" : "errorExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "retryCount",
+    "label" : "Retries",
+    "description" : "Number of retries",
+    "value" : "3",
+    "feel" : "optional",
+    "group" : "retries",
+    "binding" : {
+      "property" : "retries",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "String"
+  }, {
+    "id" : "retryBackoff",
+    "label" : "Retry backoff",
+    "description" : "ISO-8601 duration to wait between retries",
+    "value" : "PT0S",
+    "feel" : "optional",
+    "group" : "retries",
+    "binding" : {
+      "key" : "retryBackoff",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  } ],
+  "icon" : {
+    "contents" : "data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScxOCcgaGVpZ2h0PScxOCcgdmlld0JveD0nLTcuNSAwIDI3MSAyNzEnIHByZXNlcnZlQXNwZWN0UmF0aW89J3hNaWRZTWlkJz4KICAgIDxwYXRoIGQ9J00yNDUuNDQgMTA4LjMwOGgtODUuMDlhNy43MzggNy43MzggMCAwIDEtNy43MzUtNy43MzR2LTg4LjY4QzE1Mi42MTUgNS4zMjcgMTQ3LjI5IDAgMTQwLjcyNiAwaC0zMC4zNzVjLTYuNTY4IDAtMTEuODkgNS4zMjctMTEuODkgMTEuODk0djg4LjE0M2MwIDQuNTczLTMuNjk3IDguMjktOC4yNyA4LjMxbC0yNy44ODUuMTMzYy00LjYxMi4wMjUtOC4zNTktMy43MTctOC4zNS04LjMyNWwuMTczLTg4LjI0MUM1NC4xNDQgNS4zMzcgNDguODE3IDAgNDIuMjQgMEgxMS44OUM1LjMyMSAwIDAgNS4zMjcgMCAxMS44OTRWMjYwLjIxYzAgNS44MzQgNC43MjYgMTAuNTYgMTAuNTU1IDEwLjU2SDI0NS40NGM1LjgzNCAwIDEwLjU2LTQuNzI2IDEwLjU2LTEwLjU2VjExOC44NjhjMC01LjgzNC00LjcyNi0xMC41Ni0xMC41Ni0xMC41NnptLTM5LjkwMiA5My4yMzNjMCA3LjY0NS02LjE5OCAxMy44NDQtMTMuODQzIDEzLjg0NEgxNjcuNjljLTcuNjQ2IDAtMTMuODQ0LTYuMTk5LTEzLjg0NC0xMy44NDR2LTI0LjAwNWMwLTcuNjQ2IDYuMTk4LTEzLjg0NCAxMy44NDQtMTMuODQ0aDI0LjAwNWM3LjY0NSAwIDEzLjg0MyA2LjE5OCAxMy44NDMgMTMuODQ0djI0LjAwNXonCiAgICAgICAgICBmaWxsPScjRjYwJy8+Cjwvc3ZnPg=="
+  }
+}

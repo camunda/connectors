@@ -6,81 +6,19 @@
  */
 package io.camunda.connector.rabbitmq.common.model;
 
-import jakarta.validation.constraints.AssertFalse;
-import java.util.Objects;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 
-public class RabbitMqAuthentication {
-
-  private RabbitMqAuthenticationType authType;
-  private String userName;
-  private String password;
-  private String uri;
-
-  @AssertFalse
-  private boolean isAuthFieldsIsEmpty() {
-    if (authType == RabbitMqAuthenticationType.uri) {
-      return uri == null || uri.isBlank();
-    }
-    if (authType == RabbitMqAuthenticationType.credentials) {
-      return userName == null || userName.isBlank() || password == null || password.isBlank();
-    }
-    return true;
-  }
-
-  public RabbitMqAuthenticationType getAuthType() {
-    return authType;
-  }
-
-  public void setAuthType(final RabbitMqAuthenticationType authType) {
-    this.authType = authType;
-  }
-
-  public String getUserName() {
-    return userName;
-  }
-
-  public void setUserName(final String userName) {
-    this.userName = userName;
-  }
-
-  public String getPassword() {
-    return password;
-  }
-
-  public void setPassword(final String password) {
-    this.password = password;
-  }
-
-  public String getUri() {
-    return uri;
-  }
-
-  public void setUri(final String uri) {
-    this.uri = uri;
-  }
-
-  @Override
-  public boolean equals(final Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    final RabbitMqAuthentication that = (RabbitMqAuthentication) o;
-    return authType == that.authType
-        && Objects.equals(userName, that.userName)
-        && Objects.equals(password, that.password)
-        && Objects.equals(uri, that.uri);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(authType, userName, password, uri);
-  }
-
-  @Override
-  public String toString() {
-    return "RabbitMqAuthentication{" + "authType=" + authType + "}";
-  }
-}
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "authType")
+@JsonSubTypes({
+  @JsonSubTypes.Type(value = UriAuthentication.class, name = "uri"),
+  @JsonSubTypes.Type(value = CredentialsAuthentication.class, name = "credentials")
+})
+@TemplateDiscriminatorProperty(
+    label = "Connection type",
+    group = "authentication",
+    name = "authType",
+    defaultValue = "uri")
+public sealed interface RabbitMqAuthentication
+    permits UriAuthentication, CredentialsAuthentication {}

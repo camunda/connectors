@@ -10,8 +10,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
+import io.camunda.connector.rabbitmq.common.model.CredentialsAuthentication;
 import io.camunda.connector.rabbitmq.common.model.RabbitMqAuthentication;
-import io.camunda.connector.rabbitmq.common.model.RabbitMqAuthenticationType;
+import io.camunda.connector.rabbitmq.common.model.UriAuthentication;
 import io.camunda.connector.rabbitmq.inbound.model.RabbitMqInboundProperties;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -42,9 +43,8 @@ public class RabbitMqInboundPropertiesReplaceSecretsTest extends InboundBaseTest
   @Test
   void replaceSecrets_shouldReplaceAuthSecrets_AuthTypeUri() {
     // Given request with secrets
-    RabbitMqAuthentication authentication = new RabbitMqAuthentication();
-    authentication.setUri(SecretsConstant.SECRETS + SecretsConstant.Authentication.URI);
-    authentication.setAuthType(RabbitMqAuthenticationType.uri);
+    var authentication =
+        new UriAuthentication(SecretsConstant.SECRETS + SecretsConstant.Authentication.URI);
     RabbitMqInboundProperties properties = new RabbitMqInboundProperties();
     properties.setAuthentication(authentication);
     properties.setQueueName(ActualValue.QUEUE_NAME);
@@ -55,17 +55,17 @@ public class RabbitMqInboundPropertiesReplaceSecretsTest extends InboundBaseTest
     var boundProperties = context.bindProperties(RabbitMqInboundProperties.class);
 
     // Then should replace secrets
-    assertThat(boundProperties.getAuthentication().getUri())
-        .isEqualTo(ActualValue.Authentication.URI);
+    UriAuthentication uriAuthentication = (UriAuthentication) boundProperties.getAuthentication();
+    assertThat(uriAuthentication.uri()).isEqualTo(ActualValue.Authentication.URI);
   }
 
   @Test
   void replaceSecrets_shouldReplaceAuthSecrets_AuthTypeUsernamePassword() {
     // Given request with secrets
-    RabbitMqAuthentication authentication = new RabbitMqAuthentication();
-    authentication.setAuthType(RabbitMqAuthenticationType.credentials);
-    authentication.setUserName(SecretsConstant.SECRETS + SecretsConstant.Authentication.USERNAME);
-    authentication.setPassword(SecretsConstant.SECRETS + SecretsConstant.Authentication.PASSWORD);
+    RabbitMqAuthentication authentication =
+        new CredentialsAuthentication(
+            SecretsConstant.SECRETS + SecretsConstant.Authentication.USERNAME,
+            SecretsConstant.SECRETS + SecretsConstant.Authentication.PASSWORD);
     RabbitMqInboundProperties properties = new RabbitMqInboundProperties();
     properties.setQueueName(ActualValue.QUEUE_NAME);
     properties.setAuthentication(authentication);
@@ -74,11 +74,10 @@ public class RabbitMqInboundPropertiesReplaceSecretsTest extends InboundBaseTest
 
     // When
     var boundProperties = context.bindProperties(RabbitMqInboundProperties.class);
-
+    CredentialsAuthentication credentialsAuthentication =
+        (CredentialsAuthentication) boundProperties.getAuthentication();
     // Then should replace secrets
-    assertThat(boundProperties.getAuthentication().getUserName())
-        .isEqualTo(ActualValue.Authentication.USERNAME);
-    assertThat(boundProperties.getAuthentication().getPassword())
-        .isEqualTo(ActualValue.Authentication.PASSWORD);
+    assertThat(credentialsAuthentication.userName()).isEqualTo(ActualValue.Authentication.USERNAME);
+    assertThat(credentialsAuthentication.password()).isEqualTo(ActualValue.Authentication.PASSWORD);
   }
 }

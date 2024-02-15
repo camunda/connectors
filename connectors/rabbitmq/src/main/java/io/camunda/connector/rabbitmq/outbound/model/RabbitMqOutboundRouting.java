@@ -6,71 +6,54 @@
  */
 package io.camunda.connector.rabbitmq.outbound.model;
 
-import io.camunda.connector.rabbitmq.common.model.RabbitMqRouting;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonUnwrapped;
+import io.camunda.connector.generator.java.annotation.NestedProperties;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.rabbitmq.common.model.FactoryRoutingData;
 import jakarta.validation.constraints.NotBlank;
-import java.util.Objects;
 
-public class RabbitMqOutboundRouting extends RabbitMqRouting {
-
-  @NotBlank private String exchange;
-
-  @NotBlank private String routingKey;
-
-  public String getExchange() {
-    return exchange;
-  }
-
-  public void setExchange(final String exchange) {
-    this.exchange = exchange;
-  }
-
-  public String getRoutingKey() {
-    return routingKey;
-  }
-
-  public void setRoutingKey(final String routingKey) {
-    this.routingKey = routingKey;
-  }
-
-  @Override
-  public boolean equals(final Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    final RabbitMqOutboundRouting routing = (RabbitMqOutboundRouting) o;
-    return Objects.equals(virtualHost, routing.virtualHost)
-        && Objects.equals(hostName, routing.hostName)
-        && Objects.equals(port, routing.port)
-        && Objects.equals(exchange, routing.exchange)
-        && Objects.equals(routingKey, routing.routingKey);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(virtualHost, hostName, port, exchange, routingKey);
-  }
-
-  @Override
-  public String toString() {
-    return "RabbitMqRouting{"
-        + "virtualHost='"
-        + virtualHost
-        + "'"
-        + ", hostName='"
-        + hostName
-        + "'"
-        + ", port='"
-        + port
-        + "'"
-        + ", exchange='"
-        + exchange
-        + "'"
-        + ", routingKey='"
-        + routingKey
-        + "'"
-        + "}";
+/**
+ * Represents the routing information for a RabbitMQ outbound request. This record is structured to
+ * support flat JSON deserialization for compatibility with specific JSON structures, facilitating
+ * easier integration with RabbitMQ configurations.
+ *
+ * <p>Note: The strategic use of @JsonCreator for deserialization and @JsonUnwrapped for
+ * serialization is specifically chosen to ensure compatibility with previous versions during
+ * backporting efforts. This approach overcomes limitations and guarantees that JSON structure
+ * management remains consistent across versions, facilitating the maintenance and extension of
+ * functionality without breaking changes.
+ */
+public record RabbitMqOutboundRouting(
+    @NotBlank
+        @TemplateProperty(
+            group = "routing",
+            description =
+                "Topic exchange: get from RabbitMQ external application configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\"target=\"_blank\">documentation</a>")
+        String exchange,
+    @NotBlank
+        @TemplateProperty(
+            group = "routing",
+            label = "Routing key",
+            description =
+                "Routing key: a binding is a \"link\" that was set up to bind a queue to an exchange. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\"target=\"_blank\">documentation</a>")
+        String routingKey,
+    @NestedProperties(
+            addNestedPath = false,
+            condition =
+                @TemplateProperty.PropertyCondition(
+                    property = "authentication.authType",
+                    equals = "credentials"))
+        @JsonUnwrapped
+        FactoryRoutingData routingData) {
+  @JsonCreator
+  public RabbitMqOutboundRouting(
+      @JsonProperty("exchange") String exchange,
+      @JsonProperty("routingKey") String routingKey,
+      @JsonProperty("virtualHost") String virtualHost,
+      @JsonProperty("hostName") String hostName,
+      @JsonProperty("port") String port) {
+    this(exchange, routingKey, new FactoryRoutingData(virtualHost, hostName, port));
   }
 }

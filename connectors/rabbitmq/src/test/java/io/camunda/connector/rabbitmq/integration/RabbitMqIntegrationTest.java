@@ -15,16 +15,16 @@ import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.rabbitmq.BaseTest;
 import io.camunda.connector.rabbitmq.BaseTest.ActualValue.Authentication;
 import io.camunda.connector.rabbitmq.BaseTest.ActualValue.Routing;
+import io.camunda.connector.rabbitmq.common.model.CredentialsAuthentication;
+import io.camunda.connector.rabbitmq.common.model.FactoryRoutingData;
 import io.camunda.connector.rabbitmq.common.model.RabbitMqAuthentication;
-import io.camunda.connector.rabbitmq.common.model.RabbitMqAuthenticationType;
-import io.camunda.connector.rabbitmq.common.model.RabbitMqMessage;
-import io.camunda.connector.rabbitmq.common.model.RabbitMqRouting;
 import io.camunda.connector.rabbitmq.inbound.RabbitMqExecutable;
 import io.camunda.connector.rabbitmq.inbound.model.RabbitMqInboundProperties;
 import io.camunda.connector.rabbitmq.inbound.model.RabbitMqInboundResult;
 import io.camunda.connector.rabbitmq.inbound.model.RabbitMqInboundResult.RabbitMqInboundMessage;
 import io.camunda.connector.rabbitmq.outbound.RabbitMqFunction;
 import io.camunda.connector.rabbitmq.outbound.RabbitMqResult;
+import io.camunda.connector.rabbitmq.outbound.model.RabbitMqMessage;
 import io.camunda.connector.rabbitmq.outbound.model.RabbitMqOutboundRouting;
 import io.camunda.connector.rabbitmq.outbound.model.RabbitMqRequest;
 import io.camunda.connector.rabbitmq.supplier.ObjectMapperSupplier;
@@ -75,18 +75,17 @@ public class RabbitMqIntegrationTest extends BaseTest {
     // Given
     OutboundConnectorFunction function = new RabbitMqFunction();
 
-    RabbitMqRequest request = new RabbitMqRequest();
-    request.setAuthentication(getAuth());
-    RabbitMqOutboundRouting routing = new RabbitMqOutboundRouting();
-    routing.setRoutingKey(Routing.ROUTING_KEY);
-    routing.setExchange(Routing.EXCHANGE);
-    routing.setVirtualHost(Routing.VIRTUAL_HOST);
-    routing.setHostName(rabbitMq.getHost());
-    routing.setPort(rabbitMq.getAmqpPort().toString());
-    request.setRouting(routing);
-    RabbitMqMessage message = new RabbitMqMessage();
-    message.setBody("{\"value\": \"Hello World\"}");
-    request.setMessage(message);
+    RabbitMqOutboundRouting routing =
+        new RabbitMqOutboundRouting(
+            Routing.EXCHANGE,
+            Routing.ROUTING_KEY,
+            Routing.VIRTUAL_HOST,
+            rabbitMq.getHost(),
+            rabbitMq.getAmqpPort().toString());
+
+    RabbitMqMessage message = new RabbitMqMessage(null, "{\"value\": \"Hello World\"}");
+
+    RabbitMqRequest request = new RabbitMqRequest(getAuth(), routing, message);
 
     var json = ObjectMapperSupplier.instance().writeValueAsString(request);
     OutboundConnectorContext context =
@@ -113,11 +112,11 @@ public class RabbitMqIntegrationTest extends BaseTest {
     RabbitMqInboundProperties properties = new RabbitMqInboundProperties();
     properties.setAuthentication(getAuth());
     properties.setQueueName(ActualValue.QUEUE_NAME);
-    RabbitMqRouting routing = new RabbitMqRouting();
-    routing.setHostName(rabbitMq.getHost());
-    routing.setPort(rabbitMq.getAmqpPort().toString());
-    routing.setVirtualHost(Routing.VIRTUAL_HOST);
-    properties.setRouting(routing);
+
+    FactoryRoutingData routingData =
+        new FactoryRoutingData(
+            Routing.VIRTUAL_HOST, rabbitMq.getHost(), rabbitMq.getAmqpPort().toString());
+    properties.setRouting(routingData);
 
     TestInboundConnectorContext context =
         InboundConnectorContextBuilder.create().properties(properties).build();
@@ -138,10 +137,6 @@ public class RabbitMqIntegrationTest extends BaseTest {
   }
 
   private RabbitMqAuthentication getAuth() {
-    RabbitMqAuthentication authentication = new RabbitMqAuthentication();
-    authentication.setAuthType(RabbitMqAuthenticationType.credentials);
-    authentication.setUserName(Authentication.USERNAME);
-    authentication.setPassword(Authentication.PASSWORD);
-    return authentication;
+    return new CredentialsAuthentication(Authentication.USERNAME, Authentication.PASSWORD);
   }
 }

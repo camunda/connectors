@@ -29,7 +29,7 @@ class RabbitMqRequestValidationTest extends OutboundBaseTest {
             .validation(new DefaultValidationProvider())
             .variables(input)
             .build();
-    // When context.validate(sendGridRequest);
+    // When context.validate(RabbitMqRequest);
     // Then expect exception that one required field not set
     ConnectorInputException thrown =
         assertThrows(

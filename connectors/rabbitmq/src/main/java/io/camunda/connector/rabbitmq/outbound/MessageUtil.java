@@ -4,31 +4,29 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.rabbitmq.common.model;
+package io.camunda.connector.rabbitmq.outbound;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.AMQP;
-import io.camunda.connector.rabbitmq.outbound.ValidationPropertiesUtil;
+import io.camunda.connector.rabbitmq.outbound.model.RabbitMqMessage;
 import io.camunda.connector.rabbitmq.supplier.ObjectMapperSupplier;
-import jakarta.validation.constraints.NotNull;
-import java.util.Objects;
 import java.util.Optional;
 import org.apache.commons.text.StringEscapeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class RabbitMqMessage {
+public final class MessageUtil {
+
   private static final Logger LOGGER = LoggerFactory.getLogger(RabbitMqMessage.class);
   private static final ObjectMapper OBJECT_MAPPER = ObjectMapperSupplier.instance();
 
-  private Object properties;
-  @NotNull private Object body;
+  private MessageUtil() {}
 
-  public AMQP.BasicProperties getPropertiesAsAmqpBasicProperties() {
+  public static AMQP.BasicProperties toAmqpBasicProperties(final Object properties) {
     return Optional.ofNullable(properties)
-        .map(properties -> OBJECT_MAPPER.convertValue(properties, JsonNode.class))
+        .map(pr -> OBJECT_MAPPER.convertValue(pr, JsonNode.class))
         .map(ValidationPropertiesUtil::validateAmqpBasicPropertiesOrThrowException)
         .map(
             jsonProperties ->
@@ -36,7 +34,8 @@ public class RabbitMqMessage {
         .orElse(null);
   }
 
-  public byte[] getBodyAsByteArray() {
+  public static byte[] getBodyAsByteArray(final Object body) {
+    Object resBody = body;
     if (body instanceof String) {
       try {
         JsonNode jsonElement =
@@ -45,7 +44,7 @@ public class RabbitMqMessage {
         if (jsonElement.isValueNode()) {
           return ((String) body).getBytes();
         } else {
-          body = jsonElement;
+          resBody = jsonElement;
         }
       } catch (JsonProcessingException e) {
         // this is plain text value, and not JSON. For example, "some input text".
@@ -54,11 +53,11 @@ public class RabbitMqMessage {
       }
     }
 
-    return Optional.of(body)
+    return Optional.of(resBody)
         .map(
-            body -> {
+            b -> {
               try {
-                return OBJECT_MAPPER.writeValueAsString(body);
+                return OBJECT_MAPPER.writeValueAsString(b);
               } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
               }
@@ -66,43 +65,5 @@ public class RabbitMqMessage {
         .map(StringEscapeUtils::unescapeJson)
         .map(String::getBytes)
         .orElseThrow(() -> new RuntimeException("Parse error to byte array"));
-  }
-
-  public Object getProperties() {
-    return properties;
-  }
-
-  public void setProperties(final Object properties) {
-    this.properties = properties;
-  }
-
-  public Object getBody() {
-    return body;
-  }
-
-  public void setBody(final Object body) {
-    this.body = body;
-  }
-
-  @Override
-  public boolean equals(final Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    final RabbitMqMessage message = (RabbitMqMessage) o;
-    return Objects.equals(properties, message.properties) && Objects.equals(body, message.body);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(properties, body);
-  }
-
-  @Override
-  public String toString() {
-    return "RabbitMqMessage{" + "properties=" + properties + ", body=" + body + "}";
   }
 }

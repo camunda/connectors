@@ -6,89 +6,34 @@
  */
 package io.camunda.connector.rabbitmq.outbound.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.camunda.connector.rabbitmq.common.model.CredentialsAuthentication;
 import io.camunda.connector.rabbitmq.common.model.RabbitMqAuthentication;
-import io.camunda.connector.rabbitmq.common.model.RabbitMqAuthenticationType;
-import io.camunda.connector.rabbitmq.common.model.RabbitMqMessage;
+import io.camunda.connector.rabbitmq.common.model.UriAuthentication;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertFalse;
 import jakarta.validation.constraints.NotNull;
-import java.util.Objects;
 
-public class RabbitMqRequest {
+public record RabbitMqRequest(
+    @Valid @NotNull RabbitMqAuthentication authentication,
+    @Valid @NotNull RabbitMqOutboundRouting routing,
+    @Valid @NotNull RabbitMqMessage message) {
 
-  @Valid @NotNull private RabbitMqAuthentication authentication;
-  @Valid @NotNull private RabbitMqOutboundRouting routing;
-  @Valid @NotNull private RabbitMqMessage message;
-
+  @JsonIgnore
   @AssertFalse
-  private boolean isRoutingParamsNotFilling() {
-    if (authentication.getAuthType() == RabbitMqAuthenticationType.uri) {
+  public boolean isRoutingParamsNotFilling() {
+    if (authentication instanceof UriAuthentication) {
       // not need check routing when we use URI auth type
       return false;
     }
-    if (authentication.getAuthType() == RabbitMqAuthenticationType.credentials && routing != null) {
-      return routing.getPort() == null
-          || routing.getPort().isBlank()
-          || routing.getHostName() == null
-          || routing.getHostName().isBlank()
-          || routing.getVirtualHost() == null
-          || routing.getVirtualHost().isBlank();
+    if (authentication instanceof CredentialsAuthentication && routing != null) {
+      return routing.routingData().port() == null
+          || routing.routingData().port().isBlank()
+          || routing.routingData().hostName() == null
+          || routing.routingData().hostName().isBlank()
+          || routing.routingData().virtualHost() == null
+          || routing.routingData().virtualHost().isBlank();
     }
     return true;
-  }
-
-  public RabbitMqAuthentication getAuthentication() {
-    return authentication;
-  }
-
-  public void setAuthentication(final RabbitMqAuthentication authentication) {
-    this.authentication = authentication;
-  }
-
-  public RabbitMqOutboundRouting getRouting() {
-    return routing;
-  }
-
-  public void setRouting(final RabbitMqOutboundRouting routing) {
-    this.routing = routing;
-  }
-
-  public RabbitMqMessage getMessage() {
-    return message;
-  }
-
-  public void setMessage(final RabbitMqMessage message) {
-    this.message = message;
-  }
-
-  @Override
-  public boolean equals(final Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    final RabbitMqRequest request = (RabbitMqRequest) o;
-    return Objects.equals(authentication, request.authentication)
-        && Objects.equals(routing, request.routing)
-        && Objects.equals(message, request.message);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(authentication, routing, message);
-  }
-
-  @Override
-  public String toString() {
-    return "RabbitMqRequest{"
-        + "authentication="
-        + authentication
-        + ", routing="
-        + routing
-        + ", message="
-        + message
-        + "}";
   }
 }

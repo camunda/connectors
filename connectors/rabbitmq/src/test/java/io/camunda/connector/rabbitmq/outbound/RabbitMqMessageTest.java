@@ -8,7 +8,7 @@ package io.camunda.connector.rabbitmq.outbound;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.camunda.connector.rabbitmq.common.model.RabbitMqMessage;
+import io.camunda.connector.rabbitmq.outbound.model.RabbitMqMessage;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -19,10 +19,9 @@ class RabbitMqMessageTest {
   @ValueSource(strings = {"{\\\"key\\\": \\\"value\\\"}", "{\n \\\"key\\\":\n \\\"value\\\"} \n "})
   public void getBodyAsByteArray_shouldRemoveBackslashesFormJson(String input) {
     // Given
-    final RabbitMqMessage rabbitMqMessage = new RabbitMqMessage();
-    rabbitMqMessage.setBody(input);
+    final RabbitMqMessage rabbitMqMessage = new RabbitMqMessage(null, input);
     // when
-    final byte[] bodyAsByteArray = rabbitMqMessage.getBodyAsByteArray();
+    final byte[] bodyAsByteArray = MessageUtil.getBodyAsByteArray(rabbitMqMessage.body());
     // then
     assertThat(new String(bodyAsByteArray)).isEqualTo("{\"key\":\"value\"}");
   }
@@ -31,10 +30,9 @@ class RabbitMqMessageTest {
   public void getBodyAsByteArray_shouldParseJsonWithInt() {
     // Given
     final String msgWithDigital = "{\\\"key\\\": -1}";
-    final RabbitMqMessage rabbitMqMessage = new RabbitMqMessage();
-    rabbitMqMessage.setBody(msgWithDigital);
+    final RabbitMqMessage rabbitMqMessage = new RabbitMqMessage(null, msgWithDigital);
     // when
-    final byte[] bodyAsByteArray = rabbitMqMessage.getBodyAsByteArray();
+    final byte[] bodyAsByteArray = MessageUtil.getBodyAsByteArray(rabbitMqMessage.body());
     // then
     assertThat(new String(bodyAsByteArray)).isEqualTo("{\"key\":-1}");
   }
@@ -43,10 +41,9 @@ class RabbitMqMessageTest {
   public void getBodyAsByteArray_shouldParseJsonWithDouble() {
     // Given
     final String msgWithDigital = "{\"key\": 0.369}";
-    final RabbitMqMessage rabbitMqMessage = new RabbitMqMessage();
-    rabbitMqMessage.setBody(msgWithDigital);
+    final RabbitMqMessage rabbitMqMessage = new RabbitMqMessage(null, msgWithDigital);
     // when
-    final byte[] bodyAsByteArray = rabbitMqMessage.getBodyAsByteArray();
+    final byte[] bodyAsByteArray = MessageUtil.getBodyAsByteArray(rabbitMqMessage.body());
     // then
     assertThat(new String(bodyAsByteArray)).isEqualTo("{\"key\":0.369}");
   }
@@ -55,10 +52,9 @@ class RabbitMqMessageTest {
   public void getBodyAsByteArray_shouldParsePlainText() {
     // Given
     final String msgWithDigital = "simple text";
-    final RabbitMqMessage rabbitMqMessage = new RabbitMqMessage();
-    rabbitMqMessage.setBody(msgWithDigital);
+    final RabbitMqMessage rabbitMqMessage = new RabbitMqMessage(null, msgWithDigital);
     // when
-    final byte[] bodyAsByteArray = rabbitMqMessage.getBodyAsByteArray();
+    final byte[] bodyAsByteArray = MessageUtil.getBodyAsByteArray(rabbitMqMessage.body());
     // then
     assertThat(new String(bodyAsByteArray)).isEqualTo(msgWithDigital);
   }

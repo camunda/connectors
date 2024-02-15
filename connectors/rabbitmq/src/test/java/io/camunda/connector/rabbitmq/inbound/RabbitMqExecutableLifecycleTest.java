@@ -16,8 +16,7 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
-import io.camunda.connector.rabbitmq.common.model.RabbitMqAuthentication;
-import io.camunda.connector.rabbitmq.common.model.RabbitMqAuthenticationType;
+import io.camunda.connector.rabbitmq.common.model.UriAuthentication;
 import io.camunda.connector.rabbitmq.inbound.model.RabbitMqInboundProperties;
 import io.camunda.connector.rabbitmq.supplier.ConnectionFactorySupplier;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
@@ -58,9 +57,7 @@ public class RabbitMqExecutableLifecycleTest extends InboundBaseTest {
 
     properties = new RabbitMqInboundProperties();
     properties.setQueueName(SecretsConstant.SECRETS + SecretsConstant.QUEUE_NAME);
-    var auth = new RabbitMqAuthentication();
-    auth.setAuthType(RabbitMqAuthenticationType.uri);
-    auth.setUri(SecretsConstant.SECRETS + SecretsConstant.Authentication.URI);
+    var auth = new UriAuthentication(SecretsConstant.SECRETS + SecretsConstant.Authentication.URI);
     properties.setAuthentication(auth);
     properties.setConsumerTag(SecretsConstant.SECRETS + SecretsConstant.CONSUMER_TAG);
   }

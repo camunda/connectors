@@ -19,8 +19,8 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.rabbitmq.common.model.FactoryRoutingData;
 import io.camunda.connector.rabbitmq.common.model.RabbitMqAuthentication;
-import io.camunda.connector.rabbitmq.common.model.RabbitMqRouting;
 import io.camunda.connector.rabbitmq.outbound.model.RabbitMqRequest;
 import io.camunda.connector.rabbitmq.supplier.ConnectionFactorySupplier;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
@@ -60,7 +60,7 @@ class RabbitMqFunctionTest extends OutboundBaseTest {
           TimeoutException {
     function = new RabbitMqFunction(connectionFactorySupplier);
     when(connectionFactorySupplier.createFactory(
-            any(RabbitMqAuthentication.class), any(RabbitMqRouting.class)))
+            any(RabbitMqAuthentication.class), any(FactoryRoutingData.class)))
         .thenReturn(connectionFactoryMock);
     when(connectionFactoryMock.newConnection()).thenReturn(connectionMock);
     when(connectionMock.createChannel()).thenReturn(channel);
@@ -76,7 +76,7 @@ class RabbitMqFunctionTest extends OutboundBaseTest {
 
     // then expected passing all needed methods and return 'success' result
     verify(connectionFactorySupplier)
-        .createFactory(any(RabbitMqAuthentication.class), any(RabbitMqRouting.class));
+        .createFactory(any(RabbitMqAuthentication.class), any(FactoryRoutingData.class));
     verify(connectionFactoryMock, times(1)).newConnection();
     verify(connectionMock, times(1)).createChannel();
     verify(channel).basicPublish(anyString(), anyString(), any(AMQP.BasicProperties.class), any());
@@ -104,9 +104,11 @@ class RabbitMqFunctionTest extends OutboundBaseTest {
             anyString(),
             any(AMQP.BasicProperties.class),
             messageInByteArrayRequest.capture());
-    var message = messageInByteArrayRequest.getValue();
-    var body = context.bindVariables(RabbitMqRequest.class).getMessage().getBodyAsByteArray();
-    assertThat(message).isEqualTo(body);
+    var message = new String(messageInByteArrayRequest.getValue());
+    var body =
+        MessageUtil.getBodyAsByteArray(
+            context.bindVariables(RabbitMqRequest.class).message().body());
+    assertThat(message).isEqualTo(new String(body));
   }
 
   @ParameterizedTest
@@ -125,7 +127,7 @@ class RabbitMqFunctionTest extends OutboundBaseTest {
             any(AMQP.BasicProperties.class),
             messageInByteArrayRequest.capture());
     assertThat(new String(messageInByteArrayRequest.getValue()))
-        .isEqualTo(context.bindVariables(RabbitMqRequest.class).getMessage().getBody());
+        .isEqualTo(context.bindVariables(RabbitMqRequest.class).message().body());
   }
 
   @ParameterizedTest
