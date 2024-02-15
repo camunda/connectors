@@ -61,9 +61,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
 
-/**
- * Utility class for transforming data classes into {@link PropertyBuilder} instances.
- */
+/** Utility class for transforming data classes into {@link PropertyBuilder} instances. */
 public class TemplatePropertiesUtil {
 
   private static final List<FieldProcessor> fieldProcessors =
@@ -131,7 +129,9 @@ public class TemplatePropertiesUtil {
         } catch (StackOverflowError e) {
           throw new RuntimeException(
               "Failed to analyze container field "
-                  + field.getName() + " of class " + field.getDeclaringClass()
+                  + field.getName()
+                  + " of class "
+                  + field.getDeclaringClass()
                   + " due to a stack overflow error. This is likely caused by a "
                   + "circular reference in the data class.\nCheck if the type is meant to be handled as "
                   + "a container type and consider applying a type override using @TemplateProperty or breaking the circular reference.");
@@ -396,11 +396,11 @@ public class TemplatePropertiesUtil {
   }
 
   private static <T extends Annotation>
-  Map.Entry<String, String> extractIdAndLabelFromAnnotationOrDeriveFromType(
-      Class<?> type,
-      Class<T> annotationClass,
-      Function<T, String> idExtractor,
-      Function<T, String> labelExtractor) {
+      Map.Entry<String, String> extractIdAndLabelFromAnnotationOrDeriveFromType(
+          Class<?> type,
+          Class<T> annotationClass,
+          Function<T, String> idExtractor,
+          Function<T, String> labelExtractor) {
 
     var annotation = type.getAnnotation(annotationClass);
     if (annotation != null) {
