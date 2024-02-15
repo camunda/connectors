@@ -464,6 +464,20 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
       assertThat(((AllMatch) property.getCondition()).allMatch())
           .contains(new PropertyCondition.Equals("annotatedStringProperty", "value"));
     }
+
+    @Test
+    void containerType_withManualTypeOverride() {
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
+      var property = getPropertyByLabel("Property with type override", template);
+      assertThat(property.getType()).isEqualTo("String");
+    }
+
+    @Test
+    void dateProperty_defaultsToStringType() {
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
+      var property = getPropertyByLabel("Date property", template);
+      assertThat(property.getType()).isEqualTo("String");
+    }
   }
 
   @Nested
