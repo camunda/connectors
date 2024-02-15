@@ -18,7 +18,7 @@ package io.camunda.connector.generator;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.camunda.connector.generator.dsl.OutboundElementTemplate;
+import io.camunda.connector.generator.dsl.ElementTemplate;
 import io.camunda.connector.generator.dsl.Property;
 import java.util.List;
 import java.util.Map;
@@ -26,14 +26,14 @@ import java.util.stream.Collectors;
 
 public abstract class BaseTest {
 
-  protected Property getPropertyById(String id, OutboundElementTemplate template) {
+  protected Property getPropertyById(String id, ElementTemplate template) {
     return template.properties().stream()
         .filter(p -> id.equals(p.getId()))
         .findFirst()
         .orElseThrow(() -> new RuntimeException("Property with id " + id + " not found"));
   }
 
-  protected Property getPropertyByLabel(String label, OutboundElementTemplate template) {
+  protected Property getPropertyByLabel(String label, ElementTemplate template) {
     return template.properties().stream()
         .filter(p -> label.equals(p.getLabel()))
         .findFirst()
@@ -42,7 +42,7 @@ public abstract class BaseTest {
 
   protected void checkPropertyGroups(
       List<Map.Entry<String, String>> groupNamesAndLabels,
-      OutboundElementTemplate template,
+      ElementTemplate template,
       boolean orderMatters) {
     List<Map.Entry<String, String>> groups =
         template.groups().stream()

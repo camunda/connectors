@@ -14,18 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.generator.dsl;
+package io.camunda.connector.generator.java;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import io.camunda.connector.generator.api.GeneratorConfiguration;
+import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElementType;
+import java.util.Set;
 
-public interface ElementTemplateBase {
+sealed interface TemplateGenerationContext {
 
-  String SCHEMA_FIELD_NAME = "$schema";
-  String SCHEMA_URL =
-      "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json";
+  String connectorType();
 
-  @JsonProperty(SCHEMA_FIELD_NAME)
-  default String schema() {
-    return SCHEMA_URL;
-  }
+  Set<GeneratorConfiguration.ConnectorElementType> elementTypes();
+
+  record Inbound(String connectorType, Set<ConnectorElementType> elementTypes)
+      implements TemplateGenerationContext {}
+
+  record Outbound(String connectorType, Set<ConnectorElementType> elementTypes)
+      implements TemplateGenerationContext {}
 }

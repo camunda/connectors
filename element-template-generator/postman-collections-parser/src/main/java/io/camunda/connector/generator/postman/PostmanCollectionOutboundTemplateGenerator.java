@@ -21,7 +21,7 @@ import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElementType;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
 import io.camunda.connector.generator.dsl.BpmnType;
-import io.camunda.connector.generator.dsl.OutboundElementTemplate;
+import io.camunda.connector.generator.dsl.ElementTemplate;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskDefinition;
 import io.camunda.connector.generator.dsl.http.HttpAuthentication;
 import io.camunda.connector.generator.dsl.http.HttpOperationBuilder;
@@ -38,8 +38,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class PostmanCollectionOutboundTemplateGenerator
-    implements CliCompatibleTemplateGenerator<
-        PostmanCollectionsGenerationSource, OutboundElementTemplate> {
+    implements CliCompatibleTemplateGenerator<PostmanCollectionsGenerationSource> {
 
   private static final Logger LOG =
       LoggerFactory.getLogger(PostmanCollectionOutboundTemplateGenerator.class);
@@ -92,7 +91,7 @@ public class PostmanCollectionOutboundTemplateGenerator
   }
 
   @Override
-  public List<OutboundElementTemplate> generate(
+  public List<ElementTemplate> generate(
       PostmanCollectionsGenerationSource source, GeneratorConfiguration configuration) {
     if (configuration == null) {
       configuration = GeneratorConfiguration.DEFAULT;
@@ -129,7 +128,7 @@ public class PostmanCollectionOutboundTemplateGenerator
         .toList();
   }
 
-  private List<OutboundElementTemplate> buildTemplates(
+  private List<ElementTemplate> buildTemplates(
       PostmanCollectionV210 postmanCollectionJson,
       List<HttpOperationBuilder> operationBuilders,
       GeneratorConfiguration configuration) {
@@ -150,7 +149,7 @@ public class PostmanCollectionOutboundTemplateGenerator
       elementTypes = Set.of(DEFAULT_ELEMENT_TYPE);
     }
 
-    List<OutboundElementTemplate> templates = new ArrayList<>();
+    List<ElementTemplate> templates = new ArrayList<>();
     for (var elementType : elementTypes) {
       var template =
           buildTemplate(

@@ -16,22 +16,21 @@
  */
 package io.camunda.connector.generator.api;
 
-import io.camunda.connector.generator.dsl.ElementTemplateBase;
+import io.camunda.connector.generator.dsl.ElementTemplate;
 import java.util.List;
 
 /**
  * Base interface for any element template generator
  *
  * @param <IN> Data source for template generation
- * @param <OUT> Generation output type
  */
-public interface ElementTemplateGenerator<IN, OUT extends ElementTemplateBase> {
+public interface ElementTemplateGenerator<IN> {
 
   /** Generate an element template from source using the provided configuration */
-  List<OUT> generate(IN source, GeneratorConfiguration configuration);
+  List<ElementTemplate> generate(IN source, GeneratorConfiguration configuration);
 
   /** Generate an element template from source using the default configuration */
-  default List<OUT> generate(IN source) {
+  default List<ElementTemplate> generate(IN source) {
     return generate(source, GeneratorConfiguration.DEFAULT);
   }
 }

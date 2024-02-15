@@ -17,6 +17,7 @@
 package io.camunda.connector.generator.dsl;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeProperty;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskDefinition;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskHeader;
 import java.util.ArrayList;
@@ -26,7 +27,7 @@ import java.util.stream.Stream;
 
 public record PropertyGroup(String id, String label, @JsonIgnore List<Property> properties) {
 
-  public static PropertyGroup OUTPUT_GROUP =
+  public static PropertyGroup OUTPUT_GROUP_OUTBOUND =
       PropertyGroup.builder()
           .id("output")
           .label("Output mapping")
@@ -36,6 +37,17 @@ public record PropertyGroup(String id, String label, @JsonIgnore List<Property> 
                   .build(),
               CommonProperties.RESULT_EXPRESSION
                   .binding(new ZeebeTaskHeader("resultExpression"))
+                  .build())
+          .build();
+
+  public static PropertyGroup OUTPUT_GROUP_INBOUND =
+      PropertyGroup.builder()
+          .id("output")
+          .label("Output mapping")
+          .properties(
+              CommonProperties.RESULT_VARIABLE.binding(new ZeebeProperty("resultVariable")).build(),
+              CommonProperties.RESULT_EXPRESSION
+                  .binding(new ZeebeProperty("resultExpression"))
                   .build())
           .build();
 
@@ -56,6 +68,41 @@ public record PropertyGroup(String id, String label, @JsonIgnore List<Property> 
           .properties(
               CommonProperties.RETRY_COUNT.binding(ZeebeTaskDefinition.RETRIES).build(),
               CommonProperties.RETRY_BACKOFF.binding(new ZeebeTaskHeader("retryBackoff")).build())
+          .build();
+
+  public static PropertyGroup ACTIVATION_GROUP_WITHOUT_MESSAGE_ID_EXPR =
+      PropertyGroup.builder()
+          .id("activation")
+          .label("Activation")
+          .properties(
+              CommonProperties.CORRELATION_KEY_PROCESS
+                  .binding(new ZeebeProperty("correlationKey"))
+                  .build(),
+              CommonProperties.CORRELATION_KEY_PAYLOAD
+                  .binding(new ZeebeProperty("correlationKey"))
+                  .build(),
+              CommonProperties.ACTIVATION_CONDITION
+                  .binding(new ZeebeProperty("activationCondition"))
+                  .build())
+          .build();
+
+  public static PropertyGroup ACTIVATION_GROUP_WITH_MESSAGE_ID_EXP =
+      PropertyGroup.builder()
+          .id("activation")
+          .label("Activation")
+          .properties(
+              CommonProperties.CORRELATION_KEY_PROCESS
+                  .binding(new ZeebeProperty("correlationKey"))
+                  .build(),
+              CommonProperties.CORRELATION_KEY_PAYLOAD
+                  .binding(new ZeebeProperty("correlationKey"))
+                  .build(),
+              CommonProperties.MESSAGE_ID_EXPRESSION
+                  .binding(new ZeebeProperty("messageId"))
+                  .build(),
+              CommonProperties.ACTIVATION_CONDITION
+                  .binding(new ZeebeProperty("activationCondition"))
+                  .build())
           .build();
 
   public PropertyGroup {

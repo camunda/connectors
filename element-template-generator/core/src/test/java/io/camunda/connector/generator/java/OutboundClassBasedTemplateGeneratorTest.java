@@ -30,7 +30,7 @@ import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
 import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.dsl.DropdownProperty;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
-import io.camunda.connector.generator.dsl.OutboundElementTemplate.ElementTypeWrapper;
+import io.camunda.connector.generator.dsl.ElementTemplate.ElementTypeWrapper;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.dsl.PropertyBinding;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
@@ -56,8 +56,7 @@ import org.junit.jupiter.api.Test;
 
 public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
-  private final OutboundClassBasedTemplateGenerator generator =
-      new OutboundClassBasedTemplateGenerator();
+  private final ClassBasedTemplateGenerator generator = new ClassBasedTemplateGenerator();
 
   @Nested
   class Basic {

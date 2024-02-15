@@ -23,7 +23,7 @@ import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElementType;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
 import io.camunda.connector.generator.dsl.BpmnType;
-import io.camunda.connector.generator.dsl.OutboundElementTemplate;
+import io.camunda.connector.generator.dsl.ElementTemplate;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskDefinition;
 import io.camunda.connector.generator.dsl.http.HttpAuthentication;
 import io.camunda.connector.generator.dsl.http.HttpAuthentication.NoAuth;
@@ -42,7 +42,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class OpenApiOutboundTemplateGenerator
-    implements CliCompatibleTemplateGenerator<OpenApiGenerationSource, OutboundElementTemplate> {
+    implements CliCompatibleTemplateGenerator<OpenApiGenerationSource> {
 
   private static final Set<BpmnType> SUPPORTED_ELEMENT_TYPES =
       Set.of(BpmnType.SERVICE_TASK, BpmnType.INTERMEDIATE_THROW_EVENT);
@@ -100,7 +100,7 @@ public class OpenApiOutboundTemplateGenerator
   }
 
   @Override
-  public List<OutboundElementTemplate> generate(
+  public List<ElementTemplate> generate(
       OpenApiGenerationSource source, GeneratorConfiguration configuration) {
 
     var operations =
@@ -128,7 +128,7 @@ public class OpenApiOutboundTemplateGenerator
     return buildTemplates(source.openAPI(), supportedOperations, configuration);
   }
 
-  private List<OutboundElementTemplate> buildTemplates(
+  private List<ElementTemplate> buildTemplates(
       OpenAPI openAPI,
       List<HttpOperationBuilder> operationBuilders,
       GeneratorConfiguration configuration) {
@@ -162,7 +162,7 @@ public class OpenApiOutboundTemplateGenerator
       elementTypes = Set.of(DEFAULT_ELEMENT_TYPE);
     }
 
-    List<OutboundElementTemplate> templates = new ArrayList<>();
+    List<ElementTemplate> templates = new ArrayList<>();
     for (var elementType : elementTypes) {
       var template = buildTemplate(openAPI, operationBuilders, configuration, authentication);
       template.elementType(elementType);

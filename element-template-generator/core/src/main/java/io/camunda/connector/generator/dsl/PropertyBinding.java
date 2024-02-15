@@ -49,4 +49,23 @@ public sealed interface PropertyBinding {
       return "zeebe:taskDefinition";
     }
   }
+
+  record ZeebeProperty(String name) implements PropertyBinding {
+
+    public static ZeebeProperty TYPE = new ZeebeProperty("type");
+
+    @Override
+    public String type() {
+      return "zeebe:property";
+    }
+  }
+
+  record ZeebeSubscription(String name) implements PropertyBinding {
+    public static ZeebeSubscription CORRELATION_KEY = new ZeebeSubscription("correlationKey");
+
+    @Override
+    public String type() {
+      return "bpmn:Message#zeebe:subscription#property";
+    }
+  }
 }

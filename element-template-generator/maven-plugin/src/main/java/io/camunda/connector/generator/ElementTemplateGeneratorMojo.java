@@ -19,8 +19,8 @@ package io.camunda.connector.generator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
-import io.camunda.connector.generator.dsl.OutboundElementTemplate;
-import io.camunda.connector.generator.java.OutboundClassBasedTemplateGenerator;
+import io.camunda.connector.generator.dsl.ElementTemplate;
+import io.camunda.connector.generator.java.ClassBasedTemplateGenerator;
 import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -63,7 +63,7 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
   private boolean generateHybridTemplates;
 
   private static final ObjectMapper mapper = new ObjectMapper();
-  private OutboundClassBasedTemplateGenerator generator;
+  private ClassBasedTemplateGenerator generator;
 
   private static final String COMPILED_CLASSES_DIR = "target" + File.separator + "classes";
 
@@ -108,7 +108,7 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
 
       // ensures that resources and classes from the project are loaded by the classloader
       Thread.currentThread().setContextClassLoader(classLoader);
-      generator = new OutboundClassBasedTemplateGenerator();
+      generator = new ClassBasedTemplateGenerator();
 
       for (String className : connectorClasses) {
         getLog().info("Generating element template for " + className);
@@ -137,7 +137,7 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
     }
   }
 
-  private void writeElementTemplates(List<OutboundElementTemplate> templates, boolean hybrid) {
+  private void writeElementTemplates(List<ElementTemplate> templates, boolean hybrid) {
     if (templates.size() == 1) {
       var fileName =
           Optional.ofNullable(templateFileName)
@@ -159,7 +159,7 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
     }
   }
 
-  private void writeElementTemplate(OutboundElementTemplate template, String fileName) {
+  private void writeElementTemplate(ElementTemplate template, String fileName) {
     try {
       File file = new File(outputDirectory, fileName);
       file.getParentFile().mkdirs();

@@ -16,68 +16,43 @@
  */
 package io.camunda.connector.generator.java;
 
-import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.generator.api.ElementTemplateGenerator;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
+import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElementType;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
-import io.camunda.connector.generator.dsl.BpmnType;
+import io.camunda.connector.generator.dsl.ElementTemplateBuilder;
 import io.camunda.connector.generator.dsl.ElementTemplateIcon;
-import io.camunda.connector.generator.dsl.OutboundElementTemplate;
 import io.camunda.connector.generator.dsl.PropertyBuilder;
 import io.camunda.connector.generator.dsl.PropertyGroup;
 import io.camunda.connector.generator.dsl.PropertyGroup.PropertyGroupBuilder;
+import io.camunda.connector.generator.java.TemplateGenerationContext.Inbound;
+import io.camunda.connector.generator.java.TemplateGenerationContext.Outbound;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
-import io.camunda.connector.generator.java.util.ConfigurationUtil;
 import io.camunda.connector.generator.java.util.ReflectionUtil;
 import io.camunda.connector.generator.java.util.TemplatePropertiesUtil;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
 
-public class OutboundClassBasedTemplateGenerator
-    implements ElementTemplateGenerator<Class<?>, OutboundElementTemplate> {
+public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Class<?>> {
 
-  private static final Set<BpmnType> SUPPORTED_ELEMENT_TYPES =
-      Set.of(
-          BpmnType.SERVICE_TASK,
-          BpmnType.INTERMEDIATE_THROW_EVENT,
-          BpmnType.SCRIPT_TASK,
-          BpmnType.MESSAGE_END_EVENT);
-  private static final GeneratorConfiguration.ConnectorElementType DEFAULT_ELEMENT_TYPE =
-      new GeneratorConfiguration.ConnectorElementType(Set.of(BpmnType.TASK), BpmnType.SERVICE_TASK);
   private final ClassLoader classLoader;
 
-  public OutboundClassBasedTemplateGenerator(ClassLoader classLoader) {
+  public ClassBasedTemplateGenerator(ClassLoader classLoader) {
     this.classLoader = classLoader;
   }
 
-  public OutboundClassBasedTemplateGenerator() {
+  public ClassBasedTemplateGenerator() {
     this(Thread.currentThread().getContextClassLoader());
   }
 
   @Override
-  public List<OutboundElementTemplate> generate(
+  public List<io.camunda.connector.generator.dsl.ElementTemplate> generate(
       Class<?> connectorDefinition, GeneratorConfiguration configuration) {
 
-    var connector =
-        ReflectionUtil.getRequiredAnnotation(connectorDefinition, OutboundConnector.class);
     var template = ReflectionUtil.getRequiredAnnotation(connectorDefinition, ElementTemplate.class);
     var connectorInput = template.inputDataClass();
-
-    GeneratorConfiguration mergedConfig = ConfigurationUtil.fromAnnotation(template, configuration);
-    var elementTypes = mergedConfig.elementTypes();
-    if (elementTypes.isEmpty()) {
-      elementTypes = Set.of(DEFAULT_ELEMENT_TYPE);
-    }
-    elementTypes.stream()
-        .filter(t -> !SUPPORTED_ELEMENT_TYPES.contains(t.elementType()))
-        .findFirst()
-        .ifPresent(
-            t -> {
-              throw new IllegalArgumentException(
-                  String.format("Unsupported element type '%s'", t.elementType().getName()));
-            });
+    var context = TemplateGenerationContextUtil.createContext(connectorDefinition, configuration);
 
     List<PropertyBuilder> properties =
         TemplatePropertiesUtil.extractTemplatePropertiesFromType(connectorInput);
@@ -125,9 +100,13 @@ public class OutboundClassBasedTemplateGenerator
               .build());
     }
 
-    mergedGroups.add(PropertyGroup.OUTPUT_GROUP);
-    mergedGroups.add(PropertyGroup.ERROR_GROUP);
-    mergedGroups.add(PropertyGroup.RETRIES_GROUP);
+    if (context instanceof Outbound) {
+      mergedGroups.add(PropertyGroup.OUTPUT_GROUP_OUTBOUND);
+      mergedGroups.add(PropertyGroup.ERROR_GROUP);
+      mergedGroups.add(PropertyGroup.RETRIES_GROUP);
+    } else {
+      mergedGroups.add(PropertyGroup.OUTPUT_GROUP_INBOUND);
+    }
 
     var nonGroupedProperties =
         properties.stream().filter(property -> property.build().getGroup() == null).toList();
@@ -135,13 +114,16 @@ public class OutboundClassBasedTemplateGenerator
     var icon =
         template.icon().isBlank() ? null : ElementTemplateIcon.from(template.icon(), classLoader);
 
-    return elementTypes.stream()
+    return context.elementTypes().stream()
         .map(
             elementType ->
-                OutboundElementTemplate.builder()
-                    .id(template.id())
+                ElementTemplateBuilder.createOutbound()
+                    .id(
+                        context.elementTypes().size() > 1
+                            ? template.id() + ":" + elementType.elementType().getShortName()
+                            : template.id())
                     .type(
-                        connector.type(),
+                        context.connectorType(),
                         ConnectorMode.HYBRID.equals(configuration.connectorMode()))
                     .name(template.name())
                     .version(template.version())
@@ -153,7 +135,21 @@ public class OutboundClassBasedTemplateGenerator
                     .description(template.description().isEmpty() ? null : template.description())
                     .properties(nonGroupedProperties.stream().map(PropertyBuilder::build).toList())
                     .propertyGroups(mergedGroups)
+                    .propertyGroups(getActivationPropertyGroupIfNeeded(context, elementType))
                     .build())
         .toList();
+  }
+
+  private static PropertyGroup[] getActivationPropertyGroupIfNeeded(
+      TemplateGenerationContext context, ConnectorElementType elementType) {
+    if (context instanceof Outbound) {
+      // no activation group for outbound
+      return new PropertyGroup[0];
+    }
+    if (context instanceof Inbound && elementType.elementType().isMessage()) {
+      return new PropertyGroup[] {PropertyGroup.ACTIVATION_GROUP_WITH_MESSAGE_ID_EXP};
+    } else {
+      return new PropertyGroup[] {PropertyGroup.ACTIVATION_GROUP_WITHOUT_MESSAGE_ID_EXPR};
+    }
   }
 }

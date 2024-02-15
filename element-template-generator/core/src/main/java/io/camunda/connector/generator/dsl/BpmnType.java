@@ -16,29 +16,45 @@
  */
 package io.camunda.connector.generator.dsl;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum BpmnType {
-  TASK("bpmn:Task"),
-  SERVICE_TASK("bpmn:ServiceTask"),
-  RECEIVE_TASK("bpmn:ReceiveTask"),
-  SCRIPT_TASK("bpmn:ScriptTask"),
-  START_EVENT("bpmn:StartEvent"),
-  INTERMEDIATE_CATCH_EVENT("bpmn:IntermediateCatchEvent"),
-  INTERMEDIATE_THROW_EVENT("bpmn:IntermediateThrowEvent"),
-  MESSAGE_START_EVENT("bpmn:MessageStartEvent"),
-  END_EVENT("bpmn:EndEvent"),
-  MESSAGE_END_EVENT("bpmn:MessageEndEvent");
+  TASK("bpmn:Task", false),
+  SERVICE_TASK("bpmn:ServiceTask", false),
+  RECEIVE_TASK("bpmn:ReceiveTask", true),
+  SCRIPT_TASK("bpmn:ScriptTask", false),
+  START_EVENT("bpmn:StartEvent", false),
+  INTERMEDIATE_CATCH_EVENT("bpmn:IntermediateCatchEvent", true),
+  INTERMEDIATE_THROW_EVENT("bpmn:IntermediateThrowEvent", true),
+  MESSAGE_START_EVENT("bpmn:MessageStartEvent", true),
+  END_EVENT("bpmn:EndEvent", false),
+  MESSAGE_END_EVENT("bpmn:MessageEndEvent", true),
+  BOUNDARY_EVENT("bpmn:BoundaryEvent", true);
 
   private final String name;
+  private final boolean isMessage;
 
-  BpmnType(String name) {
+  BpmnType(String name, boolean isMessage) {
     this.name = name;
+    this.isMessage = isMessage;
   }
 
   @JsonValue
   public String getName() {
     return name;
+  }
+
+  /** Whether the BPMN type is a message event */
+  @JsonIgnore
+  public boolean isMessage() {
+    return isMessage;
+  }
+
+  /** Returns the short name of the BPMN type, i.e. without the "bpmn:" namespace prefix */
+  @JsonIgnore
+  public String getShortName() {
+    return name.substring(name.indexOf(":") + 1);
   }
 
   public static BpmnType fromName(String name) {

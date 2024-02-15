@@ -25,8 +25,8 @@ public class OutboundElementTypeSupportTest extends BaseTest {
 
   @Test
   void serviceTask() {
-    OutboundElementTemplate template =
-        OutboundElementTemplateBuilder.create()
+    ElementTemplate template =
+        ElementTemplateBuilder.createOutbound()
             .id("id")
             .name("name")
             .type("type", false)
@@ -41,8 +41,8 @@ public class OutboundElementTypeSupportTest extends BaseTest {
 
   @Test
   void intermediateThrowEvent() {
-    OutboundElementTemplate template =
-        OutboundElementTemplateBuilder.create()
+    ElementTemplate template =
+        ElementTemplateBuilder.createOutbound()
             .id("id")
             .name("name")
             .type("type", false)
@@ -58,8 +58,8 @@ public class OutboundElementTypeSupportTest extends BaseTest {
 
   @Test
   void scriptTask() {
-    OutboundElementTemplate template =
-        OutboundElementTemplateBuilder.create()
+    ElementTemplate template =
+        ElementTemplateBuilder.createOutbound()
             .id("id")
             .name("name")
             .type("type", false)
@@ -74,8 +74,8 @@ public class OutboundElementTypeSupportTest extends BaseTest {
 
   @Test
   void messageEndEvent() {
-    OutboundElementTemplate template =
-        OutboundElementTemplateBuilder.create()
+    ElementTemplate template =
+        ElementTemplateBuilder.createOutbound()
             .id("id")
             .name("name")
             .type("type", false)

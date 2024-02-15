@@ -22,7 +22,7 @@ import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElemen
 import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.dsl.DropdownProperty;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
-import io.camunda.connector.generator.dsl.OutboundElementTemplate;
+import io.camunda.connector.generator.dsl.ElementTemplate;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
@@ -361,7 +361,7 @@ public class HttpOutboundElementTemplateBuilderTest {
     }
   }
 
-  OutboundElementTemplate buildTemplate(
+  ElementTemplate buildTemplate(
       List<HttpServerData> servers,
       List<HttpAuthentication> authentications,
       List<HttpOperation> operations) {
