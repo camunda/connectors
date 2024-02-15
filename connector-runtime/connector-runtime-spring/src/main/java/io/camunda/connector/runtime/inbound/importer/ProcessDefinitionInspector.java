@@ -20,6 +20,7 @@ import static io.camunda.connector.runtime.core.Keywords.CORRELATION_KEY_EXPRESS
 import static io.camunda.connector.runtime.core.Keywords.INBOUND_TYPE_KEYWORD;
 import static io.camunda.connector.runtime.core.Keywords.MESSAGE_ID_EXPRESSION;
 
+import io.camunda.connector.api.error.InvalidInboundConnectorDefinitionException;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
 import io.camunda.connector.runtime.core.inbound.correlation.BoundaryEventCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint;
@@ -184,17 +185,20 @@ public class ProcessDefinitionInspector {
 
   private Optional<ProcessCorrelationPoint> getCorrelationPointForElement(
       BaseElement element, Process process, ProcessDefinition definition) {
-
-    if (element instanceof StartEvent se) {
-      return getCorrelationPointForStartEvent(se, process, definition);
-    } else if (element instanceof IntermediateCatchEvent ice) {
-      return getCorrelationPointForIntermediateCatchEvent(ice);
-    } else if (element instanceof BoundaryEvent be) {
-      return getCorrelationPointForIntermediateBoundaryEvent(be);
-    } else if (element instanceof ReceiveTask rt) {
-      return getCorrelationPointForReceiveTask(rt);
+    try {
+      if (element instanceof StartEvent se) {
+        return getCorrelationPointForStartEvent(se, process, definition);
+      } else if (element instanceof IntermediateCatchEvent ice) {
+        return getCorrelationPointForIntermediateCatchEvent(ice);
+      } else if (element instanceof BoundaryEvent be) {
+        return getCorrelationPointForIntermediateBoundaryEvent(be);
+      } else if (element instanceof ReceiveTask rt) {
+        return getCorrelationPointForReceiveTask(rt);
+      }
+      LOG.warn("Unsupported Inbound element type: " + element.getClass());
+    } catch (InvalidInboundConnectorDefinitionException e) {
+      LOG.warn(e.getMessage(), e);
     }
-    LOG.warn("Unsupported Inbound element type: " + element.getClass());
     return Optional.empty();
   }
 
@@ -216,7 +220,7 @@ public class ProcessDefinitionInspector {
                 .findAny()
                 .orElseThrow(
                     () ->
-                        new IllegalStateException(
+                        new InvalidInboundConnectorDefinitionException(
                             "Sanity check failed: "
                                 + catchEvent.getClass().getSimpleName()
                                 + " must contain at least one event definition"));
