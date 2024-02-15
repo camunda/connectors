@@ -50,7 +50,6 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -447,8 +446,8 @@ public class TemplatePropertiesUtil {
     // or if the type has a manual type override
     return !ClassUtils.isPrimitiveOrWrapper(type)
         && !hasManualTypeOverride
-        && !type.isAssignableFrom(String.class)
-        && !type.isAssignableFrom(Date.class)
+        && !"java.time".equals(type.getPackageName())
+        && type != String.class
         && type != Object.class
         && type != JsonNode.class
         && !type.isEnum()
