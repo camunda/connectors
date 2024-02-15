@@ -37,6 +37,7 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import java.time.LocalDate;
 
 public record MyConnectorInput(
     @TemplateProperty(
@@ -51,6 +52,8 @@ public record MyConnectorInput(
     Object objectProperty,
     JsonNode jsonNodeProperty,
     MyEnum enumProperty,
+    LocalDate dateProperty,
+    @TemplateProperty(type = PropertyType.String) NestedWithDefinedGroup propertyWithTypeOverride,
     NestedWithoutDefinedGroup nestedProperty,
     @NestedProperties(group = "customGroup") NestedWithoutDefinedGroup nestedPropertyWithGroup,
     @NestedProperties(addNestedPath = false) NestedWithDefinedGroup customPathNestedProperty,

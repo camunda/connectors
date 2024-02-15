@@ -58,6 +58,7 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.ClassUtils;
+import org.apache.commons.lang3.StringUtils;
 
 /** Utility class for transforming data classes into {@link PropertyBuilder} instances. */
 public class TemplatePropertiesUtil {
@@ -93,37 +94,47 @@ public class TemplatePropertiesUtil {
     var properties = new ArrayList<PropertyBuilder>();
 
     for (Field field : fields) {
-      if (isContainerType(field.getType())) {
+      if (isContainerType(field)) {
         var nestedPropertiesAnnotation = field.getAnnotation(NestedProperties.class);
+        boolean hasPathPrefix =
+            nestedPropertiesAnnotation == null || nestedPropertiesAnnotation.addNestedPath();
+        boolean hasConditionOverride =
+            nestedPropertiesAnnotation != null
+                && StringUtils.isNotBlank(nestedPropertiesAnnotation.condition().property());
+        boolean hasGroupOverride =
+            nestedPropertiesAnnotation != null
+                && StringUtils.isNotBlank(nestedPropertiesAnnotation.group());
 
-        // analyze recursively
-        var nestedProperties =
-            extractTemplatePropertiesFromType(field.getType()).stream()
-                .peek(
-                    builder -> {
-                      if (nestedPropertiesAnnotation == null
-                          || nestedPropertiesAnnotation.addNestedPath()) {
-                        addPathPrefix(builder, field.getName());
-                      }
-                    })
-                .peek(
-                    builder -> {
-                      if (nestedPropertiesAnnotation != null
-                          && nestedPropertiesAnnotation.condition() != null) {
-                        builder.condition(
-                            TemplatePropertyFieldProcessor.transformToCondition(
-                                nestedPropertiesAnnotation.condition()));
-                      }
-                    })
-                .peek(
-                    builder -> {
-                      if (nestedPropertiesAnnotation != null
-                          && !nestedPropertiesAnnotation.group().isBlank()) {
-                        builder.group(nestedPropertiesAnnotation.group());
-                      }
-                    })
-                .toList();
-        properties.addAll(nestedProperties);
+        try {
+          // analyze recursively
+          var nestedProperties =
+              extractTemplatePropertiesFromType(field.getType()).stream()
+                  .peek(
+                      builder -> {
+                        if (hasPathPrefix) {
+                          addPathPrefixToBuilder(builder, field.getName());
+                        }
+                        if (hasConditionOverride) {
+                          builder.condition(
+                              TemplatePropertyFieldProcessor.transformToCondition(
+                                  nestedPropertiesAnnotation.condition()));
+                        }
+                        if (hasGroupOverride) {
+                          builder.group(nestedPropertiesAnnotation.group());
+                        }
+                      })
+                  .toList();
+          properties.addAll(nestedProperties);
+        } catch (StackOverflowError e) {
+          throw new RuntimeException(
+              "Failed to analyze container field "
+                  + field.getName()
+                  + " of class "
+                  + field.getDeclaringClass()
+                  + " due to a stack overflow error. This is likely caused by a "
+                  + "circular reference in the data class.\nCheck if the type is meant to be handled as "
+                  + "a container type and consider applying a type override using @TemplateProperty or breaking the circular reference.");
+        }
       } else {
         properties.add(buildProperty(field));
       }
@@ -158,8 +169,7 @@ public class TemplatePropertiesUtil {
   private static PropertyBuilder buildProperty(Field field) {
     var annotation = field.getAnnotation(TemplateProperty.class);
     String name, label;
-    String fieldName = field.getName();
-    String bindingName = fieldName;
+    String bindingName = field.getName();
     if (annotation != null) {
       if (annotation.ignore()) {
         return null;
@@ -194,7 +204,7 @@ public class TemplatePropertiesUtil {
     return propertyBuilder;
   }
 
-  private static PropertyBuilder addPathPrefix(PropertyBuilder builder, String path) {
+  private static void addPathPrefixToBuilder(PropertyBuilder builder, String path) {
     var originalId = builder.getId();
     builder.id(path + "." + originalId);
     var binding = builder.getBinding();
@@ -212,28 +222,31 @@ public class TemplatePropertiesUtil {
                   dependant.condition(
                       addConditionPrefix(dependant.getCondition(), path, originalId)));
     }
-    return builder;
   }
 
   private static PropertyCondition addConditionPrefix(
       PropertyCondition condition, String path, String discriminatorPropertyId) {
-    if (condition instanceof AllMatch allMatchCondition) {
-      return new AllMatch(
-          allMatchCondition.allMatch().stream()
-              .map(subCondition -> addConditionPrefix(subCondition, path, discriminatorPropertyId))
-              .toList());
-    } else if (condition instanceof Equals equalsCondition) {
-      if (!equalsCondition.property().equals(discriminatorPropertyId)) {
-        return equalsCondition;
+    switch (condition) {
+      case AllMatch allMatchCondition -> {
+        return new AllMatch(
+            allMatchCondition.allMatch().stream()
+                .map(
+                    subCondition -> addConditionPrefix(subCondition, path, discriminatorPropertyId))
+                .toList());
       }
-      return new Equals(path + "." + equalsCondition.property(), equalsCondition.equals());
-    } else if (condition instanceof OneOf oneOfCondition) {
-      if (!oneOfCondition.property().equals(discriminatorPropertyId)) {
-        return oneOfCondition;
+      case Equals equalsCondition -> {
+        if (!equalsCondition.property().equals(discriminatorPropertyId)) {
+          return equalsCondition;
+        }
+        return new Equals(path + "." + equalsCondition.property(), equalsCondition.equals());
       }
-      return new OneOf(path + "." + oneOfCondition.property(), oneOfCondition.oneOf());
-    } else {
-      throw new IllegalStateException("Unknown condition type: " + condition.getClass());
+      case OneOf oneOfCondition -> {
+        if (!oneOfCondition.property().equals(discriminatorPropertyId)) {
+          return oneOfCondition;
+        }
+        return new OneOf(path + "." + oneOfCondition.property(), oneOfCondition.oneOf());
+      }
+      default -> throw new IllegalStateException("Unknown condition type: " + condition.getClass());
     }
   }
 
@@ -424,10 +437,17 @@ public class TemplatePropertiesUtil {
     return label.toString();
   }
 
-  private static boolean isContainerType(Class<?> type) {
+  private static boolean isContainerType(Field field) {
+    var type = field.getType();
+    var propertyAnnotation = field.getAnnotation(TemplateProperty.class);
+    boolean hasManualTypeOverride =
+        propertyAnnotation != null && propertyAnnotation.type() != PropertyType.Unknown;
     // true if object with fields, false if primitive or collection or map or array
+    // or if the type has a manual type override
     return !ClassUtils.isPrimitiveOrWrapper(type)
-        && !type.isAssignableFrom(String.class)
+        && !hasManualTypeOverride
+        && !"java.time".equals(type.getPackageName())
+        && type != String.class
         && type != Object.class
         && type != JsonNode.class
         && !type.isEnum()
