@@ -41,7 +41,6 @@ import scala.jdk.javaapi.CollectionConverters;
 /** Wrapper for the FEEL engine, handling type conversions and expression evaluations. */
 public class FeelEngineWrapper {
 
-  static final String RESPONSE_MAP_KEY = "response";
   static final String ERROR_CONTEXT_IS_NULL = "Context is null";
 
   static final TypeReference<Map<String, Object>> MAP_TYPE_REFERENCE = new TypeReference<>() {};
@@ -100,10 +99,6 @@ public class FeelEngineWrapper {
       for (Object o : variables) {
         Objects.requireNonNull(o, ERROR_CONTEXT_IS_NULL);
         variablesMap.putAll(objectMapper.convertValue(o, MAP_TYPE_REFERENCE));
-      }
-      if (variables.length >= 1) {
-        variablesMap.put(
-            RESPONSE_MAP_KEY, objectMapper.convertValue(variables[0], MAP_TYPE_REFERENCE));
       }
       return variablesMap;
     } catch (IllegalArgumentException ex) {
