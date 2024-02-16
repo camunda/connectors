@@ -19,35 +19,111 @@ package io.camunda.connector.runtime.core.error;
 import java.io.Serial;
 
 /**
- * Represents an unchecked exception indicating an invalid definition for an inbound connector. This
- * exception is thrown when the connector's definition does not meet the expected format or
- * standards.
+ * Represents an unchecked exception indicating an invalid definition for an inbound connector.
+ * Enhanced to include process definition context for precise diagnostics.
  */
 public class InvalidInboundConnectorDefinitionException extends RuntimeException {
 
   @Serial private static final long serialVersionUID = 1L;
 
+  private final String processDefinitionName;
+  private final Long processDefinitionKey;
+  private final Long processDefinitionVersion;
+
   /**
-   * Constructs a new exception with the specified detail message. This constructor is typically
-   * used when the error message itself is sufficient to describe the problem encountered.
+   * Constructor for exception without process definition context.
    *
-   * @param message The detailed message that explains the reason for the exception. The detail
-   *     message is saved for later retrieval by the {@link #getMessage()} method.
+   * @param message Detailed message about the invalid connector definition.
    */
-  public InvalidInboundConnectorDefinitionException(final String message) {
-    super(message);
+  public InvalidInboundConnectorDefinitionException(String message) {
+    this(message, null, null, null, null);
   }
 
   /**
-   * Constructs a new exception with the specified detail message and cause. This constructor is
-   * used when an underlying cause for the exception is available, providing more context for
-   * troubleshooting.
+   * Constructor for exception with cause but without process definition context.
    *
-   * @param message The detailed message that explains the reason for the exception.
-   * @param cause The cause of the exception (which is saved for later retrieval by the {@link
-   *     #getCause()} method). A null value indicates that the cause is nonexistent or unknown.
+   * @param message Detailed message about the invalid connector definition.
+   * @param cause The cause of this exception.
    */
-  public InvalidInboundConnectorDefinitionException(final String message, final Throwable cause) {
+  public InvalidInboundConnectorDefinitionException(String message, Throwable cause) {
+    this(message, null, null, null, cause);
+  }
+
+  /**
+   * Constructor for exception with detailed process definition context.
+   *
+   * @param message Detailed message about the invalid connector definition.
+   * @param processDefinitionName Name of the process definition, nullable.
+   * @param processDefinitionKey Key of the process definition, nullable.
+   * @param processDefinitionVersion Version of the process definition, nullable.
+   */
+  public InvalidInboundConnectorDefinitionException(
+      String message,
+      String processDefinitionName,
+      Long processDefinitionKey,
+      Long processDefinitionVersion) {
+    this(message, processDefinitionName, processDefinitionKey, processDefinitionVersion, null);
+  }
+
+  /**
+   * Constructor to handle all initializations.
+   *
+   * @param message Detailed message about the invalid connector definition.
+   * @param processDefinitionName Name of the process definition, nullable.
+   * @param processDefinitionKey Key of the process definition, nullable.
+   * @param processDefinitionVersion Version of the process definition, nullable.
+   * @param cause The cause of this exception, nullable.
+   */
+  public InvalidInboundConnectorDefinitionException(
+      String message,
+      String processDefinitionName,
+      Long processDefinitionKey,
+      Long processDefinitionVersion,
+      Throwable cause) {
     super(message, cause);
+    this.processDefinitionName = processDefinitionName;
+    this.processDefinitionKey = processDefinitionKey;
+    this.processDefinitionVersion = processDefinitionVersion;
+  }
+
+  /**
+   * Builds a detailed exception message.
+   *
+   * @param message Initial message about the invalid definition.
+   * @param processDefinitionName Name of the process definition, may be null.
+   * @param processDefinitionKey Key of the process definition, may be null.
+   * @param processDefinitionVersion Version of the process definition, may be null.
+   * @return Constructed detailed message.
+   */
+  private static String buildMessage(
+      String message,
+      String processDefinitionName,
+      Long processDefinitionKey,
+      Long processDefinitionVersion) {
+    StringBuilder sb = new StringBuilder(message);
+    if (processDefinitionName != null)
+      sb.append(" [Process Definition Name: ").append(processDefinitionName).append("]");
+    if (processDefinitionKey != null) sb.append(", Key: ").append(processDefinitionKey);
+    if (processDefinitionVersion != null) sb.append(", Version: ").append(processDefinitionVersion);
+    return sb.toString();
+  }
+
+  public String getProcessDefinitionName() {
+    return processDefinitionName;
+  }
+
+  public Long getProcessDefinitionKey() {
+    return processDefinitionKey;
+  }
+
+  public Long getProcessDefinitionVersion() {
+    return processDefinitionVersion;
+  }
+
+  @Override
+  public String toString() {
+    return String.format(
+        "InvalidInboundConnectorDefinitionException{message='%s', processDefinitionName='%s', processDefinitionKey='%s', processDefinitionVersion='%s'}",
+        getMessage(), processDefinitionName, processDefinitionKey, processDefinitionVersion);
   }
 }
