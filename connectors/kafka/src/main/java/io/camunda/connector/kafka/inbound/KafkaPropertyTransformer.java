@@ -8,6 +8,7 @@ package io.camunda.connector.kafka.inbound;
 
 import com.fasterxml.jackson.databind.ObjectReader;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
+import io.camunda.connector.kafka.model.KafkaPropertiesUtil;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorRequest;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -34,11 +35,16 @@ public class KafkaPropertyTransformer {
 
   public static Properties getKafkaProperties(
       KafkaConnectorProperties props, InboundConnectorContext context) {
-    KafkaConnectorRequest connectorRequest = new KafkaConnectorRequest();
-    connectorRequest.setTopic(props.getTopic());
-    connectorRequest.setAuthentication(props.getAuthentication());
-    connectorRequest.setAdditionalProperties(props.getAdditionalProperties());
-    final Properties kafkaProps = connectorRequest.assembleKafkaClientProperties();
+    KafkaConnectorRequest connectorRequest =
+        new KafkaConnectorRequest(
+            props.getAuthentication(),
+            props.getTopic(),
+            null,
+            null,
+            props.getAdditionalProperties(),
+            null);
+    final Properties kafkaProps =
+        KafkaPropertiesUtil.assembleKafkaClientProperties(connectorRequest);
 
     if (kafkaProps.getProperty(ConsumerConfig.GROUP_ID_CONFIG) == null) {
       var groupIdConfig = resolveGroupId(props, context);

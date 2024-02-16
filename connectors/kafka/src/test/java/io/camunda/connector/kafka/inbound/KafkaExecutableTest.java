@@ -21,7 +21,7 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.camunda.connector.kafka.outbound.model.KafkaTopic;
+import io.camunda.connector.kafka.model.KafkaTopic;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
 import io.camunda.connector.test.inbound.InboundConnectorDefinitionBuilder;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
@@ -67,9 +67,7 @@ public class KafkaExecutableTest {
         Arrays.asList(
             new PartitionInfo(topic, 0, null, null, null),
             new PartitionInfo(topic, 1, null, null, null));
-    KafkaTopic kafkaTopic = new KafkaTopic();
-    kafkaTopic.setTopicName(topic);
-    kafkaTopic.setBootstrapServers("localhost:9092");
+    KafkaTopic kafkaTopic = new KafkaTopic("localhost:9092", topic);
     kafkaConnectorProperties = new KafkaConnectorProperties();
     kafkaConnectorProperties.setAutoOffsetReset(KafkaConnectorProperties.AutoOffsetReset.NONE);
     kafkaConnectorProperties.setAuthenticationType(

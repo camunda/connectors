@@ -21,12 +21,12 @@ import io.camunda.connector.kafka.inbound.KafkaConnectorProperties;
 import io.camunda.connector.kafka.inbound.KafkaExecutable;
 import io.camunda.connector.kafka.inbound.KafkaInboundMessage;
 import io.camunda.connector.kafka.model.Avro;
+import io.camunda.connector.kafka.model.KafkaAuthentication;
+import io.camunda.connector.kafka.model.KafkaTopic;
 import io.camunda.connector.kafka.outbound.KafkaConnectorFunction;
-import io.camunda.connector.kafka.outbound.model.KafkaAuthentication;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorRequest;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorResponse;
 import io.camunda.connector.kafka.outbound.model.KafkaMessage;
-import io.camunda.connector.kafka.outbound.model.KafkaTopic;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
 import io.camunda.connector.test.inbound.InboundConnectorDefinitionBuilder;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
@@ -44,6 +44,7 @@ import org.apache.kafka.clients.admin.NewPartitions;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.OffsetOutOfRangeException;
 import org.junit.ClassRule;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.MethodOrderer;
@@ -85,6 +86,11 @@ public class KafkaIntegrationTest {
     avro = new Avro(avroSchema);
   }
 
+  @AfterAll
+  public static void cleanup() {
+    kafkaContainer.stop();
+  }
+
   private static void createTopics(String... topics) {
     var newTopics =
         Arrays.stream(topics)
@@ -107,17 +113,11 @@ public class KafkaIntegrationTest {
     // Given
     OutboundConnectorFunction function = new KafkaConnectorFunction();
 
-    KafkaConnectorRequest request = new KafkaConnectorRequest();
-    KafkaMessage kafkaMessage = new KafkaMessage();
-    kafkaMessage.setKey("1");
-    kafkaMessage.setValue(Map.of("message", "Test message"));
-    KafkaTopic kafkaTopic = new KafkaTopic();
-    kafkaTopic.setTopicName(TOPIC);
-    kafkaTopic.setBootstrapServers(BOOTSTRAP_SERVERS);
-    KafkaAuthentication kafkaAuthentication = new KafkaAuthentication();
-    request.setMessage(kafkaMessage);
-    request.setTopic(kafkaTopic);
-    request.setAuthentication(kafkaAuthentication);
+    KafkaMessage kafkaMessage = new KafkaMessage("1", Map.of("message", "Test message"));
+    KafkaTopic kafkaTopic = new KafkaTopic(BOOTSTRAP_SERVERS, TOPIC);
+    KafkaAuthentication kafkaAuthentication = new KafkaAuthentication(null, null);
+    KafkaConnectorRequest request =
+        new KafkaConnectorRequest(kafkaAuthentication, kafkaTopic, kafkaMessage, null, null, null);
 
     var json = KafkaConnectorConsumer.objectMapper.writeValueAsString(request);
 
@@ -130,7 +130,7 @@ public class KafkaIntegrationTest {
     // Then
     assertInstanceOf(KafkaConnectorResponse.class, result);
     KafkaConnectorResponse castedResult = (KafkaConnectorResponse) result;
-    assertEquals(TOPIC, castedResult.getTopic());
+    assertEquals(TOPIC, castedResult.topic());
   }
 
   @Test
@@ -139,17 +139,12 @@ public class KafkaIntegrationTest {
     // Given
     OutboundConnectorFunction function = new KafkaConnectorFunction();
 
-    KafkaConnectorRequest request = new KafkaConnectorRequest();
-    KafkaMessage kafkaMessage = new KafkaMessage();
-    kafkaMessage.setKey("2");
-    kafkaMessage.setValue("Test message");
-    KafkaTopic kafkaTopic = new KafkaTopic();
-    kafkaTopic.setTopicName(TOPIC);
-    kafkaTopic.setBootstrapServers(BOOTSTRAP_SERVERS);
-    KafkaAuthentication kafkaAuthentication = new KafkaAuthentication();
-    request.setMessage(kafkaMessage);
-    request.setTopic(kafkaTopic);
-    request.setAuthentication(kafkaAuthentication);
+    KafkaMessage kafkaMessage = new KafkaMessage("2", "Test message");
+    KafkaTopic kafkaTopic = new KafkaTopic(BOOTSTRAP_SERVERS, TOPIC);
+    KafkaAuthentication kafkaAuthentication = new KafkaAuthentication(null, null);
+
+    KafkaConnectorRequest request =
+        new KafkaConnectorRequest(kafkaAuthentication, kafkaTopic, kafkaMessage, null, null, null);
 
     var json = KafkaConnectorConsumer.objectMapper.writeValueAsString(request);
 
@@ -162,16 +157,15 @@ public class KafkaIntegrationTest {
     // Then
     assertInstanceOf(KafkaConnectorResponse.class, result);
     KafkaConnectorResponse castedResult = (KafkaConnectorResponse) result;
-    assertEquals(TOPIC, castedResult.getTopic());
+    assertEquals(TOPIC, castedResult.topic());
   }
 
   @Test
   @Order(3)
   void setInvalidOffsetForInboundConnectorWhenAutoOffsetResetIsNone() {
     // Given
-    KafkaTopic kafkaTopic = new KafkaTopic();
-    kafkaTopic.setTopicName(TOPIC);
-    kafkaTopic.setBootstrapServers(BOOTSTRAP_SERVERS);
+    KafkaTopic kafkaTopic = new KafkaTopic(BOOTSTRAP_SERVERS, TOPIC);
+
     KafkaConnectorProperties kafkaConnectorProperties = new KafkaConnectorProperties();
     kafkaConnectorProperties.setAutoOffsetReset(KafkaConnectorProperties.AutoOffsetReset.NONE);
     kafkaConnectorProperties.setAuthenticationType(
@@ -210,9 +204,7 @@ public class KafkaIntegrationTest {
   @Order(4)
   void consumeMessageWithInboundConnector() throws Exception {
     // Given
-    KafkaTopic kafkaTopic = new KafkaTopic();
-    kafkaTopic.setTopicName(TOPIC);
-    kafkaTopic.setBootstrapServers(BOOTSTRAP_SERVERS);
+    KafkaTopic kafkaTopic = new KafkaTopic(BOOTSTRAP_SERVERS, TOPIC);
     KafkaConnectorProperties kafkaConnectorProperties = new KafkaConnectorProperties();
     kafkaConnectorProperties.setAutoOffsetReset(KafkaConnectorProperties.AutoOffsetReset.EARLIEST);
     kafkaConnectorProperties.setAuthenticationType(
@@ -228,7 +220,7 @@ public class KafkaIntegrationTest {
 
     // When
     executable.activate(context);
-    await().atMost(Duration.ofSeconds(5)).until(() -> context.getCorrelations().size() > 0);
+    await().atMost(Duration.ofSeconds(5)).until(() -> !context.getCorrelations().isEmpty());
     executable.deactivate();
 
     // Then
@@ -241,7 +233,7 @@ public class KafkaIntegrationTest {
                   return !(messge.getValue() instanceof String);
                 })
             .findFirst()
-            .get();
+            .orElse(null);
 
     assertInstanceOf(KafkaInboundMessage.class, message);
     KafkaInboundMessage castedResult1 = (KafkaInboundMessage) message;
@@ -254,9 +246,7 @@ public class KafkaIntegrationTest {
   @Order(5)
   void consumeSameMessageWithInboundConnectorAgainWithOffsets() throws Exception {
     // Given
-    KafkaTopic kafkaTopic = new KafkaTopic();
-    kafkaTopic.setTopicName(TOPIC);
-    kafkaTopic.setBootstrapServers(BOOTSTRAP_SERVERS);
+    KafkaTopic kafkaTopic = new KafkaTopic(BOOTSTRAP_SERVERS, TOPIC);
     KafkaConnectorProperties kafkaConnectorProperties = new KafkaConnectorProperties();
     kafkaConnectorProperties.setAutoOffsetReset(KafkaConnectorProperties.AutoOffsetReset.EARLIEST);
     kafkaConnectorProperties.setAuthenticationType(
@@ -274,11 +264,11 @@ public class KafkaIntegrationTest {
 
     // When
     executable.activate(context);
-    await().atMost(Duration.ofSeconds(5)).until(() -> context.getCorrelations().size() > 0);
+    await().atMost(Duration.ofSeconds(5)).until(() -> !context.getCorrelations().isEmpty());
     executable.deactivate();
 
     // Then
-    var inboundMessage = context.getCorrelations().get(context.getCorrelations().size() - 1);
+    var inboundMessage = context.getCorrelations().getLast();
     assertInstanceOf(KafkaInboundMessage.class, inboundMessage);
     KafkaInboundMessage castedResult1 = (KafkaInboundMessage) inboundMessage;
     String rawValue1 = castedResult1.getRawValue();
@@ -288,8 +278,8 @@ public class KafkaIntegrationTest {
     assertInstanceOf(ObjectNode.class, value1);
     assertEquals("Test message", ((ObjectNode) value1).get("message").asText());
 
-    assertInstanceOf(KafkaInboundMessage.class, context.getCorrelations().get(0));
-    KafkaInboundMessage castedResult2 = (KafkaInboundMessage) context.getCorrelations().get(0);
+    assertInstanceOf(KafkaInboundMessage.class, context.getCorrelations().getFirst());
+    KafkaInboundMessage castedResult2 = (KafkaInboundMessage) context.getCorrelations().getFirst();
     String rawValue2 = castedResult2.getRawValue();
     assertInstanceOf(String.class, rawValue2);
     assertEquals("Test message", rawValue2);
@@ -304,21 +294,14 @@ public class KafkaIntegrationTest {
     // Given
     OutboundConnectorFunction function = new KafkaConnectorFunction();
 
-    KafkaConnectorRequest request = new KafkaConnectorRequest();
-    request.setAvro(avro);
+    KafkaMessage kafkaMessage =
+        new KafkaMessage(
+            "avro1", Map.of("name", "Test", "age", 40, "emails", List.of("test@camunda.com")));
+    KafkaTopic kafkaTopic = new KafkaTopic(BOOTSTRAP_SERVERS, AVRO_TOPIC);
 
-    KafkaMessage kafkaMessage = new KafkaMessage();
-    kafkaMessage.setKey("avro1");
-    kafkaMessage.setValue(Map.of("name", "Test", "age", 40, "emails", List.of("test@camunda.com")));
-
-    KafkaTopic kafkaTopic = new KafkaTopic();
-    kafkaTopic.setTopicName(AVRO_TOPIC);
-    kafkaTopic.setBootstrapServers(BOOTSTRAP_SERVERS);
-
-    KafkaAuthentication kafkaAuthentication = new KafkaAuthentication();
-    request.setMessage(kafkaMessage);
-    request.setTopic(kafkaTopic);
-    request.setAuthentication(kafkaAuthentication);
+    KafkaAuthentication kafkaAuthentication = new KafkaAuthentication(null, null);
+    KafkaConnectorRequest request =
+        new KafkaConnectorRequest(kafkaAuthentication, kafkaTopic, kafkaMessage, avro, null, null);
 
     var json = KafkaConnectorConsumer.objectMapper.writeValueAsString(request);
 
@@ -331,16 +314,14 @@ public class KafkaIntegrationTest {
     // Then
     assertInstanceOf(KafkaConnectorResponse.class, result);
     KafkaConnectorResponse castedResult = (KafkaConnectorResponse) result;
-    assertEquals(AVRO_TOPIC, castedResult.getTopic());
+    assertEquals(AVRO_TOPIC, castedResult.topic());
   }
 
   @Test
   @Order(7)
   void consumeAvro() {
     // Given
-    KafkaTopic kafkaTopic = new KafkaTopic();
-    kafkaTopic.setTopicName(AVRO_TOPIC);
-    kafkaTopic.setBootstrapServers(BOOTSTRAP_SERVERS);
+    KafkaTopic kafkaTopic = new KafkaTopic(BOOTSTRAP_SERVERS, AVRO_TOPIC);
 
     KafkaConnectorProperties kafkaConnectorProperties = new KafkaConnectorProperties();
     kafkaConnectorProperties.setAutoOffsetReset(KafkaConnectorProperties.AutoOffsetReset.EARLIEST);
@@ -359,11 +340,11 @@ public class KafkaIntegrationTest {
 
     // When
     executable.activate(context);
-    await().atMost(Duration.ofSeconds(5)).until(() -> context.getCorrelations().size() > 0);
+    await().atMost(Duration.ofSeconds(5)).until(() -> !context.getCorrelations().isEmpty());
     executable.deactivate();
 
     // Then
-    var inboundMessage = context.getCorrelations().stream().findFirst().get();
+    var inboundMessage = context.getCorrelations().stream().findFirst().orElse(null);
     assertInstanceOf(KafkaInboundMessage.class, inboundMessage);
     KafkaInboundMessage castedResult1 = (KafkaInboundMessage) inboundMessage;
 
@@ -381,18 +362,12 @@ public class KafkaIntegrationTest {
     // Given
     OutboundConnectorFunction function = new KafkaConnectorFunction();
 
-    KafkaConnectorRequest request = new KafkaConnectorRequest();
-    KafkaMessage kafkaMessage = new KafkaMessage();
-    kafkaMessage.setKey("8");
-    kafkaMessage.setValue(Map.of("message", "Test message"));
-    KafkaTopic kafkaTopic = new KafkaTopic();
-    kafkaTopic.setTopicName(TOPIC);
-    kafkaTopic.setBootstrapServers(BOOTSTRAP_SERVERS);
-    KafkaAuthentication kafkaAuthentication = new KafkaAuthentication();
-    request.setMessage(kafkaMessage);
-    request.setTopic(kafkaTopic);
-    request.setAuthentication(kafkaAuthentication);
-    request.setHeaders(HEADERS);
+    KafkaMessage kafkaMessage = new KafkaMessage("8", Map.of("message", "Test message"));
+    KafkaTopic kafkaTopic = new KafkaTopic(BOOTSTRAP_SERVERS, TOPIC);
+    KafkaAuthentication kafkaAuthentication = new KafkaAuthentication(null, null);
+    KafkaConnectorRequest request =
+        new KafkaConnectorRequest(
+            kafkaAuthentication, kafkaTopic, kafkaMessage, null, null, HEADERS);
 
     var json = KafkaConnectorConsumer.objectMapper.writeValueAsString(request);
 
@@ -407,11 +382,9 @@ public class KafkaIntegrationTest {
 
   @Test
   @Order(9)
-  void consumeMessageWithHeaders() throws Exception {
+  void consumeMessageWithHeaders() {
     // Given
-    KafkaTopic kafkaTopic = new KafkaTopic();
-    kafkaTopic.setTopicName(TOPIC);
-    kafkaTopic.setBootstrapServers(BOOTSTRAP_SERVERS);
+    KafkaTopic kafkaTopic = new KafkaTopic(BOOTSTRAP_SERVERS, TOPIC);
     KafkaConnectorProperties kafkaConnectorProperties = new KafkaConnectorProperties();
     kafkaConnectorProperties.setAutoOffsetReset(KafkaConnectorProperties.AutoOffsetReset.EARLIEST);
     kafkaConnectorProperties.setAuthenticationType(
@@ -427,7 +400,7 @@ public class KafkaIntegrationTest {
 
     // When
     executable.activate(context);
-    await().atMost(Duration.ofSeconds(5)).until(() -> context.getCorrelations().size() > 0);
+    await().atMost(Duration.ofSeconds(5)).until(() -> !context.getCorrelations().isEmpty());
     executable.deactivate();
 
     // Then
@@ -435,12 +408,11 @@ public class KafkaIntegrationTest {
         context.getCorrelations().stream()
             .filter(
                 m -> {
-                  var kafkaInboundMessage = (KafkaInboundMessage) m;
-                  return !(kafkaInboundMessage.getValue() instanceof String)
-                      && kafkaInboundMessage.getKey().equals("8");
+                  var messge = (KafkaInboundMessage) m;
+                  return !(messge.getValue() instanceof String);
                 })
             .findFirst()
-            .get();
+            .orElse(null);
 
     assertInstanceOf(KafkaInboundMessage.class, message);
     KafkaInboundMessage castedResult1 = (KafkaInboundMessage) message;

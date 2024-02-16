@@ -4,6 +4,10 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.kafka.outbound.model;
+package io.camunda.connector.kafka.model;
 
-public record KafkaConnectorResponse(String topic, long timestamp, long offset, int partition) {}
+import io.camunda.connector.feel.annotation.FEEL;
+import jakarta.validation.constraints.NotEmpty;
+
+public record KafkaTopic(
+    @FEEL @NotEmpty String bootstrapServers, @FEEL @NotEmpty String topicName) {}

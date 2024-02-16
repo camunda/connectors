@@ -105,7 +105,7 @@ public class KafkaConnectorConsumer {
   private void prepareConsumer() {
     try {
       this.consumer = consumerCreatorFunction.apply(getKafkaProperties(elementProps, context));
-      var partitions = assignTopicPartitions(consumer, elementProps.getTopic().getTopicName());
+      var partitions = assignTopicPartitions(consumer, elementProps.getTopic().topicName());
       Optional.ofNullable(elementProps.getOffsets())
           .ifPresent(offsets -> seekOffsets(consumer, partitions, offsets));
       reportUp();
@@ -171,7 +171,7 @@ public class KafkaConnectorConsumer {
     LOG.trace("Kafka message received: key = {}, value = {}", record.key(), record.value());
     var reader = avroObjectReader != null ? avroObjectReader : objectMapper.reader();
     var mappedMessage = convertConsumerRecordToKafkaInboundMessage(record, reader);
-    this.context.correlate(mappedMessage);
+    this.context.correlateWithResult(mappedMessage);
   }
 
   public void stopConsumer() throws ExecutionException, InterruptedException {

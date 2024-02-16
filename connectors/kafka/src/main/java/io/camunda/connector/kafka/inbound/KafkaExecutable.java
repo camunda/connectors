@@ -18,7 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @InboundConnector(name = "Kafka Consumer", type = "io.camunda:connector-kafka-inbound:1")
-public class KafkaExecutable implements InboundConnectorExecutable {
+public class KafkaExecutable implements InboundConnectorExecutable<InboundConnectorContext> {
   private static final Logger LOG = LoggerFactory.getLogger(KafkaExecutable.class);
   private final Function<Properties, Consumer<Object, Object>> consumerCreatorFunction;
   public KafkaConnectorConsumer kafkaConnectorConsumer;

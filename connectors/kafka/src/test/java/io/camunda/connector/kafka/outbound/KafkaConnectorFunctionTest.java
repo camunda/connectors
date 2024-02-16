@@ -61,8 +61,8 @@ class KafkaConnectorFunctionTest {
   private static final String SECRET_TOPIC_KEY = "TOPIC_NAME";
   private static final String SECRET_TOPIC_NAME = "some-awesome-topic";
 
-  @Mock private KafkaProducer producer;
-  @Captor private ArgumentCaptor<ProducerRecord> producerRecordCaptor;
+  @Mock private KafkaProducer<String, Object> producer;
+  @Captor private ArgumentCaptor<ProducerRecord<String, Object>> producerRecordCaptor;
   private KafkaConnectorFunction objectUnderTest;
 
   @BeforeEach
@@ -97,29 +97,28 @@ class KafkaConnectorFunctionTest {
     // then
     // Testing records are equal
     Mockito.verify(producer).send(producerRecordCaptor.capture());
-    ProducerRecord recordActual = producerRecordCaptor.getValue();
+    ProducerRecord<String, Object> recordActual = producerRecordCaptor.getValue();
 
     Object expectedValue;
-    if (request.getAvro() != null) {
+    if (request.avro() != null) {
       expectedValue = produceAvroMessage(request);
     } else {
       expectedValue =
-          request.getMessage().getValue() instanceof String
-              ? (String) request.getMessage().getValue()
-              : objectMapper.writeValueAsString(request.getMessage().getValue());
+          request.message().value() instanceof String
+              ? (String) request.message().value()
+              : objectMapper.writeValueAsString(request.message().value());
     }
     var recordExpected =
-        new ProducerRecord<>(
-            request.getTopic().getTopicName(), request.getMessage().getKey(), expectedValue);
+        new ProducerRecord<>(request.topic().topicName(), request.message().key(), expectedValue);
     assertThat(recordActual.topic()).isEqualTo(recordExpected.topic());
     assertThat(recordActual.key()).isEqualTo(recordExpected.key());
     assertThat(recordActual.value()).isEqualTo(recordExpected.value());
 
     // Testing secrets updated
-    assertThat(request.getAuthentication().getUsername()).isEqualTo(SECRET_USER_NAME);
-    assertThat(request.getAuthentication().getPassword()).isEqualTo(SECRET_PASSWORD);
-    assertThat(request.getTopic().getBootstrapServers()).isEqualTo(SECRET_BOOTSTRAP_SERVER);
-    assertThat(request.getTopic().getTopicName()).isEqualTo(SECRET_TOPIC_NAME);
+    assertThat(request.authentication().username()).isEqualTo(SECRET_USER_NAME);
+    assertThat(request.authentication().password()).isEqualTo(SECRET_PASSWORD);
+    assertThat(request.topic().bootstrapServers()).isEqualTo(SECRET_BOOTSTRAP_SERVER);
+    assertThat(request.topic().topicName()).isEqualTo(SECRET_TOPIC_NAME);
   }
 
   @ParameterizedTest
@@ -134,19 +133,20 @@ class KafkaConnectorFunctionTest {
   }
 
   @Test
-  void execute_NoCredsProvided_ShouldPass() throws Exception {
+  void execute_NoCredProvided_ShouldPass() {
     // given
     final String noAuthRequest =
-        "{\n"
-            + "    \"topic\":{\n"
-            + "      \"bootstrapServers\":\"kafka-stub.kafka.cloud:1234\",\n"
-            + "      \"topicName\":\"some-awesome-topic\"\n"
-            + "    },\n"
-            + "    \"message\":{\n"
-            + "      \"key\":\"Happy\",\n"
-            + "      \"value\":\"Case\"\n"
-            + "    }\n"
-            + "  }";
+        """
+                    {
+                        "topic":{
+                          "bootstrapServers":"kafka-stub.kafka.cloud:1234",
+                          "topicName":"some-awesome-topic"
+                        },
+                        "message":{
+                          "key":"Happy",
+                          "value":"Case"
+                        }
+                      }""";
     CompletableFuture<RecordMetadata> completedKafkaResult = new CompletableFuture<>();
     RecordMetadata kafkaResponse =
         new RecordMetadata(new TopicPartition(SECRET_TOPIC_NAME, 1), 1, 1, 1, 1, 1);
@@ -161,17 +161,15 @@ class KafkaConnectorFunctionTest {
     // then
     // Testing records are equal
     Mockito.verify(producer).send(producerRecordCaptor.capture());
-    ProducerRecord recordActual = producerRecordCaptor.getValue();
-    ProducerRecord recordExpected =
-        new ProducerRecord(
-            req.getTopic().getTopicName(), req.getMessage().getKey(), req.getMessage().getValue());
+    var recordActual = producerRecordCaptor.getValue();
+    var recordExpected =
+        new ProducerRecord<>(req.topic().topicName(), req.message().key(), req.message().value());
     assertThat(recordActual.toString()).isEqualTo(recordExpected.toString());
 
     // Testing secrets updated
-    assertThat(req.getAuthentication()).isNull();
-    assertThat(req.getAuthentication()).isNull();
-    assertThat(req.getTopic().getBootstrapServers()).isEqualTo(SECRET_BOOTSTRAP_SERVER);
-    assertThat(req.getTopic().getTopicName()).isEqualTo(SECRET_TOPIC_NAME);
+    assertThat(req.authentication()).isNull();
+    assertThat(req.topic().bootstrapServers()).isEqualTo(SECRET_BOOTSTRAP_SERVER);
+    assertThat(req.topic().topicName()).isEqualTo(SECRET_TOPIC_NAME);
   }
 
   private static Stream<String> successRequestCases() throws IOException {
@@ -182,7 +180,6 @@ class KafkaConnectorFunctionTest {
     return loadRequestCasesFromFile(FAIL_CASES_RESOURCE_PATH);
   }
 
-  @SuppressWarnings("unchecked")
   private static Stream<String> loadRequestCasesFromFile(final String fileName) throws IOException {
     return objectMapper
         .readValue(new File(fileName), new TypeReference<List<JsonNode>>() {})

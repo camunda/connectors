@@ -9,15 +9,15 @@ package io.camunda.connector.kafka.inbound;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.kafka.model.Avro;
-import io.camunda.connector.kafka.outbound.model.KafkaAuthentication;
-import io.camunda.connector.kafka.outbound.model.KafkaTopic;
+import io.camunda.connector.kafka.model.KafkaAuthentication;
+import io.camunda.connector.kafka.model.KafkaTopic;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class KafkaConnectorProperties {
+public final class KafkaConnectorProperties {
 
   @NotNull private AuthenticationType authenticationType;
 
