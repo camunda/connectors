@@ -26,6 +26,7 @@ import io.camunda.connector.gsheets.model.request.Dimension;
 import io.camunda.connector.gsheets.model.request.input.DeleteColumn;
 import io.camunda.connector.gsheets.supplier.GoogleSheetsServiceSupplier;
 import io.camunda.google.model.Authentication;
+import io.camunda.google.model.AuthenticationType;
 import java.io.IOException;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -49,12 +50,10 @@ class DeleteColumnOperationTest extends BaseTest {
 
   @Captor private ArgumentCaptor<BatchUpdateSpreadsheetRequest> requestsCaptor;
 
-  private Authentication auth;
   private BatchUpdateSpreadsheetResponse response;
 
   @BeforeEach
   public void before() {
-    auth = new Authentication();
     response = new BatchUpdateSpreadsheetResponse();
     response.setSpreadsheetId(SPREADSHEET_ID);
   }
@@ -79,10 +78,14 @@ class DeleteColumnOperationTest extends BaseTest {
           .thenReturn(response);
 
       // When
-      new DeleteColumnOperation(model).execute(auth);
+      new DeleteColumnOperation(model)
+          .execute(new Authentication(AuthenticationType.BEARER, "abc", null, null, null));
 
       // Then
-      mockedServiceSupplier.verify(() -> GoogleSheetsServiceSupplier.getGoogleSheetsService(auth));
+      mockedServiceSupplier.verify(
+          () ->
+              GoogleSheetsServiceSupplier.getGoogleSheetsService(
+                  new Authentication(AuthenticationType.BEARER, "abc", null, null, null)));
 
       List<Request> requests = requestsCaptor.getValue().getRequests();
       assertThat(requests, hasSize(COLUMN_INDEX));
@@ -116,10 +119,14 @@ class DeleteColumnOperationTest extends BaseTest {
           .thenReturn(response);
 
       // When
-      new DeleteColumnOperation(model).execute(auth);
+      new DeleteColumnOperation(model)
+          .execute(new Authentication(AuthenticationType.BEARER, "abc", null, null, null));
 
       // Then
-      mockedServiceSupplier.verify(() -> GoogleSheetsServiceSupplier.getGoogleSheetsService(auth));
+      mockedServiceSupplier.verify(
+          () ->
+              GoogleSheetsServiceSupplier.getGoogleSheetsService(
+                  new Authentication(AuthenticationType.BEARER, "abc", null, null, null)));
 
       List<Request> requests = requestsCaptor.getValue().getRequests();
       assertThat(requests, hasSize(COLUMN_INDEX));

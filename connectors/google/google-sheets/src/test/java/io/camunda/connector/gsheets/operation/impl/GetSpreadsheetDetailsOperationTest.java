@@ -18,8 +18,8 @@ import io.camunda.connector.gsheets.BaseTest;
 import io.camunda.connector.gsheets.model.request.input.GetSpreadsheetDetails;
 import io.camunda.connector.gsheets.supplier.GoogleSheetsServiceSupplier;
 import io.camunda.google.model.Authentication;
+import io.camunda.google.model.AuthenticationType;
 import java.io.IOException;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,13 +33,6 @@ class GetSpreadsheetDetailsOperationTest extends BaseTest {
 
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private Sheets service;
-
-  private Authentication auth;
-
-  @BeforeEach
-  public void before() {
-    auth = new Authentication();
-  }
 
   @DisplayName("Should get spreadsheet details by id")
   @Test
@@ -58,10 +51,14 @@ class GetSpreadsheetDetailsOperationTest extends BaseTest {
       when(service.spreadsheets().get(anyString()).execute()).thenReturn(spreadsheet);
 
       // When
-      new GetSpreadsheetDetailsOperation(model).execute(auth);
+      new GetSpreadsheetDetailsOperation(model)
+          .execute(new Authentication(AuthenticationType.BEARER, "abc", null, null, null));
 
       // Then
-      mockedServiceSupplier.verify(() -> GoogleSheetsServiceSupplier.getGoogleSheetsService(auth));
+      mockedServiceSupplier.verify(
+          () ->
+              GoogleSheetsServiceSupplier.getGoogleSheetsService(
+                  new Authentication(AuthenticationType.BEARER, "abc", null, null, null)));
       verify(service.spreadsheets().get(SPREADSHEET_ID)).execute();
     }
   }

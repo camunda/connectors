@@ -24,8 +24,7 @@ public class GetWorksheetDataOperation extends GoogleSheetOperation {
   @Override
   public Object execute(Authentication auth) {
     try {
-      List<List<Object>> values =
-          this.get(auth, model.getSpreadsheetId(), model.getWorksheetName());
+      List<List<Object>> values = this.get(auth, model.spreadsheetId(), model.worksheetName());
 
       if (values == null || values.isEmpty()) {
         return new GoogleSheetsResult("Get worksheet data", "OK", null);

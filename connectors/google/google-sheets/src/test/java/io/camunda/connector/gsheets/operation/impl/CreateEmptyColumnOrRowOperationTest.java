@@ -30,6 +30,7 @@ import io.camunda.connector.gsheets.model.request.Dimension;
 import io.camunda.connector.gsheets.model.request.input.CreateEmptyColumnOrRow;
 import io.camunda.connector.gsheets.supplier.GoogleSheetsServiceSupplier;
 import io.camunda.google.model.Authentication;
+import io.camunda.google.model.AuthenticationType;
 import java.io.IOException;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -53,12 +54,10 @@ class CreateEmptyColumnOrRowOperationTest extends BaseTest {
 
   @Captor private ArgumentCaptor<BatchUpdateSpreadsheetRequest> requestsCaptor;
 
-  private Authentication auth;
   private BatchUpdateSpreadsheetResponse response;
 
   @BeforeEach
   public void before() {
-    auth = new Authentication();
     response = new BatchUpdateSpreadsheetResponse();
     response.setSpreadsheetId(SPREADSHEET_ID);
   }
@@ -68,7 +67,7 @@ class CreateEmptyColumnOrRowOperationTest extends BaseTest {
   void createEmptyColumnOrRow_shouldAppendEmptyRow() throws IOException {
     // Given
     CreateEmptyColumnOrRow model =
-        new CreateEmptyColumnOrRow(SPREADSHEET_ID, WORKSHEET_ID, Dimension.ROWS, null, null, null);
+        new CreateEmptyColumnOrRow(SPREADSHEET_ID, WORKSHEET_ID, Dimension.ROWS, null, null);
 
     try (MockedStatic<GoogleSheetsServiceSupplier> mockedServiceSupplier =
         mockStatic(GoogleSheetsServiceSupplier.class)) {
@@ -83,10 +82,14 @@ class CreateEmptyColumnOrRowOperationTest extends BaseTest {
           .thenReturn(response);
 
       // When
-      new CreateEmptyColumnOrRowOperation(model).execute(auth);
+      new CreateEmptyColumnOrRowOperation(model)
+          .execute(new Authentication(AuthenticationType.BEARER, "abc", null, null, null));
 
       // Then
-      mockedServiceSupplier.verify(() -> GoogleSheetsServiceSupplier.getGoogleSheetsService(auth));
+      mockedServiceSupplier.verify(
+          () ->
+              GoogleSheetsServiceSupplier.getGoogleSheetsService(
+                  new Authentication(AuthenticationType.BEARER, "abc", null, null, null)));
 
       List<Request> requests = requestsCaptor.getValue().getRequests();
       assertThat(requests, hasSize(1));
@@ -110,7 +113,7 @@ class CreateEmptyColumnOrRowOperationTest extends BaseTest {
     // Given
     CreateEmptyColumnOrRow model =
         new CreateEmptyColumnOrRow(
-            SPREADSHEET_ID, WORKSHEET_ID, Dimension.COLUMNS, START_INDEX, END_INDEX, null);
+            SPREADSHEET_ID, WORKSHEET_ID, Dimension.COLUMNS, START_INDEX, END_INDEX);
 
     try (MockedStatic<GoogleSheetsServiceSupplier> mockedServiceSupplier =
         mockStatic(GoogleSheetsServiceSupplier.class)) {
@@ -125,10 +128,14 @@ class CreateEmptyColumnOrRowOperationTest extends BaseTest {
           .thenReturn(response);
 
       // When
-      new CreateEmptyColumnOrRowOperation(model).execute(auth);
+      new CreateEmptyColumnOrRowOperation(model)
+          .execute(new Authentication(AuthenticationType.BEARER, "abc", null, null, null));
 
       // Then
-      mockedServiceSupplier.verify(() -> GoogleSheetsServiceSupplier.getGoogleSheetsService(auth));
+      mockedServiceSupplier.verify(
+          () ->
+              GoogleSheetsServiceSupplier.getGoogleSheetsService(
+                  new Authentication(AuthenticationType.BEARER, "abc", null, null, null)));
 
       List<Request> requests = requestsCaptor.getValue().getRequests();
       assertThat(requests, hasSize(1));
@@ -153,8 +160,7 @@ class CreateEmptyColumnOrRowOperationTest extends BaseTest {
   void createEmptyColumnOrRow_shouldThrowExceptionWhenStartIndexIsEmpty() {
     // Given
     CreateEmptyColumnOrRow model =
-        new CreateEmptyColumnOrRow(
-            SPREADSHEET_ID, WORKSHEET_ID, Dimension.ROWS, null, END_INDEX, null);
+        new CreateEmptyColumnOrRow(SPREADSHEET_ID, WORKSHEET_ID, Dimension.ROWS, null, END_INDEX);
 
     try (MockedStatic<GoogleSheetsServiceSupplier> mockedServiceSupplier =
         mockStatic(GoogleSheetsServiceSupplier.class)) {
@@ -165,7 +171,11 @@ class CreateEmptyColumnOrRowOperationTest extends BaseTest {
       CreateEmptyColumnOrRowOperation operation = new CreateEmptyColumnOrRowOperation(model);
       // When and Then
 
-      assertThrows(IllegalArgumentException.class, () -> operation.execute(auth));
+      assertThrows(
+          IllegalArgumentException.class,
+          () ->
+              operation.execute(
+                  new Authentication(AuthenticationType.BEARER, "abc", null, null, null)));
       mockedServiceSupplier.verifyNoInteractions();
     }
   }
@@ -176,7 +186,7 @@ class CreateEmptyColumnOrRowOperationTest extends BaseTest {
     // Given
     CreateEmptyColumnOrRow model =
         new CreateEmptyColumnOrRow(
-            SPREADSHEET_ID, WORKSHEET_ID, Dimension.COLUMNS, START_INDEX, null, null);
+            SPREADSHEET_ID, WORKSHEET_ID, Dimension.COLUMNS, START_INDEX, null);
 
     try (MockedStatic<GoogleSheetsServiceSupplier> mockedServiceSupplier =
         mockStatic(GoogleSheetsServiceSupplier.class)) {
@@ -187,7 +197,11 @@ class CreateEmptyColumnOrRowOperationTest extends BaseTest {
       CreateEmptyColumnOrRowOperation operation = new CreateEmptyColumnOrRowOperation(model);
 
       // When and Then
-      assertThrows(IllegalArgumentException.class, () -> operation.execute(auth));
+      assertThrows(
+          IllegalArgumentException.class,
+          () ->
+              operation.execute(
+                  new Authentication(AuthenticationType.BEARER, "abc", null, null, null)));
       mockedServiceSupplier.verifyNoInteractions();
     }
   }

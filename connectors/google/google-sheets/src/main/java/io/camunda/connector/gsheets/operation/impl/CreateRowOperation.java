@@ -24,11 +24,11 @@ public class CreateRowOperation extends GoogleSheetOperation {
 
   @Override
   public Object execute(Authentication auth) {
-    ValueRange valueRange = new ValueRange().setValues(List.of(model.getValues()));
-    String range = buildRange(model.getWorksheetName(), buildRowRange(model.getRowIndex()));
+    ValueRange valueRange = new ValueRange().setValues(List.of(model.values()));
+    String range = buildRange(model.worksheetName(), buildRowRange(model.rowIndex()));
 
     try {
-      this.update(auth, model.getSpreadsheetId(), range, valueRange);
+      this.update(auth, model.spreadsheetId(), range, valueRange);
 
       return new GoogleSheetsResult("Create row", "OK");
     } catch (IOException e) {

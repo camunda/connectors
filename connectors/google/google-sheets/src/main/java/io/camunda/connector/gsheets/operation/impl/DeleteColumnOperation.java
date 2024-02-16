@@ -35,7 +35,7 @@ public class DeleteColumnOperation extends GoogleSheetOperation {
     DimensionRange dimensionRange =
         new DimensionRange()
             .setDimension(Dimension.COLUMNS.getValue())
-            .setSheetId(model.getWorksheetId())
+            .setSheetId(model.worksheetId())
             .setStartIndex(index)
             .setEndIndex(index + 1);
     Request request =
@@ -44,7 +44,7 @@ public class DeleteColumnOperation extends GoogleSheetOperation {
         new BatchUpdateSpreadsheetRequest().setRequests(List.of(request));
 
     try {
-      this.batchUpdate(auth, model.getSpreadsheetId(), updateRequest);
+      this.batchUpdate(auth, model.spreadsheetId(), updateRequest);
 
       return new GoogleSheetsResult("Delete column", "OK");
     } catch (IOException e) {
@@ -53,11 +53,11 @@ public class DeleteColumnOperation extends GoogleSheetOperation {
   }
 
   private int getIndex() {
-    if (ColumnIndexType.LETTERS.equals(model.getColumnIndexType())) {
+    if (ColumnIndexType.LETTERS.equals(model.columnIndexType())) {
       return LetterNumericSystemConverter.spreadsheetLetterToNumericIndex(
-          model.getColumnLetterIndex());
+          model.columnLetterIndex());
     }
 
-    return model.getColumnNumberIndex();
+    return model.columnNumberIndex();
   }
 }

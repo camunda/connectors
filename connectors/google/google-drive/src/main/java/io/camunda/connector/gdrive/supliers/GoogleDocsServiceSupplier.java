@@ -9,9 +9,9 @@ package io.camunda.connector.gdrive.supliers;
 import static io.camunda.google.supplier.util.GoogleServiceSupplierUtil.getHttpHttpCredentialsAdapter;
 import static io.camunda.google.supplier.util.GoogleServiceSupplierUtil.getNetHttpTransport;
 
+import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.docs.v1.Docs;
 import io.camunda.google.model.Authentication;
-import io.camunda.google.supplier.GsonComponentSupplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,7 +24,7 @@ public final class GoogleDocsServiceSupplier {
     Docs docs =
         new Docs.Builder(
                 getNetHttpTransport(),
-                GsonComponentSupplier.gsonFactoryInstance(),
+                GsonFactory.getDefaultInstance(),
                 getHttpHttpCredentialsAdapter(auth))
             .build();
     LOGGER.debug("Google docs service was successfully initialized");

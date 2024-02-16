@@ -6,61 +6,29 @@
  */
 package io.camunda.connector.gsheets.model.request.input;
 
+import io.camunda.connector.generator.dsl.Property.FeelMode;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyBinding;
+import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
-import java.util.Objects;
 
-public final class CreateSpreadsheet extends Input {
-
-  @NotBlank private String spreadsheetName;
-  private String parent;
-
-  public CreateSpreadsheet() {}
-
-  public CreateSpreadsheet(String spreadsheetName, String parent) {
-    this.spreadsheetName = spreadsheetName;
-    this.parent = parent;
-  }
-
-  public String getSpreadsheetName() {
-    return spreadsheetName;
-  }
-
-  public void setSpreadsheetName(String spreadsheetName) {
-    this.spreadsheetName = spreadsheetName;
-  }
-
-  public String getParent() {
-    return parent;
-  }
-
-  public void setParent(String parent) {
-    this.parent = parent;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    CreateSpreadsheet that = (CreateSpreadsheet) o;
-    return Objects.equals(spreadsheetName, that.spreadsheetName)
-        && Objects.equals(parent, that.parent);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(spreadsheetName, parent);
-  }
-
-  @Override
-  public String toString() {
-    return "CreateSpreadsheet{"
-        + "spreadsheetName='"
-        + spreadsheetName
-        + '\''
-        + ", parent='"
-        + parent
-        + '\''
-        + "} "
-        + super.toString();
-  }
-}
+@TemplateSubType(id = "createSpreadsheet", label = "Create spreadsheet")
+public record CreateSpreadsheet(
+    @TemplateProperty(
+            id = "createSpreadsheet.spreadsheetName",
+            label = "Spreadsheet name",
+            description = "Enter name for the new spreadsheet",
+            group = "operationDetails",
+            feel = FeelMode.optional,
+            binding = @PropertyBinding(name = "operation.spreadsheetName"))
+        @NotBlank
+        String spreadsheetName,
+    @TemplateProperty(
+            label = "Parent folder ID",
+            description = "Enter ID of the parent folder where new spreadsheet will be created",
+            group = "operationDetails",
+            optional = true,
+            feel = FeelMode.optional,
+            binding = @PropertyBinding(name = "operation.parent"))
+        String parent)
+    implements Input {}

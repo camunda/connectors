@@ -27,10 +27,10 @@ public class CreateWorksheetOperation extends GoogleSheetOperation {
 
   @Override
   public Object execute(Authentication auth) {
-    SheetProperties sheetProperties = new SheetProperties().setTitle(model.getWorksheetName());
+    SheetProperties sheetProperties = new SheetProperties().setTitle(model.worksheetName());
 
-    if (model.getWorksheetIndex() != null) {
-      sheetProperties.setIndex(model.getWorksheetIndex());
+    if (model.worksheetIndex() != null) {
+      sheetProperties.setIndex(model.worksheetIndex());
     }
 
     Request request =
@@ -39,7 +39,7 @@ public class CreateWorksheetOperation extends GoogleSheetOperation {
         new BatchUpdateSpreadsheetRequest().setRequests(List.of(request));
 
     try {
-      this.batchUpdate(auth, model.getSpreadsheetId(), updateRequest);
+      this.batchUpdate(auth, model.spreadsheetId(), updateRequest);
 
       return new GoogleSheetsResult("Create worksheet", "OK");
     } catch (IOException e) {

@@ -6,61 +6,38 @@
  */
 package io.camunda.connector.gsheets.model.request.input;
 
+import io.camunda.connector.generator.dsl.Property.FeelMode;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyBinding;
+import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
-import java.util.Objects;
 
-public final class CreateWorksheet extends SpreadsheetInput {
-
-  @NotBlank private String worksheetName;
-  private Integer worksheetIndex;
-
-  public CreateWorksheet() {}
-
-  public CreateWorksheet(String spreadsheetId, String worksheetName, Integer worksheetIndex) {
-    super(spreadsheetId);
-    this.worksheetName = worksheetName;
-    this.worksheetIndex = worksheetIndex;
-  }
-
-  public String getWorksheetName() {
-    return worksheetName;
-  }
-
-  public void setWorksheetName(String worksheetName) {
-    this.worksheetName = worksheetName;
-  }
-
-  public Integer getWorksheetIndex() {
-    return worksheetIndex;
-  }
-
-  public void setWorksheetIndex(Integer worksheetIndex) {
-    this.worksheetIndex = worksheetIndex;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    CreateWorksheet that = (CreateWorksheet) o;
-    return Objects.equals(worksheetName, that.worksheetName)
-        && Objects.equals(worksheetIndex, that.worksheetIndex);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(worksheetName, worksheetIndex);
-  }
-
-  @Override
-  public String toString() {
-    return "CreateWorksheet{"
-        + "worksheetName='"
-        + worksheetName
-        + '\''
-        + ", worksheetIndex="
-        + worksheetIndex
-        + "} "
-        + super.toString();
-  }
-}
+@TemplateSubType(id = "createWorksheet", label = "Create worksheet")
+public record CreateWorksheet(
+    @TemplateProperty(
+            id = "createWorksheet.spreadsheetId",
+            label = "Spreadsheet ID",
+            description = "Enter the ID of the spreadsheet",
+            group = "operationDetails",
+            feel = FeelMode.optional,
+            binding = @PropertyBinding(name = "operation.spreadsheetId"))
+        @NotBlank
+        String spreadsheetId,
+    @TemplateProperty(
+            id = "createWorksheet.worksheetName",
+            label = "Worksheet name",
+            description = "Enter name for the worksheet",
+            group = "operationDetails",
+            feel = FeelMode.optional,
+            binding = @PropertyBinding(name = "operation.worksheetName"))
+        @NotBlank
+        String worksheetName,
+    @TemplateProperty(
+            label = "Worksheet index",
+            description =
+                "Enter index of the place where to add worksheet (leave empty if add to the end of sheet list) Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#what-is-a-worksheet-index\" target=\"_blank\">documentation</a>",
+            group = "operationDetails",
+            feel = FeelMode.optional,
+            binding = @PropertyBinding(name = "operation.worksheetIndex"))
+        Integer worksheetIndex)
+    implements Input {}

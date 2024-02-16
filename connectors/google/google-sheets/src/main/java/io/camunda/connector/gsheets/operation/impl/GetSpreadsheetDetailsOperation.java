@@ -27,7 +27,7 @@ public class GetSpreadsheetDetailsOperation extends GoogleSheetOperation {
     Sheets service = GoogleSheetsServiceSupplier.getGoogleSheetsService(auth);
 
     try {
-      Spreadsheet spreadsheet = service.spreadsheets().get(model.getSpreadsheetId()).execute();
+      Spreadsheet spreadsheet = service.spreadsheets().get(model.spreadsheetId()).execute();
 
       return spreadsheet.getProperties();
     } catch (IOException e) {

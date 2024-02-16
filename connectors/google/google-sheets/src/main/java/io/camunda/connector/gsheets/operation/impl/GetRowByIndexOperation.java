@@ -23,10 +23,10 @@ public class GetRowByIndexOperation extends GoogleSheetOperation {
 
   @Override
   public Object execute(Authentication auth) {
-    String range = buildRange(model.getWorksheetName(), buildRowRange(model.getRowIndex()));
+    String range = buildRange(model.worksheetName(), buildRowRange(model.rowIndex()));
 
     try {
-      List<List<Object>> values = this.get(auth, model.getSpreadsheetId(), range);
+      List<List<Object>> values = this.get(auth, model.spreadsheetId(), range);
 
       if (values == null || values.isEmpty()) {
         return new GoogleSheetsResult("Get row by index", "OK", null);

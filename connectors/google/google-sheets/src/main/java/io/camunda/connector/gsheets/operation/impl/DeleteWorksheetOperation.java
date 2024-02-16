@@ -27,13 +27,13 @@ public class DeleteWorksheetOperation extends GoogleSheetOperation {
   @Override
   public Object execute(Authentication auth) {
     DeleteSheetRequest deleteSheetRequest =
-        new DeleteSheetRequest().setSheetId(model.getWorksheetId());
+        new DeleteSheetRequest().setSheetId(model.worksheetId());
     Request request = new Request().setDeleteSheet(deleteSheetRequest);
     BatchUpdateSpreadsheetRequest updateRequest =
         new BatchUpdateSpreadsheetRequest().setRequests(List.of(request));
 
     try {
-      this.batchUpdate(auth, model.getSpreadsheetId(), updateRequest);
+      this.batchUpdate(auth, model.spreadsheetId(), updateRequest);
 
       return new GoogleSheetsResult("Delete worksheet", "OK");
     } catch (IOException e) {

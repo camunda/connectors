@@ -24,11 +24,11 @@ public class AddValuesOperation extends GoogleSheetOperation {
 
   @Override
   public Object execute(Authentication auth) {
-    ValueRange valueRange = new ValueRange().setValues(List.of(List.of(model.getValue())));
-    String range = buildRange(model.getWorksheetName(), model.getCellId());
+    ValueRange valueRange = new ValueRange().setValues(List.of(List.of(model.value())));
+    String range = buildRange(model.worksheetName(), model.cellId());
 
     try {
-      this.update(auth, model.getSpreadsheetId(), range, valueRange);
+      this.update(auth, model.spreadsheetId(), range, valueRange);
 
       return new GoogleSheetsResult("Add values to spreadsheet", "OK");
 

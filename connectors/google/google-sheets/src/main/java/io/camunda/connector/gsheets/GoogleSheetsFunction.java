@@ -17,14 +17,22 @@ import org.slf4j.LoggerFactory;
 
 @OutboundConnector(
     name = "Google Spreadsheets",
-    inputVariables = {"authentication", "operation"},
+    inputVariables = {"authentication", "operation", "operationDetails"},
     type = "io.camunda:google-sheets:1")
 @ElementTemplate(
-    id = "google-sheets",
-    name = "Generated Google Sheets",
-    version = 1,
-    description = "Google Spreadsheets Connector",
-    inputDataClass = GoogleSheetsRequest.class)
+    id = "io.camunda.connectors.GoogleSheets.v1",
+    name = "Google Sheets Outbound Connector",
+    description = "Work with spreadsheets",
+    inputDataClass = GoogleSheetsRequest.class,
+    version = 2,
+    propertyGroups = {
+      @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
+      @ElementTemplate.PropertyGroup(id = "operation", label = "Select operation"),
+      @ElementTemplate.PropertyGroup(id = "operationDetails", label = "Operation details"),
+    },
+    documentationRef =
+        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/",
+    icon = "icon.svg")
 public class GoogleSheetsFunction implements OutboundConnectorFunction {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GoogleSheetsFunction.class);

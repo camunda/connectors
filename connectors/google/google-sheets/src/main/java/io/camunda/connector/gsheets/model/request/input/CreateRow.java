@@ -6,77 +6,55 @@
  */
 package io.camunda.connector.gsheets.model.request.input;
 
+import io.camunda.connector.generator.dsl.Property.FeelMode;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyBinding;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
+import io.camunda.connector.generator.java.annotation.TemplateSubType;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
-import java.util.Objects;
 
-public final class CreateRow extends SpreadsheetInput {
-
-  private String worksheetName;
-  @NotNull private Integer rowIndex;
-  @NotEmpty private List<Object> values;
-
-  public CreateRow() {}
-
-  public CreateRow(
-      String spreadsheetId, String worksheetName, Integer rowIndex, List<Object> values) {
-    super(spreadsheetId);
-    this.worksheetName = worksheetName;
-    this.rowIndex = rowIndex;
-    this.values = values;
-  }
-
-  public String getWorksheetName() {
-    return worksheetName;
-  }
-
-  public void setWorksheetName(String worksheetName) {
-    this.worksheetName = worksheetName;
-  }
-
-  public Integer getRowIndex() {
-    return rowIndex;
-  }
-
-  public void setRowIndex(Integer rowIndex) {
-    this.rowIndex = rowIndex;
-  }
-
-  public List<Object> getValues() {
-    return values;
-  }
-
-  public void setValues(List<Object> values) {
-    this.values = values;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    CreateRow createRow = (CreateRow) o;
-    return Objects.equals(worksheetName, createRow.worksheetName)
-        && Objects.equals(rowIndex, createRow.rowIndex)
-        && Objects.equals(values, createRow.values);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(worksheetName, rowIndex, values);
-  }
-
-  @Override
-  public String toString() {
-    return "CreateRow{"
-        + "worksheetName='"
-        + worksheetName
-        + '\''
-        + ", rowIndex="
-        + rowIndex
-        + ", values="
-        + values
-        + "} "
-        + super.toString();
-  }
-}
+@TemplateSubType(id = "createRow", label = "Create row")
+public record CreateRow(
+    @TemplateProperty(
+            id = "createRow.spreadsheetId",
+            label = "Spreadsheet ID",
+            description = "Enter the ID of the spreadsheet",
+            group = "operationDetails",
+            feel = FeelMode.optional,
+            binding = @PropertyBinding(name = "operation.spreadsheetId"))
+        @NotBlank
+        String spreadsheetId,
+    @TemplateProperty(
+            id = "createRow.worksheetName",
+            label = "Worksheet name",
+            description = "Enter name for the worksheet",
+            group = "operationDetails",
+            feel = FeelMode.optional,
+            binding = @PropertyBinding(name = "operation.worksheetName"))
+        @NotBlank
+        String worksheetName,
+    @TemplateProperty(
+            id = "createRow.rowIndex",
+            label = "Row index",
+            description =
+                "Enter row index. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#what-is-a-row-index\" target=\"_blank\">documentation</a>",
+            group = "operationDetails",
+            feel = FeelMode.optional,
+            constraints = @PropertyConstraints(notEmpty = true),
+            binding = @PropertyBinding(name = "operation.rowIndex"))
+        @NotNull
+        Integer rowIndex,
+    @TemplateProperty(
+            label = "Enter values",
+            description =
+                "Enter the array of values. <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#create-row\" target=\"_blank\">Learn more about the required format</a>",
+            group = "operationDetails",
+            feel = FeelMode.required,
+            constraints = @PropertyConstraints(notEmpty = true),
+            binding = @PropertyBinding(name = "operation.values"))
+        @NotEmpty
+        List<Object> values)
+    implements Input {}

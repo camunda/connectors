@@ -6,61 +6,42 @@
  */
 package io.camunda.connector.gsheets.model.request.input;
 
+import io.camunda.connector.generator.dsl.Property.FeelMode;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyBinding;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
+import io.camunda.connector.generator.java.annotation.TemplateSubType;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import java.util.Objects;
 
-public final class GetRowByIndex extends SpreadsheetInput {
-
-  private String worksheetName;
-  @NotNull private Integer rowIndex;
-
-  public GetRowByIndex() {}
-
-  public GetRowByIndex(String spreadsheetId, String worksheetName, Integer rowIndex) {
-    super(spreadsheetId);
-    this.worksheetName = worksheetName;
-    this.rowIndex = rowIndex;
-  }
-
-  public String getWorksheetName() {
-    return worksheetName;
-  }
-
-  public void setWorksheetName(String worksheetName) {
-    this.worksheetName = worksheetName;
-  }
-
-  public Integer getRowIndex() {
-    return rowIndex;
-  }
-
-  public void setRowIndex(Integer rowIndex) {
-    this.rowIndex = rowIndex;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    GetRowByIndex that = (GetRowByIndex) o;
-    return Objects.equals(worksheetName, that.worksheetName)
-        && Objects.equals(rowIndex, that.rowIndex);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(worksheetName, rowIndex);
-  }
-
-  @Override
-  public String toString() {
-    return "GetRowByIndex{"
-        + "worksheetName='"
-        + worksheetName
-        + '\''
-        + ", rowIndex="
-        + rowIndex
-        + "} "
-        + super.toString();
-  }
-}
+@TemplateSubType(id = "getRowByIndex", label = "Get row by index")
+public record GetRowByIndex(
+    @TemplateProperty(
+            id = "getRowByIndex.spreadsheetId",
+            label = "Spreadsheet ID",
+            description = "Enter the ID of the spreadsheet",
+            group = "operationDetails",
+            feel = FeelMode.optional,
+            binding = @PropertyBinding(name = "operation.spreadsheetId"))
+        @NotBlank
+        String spreadsheetId,
+    @TemplateProperty(
+            id = "getRowByIndex.worksheetName",
+            label = "Worksheet name",
+            description = "Enter name for the worksheet",
+            group = "operationDetails",
+            feel = FeelMode.optional,
+            binding = @PropertyBinding(name = "operation.worksheetName"))
+        String worksheetName,
+    @TemplateProperty(
+            id = "getRowByIndex.rowIndex",
+            label = "Row index",
+            description =
+                "Enter row index. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#what-is-a-row-index\" target=\"_blank\">documentation</a>",
+            group = "operationDetails",
+            feel = FeelMode.optional,
+            constraints = @PropertyConstraints(notEmpty = true),
+            binding = @PropertyBinding(name = "operation.rowIndex"))
+        @NotNull
+        Integer rowIndex)
+    implements Input {}

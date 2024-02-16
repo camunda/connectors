@@ -6,41 +6,18 @@
  */
 package io.camunda.connector.gdrive.model.request;
 
-import com.google.api.client.util.Key;
-import com.google.api.services.docs.v1.model.Request;
-import java.util.List;
-import java.util.Objects;
+import com.fasterxml.jackson.databind.JsonNode;
+import io.camunda.connector.generator.dsl.Property.FeelMode;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyBinding;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
 
-public class Variables {
-  @Key private List<Request> requests;
-
-  public List<Request> getRequests() {
-    return requests;
-  }
-
-  public void setRequests(final List<Request> requests) {
-    this.requests = requests;
-  }
-
-  @Override
-  public boolean equals(final Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    final Variables variables = (Variables) o;
-    return Objects.equals(requests, variables.requests);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(requests);
-  }
-
-  @Override
-  public String toString() {
-    return "Variables{" + "requests=" + requests + "}";
-  }
-}
+public record Variables(
+    @TemplateProperty(
+            id = "variables",
+            label = "Template variables",
+            group = "operationDetails",
+            feel = FeelMode.required,
+            binding = @PropertyBinding(name = "variables"),
+            condition = @PropertyCondition(property = "resource.type", equals = "FILE"))
+        JsonNode requests) {}

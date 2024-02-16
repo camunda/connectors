@@ -30,9 +30,8 @@ class GoogleDocsServiceSupplierTest {
     // Given
     String token = "Bearer_token";
 
-    Authentication authentication = new Authentication();
-    authentication.setAuthType(AuthenticationType.BEARER);
-    authentication.setBearerToken(token);
+    Authentication authentication =
+        new Authentication(AuthenticationType.BEARER, token, null, null, null);
     // When
     Drive drive = GoogleDriveServiceSupplier.createDriveClientInstance(authentication);
     // Then
@@ -46,9 +45,8 @@ class GoogleDocsServiceSupplierTest {
   void getDocsClient_shouldInitGoogleDocsClientVersion1() {
     // Given
     String token = "Bearer_token";
-    Authentication authentication = new Authentication();
-    authentication.setAuthType(AuthenticationType.BEARER);
-    authentication.setBearerToken(token);
+    Authentication authentication =
+        new Authentication(AuthenticationType.BEARER, token, null, null, null);
     // When
     Docs docs = GoogleDocsServiceSupplier.createDocsClientInstance(authentication);
     // Then

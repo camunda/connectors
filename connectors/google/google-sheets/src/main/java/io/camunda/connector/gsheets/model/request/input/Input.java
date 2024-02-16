@@ -8,10 +8,14 @@ package io.camunda.connector.gsheets.model.request.input;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 
+@TemplateDiscriminatorProperty(
+    group = "operation",
+    name = "operation.type",
+    defaultValue = "createSpreadsheet")
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
-  // channel
   @JsonSubTypes.Type(value = AddValues.class, name = "addValues"),
   @JsonSubTypes.Type(value = CreateEmptyColumnOrRow.class, name = "createEmptyColumnOrRow"),
   @JsonSubTypes.Type(value = CreateRow.class, name = "createRow"),
@@ -23,4 +27,14 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
   @JsonSubTypes.Type(value = GetSpreadsheetDetails.class, name = "spreadsheetsDetails"),
   @JsonSubTypes.Type(value = GetWorksheetData.class, name = "getWorksheetData")
 })
-public abstract sealed class Input permits CreateSpreadsheet, SpreadsheetInput {}
+public sealed interface Input
+    permits CreateSpreadsheet,
+        AddValues,
+        CreateEmptyColumnOrRow,
+        CreateRow,
+        CreateWorksheet,
+        DeleteColumn,
+        DeleteWorksheet,
+        GetRowByIndex,
+        GetSpreadsheetDetails,
+        GetWorksheetData {}

@@ -6,93 +6,59 @@
  */
 package io.camunda.connector.gsheets.model.request.input;
 
+import io.camunda.connector.generator.dsl.Property.FeelMode;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyBinding;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
+import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.gsheets.model.request.Dimension;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import java.util.Objects;
 
-public final class CreateEmptyColumnOrRow extends SpreadsheetInput {
-
-  @NotNull private Integer worksheetId;
-  @NotNull private Dimension dimension;
-  private Integer startIndex;
-  private Integer endIndex;
-
-  public CreateEmptyColumnOrRow() {}
-
-  public CreateEmptyColumnOrRow(
-      String spreadsheetId,
-      Integer worksheetId,
-      Dimension dimension,
-      Integer startIndex,
-      Integer endIndex,
-      String type) {
-    super(spreadsheetId);
-    this.worksheetId = worksheetId;
-    this.dimension = dimension;
-    this.startIndex = startIndex;
-    this.endIndex = endIndex;
-  }
-
-  public Integer getWorksheetId() {
-    return worksheetId;
-  }
-
-  public void setWorksheetId(Integer worksheetId) {
-    this.worksheetId = worksheetId;
-  }
-
-  public Dimension getDimension() {
-    return dimension;
-  }
-
-  public void setDimension(Dimension dimension) {
-    this.dimension = dimension;
-  }
-
-  public Integer getStartIndex() {
-    return startIndex;
-  }
-
-  public void setStartIndex(Integer startIndex) {
-    this.startIndex = startIndex;
-  }
-
-  public Integer getEndIndex() {
-    return endIndex;
-  }
-
-  public void setEndIndex(Integer endIndex) {
-    this.endIndex = endIndex;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    CreateEmptyColumnOrRow that = (CreateEmptyColumnOrRow) o;
-    return Objects.equals(worksheetId, that.worksheetId)
-        && dimension == that.dimension
-        && Objects.equals(startIndex, that.startIndex)
-        && Objects.equals(endIndex, that.endIndex);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(worksheetId, dimension, startIndex, endIndex);
-  }
-
-  @Override
-  public String toString() {
-    return "CreateEmptyColumnOrRow{"
-        + "worksheetId="
-        + worksheetId
-        + ", dimension="
-        + dimension
-        + ", startIndex="
-        + startIndex
-        + ", endIndex="
-        + endIndex
-        + "} "
-        + super.toString();
-  }
-}
+@TemplateSubType(id = "createEmptyColumnOrRow", label = "Create empty column or row")
+public record CreateEmptyColumnOrRow(
+    @TemplateProperty(
+            id = "createEmptyColumnOrRow.spreadsheetId",
+            label = "Spreadsheet ID",
+            description = "Enter the ID of the spreadsheet",
+            group = "operationDetails",
+            feel = FeelMode.optional,
+            binding = @PropertyBinding(name = "operation.spreadsheetId"))
+        @NotBlank
+        String spreadsheetId,
+    @TemplateProperty(
+            id = "createEmptyColumnOrRow.worksheetId",
+            label = "Worksheet ID",
+            description = "Enter the ID of the worksheet",
+            group = "operationDetails",
+            feel = FeelMode.optional,
+            constraints = @PropertyConstraints(notEmpty = true),
+            binding = @PropertyBinding(name = "operation.worksheetId"))
+        @NotNull
+        Integer worksheetId,
+    @TemplateProperty(
+            label = "Dimension",
+            description = "Choose what to add: column or row",
+            group = "operationDetails",
+            feel = FeelMode.optional,
+            constraints = @PropertyConstraints(notEmpty = true),
+            binding = @PropertyBinding(name = "operation.dimension"))
+        @NotNull
+        Dimension dimension,
+    @TemplateProperty(
+            label = "Start index",
+            description =
+                "Enter start index (leave empty if add to the end of the sheet). Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#create-empty-column-or-row\" target=\"_blank\">documentation</a>",
+            group = "operationDetails",
+            feel = FeelMode.optional,
+            binding = @PropertyBinding(name = "operation.startIndex"))
+        Integer startIndex,
+    @TemplateProperty(
+            label = "End index",
+            description =
+                "Enter end index (leave empty if add to the end of the sheet). Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#create-empty-column-or-row\" target=\"_blank\">documentation</a>",
+            group = "operationDetails",
+            feel = FeelMode.optional,
+            binding = @PropertyBinding(name = "operation.endIndex"))
+        Integer endIndex)
+    implements Input {}

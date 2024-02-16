@@ -35,6 +35,29 @@
       <artifactId>google-api-services-docs</artifactId>
     </dependency>
 
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>element-template-generator-core</artifactId>
+    </dependency>
+
   </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>element-template-generator-maven-plugin</artifactId>
+        <version>${project.version}</version>
+        <configuration>
+          <connectorClasses>
+            <connectorClass>io.camunda.connector.gdrive.GoogleDriveFunction</connectorClass>
+          </connectorClasses>
+          <generateHybridTemplates>true</generateHybridTemplates>
+          <templateFileName>google-drive-outbound-connector</templateFileName>
+          <includeDependencies>io.camunda.connector:connector-google-base</includeDependencies>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 
 </project>
