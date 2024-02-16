@@ -43,8 +43,9 @@ import io.camunda.connector.generator.dsl.PropertyConstraints.Pattern;
 import io.camunda.connector.generator.dsl.StringProperty;
 import io.camunda.connector.generator.dsl.TextProperty;
 import io.camunda.connector.generator.java.example.MyConnectorFunction;
+import java.io.File;
 import java.io.IOException;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -755,13 +756,16 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
     @Test
     void svgIcon_classpathFile() throws IOException {
-      var expectedIcon =
-          OutboundClassBasedTemplateGeneratorTest.class
-              .getClassLoader()
-              .getResource("my-connector-icon.svg");
+      Path expectedIconPath =
+          new File(
+                  OutboundClassBasedTemplateGeneratorTest.class
+                      .getClassLoader()
+                      .getResource("my-connector-icon.svg")
+                      .getFile())
+              .toPath();
       var expectedIconString =
           "data:image/svg+xml;base64,"
-              + Base64.getEncoder().encodeToString(readAllBytes(Paths.get(expectedIcon.getFile())));
+              + Base64.getEncoder().encodeToString(readAllBytes(expectedIconPath));
 
       var template =
           generator.generate(MyConnectorFunction.MinimallyAnnotatedWithSvgIcon.class).getFirst();
@@ -772,13 +776,16 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
     @Test
     void pngIcon_classpathFile() throws IOException {
-      var expectedIcon =
-          OutboundClassBasedTemplateGeneratorTest.class
-              .getClassLoader()
-              .getResource("my-connector-icon.png");
+      Path expectedIconPath =
+          new File(
+                  OutboundClassBasedTemplateGeneratorTest.class
+                      .getClassLoader()
+                      .getResource("my-connector-icon.png")
+                      .getFile())
+              .toPath();
       var expectedIconString =
           "data:image/png;base64,"
-              + Base64.getEncoder().encodeToString(readAllBytes(Paths.get(expectedIcon.getFile())));
+              + Base64.getEncoder().encodeToString(readAllBytes(expectedIconPath));
 
       var template =
           generator.generate(MyConnectorFunction.MinimallyAnnotatedWithPngIcon.class).getFirst();
