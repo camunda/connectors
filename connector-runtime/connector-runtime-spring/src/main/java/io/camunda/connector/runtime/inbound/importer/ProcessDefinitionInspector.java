@@ -20,7 +20,7 @@ import static io.camunda.connector.runtime.core.Keywords.CORRELATION_KEY_EXPRESS
 import static io.camunda.connector.runtime.core.Keywords.INBOUND_TYPE_KEYWORD;
 import static io.camunda.connector.runtime.core.Keywords.MESSAGE_ID_EXPRESSION;
 
-import io.camunda.connector.api.error.InvalidInboundConnectorDefinitionException;
+import io.camunda.connector.runtime.core.error.InvalidInboundConnectorDefinitionException;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
 import io.camunda.connector.runtime.core.inbound.correlation.BoundaryEventCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint;
@@ -195,9 +195,21 @@ public class ProcessDefinitionInspector {
       } else if (element instanceof ReceiveTask rt) {
         return getCorrelationPointForReceiveTask(rt);
       }
-      LOG.warn("Unsupported Inbound element type: " + element.getClass());
+      LOG.warn(
+          "Unsupported Inbound element type: {}, in process definition: {} (Key: {}, Version: {})",
+          element.getClass().getSimpleName(),
+          definition.getName(),
+          definition.getKey(),
+          definition.getVersion());
     } catch (InvalidInboundConnectorDefinitionException e) {
-      LOG.warn(e.getMessage(), e);
+      LOG.warn(
+          "Error getting correlation point for {} in process definition: {} (Key: {}, Version: {}): {}",
+          element.getClass().getSimpleName(),
+          definition.getName(),
+          definition.getKey(),
+          definition.getVersion(),
+          e.getMessage(),
+          e);
     }
     return Optional.empty();
   }
