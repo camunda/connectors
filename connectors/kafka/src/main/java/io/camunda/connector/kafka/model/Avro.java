@@ -7,7 +7,20 @@
 package io.camunda.connector.kafka.model;
 
 import io.camunda.connector.feel.annotation.FEEL;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
 
-public record Avro(@FEEL @NotNull @NotBlank String schema) {}
+public record Avro(
+    @FEEL
+        @TemplateProperty(
+            group = "message",
+            feel = Property.FeelMode.required,
+            optional = true,
+            type = TemplateProperty.PropertyType.Text,
+            label = "Avro schema",
+            condition =
+                @TemplateProperty.PropertyCondition(
+                    property = "serializationType",
+                    equals = "avro"),
+            description = "Optional Avro schema for the message value")
+        String schema) {}

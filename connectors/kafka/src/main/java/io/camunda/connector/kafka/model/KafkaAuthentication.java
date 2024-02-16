@@ -6,7 +6,22 @@
  */
 package io.camunda.connector.kafka.model;
 
-public record KafkaAuthentication(String username, String password) {
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+
+public record KafkaAuthentication(
+    @TemplateProperty(
+            group = "authentication",
+            label = "Username",
+            optional = true,
+            description =
+                "Provide the username (must have permissions to produce message to the topic)")
+        String username,
+    @TemplateProperty(
+            group = "authentication",
+            label = "Password",
+            optional = true,
+            description = "Provide a password for the user")
+        String password) {
   @Override
   public String toString() {
     return "KafkaAuthentication{username='[REDACTED]', password='[REDACTED]'}";

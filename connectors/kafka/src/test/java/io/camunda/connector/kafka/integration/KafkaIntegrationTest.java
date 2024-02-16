@@ -23,6 +23,7 @@ import io.camunda.connector.kafka.inbound.KafkaInboundMessage;
 import io.camunda.connector.kafka.model.Avro;
 import io.camunda.connector.kafka.model.KafkaAuthentication;
 import io.camunda.connector.kafka.model.KafkaTopic;
+import io.camunda.connector.kafka.model.SerializationType;
 import io.camunda.connector.kafka.outbound.KafkaConnectorFunction;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorRequest;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorResponse;
@@ -117,7 +118,14 @@ public class KafkaIntegrationTest {
     KafkaTopic kafkaTopic = new KafkaTopic(BOOTSTRAP_SERVERS, TOPIC);
     KafkaAuthentication kafkaAuthentication = new KafkaAuthentication(null, null);
     KafkaConnectorRequest request =
-        new KafkaConnectorRequest(kafkaAuthentication, kafkaTopic, kafkaMessage, null, null, null);
+        new KafkaConnectorRequest(
+            SerializationType.JSON,
+            kafkaAuthentication,
+            kafkaTopic,
+            kafkaMessage,
+            null,
+            null,
+            null);
 
     var json = KafkaConnectorConsumer.objectMapper.writeValueAsString(request);
 
@@ -144,7 +152,14 @@ public class KafkaIntegrationTest {
     KafkaAuthentication kafkaAuthentication = new KafkaAuthentication(null, null);
 
     KafkaConnectorRequest request =
-        new KafkaConnectorRequest(kafkaAuthentication, kafkaTopic, kafkaMessage, null, null, null);
+        new KafkaConnectorRequest(
+            SerializationType.JSON,
+            kafkaAuthentication,
+            kafkaTopic,
+            kafkaMessage,
+            null,
+            null,
+            null);
 
     var json = KafkaConnectorConsumer.objectMapper.writeValueAsString(request);
 
@@ -301,7 +316,14 @@ public class KafkaIntegrationTest {
 
     KafkaAuthentication kafkaAuthentication = new KafkaAuthentication(null, null);
     KafkaConnectorRequest request =
-        new KafkaConnectorRequest(kafkaAuthentication, kafkaTopic, kafkaMessage, avro, null, null);
+        new KafkaConnectorRequest(
+            SerializationType.JSON,
+            kafkaAuthentication,
+            kafkaTopic,
+            kafkaMessage,
+            avro,
+            null,
+            null);
 
     var json = KafkaConnectorConsumer.objectMapper.writeValueAsString(request);
 
@@ -367,7 +389,13 @@ public class KafkaIntegrationTest {
     KafkaAuthentication kafkaAuthentication = new KafkaAuthentication(null, null);
     KafkaConnectorRequest request =
         new KafkaConnectorRequest(
-            kafkaAuthentication, kafkaTopic, kafkaMessage, null, null, HEADERS);
+            SerializationType.JSON,
+            kafkaAuthentication,
+            kafkaTopic,
+            kafkaMessage,
+            null,
+            HEADERS,
+            null);
 
     var json = KafkaConnectorConsumer.objectMapper.writeValueAsString(request);
 

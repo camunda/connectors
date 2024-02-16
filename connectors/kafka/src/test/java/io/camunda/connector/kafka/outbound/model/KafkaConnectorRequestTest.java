@@ -11,6 +11,7 @@ import static org.apache.kafka.clients.CommonClientConfigs.SESSION_TIMEOUT_MS_CO
 import io.camunda.connector.kafka.model.KafkaAuthentication;
 import io.camunda.connector.kafka.model.KafkaPropertiesUtil;
 import io.camunda.connector.kafka.model.KafkaTopic;
+import io.camunda.connector.kafka.model.SerializationType;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Properties;
@@ -54,6 +55,7 @@ class KafkaConnectorRequestTest {
     KafkaAuthentication auth = new KafkaAuthentication("user1", "pass1");
     KafkaTopic topic = new KafkaTopic("server1:1234,server2:1234", "my-topic");
     KafkaMessage msg = new KafkaMessage("myKey", "myValue");
-    return new KafkaConnectorRequest(auth, topic, msg, null, kafkaProps, null);
+    return new KafkaConnectorRequest(
+        SerializationType.JSON, auth, topic, msg, null, null, kafkaProps);
   }
 }

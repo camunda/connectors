@@ -6,6 +6,13 @@
  */
 package io.camunda.connector.kafka.outbound.model;
 
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.NotNull;
 
-public record KafkaMessage(@NotNull Object key, @NotNull Object value) {}
+public record KafkaMessage(
+    @NotNull
+        @TemplateProperty(group = "message", label = "Key", description = "Provide message key")
+        Object key,
+    @NotNull
+        @TemplateProperty(group = "message", label = "Value", description = "Provide message value")
+        Object value) {}

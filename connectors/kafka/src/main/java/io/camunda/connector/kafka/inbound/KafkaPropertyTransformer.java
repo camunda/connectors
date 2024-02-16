@@ -9,6 +9,7 @@ package io.camunda.connector.kafka.inbound;
 import com.fasterxml.jackson.databind.ObjectReader;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.kafka.model.KafkaPropertiesUtil;
+import io.camunda.connector.kafka.model.SerializationType;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorRequest;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -37,12 +38,13 @@ public class KafkaPropertyTransformer {
       KafkaConnectorProperties props, InboundConnectorContext context) {
     KafkaConnectorRequest connectorRequest =
         new KafkaConnectorRequest(
+            SerializationType.JSON,
             props.getAuthentication(),
             props.getTopic(),
             null,
             null,
-            props.getAdditionalProperties(),
-            null);
+            null,
+            props.getAdditionalProperties());
     final Properties kafkaProps =
         KafkaPropertiesUtil.assembleKafkaClientProperties(connectorRequest);
 

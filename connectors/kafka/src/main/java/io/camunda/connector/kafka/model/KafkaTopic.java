@@ -7,7 +7,18 @@
 package io.camunda.connector.kafka.model;
 
 import io.camunda.connector.feel.annotation.FEEL;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.NotEmpty;
 
 public record KafkaTopic(
-    @FEEL @NotEmpty String bootstrapServers, @FEEL @NotEmpty String topicName) {}
+    @FEEL
+        @NotEmpty
+        @TemplateProperty(
+            group = "kafka",
+            label = "Bootstrap servers",
+            description = "Provide bootstrap server(s), comma-delimited if there are multiple")
+        String bootstrapServers,
+    @FEEL
+        @NotEmpty
+        @TemplateProperty(label = "Topic", group = "kafka", description = "Provide topic name")
+        String topicName) {}

@@ -16,6 +16,7 @@ import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.kafka.model.KafkaPropertiesUtil;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorRequest;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorResponse;
@@ -44,6 +45,20 @@ import org.apache.kafka.clients.producer.RecordMetadata;
       "avro"
     },
     type = "io.camunda:connector-kafka:1")
+@ElementTemplate(
+    id = "io.camunda.connectors.KAFKA.v1",
+    name = "Kafka Outbound Connector",
+    description = "Produce Kafka message",
+    inputDataClass = KafkaConnectorRequest.class,
+    version = 4,
+    propertyGroups = {
+      @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
+      @ElementTemplate.PropertyGroup(id = "kafka", label = "Kafka"),
+      @ElementTemplate.PropertyGroup(id = "message", label = "Message")
+    },
+    documentationRef =
+        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=outbound",
+    icon = "icon.svg")
 public class KafkaConnectorFunction implements OutboundConnectorFunction {
 
   private final Function<Properties, Producer<String, Object>> producerCreatorFunction;
