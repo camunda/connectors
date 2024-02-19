@@ -53,11 +53,13 @@
         <artifactId>element-template-generator-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <connectorClasses>
-            <connectorClass>io.camunda.connector.rabbitmq.outbound.RabbitMqFunction</connectorClass>
-          </connectorClasses>
-          <generateHybridTemplates>true</generateHybridTemplates>
-          <templateFileName>rabbitmq-outbound-connector</templateFileName>
+          <connectors>
+            <connector>
+              <connectorClass>io.camunda.connector.rabbitmq.outbound.RabbitMqFunction</connectorClass>
+              <templateFileName>rabbitmq-outbound-connector</templateFileName>
+              <generateHybridTemplates>true</generateHybridTemplates>
+            </connector>
+          </connectors>
         </configuration>
       </plugin>
     </plugins>

@@ -45,13 +45,15 @@
         <artifactId>element-template-generator-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <connectorClasses>
-            <connectorClass>io.camunda.connector.outbound.SqsConnectorFunction</connectorClass>
-          </connectorClasses>
+          <connectors>
+            <connector>
+              <connectorClass>io.camunda.connector.outbound.SqsConnectorFunction</connectorClass>
+              <templateFileName>aws-sqs-outbound-connector</templateFileName>
+            </connector>
+          </connectors>
           <includeDependencies>
             <includeDependency>io.camunda.connector:connector-aws-base</includeDependency>
           </includeDependencies>
-          <templateFileName>aws-sqs-outbound-connector</templateFileName>
         </configuration>
       </plugin>
     </plugins>

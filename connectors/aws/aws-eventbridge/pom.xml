@@ -49,13 +49,15 @@
         <artifactId>element-template-generator-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <connectorClasses>
-            <connectorClass>io.camunda.connector.aws.eventbridge.EventBridgeFunction</connectorClass>
-          </connectorClasses>
+          <connectors>
+            <connector>
+              <connectorClass>io.camunda.connector.aws.eventbridge.EventBridgeFunction</connectorClass>
+              <templateFileName>aws-eventbridge-outbound-connector</templateFileName>
+            </connector>
+          </connectors>
           <includeDependencies>
             <includeDependency>io.camunda.connector:connector-aws-base</includeDependency>
           </includeDependencies>
-          <templateFileName>aws-eventbridge-outbound-connector</templateFileName>
         </configuration>
       </plugin>
     </plugins>

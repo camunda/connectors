@@ -23,9 +23,11 @@ Add the following plugin to your `pom.xml`:
     </execution>
   </executions>
   <configuration>
-    <connectorClasses>
-      <connectorClass>io.camunda.connector.MyConnector</connectorClass>
-    </connectorClasses>
+    <connectors>
+      <connector>
+        <connectorClass>io.camunda.connector.MyConnector</connectorClass>
+      </connector>
+    </connectors>
   </configuration>
 </plugin>
 ```
@@ -64,10 +66,12 @@ If you want to generate an element template for a Connector that should work in 
 
 ```xml
 <configuration>
-  <connectorClasses>
-    <connectorClass>io.camunda.connector.MyConnector</connectorClass>
-  </connectorClasses>
-  <generateHybridTemplates>true</generateHybridTemplates>
+  <connectors>
+    <connector>
+      <connectorClass>io.camunda.connector.MyConnector</connectorClass>
+      <generateHybridTemplates>true</generateHybridTemplates>
+    </connector>
+  </connectors>
 </configuration>
 ```
 
@@ -86,8 +90,8 @@ the file name by setting the `templateFileName` configuration parameter:
 <configuration>
   <connectorClasses>
     <connectorClass>io.camunda.connector.MyConnector</connectorClass>
+    <templateFileName>my-custom-template</templateFileName>
   </connectorClasses>
-  <templateFileName>my-custom-template</templateFileName>
 </configuration>
 ```
 
@@ -95,3 +99,7 @@ In this case, the generated element template will be stored in `my-custom-templa
 
 If used together with `generateHybridTemplates`, the file name of the hybrid template will be
 `my-custom-template-hybrid.json`.
+
+If the element template is generated for multiple element types, the file name will be
+`my-custom-template-<element-type>.json`. If used together with `generateHybridTemplates`, the
+file name of the hybrid template will be `my-custom-template-<element-type>-hybrid.json`.

@@ -86,14 +86,16 @@ limitations under the License.</license.inlineheader>
         <artifactId>element-template-generator-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <connectorClasses>
-            <connectorClass>io.camunda.connector.http.rest.HttpJsonFunction</connectorClass>
-          </connectorClasses>
+          <connectors>
+            <connector>
+              <connectorClass>io.camunda.connector.http.rest.HttpJsonFunction</connectorClass>
+              <templateFileName>http-json-connector</templateFileName>
+              <generateHybridTemplates>true</generateHybridTemplates>
+            </connector>
+          </connectors>
           <includeDependencies>
             <includeDependency>io.camunda.connector:connector-http-base</includeDependency>
           </includeDependencies>
-          <generateHybridTemplates>true</generateHybridTemplates>
-          <templateFileName>http-json-connector</templateFileName>
         </configuration>
       </plugin>
     </plugins>
