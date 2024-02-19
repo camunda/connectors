@@ -31,6 +31,6 @@ public class ConversationsInviteSlackResponseTest {
     ConversationsInviteSlackResponse response =
         new ConversationsInviteSlackResponse(conversationsInviteResponse);
     // Then
-    assertThat(response.getChannel().getName()).isEqualTo(CHANNEL_NAME);
+    assertThat(response.channel().name()).isEqualTo(CHANNEL_NAME);
   }
 }

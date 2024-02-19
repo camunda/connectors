@@ -47,16 +47,16 @@ class ChatPostMessageSlackResponseTest {
     ChatPostMessageSlackResponse response =
         new ChatPostMessageSlackResponse(chatPostMessageResponse);
     // Then
-    assertThat(response.getTs()).isEqualTo(TS);
-    assertThat(response.getChannel()).isEqualTo(CHANNEL);
+    assertThat(response.ts()).isEqualTo(TS);
+    assertThat(response.channel()).isEqualTo(CHANNEL);
 
-    ChatPostMessageSlackResponse.Message responseMessage = response.getMessage();
-    assertThat(responseMessage.getTeam()).isEqualTo(TEAM);
-    assertThat(responseMessage.getAppId()).isEqualTo(APP_ID);
-    assertThat(responseMessage.getType()).isEqualTo(TYPE);
-    assertThat(responseMessage.getText()).isEqualTo(TEXT);
-    assertThat(responseMessage.getUser()).isEqualTo(USER);
-    assertThat(responseMessage.getBotId()).isEqualTo(BOT_ID);
-    assertThat(responseMessage.getTs()).isEqualTo(TS);
+    ChatPostMessageSlackResponse.Message responseMessage = response.message();
+    assertThat(responseMessage.team()).isEqualTo(TEAM);
+    assertThat(responseMessage.appId()).isEqualTo(APP_ID);
+    assertThat(responseMessage.type()).isEqualTo(TYPE);
+    assertThat(responseMessage.text()).isEqualTo(TEXT);
+    assertThat(responseMessage.user()).isEqualTo(USER);
+    assertThat(responseMessage.botId()).isEqualTo(BOT_ID);
+    assertThat(responseMessage.ts()).isEqualTo(TS);
   }
 }

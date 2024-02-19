@@ -12,35 +12,88 @@ import com.slack.api.methods.SlackApiException;
 import com.slack.api.methods.request.chat.ChatPostMessageRequest;
 import com.slack.api.methods.response.chat.ChatPostMessageResponse;
 import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.slack.outbound.SlackRequestData;
+import io.camunda.connector.generator.dsl.Property.FeelMode;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyBinding;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
+import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.slack.outbound.SlackResponse;
 import io.camunda.connector.slack.outbound.utils.DataLookupService;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import java.io.IOException;
-import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
 
-public class ChatPostMessageData implements SlackRequestData {
-
-  @NotBlank private String channel;
-  private String text;
-  private JsonNode blockContent;
-
+@TemplateSubType(id = "chat.postMessage", label = "Post message")
+public record ChatPostMessageData(
+    @TemplateProperty(
+            label = "Channel/user name/email",
+            id = "data.channel",
+            group = "channel",
+            feel = FeelMode.optional,
+            binding = @PropertyBinding(name = "data.channel"))
+        @NotBlank
+        String channel,
+    @TemplateProperty(
+            label = "Message type",
+            id = "data.messageType",
+            group = "message",
+            defaultValue = "plainText",
+            type = PropertyType.Dropdown,
+            binding = @PropertyBinding(name = "data.messageType"),
+            choices = {
+              @TemplateProperty.DropdownPropertyChoice(value = "plainText", label = "Plain text"),
+              @TemplateProperty.DropdownPropertyChoice(
+                  value = "messageBlock",
+                  label = "Message block")
+            },
+            condition =
+                @TemplateProperty.PropertyCondition(
+                    property = "method",
+                    equals = "chat.postMessage"))
+        String messageType,
+    @TemplateProperty(
+            label = "Message",
+            id = "data.text",
+            group = "message",
+            feel = FeelMode.optional,
+            binding = @PropertyBinding(name = "data.text"),
+            condition =
+                @TemplateProperty.PropertyCondition(
+                    property = "data.messageType",
+                    equals = "plainText"))
+        String text,
+    @TemplateProperty(
+            label = "Message block",
+            description =
+                "An array of rich message content blocks. Learn more at the <a href=\"https://api.slack.com/reference/surfaces/formatting#stack_of_blocks\" target=\"_blank\">official Slack documentation page</a>",
+            id = "data.blockContent",
+            group = "message",
+            feel = FeelMode.required,
+            binding = @PropertyBinding(name = "data.blockContent"),
+            condition =
+                @TemplateProperty.PropertyCondition(
+                    property = "data.messageType",
+                    equals = "messageBlock"),
+            defaultValue =
+                "=[\n\t{\n\t\t\"type\": \"header\",\n\t\t\"text\": {\n\t\t\t\"type\": \"plain_text\",\n\t\t\t\"text\": \"New request\"\n\t\t}\n\t},\n\t{\n\t\t\"type\": \"section\",\n\t\t\"fields\": [\n\t\t\t{\n\t\t\t\t\"type\": \"mrkdwn\",\n\t\t\t\t\"text\": \"*Type:*\\nPaid Time Off\"\n\t\t\t},\n\t\t\t{\n\t\t\t\t\"type\": \"mrkdwn\",\n\t\t\t\t\"text\": \"*Created by:*\\n<example.com|John Doe>\"\n\t\t\t}\n\t\t]\n\t},\n\t{\n\t\t\"type\": \"section\",\n\t\t\"fields\": [\n\t\t\t{\n\t\t\t\t\"type\": \"mrkdwn\",\n\t\t\t\t\"text\": \"*When:*\\nAug 10 - Aug 13\"\n\t\t\t}\n\t\t]\n\t},\n\t{\n\t\t\"type\": \"section\",\n\t\t\"text\": {\n\t\t\t\"type\": \"mrkdwn\",\n\t\t\t\"text\": \"<https://example.com|View request>\"\n\t\t}\n\t}\n]")
+        JsonNode blockContent)
+    implements SlackRequestData {
   @Override
   public SlackResponse invoke(MethodsClient methodsClient) throws SlackApiException, IOException {
     if (!isContentSupplied()) {
       throw new ConnectorException("Text or block content required to post a message");
     }
 
+    String filteredChannel = this.channel;
     if (channel.startsWith("@")) {
-      channel = DataLookupService.getUserIdByUserName(channel.substring(1), methodsClient);
+      filteredChannel = DataLookupService.getUserIdByUserName(channel.substring(1), methodsClient);
     } else if (DataLookupService.isEmail(channel)) {
-      channel = DataLookupService.getUserIdByEmail(channel, methodsClient);
+      filteredChannel = DataLookupService.getUserIdByEmail(channel, methodsClient);
     }
 
-    var requestBuilder = ChatPostMessageRequest.builder().channel(channel);
+    var requestBuilder = ChatPostMessageRequest.builder().channel(filteredChannel);
 
     // Note: both text and block content can co-exist
     if (StringUtils.isNotBlank(text)) {
@@ -70,51 +123,5 @@ public class ChatPostMessageData implements SlackRequestData {
   @AssertTrue(message = "Text or block content required to post a message")
   private boolean isContentSupplied() {
     return StringUtils.isNotBlank(text) || blockContent != null;
-  }
-
-  public String getChannel() {
-    return channel;
-  }
-
-  public void setChannel(String channel) {
-    this.channel = channel;
-  }
-
-  public String getText() {
-    return text;
-  }
-
-  public void setText(String text) {
-    this.text = text;
-  }
-
-  public JsonNode getBlockContent() {
-    return blockContent;
-  }
-
-  public void setBlockContent(JsonNode blockContent) {
-    this.blockContent = blockContent;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    ChatPostMessageData that = (ChatPostMessageData) o;
-    return Objects.equals(channel, that.channel) && Objects.equals(text, that.text);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(channel, text);
-  }
-
-  @Override
-  public String toString() {
-    return "ChatPostMessageData{" + "channel='" + channel + '\'' + ", text='" + text + '\'' + '}';
   }
 }

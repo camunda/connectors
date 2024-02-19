@@ -10,17 +10,34 @@ import com.slack.api.methods.MethodsClient;
 import com.slack.api.methods.SlackApiException;
 import com.slack.api.methods.request.conversations.ConversationsCreateRequest;
 import com.slack.api.methods.response.conversations.ConversationsCreateResponse;
-import io.camunda.connector.slack.outbound.SlackRequestData;
+import io.camunda.connector.generator.dsl.Property.FeelMode;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyBinding;
+import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.slack.outbound.SlackResponse;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.io.IOException;
-import java.util.Objects;
 
-public class ConversationsCreateData implements SlackRequestData {
-
-  @NotBlank private String newChannelName;
-  @NotNull private Visibility visibility;
+@TemplateSubType(id = "conversations.create", label = "Create channel")
+public record ConversationsCreateData(
+    @TemplateProperty(
+            label = "Channel name",
+            id = "data.newChannelName",
+            group = "channel",
+            binding = @PropertyBinding(name = "data.newChannelName"),
+            feel = FeelMode.optional)
+        @NotBlank
+        String newChannelName,
+    @TemplateProperty(
+            label = "Visibility",
+            id = "data.visibility",
+            group = "channel",
+            binding = @PropertyBinding(name = "data.visibility"),
+            feel = FeelMode.optional)
+        @NotNull
+        Visibility visibility)
+    implements SlackRequestData {
 
   public enum Visibility {
     PUBLIC,
@@ -42,49 +59,5 @@ public class ConversationsCreateData implements SlackRequestData {
     } else {
       throw new RuntimeException(response.getError());
     }
-  }
-
-  public String getNewChannelName() {
-    return newChannelName;
-  }
-
-  public void setNewChannelName(String newChannelName) {
-    this.newChannelName = newChannelName;
-  }
-
-  public Visibility getVisibility() {
-    return visibility;
-  }
-
-  public void setVisibility(Visibility visibility) {
-    this.visibility = visibility;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    ConversationsCreateData that = (ConversationsCreateData) o;
-    return Objects.equals(newChannelName, that.newChannelName) && visibility == that.visibility;
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(newChannelName, visibility);
-  }
-
-  @Override
-  public String toString() {
-    return "ConversationsCreateData{"
-        + "newChannelName='"
-        + newChannelName
-        + '\''
-        + ", visibility="
-        + visibility
-        + '}';
   }
 }

@@ -11,6 +11,8 @@ import static org.assertj.core.api.AssertionsForClassTypes.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.slack.api.methods.MethodsClient;
 import com.slack.api.methods.SlackApiException;
 import com.slack.api.methods.request.chat.ChatPostMessageRequest;
@@ -42,13 +44,21 @@ class ChatPostMessageDataTest {
   @Captor private ArgumentCaptor<ChatPostMessageRequest> chatPostMessageRequest;
 
   private static final String USERID = "testUserId";
+  private static final JsonNode EMPTY_JSON;
+
+  static {
+    try {
+      EMPTY_JSON = ConnectorsObjectMapperSupplier.getCopy().readTree("{}");
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException(e);
+    }
+  }
 
   @Test
   void invoke_shouldThrowExceptionWhenUserWithoutEmail() throws SlackApiException, IOException {
     // Given
-    ChatPostMessageData chatPostMessageData = new ChatPostMessageData();
-    chatPostMessageData.setText("Test text");
-    chatPostMessageData.setChannel("test@test.com");
+    ChatPostMessageData chatPostMessageData =
+        new ChatPostMessageData("test@test.com", "plainText", "Test text", EMPTY_JSON);
     when(methodsClient.usersLookupByEmail(any(UsersLookupByEmailRequest.class))).thenReturn(null);
     // When and then
     Throwable thrown = catchThrowable(() -> chatPostMessageData.invoke(methodsClient));
@@ -69,9 +79,8 @@ class ChatPostMessageDataTest {
       })
   void invoke_shouldFindUserIdByEmail(String email) throws SlackApiException, IOException {
     // Given
-    ChatPostMessageData chatPostMessageData = new ChatPostMessageData();
-    chatPostMessageData.setChannel(email);
-    chatPostMessageData.setText("test");
+    ChatPostMessageData chatPostMessageData =
+        new ChatPostMessageData(email, "plainText", "test", null);
 
     when(methodsClient.usersLookupByEmail(any(UsersLookupByEmailRequest.class)))
         .thenReturn(lookupByEmailResponse);
@@ -92,9 +101,8 @@ class ChatPostMessageDataTest {
   @Test
   void invoke_WhenTextIsGiven_ShouldInvoke() throws SlackApiException, IOException {
     // Given
-    ChatPostMessageData chatPostMessageData = new ChatPostMessageData();
-    chatPostMessageData.setChannel("test@test.com");
-    chatPostMessageData.setText("test");
+    ChatPostMessageData chatPostMessageData =
+        new ChatPostMessageData("test@test.com", "plainText", "test", null);
 
     when(methodsClient.usersLookupByEmail(any(UsersLookupByEmailRequest.class)))
         .thenReturn(lookupByEmailResponse);
@@ -115,9 +123,6 @@ class ChatPostMessageDataTest {
   @Test
   void invoke_WhenContentBlockIsGiven_ShouldInvoke() throws SlackApiException, IOException {
     // Given
-    ChatPostMessageData chatPostMessageData = new ChatPostMessageData();
-    chatPostMessageData.setChannel("test@test.com");
-
     final var blockContent =
         """
         [
@@ -161,7 +166,10 @@ class ChatPostMessageDataTest {
         """;
 
     var objectMapper = ConnectorsObjectMapperSupplier.getCopy();
-    chatPostMessageData.setBlockContent(objectMapper.readTree(blockContent));
+
+    ChatPostMessageData chatPostMessageData =
+        new ChatPostMessageData(
+            "test@test.com", "messageBlock", "test", objectMapper.readTree(blockContent));
 
     when(methodsClient.usersLookupByEmail(any(UsersLookupByEmailRequest.class)))
         .thenReturn(lookupByEmailResponse);
@@ -182,9 +190,6 @@ class ChatPostMessageDataTest {
   @Test
   void invoke_WhenContentBlockIsNotArray_ShouldThrow() throws SlackApiException, IOException {
     // Given
-    ChatPostMessageData chatPostMessageData = new ChatPostMessageData();
-    chatPostMessageData.setChannel("test@test.com");
-
     final var blockContent =
         """
         {
@@ -197,7 +202,10 @@ class ChatPostMessageDataTest {
         """;
 
     var objectMapper = ConnectorsObjectMapperSupplier.getCopy();
-    chatPostMessageData.setBlockContent(objectMapper.readTree(blockContent));
+
+    ChatPostMessageData chatPostMessageData =
+        new ChatPostMessageData(
+            "test@test.com", "plainText", "test", objectMapper.readTree(blockContent));
 
     when(methodsClient.usersLookupByEmail(any(UsersLookupByEmailRequest.class)))
         .thenReturn(lookupByEmailResponse);

@@ -51,6 +51,28 @@
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-text</artifactId>
     </dependency>
+
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>element-template-generator-core</artifactId>
+    </dependency>
   </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>element-template-generator-maven-plugin</artifactId>
+        <version>${project.version}</version>
+        <configuration>
+          <connectorClasses>
+            <connectorClass>io.camunda.connector.slack.outbound.SlackFunction</connectorClass>
+          </connectorClasses>
+          <generateHybridTemplates>true</generateHybridTemplates>
+          <templateFileName>slack-outbound-connector</templateFileName>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 
 </project>

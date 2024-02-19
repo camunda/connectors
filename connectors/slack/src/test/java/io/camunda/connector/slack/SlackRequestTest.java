@@ -26,9 +26,9 @@ class SlackRequestTest extends BaseTest {
     // When
     SlackRequest<ChatPostMessageData> requestData = context.bindVariables(SlackRequest.class);
     // Then
-    assertThat(requestData.getToken()).isEqualTo(ActualValue.TOKEN);
-    assertThat(requestData.getData().getChannel()).isEqualTo(ActualValue.ChatPostMessageData.EMAIL);
-    assertThat(requestData.getData().getText()).contains(ActualValue.ChatPostMessageData.TEXT);
+    assertThat(requestData.token()).isEqualTo(ActualValue.TOKEN);
+    assertThat(requestData.data().channel()).isEqualTo(ActualValue.ChatPostMessageData.EMAIL);
+    assertThat(requestData.data().text()).contains(ActualValue.ChatPostMessageData.TEXT);
   }
 
   @ParameterizedTest()
