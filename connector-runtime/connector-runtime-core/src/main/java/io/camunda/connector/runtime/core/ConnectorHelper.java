@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.runtime.core;
 
+import static io.camunda.connector.feel.FeelEngineWrapperUtil.*;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -58,7 +60,10 @@ public class ConnectorHelper {
 
     Optional.ofNullable(resultExpression)
         .filter(s -> !s.isBlank())
-        .map(expression -> FEEL_ENGINE_WRAPPER.evaluateToJson(expression, responseContent))
+        .map(
+            expression ->
+                FEEL_ENGINE_WRAPPER.evaluateToJson(
+                    expression, responseContent, wrapResponse(responseContent)))
         .map(json -> parseJsonVarsAsTypeOrThrow(json, Map.class, resultExpression))
         .ifPresent(outputVariables::putAll);
 
@@ -74,7 +79,8 @@ public class ConnectorHelper {
         .filter(s -> !s.isBlank())
         .map(
             expression ->
-                FEEL_ENGINE_WRAPPER.evaluateToJson(expression, responseContent, jobContext))
+                FEEL_ENGINE_WRAPPER.evaluateToJson(
+                    expression, responseContent, wrapResponse(responseContent), jobContext))
         .filter(json -> !json.equals("null"))
         .filter(json -> !parseJsonVarsAsTypeOrThrow(json, Map.class, errorExpression).isEmpty())
         .map(json -> parseJsonVarsAsTypeOrThrow(json, ConnectorError.class, errorExpression))
