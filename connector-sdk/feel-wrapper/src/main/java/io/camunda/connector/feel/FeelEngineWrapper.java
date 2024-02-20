@@ -53,17 +53,16 @@ public class FeelEngineWrapper {
    * configuration.
    */
   public FeelEngineWrapper() {
-    this.feelEngine =
+    this(
         new FeelEngine.Builder()
             .customValueMapper(new JavaValueMapper())
             .functionProvider(SpiServiceLoader.loadFunctionProvider())
-            .build();
-    this.objectMapper =
+            .build(),
         new ObjectMapper()
             .registerModule(DefaultScalaModule$.MODULE$)
             .registerModule(new JavaTimeModule())
             // deserialize unknown types as empty objects
-            .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
+            .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS));
   }
 
   /**
@@ -130,8 +129,7 @@ public class FeelEngineWrapper {
    * Evaluates an expression with the FEEL engine with the given variables.
    *
    * @param expression the expression to evaluate
-   * @param variables the variables to use in evaluation, the first context provided will be
-   *     available wrapped as "response"
+   * @param variables the variables to use in evaluation
    * @param <T> the type to cast the evaluation result to
    * @return the evaluation result
    * @throws FeelEngineWrapperException when there is an exception message as a result of the
@@ -150,8 +148,7 @@ public class FeelEngineWrapper {
    *
    * @param expression the expression to evaluate
    * @param clazz the class the result should be converted to
-   * @param variables the variables to use in evaluation, the first context provided will be
-   *     available wrapped as "response"
+   * @param variables the variables to use in evaluation
    * @param <T> the type to cast the evaluation result to
    * @return the evaluation result
    * @throws FeelEngineWrapperException when there is an exception message as a result of the
@@ -175,8 +172,7 @@ public class FeelEngineWrapper {
    *
    * @param expression the expression to evaluate
    * @param clazz the class the result should be converted to
-   * @param variables the variables to use in evaluation, the first context provided will be
-   *     available wrapped as "response"
+   * @param variables the variables to use in evaluation
    * @param <T> the type to cast the evaluation result to
    * @return the evaluation result
    * @throws FeelEngineWrapperException when there is an exception message as a result of the
@@ -203,8 +199,7 @@ public class FeelEngineWrapper {
    * @param ctx the deserialization context to apply
    * @param expression the expression to evaluate
    * @param clazz the class the result should be converted to
-   * @param variables the variables to use in evaluation, the first context provided will be
-   *     available wrapped as "response"
+   * @param variables the variables to use in evaluation
    * @param <T> the type to cast the evaluation result to
    * @return the evaluation result
    * @throws FeelEngineWrapperException when there is an exception message as a result of the
@@ -255,8 +250,7 @@ public class FeelEngineWrapper {
    * Evaluates an expression to a JSON String.
    *
    * @param expression the expression to evaluate
-   * @param variables the variables to use in evaluation, the first context provided will be
-   *     available wrapped as "response"
+   * @param variables the variables to use in evaluation
    * @return the JSON String representing the evaluation result
    * @throws FeelEngineWrapperException when there is an exception message as a result of the
    *     evaluation or the result cannot be parsed as JSON
