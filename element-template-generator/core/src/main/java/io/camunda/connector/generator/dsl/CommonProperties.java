@@ -17,6 +17,7 @@
 package io.camunda.connector.generator.dsl;
 
 import io.camunda.connector.generator.dsl.Property.FeelMode;
+import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeSubscriptionProperty;
 
 public class CommonProperties {
 
@@ -78,7 +79,7 @@ public class CommonProperties {
           .description("Sets up the correlation key from process variables")
           .group("activation")
           .feel(FeelMode.required)
-          .binding(PropertyBinding.ZeebeSubscription.CORRELATION_KEY)
+          .binding(ZeebeSubscriptionProperty.CORRELATION_KEY)
           .constraints(PropertyConstraints.builder().notEmpty(true).build());
 
   public static final PropertyBuilder CORRELATION_KEY_PAYLOAD =
@@ -100,4 +101,11 @@ public class CommonProperties {
           .feel(FeelMode.required)
           .optional(true)
           .binding(new PropertyBinding.ZeebeProperty("messageIdExpression"));
+
+  public static final PropertyBuilder MESSAGE_NAME_UUID =
+      HiddenProperty.builder()
+          .id("messageNameUuid")
+          .group("activation")
+          .generatedValue()
+          .binding(PropertyBinding.MessageProperty.NAME);
 }

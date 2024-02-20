@@ -30,7 +30,7 @@ import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.skyscreamer.jsonassert.JSONAssert;
 
-public class OutboundElementTemplateSerializationTest {
+public class ElementTemplateSerializationTest {
 
   private final ObjectMapper objectMapper = new ObjectMapper();
 

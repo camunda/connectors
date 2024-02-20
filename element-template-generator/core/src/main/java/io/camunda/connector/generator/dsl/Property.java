@@ -30,6 +30,7 @@ public abstract sealed class Property
   protected final String description;
   protected final Boolean optional;
   protected final String value;
+  protected final GeneratedValue generatedValue;
   protected final PropertyConstraints constraints;
   protected final FeelMode feel;
   protected final String group;
@@ -45,12 +46,15 @@ public abstract sealed class Property
     disabled
   }
 
+  public record GeneratedValue(String type) {}
+
   public Property(
       String id,
       String label,
       String description,
       Boolean optional,
       String value,
+      GeneratedValue generatedValue,
       PropertyConstraints constraints,
       FeelMode feel,
       String group,
@@ -62,6 +66,7 @@ public abstract sealed class Property
     this.description = description;
     this.optional = optional;
     this.value = value;
+    this.generatedValue = generatedValue;
     this.constraints = constraints;
     this.feel = feel;
     this.group = group;
@@ -88,6 +93,10 @@ public abstract sealed class Property
 
   public String getValue() {
     return value;
+  }
+
+  public GeneratedValue getGeneratedValue() {
+    return generatedValue;
   }
 
   public PropertyConstraints getConstraints() {
@@ -131,6 +140,7 @@ public abstract sealed class Property
         && Objects.equals(label, property.label)
         && Objects.equals(description, property.description)
         && Objects.equals(value, property.value)
+        && Objects.equals(generatedValue, property.generatedValue)
         && Objects.equals(constraints, property.constraints)
         && feel == property.feel
         && Objects.equals(group, property.group)
@@ -141,7 +151,17 @@ public abstract sealed class Property
   @Override
   public int hashCode() {
     return Objects.hash(
-        id, label, description, optional, value, constraints, feel, group, binding, type);
+        id,
+        label,
+        description,
+        optional,
+        value,
+        generatedValue,
+        constraints,
+        feel,
+        group,
+        binding,
+        type);
   }
 
   @Override
@@ -160,6 +180,9 @@ public abstract sealed class Property
         + optional
         + ", value='"
         + value
+        + '\''
+        + ", generatedValue='"
+        + generatedValue
         + '\''
         + ", constraints="
         + constraints

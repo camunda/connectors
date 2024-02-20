@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.generator.java.example;
+package io.camunda.connector.generator.java.example.outbound;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.generator.java.annotation.NestedProperties;
@@ -23,15 +23,15 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
-import io.camunda.connector.generator.java.example.MyConnectorInput.AnnotatedSealedType.FirstAnnotatedSubType;
-import io.camunda.connector.generator.java.example.MyConnectorInput.AnnotatedSealedType.IgnoredSubType;
-import io.camunda.connector.generator.java.example.MyConnectorInput.AnnotatedSealedType.NestedAnnotatedSealedType;
-import io.camunda.connector.generator.java.example.MyConnectorInput.AnnotatedSealedType.NestedAnnotatedSealedType.NestedAnnotatedSubType;
-import io.camunda.connector.generator.java.example.MyConnectorInput.AnnotatedSealedType.SecondAnnotatedSubType;
-import io.camunda.connector.generator.java.example.MyConnectorInput.NonAnnotatedSealedType.FirstSubType;
-import io.camunda.connector.generator.java.example.MyConnectorInput.NonAnnotatedSealedType.NestedSealedType;
-import io.camunda.connector.generator.java.example.MyConnectorInput.NonAnnotatedSealedType.NestedSealedType.NestedSubType;
-import io.camunda.connector.generator.java.example.MyConnectorInput.NonAnnotatedSealedType.SecondSubType;
+import io.camunda.connector.generator.java.example.outbound.MyConnectorInput.AnnotatedSealedType.FirstAnnotatedSubType;
+import io.camunda.connector.generator.java.example.outbound.MyConnectorInput.AnnotatedSealedType.IgnoredSubType;
+import io.camunda.connector.generator.java.example.outbound.MyConnectorInput.AnnotatedSealedType.NestedAnnotatedSealedType;
+import io.camunda.connector.generator.java.example.outbound.MyConnectorInput.AnnotatedSealedType.NestedAnnotatedSealedType.NestedAnnotatedSubType;
+import io.camunda.connector.generator.java.example.outbound.MyConnectorInput.AnnotatedSealedType.SecondAnnotatedSubType;
+import io.camunda.connector.generator.java.example.outbound.MyConnectorInput.NonAnnotatedSealedType.FirstSubType;
+import io.camunda.connector.generator.java.example.outbound.MyConnectorInput.NonAnnotatedSealedType.NestedSealedType;
+import io.camunda.connector.generator.java.example.outbound.MyConnectorInput.NonAnnotatedSealedType.NestedSealedType.NestedSubType;
+import io.camunda.connector.generator.java.example.outbound.MyConnectorInput.NonAnnotatedSealedType.SecondSubType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;

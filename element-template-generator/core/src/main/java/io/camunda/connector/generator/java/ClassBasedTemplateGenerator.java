@@ -30,7 +30,6 @@ import io.camunda.connector.generator.dsl.PropertyGroup.PropertyGroupBuilder;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.util.ReflectionUtil;
 import io.camunda.connector.generator.java.util.TemplateGenerationContext;
-import io.camunda.connector.generator.java.util.TemplateGenerationContext.Inbound;
 import io.camunda.connector.generator.java.util.TemplateGenerationContext.Outbound;
 import io.camunda.connector.generator.java.util.TemplateGenerationContextUtil;
 import io.camunda.connector.generator.java.util.TemplatePropertiesUtil;
@@ -121,24 +120,29 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
 
     return context.elementTypes().stream()
         .map(
-            elementType ->
-                ElementTemplateBuilder.createOutbound()
-                    .id(createId(context, template.id(), elementType))
-                    .type(
-                        context.connectorType(),
-                        ConnectorMode.HYBRID.equals(configuration.connectorMode()))
-                    .name(createName(context, template.name(), elementType))
-                    .version(template.version())
-                    .appliesTo(elementType.appliesTo())
-                    .elementType(elementType.elementType())
-                    .icon(icon)
-                    .documentationRef(
-                        template.documentationRef().isEmpty() ? null : template.documentationRef())
-                    .description(template.description().isEmpty() ? null : template.description())
-                    .properties(nonGroupedProperties.stream().map(PropertyBuilder::build).toList())
-                    .propertyGroups(mergedGroups)
-                    .propertyGroups(getActivationPropertyGroupIfNeeded(context, elementType))
-                    .build())
+            elementType -> {
+              var builder =
+                  context instanceof Outbound
+                      ? ElementTemplateBuilder.createOutbound()
+                      : ElementTemplateBuilder.createInbound();
+              return builder
+                  .id(createId(context, template.id(), elementType))
+                  .type(
+                      context.connectorType(),
+                      ConnectorMode.HYBRID.equals(configuration.connectorMode()))
+                  .name(createName(context, template.name(), elementType))
+                  .version(template.version())
+                  .appliesTo(elementType.appliesTo())
+                  .elementType(elementType.elementType())
+                  .icon(icon)
+                  .documentationRef(
+                      template.documentationRef().isEmpty() ? null : template.documentationRef())
+                  .description(template.description().isEmpty() ? null : template.description())
+                  .properties(nonGroupedProperties.stream().map(PropertyBuilder::build).toList())
+                  .propertyGroups(mergedGroups)
+                  .propertyGroups(getActivationPropertyGroupIfNeeded(context, elementType))
+                  .build();
+            })
         .toList();
   }
 
@@ -173,7 +177,7 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
       // no activation group for outbound
       return new PropertyGroup[0];
     }
-    if (context instanceof Inbound && elementType.elementType().isMessage()) {
+    if (elementType.elementType().isMessage()) {
       return new PropertyGroup[] {PropertyGroup.ACTIVATION_GROUP_WITH_MESSAGE_ID_EXP};
     } else {
       return new PropertyGroup[] {PropertyGroup.ACTIVATION_GROUP_WITHOUT_MESSAGE_ID_EXPR};

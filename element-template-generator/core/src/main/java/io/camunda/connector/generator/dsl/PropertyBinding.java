@@ -52,7 +52,7 @@ public sealed interface PropertyBinding {
 
   record ZeebeProperty(String name) implements PropertyBinding {
 
-    public static ZeebeProperty TYPE = new ZeebeProperty("type");
+    public static ZeebeProperty TYPE = new ZeebeProperty("inbound.type");
 
     @Override
     public String type() {
@@ -60,12 +60,22 @@ public sealed interface PropertyBinding {
     }
   }
 
-  record ZeebeSubscription(String name) implements PropertyBinding {
-    public static ZeebeSubscription CORRELATION_KEY = new ZeebeSubscription("correlationKey");
+  record ZeebeSubscriptionProperty(String name) implements PropertyBinding {
+    public static ZeebeSubscriptionProperty CORRELATION_KEY =
+        new ZeebeSubscriptionProperty("correlationKey");
 
     @Override
     public String type() {
       return "bpmn:Message#zeebe:subscription#property";
+    }
+  }
+
+  record MessageProperty(String name) implements PropertyBinding {
+    public static MessageProperty NAME = new MessageProperty("name");
+
+    @Override
+    public String type() {
+      return "bpmn:Message#property";
     }
   }
 }

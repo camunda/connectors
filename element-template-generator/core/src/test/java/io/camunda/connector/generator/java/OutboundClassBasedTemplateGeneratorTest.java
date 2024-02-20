@@ -43,7 +43,7 @@ import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
 import io.camunda.connector.generator.dsl.PropertyConstraints.Pattern;
 import io.camunda.connector.generator.dsl.StringProperty;
 import io.camunda.connector.generator.dsl.TextProperty;
-import io.camunda.connector.generator.java.example.MyConnectorFunction;
+import io.camunda.connector.generator.java.example.outbound.MyConnectorFunction;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
