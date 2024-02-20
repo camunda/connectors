@@ -41,7 +41,6 @@ import scala.jdk.javaapi.CollectionConverters;
 /** Wrapper for the FEEL engine, handling type conversions and expression evaluations. */
 public class FeelEngineWrapper {
 
-  static final String RESPONSE_MAP_KEY = "response";
   static final String ERROR_CONTEXT_IS_NULL = "Context is null";
 
   static final TypeReference<Map<String, Object>> MAP_TYPE_REFERENCE = new TypeReference<>() {};
@@ -54,17 +53,16 @@ public class FeelEngineWrapper {
    * configuration.
    */
   public FeelEngineWrapper() {
-    this.feelEngine =
+    this(
         new FeelEngine.Builder()
             .customValueMapper(new JavaValueMapper())
             .functionProvider(SpiServiceLoader.loadFunctionProvider())
-            .build();
-    this.objectMapper =
+            .build(),
         new ObjectMapper()
             .registerModule(DefaultScalaModule$.MODULE$)
             .registerModule(new JavaTimeModule())
             // deserialize unknown types as empty objects
-            .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
+            .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS));
   }
 
   /**
@@ -90,7 +88,6 @@ public class FeelEngineWrapper {
   private static scala.collection.immutable.Map<String, Object> toScalaMap(
       final Map<String, Object> responseMap) {
     final HashMap<String, Object> context = new HashMap<>(responseMap);
-    context.put(RESPONSE_MAP_KEY, responseMap);
     return scala.collection.immutable.Map.from(CollectionConverters.asScala(context));
   }
 
@@ -146,6 +143,17 @@ public class FeelEngineWrapper {
     }
   }
 
+  /**
+   * Evaluates an expression with the FEEL engine with the given variables.
+   *
+   * @param expression the expression to evaluate
+   * @param clazz the class the result should be converted to
+   * @param variables the variables to use in evaluation
+   * @param <T> the type to cast the evaluation result to
+   * @return the evaluation result
+   * @throws FeelEngineWrapperException when there is an exception message as a result of the
+   *     evaluation or the result cannot be cast to the given type
+   */
   public <T> T evaluate(final String expression, final Class<T> clazz, final Object... variables) {
     Function<JsonNode, T> converter =
         (JsonNode jsonNode) -> {
@@ -159,6 +167,17 @@ public class FeelEngineWrapper {
     return evaluateAndConvert(expression, type, converter, variables);
   }
 
+  /**
+   * Evaluates an expression with the FEEL engine with the given variables.
+   *
+   * @param expression the expression to evaluate
+   * @param clazz the class the result should be converted to
+   * @param variables the variables to use in evaluation
+   * @param <T> the type to cast the evaluation result to
+   * @return the evaluation result
+   * @throws FeelEngineWrapperException when there is an exception message as a result of the
+   *     evaluation or the result cannot be cast to the given type
+   */
   public <T> T evaluate(final String expression, final JavaType clazz, final Object... variables) {
     Function<JsonNode, T> converter =
         (JsonNode jsonNode) -> {
@@ -174,6 +193,17 @@ public class FeelEngineWrapper {
   /**
    * For use in custom deserializers where there is a need to use the deserialization context. This
    * allows to preserve custom settings and registered jackson modules when evaluating expressions.
+   *
+   * <p>Evaluates an expression with the FEEL engine with the given variables.
+   *
+   * @param ctx the deserialization context to apply
+   * @param expression the expression to evaluate
+   * @param clazz the class the result should be converted to
+   * @param variables the variables to use in evaluation
+   * @param <T> the type to cast the evaluation result to
+   * @return the evaluation result
+   * @throws FeelEngineWrapperException when there is an exception message as a result of the
+   *     evaluation or the result cannot be cast to the given type
    */
   public <T> T evaluate(
       final DeserializationContext ctx,
@@ -227,6 +257,7 @@ public class FeelEngineWrapper {
    */
   public String evaluateToJson(final String expression, final Object... variables) {
     try {
+
       return resultToJson(evaluateInternal(expression, variables));
     } catch (Exception e) {
       throw new FeelEngineWrapperException(e.getMessage(), expression, variables, e);
