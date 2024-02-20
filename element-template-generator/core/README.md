@@ -20,7 +20,7 @@ You can customize and extend the functionality by using more annotations (see be
 For most use cases, we recommend using the [Maven plugin](../maven-plugin) to invoke the Template Generator.
 
 The Generator can be invoked directly from Java code as well. To do so, create an instance of the
-`OutboundElementTemplateGenerator` class and invoke its `generate` method.
+`ClassBasedElementTemplateGenerator` class and invoke its `generate` method.
 
 ```java
 OutboundElementTemplateGenerator generator = new OutboundElementTemplateGenerator();
@@ -247,11 +247,23 @@ The following Bean Validation annotations are supported:
 
 The Template Generator adds additional default properties to the generated Element Template. These
 properties are not part of the Connector input data model, but are required by the Connector Runtime
-to execute the Connector. The following properties are added by default:
+to execute the Connector. The following properties are added by default.
 
+### Outbound connectors
 - `errorExpression` - Expression that is evaluated to determine if the Connector invocation failed.
 - `resultVariable` - Name of the variable that is used to store the Connector invocation result.
 - `resultExpression` - Expression that is evaluated to determine the Connector invocation result.
+
+### Inbound connectors
+- `resultVariable` - Name of the variable that is used to store the Connector invocation result.
+- `resultExpression` - Expression that is evaluated to determine the Connector invocation result.
+- `activationCondition` - Expression that is evaluated to determine if the Connector should be invoked.
+- `correlationKeyExpression` - Expression that is evaluated to determine the correlation key from the inbound message payload.
+- `correlationKey` - Message correlation key, compared against the `correlationKeyExpression` result during message correlation.
+- `messageIdExpression` - Expression that is evaluated to determine the message ID from the process instance variables.
+
+Message-related properties are only added to templates that target element types which contain messages,
+like message start events or message catch events.
 
 ## Property binding
 
@@ -287,6 +299,6 @@ constructor injection.
 ## Element Template DSL
 
 This module defines a DSL for building element templates programmatically. The starting point is the
-`OutboundElementTemplate` class. You can use the DSL directly to build the template and then invoke
+`ElementTemplate` class. You can use the DSL directly to build the template and then invoke
 the `build` method. The resulting `ElementTemplate` object can be serialized to JSON using Jackson
 (pre-configured) or any other JSON library (would require custom configuration).

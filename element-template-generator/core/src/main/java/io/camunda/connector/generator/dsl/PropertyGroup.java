@@ -85,18 +85,10 @@ public record PropertyGroup(String id, String label, @JsonIgnore List<Property> 
           .id("activation")
           .label("Activation")
           .properties(
-              CommonProperties.CORRELATION_KEY_PROCESS
-                  .binding(new ZeebeProperty("correlationKey"))
-                  .build(),
-              CommonProperties.CORRELATION_KEY_PAYLOAD
-                  .binding(new ZeebeProperty("correlationKey"))
-                  .build(),
-              CommonProperties.MESSAGE_ID_EXPRESSION
-                  .binding(new ZeebeProperty("messageId"))
-                  .build(),
-              CommonProperties.ACTIVATION_CONDITION
-                  .binding(new ZeebeProperty("activationCondition"))
-                  .build(),
+              CommonProperties.CORRELATION_KEY_PROCESS.build(),
+              CommonProperties.CORRELATION_KEY_PAYLOAD.build(),
+              CommonProperties.MESSAGE_ID_EXPRESSION.build(),
+              CommonProperties.ACTIVATION_CONDITION.build(),
               CommonProperties.MESSAGE_NAME_UUID.build())
           .build();
 

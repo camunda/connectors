@@ -25,8 +25,10 @@ import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElemen
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
 import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
+import io.camunda.connector.generator.dsl.PropertyBinding;
 import io.camunda.connector.generator.dsl.PropertyBinding.MessageProperty;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeProperty;
+import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeSubscriptionProperty;
 import io.camunda.connector.generator.java.example.inbound.MyConnectorExecutable;
 import java.util.List;
 import java.util.Set;
@@ -83,6 +85,7 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
         var property = getPropertyByLabel("Activation condition", template);
         assertThat(property.getType()).isEqualTo("String");
         assertThat(property.getBinding().type()).isEqualTo("zeebe:property");
+        assertThat(((ZeebeProperty) property.getBinding()).name()).isEqualTo("activationCondition");
         assertThat(property.getFeel()).isEqualTo(FeelMode.required);
       }
     }
@@ -161,6 +164,33 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
       assertThat(templates).hasSize(1);
       var template = templates.getFirst();
       assertThrows(Exception.class, () -> getPropertyById("messageNameUuid", template));
+    }
+
+    @Test
+    void messageTypes_haveCorrelationKeyProperties() {
+      // given
+      var type =
+          new ConnectorElementType(
+              Set.of(BpmnType.START_EVENT), BpmnType.MESSAGE_START_EVENT, null, null);
+      var config = new GeneratorConfiguration(ConnectorMode.NORMAL, null, null, null, Set.of(type));
+
+      // when
+      var templates = generator.generate(MyConnectorExecutable.class, config);
+
+      // then
+      assertThat(templates).hasSize(1);
+      var template = templates.getFirst();
+      var correlationKeyProperty = getPropertyById("correlationKeyProcess", template);
+      assertThat(correlationKeyProperty).isNotNull();
+      assertThat(correlationKeyProperty.getType()).isEqualTo("String");
+      assertThat(correlationKeyProperty.getBinding().type()).isEqualTo("bpmn:Message#zeebe:subscription#property");
+      assertThat(((ZeebeSubscriptionProperty) correlationKeyProperty.getBinding()).name()).isEqualTo("correlationKey");
+
+      var correlationKeyExpressionProperty = getPropertyById("correlationKeyPayload", template);
+      assertThat(correlationKeyExpressionProperty).isNotNull();
+      assertThat(correlationKeyExpressionProperty.getType()).isEqualTo("String");
+      assertThat(correlationKeyExpressionProperty.getBinding().type()).isEqualTo("zeebe:property");
+      assertThat(((ZeebeProperty) correlationKeyExpressionProperty.getBinding()).name()).isEqualTo("correlationKeyExpression");
     }
   }
 }

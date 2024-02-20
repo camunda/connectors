@@ -17,6 +17,7 @@
 package io.camunda.connector.generator.dsl;
 
 import io.camunda.connector.generator.dsl.Property.FeelMode;
+import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeProperty;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeSubscriptionProperty;
 
 public class CommonProperties {
@@ -70,7 +71,8 @@ public class CommonProperties {
               "Condition under which the Connector triggers. Leave empty to catch all events")
           .group("activation")
           .feel(FeelMode.required)
-          .optional(true);
+          .optional(true)
+          .binding(new ZeebeProperty("activationCondition"));
 
   public static final PropertyBuilder CORRELATION_KEY_PROCESS =
       StringProperty.builder()
