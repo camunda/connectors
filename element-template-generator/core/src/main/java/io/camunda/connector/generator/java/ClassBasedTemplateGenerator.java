@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.generator.java;
 
+import static io.camunda.connector.generator.java.util.TemplateGenerationStringUtil.camelCaseToSpaces;
+
 import io.camunda.connector.generator.api.ElementTemplateGenerator;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElementType;
@@ -25,14 +27,17 @@ import io.camunda.connector.generator.dsl.ElementTemplateIcon;
 import io.camunda.connector.generator.dsl.PropertyBuilder;
 import io.camunda.connector.generator.dsl.PropertyGroup;
 import io.camunda.connector.generator.dsl.PropertyGroup.PropertyGroupBuilder;
-import io.camunda.connector.generator.java.TemplateGenerationContext.Inbound;
-import io.camunda.connector.generator.java.TemplateGenerationContext.Outbound;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.util.ReflectionUtil;
+import io.camunda.connector.generator.java.util.TemplateGenerationContext;
+import io.camunda.connector.generator.java.util.TemplateGenerationContext.Inbound;
+import io.camunda.connector.generator.java.util.TemplateGenerationContext.Outbound;
+import io.camunda.connector.generator.java.util.TemplateGenerationContextUtil;
 import io.camunda.connector.generator.java.util.TemplatePropertiesUtil;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Class<?>> {
 
@@ -118,14 +123,11 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
         .map(
             elementType ->
                 ElementTemplateBuilder.createOutbound()
-                    .id(
-                        context.elementTypes().size() > 1
-                            ? template.id() + ":" + elementType.elementType().getShortName()
-                            : template.id())
+                    .id(createId(context, template.id(), elementType))
                     .type(
                         context.connectorType(),
                         ConnectorMode.HYBRID.equals(configuration.connectorMode()))
-                    .name(template.name())
+                    .name(createName(context, template.name(), elementType))
                     .version(template.version())
                     .appliesTo(elementType.appliesTo())
                     .elementType(elementType.elementType())
@@ -138,6 +140,31 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
                     .propertyGroups(getActivationPropertyGroupIfNeeded(context, elementType))
                     .build())
         .toList();
+  }
+
+  private static String createId(
+      TemplateGenerationContext context, String templateId, ConnectorElementType elementType) {
+    return Optional.ofNullable(elementType.templateIdOverride())
+        .orElseGet(
+            () ->
+                context.elementTypes().size() > 1
+                    ? templateId + ":" + elementType.elementType().getId()
+                    : templateId);
+  }
+
+  private static String createName(
+      TemplateGenerationContext context, String templateName, ConnectorElementType elementType) {
+    return Optional.ofNullable(elementType.templateNameOverride())
+        .orElseGet(
+            () -> {
+              if (context.elementTypes().size() > 1) {
+                return templateName
+                    + " ("
+                    + camelCaseToSpaces(elementType.elementType().getId())
+                    + ")";
+              }
+              return templateName;
+            });
   }
 
   private static PropertyGroup[] getActivationPropertyGroupIfNeeded(

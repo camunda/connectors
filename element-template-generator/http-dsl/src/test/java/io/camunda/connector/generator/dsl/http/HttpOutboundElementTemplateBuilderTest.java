@@ -393,7 +393,8 @@ public class HttpOutboundElementTemplateBuilderTest {
         .servers(servers)
         .authentication(authentications)
         .operations(operations)
-        .elementType(new ConnectorElementType(Set.of(BpmnType.TASK), BpmnType.SERVICE_TASK))
+        .elementType(
+            new ConnectorElementType(Set.of(BpmnType.TASK), BpmnType.SERVICE_TASK, null, null))
         .build();
   }
 

@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.generator.dsl;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -117,7 +118,8 @@ public record ElementTemplate(
   }
 
   @JsonInclude(Include.NON_NULL)
-  public record ElementTypeWrapper(String value, String eventDefinition) {
+  public record ElementTypeWrapper(
+      String value, String eventDefinition, @JsonIgnore BpmnType originalType) {
 
     public static ElementTypeWrapper from(BpmnType value) {
       var haveEventDefinition =
@@ -130,7 +132,9 @@ public record ElementTemplate(
       var messageEventDefinition = "bpmn:MessageEventDefinition";
 
       return new ElementTypeWrapper(
-          value.getName(), haveEventDefinition.contains(value) ? messageEventDefinition : null);
+          value.getName(),
+          haveEventDefinition.contains(value) ? messageEventDefinition : null,
+          value);
     }
   }
 }

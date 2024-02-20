@@ -20,6 +20,7 @@ import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElementType;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
 import io.camunda.connector.generator.dsl.BpmnType;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -78,11 +79,11 @@ public class ConGen {
             .map(
                 types ->
                     types.stream()
-                        .map(BpmnType::fromName)
+                        .map(this::parseBpmnType)
                         .map(
                             bpmnType ->
                                 new ConnectorElementType(
-                                    getAppliesToFromBpmnType(bpmnType), bpmnType))
+                                    getAppliesToFromBpmnType(bpmnType), bpmnType, null, null))
                         .collect(Collectors.toSet()))
             .orElse(null);
     return new GeneratorConfiguration(
@@ -91,6 +92,18 @@ public class ConGen {
         templateName,
         null,
         bpmnTypes);
+  }
+
+  private BpmnType parseBpmnType(String type) {
+    var supportedTypes =
+        Arrays.stream(BpmnType.values()).map(BpmnType::getId).collect(Collectors.joining(", "));
+    return Arrays.stream(BpmnType.values())
+        .filter(bpmnType -> bpmnType.getId().equalsIgnoreCase(type))
+        .findFirst()
+        .orElseThrow(
+            () ->
+                new IllegalArgumentException(
+                    "Unsupported BPMN type: " + type + ". Supported types: " + supportedTypes));
   }
 
   private Set<BpmnType> getAppliesToFromBpmnType(BpmnType bpmnType) {

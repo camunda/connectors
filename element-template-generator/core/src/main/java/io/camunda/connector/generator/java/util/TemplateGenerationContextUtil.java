@@ -14,17 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.generator.java;
+package io.camunda.connector.generator.java.util;
 
 import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.dsl.BpmnType;
-import io.camunda.connector.generator.java.TemplateGenerationContext.Inbound;
-import io.camunda.connector.generator.java.TemplateGenerationContext.Outbound;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
-import io.camunda.connector.generator.java.util.ConfigurationUtil;
-import io.camunda.connector.generator.java.util.ReflectionUtil;
+import io.camunda.connector.generator.java.util.TemplateGenerationContext.Inbound;
+import io.camunda.connector.generator.java.util.TemplateGenerationContext.Outbound;
 import java.util.Set;
 
 public class TemplateGenerationContextUtil {
@@ -43,22 +41,25 @@ public class TemplateGenerationContextUtil {
           BpmnType.MESSAGE_START_EVENT,
           BpmnType.BOUNDARY_EVENT);
   private static final GeneratorConfiguration.ConnectorElementType OUTBOUND_DEFAULT_ELEMENT_TYPE =
-      new GeneratorConfiguration.ConnectorElementType(Set.of(BpmnType.TASK), BpmnType.SERVICE_TASK);
+      new GeneratorConfiguration.ConnectorElementType(
+          Set.of(BpmnType.TASK), BpmnType.SERVICE_TASK, null, null);
 
   private static final Set<GeneratorConfiguration.ConnectorElementType>
       INBOUND_DEFAULT_ELEMENT_TYPES =
           Set.of(
               new GeneratorConfiguration.ConnectorElementType(
-                  Set.of(BpmnType.START_EVENT), BpmnType.START_EVENT),
+                  Set.of(BpmnType.START_EVENT), BpmnType.START_EVENT, null, null),
               new GeneratorConfiguration.ConnectorElementType(
                   Set.of(BpmnType.INTERMEDIATE_CATCH_EVENT, BpmnType.INTERMEDIATE_THROW_EVENT),
-                  BpmnType.INTERMEDIATE_CATCH_EVENT),
+                  BpmnType.INTERMEDIATE_CATCH_EVENT,
+                  null,
+                  null),
               new GeneratorConfiguration.ConnectorElementType(
-                  Set.of(BpmnType.MESSAGE_START_EVENT), BpmnType.MESSAGE_START_EVENT),
+                  Set.of(BpmnType.MESSAGE_START_EVENT), BpmnType.MESSAGE_START_EVENT, null, null),
               new GeneratorConfiguration.ConnectorElementType(
-                  Set.of(BpmnType.BOUNDARY_EVENT), BpmnType.BOUNDARY_EVENT));
+                  Set.of(BpmnType.BOUNDARY_EVENT), BpmnType.BOUNDARY_EVENT, null, null));
 
-  static TemplateGenerationContext createContext(
+  public static TemplateGenerationContext createContext(
       Class<?> connectorDefinition, GeneratorConfiguration configuration) {
 
     var outboundAnnotation = connectorDefinition.getAnnotation(OutboundConnector.class);

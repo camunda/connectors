@@ -19,7 +19,6 @@ package io.camunda.connector.generator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
-import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.dsl.ElementTemplate;
 import io.camunda.connector.generator.java.ClassBasedTemplateGenerator;
 import java.io.File;
@@ -150,7 +149,7 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
       writeElementTemplate(templates.getFirst(), fileName);
     } else {
       for (var template : templates) {
-        var elementTypeSuffix = BpmnType.fromName(template.elementType().value()).getShortName();
+        var elementTypeSuffix = template.elementType().originalType().getId();
         var fileName =
             Optional.ofNullable(templateFileName)
                 .map(name -> name + "-" + elementTypeSuffix + ".json")

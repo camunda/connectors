@@ -121,5 +121,19 @@ public @interface ElementTemplate {
      * @see #appliesTo() allows to configure the types the template can be applied to.
      */
     BpmnType elementType();
+
+    /**
+     * If set, overrides the element template name for this element type. If not set, the value from
+     * the annotation on the class level is used by default (see {@link ElementTemplate#name()}),
+     * suffixed with the element type short name, e.g. "My Connector (Service Task)".
+     */
+    String templateNameOverride() default "";
+
+    /**
+     * If set, overrides the element template ID for this element type. If not set, the value from
+     * the annotation on the class level is used by default (see {@link ElementTemplate#id()}),
+     * suffixed with the element type short name, e.g. "my-connector:ServiceTask".
+     */
+    String templateIdOverride() default "";
   }
 }

@@ -41,5 +41,9 @@ public record GeneratorConfiguration(
   public static final GeneratorConfiguration DEFAULT =
       new GeneratorConfiguration(ConnectorMode.NORMAL, null, null, null, Collections.emptySet());
 
-  public record ConnectorElementType(Set<BpmnType> appliesTo, BpmnType elementType) {}
+  public record ConnectorElementType(
+      Set<BpmnType> appliesTo,
+      BpmnType elementType,
+      String templateNameOverride,
+      String templateIdOverride) {}
 }

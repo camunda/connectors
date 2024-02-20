@@ -48,7 +48,7 @@ public class PostmanCollectionOutboundTemplateGenerator
   private static final Set<BpmnType> SUPPORTED_ELEMENT_TYPES =
       Set.of(BpmnType.SERVICE_TASK, BpmnType.INTERMEDIATE_THROW_EVENT);
   private static final ConnectorElementType DEFAULT_ELEMENT_TYPE =
-      new ConnectorElementType(Set.of(BpmnType.TASK), BpmnType.SERVICE_TASK);
+      new ConnectorElementType(Set.of(BpmnType.TASK), BpmnType.SERVICE_TASK, null, null);
 
   @Override
   public String getGeneratorId() {

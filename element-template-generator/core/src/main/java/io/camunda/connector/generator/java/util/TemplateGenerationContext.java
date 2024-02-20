@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.generator.java;
+package io.camunda.connector.generator.java.util;
 
 import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElementType;
 import java.util.Set;
 
-sealed interface TemplateGenerationContext {
+public sealed interface TemplateGenerationContext {
 
   String connectorType();
 

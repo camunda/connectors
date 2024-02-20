@@ -20,24 +20,26 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum BpmnType {
-  TASK("bpmn:Task", false),
-  SERVICE_TASK("bpmn:ServiceTask", false),
-  RECEIVE_TASK("bpmn:ReceiveTask", true),
-  SCRIPT_TASK("bpmn:ScriptTask", false),
-  START_EVENT("bpmn:StartEvent", false),
-  INTERMEDIATE_CATCH_EVENT("bpmn:IntermediateCatchEvent", true),
-  INTERMEDIATE_THROW_EVENT("bpmn:IntermediateThrowEvent", true),
-  MESSAGE_START_EVENT("bpmn:MessageStartEvent", true),
-  END_EVENT("bpmn:EndEvent", false),
-  MESSAGE_END_EVENT("bpmn:MessageEndEvent", true),
-  BOUNDARY_EVENT("bpmn:BoundaryEvent", true);
+  TASK("bpmn:Task", false, "Task"),
+  SERVICE_TASK("bpmn:ServiceTask", false, "ServiceTask"),
+  RECEIVE_TASK("bpmn:ReceiveTask", true, "ReceiveTask"),
+  SCRIPT_TASK("bpmn:ScriptTask", false, "ScriptTask"),
+  START_EVENT("bpmn:StartEvent", false, "StartEvent"),
+  INTERMEDIATE_CATCH_EVENT("bpmn:IntermediateCatchEvent", true, "IntermediateCatchEvent"),
+  INTERMEDIATE_THROW_EVENT("bpmn:IntermediateThrowEvent", true, "IntermediateThrowEvent"),
+  MESSAGE_START_EVENT("bpmn:StartEvent", true, "MessageStartEvent"),
+  END_EVENT("bpmn:EndEvent", false, "EndEvent"),
+  MESSAGE_END_EVENT("bpmn:EndEvent", true, "MessageEndEvent"),
+  BOUNDARY_EVENT("bpmn:BoundaryEvent", true, "BoundaryEvent");
 
   private final String name;
   private final boolean isMessage;
+  private final String id;
 
-  BpmnType(String name, boolean isMessage) {
+  BpmnType(String name, boolean isMessage, String id) {
     this.name = name;
     this.isMessage = isMessage;
+    this.id = id;
   }
 
   @JsonValue
@@ -51,18 +53,13 @@ public enum BpmnType {
     return isMessage;
   }
 
-  /** Returns the short name of the BPMN type, i.e. without the "bpmn:" namespace prefix */
+  /**
+   * Returns the unique ID of the BPMN type. Not to be confused with {@link #getName()}, which is
+   * the conventional name of the BPMN type and can be non-unique, e.g. in the case of Start Events
+   * vs Message Start Events.
+   */
   @JsonIgnore
-  public String getShortName() {
-    return name.substring(name.indexOf(":") + 1);
-  }
-
-  public static BpmnType fromName(String name) {
-    for (BpmnType type : values()) {
-      if (type.getName().equals(name)) {
-        return type;
-      }
-    }
-    throw new IllegalArgumentException("Unknown BPMN type: " + name);
+  public String getId() {
+    return id;
   }
 }

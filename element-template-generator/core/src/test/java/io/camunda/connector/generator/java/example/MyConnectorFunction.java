@@ -117,7 +117,9 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
             elementType = BpmnType.MESSAGE_END_EVENT),
         @ConnectorElementType(
             appliesTo = BpmnType.INTERMEDIATE_THROW_EVENT,
-            elementType = BpmnType.INTERMEDIATE_THROW_EVENT)
+            elementType = BpmnType.INTERMEDIATE_THROW_EVENT,
+            templateNameOverride = "My custom name for intermediate event",
+            templateIdOverride = "my-custom-id-for-intermediate-event")
       },
       icon = "my-connector-icon.png")
   public static class WithMultipleElementTypes extends MyConnectorFunction {}
