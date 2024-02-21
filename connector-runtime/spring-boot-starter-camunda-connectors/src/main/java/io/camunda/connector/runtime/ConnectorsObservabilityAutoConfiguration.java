@@ -26,9 +26,11 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Profile;
 
 @AutoConfiguration
 @AutoConfigureBefore(LogbackMetricsAutoConfiguration.class)
+@Profile("!test")
 public class ConnectorsObservabilityAutoConfiguration {
 
   @Bean
