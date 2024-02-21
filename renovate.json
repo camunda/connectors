@@ -9,8 +9,7 @@
       "automerge": true
     },
     {
-      "matchPackagePatterns": ["^io.camunda.connector"],
-      "matchManagers": ["maven"],
+      "matchPackagePrefixes": ["io.camunda.connector"],
       "enabled": false
     }
   ],
