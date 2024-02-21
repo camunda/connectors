@@ -99,9 +99,9 @@ public @interface TemplateProperty {
   boolean ignore() default false;
 
   /**
-   * Constraints for the property that are used by the Modeler to validate the input.
-   * Constraints can also be set using the Java Bean Validation API annotations, which takes
-   * precedence over the constraints defined in this annotation.
+   * Constraints for the property that are used by the Modeler to validate the input. Constraints
+   * can also be set using the Java Bean Validation API annotations, which takes precedence over the
+   * constraints defined in this annotation.
    */
   PropertyConstraints constraints() default @PropertyConstraints;
 
@@ -134,13 +134,17 @@ public @interface TemplateProperty {
 
   @interface PropertyConstraints {
     boolean notEmpty() default false;
+
     int minLength() default MIN_VALUE;
+
     int maxLength() default MAX_VALUE;
+
     Pattern pattern() default @Pattern(value = "", message = "");
   }
 
   @interface Pattern {
     String value();
+
     String message();
   }
 }

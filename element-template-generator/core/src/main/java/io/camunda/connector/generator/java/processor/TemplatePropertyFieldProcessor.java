@@ -79,11 +79,10 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
 
   private PropertyConstraints buildConstraints(TemplateProperty propertyAnnotation) {
     var constraintsAnnotation = propertyAnnotation.constraints();
-    if (
-        !constraintsAnnotation.notEmpty()
-            && constraintsAnnotation.maxLength() == Integer.MAX_VALUE
-            && constraintsAnnotation.minLength() == Integer.MIN_VALUE
-            && constraintsAnnotation.pattern().value().isBlank()) {
+    if (!constraintsAnnotation.notEmpty()
+        && constraintsAnnotation.maxLength() == Integer.MAX_VALUE
+        && constraintsAnnotation.minLength() == Integer.MIN_VALUE
+        && constraintsAnnotation.pattern().value().isBlank()) {
       return null;
     }
     var builder = PropertyConstraints.builder();
