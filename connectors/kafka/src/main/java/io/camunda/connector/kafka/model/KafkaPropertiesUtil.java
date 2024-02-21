@@ -9,6 +9,7 @@ package io.camunda.connector.kafka.model;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.kafka.outbound.model.KafkaConnectorRequest;
 import java.util.Properties;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -88,17 +89,13 @@ public final class KafkaPropertiesUtil {
 
   public static Properties produceAuthenticationProperties(KafkaAuthentication authentication) {
     Properties authProps = new Properties();
-
     // Both username and password arrived empty thus not setting security config.
-    if ((authentication.username() == null || authentication.username().isBlank())
-        && (authentication.password() == null || authentication.password().isBlank())) {
+    if (StringUtils.isBlank(authentication.username())
+        && StringUtils.isBlank(authentication.password())) {
       return authProps;
     }
-
-    if (authentication.username() != null
-        && !authentication.username().isBlank()
-        && authentication.password() != null
-        && !authentication.password().isBlank()) {
+    if (!StringUtils.isBlank(authentication.username())
+        && !StringUtils.isBlank(authentication.password())) {
       authProps.put(
           SaslConfigs.SASL_JAAS_CONFIG,
           String.format(
