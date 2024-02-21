@@ -353,6 +353,7 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
       assertThat(property.getDescription()).isEqualTo("description");
       assertThat(property.getFeel()).isEqualTo(FeelMode.optional);
       assertThat(property.getBinding()).isEqualTo(new PropertyBinding.ZeebeInput("customBinding"));
+      assertThat(property.getConstraints().notEmpty()).isTrue();
     }
 
     @Test
