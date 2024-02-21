@@ -12,11 +12,12 @@ import com.slack.api.methods.request.conversations.ConversationsInviteRequest;
 import com.slack.api.methods.response.conversations.ConversationsInviteResponse;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.Pattern;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyBinding;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.slack.outbound.SlackResponse;
 import io.camunda.connector.slack.outbound.utils.DataLookupService;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.io.IOException;
 import java.util.Collection;
@@ -29,8 +30,15 @@ public record ConversationsInviteData(
             id = "data.channelName",
             group = "invite",
             binding = @PropertyBinding(name = "data.channelName"),
+            constraints =
+                @PropertyConstraints(
+                    notEmpty = true,
+                    pattern =
+                        @Pattern(
+                            value = "^(=|[-_a-z0-9]{1,80}$)",
+                            message =
+                                "May contain up to 80 lowercase letters, digits, underscores, and dashes")),
             feel = FeelMode.optional)
-        @NotBlank
         String channelName,
     @TemplateProperty(
             label = "Users",
