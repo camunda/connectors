@@ -16,6 +16,9 @@
  */
 package io.camunda.connector.generator.java.annotation;
 
+import static java.lang.Integer.MAX_VALUE;
+import static java.lang.Integer.MIN_VALUE;
+
 import io.camunda.connector.generator.dsl.Property.FeelMode;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -95,6 +98,13 @@ public @interface TemplateProperty {
    */
   boolean ignore() default false;
 
+  /**
+   * Constraints for the property that are used by the Modeler to validate the input. Constraints
+   * can also be set using the Java Bean Validation API annotations, which takes precedence over the
+   * constraints defined in this annotation.
+   */
+  PropertyConstraints constraints() default @PropertyConstraints;
+
   enum PropertyType {
     Boolean,
     Dropdown,
@@ -120,5 +130,21 @@ public @interface TemplateProperty {
     String value();
 
     String label();
+  }
+
+  @interface PropertyConstraints {
+    boolean notEmpty() default false;
+
+    int minLength() default MIN_VALUE;
+
+    int maxLength() default MAX_VALUE;
+
+    Pattern pattern() default @Pattern(value = "", message = "");
+  }
+
+  @interface Pattern {
+    String value();
+
+    String message();
   }
 }

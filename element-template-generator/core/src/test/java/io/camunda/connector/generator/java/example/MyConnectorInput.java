@@ -46,7 +46,8 @@ public record MyConnectorInput(
             label = "Annotated and renamed string property",
             type = PropertyType.Text,
             group = "group1",
-            description = "description")
+            description = "description",
+            constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
         String annotatedStringProperty,
     String notAnnotatedStringProperty,
     Object objectProperty,

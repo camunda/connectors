@@ -20,6 +20,7 @@ import io.camunda.connector.generator.dsl.DropdownProperty.DropdownPropertyBuild
 import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.dsl.PropertyBuilder;
 import io.camunda.connector.generator.dsl.PropertyCondition;
+import io.camunda.connector.generator.dsl.PropertyConstraints;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import java.lang.reflect.Field;
 import java.util.Arrays;
@@ -50,6 +51,7 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
       builder.group(annotation.group());
     }
     builder.condition(buildCondition(annotation));
+    builder.constraints(buildConstraints(annotation));
   }
 
   private PropertyCondition buildCondition(TemplateProperty propertyAnnotation) {
@@ -73,5 +75,31 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
       return new PropertyCondition.OneOf(
           conditionAnnotation.property(), Arrays.asList(conditionAnnotation.oneOf()));
     }
+  }
+
+  private PropertyConstraints buildConstraints(TemplateProperty propertyAnnotation) {
+    var constraintsAnnotation = propertyAnnotation.constraints();
+    if (!constraintsAnnotation.notEmpty()
+        && constraintsAnnotation.maxLength() == Integer.MAX_VALUE
+        && constraintsAnnotation.minLength() == Integer.MIN_VALUE
+        && constraintsAnnotation.pattern().value().isBlank()) {
+      return null;
+    }
+    var builder = PropertyConstraints.builder();
+    if (constraintsAnnotation.notEmpty()) {
+      builder.notEmpty(true);
+    }
+    if (constraintsAnnotation.maxLength() != Integer.MAX_VALUE) {
+      builder.maxLength(constraintsAnnotation.maxLength());
+    }
+    if (constraintsAnnotation.minLength() != Integer.MIN_VALUE) {
+      builder.minLength(constraintsAnnotation.minLength());
+    }
+    if (!constraintsAnnotation.pattern().value().isBlank()) {
+      builder.pattern(
+          new PropertyConstraints.Pattern(
+              constraintsAnnotation.pattern().value(), constraintsAnnotation.pattern().message()));
+    }
+    return builder.build();
   }
 }
