@@ -23,16 +23,13 @@ import static org.junit.jupiter.api.Assertions.fail;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
-import com.rabbitmq.client.DeliverCallback;
+import com.rabbitmq.client.GetResponse;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.rabbitmq.outbound.RabbitMqResult;
 import io.camunda.zeebe.spring.test.ZeebeSpringTest;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -164,19 +161,13 @@ public class RabbitMqTests extends BaseRabbitMqTest {
   }
 
   private String consumeMessage() throws Exception {
-    String receivedMessage;
+    String receivedMessage = null;
     try (Connection connection = factory.newConnection();
         Channel channel = connection.createChannel()) {
-      BlockingQueue<String> blockingQueue = new ArrayBlockingQueue<>(1);
-      DeliverCallback deliverCallback =
-          (consumerTag, delivery) -> {
-            String devMessage = new String(delivery.getBody(), StandardCharsets.UTF_8);
-            blockingQueue.add(devMessage);
-          };
-      String consumerTag =
-          channel.basicConsume(QUEUE_NAME, true, deliverCallback, consumerTag1 -> {});
-      receivedMessage = blockingQueue.poll(1, TimeUnit.SECONDS);
-      channel.basicCancel(consumerTag);
+      GetResponse response = channel.basicGet(QUEUE_NAME, true);
+      if (response != null) {
+        receivedMessage = new String(response.getBody(), StandardCharsets.UTF_8);
+      }
     }
     return receivedMessage;
   }
