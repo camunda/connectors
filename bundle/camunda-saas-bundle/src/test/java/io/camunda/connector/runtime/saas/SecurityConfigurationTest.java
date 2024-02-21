@@ -54,7 +54,8 @@ import org.springframework.test.web.servlet.MockMvc;
       "camunda.connector.auth.issuer=https://weblogin.cloud.dev.ultrawombat.com/",
       "camunda.operate.client.url=" + MockSaaSConfiguration.OPERATE_CLIENT_URL,
       "camunda.operate.client.authUrl=" + MockSaaSConfiguration.OPERATE_CLIENT_AUTH_URL,
-      "camunda.operate.client.baseUrl=" + MockSaaSConfiguration.OPERATE_CLIENT_BASEURL
+      "camunda.operate.client.baseUrl=" + MockSaaSConfiguration.OPERATE_CLIENT_BASEURL,
+      "management.endpoint.health.group.readiness.include[]="
     })
 @DirtiesContext
 @ActiveProfiles("test")

@@ -36,7 +36,8 @@ import org.springframework.test.context.ActiveProfiles;
       "camunda.connector.auth.issuer=https://weblogin.cloud.dev.ultrawombat.com/",
       "camunda.operate.client.url=" + MockSaaSConfiguration.OPERATE_CLIENT_URL,
       "camunda.operate.client.authUrl=" + MockSaaSConfiguration.OPERATE_CLIENT_AUTH_URL,
-      "camunda.operate.client.baseUrl=" + MockSaaSConfiguration.OPERATE_CLIENT_BASEURL
+      "camunda.operate.client.baseUrl=" + MockSaaSConfiguration.OPERATE_CLIENT_BASEURL,
+      "management.endpoint.health.group.readiness.include[]="
     })
 @ActiveProfiles("test")
 public class TestSpringContextStartup {
