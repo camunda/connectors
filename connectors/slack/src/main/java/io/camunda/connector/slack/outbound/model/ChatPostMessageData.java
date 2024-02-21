@@ -15,6 +15,7 @@ import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyBinding;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.slack.outbound.SlackResponse;
@@ -58,7 +59,10 @@ public record ChatPostMessageData(
             id = "data.text",
             group = "message",
             feel = FeelMode.optional,
+            optional = false,
             binding = @PropertyBinding(name = "data.text"),
+            type = PropertyType.Text,
+            constraints = @PropertyConstraints(notEmpty = true),
             condition =
                 @TemplateProperty.PropertyCondition(
                     property = "data.messageType",
@@ -71,7 +75,9 @@ public record ChatPostMessageData(
             id = "data.blockContent",
             group = "message",
             feel = FeelMode.required,
+            optional = false,
             binding = @PropertyBinding(name = "data.blockContent"),
+            constraints = @PropertyConstraints(notEmpty = true),
             condition =
                 @TemplateProperty.PropertyCondition(
                     property = "data.messageType",

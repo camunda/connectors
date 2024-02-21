@@ -6,16 +6,20 @@
  */
 package io.camunda.connector.slack.outbound.model;
 
+import static io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType.Dropdown;
+
 import com.slack.api.methods.MethodsClient;
 import com.slack.api.methods.SlackApiException;
 import com.slack.api.methods.request.conversations.ConversationsCreateRequest;
 import com.slack.api.methods.response.conversations.ConversationsCreateResponse;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.DropdownPropertyChoice;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.Pattern;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyBinding;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.slack.outbound.SlackResponse;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.io.IOException;
 
@@ -26,15 +30,27 @@ public record ConversationsCreateData(
             id = "data.newChannelName",
             group = "channel",
             binding = @PropertyBinding(name = "data.newChannelName"),
+            constraints =
+                @PropertyConstraints(
+                    notEmpty = true,
+                    pattern =
+                        @Pattern(
+                            value = "^(=|[-_a-z0-9]{1,80}$)",
+                            message =
+                                "May contain up to 80 lowercase letters, digits, underscores, and dashes")),
             feel = FeelMode.optional)
-        @NotBlank
         String newChannelName,
     @TemplateProperty(
-            label = "Visibility",
             id = "data.visibility",
-            group = "channel",
             binding = @PropertyBinding(name = "data.visibility"),
-            feel = FeelMode.optional)
+            label = "Visibility",
+            group = "channel",
+            type = Dropdown,
+            defaultValue = "PUBLIC",
+            choices = {
+              @DropdownPropertyChoice(label = "Public", value = "PUBLIC"),
+              @DropdownPropertyChoice(label = "Private", value = "PRIVATE")
+            })
         @NotNull
         Visibility visibility)
     implements SlackRequestData {

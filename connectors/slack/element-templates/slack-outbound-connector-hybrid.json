@@ -117,6 +117,9 @@
     "id" : "data.text",
     "label" : "Message",
     "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
     "group" : "message",
     "binding" : {
@@ -134,13 +137,16 @@
         "type" : "simple"
       } ]
     },
-    "type" : "String"
+    "type" : "Text"
   }, {
     "id" : "data.blockContent",
     "label" : "Message block",
     "description" : "An array of rich message content blocks. Learn more at the <a href=\"https://api.slack.com/reference/surfaces/formatting#stack_of_blocks\" target=\"_blank\">official Slack documentation page</a>",
     "optional" : false,
     "value" : "=[\n\t{\n\t\t\"type\": \"header\",\n\t\t\"text\": {\n\t\t\t\"type\": \"plain_text\",\n\t\t\t\"text\": \"New request\"\n\t\t}\n\t},\n\t{\n\t\t\"type\": \"section\",\n\t\t\"fields\": [\n\t\t\t{\n\t\t\t\t\"type\": \"mrkdwn\",\n\t\t\t\t\"text\": \"*Type:*\\nPaid Time Off\"\n\t\t\t},\n\t\t\t{\n\t\t\t\t\"type\": \"mrkdwn\",\n\t\t\t\t\"text\": \"*Created by:*\\n<example.com|John Doe>\"\n\t\t\t}\n\t\t]\n\t},\n\t{\n\t\t\"type\": \"section\",\n\t\t\"fields\": [\n\t\t\t{\n\t\t\t\t\"type\": \"mrkdwn\",\n\t\t\t\t\"text\": \"*When:*\\nAug 10 - Aug 13\"\n\t\t\t}\n\t\t]\n\t},\n\t{\n\t\t\"type\": \"section\",\n\t\t\"text\": {\n\t\t\t\"type\": \"mrkdwn\",\n\t\t\t\"text\": \"<https://example.com|View request>\"\n\t\t}\n\t}\n]",
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "required",
     "group" : "message",
     "binding" : {
@@ -183,7 +189,11 @@
     "label" : "Channel name",
     "optional" : false,
     "constraints" : {
-      "notEmpty" : true
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "^(=|[-_a-z0-9]{1,80}$)",
+        "message" : "May contain up to 80 lowercase letters, digits, underscores, and dashes"
+      }
     },
     "feel" : "optional",
     "group" : "channel",
@@ -201,6 +211,7 @@
     "id" : "data.visibility",
     "label" : "Visibility",
     "optional" : false,
+    "value" : "PUBLIC",
     "constraints" : {
       "notEmpty" : true
     },
@@ -216,10 +227,10 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "PUBLIC",
+      "name" : "Public",
       "value" : "PUBLIC"
     }, {
-      "name" : "PRIVATE",
+      "name" : "Private",
       "value" : "PRIVATE"
     } ]
   }, {
@@ -227,7 +238,11 @@
     "label" : "Channel name",
     "optional" : false,
     "constraints" : {
-      "notEmpty" : true
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "^(=|[-_a-z0-9]{1,80}$)",
+        "message" : "May contain up to 80 lowercase letters, digits, underscores, and dashes"
+      }
     },
     "feel" : "optional",
     "group" : "invite",
