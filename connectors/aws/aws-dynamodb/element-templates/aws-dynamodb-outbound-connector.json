@@ -306,11 +306,11 @@
       "name" : "Binary",
       "value" : "B"
     }, {
-      "name" : "String",
-      "value" : "S"
-    }, {
       "name" : "Number",
       "value" : "N"
+    }, {
+      "name" : "String",
+      "value" : "S"
     } ]
   }, {
     "id" : "input.sortKey",
@@ -390,11 +390,11 @@
       "name" : "Binary",
       "value" : "B"
     }, {
-      "name" : "String",
-      "value" : "S"
-    }, {
       "name" : "Number",
       "value" : "N"
+    }, {
+      "name" : "String",
+      "value" : "S"
     } ]
   }, {
     "id" : "input.readCapacityUnits",
@@ -943,11 +943,11 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "DELETE",
-      "value" : "delete"
-    }, {
       "name" : "PUT",
       "value" : "put"
+    }, {
+      "name" : "DELETE",
+      "value" : "delete"
     } ]
   }, {
     "id" : "resultVariable",

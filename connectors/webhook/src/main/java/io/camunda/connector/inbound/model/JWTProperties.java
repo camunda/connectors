@@ -7,14 +7,33 @@
 package io.camunda.connector.inbound.model;
 
 import io.camunda.connector.feel.annotation.FEEL;
+import io.camunda.connector.generator.dsl.Property.FeelMode;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 
 public record JWTProperties(
-    @FEEL List<String> requiredPermissions,
-    Function<Object, List<String>> permissionsExpression,
-    @FEEL String jwkUrl) {
+    @TemplateProperty(
+            label = "JWK url",
+            description = "Well-known url of JWKs",
+            group = "authorization")
+        @FEEL
+        String jwkUrl,
+    @TemplateProperty(
+            label = "JWT role property expression",
+            description =
+                "Expression to extract the roles from the JWT token. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/#how-to-extract-roles-from-jwt-data'>See documentation</a>",
+            group = "authorization",
+            feel = FeelMode.required)
+        Function<Object, List<String>> permissionsExpression,
+    @TemplateProperty(
+            label = "Required roles",
+            description = "List of roles to test JWT roles against",
+            group = "authorization",
+            feel = FeelMode.required)
+        @FEEL
+        List<String> requiredPermissions) {
   public JWTProperties {
     Objects.requireNonNull(jwkUrl);
   }

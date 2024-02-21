@@ -9,6 +9,10 @@ package io.camunda.connector.inbound.model;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.feel.annotation.FEEL;
+import io.camunda.connector.generator.dsl.Property.FeelMode;
+import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.inbound.model.WebhookAuthorization.ApiKeyAuth;
 import io.camunda.connector.inbound.model.WebhookAuthorization.BasicAuth;
 import io.camunda.connector.inbound.model.WebhookAuthorization.JwtAuth;
@@ -22,14 +26,50 @@ import java.util.function.Function;
   @JsonSubTypes.Type(value = JwtAuth.class, name = "JWT"),
   @JsonSubTypes.Type(value = None.class, name = "NONE")
 })
-public sealed interface WebhookAuthorization permits ApiKeyAuth, BasicAuth, JwtAuth, None {
+@TemplateDiscriminatorProperty(
+    name = "type",
+    label = "Authorization type",
+    group = "authorization",
+    description = "Choose the authorization type",
+    defaultValue = "NONE")
+public sealed interface WebhookAuthorization {
 
-  record BasicAuth(@FEEL String username, @FEEL String password) implements WebhookAuthorization {}
+  @TemplateSubType(id = "NONE", label = "None")
+  final class None implements WebhookAuthorization {}
 
-  record ApiKeyAuth(@FEEL String apiKey, Function<Object, String> apiKeyLocator)
+  @TemplateSubType(id = "BASIC", label = "Basic")
+  record BasicAuth(
+      @TemplateProperty(
+              label = "Username",
+              description = "Username for basic authentication",
+              group = "authorization")
+          @FEEL
+          String username,
+      @TemplateProperty(
+              label = "Password",
+              description = "Password for basic authentication",
+              group = "authorization")
+          @FEEL
+          String password)
       implements WebhookAuthorization {}
 
-  record JwtAuth(JWTProperties jwt) implements WebhookAuthorization {}
+  @TemplateSubType(id = "APIKEY", label = "API Key")
+  record ApiKeyAuth(
+      @TemplateProperty(
+              label = "API Key",
+              description = "Expected API key",
+              group = "authorization")
+          @FEEL
+          String apiKey,
+      @TemplateProperty(
+              label = "API Key locator",
+              description =
+                  "A FEEL expression that extracts API key from the request. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/#how-to-configure-api-key-authorization'>See documentation</a>",
+              group = "authorization",
+              feel = FeelMode.required)
+          Function<Object, String> apiKeyLocator)
+      implements WebhookAuthorization {}
 
-  final class None implements WebhookAuthorization {}
+  @TemplateSubType(id = "JWT", label = "JWT")
+  record JwtAuth(JWTProperties jwt) implements WebhookAuthorization {}
 }

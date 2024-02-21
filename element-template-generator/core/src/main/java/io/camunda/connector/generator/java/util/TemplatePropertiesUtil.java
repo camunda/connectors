@@ -56,6 +56,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -274,7 +275,11 @@ public class TemplatePropertiesUtil {
         dropdownChoices =
             Arrays.stream(annotation.choices())
                 .collect(
-                    Collectors.toMap(DropdownPropertyChoice::value, DropdownPropertyChoice::label));
+                    Collectors.toMap(
+                        DropdownPropertyChoice::value,
+                        DropdownPropertyChoice::label,
+                        (a, b) -> a,
+                        LinkedHashMap::new));
       }
     }
 
@@ -447,6 +452,8 @@ public class TemplatePropertiesUtil {
     return !ClassUtils.isPrimitiveOrWrapper(type)
         && !hasManualTypeOverride
         && !"java.time".equals(type.getPackageName())
+        && type != Function.class
+        && type != Supplier.class
         && type != String.class
         && type != Object.class
         && type != JsonNode.class

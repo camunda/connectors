@@ -25,7 +25,6 @@ import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElemen
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
 import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
-import io.camunda.connector.generator.dsl.PropertyBinding;
 import io.camunda.connector.generator.dsl.PropertyBinding.MessageProperty;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeProperty;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeSubscriptionProperty;
@@ -183,14 +182,17 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
       var correlationKeyProperty = getPropertyById("correlationKeyProcess", template);
       assertThat(correlationKeyProperty).isNotNull();
       assertThat(correlationKeyProperty.getType()).isEqualTo("String");
-      assertThat(correlationKeyProperty.getBinding().type()).isEqualTo("bpmn:Message#zeebe:subscription#property");
-      assertThat(((ZeebeSubscriptionProperty) correlationKeyProperty.getBinding()).name()).isEqualTo("correlationKey");
+      assertThat(correlationKeyProperty.getBinding().type())
+          .isEqualTo("bpmn:Message#zeebe:subscription#property");
+      assertThat(((ZeebeSubscriptionProperty) correlationKeyProperty.getBinding()).name())
+          .isEqualTo("correlationKey");
 
       var correlationKeyExpressionProperty = getPropertyById("correlationKeyPayload", template);
       assertThat(correlationKeyExpressionProperty).isNotNull();
       assertThat(correlationKeyExpressionProperty.getType()).isEqualTo("String");
       assertThat(correlationKeyExpressionProperty.getBinding().type()).isEqualTo("zeebe:property");
-      assertThat(((ZeebeProperty) correlationKeyExpressionProperty.getBinding()).name()).isEqualTo("correlationKeyExpression");
+      assertThat(((ZeebeProperty) correlationKeyExpressionProperty.getBinding()).name())
+          .isEqualTo("correlationKeyExpression");
     }
   }
 }
