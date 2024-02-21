@@ -20,8 +20,8 @@ import static io.camunda.connector.feel.FeelEngineWrapperUtil.*;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.feel.FeelEngineWrapperException;
@@ -33,13 +33,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-/** The ConnectorHelper provide utility functions used to build connector runtimes. */
 public class ConnectorHelper {
 
   public static FeelEngineWrapper FEEL_ENGINE_WRAPPER = new FeelEngineWrapper();
-  // TODO: Check if this is properly configured
-  public static ObjectMapper OBJECT_MAPPER =
-      new ObjectMapper().registerModule(new JavaTimeModule());
+  public static ObjectMapper OBJECT_MAPPER = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER;
 
   private static final String ERROR_CANNOT_PARSE_VARIABLES = "Cannot parse '%s' as '%s'.";
 
