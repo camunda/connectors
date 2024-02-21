@@ -40,6 +40,7 @@
     <module>connectors-e2e-test/connectors-e2e-test-aws</module>
     <module>connectors-e2e-test/connectors-e2e-test-easy-post</module>
     <module>connectors-e2e-test/connectors-e2e-test-soap</module>
+    <module>connectors-e2e-test/connectors-e2e-test-rabbitmq</module>
   </modules>
 
 </project>
