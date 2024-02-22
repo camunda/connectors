@@ -4,6 +4,13 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.kafka.outbound.model;
+package io.camunda.connector.kafka.model;
 
-public record KafkaConnectorResponse(String topic, long timestamp, long offset, int partition) {}
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+public enum SerializationType {
+  @JsonProperty("json")
+  JSON,
+  @JsonProperty("avro")
+  AVRO
+}

@@ -6,48 +6,13 @@
  */
 package io.camunda.connector.kafka.outbound.model;
 
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.NotNull;
-import java.util.Objects;
 
-public class KafkaMessage {
-  @NotNull private Object key;
-  @NotNull private Object value;
-
-  public Object getKey() {
-    return key;
-  }
-
-  public void setKey(Object key) {
-    this.key = key;
-  }
-
-  public Object getValue() {
-    return value;
-  }
-
-  public void setValue(Object value) {
-    this.value = value;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    KafkaMessage that = (KafkaMessage) o;
-    return key.equals(that.key) && value.equals(that.value);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(key, value);
-  }
-
-  @Override
-  public String toString() {
-    return "KafkaMessage{" + "key=" + key + ", value=" + value + '}';
-  }
-}
+public record KafkaMessage(
+    @NotNull
+        @TemplateProperty(group = "message", label = "Key", description = "Provide message key")
+        Object key,
+    @NotNull
+        @TemplateProperty(group = "message", label = "Value", description = "Provide message value")
+        Object value) {}

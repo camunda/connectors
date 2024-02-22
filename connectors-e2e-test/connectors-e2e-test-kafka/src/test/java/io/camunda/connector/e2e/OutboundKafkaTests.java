@@ -45,7 +45,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 @ExtendWith(MockitoExtension.class)
 public class OutboundKafkaTests extends BaseKafkaTest {
   private static final String ELEMENT_TEMPLATE_PATH =
-      "../../connectors/kafka/element-templates/kafka-connector.json";
+      "../../connectors/kafka/element-templates/kafka-outbound-connector.json";
   private static final String OUTBOUND_RESULT_EXPRESSION =
       "={partitionResponse:partition, topicResult:topic}";
 

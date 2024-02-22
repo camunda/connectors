@@ -8,6 +8,10 @@ package io.camunda.connector.kafka.outbound.model;
 
 import static org.apache.kafka.clients.CommonClientConfigs.SESSION_TIMEOUT_MS_CONFIG;
 
+import io.camunda.connector.kafka.model.KafkaAuthentication;
+import io.camunda.connector.kafka.model.KafkaPropertiesUtil;
+import io.camunda.connector.kafka.model.KafkaTopic;
+import io.camunda.connector.kafka.model.SerializationType;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Properties;
@@ -19,12 +23,13 @@ class KafkaConnectorRequestTest {
   @Test
   void assembleKafkaClientProperties_AdditionalPropertiesAppended() {
     KafkaConnectorRequest originalReq = simpleConnectorRequest(Collections.emptyMap());
-    final int initialPropertiesSize = originalReq.assembleKafkaClientProperties().size();
+    final int initialPropertiesSize =
+        KafkaPropertiesUtil.assembleKafkaClientProperties(originalReq).size();
 
     KafkaConnectorRequest newReq =
         simpleConnectorRequest(Map.of("my.custom.kafka.property", "iAmNewProperty"));
-    final int newPropertiesSize = newReq.assembleKafkaClientProperties().size();
-    final Properties newProps = newReq.assembleKafkaClientProperties();
+    final int newPropertiesSize = KafkaPropertiesUtil.assembleKafkaClientProperties(newReq).size();
+    final Properties newProps = KafkaPropertiesUtil.assembleKafkaClientProperties(newReq);
 
     Assertions.assertThat(newPropertiesSize).isEqualTo(initialPropertiesSize + 1);
     Assertions.assertThat(newProps).containsEntry("my.custom.kafka.property", "iAmNewProperty");
@@ -33,37 +38,24 @@ class KafkaConnectorRequestTest {
   @Test
   void assembleKafkaClientProperties_AdditionalPropertiesOverriddenByUser() {
     KafkaConnectorRequest originalReq = simpleConnectorRequest(Collections.emptyMap());
-    final int initialPropertiesSize = originalReq.assembleKafkaClientProperties().size();
+
+    final int initialPropertiesSize =
+        KafkaPropertiesUtil.assembleKafkaClientProperties(originalReq).size();
 
     KafkaConnectorRequest newReq =
         simpleConnectorRequest(Map.of(SESSION_TIMEOUT_MS_CONFIG, "99999"));
-    final int newPropertiesSize = newReq.assembleKafkaClientProperties().size();
-    final Properties newProps = newReq.assembleKafkaClientProperties();
+    final int newPropertiesSize = KafkaPropertiesUtil.assembleKafkaClientProperties(newReq).size();
+    final Properties newProps = KafkaPropertiesUtil.assembleKafkaClientProperties(newReq);
 
     Assertions.assertThat(newPropertiesSize).isEqualTo(initialPropertiesSize);
     Assertions.assertThat(newProps).containsEntry(SESSION_TIMEOUT_MS_CONFIG, "99999");
   }
 
   private KafkaConnectorRequest simpleConnectorRequest(final Map<String, Object> kafkaProps) {
-    KafkaAuthentication auth = new KafkaAuthentication();
-    auth.setUsername("user1");
-    auth.setPassword("pass1");
-
-    KafkaTopic topic = new KafkaTopic();
-    topic.setTopicName("my-topic");
-    topic.setBootstrapServers("server1:1234,server2:1234");
-
-    KafkaMessage msg = new KafkaMessage();
-    msg.setKey("myKey");
-    msg.setValue("myValue");
-
-    KafkaConnectorRequest req = new KafkaConnectorRequest();
-    req.setAuthentication(auth);
-    req.setTopic(topic);
-    req.setMessage(msg);
-
-    req.setAdditionalProperties(kafkaProps);
-
-    return req;
+    KafkaAuthentication auth = new KafkaAuthentication("user1", "pass1");
+    KafkaTopic topic = new KafkaTopic("server1:1234,server2:1234", "my-topic");
+    KafkaMessage msg = new KafkaMessage("myKey", "myValue");
+    return new KafkaConnectorRequest(
+        SerializationType.JSON, auth, topic, msg, null, null, kafkaProps);
   }
 }

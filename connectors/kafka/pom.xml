@@ -73,6 +73,28 @@ except in compliance with the proprietary license.</license.inlineheader>
       <artifactId>jsonassert</artifactId>
       <scope>test</scope>
     </dependency>
+
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>element-template-generator-core</artifactId>
+    </dependency>
   </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>element-template-generator-maven-plugin</artifactId>
+        <version>${project.version}</version>
+        <configuration>
+          <connectorClasses>
+            <connectorClass>io.camunda.connector.kafka.outbound.KafkaConnectorFunction</connectorClass>
+          </connectorClasses>
+          <generateHybridTemplates>true</generateHybridTemplates>
+          <templateFileName>kafka-outbound-connector</templateFileName>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 
 </project>
