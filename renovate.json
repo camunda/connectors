@@ -7,6 +7,10 @@
     {
       "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
       "automerge": true
+    },
+    {
+      "matchPackagePrefixes": ["io.camunda.connector"],
+      "enabled": false
     }
   ],
   "baseBranches": ["main", "release/8.3", "release/8.4"]
