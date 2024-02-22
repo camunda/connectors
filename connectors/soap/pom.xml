@@ -25,7 +25,7 @@
 
   <properties>
     <version.wss4j>3.0.2</version.wss4j>
-    <version.xmlsec>3.0.3</version.xmlsec>
+    <version.xmlsec>3.0.4</version.xmlsec>
     <version.zeebe-process-test>8.3.0</version.zeebe-process-test>
     <version.commons-text>1.11.0</version.commons-text>
     <version.commons-lang3>3.14.0</version.commons-lang3>
