@@ -12,7 +12,7 @@
 
   <groupId>io.camunda.connector</groupId>
   <artifactId>connector-parent</artifactId>
-  <version>8.4.0-SNAPSHOT</version>
+  <version>8.3.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>Camunda Connector Parent</name>
@@ -69,7 +69,7 @@ limitations under the License.</license.inlineheader>
 
     <!-- Camunda internal libraries -->
     <version.zeebe>8.3.4</version.zeebe>
-    <version.spring-zeebe>8.3.4.8</version.spring-zeebe>
+    <version.spring-zeebe>8.3.6-rc1</version.spring-zeebe>
     <version.feel-engine>1.17.4</version.feel-engine>
 
     <!-- Third party dependencies -->
@@ -530,6 +530,7 @@ limitations under the License.</license.inlineheader>
       <name>Zeebe Snapshot Repository</name>
       <url>https://artifacts.camunda.com/artifactory/zeebe-io-snapshots/</url>
     </repository>
+
   </repositories>
 
   <build>
@@ -825,6 +826,17 @@ limitations under the License.</license.inlineheader>
             </plugin>
           </plugins>
         </pluginManagement>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-enforcer-plugin</artifactId>
+            <configuration>
+              <rules>
+                <requireReleaseDeps/>
+              </rules>
+            </configuration>
+          </plugin>
+        </plugins>
       </build>
     </profile>
   </profiles>

@@ -81,10 +81,10 @@ public class OutboundConnectorManager {
       ZeebeClient client, OutboundConnectorConfiguration connector) {
     ZeebeWorkerValue zeebeWorkerValue =
         new ZeebeWorkerValue()
-            .setName(connector.name())
-            .setType(connector.type())
-            .setFetchVariables(connector.inputVariables())
-            .setAutoComplete(true);
+            .name(connector.name())
+            .type(connector.type())
+            .fetchVariables(connector.inputVariables())
+            .autoComplete(true);
 
     OutboundConnectorFunction connectorFunction = connectorFactory.getInstance(connector.type());
     LOG.trace("Opening worker for connector {}", connector.name());
