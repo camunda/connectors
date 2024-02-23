@@ -61,6 +61,10 @@ public class HttpRequestTask implements Runnable {
           "Error occurred while binding properties for processInstanceKey {}: {}",
           processInstanceContext.getKey(),
           e.getMessage());
+      context.log(
+          Activity.level(Severity.ERROR)
+              .tag("error")
+              .message("Error occurred while binding properties"));
     }
   }
 }
