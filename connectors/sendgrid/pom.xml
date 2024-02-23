@@ -51,7 +51,12 @@ except in compliance with the proprietary license.</license.inlineheader>
           <connectors>
             <connector>
               <connectorClass>io.camunda.connector.sendgrid.SendGridFunction</connectorClass>
-              <templateFileName>sendgrid-outbound-connector</templateFileName>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.SendGrid.v2</templateId>
+                  <templateFileName>sendgrid-outbound-connector.json</templateFileName>
+                </file>
+              </files>
             </connector>
           </connectors>
         </configuration>

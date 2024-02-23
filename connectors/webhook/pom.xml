@@ -86,7 +86,24 @@
           <connectors>
             <connector>
               <connectorClass>io.camunda.connector.inbound.HttpWebhookExecutable</connectorClass>
-              <templateFileName>webhook-connector</templateFileName>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.webhook.WebhookConnector.v1</templateId>
+                  <templateFileName>webhook-connector-start-event.json</templateFileName>
+                </file>
+                <file>
+                  <templateId>io.camunda.connectors.webhook.WebhookConnectorStartMessage.v1</templateId>
+                  <templateFileName>webhook-connector-start-message.json</templateFileName>
+                </file>
+                <file>
+                  <templateId>io.camunda.connectors.webhook.WebhookConnectorIntermediate.v1</templateId>
+                  <templateFileName>webhook-connector-intermediate.json</templateFileName>
+                </file>
+                <file>
+                  <templateId>io.camunda.connectors.webhook.WebhookConnectorBoundary.v1</templateId>
+                  <templateFileName>webhook-connector-boundary.json</templateFileName>
+                </file>
+              </files>
             </connector>
           </connectors>
         </configuration>

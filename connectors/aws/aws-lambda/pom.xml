@@ -50,7 +50,13 @@
           <connectors>
             <connector>
               <connectorClass>io.camunda.connector.awslambda.LambdaConnectorFunction</connectorClass>
-              <templateFileName>aws-lambda-outbound-connector</templateFileName>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.AWSLAMBDA.v2</templateId>
+                  <templateFileName>aws-lambda-outbound-connector.json</templateFileName>
+                </file>
+              </files>
+
             </connector>
           </connectors>
           <includeDependencies>

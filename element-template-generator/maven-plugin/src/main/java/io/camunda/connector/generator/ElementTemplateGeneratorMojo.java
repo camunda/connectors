@@ -17,6 +17,7 @@
 package io.camunda.connector.generator;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.generator.ConnectorConfig.FileNameById;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
 import io.camunda.connector.generator.dsl.ElementTemplate;
@@ -28,7 +29,6 @@ import java.net.URLClassLoader;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoFailureException;
@@ -37,7 +37,6 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
-import org.eclipse.sisu.Nullable;
 
 @Mojo(
     name = "generate-templates",
@@ -60,6 +59,7 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
   private static final ObjectMapper mapper = new ObjectMapper();
 
   private static final String COMPILED_CLASSES_DIR = "target" + File.separator + "classes";
+  private static final String HYBRID_TEMPLATES_DIR = "hybrid";
 
   @Override
   public void execute() throws MojoFailureException {
@@ -105,6 +105,12 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
 
       for (ConnectorConfig connector : connectors) {
         getLog().info("Generating element template for " + connector.getConnectorClass());
+        for (var file : connector.getFiles()) {
+          if (!file.getTemplateFileName().endsWith(".json")) {
+            throw new IllegalArgumentException(
+                "File name must end with .json, but was " + file.getTemplateFileName());
+          }
+        }
         generateElementTemplates(connector, classLoader);
       }
 
@@ -126,47 +132,67 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
     var generatorConfig = new GeneratorConfiguration(ConnectorMode.NORMAL, null, null, null, null);
     var generator = new ClassBasedTemplateGenerator(classLoader);
     var templates = generator.generate(clazz, generatorConfig);
-    writeElementTemplates(templates, false, config.getTemplateFileName());
+    writeElementTemplates(templates, false, config.getFiles());
 
     if (config.isGenerateHybridTemplates()) {
       var hybridGeneratorConfig =
           new GeneratorConfiguration(ConnectorMode.HYBRID, null, null, null, null);
       var hybridTemplates = generator.generate(clazz, hybridGeneratorConfig);
-      writeElementTemplates(hybridTemplates, true, config.getTemplateFileName());
+      writeElementTemplates(hybridTemplates, true, config.getFiles());
     }
   }
 
   private void writeElementTemplates(
-      List<ElementTemplate> templates, boolean hybrid, @Nullable String templateFileName) {
+      List<ElementTemplate> templates, boolean hybrid, List<FileNameById> fileNames) {
     if (templates.size() == 1) {
       var fileName =
-          Optional.ofNullable(templateFileName)
-              .map(name -> name + ".json")
-              .orElse(transformConnectorNameToTemplateFileName(templates.getFirst().name()));
+          fileNames.stream()
+              .filter(f -> f.getTemplateId().equals(templates.getFirst().id()))
+              .findFirst()
+              .map(FileNameById::getTemplateFileName)
+              .orElseGet(
+                  () -> {
+                    getLog()
+                        .warn(
+                            "No file name specified for "
+                                + templates.getFirst().id()
+                                + ". Using default.");
+                    return transformConnectorNameToTemplateFileName(templates.getFirst().name());
+                  });
       if (hybrid) {
         fileName = fileName.replace(".json", "-hybrid.json");
       }
-      writeElementTemplate(templates.getFirst(), fileName);
+      writeElementTemplate(templates.getFirst(), hybrid, fileName);
     } else {
       for (var template : templates) {
-        var elementTypeSuffix = template.elementType().originalType().getId();
         var fileName =
-            Optional.ofNullable(templateFileName)
-                .map(name -> name + "-" + elementTypeSuffix + ".json")
-                .orElse(transformConnectorNameToTemplateFileName(template.name()));
+            fileNames.stream()
+                .filter(f -> f.getTemplateId().equals(template.id()))
+                .findFirst()
+                .map(FileNameById::getTemplateFileName)
+                .orElseGet(
+                    () -> {
+                      getLog()
+                          .warn("No file name specified for " + template.id() + ". Using default.");
+                      return transformConnectorNameToTemplateFileName(template.name());
+                    });
         if (hybrid) {
           fileName = fileName.replace(".json", "-hybrid.json");
         }
-        writeElementTemplate(template, fileName);
+        writeElementTemplate(template, hybrid, fileName);
       }
     }
   }
 
-  private void writeElementTemplate(ElementTemplate template, String fileName) {
+  private void writeElementTemplate(ElementTemplate template, boolean hybrid, String fileName) {
     try {
       getLog().info("Writing element template to " + fileName);
       File file = new File(outputDirectory, fileName);
       file.getParentFile().mkdirs();
+      if (hybrid) {
+        file = new File(outputDirectory + File.separator + HYBRID_TEMPLATES_DIR, fileName);
+        file.getParentFile().mkdirs();
+      }
       mapper.writerWithDefaultPrettyPrinter().writeValue(file, template);
     } catch (Exception e) {
       throw new RuntimeException("Failed to write element template", e);
@@ -177,6 +203,7 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
     // convert human-oriented name to kebab-case
     connectorName = connectorName.replaceAll(" ", "-");
     connectorName = connectorName.replaceAll("([a-z])([A-Z]+)", "$1-$2");
+    connectorName = connectorName.replaceAll("[^a-zA-Z0-9-]", "");
     connectorName = connectorName.toLowerCase();
     return connectorName + ".json";
   }

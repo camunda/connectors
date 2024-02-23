@@ -13,6 +13,9 @@
     "value" : "bpmn:ServiceTask"
   },
   "groups" : [ {
+    "id" : "taskDefinitionType",
+    "label" : "Task definition type"
+  }, {
     "id" : "connection",
     "label" : "Connection"
   }, {
@@ -35,12 +38,14 @@
     "label" : "Retries"
   } ],
   "properties" : [ {
+    "id" : "taskDefinitionType",
     "value" : "io.camunda:soap:1",
+    "group" : "taskDefinitionType",
     "binding" : {
       "property" : "type",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "Hidden"
+    "type" : "String"
   }, {
     "id" : "serviceUrl",
     "label" : "Service URL",

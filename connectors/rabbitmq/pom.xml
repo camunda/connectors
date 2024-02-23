@@ -56,7 +56,12 @@
           <connectors>
             <connector>
               <connectorClass>io.camunda.connector.rabbitmq.outbound.RabbitMqFunction</connectorClass>
-              <templateFileName>rabbitmq-outbound-connector</templateFileName>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.RabbitMQ.v1</templateId>
+                  <templateFileName>rabbitmq-outbound-connector.json</templateFileName>
+                </file>
+              </files>
               <generateHybridTemplates>true</generateHybridTemplates>
             </connector>
           </connectors>

@@ -59,7 +59,12 @@ except in compliance with the proprietary license.</license.inlineheader>
           <connectors>
             <connector>
               <connectorClass>io.camunda.connector.sns.outbound.SnsConnectorFunction</connectorClass>
-              <templateFileName>aws-sns-outbound-connector</templateFileName>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.AWSSNS.v1</templateId>
+                  <templateFileName>aws-sns-outbound-connector.json</templateFileName>
+                </file>
+              </files>
             </connector>
           </connectors>
           <includeDependencies>

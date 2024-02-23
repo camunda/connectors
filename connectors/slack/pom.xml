@@ -68,7 +68,12 @@
           <connectors>
             <connector>
               <connectorClass>io.camunda.connector.slack.outbound.SlackFunction</connectorClass>
-              <templateFileName>slack-outbound-connector</templateFileName>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.Slack.v1</templateId>
+                  <templateFileName>slack-outbound-connector.json</templateFileName>
+                </file>
+              </files>
               <generateHybridTemplates>true</generateHybridTemplates>
             </connector>
           </connectors>

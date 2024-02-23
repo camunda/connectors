@@ -89,7 +89,12 @@ limitations under the License.</license.inlineheader>
           <connectors>
             <connector>
               <connectorClass>io.camunda.connector.http.rest.HttpJsonFunction</connectorClass>
-              <templateFileName>http-json-connector</templateFileName>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.HttpJson.v2</templateId>
+                  <templateFileName>http-json-connector.json</templateFileName>
+                </file>
+              </files>
               <generateHybridTemplates>true</generateHybridTemplates>
             </connector>
           </connectors>

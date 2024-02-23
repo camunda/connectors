@@ -173,7 +173,12 @@
           <connectors>
             <connector>
               <connectorClass>io.camunda.connectors.soap.SoapConnector</connectorClass>
-              <templateFileName>soap-connector</templateFileName>
+              <files>
+                <file>
+                  <templateId>io.camunda:soap</templateId>
+                  <templateFileName>soap-connector.json</templateFileName>
+                </file>
+              </files>
               <generateHybridTemplates>true</generateHybridTemplates>
             </connector>
           </connectors>

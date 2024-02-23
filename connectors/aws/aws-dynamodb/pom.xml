@@ -49,7 +49,12 @@
                     <connectors>
                         <connector>
                             <connectorClass>io.camunda.connector.aws.dynamodb.AwsDynamoDbServiceConnectorFunction</connectorClass>
-                            <templateFileName>aws-dynamodb-outbound-connector</templateFileName>
+                            <files>
+                                <file>
+                                    <templateId>io.camunda.connectors.AWSDynamoDB.v1</templateId>
+                                    <templateFileName>aws-dynamodb-outbound-connector.json</templateFileName>
+                                </file>
+                            </files>
                         </connector>
                     </connectors>
                     <includeDependencies>

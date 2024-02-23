@@ -16,13 +16,38 @@
  */
 package io.camunda.connector.generator;
 
+import java.util.List;
+
 public class ConnectorConfig {
 
   private String connectorClass;
 
   private boolean generateHybridTemplates = false;
 
-  private String templateFileName;
+  private List<FileNameById> files = List.of();
+
+  public static class FileNameById {
+    private String templateId;
+    private String templateFileName;
+
+    public FileNameById() {}
+
+    public String getTemplateId() {
+      return templateId;
+    }
+
+    public void setTemplateId(String id) {
+      this.templateId = id;
+    }
+
+    public String getTemplateFileName() {
+      return templateFileName;
+    }
+
+    public void setTemplateFileName(String templateFileName) {
+      this.templateFileName = templateFileName;
+    }
+  }
 
   public ConnectorConfig() {}
 
@@ -38,15 +63,15 @@ public class ConnectorConfig {
     return generateHybridTemplates;
   }
 
+  public List<FileNameById> getFiles() {
+    return files;
+  }
+
+  public void setFiles(List<FileNameById> files) {
+    this.files = files;
+  }
+
   public void setGenerateHybridTemplates(boolean generateHybridTemplates) {
     this.generateHybridTemplates = generateHybridTemplates;
-  }
-
-  public String getTemplateFileName() {
-    return templateFileName;
-  }
-
-  public void setTemplateFileName(String templateFileName) {
-    this.templateFileName = templateFileName;
   }
 }

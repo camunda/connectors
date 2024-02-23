@@ -74,7 +74,12 @@
           <connectors>
             <connector>
               <connectorClass>io.camunda.connector.http.graphql.GraphQLFunction</connectorClass>
-              <templateFileName>graphql-outbound-connector</templateFileName>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.GraphQL.v1</templateId>
+                  <templateFileName>graphql-outbound-connector.json</templateFileName>
+                </file>
+              </files>
             </connector>
           </connectors>
           <includeDependencies>

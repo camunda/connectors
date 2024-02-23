@@ -52,7 +52,12 @@
           <connectors>
             <connector>
               <connectorClass>io.camunda.connector.aws.eventbridge.EventBridgeFunction</connectorClass>
-              <templateFileName>aws-eventbridge-outbound-connector</templateFileName>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.AWSEventBridge.v1</templateId>
+                  <templateFileName>aws-eventbridge-outbound-connector.json</templateFileName>
+                </file>
+              </files>
             </connector>
           </connectors>
           <includeDependencies>

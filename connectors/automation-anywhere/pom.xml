@@ -42,7 +42,12 @@
           <connectors>
             <connector>
               <connectorClass>io.camunda.connector.automationanywhere.AutomationAnywhereConnector</connectorClass>
-              <templateFileName>automation-anywhere-outbound-connector</templateFileName>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.AutomationAnywhere</templateId>
+                  <templateFileName>automation-anywhere-outbound-connector.json</templateFileName>
+                </file>
+              </files>
             </connector>
           </connectors>
         </configuration>
