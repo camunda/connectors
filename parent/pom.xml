@@ -109,6 +109,7 @@ limitations under the License.</license.inlineheader>
     <version.httpcore>4.4.16</version.httpcore>
 
     <version.commons-io>2.15.1</version.commons-io>
+    <version.commons-codec>1.16.1</version.commons-codec>
 
     <version.kafka-clients>3.6.1</version.kafka-clients>
 
