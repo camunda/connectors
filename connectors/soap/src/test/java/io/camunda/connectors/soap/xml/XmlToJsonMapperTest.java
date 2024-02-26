@@ -84,7 +84,11 @@ public class XmlToJsonMapperTest {
     String xmlString =
         mapper.toXmlString(objectMapper.readValue(jsonString, new TypeReference<>() {})).trim();
     String matcher = getResource(xmlFile).trim();
-    assertThat(xmlString).isEqualTo(matcher);
+    assertThat(removeCRChars(xmlString)).isEqualTo(removeCRChars(matcher));
+  }
+
+  private String removeCRChars(String string) {
+    return string.replace("\r", "");
   }
 
   private String getResource(String filename) {
