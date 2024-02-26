@@ -61,11 +61,6 @@
       <version>${version.auth0.jwt}</version>
     </dependency>
     <dependency>
-      <groupId>com.nimbusds</groupId>
-      <artifactId>nimbus-jose-jwt</artifactId>
-      <version>${version.nimbus.jose.jwt}</version>
-    </dependency>
-    <dependency>
       <groupId>com.auth0</groupId>
       <artifactId>jwks-rsa</artifactId>
       <version>${version.auth0.jwks}</version>
