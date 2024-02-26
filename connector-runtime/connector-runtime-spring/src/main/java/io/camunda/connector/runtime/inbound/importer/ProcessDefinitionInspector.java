@@ -312,8 +312,10 @@ public class ProcessDefinitionInspector {
 
   private String extractRequiredProperty(BaseElement element, String name) {
     return extractProperty(element, name)
-        .orElseThrow(() ->
-            new InvalidInboundConnectorDefinitionException("Missing required property " + name));
+        .orElseThrow(
+            () ->
+                new InvalidInboundConnectorDefinitionException(
+                    "Missing required property " + name));
   }
 
   private Optional<String> extractProperty(BaseElement element, String name) {
