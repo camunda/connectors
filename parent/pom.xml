@@ -100,6 +100,9 @@ limitations under the License.</license.inlineheader>
 
     <version.httpcore>4.4.16</version.httpcore>
 
+    <version.commons-io>2.15.1</version.commons-io>
+    <version.commons-codec>1.16.1</version.commons-codec>
+
     <version.kafka-clients>3.6.1</version.kafka-clients>
 
     <version.microsoft-graph>5.80.0</version.microsoft-graph>
@@ -121,7 +124,6 @@ limitations under the License.</license.inlineheader>
 
     <version.wiremock>3.0.1</version.wiremock>
     <version.auth0.jwt>4.4.0</version.auth0.jwt>
-    <version.nimbus.jose.jwt>9.37.3</version.nimbus.jose.jwt>
     <version.auth0.jwks>0.22.1</version.auth0.jwks>
 
     <!-- maven plugins (not managed by parent) -->
@@ -421,6 +423,20 @@ limitations under the License.</license.inlineheader>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-lang3</artifactId>
         <version>3.14.0</version>
+      </dependency>
+
+      <!-- Fixes CWE-770 -->
+      <dependency>
+        <groupId>com.nimbusds</groupId>
+        <artifactId>nimbus-jose-jwt</artifactId>
+        <version>9.37.3</version>
+      </dependency>
+
+      <!-- Fixes CWE-835 -->
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-compress</artifactId>
+        <version>1.26.0</version>
       </dependency>
 
       <!-- FIXME: maven resolves protobuf to 3.21.x while zeebe-client is compiled for 3.22.2. This is a temporary fix to be reassessed later. -->
