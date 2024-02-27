@@ -169,8 +169,11 @@
   }, {
     "id" : "avro.schema",
     "label" : "Avro schema",
-    "description" : "Optional Avro schema for the message value",
-    "optional" : true,
+    "description" : "Avro schema for the message value",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "required",
     "group" : "message",
     "binding" : {
