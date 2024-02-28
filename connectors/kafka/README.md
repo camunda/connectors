@@ -48,4 +48,4 @@ mvn clean package
 
 ## Element Template
 
-The element templates can be found in the [element-templates/kafka-connector.json](element-templates/kafka-connector.json) file.
+The element templates can be found in the [element-templates/kafka--outbound-connector.json](element-templates/kafka-outbound-connector.json) file.

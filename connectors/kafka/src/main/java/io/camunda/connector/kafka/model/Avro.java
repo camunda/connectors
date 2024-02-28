@@ -15,12 +15,12 @@ public record Avro(
         @TemplateProperty(
             group = "message",
             feel = Property.FeelMode.required,
-            optional = true,
             type = TemplateProperty.PropertyType.Text,
             label = "Avro schema",
+            constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             condition =
                 @TemplateProperty.PropertyCondition(
                     property = "serializationType",
                     equals = "avro"),
-            description = "Optional Avro schema for the message value")
+            description = "Avro schema for the message value")
         String schema) {}
