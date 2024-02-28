@@ -17,8 +17,7 @@
 package io.camunda.connector.e2e;
 
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.when;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
@@ -28,6 +27,7 @@ import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -77,7 +77,7 @@ public abstract class BaseEasyPostTest {
 
   @BeforeEach
   void beforeEach() {
-    doNothing().when(processDefinitionSearch).query(any());
+    when(processDefinitionSearch.query()).thenReturn(Collections.emptyList());
   }
 
   protected ZeebeTest setupTestWithBpmnModel(String taskName, File elementTemplate) {
