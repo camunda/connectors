@@ -176,7 +176,7 @@
               <files>
                 <file>
                   <templateId>io.camunda:soap</templateId>
-                  <templateFileName>soap-connector.json</templateFileName>
+                  <templateFileName>soap-outbound-connector.json</templateFileName>
                 </file>
               </files>
               <generateHybridTemplates>true</generateHybridTemplates>

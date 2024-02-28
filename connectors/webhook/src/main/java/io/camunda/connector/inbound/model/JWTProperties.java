@@ -15,8 +15,8 @@ import java.util.function.Function;
 
 public record JWTProperties(
     @TemplateProperty(
-            label = "JWK url",
-            description = "Well-known url of JWKs",
+            label = "JWK URL",
+            description = "Well-known URL of JWKs",
             group = "authorization")
         @FEEL
         String jwkUrl,

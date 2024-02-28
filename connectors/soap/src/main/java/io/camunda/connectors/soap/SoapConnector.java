@@ -29,7 +29,7 @@ import org.springframework.ws.soap.client.SoapFaultClientException;
     type = SoapConnector.SOAP_CONNECTOR_TYPE,
     inputVariables = {})
 @ElementTemplate(
-    id = "io.camunda.consulting:soap",
+    id = "io.camunda:soap",
     name = "SOAP Connector",
     icon = "icon.svg",
     version = 1,

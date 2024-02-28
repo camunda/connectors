@@ -202,7 +202,7 @@
       "name" : "Basic",
       "value" : "BASIC"
     }, {
-      "name" : "API Key",
+      "name" : "API key",
       "value" : "APIKEY"
     }, {
       "name" : "JWT",
@@ -244,7 +244,7 @@
     "type" : "String"
   }, {
     "id" : "inbound.auth.apiKey",
-    "label" : "API Key",
+    "label" : "API key",
     "description" : "Expected API key",
     "optional" : false,
     "feel" : "optional",
@@ -261,7 +261,7 @@
     "type" : "String"
   }, {
     "id" : "inbound.auth.apiKeyLocator",
-    "label" : "API Key locator",
+    "label" : "API key locator",
     "description" : "A FEEL expression that extracts API key from the request. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/#how-to-configure-api-key-authorization'>See documentation</a>",
     "optional" : false,
     "feel" : "required",
@@ -278,8 +278,8 @@
     "type" : "String"
   }, {
     "id" : "inbound.auth.jwt.jwkUrl",
-    "label" : "JWK url",
-    "description" : "Well-known url of JWKs",
+    "label" : "JWK URL",
+    "description" : "Well-known URL of JWKs",
     "optional" : false,
     "feel" : "optional",
     "group" : "authorization",

@@ -53,16 +53,16 @@ public sealed interface WebhookAuthorization {
           String password)
       implements WebhookAuthorization {}
 
-  @TemplateSubType(id = "APIKEY", label = "API Key")
+  @TemplateSubType(id = "APIKEY", label = "API key")
   record ApiKeyAuth(
       @TemplateProperty(
-              label = "API Key",
+              label = "API key",
               description = "Expected API key",
               group = "authorization")
           @FEEL
           String apiKey,
       @TemplateProperty(
-              label = "API Key locator",
+              label = "API key locator",
               description =
                   "A FEEL expression that extracts API key from the request. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/#how-to-configure-api-key-authorization'>See documentation</a>",
               group = "authorization",
