@@ -183,6 +183,10 @@
         {
           "name": "GPT-4",
           "value": "gpt-4"
+        },
+        {
+          "name": "GPT-4-turbo-preview",
+          "value": "gpt-4-turbo-preview"
         }
       ],
       "binding": {
