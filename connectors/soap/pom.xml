@@ -163,4 +163,31 @@
 
   </dependencies>
 
+  <build>
+    <plugins>
+      <!-- TODO: https://github.com/camunda/connectors/issues/2058 -->
+      <!--
+      <plugin>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>element-template-generator-maven-plugin</artifactId>
+        <version>${project.version}</version>
+        <configuration>
+          <connectors>
+            <connector>
+              <connectorClass>io.camunda.connectors.soap.SoapConnector</connectorClass>
+              <files>
+                <file>
+                  <templateId>io.camunda:soap</templateId>
+                  <templateFileName>soap-outbound-connector.json</templateFileName>
+                </file>
+              </files>
+              <generateHybridTemplates>true</generateHybridTemplates>
+            </connector>
+          </connectors>
+        </configuration>
+      </plugin>
+      -->
+    </plugins>
+  </build>
+
 </project>

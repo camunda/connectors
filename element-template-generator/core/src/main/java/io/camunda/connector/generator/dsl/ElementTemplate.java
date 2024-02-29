@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.generator.dsl;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -39,7 +40,7 @@ import java.util.Set;
   "properties"
 })
 @JsonInclude(Include.NON_NULL)
-public record OutboundElementTemplate(
+public record ElementTemplate(
     String id,
     String name,
     int version,
@@ -49,10 +50,21 @@ public record OutboundElementTemplate(
     ElementTypeWrapper elementType,
     List<PropertyGroup> groups,
     List<Property> properties,
-    ElementTemplateIcon icon)
-    implements ElementTemplateBase {
+    ElementTemplateIcon icon) {
 
-  public OutboundElementTemplate {
+  public static ElementTemplateBuilder builderForOutbound() {
+    return ElementTemplateBuilder.createOutbound();
+  }
+
+  public static ElementTemplateBuilder builderForInbound() {
+    return ElementTemplateBuilder.createInbound();
+  }
+
+  static final String SCHEMA_FIELD_NAME = "$schema";
+  static final String SCHEMA_URL =
+      "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json";
+
+  public ElementTemplate {
     List<String> errors = new ArrayList<>();
     if (id == null) {
       errors.add("id is required");
@@ -100,12 +112,14 @@ public record OutboundElementTemplate(
     return ElementTemplateCategory.CONNECTORS;
   }
 
-  public static OutboundElementTemplateBuilder builder() {
-    return OutboundElementTemplateBuilder.create();
+  @JsonProperty(SCHEMA_FIELD_NAME)
+  public String schema() {
+    return SCHEMA_URL;
   }
 
   @JsonInclude(Include.NON_NULL)
-  public record ElementTypeWrapper(String value, String eventDefinition) {
+  public record ElementTypeWrapper(
+      String value, String eventDefinition, @JsonIgnore BpmnType originalType) {
 
     public static ElementTypeWrapper from(BpmnType value) {
       var haveEventDefinition =
@@ -113,11 +127,14 @@ public record OutboundElementTemplate(
               BpmnType.INTERMEDIATE_CATCH_EVENT,
               BpmnType.INTERMEDIATE_THROW_EVENT,
               BpmnType.MESSAGE_START_EVENT,
-              BpmnType.MESSAGE_END_EVENT);
+              BpmnType.MESSAGE_END_EVENT,
+              BpmnType.BOUNDARY_EVENT);
       var messageEventDefinition = "bpmn:MessageEventDefinition";
 
       return new ElementTypeWrapper(
-          value.getName(), haveEventDefinition.contains(value) ? messageEventDefinition : null);
+          value.getName(),
+          haveEventDefinition.contains(value) ? messageEventDefinition : null,
+          value);
     }
   }
 }

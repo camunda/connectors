@@ -326,11 +326,11 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "POST",
-      "value" : "post"
-    }, {
       "name" : "GET",
       "value" : "get"
+    }, {
+      "name" : "POST",
+      "value" : "post"
     } ]
   }, {
     "id" : "graphql.url",

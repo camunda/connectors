@@ -25,6 +25,7 @@ public abstract class PropertyBuilder {
   protected String description;
   protected Boolean optional;
   protected String value;
+  protected Property.GeneratedValue generatedValue;
   protected PropertyConstraints constraints;
   protected FeelMode feel;
   protected String group;
@@ -67,7 +68,18 @@ public abstract class PropertyBuilder {
   }
 
   public PropertyBuilder value(String value) {
+    if (generatedValue != null) {
+      throw new IllegalStateException("Generated value is already set");
+    }
     this.value = value;
+    return this;
+  }
+
+  public PropertyBuilder generatedValue() {
+    if (value != null) {
+      throw new IllegalStateException("Value is already set");
+    }
+    this.generatedValue = new Property.GeneratedValue("uuid");
     return this;
   }
 

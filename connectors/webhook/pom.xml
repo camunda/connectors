@@ -36,6 +36,10 @@
       <artifactId>jackson-datatype-feel</artifactId>
     </dependency>
     <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>element-template-generator-core</artifactId>
+    </dependency>
+    <dependency>
       <groupId>javax.xml.bind</groupId>
       <artifactId>jaxb-api</artifactId>
       <version>${version.javax.xml.bind}</version>
@@ -72,5 +76,39 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>element-template-generator-maven-plugin</artifactId>
+        <configuration>
+          <connectors>
+            <connector>
+              <connectorClass>io.camunda.connector.inbound.HttpWebhookExecutable</connectorClass>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.webhook.WebhookConnector.v1</templateId>
+                  <templateFileName>webhook-connector-start-event.json</templateFileName>
+                </file>
+                <file>
+                  <templateId>io.camunda.connectors.webhook.WebhookConnectorStartMessage.v1</templateId>
+                  <templateFileName>webhook-connector-start-message.json</templateFileName>
+                </file>
+                <file>
+                  <templateId>io.camunda.connectors.webhook.WebhookConnectorIntermediate.v1</templateId>
+                  <templateFileName>webhook-connector-intermediate.json</templateFileName>
+                </file>
+                <file>
+                  <templateId>io.camunda.connectors.webhook.WebhookConnectorBoundary.v1</templateId>
+                  <templateFileName>webhook-connector-boundary.json</templateFileName>
+                </file>
+              </files>
+            </connector>
+          </connectors>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 
 </project>

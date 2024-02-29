@@ -87,9 +87,9 @@ public class JWTAuthHandlerTest {
     JwkProvider jwkProvider = new TestJwkProvider();
     JWTProperties jwtProperties =
         new JWTProperties(
-            List.of("admin"),
+            "https://mockUrl.com",
             getRoleExpressionFunction("=if admin = true then [\"admin\"] else roles"),
-            "https://mockUrl.com");
+            List.of("admin"));
     var headers = Map.of("Authorization", "Bearer " + JWT_TOKEN);
     var handler = new JWTAuthHandler(new JwtAuth(jwtProperties), jwkProvider, objectMapper);
     var payload = new TestWebhookProcessingPayload(headers);
@@ -111,9 +111,9 @@ public class JWTAuthHandlerTest {
     JwkProvider jwkProvider = new TestES512JwkProvider();
     JWTProperties jwtProperties =
         new JWTProperties(
-            List.of("admin"),
+            "https://mockUrl.com",
             getRoleExpressionFunction("=if admin = true then [\"admin\"] else roles"),
-            "https://mockUrl.com");
+            List.of("admin"));
     var headers = Map.of("Authorization", "Bearer " + JWT_WITH_ES512_ALGORITHM_TOKEN);
     var handler = new JWTAuthHandler(new JwtAuth(jwtProperties), jwkProvider, objectMapper);
     var payload = new TestWebhookProcessingPayload(headers);
@@ -131,9 +131,9 @@ public class JWTAuthHandlerTest {
     JwkProvider jwkProvider = new TestJwkProvider();
     JWTProperties jwtProperties =
         new JWTProperties(
-            List.of("admin"),
+            "https://mockUrl.com",
             getRoleExpressionFunction("=if admin = true then [\"admin\"] else roles"),
-            "https://mockUrl.com");
+            List.of("admin"));
     var headers = Map.of("Authorization", "Bearer " + WRONG_JWT_TOKEN);
     var handler = new JWTAuthHandler(new JwtAuth(jwtProperties), jwkProvider, objectMapper);
     var payload = new TestWebhookProcessingPayload(headers);
@@ -151,9 +151,9 @@ public class JWTAuthHandlerTest {
     JwkProvider jwkProvider = new TestJwkProvider();
     JWTProperties jwtProperties =
         new JWTProperties(
-            List.of("admin"),
+            "https://mockUrl.com",
             getRoleExpressionFunction("=if admin = true then [\"admin\"] else roles"),
-            "https://mockUrl.com");
+            List.of("admin"));
     var headers = Map.of("Authorization", "Bearer " + EXPIRED_JWT_TOKEN);
     var handler = new JWTAuthHandler(new JwtAuth(jwtProperties), jwkProvider, objectMapper);
     var payload = new TestWebhookProcessingPayload(headers);
@@ -171,9 +171,9 @@ public class JWTAuthHandlerTest {
     JwkProvider jwkProvider = new TestJwkProvider();
     JWTProperties jwtProperties =
         new JWTProperties(
-            List.of("admin"),
+            "https://mockUrl.com",
             getRoleExpressionFunction("=if admin = true then [\"admin\"] else roles"),
-            "https://mockUrl.com");
+            List.of("admin"));
     var headers = Map.of("Authorization", "Bearer " + NOT_ENOUGH_PERMISSION_JWT_TOKEN);
     var handler = new JWTAuthHandler(new JwtAuth(jwtProperties), jwkProvider, objectMapper);
     var payload = new TestWebhookProcessingPayload(headers);
@@ -191,10 +191,10 @@ public class JWTAuthHandlerTest {
     JwkProvider jwkProvider = new TestJwkProvider();
     JWTProperties jwtProperties =
         new JWTProperties(
-            List.of("admin"),
+            "https://mockUrl.com",
             getRoleExpressionFunction(
                 "=if admin = true then [\"wrongPermission\"] else wrongPermission"),
-            "https://mockUrl.com");
+            List.of("admin"));
     var headers = Map.of("Authorization", "Bearer " + JWT_TOKEN);
     var handler = new JWTAuthHandler(new JwtAuth(jwtProperties), jwkProvider, objectMapper);
     var payload = new TestWebhookProcessingPayload(headers);
@@ -210,7 +210,7 @@ public class JWTAuthHandlerTest {
   public void jwtCheckWithOutRoles() {
     // given jwt, check only signature
     JwkProvider jwkProvider = new TestJwkProvider();
-    JWTProperties jwtProperties = new JWTProperties(null, null, "https://mockUrl.com");
+    JWTProperties jwtProperties = new JWTProperties("https://mockUrl.com", null, null);
     var headers = Map.of("Authorization", "Bearer " + JWT_TOKEN);
     var handler = new JWTAuthHandler(new JwtAuth(jwtProperties), jwkProvider, objectMapper);
     var payload = new TestWebhookProcessingPayload(headers);

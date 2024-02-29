@@ -47,13 +47,21 @@
         <artifactId>element-template-generator-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <connectorClasses>
-            <connectorClass>io.camunda.connector.awslambda.LambdaConnectorFunction</connectorClass>
-          </connectorClasses>
+          <connectors>
+            <connector>
+              <connectorClass>io.camunda.connector.awslambda.LambdaConnectorFunction</connectorClass>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.AWSLAMBDA.v2</templateId>
+                  <templateFileName>aws-lambda-outbound-connector.json</templateFileName>
+                </file>
+              </files>
+
+            </connector>
+          </connectors>
           <includeDependencies>
             <includeDependency>io.camunda.connector:connector-aws-base</includeDependency>
           </includeDependencies>
-          <templateFileName>aws-lambda-outbound-connector</templateFileName>
         </configuration>
       </plugin>
     </plugins>

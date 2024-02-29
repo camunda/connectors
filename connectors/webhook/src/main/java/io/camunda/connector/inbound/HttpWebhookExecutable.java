@@ -15,13 +15,16 @@ import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.VerifiableWebhook;
-import io.camunda.connector.api.inbound.webhook.VerifiableWebhook.WebhookHttpVerificationResult;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorException;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorException.WebhookSecurityException;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorException.WebhookSecurityException.Reason;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookResult;
+import io.camunda.connector.generator.dsl.BpmnType;
+import io.camunda.connector.generator.java.annotation.ElementTemplate;
+import io.camunda.connector.generator.java.annotation.ElementTemplate.ConnectorElementType;
+import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
 import io.camunda.connector.inbound.authorization.AuthorizationResult.Failure;
 import io.camunda.connector.inbound.authorization.WebhookAuthorizationHandler;
 import io.camunda.connector.inbound.model.WebhookConnectorProperties;
@@ -43,6 +46,43 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @InboundConnector(name = "Webhook", type = "io.camunda:webhook:1")
+@ElementTemplate(
+    id = "io.camunda.connectors.webhook",
+    name = "Webhook Connector",
+    icon = "icon.svg",
+    version = 10,
+    inputDataClass = WebhookConnectorPropertiesWrapper.class,
+    description = "Configure webhook to receive callbacks",
+    documentationRef =
+        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/",
+    propertyGroups = {
+      @PropertyGroup(id = "endpoint", label = "Webhook configuration"),
+      @PropertyGroup(id = "authentication", label = "Authentication"),
+      @PropertyGroup(id = "authorization", label = "Authorization"),
+      @PropertyGroup(id = "webhookResponse", label = "Webhook response")
+    },
+    elementTypes = {
+      @ConnectorElementType(
+          appliesTo = BpmnType.START_EVENT,
+          elementType = BpmnType.START_EVENT,
+          templateIdOverride = "io.camunda.connectors.webhook.WebhookConnector.v1",
+          templateNameOverride = "Webhook Start Event Connector"),
+      @ConnectorElementType(
+          appliesTo = BpmnType.START_EVENT,
+          elementType = BpmnType.MESSAGE_START_EVENT,
+          templateIdOverride = "io.camunda.connectors.webhook.WebhookConnectorStartMessage.v1",
+          templateNameOverride = "Webhook Message Start Event Connector"),
+      @ConnectorElementType(
+          appliesTo = {BpmnType.INTERMEDIATE_THROW_EVENT, BpmnType.INTERMEDIATE_CATCH_EVENT},
+          elementType = BpmnType.INTERMEDIATE_CATCH_EVENT,
+          templateIdOverride = "io.camunda.connectors.webhook.WebhookConnectorIntermediate.v1",
+          templateNameOverride = "Webhook Intermediate Event Connector"),
+      @ConnectorElementType(
+          appliesTo = BpmnType.BOUNDARY_EVENT,
+          elementType = BpmnType.BOUNDARY_EVENT,
+          templateIdOverride = "io.camunda.connectors.webhook.WebhookConnectorBoundary.v1",
+          templateNameOverride = "Webhook Boundary Event Connector")
+    })
 public class HttpWebhookExecutable implements WebhookConnectorExecutable, VerifiableWebhook {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(HttpWebhookExecutable.class);

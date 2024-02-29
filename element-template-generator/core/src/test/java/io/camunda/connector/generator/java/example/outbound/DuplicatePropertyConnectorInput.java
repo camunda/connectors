@@ -14,18 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.generator.dsl;
+package io.camunda.connector.generator.java.example.outbound;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
 
-public interface ElementTemplateBase {
-
-  String SCHEMA_FIELD_NAME = "$schema";
-  String SCHEMA_URL =
-      "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json";
-
-  @JsonProperty(SCHEMA_FIELD_NAME)
-  default String schema() {
-    return SCHEMA_URL;
-  }
-}
+public record DuplicatePropertyConnectorInput(
+    @TemplateProperty(id = "prop") String prop1, @TemplateProperty(id = "prop") String prop2) {}

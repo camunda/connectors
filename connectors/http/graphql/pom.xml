@@ -71,14 +71,20 @@
         <artifactId>element-template-generator-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <connectorClasses>
-            <connectorClass>io.camunda.connector.http.graphql.GraphQLFunction</connectorClass>
-          </connectorClasses>
+          <connectors>
+            <connector>
+              <connectorClass>io.camunda.connector.http.graphql.GraphQLFunction</connectorClass>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.GraphQL.v1</templateId>
+                  <templateFileName>graphql-outbound-connector.json</templateFileName>
+                </file>
+              </files>
+            </connector>
+          </connectors>
           <includeDependencies>
             <includeDependency>io.camunda.connector:connector-http-base</includeDependency>
           </includeDependencies>
-          <generateHybridTemplates>true</generateHybridTemplates>
-          <templateFileName>graphql-outbound-connector</templateFileName>
         </configuration>
       </plugin>
     </plugins>

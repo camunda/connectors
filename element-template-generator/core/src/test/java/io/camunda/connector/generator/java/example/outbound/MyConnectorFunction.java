@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.generator.java.example;
+package io.camunda.connector.generator.java.example.outbound;
 
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
@@ -117,7 +117,9 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
             elementType = BpmnType.MESSAGE_END_EVENT),
         @ConnectorElementType(
             appliesTo = BpmnType.INTERMEDIATE_THROW_EVENT,
-            elementType = BpmnType.INTERMEDIATE_THROW_EVENT)
+            elementType = BpmnType.INTERMEDIATE_THROW_EVENT,
+            templateNameOverride = "My custom name for intermediate event",
+            templateIdOverride = "my-custom-id-for-intermediate-event")
       },
       icon = "my-connector-icon.png")
   public static class WithMultipleElementTypes extends MyConnectorFunction {}

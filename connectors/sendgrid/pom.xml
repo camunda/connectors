@@ -48,10 +48,17 @@ except in compliance with the proprietary license.</license.inlineheader>
         <artifactId>element-template-generator-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <connectorClasses>
-            <connectorClass>io.camunda.connector.sendgrid.SendGridFunction</connectorClass>
-          </connectorClasses>
-          <templateFileName>sendgrid-outbound-connector</templateFileName>
+          <connectors>
+            <connector>
+              <connectorClass>io.camunda.connector.sendgrid.SendGridFunction</connectorClass>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.SendGrid.v2</templateId>
+                  <templateFileName>sendgrid-outbound-connector.json</templateFileName>
+                </file>
+              </files>
+            </connector>
+          </connectors>
         </configuration>
       </plugin>
     </plugins>

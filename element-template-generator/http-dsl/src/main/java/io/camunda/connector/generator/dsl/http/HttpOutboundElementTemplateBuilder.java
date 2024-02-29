@@ -17,9 +17,9 @@
 package io.camunda.connector.generator.dsl.http;
 
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElementType;
+import io.camunda.connector.generator.dsl.ElementTemplate;
+import io.camunda.connector.generator.dsl.ElementTemplateBuilder;
 import io.camunda.connector.generator.dsl.ElementTemplateIcon;
-import io.camunda.connector.generator.dsl.OutboundElementTemplate;
-import io.camunda.connector.generator.dsl.OutboundElementTemplateBuilder;
 import io.camunda.connector.generator.dsl.PropertyGroup;
 import io.camunda.connector.generator.dsl.http.HttpAuthentication.NoAuth;
 import java.util.ArrayList;
@@ -31,7 +31,7 @@ public class HttpOutboundElementTemplateBuilder {
 
   private static final String CONNECTOR_TYPE = "io.camunda:http-json:1";
 
-  private final OutboundElementTemplateBuilder builder;
+  private final ElementTemplateBuilder builder;
 
   private Collection<HttpServerData> servers;
   private Collection<HttpOperation> operations;
@@ -39,7 +39,7 @@ public class HttpOutboundElementTemplateBuilder {
 
   private HttpOutboundElementTemplateBuilder(boolean configurable) {
     builder =
-        OutboundElementTemplateBuilder.create()
+        ElementTemplateBuilder.createOutbound()
             .type(CONNECTOR_TYPE, configurable)
             .icon(ElementTemplateIcon.from("rest-connector-icon.svg", getClass().getClassLoader()));
   }
@@ -124,7 +124,7 @@ public class HttpOutboundElementTemplateBuilder {
     return this;
   }
 
-  public OutboundElementTemplate build() {
+  public ElementTemplate build() {
     if (operations == null || operations.isEmpty()) {
       throw new IllegalStateException("Could not find any supported operations");
     }
@@ -140,7 +140,7 @@ public class HttpOutboundElementTemplateBuilder {
                 PropertyUtil.parametersPropertyGroup(operations),
                 PropertyUtil.requestBodyPropertyGroup(operations),
                 PropertyUtil.urlPropertyGroup(),
-                PropertyGroup.OUTPUT_GROUP,
+                PropertyGroup.OUTPUT_GROUP_OUTBOUND,
                 PropertyGroup.ERROR_GROUP,
                 PropertyGroup.RETRIES_GROUP))
         .build();

@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.generator.java;
 
+import static io.camunda.connector.generator.java.util.TemplateGenerationStringUtil.camelCaseToSpaces;
 import static java.nio.file.Files.readAllBytes;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -30,7 +31,7 @@ import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
 import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.dsl.DropdownProperty;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
-import io.camunda.connector.generator.dsl.OutboundElementTemplate.ElementTypeWrapper;
+import io.camunda.connector.generator.dsl.ElementTemplate.ElementTypeWrapper;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.dsl.PropertyBinding;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
@@ -42,7 +43,7 @@ import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
 import io.camunda.connector.generator.dsl.PropertyConstraints.Pattern;
 import io.camunda.connector.generator.dsl.StringProperty;
 import io.camunda.connector.generator.dsl.TextProperty;
-import io.camunda.connector.generator.java.example.MyConnectorFunction;
+import io.camunda.connector.generator.java.example.outbound.MyConnectorFunction;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -56,8 +57,7 @@ import org.junit.jupiter.api.Test;
 
 public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
 
-  private final OutboundClassBasedTemplateGenerator generator =
-      new OutboundClassBasedTemplateGenerator();
+  private final ClassBasedTemplateGenerator generator = new ClassBasedTemplateGenerator();
 
   @Nested
   class Basic {
@@ -206,6 +206,15 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
   class ElementTypes {
 
     @Test
+    void singleElementType_hasCorrectNameAndId() {
+      // when single element type is defined
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
+      // then no suffixes are added
+      assertThat(template.id()).isEqualTo(MyConnectorFunction.ID);
+      assertThat(template.name()).isEqualTo(MyConnectorFunction.NAME);
+    }
+
+    @Test
     void multipleElementTypes_definedInAnnotation() {
       var config = new GeneratorConfiguration(ConnectorMode.HYBRID, null, null, null, null);
       var templates =
@@ -237,6 +246,33 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
     }
 
     @Test
+    void multipleElementTypes_definedInAnnotation_haveCorrectNamesAndIds() {
+      // when
+      var templates = generator.generate(MyConnectorFunction.WithMultipleElementTypes.class);
+
+      // then
+      var templateMap =
+          templates.stream()
+              .collect(Collectors.toMap(t -> t.elementType().originalType().getId(), t -> t));
+
+      for (var elementType : BpmnType.values()) {
+        var template = templateMap.get(elementType.getId());
+        if (template == null) {
+          continue;
+        }
+        if (elementType == BpmnType.INTERMEDIATE_THROW_EVENT) {
+          assertThat(template.id()).isEqualTo("my-custom-id-for-intermediate-event");
+          assertThat(template.name()).isEqualTo("My custom name for intermediate event");
+        } else {
+          assertThat(template.id()).isEqualTo(MyConnectorFunction.ID + ":" + elementType.getId());
+          assertThat(template.name())
+              .isEqualTo(
+                  MyConnectorFunction.NAME + " (" + camelCaseToSpaces(elementType.getId() + ")"));
+        }
+      }
+    }
+
+    @Test
     void multipleElementTypes_definedInConfig() {
       var config =
           new GeneratorConfiguration(
@@ -245,10 +281,13 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
               null,
               null,
               Set.of(
-                  new ConnectorElementType(Set.of(BpmnType.TASK), BpmnType.SERVICE_TASK),
+                  new ConnectorElementType(
+                      Set.of(BpmnType.TASK), BpmnType.SERVICE_TASK, null, null),
                   new ConnectorElementType(
                       Set.of(BpmnType.INTERMEDIATE_THROW_EVENT),
-                      BpmnType.INTERMEDIATE_THROW_EVENT)));
+                      BpmnType.INTERMEDIATE_THROW_EVENT,
+                      null,
+                      null)));
       var templates = generator.generate(MyConnectorFunction.FullyAnnotated.class, config);
       boolean hasServiceTask = false, hasMessageThrowEvent = false;
       for (var template : templates) {
@@ -273,7 +312,9 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
               null,
               null,
               null,
-              Set.of(new ConnectorElementType(Set.of(BpmnType.TASK), BpmnType.SERVICE_TASK)));
+              Set.of(
+                  new ConnectorElementType(
+                      Set.of(BpmnType.TASK), BpmnType.SERVICE_TASK, null, null)));
       var templates =
           generator.generate(MyConnectorFunction.WithMultipleElementTypes.class, config);
       boolean hasServiceTask = false,
@@ -311,10 +352,13 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
               null,
               null,
               Set.of(
-                  new ConnectorElementType(Set.of(BpmnType.TASK), BpmnType.SERVICE_TASK),
+                  new ConnectorElementType(
+                      Set.of(BpmnType.TASK), BpmnType.SERVICE_TASK, null, null),
                   new ConnectorElementType(
                       Set.of(BpmnType.INTERMEDIATE_CATCH_EVENT),
-                      BpmnType.INTERMEDIATE_CATCH_EVENT)));
+                      BpmnType.INTERMEDIATE_CATCH_EVENT,
+                      null,
+                      null)));
       var exception =
           assertThrows(
               IllegalArgumentException.class,

@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.http.rest;
 
-import io.camunda.connector.generator.java.OutboundClassBasedTemplateGenerator;
+import io.camunda.connector.generator.java.ClassBasedTemplateGenerator;
 import org.testcontainers.shaded.com.fasterxml.jackson.core.JsonProcessingException;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -26,6 +26,6 @@ public class GenerateElementTemplate {
     System.out.println(
         new ObjectMapper()
             .writeValueAsString(
-                new OutboundClassBasedTemplateGenerator().generate(HttpJsonFunction.class)));
+                new ClassBasedTemplateGenerator().generate(HttpJsonFunction.class)));
   }
 }

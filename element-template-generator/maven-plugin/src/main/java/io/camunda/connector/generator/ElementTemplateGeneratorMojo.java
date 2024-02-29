@@ -17,10 +17,11 @@
 package io.camunda.connector.generator;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.generator.ConnectorConfig.FileNameById;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
-import io.camunda.connector.generator.dsl.OutboundElementTemplate;
-import io.camunda.connector.generator.java.OutboundClassBasedTemplateGenerator;
+import io.camunda.connector.generator.dsl.ElementTemplate;
+import io.camunda.connector.generator.java.ClassBasedTemplateGenerator;
 import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -28,7 +29,6 @@ import java.net.URLClassLoader;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoFailureException;
@@ -48,7 +48,7 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
   private MavenProject project;
 
   @Parameter(property = "connectorClasses", required = true)
-  private String[] connectorClasses;
+  private ConnectorConfig[] connectors;
 
   @Parameter(property = "includeDependencies")
   private String[] includeDependencies;
@@ -56,20 +56,14 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
   @Parameter(property = "outputDirectory", defaultValue = "${project.basedir}/element-templates")
   private String outputDirectory;
 
-  @Parameter(property = "templateFileName")
-  private String templateFileName;
-
-  @Parameter(property = "generateHybridTemplates", defaultValue = "false")
-  private boolean generateHybridTemplates;
-
   private static final ObjectMapper mapper = new ObjectMapper();
-  private OutboundClassBasedTemplateGenerator generator;
 
   private static final String COMPILED_CLASSES_DIR = "target" + File.separator + "classes";
+  private static final String HYBRID_TEMPLATES_DIR = "hybrid";
 
   @Override
   public void execute() throws MojoFailureException {
-    if (connectorClasses.length == 0) {
+    if (connectors.length == 0) {
       getLog().warn("No connector classes specified. Skipping generation of element templates.");
       return;
     }
@@ -108,21 +102,16 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
 
       // ensures that resources and classes from the project are loaded by the classloader
       Thread.currentThread().setContextClassLoader(classLoader);
-      generator = new OutboundClassBasedTemplateGenerator();
 
-      for (String className : connectorClasses) {
-        getLog().info("Generating element template for " + className);
-        Class<?> clazz = classLoader.loadClass(className);
-        var templates = generator.generate(clazz);
-        writeElementTemplates(templates, false);
-
-        if (generateHybridTemplates) {
-          getLog().info("Generating hybrid element template for " + className);
-          var hybridTemplates =
-              generator.generate(
-                  clazz, new GeneratorConfiguration(ConnectorMode.HYBRID, null, null, null, null));
-          writeElementTemplates(hybridTemplates, true);
+      for (ConnectorConfig connector : connectors) {
+        getLog().info("Generating element template for " + connector.getConnectorClass());
+        for (var file : connector.getFiles()) {
+          if (!file.getTemplateFileName().endsWith(".json")) {
+            throw new IllegalArgumentException(
+                "File name must end with .json, but was " + file.getTemplateFileName());
+          }
         }
+        generateElementTemplates(connector, classLoader);
       }
 
     } catch (ClassNotFoundException e) {
@@ -137,32 +126,73 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
     }
   }
 
-  private void writeElementTemplates(List<OutboundElementTemplate> templates, boolean hybrid) {
+  private void generateElementTemplates(ConnectorConfig config, ClassLoader classLoader)
+      throws ClassNotFoundException {
+    var clazz = classLoader.loadClass(config.getConnectorClass());
+    var generatorConfig = new GeneratorConfiguration(ConnectorMode.NORMAL, null, null, null, null);
+    var generator = new ClassBasedTemplateGenerator(classLoader);
+    var templates = generator.generate(clazz, generatorConfig);
+    writeElementTemplates(templates, false, config.getFiles());
+
+    if (config.isGenerateHybridTemplates()) {
+      var hybridGeneratorConfig =
+          new GeneratorConfiguration(ConnectorMode.HYBRID, null, null, null, null);
+      var hybridTemplates = generator.generate(clazz, hybridGeneratorConfig);
+      writeElementTemplates(hybridTemplates, true, config.getFiles());
+    }
+  }
+
+  private void writeElementTemplates(
+      List<ElementTemplate> templates, boolean hybrid, List<FileNameById> fileNames) {
     if (templates.size() == 1) {
       var fileName =
-          Optional.ofNullable(templateFileName)
-              .map(name -> name + ".json")
-              .orElse(transformConnectorNameToTemplateFileName(templates.get(0).name()));
+          fileNames.stream()
+              .filter(f -> f.getTemplateId().equals(templates.getFirst().id()))
+              .findFirst()
+              .map(FileNameById::getTemplateFileName)
+              .orElseGet(
+                  () -> {
+                    getLog()
+                        .warn(
+                            "No file name specified for "
+                                + templates.getFirst().id()
+                                + ". Using default.");
+                    return transformConnectorNameToTemplateFileName(templates.getFirst().name());
+                  });
       if (hybrid) {
         fileName = fileName.replace(".json", "-hybrid.json");
       }
-      writeElementTemplate(templates.get(0), fileName);
+      writeElementTemplate(templates.getFirst(), hybrid, fileName);
     } else {
       for (var template : templates) {
         var fileName =
-            Optional.ofNullable(templateFileName)
-                .map(name -> name + "-" + template.elementType() + ".json")
-                .orElse(transformConnectorNameToTemplateFileName(template.name()));
-
-        writeElementTemplate(template, fileName);
+            fileNames.stream()
+                .filter(f -> f.getTemplateId().equals(template.id()))
+                .findFirst()
+                .map(FileNameById::getTemplateFileName)
+                .orElseGet(
+                    () -> {
+                      getLog()
+                          .warn("No file name specified for " + template.id() + ". Using default.");
+                      return transformConnectorNameToTemplateFileName(template.name());
+                    });
+        if (hybrid) {
+          fileName = fileName.replace(".json", "-hybrid.json");
+        }
+        writeElementTemplate(template, hybrid, fileName);
       }
     }
   }
 
-  private void writeElementTemplate(OutboundElementTemplate template, String fileName) {
+  private void writeElementTemplate(ElementTemplate template, boolean hybrid, String fileName) {
     try {
+      getLog().info("Writing element template to " + fileName);
       File file = new File(outputDirectory, fileName);
       file.getParentFile().mkdirs();
+      if (hybrid) {
+        file = new File(outputDirectory + File.separator + HYBRID_TEMPLATES_DIR, fileName);
+        file.getParentFile().mkdirs();
+      }
       mapper.writerWithDefaultPrettyPrinter().writeValue(file, template);
     } catch (Exception e) {
       throw new RuntimeException("Failed to write element template", e);
@@ -173,19 +203,20 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
     // convert human-oriented name to kebab-case
     connectorName = connectorName.replaceAll(" ", "-");
     connectorName = connectorName.replaceAll("([a-z])([A-Z]+)", "$1-$2");
+    connectorName = connectorName.replaceAll("[^a-zA-Z0-9-]", "");
     connectorName = connectorName.toLowerCase();
     return connectorName + ".json";
   }
 
   private URL getResourcesDirectory() throws MalformedURLException {
-    if (project.getBuild().getResources().size() > 0) {
+    if (!project.getBuild().getResources().isEmpty()) {
       return Path.of(project.getBuild().getResources().get(0).getDirectory()).toUri().toURL();
     }
     return null;
   }
 
   private URL getTestResourcesDirectory() throws MalformedURLException {
-    if (project.getBuild().getTestResources().size() > 0) {
+    if (!project.getBuild().getTestResources().isEmpty()) {
       return Path.of(project.getBuild().getTestResources().get(0).getDirectory()).toUri().toURL();
     }
     return null;

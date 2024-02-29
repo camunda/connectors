@@ -39,10 +39,17 @@
         <artifactId>element-template-generator-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <connectorClasses>
-            <connectorClass>io.camunda.connector.automationanywhere.AutomationAnywhereConnector</connectorClass>
-          </connectorClasses>
-          <templateFileName>automation-anywhere-outbound-connector</templateFileName>
+          <connectors>
+            <connector>
+              <connectorClass>io.camunda.connector.automationanywhere.AutomationAnywhereConnector</connectorClass>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.AutomationAnywhere</templateId>
+                  <templateFileName>automation-anywhere-outbound-connector.json</templateFileName>
+                </file>
+              </files>
+            </connector>
+          </connectors>
         </configuration>
       </plugin>
     </plugins>

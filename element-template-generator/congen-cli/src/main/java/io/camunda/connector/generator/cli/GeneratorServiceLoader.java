@@ -23,12 +23,12 @@ import java.util.stream.Collectors;
 
 public class GeneratorServiceLoader {
 
-  public static Map<String, CliCompatibleTemplateGenerator<?, ?>> loadGenerators() {
+  public static Map<String, CliCompatibleTemplateGenerator<?>> loadGenerators() {
     return ServiceLoader.load(CliCompatibleTemplateGenerator.class).stream()
         .map(ServiceLoader.Provider::get)
         .collect(
             Collectors.toMap(
                 CliCompatibleTemplateGenerator::getGeneratorId,
-                g -> (CliCompatibleTemplateGenerator<?, ?>) g));
+                g -> (CliCompatibleTemplateGenerator<?>) g));
   }
 }

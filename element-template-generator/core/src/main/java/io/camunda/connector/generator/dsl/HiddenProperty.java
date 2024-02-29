@@ -26,6 +26,7 @@ public final class HiddenProperty extends Property {
       String description,
       Boolean required,
       String value,
+      GeneratedValue generatedValue,
       PropertyConstraints constraints,
       FeelMode feel,
       String group,
@@ -37,6 +38,7 @@ public final class HiddenProperty extends Property {
         description,
         required,
         value,
+        generatedValue,
         constraints,
         feel,
         group,
@@ -55,7 +57,17 @@ public final class HiddenProperty extends Property {
 
     public HiddenProperty build() {
       return new HiddenProperty(
-          id, label, description, optional, value, constraints, feel, group, binding, condition);
+          id,
+          label,
+          description,
+          optional,
+          value,
+          generatedValue,
+          constraints,
+          feel,
+          group,
+          binding,
+          condition);
     }
   }
 }

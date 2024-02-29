@@ -65,11 +65,18 @@
         <artifactId>element-template-generator-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <connectorClasses>
-            <connectorClass>io.camunda.connector.slack.outbound.SlackFunction</connectorClass>
-          </connectorClasses>
-          <generateHybridTemplates>true</generateHybridTemplates>
-          <templateFileName>slack-outbound-connector</templateFileName>
+          <connectors>
+            <connector>
+              <connectorClass>io.camunda.connector.slack.outbound.SlackFunction</connectorClass>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.Slack.v1</templateId>
+                  <templateFileName>slack-outbound-connector.json</templateFileName>
+                </file>
+              </files>
+              <generateHybridTemplates>true</generateHybridTemplates>
+            </connector>
+          </connectors>
         </configuration>
       </plugin>
     </plugins>

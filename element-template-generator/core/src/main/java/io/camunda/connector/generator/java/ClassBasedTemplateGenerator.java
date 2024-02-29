@@ -16,71 +16,50 @@
  */
 package io.camunda.connector.generator.java;
 
-import io.camunda.connector.api.annotation.OutboundConnector;
+import static io.camunda.connector.generator.java.util.TemplateGenerationStringUtil.camelCaseToSpaces;
+
 import io.camunda.connector.generator.api.ElementTemplateGenerator;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
+import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElementType;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
-import io.camunda.connector.generator.dsl.BpmnType;
+import io.camunda.connector.generator.dsl.ElementTemplateBuilder;
 import io.camunda.connector.generator.dsl.ElementTemplateIcon;
-import io.camunda.connector.generator.dsl.OutboundElementTemplate;
 import io.camunda.connector.generator.dsl.PropertyBuilder;
 import io.camunda.connector.generator.dsl.PropertyGroup;
 import io.camunda.connector.generator.dsl.PropertyGroup.PropertyGroupBuilder;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
-import io.camunda.connector.generator.java.util.ConfigurationUtil;
 import io.camunda.connector.generator.java.util.ReflectionUtil;
+import io.camunda.connector.generator.java.util.TemplateGenerationContext;
+import io.camunda.connector.generator.java.util.TemplateGenerationContext.Outbound;
+import io.camunda.connector.generator.java.util.TemplateGenerationContextUtil;
 import io.camunda.connector.generator.java.util.TemplatePropertiesUtil;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
+import java.util.Optional;
 
-public class OutboundClassBasedTemplateGenerator
-    implements ElementTemplateGenerator<Class<?>, OutboundElementTemplate> {
+public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Class<?>> {
 
-  private static final Set<BpmnType> SUPPORTED_ELEMENT_TYPES =
-      Set.of(
-          BpmnType.SERVICE_TASK,
-          BpmnType.INTERMEDIATE_THROW_EVENT,
-          BpmnType.SCRIPT_TASK,
-          BpmnType.MESSAGE_END_EVENT);
-  private static final GeneratorConfiguration.ConnectorElementType DEFAULT_ELEMENT_TYPE =
-      new GeneratorConfiguration.ConnectorElementType(Set.of(BpmnType.TASK), BpmnType.SERVICE_TASK);
   private final ClassLoader classLoader;
 
-  public OutboundClassBasedTemplateGenerator(ClassLoader classLoader) {
+  public ClassBasedTemplateGenerator(ClassLoader classLoader) {
     this.classLoader = classLoader;
   }
 
-  public OutboundClassBasedTemplateGenerator() {
+  public ClassBasedTemplateGenerator() {
     this(Thread.currentThread().getContextClassLoader());
   }
 
   @Override
-  public List<OutboundElementTemplate> generate(
+  public List<io.camunda.connector.generator.dsl.ElementTemplate> generate(
       Class<?> connectorDefinition, GeneratorConfiguration configuration) {
 
-    var connector =
-        ReflectionUtil.getRequiredAnnotation(connectorDefinition, OutboundConnector.class);
     var template = ReflectionUtil.getRequiredAnnotation(connectorDefinition, ElementTemplate.class);
     var connectorInput = template.inputDataClass();
-
-    GeneratorConfiguration mergedConfig = ConfigurationUtil.fromAnnotation(template, configuration);
-    var elementTypes = mergedConfig.elementTypes();
-    if (elementTypes.isEmpty()) {
-      elementTypes = Set.of(DEFAULT_ELEMENT_TYPE);
-    }
-    elementTypes.stream()
-        .filter(t -> !SUPPORTED_ELEMENT_TYPES.contains(t.elementType()))
-        .findFirst()
-        .ifPresent(
-            t -> {
-              throw new IllegalArgumentException(
-                  String.format("Unsupported element type '%s'", t.elementType().getName()));
-            });
+    var context = TemplateGenerationContextUtil.createContext(connectorDefinition, configuration);
 
     List<PropertyBuilder> properties =
-        TemplatePropertiesUtil.extractTemplatePropertiesFromType(connectorInput);
+        TemplatePropertiesUtil.extractTemplatePropertiesFromType(connectorInput, context);
 
     var groupsDefinedInProperties =
         new ArrayList<>(TemplatePropertiesUtil.groupProperties(properties));
@@ -125,35 +104,81 @@ public class OutboundClassBasedTemplateGenerator
               .build());
     }
 
-    mergedGroups.add(PropertyGroup.OUTPUT_GROUP);
-    mergedGroups.add(PropertyGroup.ERROR_GROUP);
-    mergedGroups.add(PropertyGroup.RETRIES_GROUP);
-
     var nonGroupedProperties =
         properties.stream().filter(property -> property.build().getGroup() == null).toList();
 
     var icon =
         template.icon().isBlank() ? null : ElementTemplateIcon.from(template.icon(), classLoader);
 
-    return elementTypes.stream()
+    return context.elementTypes().stream()
         .map(
-            elementType ->
-                OutboundElementTemplate.builder()
-                    .id(template.id())
-                    .type(
-                        connector.type(),
-                        ConnectorMode.HYBRID.equals(configuration.connectorMode()))
-                    .name(template.name())
-                    .version(template.version())
-                    .appliesTo(elementType.appliesTo())
-                    .elementType(elementType.elementType())
-                    .icon(icon)
-                    .documentationRef(
-                        template.documentationRef().isEmpty() ? null : template.documentationRef())
-                    .description(template.description().isEmpty() ? null : template.description())
-                    .properties(nonGroupedProperties.stream().map(PropertyBuilder::build).toList())
-                    .propertyGroups(mergedGroups)
-                    .build())
+            elementType -> {
+              var builder =
+                  context instanceof Outbound
+                      ? ElementTemplateBuilder.createOutbound()
+                      : ElementTemplateBuilder.createInbound();
+              return builder
+                  .id(createId(context, template.id(), elementType))
+                  .type(
+                      context.connectorType(),
+                      ConnectorMode.HYBRID.equals(configuration.connectorMode()))
+                  .name(createName(context, template.name(), elementType))
+                  .version(template.version())
+                  .appliesTo(elementType.appliesTo())
+                  .elementType(elementType.elementType())
+                  .icon(icon)
+                  .documentationRef(
+                      template.documentationRef().isEmpty() ? null : template.documentationRef())
+                  .description(template.description().isEmpty() ? null : template.description())
+                  .properties(nonGroupedProperties.stream().map(PropertyBuilder::build).toList())
+                  .propertyGroups(addServiceProperties(mergedGroups, context, elementType))
+                  .build();
+            })
         .toList();
+  }
+
+  private static String createId(
+      TemplateGenerationContext context, String templateId, ConnectorElementType elementType) {
+    return Optional.ofNullable(elementType.templateIdOverride())
+        .orElseGet(
+            () ->
+                context.elementTypes().size() > 1
+                    ? templateId + ":" + elementType.elementType().getId()
+                    : templateId);
+  }
+
+  private static String createName(
+      TemplateGenerationContext context, String templateName, ConnectorElementType elementType) {
+    return Optional.ofNullable(elementType.templateNameOverride())
+        .orElseGet(
+            () -> {
+              if (context.elementTypes().size() > 1) {
+                return templateName
+                    + " ("
+                    + camelCaseToSpaces(elementType.elementType().getId())
+                    + ")";
+              }
+              return templateName;
+            });
+  }
+
+  private List<PropertyGroup> addServiceProperties(
+      List<PropertyGroup> groups,
+      TemplateGenerationContext context,
+      ConnectorElementType elementType) {
+    var newGroups = new ArrayList<>(groups);
+    if (context instanceof Outbound) {
+      newGroups.add(PropertyGroup.OUTPUT_GROUP_OUTBOUND);
+      newGroups.add(PropertyGroup.ERROR_GROUP);
+      newGroups.add(PropertyGroup.RETRIES_GROUP);
+    } else {
+      if (elementType.elementType().isMessage()) {
+        newGroups.add(PropertyGroup.ACTIVATION_GROUP_WITH_MESSAGE_ID_EXP);
+      } else {
+        newGroups.add(PropertyGroup.ACTIVATION_GROUP_WITHOUT_MESSAGE_ID_EXPR);
+      }
+      newGroups.add(PropertyGroup.OUTPUT_GROUP_INBOUND);
+    }
+    return newGroups;
   }
 }

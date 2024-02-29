@@ -14,23 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.generator.api;
+package io.camunda.connector.generator.java.util;
 
-import io.camunda.connector.generator.dsl.ElementTemplate;
-import java.util.List;
+public class TemplateGenerationStringUtil {
 
-/**
- * Base interface for any element template generator
- *
- * @param <IN> Data source for template generation
- */
-public interface ElementTemplateGenerator<IN> {
-
-  /** Generate an element template from source using the provided configuration */
-  List<ElementTemplate> generate(IN source, GeneratorConfiguration configuration);
-
-  /** Generate an element template from source using the default configuration */
-  default List<ElementTemplate> generate(IN source) {
-    return generate(source, GeneratorConfiguration.DEFAULT);
+  public static String camelCaseToSpaces(String camelCase) {
+    return camelCase.replaceAll("([a-z])([A-Z]+)", "$1 $2");
   }
 }

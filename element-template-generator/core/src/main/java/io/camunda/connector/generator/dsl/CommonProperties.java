@@ -17,6 +17,8 @@
 package io.camunda.connector.generator.dsl;
 
 import io.camunda.connector.generator.dsl.Property.FeelMode;
+import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeProperty;
+import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeSubscriptionProperty;
 
 public class CommonProperties {
 
@@ -60,4 +62,52 @@ public class CommonProperties {
           .description("ISO-8601 duration to wait between retries")
           .group("retries")
           .value("PT0S");
+
+  public static final PropertyBuilder ACTIVATION_CONDITION =
+      StringProperty.builder()
+          .id("activationCondition")
+          .label("Activation condition")
+          .description(
+              "Condition under which the Connector triggers. Leave empty to catch all events")
+          .group("activation")
+          .feel(FeelMode.required)
+          .optional(true)
+          .binding(new ZeebeProperty("activationCondition"));
+
+  public static final PropertyBuilder CORRELATION_KEY_PROCESS =
+      StringProperty.builder()
+          .id("correlationKeyProcess")
+          .label("Correlation key (process)")
+          .description("Sets up the correlation key from process variables")
+          .group("activation")
+          .feel(FeelMode.required)
+          .binding(ZeebeSubscriptionProperty.CORRELATION_KEY)
+          .constraints(PropertyConstraints.builder().notEmpty(true).build());
+
+  public static final PropertyBuilder CORRELATION_KEY_PAYLOAD =
+      StringProperty.builder()
+          .id("correlationKeyPayload")
+          .label("Correlation key (payload)")
+          .description("Extracts the correlation key from the incoming message payload")
+          .group("activation")
+          .feel(FeelMode.required)
+          .binding(new PropertyBinding.ZeebeProperty("correlationKeyExpression"))
+          .constraints(PropertyConstraints.builder().notEmpty(true).build());
+
+  public static final PropertyBuilder MESSAGE_ID_EXPRESSION =
+      StringProperty.builder()
+          .id("messageIdExpression")
+          .label("Message ID expression")
+          .description("Expression to extract unique identifier of a message")
+          .group("activation")
+          .feel(FeelMode.required)
+          .optional(true)
+          .binding(new PropertyBinding.ZeebeProperty("messageIdExpression"));
+
+  public static final PropertyBuilder MESSAGE_NAME_UUID =
+      HiddenProperty.builder()
+          .id("messageNameUuid")
+          .group("activation")
+          .generatedValue()
+          .binding(PropertyBinding.MessageProperty.NAME);
 }

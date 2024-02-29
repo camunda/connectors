@@ -16,11 +16,9 @@
  */
 package io.camunda.connector.generator.api;
 
-import io.camunda.connector.generator.dsl.ElementTemplateBase;
 import java.util.List;
 
-public interface CliCompatibleTemplateGenerator<IN, OUT extends ElementTemplateBase>
-    extends ElementTemplateGenerator<IN, OUT> {
+public interface CliCompatibleTemplateGenerator<IN> extends ElementTemplateGenerator<IN> {
 
   /** ID of the generator. This ID is used to identify the generator in the CLI. */
   String getGeneratorId();

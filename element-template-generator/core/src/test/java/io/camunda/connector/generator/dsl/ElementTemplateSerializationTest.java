@@ -30,7 +30,7 @@ import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.skyscreamer.jsonassert.JSONAssert;
 
-public class OutboundElementTemplateSerializationTest {
+public class ElementTemplateSerializationTest {
 
   private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -38,7 +38,7 @@ public class OutboundElementTemplateSerializationTest {
   void serializationTest() throws Exception {
     // given
     var elementTemplate =
-        OutboundElementTemplate.builder()
+        ElementTemplate.builderForOutbound()
             .id("io.camunda.connector.Template.v1")
             .type("io.camunda:template:1")
             .name("Template: Some Function")

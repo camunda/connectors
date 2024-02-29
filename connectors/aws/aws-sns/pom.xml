@@ -56,13 +56,20 @@ except in compliance with the proprietary license.</license.inlineheader>
         <artifactId>element-template-generator-maven-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <connectorClasses>
-            <connectorClass>io.camunda.connector.sns.outbound.SnsConnectorFunction</connectorClass>
-          </connectorClasses>
+          <connectors>
+            <connector>
+              <connectorClass>io.camunda.connector.sns.outbound.SnsConnectorFunction</connectorClass>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.AWSSNS.v1</templateId>
+                  <templateFileName>aws-sns-outbound-connector.json</templateFileName>
+                </file>
+              </files>
+            </connector>
+          </connectors>
           <includeDependencies>
             <includeDependency>io.camunda.connector:connector-aws-base</includeDependency>
           </includeDependencies>
-          <templateFileName>aws-sns-outbound-connector</templateFileName>
         </configuration>
       </plugin>
     </plugins>

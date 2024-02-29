@@ -24,7 +24,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.generator.api.CliCompatibleTemplateGenerator;
 import io.camunda.connector.generator.cli.GeneratorServiceLoader;
-import io.camunda.connector.generator.dsl.ElementTemplateBase;
+import io.camunda.connector.generator.dsl.ElementTemplate;
 import java.util.List;
 import java.util.concurrent.Callable;
 import picocli.CommandLine.Command;
@@ -51,8 +51,8 @@ public class Generate implements Callable<Integer> {
   @SuppressWarnings("unchecked")
   @Override
   public Integer call() {
-    CliCompatibleTemplateGenerator<Object, ?> generator =
-        (CliCompatibleTemplateGenerator<Object, ?>) loadGenerator(generatorName);
+    CliCompatibleTemplateGenerator<Object> generator =
+        (CliCompatibleTemplateGenerator<Object>) loadGenerator(generatorName);
     Object input;
     try {
       input = generator.prepareInput(params);
@@ -60,11 +60,10 @@ public class Generate implements Callable<Integer> {
       System.err.println("Error while preparing input data: " + e.getMessage());
       return INPUT_PREPARATION_FAILED.getCode();
     }
-    List<ElementTemplateBase> templates;
+    List<ElementTemplate> templates;
     try {
       templates =
-          (List<ElementTemplateBase>)
-              generator.generate(input, connectorGen.generatorConfiguration());
+          (List<ElementTemplate>) generator.generate(input, connectorGen.generatorConfiguration());
     } catch (Exception e) {
       System.err.println("Generation failed: " + e.getMessage());
       return GENERATION_FAILED.getCode();
@@ -85,7 +84,7 @@ public class Generate implements Callable<Integer> {
     }
   }
 
-  static CliCompatibleTemplateGenerator<?, ?> loadGenerator(String name) {
+  static CliCompatibleTemplateGenerator<?> loadGenerator(String name) {
     var generators = GeneratorServiceLoader.loadGenerators();
     if (generators.isEmpty()) {
       throw new IllegalStateException("No generators available");

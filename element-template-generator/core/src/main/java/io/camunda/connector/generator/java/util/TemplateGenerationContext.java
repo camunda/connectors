@@ -14,23 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.generator.api;
+package io.camunda.connector.generator.java.util;
 
-import io.camunda.connector.generator.dsl.ElementTemplate;
-import java.util.List;
+import io.camunda.connector.generator.api.GeneratorConfiguration;
+import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElementType;
+import java.util.Set;
 
-/**
- * Base interface for any element template generator
- *
- * @param <IN> Data source for template generation
- */
-public interface ElementTemplateGenerator<IN> {
+public sealed interface TemplateGenerationContext {
 
-  /** Generate an element template from source using the provided configuration */
-  List<ElementTemplate> generate(IN source, GeneratorConfiguration configuration);
+  String connectorType();
 
-  /** Generate an element template from source using the default configuration */
-  default List<ElementTemplate> generate(IN source) {
-    return generate(source, GeneratorConfiguration.DEFAULT);
-  }
+  Set<GeneratorConfiguration.ConnectorElementType> elementTypes();
+
+  record Inbound(String connectorType, Set<ConnectorElementType> elementTypes)
+      implements TemplateGenerationContext {}
+
+  record Outbound(String connectorType, Set<ConnectorElementType> elementTypes)
+      implements TemplateGenerationContext {}
 }
