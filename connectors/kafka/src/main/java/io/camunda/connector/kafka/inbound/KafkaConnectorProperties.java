@@ -33,7 +33,7 @@ public final class KafkaConnectorProperties {
 
   @NotNull private AutoOffsetReset autoOffsetReset = AutoOffsetReset.NONE;
 
-  @FEEL private String groupId;
+  private String groupId;
 
   @Valid private Avro avro;
 

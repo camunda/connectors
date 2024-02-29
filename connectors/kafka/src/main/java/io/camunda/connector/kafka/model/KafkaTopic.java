@@ -18,7 +18,6 @@ public record KafkaTopic(
             label = "Bootstrap servers",
             description = "Provide bootstrap server(s), comma-delimited if there are multiple")
         String bootstrapServers,
-    @FEEL
-        @NotEmpty
+    @NotEmpty
         @TemplateProperty(label = "Topic", group = "kafka", description = "Provide topic name")
         String topicName) {}
