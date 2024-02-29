@@ -34,5 +34,28 @@
             <groupId>com.google.apis</groupId>
             <artifactId>google-api-services-sheets</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>io.camunda.connector</groupId>
+            <artifactId>element-template-generator-core</artifactId>
+        </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>io.camunda.connector</groupId>
+                <artifactId>element-template-generator-maven-plugin</artifactId>
+                <version>${project.version}</version>
+                <configuration>
+                    <connectorClasses>
+                        <connectorClass>io.camunda.connector.gsheets.GoogleSheetsFunction</connectorClass>
+                    </connectorClasses>
+                    <generateHybridTemplates>true</generateHybridTemplates>
+                    <templateFileName>google-sheets-outbound-connector</templateFileName>
+                    <includeDependencies>io.camunda.connector:connector-google-base</includeDependencies>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

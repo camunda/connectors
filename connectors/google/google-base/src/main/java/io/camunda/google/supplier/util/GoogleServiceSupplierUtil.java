@@ -8,8 +8,14 @@ package io.camunda.google.supplier.util;
 
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.services.drive.DriveScopes;
+import com.google.auth.Credentials;
 import com.google.auth.http.HttpCredentialsAdapter;
+import com.google.auth.oauth2.AccessToken;
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.auth.oauth2.UserCredentials;
 import io.camunda.google.model.Authentication;
+import io.camunda.google.model.AuthenticationType;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 
@@ -18,7 +24,22 @@ public final class GoogleServiceSupplierUtil {
   private GoogleServiceSupplierUtil() {}
 
   public static HttpCredentialsAdapter getHttpHttpCredentialsAdapter(final Authentication auth) {
-    return new HttpCredentialsAdapter(auth.fetchCredentials());
+    Credentials creds = null;
+    if (auth.authType() == AuthenticationType.BEARER) {
+      AccessToken accessToken = new AccessToken(auth.bearerToken(), null);
+      creds = new GoogleCredentials(accessToken).createScoped(DriveScopes.DRIVE);
+    }
+
+    if (auth.authType() == AuthenticationType.REFRESH) {
+      creds =
+          UserCredentials.newBuilder()
+              .setClientId(auth.oauthClientId())
+              .setClientSecret(auth.oauthClientSecret())
+              .setRefreshToken(auth.oauthRefreshToken())
+              .build();
+    }
+
+    return new HttpCredentialsAdapter(creds);
   }
 
   public static NetHttpTransport getNetHttpTransport() {

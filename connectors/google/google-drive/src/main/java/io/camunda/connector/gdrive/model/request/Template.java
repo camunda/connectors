@@ -6,50 +6,19 @@
  */
 package io.camunda.connector.gdrive.model.request;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import io.camunda.connector.generator.dsl.Property.FeelMode;
+import io.camunda.connector.generator.java.annotation.NestedProperties;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
 import jakarta.validation.constraints.NotEmpty;
-import java.util.Objects;
 
-public class Template {
-  @NotEmpty private String id;
-
-  private JsonNode variables;
-
-  public String getId() {
-    return id;
-  }
-
-  public void setId(final String id) {
-    this.id = id;
-  }
-
-  public JsonNode getVariables() {
-    return variables;
-  }
-
-  public void setVariables(JsonNode variables) {
-    this.variables = variables;
-  }
-
-  @Override
-  public boolean equals(final Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    final Template template = (Template) o;
-    return Objects.equals(id, template.id) && Objects.equals(variables, template.variables);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(id, variables);
-  }
-
-  @Override
-  public String toString() {
-    return "Template{" + "id='" + id + "'" + ", variables=" + variables + "}";
-  }
-}
+public record Template(
+    @TemplateProperty(
+            id = "id",
+            label = "Template ID",
+            group = "operationDetails",
+            feel = FeelMode.optional,
+            condition = @PropertyCondition(property = "resource.type", equals = "FILE"))
+        @NotEmpty
+        String id,
+    @NestedProperties(addNestedPath = false) Variables variables) {}

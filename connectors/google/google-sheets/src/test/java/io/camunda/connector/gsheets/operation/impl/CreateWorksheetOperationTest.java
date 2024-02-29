@@ -25,6 +25,7 @@ import io.camunda.connector.gsheets.BaseTest;
 import io.camunda.connector.gsheets.model.request.input.CreateWorksheet;
 import io.camunda.connector.gsheets.supplier.GoogleSheetsServiceSupplier;
 import io.camunda.google.model.Authentication;
+import io.camunda.google.model.AuthenticationType;
 import java.io.IOException;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,12 +47,10 @@ class CreateWorksheetOperationTest extends BaseTest {
 
   @Captor private ArgumentCaptor<BatchUpdateSpreadsheetRequest> requestsCaptor;
 
-  private Authentication auth;
   private BatchUpdateSpreadsheetResponse response;
 
   @BeforeEach
   public void before() {
-    auth = new Authentication();
     response = new BatchUpdateSpreadsheetResponse();
     response.setSpreadsheetId(SPREADSHEET_ID);
   }
@@ -75,10 +74,14 @@ class CreateWorksheetOperationTest extends BaseTest {
           .thenReturn(response);
 
       // When
-      new CreateWorksheetOperation(model).execute(auth);
+      new CreateWorksheetOperation(model)
+          .execute(new Authentication(AuthenticationType.BEARER, "abc", null, null, null));
 
       // Then
-      mockedServiceSupplier.verify(() -> GoogleSheetsServiceSupplier.getGoogleSheetsService(auth));
+      mockedServiceSupplier.verify(
+          () ->
+              GoogleSheetsServiceSupplier.getGoogleSheetsService(
+                  new Authentication(AuthenticationType.BEARER, "abc", null, null, null)));
 
       List<Request> requests = requestsCaptor.getValue().getRequests();
       assertThat(requests, hasSize(1));
@@ -109,10 +112,14 @@ class CreateWorksheetOperationTest extends BaseTest {
           .thenReturn(response);
 
       // When
-      new CreateWorksheetOperation(model).execute(auth);
+      new CreateWorksheetOperation(model)
+          .execute(new Authentication(AuthenticationType.BEARER, "abc", null, null, null));
 
       // Then
-      mockedServiceSupplier.verify(() -> GoogleSheetsServiceSupplier.getGoogleSheetsService(auth));
+      mockedServiceSupplier.verify(
+          () ->
+              GoogleSheetsServiceSupplier.getGoogleSheetsService(
+                  new Authentication(AuthenticationType.BEARER, "abc", null, null, null)));
 
       List<Request> requests = requestsCaptor.getValue().getRequests();
       assertThat(requests, hasSize(1));

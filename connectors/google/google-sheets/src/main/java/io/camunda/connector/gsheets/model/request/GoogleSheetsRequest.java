@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.gsheets.model.request;
 
-import com.google.api.client.util.Key;
+import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.gsheets.model.request.input.Input;
 import io.camunda.google.model.GoogleBaseRequest;
 import jakarta.validation.Valid;
@@ -15,7 +15,10 @@ import java.util.Objects;
 
 public class GoogleSheetsRequest extends GoogleBaseRequest {
 
-  @Key @Valid @NotNull private Input operation;
+  @NestedProperties(addNestedPath = false)
+  @Valid
+  @NotNull
+  private Input operation;
 
   public Input getOperation() {
     return operation;

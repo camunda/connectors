@@ -17,15 +17,24 @@ import io.camunda.google.supplier.GoogleDriveServiceSupplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@ElementTemplate(
+    id = "io.camunda.connectors.GoogleDrive.v1",
+    name = "Google Drive Outbound Connector",
+    description = "Create folder or a file from template",
+    inputDataClass = GoogleDriveRequest.class,
+    version = 3,
+    propertyGroups = {
+      @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
+      @ElementTemplate.PropertyGroup(id = "operation", label = "Select operation"),
+      @ElementTemplate.PropertyGroup(id = "operationDetails", label = "Operation details"),
+    },
+    documentationRef =
+        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/googledrive/",
+    icon = "icon.svg")
 @OutboundConnector(
     name = "Google Docs",
     inputVariables = {"authentication", "resource"},
     type = "io.camunda:google-drive:1")
-@ElementTemplate(
-    id = "google-drive",
-    name = "Generated Google Drive Connector",
-    description = "Generated Google Drive Connector",
-    inputDataClass = GoogleDriveRequest.class)
 public class GoogleDriveFunction implements OutboundConnectorFunction {
   private static final Logger LOGGER = LoggerFactory.getLogger(GoogleDriveFunction.class);
 

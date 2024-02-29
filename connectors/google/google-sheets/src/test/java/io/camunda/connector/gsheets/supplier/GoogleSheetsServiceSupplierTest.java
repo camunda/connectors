@@ -23,9 +23,8 @@ class GoogleSheetsServiceSupplierTest {
   void getSheetsService_shouldInitGoogleSheetsServiceV4() {
     // Given
     String token = "Bearer_token";
-    Authentication authentication = new Authentication();
-    authentication.setAuthType(AuthenticationType.BEARER);
-    authentication.setBearerToken(token);
+    Authentication authentication =
+        new Authentication(AuthenticationType.BEARER, token, null, null, null);
 
     // When
     Sheets sheets = GoogleSheetsServiceSupplier.getGoogleSheetsService(authentication);

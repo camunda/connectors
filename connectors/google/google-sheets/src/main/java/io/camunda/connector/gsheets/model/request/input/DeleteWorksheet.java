@@ -6,43 +6,33 @@
  */
 package io.camunda.connector.gsheets.model.request.input;
 
+import io.camunda.connector.generator.dsl.Property.FeelMode;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyBinding;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
+import io.camunda.connector.generator.java.annotation.TemplateSubType;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import java.util.Objects;
 
-public final class DeleteWorksheet extends SpreadsheetInput {
-
-  @NotNull private Integer worksheetId;
-
-  public DeleteWorksheet() {}
-
-  public DeleteWorksheet(String spreadsheetId, Integer worksheetId) {
-    super(spreadsheetId);
-    this.worksheetId = worksheetId;
-  }
-
-  public Integer getWorksheetId() {
-    return worksheetId;
-  }
-
-  public void setWorksheetId(Integer worksheetId) {
-    this.worksheetId = worksheetId;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    DeleteWorksheet that = (DeleteWorksheet) o;
-    return Objects.equals(worksheetId, that.worksheetId);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(worksheetId);
-  }
-
-  @Override
-  public String toString() {
-    return "DeleteWorksheet{" + "worksheetId=" + worksheetId + "} " + super.toString();
-  }
-}
+@TemplateSubType(id = "deleteWorksheet", label = "Delete worksheet")
+public record DeleteWorksheet(
+    @TemplateProperty(
+            id = "deleteWorksheet.spreadsheetId",
+            label = "Spreadsheet ID",
+            description = "Enter the ID of the spreadsheet",
+            group = "operationDetails",
+            feel = FeelMode.optional,
+            binding = @PropertyBinding(name = "operation.spreadsheetId"))
+        @NotBlank
+        String spreadsheetId,
+    @TemplateProperty(
+            id = "deleteWorksheet.worksheetId",
+            label = "Worksheet ID",
+            description = "Enter the ID of the worksheet",
+            group = "operationDetails",
+            feel = FeelMode.optional,
+            constraints = @PropertyConstraints(notEmpty = true),
+            binding = @PropertyBinding(name = "operation.worksheetId"))
+        @NotNull
+        Integer worksheetId)
+    implements Input {}

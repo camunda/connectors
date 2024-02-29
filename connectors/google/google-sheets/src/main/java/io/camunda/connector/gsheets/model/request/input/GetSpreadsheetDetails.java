@@ -6,16 +6,21 @@
  */
 package io.camunda.connector.gsheets.model.request.input;
 
-public final class GetSpreadsheetDetails extends SpreadsheetInput {
+import io.camunda.connector.generator.dsl.Property.FeelMode;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyBinding;
+import io.camunda.connector.generator.java.annotation.TemplateSubType;
+import jakarta.validation.constraints.NotBlank;
 
-  public GetSpreadsheetDetails() {}
-
-  public GetSpreadsheetDetails(String spreadsheetId) {
-    super(spreadsheetId);
-  }
-
-  @Override
-  public String toString() {
-    return "GetSpreadsheetDetails{} " + super.toString();
-  }
-}
+@TemplateSubType(id = "spreadsheetsDetails", label = "Get spreadsheet details")
+public record GetSpreadsheetDetails(
+    @TemplateProperty(
+            id = "spreadsheetsDetails.spreadsheetId",
+            label = "Spreadsheet ID",
+            description = "Enter the ID of the spreadsheet",
+            group = "operationDetails",
+            feel = FeelMode.optional,
+            binding = @PropertyBinding(name = "operation.spreadsheetId"))
+        @NotBlank
+        String spreadsheetId)
+    implements Input {}

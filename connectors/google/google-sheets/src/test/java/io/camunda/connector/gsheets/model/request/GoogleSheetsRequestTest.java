@@ -94,49 +94,47 @@ class GoogleSheetsRequestTest extends BaseTest {
   }
 
   private static void verifyAuthentication(Authentication authentication) {
-    if (authentication.getAuthType() == AuthenticationType.BEARER) {
-      assertThat(authentication.getBearerToken()).isNotNull().isEqualTo(ACTUAL_BEARER_TOKEN);
+    if (authentication.authType() == AuthenticationType.BEARER) {
+      assertThat(authentication.bearerToken()).isNotNull().isEqualTo(ACTUAL_BEARER_TOKEN);
     }
 
-    if (authentication.getAuthType() == AuthenticationType.REFRESH) {
-      assertThat(authentication.getOauthClientId()).isNotNull().isEqualTo(ACTUAL_OAUTH_CLIENT_ID);
-      assertThat(authentication.getOauthClientSecret())
-          .isNotNull()
-          .isEqualTo(ACTUAL_OAUTH_SECRET_ID);
-      assertThat(authentication.getOauthRefreshToken()).isNotNull().isEqualTo(ACTUAL_REFRESH_TOKEN);
+    if (authentication.authType() == AuthenticationType.REFRESH) {
+      assertThat(authentication.oauthClientId()).isNotNull().isEqualTo(ACTUAL_OAUTH_CLIENT_ID);
+      assertThat(authentication.oauthClientSecret()).isNotNull().isEqualTo(ACTUAL_OAUTH_SECRET_ID);
+      assertThat(authentication.oauthRefreshToken()).isNotNull().isEqualTo(ACTUAL_REFRESH_TOKEN);
     }
   }
 
   private static void verifyOperationInput(Input input) {
     if (input instanceof CreateSpreadsheet operationDetails) {
-      assertThat(operationDetails.getParent()).isNotNull().isEqualTo(ACTUAl_PARENT);
-      assertThat(operationDetails.getSpreadsheetName()).isNotNull().isEqualTo(SPREADSHEET_NAME);
+      assertThat(operationDetails.parent()).isNotNull().isEqualTo(ACTUAl_PARENT);
+      assertThat(operationDetails.spreadsheetName()).isNotNull().isEqualTo(SPREADSHEET_NAME);
     } else if (input instanceof CreateWorksheet operationDetails) {
-      assertThat(operationDetails.getSpreadsheetId()).isNotNull().isEqualTo(SPREADSHEET_ID);
-      assertThat(operationDetails.getWorksheetName()).isNotNull().isEqualTo(WORKSHEET_NAME);
+      assertThat(operationDetails.spreadsheetId()).isNotNull().isEqualTo(SPREADSHEET_ID);
+      assertThat(operationDetails.worksheetName()).isNotNull().isEqualTo(WORKSHEET_NAME);
     } else if (input instanceof GetSpreadsheetDetails operationDetails) {
-      assertThat(operationDetails.getSpreadsheetId()).isNotNull().isEqualTo(SPREADSHEET_ID);
+      assertThat(operationDetails.spreadsheetId()).isNotNull().isEqualTo(SPREADSHEET_ID);
     } else if (input instanceof DeleteWorksheet operationDetails) {
-      assertThat(operationDetails.getSpreadsheetId()).isNotNull().isEqualTo(SPREADSHEET_ID);
+      assertThat(operationDetails.spreadsheetId()).isNotNull().isEqualTo(SPREADSHEET_ID);
     } else if (input instanceof AddValues operationDetails) {
-      assertThat(operationDetails.getSpreadsheetId()).isNotNull().isEqualTo(SPREADSHEET_ID);
-      assertThat(operationDetails.getWorksheetName()).isNotNull().isEqualTo(WORKSHEET_NAME);
-      assertThat(operationDetails.getCellId()).isNotNull().isEqualTo(ACTUAL_CELL_ID);
-      assertThat(operationDetails.getValue()).isNotNull().isEqualTo(ACTUAL_CELL_VALUE);
+      assertThat(operationDetails.spreadsheetId()).isNotNull().isEqualTo(SPREADSHEET_ID);
+      assertThat(operationDetails.worksheetName()).isNotNull().isEqualTo(WORKSHEET_NAME);
+      assertThat(operationDetails.cellId()).isNotNull().isEqualTo(ACTUAL_CELL_ID);
+      assertThat(operationDetails.value()).isNotNull().isEqualTo(ACTUAL_CELL_VALUE);
     } else if (input instanceof CreateRow operationDetails) {
-      assertThat(operationDetails.getSpreadsheetId()).isNotNull().isEqualTo(SPREADSHEET_ID);
-      assertThat(operationDetails.getWorksheetName()).isNotNull().isEqualTo(WORKSHEET_NAME);
-      assertThat(operationDetails.getValues()).isNotNull().isEqualTo(List.of(ACTUAL_ROW));
+      assertThat(operationDetails.spreadsheetId()).isNotNull().isEqualTo(SPREADSHEET_ID);
+      assertThat(operationDetails.worksheetName()).isNotNull().isEqualTo(WORKSHEET_NAME);
+      assertThat(operationDetails.values()).isNotNull().isEqualTo(List.of(ACTUAL_ROW));
     } else if (input instanceof GetRowByIndex operationDetails) {
-      assertThat(operationDetails.getSpreadsheetId()).isNotNull().isEqualTo(SPREADSHEET_ID);
-      assertThat(operationDetails.getWorksheetName()).isNotNull().isEqualTo(WORKSHEET_NAME);
+      assertThat(operationDetails.spreadsheetId()).isNotNull().isEqualTo(SPREADSHEET_ID);
+      assertThat(operationDetails.worksheetName()).isNotNull().isEqualTo(WORKSHEET_NAME);
     } else if (input instanceof GetWorksheetData operationDetails) {
-      assertThat(operationDetails.getSpreadsheetId()).isNotNull().isEqualTo(SPREADSHEET_ID);
-      assertThat(operationDetails.getWorksheetName()).isNotNull().isEqualTo(WORKSHEET_NAME);
+      assertThat(operationDetails.spreadsheetId()).isNotNull().isEqualTo(SPREADSHEET_ID);
+      assertThat(operationDetails.worksheetName()).isNotNull().isEqualTo(WORKSHEET_NAME);
     } else if (input instanceof DeleteColumn operationDetails) {
-      assertThat(operationDetails.getSpreadsheetId()).isNotNull().isEqualTo(SPREADSHEET_ID);
+      assertThat(operationDetails.spreadsheetId()).isNotNull().isEqualTo(SPREADSHEET_ID);
     } else if (input instanceof CreateEmptyColumnOrRow operationDetails) {
-      assertThat(operationDetails.getSpreadsheetId()).isNotNull().isEqualTo(SPREADSHEET_ID);
+      assertThat(operationDetails.spreadsheetId()).isNotNull().isEqualTo(SPREADSHEET_ID);
     } else {
       throw new UnsupportedOperationException("Unsupported operation : [" + input.getClass() + "]");
     }

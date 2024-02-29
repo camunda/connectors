@@ -6,43 +6,30 @@
  */
 package io.camunda.connector.gsheets.model.request.input;
 
+import io.camunda.connector.generator.dsl.Property.FeelMode;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyBinding;
+import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
-import java.util.Objects;
 
-public final class GetWorksheetData extends SpreadsheetInput {
-
-  @NotBlank private String worksheetName;
-
-  public GetWorksheetData() {}
-
-  public GetWorksheetData(String spreadsheetId, String worksheetName) {
-    super(spreadsheetId);
-    this.worksheetName = worksheetName;
-  }
-
-  public String getWorksheetName() {
-    return worksheetName;
-  }
-
-  public void setWorksheetName(String worksheetName) {
-    this.worksheetName = worksheetName;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    GetWorksheetData that = (GetWorksheetData) o;
-    return Objects.equals(worksheetName, that.worksheetName);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(worksheetName);
-  }
-
-  @Override
-  public String toString() {
-    return "GetWorksheetData{" + "worksheetName='" + worksheetName + '\'' + "} " + super.toString();
-  }
-}
+@TemplateSubType(id = "getWorksheetData", label = "Get worksheet data")
+public record GetWorksheetData(
+    @TemplateProperty(
+            id = "getWorksheetData.spreadsheetId",
+            label = "Spreadsheet ID",
+            description = "Enter the ID of the spreadsheet",
+            group = "operationDetails",
+            feel = FeelMode.optional,
+            binding = @PropertyBinding(name = "operation.spreadsheetId"))
+        @NotBlank
+        String spreadsheetId,
+    @TemplateProperty(
+            id = "getWorksheetData.worksheetName",
+            label = "Worksheet name",
+            description = "Enter name for the worksheet",
+            group = "operationDetails",
+            feel = FeelMode.optional,
+            binding = @PropertyBinding(name = "operation.worksheetName"))
+        @NotBlank
+        String worksheetName)
+    implements Input {}

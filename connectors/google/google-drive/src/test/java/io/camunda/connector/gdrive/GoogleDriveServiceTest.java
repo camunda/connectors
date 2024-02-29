@@ -80,7 +80,7 @@ class GoogleDriveServiceTest extends BaseTest {
     // Given
     var context = getContextBuilderWithSecrets().variables(input).build();
     GoogleDriveRequest request = context.bindVariables(GoogleDriveRequest.class);
-    String templateId = request.getResource().getTemplate().getId();
+    String templateId = request.getResource().template().id();
     Mockito.when(googleDriveClient.createWithTemplate(any(), eq(templateId))).thenReturn(file);
     ArgumentCaptor<File> captor = ArgumentCaptor.forClass(File.class);
     // When
@@ -101,7 +101,7 @@ class GoogleDriveServiceTest extends BaseTest {
     // Given
     var context = getContextBuilderWithSecrets().variables(input).build();
     GoogleDriveRequest request = context.bindVariables(GoogleDriveRequest.class);
-    String templateId = request.getResource().getTemplate().getId();
+    String templateId = request.getResource().template().id();
     Mockito.when(googleDriveClient.createWithTemplate(any(), eq(templateId))).thenReturn(file);
     ArgumentCaptor<File> captor = ArgumentCaptor.forClass(File.class);
     // When
@@ -127,7 +127,7 @@ class GoogleDriveServiceTest extends BaseTest {
     GoogleDriveRequest request = context.bindVariables(GoogleDriveRequest.class);
 
     file.setMimeType(MimeTypeUrl.DOCUMENT.getMimeType());
-    String templateId = request.getResource().getTemplate().getId();
+    String templateId = request.getResource().template().id();
     BatchUpdateDocumentResponse response = new BatchUpdateDocumentResponse();
     Mockito.when(googleDriveClient.createWithTemplate(any(), eq(templateId))).thenReturn(file);
     Mockito.when(googleDriveClient.updateDocument(any(), any())).thenReturn(response);
@@ -151,7 +151,7 @@ class GoogleDriveServiceTest extends BaseTest {
     var context = getContextBuilderWithSecrets().variables(input).build();
     GoogleDriveRequest request = context.bindVariables(GoogleDriveRequest.class);
     file.setMimeType(MimeTypeUrl.PRESENTATION.getMimeType());
-    String templateId = request.getResource().getTemplate().getId();
+    String templateId = request.getResource().template().id();
     BatchUpdateDocumentResponse response = new BatchUpdateDocumentResponse();
     Mockito.when(googleDriveClient.createWithTemplate(any(), eq(templateId))).thenReturn(file);
     Mockito.when(googleDriveClient.updateDocument(any(), any())).thenReturn(response);

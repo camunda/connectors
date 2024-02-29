@@ -6,45 +6,50 @@
  */
 package io.camunda.connector.gsheets.model.request.input;
 
+import io.camunda.connector.generator.dsl.Property.FeelMode;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyBinding;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
+import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-public final class AddValues extends SpreadsheetInput {
-
-  private String worksheetName;
-  @NotBlank private String cellId;
-  @NotNull private Object value;
-
-  public AddValues() {}
-
-  public AddValues(String spreadsheetId, String worksheetName, String cellId, Object value) {
-    super(spreadsheetId);
-    this.worksheetName = worksheetName;
-    this.cellId = cellId;
-    this.value = value;
-  }
-
-  public String getWorksheetName() {
-    return worksheetName;
-  }
-
-  public void setWorksheetName(String worksheetName) {
-    this.worksheetName = worksheetName;
-  }
-
-  public String getCellId() {
-    return cellId;
-  }
-
-  public void setCellId(String cellId) {
-    this.cellId = cellId;
-  }
-
-  public Object getValue() {
-    return value;
-  }
-
-  public void setValue(Object value) {
-    this.value = value;
-  }
-}
+@TemplateSubType(id = "addValues", label = "Add values to spreadsheet")
+public record AddValues(
+    @TemplateProperty(
+            id = "addValues.spreadsheetId",
+            label = "Spreadsheet ID",
+            description = "Enter the ID of the spreadsheet",
+            group = "operationDetails",
+            feel = FeelMode.optional,
+            binding = @PropertyBinding(name = "operation.spreadsheetId"))
+        @NotBlank
+        String spreadsheetId,
+    @TemplateProperty(
+            id = "addValues.worksheetName",
+            label = "Worksheet name",
+            description = "Enter name for the worksheet",
+            group = "operationDetails",
+            feel = FeelMode.optional,
+            binding = @PropertyBinding(name = "operation.worksheetName"))
+        @NotBlank
+        String worksheetName,
+    @TemplateProperty(
+            label = "Cell ID",
+            description =
+                "Enter the ID of the cell. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#add-values-to-spreadsheet\" target=\"_blank\">documentation</a>",
+            group = "operationDetails",
+            feel = FeelMode.optional,
+            binding = @PropertyBinding(name = "operation.cellId"))
+        @NotBlank
+        String cellId,
+    @TemplateProperty(
+            label = "Value",
+            description = "Enter the value",
+            group = "operationDetails",
+            feel = FeelMode.optional,
+            constraints = @PropertyConstraints(notEmpty = true),
+            binding = @PropertyBinding(name = "operation.value"))
+        @NotNull
+        Object value)
+    implements Input {}

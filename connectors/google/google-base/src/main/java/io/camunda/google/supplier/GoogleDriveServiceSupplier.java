@@ -9,6 +9,7 @@ package io.camunda.google.supplier;
 import static io.camunda.google.supplier.util.GoogleServiceSupplierUtil.getHttpHttpCredentialsAdapter;
 import static io.camunda.google.supplier.util.GoogleServiceSupplierUtil.getNetHttpTransport;
 
+import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.drive.Drive;
 import io.camunda.google.model.Authentication;
 import org.slf4j.Logger;
@@ -24,7 +25,7 @@ public class GoogleDriveServiceSupplier {
     Drive drive =
         new Drive.Builder(
                 getNetHttpTransport(),
-                GsonComponentSupplier.gsonFactoryInstance(),
+                GsonFactory.getDefaultInstance(),
                 getHttpHttpCredentialsAdapter(authentication))
             .build();
     LOGGER.debug("Google drive service was successfully initialized");

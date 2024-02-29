@@ -18,9 +18,9 @@ import io.camunda.connector.gsheets.BaseTest;
 import io.camunda.connector.gsheets.model.request.input.CreateRow;
 import io.camunda.connector.gsheets.supplier.GoogleSheetsServiceSupplier;
 import io.camunda.google.model.Authentication;
+import io.camunda.google.model.AuthenticationType;
 import java.io.IOException;
 import java.util.List;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,12 +35,7 @@ class CreateRowOperationTest extends BaseTest {
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private Sheets service;
 
-  private Authentication auth;
-
-  @BeforeEach
-  public void before() {
-    auth = new Authentication();
-  }
+  // private Authentication auth;
 
   @DisplayName("Should create row in defined worksheet")
   @Test
@@ -67,10 +62,14 @@ class CreateRowOperationTest extends BaseTest {
           .thenReturn(null);
 
       // When
-      new CreateRowOperation(model).execute(auth);
+      new CreateRowOperation(model)
+          .execute(new Authentication(AuthenticationType.BEARER, "abc", null, null, null));
 
       // Then
-      mockedServiceSupplier.verify(() -> GoogleSheetsServiceSupplier.getGoogleSheetsService(auth));
+      mockedServiceSupplier.verify(
+          () ->
+              GoogleSheetsServiceSupplier.getGoogleSheetsService(
+                  new Authentication(AuthenticationType.BEARER, "abc", null, null, null)));
       verify(
               service
                   .spreadsheets()

@@ -33,8 +33,8 @@ public class CreateEmptyColumnOrRowOperation extends GoogleSheetOperation {
     if (isAppendRequest()) {
       request.setAppendDimension(
           new AppendDimensionRequest()
-              .setSheetId(model.getWorksheetId())
-              .setDimension(model.getDimension().getValue())
+              .setSheetId(model.worksheetId())
+              .setDimension(model.dimension().getValue())
               .setLength(1));
     } else if (isOneOfTheIndexesEmpty()) {
       throw new IllegalArgumentException("Only both of the start and end indexes can be empty");
@@ -43,17 +43,17 @@ public class CreateEmptyColumnOrRowOperation extends GoogleSheetOperation {
           new InsertDimensionRequest()
               .setRange(
                   new DimensionRange()
-                      .setSheetId(model.getWorksheetId())
-                      .setDimension(model.getDimension().getValue())
-                      .setStartIndex(model.getStartIndex())
-                      .setEndIndex(model.getEndIndex())));
+                      .setSheetId(model.worksheetId())
+                      .setDimension(model.dimension().getValue())
+                      .setStartIndex(model.startIndex())
+                      .setEndIndex(model.endIndex())));
     }
 
     BatchUpdateSpreadsheetRequest updateRequest =
         new BatchUpdateSpreadsheetRequest().setRequests(List.of(request));
 
     try {
-      this.batchUpdate(auth, model.getSpreadsheetId(), updateRequest);
+      this.batchUpdate(auth, model.spreadsheetId(), updateRequest);
 
       return new GoogleSheetsResult("Create empty column or row", "OK");
     } catch (IOException e) {
@@ -70,11 +70,11 @@ public class CreateEmptyColumnOrRowOperation extends GoogleSheetOperation {
    * @return the boolean whether the request type is append or not
    */
   private boolean isAppendRequest() {
-    return model.getStartIndex() == null && model.getEndIndex() == null;
+    return model.startIndex() == null && model.endIndex() == null;
   }
 
   private boolean isOneOfTheIndexesEmpty() {
-    return (model.getStartIndex() == null && model.getEndIndex() != null)
-        || (model.getStartIndex() != null && model.getEndIndex() == null);
+    return (model.startIndex() == null && model.endIndex() != null)
+        || (model.startIndex() != null && model.endIndex() == null);
   }
 }

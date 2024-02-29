@@ -20,6 +20,7 @@ import io.camunda.connector.gsheets.model.response.CreateSpreadSheetResponse;
 import io.camunda.connector.gsheets.supplier.GoogleSheetsServiceSupplier;
 import io.camunda.google.DriveUtil;
 import io.camunda.google.model.Authentication;
+import io.camunda.google.model.AuthenticationType;
 import java.io.IOException;
 import org.assertj.core.api.AssertionsForClassTypes;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,15 +39,12 @@ class CreateSpreadsheetOperationTest extends BaseTest {
   @Mock private Sheets.Spreadsheets.Create create;
 
   private Spreadsheet response;
-  private Authentication auth;
 
   @BeforeEach
   public void before() throws IOException {
     response = new Spreadsheet();
     response.setSpreadsheetId(SPREADSHEET_ID);
     response.setSpreadsheetUrl(SPREADSHEET_URL);
-
-    auth = new Authentication();
 
     when(service.spreadsheets()).thenReturn(spreadsheets);
     when(service.spreadsheets().create(any())).thenReturn(create);
@@ -69,11 +67,15 @@ class CreateSpreadsheetOperationTest extends BaseTest {
       when(service.spreadsheets().create(any()).setFields(any()).execute()).thenReturn(response);
 
       // When
-      Object resultObject = new CreateSpreadSheetOperation(model).execute(auth);
+      Object resultObject =
+          new CreateSpreadSheetOperation(model)
+              .execute(new Authentication(AuthenticationType.BEARER, "abc", null, null, null));
 
       // Then
       mockedSheetsServiceSupplier.verify(
-          () -> GoogleSheetsServiceSupplier.getGoogleSheetsService(auth));
+          () ->
+              GoogleSheetsServiceSupplier.getGoogleSheetsService(
+                  new Authentication(AuthenticationType.BEARER, "abc", null, null, null)));
       mockedDriveUtil.verifyNoInteractions();
 
       assertThat(resultObject, instanceOf(CreateSpreadSheetResponse.class));
@@ -100,12 +102,21 @@ class CreateSpreadsheetOperationTest extends BaseTest {
       when(service.spreadsheets().create(any()).setFields(any()).execute()).thenReturn(response);
 
       // When
-      Object resultObject = new CreateSpreadSheetOperation(model).execute(auth);
+      Object resultObject =
+          new CreateSpreadSheetOperation(model)
+              .execute(new Authentication(AuthenticationType.BEARER, "abc", null, null, null));
 
       // Then
       mockedSheetsServiceSupplier.verify(
-          () -> GoogleSheetsServiceSupplier.getGoogleSheetsService(auth));
-      mockedDriveUtil.verify(() -> DriveUtil.moveFile(auth, PARENT, SPREADSHEET_ID));
+          () ->
+              GoogleSheetsServiceSupplier.getGoogleSheetsService(
+                  new Authentication(AuthenticationType.BEARER, "abc", null, null, null)));
+      mockedDriveUtil.verify(
+          () ->
+              DriveUtil.moveFile(
+                  new Authentication(AuthenticationType.BEARER, "abc", null, null, null),
+                  PARENT,
+                  SPREADSHEET_ID));
 
       assertThat(resultObject, instanceOf(CreateSpreadSheetResponse.class));
       CreateSpreadSheetResponse operationResult = (CreateSpreadSheetResponse) resultObject;

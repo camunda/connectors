@@ -43,6 +43,7 @@ public class GoogleDriveClient {
 
   public BatchUpdateDocumentResponse updateDocument(
       final String fileId, final List<Request> requests) {
+
     BatchUpdateDocumentRequest body = new BatchUpdateDocumentRequest().setRequests(requests);
     try {
       return docsService.documents().batchUpdate(fileId, body).execute();

@@ -6,115 +6,86 @@
  */
 package io.camunda.google.model;
 
-import com.google.api.services.drive.DriveScopes;
-import com.google.auth.oauth2.AccessToken;
-import com.google.auth.oauth2.GoogleCredentials;
-import com.google.auth.oauth2.UserCredentials;
+import static io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType.Dropdown;
+
+import io.camunda.connector.generator.dsl.Property.FeelMode;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.DropdownPropertyChoice;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
 import jakarta.validation.constraints.AssertTrue;
-import jakarta.validation.constraints.NotNull;
-import java.util.Objects;
+import org.apache.commons.lang3.StringUtils;
 
-public class Authentication {
+public record Authentication(
+    @TemplateProperty(
+            id = "authType",
+            label = "Type",
+            group = "authentication",
+            type = Dropdown,
+            defaultValue = "BEARER",
+            constraints = @PropertyConstraints(notEmpty = true),
+            choices = {
+              @DropdownPropertyChoice(label = "Bearer token", value = "BEARER"),
+              @DropdownPropertyChoice(label = "Refresh token", value = "REFRESH")
+            })
+        AuthenticationType authType,
+    @TemplateProperty(
+            id = "bearerToken",
+            label = "Bearer token",
+            description = "Enter a valid Google API Bearer token",
+            group = "authentication",
+            feel = FeelMode.optional,
+            constraints = @PropertyConstraints(notEmpty = true),
+            condition = @PropertyCondition(property = "authentication.authType", equals = "BEARER"))
+        String bearerToken,
+    @TemplateProperty(
+            id = "oauthClientId",
+            label = "Client ID",
+            description = "Enter Google API Client ID",
+            group = "authentication",
+            feel = FeelMode.optional,
+            constraints = @PropertyConstraints(notEmpty = true),
+            condition =
+                @PropertyCondition(property = "authentication.authType", equals = "REFRESH"))
+        String oauthClientId,
+    @TemplateProperty(
+            id = "oauthClientSecret",
+            label = "Client secret",
+            description = "Enter Google API client Secret",
+            group = "authentication",
+            feel = FeelMode.optional,
+            constraints = @PropertyConstraints(notEmpty = true),
+            condition =
+                @PropertyCondition(property = "authentication.authType", equals = "REFRESH"))
+        String oauthClientSecret,
+    @TemplateProperty(
+            id = "oauthRefreshToken",
+            label = "Refresh token",
+            description = "Enter a valid Google API refresh token",
+            group = "authentication",
+            feel = FeelMode.optional,
+            constraints = @PropertyConstraints(notEmpty = true),
+            condition =
+                @PropertyCondition(property = "authentication.authType", equals = "REFRESH"))
+        String oauthRefreshToken) {
 
-  @NotNull private AuthenticationType authType;
-  private String bearerToken;
-  private String oauthClientId;
-  private String oauthClientSecret;
-  private String oauthRefreshToken;
-
-  @AssertTrue
-  private boolean isHasAuthData() {
-    if (authType == AuthenticationType.BEARER) {
-      return bearerToken != null;
-    } else if (authType == AuthenticationType.REFRESH) {
-      return oauthClientId != null && oauthClientSecret != null && oauthRefreshToken != null;
-    } else {
-      return false;
-    }
-  }
-
-  public GoogleCredentials fetchCredentials() {
-    if (authType == AuthenticationType.BEARER) {
-      AccessToken accessToken = new AccessToken(bearerToken, null);
-      return new GoogleCredentials(accessToken).createScoped(DriveScopes.DRIVE);
-    }
-
-    if (authType == AuthenticationType.REFRESH) {
-      return UserCredentials.newBuilder()
-          .setClientId(oauthClientId)
-          .setClientSecret(oauthClientSecret)
-          .setRefreshToken(oauthRefreshToken)
-          .build();
-    }
-
-    throw new RuntimeException("Unsupported authentication type");
-  }
-
-  public AuthenticationType getAuthType() {
-    return authType;
-  }
-
-  public void setAuthType(AuthenticationType authType) {
-    this.authType = authType;
-  }
-
-  public String getBearerToken() {
-    return bearerToken;
-  }
-
-  public void setBearerToken(String bearerToken) {
-    this.bearerToken = bearerToken;
-  }
-
-  public String getOauthClientId() {
-    return oauthClientId;
-  }
-
-  public void setOauthClientId(String oauthClientId) {
-    this.oauthClientId = oauthClientId;
-  }
-
-  public String getOauthClientSecret() {
-    return oauthClientSecret;
-  }
-
-  public void setOauthClientSecret(String oauthClientSecret) {
-    this.oauthClientSecret = oauthClientSecret;
-  }
-
-  public String getOauthRefreshToken() {
-    return oauthRefreshToken;
-  }
-
-  public void setOauthRefreshToken(String oauthRefreshToken) {
-    this.oauthRefreshToken = oauthRefreshToken;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-
-    Authentication that = (Authentication) o;
-    return Objects.equals(authType, that.authType)
-        && Objects.equals(bearerToken, that.bearerToken)
-        && Objects.equals(oauthClientId, that.oauthClientId)
-        && Objects.equals(oauthClientSecret, that.oauthClientSecret)
-        && Objects.equals(oauthRefreshToken, that.oauthRefreshToken);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(authType, bearerToken, oauthClientId, oauthClientSecret, oauthRefreshToken);
+  @AssertTrue(message = "Credentials were incorrect")
+  private boolean isCredentialsSupplied() {
+    return StringUtils.isNotBlank(bearerToken)
+        || (StringUtils.isNotBlank(oauthClientId)
+            && StringUtils.isNotBlank(oauthClientSecret)
+            && StringUtils.isNotBlank(oauthRefreshToken));
   }
 
   @Override
   public String toString() {
-    return "Authentication{" + "authType='" + authType + '\'' + '}';
+    return "Authentication{"
+        + "authType="
+        + authType
+        + ", bearerToken=[REDACTED]"
+        + ", oauthClientId=[REDACTED]"
+        + ", oauthClientSecret=[REDACTED]"
+        + ", oauthRefreshToken=[REDACTED]"
+        + '}';
   }
 }

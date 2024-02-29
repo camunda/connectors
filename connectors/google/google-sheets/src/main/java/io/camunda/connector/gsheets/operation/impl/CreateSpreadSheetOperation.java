@@ -30,7 +30,7 @@ public class CreateSpreadSheetOperation extends GoogleSheetOperation {
     Sheets service = GoogleSheetsServiceSupplier.getGoogleSheetsService(auth);
     Spreadsheet spreadsheet =
         new Spreadsheet()
-            .setProperties(new SpreadsheetProperties().setTitle(model.getSpreadsheetName()));
+            .setProperties(new SpreadsheetProperties().setTitle(model.spreadsheetName()));
 
     try {
       spreadsheet =
@@ -40,8 +40,8 @@ public class CreateSpreadSheetOperation extends GoogleSheetOperation {
               .setFields(buildFields(SPREADSHEET_ID_FIELD, SPREADSHEET_URL_FIELD))
               .execute();
 
-      if (model.getParent() != null) {
-        DriveUtil.moveFile(auth, model.getParent(), spreadsheet.getSpreadsheetId());
+      if (model.parent() != null) {
+        DriveUtil.moveFile(auth, model.parent(), spreadsheet.getSpreadsheetId());
       }
     } catch (IOException e) {
       throw new RuntimeException(e);
