@@ -69,7 +69,8 @@ public record WebhookConnectorProperties(
             description = "Shared secret key",
             group = "authentication",
             optional = true,
-            condition = @PropertyCondition(property = "shouldValidateHmac", equals = "enabled"))
+            condition =
+                @PropertyCondition(property = "inbound.shouldValidateHmac", equals = "enabled"))
         String hmacSecret,
     @TemplateProperty(
             id = "hmacHeader",
@@ -77,7 +78,8 @@ public record WebhookConnectorProperties(
             description = "Name of header attribute that will contain the HMAC value",
             group = "authentication",
             optional = true,
-            condition = @PropertyCondition(property = "shouldValidateHmac", equals = "enabled"))
+            condition =
+                @PropertyCondition(property = "inbound.shouldValidateHmac", equals = "enabled"))
         String hmacHeader,
     @TemplateProperty(
             id = "hmacAlgorithm",
@@ -91,7 +93,8 @@ public record WebhookConnectorProperties(
               @DropdownPropertyChoice(label = "SHA-256", value = "sha_256"),
               @DropdownPropertyChoice(label = "SHA-512", value = "sha_512")
             },
-            condition = @PropertyCondition(property = "shouldValidateHmac", equals = "enabled"))
+            condition =
+                @PropertyCondition(property = "inbound.shouldValidateHmac", equals = "enabled"))
         String hmacAlgorithm,
     @TemplateProperty(
             id = "hmacScopes",
@@ -100,7 +103,10 @@ public record WebhookConnectorProperties(
             description =
                 "Set HMAC scopes for calculating signature data. See <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/' target='_blank'>documentation</a>",
             optional = true,
-            condition = @PropertyCondition(property = "shouldValidateHmac", equals = "enabled"))
+            type = PropertyType.String,
+            feel = FeelMode.required,
+            condition =
+                @PropertyCondition(property = "inbound.shouldValidateHmac", equals = "enabled"))
         @FEEL
         HMACScope[] hmacScopes,
     WebhookAuthorization auth,

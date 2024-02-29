@@ -26,11 +26,11 @@
     "id" : "webhookResponse",
     "label" : "Webhook response"
   }, {
-    "id" : "output",
-    "label" : "Output mapping"
-  }, {
     "id" : "activation",
     "label" : "Activation"
+  }, {
+    "id" : "output",
+    "label" : "Output mapping"
   } ],
   "properties" : [ {
     "value" : "io.camunda:webhook:1",
@@ -48,7 +48,7 @@
     "group" : "endpoint",
     "binding" : {
       "name" : "inbound.method",
-      "type" : "zeebe:input"
+      "type" : "zeebe:property"
     },
     "type" : "Dropdown",
     "choices" : [ {
@@ -83,7 +83,7 @@
     "group" : "endpoint",
     "binding" : {
       "name" : "inbound.inbound.context",
-      "type" : "zeebe:input"
+      "type" : "zeebe:property"
     },
     "type" : "String"
   }, {
@@ -95,7 +95,7 @@
     "group" : "authentication",
     "binding" : {
       "name" : "inbound.shouldValidateHmac",
-      "type" : "zeebe:input"
+      "type" : "zeebe:property"
     },
     "type" : "Dropdown",
     "choices" : [ {
@@ -114,10 +114,10 @@
     "group" : "authentication",
     "binding" : {
       "name" : "inbound.hmacSecret",
-      "type" : "zeebe:input"
+      "type" : "zeebe:property"
     },
     "condition" : {
-      "property" : "shouldValidateHmac",
+      "property" : "inbound.shouldValidateHmac",
       "equals" : "enabled",
       "type" : "simple"
     },
@@ -131,10 +131,10 @@
     "group" : "authentication",
     "binding" : {
       "name" : "inbound.hmacHeader",
-      "type" : "zeebe:input"
+      "type" : "zeebe:property"
     },
     "condition" : {
-      "property" : "shouldValidateHmac",
+      "property" : "inbound.shouldValidateHmac",
       "equals" : "enabled",
       "type" : "simple"
     },
@@ -148,10 +148,10 @@
     "group" : "authentication",
     "binding" : {
       "name" : "inbound.hmacAlgorithm",
-      "type" : "zeebe:input"
+      "type" : "zeebe:property"
     },
     "condition" : {
-      "property" : "shouldValidateHmac",
+      "property" : "inbound.shouldValidateHmac",
       "equals" : "enabled",
       "type" : "simple"
     },
@@ -171,14 +171,14 @@
     "label" : "HMAC scopes",
     "description" : "Set HMAC scopes for calculating signature data. See <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/' target='_blank'>documentation</a>",
     "optional" : true,
-    "feel" : "optional",
+    "feel" : "required",
     "group" : "authentication",
     "binding" : {
       "name" : "inbound.hmacScopes",
-      "type" : "zeebe:input"
+      "type" : "zeebe:property"
     },
     "condition" : {
-      "property" : "shouldValidateHmac",
+      "property" : "inbound.shouldValidateHmac",
       "equals" : "enabled",
       "type" : "simple"
     },
@@ -191,7 +191,7 @@
     "group" : "authorization",
     "binding" : {
       "name" : "inbound.auth.type",
-      "type" : "zeebe:input"
+      "type" : "zeebe:property"
     },
     "type" : "Dropdown",
     "choices" : [ {
@@ -216,7 +216,7 @@
     "group" : "authorization",
     "binding" : {
       "name" : "inbound.auth.username",
-      "type" : "zeebe:input"
+      "type" : "zeebe:property"
     },
     "condition" : {
       "property" : "inbound.auth.type",
@@ -233,7 +233,7 @@
     "group" : "authorization",
     "binding" : {
       "name" : "inbound.auth.password",
-      "type" : "zeebe:input"
+      "type" : "zeebe:property"
     },
     "condition" : {
       "property" : "inbound.auth.type",
@@ -250,7 +250,7 @@
     "group" : "authorization",
     "binding" : {
       "name" : "inbound.auth.apiKey",
-      "type" : "zeebe:input"
+      "type" : "zeebe:property"
     },
     "condition" : {
       "property" : "inbound.auth.type",
@@ -267,7 +267,7 @@
     "group" : "authorization",
     "binding" : {
       "name" : "inbound.auth.apiKeyLocator",
-      "type" : "zeebe:input"
+      "type" : "zeebe:property"
     },
     "condition" : {
       "property" : "inbound.auth.type",
@@ -284,7 +284,7 @@
     "group" : "authorization",
     "binding" : {
       "name" : "inbound.auth.jwt.jwkUrl",
-      "type" : "zeebe:input"
+      "type" : "zeebe:property"
     },
     "condition" : {
       "property" : "inbound.auth.type",
@@ -301,7 +301,7 @@
     "group" : "authorization",
     "binding" : {
       "name" : "inbound.auth.jwt.permissionsExpression",
-      "type" : "zeebe:input"
+      "type" : "zeebe:property"
     },
     "condition" : {
       "property" : "inbound.auth.type",
@@ -318,7 +318,7 @@
     "group" : "authorization",
     "binding" : {
       "name" : "inbound.auth.jwt.requiredPermissions",
-      "type" : "zeebe:input"
+      "type" : "zeebe:property"
     },
     "condition" : {
       "property" : "inbound.auth.type",
@@ -335,7 +335,7 @@
     "group" : "webhookResponse",
     "binding" : {
       "name" : "inbound.responseBodyExpression",
-      "type" : "zeebe:input"
+      "type" : "zeebe:property"
     },
     "type" : "Text"
   }, {
@@ -347,9 +347,21 @@
     "group" : "webhookResponse",
     "binding" : {
       "name" : "inbound.verificationExpression",
-      "type" : "zeebe:input"
+      "type" : "zeebe:property"
     },
     "type" : "Text"
+  }, {
+    "id" : "activationCondition",
+    "label" : "Activation condition",
+    "description" : "Condition under which the Connector triggers. Leave empty to catch all events",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "activation",
+    "binding" : {
+      "name" : "activationCondition",
+      "type" : "zeebe:property"
+    },
+    "type" : "String"
   }, {
     "id" : "resultVariable",
     "label" : "Result variable",
@@ -371,18 +383,6 @@
       "type" : "zeebe:property"
     },
     "type" : "Text"
-  }, {
-    "id" : "activationCondition",
-    "label" : "Activation condition",
-    "description" : "Condition under which the Connector triggers. Leave empty to catch all events",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "activation",
-    "binding" : {
-      "name" : "activationCondition",
-      "type" : "zeebe:property"
-    },
-    "type" : "String"
   } ],
   "icon" : {
     "contents" : "data:image/svg+xml;base64,PHN2ZyBpZD0naWNvbicgeG1sbnM9J2h0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnJyB3aWR0aD0nMTgnIGhlaWdodD0nMTgnIHZpZXdCb3g9JzAgMCAzMiAzMic+CiAgPGRlZnM+CiAgICA8c3R5bGU+LmNscy0xIHsgZmlsbDogbm9uZTsgfTwvc3R5bGU+CiAgPC9kZWZzPgogIDxwYXRoCiAgICBkPSdNMjQsMjZhMywzLDAsMSwwLTIuODE2NC00SDEzdjFhNSw1LDAsMSwxLTUtNVYxNmE3LDcsMCwxLDAsNi45Mjg3LDhoNi4yNTQ5QTIuOTkxNCwyLjk5MTQsMCwwLDAsMjQsMjZaJy8+CiAgPHBhdGgKICAgIGQ9J00yNCwxNmE3LjAyNCw3LjAyNCwwLDAsMC0yLjU3LjQ4NzNsLTMuMTY1Ni01LjUzOTVhMy4wNDY5LDMuMDQ2OSwwLDEsMC0xLjczMjYuOTk4NWw0LjExODksNy4yMDg1Ljg2ODYtLjQ5NzZhNS4wMDA2LDUuMDAwNiwwLDEsMS0xLjg1MSw2Ljg0MThMMTcuOTM3LDI2LjUwMUE3LjAwMDUsNy4wMDA1LDAsMSwwLDI0LDE2WicvPgogIDxwYXRoCiAgICBkPSdNOC41MzIsMjAuMDUzN2EzLjAzLDMuMDMsMCwxLDAsMS43MzI2Ljk5ODVDMTEuNzQsMTguNDcsMTMuODYsMTQuNzYwNywxMy44OSwxNC43MDhsLjQ5NzYtLjg2ODItLjg2NzctLjQ5N2E1LDUsMCwxLDEsNi44MTItMS44NDM4bDEuNzMxNSwxLjAwMmE3LjAwMDgsNy4wMDA4LDAsMSwwLTEwLjM0NjIsMi4wMzU2Yy0uNDU3Ljc0MjctMS4xMDIxLDEuODcxNi0yLjA3MzcsMy41NzI4WicvPgogIDxyZWN0IGlkPSdfVHJhbnNwYXJlbnRfUmVjdGFuZ2xlXycgZGF0YS1uYW1lPScmbHQ7VHJhbnNwYXJlbnQgUmVjdGFuZ2xlJmd0OycgY2xhc3M9J2Nscy0xJwogICAgd2lkdGg9JzMyJyBoZWlnaHQ9JzMyJy8+Cjwvc3ZnPg=="

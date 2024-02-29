@@ -27,6 +27,7 @@ import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.dsl.PropertyBinding;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
+import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeProperty;
 import io.camunda.connector.generator.dsl.PropertyBuilder;
 import io.camunda.connector.generator.dsl.PropertyCondition;
 import io.camunda.connector.generator.dsl.PropertyCondition.AllMatch;
@@ -45,6 +46,7 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.generator.java.processor.FieldProcessor;
 import io.camunda.connector.generator.java.processor.JakartaValidationFieldProcessor;
 import io.camunda.connector.generator.java.processor.TemplatePropertyFieldProcessor;
+import io.camunda.connector.generator.java.util.TemplateGenerationContext.Outbound;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -86,9 +88,10 @@ public class TemplatePropertiesUtil {
    * @param type the type to analyze
    * @return a list of {@link PropertyBuilder} instances
    */
-  public static List<PropertyBuilder> extractTemplatePropertiesFromType(Class<?> type) {
+  public static List<PropertyBuilder> extractTemplatePropertiesFromType(
+      Class<?> type, TemplateGenerationContext context) {
     if (type.isSealed()) {
-      return handleSealedType(type);
+      return handleSealedType(type, context);
     }
 
     var fields = getAllFields(type);
@@ -109,11 +112,11 @@ public class TemplatePropertiesUtil {
         try {
           // analyze recursively
           var nestedProperties =
-              extractTemplatePropertiesFromType(field.getType()).stream()
+              extractTemplatePropertiesFromType(field.getType(), context).stream()
                   .peek(
                       builder -> {
                         if (hasPathPrefix) {
-                          addPathPrefixToBuilder(builder, field.getName());
+                          addPathPrefixToBuilder(builder, field.getName(), context);
                         }
                         if (hasConditionOverride) {
                           builder.condition(
@@ -137,7 +140,7 @@ public class TemplatePropertiesUtil {
                   + "a container type and consider applying a type override using @TemplateProperty or breaking the circular reference.");
         }
       } else {
-        properties.add(buildProperty(field));
+        properties.add(buildProperty(field, context));
       }
     }
     return properties.stream().filter(Objects::nonNull).toList();
@@ -167,7 +170,7 @@ public class TemplatePropertiesUtil {
         .toList();
   }
 
-  private static PropertyBuilder buildProperty(Field field) {
+  private static PropertyBuilder buildProperty(Field field, TemplateGenerationContext context) {
     var annotation = field.getAnnotation(TemplateProperty.class);
     String name, label;
     String bindingName = field.getName();
@@ -197,7 +200,7 @@ public class TemplatePropertiesUtil {
         createPropertyBuilder(field, annotation)
             .id(name)
             .label(label)
-            .binding(createBinding(bindingName));
+            .binding(createBinding(bindingName, context));
 
     for (FieldProcessor processor : fieldProcessors) {
       processor.process(field, propertyBuilder);
@@ -205,14 +208,16 @@ public class TemplatePropertiesUtil {
     return propertyBuilder;
   }
 
-  private static void addPathPrefixToBuilder(PropertyBuilder builder, String path) {
+  private static void addPathPrefixToBuilder(
+      PropertyBuilder builder, String path, TemplateGenerationContext context) {
     var originalId = builder.getId();
     builder.id(path + "." + originalId);
     var binding = builder.getBinding();
 
     if (binding instanceof ZeebeInput) {
-      // TODO: consider inbound support
-      builder.binding(createBinding(path + "." + ((ZeebeInput) binding).name()));
+      builder.binding(createBinding(path + "." + ((ZeebeInput) binding).name(), context));
+    } else if (binding instanceof ZeebeProperty) {
+      builder.binding(createBinding(path + "." + ((ZeebeProperty) binding).name(), context));
     }
 
     if (builder instanceof DiscriminatorPropertyBuilder discriminatorPropertyBuilder) {
@@ -308,7 +313,8 @@ public class TemplatePropertiesUtil {
     return builder;
   }
 
-  private static List<PropertyBuilder> handleSealedType(Class<?> type) {
+  private static List<PropertyBuilder> handleSealedType(
+      Class<?> type, TemplateGenerationContext context) {
     var subTypes =
         Arrays.stream(type.getPermittedSubclasses())
             .filter(
@@ -336,7 +342,7 @@ public class TemplatePropertiesUtil {
       values.put(subTypeIdAndName.getKey(), subTypeIdAndName.getValue());
 
       var currentSubTypeProperties =
-          extractTemplatePropertiesFromType(subType).stream()
+          extractTemplatePropertiesFromType(subType, context).stream()
               .peek(
                   property -> {
                     if (property.getCondition() == null) {
@@ -379,7 +385,7 @@ public class TemplatePropertiesUtil {
                     .map(entry -> new DropdownChoice(entry.getValue(), entry.getKey()))
                     .collect(Collectors.toList()))
             .id(discriminatorIdAndName.getKey())
-            .binding(createBinding(discriminatorIdAndName.getKey()))
+            .binding(createBinding(discriminatorIdAndName.getKey(), context))
             .group(
                 discriminatorAnnotation == null || discriminatorAnnotation.group().isBlank()
                     ? null
@@ -463,8 +469,12 @@ public class TemplatePropertiesUtil {
         && !Map.class.isAssignableFrom(type);
   }
 
-  private static PropertyBinding createBinding(String propertyName) {
-    // TODO: consider inbound, support zeebe:property
-    return new PropertyBinding.ZeebeInput(propertyName);
+  private static PropertyBinding createBinding(
+      String propertyName, TemplateGenerationContext context) {
+    if (context instanceof Outbound) {
+      return new PropertyBinding.ZeebeInput(propertyName);
+    } else {
+      return new PropertyBinding.ZeebeProperty(propertyName);
+    }
   }
 }

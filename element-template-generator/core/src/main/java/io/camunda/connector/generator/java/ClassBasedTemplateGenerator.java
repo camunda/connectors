@@ -59,7 +59,7 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
     var context = TemplateGenerationContextUtil.createContext(connectorDefinition, configuration);
 
     List<PropertyBuilder> properties =
-        TemplatePropertiesUtil.extractTemplatePropertiesFromType(connectorInput);
+        TemplatePropertiesUtil.extractTemplatePropertiesFromType(connectorInput, context);
 
     var groupsDefinedInProperties =
         new ArrayList<>(TemplatePropertiesUtil.groupProperties(properties));
@@ -104,14 +104,6 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
               .build());
     }
 
-    if (context instanceof Outbound) {
-      mergedGroups.add(PropertyGroup.OUTPUT_GROUP_OUTBOUND);
-      mergedGroups.add(PropertyGroup.ERROR_GROUP);
-      mergedGroups.add(PropertyGroup.RETRIES_GROUP);
-    } else {
-      mergedGroups.add(PropertyGroup.OUTPUT_GROUP_INBOUND);
-    }
-
     var nonGroupedProperties =
         properties.stream().filter(property -> property.build().getGroup() == null).toList();
 
@@ -139,8 +131,7 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
                       template.documentationRef().isEmpty() ? null : template.documentationRef())
                   .description(template.description().isEmpty() ? null : template.description())
                   .properties(nonGroupedProperties.stream().map(PropertyBuilder::build).toList())
-                  .propertyGroups(mergedGroups)
-                  .propertyGroups(getActivationPropertyGroupIfNeeded(context, elementType))
+                  .propertyGroups(addServiceProperties(mergedGroups, context, elementType))
                   .build();
             })
         .toList();
@@ -171,16 +162,23 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
             });
   }
 
-  private static PropertyGroup[] getActivationPropertyGroupIfNeeded(
-      TemplateGenerationContext context, ConnectorElementType elementType) {
+  private List<PropertyGroup> addServiceProperties(
+      List<PropertyGroup> groups,
+      TemplateGenerationContext context,
+      ConnectorElementType elementType) {
+    var newGroups = new ArrayList<>(groups);
     if (context instanceof Outbound) {
-      // no activation group for outbound
-      return new PropertyGroup[0];
-    }
-    if (elementType.elementType().isMessage()) {
-      return new PropertyGroup[] {PropertyGroup.ACTIVATION_GROUP_WITH_MESSAGE_ID_EXP};
+      newGroups.add(PropertyGroup.OUTPUT_GROUP_OUTBOUND);
+      newGroups.add(PropertyGroup.ERROR_GROUP);
+      newGroups.add(PropertyGroup.RETRIES_GROUP);
     } else {
-      return new PropertyGroup[] {PropertyGroup.ACTIVATION_GROUP_WITHOUT_MESSAGE_ID_EXPR};
+      if (elementType.elementType().isMessage()) {
+        newGroups.add(PropertyGroup.ACTIVATION_GROUP_WITH_MESSAGE_ID_EXP);
+      } else {
+        newGroups.add(PropertyGroup.ACTIVATION_GROUP_WITHOUT_MESSAGE_ID_EXPR);
+      }
+      newGroups.add(PropertyGroup.OUTPUT_GROUP_INBOUND);
     }
+    return newGroups;
   }
 }
