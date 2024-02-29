@@ -103,7 +103,10 @@ public class KafkaConnectorFunction implements OutboundConnectorFunction {
       Future<RecordMetadata> kafkaResponse = producer.send(producerRecord);
       return constructKafkaConnectorResponse(kafkaResponse.get(45, TimeUnit.SECONDS));
     } catch (Exception e) {
-      throw new ConnectorException("FAIL", "Kafka Producer execution exception", e);
+      throw new ConnectorException(
+          "FAIL",
+          "Error during Kafka Producer execution; error message: [" + e.getMessage() + "]",
+          e);
     }
   }
 
