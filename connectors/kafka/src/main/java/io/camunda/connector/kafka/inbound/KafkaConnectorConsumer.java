@@ -171,7 +171,7 @@ public class KafkaConnectorConsumer {
     LOG.trace("Kafka message received: key = {}, value = {}", record.key(), record.value());
     var reader = avroObjectReader != null ? avroObjectReader : objectMapper.reader();
     var mappedMessage = convertConsumerRecordToKafkaInboundMessage(record, reader);
-    this.context.correlateWithResult(mappedMessage);
+    this.context.correlate(mappedMessage);
   }
 
   public void stopConsumer() throws ExecutionException, InterruptedException {
