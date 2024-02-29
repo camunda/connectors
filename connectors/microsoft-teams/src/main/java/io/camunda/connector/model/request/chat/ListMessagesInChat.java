@@ -6,106 +6,15 @@
  */
 package io.camunda.connector.model.request.chat;
 
-import com.microsoft.graph.requests.ChatMessageCollectionRequest;
-import com.microsoft.graph.requests.GraphServiceClient;
 import io.camunda.connector.model.OrderBy;
 import io.camunda.connector.model.request.MSTeamsRequestData;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
-import java.util.Objects;
-import okhttp3.Request;
 
-public class ListMessagesInChat extends MSTeamsRequestData {
-
-  @NotBlank private String chatId;
-  private String filter;
-  @NotNull private OrderBy orderBy;
-
-  @Pattern(regexp = "^([1-9])|([1-4][0-9])|(50)$")
-  private String top;
-
-  @Override
-  public Object invoke(final GraphServiceClient<Request> graphClient) {
-    ChatMessageCollectionRequest request = graphClient.chats(chatId).messages().buildRequest();
-    if (orderBy != OrderBy.withoutOrdering) {
-      request.orderBy(orderBy.getValue());
-    }
-    if (filter != null) {
-      request.filter(filter);
-    }
-    if (top != null) {
-      request.top(Integer.parseInt(top));
-    }
-    return request.get();
-  }
-
-  public String getChatId() {
-    return chatId;
-  }
-
-  public void setChatId(final String chatId) {
-    this.chatId = chatId;
-  }
-
-  public String getFilter() {
-    return filter;
-  }
-
-  public void setFilter(final String filter) {
-    this.filter = filter;
-  }
-
-  public OrderBy getOrderBy() {
-    return orderBy;
-  }
-
-  public void setOrderBy(final OrderBy orderBy) {
-    this.orderBy = orderBy;
-  }
-
-  public String getTop() {
-    return top;
-  }
-
-  public void setTop(final String top) {
-    this.top = top;
-  }
-
-  @Override
-  public boolean equals(final Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    final ListMessagesInChat that = (ListMessagesInChat) o;
-    return Objects.equals(chatId, that.chatId)
-        && Objects.equals(filter, that.filter)
-        && orderBy == that.orderBy
-        && Objects.equals(top, that.top);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(chatId, filter, orderBy, top);
-  }
-
-  @Override
-  public String toString() {
-    return "ListMessagesInChat{"
-        + "chatId='"
-        + chatId
-        + "'"
-        + ", filter='"
-        + filter
-        + "'"
-        + ", orderBy="
-        + orderBy
-        + ", top='"
-        + top
-        + "'"
-        + "}";
-  }
-}
+public record ListMessagesInChat(
+    @NotBlank String chatId,
+    String filter,
+    @NotNull OrderBy orderBy,
+    @Pattern(regexp = "^([1-9])|([1-4][0-9])|(50)$") String top)
+    implements MSTeamsRequestData {}

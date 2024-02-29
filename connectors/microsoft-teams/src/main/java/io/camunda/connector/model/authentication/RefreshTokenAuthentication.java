@@ -6,92 +6,19 @@
  */
 package io.camunda.connector.model.authentication;
 
-import com.microsoft.graph.requests.GraphServiceClient;
-import io.camunda.connector.suppliers.GraphServiceClientSupplier;
 import jakarta.validation.constraints.NotBlank;
-import java.util.Objects;
-import okhttp3.Request;
 
-public class RefreshTokenAuthentication extends MSTeamsAuthentication {
-
-  @NotBlank private String clientId;
-  @NotBlank private String tenantId;
-  @NotBlank private String clientSecret;
-  @NotBlank private String token;
-
-  @Override
-  public GraphServiceClient<Request> buildAndGetGraphServiceClient(
-      final GraphServiceClientSupplier clientSupplier) {
-    return clientSupplier.buildAndGetGraphServiceClient(this);
-  }
-
-  public String getClientId() {
-    return clientId;
-  }
-
-  public void setClientId(final String clientId) {
-    this.clientId = clientId;
-  }
-
-  public String getTenantId() {
-    return tenantId;
-  }
-
-  public void setTenantId(final String tenantId) {
-    this.tenantId = tenantId;
-  }
-
-  public String getClientSecret() {
-    return clientSecret;
-  }
-
-  public void setClientSecret(final String clientSecret) {
-    this.clientSecret = clientSecret;
-  }
-
-  public String getToken() {
-    return token;
-  }
-
-  public void setToken(final String token) {
-    this.token = token;
-  }
-
-  @Override
-  public boolean equals(final Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    final RefreshTokenAuthentication that = (RefreshTokenAuthentication) o;
-    return Objects.equals(clientId, that.clientId)
-        && Objects.equals(tenantId, that.tenantId)
-        && Objects.equals(clientSecret, that.clientSecret)
-        && Objects.equals(token, that.token);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(clientId, tenantId, clientSecret, token);
-  }
+public record RefreshTokenAuthentication(
+    @NotBlank String clientId,
+    @NotBlank String tenantId,
+    @NotBlank String clientSecret,
+    @NotBlank String token)
+    implements MSTeamsAuthentication {
 
   @Override
   public String toString() {
-    return "RefreshTokenAuthentication{"
-        + "clientId='"
-        + clientId
-        + "'"
-        + ", tenantId='"
-        + tenantId
-        + "'"
-        + ", clientSecret='"
-        + "[REDACTED]"
-        + "'"
-        + ", token='"
-        + "[REDACTED]"
-        + "'"
-        + "}";
+    return String.format(
+        "RefreshTokenAuthentication{clientId='%s', tenantId='%s', clientSecret='%s', token='%s'}",
+        clientId, tenantId, "[REDACTED]", "[REDACTED]");
   }
 }

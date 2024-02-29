@@ -6,12 +6,14 @@
  */
 package io.camunda.connector;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
+import com.microsoft.graph.requests.GraphServiceClient;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.model.MSTeamsRequest;
+import io.camunda.connector.operation.OperationFactory;
 import io.camunda.connector.suppliers.GraphServiceClientSupplier;
+import okhttp3.Request;
 
 @OutboundConnector(
     name = "MS Teams",
@@ -30,8 +32,14 @@ public class MSTeamsFunction implements OutboundConnectorFunction {
   }
 
   @Override
-  public Object execute(OutboundConnectorContext context) throws JsonProcessingException {
+  public Object execute(OutboundConnectorContext context) {
     var msTeamsRequest = context.bindVariables(MSTeamsRequest.class);
-    return msTeamsRequest.invoke(graphSupplier);
+
+    GraphServiceClient<Request> graphServiceClient =
+        graphSupplier.buildAndGetGraphServiceClient(msTeamsRequest.authentication());
+
+    OperationFactory operationFactory = new OperationFactory();
+
+    return operationFactory.getService(msTeamsRequest.data()).invoke(graphServiceClient);
   }
 }

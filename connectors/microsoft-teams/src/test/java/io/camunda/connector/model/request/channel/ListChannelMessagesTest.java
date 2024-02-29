@@ -53,16 +53,17 @@ class ListChannelMessagesTest extends BaseTest {
     when(chatMessageCollectionRequest.get())
         .thenReturn(new ChatMessageCollectionPage(new ChatMessageCollectionResponse(), null));
 
-    ListChannelMessages listChannelMessages = new ListChannelMessages();
-    listChannelMessages.setGroupId(ActualValue.Channel.GROUP_ID);
-    listChannelMessages.setChannelId(ActualValue.Channel.CHANNEL_ID);
-    listChannelMessages.setIsExpand(Boolean.TRUE.toString());
-    listChannelMessages.setTop(ActualValue.Channel.TOP);
+    ListChannelMessages listChannelMessages =
+        new ListChannelMessages(
+            ActualValue.Channel.GROUP_ID,
+            ActualValue.Channel.CHANNEL_ID,
+            Boolean.TRUE.toString(),
+            ActualValue.Channel.TOP);
     // When
-    ChatMessageCollectionPage invoke = listChannelMessages.invoke(graphServiceClient);
+    Object result = operationFactory.getService(listChannelMessages).invoke(graphServiceClient);
     // Then
     verify(chatMessageCollectionRequest).top(Integer.parseInt(ActualValue.Channel.TOP));
     verify(chatMessageCollectionRequest).expand("replies");
-    assertThat(invoke).isNotNull();
+    assertThat(result).isNotNull();
   }
 }

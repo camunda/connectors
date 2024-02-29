@@ -6,44 +6,12 @@
  */
 package io.camunda.connector.model.authentication;
 
-import com.microsoft.graph.requests.GraphServiceClient;
-import io.camunda.connector.suppliers.GraphServiceClientSupplier;
 import jakarta.validation.constraints.NotBlank;
-import java.util.Objects;
-import okhttp3.Request;
 
-public class BearerAuthentication extends MSTeamsAuthentication {
-  @NotBlank private String token;
-
-  @Override
-  public GraphServiceClient<Request> buildAndGetGraphServiceClient(
-      GraphServiceClientSupplier clientSupplier) {
-    return clientSupplier.buildAndGetGraphServiceClient(token);
-  }
-
-  public String getToken() {
-    return token;
-  }
-
-  public void setToken(final String token) {
-    this.token = token;
-  }
-
-  @Override
-  public boolean equals(final Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    final BearerAuthentication that = (BearerAuthentication) o;
-    return Objects.equals(token, that.token);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(token);
-  }
+public record BearerAuthentication(@NotBlank String token) implements MSTeamsAuthentication {
 
   @Override
   public String toString() {
-    return "BearerAuthentication{" + "token='[secret_token]'" + "}";
+    return "BearerAuthentication{token='[REDACTED]'}";
   }
 }

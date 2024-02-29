@@ -46,12 +46,13 @@ class CreateChannelTest extends BaseTest {
 
   @BeforeEach
   public void init() {
-    createChannel = new CreateChannel();
-    createChannel.setChannelType(ActualValue.Channel.CHANNEL_TYPE_STANDARD);
-    createChannel.setDescription(ActualValue.Channel.DESCRIPTION);
-    createChannel.setName(ActualValue.Channel.NAME);
-    createChannel.setGroupId(ActualValue.Channel.GROUP_ID);
-    createChannel.setOwner(ActualValue.Channel.OWNER);
+    createChannel =
+        new CreateChannel(
+            ActualValue.Channel.GROUP_ID,
+            ActualValue.Channel.NAME,
+            ActualValue.Channel.DESCRIPTION,
+            ActualValue.Channel.CHANNEL_TYPE_STANDARD,
+            ActualValue.Channel.OWNER);
     when(graphServiceClient.teams(ActualValue.Channel.GROUP_ID)).thenReturn(teamRequestBuilder);
     when(teamRequestBuilder.channels()).thenReturn(channelCollectionRequestBuilder);
     when(channelCollectionRequestBuilder.buildRequest()).thenReturn(channelCollectionRequest);
@@ -63,18 +64,25 @@ class CreateChannelTest extends BaseTest {
   public void invoke_shouldReturnChannelAndSetMembersWhenChannelTypeIsNotStandard(
       String channelType) {
     // Given
-    createChannel.setChannelType(channelType);
+    createChannel =
+        new CreateChannel(
+            ActualValue.Channel.GROUP_ID,
+            ActualValue.Channel.NAME,
+            ActualValue.Channel.DESCRIPTION,
+            channelType,
+            ActualValue.Channel.OWNER);
     // When
-    Channel invoke = createChannel.invoke(graphServiceClient);
+    Object result = operationFactory.getService(createChannel).invoke(graphServiceClient);
     // Then
-    assertThat(invoke).isNotNull();
+    assertThat(result).isNotNull();
+    assertThat(result).isInstanceOf(Channel.class);
     Channel value = channelArgumentCaptor.getValue();
     assertThat(value.displayName).isEqualTo(ActualValue.Channel.NAME);
     assertThat(value.description).isEqualTo(ActualValue.Channel.DESCRIPTION);
 
     ConversationMemberCollectionPage members = value.members;
-    ConversationMember conversationMember = members.getCurrentPage().get(0);
-    assertThat(conversationMember.roles.get(0)).isEqualTo(Member.OWNER_ROLES.get(0));
+    ConversationMember conversationMember = members.getCurrentPage().getFirst();
+    assertThat(conversationMember.roles.getFirst()).isEqualTo(Member.OWNER_ROLES.getFirst());
 
     assertThat(conversationMember.additionalDataManager().get(Member.USER_DATA_TYPE))
         .isEqualTo(Member.USER_CONVERSATION_MEMBER);
@@ -85,11 +93,18 @@ class CreateChannelTest extends BaseTest {
   @Test
   public void invoke__shouldReturnChannelAndSetMembersWhenChannelTypeIsStandard() {
     // Given
-    createChannel.setChannelType(ActualValue.Channel.CHANNEL_TYPE_STANDARD);
+    createChannel =
+        new CreateChannel(
+            ActualValue.Channel.GROUP_ID,
+            ActualValue.Channel.NAME,
+            ActualValue.Channel.DESCRIPTION,
+            ActualValue.Channel.CHANNEL_TYPE_STANDARD,
+            ActualValue.Channel.OWNER);
     // When
-    Channel invoke = createChannel.invoke(graphServiceClient);
+    Object result = operationFactory.getService(createChannel).invoke(graphServiceClient);
     // Then
-    assertThat(invoke).isNotNull();
+    assertThat(result).isNotNull();
+    assertThat(result).isInstanceOf(Channel.class);
     Channel value = channelArgumentCaptor.getValue();
     assertThat(value.displayName).isEqualTo(ActualValue.Channel.NAME);
     assertThat(value.description).isEqualTo(ActualValue.Channel.DESCRIPTION);

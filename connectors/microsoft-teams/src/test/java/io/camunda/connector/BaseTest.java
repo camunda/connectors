@@ -16,6 +16,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.model.MSTeamsRequest;
+import io.camunda.connector.operation.OperationFactory;
 import io.camunda.connector.suppliers.ObjectMapperSupplier;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
@@ -28,6 +29,7 @@ import org.junit.jupiter.params.provider.Arguments;
 public abstract class BaseTest {
 
   protected static final ObjectMapper objectMapper = ObjectMapperSupplier.objectMapper();
+  protected static final OperationFactory operationFactory = new OperationFactory();
 
   protected interface ActualValue {
 

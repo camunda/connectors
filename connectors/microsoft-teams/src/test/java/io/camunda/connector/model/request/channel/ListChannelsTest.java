@@ -56,13 +56,12 @@ class ListChannelsTest extends BaseTest {
     when(channelCollectionReferenceRequest.get())
         .thenReturn(new ChannelCollectionWithReferencesPage(new ChannelCollectionResponse(), null));
 
-    ListChannels listChannels = new ListChannels();
-    listChannels.setGroupId(ActualValue.Channel.GROUP_ID);
-    listChannels.setFilter(ActualValue.Channel.FILTER);
+    ListChannels listChannels =
+        new ListChannels(ActualValue.Channel.GROUP_ID, ActualValue.Channel.FILTER);
     // When
-    Object invoke = listChannels.invoke(graphServiceClient);
+    Object result = operationFactory.getService(listChannels).invoke(graphServiceClient);
     // Then
     verify(channelCollectionReferenceRequest).filter(ActualValue.Channel.FILTER);
-    assertThat(invoke).isNotNull();
+    assertThat(result).isNotNull();
   }
 }

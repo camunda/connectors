@@ -4,8 +4,11 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.model.request.chat;
+package io.camunda.connector.operation;
 
-import io.camunda.connector.model.request.MSTeamsRequestData;
+import com.microsoft.graph.requests.GraphServiceClient;
+import okhttp3.Request;
 
-public record ListChats() implements MSTeamsRequestData {}
+public interface Operation {
+  Object invoke(GraphServiceClient<Request> graphServiceClient);
+}

@@ -12,7 +12,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.microsoft.graph.authentication.IAuthenticationProvider;
 import com.microsoft.graph.authentication.TokenCredentialAuthProvider;
 import com.microsoft.graph.requests.GraphServiceClient;
+import io.camunda.connector.model.authentication.BearerAuthentication;
 import io.camunda.connector.model.authentication.ClientSecretAuthentication;
+import io.camunda.connector.model.authentication.MSTeamsAuthentication;
 import io.camunda.connector.model.authentication.RefreshTokenAuthentication;
 import java.io.IOException;
 import java.net.URL;
@@ -50,9 +52,9 @@ public class GraphServiceClientSupplier {
 
     ClientSecretCredential build =
         new ClientSecretCredentialBuilder()
-            .tenantId(authentication.getTenantId())
-            .clientId(authentication.getClientId())
-            .clientSecret(authentication.getClientSecret())
+            .tenantId(authentication.tenantId())
+            .clientId(authentication.clientId())
+            .clientSecret(authentication.clientSecret())
             .build();
 
     TokenCredentialAuthProvider tokenCredentialAuthProvider =
@@ -67,6 +69,13 @@ public class GraphServiceClientSupplier {
     return buildAndGetGraphServiceClient(getAccessToken(buildRequest(authentication)));
   }
 
+  public GraphServiceClient<Request> buildAndGetGraphServiceClient(
+      final BearerAuthentication bearerAuthentication) {
+    return GraphServiceClient.builder()
+        .authenticationProvider(new DelegateAuthenticationProvider(bearerAuthentication.token()))
+        .buildClient();
+  }
+
   public GraphServiceClient<Request> buildAndGetGraphServiceClient(final String token) {
     return GraphServiceClient.builder()
         .authenticationProvider(new DelegateAuthenticationProvider(token))
@@ -77,13 +86,13 @@ public class GraphServiceClientSupplier {
   private Request buildRequest(final RefreshTokenAuthentication authentication) {
     RequestBody formBody =
         new FormBody.Builder()
-            .add(CLIENT_ID, authentication.getClientId())
+            .add(CLIENT_ID, authentication.clientId())
             .add(GRANT_TYPE, REFRESH_TOKEN)
-            .add(CLIENT_SECRET, authentication.getClientSecret())
-            .add(REFRESH_TOKEN, authentication.getToken())
+            .add(CLIENT_SECRET, authentication.clientSecret())
+            .add(REFRESH_TOKEN, authentication.token())
             .build();
     return new Request.Builder()
-        .url(String.format(URL, authentication.getTenantId()))
+        .url(String.format(URL, authentication.tenantId()))
         .header(CONTENT_TYPE, X_WWW_FORM_URLENCODED)
         .post(formBody)
         .build();
@@ -104,6 +113,18 @@ public class GraphServiceClientSupplier {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  public GraphServiceClient<Request> buildAndGetGraphServiceClient(
+      final MSTeamsAuthentication authentication) {
+    if (authentication instanceof ClientSecretAuthentication clientSecretAuthentication) {
+      return buildAndGetGraphServiceClient(clientSecretAuthentication);
+    } else if (authentication instanceof RefreshTokenAuthentication refreshTokenAuthentication) {
+      return buildAndGetGraphServiceClient(refreshTokenAuthentication);
+    } else if (authentication instanceof BearerAuthentication bearerAuthentication) {
+      return buildAndGetGraphServiceClient(bearerAuthentication);
+    }
+    return null;
   }
 
   public static class DelegateAuthenticationProvider implements IAuthenticationProvider {

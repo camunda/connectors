@@ -41,18 +41,16 @@ class CreateChatTest extends BaseTest {
     when(graphClient.chats()).thenReturn(chatCollectionRequestBuilder);
     when(chatCollectionRequestBuilder.buildRequest()).thenReturn(chatCollectionRequest);
     when(chatCollectionRequest.post(chatArgumentCaptor.capture())).thenReturn(new Chat());
-    CreateChat createChat = new CreateChat();
-    createChat.setChatType(ChatType.ONE_ON_ONE.name());
     Member member = new Member();
     member.setUserPrincipalName(ActualValue.Channel.OWNER);
     member.setRoles(List.of("owner"));
-    createChat.setMembers(List.of(member));
+    CreateChat createChat = new CreateChat(ChatType.ONE_ON_ONE.name(), List.of(member));
     // when
-    Object invoke = createChat.invoke(graphClient);
+    Object result = operationFactory.getService(createChat).invoke(graphClient);
     // then
-    assertThat(invoke).isNotNull();
+    assertThat(result).isNotNull();
     AdditionalDataManager additionalDataManager =
-        chatArgumentCaptor.getValue().members.getCurrentPage().get(0).additionalDataManager();
+        chatArgumentCaptor.getValue().members.getCurrentPage().getFirst().additionalDataManager();
     assertThat(additionalDataManager.get(Member.USER_DATA_TYPE))
         .isEqualTo(Member.USER_CONVERSATION_MEMBER);
     assertThat(additionalDataManager.get(Member.USER_DATA_BIND))

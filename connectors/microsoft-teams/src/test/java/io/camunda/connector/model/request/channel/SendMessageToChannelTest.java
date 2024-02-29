@@ -47,10 +47,9 @@ class SendMessageToChannelTest extends BaseTest {
   @BeforeEach
   public void init() {
 
-    sendMessageToChannel = new SendMessageToChannel();
-    sendMessageToChannel.setChannelId(ActualValue.Channel.CHANNEL_ID);
-    sendMessageToChannel.setContent("channel content");
-    sendMessageToChannel.setGroupId(ActualValue.Channel.GROUP_ID);
+    sendMessageToChannel =
+        new SendMessageToChannel(
+            ActualValue.Channel.GROUP_ID, ActualValue.Channel.CHANNEL_ID, "channel content", null);
 
     when(graphServiceClient.teams(ActualValue.Channel.GROUP_ID)).thenReturn(teamRequestBuilder);
     when(teamRequestBuilder.channels(ActualValue.Channel.CHANNEL_ID))
@@ -72,9 +71,8 @@ class SendMessageToChannelTest extends BaseTest {
   @Test
   public void invoke_shouldSetTextBodyTypeByDefault() {
     // Given SendMessageInChat without bodyType
-    sendMessageToChannel.setBodyType(null);
     // When
-    sendMessageToChannel.invoke(graphServiceClient);
+    operationFactory.getService(sendMessageToChannel).invoke(graphServiceClient);
     // Then
     ChatMessage chatMessage = messageCaptor.getValue();
     assertThat(chatMessage.body.contentType).isEqualTo(BodyType.TEXT);
@@ -84,9 +82,11 @@ class SendMessageToChannelTest extends BaseTest {
   @ValueSource(strings = {"html", "HTML", "text", "TexT"})
   public void invoke_shouldSetTextBodyType(String input) {
     // Given
-    sendMessageToChannel.setBodyType(input);
+    sendMessageToChannel =
+        new SendMessageToChannel(
+            ActualValue.Channel.GROUP_ID, ActualValue.Channel.CHANNEL_ID, "channel content", input);
     // When
-    sendMessageToChannel.invoke(graphServiceClient);
+    operationFactory.getService(sendMessageToChannel).invoke(graphServiceClient);
     // Then
     ChatMessage chatMessage = messageCaptor.getValue();
     assertThat(chatMessage.body.contentType).isEqualTo(BodyType.valueOf(input.toUpperCase()));

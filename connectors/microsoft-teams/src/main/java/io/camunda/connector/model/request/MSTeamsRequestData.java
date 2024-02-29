@@ -9,7 +9,6 @@ package io.camunda.connector.model.request;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.microsoft.graph.requests.GraphServiceClient;
 import io.camunda.connector.model.request.channel.CreateChannel;
 import io.camunda.connector.model.request.channel.GetChannel;
 import io.camunda.connector.model.request.channel.GetChannelMessage;
@@ -25,10 +24,9 @@ import io.camunda.connector.model.request.chat.ListChatMembers;
 import io.camunda.connector.model.request.chat.ListChats;
 import io.camunda.connector.model.request.chat.ListMessagesInChat;
 import io.camunda.connector.model.request.chat.SendMessageInChat;
-import okhttp3.Request;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "method")
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "method")
 @JsonSubTypes({
   // channel
   @JsonSubTypes.Type(value = CreateChannel.class, name = "createChannel"),
@@ -50,9 +48,9 @@ import okhttp3.Request;
   @JsonSubTypes.Type(value = ListMessagesInChat.class, name = "listMessagesInChat"),
   @JsonSubTypes.Type(value = SendMessageInChat.class, name = "sendMessageToChat")
 })
-public abstract class MSTeamsRequestData {
+public interface MSTeamsRequestData {
 
-  private transient String method;
+  //  private transient String method;
 
-  public abstract Object invoke(final GraphServiceClient<Request> graphClient);
+  //  public Object invoke(final GraphServiceClient<Request> graphClient);
 }

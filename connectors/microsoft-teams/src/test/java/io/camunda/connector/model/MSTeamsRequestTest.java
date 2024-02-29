@@ -79,7 +79,7 @@ class MSTeamsRequestTest extends BaseTest {
 
     MSTeamsRequest request = objectMapper.readValue(input, MSTeamsRequest.class);
 
-    assertThat(request.getAuthentication()).isInstanceOf(authMap.get(authType));
-    assertThat(request.getData()).isInstanceOf(methodsMap.get(methodType));
+    assertThat(request.authentication()).isInstanceOf(authMap.get(authType));
+    assertThat(request.data()).isInstanceOf(methodsMap.get(methodType));
   }
 }

@@ -11,7 +11,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.microsoft.graph.requests.ChatMessageCollectionPage;
 import com.microsoft.graph.requests.ChatMessageCollectionRequest;
 import com.microsoft.graph.requests.ChatMessageCollectionRequestBuilder;
@@ -49,15 +48,16 @@ class ListMessagesInChatTest extends BaseTest {
     when(chatMessageCollectionRequest.get())
         .thenReturn(new ChatMessageCollectionPage(new ArrayList<>(), null));
 
-    ListMessagesInChat listMessagesInChat = new ListMessagesInChat();
-    listMessagesInChat.setChatId(ActualValue.Chat.CHAT_ID);
-    listMessagesInChat.setFilter(ActualValue.Chat.FILTER);
-    listMessagesInChat.setOrderBy(OrderBy.createdDateTime);
-    listMessagesInChat.setTop(ActualValue.Channel.TOP);
+    ListMessagesInChat listMessagesInChat =
+        new ListMessagesInChat(
+            ActualValue.Chat.CHAT_ID,
+            ActualValue.Chat.FILTER,
+            OrderBy.createdDateTime,
+            ActualValue.Channel.TOP);
     // When
-    Object invoke = listMessagesInChat.invoke(graphServiceClient);
+    Object result = operationFactory.getService(listMessagesInChat).invoke(graphServiceClient);
     // Then
-    assertThat(invoke).isNotNull();
+    assertThat(result).isNotNull();
     verify(chatMessageCollectionRequest).top(Integer.parseInt(ActualValue.Channel.TOP));
     verify(chatMessageCollectionRequest).filter(ActualValue.Chat.FILTER);
     verify(chatMessageCollectionRequest).orderBy(OrderBy.createdDateTime.getValue());
@@ -65,8 +65,7 @@ class ListMessagesInChatTest extends BaseTest {
 
   @ParameterizedTest
   @MethodSource("listMessagesInChatValidationFailTestCases")
-  public void validate_shouldThrowExceptionWhenAtLeastOneRequiredFieldNotExist(String input)
-      throws JsonProcessingException {
+  public void validate_shouldThrowExceptionWhenAtLeastOneRequiredFieldNotExist(String input) {
     OutboundConnectorContext context =
         getContextBuilderWithSecrets()
             .validation(new DefaultValidationProvider())
