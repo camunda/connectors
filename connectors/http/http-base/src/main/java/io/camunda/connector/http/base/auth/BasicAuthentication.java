@@ -37,7 +37,8 @@ public final class BasicAuthentication implements Authentication {
 
   @Override
   public void setHeaders(final HttpHeaders headers) {
-    headers.setBasicAuthentication(username, password);
+    String passwordForHeader = password == null ? "" : password;
+    headers.setBasicAuthentication(username, passwordForHeader);
   }
 
   public String getUsername() {
