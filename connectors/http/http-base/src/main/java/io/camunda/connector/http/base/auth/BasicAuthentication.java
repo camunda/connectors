@@ -22,7 +22,6 @@ import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotEmpty;
-import java.util.function.Function;
 
 @TemplateSubType(id = BasicAuthentication.TYPE, label = "Basic")
 public final class BasicAuthentication implements Authentication {
