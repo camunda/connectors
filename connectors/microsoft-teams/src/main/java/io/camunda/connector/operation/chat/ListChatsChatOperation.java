@@ -9,7 +9,7 @@ package io.camunda.connector.operation.chat;
 import static io.camunda.connector.RemoveNullFieldsUtil.removeNullFieldsInObject;
 
 import com.microsoft.graph.requests.GraphServiceClient;
-import io.camunda.connector.model.request.chat.ListChats;
+import io.camunda.connector.model.request.data.ListChats;
 import okhttp3.Request;
 
 public record ListChatsChatOperation(ListChats model) implements ChatOperation {

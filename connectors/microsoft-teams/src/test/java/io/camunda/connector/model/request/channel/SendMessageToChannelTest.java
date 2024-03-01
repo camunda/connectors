@@ -17,6 +17,7 @@ import com.microsoft.graph.requests.ChatMessageCollectionRequestBuilder;
 import com.microsoft.graph.requests.GraphServiceClient;
 import com.microsoft.graph.requests.TeamRequestBuilder;
 import io.camunda.connector.BaseTest;
+import io.camunda.connector.model.request.data.SendMessageToChannel;
 import okhttp3.Request;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

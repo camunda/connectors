@@ -13,7 +13,7 @@ import com.microsoft.graph.requests.ConversationMemberCollectionPage;
 import com.microsoft.graph.requests.ConversationMemberCollectionResponse;
 import com.microsoft.graph.requests.GraphServiceClient;
 import io.camunda.connector.model.Member;
-import io.camunda.connector.model.request.channel.CreateChannel;
+import io.camunda.connector.model.request.data.CreateChannel;
 import java.util.List;
 import okhttp3.Request;
 

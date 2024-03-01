@@ -10,6 +10,7 @@ import com.microsoft.graph.requests.GraphServiceClient;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.model.MSTeamsRequest;
 import io.camunda.connector.operation.OperationFactory;
 import io.camunda.connector.suppliers.GraphServiceClientSupplier;
@@ -19,6 +20,20 @@ import okhttp3.Request;
     name = "MS Teams",
     inputVariables = {"authentication", "data"},
     type = "io.camunda:connector-microsoft-teams:1")
+@ElementTemplate(
+    id = "io.camunda.connectors.MSTeams.v1",
+    name = "Microsoft Teams Outbound Connector",
+    description = "Create, update, and send a message to your Microsoft Teams",
+    inputDataClass = MSTeamsRequest.class,
+    version = 3,
+    propertyGroups = {
+      @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
+      @ElementTemplate.PropertyGroup(id = "operation", label = "Operation"),
+      @ElementTemplate.PropertyGroup(id = "data", label = "Data")
+    },
+    documentationRef =
+        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-teams/",
+    icon = "icon.svg")
 public class MSTeamsFunction implements OutboundConnectorFunction {
 
   private final GraphServiceClientSupplier graphSupplier;

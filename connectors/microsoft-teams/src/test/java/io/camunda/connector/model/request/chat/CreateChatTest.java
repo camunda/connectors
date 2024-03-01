@@ -17,6 +17,7 @@ import com.microsoft.graph.requests.GraphServiceClient;
 import com.microsoft.graph.serializer.AdditionalDataManager;
 import io.camunda.connector.BaseTest;
 import io.camunda.connector.model.Member;
+import io.camunda.connector.model.request.data.CreateChat;
 import java.util.List;
 import okhttp3.Request;
 import org.junit.jupiter.api.Test;
@@ -44,7 +45,7 @@ class CreateChatTest extends BaseTest {
     Member member = new Member();
     member.setUserPrincipalName(ActualValue.Channel.OWNER);
     member.setRoles(List.of("owner"));
-    CreateChat createChat = new CreateChat(ChatType.ONE_ON_ONE.name(), List.of(member));
+    CreateChat createChat = new CreateChat(ChatType.ONE_ON_ONE.name(), null, List.of(member));
     // when
     Object result = operationFactory.getService(createChat).invoke(graphClient);
     // then

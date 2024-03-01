@@ -10,7 +10,7 @@ import com.microsoft.graph.models.BodyType;
 import com.microsoft.graph.models.ChatMessage;
 import com.microsoft.graph.models.ItemBody;
 import com.microsoft.graph.requests.GraphServiceClient;
-import io.camunda.connector.model.request.channel.SendMessageToChannel;
+import io.camunda.connector.model.request.data.SendMessageToChannel;
 import java.util.Optional;
 import okhttp3.Request;
 import org.apache.commons.text.StringEscapeUtils;

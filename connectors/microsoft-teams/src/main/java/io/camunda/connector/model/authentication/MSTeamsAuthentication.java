@@ -9,6 +9,7 @@ package io.camunda.connector.model.authentication;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
@@ -17,8 +18,12 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
   @JsonSubTypes.Type(value = ClientSecretAuthentication.class, name = "clientCredentials"),
   @JsonSubTypes.Type(value = RefreshTokenAuthentication.class, name = "refresh")
 })
-public interface MSTeamsAuthentication {
-
-  //  public abstract GraphServiceClient<Request> buildAndGetGraphServiceClient(
-  //      GraphServiceClientSupplier clientSupplier);
-}
+@TemplateDiscriminatorProperty(
+    label = "Type",
+    group = "authentication",
+    name = "type",
+    defaultValue = "refresh",
+    description =
+        "Authentication type depends on your MS Teams account permission and operation with connector. See <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/microsoft-teams/'>connector documentation</a>")
+public sealed interface MSTeamsAuthentication
+    permits BearerAuthentication, ClientSecretAuthentication, RefreshTokenAuthentication {}

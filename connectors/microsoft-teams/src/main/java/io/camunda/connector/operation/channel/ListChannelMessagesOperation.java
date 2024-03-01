@@ -6,12 +6,12 @@
  */
 package io.camunda.connector.operation.channel;
 
-import static io.camunda.connector.model.request.channel.ListChannelMessages.EXPAND_VALUE;
+import static io.camunda.connector.model.request.data.ListChannelMessages.EXPAND_VALUE;
 
 import com.microsoft.graph.requests.ChatMessageCollectionPage;
 import com.microsoft.graph.requests.ChatMessageCollectionRequest;
 import com.microsoft.graph.requests.GraphServiceClient;
-import io.camunda.connector.model.request.channel.ListChannelMessages;
+import io.camunda.connector.model.request.data.ListChannelMessages;
 import okhttp3.Request;
 
 public record ListChannelMessagesOperation(ListChannelMessages model) implements ChannelOperation {

@@ -18,6 +18,7 @@ import com.microsoft.graph.requests.ChatMessageCollectionResponse;
 import com.microsoft.graph.requests.GraphServiceClient;
 import com.microsoft.graph.requests.TeamRequestBuilder;
 import io.camunda.connector.BaseTest;
+import io.camunda.connector.model.request.data.ListChannelMessages;
 import okhttp3.Request;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -57,8 +58,8 @@ class ListChannelMessagesTest extends BaseTest {
         new ListChannelMessages(
             ActualValue.Channel.GROUP_ID,
             ActualValue.Channel.CHANNEL_ID,
-            Boolean.TRUE.toString(),
-            ActualValue.Channel.TOP);
+            ActualValue.Channel.TOP,
+            Boolean.TRUE.toString());
     // When
     Object result = operationFactory.getService(listChannelMessages).invoke(graphServiceClient);
     // Then

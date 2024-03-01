@@ -10,7 +10,7 @@ import static io.camunda.connector.RemoveNullFieldsUtil.removeNullFieldsInObject
 
 import com.microsoft.graph.requests.ChatRequest;
 import com.microsoft.graph.requests.GraphServiceClient;
-import io.camunda.connector.model.request.chat.GetChat;
+import io.camunda.connector.model.request.data.GetChat;
 import java.util.List;
 import okhttp3.Request;
 

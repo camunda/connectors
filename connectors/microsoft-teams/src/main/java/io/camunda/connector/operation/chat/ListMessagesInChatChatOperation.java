@@ -9,7 +9,7 @@ package io.camunda.connector.operation.chat;
 import com.microsoft.graph.requests.ChatMessageCollectionRequest;
 import com.microsoft.graph.requests.GraphServiceClient;
 import io.camunda.connector.model.OrderBy;
-import io.camunda.connector.model.request.chat.ListMessagesInChat;
+import io.camunda.connector.model.request.data.ListMessagesInChat;
 import okhttp3.Request;
 
 public record ListMessagesInChatChatOperation(ListMessagesInChat model) implements ChatOperation {

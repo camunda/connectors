@@ -21,6 +21,7 @@ import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.model.MSTeamsRequest;
 import io.camunda.connector.model.OrderBy;
+import io.camunda.connector.model.request.data.ListMessagesInChat;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.util.ArrayList;
 import okhttp3.Request;
@@ -51,9 +52,9 @@ class ListMessagesInChatTest extends BaseTest {
     ListMessagesInChat listMessagesInChat =
         new ListMessagesInChat(
             ActualValue.Chat.CHAT_ID,
-            ActualValue.Chat.FILTER,
+            ActualValue.Channel.TOP,
             OrderBy.createdDateTime,
-            ActualValue.Channel.TOP);
+            ActualValue.Chat.FILTER);
     // When
     Object result = operationFactory.getService(listMessagesInChat).invoke(graphServiceClient);
     // Then

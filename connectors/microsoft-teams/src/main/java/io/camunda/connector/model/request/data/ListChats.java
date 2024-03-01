@@ -4,8 +4,10 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.model.request.chat;
+package io.camunda.connector.model.request.data;
 
-import io.camunda.connector.model.request.MSTeamsRequestData;
+import io.camunda.connector.generator.java.annotation.TemplateSubType;
+import io.camunda.connector.model.MSTeamsMethodTypes;
 
-public record ListChats() implements MSTeamsRequestData {}
+@TemplateSubType(label = "List chats", id = MSTeamsMethodTypes.LIST_CHATS)
+public record ListChats() implements ChatData {}

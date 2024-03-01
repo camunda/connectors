@@ -6,22 +6,22 @@
  */
 package io.camunda.connector.operation;
 
-import io.camunda.connector.model.request.MSTeamsRequestData;
-import io.camunda.connector.model.request.channel.CreateChannel;
-import io.camunda.connector.model.request.channel.GetChannel;
-import io.camunda.connector.model.request.channel.GetChannelMessage;
-import io.camunda.connector.model.request.channel.ListChannelMembers;
-import io.camunda.connector.model.request.channel.ListChannelMessages;
-import io.camunda.connector.model.request.channel.ListChannels;
-import io.camunda.connector.model.request.channel.ListMessageRepliesInChannel;
-import io.camunda.connector.model.request.channel.SendMessageToChannel;
-import io.camunda.connector.model.request.chat.CreateChat;
-import io.camunda.connector.model.request.chat.GetChat;
-import io.camunda.connector.model.request.chat.GetMessageInChat;
-import io.camunda.connector.model.request.chat.ListChatMembers;
-import io.camunda.connector.model.request.chat.ListChats;
-import io.camunda.connector.model.request.chat.ListMessagesInChat;
-import io.camunda.connector.model.request.chat.SendMessageInChat;
+import io.camunda.connector.model.request.data.CreateChannel;
+import io.camunda.connector.model.request.data.CreateChat;
+import io.camunda.connector.model.request.data.GetChannel;
+import io.camunda.connector.model.request.data.GetChannelMessage;
+import io.camunda.connector.model.request.data.GetChat;
+import io.camunda.connector.model.request.data.GetMessageInChat;
+import io.camunda.connector.model.request.data.ListChannelMembers;
+import io.camunda.connector.model.request.data.ListChannelMessages;
+import io.camunda.connector.model.request.data.ListChannels;
+import io.camunda.connector.model.request.data.ListChatMembers;
+import io.camunda.connector.model.request.data.ListChats;
+import io.camunda.connector.model.request.data.ListMessageRepliesInChannel;
+import io.camunda.connector.model.request.data.ListMessagesInChat;
+import io.camunda.connector.model.request.data.MSTeamsRequestData;
+import io.camunda.connector.model.request.data.SendMessageInChat;
+import io.camunda.connector.model.request.data.SendMessageToChannel;
 import io.camunda.connector.operation.channel.CreateChannelOperation;
 import io.camunda.connector.operation.channel.GetChannelMessageOperation;
 import io.camunda.connector.operation.channel.GetChannelOperation;
@@ -58,7 +58,6 @@ public class OperationFactory {
       case ListChannels model -> new ListChannelsOperation(model);
       case ListMessageRepliesInChannel model -> new ListMessageRepliesInChannelOperation(model);
       case SendMessageToChannel model -> new SendMessageToChannelOperation(model);
-      default -> throw new IllegalStateException("Unexpected value: " + data);
     };
   }
 }

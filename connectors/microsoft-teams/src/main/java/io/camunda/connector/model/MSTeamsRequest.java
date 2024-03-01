@@ -7,7 +7,7 @@
 package io.camunda.connector.model;
 
 import io.camunda.connector.model.authentication.MSTeamsAuthentication;
-import io.camunda.connector.model.request.MSTeamsRequestData;
+import io.camunda.connector.model.request.data.MSTeamsRequestData;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 

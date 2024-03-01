@@ -7,7 +7,7 @@
 package io.camunda.connector.operation.channel;
 
 import com.microsoft.graph.requests.GraphServiceClient;
-import io.camunda.connector.model.request.channel.ListMessageRepliesInChannel;
+import io.camunda.connector.model.request.data.ListMessageRepliesInChannel;
 import okhttp3.Request;
 
 public record ListMessageRepliesInChannelOperation(ListMessageRepliesInChannel model)

@@ -17,6 +17,7 @@ import com.microsoft.graph.requests.ChannelCollectionWithReferencesRequestBuilde
 import com.microsoft.graph.requests.GraphServiceClient;
 import com.microsoft.graph.requests.TeamRequestBuilder;
 import io.camunda.connector.BaseTest;
+import io.camunda.connector.model.request.data.ListChannels;
 import okhttp3.Request;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

@@ -14,9 +14,10 @@ import com.microsoft.graph.requests.ConversationMemberCollectionPage;
 import com.microsoft.graph.requests.ConversationMemberCollectionResponse;
 import com.microsoft.graph.requests.GraphServiceClient;
 import io.camunda.connector.model.Member;
-import io.camunda.connector.model.request.chat.CreateChat;
+import io.camunda.connector.model.request.data.CreateChat;
 import java.util.LinkedList;
 import okhttp3.Request;
+import org.apache.commons.lang3.StringUtils;
 
 public final class CreateChatChatOperation implements ChatOperation {
   private final CreateChat model;
@@ -47,6 +48,9 @@ public final class CreateChatChatOperation implements ChatOperation {
     ConversationMemberCollectionResponse conversationMemberCollectionResponse =
         new ConversationMemberCollectionResponse();
     conversationMemberCollectionResponse.value = membersList;
+    if (StringUtils.isNoneBlank(model.topic())) {
+      chat.topic = model.topic();
+    }
     chat.members = new ConversationMemberCollectionPage(conversationMemberCollectionResponse, null);
 
     return graphClient.chats().buildRequest().post(chat);

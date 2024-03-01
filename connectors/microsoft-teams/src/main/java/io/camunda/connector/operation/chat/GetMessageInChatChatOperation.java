@@ -7,7 +7,7 @@
 package io.camunda.connector.operation.chat;
 
 import com.microsoft.graph.requests.GraphServiceClient;
-import io.camunda.connector.model.request.chat.GetMessageInChat;
+import io.camunda.connector.model.request.data.GetMessageInChat;
 import okhttp3.Request;
 
 public record GetMessageInChatChatOperation(GetMessageInChat model) implements ChatOperation {

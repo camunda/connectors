@@ -7,7 +7,7 @@
 package io.camunda.connector.operation.channel;
 
 import com.microsoft.graph.requests.GraphServiceClient;
-import io.camunda.connector.model.request.channel.ListChannels;
+import io.camunda.connector.model.request.data.ListChannels;
 import okhttp3.Request;
 
 public record ListChannelsOperation(ListChannels model) implements ChannelOperation {

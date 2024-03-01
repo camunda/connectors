@@ -6,10 +6,33 @@
  */
 package io.camunda.connector.model.authentication;
 
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
 
+@TemplateSubType(label = "Client credentials", id = "clientCredentials")
 public record ClientSecretAuthentication(
-    @NotBlank String clientId, @NotBlank String tenantId, @NotBlank String clientSecret)
+    @NotBlank
+        @TemplateProperty(
+            group = "authentication",
+            id = "credentials.clientId",
+            label = "Client ID",
+            description = "The client ID of the application")
+        String clientId,
+    @NotBlank
+        @TemplateProperty(
+            group = "authentication",
+            id = "credentials.tenantId",
+            label = "Tenant ID",
+            description = "The tenant ID of the application")
+        String tenantId,
+    @NotBlank
+        @TemplateProperty(
+            group = "authentication",
+            id = "credentials.clientSecret",
+            label = "Client secret",
+            description = "The secret value of the Azure AD application")
+        String clientSecret)
     implements MSTeamsAuthentication {
 
   @Override
