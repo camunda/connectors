@@ -119,7 +119,7 @@
       "group": "authentication",
       "type": "Hidden",
       "optional": true,
-      "value": "SPEC_PASSWORD_EMPTY_PATTERN",
+      "value": "",
       "constraints": {
         "notEmpty": false
       },
