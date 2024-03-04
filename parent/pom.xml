@@ -114,7 +114,7 @@ limitations under the License.</license.inlineheader>
     <version.kafka-clients>3.6.1</version.kafka-clients>
 
     <version.microsoft-graph>5.80.0</version.microsoft-graph>
-    <version.azure-identity>1.11.2</version.azure-identity>
+    <version.azure-identity>1.11.3</version.azure-identity>
 
     <version.bcprov-jdk15on>1.70</version.bcprov-jdk15on>
     <version.sendGrid>4.10.2</version.sendGrid>
