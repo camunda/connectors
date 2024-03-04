@@ -87,6 +87,10 @@
         {
           "name": "References",
           "value": "references"
+        },
+        {
+          "name": "Pulls",
+          "value": "pulls"
         }
       ],
       "binding": {
@@ -324,6 +328,29 @@
       }
     },
     {
+      "label": "Operation type",
+      "id": "operationType",
+      "group": "operation",
+      "type": "Dropdown",
+      "value": "createPullRequest",
+      "choices": [
+        {
+          "name": "Create a pull request",
+          "value": "createPullRequest"
+        }
+      ],
+      "condition": {
+        "property": "operationGroup",
+        "oneOf": [
+          "pulls"
+        ]
+      },
+      "binding": {
+        "type": "zeebe:input",
+        "name": "operationType"
+      }
+    },
+    {
       "type": "Hidden",
       "label": "Type",
       "id": "authenticationType",
@@ -371,7 +398,8 @@
           "orgInvitation",
           "createIssueComment",
           "createWorkflowDispatchEvent",
-          "createReference"
+          "createReference",
+          "createPullRequest"
         ]
       }
     },
@@ -471,7 +499,8 @@
           "listAlertsForRepo",
           "listCommits",
           "createWorkflowDispatchEvent",
-          "createReference"
+          "createReference",
+          "createPullRequest"
         ]
       }
     },
@@ -510,7 +539,8 @@
           "listAlertsForRepo",
           "listCommits",
           "createWorkflowDispatchEvent",
-          "createReference"
+          "createReference",
+          "createPullRequest"
         ]
       }
     },
@@ -1323,6 +1353,103 @@
       }
     },
     {
+      "label": "Title",
+      "description": "The title of the new pull request",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "value": "",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "title"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createPullRequest"
+        ]
+      }
+    },
+    {
+      "label": "Head",
+      "description": "The name of the branch where your changes are implemented",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "value": "",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "head"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createPullRequest"
+        ]
+      }
+    },
+    {
+      "label": "Base",
+      "description": "The name of the branch you want the changes pulled into",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "value": "",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "base"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createPullRequest"
+        ]
+      }
+    },
+    {
+      "label": "Body",
+      "description": "The contents of the pull request",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "value": "",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "prBody"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createPullRequest"
+        ]
+      }
+    },
+    {
+      "label": "Draft",
+      "description": "Indicates whether the pull request is a draft",
+      "group": "input",
+      "type": "Boolean",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "draft"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createPullRequest"
+        ]
+      }
+    },
+    {
       "group": "configuration",
       "type": "Hidden",
       "value": "={\"Content-Type\":\"application/vnd.github+json\", \"X-GitHub-Api-Version\":\"2022-11-28\"}",
@@ -1445,6 +1572,22 @@
         "property": "operationType",
         "oneOf": [
           "createReference"
+        ]
+      },
+      "optional": true
+    },
+    {
+      "group": "input",
+      "type": "Hidden",
+      "value": "={\"title\": if title = null then null else title, \"head\": if head = null then null else head, \"base\": if base = null then null else base, \"body\": if prBody = null then null else prBody, \"draft\": draft}",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createPullRequest"
         ]
       },
       "optional": true
@@ -1775,6 +1918,44 @@
       }
     },
     {
+      "label": "Result expression",
+      "id": "resultCreateReference",
+      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "group": "output",
+      "type": "String",
+      "feel": "required",
+      "value": "={createdReference: response.body}",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultExpression"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createReference"
+        ]
+      }
+    },
+    {
+      "label": "Result expression",
+      "id": "resultCreatePullRequest",
+      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "group": "output",
+      "type": "String",
+      "feel": "required",
+      "value": "={createdPullRequest: response.body}",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultExpression"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createPullRequest"
+        ]
+      }
+    },
+    {
       "label": "Connection timeout",
       "description": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
       "group": "errors",
@@ -2071,6 +2252,20 @@
         "property": "operationType",
         "oneOf": [
           "createReference"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "=baseUrl + \"/repos/\" + owner + \"/\" + repo + \"/pulls\"",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "url"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "createPullRequest"
         ]
       }
     },
