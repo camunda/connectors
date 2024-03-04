@@ -32,7 +32,9 @@ public final class BasicAuthentication implements Authentication {
   private String username;
 
   @FEEL
-  @TemplateProperty(group = "authentication")
+  @TemplateProperty(
+      group = "authentication",
+      constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
   private String password;
 
   @Override
