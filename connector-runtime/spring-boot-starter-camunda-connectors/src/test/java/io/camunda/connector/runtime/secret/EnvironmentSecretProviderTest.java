@@ -31,7 +31,7 @@ import org.springframework.boot.test.context.SpringBootTest;
       "camunda.connector.secretprovider.discovery.enabled=false",
       "camunda.connector.secretprovider.environment.prefix=secrets."
     })
-public class SpringEnvironmentSecretProviderTest {
+public class EnvironmentSecretProviderTest {
 
   @Autowired SecretProviderAggregator secretProviderAggregator;
 
