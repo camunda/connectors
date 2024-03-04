@@ -91,6 +91,10 @@
         {
           "name": "Pulls",
           "value": "pulls"
+        },
+        {
+          "name": "Collaborators",
+          "value": "collaborators"
         }
       ],
       "binding": {
@@ -351,6 +355,29 @@
       }
     },
     {
+      "label": "Operation type",
+      "id": "operationType",
+      "group": "operation",
+      "type": "Dropdown",
+      "value": "listCollaborators",
+      "choices": [
+        {
+          "name": "List repository collaborators",
+          "value": "listCollaborators"
+        }
+      ],
+      "condition": {
+        "property": "operationGroup",
+        "oneOf": [
+          "collaborators"
+        ]
+      },
+      "binding": {
+        "type": "zeebe:input",
+        "name": "operationType"
+      }
+    },
+    {
       "type": "Hidden",
       "label": "Type",
       "id": "authenticationType",
@@ -460,7 +487,8 @@
           "listAlertsForOrg",
           "searchIssues",
           "getIssue",
-          "listCommits"
+          "listCommits",
+          "listCollaborators"
         ]
       }
     },
@@ -500,7 +528,8 @@
           "listCommits",
           "createWorkflowDispatchEvent",
           "createReference",
-          "createPullRequest"
+          "createPullRequest",
+          "listCollaborators"
         ]
       }
     },
@@ -540,7 +569,8 @@
           "listCommits",
           "createWorkflowDispatchEvent",
           "createReference",
-          "createPullRequest"
+          "createPullRequest",
+          "listCollaborators"
         ]
       }
     },
@@ -1318,7 +1348,7 @@
       "constraints": {
         "notEmpty": true,
         "pattern": {
-          "value": "^refs\\/[^\\/]+\\/[^\\/]*",
+          "value": "^(=.+|refs\\/[^\\/]+\\/[^\\/]*)",
           "message": "must be a fully qualified reference (i.e: refs/heads/main) starting with \"refs\" and containing at least two slashes."
         }
       },
@@ -1438,6 +1468,8 @@
       "description": "Indicates whether the pull request is a draft",
       "group": "input",
       "type": "Boolean",
+      "feel": "optional",
+      "value": "=false",
       "binding": {
         "type": "zeebe:input",
         "name": "draft"
@@ -1446,6 +1478,59 @@
         "property": "operationType",
         "oneOf": [
           "createPullRequest"
+        ]
+      }
+    },
+    {
+      "label": "Include anonymous contributors",
+      "group": "input",
+      "type": "Boolean",
+      "feel": "optional",
+      "value": "=false",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "anon"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "listCollaborators"
+        ]
+      }
+    },
+    {
+      "label": "Page",
+      "description": "The page number of the results to fetch. Default: 1",
+      "group": "input",
+      "type": "Number",
+      "feel": "optional",
+      "value": "1",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "page"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "listCollaborators"
+        ]
+      }
+    },
+    {
+      "label": "Results per page",
+      "description": "The number of results to include per page. Default: 30",
+      "group": "input",
+      "type": "Number",
+      "feel": "optional",
+      "value": "30",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "per_page"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "listCollaborators"
         ]
       }
     },
@@ -1579,7 +1664,7 @@
     {
       "group": "input",
       "type": "Hidden",
-      "value": "={\"title\": if title = null then null else title, \"head\": if head = null then null else head, \"base\": if base = null then null else base, \"body\": if prBody = null then null else prBody, \"draft\": draft}",
+      "value": "={\"title\": if title = null then null else title, \"head\": if head = null then null else head, \"base\": if base = null then null else base, \"body\": if prBody = null then null else prBody, \"draft\": if draft = null then null else draft}",
       "binding": {
         "type": "zeebe:input",
         "name": "body"
@@ -1619,6 +1704,21 @@
         "property": "operationType",
         "oneOf": [
           "searchIssues"
+        ]
+      }
+    },
+    {
+      "group": "input",
+      "type": "Hidden",
+      "value": "={\"anon\": if anon = null then null else anon, \"per_page\": if per_page = null then null else per_page, \"page\": if page = null then null else page}",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "queryParameters"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "listCollaborators"
         ]
       }
     },
@@ -1956,6 +2056,25 @@
       }
     },
     {
+      "label": "Result expression",
+      "id": "resultExpressionListCollaborators",
+      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "group": "output",
+      "type": "String",
+      "feel": "required",
+      "value": "={collaboratorsList: response.body}",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultExpression"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "listCollaborators"
+        ]
+      }
+    },
+    {
       "label": "Connection timeout",
       "description": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
       "group": "errors",
@@ -2266,6 +2385,20 @@
         "property": "operationType",
         "oneOf": [
           "createPullRequest"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "=baseUrl + \"/repos/\" + owner + \"/\" + repo + \"/collaborators\"",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "url"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "listCollaborators"
         ]
       }
     },
