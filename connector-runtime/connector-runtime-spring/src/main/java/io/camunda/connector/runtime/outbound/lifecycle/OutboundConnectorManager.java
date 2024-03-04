@@ -79,13 +79,12 @@ public class OutboundConnectorManager {
 
   private void openWorkerForOutboundConnector(
       ZeebeClient client, OutboundConnectorConfiguration connector) {
-    ZeebeWorkerValue zeebeWorkerValue =
-        new ZeebeWorkerValue()
-            .setName(connector.name())
-            .setType(connector.type())
-            .setFetchVariables(connector.inputVariables())
-            .setTimeout(connector.timeout())
-            .setAutoComplete(true);
+    ZeebeWorkerValue zeebeWorkerValue = new ZeebeWorkerValue();
+    zeebeWorkerValue.setName(connector.name());
+    zeebeWorkerValue.setType(connector.type());
+    zeebeWorkerValue.setFetchVariables(connector.inputVariables());
+    zeebeWorkerValue.setTimeout(connector.timeout());
+    zeebeWorkerValue.setAutoComplete(true);
 
     OutboundConnectorFunction connectorFunction = connectorFactory.getInstance(connector.type());
     LOG.trace("Opening worker for connector {}", connector.name());
