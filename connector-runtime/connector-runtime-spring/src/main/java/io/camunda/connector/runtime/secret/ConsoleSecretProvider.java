@@ -38,11 +38,11 @@ public class ConsoleSecretProvider implements SecretProvider {
   private final LoadingCache<String, Map<String, String>> secretsCache;
 
   public ConsoleSecretProvider(
-      ConsoleSecretApiClient consoleSecretApiClient, Duration cacheDuration) {
+      ConsoleSecretApiClient consoleSecretApiClient, Duration cacheRefresh) {
     // We do not cache individual values as the response always contains all secrets
     secretsCache =
         CacheBuilder.newBuilder()
-            .refreshAfterWrite(cacheDuration)
+            .refreshAfterWrite(cacheRefresh)
             .build(
                 new CacheLoader<>() {
                   @Override
