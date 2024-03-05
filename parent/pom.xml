@@ -118,7 +118,7 @@ limitations under the License.</license.inlineheader>
     <version.json-path>2.9.0</version.json-path>
 
     <version.snappy-java>1.1.10.5</version.snappy-java>
-    <version.commons-codec>1.16.0</version.commons-codec>
+    <version.commons-codec>1.16.1</version.commons-codec>
     <version.guava>33.0.0-jre</version.guava>
     <version.javax.xml.bind>2.4.0-b180830.0359</version.javax.xml.bind>
 
