@@ -191,10 +191,10 @@ public class KafkaExecutableTest {
   public void testConvertSpecialCharactersRecordToKafkaInboundMessage() {
     // When
     ConsumerRecord<Object, Object> consumerRecord =
-            new ConsumerRecord<>("my-topic", 0, 0, "my-key", "{\"foo\": \"\nb\ta\\r\"}");
+        new ConsumerRecord<>("my-topic", 0, 0, "my-key", "{\"foo\": \"\nb\ta\\r\"}");
     KafkaInboundMessage kafkaInboundMessage =
-            KafkaPropertyTransformer.convertConsumerRecordToKafkaInboundMessage(
-                    consumerRecord, KafkaConnectorConsumer.objectMapper.reader());
+        KafkaPropertyTransformer.convertConsumerRecordToKafkaInboundMessage(
+            consumerRecord, KafkaConnectorConsumer.objectMapper.reader());
 
     // Then
     assertEquals("my-key", kafkaInboundMessage.getKey());
