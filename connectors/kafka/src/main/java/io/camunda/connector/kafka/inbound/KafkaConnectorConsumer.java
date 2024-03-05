@@ -10,6 +10,7 @@ import static io.camunda.connector.kafka.inbound.KafkaPropertyTransformer.conver
 import static io.camunda.connector.kafka.inbound.KafkaPropertyTransformer.getKafkaProperties;
 
 import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
@@ -67,7 +68,8 @@ public class KafkaConnectorConsumer {
           // deserialize unknown types as empty objects
           .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
           .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-          .enable(JsonParser.Feature.ALLOW_SINGLE_QUOTES);
+          .enable(JsonParser.Feature.ALLOW_SINGLE_QUOTES)
+          .enable(JsonReadFeature.ALLOW_UNESCAPED_CONTROL_CHARS.mappedFeature());
 
   private ObjectReader avroObjectReader;
 
