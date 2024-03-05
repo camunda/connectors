@@ -24,8 +24,10 @@ import io.camunda.operate.search.SearchQuery;
 import io.camunda.operate.search.Sort;
 import io.camunda.operate.search.SortOrder;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
-import java.util.function.Consumer;
+import java.util.Optional;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
@@ -45,13 +47,19 @@ public class ProcessDefinitionSearch {
     this.camundaOperateClient = camundaOperateClient;
   }
 
-  public void query(Consumer<List<ProcessDefinition>> resultHandler) {
+  /**
+   * Query process definitions from Camunda Operate. Guaranteed to return only the latest deployed
+   * version of each process definition.
+   */
+  public List<ProcessDefinition> query() {
     LOG.trace("Query process deployments...");
     List<ProcessDefinition> processDefinitions = new ArrayList<>();
     SearchResult<ProcessDefinition> processDefinitionResult;
     LOG.trace("Running paginated query");
 
     List<Object> paginationIndex = null;
+    final Set<String> encounteredBpmnProcessIds = new HashSet<>();
+
     do {
       try {
         SearchQuery processDefinitionQuery =
@@ -71,14 +79,21 @@ public class ProcessDefinitionSearch {
         paginationIndex = newPaginationIdx;
       }
 
-      var items = processDefinitionResult.getItems();
-      if (items != null) {
-        processDefinitions.addAll(items);
-      }
+      // result is sorted by key in descending order, so we will always encounter the latest
+      // version first
+
+      var items =
+          Optional.ofNullable(processDefinitionResult.getItems()).orElse(List.of()).stream()
+              .filter(
+                  definition -> !encounteredBpmnProcessIds.contains(definition.getBpmnProcessId()))
+              .peek(definition -> encounteredBpmnProcessIds.add(definition.getBpmnProcessId()))
+              .toList();
+
+      processDefinitions.addAll(items);
 
     } while (processDefinitionResult.getItems() != null
         && !processDefinitionResult.getItems().isEmpty());
 
-    resultHandler.accept(processDefinitions);
+    return processDefinitions;
   }
 }
