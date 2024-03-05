@@ -196,52 +196,18 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "API key",
-      "value" : "APIKEY"
-    }, {
       "name" : "None",
       "value" : "NONE"
     }, {
       "name" : "Basic",
       "value" : "BASIC"
     }, {
+      "name" : "API key",
+      "value" : "APIKEY"
+    }, {
       "name" : "JWT",
       "value" : "JWT"
     } ]
-  }, {
-    "id" : "inbound.auth.apiKey",
-    "label" : "API key",
-    "description" : "Expected API key",
-    "optional" : false,
-    "feel" : "optional",
-    "group" : "authorization",
-    "binding" : {
-      "name" : "inbound.auth.apiKey",
-      "type" : "zeebe:property"
-    },
-    "condition" : {
-      "property" : "inbound.auth.type",
-      "equals" : "APIKEY",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "inbound.auth.apiKeyLocator",
-    "label" : "API key locator",
-    "description" : "A FEEL expression that extracts API key from the request. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/#how-to-configure-api-key-authorization'>See documentation</a>",
-    "optional" : false,
-    "feel" : "required",
-    "group" : "authorization",
-    "binding" : {
-      "name" : "inbound.auth.apiKeyLocator",
-      "type" : "zeebe:property"
-    },
-    "condition" : {
-      "property" : "inbound.auth.type",
-      "equals" : "APIKEY",
-      "type" : "simple"
-    },
-    "type" : "String"
   }, {
     "id" : "inbound.auth.username",
     "label" : "Username",
@@ -273,6 +239,40 @@
     "condition" : {
       "property" : "inbound.auth.type",
       "equals" : "BASIC",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "inbound.auth.apiKey",
+    "label" : "API key",
+    "description" : "Expected API key",
+    "optional" : false,
+    "feel" : "optional",
+    "group" : "authorization",
+    "binding" : {
+      "name" : "inbound.auth.apiKey",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "inbound.auth.type",
+      "equals" : "APIKEY",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "inbound.auth.apiKeyLocator",
+    "label" : "API key locator",
+    "description" : "A FEEL expression that extracts API key from the request. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/#how-to-configure-api-key-authorization'>See documentation</a>",
+    "optional" : false,
+    "feel" : "required",
+    "group" : "authorization",
+    "binding" : {
+      "name" : "inbound.auth.apiKeyLocator",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "inbound.auth.type",
+      "equals" : "APIKEY",
       "type" : "simple"
     },
     "type" : "String"
