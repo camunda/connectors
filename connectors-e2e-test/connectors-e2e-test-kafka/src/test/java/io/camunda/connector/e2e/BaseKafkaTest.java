@@ -17,8 +17,7 @@
 package io.camunda.connector.e2e;
 
 import static org.apache.kafka.clients.admin.AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.when;
 
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
 import io.camunda.connector.runtime.inbound.lifecycle.InboundConnectorManager;
@@ -26,6 +25,7 @@ import io.camunda.operate.CamundaOperateClient;
 import io.camunda.zeebe.client.ZeebeClient;
 import java.io.File;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -85,7 +85,7 @@ public class BaseKafkaTest {
 
   @BeforeEach
   void beforeEach() {
-    doNothing().when(processDefinitionSearch).query(any());
+    when(processDefinitionSearch.query()).thenReturn(Collections.emptyList());
   }
 
   private static void createTopics(String... topics) {
