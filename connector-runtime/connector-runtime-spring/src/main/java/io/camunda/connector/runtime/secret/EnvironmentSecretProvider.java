@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.env;
+package io.camunda.connector.runtime.secret;
 
 import io.camunda.connector.api.secret.SecretProvider;
 import jakarta.annotation.PostConstruct;
@@ -23,12 +23,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
 import org.springframework.util.StringUtils;
 
-public class SpringEnvironmentSecretProvider implements SecretProvider {
-  private static final Logger LOG = LoggerFactory.getLogger(SpringEnvironmentSecretProvider.class);
+public class EnvironmentSecretProvider implements SecretProvider {
+  private static final Logger LOG = LoggerFactory.getLogger(EnvironmentSecretProvider.class);
   private final Environment environment;
   private final String prefix;
 
-  public SpringEnvironmentSecretProvider(Environment environment, String prefix) {
+  public EnvironmentSecretProvider(Environment environment, String prefix) {
     this.environment = environment;
     this.prefix = prefix;
   }

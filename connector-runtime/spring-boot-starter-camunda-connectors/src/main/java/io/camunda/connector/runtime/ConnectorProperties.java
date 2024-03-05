@@ -30,7 +30,8 @@ public record ConnectorProperties(Polling polling, Webhook webhook, SecretProvid
   /** Configuration for Operate polling that enables inbound Connectors. */
   public record Polling(boolean enabled, long interval) {}
 
-  public record SecretProvider(Discovery discovery, Environment environment) {}
+  public record SecretProvider(
+      Discovery discovery, Environment environment, ConsoleSecretProvider console) {}
 
   /** Configuration for the secret provider lookup */
   public record Discovery(boolean enabled) {}
@@ -39,4 +40,6 @@ public record ConnectorProperties(Polling polling, Webhook webhook, SecretProvid
    * Configuration for the {@link org.springframework.core.env.Environment} based secret provider
    */
   public record Environment(boolean enabled, String prefix) {}
+
+  public record ConsoleSecretProvider(boolean enabled, String endpoint, String audience) {}
 }

@@ -17,13 +17,20 @@
 package io.camunda.connector.runtime;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.common.auth.Authentication;
+import io.camunda.common.auth.JwtCredential;
+import io.camunda.common.auth.Product;
+import io.camunda.common.auth.SaaSAuthentication;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
-import io.camunda.connector.runtime.env.SpringEnvironmentSecretProvider;
 import io.camunda.connector.runtime.outbound.OutboundConnectorRuntimeConfiguration;
+import io.camunda.connector.runtime.secret.ConsoleSecretApiClient;
+import io.camunda.connector.runtime.secret.ConsoleSecretProvider;
+import io.camunda.connector.runtime.secret.EnvironmentSecretProvider;
+import java.time.Duration;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -51,6 +58,13 @@ public class OutboundConnectorsAutoConfiguration {
 
   @Value("${camunda.connector.secretprovider.environment.prefix:}")
   String environmentSecretProviderPrefix;
+
+  @Value(
+      "${camunda.connector.secretprovider.console.endpoint:https://cluster-api.cloud.camunda.io/secrets}")
+  String consoleSecretsApiEndpoint;
+
+  @Value("${camunda.connector.secretprovider.console.audience:secrets.camunda.io}")
+  String consoleSecretsApiAudience;
 
   private static final Logger LOG =
       LoggerFactory.getLogger(OutboundConnectorsAutoConfiguration.class);
@@ -81,8 +95,41 @@ public class OutboundConnectorsAutoConfiguration {
       name = "camunda.connector.secretprovider.environment.enabled",
       havingValue = "true",
       matchIfMissing = true)
-  public SpringEnvironmentSecretProvider defaultSecretProvider(Environment environment) {
-    return new SpringEnvironmentSecretProvider(environment, environmentSecretProviderPrefix);
+  public EnvironmentSecretProvider defaultSecretProvider(Environment environment) {
+    return new EnvironmentSecretProvider(environment, environmentSecretProviderPrefix);
+  }
+
+  @Bean
+  @ConditionalOnProperty(
+      name = "camunda.connector.secretprovider.console.enabled",
+      havingValue = "true")
+  public ConsoleSecretProvider consoleSecretProvider(
+      ConsoleSecretApiClient consoleSecretApiClient) {
+    return new ConsoleSecretProvider(consoleSecretApiClient, Duration.ofSeconds(20));
+  }
+
+  @Bean
+  @ConditionalOnProperty(
+      name = "camunda.connector.secretprovider.console.enabled",
+      havingValue = "true")
+  public ConsoleSecretApiClient consoleSecretApiClient(Authentication authentication) {
+    if (authentication instanceof SaaSAuthentication saaSAuthentication) {
+      // We reuse the Zeebe SaaS authentication here as
+      // Connectors will always rely on being connected to a zeebe instance
+      JwtCredential zeebeJwtCredential =
+          saaSAuthentication.getJwtConfig().getProduct(Product.ZEEBE);
+      JwtCredential jwtCredential =
+          new JwtCredential(
+              zeebeJwtCredential.getClientId(),
+              zeebeJwtCredential.getClientSecret(),
+              consoleSecretsApiAudience,
+              zeebeJwtCredential.getAuthUrl());
+      return new ConsoleSecretApiClient(consoleSecretsApiEndpoint, jwtCredential);
+    } else {
+      throw new RuntimeException(
+          "Console Secrets require an authentication against the SaaS environment:"
+              + authentication.getClass());
+    }
   }
 
   @Bean

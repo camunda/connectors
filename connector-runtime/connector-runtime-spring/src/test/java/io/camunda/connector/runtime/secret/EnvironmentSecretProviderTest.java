@@ -14,21 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.env;
+package io.camunda.connector.runtime.secret;
 
 import static org.assertj.core.api.Assertions.*;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.env.MockEnvironment;
 
-public class SpringEnvironmentSecretProviderTest {
+public class EnvironmentSecretProviderTest {
 
   @Test
   void shouldApplyPrefix() {
     MockEnvironment env = new MockEnvironment();
     env.setProperty("secrets.my-total-secret", "beebop");
-    SpringEnvironmentSecretProvider secretProvider =
-        new SpringEnvironmentSecretProvider(env, "secrets.");
+    EnvironmentSecretProvider secretProvider = new EnvironmentSecretProvider(env, "secrets.");
     String myTotalSecret = secretProvider.getSecret("my-total-secret");
     assertThat(myTotalSecret).isEqualTo("beebop");
   }
