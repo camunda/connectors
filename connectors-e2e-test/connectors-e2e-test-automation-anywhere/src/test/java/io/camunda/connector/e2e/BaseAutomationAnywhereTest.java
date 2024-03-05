@@ -17,14 +17,14 @@
 package io.camunda.connector.e2e;
 
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.when;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
 import io.camunda.operate.CamundaOperateClient;
 import io.camunda.zeebe.client.ZeebeClient;
 import java.io.File;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -106,6 +106,6 @@ public abstract class BaseAutomationAnywhereTest {
 
   @BeforeEach
   void beforeEach() {
-    doNothing().when(processDefinitionSearch).query(any());
+    when(processDefinitionSearch.query()).thenReturn(Collections.emptyList());
   }
 }

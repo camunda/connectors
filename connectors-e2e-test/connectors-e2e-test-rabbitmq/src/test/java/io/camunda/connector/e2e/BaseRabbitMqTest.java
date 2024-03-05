@@ -16,8 +16,7 @@
  */
 package io.camunda.connector.e2e;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.when;
 
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
 import io.camunda.operate.CamundaOperateClient;
@@ -25,6 +24,7 @@ import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
+import java.util.Collections;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,7 +47,7 @@ public abstract class BaseRabbitMqTest {
 
   @BeforeEach
   void beforeEach() {
-    doNothing().when(processDefinitionSearch).query(any());
+    when(processDefinitionSearch.query()).thenReturn(Collections.emptyList());
   }
 
   protected ZeebeTest setupTestWithBpmnModel(String taskName, File elementTemplate) {

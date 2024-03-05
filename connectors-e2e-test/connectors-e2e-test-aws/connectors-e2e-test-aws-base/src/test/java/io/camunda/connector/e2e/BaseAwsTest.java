@@ -20,8 +20,7 @@ import static io.camunda.connector.e2e.AwsService.EVENTBRIDGE;
 import static io.camunda.connector.e2e.AwsService.LAMBDA;
 import static io.camunda.connector.e2e.AwsService.SNS;
 import static io.camunda.connector.e2e.AwsService.SQS;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.when;
 
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
@@ -29,6 +28,7 @@ import io.camunda.operate.CamundaOperateClient;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.spring.test.ZeebeSpringTest;
 import java.io.File;
+import java.util.Collections;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -85,7 +85,7 @@ public abstract class BaseAwsTest {
 
   @BeforeEach
   void beforeEach() {
-    doNothing().when(processDefinitionSearch).query(any());
+    when(processDefinitionSearch.query()).thenReturn(Collections.emptyList());
   }
 
   /** Stops the LocalStack container and cleans up any associated resources. */
