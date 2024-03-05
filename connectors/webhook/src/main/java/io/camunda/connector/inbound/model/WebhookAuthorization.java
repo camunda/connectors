@@ -17,6 +17,7 @@ import io.camunda.connector.inbound.model.WebhookAuthorization.ApiKeyAuth;
 import io.camunda.connector.inbound.model.WebhookAuthorization.BasicAuth;
 import io.camunda.connector.inbound.model.WebhookAuthorization.JwtAuth;
 import io.camunda.connector.inbound.model.WebhookAuthorization.None;
+import jakarta.validation.constraints.NotEmpty;
 import java.util.function.Function;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
@@ -66,7 +67,9 @@ public sealed interface WebhookAuthorization {
               description =
                   "A FEEL expression that extracts API key from the request. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/#how-to-configure-api-key-authorization'>See documentation</a>",
               group = "authorization",
-              feel = FeelMode.required)
+              feel = FeelMode.required,
+              defaultValue = "=split(request.headers.authorization, \" \")[2]")
+          @NotEmpty
           Function<Object, String> apiKeyLocator)
       implements WebhookAuthorization {}
 
