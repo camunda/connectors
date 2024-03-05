@@ -39,7 +39,11 @@ public final class BasicAuthentication implements Authentication {
 
   @Override
   public void setHeaders(final HttpHeaders headers) {
-    String passwordForHeader = password == null ? "" : password;
+    String passwordForHeader = password;
+    // checking against "SPEC_PASSWORD_EMPTY_PATTERN" to prevent breaking change
+    if (password == null || password.equals("SPEC_PASSWORD_EMPTY_PATTERN")) {
+      passwordForHeader = "";
+    }
     headers.setBasicAuthentication(username, passwordForHeader);
   }
 
