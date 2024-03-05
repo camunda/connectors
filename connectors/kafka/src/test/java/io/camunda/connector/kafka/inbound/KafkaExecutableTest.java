@@ -197,6 +197,23 @@ public class KafkaExecutableTest {
     assertEquals("headerValue", ((Map) kafkaInboundMessage.getHeaders()).get("header"));
   }
 
+  @Test
+  public void testConvertSpecialCharactersRecordToKafkaInboundMessage() {
+    // When
+    ConsumerRecord<Object, Object> consumerRecord =
+        new ConsumerRecord<>("my-topic", 0, 0, "my-key", "{\"foo\": \"\nb\ta\\r\"}");
+    KafkaInboundMessage kafkaInboundMessage =
+        KafkaPropertyTransformer.convertConsumerRecordToKafkaInboundMessage(
+            consumerRecord, KafkaConnectorConsumer.objectMapper.reader());
+
+    // Then
+    assertEquals("my-key", kafkaInboundMessage.getKey());
+    assertEquals("{\"foo\": \"\nb\ta\\r\"}", kafkaInboundMessage.getRawValue());
+    ObjectNode expectedValue = JsonNodeFactory.instance.objectNode();
+    expectedValue.set("foo", JsonNodeFactory.instance.textNode("\nb\ta\r"));
+    assertEquals(expectedValue, kafkaInboundMessage.getValue());
+  }
+
   public KafkaExecutable getConsumerMock() {
     return new KafkaExecutable(properties -> mockConsumer);
   }
