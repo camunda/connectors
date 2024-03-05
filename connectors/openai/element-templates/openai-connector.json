@@ -210,6 +210,9 @@
       "condition": {
         "property": "model",
         "equals": "custom"
+      },
+      "constraints": {
+        "notEmpty": true
       }
     },
     {
