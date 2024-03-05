@@ -22,16 +22,9 @@ import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotEmpty;
-import java.util.function.Function;
 
 @TemplateSubType(id = BasicAuthentication.TYPE, label = "Basic")
 public final class BasicAuthentication implements Authentication {
-  @TemplateProperty(ignore = true)
-  private static final String SPEC_PASSWORD_EMPTY_PATTERN = "SPEC_PASSWORD_EMPTY_PATTERN";
-
-  @TemplateProperty(ignore = true)
-  private static final Function<String, String> SPEC_PASSWORD =
-      (psw) -> psw.equals(SPEC_PASSWORD_EMPTY_PATTERN) ? "" : psw;
 
   @FEEL
   @NotEmpty
@@ -39,13 +32,15 @@ public final class BasicAuthentication implements Authentication {
   private String username;
 
   @FEEL
-  @NotEmpty
-  @TemplateProperty(group = "authentication")
+  @TemplateProperty(
+      group = "authentication",
+      constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
   private String password;
 
   @Override
   public void setHeaders(final HttpHeaders headers) {
-    headers.setBasicAuthentication(username, SPEC_PASSWORD.apply(password));
+    String passwordForHeader = password == null ? "" : password;
+    headers.setBasicAuthentication(username, passwordForHeader);
   }
 
   public String getUsername() {
