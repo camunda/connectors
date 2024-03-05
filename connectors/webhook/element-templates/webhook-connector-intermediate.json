@@ -83,7 +83,7 @@
     "feel" : "optional",
     "group" : "endpoint",
     "binding" : {
-      "name" : "inbound.inbound.context",
+      "name" : "inbound.context",
       "type" : "zeebe:property"
     },
     "type" : "String"

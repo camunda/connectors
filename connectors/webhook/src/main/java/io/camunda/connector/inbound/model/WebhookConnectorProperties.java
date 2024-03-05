@@ -43,7 +43,7 @@ public record WebhookConnectorProperties(
             label = "Webhook ID",
             group = "endpoint",
             description = "The webhook ID is a part of the URL",
-            binding = @PropertyBinding(name = "inbound.context"))
+            binding = @PropertyBinding(name = "context"))
         @NotBlank
         @Pattern(
             regexp = "^[a-zA-Z0-9]+([-_][a-zA-Z0-9]+)*$",
