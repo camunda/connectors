@@ -200,7 +200,7 @@ public class KafkaExecutableTest {
   @Test
   public void testConvertSpecialCharactersRecordToKafkaInboundMessage() {
     // When
-    ConsumerRecord<Object, Object> consumerRecord =
+    ConsumerRecord<String, Object> consumerRecord =
         new ConsumerRecord<>("my-topic", 0, 0, "my-key", "{\"foo\": \"\nb\ta\\r\"}");
     KafkaInboundMessage kafkaInboundMessage =
         KafkaPropertyTransformer.convertConsumerRecordToKafkaInboundMessage(
