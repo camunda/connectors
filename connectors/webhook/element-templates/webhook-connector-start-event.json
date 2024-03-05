@@ -263,6 +263,10 @@
     "label" : "API key locator",
     "description" : "A FEEL expression that extracts API key from the request. <a href='https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/#how-to-configure-api-key-authorization'>See documentation</a>",
     "optional" : false,
+    "value" : "=split(request.headers.authorization, \" \")[2]",
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "required",
     "group" : "authorization",
     "binding" : {
