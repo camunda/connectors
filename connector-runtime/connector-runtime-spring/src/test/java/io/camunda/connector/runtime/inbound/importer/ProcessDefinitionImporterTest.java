@@ -22,6 +22,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 import io.camunda.connector.runtime.inbound.lifecycle.InboundConnectorManager;
 import io.camunda.operate.model.ProcessDefinition;
@@ -36,11 +37,12 @@ public class ProcessDefinitionImporterTest {
 
   private ProcessDefinitionImporter importer;
   private InboundConnectorManager manager;
+  private ProcessDefinitionSearch search;
 
   @BeforeEach
   public void init() {
     manager = mock(InboundConnectorManager.class);
-    var search = mock(ProcessDefinitionSearch.class);
+    search = mock(ProcessDefinitionSearch.class);
     importer = new ProcessDefinitionImporter(manager, search, new DefaultNoopMetricsRecorder());
   }
 
@@ -51,9 +53,11 @@ public class ProcessDefinitionImporterTest {
     List<ProcessDefinition> second =
         List.of(getProcessDefinition("process1", 1, 1), getProcessDefinition("process2", 1, 2));
 
+    when(search.query()).thenReturn(first).thenReturn(second);
+
     // when
-    importer.handleImportedDefinitions(first);
-    importer.handleImportedDefinitions(second);
+    importer.scheduleImport();
+    importer.scheduleImport();
 
     // then
     verify(manager, times(1)).handleNewProcessDefinitions(eq(new HashSet<>(first)));
@@ -65,20 +69,22 @@ public class ProcessDefinitionImporterTest {
   void newVersionDeployed_shouldRegister() {
     // given
     List<ProcessDefinition> first = List.of(getProcessDefinition("process1", 1, 1));
-    List<ProcessDefinition> second =
-        List.of(getProcessDefinition("process1", 1, 1), getProcessDefinition("process1", 2, 2));
+    List<ProcessDefinition> second = List.of(getProcessDefinition("process1", 2, 2));
+
+    when(search.query()).thenReturn(first).thenReturn(second).thenReturn(second);
 
     // when
-    importer.handleImportedDefinitions(first);
-    importer.handleImportedDefinitions(second);
+    importer.scheduleImport();
+    importer.scheduleImport();
 
     // then
     verify(manager, times(1)).handleNewProcessDefinitions(new HashSet<>(first));
-    verify(manager, times(1)).handleDeletedProcessDefinitions(Set.of(first.get(0).getVersion()));
-    verify(manager, times(1)).handleNewProcessDefinitions(Set.of(second.get(1)));
+    verify(manager, times(1))
+        .handleDeletedProcessDefinitions(Set.of(first.getFirst().getVersion()));
+    verify(manager, times(1)).handleNewProcessDefinitions(Set.of(second.getFirst()));
 
     // verify old version was deregistered and no action is taken on the next polling iteration
-    importer.handleImportedDefinitions(second);
+    importer.scheduleImport();
     verifyNoMoreInteractions(manager);
   }
 
@@ -88,9 +94,11 @@ public class ProcessDefinitionImporterTest {
     List<ProcessDefinition> definitions =
         List.of(getProcessDefinition("process1", 1, 1), getProcessDefinition("process2", 1, 2));
 
+    when(search.query()).thenReturn(definitions);
+
     // when
-    importer.handleImportedDefinitions(definitions);
-    importer.handleImportedDefinitions(definitions);
+    importer.scheduleImport();
+    importer.scheduleImport();
 
     // then
     verify(manager, times(1)).handleNewProcessDefinitions(new HashSet<>(definitions));
@@ -105,9 +113,11 @@ public class ProcessDefinitionImporterTest {
 
     List<ProcessDefinition> second = List.of(getProcessDefinition("process1", 1, 1));
 
+    when(search.query()).thenReturn(first).thenReturn(second);
+
     // when
-    importer.handleImportedDefinitions(first);
-    importer.handleImportedDefinitions(second);
+    importer.scheduleImport();
+    importer.scheduleImport();
 
     // then
     verify(manager, times(1)).handleNewProcessDefinitions(new HashSet<>(first));
@@ -117,18 +127,20 @@ public class ProcessDefinitionImporterTest {
   @Test
   void newerVersionDeleted_shouldRegisterOldOne() {
     // given
-    List<ProcessDefinition> first =
-        List.of(getProcessDefinition("process1", 1, 1), getProcessDefinition("process1", 2, 2));
+    List<ProcessDefinition> first = List.of(getProcessDefinition("process1", 2, 2));
 
     List<ProcessDefinition> second = List.of(getProcessDefinition("process1", 1, 1));
 
+    when(search.query()).thenReturn(first).thenReturn(second);
+
     // when
-    importer.handleImportedDefinitions(first);
-    importer.handleImportedDefinitions(second);
+    importer.scheduleImport();
+    importer.scheduleImport();
 
     // then
-    verify(manager, times(1)).handleNewProcessDefinitions(Set.of(first.get(1)));
-    verify(manager, times(1)).handleDeletedProcessDefinitions(Set.of(first.get(1).getVersion()));
+    verify(manager, times(1)).handleNewProcessDefinitions(Set.of(first.getFirst()));
+    verify(manager, times(1))
+        .handleDeletedProcessDefinitions(Set.of(first.getFirst().getVersion()));
     verify(manager, times(1)).handleNewProcessDefinitions(new HashSet<>(second));
   }
 
