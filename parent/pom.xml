@@ -78,7 +78,7 @@ limitations under the License.</license.inlineheader>
     <!-- Third party dependencies -->
 
     <version.jakarta-validation>3.0.2</version.jakarta-validation>
-    <version.mockito>5.10.0</version.mockito>
+    <version.mockito>5.11.0</version.mockito>
     <version.junit-jupiter>5.10.2</version.junit-jupiter>
     <version.assertj>3.25.3</version.assertj>
     <version.jackson-bom>2.16.1</version.jackson-bom>
@@ -88,7 +88,7 @@ limitations under the License.</license.inlineheader>
 
     <version.spring-boot>3.2.3</version.spring-boot>
     <version.spring-cloud-gcp-starter-logging>5.0.4</version.spring-cloud-gcp-starter-logging>
-    <version.logback>1.5.0</version.logback>
+    <version.logback>1.5.3</version.logback>
 
     <version.aws-java-sdk>1.12.665</version.aws-java-sdk>
     <version.aws-lambda-java-events>3.11.4</version.aws-lambda-java-events>
@@ -114,7 +114,7 @@ limitations under the License.</license.inlineheader>
     <version.kafka-clients>3.6.1</version.kafka-clients>
 
     <version.microsoft-graph>5.80.0</version.microsoft-graph>
-    <version.azure-identity>1.11.2</version.azure-identity>
+    <version.azure-identity>1.11.3</version.azure-identity>
 
     <version.bcprov-jdk15on>1.70</version.bcprov-jdk15on>
     <version.sendGrid>4.10.2</version.sendGrid>
