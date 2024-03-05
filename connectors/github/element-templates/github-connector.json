@@ -1500,7 +1500,7 @@
     },
     {
       "label": "Page",
-      "description": "The page number of the results to fetch. Default: 1",
+      "description": "The page number of the results to fetch",
       "group": "input",
       "type": "Number",
       "feel": "optional",
@@ -1518,7 +1518,7 @@
     },
     {
       "label": "Results per page",
-      "description": "The number of results to include per page. Default: 30",
+      "description": "The number of results to include per page",
       "group": "input",
       "type": "Number",
       "feel": "optional",
