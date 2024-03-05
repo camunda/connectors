@@ -21,6 +21,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.matching;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.assertj.core.api.Assertions.*;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.when;
 
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
@@ -30,6 +31,7 @@ import io.camunda.common.auth.Product;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.mockito.Mockito;
@@ -40,14 +42,25 @@ public class ConsoleSecretProviderTest {
   static WireMockExtension wm =
       WireMockExtension.newInstance().options(wireMockConfig().dynamicPort()).build();
 
-  @Test
-  void testSuccessfulSecretsHandling() {
+  static Authentication auth;
+
+  static Map.Entry<String, String> authToken;
+
+  static ConsoleSecretApiClient client;
+
+  @BeforeAll
+  static void beforeAll() {
     // Mock authentication
-    var auth = Mockito.mock(Authentication.class);
-    Map.Entry<String, String> authToken =
+    auth = Mockito.mock(Authentication.class);
+    authToken =
         Collections.singletonMap("Authorization", "Bearer XXX").entrySet().iterator().next();
     when(auth.getTokenHeader(Product.CONSOLE)).thenReturn(authToken);
 
+    client = new ConsoleSecretApiClient(wm.baseUrl() + "/secrets", auth);
+  }
+
+  @Test
+  void testSuccessfulSecretsHandling() {
     // Mock response
     var secretsResponse = Collections.singletonMap("secretKey", "secretValue");
     wm.stubFor(
@@ -56,12 +69,62 @@ public class ConsoleSecretProviderTest {
             .willReturn(ResponseDefinitionBuilder.okForJson(secretsResponse)));
 
     // Test the client
-    ConsoleSecretApiClient client = new ConsoleSecretApiClient(wm.baseUrl() + "/secrets", auth);
     var secrets = client.getSecrets();
     assertThat(secrets).isEqualTo(secretsResponse);
 
     // Test the provider
-    var consoleSecretProvider = new ConsoleSecretProvider(client, Duration.ofSeconds(10));
+    var consoleSecretProvider = new ConsoleSecretProvider(client, Duration.ofSeconds(1));
     assertThat(consoleSecretProvider.getSecret("secretKey")).isEqualTo("secretValue");
+  }
+
+  @Test
+  void testFailureOnInitialLoad() {
+    // Mock failing response
+    var secretsResponse = Collections.singletonMap("secretKey", "secretValue");
+    wm.stubFor(
+        get(urlPathMatching("/secrets"))
+            .withHeader("Authorization", matching(authToken.getValue()))
+            .willReturn(ResponseDefinitionBuilder.responseDefinition().withStatus(500)));
+
+    // Test the client
+    assertThrows(RuntimeException.class, client::getSecrets);
+  }
+
+  @Test
+  void testSuccessfulSecretResolvingInCaseOfFailure() throws InterruptedException {
+    // Mock response
+    var secretsResponse = Collections.singletonMap("secretKey", "secretValue");
+    wm.stubFor(
+        get(urlPathMatching("/secrets"))
+            .withHeader("Authorization", matching(authToken.getValue()))
+            .willReturn(ResponseDefinitionBuilder.okForJson(secretsResponse)));
+
+    var consoleSecretProvider = new ConsoleSecretProvider(client, Duration.ofMillis(1));
+    assertThat(consoleSecretProvider.getSecret("secretKey")).isEqualTo("secretValue");
+
+    // Sleep so cache requires a new refresh
+    Thread.sleep(10);
+
+    // Mock failing response
+    wm.stubFor(
+        get(urlPathMatching("/secrets"))
+            .withHeader("Authorization", matching(authToken.getValue()))
+            .willReturn(ResponseDefinitionBuilder.responseDefinition().withStatus(500)));
+
+    // Previously cached secret should still be resolved
+    assertThat(consoleSecretProvider.getSecret("secretKey")).isEqualTo("secretValue");
+
+    // Sleep so cache requires a new refresh
+    Thread.sleep(10);
+
+    // Successful response with a new value
+    secretsResponse = Collections.singletonMap("secretKey", "newSecretValue");
+    wm.stubFor(
+        get(urlPathMatching("/secrets"))
+            .withHeader("Authorization", matching(authToken.getValue()))
+            .willReturn(ResponseDefinitionBuilder.okForJson(secretsResponse)));
+
+    // New secrets should be resolved
+    assertThat(consoleSecretProvider.getSecret("secretKey")).isEqualTo("newSecretValue");
   }
 }

@@ -22,7 +22,6 @@ import com.google.common.cache.LoadingCache;
 import io.camunda.connector.api.secret.SecretProvider;
 import java.time.Duration;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,7 +42,7 @@ public class ConsoleSecretProvider implements SecretProvider {
     // We do not cache individual values as the response always contains all secrets
     secretsCache =
         CacheBuilder.newBuilder()
-            .expireAfterWrite(cacheDuration)
+            .refreshAfterWrite(cacheDuration)
             .build(
                 new CacheLoader<>() {
                   @Override
@@ -56,10 +55,6 @@ public class ConsoleSecretProvider implements SecretProvider {
   @Override
   public String getSecret(String name) {
     LOGGER.debug("Resolving secret for key: " + name);
-    try {
-      return secretsCache.get(CACHE_KEY).getOrDefault(name, null);
-    } catch (ExecutionException e) {
-      throw new RuntimeException(e);
-    }
+    return secretsCache.getUnchecked(CACHE_KEY).getOrDefault(name, null);
   }
 }
