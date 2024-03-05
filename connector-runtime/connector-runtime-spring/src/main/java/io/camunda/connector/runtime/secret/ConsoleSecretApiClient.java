@@ -77,7 +77,7 @@ public class ConsoleSecretApiClient {
       throws IOException {
     return switch (response.getCode()) {
       case 200 -> objectMapper.readValue(response.getEntity().getContent(), mapTypeReference);
-      case 401, 402, 403 -> {
+      case 401, 403 -> {
         authentication.resetToken(Product.CONSOLE);
         throw new RuntimeException("Authentication failed: " + response.getCode());
       }
