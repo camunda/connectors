@@ -114,20 +114,6 @@
       }
     },
     {
-      "id": "authentication.password",
-      "description": "This field will replace to empty string. EasyPost API use only username field for put API key",
-      "group": "authentication",
-      "type": "Hidden",
-      "optional": true,
-      "constraints": {
-        "notEmpty": false
-      },
-      "binding": {
-        "type": "zeebe:input",
-        "name": "authentication.password"
-      }
-    },
-    {
       "description": "post method",
       "type": "Hidden",
       "optional": false,
