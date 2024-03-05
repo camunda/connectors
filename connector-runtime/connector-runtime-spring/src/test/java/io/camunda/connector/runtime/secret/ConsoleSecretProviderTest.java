@@ -61,7 +61,7 @@ public class ConsoleSecretProviderTest {
 
   @Test
   void testSuccessfulSecretsHandling() {
-    // Mock response
+    // Mock successful response
     var secretsResponse = Collections.singletonMap("secretKey", "secretValue");
     wm.stubFor(
         get(urlPathMatching("/secrets"))
@@ -80,7 +80,6 @@ public class ConsoleSecretProviderTest {
   @Test
   void testFailureOnInitialLoad() {
     // Mock failing response
-    var secretsResponse = Collections.singletonMap("secretKey", "secretValue");
     wm.stubFor(
         get(urlPathMatching("/secrets"))
             .withHeader("Authorization", matching(authToken.getValue()))
