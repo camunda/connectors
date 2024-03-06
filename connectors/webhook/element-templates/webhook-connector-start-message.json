@@ -389,17 +389,17 @@
       "value" : "required"
     } ]
   }, {
-    "id" : "correlationKeyPayload",
-    "label" : "Correlation key (payload)",
-    "description" : "Extracts the correlation key from the incoming message payload",
+    "id" : "correlationKeyProcess",
+    "label" : "Correlation key (process)",
+    "description" : "Sets up the correlation key from process variables",
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "required",
     "group" : "correlation",
     "binding" : {
-      "name" : "correlationKeyExpression",
-      "type" : "zeebe:property"
+      "name" : "correlationKey",
+      "type" : "bpmn:Message#zeebe:subscription#property"
     },
     "condition" : {
       "property" : "correlationRequired",

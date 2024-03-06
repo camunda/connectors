@@ -89,7 +89,7 @@ public record PropertyGroup(String id, String label, @JsonIgnore List<Property> 
           .label("Correlation")
           .properties(
               CommonProperties.correlationRequiredDropdown().build(),
-              CommonProperties.correlationKeyPayload()
+              CommonProperties.correlationKeyProcess()
                   .condition(
                       new Equals(CommonProperties.correlationRequiredDropdown().id, "required"))
                   .build(),

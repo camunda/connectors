@@ -229,12 +229,13 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
               new DropdownChoice("Correlation not required", "notRequired"),
               new DropdownChoice("Correlation required", "required"));
 
-      var correlationKeyExpressionProperty = getPropertyById("correlationKeyPayload", template);
+      var correlationKeyExpressionProperty = getPropertyById("correlationKeyProcess", template);
       assertThat(correlationKeyExpressionProperty).isNotNull();
       assertThat(correlationKeyExpressionProperty.getType()).isEqualTo("String");
-      assertThat(correlationKeyExpressionProperty.getBinding().type()).isEqualTo("zeebe:property");
-      assertThat(((ZeebeProperty) correlationKeyExpressionProperty.getBinding()).name())
-          .isEqualTo("correlationKeyExpression");
+      assertThat(correlationKeyExpressionProperty.getBinding().type())
+          .isEqualTo("bpmn:Message#zeebe:subscription#property");
+      assertThat(((ZeebeSubscriptionProperty) correlationKeyExpressionProperty.getBinding()).name())
+          .isEqualTo("correlationKey");
 
       var messageIdExpressionProperty = getPropertyById("messageIdExpression", template);
       assertThat(messageIdExpressionProperty).isNotNull();
