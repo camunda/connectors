@@ -6,7 +6,7 @@
     <groupId>io.camunda.connector</groupId>
     <artifactId>connector-parent</artifactId>
     <relativePath>../../parent/pom.xml</relativePath>
-    <version>8.4.5-rc3</version>
+    <version>8.4.5</version>
   </parent>
 
   <name>openapi-parser</name>
