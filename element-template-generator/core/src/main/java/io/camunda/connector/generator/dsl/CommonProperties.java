@@ -16,9 +16,11 @@
  */
 package io.camunda.connector.generator.dsl;
 
+import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeProperty;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeSubscriptionProperty;
+import java.util.List;
 
 public class CommonProperties {
 
@@ -79,7 +81,7 @@ public class CommonProperties {
           .id("correlationKeyProcess")
           .label("Correlation key (process)")
           .description("Sets up the correlation key from process variables")
-          .group("activation")
+          .group("correlation")
           .feel(FeelMode.required)
           .binding(ZeebeSubscriptionProperty.CORRELATION_KEY)
           .constraints(PropertyConstraints.builder().notEmpty(true).build());
@@ -89,7 +91,7 @@ public class CommonProperties {
           .id("correlationKeyPayload")
           .label("Correlation key (payload)")
           .description("Extracts the correlation key from the incoming message payload")
-          .group("activation")
+          .group("correlation")
           .feel(FeelMode.required)
           .binding(new PropertyBinding.ZeebeProperty("correlationKeyExpression"))
           .constraints(PropertyConstraints.builder().notEmpty(true).build());
@@ -99,15 +101,29 @@ public class CommonProperties {
           .id("messageIdExpression")
           .label("Message ID expression")
           .description("Expression to extract unique identifier of a message")
-          .group("activation")
+          .group("correlation")
           .feel(FeelMode.required)
           .optional(true)
           .binding(new PropertyBinding.ZeebeProperty("messageIdExpression"));
 
-  public static final PropertyBuilder MESSAGE_NAME_UUID =
+  public static final PropertyBuilder MESSAGE_NAME_UUID_HIDDEN =
       HiddenProperty.builder()
           .id("messageNameUuid")
-          .group("activation")
+          .group("correlation")
           .generatedValue()
           .binding(PropertyBinding.MessageProperty.NAME);
+
+  public static final PropertyBuilder CORRELATION_REQUIRED_DROPDOWN =
+      DropdownProperty.builder()
+          .choices(
+              List.of(
+                  new DropdownChoice("Correlation not required", "notRequired"),
+                  new DropdownChoice("Correlation required", "required")))
+          .id("correlationRequired")
+          .label("Subprocess correlation required")
+          .description(
+              "Indicates whether correlation is required. This is needed for event-based subprocess message start events")
+          .group("correlation")
+          .value("notRequired")
+          .binding(new ZeebeProperty("correlationRequired"));
 }

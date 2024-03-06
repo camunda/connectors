@@ -30,6 +30,9 @@
     "id" : "activation",
     "label" : "Activation"
   }, {
+    "id" : "correlation",
+    "label" : "Correlation"
+  }, {
     "id" : "output",
     "label" : "Output mapping"
   } ],
@@ -356,46 +359,6 @@
     },
     "type" : "Text"
   }, {
-    "id" : "correlationKeyProcess",
-    "label" : "Correlation key (process)",
-    "description" : "Sets up the correlation key from process variables",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "required",
-    "group" : "activation",
-    "binding" : {
-      "name" : "correlationKey",
-      "type" : "bpmn:Message#zeebe:subscription#property"
-    },
-    "type" : "String"
-  }, {
-    "id" : "correlationKeyPayload",
-    "label" : "Correlation key (payload)",
-    "description" : "Extracts the correlation key from the incoming message payload",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "required",
-    "group" : "activation",
-    "binding" : {
-      "name" : "correlationKeyExpression",
-      "type" : "zeebe:property"
-    },
-    "type" : "String"
-  }, {
-    "id" : "messageIdExpression",
-    "label" : "Message ID expression",
-    "description" : "Expression to extract unique identifier of a message",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "activation",
-    "binding" : {
-      "name" : "messageIdExpression",
-      "type" : "zeebe:property"
-    },
-    "type" : "String"
-  }, {
     "id" : "activationCondition",
     "label" : "Activation condition",
     "description" : "Condition under which the Connector triggers. Leave empty to catch all events",
@@ -408,11 +371,48 @@
     },
     "type" : "String"
   }, {
+    "id" : "correlationRequired",
+    "label" : "Subprocess correlation required",
+    "description" : "Indicates whether correlation is required. This is needed for event-based subprocess message start events",
+    "value" : "notRequired",
+    "group" : "correlation",
+    "binding" : {
+      "name" : "correlationRequired",
+      "type" : "zeebe:property"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Correlation not required",
+      "value" : "notRequired"
+    }, {
+      "name" : "Correlation required",
+      "value" : "required"
+    } ]
+  }, {
+    "id" : "correlationKeyPayload",
+    "label" : "Correlation key (payload)",
+    "description" : "Extracts the correlation key from the incoming message payload",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "correlation",
+    "binding" : {
+      "name" : "correlationKeyExpression",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "correlationRequired",
+      "equals" : "required",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
     "id" : "messageNameUuid",
     "generatedValue" : {
       "type" : "uuid"
     },
-    "group" : "activation",
+    "group" : "correlation",
     "binding" : {
       "name" : "name",
       "type" : "bpmn:Message#property"

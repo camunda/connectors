@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeProperty;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskDefinition;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskHeader;
+import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -70,7 +71,7 @@ public record PropertyGroup(String id, String label, @JsonIgnore List<Property> 
               CommonProperties.RETRY_BACKOFF.binding(new ZeebeTaskHeader("retryBackoff")).build())
           .build();
 
-  public static PropertyGroup ACTIVATION_GROUP_WITHOUT_MESSAGE_ID_EXPR =
+  public static PropertyGroup ACTIVATION_GROUP =
       PropertyGroup.builder()
           .id("activation")
           .label("Activation")
@@ -80,16 +81,28 @@ public record PropertyGroup(String id, String label, @JsonIgnore List<Property> 
                   .build())
           .build();
 
-  public static PropertyGroup ACTIVATION_GROUP_WITH_MESSAGE_ID_EXP =
+  public static PropertyGroup CORRELATION_GROUP_MESSAGE_START_EVENT =
       PropertyGroup.builder()
-          .id("activation")
-          .label("Activation")
+          .id("correlation")
+          .label("Correlation")
+          .properties(
+              CommonProperties.CORRELATION_REQUIRED_DROPDOWN.build(),
+              CommonProperties.CORRELATION_KEY_PAYLOAD
+                  .condition(
+                      new Equals(CommonProperties.CORRELATION_REQUIRED_DROPDOWN.id, "required"))
+                  .build(),
+              CommonProperties.MESSAGE_NAME_UUID_HIDDEN.build())
+          .build();
+
+  public static PropertyGroup CORRELATION_GROUP_INTERMEDIATE_CATCH_EVENT_OR_BOUNDARY =
+      PropertyGroup.builder()
+          .id("correlation")
+          .label("Correlation")
           .properties(
               CommonProperties.CORRELATION_KEY_PROCESS.build(),
               CommonProperties.CORRELATION_KEY_PAYLOAD.build(),
               CommonProperties.MESSAGE_ID_EXPRESSION.build(),
-              CommonProperties.ACTIVATION_CONDITION.build(),
-              CommonProperties.MESSAGE_NAME_UUID.build())
+              CommonProperties.MESSAGE_NAME_UUID_HIDDEN.build())
           .build();
 
   public PropertyGroup {
