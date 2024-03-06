@@ -48,11 +48,18 @@
                 <artifactId>element-template-generator-maven-plugin</artifactId>
                 <version>${project.version}</version>
                 <configuration>
-                    <connectorClasses>
-                        <connectorClass>io.camunda.connector.gsheets.GoogleSheetsFunction</connectorClass>
-                    </connectorClasses>
-                    <generateHybridTemplates>true</generateHybridTemplates>
-                    <templateFileName>google-sheets-outbound-connector</templateFileName>
+                    <connectors>
+                        <connector>
+                            <connectorClass>io.camunda.connector.gsheets.GoogleSheetsFunction</connectorClass>
+                            <files>
+                                <file>
+                                    <templateId>io.camunda.connectors.GoogleSheets.v1</templateId>
+                                    <templateFileName>google-sheets-outbound-connector.json</templateFileName>
+                                </file>
+                            </files>
+                            <generateHybridTemplates>true</generateHybridTemplates>
+                        </connector>
+                    </connectors>
                     <includeDependencies>io.camunda.connector:connector-google-base</includeDependencies>
                 </configuration>
             </plugin>

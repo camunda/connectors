@@ -19,5 +19,5 @@ public record Variables(
             group = "operationDetails",
             feel = FeelMode.required,
             binding = @PropertyBinding(name = "variables"),
-            condition = @PropertyCondition(property = "resource.type", equals = "FILE"))
+            condition = @PropertyCondition(property = "resource.type", equals = "file"))
         JsonNode requests) {}

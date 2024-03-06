@@ -43,7 +43,7 @@
     "id" : "authentication.authType",
     "label" : "Type",
     "optional" : false,
-    "value" : "BEARER",
+    "value" : "refresh",
     "constraints" : {
       "notEmpty" : true
     },
@@ -54,11 +54,11 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "Refresh token",
-      "value" : "REFRESH"
-    }, {
       "name" : "Bearer token",
-      "value" : "BEARER"
+      "value" : "bearer"
+    }, {
+      "name" : "Refresh token",
+      "value" : "refresh"
     } ]
   }, {
     "id" : "authentication.bearerToken",
@@ -76,7 +76,7 @@
     },
     "condition" : {
       "property" : "authentication.authType",
-      "equals" : "BEARER",
+      "equals" : "bearer",
       "type" : "simple"
     },
     "type" : "String"
@@ -96,7 +96,7 @@
     },
     "condition" : {
       "property" : "authentication.authType",
-      "equals" : "REFRESH",
+      "equals" : "refresh",
       "type" : "simple"
     },
     "type" : "String"
@@ -116,7 +116,7 @@
     },
     "condition" : {
       "property" : "authentication.authType",
-      "equals" : "REFRESH",
+      "equals" : "refresh",
       "type" : "simple"
     },
     "type" : "String"
@@ -136,7 +136,7 @@
     },
     "condition" : {
       "property" : "authentication.authType",
-      "equals" : "REFRESH",
+      "equals" : "refresh",
       "type" : "simple"
     },
     "type" : "String"
@@ -144,7 +144,7 @@
     "id" : "resource.type",
     "label" : "Operation",
     "optional" : false,
-    "value" : "FOLDER",
+    "value" : "folder",
     "constraints" : {
       "notEmpty" : true
     },
@@ -155,11 +155,11 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "Create file from template",
-      "value" : "FILE"
-    }, {
       "name" : "Create folder",
-      "value" : "FOLDER"
+      "value" : "folder"
+    }, {
+      "name" : "Create file from template",
+      "value" : "file"
     } ]
   }, {
     "id" : "resource.name",
@@ -190,7 +190,7 @@
   }, {
     "id" : "resource.additionalGoogleDriveProperties",
     "label" : "Additional properties or metadata",
-    "optional" : false,
+    "optional" : true,
     "feel" : "required",
     "group" : "operationDetails",
     "binding" : {
@@ -199,7 +199,7 @@
     },
     "condition" : {
       "property" : "resource.type",
-      "equals" : "FOLDER",
+      "equals" : "folder",
       "type" : "simple"
     },
     "type" : "String"
@@ -218,7 +218,7 @@
     },
     "condition" : {
       "property" : "resource.type",
-      "equals" : "FILE",
+      "equals" : "file",
       "type" : "simple"
     },
     "type" : "String"
@@ -234,7 +234,7 @@
     },
     "condition" : {
       "property" : "resource.type",
-      "equals" : "FILE",
+      "equals" : "file",
       "type" : "simple"
     },
     "type" : "String"

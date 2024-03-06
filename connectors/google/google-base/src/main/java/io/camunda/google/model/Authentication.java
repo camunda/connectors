@@ -22,11 +22,11 @@ public record Authentication(
             label = "Type",
             group = "authentication",
             type = Dropdown,
-            defaultValue = "BEARER",
+            defaultValue = "refresh",
             constraints = @PropertyConstraints(notEmpty = true),
             choices = {
-              @DropdownPropertyChoice(label = "Bearer token", value = "BEARER"),
-              @DropdownPropertyChoice(label = "Refresh token", value = "REFRESH")
+              @DropdownPropertyChoice(label = "Bearer token", value = "bearer"),
+              @DropdownPropertyChoice(label = "Refresh token", value = "refresh")
             })
         AuthenticationType authType,
     @TemplateProperty(
@@ -36,7 +36,7 @@ public record Authentication(
             group = "authentication",
             feel = FeelMode.optional,
             constraints = @PropertyConstraints(notEmpty = true),
-            condition = @PropertyCondition(property = "authentication.authType", equals = "BEARER"))
+            condition = @PropertyCondition(property = "authentication.authType", equals = "bearer"))
         String bearerToken,
     @TemplateProperty(
             id = "oauthClientId",
@@ -46,7 +46,7 @@ public record Authentication(
             feel = FeelMode.optional,
             constraints = @PropertyConstraints(notEmpty = true),
             condition =
-                @PropertyCondition(property = "authentication.authType", equals = "REFRESH"))
+                @PropertyCondition(property = "authentication.authType", equals = "refresh"))
         String oauthClientId,
     @TemplateProperty(
             id = "oauthClientSecret",
@@ -56,7 +56,7 @@ public record Authentication(
             feel = FeelMode.optional,
             constraints = @PropertyConstraints(notEmpty = true),
             condition =
-                @PropertyCondition(property = "authentication.authType", equals = "REFRESH"))
+                @PropertyCondition(property = "authentication.authType", equals = "refresh"))
         String oauthClientSecret,
     @TemplateProperty(
             id = "oauthRefreshToken",
@@ -66,7 +66,7 @@ public record Authentication(
             feel = FeelMode.optional,
             constraints = @PropertyConstraints(notEmpty = true),
             condition =
-                @PropertyCondition(property = "authentication.authType", equals = "REFRESH"))
+                @PropertyCondition(property = "authentication.authType", equals = "refresh"))
         String oauthRefreshToken) {
 
   @AssertTrue(message = "Credentials were incorrect")
