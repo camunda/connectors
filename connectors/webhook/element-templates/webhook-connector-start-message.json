@@ -408,6 +408,18 @@
     },
     "type" : "String"
   }, {
+    "id" : "messageIdExpression",
+    "label" : "Message ID expression",
+    "description" : "Expression to extract unique identifier of a message",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "correlation",
+    "binding" : {
+      "name" : "messageIdExpression",
+      "type" : "zeebe:property"
+    },
+    "type" : "String"
+  }, {
     "id" : "messageNameUuid",
     "generatedValue" : {
       "type" : "uuid"

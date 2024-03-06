@@ -235,6 +235,13 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
       assertThat(correlationKeyExpressionProperty.getBinding().type()).isEqualTo("zeebe:property");
       assertThat(((ZeebeProperty) correlationKeyExpressionProperty.getBinding()).name())
           .isEqualTo("correlationKeyExpression");
+
+      var messageIdExpressionProperty = getPropertyById("messageIdExpression", template);
+      assertThat(messageIdExpressionProperty).isNotNull();
+      assertThat(messageIdExpressionProperty.getType()).isEqualTo("String");
+      assertThat(messageIdExpressionProperty.getBinding().type()).isEqualTo("zeebe:property");
+      assertThat(((ZeebeProperty) messageIdExpressionProperty.getBinding()).name())
+          .isEqualTo("messageIdExpression");
     }
   }
 }
