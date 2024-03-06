@@ -33,10 +33,10 @@ public record PropertyGroup(String id, String label, @JsonIgnore List<Property> 
           .id("output")
           .label("Output mapping")
           .properties(
-              CommonProperties.RESULT_VARIABLE
+              CommonProperties.resultVariable()
                   .binding(new ZeebeTaskHeader("resultVariable"))
                   .build(),
-              CommonProperties.RESULT_EXPRESSION
+              CommonProperties.resultExpression()
                   .binding(new ZeebeTaskHeader("resultExpression"))
                   .build())
           .build();
@@ -46,8 +46,10 @@ public record PropertyGroup(String id, String label, @JsonIgnore List<Property> 
           .id("output")
           .label("Output mapping")
           .properties(
-              CommonProperties.RESULT_VARIABLE.binding(new ZeebeProperty("resultVariable")).build(),
-              CommonProperties.RESULT_EXPRESSION
+              CommonProperties.resultVariable()
+                  .binding(new ZeebeProperty("resultVariable"))
+                  .build(),
+              CommonProperties.resultExpression()
                   .binding(new ZeebeProperty("resultExpression"))
                   .build())
           .build();
@@ -57,7 +59,7 @@ public record PropertyGroup(String id, String label, @JsonIgnore List<Property> 
           .id("error")
           .label("Error handling")
           .properties(
-              CommonProperties.ERROR_EXPRESSION
+              CommonProperties.errorExpression()
                   .binding(new ZeebeTaskHeader("errorExpression"))
                   .build())
           .build();
@@ -67,8 +69,8 @@ public record PropertyGroup(String id, String label, @JsonIgnore List<Property> 
           .id("retries")
           .label("Retries")
           .properties(
-              CommonProperties.RETRY_COUNT.binding(ZeebeTaskDefinition.RETRIES).build(),
-              CommonProperties.RETRY_BACKOFF.binding(new ZeebeTaskHeader("retryBackoff")).build())
+              CommonProperties.retryCount().binding(ZeebeTaskDefinition.RETRIES).build(),
+              CommonProperties.retryBackoff().binding(new ZeebeTaskHeader("retryBackoff")).build())
           .build();
 
   public static PropertyGroup ACTIVATION_GROUP =
@@ -76,7 +78,7 @@ public record PropertyGroup(String id, String label, @JsonIgnore List<Property> 
           .id("activation")
           .label("Activation")
           .properties(
-              CommonProperties.ACTIVATION_CONDITION
+              CommonProperties.activationCondition()
                   .binding(new ZeebeProperty("activationCondition"))
                   .build())
           .build();
@@ -86,12 +88,12 @@ public record PropertyGroup(String id, String label, @JsonIgnore List<Property> 
           .id("correlation")
           .label("Correlation")
           .properties(
-              CommonProperties.CORRELATION_REQUIRED_DROPDOWN.build(),
-              CommonProperties.CORRELATION_KEY_PAYLOAD
+              CommonProperties.correlationRequiredDropdown().build(),
+              CommonProperties.correlationKeyPayload()
                   .condition(
-                      new Equals(CommonProperties.CORRELATION_REQUIRED_DROPDOWN.id, "required"))
+                      new Equals(CommonProperties.correlationRequiredDropdown().id, "required"))
                   .build(),
-              CommonProperties.MESSAGE_NAME_UUID_HIDDEN.build())
+              CommonProperties.messageNameUuidHidden().build())
           .build();
 
   public static PropertyGroup CORRELATION_GROUP_INTERMEDIATE_CATCH_EVENT_OR_BOUNDARY =
@@ -99,10 +101,10 @@ public record PropertyGroup(String id, String label, @JsonIgnore List<Property> 
           .id("correlation")
           .label("Correlation")
           .properties(
-              CommonProperties.CORRELATION_KEY_PROCESS.build(),
-              CommonProperties.CORRELATION_KEY_PAYLOAD.build(),
-              CommonProperties.MESSAGE_ID_EXPRESSION.build(),
-              CommonProperties.MESSAGE_NAME_UUID_HIDDEN.build())
+              CommonProperties.correlationKeyProcess().build(),
+              CommonProperties.correlationKeyPayload().build(),
+              CommonProperties.messageIdExpression().build(),
+              CommonProperties.messageNameUuidHidden().build())
           .build();
 
   public PropertyGroup {

@@ -203,6 +203,7 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
             .isEqualTo("zeebe:property");
         assertThat(((ZeebeProperty) correlationKeyExpressionProperty.getBinding()).name())
             .isEqualTo("correlationKeyExpression");
+        assertThat(correlationKeyExpressionProperty.getCondition()).isNull();
       }
     }
 

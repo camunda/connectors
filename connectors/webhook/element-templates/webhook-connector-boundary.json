@@ -397,11 +397,6 @@
       "name" : "correlationKeyExpression",
       "type" : "zeebe:property"
     },
-    "condition" : {
-      "property" : "correlationRequired",
-      "equals" : "required",
-      "type" : "simple"
-    },
     "type" : "String"
   }, {
     "id" : "messageIdExpression",
