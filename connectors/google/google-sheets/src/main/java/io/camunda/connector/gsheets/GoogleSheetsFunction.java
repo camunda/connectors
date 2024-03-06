@@ -24,7 +24,7 @@ import org.slf4j.LoggerFactory;
     name = "Google Sheets Outbound Connector",
     description = "Work with spreadsheets",
     inputDataClass = GoogleSheetsRequest.class,
-    version = 2,
+    version = 3,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "operation", label = "Select operation"),

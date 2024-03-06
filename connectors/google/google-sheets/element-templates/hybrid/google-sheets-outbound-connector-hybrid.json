@@ -4,7 +4,7 @@
   "id" : "io.camunda.connectors.GoogleSheets.v1",
   "description" : "Work with spreadsheets",
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/",
-  "version" : 2,
+  "version" : 3,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -48,7 +48,7 @@
     "id" : "authentication.authType",
     "label" : "Type",
     "optional" : false,
-    "value" : "BEARER",
+    "value" : "refresh",
     "constraints" : {
       "notEmpty" : true
     },
@@ -59,11 +59,11 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "Refresh token",
-      "value" : "REFRESH"
-    }, {
       "name" : "Bearer token",
-      "value" : "BEARER"
+      "value" : "bearer"
+    }, {
+      "name" : "Refresh token",
+      "value" : "refresh"
     } ]
   }, {
     "id" : "authentication.bearerToken",
@@ -81,7 +81,7 @@
     },
     "condition" : {
       "property" : "authentication.authType",
-      "equals" : "BEARER",
+      "equals" : "bearer",
       "type" : "simple"
     },
     "type" : "String"
@@ -101,7 +101,7 @@
     },
     "condition" : {
       "property" : "authentication.authType",
-      "equals" : "REFRESH",
+      "equals" : "refresh",
       "type" : "simple"
     },
     "type" : "String"
@@ -121,7 +121,7 @@
     },
     "condition" : {
       "property" : "authentication.authType",
-      "equals" : "REFRESH",
+      "equals" : "refresh",
       "type" : "simple"
     },
     "type" : "String"
@@ -141,7 +141,7 @@
     },
     "condition" : {
       "property" : "authentication.authType",
-      "equals" : "REFRESH",
+      "equals" : "refresh",
       "type" : "simple"
     },
     "type" : "String"
@@ -585,6 +585,7 @@
     "label" : "Index format",
     "description" : "Choose the type of the index. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#how-can-i-define-which-column-will-be-deleted\" target=\"_blank\">documentation</a>",
     "optional" : false,
+    "value" : "NUMBERS",
     "constraints" : {
       "notEmpty" : true
     },
@@ -600,11 +601,11 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "LETTERS",
-      "value" : "LETTERS"
-    }, {
-      "name" : "NUMBERS",
+      "name" : "Numbers",
       "value" : "NUMBERS"
+    }, {
+      "name" : "Letters",
+      "value" : "LETTERS"
     } ]
   }, {
     "id" : "columnNumberIndex",
@@ -618,9 +619,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "operation.type",
-      "equals" : "deleteColumn",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "operation.columnIndexType",
+        "equals" : "NUMBERS",
+        "type" : "simple"
+      }, {
+        "property" : "operation.type",
+        "equals" : "deleteColumn",
+        "type" : "simple"
+      } ]
     },
     "type" : "String"
   }, {
@@ -635,9 +642,15 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "operation.type",
-      "equals" : "deleteColumn",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "operation.columnIndexType",
+        "equals" : "LETTERS",
+        "type" : "simple"
+      }, {
+        "property" : "operation.type",
+        "equals" : "deleteColumn",
+        "type" : "simple"
+      } ]
     },
     "type" : "String"
   }, {

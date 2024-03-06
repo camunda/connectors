@@ -18,7 +18,7 @@ public record Template(
             label = "Template ID",
             group = "operationDetails",
             feel = FeelMode.optional,
-            condition = @PropertyCondition(property = "resource.type", equals = "FILE"))
+            condition = @PropertyCondition(property = "resource.type", equals = "file"))
         @NotEmpty
         String id,
     @NestedProperties(addNestedPath = false) Variables variables) {}

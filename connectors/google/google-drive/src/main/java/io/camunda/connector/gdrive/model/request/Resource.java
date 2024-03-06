@@ -24,11 +24,11 @@ public record Resource(
             label = "Operation",
             group = "operation",
             type = Dropdown,
-            defaultValue = "FOLDER",
+            defaultValue = "folder",
             constraints = @PropertyConstraints(notEmpty = true),
             choices = {
-              @DropdownPropertyChoice(label = "Create folder", value = "FOLDER"),
-              @DropdownPropertyChoice(label = "Create file from template", value = "FILE")
+              @DropdownPropertyChoice(label = "Create folder", value = "folder"),
+              @DropdownPropertyChoice(label = "Create file from template", value = "file")
             })
         @NotNull
         Type type,
@@ -54,6 +54,7 @@ public record Resource(
             label = "Additional properties or metadata",
             group = "operationDetails",
             feel = FeelMode.required,
-            condition = @PropertyCondition(property = "resource.type", equals = "FOLDER"))
+            optional = true,
+            condition = @PropertyCondition(property = "resource.type", equals = "folder"))
         JsonNode additionalGoogleDriveProperties,
     @Valid Template template) {}
