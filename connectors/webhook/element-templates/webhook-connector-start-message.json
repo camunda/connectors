@@ -408,6 +408,25 @@
     },
     "type" : "String"
   }, {
+    "id" : "correlationKeyPayload",
+    "label" : "Correlation key (payload)",
+    "description" : "Extracts the correlation key from the incoming message payload",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "correlation",
+    "binding" : {
+      "name" : "correlationKeyExpression",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "correlationRequired",
+      "equals" : "required",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
     "id" : "messageIdExpression",
     "label" : "Message ID expression",
     "description" : "Expression to extract unique identifier of a message",

@@ -30,6 +30,7 @@ import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.dsl.PropertyBinding.MessageProperty;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeProperty;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeSubscriptionProperty;
+import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
 import io.camunda.connector.generator.java.example.inbound.MyConnectorExecutable;
 import java.util.List;
 import java.util.Set;
@@ -229,13 +230,25 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
               new DropdownChoice("Correlation not required", "notRequired"),
               new DropdownChoice("Correlation required", "required"));
 
-      var correlationKeyExpressionProperty = getPropertyById("correlationKeyProcess", template);
-      assertThat(correlationKeyExpressionProperty).isNotNull();
-      assertThat(correlationKeyExpressionProperty.getType()).isEqualTo("String");
-      assertThat(correlationKeyExpressionProperty.getBinding().type())
+      var correlationKeyProcessProperty = getPropertyById("correlationKeyProcess", template);
+      assertThat(correlationKeyProcessProperty).isNotNull();
+      assertThat(correlationKeyProcessProperty.getType()).isEqualTo("String");
+      assertThat(correlationKeyProcessProperty.getBinding().type())
           .isEqualTo("bpmn:Message#zeebe:subscription#property");
-      assertThat(((ZeebeSubscriptionProperty) correlationKeyExpressionProperty.getBinding()).name())
+      assertThat(((ZeebeSubscriptionProperty) correlationKeyProcessProperty.getBinding()).name())
           .isEqualTo("correlationKey");
+      assertThat(correlationKeyProcessProperty.getCondition())
+          .isEqualTo(new Equals("correlationRequired", "required"));
+
+      var correlationKeyPayloadProperty = getPropertyById("correlationKeyPayload", template);
+      assertThat(correlationKeyPayloadProperty).isNotNull();
+      assertThat(correlationKeyPayloadProperty.getType()).isEqualTo("String");
+      assertThat(correlationKeyPayloadProperty.getBinding().type()).isEqualTo("zeebe:property");
+      assertThat(((ZeebeProperty) correlationKeyPayloadProperty.getBinding()).name())
+          .isEqualTo("correlationKeyExpression");
+      assertThat(correlationKeyPayloadProperty.getCondition()).isNotNull();
+      assertThat(correlationKeyPayloadProperty.getCondition())
+          .isEqualTo(new Equals("correlationRequired", "required"));
 
       var messageIdExpressionProperty = getPropertyById("messageIdExpression", template);
       assertThat(messageIdExpressionProperty).isNotNull();

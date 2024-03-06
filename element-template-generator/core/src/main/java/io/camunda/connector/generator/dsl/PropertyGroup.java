@@ -93,6 +93,10 @@ public record PropertyGroup(String id, String label, @JsonIgnore List<Property> 
                   .condition(
                       new Equals(CommonProperties.correlationRequiredDropdown().id, "required"))
                   .build(),
+              CommonProperties.correlationKeyPayload()
+                  .condition(
+                      new Equals(CommonProperties.correlationRequiredDropdown().id, "required"))
+                  .build(),
               CommonProperties.messageIdExpression().build(),
               CommonProperties.messageNameUuidHidden().build())
           .build();
