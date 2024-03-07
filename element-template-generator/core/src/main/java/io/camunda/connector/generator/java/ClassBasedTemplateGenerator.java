@@ -22,6 +22,7 @@ import io.camunda.connector.generator.api.ElementTemplateGenerator;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElementType;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
+import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.dsl.ElementTemplateBuilder;
 import io.camunda.connector.generator.dsl.ElementTemplateIcon;
 import io.camunda.connector.generator.dsl.PropertyBuilder;
@@ -172,10 +173,12 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
       newGroups.add(PropertyGroup.ERROR_GROUP);
       newGroups.add(PropertyGroup.RETRIES_GROUP);
     } else {
-      if (elementType.elementType().isMessage()) {
-        newGroups.add(PropertyGroup.ACTIVATION_GROUP_WITH_MESSAGE_ID_EXP);
-      } else {
-        newGroups.add(PropertyGroup.ACTIVATION_GROUP_WITHOUT_MESSAGE_ID_EXPR);
+      newGroups.add(PropertyGroup.ACTIVATION_GROUP);
+      if (elementType.elementType().equals(BpmnType.MESSAGE_START_EVENT)) {
+        newGroups.add(PropertyGroup.CORRELATION_GROUP_MESSAGE_START_EVENT);
+      } else if (elementType.elementType().equals(BpmnType.INTERMEDIATE_CATCH_EVENT)
+          || elementType.elementType().equals(BpmnType.BOUNDARY_EVENT)) {
+        newGroups.add(PropertyGroup.CORRELATION_GROUP_INTERMEDIATE_CATCH_EVENT_OR_BOUNDARY);
       }
       newGroups.add(PropertyGroup.OUTPUT_GROUP_INBOUND);
     }

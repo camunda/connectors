@@ -30,6 +30,9 @@
     "id" : "activation",
     "label" : "Activation"
   }, {
+    "id" : "correlation",
+    "label" : "Correlation"
+  }, {
     "id" : "output",
     "label" : "Output mapping"
   } ],
@@ -356,6 +359,18 @@
     },
     "type" : "Text"
   }, {
+    "id" : "activationCondition",
+    "label" : "Activation condition",
+    "description" : "Condition under which the Connector triggers. Leave empty to catch all events",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "activation",
+    "binding" : {
+      "name" : "activationCondition",
+      "type" : "zeebe:property"
+    },
+    "type" : "String"
+  }, {
     "id" : "correlationKeyProcess",
     "label" : "Correlation key (process)",
     "description" : "Sets up the correlation key from process variables",
@@ -363,7 +378,7 @@
       "notEmpty" : true
     },
     "feel" : "required",
-    "group" : "activation",
+    "group" : "correlation",
     "binding" : {
       "name" : "correlationKey",
       "type" : "bpmn:Message#zeebe:subscription#property"
@@ -377,7 +392,7 @@
       "notEmpty" : true
     },
     "feel" : "required",
-    "group" : "activation",
+    "group" : "correlation",
     "binding" : {
       "name" : "correlationKeyExpression",
       "type" : "zeebe:property"
@@ -389,21 +404,9 @@
     "description" : "Expression to extract unique identifier of a message",
     "optional" : true,
     "feel" : "required",
-    "group" : "activation",
+    "group" : "correlation",
     "binding" : {
       "name" : "messageIdExpression",
-      "type" : "zeebe:property"
-    },
-    "type" : "String"
-  }, {
-    "id" : "activationCondition",
-    "label" : "Activation condition",
-    "description" : "Condition under which the Connector triggers. Leave empty to catch all events",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "activation",
-    "binding" : {
-      "name" : "activationCondition",
       "type" : "zeebe:property"
     },
     "type" : "String"
@@ -412,7 +415,7 @@
     "generatedValue" : {
       "type" : "uuid"
     },
-    "group" : "activation",
+    "group" : "correlation",
     "binding" : {
       "name" : "name",
       "type" : "bpmn:Message#property"

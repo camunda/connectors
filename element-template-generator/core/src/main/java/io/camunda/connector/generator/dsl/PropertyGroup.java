@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeProperty;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskDefinition;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskHeader;
+import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -32,10 +33,10 @@ public record PropertyGroup(String id, String label, @JsonIgnore List<Property> 
           .id("output")
           .label("Output mapping")
           .properties(
-              CommonProperties.RESULT_VARIABLE
+              CommonProperties.resultVariable()
                   .binding(new ZeebeTaskHeader("resultVariable"))
                   .build(),
-              CommonProperties.RESULT_EXPRESSION
+              CommonProperties.resultExpression()
                   .binding(new ZeebeTaskHeader("resultExpression"))
                   .build())
           .build();
@@ -45,8 +46,10 @@ public record PropertyGroup(String id, String label, @JsonIgnore List<Property> 
           .id("output")
           .label("Output mapping")
           .properties(
-              CommonProperties.RESULT_VARIABLE.binding(new ZeebeProperty("resultVariable")).build(),
-              CommonProperties.RESULT_EXPRESSION
+              CommonProperties.resultVariable()
+                  .binding(new ZeebeProperty("resultVariable"))
+                  .build(),
+              CommonProperties.resultExpression()
                   .binding(new ZeebeProperty("resultExpression"))
                   .build())
           .build();
@@ -56,7 +59,7 @@ public record PropertyGroup(String id, String label, @JsonIgnore List<Property> 
           .id("error")
           .label("Error handling")
           .properties(
-              CommonProperties.ERROR_EXPRESSION
+              CommonProperties.errorExpression()
                   .binding(new ZeebeTaskHeader("errorExpression"))
                   .build())
           .build();
@@ -66,30 +69,47 @@ public record PropertyGroup(String id, String label, @JsonIgnore List<Property> 
           .id("retries")
           .label("Retries")
           .properties(
-              CommonProperties.RETRY_COUNT.binding(ZeebeTaskDefinition.RETRIES).build(),
-              CommonProperties.RETRY_BACKOFF.binding(new ZeebeTaskHeader("retryBackoff")).build())
+              CommonProperties.retryCount().binding(ZeebeTaskDefinition.RETRIES).build(),
+              CommonProperties.retryBackoff().binding(new ZeebeTaskHeader("retryBackoff")).build())
           .build();
 
-  public static PropertyGroup ACTIVATION_GROUP_WITHOUT_MESSAGE_ID_EXPR =
+  public static PropertyGroup ACTIVATION_GROUP =
       PropertyGroup.builder()
           .id("activation")
           .label("Activation")
           .properties(
-              CommonProperties.ACTIVATION_CONDITION
+              CommonProperties.activationCondition()
                   .binding(new ZeebeProperty("activationCondition"))
                   .build())
           .build();
 
-  public static PropertyGroup ACTIVATION_GROUP_WITH_MESSAGE_ID_EXP =
+  public static PropertyGroup CORRELATION_GROUP_MESSAGE_START_EVENT =
       PropertyGroup.builder()
-          .id("activation")
-          .label("Activation")
+          .id("correlation")
+          .label("Correlation")
           .properties(
-              CommonProperties.CORRELATION_KEY_PROCESS.build(),
-              CommonProperties.CORRELATION_KEY_PAYLOAD.build(),
-              CommonProperties.MESSAGE_ID_EXPRESSION.build(),
-              CommonProperties.ACTIVATION_CONDITION.build(),
-              CommonProperties.MESSAGE_NAME_UUID.build())
+              CommonProperties.correlationRequiredDropdown().build(),
+              CommonProperties.correlationKeyProcess()
+                  .condition(
+                      new Equals(CommonProperties.correlationRequiredDropdown().id, "required"))
+                  .build(),
+              CommonProperties.correlationKeyPayload()
+                  .condition(
+                      new Equals(CommonProperties.correlationRequiredDropdown().id, "required"))
+                  .build(),
+              CommonProperties.messageIdExpression().build(),
+              CommonProperties.messageNameUuidHidden().build())
+          .build();
+
+  public static PropertyGroup CORRELATION_GROUP_INTERMEDIATE_CATCH_EVENT_OR_BOUNDARY =
+      PropertyGroup.builder()
+          .id("correlation")
+          .label("Correlation")
+          .properties(
+              CommonProperties.correlationKeyProcess().build(),
+              CommonProperties.correlationKeyPayload().build(),
+              CommonProperties.messageIdExpression().build(),
+              CommonProperties.messageNameUuidHidden().build())
           .build();
 
   public PropertyGroup {

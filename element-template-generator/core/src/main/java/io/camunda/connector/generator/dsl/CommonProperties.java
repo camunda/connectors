@@ -16,98 +16,125 @@
  */
 package io.camunda.connector.generator.dsl;
 
+import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeProperty;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeSubscriptionProperty;
+import java.util.List;
 
 public class CommonProperties {
 
-  public static final PropertyBuilder RESULT_EXPRESSION =
-      TextProperty.builder()
-          .id("resultExpression")
-          .group("output")
-          .label("Result expression")
-          .description("Expression to map the response into process variables")
-          .feel(FeelMode.required);
+  public static PropertyBuilder resultExpression() {
+    return TextProperty.builder()
+        .id("resultExpression")
+        .group("output")
+        .label("Result expression")
+        .description("Expression to map the response into process variables")
+        .feel(FeelMode.required);
+  }
 
-  public static final PropertyBuilder RESULT_VARIABLE =
-      StringProperty.builder()
-          .id("resultVariable")
-          .group("output")
-          .label("Result variable")
-          .description("Name of variable to store the response in")
-          .feel(FeelMode.disabled);
+  public static PropertyBuilder resultVariable() {
+    return StringProperty.builder()
+        .id("resultVariable")
+        .group("output")
+        .label("Result variable")
+        .description("Name of variable to store the response in")
+        .feel(FeelMode.disabled);
+  }
 
-  public static final PropertyBuilder ERROR_EXPRESSION =
-      TextProperty.builder()
-          .id("errorExpression")
-          .label("Error expression")
-          .group("error")
-          .description(
-              "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.")
-          .feel(FeelMode.required);
+  public static PropertyBuilder errorExpression() {
+    return TextProperty.builder()
+        .id("errorExpression")
+        .label("Error expression")
+        .group("error")
+        .description(
+            "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.")
+        .feel(FeelMode.required);
+  }
 
-  public static final PropertyBuilder RETRY_COUNT =
-      StringProperty.builder()
-          .id("retryCount")
-          .label("Retries")
-          .description("Number of retries")
-          .group("retries")
-          .value("3");
+  public static PropertyBuilder retryCount() {
+    return StringProperty.builder()
+        .id("retryCount")
+        .label("Retries")
+        .description("Number of retries")
+        .group("retries")
+        .value("3");
+  }
 
-  public static final PropertyBuilder RETRY_BACKOFF =
-      StringProperty.builder()
-          .id("retryBackoff")
-          .label("Retry backoff")
-          .description("ISO-8601 duration to wait between retries")
-          .group("retries")
-          .value("PT0S");
+  public static PropertyBuilder retryBackoff() {
+    return StringProperty.builder()
+        .id("retryBackoff")
+        .label("Retry backoff")
+        .description("ISO-8601 duration to wait between retries")
+        .group("retries")
+        .value("PT0S");
+  }
 
-  public static final PropertyBuilder ACTIVATION_CONDITION =
-      StringProperty.builder()
-          .id("activationCondition")
-          .label("Activation condition")
-          .description(
-              "Condition under which the Connector triggers. Leave empty to catch all events")
-          .group("activation")
-          .feel(FeelMode.required)
-          .optional(true)
-          .binding(new ZeebeProperty("activationCondition"));
+  public static PropertyBuilder activationCondition() {
+    return StringProperty.builder()
+        .id("activationCondition")
+        .label("Activation condition")
+        .description(
+            "Condition under which the Connector triggers. Leave empty to catch all events")
+        .group("activation")
+        .feel(FeelMode.required)
+        .optional(true)
+        .binding(new ZeebeProperty("activationCondition"));
+  }
 
-  public static final PropertyBuilder CORRELATION_KEY_PROCESS =
-      StringProperty.builder()
-          .id("correlationKeyProcess")
-          .label("Correlation key (process)")
-          .description("Sets up the correlation key from process variables")
-          .group("activation")
-          .feel(FeelMode.required)
-          .binding(ZeebeSubscriptionProperty.CORRELATION_KEY)
-          .constraints(PropertyConstraints.builder().notEmpty(true).build());
+  public static PropertyBuilder correlationKeyProcess() {
+    return StringProperty.builder()
+        .id("correlationKeyProcess")
+        .label("Correlation key (process)")
+        .description("Sets up the correlation key from process variables")
+        .group("correlation")
+        .feel(FeelMode.required)
+        .binding(ZeebeSubscriptionProperty.CORRELATION_KEY)
+        .constraints(PropertyConstraints.builder().notEmpty(true).build());
+  }
 
-  public static final PropertyBuilder CORRELATION_KEY_PAYLOAD =
-      StringProperty.builder()
-          .id("correlationKeyPayload")
-          .label("Correlation key (payload)")
-          .description("Extracts the correlation key from the incoming message payload")
-          .group("activation")
-          .feel(FeelMode.required)
-          .binding(new PropertyBinding.ZeebeProperty("correlationKeyExpression"))
-          .constraints(PropertyConstraints.builder().notEmpty(true).build());
+  public static PropertyBuilder correlationKeyPayload() {
+    return StringProperty.builder()
+        .id("correlationKeyPayload")
+        .label("Correlation key (payload)")
+        .description("Extracts the correlation key from the incoming message payload")
+        .group("correlation")
+        .feel(FeelMode.required)
+        .binding(new PropertyBinding.ZeebeProperty("correlationKeyExpression"))
+        .constraints(PropertyConstraints.builder().notEmpty(true).build());
+  }
 
-  public static final PropertyBuilder MESSAGE_ID_EXPRESSION =
-      StringProperty.builder()
-          .id("messageIdExpression")
-          .label("Message ID expression")
-          .description("Expression to extract unique identifier of a message")
-          .group("activation")
-          .feel(FeelMode.required)
-          .optional(true)
-          .binding(new PropertyBinding.ZeebeProperty("messageIdExpression"));
+  public static PropertyBuilder messageIdExpression() {
+    return StringProperty.builder()
+        .id("messageIdExpression")
+        .label("Message ID expression")
+        .description("Expression to extract unique identifier of a message")
+        .group("correlation")
+        .feel(FeelMode.required)
+        .optional(true)
+        .binding(new PropertyBinding.ZeebeProperty("messageIdExpression"));
+  }
 
-  public static final PropertyBuilder MESSAGE_NAME_UUID =
-      HiddenProperty.builder()
-          .id("messageNameUuid")
-          .group("activation")
-          .generatedValue()
-          .binding(PropertyBinding.MessageProperty.NAME);
+  public static PropertyBuilder messageNameUuidHidden() {
+    return HiddenProperty.builder()
+        .id("messageNameUuid")
+        .group("correlation")
+        .generatedValue()
+        .binding(PropertyBinding.MessageProperty.NAME);
+  }
+
+  public static PropertyBuilder correlationRequiredDropdown() {
+    return DropdownProperty.builder()
+        .choices(
+            List.of(
+                new DropdownChoice("Correlation not required", "notRequired"),
+                new DropdownChoice("Correlation required", "required")))
+        .id("correlationRequired")
+        .label("Subprocess correlation required")
+        .description(
+            "Indicates whether correlation is required. This is needed for event-based subprocess message start events")
+        .group("correlation")
+        .value("notRequired")
+        .binding(new ZeebeProperty("correlationRequired"));
+  }
 }
