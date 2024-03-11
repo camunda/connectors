@@ -138,7 +138,9 @@ The response will contain the status code, the headers and the body of the respo
 
 The Connector will fail on any non-2XX HTTP status code in the response. This error status code will be passed on as error code, e.g. "404".
 
-## Use proxy-mechanism
+## :lock: Use proxy-mechanism
+
+> :warning: Proxy mode is currently only supported in Camunda 8 SaaS environment.
 
 You can configure the HTTP JSON Connector to do any outgoing HTTP call via a proxy. This proxy should be effectively also an HTTP JSON Connector
 running in a different environment.
