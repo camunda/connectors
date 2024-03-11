@@ -7,7 +7,7 @@ on:
       connectors_version:
         description: 'The version of the connectors to test'
         required: true
-        default: 'latest'
+        default: '8.5.0-alpha2'
 
 defaults:
   run:
@@ -28,29 +28,29 @@ jobs:
         # Console is still pre-alpha, and it has a different test flow.
         zeebe:
           image:
-            tag: snapshot
+            tag: 8.5.0-alpha2
         tasklist:
           image:
-            tag: snapshot
+            tag: 8.5.0-alpha2
         operate:
           image:
-            tag: snapshot
+            tag: 8.5.0-alpha2
         webModeler:
           restapi:
             image:
-              tag: latest
+              tag: 8.5.0-alpha2
           webapp:
             image:
-              tag: latest
+              tag: 8.5.0-alpha2
           websockets:
             image:
-              tag: latest
+              tag: 8.5.0-alpha2
         console:
           image:
-            tag: latest
+            tag: 8.5.0-alpha2
         identity:
           image:
-            tag: latest
+            tag: 8.5.0-alpha2
           firstUser:
             existingSecret: null
             user: demo
