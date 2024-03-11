@@ -1,7 +1,6 @@
 name: Integration test
 
 on:
-  pull_request:
   workflow_dispatch:
     inputs:
       connectors_version:
@@ -28,13 +27,13 @@ jobs:
         # Console is still pre-alpha, and it has a different test flow.
         zeebe:
           image:
-            tag: latest
+            tag: snapshot
         tasklist:
           image:
-            tag: latest
+            tag: snapshot
         operate:
           image:
-            tag: latest
+            tag: snapshot
         webModeler:
           restapi:
             image:
