@@ -1,3 +1,4 @@
+
 name: Integration test
 
 on:
@@ -25,7 +26,6 @@ jobs:
       persistent: true
       test-enabled: true
       extra-values: |
-        # Console is still pre-alpha, and it has a different test flow.
         zeebe:
           image:
             tag: 8.5.0-alpha2
@@ -46,7 +46,8 @@ jobs:
             image:
               tag: latest
         console:
-          enabled: false
+          image:
+            tag: latest
         identity:
           image:
             tag: SNAPSHOT
