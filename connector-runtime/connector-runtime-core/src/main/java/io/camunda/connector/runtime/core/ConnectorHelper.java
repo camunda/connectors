@@ -33,9 +33,12 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ConnectorHelper {
 
+  private static final Logger LOG = LoggerFactory.getLogger(ConnectorHelper.class);
   private static final String ERROR_CANNOT_PARSE_VARIABLES = "Cannot parse '%s' as '%s'.";
   public static FeelEngineWrapper FEEL_ENGINE_WRAPPER = new FeelEngineWrapper();
   public static ObjectMapper OBJECT_MAPPER = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER;
@@ -161,6 +164,7 @@ public class ConnectorHelper {
     try {
       return Optional.of(parseJsonVariableAsTypeOrThrow(jsonVars, variable, type));
     } catch (FeelEngineWrapperException e) {
+      LOG.debug("Failed to parse variable '{}' from '{}'", variable, jsonVars, e);
       return Optional.empty();
     }
   }
