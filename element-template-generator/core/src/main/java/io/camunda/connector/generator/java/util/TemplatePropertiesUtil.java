@@ -325,11 +325,16 @@ public class TemplatePropertiesUtil {
             .toList();
     var properties = new ArrayList<PropertyBuilder>();
 
-    var discriminatorIdAndName =
+    var discriminatorIdAndLabel =
         extractIdAndLabelFromAnnotationOrDeriveFromType(
             type,
             TemplateDiscriminatorProperty.class,
-            TemplateDiscriminatorProperty::name,
+            prop -> {
+              if (StringUtils.isBlank(prop.id())) {
+                return prop.name();
+              }
+              return prop.id();
+            },
             TemplateDiscriminatorProperty::label);
 
     Map<String, String> values = new LinkedHashMap<>();
@@ -347,13 +352,14 @@ public class TemplatePropertiesUtil {
                   property -> {
                     if (property.getCondition() == null) {
                       var condition =
-                          new Equals(discriminatorIdAndName.getKey(), subTypeIdAndName.getKey());
+                          new Equals(discriminatorIdAndLabel.getKey(), subTypeIdAndName.getKey());
                       property.condition(condition);
                     } else {
                       if (property.getCondition() instanceof AllMatch allMatch) {
                         var conditions = new ArrayList<>(allMatch.allMatch());
                         conditions.add(
-                            new Equals(discriminatorIdAndName.getKey(), subTypeIdAndName.getKey()));
+                            new Equals(
+                                discriminatorIdAndLabel.getKey(), subTypeIdAndName.getKey()));
                         property.condition(new AllMatch(conditions));
                       } else {
                         property.condition(
@@ -361,7 +367,7 @@ public class TemplatePropertiesUtil {
                                 List.of(
                                     property.getCondition(),
                                     new Equals(
-                                        discriminatorIdAndName.getKey(),
+                                        discriminatorIdAndLabel.getKey(),
                                         subTypeIdAndName.getKey()))));
                       }
                     }
@@ -376,6 +382,14 @@ public class TemplatePropertiesUtil {
     }
 
     var discriminatorAnnotation = type.getAnnotation(TemplateDiscriminatorProperty.class);
+
+    String discriminatorBindingName;
+    if (discriminatorAnnotation != null && !discriminatorAnnotation.name().isBlank()) {
+      discriminatorBindingName = discriminatorAnnotation.name();
+    } else {
+      discriminatorBindingName = discriminatorIdAndLabel.getKey();
+    }
+
     var discriminator =
         new DiscriminatorPropertyBuilder()
             .dependantProperties(properties)
@@ -384,13 +398,13 @@ public class TemplatePropertiesUtil {
                     .filter(Objects::nonNull)
                     .map(entry -> new DropdownChoice(entry.getValue(), entry.getKey()))
                     .collect(Collectors.toList()))
-            .id(discriminatorIdAndName.getKey())
-            .binding(createBinding(discriminatorIdAndName.getKey(), context))
+            .id(discriminatorIdAndLabel.getKey())
+            .binding(createBinding(discriminatorBindingName, context))
             .group(
                 discriminatorAnnotation == null || discriminatorAnnotation.group().isBlank()
                     ? null
                     : discriminatorAnnotation.group())
-            .label(discriminatorIdAndName.getValue())
+            .label(discriminatorIdAndLabel.getValue())
             .description(
                 discriminatorAnnotation == null || discriminatorAnnotation.description().isBlank()
                     ? null
