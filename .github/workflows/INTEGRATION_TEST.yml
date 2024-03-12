@@ -38,19 +38,18 @@ jobs:
         webModeler:
           restapi:
             image:
-              tag: 8.5.0-alpha2
+              tag: latest
           webapp:
             image:
-              tag: 8.5.0-alpha2
+              tag: latest
           websockets:
             image:
-              tag: 8.5.0-alpha2
+              tag: latest
         console:
-          image:
-            tag: 8.5.0-alpha2
+          enabled: false
         identity:
           image:
-            tag: 8.5.0-alpha2
+            tag: SNAPSHOT
           firstUser:
             existingSecret: null
             user: demo
