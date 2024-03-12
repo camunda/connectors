@@ -17,14 +17,23 @@
 
 package io.camunda.connector.runtime.core.outbound;
 
-import static io.camunda.connector.api.error.retry.ConnectorRetryException.*;
+import static io.camunda.connector.api.error.retry.ConnectorRetryException.DEFAULT_RETRIES;
+import static io.camunda.connector.api.error.retry.ConnectorRetryException.DEFAULT_RETRY_ERROR_CODE;
+import static io.camunda.connector.api.error.retry.ConnectorRetryException.RETRY_CONTEXT_INPUT_VARIABLE;
 import static io.camunda.connector.runtime.core.Keywords.ERROR_EXPRESSION_KEYWORD;
 import static io.camunda.connector.runtime.core.Keywords.RESULT_EXPRESSION_KEYWORD;
 import static io.camunda.connector.runtime.core.Keywords.RESULT_VARIABLE_KEYWORD;
 import static io.camunda.connector.runtime.core.outbound.ConnectorJobHandlerTest.OutputTests.ResultVariableTests.newConnectorJobHandler;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.error.ConnectorException;
