@@ -17,14 +17,19 @@
 
 package io.camunda.connector.runtime.core.outbound;
 
+import static io.camunda.connector.api.error.retry.ConnectorRetryException.CATCH_ALL_ERROR_CODE;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.error.retry.ConnectorRetryException;
+import io.camunda.connector.api.error.retry.RetryContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.ConnectorHelper;
 import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.connector.runtime.core.error.BpmnError;
+import io.camunda.connector.runtime.core.error.ConnectorError;
 import io.camunda.connector.runtime.core.error.JobError;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult.ErrorResult;
 import io.camunda.connector.runtime.core.outbound.ConnectorResult.SuccessResult;
@@ -41,6 +46,7 @@ import java.time.Duration;
 import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -153,6 +159,13 @@ public class ConnectorJobHandler implements JobHandler {
         : null;
   }
 
+  private Optional<RetryContext> tryGetRetryContext(ActivatedJob job) {
+    return ConnectorHelper.parseJsonVariableAsType(
+        job.getVariables(),
+        ConnectorRetryException.RETRY_CONTEXT_INPUT_VARIABLE,
+        RetryContext.class);
+  }
+
   @Override
   public void handle(final JobClient client, final ActivatedJob job) {
     LOGGER.info("Received job: {} for tenant: {}", job.getKey(), job.getTenantId());
@@ -179,12 +192,24 @@ public class ConnectorJobHandler implements JobHandler {
               job.getCustomHeaders().get(Keywords.RESULT_VARIABLE_KEYWORD),
               job.getCustomHeaders().get(Keywords.RESULT_EXPRESSION_KEYWORD));
       result = new ConnectorResult.SuccessResult(response, responseVariables);
+    } catch (ConnectorRetryException ex) {
+      LOGGER.debug(
+          "ConnectorRetryException while processing job: {} for tenant: {}",
+          job.getKey(),
+          job.getTenantId(),
+          ex);
+      String errorCode = ex.getErrorCode();
+      result = handleSDKException(job, ex, ex.getRetryPolicy(), errorCode, retryBackoff);
     } catch (Exception ex) {
       LOGGER.debug(
           "Exception while processing job: {} for tenant: {}", job.getKey(), job.getTenantId(), ex);
       result =
-          new ConnectorResult.ErrorResult(
-              Map.of("error", exceptionToMap(ex)), ex, job.getRetries() - 1, retryBackoff);
+          handleSDKException(
+              job,
+              ex,
+              new ConnectorRetryException.RetryPolicy(job.getRetries(), retryBackoff),
+              CATCH_ALL_ERROR_CODE,
+              retryBackoff);
     }
 
     try {
@@ -195,23 +220,7 @@ public class ConnectorJobHandler implements JobHandler {
               new ErrorExpressionJobContext(new ErrorExpressionJob(job.getRetries())))
           .ifPresentOrElse(
               error -> {
-                if (error instanceof BpmnError bpmnError) {
-                  LOGGER.debug(
-                      "Throwing BPMN error for job {} with code {}",
-                      job.getKey(),
-                      bpmnError.code());
-                  throwBpmnError(client, job, bpmnError);
-                } else if (error instanceof JobError jobError) {
-                  LOGGER.debug("Throwing incident for job {}", job.getKey());
-                  failJob(
-                      client,
-                      job,
-                      new ErrorResult(
-                          Map.of("error", jobError.message()),
-                          new RuntimeException(jobError.message()),
-                          jobError.retries(),
-                          jobError.retryBackoff()));
-                }
+                handleFEELError(client, job, error);
               },
               () -> {
                 if (finalResult instanceof SuccessResult successResult) {
@@ -219,6 +228,8 @@ public class ConnectorJobHandler implements JobHandler {
                       "Completing job: {} for tenant: {}", job.getKey(), job.getTenantId());
                   completeJob(client, job, successResult);
                 } else {
+                  // Handle Java error, e.g. ConnectorException
+                  // these errors won't be handled ConnectorHelper.examineErrorExpression
                   var errorResult = (ErrorResult) finalResult;
                   logError(job, errorResult.exception());
                   failJob(client, job, errorResult);
@@ -229,6 +240,47 @@ public class ConnectorJobHandler implements JobHandler {
       // failure while parsing the error expression
       failJob(client, job, new ErrorResult(Map.of("error", exceptionToMap(ex)), ex, 0));
     }
+  }
+
+  private void handleFEELError(JobClient client, ActivatedJob job, ConnectorError error) {
+    if (error instanceof BpmnError bpmnError) {
+      LOGGER.debug("Throwing BPMN error for job {} with code {}", job.getKey(), bpmnError.code());
+      throwBpmnError(client, job, bpmnError);
+    } else if (error instanceof JobError jobError) {
+      LOGGER.debug("Throwing incident for job {}", job.getKey());
+      failJob(
+          client,
+          job,
+          new ErrorResult(
+              Map.of("error", jobError.message()),
+              new RuntimeException(jobError.message()),
+              jobError.retries(),
+              jobError.retryBackoff()));
+    }
+  }
+
+  private ConnectorResult handleSDKException(
+      ActivatedJob job,
+      Exception ex,
+      ConnectorRetryException.RetryPolicy retryPolicy,
+      String errorCode,
+      Duration retryBackoff) {
+    RetryContext retryContext =
+        tryGetRetryContext(job)
+            .map(ctx -> ctx.incrementAttemptedRetries(errorCode))
+            .orElse(new RetryContext(Map.of(errorCode, 0), job.getRetries(), retryBackoff));
+    RetryContext.RetryConfig retryConfig =
+        retryContext.computeNextRetryConfig(errorCode, retryPolicy);
+
+    return new ErrorResult(
+        Map.of(
+            "error",
+            exceptionToMap(ex),
+            ConnectorRetryException.RETRY_CONTEXT_INPUT_VARIABLE,
+            retryContext),
+        ex,
+        retryConfig.remainingRetries(),
+        retryConfig.backoffDuration());
   }
 
   protected SecretProvider getSecretProvider() {

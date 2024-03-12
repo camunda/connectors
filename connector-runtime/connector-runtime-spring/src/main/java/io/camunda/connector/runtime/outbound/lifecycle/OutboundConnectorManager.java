@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.outbound.lifecycle;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.error.retry.ConnectorRetryException;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
@@ -29,6 +30,8 @@ import io.camunda.zeebe.spring.client.annotation.value.ZeebeWorkerValue;
 import io.camunda.zeebe.spring.client.jobhandling.CommandExceptionHandlingStrategy;
 import io.camunda.zeebe.spring.client.jobhandling.JobWorkerManager;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.TreeSet;
 import org.slf4j.Logger;
@@ -82,7 +85,7 @@ public class OutboundConnectorManager {
     ZeebeWorkerValue zeebeWorkerValue = new ZeebeWorkerValue();
     zeebeWorkerValue.setName(connector.name());
     zeebeWorkerValue.setType(connector.type());
-    zeebeWorkerValue.setFetchVariables(connector.inputVariables());
+    zeebeWorkerValue.setFetchVariables(addRetryContextInputVariable(connector.inputVariables()));
     zeebeWorkerValue.setTimeout(connector.timeout());
     zeebeWorkerValue.setAutoComplete(true);
 
@@ -100,5 +103,21 @@ public class OutboundConnectorManager {
             connector);
 
     jobWorkerManager.openWorker(client, zeebeWorkerValue, connectorJobHandler);
+  }
+
+  /**
+   * Adds the retry context input variable to the list of input variables, if it is not already.
+   * This is required so that we can retrieve the retry context (attempts by errorCode) from the job
+   * when throwing a {@link ConnectorRetryException}. This method is idempotent, meaning that it
+   * will not add the retry context input variable if it is already present in the list of input
+   * variables.
+   *
+   * @param inputVariables the list of input variables
+   * @return the array of input variables including the retry context input variable
+   */
+  private String[] addRetryContextInputVariable(String[] inputVariables) {
+    var variableSet = new HashSet<>(Arrays.asList(inputVariables));
+    variableSet.add(ConnectorRetryException.RETRY_CONTEXT_INPUT_VARIABLE);
+    return variableSet.toArray(new String[0]);
   }
 }

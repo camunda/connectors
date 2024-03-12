@@ -16,9 +16,10 @@
  */
 package io.camunda.connector.runtime.core;
 
-import static io.camunda.connector.feel.FeelEngineWrapperUtil.*;
+import static io.camunda.connector.feel.FeelEngineWrapperUtil.wrapResponse;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
@@ -35,10 +36,9 @@ import java.util.Optional;
 
 public class ConnectorHelper {
 
+  private static final String ERROR_CANNOT_PARSE_VARIABLES = "Cannot parse '%s' as '%s'.";
   public static FeelEngineWrapper FEEL_ENGINE_WRAPPER = new FeelEngineWrapper();
   public static ObjectMapper OBJECT_MAPPER = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER;
-
-  private static final String ERROR_CANNOT_PARSE_VARIABLES = "Cannot parse '%s' as '%s'.";
 
   /**
    * @return a map with output process variables for a given response from an {@link
@@ -114,6 +114,54 @@ public class ConnectorHelper {
           expression,
           jsonVars,
           e);
+    }
+  }
+
+  /**
+   * Parse a JSON variable as a given type.
+   *
+   * @param jsonVars JSON string coming from {@link
+   *     io.camunda.zeebe.client.api.response.ActivatedJob#getVariables()}
+   * @param variable the name of the variable to parse from the JSON string
+   * @param type the type to parse the variable as
+   * @param <T> the type to parse the variable as
+   * @return an <T> containing the parsed variable, or throw a {@link FeelEngineWrapperException} if
+   *     the variable could not be parsed as the given type
+   */
+  private static <T> T parseJsonVariableAsTypeOrThrow(
+      String jsonVars, String variable, Class<T> type) {
+    try {
+      JsonNode rootNode = OBJECT_MAPPER.readTree(jsonVars);
+      JsonNode variableJsonNode = rootNode.get(variable);
+      return OBJECT_MAPPER.treeToValue(variableJsonNode, type);
+    } catch (Exception e) {
+      throw new FeelEngineWrapperException(
+          String.format(ERROR_CANNOT_PARSE_VARIABLES, jsonVars + '.' + variable, type.getName()),
+          variable,
+          jsonVars,
+          e);
+    }
+  }
+
+  /**
+   * Parse a JSON variable as a given type. Do not throw an exception if the variable could not be
+   * parsed as the given type or if the variable does not exist, but return an empty {@link
+   * Optional}.
+   *
+   * @param jsonVars JSON string coming from {@link
+   *     io.camunda.zeebe.client.api.response.ActivatedJob#getVariables()}
+   * @param variable the name of the variable to parse from the JSON string
+   * @param type the type to parse the variable as
+   * @return an {@link Optional} containing the parsed variable, or an empty {@link Optional} if the
+   *     variable could not be parsed as the given type or if the variable does not exist
+   * @see #parseJsonVariableAsTypeOrThrow(String, String, Class)
+   */
+  public static <T> Optional<T> parseJsonVariableAsType(
+      String jsonVars, String variable, Class<T> type) {
+    try {
+      return Optional.of(parseJsonVariableAsTypeOrThrow(jsonVars, variable, type));
+    } catch (FeelEngineWrapperException e) {
+      return Optional.empty();
     }
   }
 }

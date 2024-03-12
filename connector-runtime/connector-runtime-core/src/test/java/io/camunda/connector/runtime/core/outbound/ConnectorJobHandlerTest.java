@@ -17,21 +17,21 @@
 
 package io.camunda.connector.runtime.core.outbound;
 
+import static io.camunda.connector.api.error.retry.ConnectorRetryException.*;
 import static io.camunda.connector.runtime.core.Keywords.ERROR_EXPRESSION_KEYWORD;
 import static io.camunda.connector.runtime.core.Keywords.RESULT_EXPRESSION_KEYWORD;
 import static io.camunda.connector.runtime.core.Keywords.RESULT_VARIABLE_KEYWORD;
 import static io.camunda.connector.runtime.core.outbound.ConnectorJobHandlerTest.OutputTests.ResultVariableTests.newConnectorJobHandler;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.error.retry.ConnectorRetryExceptionBuilder;
+import io.camunda.connector.api.error.retry.RetryContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.runtime.core.ConnectorHelper;
 import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.zeebe.client.api.command.FailJobCommandStep1;
 import io.camunda.zeebe.client.api.command.FailJobCommandStep1.FailJobCommandStep2;
@@ -51,11 +51,22 @@ import org.mockito.ArgumentCaptor;
 
 class ConnectorJobHandlerTest {
 
+  private record TestConnectorResponsePojo(String value) {}
+
+  private static class NonSerializable {
+
+    private final UUID field = UUID.randomUUID();
+  }
+
   @Nested
   class OutputTests {
 
     @Nested
     class ResultVariableTests {
+
+      protected static ConnectorJobHandler newConnectorJobHandler(OutboundConnectorFunction call) {
+        return new ConnectorJobHandler(call, e -> {});
+      }
 
       @ParameterizedTest
       @NullSource
@@ -73,10 +84,6 @@ class ConnectorJobHandlerTest {
 
         // then
         assertThat(result.getVariables()).isEmpty();
-      }
-
-      protected static ConnectorJobHandler newConnectorJobHandler(OutboundConnectorFunction call) {
-        return new ConnectorJobHandler(call, e -> {});
       }
 
       @Test
@@ -597,6 +604,45 @@ class ConnectorJobHandlerTest {
   }
 
   @Nested
+  class ConnectorRetryExceptionTests {
+    @Test
+    void shouldHandleConnectorRetryException_Default_Error() throws JsonProcessingException {
+      // given
+      var jobHandler =
+          newConnectorJobHandler(
+              context -> {
+                throw new ConnectorRetryExceptionBuilder().message("Test retry exception").build();
+              });
+
+      // when
+      var result = JobBuilder.create().withRetries(3).executeAndCaptureResult(jobHandler, false);
+
+      // then
+      assertThat(result.getErrorMessage()).isEqualTo("Test retry exception");
+      assertThat(result.getRetries()).isEqualTo(DEFAULT_RETRIES);
+      assertThat(result.getVariables())
+          .contains(
+              Map.entry(
+                  RETRY_CONTEXT_INPUT_VARIABLE,
+                  new RetryContext(Map.of(DEFAULT_RETRY_ERROR_CODE, 0), 3, null)));
+
+      result =
+          JobBuilder.create()
+              .withRetries(3)
+              .withVariables(
+                  ConnectorHelper.OBJECT_MAPPER.writer().writeValueAsString(result.getVariables()))
+              .executeAndCaptureResult(jobHandler, false);
+      assertThat(result.getErrorMessage()).isEqualTo("Test retry exception");
+      assertThat(result.getRetries()).isEqualTo(DEFAULT_RETRIES - 1);
+      assertThat(result.getVariables())
+          .contains(
+              Map.entry(
+                  RETRY_CONTEXT_INPUT_VARIABLE,
+                  new RetryContext(Map.of(DEFAULT_RETRY_ERROR_CODE, 1), 3, null)));
+    }
+  }
+
+  @Nested
   class ErrorExpressionTests {
 
     @ParameterizedTest
@@ -944,12 +990,5 @@ class ConnectorJobHandlerTest {
       assertThat(result.getErrorCode()).isEqualTo("9999");
       assertThat(result.getErrorMessage()).isEqualTo("Message for foo value on test property");
     }
-  }
-
-  private record TestConnectorResponsePojo(String value) {}
-
-  private static class NonSerializable {
-
-    private final UUID field = UUID.randomUUID();
   }
 }
