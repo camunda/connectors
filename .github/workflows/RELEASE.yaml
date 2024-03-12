@@ -1,5 +1,5 @@
 name: Release a new version
-run-name: Release a new version ${{ inputs.version }}
+run-name: Release a new version ${{ github.event.release.tag_name }}
 
 on:
   release:
