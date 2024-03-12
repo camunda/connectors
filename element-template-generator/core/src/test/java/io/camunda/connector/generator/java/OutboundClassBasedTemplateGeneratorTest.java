@@ -605,6 +605,11 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
               new DropdownChoice(
                   "Nested annotated sealed type override", "nestedAnnotatedSealedType"));
 
+      assertThat(discriminatorProperty.getId())
+          .isEqualTo("annotatedSealedType.annotatedTypeOverrideCustomId");
+      assertThat(((ZeebeInput) discriminatorProperty.getBinding()).name())
+          .isEqualTo("annotatedSealedType.annotatedTypeOverride");
+
       var firstSubTypeValueProperty =
           template.properties().stream()
               .filter(p -> "First annotated override value".equals(p.getLabel()))

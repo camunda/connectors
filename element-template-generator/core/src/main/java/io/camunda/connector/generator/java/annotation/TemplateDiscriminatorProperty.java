@@ -34,8 +34,22 @@ import java.lang.annotation.RetentionPolicy;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface TemplateDiscriminatorProperty {
 
-  /** Custom ID of the discriminator property */
+  /**
+   * Custom binding name of the discriminator property. If not specified, the name will be derived
+   * from the sealed hierarchy root class name. Also defines the {@link TemplateProperty#id()} if a
+   * different value is not specified.
+   */
   String name();
+
+  /**
+   * Custom property ID of the discriminator property. If not specified, the {@link #name()} will be
+   * used as the ID. If both are not specified, the ID will be derived from the sealed hierarchy
+   * root class name.
+   *
+   * <p>Note that nested property prefixing applies to discriminator property ID as well. This
+   * behavior can be controlled using {@link NestedProperties#addNestedPath()}.
+   */
+  String id() default "";
 
   /**
    * Custom label of the discriminator property. If not specified, the label will be derived from
