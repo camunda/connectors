@@ -19,6 +19,8 @@ package io.camunda.connector.api.error.retry;
 import static io.camunda.connector.api.error.retry.ConnectorRetryException.DEFAULT_RETRY_ERROR_CODE;
 import static io.camunda.connector.api.error.retry.ConnectorRetryException.DEFAULT_RETRY_POLICY;
 
+import org.apache.commons.lang3.StringUtils;
+
 /** Builder for creating a {@link ConnectorRetryException}. */
 public class ConnectorRetryExceptionBuilder {
   private String message;
@@ -57,7 +59,7 @@ public class ConnectorRetryExceptionBuilder {
    * @throws IllegalArgumentException if none of message, or cause is set
    */
   public ConnectorRetryException build() throws IllegalArgumentException {
-    if (message == null && cause == null) {
+    if (StringUtils.isBlank(message) && cause==null) {
       throw new IllegalArgumentException("At least one of message, or cause must be set.");
     }
     return new ConnectorRetryException(errorCode, message, cause, retryPolicy);
