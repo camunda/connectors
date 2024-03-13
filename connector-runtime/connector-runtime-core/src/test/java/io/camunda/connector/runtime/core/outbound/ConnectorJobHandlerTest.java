@@ -17,6 +17,7 @@
 
 package io.camunda.connector.runtime.core.outbound;
 
+import static io.camunda.connector.api.error.retry.ConnectorRetryException.CATCH_ALL_ERROR_CODE;
 import static io.camunda.connector.api.error.retry.ConnectorRetryException.DEFAULT_RETRIES;
 import static io.camunda.connector.api.error.retry.ConnectorRetryException.DEFAULT_RETRY_ERROR_CODE;
 import static io.camunda.connector.api.error.retry.ConnectorRetryException.RETRY_CONTEXT_INPUT_VARIABLE;
@@ -37,6 +38,7 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.error.retry.ConnectorRetryException;
 import io.camunda.connector.api.error.retry.ConnectorRetryExceptionBuilder;
 import io.camunda.connector.api.error.retry.RetryContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
@@ -49,6 +51,7 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -648,6 +651,110 @@ class ConnectorJobHandlerTest {
               Map.entry(
                   RETRY_CONTEXT_INPUT_VARIABLE,
                   new RetryContext(Map.of(DEFAULT_RETRY_ERROR_CODE, 1), 3, null)));
+    }
+
+    @Test
+    void shouldHandleConnectorRetryException_Custom_Error_Code() throws JsonProcessingException {
+      // given
+      var jobRetries = 3;
+      var policyRetries = 4;
+      var policyBackoff = Duration.ofSeconds(10);
+      var customErrorCode = "customErrorCode";
+      var errorMessage = "Test retry exception";
+      var jobHandler =
+          newConnectorJobHandler(
+              context -> {
+                throw new ConnectorRetryExceptionBuilder()
+                    .message(errorMessage)
+                    .errorCode(customErrorCode)
+                    .retryPolicy(
+                        new ConnectorRetryException.RetryPolicy(policyRetries, policyBackoff))
+                    .build();
+              });
+
+      // when
+      var result =
+          JobBuilder.create().withRetries(jobRetries).executeAndCaptureResult(jobHandler, false);
+
+      // then
+      assertThat(result.getErrorMessage()).isEqualTo(errorMessage);
+      assertThat(result.getRetries()).isEqualTo(policyRetries);
+      assertThat(result.getVariables())
+          .contains(
+              Map.entry(
+                  RETRY_CONTEXT_INPUT_VARIABLE,
+                  new RetryContext(Map.of(customErrorCode, 0), jobRetries, null)));
+
+      // Second occurrence of this Exception
+      result =
+          JobBuilder.create()
+              .withRetries(jobRetries)
+              .withVariables(
+                  ConnectorHelper.OBJECT_MAPPER.writer().writeValueAsString(result.getVariables()))
+              .executeAndCaptureResult(jobHandler, false);
+      assertThat(result.getErrorMessage()).isEqualTo(errorMessage);
+      assertThat(result.getRetries()).isEqualTo(policyRetries - 1);
+      assertThat(result.getVariables())
+          .contains(
+              Map.entry(
+                  RETRY_CONTEXT_INPUT_VARIABLE,
+                  new RetryContext(Map.of(customErrorCode, 1), jobRetries, null)));
+    }
+
+    @Test
+    void shouldHandleConnectorRetryException_Basic_And_Retry_Exceptions()
+        throws JsonProcessingException {
+      AtomicInteger occurence = new AtomicInteger();
+      // given
+      var jobRetries = 3;
+      var policyRetries = 4;
+      var policyBackoff = Duration.ofSeconds(10);
+      var customErrorCode = "customErrorCode";
+      var retryErrorMessage = "Test retry exception";
+      var basicErrorMessage = "Basic exception";
+      var jobHandler =
+          newConnectorJobHandler(
+              context -> {
+                if (occurence.getAndIncrement() == 0) {
+                  throw new ConnectorRetryExceptionBuilder()
+                      .message(retryErrorMessage)
+                      .errorCode(customErrorCode)
+                      .retryPolicy(
+                          new ConnectorRetryException.RetryPolicy(policyRetries, policyBackoff))
+                      .build();
+                } else {
+                  throw new ConnectorException(basicErrorMessage);
+                }
+              });
+
+      // when
+      var result =
+          JobBuilder.create().withRetries(jobRetries).executeAndCaptureResult(jobHandler, false);
+
+      // then
+      assertThat(result.getErrorMessage()).isEqualTo(retryErrorMessage);
+      assertThat(result.getRetries()).isEqualTo(policyRetries);
+      assertThat(result.getVariables())
+          .contains(
+              Map.entry(
+                  RETRY_CONTEXT_INPUT_VARIABLE,
+                  new RetryContext(Map.of(customErrorCode, 0), jobRetries, null)));
+
+      // Second occurrence, will throw the ConnectorException
+      result =
+          JobBuilder.create()
+              .withRetries(jobRetries)
+              .withVariables(
+                  ConnectorHelper.OBJECT_MAPPER.writer().writeValueAsString(result.getVariables()))
+              .executeAndCaptureResult(jobHandler, false);
+      assertThat(result.getErrorMessage()).isEqualTo(basicErrorMessage);
+      assertThat(result.getRetries()).isEqualTo(policyRetries - 1);
+      assertThat(result.getVariables())
+          .contains(
+              Map.entry(
+                  RETRY_CONTEXT_INPUT_VARIABLE,
+                  new RetryContext(
+                      Map.of(customErrorCode, 0, CATCH_ALL_ERROR_CODE, 0), jobRetries, null)));
     }
   }
 
