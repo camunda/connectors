@@ -54,7 +54,7 @@ jobs:
           RELEASE_VERSION: ${{ github.event.inputs.version }}
 
       - name: Create pull request to main branch
-        uses: peter-evans/create-pull-request@v5
+        uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ steps.set-snapshot-version.outputs.branchName }}

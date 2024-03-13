@@ -82,7 +82,7 @@ limitations under the License.</license.inlineheader>
     <version.junit-jupiter>5.10.2</version.junit-jupiter>
     <version.assertj>3.25.3</version.assertj>
     <version.jackson-bom>2.16.2</version.jackson-bom>
-    <version.jackson-datatype-jsr310>2.16.2</version.jackson-datatype-jsr310>
+    <version.jackson-datatype-jsr310>2.17.0</version.jackson-datatype-jsr310>
     <version.hibernate-validator>8.0.1.Final</version.hibernate-validator>
     <version.jsonassert>1.5.1</version.jsonassert>
 
@@ -90,7 +90,7 @@ limitations under the License.</license.inlineheader>
     <version.spring-cloud-gcp-starter-logging>5.0.4</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.5.3</version.logback>
 
-    <version.aws-java-sdk>1.12.677</version.aws-java-sdk>
+    <version.aws-java-sdk>1.12.678</version.aws-java-sdk>
     <version.aws-lambda-java-events>3.11.4</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.2.3</version.aws-lambda-java-core>
 
@@ -103,7 +103,7 @@ limitations under the License.</license.inlineheader>
     <version.google-auth-library-oauth2-http>1.23.0</version.google-auth-library-oauth2-http>
     <version.google-api-services-docs>v1-rev20230929-2.0.0</version.google-api-services-docs>
     <version.google-api-services-sheets>v4-rev20230815-2.0.0</version.google-api-services-sheets>
-    <version.google-libraries-bom>26.33.0</version.google-libraries-bom>
+    <version.google-libraries-bom>26.34.0</version.google-libraries-bom>
     <version.gson-extras>1.2.0</version.gson-extras>
 
     <version.httpcore>4.4.16</version.httpcore>
