@@ -59,7 +59,7 @@ public class ConnectorRetryExceptionBuilder {
    * @throws IllegalArgumentException if none of message, or cause is set
    */
   public ConnectorRetryException build() throws IllegalArgumentException {
-    if (StringUtils.isBlank(message) && cause==null) {
+    if (StringUtils.isBlank(message) && cause == null) {
       throw new IllegalArgumentException("At least one of message, or cause must be set.");
     }
     return new ConnectorRetryException(errorCode, message, cause, retryPolicy);

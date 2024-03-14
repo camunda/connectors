@@ -99,8 +99,8 @@ public class ConnectorRetryException extends ConnectorException {
 
       return switch (retryStrategy) {
         case LINEAR -> initialBackoff;
-        case EXPONENTIAL ->
-            initialBackoff.multipliedBy(Math.round(Math.pow(DEFAULT_MULTIPLIER, attemptedRetries)));
+        case EXPONENTIAL -> initialBackoff.multipliedBy(
+            Math.round(Math.pow(DEFAULT_MULTIPLIER, attemptedRetries)));
       };
     }
 
