@@ -538,7 +538,7 @@ class ConnectorJobHandlerTest {
       jobBuilder.execute(jobHandler);
 
       // then
-      verify(firstStepMock).retries(initialRetries - 1);
+      verify(firstStepMock).retries(initialRetries);
       ArgumentCaptor<Duration> backoffCaptor = ArgumentCaptor.forClass(Duration.class);
       verify(secondStepMock).retryBackoff(backoffCaptor.capture());
       assertThat(backoffCaptor.getValue()).isEqualTo(Duration.ofMinutes(1));
@@ -563,7 +563,7 @@ class ConnectorJobHandlerTest {
       jobBuilder.execute(jobHandler);
 
       // then
-      verify(firstStepMock).retries(initialRetries - 1);
+      verify(firstStepMock).retries(initialRetries);
       ArgumentCaptor<Duration> backoffCaptor = ArgumentCaptor.forClass(Duration.class);
       verify(secondStepMock).retryBackoff(backoffCaptor.capture());
       assertThat(backoffCaptor.getValue()).isEqualTo(Duration.ofDays(1));
@@ -608,7 +608,7 @@ class ConnectorJobHandlerTest {
       jobBuilder.execute(jobHandler);
 
       // then
-      verify(firstStepMock).retries(initialRetries - 1);
+      verify(firstStepMock).retries(initialRetries);
       verify(secondStepMock).errorMessage(any());
       verify(secondStepMock, times(0)).retryBackoff(any()); // not set
       verify(secondStepMock).send();
