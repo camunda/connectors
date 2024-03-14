@@ -17,7 +17,6 @@
 
 package io.camunda.connector.runtime.core.outbound;
 
-import static io.camunda.connector.api.error.retry.ConnectorRetryException.CATCH_ALL_ERROR_CODE;
 import static io.camunda.connector.api.error.retry.ConnectorRetryException.DEFAULT_RETRIES;
 import static io.camunda.connector.api.error.retry.ConnectorRetryException.DEFAULT_RETRY_ERROR_CODE;
 import static io.camunda.connector.api.error.retry.ConnectorRetryException.RETRY_CONTEXT_INPUT_VARIABLE;
@@ -712,6 +711,7 @@ class ConnectorJobHandlerTest {
       var customErrorCode = "customErrorCode";
       var retryErrorMessage = "Test retry exception";
       var basicErrorMessage = "Basic exception";
+      var basicErrorCode = "basicErrorCode";
       var jobHandler =
           newConnectorJobHandler(
               context -> {
@@ -723,7 +723,7 @@ class ConnectorJobHandlerTest {
                           new ConnectorRetryException.RetryPolicy(policyRetries, policyBackoff))
                       .build();
                 } else {
-                  throw new ConnectorException(basicErrorMessage);
+                  throw new ConnectorException(basicErrorCode, basicErrorMessage);
                 }
               });
 
@@ -754,7 +754,7 @@ class ConnectorJobHandlerTest {
               Map.entry(
                   RETRY_CONTEXT_INPUT_VARIABLE,
                   new RetryContext(
-                      Map.of(customErrorCode, 0, CATCH_ALL_ERROR_CODE, 0), jobRetries, null)));
+                      Map.of(customErrorCode, 0, basicErrorCode, 0), jobRetries, null)));
     }
   }
 
