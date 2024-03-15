@@ -457,7 +457,7 @@ limitations under the License.</license.inlineheader>
       <dependency>
         <groupId>com.google.protobuf</groupId>
         <artifactId>protobuf-java</artifactId>
-        <version>3.25.3</version>
+        <version>4.26.0</version>
       </dependency>
 
       <!-- test dependencies -->
