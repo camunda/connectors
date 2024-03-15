@@ -116,6 +116,10 @@ public class OutboundConnectorManager {
    * @return the array of input variables including the retry context input variable
    */
   private String[] addRetryContextInputVariable(String[] inputVariables) {
+    // Don't add anything, as we want to fetch all variables if this is empty
+    if (inputVariables == null || inputVariables.length == 0) {
+      return inputVariables;
+    }
     var variableSet = new HashSet<>(Arrays.asList(inputVariables));
     variableSet.add(ConnectorRetryException.RETRY_CONTEXT_INPUT_VARIABLE);
     return variableSet.toArray(new String[0]);
