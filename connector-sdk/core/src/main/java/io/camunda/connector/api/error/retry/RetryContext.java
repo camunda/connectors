@@ -17,18 +17,20 @@
 package io.camunda.connector.api.error.retry;
 
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 public class RetryContext {
-  private final Map<String, Integer> attemptedRetriesByErrorCode;
-  private final int initialJobRetries;
   boolean compatibilityMode;
+  private Map<String, Integer> attemptedRetriesByErrorCode = new HashMap<>();
+  private int initialJobRetries;
 
   public RetryContext(Map<String, Integer> attemptedRetriesByErrorCode, int initialJobRetries) {
     this(attemptedRetriesByErrorCode, initialJobRetries, true);
   }
 
-  private RetryContext(
+  public RetryContext(
       Map<String, Integer> attemptedRetriesByErrorCode,
       int initialJobRetries,
       boolean compatibilityMode) {
@@ -37,6 +39,8 @@ public class RetryContext {
     this.compatibilityMode = compatibilityMode;
   }
 
+  private RetryContext() {}
+
   /**
    * Creates a new RetryContext with compatibility mode enabled. This mode is used to ensure
    * compatibility with connectors that don't fetch the "retryContext" variable. We artificially
@@ -44,6 +48,30 @@ public class RetryContext {
    */
   public static RetryContext createWithCompatibilityMode(String errorCode, int initialJobRetries) {
     return new RetryContext(Map.of(errorCode, 1), initialJobRetries, true);
+  }
+
+  public int getInitialJobRetries() {
+    return initialJobRetries;
+  }
+
+  public void setInitialJobRetries(int initialJobRetries) {
+    this.initialJobRetries = initialJobRetries;
+  }
+
+  public boolean isCompatibilityMode() {
+    return compatibilityMode;
+  }
+
+  public void setCompatibilityMode(boolean compatibilityMode) {
+    this.compatibilityMode = compatibilityMode;
+  }
+
+  public Map<String, Integer> getAttemptedRetriesByErrorCode() {
+    return attemptedRetriesByErrorCode;
+  }
+
+  public void setAttemptedRetriesByErrorCode(Map<String, Integer> attemptedRetriesByErrorCode) {
+    this.attemptedRetriesByErrorCode = attemptedRetriesByErrorCode;
   }
 
   public RetryContext incrementAttemptedRetries(String errorCode) {
@@ -80,6 +108,33 @@ public class RetryContext {
     }
     return new RetryConfig(
         totalRetries - attemptedRetries, retryPolicy.getNextBackoffDuration(attemptedRetries));
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    RetryContext that = (RetryContext) o;
+    return compatibilityMode == that.compatibilityMode
+        && initialJobRetries == that.initialJobRetries
+        && Objects.equals(attemptedRetriesByErrorCode, that.attemptedRetriesByErrorCode);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(compatibilityMode, attemptedRetriesByErrorCode, initialJobRetries);
+  }
+
+  @Override
+  public String toString() {
+    return "RetryContext{"
+        + "compatibilityMode="
+        + compatibilityMode
+        + ", attemptedRetriesByErrorCode="
+        + attemptedRetriesByErrorCode
+        + ", initialJobRetries="
+        + initialJobRetries
+        + '}';
   }
 
   public record RetryConfig(int remainingRetries, Duration backoffDuration) {}

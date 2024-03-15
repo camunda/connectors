@@ -199,7 +199,7 @@ public class ConnectorJobHandler implements JobHandler {
           job.getTenantId(),
           ex);
       String errorCode = ex.getErrorCode();
-      result = handleSDKException(job, ex, ex.getRetryPolicy(), errorCode);
+      result = handleSDKException(job, ex, ex.getRetryPolicy(), errorCode, retryBackoff);
     } catch (Exception ex) {
       LOGGER.debug(
           "Exception while processing job: {} for tenant: {}", job.getKey(), job.getTenantId(), ex);
@@ -213,7 +213,8 @@ public class ConnectorJobHandler implements JobHandler {
               job,
               ex,
               new ConnectorRetryException.RetryPolicy(job.getRetries(), retryBackoff),
-              errorCode);
+              errorCode,
+              retryBackoff);
     }
 
     try {
@@ -267,7 +268,8 @@ public class ConnectorJobHandler implements JobHandler {
       ActivatedJob job,
       Exception ex,
       ConnectorRetryException.RetryPolicy retryPolicy,
-      String errorCode) {
+      String errorCode,
+      Duration retryBackoff) {
     RetryContext retryContext =
         tryGetRetryContext(job)
             .map(ctx -> ctx.incrementAttemptedRetries(errorCode))
@@ -275,7 +277,11 @@ public class ConnectorJobHandler implements JobHandler {
                 RetryContext.createWithCompatibilityMode(
                     errorCode, job.getRetries() != 0 ? job.getRetries() : retryPolicy.retries()));
     RetryContext.RetryConfig retryConfig =
-        retryContext.computeNextRetryConfig(errorCode, retryPolicy);
+        retryContext.computeNextRetryConfig(
+            errorCode,
+            retryContext.isCompatibilityMode()
+                ? new ConnectorRetryException.RetryPolicy(job.getRetries(), retryBackoff)
+                : retryPolicy);
 
     LOGGER.debug(
         "Failing job with retry config => job: {} for tenant: {} with error code: {} and remaining retries: {}",

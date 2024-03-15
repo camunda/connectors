@@ -537,7 +537,7 @@ class ConnectorJobHandlerTest {
       jobBuilder.execute(jobHandler);
 
       // then
-      verify(firstStepMock).retries(initialRetries);
+      verify(firstStepMock).retries(initialRetries - 1);
       ArgumentCaptor<Duration> backoffCaptor = ArgumentCaptor.forClass(Duration.class);
       verify(secondStepMock).retryBackoff(backoffCaptor.capture());
       assertThat(backoffCaptor.getValue()).isEqualTo(Duration.ofMinutes(1));
@@ -562,7 +562,7 @@ class ConnectorJobHandlerTest {
       jobBuilder.execute(jobHandler);
 
       // then
-      verify(firstStepMock).retries(initialRetries);
+      verify(firstStepMock).retries(initialRetries - 1);
       ArgumentCaptor<Duration> backoffCaptor = ArgumentCaptor.forClass(Duration.class);
       verify(secondStepMock).retryBackoff(backoffCaptor.capture());
       assertThat(backoffCaptor.getValue()).isEqualTo(Duration.ofDays(1));
@@ -607,7 +607,7 @@ class ConnectorJobHandlerTest {
       jobBuilder.execute(jobHandler);
 
       // then
-      verify(firstStepMock).retries(initialRetries);
+      verify(firstStepMock).retries(initialRetries - 1);
       verify(secondStepMock).errorMessage(any());
       verify(secondStepMock, times(0)).retryBackoff(any()); // not set
       verify(secondStepMock).send();
@@ -630,12 +630,12 @@ class ConnectorJobHandlerTest {
 
       // then
       assertThat(result.getErrorMessage()).isEqualTo("Test retry exception");
-      assertThat(result.getRetries()).isEqualTo(DEFAULT_RETRIES);
+      assertThat(result.getRetries()).isEqualTo(DEFAULT_RETRIES - 1);
       assertThat(result.getVariables())
           .contains(
               Map.entry(
                   RETRY_CONTEXT_INPUT_VARIABLE,
-                  new RetryContext(Map.of(DEFAULT_RETRY_ERROR_CODE, 0), 3)));
+                  new RetryContext(Map.of(DEFAULT_RETRY_ERROR_CODE, 1), 3)));
 
       result =
           JobBuilder.create()
@@ -649,7 +649,7 @@ class ConnectorJobHandlerTest {
           .contains(
               Map.entry(
                   RETRY_CONTEXT_INPUT_VARIABLE,
-                  new RetryContext(Map.of(DEFAULT_RETRY_ERROR_CODE, 1), 3)));
+                  new RetryContext(Map.of(DEFAULT_RETRY_ERROR_CODE, 1), 3, false)));
     }
 
     @Test
@@ -677,12 +677,12 @@ class ConnectorJobHandlerTest {
 
       // then
       assertThat(result.getErrorMessage()).isEqualTo(errorMessage);
-      assertThat(result.getRetries()).isEqualTo(policyRetries);
+      assertThat(result.getRetries()).isEqualTo(jobRetries - 1);
       assertThat(result.getVariables())
           .contains(
               Map.entry(
                   RETRY_CONTEXT_INPUT_VARIABLE,
-                  new RetryContext(Map.of(customErrorCode, 0), jobRetries)));
+                  new RetryContext(Map.of(customErrorCode, 1), jobRetries)));
 
       // Second occurrence of this Exception
       result =
@@ -697,28 +697,28 @@ class ConnectorJobHandlerTest {
           .contains(
               Map.entry(
                   RETRY_CONTEXT_INPUT_VARIABLE,
-                  new RetryContext(Map.of(customErrorCode, 1), jobRetries)));
+                  new RetryContext(Map.of(customErrorCode, 1), jobRetries, false)));
     }
 
     @Test
     void shouldHandleConnectorRetryException_Basic_And_Retry_Exceptions()
         throws JsonProcessingException {
-      AtomicInteger occurence = new AtomicInteger();
+      AtomicInteger occurrence = new AtomicInteger();
       // given
       var jobRetries = 3;
       var policyRetries = 4;
       var policyBackoff = Duration.ofSeconds(10);
-      var customErrorCode = "customErrorCode";
+      var customRetryErrorCode = "customErrorCode";
       var retryErrorMessage = "Test retry exception";
       var basicErrorMessage = "Basic exception";
       var basicErrorCode = "basicErrorCode";
       var jobHandler =
           newConnectorJobHandler(
               context -> {
-                if (occurence.getAndIncrement() == 0) {
+                if (occurrence.getAndIncrement() == 0) {
                   throw new ConnectorRetryExceptionBuilder()
                       .message(retryErrorMessage)
-                      .errorCode(customErrorCode)
+                      .errorCode(customRetryErrorCode)
                       .retryPolicy(
                           new ConnectorRetryException.RetryPolicy(policyRetries, policyBackoff))
                       .build();
@@ -733,12 +733,12 @@ class ConnectorJobHandlerTest {
 
       // then
       assertThat(result.getErrorMessage()).isEqualTo(retryErrorMessage);
-      assertThat(result.getRetries()).isEqualTo(policyRetries);
+      assertThat(result.getRetries()).isEqualTo(jobRetries - 1);
       assertThat(result.getVariables())
           .contains(
               Map.entry(
                   RETRY_CONTEXT_INPUT_VARIABLE,
-                  new RetryContext(Map.of(customErrorCode, 0), jobRetries)));
+                  new RetryContext(Map.of(customRetryErrorCode, 1), jobRetries)));
 
       // Second occurrence, will throw the ConnectorException
       result =
@@ -753,7 +753,8 @@ class ConnectorJobHandlerTest {
           .contains(
               Map.entry(
                   RETRY_CONTEXT_INPUT_VARIABLE,
-                  new RetryContext(Map.of(customErrorCode, 0, basicErrorCode, 0), jobRetries)));
+                  new RetryContext(
+                      Map.of(customRetryErrorCode, 0, basicErrorCode, 0), jobRetries, false)));
     }
   }
 
