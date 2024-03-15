@@ -122,7 +122,7 @@ limitations under the License.</license.inlineheader>
     <version.slack>1.38.3</version.slack>
 
     <version.testcontainers>1.19.7</version.testcontainers>
-    <version.awaitility>4.2.0</version.awaitility>
+    <version.awaitility>4.2.1</version.awaitility>
     <version.json-path>2.9.0</version.json-path>
 
     <version.snappy-java>1.1.10.5</version.snappy-java>
