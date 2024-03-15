@@ -162,7 +162,7 @@ public class ConnectorHelper {
   public static <T> Optional<T> parseJsonVariableAsType(
       String jsonVars, String variable, Class<T> type) {
     try {
-      return Optional.of(parseJsonVariableAsTypeOrThrow(jsonVars, variable, type));
+      return Optional.ofNullable(parseJsonVariableAsTypeOrThrow(jsonVars, variable, type));
     } catch (FeelEngineWrapperException e) {
       LOG.debug("Failed to parse variable '{}' from '{}'", variable, jsonVars, e);
       return Optional.empty();

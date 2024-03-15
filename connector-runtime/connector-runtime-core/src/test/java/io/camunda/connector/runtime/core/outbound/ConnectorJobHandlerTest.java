@@ -635,7 +635,7 @@ class ConnectorJobHandlerTest {
           .contains(
               Map.entry(
                   RETRY_CONTEXT_INPUT_VARIABLE,
-                  new RetryContext(Map.of(DEFAULT_RETRY_ERROR_CODE, 0), 3, null)));
+                  new RetryContext(Map.of(DEFAULT_RETRY_ERROR_CODE, 0), 3)));
 
       result =
           JobBuilder.create()
@@ -649,7 +649,7 @@ class ConnectorJobHandlerTest {
           .contains(
               Map.entry(
                   RETRY_CONTEXT_INPUT_VARIABLE,
-                  new RetryContext(Map.of(DEFAULT_RETRY_ERROR_CODE, 1), 3, null)));
+                  new RetryContext(Map.of(DEFAULT_RETRY_ERROR_CODE, 1), 3)));
     }
 
     @Test
@@ -682,7 +682,7 @@ class ConnectorJobHandlerTest {
           .contains(
               Map.entry(
                   RETRY_CONTEXT_INPUT_VARIABLE,
-                  new RetryContext(Map.of(customErrorCode, 0), jobRetries, null)));
+                  new RetryContext(Map.of(customErrorCode, 0), jobRetries)));
 
       // Second occurrence of this Exception
       result =
@@ -697,7 +697,7 @@ class ConnectorJobHandlerTest {
           .contains(
               Map.entry(
                   RETRY_CONTEXT_INPUT_VARIABLE,
-                  new RetryContext(Map.of(customErrorCode, 1), jobRetries, null)));
+                  new RetryContext(Map.of(customErrorCode, 1), jobRetries)));
     }
 
     @Test
@@ -738,7 +738,7 @@ class ConnectorJobHandlerTest {
           .contains(
               Map.entry(
                   RETRY_CONTEXT_INPUT_VARIABLE,
-                  new RetryContext(Map.of(customErrorCode, 0), jobRetries, null)));
+                  new RetryContext(Map.of(customErrorCode, 0), jobRetries)));
 
       // Second occurrence, will throw the ConnectorException
       result =
@@ -753,8 +753,7 @@ class ConnectorJobHandlerTest {
           .contains(
               Map.entry(
                   RETRY_CONTEXT_INPUT_VARIABLE,
-                  new RetryContext(
-                      Map.of(customErrorCode, 0, basicErrorCode, 0), jobRetries, null)));
+                  new RetryContext(Map.of(customErrorCode, 0, basicErrorCode, 0), jobRetries)));
     }
   }
 

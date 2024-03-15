@@ -59,46 +59,7 @@ public class JobRetriesIntegrationTest {
 
   private static final String bpmnProcessId = "test-process";
   private static final String testConnectorType = "io.camunda:connector-test:1";
-
-  public static class CountingConnectorFunction implements OutboundConnectorFunction {
-
-    int counter = 0;
-
-    @Override
-    public Object execute(OutboundConnectorContext context) throws Exception {
-      counter++;
-      throw new RuntimeException("test");
-    }
-
-    void resetCounter() {
-      counter = 0;
-    }
-  }
-
-  @Configuration
-  public static class CustomConfiguration {
-
-    private final OutboundConnectorFunction function = new CountingConnectorFunction();
-
-    @Bean
-    @Primary
-    public OutboundConnectorFactory mockConnectorFactory() {
-      var mock = Mockito.mock(OutboundConnectorFactory.class);
-      when(mock.getConfigurations())
-          .thenReturn(
-              Collections.singletonList(
-                  new OutboundConnectorConfiguration(
-                      testConnectorType,
-                      new String[0],
-                      testConnectorType,
-                      OutboundConnectorFunction.class)));
-      when(mock.getInstance(testConnectorType)).thenReturn(function);
-      return mock;
-    }
-  }
-
   @Autowired private ZeebeClient zeebeClient;
-
   @Autowired private OutboundConnectorFactory factory;
 
   @BeforeEach
@@ -204,5 +165,42 @@ public class JobRetriesIntegrationTest {
         .latestVersion()
         .send()
         .join();
+  }
+
+  public static class CountingConnectorFunction implements OutboundConnectorFunction {
+
+    int counter = 0;
+
+    @Override
+    public Object execute(OutboundConnectorContext context) throws Exception {
+      counter++;
+      throw new RuntimeException("test");
+    }
+
+    void resetCounter() {
+      counter = 0;
+    }
+  }
+
+  @Configuration
+  public static class CustomConfiguration {
+
+    private final OutboundConnectorFunction function = new CountingConnectorFunction();
+
+    @Bean
+    @Primary
+    public OutboundConnectorFactory mockConnectorFactory() {
+      var mock = Mockito.mock(OutboundConnectorFactory.class);
+      when(mock.getConfigurations())
+          .thenReturn(
+              Collections.singletonList(
+                  new OutboundConnectorConfiguration(
+                      testConnectorType,
+                      new String[] {"retryContext"},
+                      testConnectorType,
+                      OutboundConnectorFunction.class)));
+      when(mock.getInstance(testConnectorType)).thenReturn(function);
+      return mock;
+    }
   }
 }
