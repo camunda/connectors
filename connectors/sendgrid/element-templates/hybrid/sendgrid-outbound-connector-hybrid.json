@@ -14,6 +14,9 @@
     "value" : "bpmn:ServiceTask"
   },
   "groups" : [ {
+    "id" : "taskDefinitionType",
+    "label" : "Task definition type"
+  }, {
     "id" : "authentication",
     "label" : "Authentication"
   }, {
@@ -36,12 +39,14 @@
     "label" : "Retries"
   } ],
   "properties" : [ {
+    "id" : "taskDefinitionType",
     "value" : "io.camunda:sendgrid:1",
+    "group" : "taskDefinitionType",
     "binding" : {
       "property" : "type",
       "type" : "zeebe:taskDefinition"
     },
-    "type" : "Hidden"
+    "type" : "String"
   }, {
     "id" : "apiKey",
     "label" : "SendGrid API key",
