@@ -225,7 +225,7 @@ public class ConnectorJobHandler implements JobHandler {
               new ErrorExpressionJobContext(new ErrorExpressionJob(job.getRetries())))
           .ifPresentOrElse(
               error -> {
-                handleFEELError(client, job, error);
+                handleBPMNError(client, job, error);
               },
               () -> {
                 if (finalResult instanceof SuccessResult successResult) {
@@ -247,7 +247,7 @@ public class ConnectorJobHandler implements JobHandler {
     }
   }
 
-  private void handleFEELError(JobClient client, ActivatedJob job, ConnectorError error) {
+  private void handleBPMNError(JobClient client, ActivatedJob job, ConnectorError error) {
     if (error instanceof BpmnError bpmnError) {
       LOGGER.debug("Throwing BPMN error for job {} with code {}", job.getKey(), bpmnError.code());
       throwBpmnError(client, job, bpmnError);
