@@ -27,7 +27,15 @@ import org.springframework.ws.soap.client.SoapFaultClientException;
 @OutboundConnector(
     name = "SOAP Connector",
     type = SoapConnector.SOAP_CONNECTOR_TYPE,
-    inputVariables = {})
+    inputVariables = {
+      "serviceUrl",
+      "authentication",
+      "soapVersion",
+      "header",
+      "body",
+      "namespaces",
+      "connectionTimeoutInSeconds"
+    })
 @ElementTemplate(
     id = "io.camunda:soap",
     name = "SOAP Connector",
