@@ -21,12 +21,20 @@ import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.apache.v2.ApacheHttpTransport;
 import com.google.api.client.json.JsonObjectParser;
 import com.google.api.client.json.gson.GsonFactory;
+import org.apache.http.config.SocketConfig;
+import org.apache.http.impl.client.HttpClientBuilder;
 
 public class HttpTransportComponentSupplier {
 
   private HttpTransportComponentSupplier() {}
 
-  private static final HttpTransport HTTP_TRANSPORT = new ApacheHttpTransport();
+  private static final HttpTransport HTTP_TRANSPORT =
+      new ApacheHttpTransport(
+          HttpClientBuilder.create()
+              .setMaxConnTotal(Integer.MAX_VALUE)
+              .setMaxConnPerRoute(Integer.MAX_VALUE)
+              .setDefaultSocketConfig(SocketConfig.custom().setSoKeepAlive(true).build())
+              .build());
   private static final HttpRequestFactory REQUEST_FACTORY =
       HTTP_TRANSPORT.createRequestFactory(
           request -> request.setParser(new JsonObjectParser(new GsonFactory())));
