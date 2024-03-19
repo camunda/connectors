@@ -158,7 +158,7 @@
       "type": "String",
       "optional":false,
       "feel":"optional",
-      "value": "1",
+      "value": "20",
       "binding": {
         "type": "zeebe:property",
         "name": "queue.pollingWaitTime"
