@@ -17,6 +17,7 @@ public class SqsInboundQueueProperties {
   private List<String> attributeNames;
   private List<String> messageAttributeNames;
 
+  // TODO: when migrating to template generator, default to 20 (max possible value)
   @Pattern(regexp = "^([0-9]?|1[0-9]|20|secrets\\..+)$")
   private String pollingWaitTime;
 
