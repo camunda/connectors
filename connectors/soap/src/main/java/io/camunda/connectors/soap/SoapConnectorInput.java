@@ -74,7 +74,8 @@ public record SoapConnectorInput(
       name = "type",
       label = "SOAP header",
       description = "The definition of the SOAP header",
-      group = "soap-message")
+      group = "soap-message",
+      defaultValue = "none")
   @NotNull
   public sealed interface SoapHeaderPart {
     @TemplateSubType(id = "template", label = "Template")
@@ -93,11 +94,11 @@ public record SoapConnectorInput(
             Map<String, Object> context)
         implements SoapHeaderPart {}
 
-    @TemplateSubType(id = "json", label = "XML compatible json")
+    @TemplateSubType(id = "json", label = "XML compatible JSON")
     record HeaderJson(
         @TemplateProperty(
                 label = "JSON definition",
-                description = "Definition of the SOAP header as json object",
+                description = "Definition of the SOAP header as JSON object",
                 group = "soap-message",
                 feel = FeelMode.required)
             Map<String, Object> json)
@@ -114,9 +115,10 @@ public record SoapConnectorInput(
   })
   @TemplateDiscriminatorProperty(
       name = "type",
-      label = "SOAP Body",
+      label = "SOAP body",
       description = "The XML definition of the SOAP body",
-      group = "soap-message")
+      group = "soap-message",
+      defaultValue = "json")
   @NotNull
   public sealed interface SoapBodyPart {
     @TemplateSubType(id = "template", label = "Template")
@@ -139,7 +141,7 @@ public record SoapConnectorInput(
     record BodyJson(
         @TemplateProperty(
                 label = "JSON definition",
-                description = "Definition of the SOAP body as json object",
+                description = "Definition of the SOAP body as JSON object",
                 group = "soap-message",
                 feel = FeelMode.required)
             Map<String, Object> json)
@@ -152,7 +154,8 @@ public record SoapConnectorInput(
       name = "version",
       label = "SOAP version",
       description = "The SOAP version the service uses",
-      group = "soap-message")
+      group = "soap-message",
+      defaultValue = "1.1")
   @NotNull
   public sealed interface Version {
     @TemplateSubType(id = "1.1", label = "1.1")
@@ -179,7 +182,8 @@ public record SoapConnectorInput(
       name = "authentication",
       label = "Authentication",
       description = "Authentication mechanism to use",
-      group = "authentication")
+      group = "authentication",
+      defaultValue = "none")
   @NotNull
   public sealed interface Authentication {
     @TemplateSubType(id = "none", label = "None")
@@ -258,7 +262,7 @@ public record SoapConnectorInput(
                 @NotNull
                 String certificate,
             @TemplateProperty(
-                    label = "Private Key",
+                    label = "Private key",
                     group = "authentication",
                     description = "The private key for the certificate")
                 @NotNull

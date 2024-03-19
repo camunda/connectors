@@ -165,8 +165,6 @@
 
   <build>
     <plugins>
-      <!-- TODO: https://github.com/camunda/connectors/issues/2058 -->
-      <!--
       <plugin>
         <groupId>io.camunda.connector</groupId>
         <artifactId>element-template-generator-maven-plugin</artifactId>
@@ -186,7 +184,6 @@
           </connectors>
         </configuration>
       </plugin>
-      -->
     </plugins>
   </build>
 

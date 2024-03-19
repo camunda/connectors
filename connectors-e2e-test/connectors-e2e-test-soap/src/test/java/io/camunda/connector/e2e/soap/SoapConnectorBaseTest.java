@@ -40,7 +40,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 public abstract class SoapConnectorBaseTest {
 
   protected static final String ELEMENT_TEMPLATE_PATH =
-      "../../connectors/soap/element-templates/soap-connector.json";
+      "../../connectors/soap/element-templates/soap-outbound-connector.json";
 
   protected static final String NUMBER_OF_WORDS_REQUEST =
       """
