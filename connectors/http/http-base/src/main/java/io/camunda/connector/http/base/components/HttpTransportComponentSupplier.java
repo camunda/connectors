@@ -31,6 +31,8 @@ public class HttpTransportComponentSupplier {
   private static final HttpTransport HTTP_TRANSPORT =
       new ApacheHttpTransport(
           HttpClientBuilder.create()
+              .setMaxConnTotal(Integer.MAX_VALUE)
+              .setMaxConnPerRoute(Integer.MAX_VALUE)
               .setDefaultSocketConfig(SocketConfig.custom().setSoKeepAlive(true).build())
               .build());
   private static final HttpRequestFactory REQUEST_FACTORY =
