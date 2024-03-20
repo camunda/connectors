@@ -58,7 +58,7 @@ public class SendGridFunction implements OutboundConnectorFunction {
       LOGGER.info(exceptionMessage);
       throw new IllegalArgumentException(exceptionMessage);
     }
-    return null;
+    return result;
   }
 
   private Mail createEmail(final SendGridRequest request) {
