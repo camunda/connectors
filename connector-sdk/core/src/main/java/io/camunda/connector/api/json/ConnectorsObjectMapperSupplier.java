@@ -36,6 +36,8 @@ public class ConnectorsObjectMapperSupplier {
           .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
           .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
           .enable(MapperFeature.ACCEPT_CASE_INSENSITIVE_ENUMS)
+          .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+          .disable(SerializationFeature.WRITE_DURATIONS_AS_TIMESTAMPS)
           .build();
 
   public static ObjectMapper getCopy() {
