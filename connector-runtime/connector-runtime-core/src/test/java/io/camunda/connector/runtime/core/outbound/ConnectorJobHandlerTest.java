@@ -17,9 +17,6 @@
 
 package io.camunda.connector.runtime.core.outbound;
 
-import static io.camunda.connector.api.error.retry.ConnectorRetryException.DEFAULT_RETRIES;
-import static io.camunda.connector.api.error.retry.ConnectorRetryException.DEFAULT_RETRY_ERROR_CODE;
-import static io.camunda.connector.api.error.retry.ConnectorRetryException.RETRY_CONTEXT_INPUT_VARIABLE;
 import static io.camunda.connector.runtime.core.Keywords.ERROR_EXPRESSION_KEYWORD;
 import static io.camunda.connector.runtime.core.Keywords.RESULT_EXPRESSION_KEYWORD;
 import static io.camunda.connector.runtime.core.Keywords.RESULT_VARIABLE_KEYWORD;
@@ -37,9 +34,7 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.api.error.retry.ConnectorRetryException;
 import io.camunda.connector.api.error.retry.ConnectorRetryExceptionBuilder;
-import io.camunda.connector.api.error.retry.RetryContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.runtime.core.ConnectorHelper;
 import io.camunda.connector.runtime.core.Keywords;
@@ -630,12 +625,7 @@ class ConnectorJobHandlerTest {
 
       // then
       assertThat(result.getErrorMessage()).isEqualTo("Test retry exception");
-      assertThat(result.getRetries()).isEqualTo(DEFAULT_RETRIES - 1);
-      assertThat(result.getVariables())
-          .contains(
-              Map.entry(
-                  RETRY_CONTEXT_INPUT_VARIABLE,
-                  new RetryContext(Map.of(DEFAULT_RETRY_ERROR_CODE, 1), 3)));
+      assertThat(result.getRetries()).isEqualTo(2);
 
       result =
           JobBuilder.create()
@@ -644,12 +634,7 @@ class ConnectorJobHandlerTest {
                   ConnectorHelper.OBJECT_MAPPER.writer().writeValueAsString(result.getVariables()))
               .executeAndCaptureResult(jobHandler, false);
       assertThat(result.getErrorMessage()).isEqualTo("Test retry exception");
-      assertThat(result.getRetries()).isEqualTo(DEFAULT_RETRIES - 1);
-      assertThat(result.getVariables())
-          .contains(
-              Map.entry(
-                  RETRY_CONTEXT_INPUT_VARIABLE,
-                  new RetryContext(Map.of(DEFAULT_RETRY_ERROR_CODE, 1), 3, false)));
+      assertThat(result.getRetries()).isEqualTo(2);
     }
 
     @Test
@@ -666,8 +651,8 @@ class ConnectorJobHandlerTest {
                 throw new ConnectorRetryExceptionBuilder()
                     .message(errorMessage)
                     .errorCode(customErrorCode)
-                    .retryPolicy(
-                        new ConnectorRetryException.RetryPolicy(policyRetries, policyBackoff))
+                    .retries(policyRetries)
+                    .backoffDuration(policyBackoff)
                     .build();
               });
 
@@ -677,27 +662,20 @@ class ConnectorJobHandlerTest {
 
       // then
       assertThat(result.getErrorMessage()).isEqualTo(errorMessage);
-      assertThat(result.getRetries()).isEqualTo(jobRetries - 1);
-      assertThat(result.getVariables())
-          .contains(
-              Map.entry(
-                  RETRY_CONTEXT_INPUT_VARIABLE,
-                  new RetryContext(Map.of(customErrorCode, 1), jobRetries)));
+      assertThat(result.getRetries()).isEqualTo(policyRetries);
 
       // Second occurrence of this Exception
       result =
           JobBuilder.create()
-              .withRetries(jobRetries)
+              .withRetries(policyRetries)
               .withVariables(
                   ConnectorHelper.OBJECT_MAPPER.writer().writeValueAsString(result.getVariables()))
               .executeAndCaptureResult(jobHandler, false);
       assertThat(result.getErrorMessage()).isEqualTo(errorMessage);
-      assertThat(result.getRetries()).isEqualTo(policyRetries - 1);
-      assertThat(result.getVariables())
-          .contains(
-              Map.entry(
-                  RETRY_CONTEXT_INPUT_VARIABLE,
-                  new RetryContext(Map.of(customErrorCode, 1), jobRetries, false)));
+      // this is still the same value as this is the developer's responsibility to handle the
+      // retries state
+      // and decrement the retries value
+      assertThat(result.getRetries()).isEqualTo(policyRetries);
     }
 
     @Test
@@ -719,8 +697,8 @@ class ConnectorJobHandlerTest {
                   throw new ConnectorRetryExceptionBuilder()
                       .message(retryErrorMessage)
                       .errorCode(customRetryErrorCode)
-                      .retryPolicy(
-                          new ConnectorRetryException.RetryPolicy(policyRetries, policyBackoff))
+                      .retries(policyRetries)
+                      .backoffDuration(policyBackoff)
                       .build();
                 } else {
                   throw new ConnectorException(basicErrorCode, basicErrorMessage);
@@ -733,28 +711,17 @@ class ConnectorJobHandlerTest {
 
       // then
       assertThat(result.getErrorMessage()).isEqualTo(retryErrorMessage);
-      assertThat(result.getRetries()).isEqualTo(jobRetries - 1);
-      assertThat(result.getVariables())
-          .contains(
-              Map.entry(
-                  RETRY_CONTEXT_INPUT_VARIABLE,
-                  new RetryContext(Map.of(customRetryErrorCode, 1), jobRetries)));
+      assertThat(result.getRetries()).isEqualTo(policyRetries);
 
       // Second occurrence, will throw the ConnectorException
       result =
           JobBuilder.create()
-              .withRetries(jobRetries)
+              .withRetries(policyRetries)
               .withVariables(
                   ConnectorHelper.OBJECT_MAPPER.writer().writeValueAsString(result.getVariables()))
               .executeAndCaptureResult(jobHandler, false);
       assertThat(result.getErrorMessage()).isEqualTo(basicErrorMessage);
       assertThat(result.getRetries()).isEqualTo(policyRetries - 1);
-      assertThat(result.getVariables())
-          .contains(
-              Map.entry(
-                  RETRY_CONTEXT_INPUT_VARIABLE,
-                  new RetryContext(
-                      Map.of(customRetryErrorCode, 0, basicErrorCode, 0), jobRetries, false)));
     }
   }
 

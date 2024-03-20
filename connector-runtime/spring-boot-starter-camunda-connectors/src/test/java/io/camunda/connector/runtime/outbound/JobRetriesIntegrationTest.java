@@ -21,7 +21,6 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.when;
 
-import io.camunda.connector.api.error.retry.ConnectorRetryException;
 import io.camunda.connector.api.error.retry.ConnectorRetryExceptionBuilder;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
@@ -172,7 +171,7 @@ public class JobRetriesIntegrationTest {
               BpmnAssert.initRecordStream(recordStream);
               assertThat(instance).hasAnyIncidents();
             });
-    Assertions.assertThat(retryFunction.counter).isEqualTo(3);
+    Assertions.assertThat(retryFunction.counter).isEqualTo(5);
   }
 
   private void deployProcessWithRetries(int retries, String backoff) {
@@ -226,7 +225,7 @@ public class JobRetriesIntegrationTest {
       throw new ConnectorRetryExceptionBuilder()
           .message("Retry error")
           .errorCode("RETRY_ERROR")
-          .retryPolicy(new ConnectorRetryException.RetryPolicy(5))
+          .retries(5 - counter)
           .build();
     }
 

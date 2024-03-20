@@ -16,20 +16,19 @@
  */
 package io.camunda.connector.api.error.retry;
 
-import static io.camunda.connector.api.error.retry.ConnectorRetryException.DEFAULT_RETRY_ERROR_CODE;
-import static io.camunda.connector.api.error.retry.ConnectorRetryException.DEFAULT_RETRY_POLICY;
-
-import org.apache.commons.lang3.StringUtils;
+import java.time.Duration;
 
 /** Builder for creating a {@link ConnectorRetryException}. */
 public class ConnectorRetryExceptionBuilder {
   private String message;
 
-  private String errorCode = DEFAULT_RETRY_ERROR_CODE;
+  private String errorCode;
 
   private Throwable cause;
 
-  private ConnectorRetryException.RetryPolicy retryPolicy = DEFAULT_RETRY_POLICY;
+  private Integer retries;
+
+  private Duration backoffDuration;
 
   public ConnectorRetryExceptionBuilder cause(Throwable cause) {
     this.cause = cause;
@@ -46,22 +45,17 @@ public class ConnectorRetryExceptionBuilder {
     return this;
   }
 
-  public ConnectorRetryExceptionBuilder retryPolicy(
-      ConnectorRetryException.RetryPolicy retryPolicy) {
-    this.retryPolicy = retryPolicy;
+  public ConnectorRetryExceptionBuilder retries(Integer retries) {
+    this.retries = retries;
     return this;
   }
 
-  /**
-   * Builds a new {@link ConnectorRetryException}.
-   *
-   * @return the exception
-   * @throws IllegalArgumentException if none of message, or cause is set
-   */
+  public ConnectorRetryExceptionBuilder backoffDuration(Duration backoffDuration) {
+    this.backoffDuration = backoffDuration;
+    return this;
+  }
+
   public ConnectorRetryException build() throws IllegalArgumentException {
-    if (StringUtils.isBlank(message) && cause == null) {
-      throw new IllegalArgumentException("At least one of message, or cause must be set.");
-    }
-    return new ConnectorRetryException(errorCode, message, cause, retryPolicy);
+    return new ConnectorRetryException(errorCode, message, cause, retries, backoffDuration);
   }
 }

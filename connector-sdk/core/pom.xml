@@ -20,11 +20,6 @@
             <artifactId>slf4j-api</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-text</artifactId>
-        </dependency>
-
         <!-- Jackson dependencies are provided by the Connector runtime -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
