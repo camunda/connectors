@@ -193,8 +193,12 @@
       "type": "Dropdown",
       "choices": [
         {
-          "name": "List all repository branches by project ID",
+          "name": "List repository branches",
           "value": "getRepositoryBranchesByProjectId"
+        },
+        {
+          "name": "Create repository branch",
+          "value": "createRepositoryBranch"
         }
       ],
       "binding": {
@@ -236,7 +240,8 @@
         "oneOf": [
           "commentToAnIssue",
           "createAnIssue",
-          "createRelease"
+          "createRelease",
+          "createRepositoryBranch"
         ]
       }
     },
@@ -277,7 +282,8 @@
           "getReleasesByProjectId",
           "getReleaseByTagName",
           "createRelease",
-          "getRepositoryBranchesByProjectId"
+          "getRepositoryBranchesByProjectId",
+          "createRepositoryBranch"
         ]
       }
     },
@@ -874,7 +880,8 @@
       "condition": {
         "property": "operation",
         "oneOf": [
-          "createRelease"
+          "getRepositoryBranchesByProjectId",
+          "createRepositoryBranch"
         ]
       }
     },
@@ -888,7 +895,61 @@
       "condition": {
         "property": "operation",
         "oneOf": [
-          "createRelease"
+          "getRepositoryBranchesByProjectId"
+        ]
+      }
+    },
+    {
+      "label": "Name",
+      "description": "Name of the branch",
+      "group": "operation",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "branchName"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "createRepositoryBranch"
+        ]
+      }
+    },
+    {
+      "label": "Reference",
+      "description": "Branch name or commit SHA to create branch from",
+      "group": "operation",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "ref"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "createRepositoryBranch"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "={\"branch\": if branchName = null then null else branchName, \"ref\": if ref = null then null else ref}",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "queryParameters"
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "createRepositoryBranch"
         ]
       }
     },
