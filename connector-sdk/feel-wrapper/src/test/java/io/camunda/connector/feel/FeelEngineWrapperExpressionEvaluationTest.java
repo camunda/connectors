@@ -107,6 +107,29 @@ class FeelEngineWrapperExpressionEvaluationTest {
   }
 
   @Test
+  void evaluateDate_ShouldSucceed_WhenHappyCaseJavaType() throws JSONException {
+    // given
+    final var resultExpression =
+        """
+        {
+          "plain": string(response.myDate),
+          "elaborated":date and time(date and time(replace(response.myDate, "\\+0000","Z")),"Europe/Berlin")
+        }
+        """;
+
+    final var variables = Map.of("myDate", "2024-03-20T09:31:31.939+0000");
+
+    // when
+    final var evaluatedResultAsJson = objectUnderTest.evaluateToJson(resultExpression, variables);
+
+    // then
+    JSONAssert.assertEquals(
+        "{\"plain\":\"2024-03-20T09:31:31.939+0000\", \"elaborated\":  \"2024-03-20T10:31:31.939+01:00\"}",
+        evaluatedResultAsJson,
+        JSONCompareMode.STRICT);
+  }
+
+  @Test
   void evaluateToJson_ShouldSucceed_WhenVariableNotFound() throws JSONException {
     // given
     // FEEL expression -> ={"processedOutput":response.doesnt-exist}
