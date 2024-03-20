@@ -112,6 +112,10 @@
         {
           "name": "Branches",
           "value": "branches"
+        },
+        {
+          "name": "Repository files",
+          "value": "repositoryFiles"
         }
       ],
       "binding": {
@@ -211,6 +215,27 @@
       }
     },
     {
+      "label": "Operation",
+      "id": "operation",
+      "group": "operation",
+      "description": "Choose operation to perform",
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Crate new file in repository",
+          "value": "createRepositoryFile"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "operation"
+      },
+      "condition": {
+        "property": "operationGroup",
+        "equals": "repositoryFiles"
+      }
+    },
+    {
       "type": "Hidden",
       "value": "get",
       "binding": {
@@ -241,7 +266,8 @@
           "commentToAnIssue",
           "createAnIssue",
           "createRelease",
-          "createRepositoryBranch"
+          "createRepositoryBranch",
+          "createRepositoryFile"
         ]
       }
     },
@@ -283,7 +309,8 @@
           "getReleaseByTagName",
           "createRelease",
           "getRepositoryBranchesByProjectId",
-          "createRepositoryBranch"
+          "createRepositoryBranch",
+          "createRepositoryFile"
         ]
       }
     },
@@ -950,6 +977,196 @@
         "property": "operation",
         "oneOf": [
           "createRepositoryBranch"
+        ]
+      }
+    },
+    {
+      "label": "Name",
+      "description": "Name of the new branch to create. The commit is added to this branch",
+      "group": "operation",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "branchName"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "createRepositoryFile"
+        ]
+      }
+    },
+    {
+      "label": "Commit message",
+      "group": "operation",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "commitMessage"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "createRepositoryFile"
+        ]
+      }
+    },
+    {
+      "label": "Content",
+      "group": "operation",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "content"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "createRepositoryFile"
+        ]
+      }
+    },
+    {
+      "label": "File path",
+      "group": "URL-encoded full path to new file. For example, lib%2Fclass%2Erb",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "filePath"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "createRepositoryFile"
+        ]
+      }
+    },
+    {
+      "label": "Author email",
+      "group": "The commit author's email address",
+      "type": "String",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authorEmail"
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "createRepositoryFile"
+        ]
+      }
+    },
+    {
+      "label": "Author name",
+      "group": "The commit author's name",
+      "type": "String",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "authorName"
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "createRepositoryFile"
+        ]
+      }
+    },
+    {
+      "label": "Encoding",
+      "group": "Change encoding to <code>base64</code>. Default is <code>text</code>",
+      "type": "String",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "encoding"
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "createRepositoryFile"
+        ]
+      }
+    },
+    {
+      "label": "Execute file mode",
+      "group": "Enables or disables the <code>execute</code> flag on the file",
+      "type": "Boolean",
+      "feel": "optional",
+      "value": "=false",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "executeFilemode"
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "createRepositoryFile"
+        ]
+      }
+    },
+    {
+      "label": "Start branch",
+      "group": "Name of the branch to start the new branch from",
+      "type": "String",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "startBranch"
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "createRepositoryFile"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "=baseUrl + \"/api/v4/projects/\"+ projectId +\"/repository/files/\" + filePath",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "url"
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "createRepositoryFile"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "={\"branch\": if branchName = null then null else branchName, \"commit_message\": if commitMessage = null then null else commitMessage, \"content\": if content = null then null else content, \"author_email\": if authorEmail = null then null else authorEmail, \"author_name\": if authorName = null then null else authorName, \"encoding\": if encoding = null then null else encoding, \"execute_filemode\": if executeFilemode = null then null else executeFilemode, \"start_branch\": if startBranch = null then null else startBranch}",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "queryParameters"
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "getRepositoryBranchesByProjectId"
         ]
       }
     },
