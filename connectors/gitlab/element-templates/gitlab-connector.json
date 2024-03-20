@@ -3,7 +3,7 @@
   "name": "GitLab Outbound Connector",
   "id": "io.camunda.connectors.GitLab.v1",
   "version": 4,
-  "description": "Administer and work with issues and releases",
+  "description": "Administer and work with issues, releases, and more",
   "icon": {
     "contents": "data:image/svg+xml;utf8,%3Csvg width='18px' height='18px' viewBox='0 -10 256 256' version='1.1' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' preserveAspectRatio='xMidYMid'%3E%3Cg%3E%3Cpath d='M128.07485,236.074667 L128.07485,236.074667 L175.17885,91.1043048 L80.9708495,91.1043048 L128.07485,236.074667 L128.07485,236.074667 Z' fill='%23E24329'%3E%3C/path%3E%3Cpath d='M128.07485,236.074423 L80.9708495,91.104061 L14.9557638,91.104061 L128.07485,236.074423 L128.07485,236.074423 Z' fill='%23FC6D26'%3E%3C/path%3E%3Cpath d='M14.9558857,91.1044267 L14.9558857,91.1044267 L0.641828571,135.159589 C-0.663771429,139.17757 0.766171429,143.57955 4.18438095,146.06275 L128.074971,236.074789 L14.9558857,91.1044267 L14.9558857,91.1044267 Z' fill='%23FCA326'%3E%3C/path%3E%3Cpath d='M14.9558857,91.1045486 L80.9709714,91.1045486 L52.6000762,3.79026286 C51.1408762,-0.703146667 44.7847619,-0.701927619 43.3255619,3.79026286 L14.9558857,91.1045486 L14.9558857,91.1045486 Z' fill='%23E24329'%3E%3C/path%3E%3Cpath d='M128.07485,236.074423 L175.17885,91.104061 L241.193935,91.104061 L128.07485,236.074423 L128.07485,236.074423 Z' fill='%23FC6D26'%3E%3C/path%3E%3Cpath d='M241.193935,91.1044267 L241.193935,91.1044267 L255.507992,135.159589 C256.813592,139.17757 255.38365,143.57955 251.96544,146.06275 L128.07485,236.074789 L241.193935,91.1044267 L241.193935,91.1044267 Z' fill='%23FCA326'%3E%3C/path%3E%3Cpath d='M241.193935,91.1045486 L175.17885,91.1045486 L203.549745,3.79026286 C205.008945,-0.703146667 211.365059,-0.701927619 212.824259,3.79026286 L241.193935,91.1045486 L241.193935,91.1045486 Z' fill='%23E24329'%3E%3C/path%3E%3C/g%3E%3C/svg%3E"
   },
@@ -116,6 +116,10 @@
         {
           "name": "Repository files",
           "value": "repositoryFiles"
+        },
+        {
+          "name": "Merge requests",
+          "value": "mergeRequests"
         }
       ],
       "binding": {
@@ -222,7 +226,7 @@
       "type": "Dropdown",
       "choices": [
         {
-          "name": "Crate new file in repository",
+          "name": "Create new file in repository",
           "value": "createRepositoryFile"
         }
       ],
@@ -233,6 +237,27 @@
       "condition": {
         "property": "operationGroup",
         "equals": "repositoryFiles"
+      }
+    },
+    {
+      "label": "Operation",
+      "id": "operation",
+      "group": "operation",
+      "description": "Choose operation to perform",
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Create merge request",
+          "value": "createMergeRequest"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "operation"
+      },
+      "condition": {
+        "property": "operationGroup",
+        "equals": "mergeRequests"
       }
     },
     {
@@ -267,7 +292,8 @@
           "createAnIssue",
           "createRelease",
           "createRepositoryBranch",
-          "createRepositoryFile"
+          "createRepositoryFile",
+          "createMergeRequest"
         ]
       }
     },
@@ -310,7 +336,8 @@
           "createRelease",
           "getRepositoryBranchesByProjectId",
           "createRepositoryBranch",
-          "createRepositoryFile"
+          "createRepositoryFile",
+          "createMergeRequest"
         ]
       }
     },
@@ -971,7 +998,7 @@
       "value": "={\"branch\": if branchName = null then null else branchName, \"ref\": if ref = null then null else ref}",
       "binding": {
         "type": "zeebe:input",
-        "name": "queryParameters"
+        "name": "body"
       },
       "condition": {
         "property": "operation",
@@ -981,8 +1008,8 @@
       }
     },
     {
-      "label": "Name",
-      "description": "Name of the new branch to create. The commit is added to this branch",
+      "label": "Branch name",
+      "description": "Name of the new branch to create the file in. The commit is added to this branch",
       "group": "operation",
       "type": "String",
       "feel": "optional",
@@ -1022,7 +1049,7 @@
     {
       "label": "Content",
       "group": "operation",
-      "type": "String",
+      "type": "Text",
       "feel": "optional",
       "binding": {
         "type": "zeebe:input",
@@ -1040,7 +1067,8 @@
     },
     {
       "label": "File path",
-      "group": "URL-encoded full path to new file. For example, lib%2Fclass%2Erb",
+      "description": "URL-encoded full path to new file. For example, lib%2Fclass%2Erb",
+      "group": "operation",
       "type": "String",
       "feel": "optional",
       "binding": {
@@ -1059,7 +1087,8 @@
     },
     {
       "label": "Author email",
-      "group": "The commit author's email address",
+      "description": "The commit author's email address",
+      "group": "operation",
       "type": "String",
       "feel": "optional",
       "optional": true,
@@ -1076,7 +1105,8 @@
     },
     {
       "label": "Author name",
-      "group": "The commit author's name",
+      "description": "The commit author's name",
+      "group": "operation",
       "type": "String",
       "feel": "optional",
       "optional": true,
@@ -1093,7 +1123,8 @@
     },
     {
       "label": "Encoding",
-      "group": "Change encoding to <code>base64</code>. Default is <code>text</code>",
+      "description": "Change encoding to <code>base64</code>. Default is <code>text</code>",
+      "group": "operation",
       "type": "String",
       "feel": "optional",
       "optional": true,
@@ -1110,7 +1141,8 @@
     },
     {
       "label": "Execute file mode",
-      "group": "Enables or disables the <code>execute</code> flag on the file",
+      "description": "Enables or disables the <code>execute</code> flag on the file",
+      "group": "operation",
       "type": "Boolean",
       "feel": "optional",
       "value": "=false",
@@ -1127,7 +1159,8 @@
     },
     {
       "label": "Start branch",
-      "group": "Name of the branch to start the new branch from",
+      "description": "Name of the branch to start the new branch from",
+      "group": "operation",
       "type": "String",
       "feel": "optional",
       "optional": true,
@@ -1161,12 +1194,257 @@
       "value": "={\"branch\": if branchName = null then null else branchName, \"commit_message\": if commitMessage = null then null else commitMessage, \"content\": if content = null then null else content, \"author_email\": if authorEmail = null then null else authorEmail, \"author_name\": if authorName = null then null else authorName, \"encoding\": if encoding = null then null else encoding, \"execute_filemode\": if executeFilemode = null then null else executeFilemode, \"start_branch\": if startBranch = null then null else startBranch}",
       "binding": {
         "type": "zeebe:input",
-        "name": "queryParameters"
+        "name": "body"
       },
       "condition": {
         "property": "operation",
         "oneOf": [
-          "getRepositoryBranchesByProjectId"
+          "createRepositoryFile"
+        ]
+      }
+    },
+    {
+      "label": "Source branch",
+      "group": "operation",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "sourceBranch"
+      },
+      "constraints": {
+          "notEmpty": true
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "createMergeRequest"
+        ]
+      }
+    },
+    {
+      "label": "Target branch",
+      "group": "operation",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "targetBranch"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "createMergeRequest"
+        ]
+      }
+    },
+    {
+      "label": "Title",
+      "group": "operation",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "title"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "createMergeRequest"
+        ]
+      }
+    },
+    {
+      "label": "Allow collaboration",
+      "description": "Allow commits from members who can merge to the target branch",
+      "group": "operation",
+      "type": "Boolean",
+      "feel": "optional",
+      "value": "=false",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "allowCollaboration"
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "createRepositoryFile"
+        ]
+      }
+    },
+    {
+      "label": "Assignee IDs",
+      "description": "The ID of the users to assign the merge request to as an array of numbers",
+      "group": "operation",
+      "type": "String",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "assigneeIds"
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "createMergeRequest"
+        ]
+      }
+    },
+    {
+      "label": "Description",
+      "group": "operation",
+      "type": "String",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "description"
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "createMergeRequest"
+        ]
+      }
+    },
+    {
+      "label": "Labels",
+      "description": "Labels for the merge request, as a comma-separated list",
+      "group": "operation",
+      "type": "String",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "labels"
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "createMergeRequest"
+        ]
+      }
+    },
+    {
+      "label": "Milestone ID",
+      "group": "operation",
+      "type": "String",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "assigneeIds"
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "createMergeRequest"
+        ]
+      }
+    },
+    {
+      "label": "Remove source branch",
+      "description": "Flag indicating if a merge request should remove the source branch when merging",
+      "group": "operation",
+      "type": "Boolean",
+      "feel": "optional",
+      "value": "=false",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "removeSourceBranch"
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "createMergeRequest"
+        ]
+      }
+    },
+    {
+      "label": "Reviewer IDs",
+      "description": "The ID of the users added as a reviewer to the merge request as an array of numbers",
+      "group": "operation",
+      "type": "String",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "reviewerIds"
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "createMergeRequest"
+        ]
+      }
+    },
+    {
+      "label": "Squash",
+      "description": "Indicates if the merge request is set to be squashed when merged. Project settings might override this value",
+      "group": "operation",
+      "type": "Boolean",
+      "feel": "optional",
+      "value": "=false",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "squash"
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "createMergeRequest"
+        ]
+      }
+    },
+    {
+      "label": "Target project ID",
+      "description": "Numeric ID of the target project",
+      "group": "operation",
+      "type": "String",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "targetProjectId"
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "createMergeRequest"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "=baseUrl + \"/api/v4/projects/\"+ projectId +\"/merge_requests\"",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "url"
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "createMergeRequest"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "={\"source_branch\": if sourceBranch = null then null else sourceBranch, \"target_branch\": if targetBranch = null then null else targetBranch, \"title\": if title = null then null else title, \"assignee_ids\": if assigneeIds = null then null else assigneeIds, \"description\": if description = null then null else description, \"labels\": if labels = null then null else labels, \"milestone_id\": if milestoneId = null then null else milestoneId, \"remove_source_branch\": if removeSourceBranch = null then null else removeSourceBranch, \"reviewer_ids\": if reviewerIds = null then null else reviewerIds, \"squash\": if squash = null then null else squash, \"target_project_id\": if targetProjectId = null then null else targetProjectId}",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "body"
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "createMergeRequest"
         ]
       }
     },
