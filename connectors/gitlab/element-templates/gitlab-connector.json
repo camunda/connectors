@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "GitLab Outbound Connector",
   "id": "io.camunda.connectors.GitLab.v1",
-  "version": 3,
+  "version": 4,
   "description": "Administer and work with issues and releases",
   "icon": {
     "contents": "data:image/svg+xml;utf8,%3Csvg width='18px' height='18px' viewBox='0 -10 256 256' version='1.1' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' preserveAspectRatio='xMidYMid'%3E%3Cg%3E%3Cpath d='M128.07485,236.074667 L128.07485,236.074667 L175.17885,91.1043048 L80.9708495,91.1043048 L128.07485,236.074667 L128.07485,236.074667 Z' fill='%23E24329'%3E%3C/path%3E%3Cpath d='M128.07485,236.074423 L80.9708495,91.104061 L14.9557638,91.104061 L128.07485,236.074423 L128.07485,236.074423 Z' fill='%23FC6D26'%3E%3C/path%3E%3Cpath d='M14.9558857,91.1044267 L14.9558857,91.1044267 L0.641828571,135.159589 C-0.663771429,139.17757 0.766171429,143.57955 4.18438095,146.06275 L128.074971,236.074789 L14.9558857,91.1044267 L14.9558857,91.1044267 Z' fill='%23FCA326'%3E%3C/path%3E%3Cpath d='M14.9558857,91.1045486 L80.9709714,91.1045486 L52.6000762,3.79026286 C51.1408762,-0.703146667 44.7847619,-0.701927619 43.3255619,3.79026286 L14.9558857,91.1045486 L14.9558857,91.1045486 Z' fill='%23E24329'%3E%3C/path%3E%3Cpath d='M128.07485,236.074423 L175.17885,91.104061 L241.193935,91.104061 L128.07485,236.074423 L128.07485,236.074423 Z' fill='%23FC6D26'%3E%3C/path%3E%3Cpath d='M241.193935,91.1044267 L241.193935,91.1044267 L255.507992,135.159589 C256.813592,139.17757 255.38365,143.57955 251.96544,146.06275 L128.07485,236.074789 L241.193935,91.1044267 L241.193935,91.1044267 Z' fill='%23FCA326'%3E%3C/path%3E%3Cpath d='M241.193935,91.1045486 L175.17885,91.1045486 L203.549745,3.79026286 C205.008945,-0.703146667 211.365059,-0.701927619 212.824259,3.79026286 L241.193935,91.1045486 L241.193935,91.1045486 Z' fill='%23E24329'%3E%3C/path%3E%3C/g%3E%3C/svg%3E"
@@ -108,6 +108,10 @@
         {
           "name": "Releases",
           "value": "releases"
+        },
+        {
+          "name": "Branches",
+          "value": "branches"
         }
       ],
       "binding": {
@@ -182,6 +186,27 @@
       }
     },
     {
+      "label": "Operation",
+      "id": "operation",
+      "group": "operation",
+      "description": "Choose operation to perform",
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "List all repository branches by project ID",
+          "value": "getRepositoryBranchesByProjectId"
+        }
+      ],
+      "binding": {
+        "type": "zeebe:input",
+        "name": "operation"
+      },
+      "condition": {
+        "property": "operationGroup",
+        "equals": "branches"
+      }
+    },
+    {
       "type": "Hidden",
       "value": "get",
       "binding": {
@@ -194,7 +219,8 @@
           "getIssueById",
           "searchIssues",
           "getReleasesByProjectId",
-          "getReleaseByTagName"
+          "getReleaseByTagName",
+          "getRepositoryBranchesByProjectId"
         ]
       }
     },
@@ -244,7 +270,14 @@
       "condition": {
         "property": "operation",
         "oneOf": [
-          "getIssueById"
+          "getIssueById",
+          "createAnIssue",
+          "deleteAnIssue",
+          "commentToAnIssue",
+          "getReleasesByProjectId",
+          "getReleaseByTagName",
+          "createRelease",
+          "getRepositoryBranchesByProjectId"
         ]
       }
     },
@@ -279,26 +312,6 @@
         "property": "operation",
         "oneOf": [
           "getIssueById"
-        ]
-      }
-    },
-    {
-      "label": "Project ID",
-      "description": "The global ID or URL-encoded path of the project owned by the authenticated user",
-      "group": "operation",
-      "type": "String",
-      "feel": "optional",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "projectId"
-      },
-      "constraints": {
-        "notEmpty": true
-      },
-      "condition": {
-        "property": "operation",
-        "oneOf": [
-          "createAnIssue"
         ]
       }
     },
@@ -371,26 +384,6 @@
       }
     },
     {
-      "label": "Project ID",
-      "description": "The global ID or URL-encoded path of the project owned by the authenticated user",
-      "group": "operation",
-      "type": "String",
-      "feel": "optional",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "projectId"
-      },
-      "constraints": {
-        "notEmpty": true
-      },
-      "condition": {
-        "property": "operation",
-        "oneOf": [
-          "deleteAnIssue"
-        ]
-      }
-    },
-    {
       "label": "Issue ID",
       "description": "The internal ID of a project’s issue",
       "group": "operation",
@@ -421,26 +414,6 @@
         "property": "operation",
         "oneOf": [
           "deleteAnIssue"
-        ]
-      }
-    },
-    {
-      "label": "Project ID",
-      "description": "The global ID or URL-encoded path of the project owned by the authenticated user",
-      "group": "operation",
-      "type": "String",
-      "feel": "optional",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "projectId"
-      },
-      "constraints": {
-        "notEmpty": true
-      },
-      "condition": {
-        "property": "operation",
-        "oneOf": [
-          "commentToAnIssue"
         ]
       }
     },
@@ -704,26 +677,6 @@
       }
     },
     {
-      "label": "Project ID",
-      "description": "The global ID or URL-encoded path of the project owned by the authenticated user",
-      "group": "operation",
-      "type": "String",
-      "feel": "optional",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "projectId"
-      },
-      "constraints": {
-        "notEmpty": true
-      },
-      "condition": {
-        "property": "operation",
-        "oneOf": [
-          "getReleasesByProjectId"
-        ]
-      }
-    },
-    {
       "type": "Hidden",
       "value": "=baseUrl + \"/api/v4/projects/\"+ projectId +\"/releases\"",
       "binding": {
@@ -734,26 +687,6 @@
         "property": "operation",
         "oneOf": [
           "getReleasesByProjectId"
-        ]
-      }
-    },
-    {
-      "label": "Project ID",
-      "description": "The global ID or URL-encoded path of the project owned by the authenticated user",
-      "group": "operation",
-      "type": "String",
-      "feel": "optional",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "projectId"
-      },
-      "constraints": {
-        "notEmpty": true
-      },
-      "condition": {
-        "property": "operation",
-        "oneOf": [
-          "getReleaseByTagName"
         ]
       }
     },
@@ -788,26 +721,6 @@
         "property": "operation",
         "oneOf": [
           "getReleaseByTagName"
-        ]
-      }
-    },
-    {
-      "label": "Project ID",
-      "description": "The global ID or URL-encoded path of the project owned by the authenticated user",
-      "group": "operation",
-      "type": "String",
-      "feel": "optional",
-      "binding": {
-        "type": "zeebe:input",
-        "name": "projectId"
-      },
-      "constraints": {
-        "notEmpty": true
-      },
-      "condition": {
-        "property": "operation",
-        "oneOf": [
-          "createRelease"
         ]
       }
     },
@@ -907,6 +820,70 @@
       "binding": {
         "type": "zeebe:input",
         "name": "body"
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "createRelease"
+        ]
+      }
+    },
+    {
+      "label": "Search string",
+      "description": "Return list of branches containing the search string",
+      "group": "operation",
+      "type": "String",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "searchString"
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "getRepositoryBranchesByProjectId"
+        ]
+      }
+    },
+    {
+      "label": "Regular expression",
+      "description": "Return list of branches with names matching a <a href=\"https://github.com/google/re2/wiki/Syntax\" target=\"_blank\">re2</a> regular expression",
+      "group": "operation",
+      "type": "String",
+      "feel": "optional",
+      "optional": true,
+      "binding": {
+        "type": "zeebe:input",
+        "name": "regex"
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "getRepositoryBranchesByProjectId"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "=baseUrl + \"/api/v4/projects/\"+ projectId +\"/repository/branches\"",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "url"
+      },
+      "condition": {
+        "property": "operation",
+        "oneOf": [
+          "createRelease"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "={\"search\": if searchString = null then null else searchString, \"regex\": if regex = null then null else regex}",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "queryParameters"
       },
       "condition": {
         "property": "operation",
