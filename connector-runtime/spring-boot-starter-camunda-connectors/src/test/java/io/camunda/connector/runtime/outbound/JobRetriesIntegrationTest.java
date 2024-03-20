@@ -21,6 +21,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.api.error.ConnectorRetryExceptionBuilder;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
@@ -33,7 +34,7 @@ import io.camunda.zeebe.client.api.response.ProcessInstanceEvent;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.process.test.assertions.BpmnAssert;
 import io.camunda.zeebe.spring.test.ZeebeSpringTest;
-import java.util.Collections;
+import java.util.Arrays;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -59,46 +60,8 @@ public class JobRetriesIntegrationTest {
 
   private static final String bpmnProcessId = "test-process";
   private static final String testConnectorType = "io.camunda:connector-test:1";
-
-  public static class CountingConnectorFunction implements OutboundConnectorFunction {
-
-    int counter = 0;
-
-    @Override
-    public Object execute(OutboundConnectorContext context) throws Exception {
-      counter++;
-      throw new RuntimeException("test");
-    }
-
-    void resetCounter() {
-      counter = 0;
-    }
-  }
-
-  @Configuration
-  public static class CustomConfiguration {
-
-    private final OutboundConnectorFunction function = new CountingConnectorFunction();
-
-    @Bean
-    @Primary
-    public OutboundConnectorFactory mockConnectorFactory() {
-      var mock = Mockito.mock(OutboundConnectorFactory.class);
-      when(mock.getConfigurations())
-          .thenReturn(
-              Collections.singletonList(
-                  new OutboundConnectorConfiguration(
-                      testConnectorType,
-                      new String[0],
-                      testConnectorType,
-                      OutboundConnectorFunction.class)));
-      when(mock.getInstance(testConnectorType)).thenReturn(function);
-      return mock;
-    }
-  }
-
+  private static final String testRetryConnectorType = "io.camunda:connector-retry-test:1";
   @Autowired private ZeebeClient zeebeClient;
-
   @Autowired private OutboundConnectorFactory factory;
 
   @BeforeEach
@@ -180,6 +143,37 @@ public class JobRetriesIntegrationTest {
     Assertions.assertThat(function.counter).isEqualTo(3);
   }
 
+  @Test
+  void retryExceptionThrown_connectorIsInvoked5times() {
+    var recordStream = BpmnAssert.getRecordStream();
+    var retryFunction =
+        (CountingRetryConnectorFunction) factory.getInstance(testRetryConnectorType);
+    zeebeClient
+        .newDeployResourceCommand()
+        .addProcessModel(
+            Bpmn.createExecutableProcess(bpmnProcessId)
+                .startEvent()
+                .serviceTask()
+                .zeebeJobType(testRetryConnectorType)
+                .endEvent()
+                .done(),
+            bpmnProcessId + ".bpmn")
+        .send()
+        .join();
+
+    var instance = createProcessInstance();
+
+    await()
+        .atMost(2, SECONDS)
+        .untilAsserted(
+            () -> {
+              // need to reset it manually, as it is stored in ThreadLocal
+              BpmnAssert.initRecordStream(recordStream);
+              assertThat(instance).hasAnyIncidents();
+            });
+    Assertions.assertThat(retryFunction.counter).isEqualTo(5);
+  }
+
   private void deployProcessWithRetries(int retries, String backoff) {
     zeebeClient
         .newDeployResourceCommand()
@@ -204,5 +198,68 @@ public class JobRetriesIntegrationTest {
         .latestVersion()
         .send()
         .join();
+  }
+
+  public static class CountingConnectorFunction implements OutboundConnectorFunction {
+
+    int counter = 0;
+
+    @Override
+    public Object execute(OutboundConnectorContext context) throws Exception {
+      counter++;
+      throw new RuntimeException("test");
+    }
+
+    void resetCounter() {
+      counter = 0;
+    }
+  }
+
+  public static class CountingRetryConnectorFunction implements OutboundConnectorFunction {
+
+    int counter = 0;
+
+    @Override
+    public Object execute(OutboundConnectorContext context) throws Exception {
+      counter++;
+      throw new ConnectorRetryExceptionBuilder()
+          .message("Retry error")
+          .errorCode("RETRY_ERROR")
+          .retries(5 - counter)
+          .build();
+    }
+
+    void resetCounter() {
+      counter = 0;
+    }
+  }
+
+  @Configuration
+  public static class CustomConfiguration {
+
+    private final OutboundConnectorFunction function = new CountingConnectorFunction();
+    private final OutboundConnectorFunction retryFunction = new CountingRetryConnectorFunction();
+
+    @Bean
+    @Primary
+    public OutboundConnectorFactory mockConnectorFactory() {
+      var mock = Mockito.mock(OutboundConnectorFactory.class);
+      when(mock.getConfigurations())
+          .thenReturn(
+              Arrays.asList(
+                  new OutboundConnectorConfiguration(
+                      testConnectorType,
+                      new String[0],
+                      testConnectorType,
+                      OutboundConnectorFunction.class),
+                  new OutboundConnectorConfiguration(
+                      testRetryConnectorType,
+                      new String[0],
+                      testRetryConnectorType,
+                      OutboundConnectorFunction.class)));
+      when(mock.getInstance(testConnectorType)).thenReturn(function);
+      when(mock.getInstance(testRetryConnectorType)).thenReturn(retryFunction);
+      return mock;
+    }
   }
 }

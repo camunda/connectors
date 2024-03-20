@@ -34,17 +34,20 @@ import org.mockito.ArgumentCaptor;
 
 class JobBuilder {
 
+  protected static JobBuilderStep create() {
+    return new JobBuilderStep();
+  }
+
   public static class JobBuilderStep {
 
-    private JobClient jobClient;
     private final ActivatedJob job;
     private final CompleteJobCommandStep1 completeCommand;
     private final FailJobCommandStep1 failCommand;
     private final FailJobCommandStep1.FailJobCommandStep2 failCommandStep2;
     private final ThrowErrorCommandStep1 throwCommand;
     private final ThrowErrorCommandStep1.ThrowErrorCommandStep2 throwCommandStep2;
-
     private final ThrowErrorCommandStep1.ThrowErrorCommandStep2 throwCommandStep2_2;
+    private JobClient jobClient;
 
     public JobBuilderStep() {
       this.jobClient = mock(JobClient.class);
@@ -75,6 +78,11 @@ class JobBuilder {
 
     public JobBuilderStep useJobClient(JobClient client) {
       this.jobClient = client;
+      return this;
+    }
+
+    public JobBuilderStep withVariables(String variables) {
+      when(job.getVariables()).thenReturn(variables);
       return this;
     }
 
@@ -198,9 +206,5 @@ class JobBuilder {
     public int getRetries() {
       return retries;
     }
-  }
-
-  protected static JobBuilderStep create() {
-    return new JobBuilderStep();
   }
 }

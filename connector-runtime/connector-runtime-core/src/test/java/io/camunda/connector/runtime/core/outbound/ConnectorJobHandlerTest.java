@@ -22,7 +22,10 @@ import static io.camunda.connector.runtime.core.Keywords.RESULT_EXPRESSION_KEYWO
 import static io.camunda.connector.runtime.core.Keywords.RESULT_VARIABLE_KEYWORD;
 import static io.camunda.connector.runtime.core.outbound.ConnectorJobHandlerTest.OutputTests.ResultVariableTests.newConnectorJobHandler;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -31,7 +34,9 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.error.ConnectorRetryExceptionBuilder;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
+import io.camunda.connector.runtime.core.ConnectorHelper;
 import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.zeebe.client.api.command.FailJobCommandStep1;
 import io.camunda.zeebe.client.api.command.FailJobCommandStep1.FailJobCommandStep2;
@@ -40,6 +45,7 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -51,11 +57,22 @@ import org.mockito.ArgumentCaptor;
 
 class ConnectorJobHandlerTest {
 
+  private record TestConnectorResponsePojo(String value) {}
+
+  private static class NonSerializable {
+
+    private final UUID field = UUID.randomUUID();
+  }
+
   @Nested
   class OutputTests {
 
     @Nested
     class ResultVariableTests {
+
+      protected static ConnectorJobHandler newConnectorJobHandler(OutboundConnectorFunction call) {
+        return new ConnectorJobHandler(call, e -> {});
+      }
 
       @ParameterizedTest
       @NullSource
@@ -73,10 +90,6 @@ class ConnectorJobHandlerTest {
 
         // then
         assertThat(result.getVariables()).isEmpty();
-      }
-
-      protected static ConnectorJobHandler newConnectorJobHandler(OutboundConnectorFunction call) {
-        return new ConnectorJobHandler(call, e -> {});
       }
 
       @Test
@@ -597,6 +610,113 @@ class ConnectorJobHandlerTest {
   }
 
   @Nested
+  class ConnectorRetryExceptionTests {
+    @Test
+    void shouldHandleConnectorRetryException_Default_Error() throws JsonProcessingException {
+      // given
+      var jobHandler =
+          newConnectorJobHandler(
+              context -> {
+                throw new ConnectorRetryExceptionBuilder().message("Test retry exception").build();
+              });
+
+      // when
+      var result = JobBuilder.create().withRetries(3).executeAndCaptureResult(jobHandler, false);
+
+      // then
+      assertThat(result.getErrorMessage()).isEqualTo("Test retry exception");
+      assertThat(result.getRetries()).isEqualTo(2);
+    }
+
+    @Test
+    void shouldHandleConnectorRetryException_Custom_Error_Code() throws JsonProcessingException {
+      // given
+      var jobRetries = 3;
+      var policyRetries = 4;
+      var policyBackoff = Duration.ofSeconds(10);
+      var customErrorCode = "customErrorCode";
+      var errorMessage = "Test retry exception";
+      var jobHandler =
+          newConnectorJobHandler(
+              context -> {
+                throw new ConnectorRetryExceptionBuilder()
+                    .message(errorMessage)
+                    .errorCode(customErrorCode)
+                    .retries(policyRetries)
+                    .backoffDuration(policyBackoff)
+                    .build();
+              });
+
+      // when
+      var result =
+          JobBuilder.create().withRetries(jobRetries).executeAndCaptureResult(jobHandler, false);
+
+      // then
+      assertThat(result.getErrorMessage()).isEqualTo(errorMessage);
+      assertThat(result.getRetries()).isEqualTo(policyRetries);
+
+      // Second occurrence of this Exception
+      result =
+          JobBuilder.create()
+              .withRetries(policyRetries)
+              .withVariables(
+                  ConnectorHelper.OBJECT_MAPPER.writer().writeValueAsString(result.getVariables()))
+              .executeAndCaptureResult(jobHandler, false);
+      assertThat(result.getErrorMessage()).isEqualTo(errorMessage);
+      // this is still the same value as this is the developer's responsibility to handle the
+      // retries state
+      // and decrement the retries value
+      assertThat(result.getRetries()).isEqualTo(policyRetries);
+    }
+
+    @Test
+    void shouldHandleConnectorRetryException_Basic_And_Retry_Exceptions()
+        throws JsonProcessingException {
+      AtomicInteger occurrence = new AtomicInteger();
+      // given
+      var jobRetries = 3;
+      var policyRetries = 4;
+      var policyBackoff = Duration.ofSeconds(10);
+      var customRetryErrorCode = "customErrorCode";
+      var retryErrorMessage = "Test retry exception";
+      var basicErrorMessage = "Basic exception";
+      var basicErrorCode = "basicErrorCode";
+      var jobHandler =
+          newConnectorJobHandler(
+              context -> {
+                if (occurrence.getAndIncrement() == 0) {
+                  throw new ConnectorRetryExceptionBuilder()
+                      .message(retryErrorMessage)
+                      .errorCode(customRetryErrorCode)
+                      .retries(policyRetries)
+                      .backoffDuration(policyBackoff)
+                      .build();
+                } else {
+                  throw new ConnectorException(basicErrorCode, basicErrorMessage);
+                }
+              });
+
+      // when
+      var result =
+          JobBuilder.create().withRetries(jobRetries).executeAndCaptureResult(jobHandler, false);
+
+      // then
+      assertThat(result.getErrorMessage()).isEqualTo(retryErrorMessage);
+      assertThat(result.getRetries()).isEqualTo(policyRetries);
+
+      // Second occurrence, will throw the ConnectorException
+      result =
+          JobBuilder.create()
+              .withRetries(policyRetries)
+              .withVariables(
+                  ConnectorHelper.OBJECT_MAPPER.writer().writeValueAsString(result.getVariables()))
+              .executeAndCaptureResult(jobHandler, false);
+      assertThat(result.getErrorMessage()).isEqualTo(basicErrorMessage);
+      assertThat(result.getRetries()).isEqualTo(policyRetries - 1);
+    }
+  }
+
+  @Nested
   class ErrorExpressionTests {
 
     @ParameterizedTest
@@ -944,12 +1064,5 @@ class ConnectorJobHandlerTest {
       assertThat(result.getErrorCode()).isEqualTo("9999");
       assertThat(result.getErrorMessage()).isEqualTo("Message for foo value on test property");
     }
-  }
-
-  private record TestConnectorResponsePojo(String value) {}
-
-  private static class NonSerializable {
-
-    private final UUID field = UUID.randomUUID();
   }
 }

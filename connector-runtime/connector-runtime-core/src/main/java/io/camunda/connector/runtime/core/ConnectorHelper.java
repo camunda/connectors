@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.runtime.core;
 
-import static io.camunda.connector.feel.FeelEngineWrapperUtil.*;
+import static io.camunda.connector.feel.FeelEngineWrapperUtil.wrapResponse;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -35,10 +35,9 @@ import java.util.Optional;
 
 public class ConnectorHelper {
 
+  private static final String ERROR_CANNOT_PARSE_VARIABLES = "Cannot parse '%s' as '%s'.";
   public static FeelEngineWrapper FEEL_ENGINE_WRAPPER = new FeelEngineWrapper();
   public static ObjectMapper OBJECT_MAPPER = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER;
-
-  private static final String ERROR_CANNOT_PARSE_VARIABLES = "Cannot parse '%s' as '%s'.";
 
   /**
    * @return a map with output process variables for a given response from an {@link
