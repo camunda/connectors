@@ -144,7 +144,7 @@ public class JobRetriesIntegrationTest {
   }
 
   @Test
-  void retryExceptionThrown_connectorIsInvoked3times() {
+  void retryExceptionThrown_connectorIsInvoked5times() {
     var recordStream = BpmnAssert.getRecordStream();
     var retryFunction =
         (CountingRetryConnectorFunction) factory.getInstance(testRetryConnectorType);

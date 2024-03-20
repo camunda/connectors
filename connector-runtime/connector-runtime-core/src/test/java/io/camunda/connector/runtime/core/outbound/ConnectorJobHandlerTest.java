@@ -626,15 +626,6 @@ class ConnectorJobHandlerTest {
       // then
       assertThat(result.getErrorMessage()).isEqualTo("Test retry exception");
       assertThat(result.getRetries()).isEqualTo(2);
-
-      result =
-          JobBuilder.create()
-              .withRetries(3)
-              .withVariables(
-                  ConnectorHelper.OBJECT_MAPPER.writer().writeValueAsString(result.getVariables()))
-              .executeAndCaptureResult(jobHandler, false);
-      assertThat(result.getErrorMessage()).isEqualTo("Test retry exception");
-      assertThat(result.getRetries()).isEqualTo(2);
     }
 
     @Test

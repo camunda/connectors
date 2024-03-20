@@ -195,13 +195,12 @@ public class ConnectorJobHandler implements JobHandler {
               ex,
               Optional.ofNullable(ex.getRetries()).orElse(job.getRetries() - 1),
               errorCode,
-              retryBackoff);
+              Optional.ofNullable(ex.getBackoffDuration()).orElse(retryBackoff));
     } catch (Exception ex) {
       LOGGER.debug(
           "Exception while processing job: {} for tenant: {}", job.getKey(), job.getTenantId(), ex);
       String errorCode = null;
-      if (ex instanceof ConnectorException connectorException
-          && connectorException.getErrorCode() != null) {
+      if (ex instanceof ConnectorException connectorException) {
         errorCode = connectorException.getErrorCode();
       }
       result = handleSDKException(job, ex, job.getRetries() - 1, errorCode, retryBackoff);
