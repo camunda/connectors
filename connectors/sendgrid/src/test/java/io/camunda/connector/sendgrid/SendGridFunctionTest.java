@@ -98,7 +98,7 @@ public class SendGridFunctionTest extends BaseTest {
     // When
     Object execute = function.execute(context);
     // Then no exception and result is null
-    assertThat(execute).isNull();
+    assertThat(execute).isNotNull();
   }
 
   @ParameterizedTest(
