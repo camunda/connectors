@@ -7,8 +7,10 @@
 package io.camunda.connector.sendgrid.model;
 
 import static io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType.Dropdown;
+import static io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType.Text;
 
 import com.sendgrid.helpers.mail.objects.Email;
+import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.DropdownPropertyChoice;
@@ -55,22 +57,29 @@ public class SendGridRequest {
       })
   private MailType mailType;
 
-  public record Template(@NotEmpty String id, @NotEmpty Map<String, Object> data) {}
+  public record Template(
+      @TemplateProperty(label = "Template ID") @NotEmpty String id,
+      @TemplateProperty(label = "Template data", feel = Property.FeelMode.required) @NotEmpty
+          Map<String, Object> data) {}
 
   @NestedProperties(
       group = "content",
-      condition = @PropertyCondition(property = "mailType", equals = "byTemplate"))
+      condition =
+          @PropertyCondition(
+              property = "unMappedFieldNotUseInModel.mailType",
+              equals = "byTemplate"))
   @Valid
   private Template template;
 
   public record Content(
       @TemplateProperty(label = "Subject") @NotEmpty String subject,
-      @TemplateProperty(label = "Content type") @NotEmpty String type,
-      @TemplateProperty(label = "Body") @NotEmpty String value) {}
+      @TemplateProperty(label = "Content type", defaultValue = "text/plain") @NotEmpty String type,
+      @TemplateProperty(label = "Body", type = Text) @NotEmpty String value) {}
 
   @NestedProperties(
       group = "content",
-      condition = @PropertyCondition(property = "mailType", equals = "mail"))
+      condition =
+          @PropertyCondition(property = "unMappedFieldNotUseInModel.mailType", equals = "mail"))
   @Valid
   private Content content;
 
