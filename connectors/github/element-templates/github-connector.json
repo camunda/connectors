@@ -1458,7 +1458,7 @@
       "label": "Body",
       "description": "The contents of the pull request",
       "group": "input",
-      "type": "String",
+      "type": "Text",
       "feel": "optional",
       "value": "",
       "binding": {
