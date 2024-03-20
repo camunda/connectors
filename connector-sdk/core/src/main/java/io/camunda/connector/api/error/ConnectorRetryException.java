@@ -14,9 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.api.error.retry;
+package io.camunda.connector.api.error;
 
-import io.camunda.connector.api.error.ConnectorException;
 import java.io.Serial;
 import java.time.Duration;
 
