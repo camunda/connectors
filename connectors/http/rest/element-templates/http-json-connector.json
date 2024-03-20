@@ -4,7 +4,7 @@
   "id" : "io.camunda.connectors.HttpJson.v2",
   "description" : "Invoke REST API",
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/rest/",
-  "version" : 6,
+  "version" : 7,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -18,7 +18,7 @@
     "label" : "Authentication"
   }, {
     "id" : "endpoint",
-    "label" : "HTTP Endpoint"
+    "label" : "HTTP endpoint"
   }, {
     "id" : "timeout",
     "label" : "Connection timeout"
@@ -193,11 +193,15 @@
     "type" : "String"
   }, {
     "id" : "authentication.oauthTokenEndpoint",
-    "label" : "Oauth token endpoint",
+    "label" : "OAuth 2.0 token endpoint",
     "description" : "The OAuth token endpoint",
     "optional" : false,
     "constraints" : {
-      "notEmpty" : true
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "^(=|http://|https://|secrets|\\{\\{).*$",
+        "message" : "Must be a http(s) URL"
+      }
     },
     "feel" : "optional",
     "group" : "authentication",
@@ -213,7 +217,7 @@
     "type" : "String"
   }, {
     "id" : "authentication.clientId",
-    "label" : "Client id",
+    "label" : "Client ID",
     "description" : "Your application's client ID from the OAuth client",
     "optional" : false,
     "constraints" : {

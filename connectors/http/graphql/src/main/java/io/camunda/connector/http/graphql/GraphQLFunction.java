@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
     name = "GraphQL Outbound Connector",
     description = "Execute GraphQL query",
     inputDataClass = GraphQLRequest.class,
-    version = 5,
+    version = 6,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "endpoint", label = "HTTP Endpoint"),

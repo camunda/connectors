@@ -17,58 +17,22 @@
 package io.camunda.connector.http.base.auth;
 
 import com.google.api.client.http.HttpHeaders;
-import com.google.common.base.Objects;
 import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotEmpty;
 
-@TemplateSubType(id = "bearer", label = "Bearer token")
-public final class BearerAuthentication implements Authentication {
-
-  @FEEL
-  @NotEmpty
-  @TemplateProperty(group = "authentication", label = "Bearer token")
-  private String token;
-
-  @Override
-  public void setHeaders(final HttpHeaders headers) {
-    headers.setAuthorization("Bearer " + token);
-  }
-
-  public String getToken() {
-    return token;
-  }
-
-  public void setToken(String token) {
-    this.token = token;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    if (!super.equals(o)) {
-      return false;
-    }
-    BearerAuthentication that = (BearerAuthentication) o;
-    return Objects.equal(token, that.token);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hashCode(super.hashCode(), token);
-  }
-
-  @Override
-  public String toString() {
-    return "BearerAuthentication{" + "token='[REDACTED]'" + "}; Super: " + super.toString();
-  }
+@TemplateSubType(id = BearerAuthentication.TYPE, label = "Bearer token")
+public record BearerAuthentication(
+    @FEEL @NotEmpty @TemplateProperty(group = "authentication", label = "Bearer token")
+        String token)
+    implements Authentication {
 
   @TemplateProperty(ignore = true)
   public static final String TYPE = "bearer";
+
+  @Override
+  public void setHeaders(HttpHeaders headers) {
+    headers.setAuthorization("Bearer " + token);
+  }
 }

@@ -17,25 +17,23 @@
 package io.camunda.connector.http.base.auth;
 
 import com.google.api.client.http.HttpHeaders;
-import com.google.common.base.Objects;
 import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotEmpty;
 
 @TemplateSubType(id = BasicAuthentication.TYPE, label = "Basic")
-public final class BasicAuthentication implements Authentication {
+public record BasicAuthentication(
+    @FEEL @NotEmpty @TemplateProperty(group = "authentication") String username,
+    @FEEL
+        @TemplateProperty(
+            group = "authentication",
+            constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+        String password)
+    implements Authentication {
 
-  @FEEL
-  @NotEmpty
-  @TemplateProperty(group = "authentication")
-  private String username;
-
-  @FEEL
-  @TemplateProperty(
-      group = "authentication",
-      constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
-  private String password;
+  @TemplateProperty(ignore = true)
+  public static final String TYPE = "basic";
 
   @Override
   public void setHeaders(final HttpHeaders headers) {
@@ -46,52 +44,4 @@ public final class BasicAuthentication implements Authentication {
     }
     headers.setBasicAuthentication(username, passwordForHeader);
   }
-
-  public String getUsername() {
-    return username;
-  }
-
-  public void setUsername(final String username) {
-    this.username = username;
-  }
-
-  public String getPassword() {
-    return password;
-  }
-
-  public void setPassword(final String password) {
-    this.password = password;
-  }
-
-  @Override
-  public boolean equals(final Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    if (!super.equals(o)) {
-      return false;
-    }
-    BasicAuthentication that = (BasicAuthentication) o;
-    return Objects.equal(username, that.username) && Objects.equal(password, that.password);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hashCode(super.hashCode(), username, password);
-  }
-
-  @Override
-  public String toString() {
-    return "BasicAuthentication {"
-        + "username='[REDACTED]'"
-        + ", password='[REDACTED]'"
-        + "}; Super: "
-        + super.toString();
-  }
-
-  @TemplateProperty(ignore = true)
-  public static final String TYPE = "basic";
 }

@@ -46,10 +46,10 @@ import java.io.IOException;
     name = "REST Outbound Connector",
     description = "Invoke REST API",
     inputDataClass = HttpJsonRequest.class,
-    version = 6,
+    version = 7,
     propertyGroups = {
       @PropertyGroup(id = "authentication", label = "Authentication"),
-      @PropertyGroup(id = "endpoint", label = "HTTP Endpoint"),
+      @PropertyGroup(id = "endpoint", label = "HTTP endpoint"),
       @PropertyGroup(id = "timeout", label = "Connection timeout"),
       @PropertyGroup(id = "payload", label = "Payload")
     },

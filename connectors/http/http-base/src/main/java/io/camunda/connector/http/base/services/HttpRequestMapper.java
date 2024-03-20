@@ -46,15 +46,14 @@ public class HttpRequestMapper {
     OAuthAuthentication authentication = (OAuthAuthentication) request.getAuthentication();
 
     HttpHeaders headers = new HttpHeaders();
-    if (authentication.getClientAuthentication().equals(Constants.BASIC_AUTH_HEADER)) {
-      headers.setBasicAuthentication(
-          authentication.getClientId(), authentication.getClientSecret());
+    if (authentication.clientAuthentication().equals(Constants.BASIC_AUTH_HEADER)) {
+      headers.setBasicAuthentication(authentication.clientId(), authentication.clientSecret());
     }
     headers.setContentType(Constants.APPLICATION_X_WWW_FORM_URLENCODED);
 
     return new HttpRequestBuilder()
         .method(HttpMethod.POST)
-        .genericUrl(new GenericUrl(authentication.getOauthTokenEndpoint()))
+        .genericUrl(new GenericUrl(authentication.oauthTokenEndpoint()))
         .content(new UrlEncodedContent(authentication.getDataForAuthRequestBody()))
         .headers(headers)
         .connectionTimeoutInSeconds(request.getConnectionTimeoutInSeconds())
