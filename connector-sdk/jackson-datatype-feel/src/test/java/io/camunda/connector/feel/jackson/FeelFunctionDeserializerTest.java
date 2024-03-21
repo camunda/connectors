@@ -196,6 +196,24 @@ public class FeelFunctionDeserializerTest {
     assertThat(result.result).isEqualTo("foobar");
   }
 
+  @Test
+  void feelFunctionDeserialization_contextAware_knowsJava8Time() throws IOException {
+    // given
+    var json = """
+        { "function": "= string(date(2021, 1, 1))" }
+        """;
+    var contextualReader =
+        FeelContextAwareObjectReader.of(mapper).withStaticContext(Map.of("c", "bar"));
+
+    // when
+    TargetTypeJava8Time targetType = contextualReader.readValue(json, TargetTypeJava8Time.class);
+
+    // then
+    InputContextInteger inputContext = new InputContextInteger(3, 5);
+    LocalDate result = targetType.function().apply(inputContext);
+    assertThat(result).isEqualTo(LocalDate.of(2021, 1, 1));
+  }
+
   private record InputContextString(String a, String b) {}
 
   private record InputContextInteger(Integer a, Integer b) {}
