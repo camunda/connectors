@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name": "GitHub Outbound Connector",
   "id": "io.camunda.connectors.GitHub.v1",
-  "version": 6,
+  "version": 7,
   "description": "Manage issues, branches, releases, and more",
   "icon": {
     "contents": "data:image/svg+xml;utf8,%3Csvg width='98' height='96' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M48.854 0C21.839 0 0 22 0 49.217c0 21.756 13.993 40.172 33.405 46.69 2.427.49 3.316-1.059 3.316-2.362 0-1.141-.08-5.052-.08-9.127-13.59 2.934-16.42-5.867-16.42-5.867-2.184-5.704-5.42-7.17-5.42-7.17-4.448-3.015.324-3.015.324-3.015 4.934.326 7.523 5.052 7.523 5.052 4.367 7.496 11.404 5.378 14.235 4.074.404-3.178 1.699-5.378 3.074-6.6-10.839-1.141-22.243-5.378-22.243-24.283 0-5.378 1.94-9.778 5.014-13.2-.485-1.222-2.184-6.275.486-13.038 0 0 4.125-1.304 13.426 5.052a46.97 46.97 0 0 1 12.214-1.63c4.125 0 8.33.571 12.213 1.63 9.302-6.356 13.427-5.052 13.427-5.052 2.67 6.763.97 11.816.485 13.038 3.155 3.422 5.015 7.822 5.015 13.2 0 18.905-11.404 23.06-22.324 24.283 1.78 1.548 3.316 4.481 3.316 9.126 0 6.6-.08 11.897-.08 13.526 0 1.304.89 2.853 3.316 2.364 19.412-6.52 33.405-24.935 33.405-46.691C97.707 22 75.788 0 48.854 0z' fill='%2324292f'/%3E%3C/svg%3E"
@@ -245,6 +245,10 @@
         {
           "name": "Create an organization invitation",
           "value": "orgInvitation"
+        },
+        {
+          "name": "Get repository content",
+          "value": "getRepoContent"
         }
       ],
       "condition": {
@@ -488,7 +492,8 @@
           "searchIssues",
           "getIssue",
           "listCommits",
-          "listCollaborators"
+          "listCollaborators",
+          "getRepoContent"
         ]
       }
     },
@@ -529,7 +534,8 @@
           "createWorkflowDispatchEvent",
           "createReference",
           "createPullRequest",
-          "listCollaborators"
+          "listCollaborators",
+          "getRepoContent"
         ]
       }
     },
@@ -570,7 +576,8 @@
           "createWorkflowDispatchEvent",
           "createReference",
           "createPullRequest",
-          "listCollaborators"
+          "listCollaborators",
+          "getRepoContent"
         ]
       }
     },
@@ -1372,8 +1379,10 @@
       },
       "constraints": {
         "notEmpty": true,
-        "minLength": 40,
-        "maxLength": 40
+        "pattern": {
+          "value": "^(=.+|.{40})",
+          "message": "must consist of 40 characters."
+        }
       },
       "condition": {
         "property": "operationType",
@@ -1449,7 +1458,7 @@
       "label": "Body",
       "description": "The contents of the pull request",
       "group": "input",
-      "type": "String",
+      "type": "Text",
       "feel": "optional",
       "value": "",
       "binding": {
@@ -1531,6 +1540,46 @@
         "property": "operationType",
         "oneOf": [
           "listCollaborators"
+        ]
+      }
+    },
+    {
+      "label": "Path",
+      "description": "The path of the content within the repository",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "value": "",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "contentPath"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "getRepoContent"
+        ]
+      }
+    },
+    {
+      "label": "Ref",
+      "description": "The name of the commit/branch/tag. Default: the repository's main branch",
+      "group": "input",
+      "type": "String",
+      "feel": "optional",
+      "value": "",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "ref"
+      },
+      "optional": true,
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "getRepoContent"
         ]
       }
     },
@@ -1719,6 +1768,21 @@
         "property": "operationType",
         "oneOf": [
           "listCollaborators"
+        ]
+      }
+    },
+    {
+      "group": "input",
+      "type": "Hidden",
+      "value": "={\"ref\": if ref = null then null else ref}",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "queryParameters"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "getRepoContent"
         ]
       }
     },
@@ -2075,6 +2139,25 @@
       }
     },
     {
+      "label": "Result expression",
+      "id": "resultExpressionGetContent",
+      "description": "Expression to map the response into process variables. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/#result-expression\" target=\"_blank\">documentation</a>",
+      "group": "output",
+      "type": "String",
+      "feel": "required",
+      "value": "={repositoryContent: response.body}",
+      "binding": {
+        "type": "zeebe:taskHeader",
+        "key": "resultExpression"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "getRepoContent"
+        ]
+      }
+    },
+    {
       "label": "Connection timeout",
       "description": "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
       "group": "errors",
@@ -2399,6 +2482,20 @@
         "property": "operationType",
         "oneOf": [
           "listCollaborators"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "=baseUrl + \"/repos/\" + owner + \"/\" + repo + \"/contents/\" + contentPath",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "url"
+      },
+      "condition": {
+        "property": "operationType",
+        "oneOf": [
+          "getRepoContent"
         ]
       }
     },
