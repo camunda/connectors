@@ -43,9 +43,9 @@ public record CreateChannel(
             type = TemplateProperty.PropertyType.Dropdown,
             defaultValue = "standard",
             choices = {
-              @TemplateProperty.DropdownPropertyChoice(value = "standard", label = "STANDARD"),
-              @TemplateProperty.DropdownPropertyChoice(value = "private", label = "PRIVATE"),
-              @TemplateProperty.DropdownPropertyChoice(value = "shared", label = "SHARED")
+              @TemplateProperty.DropdownPropertyChoice(value = "standard", label = "Standard"),
+              @TemplateProperty.DropdownPropertyChoice(value = "private", label = "Private"),
+              @TemplateProperty.DropdownPropertyChoice(value = "shared", label = "Shared")
             },
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             description = "Choose type")

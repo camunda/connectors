@@ -856,13 +856,13 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "STANDARD",
+      "name" : "Standard",
       "value" : "standard"
     }, {
-      "name" : "PRIVATE",
+      "name" : "Private",
       "value" : "private"
     }, {
-      "name" : "SHARED",
+      "name" : "Shared",
       "value" : "shared"
     } ]
   }, {
