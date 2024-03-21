@@ -201,7 +201,7 @@ public class FeelFunctionDeserializerTest {
   }
 
   @Test
-  void feelFunctionDeserlization_contextAware_knowsJava8Time() throws IOException {
+  void feelFunctionDeserialization_contextAware_knowsJava8Time() throws IOException {
     // given
     var json = """
         { "function": "= string(date(2021, 1, 1))" }

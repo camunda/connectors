@@ -357,6 +357,22 @@ class ConnectorJobHandlerTest {
       }
 
       @Test
+      void shouldSucceed_MappingFromScalarToContext() {
+        // given
+        var jobHandler = newConnectorJobHandler((context) -> "FOO");
+        var resultExpression = "{processedOutput: response}";
+
+        // when
+        var result =
+            JobBuilder.create()
+                .withResultExpressionHeader(resultExpression)
+                .executeAndCaptureResult(jobHandler);
+
+        // then
+        assertThat(result.getVariables()).isEqualTo(Map.of("processedOutput", "FOO"));
+      }
+
+      @Test
       void shouldFail_MappingFromScalar() {
         // given
         var jobHandler = newConnectorJobHandler((context) -> "FOO");
@@ -369,7 +385,7 @@ class ConnectorJobHandlerTest {
                 .executeAndCaptureResult(jobHandler, false);
 
         // then
-        assertThat(result.getErrorMessage()).contains("Unable to parse 'FOO' as context");
+        assertThat(result.getErrorMessage()).contains("Cannot parse '\"FOO\"' as 'java.util.Map'");
       }
 
       @Test

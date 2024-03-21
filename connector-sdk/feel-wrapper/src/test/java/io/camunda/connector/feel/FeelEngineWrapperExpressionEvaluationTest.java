@@ -179,19 +179,17 @@ class FeelEngineWrapperExpressionEvaluationTest {
   }
 
   @Test
-  void evaluateToJson_ShouldFail_WhenVariablesAreNotMap() {
+  void evaluateToJson_ShouldNotFail_WhenVariablesAreNotMap() throws JSONException {
     // given
     // FEEL expression -> {"processedOutput":response.callStatus}
     final var resultExpression = "{\"processedOutput\": response.callStatus }";
 
     // when & then
-    final var exception =
-        Assertions.catchThrowable(
-            () -> objectUnderTest.evaluateToJson(resultExpression, "I am not a map"));
+    final var evaluatedResultAsJson =
+        objectUnderTest.evaluateToJson(resultExpression, "I am not a map");
 
-    Assertions.assertThat(exception)
-        .isInstanceOf(FeelEngineWrapperException.class)
-        .hasMessageContaining("Unable to parse 'I am not a map' as context");
+    JSONAssert.assertEquals(
+        "{\"processedOutput\": null}", evaluatedResultAsJson, JSONCompareMode.STRICT);
   }
 
   @Test

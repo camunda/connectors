@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -93,18 +94,26 @@ public class FeelEngineWrapper {
     return scala.collection.immutable.Map.from(CollectionConverters.asScala(context));
   }
 
-  private Map<String, Object> ensureVariablesMap(final Object[] variables) {
+  private Map<String, Object> mergeMapVariables(final Object[] variables) {
     try {
       Objects.requireNonNull(variables, ERROR_CONTEXT_IS_NULL);
       Map<String, Object> variablesMap = new HashMap<>();
       for (Object o : variables) {
         Objects.requireNonNull(o, ERROR_CONTEXT_IS_NULL);
-        variablesMap.putAll(objectMapper.convertValue(o, MAP_TYPE_REFERENCE));
+        tryConvertToMap(o).ifPresent(variablesMap::putAll);
       }
       return variablesMap;
     } catch (IllegalArgumentException ex) {
       throw new IllegalArgumentException(
           String.format("Unable to parse '%s' as context", variables), ex);
+    }
+  }
+
+  private Optional<Map<String, Object>> tryConvertToMap(Object o) {
+    try {
+      return Optional.of(objectMapper.convertValue(o, MAP_TYPE_REFERENCE));
+    } catch (IllegalArgumentException ex) {
+      return Optional.empty();
     }
   }
 
@@ -267,7 +276,7 @@ public class FeelEngineWrapper {
   }
 
   private Object evaluateInternal(final String expression, final Object[] variables) {
-    var variablesAsMap = ensureVariablesMap(variables);
+    var variablesAsMap = mergeMapVariables(variables);
     var variablesAsMapAsScalaMap = toScalaMap(variablesAsMap);
 
     var result = feelEngine.evalExpression(trimExpression(expression), variablesAsMapAsScalaMap);
