@@ -29,7 +29,7 @@
     <version.zeebe-process-test>8.3.0</version.zeebe-process-test>
     <version.commons-text>1.11.0</version.commons-text>
     <version.commons-lang3>3.14.0</version.commons-lang3>
-    <version.spring-boot>3.2.3</version.spring-boot>
+    <version.spring-boot>3.2.4</version.spring-boot>
   </properties>
 
   <dependencyManagement>
