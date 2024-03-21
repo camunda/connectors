@@ -18,6 +18,7 @@ import com.microsoft.graph.requests.ChatMessageCollectionResponse;
 import com.microsoft.graph.requests.GraphServiceClient;
 import com.microsoft.graph.requests.TeamRequestBuilder;
 import io.camunda.connector.BaseTest;
+import io.camunda.connector.model.request.data.ListChannelMessages;
 import okhttp3.Request;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -53,16 +54,17 @@ class ListChannelMessagesTest extends BaseTest {
     when(chatMessageCollectionRequest.get())
         .thenReturn(new ChatMessageCollectionPage(new ChatMessageCollectionResponse(), null));
 
-    ListChannelMessages listChannelMessages = new ListChannelMessages();
-    listChannelMessages.setGroupId(ActualValue.Channel.GROUP_ID);
-    listChannelMessages.setChannelId(ActualValue.Channel.CHANNEL_ID);
-    listChannelMessages.setIsExpand(Boolean.TRUE.toString());
-    listChannelMessages.setTop(ActualValue.Channel.TOP);
+    ListChannelMessages listChannelMessages =
+        new ListChannelMessages(
+            ActualValue.Channel.GROUP_ID,
+            ActualValue.Channel.CHANNEL_ID,
+            ActualValue.Channel.TOP,
+            Boolean.TRUE.toString());
     // When
-    ChatMessageCollectionPage invoke = listChannelMessages.invoke(graphServiceClient);
+    Object result = operationFactory.getService(listChannelMessages).invoke(graphServiceClient);
     // Then
     verify(chatMessageCollectionRequest).top(Integer.parseInt(ActualValue.Channel.TOP));
     verify(chatMessageCollectionRequest).expand("replies");
-    assertThat(invoke).isNotNull();
+    assertThat(result).isNotNull();
   }
 }

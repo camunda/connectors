@@ -15,6 +15,7 @@ import com.microsoft.graph.requests.ChatMessageCollectionRequestBuilder;
 import com.microsoft.graph.requests.ChatRequestBuilder;
 import com.microsoft.graph.requests.GraphServiceClient;
 import io.camunda.connector.BaseTest;
+import io.camunda.connector.model.request.data.SendMessageInChat;
 import okhttp3.Request;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,9 +44,7 @@ class SendMessageInChatTest extends BaseTest {
 
   @BeforeEach
   public void init() {
-    sendMessageInChat = new SendMessageInChat();
-    sendMessageInChat.setChatId(ActualValue.Chat.CHAT_ID);
-    sendMessageInChat.setContent("content");
+    sendMessageInChat = new SendMessageInChat(ActualValue.Chat.CHAT_ID, "content", null);
 
     Mockito.when(graphServiceClient.chats(ActualValue.Chat.CHAT_ID)).thenReturn(chatRequestBuilder);
     Mockito.when(chatRequestBuilder.messages()).thenReturn(chatMessageCollectionRequestBuilder);
@@ -64,9 +63,8 @@ class SendMessageInChatTest extends BaseTest {
   @Test
   public void invoke_shouldSetTextBodyTypeByDefault() {
     // Given SendMessageInChat without bodyType
-    sendMessageInChat.setBodyType(null);
     // When
-    sendMessageInChat.invoke(graphServiceClient);
+    operationFactory.getService(sendMessageInChat).invoke(graphServiceClient);
     // Then
     ChatMessage chatMessage = chatMessageCaptor.getValue();
     assertThat(chatMessage.body.contentType).isEqualTo(BodyType.TEXT);
@@ -76,9 +74,9 @@ class SendMessageInChatTest extends BaseTest {
   @ValueSource(strings = {"html", "HTML", "text", "TexT"})
   public void invoke_shouldSetTextBodyType(String input) {
     // Given
-    sendMessageInChat.setBodyType(input);
+    sendMessageInChat = new SendMessageInChat(ActualValue.Chat.CHAT_ID, "content", input);
     // When
-    sendMessageInChat.invoke(graphServiceClient);
+    operationFactory.getService(sendMessageInChat).invoke(graphServiceClient);
     // Then
     ChatMessage chatMessage = chatMessageCaptor.getValue();
     assertThat(chatMessage.body.contentType).isEqualTo(BodyType.valueOf(input.toUpperCase()));

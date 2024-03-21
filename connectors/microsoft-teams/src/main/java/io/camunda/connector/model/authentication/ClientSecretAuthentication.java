@@ -6,76 +6,39 @@
  */
 package io.camunda.connector.model.authentication;
 
-import com.microsoft.graph.requests.GraphServiceClient;
-import io.camunda.connector.suppliers.GraphServiceClientSupplier;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
-import java.util.Objects;
-import okhttp3.Request;
 
-public class ClientSecretAuthentication extends MSTeamsAuthentication {
-  @NotBlank private String clientId;
-  @NotBlank private String tenantId;
-  @NotBlank private String clientSecret;
-
-  @Override
-  public GraphServiceClient<Request> buildAndGetGraphServiceClient(
-      final GraphServiceClientSupplier clientSupplier) {
-    return clientSupplier.buildAndGetGraphServiceClient(this);
-  }
-
-  public String getClientId() {
-    return clientId;
-  }
-
-  public void setClientId(final String clientId) {
-    this.clientId = clientId;
-  }
-
-  public String getTenantId() {
-    return tenantId;
-  }
-
-  public void setTenantId(final String tenantId) {
-    this.tenantId = tenantId;
-  }
-
-  public String getClientSecret() {
-    return clientSecret;
-  }
-
-  public void setClientSecret(final String clientSecret) {
-    this.clientSecret = clientSecret;
-  }
-
-  @Override
-  public boolean equals(final Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    final ClientSecretAuthentication that = (ClientSecretAuthentication) o;
-    return Objects.equals(clientId, that.clientId)
-        && Objects.equals(tenantId, that.tenantId)
-        && Objects.equals(clientSecret, that.clientSecret);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(clientId, tenantId, clientSecret);
-  }
+@TemplateSubType(label = "Client credentials", id = "clientCredentials")
+public record ClientSecretAuthentication(
+    @NotBlank
+        @TemplateProperty(
+            group = "authentication",
+            id = "credentials.clientId",
+            label = "Client ID",
+            description = "The client ID of the application")
+        String clientId,
+    @NotBlank
+        @TemplateProperty(
+            group = "authentication",
+            id = "credentials.tenantId",
+            label = "Tenant ID",
+            description = "The tenant ID of the application")
+        String tenantId,
+    @NotBlank
+        @TemplateProperty(
+            group = "authentication",
+            id = "credentials.clientSecret",
+            label = "Client secret",
+            description = "The secret value of the Azure AD application")
+        String clientSecret)
+    implements MSTeamsAuthentication {
 
   @Override
   public String toString() {
-    return "ClientSecretAuthentication{"
-        + "clientId='"
-        + clientId
-        + "'"
-        + ", tenantId='"
-        + tenantId
-        + "'"
-        + ", clientSecret='[client secret]'"
-        + "}";
+    return String.format(
+        "ClientSecretAuthentication{clientId='%s', tenantId='%s', clientSecret='%s'}",
+        clientId, tenantId, "[REDACTED]");
   }
 }

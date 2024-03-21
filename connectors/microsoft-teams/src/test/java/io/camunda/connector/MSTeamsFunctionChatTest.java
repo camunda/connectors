@@ -10,7 +10,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.microsoft.graph.models.Chat;
 import com.microsoft.graph.models.ChatMessage;
 import com.microsoft.graph.requests.ChatCollectionPage;
@@ -28,8 +27,7 @@ import com.microsoft.graph.requests.ConversationMemberCollectionRequest;
 import com.microsoft.graph.requests.ConversationMemberCollectionRequestBuilder;
 import com.microsoft.graph.requests.GraphServiceClient;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
-import io.camunda.connector.model.authentication.ClientSecretAuthentication;
-import io.camunda.connector.model.authentication.RefreshTokenAuthentication;
+import io.camunda.connector.model.authentication.MSTeamsAuthentication;
 import io.camunda.connector.suppliers.GraphServiceClientSupplier;
 import java.util.ArrayList;
 import java.util.List;
@@ -68,14 +66,7 @@ class MSTeamsFunctionChatTest extends BaseTest {
   public void init() {
     function = new MSTeamsFunction(graphServiceClientSupplier);
 
-    when(graphServiceClientSupplier.buildAndGetGraphServiceClient(
-            any(ClientSecretAuthentication.class)))
-        .thenReturn(graphServiceClient);
-    when(graphServiceClientSupplier.buildAndGetGraphServiceClient(
-            ActualValue.Authentication.BEARER_TOKEN))
-        .thenReturn(graphServiceClient);
-    when(graphServiceClientSupplier.buildAndGetGraphServiceClient(
-            any(RefreshTokenAuthentication.class)))
+    when(graphServiceClientSupplier.buildAndGetGraphServiceClient(any(MSTeamsAuthentication.class)))
         .thenReturn(graphServiceClient);
 
     // create chat
@@ -112,7 +103,7 @@ class MSTeamsFunctionChatTest extends BaseTest {
 
   @ParameterizedTest
   @MethodSource("executeSuccessWorkWithChatTestCases")
-  public void execute_shouldExecuteAndReturnResponse(String input) throws JsonProcessingException {
+  public void execute_shouldExecuteAndReturnResponse(String input) {
     OutboundConnectorContext context = getContextBuilderWithSecrets().variables(input).build();
     Object execute = function.execute(context);
     assertThat(execute).isNotNull();

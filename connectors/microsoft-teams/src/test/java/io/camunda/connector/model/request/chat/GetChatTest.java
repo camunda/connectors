@@ -17,6 +17,7 @@ import com.microsoft.graph.requests.ChatRequest;
 import com.microsoft.graph.requests.ChatRequestBuilder;
 import com.microsoft.graph.requests.GraphServiceClient;
 import io.camunda.connector.BaseTest;
+import io.camunda.connector.model.request.data.GetChat;
 import io.camunda.connector.suppliers.ObjectMapperSupplier;
 import okhttp3.Request;
 import org.junit.jupiter.api.Test;
@@ -47,14 +48,12 @@ class GetChatTest extends BaseTest {
 
     when(chatRequest.get()).thenReturn(new Chat());
 
-    GetChat getChat = new GetChat();
-    getChat.setChatId(ActualValue.Chat.CHAT_ID);
-    getChat.setExpand("members");
+    GetChat getChat = new GetChat(ActualValue.Chat.CHAT_ID, "members");
     // When
-    Object invoke = getChat.invoke(graphServiceClient);
+    Object result = operationFactory.getService(getChat).invoke(graphServiceClient);
     // Then
     verify(chatRequest).expand("members");
-    assertThat(invoke).isNotNull();
+    assertThat(result).isNotNull();
   }
 
   @Test
@@ -70,13 +69,12 @@ class GetChatTest extends BaseTest {
     when(chatRequestBuilder.buildRequest()).thenReturn(chatRequest);
 
     when(chatRequest.get()).thenReturn(chat);
-    GetChat getChat = new GetChat();
-    getChat.setChatId(ActualValue.Chat.CHAT_ID);
+    GetChat getChat = new GetChat(ActualValue.Chat.CHAT_ID, null);
     // When
-    Object invoke = getChat.invoke(graphServiceClient);
+    Object result = operationFactory.getService(getChat).invoke(graphServiceClient);
     // Then
-    assertThat(invoke).isNotNull();
-    assertThat(objectMapper.writer().writeValueAsString(invoke))
+    assertThat(result).isNotNull();
+    assertThat(objectMapper.writer().writeValueAsString(result))
         .isEqualTo(
             "{\"id\":\"19:e37f90808e7748d7bbbb2029ed17f643@thread.v2\",\"chatType\":\"GROUP\"}");
   }

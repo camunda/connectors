@@ -40,11 +40,12 @@ class GraphServiceClientSupplierTest extends BaseTest {
   @BeforeEach
   public void init() {
     supplier = new GraphServiceClientSupplier(okHttpClient);
-    authentication = new RefreshTokenAuthentication();
-    authentication.setToken(ActualValue.Authentication.REFRESH_TOKEN);
-    authentication.setClientSecret(ActualValue.Authentication.CLIENT_SECRET);
-    authentication.setClientId(ActualValue.Authentication.CLIENT_ID);
-    authentication.setTenantId(ActualValue.Authentication.TENANT_ID);
+    authentication =
+        new RefreshTokenAuthentication(
+            ActualValue.Authentication.CLIENT_ID,
+            ActualValue.Authentication.TENANT_ID,
+            ActualValue.Authentication.CLIENT_SECRET,
+            ActualValue.Authentication.REFRESH_TOKEN);
     request = new Request.Builder().url("https://url.com").build();
     when(okHttpClient.newCall(any(Request.class))).thenReturn(call);
   }

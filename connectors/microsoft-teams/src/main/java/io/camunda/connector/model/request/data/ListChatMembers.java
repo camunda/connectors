@@ -4,21 +4,20 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.model.authentication;
+package io.camunda.connector.model.request.data;
 
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
+import io.camunda.connector.model.MSTeamsMethodTypes;
 import jakarta.validation.constraints.NotBlank;
 
-@TemplateSubType(label = "Bearer token", id = "token")
-public record BearerAuthentication(
+@TemplateSubType(label = "List chat members", id = MSTeamsMethodTypes.LIST_CHAT_MEMBERS)
+public record ListChatMembers(
     @NotBlank
-        @TemplateProperty(id = "bearer.token", group = "authentication", label = "Bearer token")
-        String token)
-    implements MSTeamsAuthentication {
-
-  @Override
-  public String toString() {
-    return "BearerAuthentication{token='[REDACTED]'}";
-  }
-}
+        @TemplateProperty(
+            group = "data",
+            id = "listChatMembers.chatId",
+            label = "Chat ID",
+            description = "The chat ID")
+        String chatId)
+    implements ChatData {}

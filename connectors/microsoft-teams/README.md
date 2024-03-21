@@ -149,4 +149,4 @@ See [Microsoft Graph API documentation](https://learn.microsoft.com/en-us/graph/
 
 ## Element Template
 
-The element templates can be found in the [element-templates/microsoft-teams-connector.json](element-templates/microsoft-teams-connector.json) file.
+The element templates can be found in the [element-templates/microsoft-teams-outbound-connector.json](element-templates/microsoft-teams-outbound-connector.json) file.
