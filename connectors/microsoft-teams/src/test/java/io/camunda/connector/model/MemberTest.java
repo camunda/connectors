@@ -8,7 +8,6 @@ package io.camunda.connector.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.google.gson.JsonPrimitive;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -16,7 +15,7 @@ class MemberTest {
 
   @ParameterizedTest
   @ValueSource(strings = {"24e52453sdgsdtr", "name@mail.com", "!!!)))__"})
-  public void getAsGraphJsonPrimitive_shouldReturnCorrectValue(String input) {
+  public void getAsAdditionalDataValue_shouldReturnCorrectValue(String input) {
     // Given members and input value
     Member member = new Member();
     member.setUserId(input);
@@ -26,9 +25,9 @@ class MemberTest {
     member_2.setUserId(null);
     member_2.setUserPrincipalName(input);
     // When
-    JsonPrimitive fromUser = member.getAsGraphJsonPrimitive();
-    JsonPrimitive fromPrincipalName = member_2.getAsGraphJsonPrimitive();
-    JsonPrimitive fromValue = Member.toGraphJsonPrimitive(input);
+    String fromUser = member.getAsAdditionalDataValue();
+    String fromPrincipalName = member_2.getAsAdditionalDataValue();
+    String fromValue = Member.toAdditionalDataValue(input);
     // Then
     assertThat(fromUser).isEqualTo(fromPrincipalName).isEqualTo(fromValue);
   }

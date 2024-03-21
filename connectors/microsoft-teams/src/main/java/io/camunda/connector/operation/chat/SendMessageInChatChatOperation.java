@@ -9,23 +9,23 @@ package io.camunda.connector.operation.chat;
 import com.microsoft.graph.models.BodyType;
 import com.microsoft.graph.models.ChatMessage;
 import com.microsoft.graph.models.ItemBody;
-import com.microsoft.graph.requests.GraphServiceClient;
+import com.microsoft.graph.serviceclient.GraphServiceClient;
 import io.camunda.connector.model.request.data.SendMessageInChat;
+import java.util.Locale;
 import java.util.Optional;
-import okhttp3.Request;
 import org.apache.commons.text.StringEscapeUtils;
 
 public record SendMessageInChatChatOperation(SendMessageInChat model) implements ChatOperation {
   @Override
-  public Object invoke(final GraphServiceClient<Request> graphClient) {
+  public Object invoke(final GraphServiceClient graphClient) {
     ChatMessage chatMessage = new ChatMessage();
     ItemBody body = new ItemBody();
-    body.contentType =
+    body.setContentType(
         Optional.ofNullable(model.bodyType())
-            .map(type -> BodyType.valueOf(type.toUpperCase()))
-            .orElse(BodyType.TEXT);
-    body.content = StringEscapeUtils.unescapeJson(model.content());
-    chatMessage.body = body;
-    return graphClient.chats(model.chatId()).messages().buildRequest().post(chatMessage);
+            .map(type -> BodyType.forValue(type.toLowerCase(Locale.ROOT)))
+            .orElse(BodyType.Text));
+    body.setContent(StringEscapeUtils.unescapeJson(model.content()));
+    chatMessage.setBody(body);
+    return graphClient.chats().byChatId(model.chatId()).messages().post(chatMessage);
   }
 }

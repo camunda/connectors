@@ -6,13 +6,12 @@
  */
 package io.camunda.connector.operation.chat;
 
-import com.microsoft.graph.requests.GraphServiceClient;
+import com.microsoft.graph.serviceclient.GraphServiceClient;
 import io.camunda.connector.model.request.data.ListChatMembers;
-import okhttp3.Request;
 
 public record ListChatMembersChatOperation(ListChatMembers model) implements ChatOperation {
   @Override
-  public Object invoke(final GraphServiceClient<Request> graphClient) {
-    return graphClient.chats(model.chatId()).members().buildRequest().get();
+  public Object invoke(final GraphServiceClient graphClient) {
+    return graphClient.chats().byChatId(model.chatId()).members().get();
   }
 }

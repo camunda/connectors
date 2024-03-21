@@ -8,13 +8,12 @@ package io.camunda.connector.operation.chat;
 
 import static io.camunda.connector.RemoveNullFieldsUtil.removeNullFieldsInObject;
 
-import com.microsoft.graph.requests.GraphServiceClient;
+import com.microsoft.graph.serviceclient.GraphServiceClient;
 import io.camunda.connector.model.request.data.ListChats;
-import okhttp3.Request;
 
-public record ListChatsChatOperation(ListChats model) implements ChatOperation {
+public record ListChatsOperation(ListChats model) implements ChatOperation {
   @Override
-  public Object invoke(final GraphServiceClient<Request> graphClient) {
-    return removeNullFieldsInObject(graphClient.chats().buildRequest().get());
+  public Object invoke(final GraphServiceClient graphClient) {
+    return removeNullFieldsInObject(graphClient.chats().get());
   }
 }

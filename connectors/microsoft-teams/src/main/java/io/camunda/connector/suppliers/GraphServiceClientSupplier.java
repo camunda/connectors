@@ -6,25 +6,26 @@
  */
 package io.camunda.connector.suppliers;
 
+import com.azure.core.credential.AccessToken;
+import com.azure.core.credential.TokenCredential;
+import com.azure.core.credential.TokenRequestContext;
 import com.azure.identity.ClientSecretCredential;
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.microsoft.graph.authentication.IAuthenticationProvider;
-import com.microsoft.graph.authentication.TokenCredentialAuthProvider;
-import com.microsoft.graph.requests.GraphServiceClient;
+import com.microsoft.graph.serviceclient.GraphServiceClient;
 import io.camunda.connector.model.authentication.BearerAuthentication;
 import io.camunda.connector.model.authentication.ClientSecretAuthentication;
 import io.camunda.connector.model.authentication.MSTeamsAuthentication;
 import io.camunda.connector.model.authentication.RefreshTokenAuthentication;
 import java.io.IOException;
-import java.net.URL;
-import java.util.concurrent.CompletableFuture;
+import java.time.OffsetDateTime;
 import okhttp3.FormBody;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import org.jetbrains.annotations.NotNull;
+import reactor.core.publisher.Mono;
 
 public class GraphServiceClientSupplier {
 
@@ -36,6 +37,7 @@ public class GraphServiceClientSupplier {
   private static final String CONTENT_TYPE = "Content-Type";
   private static final String X_WWW_FORM_URLENCODED = "application/x-www-form-urlencoded";
   private static final String ACCESS_TOKEN = "access_token";
+  private static final String DEFAULT_SCOPE = "https://graph.microsoft.com/.default";
 
   private final OkHttpClient okHttpClient;
 
@@ -47,39 +49,32 @@ public class GraphServiceClientSupplier {
     this.okHttpClient = okHttpClient;
   }
 
-  public GraphServiceClient<Request> buildAndGetGraphServiceClient(
+  public GraphServiceClient buildAndGetGraphServiceClient(
       final ClientSecretAuthentication authentication) {
 
-    ClientSecretCredential build =
+    ClientSecretCredential credential =
         new ClientSecretCredentialBuilder()
             .tenantId(authentication.tenantId())
             .clientId(authentication.clientId())
             .clientSecret(authentication.clientSecret())
             .build();
 
-    TokenCredentialAuthProvider tokenCredentialAuthProvider =
-        new TokenCredentialAuthProvider(build);
-    return GraphServiceClient.builder()
-        .authenticationProvider(tokenCredentialAuthProvider)
-        .buildClient();
+    return new GraphServiceClient(credential, DEFAULT_SCOPE);
   }
 
-  public GraphServiceClient<Request> buildAndGetGraphServiceClient(
+  public GraphServiceClient buildAndGetGraphServiceClient(
       final RefreshTokenAuthentication authentication) {
     return buildAndGetGraphServiceClient(getAccessToken(buildRequest(authentication)));
   }
 
-  public GraphServiceClient<Request> buildAndGetGraphServiceClient(
+  public GraphServiceClient buildAndGetGraphServiceClient(
       final BearerAuthentication bearerAuthentication) {
-    return GraphServiceClient.builder()
-        .authenticationProvider(new DelegateAuthenticationProvider(bearerAuthentication.token()))
-        .buildClient();
+    return new GraphServiceClient(
+        new DelegateAuthenticationProvider(bearerAuthentication.token()), DEFAULT_SCOPE);
   }
 
-  public GraphServiceClient<Request> buildAndGetGraphServiceClient(final String token) {
-    return GraphServiceClient.builder()
-        .authenticationProvider(new DelegateAuthenticationProvider(token))
-        .buildClient();
+  public GraphServiceClient buildAndGetGraphServiceClient(final String token) {
+    return new GraphServiceClient((new DelegateAuthenticationProvider(token)), DEFAULT_SCOPE);
   }
 
   @NotNull
@@ -115,7 +110,7 @@ public class GraphServiceClientSupplier {
     }
   }
 
-  public GraphServiceClient<Request> buildAndGetGraphServiceClient(
+  public GraphServiceClient buildAndGetGraphServiceClient(
       final MSTeamsAuthentication authentication) {
     if (authentication instanceof ClientSecretAuthentication clientSecretAuthentication) {
       return buildAndGetGraphServiceClient(clientSecretAuthentication);
@@ -127,17 +122,21 @@ public class GraphServiceClientSupplier {
     return null;
   }
 
-  public static class DelegateAuthenticationProvider implements IAuthenticationProvider {
+  public static class DelegateAuthenticationProvider implements TokenCredential {
     private final String token;
 
     public DelegateAuthenticationProvider(String token) {
       this.token = token;
     }
 
-    @NotNull
     @Override
-    public CompletableFuture<String> getAuthorizationTokenAsync(@NotNull URL url) {
-      return CompletableFuture.completedFuture(token);
+    public Mono<AccessToken> getToken(final TokenRequestContext tokenRequestContext) {
+      return Mono.just(new AccessToken(token, OffsetDateTime.MAX));
+    }
+
+    @Override
+    public AccessToken getTokenSync(final TokenRequestContext request) {
+      return new AccessToken(token, OffsetDateTime.MAX);
     }
   }
 }

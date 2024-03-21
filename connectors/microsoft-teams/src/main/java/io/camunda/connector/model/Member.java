@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.model;
 
-import com.google.gson.JsonPrimitive;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
@@ -17,8 +16,6 @@ public class Member {
 
   public static final String USER_DATA_BIND = "user@odata.bind";
   public static final String USER_DATA_TYPE = "@odata.type";
-  public static final JsonPrimitive USER_CONVERSATION_MEMBER =
-      new JsonPrimitive("#microsoft.graph.aadUserConversationMember");
   public static final List<String> OWNER_ROLES = List.of("owner");
 
   private String userId;
@@ -33,20 +30,17 @@ public class Member {
         && !userPrincipalName.isBlank();
   }
 
-  public JsonPrimitive getAsGraphJsonPrimitive() {
-    return new JsonPrimitive(
-        "https://graph.microsoft.com/v1.0/users('"
-            + Optional.ofNullable(userId).orElse(userPrincipalName)
-            + "')");
+  public String getAsAdditionalDataValue() {
+    return "https://graph.microsoft.com/v1.0/users('"
+        + Optional.ofNullable(userId).orElse(userPrincipalName)
+        + "')";
   }
 
-  public static JsonPrimitive toGraphJsonPrimitive(final String user) {
-    return new JsonPrimitive(
-        "https://graph.microsoft.com/v1.0/users('"
-            + Optional.ofNullable(user)
-                .orElseThrow(
-                    () -> new NullPointerException("Must be userId or user principal name"))
-            + "')");
+  public static String toAdditionalDataValue(final String user) {
+    return "https://graph.microsoft.com/v1.0/users('"
+        + Optional.ofNullable(user)
+            .orElseThrow(() -> new NullPointerException("Must be userId or user principal name"))
+        + "')";
   }
 
   public String getUserId() {

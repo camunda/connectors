@@ -8,23 +8,29 @@ package io.camunda.connector.operation.channel;
 
 import static io.camunda.connector.model.request.data.ListChannelMessages.EXPAND_VALUE;
 
-import com.microsoft.graph.requests.ChatMessageCollectionPage;
-import com.microsoft.graph.requests.ChatMessageCollectionRequest;
-import com.microsoft.graph.requests.GraphServiceClient;
+import com.microsoft.graph.models.ChatMessageCollectionResponse;
+import com.microsoft.graph.serviceclient.GraphServiceClient;
 import io.camunda.connector.model.request.data.ListChannelMessages;
-import okhttp3.Request;
 
 public record ListChannelMessagesOperation(ListChannelMessages model) implements ChannelOperation {
   @Override
-  public ChatMessageCollectionPage invoke(final GraphServiceClient<Request> graphClient) {
-    ChatMessageCollectionRequest request =
-        graphClient.teams(model.groupId()).channels(model.channelId()).messages().buildRequest();
-    if (Boolean.parseBoolean(model.isExpand())) {
-      request.expand(EXPAND_VALUE);
-    }
-    if (model.top() != null) {
-      request.top(Integer.parseInt(model.top()));
-    }
-    return request.get();
+  public ChatMessageCollectionResponse invoke(final GraphServiceClient graphClient) {
+    return graphClient
+        .teams()
+        .byTeamId(model.groupId())
+        .channels()
+        .byChannelId(model.channelId())
+        .messages()
+        .get(
+            requestConfiguration -> {
+              if (requestConfiguration.queryParameters != null) {
+                if (model.top() != null) {
+                  requestConfiguration.queryParameters.top = Integer.parseInt(model.top());
+                }
+                if (Boolean.parseBoolean(model.isExpand())) {
+                  requestConfiguration.queryParameters.expand = new String[] {EXPAND_VALUE};
+                }
+              }
+            });
   }
 }

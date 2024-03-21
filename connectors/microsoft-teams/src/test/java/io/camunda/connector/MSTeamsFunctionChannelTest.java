@@ -11,31 +11,23 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import com.microsoft.graph.models.Channel;
+import com.microsoft.graph.models.ChannelCollectionResponse;
 import com.microsoft.graph.models.ChatMessage;
-import com.microsoft.graph.requests.ChannelCollectionReferenceRequest;
-import com.microsoft.graph.requests.ChannelCollectionRequest;
-import com.microsoft.graph.requests.ChannelCollectionRequestBuilder;
-import com.microsoft.graph.requests.ChannelCollectionResponse;
-import com.microsoft.graph.requests.ChannelCollectionWithReferencesPage;
-import com.microsoft.graph.requests.ChannelCollectionWithReferencesRequestBuilder;
-import com.microsoft.graph.requests.ChannelRequest;
-import com.microsoft.graph.requests.ChannelRequestBuilder;
-import com.microsoft.graph.requests.ChatMessageCollectionPage;
-import com.microsoft.graph.requests.ChatMessageCollectionRequest;
-import com.microsoft.graph.requests.ChatMessageCollectionRequestBuilder;
-import com.microsoft.graph.requests.ChatMessageCollectionResponse;
-import com.microsoft.graph.requests.ChatMessageRequest;
-import com.microsoft.graph.requests.ChatMessageRequestBuilder;
-import com.microsoft.graph.requests.ConversationMemberCollectionPage;
-import com.microsoft.graph.requests.ConversationMemberCollectionRequest;
-import com.microsoft.graph.requests.ConversationMemberCollectionRequestBuilder;
-import com.microsoft.graph.requests.ConversationMemberCollectionResponse;
-import com.microsoft.graph.requests.GraphServiceClient;
-import com.microsoft.graph.requests.TeamRequestBuilder;
+import com.microsoft.graph.models.ChatMessageCollectionResponse;
+import com.microsoft.graph.models.ConversationMemberCollectionResponse;
+import com.microsoft.graph.serviceclient.GraphServiceClient;
+import com.microsoft.graph.teams.TeamsRequestBuilder;
+import com.microsoft.graph.teams.item.TeamItemRequestBuilder;
+import com.microsoft.graph.teams.item.allchannels.AllChannelsRequestBuilder;
+import com.microsoft.graph.teams.item.channels.ChannelsRequestBuilder;
+import com.microsoft.graph.teams.item.channels.item.ChannelItemRequestBuilder;
+import com.microsoft.graph.teams.item.channels.item.members.MembersRequestBuilder;
+import com.microsoft.graph.teams.item.channels.item.messages.MessagesRequestBuilder;
+import com.microsoft.graph.teams.item.channels.item.messages.item.ChatMessageItemRequestBuilder;
+import com.microsoft.graph.teams.item.channels.item.messages.item.replies.RepliesRequestBuilder;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.model.authentication.MSTeamsAuthentication;
 import io.camunda.connector.suppliers.GraphServiceClientSupplier;
-import okhttp3.Request;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -51,28 +43,17 @@ class MSTeamsFunctionChannelTest extends BaseTest {
 
   private MSTeamsFunction function;
   @Mock private GraphServiceClientSupplier graphServiceClientSupplier;
-  @Mock private GraphServiceClient<Request> graphServiceClient;
-  @Mock private TeamRequestBuilder teamRequestBuilder;
-  @Mock private ChannelCollectionRequestBuilder channelCollectionRequestBuilder;
-  @Mock private ChannelCollectionRequest channelCollectionRequest;
-  @Mock private ChannelRequestBuilder channelRequestBuilder;
-  @Mock private ChannelRequest channelRequest;
-  @Mock private ChatMessageRequestBuilder chatMessageRequestBuilder;
-  @Mock private ChatMessageRequest chatMessageRequest;
+  @Mock private GraphServiceClient graphServiceClient;
+  @Mock private TeamsRequestBuilder teamsRequestBuilder;
+  @Mock private TeamItemRequestBuilder teamItemRequestBuilder;
+  @Mock private ChannelsRequestBuilder channelsRequestBuilder;
+  @Mock private ChannelItemRequestBuilder channelItemRequestBuilder;
+  @Mock private MessagesRequestBuilder messagesRequestBuilder;
+  @Mock private ChatMessageItemRequestBuilder chatMessageRequestBuilder;
+  @Mock private AllChannelsRequestBuilder allChannelsRequestBuilder;
   @Mock private ChatMessage chatMessage;
-  @Mock private ChatMessageCollectionRequestBuilder chatMessageCollectionRequestBuilder;
-  @Mock private ChatMessageCollectionRequest chatMessageCollectionRequest;
-
-  @Mock
-  private ConversationMemberCollectionRequestBuilder conversationMemberCollectionRequestBuilder;
-
-  @Mock private ConversationMemberCollectionRequest conversationMemberCollectionRequest;
-
-  @Mock
-  private ChannelCollectionWithReferencesRequestBuilder
-      channelCollectionWithReferencesRequestBuilder;
-
-  @Mock private ChannelCollectionReferenceRequest channelCollectionReferenceRequest;
+  @Mock private MembersRequestBuilder membersRequestBuilder;
+  @Mock private RepliesRequestBuilder repliesRequestBuilder;
 
   @BeforeEach
   public void init() {
@@ -81,47 +62,34 @@ class MSTeamsFunctionChannelTest extends BaseTest {
     when(graphServiceClientSupplier.buildAndGetGraphServiceClient(any(MSTeamsAuthentication.class)))
         .thenReturn(graphServiceClient);
 
-    when(graphServiceClient.teams(ActualValue.Channel.GROUP_ID)).thenReturn(teamRequestBuilder);
+    when(graphServiceClient.teams()).thenReturn(teamsRequestBuilder);
+    when(teamsRequestBuilder.byTeamId(ActualValue.Channel.GROUP_ID))
+        .thenReturn(teamItemRequestBuilder);
     // crete Channel
-    when(teamRequestBuilder.channels()).thenReturn(channelCollectionRequestBuilder);
-    when(channelCollectionRequestBuilder.buildRequest()).thenReturn(channelCollectionRequest);
-    when(channelCollectionRequest.post(any(Channel.class))).thenReturn(new Channel());
+    when(teamItemRequestBuilder.channels()).thenReturn(channelsRequestBuilder);
+    when(channelsRequestBuilder.post(any(Channel.class))).thenReturn(new Channel());
     // get Channel
-    when(teamRequestBuilder.channels(ActualValue.Channel.CHANNEL_ID))
-        .thenReturn(channelRequestBuilder);
-    when(channelRequestBuilder.buildRequest()).thenReturn(channelRequest);
-    when(channelRequest.get()).thenReturn(new Channel());
+    when(channelsRequestBuilder.byChannelId(ActualValue.Channel.CHANNEL_ID))
+        .thenReturn(channelItemRequestBuilder);
+    when(channelItemRequestBuilder.get()).thenReturn(new Channel());
     // get channel message by id
-    when(channelRequestBuilder.messages(ActualValue.Channel.MESSAGE_ID))
+    when(channelItemRequestBuilder.messages()).thenReturn(messagesRequestBuilder);
+    when(messagesRequestBuilder.byChatMessageId(ActualValue.Channel.MESSAGE_ID))
         .thenReturn(chatMessageRequestBuilder);
-    when(chatMessageRequestBuilder.buildRequest()).thenReturn(chatMessageRequest);
-    when(chatMessageRequest.get()).thenReturn(chatMessage);
+    when(chatMessageRequestBuilder.get()).thenReturn(chatMessage);
     // list channel messages
-    when(channelRequestBuilder.messages()).thenReturn(chatMessageCollectionRequestBuilder);
-    when(chatMessageCollectionRequestBuilder.buildRequest())
-        .thenReturn(chatMessageCollectionRequest);
-    when(chatMessageCollectionRequest.get())
-        .thenReturn(new ChatMessageCollectionPage(new ChatMessageCollectionResponse(), null));
+    when(messagesRequestBuilder.get(any())).thenReturn(new ChatMessageCollectionResponse());
     // list channel members
-    when(channelRequestBuilder.members()).thenReturn(conversationMemberCollectionRequestBuilder);
-    when(conversationMemberCollectionRequestBuilder.buildRequest())
-        .thenReturn(conversationMemberCollectionRequest);
-    when(conversationMemberCollectionRequest.get())
-        .thenReturn(
-            new ConversationMemberCollectionPage(new ConversationMemberCollectionResponse(), null));
+    when(channelItemRequestBuilder.members()).thenReturn(membersRequestBuilder);
+    when(membersRequestBuilder.get()).thenReturn(new ConversationMemberCollectionResponse());
     // list all channels
-    when(teamRequestBuilder.allChannels())
-        .thenReturn(channelCollectionWithReferencesRequestBuilder);
-    when(channelCollectionWithReferencesRequestBuilder.buildRequest())
-        .thenReturn(channelCollectionReferenceRequest);
-    when(channelCollectionReferenceRequest.filter(ActualValue.Channel.FILTER))
-        .thenReturn(channelCollectionReferenceRequest);
-    when(channelCollectionReferenceRequest.get())
-        .thenReturn(new ChannelCollectionWithReferencesPage(new ChannelCollectionResponse(), null));
+    when(teamItemRequestBuilder.allChannels()).thenReturn(allChannelsRequestBuilder);
+    when(allChannelsRequestBuilder.get(any())).thenReturn(new ChannelCollectionResponse());
     // listMessageRepliesInChannel
-    when(chatMessageRequestBuilder.replies()).thenReturn(chatMessageCollectionRequestBuilder);
+    when(chatMessageRequestBuilder.replies()).thenReturn(repliesRequestBuilder);
+    when(repliesRequestBuilder.get()).thenReturn(new ChatMessageCollectionResponse());
     // send message to channel
-    when(chatMessageCollectionRequest.post(any(ChatMessage.class))).thenReturn(new ChatMessage());
+    when(messagesRequestBuilder.post(any(ChatMessage.class))).thenReturn(new ChatMessage());
   }
 
   @ParameterizedTest
