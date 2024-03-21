@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.feel;
 
+import static io.camunda.connector.feel.FeelEngineWrapperUtil.*;
 import static org.assertj.core.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -47,7 +48,8 @@ class FeelEngineWrapperExpressionEvaluationTest {
     final var variables = Map.of("callStatus", Map.of("statusCode", "200 OK"));
 
     // when
-    final var evaluatedResultAsJson = objectUnderTest.evaluateToJson(resultExpression, variables);
+    final var evaluatedResultAsJson =
+        objectUnderTest.evaluateToJson(resultExpression, variables, wrapResponse(variables));
 
     // then
     JSONAssert.assertEquals(
@@ -65,7 +67,8 @@ class FeelEngineWrapperExpressionEvaluationTest {
     final var variables = Map.of("callStatus", Map.of("statusCode", "200 OK"));
 
     // when
-    final var evaluatedResultAsMap = objectUnderTest.evaluate(resultExpression, variables);
+    final var evaluatedResultAsMap =
+        objectUnderTest.evaluate(resultExpression, variables, wrapResponse(variables));
 
     // then
     final var expectedResult = Map.of("processedOutput", Map.of("statusCode", "200 OK"));
@@ -79,7 +82,8 @@ class FeelEngineWrapperExpressionEvaluationTest {
     final var variables = new TestPojo("FOO");
 
     // when
-    final var evaluatedResultAsJson = objectUnderTest.evaluateToJson(resultExpression, variables);
+    final var evaluatedResultAsJson =
+        objectUnderTest.evaluateToJson(resultExpression, variables, wrapResponse(variables));
 
     // then
     JSONAssert.assertEquals(
@@ -97,13 +101,32 @@ class FeelEngineWrapperExpressionEvaluationTest {
     final var variables = Map.of("callStatus", Map.of("statusCode", "200 OK"));
 
     // when
-    final var evaluatedResultAsJson = objectUnderTest.evaluateToJson(resultExpression, variables);
+    final var evaluatedResultAsJson =
+        objectUnderTest.evaluateToJson(resultExpression, variables, wrapResponse(variables));
 
     // then
     JSONAssert.assertEquals(
         "{\"processedOutput\":{\"statusCode\":\"200 OK\"}}",
         evaluatedResultAsJson,
         JSONCompareMode.STRICT);
+  }
+
+  @Test
+  void evaluateToJson_ShouldSucceed_WhenContextWithContextFromHttpResponse() throws JSONException {
+    // given
+    // FEEL expression which is a bit useless, but it proves 2 things
+    // 1. status is wrapped to response
+    // 2. job is not
+    final var errorExpression =
+        "if response.status = 204 then {retries: job.retries, responseRetries: response.job.retries} else null";
+    final var variables = Map.of("status", 204, "body", "", "headers", Map.of());
+    final var jobContent = Map.of("job", Map.of("retries", 3));
+    final var evaluatedResultAsJson =
+        objectUnderTest.evaluateToJson(
+            errorExpression, variables, Map.of("response", variables), jobContent);
+    // then
+    JSONAssert.assertEquals(
+        "{\"retries\":3,\"responseRetries\":null}", evaluatedResultAsJson, JSONCompareMode.STRICT);
   }
 
   @Test
@@ -120,7 +143,8 @@ class FeelEngineWrapperExpressionEvaluationTest {
     final var variables = Map.of("myDate", "2024-03-20T09:31:31.939+0000");
 
     // when
-    final var evaluatedResultAsJson = objectUnderTest.evaluateToJson(resultExpression, variables);
+    final var evaluatedResultAsJson =
+        objectUnderTest.evaluateToJson(resultExpression, variables, wrapResponse(variables));
 
     // then
     JSONAssert.assertEquals(
@@ -154,7 +178,8 @@ class FeelEngineWrapperExpressionEvaluationTest {
     final var variables = Map.of("callStatus", "done");
 
     // when
-    final var evaluatedResultAsJson = objectUnderTest.evaluateToJson(resultExpression, variables);
+    final var evaluatedResultAsJson =
+        objectUnderTest.evaluateToJson(resultExpression, variables, wrapResponse(variables));
 
     // then
     JSONAssert.assertEquals(
@@ -178,19 +203,17 @@ class FeelEngineWrapperExpressionEvaluationTest {
   }
 
   @Test
-  void evaluateToJson_ShouldFail_WhenVariablesAreNotMap() {
+  void evaluateToJson_ShouldNotFail_WhenVariablesAreNotMap() throws JSONException {
     // given
     // FEEL expression -> {"processedOutput":response.callStatus}
     final var resultExpression = "{\"processedOutput\": response.callStatus }";
 
     // when & then
-    final var exception =
-        Assertions.catchThrowable(
-            () -> objectUnderTest.evaluateToJson(resultExpression, "I am not a map"));
+    final var evaluatedResultAsJson =
+        objectUnderTest.evaluateToJson(resultExpression, "I am not a map");
 
-    Assertions.assertThat(exception)
-        .isInstanceOf(FeelEngineWrapperException.class)
-        .hasMessageContaining("Unable to parse 'I am not a map' as context");
+    JSONAssert.assertEquals(
+        "{\"processedOutput\": null}", evaluatedResultAsJson, JSONCompareMode.STRICT);
   }
 
   @Test
@@ -220,7 +243,8 @@ class FeelEngineWrapperExpressionEvaluationTest {
     final var variables = Map.of("callStatus", "200 OK");
 
     // when
-    final var result = objectUnderTest.evaluate(expression, Object.class, variables);
+    final var result =
+        objectUnderTest.evaluate(expression, Object.class, variables, wrapResponse(variables));
 
     // then
     // result is not a scala map

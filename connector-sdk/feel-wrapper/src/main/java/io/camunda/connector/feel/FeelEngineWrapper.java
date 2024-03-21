@@ -26,6 +26,7 @@ import com.fasterxml.jackson.module.scala.DefaultScalaModule$;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import org.camunda.feel.FeelEngine;
@@ -36,7 +37,6 @@ import scala.jdk.javaapi.CollectionConverters;
 /** Wrapper for the FEEL engine, handling type conversions and expression evaluations. */
 public class FeelEngineWrapper {
 
-  static final String RESPONSE_MAP_KEY = "response";
   static final String ERROR_CONTEXT_IS_NULL = "Context is null";
 
   static final TypeReference<Map<String, Object>> MAP_TYPE_REFERENCE = new TypeReference<>() {};
@@ -87,22 +87,29 @@ public class FeelEngineWrapper {
   private static scala.collection.immutable.Map<String, Object> toScalaMap(
       final Map<String, Object> responseMap) {
     final HashMap<String, Object> context = new HashMap<>(responseMap);
-    context.put(RESPONSE_MAP_KEY, responseMap);
     return scala.collection.immutable.Map.from(CollectionConverters.asScala(context));
   }
 
-  private Map<String, Object> ensureVariablesMap(final Object[] variables) {
+  private Map<String, Object> mergeMapVariables(final Object[] variables) {
     try {
       Objects.requireNonNull(variables, ERROR_CONTEXT_IS_NULL);
       Map<String, Object> variablesMap = new HashMap<>();
       for (Object o : variables) {
         Objects.requireNonNull(o, ERROR_CONTEXT_IS_NULL);
-        variablesMap.putAll(objectMapper.convertValue(o, MAP_TYPE_REFERENCE));
+        tryConvertToMap(o).ifPresent(variablesMap::putAll);
       }
       return variablesMap;
     } catch (IllegalArgumentException ex) {
       throw new IllegalArgumentException(
           String.format("Unable to parse '%s' as context", variables), ex);
+    }
+  }
+
+  private Optional<Map<String, Object>> tryConvertToMap(Object o) {
+    try {
+      return Optional.of(objectMapper.convertValue(o, MAP_TYPE_REFERENCE));
+    } catch (IllegalArgumentException ex) {
+      return Optional.empty();
     }
   }
 
@@ -143,11 +150,33 @@ public class FeelEngineWrapper {
     }
   }
 
+  /**
+   * Evaluates an expression with the FEEL engine with the given variables.
+   *
+   * @param expression the expression to evaluate
+   * @param clazz the class the result should be converted to
+   * @param variables the variables to use in evaluation
+   * @param <T> the type to cast the evaluation result to
+   * @return the evaluation result
+   * @throws FeelEngineWrapperException when there is an exception message as a result of the
+   *     evaluation or the result cannot be cast to the given type
+   */
   public <T> T evaluate(final String expression, final Class<T> clazz, final Object... variables) {
     Object result = evaluate(expression, variables);
     return sanitizeScalaOutput(objectMapper.convertValue(result, clazz));
   }
 
+  /**
+   * Evaluates an expression with the FEEL engine with the given variables.
+   *
+   * @param expression the expression to evaluate
+   * @param clazz the class the result should be converted to
+   * @param variables the variables to use in evaluation
+   * @param <T> the type to cast the evaluation result to
+   * @return the evaluation result
+   * @throws FeelEngineWrapperException when there is an exception message as a result of the
+   *     evaluation or the result cannot be cast to the given type
+   */
   public <T> T evaluate(final String expression, final JavaType clazz, final Object... variables) {
     Object result = evaluate(expression, variables);
     return sanitizeScalaOutput(objectMapper.convertValue(result, clazz));
@@ -171,7 +200,7 @@ public class FeelEngineWrapper {
   }
 
   private Object evaluateInternal(final String expression, final Object[] variables) {
-    var variablesAsMap = ensureVariablesMap(variables);
+    var variablesAsMap = mergeMapVariables(variables);
     var variablesAsMapAsScalaMap = toScalaMap(variablesAsMap);
 
     var result = feelEngine.evalExpression(trimExpression(expression), variablesAsMapAsScalaMap);
