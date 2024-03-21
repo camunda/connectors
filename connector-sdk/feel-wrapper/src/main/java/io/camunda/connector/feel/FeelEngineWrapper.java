@@ -49,16 +49,19 @@ public class FeelEngineWrapper {
    * configuration.
    */
   public FeelEngineWrapper() {
-    this(
+    this.feelEngine =
         new FeelEngine.Builder()
             .customValueMapper(new JavaValueMapper())
             .functionProvider(new FeelConnectorFunctionProvider())
-            .build(),
+            .build();
+    this.objectMapper =
         new ObjectMapper()
             .registerModule(DefaultScalaModule$.MODULE$)
             .registerModule(new JavaTimeModule())
             // deserialize unknown types as empty objects
-            .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS));
+            .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+            .disable(SerializationFeature.WRITE_DURATIONS_AS_TIMESTAMPS);
   }
 
   /**
@@ -190,7 +193,6 @@ public class FeelEngineWrapper {
    */
   public String evaluateToJson(final String expression, final Object... variables) {
     try {
-
       return resultToJson(evaluateInternal(expression, variables));
     } catch (Exception e) {
       throw new FeelEngineWrapperException(e.getMessage(), expression, variables, e);
