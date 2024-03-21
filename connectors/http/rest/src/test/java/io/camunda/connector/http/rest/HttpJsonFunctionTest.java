@@ -171,13 +171,17 @@ public class HttpJsonFunctionTest extends BaseTest {
 
   @ParameterizedTest(name = "Executing test case: {0}")
   @MethodSource("successCases")
-  void execute_shouldSetConnectTime(final String input)
+  void execute_shouldSetTimeoutConfiguration(final String input)
       throws IOException, InstantiationException, IllegalAccessException {
     // given - minimal required entity
     final var context =
         OutboundConnectorContextBuilder.create().variables(input).secrets(name -> "foo").build();
-    final var expectedTimeInMilliseconds =
+    final var expectedConnectionTimeoutInMilliseconds =
         context.bindVariables(HttpJsonRequest.class).getConnectionTimeoutInSeconds() * 1000;
+    final var expectedReadTimeoutInMilliseconds =
+        context.bindVariables(HttpJsonRequest.class).getReadTimeoutInSeconds() * 1000;
+    final var expectedWriteTimeoutInMilliseconds =
+        context.bindVariables(HttpJsonRequest.class).getWriteTimeoutInSeconds() * 1000;
 
     when(requestFactory.buildRequest(
             anyString(), any(GenericUrl.class), nullable(HttpContent.class)))
@@ -188,7 +192,9 @@ public class HttpJsonFunctionTest extends BaseTest {
     // when
     functionUnderTest.execute(context);
     // then
-    verify(httpRequest).setConnectTimeout(expectedTimeInMilliseconds);
+    verify(httpRequest).setConnectTimeout(expectedConnectionTimeoutInMilliseconds);
+    verify(httpRequest).setReadTimeout(expectedReadTimeoutInMilliseconds);
+    verify(httpRequest).setWriteTimeout(expectedWriteTimeoutInMilliseconds);
   }
 
   @ParameterizedTest

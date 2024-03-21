@@ -391,13 +391,48 @@
   }, {
     "id" : "connectionTimeoutInSeconds",
     "label" : "Connection timeout in seconds",
-    "description" : "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout",
-    "optional" : true,
+    "description" : "Defines the connection timeout in seconds, or 0 for an infinite timeout",
+    "optional" : false,
     "value" : "20",
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
     "group" : "timeout",
     "binding" : {
       "name" : "connectionTimeoutInSeconds",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "readTimeoutInSeconds",
+    "label" : "Read timeout in seconds",
+    "description" : "Timeout in seconds to read data from an established connection or 0 for an infinite timeout",
+    "optional" : false,
+    "value" : "20",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "timeout",
+    "binding" : {
+      "name" : "readTimeoutInSeconds",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "writeTimeoutInSeconds",
+    "label" : "Write timeout in seconds",
+    "description" : "Timeout in seconds to set POST/PUT data or 0 for an infinite timeout",
+    "optional" : false,
+    "value" : "0",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "timeout",
+    "binding" : {
+      "name" : "writeTimeoutInSeconds",
       "type" : "zeebe:input"
     },
     "type" : "String"

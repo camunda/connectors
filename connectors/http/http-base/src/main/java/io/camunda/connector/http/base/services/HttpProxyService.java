@@ -60,6 +60,8 @@ public final class HttpProxyService {
             .genericUrl(new GenericUrl(proxyFunctionUrl))
             .content(content)
             .connectionTimeoutInSeconds(request.getConnectionTimeoutInSeconds())
+            .readTimeoutInSeconds(request.getReadTimeoutInSeconds())
+            .writeTimeoutInSeconds(request.getWriteTimeoutInSeconds())
             .followRedirects(false)
             .headers(HttpRequestMapper.extractRequestHeaders(request))
             .build(requestFactory);

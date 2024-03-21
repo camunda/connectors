@@ -18,17 +18,39 @@ package io.camunda.connector.http.base.utils;
 
 import com.google.api.client.http.HttpRequest;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 public class Timeout {
 
   public static void setTimeout(HttpCommonRequest request, HttpRequest httpRequest) {
-    if (request.getConnectionTimeoutInSeconds() != null) {
-      long connectionTimeout = TimeUnit.SECONDS.toMillis(request.getConnectionTimeoutInSeconds());
-      int intConnectionTimeout = Math.toIntExact(connectionTimeout);
-      httpRequest.setConnectTimeout(intConnectionTimeout);
-      httpRequest.setReadTimeout(intConnectionTimeout);
-      httpRequest.setWriteTimeout(intConnectionTimeout);
+    setTimeout(
+        httpRequest,
+        request.getConnectionTimeoutInSeconds(),
+        request.getReadTimeoutInSeconds(),
+        request.getWriteTimeoutInSeconds());
+  }
+
+  public static void setTimeout(
+      final HttpRequest httpRequest,
+      final Integer connectionTimeoutInSeconds,
+      final Integer readTimeoutInSeconds,
+      final Integer writeTimeoutInSeconds) {
+    Optional<Integer> connectionTimeoutInMillis = toMillis(connectionTimeoutInSeconds);
+    connectionTimeoutInMillis.ifPresent(httpRequest::setConnectTimeout);
+    toMillis(readTimeoutInSeconds).ifPresent(httpRequest::setReadTimeout);
+    toMillis(writeTimeoutInSeconds).ifPresent(httpRequest::setWriteTimeout);
+    // backward compatibility
+    if (writeTimeoutInSeconds == null && readTimeoutInSeconds == null) {
+      connectionTimeoutInMillis.ifPresent(
+          timeout -> {
+            httpRequest.setReadTimeout(timeout);
+            httpRequest.setWriteTimeout(timeout);
+          });
     }
+  }
+
+  private static Optional<Integer> toMillis(Integer seconds) {
+    return Optional.ofNullable(seconds).map(s -> Math.toIntExact(TimeUnit.SECONDS.toMillis(s)));
   }
 }

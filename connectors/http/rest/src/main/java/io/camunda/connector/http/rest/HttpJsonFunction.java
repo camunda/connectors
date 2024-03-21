@@ -38,6 +38,8 @@ import java.io.IOException;
       "headers",
       "queryParameters",
       "connectionTimeoutInSeconds",
+      "readTimeoutInSeconds",
+      "writeTimeoutInSeconds",
       "body"
     },
     type = HttpJsonFunction.TYPE)
