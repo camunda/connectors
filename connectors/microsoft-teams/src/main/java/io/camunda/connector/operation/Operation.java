@@ -6,9 +6,8 @@
  */
 package io.camunda.connector.operation;
 
-import com.microsoft.graph.requests.GraphServiceClient;
-import okhttp3.Request;
+import com.microsoft.graph.serviceclient.GraphServiceClient;
 
 public interface Operation {
-  Object invoke(GraphServiceClient<Request> graphServiceClient);
+  Object invoke(GraphServiceClient graphServiceClient);
 }

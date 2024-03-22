@@ -11,15 +11,13 @@ import static org.mockito.Mockito.when;
 
 import com.microsoft.graph.models.Channel;
 import com.microsoft.graph.models.ConversationMember;
-import com.microsoft.graph.requests.ChannelCollectionRequest;
-import com.microsoft.graph.requests.ChannelCollectionRequestBuilder;
-import com.microsoft.graph.requests.ConversationMemberCollectionPage;
-import com.microsoft.graph.requests.GraphServiceClient;
-import com.microsoft.graph.requests.TeamRequestBuilder;
+import com.microsoft.graph.serviceclient.GraphServiceClient;
+import com.microsoft.graph.teams.TeamsRequestBuilder;
+import com.microsoft.graph.teams.item.TeamItemRequestBuilder;
+import com.microsoft.graph.teams.item.channels.ChannelsRequestBuilder;
 import io.camunda.connector.BaseTest;
 import io.camunda.connector.model.Member;
 import io.camunda.connector.model.request.data.CreateChannel;
-import okhttp3.Request;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,11 +36,11 @@ import org.mockito.quality.Strictness;
 class CreateChannelTest extends BaseTest {
 
   private CreateChannel createChannel;
-  @Mock private GraphServiceClient<Request> graphServiceClient;
+  @Mock private GraphServiceClient graphServiceClient;
 
-  @Mock private TeamRequestBuilder teamRequestBuilder;
-  @Mock private ChannelCollectionRequestBuilder channelCollectionRequestBuilder;
-  @Mock private ChannelCollectionRequest channelCollectionRequest;
+  @Mock private TeamsRequestBuilder teamsRequestBuilder;
+  @Mock private TeamItemRequestBuilder teamItemRequestBuilder;
+  @Mock private ChannelsRequestBuilder channelsRequestBuilder;
   @Captor private ArgumentCaptor<Channel> channelArgumentCaptor;
 
   @BeforeEach
@@ -54,10 +52,11 @@ class CreateChannelTest extends BaseTest {
             ActualValue.Channel.DESCRIPTION,
             ActualValue.Channel.CHANNEL_TYPE_STANDARD,
             ActualValue.Channel.OWNER);
-    when(graphServiceClient.teams(ActualValue.Channel.GROUP_ID)).thenReturn(teamRequestBuilder);
-    when(teamRequestBuilder.channels()).thenReturn(channelCollectionRequestBuilder);
-    when(channelCollectionRequestBuilder.buildRequest()).thenReturn(channelCollectionRequest);
-    when(channelCollectionRequest.post(channelArgumentCaptor.capture())).thenReturn(new Channel());
+    when(graphServiceClient.teams()).thenReturn(teamsRequestBuilder);
+    when(teamsRequestBuilder.byTeamId(ActualValue.Channel.GROUP_ID))
+        .thenReturn(teamItemRequestBuilder);
+    when(teamItemRequestBuilder.channels()).thenReturn(channelsRequestBuilder);
+    when(channelsRequestBuilder.post(channelArgumentCaptor.capture())).thenReturn(new Channel());
   }
 
   @ParameterizedTest
@@ -78,17 +77,14 @@ class CreateChannelTest extends BaseTest {
     assertThat(result).isNotNull();
     assertThat(result).isInstanceOf(Channel.class);
     Channel value = channelArgumentCaptor.getValue();
-    assertThat(value.displayName).isEqualTo(ActualValue.Channel.NAME);
-    assertThat(value.description).isEqualTo(ActualValue.Channel.DESCRIPTION);
+    assertThat(value.getDisplayName()).isEqualTo(ActualValue.Channel.NAME);
+    assertThat(value.getDescription()).isEqualTo(ActualValue.Channel.DESCRIPTION);
 
-    ConversationMemberCollectionPage members = value.members;
-    ConversationMember conversationMember = members.getCurrentPage().getFirst();
-    assertThat(conversationMember.roles.getFirst()).isEqualTo(Member.OWNER_ROLES.getFirst());
+    ConversationMember member = value.getMembers().getFirst();
 
-    assertThat(conversationMember.additionalDataManager().get(Member.USER_DATA_TYPE))
-        .isEqualTo(Member.USER_CONVERSATION_MEMBER);
-    assertThat(conversationMember.additionalDataManager().get(Member.USER_DATA_BIND))
-        .isEqualTo(Member.toGraphJsonPrimitive(ActualValue.Channel.OWNER));
+    assertThat(member.getRoles().getFirst()).isEqualTo(Member.OWNER_ROLES.getFirst());
+    assertThat(member.getAdditionalData().get(Member.USER_DATA_BIND))
+        .isEqualTo(Member.toAdditionalDataValue(ActualValue.Channel.OWNER));
   }
 
   @Test
@@ -107,9 +103,9 @@ class CreateChannelTest extends BaseTest {
     assertThat(result).isNotNull();
     assertThat(result).isInstanceOf(Channel.class);
     Channel value = channelArgumentCaptor.getValue();
-    assertThat(value.displayName).isEqualTo(ActualValue.Channel.NAME);
-    assertThat(value.description).isEqualTo(ActualValue.Channel.DESCRIPTION);
-    assertThat(value.members).isNull();
+    assertThat(value.getDisplayName()).isEqualTo(ActualValue.Channel.NAME);
+    assertThat(value.getDescription()).isEqualTo(ActualValue.Channel.DESCRIPTION);
+    assertThat(value.getMembers()).isNull();
   }
 
   @ParameterizedTest

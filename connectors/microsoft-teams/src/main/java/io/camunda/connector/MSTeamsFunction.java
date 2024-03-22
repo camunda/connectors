@@ -6,7 +6,7 @@
  */
 package io.camunda.connector;
 
-import com.microsoft.graph.requests.GraphServiceClient;
+import com.microsoft.graph.serviceclient.GraphServiceClient;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
@@ -14,7 +14,6 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.model.MSTeamsRequest;
 import io.camunda.connector.operation.OperationFactory;
 import io.camunda.connector.suppliers.GraphServiceClientSupplier;
-import okhttp3.Request;
 
 @OutboundConnector(
     name = "MS Teams",
@@ -50,7 +49,7 @@ public class MSTeamsFunction implements OutboundConnectorFunction {
   public Object execute(OutboundConnectorContext context) {
     var msTeamsRequest = context.bindVariables(MSTeamsRequest.class);
 
-    GraphServiceClient<Request> graphServiceClient =
+    GraphServiceClient graphServiceClient =
         graphSupplier.buildAndGetGraphServiceClient(msTeamsRequest.authentication());
 
     OperationFactory operationFactory = new OperationFactory();

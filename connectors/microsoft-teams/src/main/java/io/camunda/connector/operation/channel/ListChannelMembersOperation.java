@@ -6,18 +6,18 @@
  */
 package io.camunda.connector.operation.channel;
 
-import com.microsoft.graph.requests.GraphServiceClient;
+import com.microsoft.graph.serviceclient.GraphServiceClient;
 import io.camunda.connector.model.request.data.ListChannelMembers;
-import okhttp3.Request;
 
 public record ListChannelMembersOperation(ListChannelMembers model) implements ChannelOperation {
   @Override
-  public Object invoke(final GraphServiceClient<Request> graphClient) {
+  public Object invoke(final GraphServiceClient graphClient) {
     return graphClient
-        .teams(model.groupId())
-        .channels(model.channelId())
+        .teams()
+        .byTeamId(model.groupId())
+        .channels()
+        .byChannelId(model.channelId())
         .members()
-        .buildRequest()
         .get();
   }
 }

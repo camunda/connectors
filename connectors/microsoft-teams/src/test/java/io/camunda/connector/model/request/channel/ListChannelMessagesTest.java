@@ -7,34 +7,37 @@
 package io.camunda.connector.model.request.channel;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.verify;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-import com.microsoft.graph.requests.ChannelRequestBuilder;
-import com.microsoft.graph.requests.ChatMessageCollectionPage;
-import com.microsoft.graph.requests.ChatMessageCollectionRequest;
-import com.microsoft.graph.requests.ChatMessageCollectionRequestBuilder;
-import com.microsoft.graph.requests.ChatMessageCollectionResponse;
-import com.microsoft.graph.requests.GraphServiceClient;
-import com.microsoft.graph.requests.TeamRequestBuilder;
+import com.microsoft.graph.models.ChatMessageCollectionResponse;
+import com.microsoft.graph.serviceclient.GraphServiceClient;
+import com.microsoft.kiota.RequestAdapter;
+import com.microsoft.kiota.RequestInformation;
 import io.camunda.connector.BaseTest;
 import io.camunda.connector.model.request.data.ListChannelMessages;
-import okhttp3.Request;
+import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class ListChannelMessagesTest extends BaseTest {
 
-  @Mock private GraphServiceClient<Request> graphServiceClient;
-  @Mock private TeamRequestBuilder teamRequestBuilder;
-  @Mock private ChannelRequestBuilder channelRequestBuilder;
-  @Mock private ChatMessageCollectionRequestBuilder chatMessageCollectionRequestBuilder;
-  @Mock private ChatMessageCollectionRequest chatMessageCollectionRequest;
+  private GraphServiceClient graphServiceClient;
+  @Mock private RequestAdapter requestAdapter;
+  @Captor private ArgumentCaptor<RequestInformation> requestInformationArgumentCaptor;
+
+  @BeforeEach
+  public void init() {
+    graphServiceClient = new GraphServiceClient(requestAdapter);
+  }
 
   @ParameterizedTest
   @MethodSource("listChannelMessagesValidationFailTestCases")
@@ -45,14 +48,8 @@ class ListChannelMessagesTest extends BaseTest {
   @Test
   public void invoke_shouldSetOptionalPropertiesIfTheyExist() {
     // Given
-    when(graphServiceClient.teams(ActualValue.Channel.GROUP_ID)).thenReturn(teamRequestBuilder);
-    when(teamRequestBuilder.channels(ActualValue.Channel.CHANNEL_ID))
-        .thenReturn(channelRequestBuilder);
-    when(channelRequestBuilder.messages()).thenReturn(chatMessageCollectionRequestBuilder);
-    when(chatMessageCollectionRequestBuilder.buildRequest())
-        .thenReturn(chatMessageCollectionRequest);
-    when(chatMessageCollectionRequest.get())
-        .thenReturn(new ChatMessageCollectionPage(new ChatMessageCollectionResponse(), null));
+    when(requestAdapter.send(requestInformationArgumentCaptor.capture(), any(), any()))
+        .thenReturn(new ChatMessageCollectionResponse());
 
     ListChannelMessages listChannelMessages =
         new ListChannelMessages(
@@ -63,8 +60,12 @@ class ListChannelMessagesTest extends BaseTest {
     // When
     Object result = operationFactory.getService(listChannelMessages).invoke(graphServiceClient);
     // Then
-    verify(chatMessageCollectionRequest).top(Integer.parseInt(ActualValue.Channel.TOP));
-    verify(chatMessageCollectionRequest).expand("replies");
+    RequestInformation value = requestInformationArgumentCaptor.getValue();
     assertThat(result).isNotNull();
+    assertThat(value.pathParameters.get("channel%2Did")).isEqualTo(ActualValue.Channel.CHANNEL_ID);
+    assertThat(value.pathParameters.get("team%2Did")).isEqualTo(ActualValue.Channel.GROUP_ID);
+    assertThat(value.getQueryParameters().get("%24top"))
+        .isEqualTo(Integer.parseInt(ActualValue.Channel.TOP));
+    assertThat(value.getQueryParameters().get("%24expand")).isEqualTo(List.of("replies"));
   }
 }

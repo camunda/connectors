@@ -11,14 +11,14 @@ import static org.mockito.Mockito.when;
 
 import com.microsoft.graph.models.BodyType;
 import com.microsoft.graph.models.ChatMessage;
-import com.microsoft.graph.requests.ChannelRequestBuilder;
-import com.microsoft.graph.requests.ChatMessageCollectionRequest;
-import com.microsoft.graph.requests.ChatMessageCollectionRequestBuilder;
-import com.microsoft.graph.requests.GraphServiceClient;
-import com.microsoft.graph.requests.TeamRequestBuilder;
+import com.microsoft.graph.serviceclient.GraphServiceClient;
+import com.microsoft.graph.teams.TeamsRequestBuilder;
+import com.microsoft.graph.teams.item.TeamItemRequestBuilder;
+import com.microsoft.graph.teams.item.channels.ChannelsRequestBuilder;
+import com.microsoft.graph.teams.item.channels.item.ChannelItemRequestBuilder;
+import com.microsoft.graph.teams.item.channels.item.messages.MessagesRequestBuilder;
 import io.camunda.connector.BaseTest;
 import io.camunda.connector.model.request.data.SendMessageToChannel;
-import okhttp3.Request;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,13 +37,15 @@ import org.mockito.quality.Strictness;
 class SendMessageToChannelTest extends BaseTest {
   private SendMessageToChannel sendMessageToChannel;
 
-  @Mock private GraphServiceClient<Request> graphServiceClient;
-  @Mock private TeamRequestBuilder teamRequestBuilder;
-  @Mock private ChannelRequestBuilder channelRequestBuilder;
-  @Mock private ChatMessageCollectionRequestBuilder chatMessageCollectionRequestBuilder;
-  @Mock private ChatMessageCollectionRequest chatMessageCollectionRequest;
+  @Mock private GraphServiceClient graphServiceClient;
 
-  @Captor private ArgumentCaptor<ChatMessage> messageCaptor;
+  @Mock private TeamsRequestBuilder teamsRequestBuilder;
+  @Mock private TeamItemRequestBuilder teamItemRequestBuilder;
+  @Mock private ChannelsRequestBuilder channelsRequestBuilder;
+  @Mock private ChannelItemRequestBuilder channelItemRequestBuilder;
+  @Mock private MessagesRequestBuilder messagesRequestBuilder;
+
+  @Captor private ArgumentCaptor<ChatMessage> chatMessageArgumentCaptor;
 
   @BeforeEach
   public void init() {
@@ -52,15 +54,15 @@ class SendMessageToChannelTest extends BaseTest {
         new SendMessageToChannel(
             ActualValue.Channel.GROUP_ID, ActualValue.Channel.CHANNEL_ID, "channel content", null);
 
-    when(graphServiceClient.teams(ActualValue.Channel.GROUP_ID)).thenReturn(teamRequestBuilder);
-    when(teamRequestBuilder.channels(ActualValue.Channel.CHANNEL_ID))
-        .thenReturn(channelRequestBuilder);
-
-    when(channelRequestBuilder.messages()).thenReturn(chatMessageCollectionRequestBuilder);
-    when(channelRequestBuilder.messages()).thenReturn(chatMessageCollectionRequestBuilder);
-    when(chatMessageCollectionRequestBuilder.buildRequest())
-        .thenReturn(chatMessageCollectionRequest);
-    when(chatMessageCollectionRequest.post(messageCaptor.capture())).thenReturn(new ChatMessage());
+    when(graphServiceClient.teams()).thenReturn(teamsRequestBuilder);
+    when(teamsRequestBuilder.byTeamId(ActualValue.Channel.GROUP_ID))
+        .thenReturn(teamItemRequestBuilder);
+    when(teamItemRequestBuilder.channels()).thenReturn(channelsRequestBuilder);
+    when(channelsRequestBuilder.byChannelId(ActualValue.Channel.CHANNEL_ID))
+        .thenReturn(channelItemRequestBuilder);
+    when(channelItemRequestBuilder.messages()).thenReturn(messagesRequestBuilder);
+    when(messagesRequestBuilder.post(chatMessageArgumentCaptor.capture()))
+        .thenReturn(new ChatMessage());
   }
 
   @ParameterizedTest
@@ -75,8 +77,9 @@ class SendMessageToChannelTest extends BaseTest {
     // When
     operationFactory.getService(sendMessageToChannel).invoke(graphServiceClient);
     // Then
-    ChatMessage chatMessage = messageCaptor.getValue();
-    assertThat(chatMessage.body.contentType).isEqualTo(BodyType.TEXT);
+    ChatMessage chatMessage = chatMessageArgumentCaptor.getValue();
+    assertThat(chatMessage.getBody().getContent()).isEqualTo("channel content");
+    assertThat(chatMessage.getBody().getContentType()).isEqualTo(BodyType.Text);
   }
 
   @ParameterizedTest
@@ -89,7 +92,9 @@ class SendMessageToChannelTest extends BaseTest {
     // When
     operationFactory.getService(sendMessageToChannel).invoke(graphServiceClient);
     // Then
-    ChatMessage chatMessage = messageCaptor.getValue();
-    assertThat(chatMessage.body.contentType).isEqualTo(BodyType.valueOf(input.toUpperCase()));
+    ChatMessage chatMessage = chatMessageArgumentCaptor.getValue();
+    assertThat(chatMessage.getBody().getContent()).isEqualTo("channel content");
+    assertThat(chatMessage.getBody().getContentType().toString().toLowerCase())
+        .isEqualTo(input.toLowerCase());
   }
 }

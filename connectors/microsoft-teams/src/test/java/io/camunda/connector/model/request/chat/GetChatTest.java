@@ -7,32 +7,41 @@
 package io.camunda.connector.model.request.chat;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.verify;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.graph.models.Chat;
-import com.microsoft.graph.requests.ChatRequest;
-import com.microsoft.graph.requests.ChatRequestBuilder;
-import com.microsoft.graph.requests.GraphServiceClient;
+import com.microsoft.graph.serviceclient.GraphServiceClient;
+import com.microsoft.kiota.RequestAdapter;
+import com.microsoft.kiota.RequestInformation;
 import io.camunda.connector.BaseTest;
 import io.camunda.connector.model.request.data.GetChat;
 import io.camunda.connector.suppliers.ObjectMapperSupplier;
-import okhttp3.Request;
+import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class GetChatTest extends BaseTest {
 
-  @Mock private GraphServiceClient<Request> graphServiceClient;
-  @Mock private ChatRequestBuilder chatRequestBuilder;
-  @Mock private ChatRequest chatRequest;
+  private GraphServiceClient graphServiceClient;
+  @Mock private RequestAdapter requestAdapter;
+  @Captor private ArgumentCaptor<RequestInformation> requestInformationArgumentCaptor;
+
+  @BeforeEach
+  public void init() {
+    graphServiceClient = new GraphServiceClient(requestAdapter);
+  }
 
   @ParameterizedTest
   @MethodSource("getChatValidationFailTestCases")
@@ -43,17 +52,18 @@ class GetChatTest extends BaseTest {
   @Test
   public void invoke_shouldSetOptionalPropertiesIfTheyExist() {
     // Given
-    when(graphServiceClient.chats(ActualValue.Chat.CHAT_ID)).thenReturn(chatRequestBuilder);
-    when(chatRequestBuilder.buildRequest()).thenReturn(chatRequest);
 
-    when(chatRequest.get()).thenReturn(new Chat());
+    when(requestAdapter.send(requestInformationArgumentCaptor.capture(), any(), any()))
+        .thenReturn(new Chat());
 
     GetChat getChat = new GetChat(ActualValue.Chat.CHAT_ID, "members");
     // When
     Object result = operationFactory.getService(getChat).invoke(graphServiceClient);
     // Then
-    verify(chatRequest).expand("members");
     assertThat(result).isNotNull();
+    RequestInformation value = requestInformationArgumentCaptor.getValue();
+    assertThat(value.pathParameters.get("chat%2Did")).isEqualTo(ActualValue.Chat.CHAT_ID);
+    assertThat(value.getQueryParameters().get("%24expand")).isEqualTo(List.of("members"));
   }
 
   @Test
@@ -65,17 +75,19 @@ class GetChatTest extends BaseTest {
     ObjectMapper objectMapper = ObjectMapperSupplier.objectMapper();
     Chat chat = objectMapper.readValue(chatStringResponse, Chat.class);
 
-    when(graphServiceClient.chats(ActualValue.Chat.CHAT_ID)).thenReturn(chatRequestBuilder);
-    when(chatRequestBuilder.buildRequest()).thenReturn(chatRequest);
-
-    when(chatRequest.get()).thenReturn(chat);
+    when(requestAdapter.send(requestInformationArgumentCaptor.capture(), any(), any()))
+        .thenReturn(chat);
     GetChat getChat = new GetChat(ActualValue.Chat.CHAT_ID, null);
     // When
     Object result = operationFactory.getService(getChat).invoke(graphServiceClient);
     // Then
     assertThat(result).isNotNull();
-    assertThat(objectMapper.writer().writeValueAsString(result))
-        .isEqualTo(
-            "{\"id\":\"19:e37f90808e7748d7bbbb2029ed17f643@thread.v2\",\"chatType\":\"GROUP\"}");
+    JsonNode jsonNode = objectMapper.convertValue(result, JsonNode.class);
+    assertThat(jsonNode.get("oDataType")).isNull();
+    assertThat(jsonNode.get("members")).isNull();
+    assertThat(jsonNode.get("messages")).isNull();
+    assertThat(jsonNode.get("id").asText())
+        .isEqualTo("19:e37f90808e7748d7bbbb2029ed17f643@thread.v2");
+    assertThat(jsonNode.get("chatType").asText()).isEqualTo("Group");
   }
 }

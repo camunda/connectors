@@ -6,20 +6,21 @@
  */
 package io.camunda.connector.operation.channel;
 
-import com.microsoft.graph.requests.GraphServiceClient;
+import com.microsoft.graph.serviceclient.GraphServiceClient;
 import io.camunda.connector.model.request.data.ListMessageRepliesInChannel;
-import okhttp3.Request;
 
 public record ListMessageRepliesInChannelOperation(ListMessageRepliesInChannel model)
     implements ChannelOperation {
   @Override
-  public Object invoke(final GraphServiceClient<Request> graphClient) {
+  public Object invoke(final GraphServiceClient graphClient) {
     return graphClient
-        .teams(model.groupId())
-        .channels(model.channelId())
-        .messages(model.messageId())
+        .teams()
+        .byTeamId(model.groupId())
+        .channels()
+        .byChannelId(model.channelId())
+        .messages()
+        .byChatMessageId(model.messageId())
         .replies()
-        .buildRequest()
         .get();
   }
 }

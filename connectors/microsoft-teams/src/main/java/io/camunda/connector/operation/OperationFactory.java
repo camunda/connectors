@@ -30,24 +30,24 @@ import io.camunda.connector.operation.channel.ListChannelMessagesOperation;
 import io.camunda.connector.operation.channel.ListChannelsOperation;
 import io.camunda.connector.operation.channel.ListMessageRepliesInChannelOperation;
 import io.camunda.connector.operation.channel.SendMessageToChannelOperation;
-import io.camunda.connector.operation.chat.CreateChatChatOperation;
-import io.camunda.connector.operation.chat.GetChatChatOperation;
-import io.camunda.connector.operation.chat.GetMessageInChatChatOperation;
+import io.camunda.connector.operation.chat.CreateChatOperation;
+import io.camunda.connector.operation.chat.GetChatOperation;
+import io.camunda.connector.operation.chat.GetMessageInChatOperation;
 import io.camunda.connector.operation.chat.ListChatMembersChatOperation;
-import io.camunda.connector.operation.chat.ListChatsChatOperation;
-import io.camunda.connector.operation.chat.ListMessagesInChatChatOperation;
+import io.camunda.connector.operation.chat.ListChatsOperation;
+import io.camunda.connector.operation.chat.ListMessagesInChatOperation;
 import io.camunda.connector.operation.chat.SendMessageInChatChatOperation;
 
 public class OperationFactory {
   public Operation getService(final MSTeamsRequestData data) {
     return switch (data) {
         // chat
-      case CreateChat model -> new CreateChatChatOperation(model);
-      case GetChat model -> new GetChatChatOperation(model);
-      case GetMessageInChat model -> new GetMessageInChatChatOperation(model);
+      case CreateChat model -> new CreateChatOperation(model);
+      case GetChat model -> new GetChatOperation(model);
+      case GetMessageInChat model -> new GetMessageInChatOperation(model);
       case ListChatMembers model -> new ListChatMembersChatOperation(model);
-      case ListChats model -> new ListChatsChatOperation(model);
-      case ListMessagesInChat model -> new ListMessagesInChatChatOperation(model);
+      case ListChats model -> new ListChatsOperation(model);
+      case ListMessagesInChat model -> new ListMessagesInChatOperation(model);
       case SendMessageInChat model -> new SendMessageInChatChatOperation(model);
         // channel
       case CreateChannel model -> new CreateChannelOperation(model);

@@ -7,12 +7,10 @@
 package io.camunda.connector.model.request.data;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-@JsonDeserialize()
 @TemplateDiscriminatorProperty(
     name = "method",
     id = "chatMethod",
