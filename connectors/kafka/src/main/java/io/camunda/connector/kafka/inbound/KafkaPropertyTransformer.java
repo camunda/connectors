@@ -132,8 +132,7 @@ public class KafkaPropertyTransformer {
         kafkaInboundMessage.setValue(objectReader.readTree(value));
       }
     } catch (Exception e) {
-      LOG.error(e.getMessage());
-      LOG.error("Cannot parse value to json object -> use the raw value");
+      LOG.error("Cannot parse value to json object -> use the raw value", e);
       kafkaInboundMessage.setValue(kafkaInboundMessage.getRawValue());
     }
   }
