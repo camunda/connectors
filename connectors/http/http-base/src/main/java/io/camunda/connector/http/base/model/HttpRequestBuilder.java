@@ -21,8 +21,8 @@ import com.google.api.client.http.HttpContent;
 import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
+import io.camunda.connector.http.base.utils.Timeout;
 import java.io.IOException;
-import java.util.concurrent.TimeUnit;
 
 public final class HttpRequestBuilder {
 
@@ -31,6 +31,8 @@ public final class HttpRequestBuilder {
   private HttpHeaders headers;
   private HttpContent content;
   private Integer connectionTimeoutInSeconds;
+  private Integer readTimeoutInSeconds;
+  private Integer writeTimeoutInSeconds;
   private boolean followRedirects;
 
   public HttpRequestBuilder method(HttpMethod method) {
@@ -58,6 +60,16 @@ public final class HttpRequestBuilder {
     return this;
   }
 
+  public HttpRequestBuilder readTimeoutInSeconds(Integer readTimeoutInSeconds) {
+    this.readTimeoutInSeconds = readTimeoutInSeconds;
+    return this;
+  }
+
+  public HttpRequestBuilder writeTimeoutInSeconds(Integer writeTimeoutInSeconds) {
+    this.writeTimeoutInSeconds = writeTimeoutInSeconds;
+    return this;
+  }
+
   public HttpRequestBuilder followRedirects(boolean followRedirects) {
     this.followRedirects = followRedirects;
     return this;
@@ -69,13 +81,8 @@ public final class HttpRequestBuilder {
     if (headers != null) {
       httpRequest.setHeaders(headers);
     }
-    if (connectionTimeoutInSeconds != null) {
-      long connectionTimeout = TimeUnit.SECONDS.toMillis(connectionTimeoutInSeconds);
-      int intConnectionTimeout = Math.toIntExact(connectionTimeout);
-      httpRequest.setConnectTimeout(intConnectionTimeout);
-      httpRequest.setReadTimeout(intConnectionTimeout);
-      httpRequest.setWriteTimeout(intConnectionTimeout);
-    }
+    Timeout.copyTimeoutFrom(
+        httpRequest, connectionTimeoutInSeconds, readTimeoutInSeconds, writeTimeoutInSeconds);
     return httpRequest;
   }
 }

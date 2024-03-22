@@ -58,6 +58,8 @@ public class HttpRequestMapper {
         .content(new UrlEncodedContent(authentication.getDataForAuthRequestBody()))
         .headers(headers)
         .connectionTimeoutInSeconds(request.getConnectionTimeoutInSeconds())
+        .readTimeoutInSeconds(request.getReadTimeoutInSeconds())
+        .writeTimeoutInSeconds(request.getWriteTimeoutInSeconds())
         .followRedirects(false)
         .build(requestFactory);
   }
@@ -106,6 +108,8 @@ public class HttpRequestMapper {
         .content(content)
         .headers(headers)
         .connectionTimeoutInSeconds(request.getConnectionTimeoutInSeconds())
+        .readTimeoutInSeconds(request.getReadTimeoutInSeconds())
+        .writeTimeoutInSeconds(request.getWriteTimeoutInSeconds())
         .followRedirects(false)
         .build(requestFactory);
   }

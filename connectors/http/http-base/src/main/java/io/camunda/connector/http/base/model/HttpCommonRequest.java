@@ -46,11 +46,32 @@ public class HttpCommonRequest {
 
   @TemplateProperty(
       group = "timeout",
+      label = "Connection timeout in seconds",
       defaultValue = "20",
-      optional = true,
-      description =
-          "Sets the timeout in seconds to establish a connection or 0 for an infinite timeout")
+      constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+      description = "Defines the connection timeout in seconds, or 0 for an infinite timeout")
   private Integer connectionTimeoutInSeconds;
+
+  @TemplateProperty(
+      group = "timeout",
+      label = "Read timeout in seconds",
+      defaultValue = "20",
+      constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+      description =
+          "Timeout in seconds to read data from an established connection or 0 for an infinite timeout")
+  private Integer readTimeoutInSeconds;
+
+  @TemplateProperty(
+      group = "timeout",
+      label = "Write timeout in seconds",
+      defaultValue = "0",
+      constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+      condition =
+          @PropertyCondition(
+              property = "method",
+              oneOf = {"POST", "PUT", "PATCH"}),
+      description = "Timeout in seconds to set data or 0 for an infinite timeout")
+  private Integer writeTimeoutInSeconds;
 
   @FEEL
   @TemplateProperty(
@@ -152,6 +173,22 @@ public class HttpCommonRequest {
 
   public void setConnectionTimeoutInSeconds(Integer connectionTimeoutInSeconds) {
     this.connectionTimeoutInSeconds = connectionTimeoutInSeconds;
+  }
+
+  public Integer getReadTimeoutInSeconds() {
+    return readTimeoutInSeconds;
+  }
+
+  public void setReadTimeoutInSeconds(final Integer readTimeoutInSeconds) {
+    this.readTimeoutInSeconds = readTimeoutInSeconds;
+  }
+
+  public Integer getWriteTimeoutInSeconds() {
+    return writeTimeoutInSeconds;
+  }
+
+  public void setWriteTimeoutInSeconds(final Integer writeTimeoutInSeconds) {
+    this.writeTimeoutInSeconds = writeTimeoutInSeconds;
   }
 
   @Override

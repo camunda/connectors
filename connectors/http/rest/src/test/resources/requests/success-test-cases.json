@@ -3,10 +3,12 @@
     "descriptionOfTest": "Normal request with no auth",
     "method": "get",
     "url": "https://camunda.io/http-endpoint",
-    "connectionTimeoutInSeconds": "20",
     "authentication": {
       "type": "noAuth"
     },
+    "connectionTimeoutInSeconds" : 20,
+    "readTimeoutInSeconds" : 30,
+    "writeTimeoutInSeconds" : 40,
     "queryParameters": {
       "q": "test",
       "priority": 12
@@ -26,7 +28,9 @@
     "descriptionOfTest": "Normal request with basic auth",
     "method": "get",
     "url": "https://camunda.io/http-endpoint",
-    "connectionTimeoutInSeconds": "0",
+    "connectionTimeoutInSeconds" : 0,
+    "readTimeoutInSeconds" : 0,
+    "writeTimeoutInSeconds" : 0,
     "queryParameters": {
       "q": "test",
       "priority": 12
@@ -52,7 +56,9 @@
     "descriptionOfTest": "Normal request with bearer auth",
     "method": "get",
     "url": "https://camunda.io/http-endpoint",
-    "connectionTimeoutInSeconds": "30",
+    "connectionTimeoutInSeconds" : 60,
+    "readTimeoutInSeconds" : 70,
+    "writeTimeoutInSeconds" : 200,
     "queryParameters": {
       "q": "test",
       "priority": 12
@@ -77,7 +83,9 @@
     "descriptionOfTest": "Normal request with no query params",
     "method": "get",
     "url": "https://camunda.io/http-endpoint",
-    "connectionTimeoutInSeconds": "200",
+    "connectionTimeoutInSeconds" : 202,
+    "readTimeoutInSeconds" : 301,
+    "writeTimeoutInSeconds" : 402,
     "headers": {
       "X-Camunda-Cluster-ID": "abcdef",
       "User-Agent": "http-connector-demo"
@@ -98,7 +106,9 @@
     "descriptionOfTest": "Normal request with no headers",
     "method": "get",
     "url": "https://camunda.io/http-endpoint",
-    "connectionTimeoutInSeconds": "50",
+    "connectionTimeoutInSeconds" : 5,
+    "readTimeoutInSeconds" : 67,
+    "writeTimeoutInSeconds" : 34,
     "queryParameters": {
       "q": "test",
       "priority": 12
@@ -119,7 +129,9 @@
   {
     "descriptionOfTest": "Normal request with no body",
     "method": "get",
-    "connectionTimeoutInSeconds": "30",
+    "connectionTimeoutInSeconds" : 20,
+    "readTimeoutInSeconds" : 30,
+    "writeTimeoutInSeconds" : 40,
     "url": "https://camunda.io/http-endpoint",
     "queryParameters": {
       "q": "test",
@@ -138,7 +150,9 @@
     "descriptionOfTest": "Normal request with empty body",
     "method": "get",
     "url": "https://camunda.io/http-endpoint",
-    "connectionTimeoutInSeconds": "0",
+    "connectionTimeoutInSeconds" : 20,
+    "readTimeoutInSeconds" : 0,
+    "writeTimeoutInSeconds" : 10,
     "queryParameters": {
       "q": "test",
       "priority": 12
@@ -170,7 +184,9 @@
       "type": "bearer",
       "token": "{{secrets.MY_TOKEN}}"
     },
-    "connectionTimeoutInSeconds": "50",
+    "connectionTimeoutInSeconds" : 50,
+    "readTimeoutInSeconds" : 30,
+    "writeTimeoutInSeconds" : 40,
     "body": {
       "customer": {
         "id": 1231231,
