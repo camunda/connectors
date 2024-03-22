@@ -66,7 +66,11 @@ public class HttpCommonRequest {
       label = "Write timeout in seconds",
       defaultValue = "0",
       constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
-      description = "Timeout in seconds to set POST/PUT data or 0 for an infinite timeout")
+      condition =
+          @PropertyCondition(
+              property = "method",
+              oneOf = {"POST", "PUT", "PATCH"}),
+      description = "Timeout in seconds to set data or 0 for an infinite timeout")
   private Integer writeTimeoutInSeconds;
 
   @FEEL

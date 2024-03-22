@@ -81,7 +81,7 @@ public final class HttpRequestBuilder {
     if (headers != null) {
       httpRequest.setHeaders(headers);
     }
-    Timeout.setTimeout(
+    Timeout.copyTimeoutFrom(
         httpRequest, connectionTimeoutInSeconds, readTimeoutInSeconds, writeTimeoutInSeconds);
     return httpRequest;
   }

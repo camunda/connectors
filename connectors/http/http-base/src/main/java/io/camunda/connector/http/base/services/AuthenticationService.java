@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.http.base.services;
 
-import static io.camunda.connector.http.base.utils.Timeout.setTimeout;
+import static io.camunda.connector.http.base.utils.Timeout.copyTimeoutFrom;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.http.GenericUrl;
@@ -62,7 +62,7 @@ public class AuthenticationService {
     final var httpRequest =
         requestFactory.buildRequest(HttpMethod.POST.name(), genericUrl, content);
     httpRequest.setFollowRedirects(false);
-    setTimeout(request, httpRequest);
+    copyTimeoutFrom(request, httpRequest);
     HttpHeaders headers = new HttpHeaders();
 
     if (Constants.BASIC_AUTH_HEADER.equals(authentication.getClientAuthentication())) {

@@ -23,15 +23,15 @@ import java.util.concurrent.TimeUnit;
 
 public class Timeout {
 
-  public static void setTimeout(HttpCommonRequest request, HttpRequest httpRequest) {
-    setTimeout(
+  public static void copyTimeoutFrom(HttpCommonRequest request, HttpRequest httpRequest) {
+    copyTimeoutFrom(
         httpRequest,
         request.getConnectionTimeoutInSeconds(),
         request.getReadTimeoutInSeconds(),
         request.getWriteTimeoutInSeconds());
   }
 
-  public static void setTimeout(
+  public static void copyTimeoutFrom(
       final HttpRequest httpRequest,
       final Integer connectionTimeoutInSeconds,
       final Integer readTimeoutInSeconds,

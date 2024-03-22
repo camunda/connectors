@@ -4,7 +4,7 @@
   "id" : "io.camunda.connectors.HttpJson.v2",
   "description" : "Invoke REST API",
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/rest/",
-  "version" : 6,
+  "version" : 7,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -418,7 +418,7 @@
   }, {
     "id" : "writeTimeoutInSeconds",
     "label" : "Write timeout in seconds",
-    "description" : "Timeout in seconds to set POST/PUT data or 0 for an infinite timeout",
+    "description" : "Timeout in seconds to set data or 0 for an infinite timeout",
     "optional" : false,
     "value" : "0",
     "constraints" : {
@@ -429,6 +429,11 @@
     "binding" : {
       "name" : "writeTimeoutInSeconds",
       "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "method",
+      "oneOf" : [ "POST", "PUT", "PATCH" ],
+      "type" : "simple"
     },
     "type" : "String"
   }, {
