@@ -12,7 +12,6 @@ import io.camunda.connector.kafka.outbound.model.KafkaConnectorRequest;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Properties;
-import org.apache.commons.text.StringEscapeUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.config.TopicConfig;
