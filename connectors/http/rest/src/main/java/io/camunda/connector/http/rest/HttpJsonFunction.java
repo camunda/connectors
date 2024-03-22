@@ -51,7 +51,7 @@ import java.io.IOException;
     version = 7,
     propertyGroups = {
       @PropertyGroup(id = "authentication", label = "Authentication"),
-      @PropertyGroup(id = "endpoint", label = "HTTP Endpoint"),
+      @PropertyGroup(id = "endpoint", label = "HTTP endpoint"),
       @PropertyGroup(id = "timeout", label = "Connection timeout"),
       @PropertyGroup(id = "payload", label = "Payload")
     },

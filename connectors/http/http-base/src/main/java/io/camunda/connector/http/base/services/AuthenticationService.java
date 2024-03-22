@@ -56,7 +56,7 @@ public class AuthenticationService {
       throws IOException {
     OAuthAuthentication authentication = (OAuthAuthentication) request.getAuthentication();
 
-    final GenericUrl genericUrl = new GenericUrl(authentication.getOauthTokenEndpoint());
+    final GenericUrl genericUrl = new GenericUrl(authentication.oauthTokenEndpoint());
     Map<String, String> data = authentication.getDataForAuthRequestBody();
     HttpContent content = new UrlEncodedContent(data);
     final var httpRequest =
@@ -65,9 +65,8 @@ public class AuthenticationService {
     copyTimeoutFrom(request, httpRequest);
     HttpHeaders headers = new HttpHeaders();
 
-    if (Constants.BASIC_AUTH_HEADER.equals(authentication.getClientAuthentication())) {
-      headers.setBasicAuthentication(
-          authentication.getClientId(), authentication.getClientSecret());
+    if (Constants.BASIC_AUTH_HEADER.equals(authentication.clientAuthentication())) {
+      headers.setBasicAuthentication(authentication.clientId(), authentication.clientSecret());
     }
     headers.setContentType(Constants.APPLICATION_X_WWW_FORM_URLENCODED);
     httpRequest.setHeaders(headers);

@@ -64,11 +64,14 @@ class HttpRequestMapperTest {
   public void testToOAuthHttpRequest() throws IOException {
     // Given
     HttpCommonRequest commonRequest = new HttpCommonRequest();
-    OAuthAuthentication authentication = new OAuthAuthentication();
-    authentication.setClientAuthentication(Constants.BASIC_AUTH_HEADER);
-    authentication.setClientId("clientId");
-    authentication.setClientSecret("clientSecret");
-    authentication.setOauthTokenEndpoint("https://example.com/oauth/token");
+    OAuthAuthentication authentication =
+        new OAuthAuthentication(
+            "https://example.com/oauth/token",
+            "clientId",
+            "clientSecret",
+            null,
+            Constants.BASIC_AUTH_HEADER,
+            null);
     commonRequest.setAuthentication(authentication);
     // When
     HttpRequest result = HttpRequestMapper.toOAuthHttpRequest(requestFactory, commonRequest);
@@ -104,7 +107,7 @@ class HttpRequestMapperTest {
   public void testToHttpRequestWithBearerTokenHeaders() throws IOException {
     // Given
     HttpCommonRequest commonRequest = new HttpCommonRequest();
-    commonRequest.setAuthentication(new OAuthAuthentication());
+    commonRequest.setAuthentication(new OAuthAuthentication(null, null, null, null, null, null));
     commonRequest.setMethod(HttpMethod.GET);
     commonRequest.setUrl("https://example.com/resource?metadata=true");
 

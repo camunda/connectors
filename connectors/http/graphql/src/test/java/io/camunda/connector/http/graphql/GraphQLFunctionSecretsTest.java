@@ -45,17 +45,17 @@ public class GraphQLFunctionSecretsTest extends BaseTest {
     if (authentication instanceof NoAuthentication) {
       // nothing check in this case
     } else if (authentication instanceof BearerAuthentication bearerAuth) {
-      assertThat(bearerAuth.getToken()).isEqualTo(ActualValue.Authentication.TOKEN);
+      assertThat(bearerAuth.token()).isEqualTo(ActualValue.Authentication.TOKEN);
     } else if (authentication instanceof BasicAuthentication basicAuth) {
-      assertThat(basicAuth.getPassword()).isEqualTo(ActualValue.Authentication.PASSWORD);
-      assertThat(basicAuth.getUsername()).isEqualTo(ActualValue.Authentication.USERNAME);
+      assertThat(basicAuth.password()).isEqualTo(ActualValue.Authentication.PASSWORD);
+      assertThat(basicAuth.username()).isEqualTo(ActualValue.Authentication.USERNAME);
     } else if (authentication instanceof OAuthAuthentication oAuthAuthentication) {
-      assertThat(oAuthAuthentication.getOauthTokenEndpoint())
+      assertThat(oAuthAuthentication.oauthTokenEndpoint())
           .isEqualTo(ActualValue.Authentication.OAUTH_TOKEN_ENDPOINT);
-      assertThat(oAuthAuthentication.getClientId()).isEqualTo(ActualValue.Authentication.CLIENT_ID);
-      assertThat(oAuthAuthentication.getClientSecret())
+      assertThat(oAuthAuthentication.clientId()).isEqualTo(ActualValue.Authentication.CLIENT_ID);
+      assertThat(oAuthAuthentication.clientSecret())
           .isEqualTo(ActualValue.Authentication.CLIENT_SECRET);
-      assertThat(oAuthAuthentication.getAudience()).isEqualTo(ActualValue.Authentication.AUDIENCE);
+      assertThat(oAuthAuthentication.audience()).isEqualTo(ActualValue.Authentication.AUDIENCE);
     } else {
       fail("unknown authentication type");
     }

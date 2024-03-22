@@ -21,26 +21,10 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 
 @TemplateSubType(id = NoAuthentication.TYPE, label = "None")
-public final class NoAuthentication implements Authentication {
-
-  @Override
-  public void setHeaders(final HttpHeaders headers) {}
-
-  @Override
-  public boolean equals(final Object o) {
-    return super.equals(o);
-  }
-
-  @Override
-  public int hashCode() {
-    return super.hashCode();
-  }
-
-  @Override
-  public String toString() {
-    return super.toString();
-  }
-
+public record NoAuthentication() implements Authentication {
   @TemplateProperty(ignore = true)
   public static final String TYPE = "noAuth";
+
+  @Override
+  public void setHeaders(HttpHeaders headers) {}
 }
