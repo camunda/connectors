@@ -129,11 +129,11 @@ public class KafkaPropertyTransformer {
       } else {
         String value = (String) consumerRecord.value();
         kafkaInboundMessage.setRawValue(value);
-        var json = StringEscapeUtils.unescapeJson(value);
-        kafkaInboundMessage.setValue(objectReader.readTree(json));
+        kafkaInboundMessage.setValue(objectReader.readTree(value));
       }
     } catch (Exception e) {
-      LOG.debug("Cannot parse value to json object -> use the raw value");
+      LOG.error(e.getMessage());
+      LOG.error("Cannot parse value to json object -> use the raw value");
       kafkaInboundMessage.setValue(kafkaInboundMessage.getRawValue());
     }
   }

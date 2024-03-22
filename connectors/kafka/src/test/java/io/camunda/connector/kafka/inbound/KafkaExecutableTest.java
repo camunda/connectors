@@ -8,6 +8,7 @@ package io.camunda.connector.kafka.inbound;
 
 import static io.camunda.connector.kafka.inbound.KafkaPropertyTransformer.DEFAULT_KEY_DESERIALIZER;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -19,6 +20,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.camunda.connector.kafka.model.KafkaTopic;
@@ -202,6 +204,24 @@ public class KafkaExecutableTest {
     ObjectNode expectedValue = JsonNodeFactory.instance.objectNode();
     expectedValue.set("foo", JsonNodeFactory.instance.textNode("\nb\ta\r"));
     assertEquals(expectedValue, kafkaInboundMessage.getValue());
+  }
+
+  @Test
+  public void testConvertDoubleEscapedCharactersRecordToKafkaInboundMessage() {
+    // When
+    String kafkaMessageValue =
+        "{\"ordertime\":1497014222380,\"orderid\":18,\"itemid\":\"Item_184\",\"message\":\"{\\\"valid\\\":true}\",\"address\":{\"city\":\"Mountain View\",\"state\":\"CA\",\"zipcode\":94041}}";
+    ConsumerRecord<Object, Object> consumerRecord =
+        new ConsumerRecord<>("my-topic", 0, 0, "my-key", kafkaMessageValue);
+    KafkaInboundMessage kafkaInboundMessage =
+        KafkaPropertyTransformer.convertConsumerRecordToKafkaInboundMessage(
+            consumerRecord, KafkaConnectorConsumer.objectMapper.reader());
+
+    // Then
+    assertEquals("my-key", kafkaInboundMessage.getKey());
+    assertEquals(kafkaMessageValue, kafkaInboundMessage.getRawValue());
+    assertTrue(kafkaInboundMessage.getValue() instanceof JsonNode);
+    assertEquals("Item_184", ((JsonNode) kafkaInboundMessage.getValue()).get("itemid").asText());
   }
 
   public KafkaExecutable getConsumerMock() {
