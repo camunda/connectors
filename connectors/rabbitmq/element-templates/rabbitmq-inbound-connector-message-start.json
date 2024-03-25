@@ -1,354 +1,330 @@
 {
-  "$schema": "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name": "RabbitMQ Message Start Event Connector",
-  "id": "io.camunda.connectors.inbound.RabbitMQ.MessageStart.v1",
-  "version": 1,
-  "description": "Receive a message from RabbitMQ",
-  "documentationRef": "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=inbound",
-  "category": {
-    "id": "connectors",
-    "name": "Connectors"
+  "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name" : "RabbitMQ Message Start Event Connector",
+  "id" : "io.camunda.connectors.inbound.RabbitMQ.MessageStart.v1",
+  "description" : "Receive a message from RabbitMQ",
+  "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=inbound",
+  "version" : 5,
+  "category" : {
+    "id" : "connectors",
+    "name" : "Connectors"
   },
-  "appliesTo": [
-    "bpmn:StartEvent"
-  ],
-  "elementType": {
-    "value": "bpmn:StartEvent",
-    "eventDefinition": "bpmn:MessageEventDefinition"
+  "appliesTo" : [ "bpmn:StartEvent" ],
+  "elementType" : {
+    "value" : "bpmn:StartEvent",
+    "eventDefinition" : "bpmn:MessageEventDefinition"
   },
-  "groups": [
-    {
-      "id": "authentication",
-      "label": "Authentication"
+  "groups" : [ {
+    "id" : "authentication",
+    "label" : "Authentication"
+  }, {
+    "id" : "routing",
+    "label" : "Routing"
+  }, {
+    "id" : "subscription",
+    "label" : "Subscription"
+  }, {
+    "id" : "activation",
+    "label" : "Activation"
+  }, {
+    "id" : "correlation",
+    "label" : "Correlation"
+  }, {
+    "id" : "output",
+    "label" : "Output mapping"
+  } ],
+  "properties" : [ {
+    "value" : "io.camunda:connector-rabbitmq-inbound:1",
+    "binding" : {
+      "name" : "inbound.type",
+      "type" : "zeebe:property"
     },
-    {
-      "id": "routing",
-      "label": "Routing"
+    "type" : "Hidden"
+  }, {
+    "id" : "queueName",
+    "label" : "Queue name",
+    "constraints" : {
+      "notEmpty" : true
     },
-    {
-      "id": "subscription",
-      "label": "Subscription"
+    "feel" : "optional",
+    "binding" : {
+      "name" : "queueName",
+      "type" : "zeebe:property"
     },
-    {
-      "id": "activation",
-      "label": "Activation"
+    "type" : "String"
+  }, {
+    "id" : "consumerTag",
+    "label" : "Consumer tag",
+    "feel" : "optional",
+    "binding" : {
+      "name" : "consumerTag",
+      "type" : "zeebe:property"
     },
-    {
-      "id": "correlation",
-      "label": "Subprocess correlation"
+    "type" : "String"
+  }, {
+    "id" : "authentication.authType",
+    "label" : "Connection type",
+    "value" : "uri",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.authType",
+      "type" : "zeebe:property"
     },
-    {
-      "id": "variable-mapping",
-      "label": "Variable mapping"
-    }
-  ],
-  "properties": [
-    {
-      "type": "Hidden",
-      "value": "io.camunda:connector-rabbitmq-inbound:1",
-      "binding": {
-        "type": "zeebe:property",
-        "name": "inbound.type"
-      }
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "URI",
+      "value" : "uri"
+    }, {
+      "name" : "Username/Password",
+      "value" : "credentials"
+    } ]
+  }, {
+    "id" : "authentication.uri",
+    "label" : "URI",
+    "description" : "URI should contain username, password, host name, port number, and virtual host",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
     },
-    {
-      "type": "Hidden",
-      "generatedValue": {
-        "type": "uuid"
-      },
-      "binding": {
-        "type": "bpmn:Message#property",
-        "name": "name"
-      }
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.uri",
+      "type" : "zeebe:property"
     },
-    {
-      "id": "connectionType",
-      "label": "Connection type",
-      "group": "authentication",
-      "type": "Dropdown",
-      "value": "uri",
-      "binding": {
-        "type": "zeebe:property",
-        "name": "authentication.authType"
-      },
-      "choices": [
-        {
-          "name": "URI",
-          "value": "uri"
-        },
-        {
-          "name": "Username/Password",
-          "value": "credentials"
-        }
-      ]
+    "condition" : {
+      "property" : "authentication.authType",
+      "equals" : "uri",
+      "type" : "simple"
     },
-    {
-      "label": "URI",
-      "description": "URI should contain username, password, host name, port number, and virtual host",
-      "group": "authentication",
-      "type": "String",
-      "binding": {
-        "type": "zeebe:property",
-        "name": "authentication.uri"
-      },
-      "constraints": {
-        "notEmpty": true,
-        "pattern": {
-          "value": "^(amqps?://)|(\\{\\{secrets\\..+\\}\\}).*$",
-          "message": "Must start with amqp(s):// or contain a secret reference"
-        }
-      },
-      "condition": {
-        "property": "connectionType",
-        "equals": "uri"
-      }
+    "type" : "String"
+  }, {
+    "id" : "authentication.userName",
+    "label" : "Username",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
     },
-    {
-      "label": "Username",
-      "group": "authentication",
-      "type": "String",
-      "binding": {
-        "type": "zeebe:property",
-        "name": "authentication.userName"
-      },
-      "constraints": {
-        "notEmpty": true
-      },
-      "condition": {
-        "property": "connectionType",
-        "equals": "credentials"
-      }
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.userName",
+      "type" : "zeebe:property"
     },
-    {
-      "label": "Password",
-      "group": "authentication",
-      "type": "String",
-      "binding": {
-        "type": "zeebe:property",
-        "name": "authentication.password"
-      },
-      "constraints": {
-        "notEmpty": true
-      },
-      "condition": {
-        "property": "connectionType",
-        "equals": "credentials"
-      }
+    "condition" : {
+      "property" : "authentication.authType",
+      "equals" : "credentials",
+      "type" : "simple"
     },
-    {
-      "label": "Host name",
-      "description": "Host name: get from RabbitMQ external applocation configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=inbound#routing-data-1\"target=\"_blank\">documentation</a>",
-      "group": "routing",
-      "type": "String",
-      "binding": {
-        "type": "zeebe:property",
-        "name": "routing.hostName"
-      },
-      "constraints": {
-        "notEmpty": true
-      },
-      "condition": {
-        "property": "connectionType",
-        "equals": "credentials"
-      }
+    "type" : "String"
+  }, {
+    "id" : "authentication.password",
+    "label" : "Password",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
     },
-    {
-      "label": "Virtual host",
-      "description": "Virtual name: get from RabbitMQ external application configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=inbound#routing-data-1\"target=\"_blank\">documentation</a>",
-      "group": "routing",
-      "type": "String",
-      "binding": {
-        "type": "zeebe:property",
-        "name": "routing.virtualHost"
-      },
-      "constraints": {
-        "notEmpty": true
-      },
-      "condition": {
-        "property": "connectionType",
-        "equals": "credentials"
-      }
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.password",
+      "type" : "zeebe:property"
     },
-    {
-      "label": "Port",
-      "description": "Port: get from RabbitMQ external application configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=inbound#routing-data-1\"target=\"_blank\">documentation</a>",
-      "group": "routing",
-      "type": "String",
-      "binding": {
-        "type": "zeebe:property",
-        "name": "routing.port"
-      },
-      "constraints": {
-        "notEmpty": true
-      },
-      "condition": {
-        "property": "connectionType",
-        "equals": "credentials"
-      }
+    "condition" : {
+      "property" : "authentication.authType",
+      "equals" : "credentials",
+      "type" : "simple"
     },
-    {
-      "label": "Queue name",
-      "description": "Name of the queue to subscribe to",
-      "group": "subscription",
-      "type": "String",
-      "feel": "optional",
-      "binding": {
-        "type": "zeebe:property",
-        "name": "queueName"
-      },
-      "constraints": {
-        "notEmpty": true
-      }
+    "type" : "String"
+  }, {
+    "id" : "routing.virtualHost",
+    "label" : "Virtual host",
+    "description" : "Virtual name: get from RabbitMQ external application configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\"target=\"_blank\">documentation</a>",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
     },
-    {
-      "label": "Consumer tag",
-      "description": "Consumer tag to use for the subscription",
-      "group": "subscription",
-      "type": "String",
-      "feel": "optional",
-      "binding": {
-        "type": "zeebe:property",
-        "name": "consumerTag"
-      }
+    "feel" : "optional",
+    "group" : "routing",
+    "binding" : {
+      "name" : "routing.virtualHost",
+      "type" : "zeebe:property"
     },
-    {
-      "label": "Arguments",
-      "description": "Arguments to use for the subscription",
-      "group": "subscription",
-      "type": "String",
-      "feel": "required",
-      "binding": {
-        "type": "zeebe:property",
-        "name": "arguments"
-      }
+    "type" : "String"
+  }, {
+    "id" : "routing.hostName",
+    "label" : "Host name",
+    "description" : "Host name: get from RabbitMQ external application configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\"target=\"_blank\">documentation</a>",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
     },
-    {
-      "label": "Exclusive consumer",
-      "group": "subscription",
-      "type": "Dropdown",
-      "value": "false",
-      "binding": {
-        "type": "zeebe:property",
-        "name": "exclusive"
-      },
-      "choices": [
-        {
-          "name": "Yes",
-          "value": "true"
-        },
-        {
-          "name": "No",
-          "value": "false"
-        }
-      ]
+    "feel" : "optional",
+    "group" : "routing",
+    "binding" : {
+      "name" : "routing.hostName",
+      "type" : "zeebe:property"
     },
-    {
-      "label": "Message ID expression",
-      "feel": "required",
-      "type": "String",
-      "optional": true,
-      "group": "activation",
-      "binding": {
-        "type": "zeebe:property",
-        "name": "messageIdExpression"
-      },
-      "description": "Expression to extract unique identifier of a message"
+    "type" : "String"
+  }, {
+    "id" : "routing.port",
+    "label" : "Port",
+    "description" : "Port: get from RabbitMQ external application configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\"target=\"_blank\">documentation</a>",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
     },
-    {
-      "label": "Activation condition",
-      "type": "String",
-      "group": "activation",
-      "feel": "required",
-      "optional": true,
-      "binding": {
-        "type": "zeebe:property",
-        "name": "activationCondition"
-      },
-      "description": "Condition under which the connector triggers. Leave empty to catch all events"
+    "feel" : "optional",
+    "group" : "routing",
+    "binding" : {
+      "name" : "routing.port",
+      "type" : "zeebe:property"
     },
-    {
-      "label": "Correlation required",
-      "description": "Indicates whether correlation is required. This is needed for event-based subprocess message start events",
-      "id": "correlationRequired",
-      "group": "correlation",
-      "type": "Dropdown",
-      "value": "notRequired",
-      "choices": [
-        {
-          "name": "Correlation not required",
-          "value": "notRequired"
-        },
-        {
-          "name": "Correlation required",
-          "value": "required"
-        }
-      ],
-      "binding": {
-        "type": "zeebe:property",
-        "name": "correlationRequired"
-      }
+    "type" : "String"
+  }, {
+    "id" : "arguments",
+    "label" : "Arguments",
+    "description" : "Arguments to use for the subscription",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "subscription",
+    "binding" : {
+      "name" : "arguments",
+      "type" : "zeebe:property"
     },
-    {
-      "label": "Correlation key (process)",
-      "type": "String",
-      "group": "correlation",
-      "feel": "required",
-      "description": "Sets up the correlation key from process variables",
-      "binding": {
-        "type": "bpmn:Message#zeebe:subscription#property",
-        "name": "correlationKey"
-      },
-      "constraints": {
-        "notEmpty": true
-      },
-      "condition": {
-        "property": "correlationRequired",
-        "equals": "required"
-      }
+    "type" : "String"
+  }, {
+    "id" : "exclusive",
+    "label" : "Exclusive consumer",
+    "optional" : false,
+    "value" : "false",
+    "group" : "subscription",
+    "binding" : {
+      "name" : "exclusive",
+      "type" : "zeebe:property"
     },
-    {
-      "label": "Correlation key (payload)",
-      "type": "String",
-      "group": "correlation",
-      "feel": "required",
-      "binding": {
-        "type": "zeebe:property",
-        "name": "correlationKeyExpression"
-      },
-      "description": "Extracts the correlation key from the incoming message payload",
-      "constraints": {
-        "notEmpty": true
-      },
-      "condition": {
-        "property": "correlationRequired",
-        "equals": "required"
-      }
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Yes",
+      "value" : "true"
+    }, {
+      "name" : "No",
+      "value" : "false"
+    } ]
+  }, {
+    "id" : "activationCondition",
+    "label" : "Activation condition",
+    "description" : "Condition under which the Connector triggers. Leave empty to catch all events",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "activation",
+    "binding" : {
+      "name" : "activationCondition",
+      "type" : "zeebe:property"
     },
-    {
-      "label": "Result variable",
-      "type": "String",
-      "group": "variable-mapping",
-      "optional": true,
-      "binding": {
-        "type": "zeebe:property",
-        "name": "resultVariable"
-      },
-      "description": "Name of variable to store the result of the connector in"
+    "type" : "String"
+  }, {
+    "id" : "correlationRequired",
+    "label" : "Subprocess correlation required",
+    "description" : "Indicates whether correlation is required. This is needed for event-based subprocess message start events",
+    "value" : "notRequired",
+    "group" : "correlation",
+    "binding" : {
+      "name" : "correlationRequired",
+      "type" : "zeebe:property"
     },
-    {
-      "label": "Result expression",
-      "type": "String",
-      "group": "variable-mapping",
-      "feel": "required",
-      "optional": true,
-      "binding": {
-        "type": "zeebe:property",
-        "name": "resultExpression"
-      },
-      "description": "Expression to map the inbound payload to process variables"
-    }
-  ],
-  "icon": {
-    "contents": "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='-7.5 0 271 271' preserveAspectRatio='xMidYMid'%3E%3Cpath d='M245.44 108.308h-85.09a7.738 7.738 0 0 1-7.735-7.734v-88.68C152.615 5.327 147.29 0 140.726 0h-30.375c-6.568 0-11.89 5.327-11.89 11.894v88.143c0 4.573-3.697 8.29-8.27 8.31l-27.885.133c-4.612.025-8.359-3.717-8.35-8.325l.173-88.241C54.144 5.337 48.817 0 42.24 0H11.89C5.321 0 0 5.327 0 11.894V260.21c0 5.834 4.726 10.56 10.555 10.56H245.44c5.834 0 10.56-4.726 10.56-10.56V118.868c0-5.834-4.726-10.56-10.56-10.56zm-39.902 93.233c0 7.645-6.198 13.844-13.843 13.844H167.69c-7.646 0-13.844-6.199-13.844-13.844v-24.005c0-7.646 6.198-13.844 13.844-13.844h24.005c7.645 0 13.843 6.198 13.843 13.844v24.005z' fill='%23F60'/%3E%3C/svg%3E"
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Correlation not required",
+      "value" : "notRequired"
+    }, {
+      "name" : "Correlation required",
+      "value" : "required"
+    } ]
+  }, {
+    "id" : "correlationKeyProcess",
+    "label" : "Correlation key (process)",
+    "description" : "Sets up the correlation key from process variables",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "correlation",
+    "binding" : {
+      "name" : "correlationKey",
+      "type" : "bpmn:Message#zeebe:subscription#property"
+    },
+    "condition" : {
+      "property" : "correlationRequired",
+      "equals" : "required",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "correlationKeyPayload",
+    "label" : "Correlation key (payload)",
+    "description" : "Extracts the correlation key from the incoming message payload",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "correlation",
+    "binding" : {
+      "name" : "correlationKeyExpression",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "correlationRequired",
+      "equals" : "required",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "messageIdExpression",
+    "label" : "Message ID expression",
+    "description" : "Expression to extract unique identifier of a message",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "correlation",
+    "binding" : {
+      "name" : "messageIdExpression",
+      "type" : "zeebe:property"
+    },
+    "type" : "String"
+  }, {
+    "id" : "messageNameUuid",
+    "generatedValue" : {
+      "type" : "uuid"
+    },
+    "group" : "correlation",
+    "binding" : {
+      "name" : "name",
+      "type" : "bpmn:Message#property"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "resultVariable",
+    "label" : "Result variable",
+    "description" : "Name of variable to store the response in",
+    "group" : "output",
+    "binding" : {
+      "name" : "resultVariable",
+      "type" : "zeebe:property"
+    },
+    "type" : "String"
+  }, {
+    "id" : "resultExpression",
+    "label" : "Result expression",
+    "description" : "Expression to map the response into process variables",
+    "feel" : "required",
+    "group" : "output",
+    "binding" : {
+      "name" : "resultExpression",
+      "type" : "zeebe:property"
+    },
+    "type" : "Text"
+  } ],
+  "icon" : {
+    "contents" : "data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScxOCcgaGVpZ2h0PScxOCcgdmlld0JveD0nLTcuNSAwIDI3MSAyNzEnIHByZXNlcnZlQXNwZWN0UmF0aW89J3hNaWRZTWlkJz4KICAgIDxwYXRoIGQ9J00yNDUuNDQgMTA4LjMwOGgtODUuMDlhNy43MzggNy43MzggMCAwIDEtNy43MzUtNy43MzR2LTg4LjY4QzE1Mi42MTUgNS4zMjcgMTQ3LjI5IDAgMTQwLjcyNiAwaC0zMC4zNzVjLTYuNTY4IDAtMTEuODkgNS4zMjctMTEuODkgMTEuODk0djg4LjE0M2MwIDQuNTczLTMuNjk3IDguMjktOC4yNyA4LjMxbC0yNy44ODUuMTMzYy00LjYxMi4wMjUtOC4zNTktMy43MTctOC4zNS04LjMyNWwuMTczLTg4LjI0MUM1NC4xNDQgNS4zMzcgNDguODE3IDAgNDIuMjQgMEgxMS44OUM1LjMyMSAwIDAgNS4zMjcgMCAxMS44OTRWMjYwLjIxYzAgNS44MzQgNC43MjYgMTAuNTYgMTAuNTU1IDEwLjU2SDI0NS40NGM1LjgzNCAwIDEwLjU2LTQuNzI2IDEwLjU2LTEwLjU2VjExOC44NjhjMC01LjgzNC00LjcyNi0xMC41Ni0xMC41Ni0xMC41NnptLTM5LjkwMiA5My4yMzNjMCA3LjY0NS02LjE5OCAxMy44NDQtMTMuODQzIDEzLjg0NEgxNjcuNjljLTcuNjQ2IDAtMTMuODQ0LTYuMTk5LTEzLjg0NC0xMy44NDR2LTI0LjAwNWMwLTcuNjQ2IDYuMTk4LTEzLjg0NCAxMy44NDQtMTMuODQ0aDI0LjAwNWM3LjY0NSAwIDEzLjg0MyA2LjE5OCAxMy44NDMgMTMuODQ0djI0LjAwNXonCiAgICAgICAgICBmaWxsPScjRjYwJy8+Cjwvc3ZnPg=="
   }
 }

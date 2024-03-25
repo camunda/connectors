@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.rabbitmq.inbound.model;
 
+import io.camunda.connector.generator.dsl.Property;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.rabbitmq.common.model.FactoryRoutingData;
 import io.camunda.connector.rabbitmq.common.model.RabbitMqAuthentication;
 import jakarta.validation.Valid;
@@ -19,7 +21,25 @@ public class RabbitMqInboundProperties {
   @Valid private FactoryRoutingData routing;
   @NotBlank private String queueName;
   private String consumerTag;
-  @Valid private Map<String, Object> arguments;
+
+  @Valid
+  @TemplateProperty(
+      label = "Arguments",
+      description = "Arguments to use for the subscription",
+      group = "subscription",
+      optional = true,
+      feel = Property.FeelMode.required)
+  private Map<String, Object> arguments;
+
+  @TemplateProperty(
+      label = "Exclusive consumer",
+      group = "subscription",
+      type = TemplateProperty.PropertyType.Dropdown,
+      choices = {
+        @TemplateProperty.DropdownPropertyChoice(value = "true", label = "Yes"),
+        @TemplateProperty.DropdownPropertyChoice(value = "false", label = "No")
+      },
+      defaultValue = "false")
   private boolean exclusive;
 
   public RabbitMqAuthentication getAuthentication() {

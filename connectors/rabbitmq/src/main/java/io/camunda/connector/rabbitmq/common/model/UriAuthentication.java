@@ -13,6 +13,9 @@ import jakarta.validation.constraints.NotBlank;
 @TemplateSubType(id = "uri", label = "URI")
 public record UriAuthentication(
     @NotBlank
+        @TemplateProperty.Pattern(
+            value = "^(amqps?://)|(\\{\\{secrets\\..+\\}\\}).*",
+            message = "Must start with amqp(s):// or contain a secret reference")
         @TemplateProperty(
             group = "authentication",
             label = "URI",
