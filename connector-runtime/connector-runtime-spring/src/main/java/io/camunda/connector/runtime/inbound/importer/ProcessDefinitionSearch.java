@@ -48,7 +48,7 @@ public class ProcessDefinitionSearch {
   }
 
   /**
-   * Query process definitions from Camunda Operate. Guaranteed to return only the latest deployed
+   * Query process elements from Camunda Operate. Guaranteed to return only the latest deployed
    * version of each process definition.
    */
   public List<ProcessDefinition> query() {

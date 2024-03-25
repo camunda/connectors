@@ -21,10 +21,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import io.camunda.connector.runtime.inbound.lifecycle.InboundConnectorManager;
 import io.camunda.operate.model.ProcessDefinition;
 import io.camunda.zeebe.spring.client.metrics.DefaultNoopMetricsRecorder;
 import java.util.HashSet;

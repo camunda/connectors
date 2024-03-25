@@ -14,14 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.core.inbound.correlation;
+package io.camunda.connector.runtime.inbound.controller;
 
-public record BoundaryEventCorrelationPoint(
-    String messageName,
-    String correlationKeyExpression,
-    String messageIdExpression,
-    Activity attachedTo)
-    implements ProcessCorrelationPoint {
+import io.camunda.connector.api.inbound.Health;
+import io.camunda.connector.api.inbound.InboundConnectorElement;
+import java.util.List;
+import java.util.Map;
 
-  public record Activity(String elementId, String name) {}
-}
+public record ActiveInboundConnectorResponse(
+    String type,
+    String tenantId,
+    List<InboundConnectorElement> elements,
+    Map<String, Object> data,
+    Health health) {}

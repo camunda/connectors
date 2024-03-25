@@ -14,11 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.inbound.lifecycle;
+package io.camunda.connector.runtime.inbound;
 
 import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorElementImpl;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics.Inbound;
 import io.camunda.zeebe.client.ZeebeClient;
@@ -35,7 +36,7 @@ public class MeteredInboundCorrelationHandler extends InboundCorrelationHandler 
   }
 
   @Override
-  protected boolean isActivationConditionMet(InboundConnectorDefinitionImpl def, Object context) {
+  protected boolean isActivationConditionMet(InboundConnectorElementImpl def, Object context) {
     boolean isConditionMet = super.isActivationConditionMet(def, context);
     if (!isConditionMet) {
       metricsRecorder.increase(
