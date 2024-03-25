@@ -27,6 +27,7 @@ import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.runtime.core.FooBarSecretProvider;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImplTest.TestPropertiesClass.InnerObject;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint;
+import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.StandaloneMessageCorrelationPoint;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -39,10 +40,10 @@ class InboundConnectorContextImplTest {
   @Test
   void bindProperties_shouldThrowExceptionWhenWrongFormat() {
     // given
-    InboundConnectorDefinitionImpl definition =
-        new InboundConnectorDefinitionImpl(
+    InboundConnectorElementImpl definition =
+        new InboundConnectorElementImpl(
             Map.of("stringMap", "={{\"key\":\"value\"}"),
-            new MessageCorrelationPoint("", "", null),
+            new StandaloneMessageCorrelationPoint("", "", null),
             "bool",
             0,
             0L,
@@ -68,8 +69,8 @@ class InboundConnectorContextImplTest {
   @Test
   void bindProperties_shouldParseNullValue() {
     // given
-    InboundConnectorDefinitionImpl definition =
-        new InboundConnectorDefinitionImpl(
+    InboundConnectorElementImpl definition =
+        new InboundConnectorElementImpl(
             Map.of("stringMap", "={\"keyString\":null}"),
             new MessageCorrelationPoint("", "", null),
             "bool",
@@ -98,8 +99,8 @@ class InboundConnectorContextImplTest {
   @Test
   void bindProperties_shouldParseStringAsString() {
     // given
-    InboundConnectorDefinitionImpl definition =
-        new InboundConnectorDefinitionImpl(
+    InboundConnectorElementImpl definition =
+        new InboundConnectorElementImpl(
             Map.of(
                 "mapWithStringListWithNumbers", "={key:[\"34\", \"45\", \"890\",\"0\",\"16785\"]}"),
             new MessageCorrelationPoint("", "", null),
@@ -128,8 +129,8 @@ class InboundConnectorContextImplTest {
   @Test
   void bindProperties_shouldParseAllObject() {
     // Given
-    InboundConnectorDefinitionImpl definition =
-        new InboundConnectorDefinitionImpl(
+    InboundConnectorElementImpl definition =
+        new InboundConnectorElementImpl(
             Map.of(
                 "stringMap",
                 "={\"keyString\":\"valueString\"}",
@@ -176,8 +177,8 @@ class InboundConnectorContextImplTest {
   @Test
   void getProperties_shouldNotParseFeel() {
     // given
-    InboundConnectorDefinitionImpl definition =
-        new InboundConnectorDefinitionImpl(
+    InboundConnectorElementImpl definition =
+        new InboundConnectorElementImpl(
             Map.of("stringMap", "={\"keyString\":null}"),
             new MessageCorrelationPoint("", "", null),
             "bool",

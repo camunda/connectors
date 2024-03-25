@@ -57,7 +57,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   private Health health = Health.unknown();
 
-  private EvictingQueue<Activity> logs;
+  private final EvictingQueue<Activity> logs;
 
   public InboundConnectorContextImpl(
       SecretProvider secretProvider,
@@ -70,7 +70,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
     super(secretProvider, validationProvider);
     this.correlationHandler = correlationHandler;
     this.definition = definition;
-    this.properties = InboundPropertyHandler.readWrappedProperties(definition.rawProperties());
+    this.properties = InboundPropertyHandler.readWrappedProperties(definition.rawPropertiesWithoutKeywords());
     this.objectMapper = objectMapper;
     this.cancellationCallback = cancellationCallback;
     this.logs = logs;

@@ -38,7 +38,6 @@ import io.camunda.connector.http.base.auth.BearerAuthentication;
 import io.camunda.connector.http.base.auth.OAuthAuthentication;
 import io.camunda.connector.http.base.constants.Constants;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
-import io.camunda.connector.runtime.inbound.lifecycle.InboundConnectorManager;
 import io.camunda.operate.CamundaOperateClient;
 import io.camunda.operate.model.ProcessDefinition;
 import io.camunda.zeebe.client.ZeebeClient;

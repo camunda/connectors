@@ -14,15 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.inbound.lifecycle;
+package io.camunda.connector.runtime.inbound.controller;
 
 import io.camunda.connector.api.inbound.Activity;
+import io.camunda.connector.api.inbound.InboundConnectorElement;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
-import io.camunda.connector.runtime.core.inbound.InboundConnectorReportingContext;
-import io.camunda.connector.runtime.inbound.webhook.model.CommonWebhookProperties;
+import io.camunda.connector.runtime.inbound.executable.ActiveExecutableQuery;
+import io.camunda.connector.runtime.inbound.executable.ActiveExecutableResponse;
+import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,12 +35,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 public class InboundConnectorRestController {
+
   private static final Logger LOG = LoggerFactory.getLogger(InboundConnectorRestController.class);
 
-  private final InboundConnectorManager inboundManager;
+  private final InboundExecutableRegistry executableRegistry;
 
-  public InboundConnectorRestController(InboundConnectorManager inboundManager) {
-    this.inboundManager = inboundManager;
+  public InboundConnectorRestController(InboundExecutableRegistry executableRegistry) {
+    this.executableRegistry = executableRegistry;
   }
 
   @GetMapping("/inbound")
@@ -59,32 +62,35 @@ public class InboundConnectorRestController {
   }
 
   @GetMapping("/tenants/{tenantId}/inbound/{bpmnProcessId}/{elementId}/logs")
-  public List<Queue<Activity>> getActiveInboundConnectorLogs(
+  public List<Collection<Activity>> getActiveInboundConnectorLogs(
       @PathVariable(value = "tenantId") String tenantId,
       @PathVariable(value = "bpmnProcessId") String bpmnProcessId,
       @PathVariable(value = "elementId") String elementId) {
     var result =
-        inboundManager.query(
-            new ActiveInboundConnectorQuery(bpmnProcessId, elementId, null, tenantId));
+        executableRegistry.query(
+            new ActiveExecutableQuery(bpmnProcessId, elementId, null, tenantId));
     return result.stream()
-        .map(connector -> ((InboundConnectorReportingContext) connector.context()).getLogs())
+        .map(ActiveExecutableResponse::logs)
         .collect(Collectors.toList());
   }
 
   private List<ActiveInboundConnectorResponse> getActiveInboundConnectors(
       String bpmnProcessId, String elementId, String type, String tenantId) {
-    var result =
-        inboundManager.query(
-            new ActiveInboundConnectorQuery(bpmnProcessId, elementId, type, tenantId));
-    return result.stream().map(this::mapToInboundResponse).collect(Collectors.toList());
+    return executableRegistry.query(
+            new ActiveExecutableQuery(bpmnProcessId, elementId, type, tenantId))
+        .stream()
+        .map(this::mapToInboundResponse)
+        .collect(Collectors.toList());
   }
 
-  private Map<String, Object> getData(ActiveInboundConnector connector) {
+  private Map<String, Object> getData(ActiveExecutableResponse connector) {
     Map<String, Object> data = Map.of();
-    if (connector.executable() instanceof WebhookConnectorExecutable) {
+    if (WebhookConnectorExecutable.class.equals(connector.executableClass())) {
       try {
-        var castedProps = connector.context().bindProperties(CommonWebhookProperties.class);
-        data = Map.of("path", castedProps.getContext());
+        var properties = connector.definition().elements().getFirst()
+            .rawPropertiesWithoutKeywords();
+        var contextPath = properties.get("inbound.context");
+        data = Map.of("path", contextPath);
       } catch (Exception e) {
         LOG.error("ERROR: webhook connector doesn't have context path property", e);
       }
@@ -92,16 +98,13 @@ public class InboundConnectorRestController {
     return data;
   }
 
-  private ActiveInboundConnectorResponse mapToInboundResponse(ActiveInboundConnector connector) {
-    var definition = connector.context().getDefinition();
-    var health = ((InboundConnectorReportingContext) connector.context()).getHealth();
+  private ActiveInboundConnectorResponse mapToInboundResponse(ActiveExecutableResponse connector) {
+    var definition = connector.definition();
     return new ActiveInboundConnectorResponse(
-        definition.bpmnProcessId(),
-        definition.version(),
-        definition.elementId(),
         definition.type(),
         definition.tenantId(),
+        definition.elements().stream().map(e -> (InboundConnectorElement) e).toList(),
         getData(connector),
-        health);
+        connector.health());
   }
 }

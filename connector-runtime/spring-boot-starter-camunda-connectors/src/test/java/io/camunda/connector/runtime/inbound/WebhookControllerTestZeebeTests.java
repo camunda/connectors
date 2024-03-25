@@ -40,7 +40,7 @@ import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
-import io.camunda.connector.runtime.inbound.lifecycle.ActiveInboundConnector;
+import io.camunda.connector.runtime.inbound.executable.ActiveExecutable;
 import io.camunda.connector.runtime.inbound.webhook.FeelExpressionErrorResponse;
 import io.camunda.connector.runtime.inbound.webhook.InboundWebhookRestController;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
@@ -110,7 +110,7 @@ class WebhookControllerTestZeebeTests {
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
-        new ActiveInboundConnector(webhookConnectorExecutable, webhookContext));
+        new ActiveExecutable(webhookConnectorExecutable, webhookContext));
 
     deployProcess("processA");
 
@@ -150,7 +150,7 @@ class WebhookControllerTestZeebeTests {
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
-        new ActiveInboundConnector(webhookConnectorExecutable, webhookContext));
+        new ActiveExecutable(webhookConnectorExecutable, webhookContext));
 
     deployProcess("processA");
 
@@ -196,7 +196,7 @@ class WebhookControllerTestZeebeTests {
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
-        new ActiveInboundConnector(webhookConnectorExecutable, webhookContext));
+        new ActiveExecutable(webhookConnectorExecutable, webhookContext));
 
     ResponseEntity<?> responseEntity =
         controller.inbound(
@@ -236,7 +236,7 @@ class WebhookControllerTestZeebeTests {
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
-        new ActiveInboundConnector(webhookConnectorExecutable, webhookContext));
+        new ActiveExecutable(webhookConnectorExecutable, webhookContext));
 
     ResponseEntity<?> responseEntity =
         controller.inbound(
@@ -274,7 +274,7 @@ class WebhookControllerTestZeebeTests {
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
-        new ActiveInboundConnector(webhookConnectorExecutable, webhookContext));
+        new ActiveExecutable(webhookConnectorExecutable, webhookContext));
 
     deployProcess("processA");
 
@@ -312,7 +312,7 @@ class WebhookControllerTestZeebeTests {
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
-        new ActiveInboundConnector(webhookConnectorExecutable, webhookContext));
+        new ActiveExecutable(webhookConnectorExecutable, webhookContext));
 
     deployProcess("processB");
 
@@ -345,7 +345,7 @@ class WebhookControllerTestZeebeTests {
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
-        new ActiveInboundConnector(webhookConnectorExecutable, webhookContext));
+        new ActiveExecutable(webhookConnectorExecutable, webhookContext));
 
     deployProcess("processA");
 
@@ -380,7 +380,7 @@ class WebhookControllerTestZeebeTests {
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
-        new ActiveInboundConnector(webhookConnectorExecutable, webhookContext));
+        new ActiveExecutable(webhookConnectorExecutable, webhookContext));
 
     deployProcess("processA");
 
@@ -429,7 +429,7 @@ class WebhookControllerTestZeebeTests {
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
-        new ActiveInboundConnector(webhookConnectorExecutable, webhookContext));
+        new ActiveExecutable(webhookConnectorExecutable, webhookContext));
 
     deployProcess("processA");
 
@@ -478,7 +478,7 @@ class WebhookControllerTestZeebeTests {
 
     // Register webhook function 'implementation'
     webhookConnectorRegistry.register(
-        new ActiveInboundConnector(webhookConnectorExecutable, webhookContext));
+        new ActiveExecutable(webhookConnectorExecutable, webhookContext));
 
     deployProcess("processA");
 

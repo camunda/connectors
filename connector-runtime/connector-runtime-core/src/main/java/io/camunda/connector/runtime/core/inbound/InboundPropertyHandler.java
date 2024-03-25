@@ -52,8 +52,6 @@ public class InboundPropertyHandler {
     // e.g. {"foo.bar": "baz"} -> {["foo", "bar"]: "baz"}
     Map<List<String>, String> pathMap =
         unwrappedProperties.entrySet().stream()
-            // we don't need to add the runtime-level properties
-            .filter(entry -> !Keywords.ALL_KEYWORDS.contains(entry.getKey()))
             .collect(
                 Collectors.toMap(
                     entry -> Arrays.asList(entry.getKey().split("\\.")), Map.Entry::getValue));

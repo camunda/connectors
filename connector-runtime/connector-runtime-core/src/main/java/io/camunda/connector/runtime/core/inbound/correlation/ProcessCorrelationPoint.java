@@ -26,5 +26,4 @@ package io.camunda.connector.runtime.core.inbound.correlation;
 public sealed interface ProcessCorrelationPoint
     permits MessageCorrelationPoint,
         StartEventCorrelationPoint,
-        MessageStartEventCorrelationPoint,
-        BoundaryEventCorrelationPoint {}
+        MessageStartEventCorrelationPoint {}

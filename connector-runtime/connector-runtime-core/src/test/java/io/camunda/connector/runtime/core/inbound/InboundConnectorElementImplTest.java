@@ -24,13 +24,13 @@ import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationP
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
-public class InboundConnectorDefinitionImplTest {
+public class InboundConnectorElementImplTest {
 
   @Test
   void rawProperties_notSerializedAsJson() throws JsonProcessingException {
     // given
     var testObj =
-        new InboundConnectorDefinitionImpl(
+        new InboundConnectorElementImpl(
             Map.of("auth", "abc"), new MessageCorrelationPoint("", "", null), "", 0, 0L, "", "");
 
     // when
@@ -44,7 +44,7 @@ public class InboundConnectorDefinitionImplTest {
   void rawProperties_notPartOfToString() {
     // given
     var testObj =
-        new InboundConnectorDefinitionImpl(
+        new InboundConnectorElementImpl(
             Map.of("auth", "abc"), new MessageCorrelationPoint("", "", null), "", 0, 0L, "", "");
 
     // when
