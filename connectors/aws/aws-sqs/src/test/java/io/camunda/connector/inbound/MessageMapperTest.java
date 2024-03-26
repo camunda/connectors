@@ -65,22 +65,21 @@ class MessageMapperTest {
     // When
     SqsInboundMessage sqsInboundMessage = MessageMapper.toSqsInboundMessage(awsMessage);
     // then
-    assertThat(sqsInboundMessage.getMessageId()).isEqualTo(MESSAGE_ID);
-    assertThat(sqsInboundMessage.getReceiptHandle()).isEqualTo(RECEIPT_HANDLE);
-    assertThat(sqsInboundMessage.getMD5OfMessageAttributes()).isEqualTo(MD5_OF_MESSAGE_ATTRIBUTES);
-    assertThat(sqsInboundMessage.getAttributes()).isEqualTo(ATTRIBUTES);
-    assertThat(sqsInboundMessage.getmD5OfBody()).isEqualTo(JSON_BODY);
-    assertThat(sqsInboundMessage.getBody()).isEqualTo(STRING_BODY);
+    assertThat(sqsInboundMessage.messageId()).isEqualTo(MESSAGE_ID);
+    assertThat(sqsInboundMessage.receiptHandle()).isEqualTo(RECEIPT_HANDLE);
+    assertThat(sqsInboundMessage.mD5OfMessageAttributes()).isEqualTo(MD5_OF_MESSAGE_ATTRIBUTES);
+    assertThat(sqsInboundMessage.attributes()).isEqualTo(ATTRIBUTES);
+    assertThat(sqsInboundMessage.mD5OfBody()).isEqualTo(JSON_BODY);
+    assertThat(sqsInboundMessage.body()).isEqualTo(STRING_BODY);
 
     io.camunda.connector.inbound.model.message.MessageAttributeValue
-        sqsInboundMessageAttributeValue =
-            sqsInboundMessage.getMessageAttributes().get("attributeKey");
-    assertThat(sqsInboundMessageAttributeValue.getStringValue()).isEqualTo(ATTRIBUTE_STRING_VALUE);
-    assertThat(sqsInboundMessageAttributeValue.getDataType()).isEqualTo(ATTRIBUTE_DATA_TYPE);
-    assertThat(sqsInboundMessageAttributeValue.getBinaryValue()).isEqualTo(ATTRIBUTE_BINARY_TYPE);
-    assertThat(sqsInboundMessageAttributeValue.getStringListValues())
+        sqsInboundMessageAttributeValue = sqsInboundMessage.messageAttributes().get("attributeKey");
+    assertThat(sqsInboundMessageAttributeValue.stringValue()).isEqualTo(ATTRIBUTE_STRING_VALUE);
+    assertThat(sqsInboundMessageAttributeValue.dataType()).isEqualTo(ATTRIBUTE_DATA_TYPE);
+    assertThat(sqsInboundMessageAttributeValue.binaryValue()).isEqualTo(ATTRIBUTE_BINARY_TYPE);
+    assertThat(sqsInboundMessageAttributeValue.stringListValues())
         .isEqualTo(List.of(ATTRIBUTE_STRING_VALUE));
-    assertThat(sqsInboundMessageAttributeValue.getBinaryListValues())
+    assertThat(sqsInboundMessageAttributeValue.binaryListValues())
         .isEqualTo(List.of(ATTRIBUTE_BINARY_TYPE));
   }
 
@@ -91,7 +90,7 @@ class MessageMapperTest {
     // When
     SqsInboundMessage sqsInboundMessage = MessageMapper.toSqsInboundMessage(awsMessage);
     // then
-    JsonNode jsonNode = objectMapper.convertValue(sqsInboundMessage.getBody(), JsonNode.class);
+    JsonNode jsonNode = objectMapper.convertValue(sqsInboundMessage.body(), JsonNode.class);
     String actualValue = jsonNode.get("key").get("innerKey").asText();
     assertThat(actualValue).isEqualTo("value");
   }
@@ -104,7 +103,7 @@ class MessageMapperTest {
     // When
     SqsInboundMessage sqsInboundMessage = MessageMapper.toSqsInboundMessage(awsMessage);
     // then
-    assertThat(sqsInboundMessage.getAttributes()).isEqualTo(new HashMap<>());
-    assertThat(sqsInboundMessage.getMessageAttributes()).isEqualTo(new HashMap<>());
+    assertThat(sqsInboundMessage.attributes()).isEqualTo(new HashMap<>());
+    assertThat(sqsInboundMessage.messageAttributes()).isEqualTo(new HashMap<>());
   }
 }
