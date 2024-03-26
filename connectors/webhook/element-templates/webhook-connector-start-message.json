@@ -44,7 +44,7 @@
     },
     "type" : "Hidden"
   }, {
-    "id" : "inbound.webhookMethod",
+    "id" : "inbound.method",
     "label" : "Webhook method",
     "description" : "Select HTTP method",
     "optional" : false,
@@ -72,7 +72,7 @@
       "value" : "delete"
     } ]
   }, {
-    "id" : "inbound.webhookId",
+    "id" : "inbound.context",
     "label" : "Webhook ID",
     "description" : "The webhook ID is a part of the URL",
     "optional" : false,
