@@ -23,7 +23,9 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.camunda.connector.kafka.model.KafkaAuthentication;
 import io.camunda.connector.kafka.model.KafkaTopic;
+import io.camunda.connector.kafka.model.SerializationType;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
 import io.camunda.connector.test.inbound.InboundConnectorDefinitionBuilder;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
@@ -56,6 +58,7 @@ public class KafkaExecutableTest {
   private InboundConnectorContextBuilder.TestInboundConnectorContext originalContext;
   private List<PartitionInfo> topicPartitions;
   private KafkaConnectorProperties kafkaConnectorProperties;
+  private KafkaTopic kafkaTopic;
   @Mock private KafkaConsumer<Object, Object> mockConsumer;
 
   private String topic;
@@ -69,12 +72,19 @@ public class KafkaExecutableTest {
         Arrays.asList(
             new PartitionInfo(topic, 0, null, null, null),
             new PartitionInfo(topic, 1, null, null, null));
-    KafkaTopic kafkaTopic = new KafkaTopic("localhost:9092", topic);
-    kafkaConnectorProperties = new KafkaConnectorProperties();
-    kafkaConnectorProperties.setAutoOffsetReset(KafkaConnectorProperties.AutoOffsetReset.NONE);
-    kafkaConnectorProperties.setAuthenticationType(
-        KafkaConnectorProperties.AuthenticationType.custom);
-    kafkaConnectorProperties.setTopic(kafkaTopic);
+    kafkaTopic = new KafkaTopic("localhost:9092", topic);
+    KafkaAuthentication kafkaAuthentication = new KafkaAuthentication(null, null);
+    kafkaConnectorProperties =
+        new KafkaConnectorProperties(
+            SerializationType.JSON,
+            KafkaConnectorProperties.AuthenticationType.custom,
+            kafkaAuthentication,
+            kafkaTopic,
+            null,
+            null,
+            null,
+            KafkaConnectorProperties.AutoOffsetReset.NONE,
+            null);
 
     context =
         InboundConnectorContextBuilder.create()
@@ -163,7 +173,18 @@ public class KafkaExecutableTest {
   @Test
   void testGroupIdUsage() {
     // When
-    kafkaConnectorProperties.setGroupId("my-group-id");
+    KafkaAuthentication kafkaAuthentication = new KafkaAuthentication(null, null);
+    KafkaConnectorProperties kafkaConnectorProperties =
+        new KafkaConnectorProperties(
+            SerializationType.JSON,
+            KafkaConnectorProperties.AuthenticationType.custom,
+            kafkaAuthentication,
+            kafkaTopic,
+            "my-group-id",
+            null,
+            List.of(0L, 0L),
+            KafkaConnectorProperties.AutoOffsetReset.EARLIEST,
+            null);
     Properties properties =
         KafkaPropertyTransformer.getKafkaProperties(kafkaConnectorProperties, context);
     // Then
@@ -236,6 +257,7 @@ public class KafkaExecutableTest {
     properties.put("topic", new KafkaTopic("test", "test"));
     properties.put("offsets", input);
     properties.put("authenticationType", "custom");
+    properties.put("autoOffsetReset", "none");
 
     context =
         InboundConnectorContextBuilder.create()
@@ -246,7 +268,7 @@ public class KafkaExecutableTest {
             .build();
 
     var boundProps = context.bindProperties(KafkaConnectorProperties.class);
-    assertThat(boundProps.getOffsets()).isEqualTo(expected);
+    assertThat(boundProps.offsets()).isEqualTo(expected);
   }
 
   private static Stream<Arguments> provideStringsForGetOffsets() {

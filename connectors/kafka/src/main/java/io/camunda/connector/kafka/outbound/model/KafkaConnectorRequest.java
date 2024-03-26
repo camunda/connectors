@@ -35,14 +35,7 @@ public record KafkaConnectorRequest(
     @Valid KafkaAuthentication authentication,
     @Valid @NotNull KafkaTopic topic,
     @Valid @NotNull KafkaMessage message,
-    @TemplateProperty(
-            group = "kafka",
-            label = "Headers",
-            optional = true,
-            feel = Property.FeelMode.required,
-            description = "Provide Kafka producer headers in JSON")
-        @Valid
-        Avro avro,
+    @Valid Avro avro,
     @TemplateProperty(
             group = "kafka",
             label = "Headers",

@@ -39,12 +39,12 @@ public class KafkaPropertyTransformer {
     KafkaConnectorRequest connectorRequest =
         new KafkaConnectorRequest(
             SerializationType.JSON,
-            props.getAuthentication(),
-            props.getTopic(),
+            props.authentication(),
+            props.topic(),
             null,
             null,
             null,
-            props.getAdditionalProperties());
+            props.additionalProperties() == null ? new HashMap<>() : props.additionalProperties());
     final Properties kafkaProps =
         KafkaPropertiesUtil.assembleKafkaClientProperties(connectorRequest);
 
@@ -53,13 +53,13 @@ public class KafkaPropertyTransformer {
       // GROUP_ID_CONFIG is mandatory. It will be used to assign a client id
       kafkaProps.put(ConsumerConfig.GROUP_ID_CONFIG, groupIdConfig);
     }
-    kafkaProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, props.getAutoOffsetReset().toString());
+    kafkaProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, props.autoOffsetReset().toString());
     kafkaProps.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
     kafkaProps.put(TopicConfig.RETENTION_MS_CONFIG, -1);
 
     kafkaProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, DEFAULT_KEY_DESERIALIZER);
 
-    if (props.getAvro() == null) {
+    if (props.avro() == null) {
       kafkaProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, DEFAULT_KEY_DESERIALIZER);
     } else {
       kafkaProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, BYTE_ARRAY_DESERIALIZER);
@@ -70,8 +70,8 @@ public class KafkaPropertyTransformer {
 
   private static String resolveGroupId(
       KafkaConnectorProperties kafkaConnectorProperties, InboundConnectorContext context) {
-    var clientId = kafkaConnectorProperties.getGroupId();
-    if (kafkaConnectorProperties.getGroupId() == null) {
+    var clientId = kafkaConnectorProperties.groupId();
+    if (kafkaConnectorProperties.groupId() == null) {
       clientId = computeGroupId(context);
     }
     return clientId.substring(0, Math.min(clientId.length(), 250));
