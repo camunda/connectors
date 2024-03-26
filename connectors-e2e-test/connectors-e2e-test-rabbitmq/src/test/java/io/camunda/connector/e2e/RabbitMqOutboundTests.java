@@ -51,7 +51,7 @@ import org.testcontainers.utility.DockerImageName;
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ZeebeSpringTest
 @ExtendWith(MockitoExtension.class)
-public class RabbitMqTests extends BaseRabbitMqTest {
+public class RabbitMqOutboundTests extends BaseRabbitMqTest {
   private static final String QUEUE_NAME = "testQueue";
   private static final String EXCHANGE_NAME = "testExchange";
   private static final String ROUTING_KEY = "testRoutingKey";
@@ -82,6 +82,11 @@ public class RabbitMqTests extends BaseRabbitMqTest {
     }
   }
 
+  @AfterAll
+  public static void tearDown() {
+    rabbitMQContainer.stop();
+  }
+
   @BeforeEach
   public void cleanQueue() throws IOException, TimeoutException {
     try (Connection connection = factory.newConnection();
@@ -91,15 +96,10 @@ public class RabbitMqTests extends BaseRabbitMqTest {
     }
   }
 
-  @AfterAll
-  public static void tearDown() {
-    rabbitMQContainer.stop();
-  }
-
   @Test
   public void credentialsAuthenticationSendMessageTest() throws Exception {
     var elementTemplate =
-        ElementTemplate.from(ELEMENT_TEMPLATE_PATH)
+        ElementTemplate.from(OUTBOUND_ELEMENT_TEMPLATE_PATH)
             .property("authentication.authType", "credentials")
             .property("authentication.userName", rabbitMQContainer.getAdminUsername())
             .property("authentication.password", rabbitMQContainer.getAdminPassword())
@@ -138,7 +138,7 @@ public class RabbitMqTests extends BaseRabbitMqTest {
             "%2F");
 
     var elementTemplate =
-        ElementTemplate.from(ELEMENT_TEMPLATE_PATH)
+        ElementTemplate.from(OUTBOUND_ELEMENT_TEMPLATE_PATH)
             .property("authentication.authType", "uri")
             .property("authentication.uri", uri)
             .property("routing.exchange", EXCHANGE_NAME)
