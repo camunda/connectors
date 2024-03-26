@@ -955,7 +955,7 @@
     },
     {
       "label": "Name",
-      "description": "Name of the branch",
+      "description": "Name of the new branch",
       "group": "operation",
       "type": "String",
       "feel": "optional",
@@ -1029,6 +1029,7 @@
     },
     {
       "label": "Commit message",
+      "description": "Message of the commit that adds the new file",
       "group": "operation",
       "type": "String",
       "feel": "optional",
@@ -1123,7 +1124,7 @@
     },
     {
       "label": "Encoding",
-      "description": "Change encoding to <code>base64</code>. Default is <code>text</code>",
+      "description": "Change encoding to <code>base64</code>. GitLab's default is <code>text</code>",
       "group": "operation",
       "type": "String",
       "feel": "optional",
