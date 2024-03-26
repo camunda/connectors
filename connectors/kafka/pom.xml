@@ -85,13 +85,41 @@ except in compliance with the proprietary license.</license.inlineheader>
       <plugin>
         <groupId>io.camunda.connector</groupId>
         <artifactId>element-template-generator-maven-plugin</artifactId>
-        <version>${project.version}</version>
         <configuration>
-          <connectorClasses>
-            <connectorClass>io.camunda.connector.kafka.outbound.KafkaConnectorFunction</connectorClass>
-          </connectorClasses>
-          <generateHybridTemplates>true</generateHybridTemplates>
-          <templateFileName>kafka-outbound-connector</templateFileName>
+          <connectors>
+            <connector>
+              <connectorClass>io.camunda.connector.kafka.outbound.KafkaConnectorFunction</connectorClass>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.KAFKA.v1</templateId>
+                  <templateFileName>kafka-outbound-connector.json</templateFileName>
+                </file>
+              </files>
+              <generateHybridTemplates>true</generateHybridTemplates>
+            </connector>
+            <connector>
+              <connectorClass>io.camunda.connector.kafka.inbound.KafkaExecutable</connectorClass>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.inbound.KAFKA.v1</templateId>
+                  <templateFileName>kafka-inbound-connector-start-event.json</templateFileName>
+                </file>
+                <file>
+                  <templateId>io.camunda.connectors.inbound.KafkaMessageStart.v1</templateId>
+                  <templateFileName>kafka-inbound-connector-start-message.json</templateFileName>
+                </file>
+                <file>
+                  <templateId>io.camunda.connectors.inbound.KafkaIntermediate.v1</templateId>
+                  <templateFileName>kafka-inbound-connector-intermediate.json</templateFileName>
+                </file>
+                <file>
+                  <templateId>io.camunda.connectors.inbound.KafkaBoundary.v1</templateId>
+                  <templateFileName>kafka-inbound-connector-boundary.json</templateFileName>
+                </file>
+              </files>
+              <generateHybridTemplates>true</generateHybridTemplates>
+            </connector>
+          </connectors>
         </configuration>
       </plugin>
     </plugins>

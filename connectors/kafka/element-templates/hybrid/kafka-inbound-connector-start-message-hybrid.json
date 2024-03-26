@@ -1,7 +1,7 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Kafka Boundary Event Connector",
-  "id" : "io.camunda.connectors.inbound.KafkaBoundary.v1",
+  "name" : "Kafka Message Start Event Connector",
+  "id" : "io.camunda.connectors.inbound.KafkaMessageStart.v1",
   "description" : "Consume Kafka messages",
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=inbound",
   "version" : 5,
@@ -9,12 +9,15 @@
     "id" : "connectors",
     "name" : "Connectors"
   },
-  "appliesTo" : [ "bpmn:BoundaryEvent" ],
+  "appliesTo" : [ "bpmn:StartEvent" ],
   "elementType" : {
-    "value" : "bpmn:BoundaryEvent",
+    "value" : "bpmn:StartEvent",
     "eventDefinition" : "bpmn:MessageEventDefinition"
   },
   "groups" : [ {
+    "id" : "connectorType",
+    "label" : "Connector type"
+  }, {
     "id" : "authentication",
     "label" : "Authentication"
   }, {
@@ -34,12 +37,14 @@
     "label" : "Output mapping"
   } ],
   "properties" : [ {
+    "id" : "connectorType",
     "value" : "io.camunda:connector-kafka-inbound:1",
+    "group" : "connectorType",
     "binding" : {
       "name" : "inbound.type",
       "type" : "zeebe:property"
     },
-    "type" : "Hidden"
+    "type" : "String"
   }, {
     "id" : "authenticationType",
     "label" : "Authentication type",
@@ -224,6 +229,24 @@
     },
     "type" : "String"
   }, {
+    "id" : "correlationRequired",
+    "label" : "Subprocess correlation required",
+    "description" : "Indicates whether correlation is required. This is needed for event-based subprocess message start events",
+    "value" : "notRequired",
+    "group" : "correlation",
+    "binding" : {
+      "name" : "correlationRequired",
+      "type" : "zeebe:property"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Correlation not required",
+      "value" : "notRequired"
+    }, {
+      "name" : "Correlation required",
+      "value" : "required"
+    } ]
+  }, {
     "id" : "correlationKeyProcess",
     "label" : "Correlation key (process)",
     "description" : "Sets up the correlation key from process variables",
@@ -235,6 +258,11 @@
     "binding" : {
       "name" : "correlationKey",
       "type" : "bpmn:Message#zeebe:subscription#property"
+    },
+    "condition" : {
+      "property" : "correlationRequired",
+      "equals" : "required",
+      "type" : "simple"
     },
     "type" : "String"
   }, {
@@ -249,6 +277,11 @@
     "binding" : {
       "name" : "correlationKeyExpression",
       "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "correlationRequired",
+      "equals" : "required",
+      "type" : "simple"
     },
     "type" : "String"
   }, {

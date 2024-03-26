@@ -88,8 +88,8 @@ public class KafkaConnectorConsumer {
   }
 
   public void startConsumer() {
-    if (elementProps.getAvro() != null) {
-      var schemaString = StringEscapeUtils.unescapeJson(elementProps.getAvro().schema());
+    if (elementProps.avro() != null) {
+      var schemaString = StringEscapeUtils.unescapeJson(elementProps.avro().schema());
       Schema schema = new Schema.Parser().setValidate(true).parse(schemaString);
       AvroSchema avroSchema = new AvroSchema(schema);
       AvroMapper avroMapper = new AvroMapper();
@@ -107,8 +107,8 @@ public class KafkaConnectorConsumer {
   private void prepareConsumer() {
     try {
       this.consumer = consumerCreatorFunction.apply(getKafkaProperties(elementProps, context));
-      var partitions = assignTopicPartitions(consumer, elementProps.getTopic().topicName());
-      Optional.ofNullable(elementProps.getOffsets())
+      var partitions = assignTopicPartitions(consumer, elementProps.topic().topicName());
+      Optional.ofNullable(elementProps.offsets())
           .ifPresent(offsets -> seekOffsets(consumer, partitions, offsets));
       reportUp();
     } catch (Exception ex) {

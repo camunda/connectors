@@ -1,7 +1,7 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Kafka Boundary Event Connector",
-  "id" : "io.camunda.connectors.inbound.KafkaBoundary.v1",
+  "name" : "Kafka Start Event Connector",
+  "id" : "io.camunda.connectors.inbound.KAFKA.v1",
   "description" : "Consume Kafka messages",
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=inbound",
   "version" : 5,
@@ -9,12 +9,14 @@
     "id" : "connectors",
     "name" : "Connectors"
   },
-  "appliesTo" : [ "bpmn:BoundaryEvent" ],
+  "appliesTo" : [ "bpmn:StartEvent" ],
   "elementType" : {
-    "value" : "bpmn:BoundaryEvent",
-    "eventDefinition" : "bpmn:MessageEventDefinition"
+    "value" : "bpmn:StartEvent"
   },
   "groups" : [ {
+    "id" : "connectorType",
+    "label" : "Connector type"
+  }, {
     "id" : "authentication",
     "label" : "Authentication"
   }, {
@@ -27,19 +29,18 @@
     "id" : "activation",
     "label" : "Activation"
   }, {
-    "id" : "correlation",
-    "label" : "Correlation"
-  }, {
     "id" : "output",
     "label" : "Output mapping"
   } ],
   "properties" : [ {
+    "id" : "connectorType",
     "value" : "io.camunda:connector-kafka-inbound:1",
+    "group" : "connectorType",
     "binding" : {
       "name" : "inbound.type",
       "type" : "zeebe:property"
     },
-    "type" : "Hidden"
+    "type" : "String"
   }, {
     "id" : "authenticationType",
     "label" : "Authentication type",
@@ -223,57 +224,6 @@
       "type" : "zeebe:property"
     },
     "type" : "String"
-  }, {
-    "id" : "correlationKeyProcess",
-    "label" : "Correlation key (process)",
-    "description" : "Sets up the correlation key from process variables",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "required",
-    "group" : "correlation",
-    "binding" : {
-      "name" : "correlationKey",
-      "type" : "bpmn:Message#zeebe:subscription#property"
-    },
-    "type" : "String"
-  }, {
-    "id" : "correlationKeyPayload",
-    "label" : "Correlation key (payload)",
-    "description" : "Extracts the correlation key from the incoming message payload",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "required",
-    "group" : "correlation",
-    "binding" : {
-      "name" : "correlationKeyExpression",
-      "type" : "zeebe:property"
-    },
-    "type" : "String"
-  }, {
-    "id" : "messageIdExpression",
-    "label" : "Message ID expression",
-    "description" : "Expression to extract unique identifier of a message",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "correlation",
-    "binding" : {
-      "name" : "messageIdExpression",
-      "type" : "zeebe:property"
-    },
-    "type" : "String"
-  }, {
-    "id" : "messageNameUuid",
-    "generatedValue" : {
-      "type" : "uuid"
-    },
-    "group" : "correlation",
-    "binding" : {
-      "name" : "name",
-      "type" : "bpmn:Message#property"
-    },
-    "type" : "Hidden"
   }, {
     "id" : "resultVariable",
     "label" : "Result variable",
