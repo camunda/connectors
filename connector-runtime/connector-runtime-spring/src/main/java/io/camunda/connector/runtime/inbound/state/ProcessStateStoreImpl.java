@@ -1,3 +1,19 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. See the NOTICE file
+ * distributed with this work for additional information regarding copyright
+ * ownership. Camunda licenses this file to you under the Apache License,
+ * Version 2.0; you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.camunda.connector.runtime.inbound.state;
 
 import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
@@ -17,7 +33,7 @@ import org.slf4j.LoggerFactory;
 
 public class ProcessStateStoreImpl implements ProcessStateStore {
 
-  private final static Logger LOG = LoggerFactory.getLogger(ProcessStateStoreImpl.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ProcessStateStoreImpl.class);
 
   private final ConcurrentHashMap<String, ProcessState> processStates = new ConcurrentHashMap<>();
 
@@ -25,15 +41,11 @@ public class ProcessStateStoreImpl implements ProcessStateStore {
   private final InboundExecutableRegistry executableRegistry;
 
   private record ProcessState(
-      int version,
-      long processDefinitionKey,
-      Map<String, UUID> executablesByDeduplicationId
-  ) {}
+      int version, long processDefinitionKey, Map<String, UUID> executablesByDeduplicationId) {}
 
   public ProcessStateStoreImpl(
       ProcessDefinitionInspector processDefinitionInspector,
-      InboundExecutableRegistry executableRegistry
-  ) {
+      InboundExecutableRegistry executableRegistry) {
     this.processDefinitionInspector = processDefinitionInspector;
     this.executableRegistry = executableRegistry;
   }
@@ -42,23 +54,27 @@ public class ProcessStateStoreImpl implements ProcessStateStore {
   public void update(ProcessImportResult processDefinitions) {
     var entries = processDefinitions.processDefinitionVersions().entrySet();
 
-    var newlyDeployed = entries.stream()
-        .filter(entry -> !processStates.containsKey(entry.getKey().bpmnProcessId()))
-        .toList();
+    var newlyDeployed =
+        entries.stream()
+            .filter(entry -> !processStates.containsKey(entry.getKey().bpmnProcessId()))
+            .toList();
 
-    var replacedWithDifferentVersion = entries.stream()
-        .filter(entry -> {
-          var state = processStates.get(entry.getKey().bpmnProcessId());
-          return state != null && state.version() != entry.getValue().version();
-        })
-        .toList();
+    var replacedWithDifferentVersion =
+        entries.stream()
+            .filter(
+                entry -> {
+                  var state = processStates.get(entry.getKey().bpmnProcessId());
+                  return state != null && state.version() != entry.getValue().version();
+                })
+            .toList();
 
-    var deletedProcessIds = processStates.keySet().stream()
-        .filter(processState -> processDefinitions.processDefinitionVersions().keySet().stream()
-            .noneMatch(
-                key -> key.bpmnProcessId().equals(processState)
-            ))
-        .toList();
+    var deletedProcessIds =
+        processStates.keySet().stream()
+            .filter(
+                processState ->
+                    processDefinitions.processDefinitionVersions().keySet().stream()
+                        .noneMatch(key -> key.bpmnProcessId().equals(processState)))
+            .toList();
 
     logResult(newlyDeployed, replacedWithDifferentVersion, deletedProcessIds);
 
@@ -70,20 +86,20 @@ public class ProcessStateStoreImpl implements ProcessStateStore {
   private void newlyDeployed(
       Map.Entry<ProcessDefinitionIdentifier, ProcessDefinitionVersion> entry) {
     try {
-      processStates.compute(entry.getKey().bpmnProcessId(), (key, state) -> {
-        var connectorDefinitions = getConnectors(entry);
-        var executables = connectorDefinitions.stream()
-            .collect(Collectors.toMap(
-                InboundConnectorDefinitionImpl::deduplicationId,
-                this::activateExecutable
-            ));
+      processStates.compute(
+          entry.getKey().bpmnProcessId(),
+          (key, state) -> {
+            var connectorDefinitions = getConnectors(entry);
+            var executables =
+                connectorDefinitions.stream()
+                    .collect(
+                        Collectors.toMap(
+                            InboundConnectorDefinitionImpl::deduplicationId,
+                            this::activateExecutable));
 
-        return new ProcessState(
-            entry.getValue().version(),
-            entry.getValue().processDefinitionKey(),
-            executables
-        );
-      });
+            return new ProcessState(
+                entry.getValue().version(), entry.getValue().processDefinitionKey(), executables);
+          });
     } catch (Throwable e) {
       LOG.error("Failed to register process {}", entry.getKey().bpmnProcessId(), e);
       // ignore and continue with the next process
@@ -93,20 +109,22 @@ public class ProcessStateStoreImpl implements ProcessStateStore {
   private void replacedWithDifferentVersion(
       Map.Entry<ProcessDefinitionIdentifier, ProcessDefinitionVersion> entry) {
     try {
-      processStates.computeIfPresent(entry.getKey().bpmnProcessId(), (key, state) -> {
-        var connectorDefinitions = getConnectors(entry);
-        state.executablesByDeduplicationId().values().forEach(this::deactivateExecutable);
-        var newExecutables = connectorDefinitions.stream()
-            .collect(Collectors.toMap(
-                InboundConnectorDefinitionImpl::deduplicationId,
-                this::activateExecutable
-            ));
-        return new ProcessState(
-            entry.getValue().version(),
-            entry.getValue().processDefinitionKey(),
-            newExecutables
-        );
-      });
+      processStates.computeIfPresent(
+          entry.getKey().bpmnProcessId(),
+          (key, state) -> {
+            var connectorDefinitions = getConnectors(entry);
+            state.executablesByDeduplicationId().values().forEach(this::deactivateExecutable);
+            var newExecutables =
+                connectorDefinitions.stream()
+                    .collect(
+                        Collectors.toMap(
+                            InboundConnectorDefinitionImpl::deduplicationId,
+                            this::activateExecutable));
+            return new ProcessState(
+                entry.getValue().version(),
+                entry.getValue().processDefinitionKey(),
+                newExecutables);
+          });
     } catch (Throwable e) {
       LOG.error("Failed to update process {}", entry.getKey().bpmnProcessId(), e);
       // ignore and continue with the next process
@@ -115,10 +133,12 @@ public class ProcessStateStoreImpl implements ProcessStateStore {
 
   private void deleted(String processId) {
     try {
-      processStates.computeIfPresent(processId, (key1, state) -> {
-        state.executablesByDeduplicationId.values().forEach(this::deactivateExecutable);
-        return null;
-      });
+      processStates.computeIfPresent(
+          processId,
+          (key1, state) -> {
+            state.executablesByDeduplicationId.values().forEach(this::deactivateExecutable);
+            return null;
+          });
     } catch (Throwable e) {
       LOG.error("Failed to deregister process {}", processId, e);
       // ignore and continue with the next process
@@ -128,12 +148,14 @@ public class ProcessStateStoreImpl implements ProcessStateStore {
   private List<InboundConnectorDefinitionImpl> getConnectors(
       Map.Entry<ProcessDefinitionIdentifier, ProcessDefinitionVersion> entry) {
     try {
-      var elements = processDefinitionInspector.findInboundConnectors(entry);
+      var elements =
+          processDefinitionInspector.findInboundConnectors(entry.getKey(), entry.getValue());
       if (elements.isEmpty()) {
         LOG.debug("No inbound connectors found for process {}", entry.getKey().bpmnProcessId());
       }
-      var groupedByDeduplicationId = elements.stream().collect(
-          Collectors.groupingBy(InboundConnectorElementImpl::deduplicationId));
+      var groupedByDeduplicationId =
+          elements.stream()
+              .collect(Collectors.groupingBy(InboundConnectorElementImpl::deduplicationId));
       return groupedByDeduplicationId.values().stream()
           .map(InboundConnectorDefinitionImpl::new)
           .toList();

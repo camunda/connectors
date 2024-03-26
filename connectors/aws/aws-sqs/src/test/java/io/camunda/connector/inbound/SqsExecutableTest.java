@@ -30,6 +30,7 @@ import io.camunda.connector.common.suppliers.AmazonSQSClientSupplier;
 import io.camunda.connector.inbound.model.SqsInboundProperties;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
 import io.camunda.connector.test.inbound.InboundConnectorDefinitionBuilder;
+import io.camunda.connector.test.inbound.InboundConnectorDefinitionBuilder.InboundConnectorElementImpl;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.File;
 import java.io.IOException;
@@ -118,13 +119,8 @@ class SqsExecutableTest {
   }
 
   private InboundConnectorDefinition createDefinition() {
-    return InboundConnectorDefinitionBuilder.create()
-        .bpmnProcessId("proc-id")
-        .version(1)
-        .processDefinitionKey(2)
-        .elementId("element-id")
-        .type("type")
-        .build();
+    var element = new InboundConnectorElementImpl("proc-id", 1, 2, "element-id");
+    return InboundConnectorDefinitionBuilder.create().elements(element).type("type").build();
   }
 
   private InboundConnectorContext createConnectorContext(

@@ -39,9 +39,7 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * Component responsible for calling Zeebe to report an inbound event
- */
+/** Component responsible for calling Zeebe to report an inbound event */
 public class InboundCorrelationHandler {
 
   private static final Logger LOG = LoggerFactory.getLogger(InboundCorrelationHandler.class);
@@ -61,32 +59,29 @@ public class InboundCorrelationHandler {
   public CorrelationResult correlate(
       InboundConnectorDefinitionImpl definitions, Object variables, String messageId) {
 
-    List<InboundConnectorElement> matchingElements = definitions.elements()
-        .stream()
-        .filter(e -> isActivationConditionMet(e, variables))
-        .map(e -> (InboundConnectorElement) e)
-        .toList();
+    List<InboundConnectorElement> matchingElements =
+        definitions.elements().stream()
+            .filter(e -> isActivationConditionMet(e, variables))
+            .map(e -> (InboundConnectorElement) e)
+            .toList();
 
     if (matchingElements.isEmpty()) {
       return ActivationConditionNotMet.INSTANCE;
     }
     if (matchingElements.size() > 1) {
-      return new Failure.InvalidInput(
-          "Multiple connectors are activated for the same input", null);
+      return new Failure.InvalidInput("Multiple connectors are activated for the same input", null);
     }
 
     var activatedElement = matchingElements.getFirst();
     return correlateInternal(
-        matchingElements,
-        (InboundConnectorElementImpl) activatedElement,
-        variables,
-        messageId);
+        matchingElements, (InboundConnectorElementImpl) activatedElement, variables, messageId);
   }
 
   protected CorrelationResult correlateInternal(
       List<InboundConnectorElement> matchedElements,
       InboundConnectorElementImpl activatedElement,
-      Object variables, String messageId) {
+      Object variables,
+      String messageId) {
     var correlationPoint = activatedElement.correlationPoint();
 
     try {
@@ -102,18 +97,14 @@ public class InboundCorrelationHandler {
 
     return switch (correlationPoint) {
       case StartEventCorrelationPoint ignored -> triggerStartEvent(
-          matchedElements,
-          activatedElement,
-          variables);
+          matchedElements, activatedElement, variables);
       case MessageCorrelationPoint msgCorPoint -> triggerMessage(
           matchedElements,
           activatedElement,
           variables,
           resolveMessageId(msgCorPoint.messageIdExpression(), messageId, variables));
       case MessageStartEventCorrelationPoint ignored -> triggerMessageStartEvent(
-          matchedElements,
-          activatedElement,
-          variables);
+          matchedElements, activatedElement, variables);
     };
   }
 
@@ -138,8 +129,7 @@ public class InboundCorrelationHandler {
 
       LOG.info("Created a process instance with key" + result.getProcessInstanceKey());
       return new CorrelationResult.Success.ProcessInstanceCreated(
-          matchedElements, activatedElement,
-          result.getProcessInstanceKey(), result.getTenantId());
+          matchedElements, activatedElement, result.getProcessInstanceKey(), result.getTenantId());
 
     } catch (ClientStatusException e1) {
       LOG.info("Failed to publish message: ", e1);
@@ -190,8 +180,7 @@ public class InboundCorrelationHandler {
       LOG.info("Published message with key: " + response.getMessageKey());
       result =
           new CorrelationResult.Success.MessagePublished(
-              matchedElements, activatedElement,
-              response.getMessageKey(), response.getTenantId());
+              matchedElements, activatedElement, response.getMessageKey(), response.getTenantId());
     } catch (ClientStatusException e1) {
       LOG.info("Failed to publish message: ", e1);
       if (Status.ALREADY_EXISTS.getCode().equals(e1.getStatus().getCode())) {
@@ -235,8 +224,8 @@ public class InboundCorrelationHandler {
 
       LOG.info("Published message with key: " + response.getMessageKey());
       result =
-          new CorrelationResult.Success.MessagePublished(matchedElements, activatedElement,
-              response.getMessageKey(), response.getTenantId());
+          new CorrelationResult.Success.MessagePublished(
+              matchedElements, activatedElement, response.getMessageKey(), response.getTenantId());
     } catch (ClientStatusException ex) {
       if (Status.ALREADY_EXISTS.getCode().equals(ex.getStatus().getCode())) {
         result = new MessageAlreadyCorrelated(matchedElements, activatedElement);
@@ -296,8 +285,7 @@ public class InboundCorrelationHandler {
     }
   }
 
-  protected Object extractVariables(
-      Object rawVariables, InboundConnectorElementImpl definition) {
+  protected Object extractVariables(Object rawVariables, InboundConnectorElementImpl definition) {
     return ConnectorHelper.createOutputVariables(
         rawVariables, definition.resultVariable(), definition.resultExpression());
   }

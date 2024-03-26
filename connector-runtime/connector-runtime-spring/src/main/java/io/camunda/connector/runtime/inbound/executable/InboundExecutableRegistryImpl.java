@@ -1,3 +1,19 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. See the NOTICE file
+ * distributed with this work for additional information regarding copyright
+ * ownership. Camunda licenses this file to you under the Apache License,
+ * Version 2.0; you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.camunda.connector.runtime.inbound.executable;
 
 import com.google.common.collect.EvictingQueue;
@@ -60,15 +76,16 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
   }
 
   void startEventProcessing() {
-    executorService.submit(() -> {
-      try {
-        while (!Thread.currentThread().isInterrupted()) {
-          handleEvent(eventQueue.take()); // blocks until an event is available
-        }
-      } catch (InterruptedException e) {
-        LOG.error("Event processing thread interrupted", e);
-      }
-    });
+    executorService.submit(
+        () -> {
+          try {
+            while (!Thread.currentThread().isInterrupted()) {
+              handleEvent(eventQueue.take()); // blocks until an event is available
+            }
+          } catch (InterruptedException e) {
+            LOG.error("Event processing thread interrupted", e);
+          }
+        });
   }
 
   @Override
@@ -79,20 +96,21 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
     }
   }
 
-  private final BiConsumer<Throwable, UUID> cancellationCallback = (throwable, id) -> {
-    LOG.warn("Inbound connector executable has requested its cancellation", throwable);
-    var toCancel = executables.get(id);
-    if (toCancel == null) {
-      LOG.error("Inbound connector executable not found for the given ID: " + id);
-      return;
-    }
-    toCancel.context().reportHealth(Health.down(throwable));
-    try {
-      toCancel.executable().deactivate();
-    } catch (Exception e) {
-      LOG.error("Failed to deactivate connector", e);
-    }
-  };
+  private final BiConsumer<Throwable, UUID> cancellationCallback =
+      (throwable, id) -> {
+        LOG.warn("Inbound connector executable has requested its cancellation", throwable);
+        var toCancel = executables.get(id);
+        if (toCancel == null) {
+          LOG.error("Inbound connector executable not found for the given ID: " + id);
+          return;
+        }
+        toCancel.context().reportHealth(Health.down(throwable));
+        try {
+          toCancel.executable().deactivate();
+        } catch (Exception e) {
+          LOG.error("Failed to deactivate connector", e);
+        }
+      };
 
   private void handleActivated(Activated activated) {
     LOG.debug("Handling activated event for connector: " + activated.executableId());
@@ -102,18 +120,21 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
 
     try {
       executable = connectorFactory.getInstance(activated.definition().type());
-      context = (InboundConnectorReportingContext) connectorContextFactory.createContext(
-          definition,
-          (throwable) -> cancellationCallback.accept(throwable, activated.executableId()),
-          executable.getClass(),
-          EvictingQueue.create(inboundLogsSize));
+      context =
+          (InboundConnectorReportingContext)
+              connectorContextFactory.createContext(
+                  definition,
+                  (throwable) -> cancellationCallback.accept(throwable, activated.executableId()),
+                  executable.getClass(),
+                  EvictingQueue.create(inboundLogsSize));
     } catch (Exception e) {
       LOG.error("Failed to create executable", e);
       return;
     }
 
-    var result = executables.putIfAbsent(activated.executableId(),
-        new ActiveExecutable(executable, context));
+    var result =
+        executables.putIfAbsent(
+            activated.executableId(), new ActiveExecutable(executable, context));
     if (result != null) {
       throw new IllegalStateException(
           "Executable with ID " + activated.executableId() + " already exists");
@@ -121,8 +142,10 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
 
     if (webhookConnectorRegistry == null && executable instanceof WebhookConnectorExecutable) {
       LOG.error("Webhook connector is not supported in this environment");
-      context.reportHealth(Health.down(new UnsupportedOperationException(
-          "Webhook connectors are not supported in this environment")));
+      context.reportHealth(
+          Health.down(
+              new UnsupportedOperationException(
+                  "Webhook connectors are not supported in this environment")));
       return;
     }
 
@@ -137,8 +160,11 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
       context.reportHealth(Health.down(e));
     }
 
-    LOG.info("Inbound connector {} activated with deduplication ID '{}' and executable ID '{}'",
-        definition.type(), definition.deduplicationId(), activated.executableId());
+    LOG.info(
+        "Inbound connector {} activated with deduplication ID '{}' and executable ID '{}'",
+        definition.type(),
+        definition.deduplicationId(),
+        activated.executableId());
     metricsRecorder.increase(
         Inbound.METRIC_NAME_ACTIVATIONS, Inbound.ACTION_ACTIVATED, definition.type());
   }
@@ -168,24 +194,27 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
 
   @Override
   public List<ActiveExecutableResponse> query(ActiveExecutableQuery query) {
-    return executables.values().stream()
-        .filter(executable -> matchesQuery(executable, query))
-        .map(this::mapToResponse)
+    return executables.entrySet().stream()
+        .filter(entry -> matchesQuery(entry.getValue(), query))
+        .map(entry -> mapToResponse(entry.getKey(), entry.getValue()))
         .toList();
   }
 
   private boolean matchesQuery(ActiveExecutable executable, ActiveExecutableQuery query) {
     var definition = executable.context().getDefinition();
     var elements = executable.context().getDefinition().elements();
-    return elements.stream().anyMatch(
-        element -> element.bpmnProcessId().equals(query.bpmnProcessId())
-            && definition.type().equals(query.type())
-            && definition.tenantId().equals(query.tenantId())
-            && element.elementId().equals(query.elementId()));
+    return elements.stream()
+        .anyMatch(
+            element ->
+                element.bpmnProcessId().equals(query.bpmnProcessId())
+                    && definition.type().equals(query.type())
+                    && definition.tenantId().equals(query.tenantId())
+                    && element.elementId().equals(query.elementId()));
   }
 
-  private ActiveExecutableResponse mapToResponse(ActiveExecutable connector) {
+  private ActiveExecutableResponse mapToResponse(UUID id, ActiveExecutable connector) {
     return new ActiveExecutableResponse(
+        id,
         connector.executable().getClass(),
         (InboundConnectorDefinitionImpl) connector.context().getDefinition(),
         connector.context().getHealth(),
@@ -196,9 +225,11 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
   @Scheduled(fixedRate = 60 * 60 * 1000)
   public void logStatusReport() {
     LOG.info("Inbound connector status report - {} executables active", executables.size());
-    executables.values().stream().collect(Collectors.groupingBy(
-            activeExecutable -> activeExecutable.context().getDefinition().type(),
-            Collectors.counting()))
+    executables.values().stream()
+        .collect(
+            Collectors.groupingBy(
+                activeExecutable -> activeExecutable.context().getDefinition().type(),
+                Collectors.counting()))
         .forEach((type, count) -> LOG.info(". '{}' - {}", type, count));
   }
 }

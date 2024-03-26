@@ -67,8 +67,6 @@ public class KafkaIntegrationTest {
 
   private static String BOOTSTRAP_SERVERS;
 
-  private final String processId = "Process_id";
-
   private static final String kafkaDockerImage = "confluentinc/cp-kafka:6.2.1";
 
   private static Avro avro;
@@ -197,7 +195,7 @@ public class KafkaIntegrationTest {
     InboundConnectorContextBuilder.TestInboundConnectorContext context =
         InboundConnectorContextBuilder.create()
             .properties(kafkaConnectorProperties)
-            .definition(InboundConnectorDefinitionBuilder.create().bpmnProcessId(processId).build())
+            .definition(InboundConnectorDefinitionBuilder.create().build())
             .build();
     KafkaExecutable executable = new KafkaExecutable();
 
@@ -243,7 +241,7 @@ public class KafkaIntegrationTest {
     InboundConnectorContextBuilder.TestInboundConnectorContext context =
         InboundConnectorContextBuilder.create()
             .properties(kafkaConnectorProperties)
-            .definition(InboundConnectorDefinitionBuilder.create().bpmnProcessId(processId).build())
+            .definition(InboundConnectorDefinitionBuilder.create().build())
             .build();
     KafkaExecutable executable = new KafkaExecutable();
 
@@ -293,7 +291,7 @@ public class KafkaIntegrationTest {
     InboundConnectorContextBuilder.TestInboundConnectorContext context =
         InboundConnectorContextBuilder.create()
             .properties(kafkaConnectorProperties)
-            .definition(InboundConnectorDefinitionBuilder.create().bpmnProcessId(processId).build())
+            .definition(InboundConnectorDefinitionBuilder.create().build())
             .build();
 
     KafkaExecutable executable = new KafkaExecutable();
@@ -382,7 +380,7 @@ public class KafkaIntegrationTest {
     InboundConnectorContextBuilder.TestInboundConnectorContext context =
         InboundConnectorContextBuilder.create()
             .properties(kafkaConnectorProperties)
-            .definition(InboundConnectorDefinitionBuilder.create().bpmnProcessId(processId).build())
+            .definition(InboundConnectorDefinitionBuilder.create().build())
             .build();
 
     KafkaExecutable executable = new KafkaExecutable();
@@ -457,7 +455,7 @@ public class KafkaIntegrationTest {
     InboundConnectorContextBuilder.TestInboundConnectorContext context =
         InboundConnectorContextBuilder.create()
             .properties(kafkaConnectorProperties)
-            .definition(InboundConnectorDefinitionBuilder.create().bpmnProcessId(processId).build())
+            .definition(InboundConnectorDefinitionBuilder.create().build())
             .build();
     KafkaExecutable executable = new KafkaExecutable();
 

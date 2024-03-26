@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.runtime.core.inbound;
 
-import io.camunda.connector.runtime.core.Keywords;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;

@@ -28,22 +28,21 @@ public sealed interface CorrelationResult {
 
     record ProcessInstanceCreated(
         List<InboundConnectorElement> matchedElements,
-        InboundConnectorElement activatedElement, Long processInstanceKey,
-        String tenantId
-
-    ) implements Success {}
+        InboundConnectorElement activatedElement,
+        Long processInstanceKey,
+        String tenantId)
+        implements Success {}
 
     record MessagePublished(
         List<InboundConnectorElement> matchedElements,
         InboundConnectorElement activatedElement,
         Long messageKey,
-        String tenantId
-    ) implements Success {}
+        String tenantId)
+        implements Success {}
 
     record MessageAlreadyCorrelated(
-        List<InboundConnectorElement> matchedElements,
-        InboundConnectorElement activatedElement
-    ) implements Success {}
+        List<InboundConnectorElement> matchedElements, InboundConnectorElement activatedElement)
+        implements Success {}
   }
 
   sealed interface Failure extends CorrelationResult {

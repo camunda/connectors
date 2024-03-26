@@ -27,13 +27,17 @@ import static org.mockito.Mockito.when;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure;
 import io.camunda.connector.api.inbound.CorrelationResult.Success;
 import io.camunda.connector.feel.FeelEngineWrapper;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElementImpl;
+import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.BoundaryEventCorrelationPoint;
+import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.StandaloneMessageCorrelationPoint;
 import io.camunda.connector.runtime.core.testutil.command.CreateCommandDummy;
 import io.camunda.connector.runtime.core.testutil.command.PublishMessageCommandDummy;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.client.api.command.ClientStatusException;
 import io.grpc.Status;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -112,14 +116,16 @@ public class InboundCorrelationHandlerTest {
     void startEvent_shouldCallCorrectZeebeMethod() {
       // given
       var point = new StartEventCorrelationPoint("process1", 0, 0);
-      var definition = mock(InboundConnectorElementImpl.class);
-      when(definition.correlationPoint()).thenReturn(point);
+      var element = mock(InboundConnectorElementImpl.class);
+      when(element.correlationPoint()).thenReturn(point);
+      var definition = mock(InboundConnectorDefinitionImpl.class);
+      when(definition.elements()).thenReturn(Collections.singletonList(element));
 
       var dummyCommand = Mockito.spy(new CreateCommandDummy());
       when(zeebeClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
 
       // when
-      handler.correlate(definition, Collections.emptyMap());
+      var result = handler.correlate(definition, Collections.emptyMap());
 
       // then
       verify(zeebeClient).newCreateInstanceCommand();
@@ -128,15 +134,22 @@ public class InboundCorrelationHandlerTest {
       verify(dummyCommand).bpmnProcessId(point.bpmnProcessId());
       verify(dummyCommand).version(point.version());
       verify(dummyCommand).send();
+
+      assertThat(result).isInstanceOf(Success.ProcessInstanceCreated.class);
+      var success = (Success.ProcessInstanceCreated) result;
+      assertThat(success.matchedElements()).containsExactlyInAnyOrder(element);
+      assertThat(success.activatedElement()).isEqualTo(element);
     }
 
     @Test
     void message_shouldCallCorrectZeebeMethod() {
       // given
       var correlationKeyValue = "someTestCorrelationKeyValue";
-      var point = new MessageCorrelationPoint("msg1", "=correlationKey", null);
-      var definition = mock(InboundConnectorElementImpl.class);
-      when(definition.correlationPoint()).thenReturn(point);
+      var point = new StandaloneMessageCorrelationPoint("msg1", "=correlationKey", null);
+      var element = mock(InboundConnectorElementImpl.class);
+      when(element.correlationPoint()).thenReturn(point);
+      var definition = mock(InboundConnectorDefinitionImpl.class);
+      when(definition.elements()).thenReturn(Collections.singletonList(element));
 
       Map<String, Object> variables = Map.of("correlationKey", correlationKeyValue);
 
@@ -144,7 +157,7 @@ public class InboundCorrelationHandlerTest {
       when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
 
       // when
-      handler.correlate(definition, variables);
+      var result = handler.correlate(definition, variables);
 
       // then
       verify(zeebeClient).newPublishMessageCommand();
@@ -153,20 +166,27 @@ public class InboundCorrelationHandlerTest {
       verify(dummyCommand).messageName(point.messageName());
       verify(dummyCommand).correlationKey(correlationKeyValue);
       verify(dummyCommand).send();
+
+      assertThat(result).isInstanceOf(Success.MessagePublished.class);
+      var success = (Success.MessagePublished) result;
+      assertThat(success.matchedElements()).containsExactlyInAnyOrder(element);
+      assertThat(success.activatedElement()).isEqualTo(element);
     }
 
     @Test
     void startMessageEvent_shouldCallCorrectZeebeMethod() {
       // given
       var point = new MessageStartEventCorrelationPoint("test", "", "", "1", 1, 0);
-      var definition = mock(InboundConnectorElementImpl.class);
-      when(definition.correlationPoint()).thenReturn(point);
+      var element = mock(InboundConnectorElementImpl.class);
+      when(element.correlationPoint()).thenReturn(point);
+      var definition = mock(InboundConnectorDefinitionImpl.class);
+      when(definition.elements()).thenReturn(Collections.singletonList(element));
 
       var dummyCommand = Mockito.spy(new PublishMessageCommandDummy());
       when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
 
       // when
-      handler.correlate(definition, Collections.emptyMap());
+      var result = handler.correlate(definition, Collections.emptyMap());
 
       // then
       verify(zeebeClient).newPublishMessageCommand();
@@ -175,22 +195,30 @@ public class InboundCorrelationHandlerTest {
       verify(dummyCommand).messageName("test");
       verify(dummyCommand).correlationKey("");
       verify(dummyCommand).send();
+
+      assertThat(result).isInstanceOf(Success.MessagePublished.class);
+      var success = (Success.MessagePublished) result;
+      assertThat(success.matchedElements()).containsExactlyInAnyOrder(element);
+      assertThat(success.activatedElement()).isEqualTo(element);
     }
 
     @Test
     void startMessageEvent_idempotencyKeyEvaluated() {
       // given
       var point = new MessageStartEventCorrelationPoint("test", "=myVar", "", "1", 1, 0);
-      var definition = mock(InboundConnectorElementImpl.class);
-      when(definition.correlationPoint()).thenReturn(point);
+      var element = mock(InboundConnectorElementImpl.class);
+      when(element.correlationPoint()).thenReturn(point);
+      var definition = mock(InboundConnectorDefinitionImpl.class);
+      when(definition.elements()).thenReturn(Collections.singletonList(element));
 
       var dummyCommand = Mockito.spy(new PublishMessageCommandDummy());
       when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
 
       // when
-      handler.correlate(
-          definition,
-          Map.of("myVar", "myValue", "myOtherMap", Map.of("myOtherKey", "myOtherValue")));
+      var result =
+          handler.correlate(
+              definition,
+              Map.of("myVar", "myValue", "myOtherMap", Map.of("myOtherKey", "myOtherValue")));
 
       // then
       verify(zeebeClient).newPublishMessageCommand();
@@ -202,13 +230,20 @@ public class InboundCorrelationHandlerTest {
       verify(dummyCommand).messageId(captor.capture());
       assertThat(captor.getValue()).isEqualTo("myValue");
       verify(dummyCommand).send();
+
+      assertThat(result).isInstanceOf(Success.MessagePublished.class);
+      var success = (Success.MessagePublished) result;
+      assertThat(success.matchedElements()).containsExactlyInAnyOrder(element);
+      assertThat(success.activatedElement()).isEqualTo(element);
     }
 
     @Test
     void messageEvent_idempotencyCheckFailed() {
       var point = new MessageStartEventCorrelationPoint("test", "=myVar", "", "1", 1, 0);
-      var definition = mock(InboundConnectorElementImpl.class);
-      when(definition.correlationPoint()).thenReturn(point);
+      var element = mock(InboundConnectorElementImpl.class);
+      when(element.correlationPoint()).thenReturn(point);
+      var definition = mock(InboundConnectorDefinitionImpl.class);
+      when(definition.elements()).thenReturn(Collections.singletonList(element));
 
       var dummyCommand = Mockito.spy(new PublishMessageCommandDummy());
       when(dummyCommand.send())
@@ -228,6 +263,9 @@ public class InboundCorrelationHandlerTest {
       verifyNoMoreInteractions(zeebeClient);
 
       assertThat(result).isInstanceOf(Success.MessageAlreadyCorrelated.class);
+      var success = (Success.MessageAlreadyCorrelated) result;
+      assertThat(success.matchedElements()).containsExactlyInAnyOrder(element);
+      assertThat(success.activatedElement()).isEqualTo(element);
     }
   }
 
@@ -240,14 +278,16 @@ public class InboundCorrelationHandlerTest {
             "=\"test\"",
             "123",
             new BoundaryEventCorrelationPoint.Activity("123", "test"));
-    var definition = mock(InboundConnectorElementImpl.class);
-    when(definition.correlationPoint()).thenReturn(point);
+    var element = mock(InboundConnectorElementImpl.class);
+    when(element.correlationPoint()).thenReturn(point);
+    var definition = mock(InboundConnectorDefinitionImpl.class);
+    when(definition.elements()).thenReturn(Collections.singletonList(element));
 
     var dummyCommand = Mockito.spy(new PublishMessageCommandDummy());
     when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
 
     // when
-    handler.correlate(definition, Collections.emptyMap());
+    var result = handler.correlate(definition, Collections.emptyMap());
 
     // then
     verify(zeebeClient).newPublishMessageCommand();
@@ -257,6 +297,62 @@ public class InboundCorrelationHandlerTest {
     verify(dummyCommand).correlationKey("test");
     verify(dummyCommand).messageId("123");
     verify(dummyCommand).send();
+
+    assertThat(result).isInstanceOf(Success.MessagePublished.class);
+    var success = (Success.MessagePublished) result;
+    assertThat(success.matchedElements()).containsExactlyInAnyOrder(element);
+    assertThat(success.activatedElement()).isEqualTo(element);
+  }
+
+  @Test
+  void multipleElements_singleMatch() {
+    // given
+    var startEventPoint = new StartEventCorrelationPoint("process1", 0, 0);
+    var startEventElement = mock(InboundConnectorElementImpl.class);
+    when(startEventElement.correlationPoint()).thenReturn(startEventPoint);
+    when(startEventElement.activationCondition()).thenReturn("=testKey=\"testValue1\"");
+    var messageElement = mock(InboundConnectorElementImpl.class);
+    when(messageElement.activationCondition()).thenReturn("=testKey=\"testValue2\"");
+    var definition = mock(InboundConnectorDefinitionImpl.class);
+    when(definition.elements()).thenReturn(List.of(startEventElement, messageElement));
+
+    var dummyCommand = Mockito.spy(new CreateCommandDummy());
+    when(zeebeClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
+
+    // when
+    var result = handler.correlate(definition, Map.of("testKey", "testValue1"));
+
+    // then
+    verify(zeebeClient).newCreateInstanceCommand();
+    verifyNoMoreInteractions(zeebeClient);
+
+    verify(dummyCommand).bpmnProcessId("process1");
+    verify(dummyCommand).version(0);
+    verify(dummyCommand).send();
+
+    assertThat(result).isInstanceOf(Success.ProcessInstanceCreated.class);
+    var success = (Success.ProcessInstanceCreated) result;
+    assertThat(success.matchedElements()).containsExactlyInAnyOrder(startEventElement);
+    assertThat(success.activatedElement()).isEqualTo(startEventElement);
+  }
+
+  @Test
+  void multipleElements_multipleMatches_errorRaised() {
+    // given
+    var startEventElement = mock(InboundConnectorElementImpl.class);
+    when(startEventElement.activationCondition()).thenReturn("=testKey=\"testValue\"");
+    var messageElement = mock(InboundConnectorElementImpl.class);
+    when(messageElement.activationCondition()).thenReturn("=testKey=\"testValue\"");
+    var definition = mock(InboundConnectorDefinitionImpl.class);
+    when(definition.elements()).thenReturn(List.of(startEventElement, messageElement));
+
+    // when
+    var result = handler.correlate(definition, Map.of("testKey", "testValue"));
+
+    // then
+    assertThat(result).isInstanceOf(Failure.InvalidInput.class);
+    assertThat(((Failure.InvalidInput) result).message())
+        .contains("Multiple connectors are activated");
   }
 
   @Test
@@ -268,8 +364,10 @@ public class InboundCorrelationHandlerTest {
             "=\"test\"",
             "123",
             new BoundaryEventCorrelationPoint.Activity("123", "test"));
-    var definition = mock(InboundConnectorElementImpl.class);
-    when(definition.correlationPoint()).thenReturn(point);
+    var element = mock(InboundConnectorElementImpl.class);
+    when(element.correlationPoint()).thenReturn(point);
+    var definition = mock(InboundConnectorDefinitionImpl.class);
+    when(definition.elements()).thenReturn(Collections.singletonList(element));
 
     when(zeebeClient.newPublishMessageCommand())
         .thenThrow(new ClientStatusException(Status.UNAVAILABLE, null));
@@ -286,10 +384,10 @@ public class InboundCorrelationHandlerTest {
     @Test
     void activationConditionFalse_shouldNotCorrelate() {
       // given
-      var point = new StartEventCorrelationPoint("process1", 0, 0);
-      var definition = mock(InboundConnectorElementImpl.class);
-      when(definition.correlationPoint()).thenReturn(point);
-      when(definition.activationCondition()).thenReturn("=testKey=\"otherValue\"");
+      var element = mock(InboundConnectorElementImpl.class);
+      when(element.activationCondition()).thenReturn("=testKey=\"otherValue\"");
+      var definition = mock(InboundConnectorDefinitionImpl.class);
+      when(definition.elements()).thenReturn(Collections.singletonList(element));
 
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
@@ -306,9 +404,11 @@ public class InboundCorrelationHandlerTest {
       when(zeebeClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
 
       var point = new StartEventCorrelationPoint("process1", 0, 0);
-      var definition = mock(InboundConnectorElementImpl.class);
-      when(definition.correlationPoint()).thenReturn(point);
-      when(definition.activationCondition()).thenReturn("=testKey=\"testValue\"");
+      var element = mock(InboundConnectorElementImpl.class);
+      when(element.correlationPoint()).thenReturn(point);
+      when(element.activationCondition()).thenReturn("=testKey=\"testValue\"");
+      var definition = mock(InboundConnectorDefinitionImpl.class);
+      when(definition.elements()).thenReturn(Collections.singletonList(element));
 
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
@@ -327,9 +427,11 @@ public class InboundCorrelationHandlerTest {
       when(zeebeClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
 
       var point = new StartEventCorrelationPoint("process1", 0, 0);
-      var definition = mock(InboundConnectorElementImpl.class);
-      when(definition.correlationPoint()).thenReturn(point);
-      when(definition.activationCondition()).thenReturn(null);
+      var element = mock(InboundConnectorElementImpl.class);
+      when(element.correlationPoint()).thenReturn(point);
+      when(element.activationCondition()).thenReturn(null);
+      var definition = mock(InboundConnectorDefinitionImpl.class);
+      when(definition.elements()).thenReturn(Collections.singletonList(element));
 
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
@@ -348,9 +450,11 @@ public class InboundCorrelationHandlerTest {
       when(zeebeClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
 
       var point = new StartEventCorrelationPoint("process1", 0, 0);
-      var definition = mock(InboundConnectorElementImpl.class);
-      when(definition.correlationPoint()).thenReturn(point);
-      when(definition.activationCondition()).thenReturn("  ");
+      var element = mock(InboundConnectorElementImpl.class);
+      when(element.correlationPoint()).thenReturn(point);
+      when(element.activationCondition()).thenReturn("  ");
+      var definition = mock(InboundConnectorDefinitionImpl.class);
+      when(definition.elements()).thenReturn(Collections.singletonList(element));
 
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
@@ -363,31 +467,17 @@ public class InboundCorrelationHandlerTest {
     }
 
     @Test
-    void messageStartEvent_activationConditionFalse_shouldNotCorrelate() {
-      // given
-      var point = new MessageStartEventCorrelationPoint("testMsg", "=myVar", "", "1", 1, 0);
-      var definition = mock(InboundConnectorElementImpl.class);
-      when(definition.correlationPoint()).thenReturn(point);
-      when(definition.activationCondition()).thenReturn("=testKey=\"otherValue\"");
-
-      Map<String, Object> variables = Map.of("testKey", "testValue");
-
-      // when & then
-      var result = assertDoesNotThrow(() -> handler.correlate(definition, variables));
-      verifyNoMoreInteractions(zeebeClient);
-      assertThat(result).isInstanceOf(Failure.ActivationConditionNotMet.class);
-    }
-
-    @Test
     void messageStartEvent_activationConditionTrue_shouldCorrelate() {
       // given
       var dummyCommand = Mockito.spy(new PublishMessageCommandDummy());
       when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
 
       var point = new MessageStartEventCorrelationPoint("testMsg", "=myVar", "", "1", 1, 0);
-      var definition = mock(InboundConnectorElementImpl.class);
-      when(definition.correlationPoint()).thenReturn(point);
-      when(definition.activationCondition()).thenReturn("=myOtherMap.myOtherKey=\"myOtherValue\"");
+      var element = mock(InboundConnectorElementImpl.class);
+      when(element.correlationPoint()).thenReturn(point);
+      when(element.activationCondition()).thenReturn("=myOtherMap.myOtherKey=\"myOtherValue\"");
+      var definition = mock(InboundConnectorDefinitionImpl.class);
+      when(definition.elements()).thenReturn(Collections.singletonList(element));
 
       Map<String, Object> variables =
           Map.of("myVar", "myValue", "myOtherMap", Map.of("myOtherKey", "myOtherValue"));
@@ -407,9 +497,11 @@ public class InboundCorrelationHandlerTest {
       when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
 
       var point = new MessageStartEventCorrelationPoint("testMsg", "=myVar", "", "1", 1, 0);
-      var definition = mock(InboundConnectorElementImpl.class);
-      when(definition.correlationPoint()).thenReturn(point);
-      when(definition.activationCondition()).thenReturn(null);
+      var element = mock(InboundConnectorElementImpl.class);
+      when(element.correlationPoint()).thenReturn(point);
+      when(element.activationCondition()).thenReturn(null);
+      var definition = mock(InboundConnectorDefinitionImpl.class);
+      when(definition.elements()).thenReturn(Collections.singletonList(element));
 
       Map<String, Object> variables =
           Map.of("myVar", "myValue", "myOtherMap", Map.of("myOtherKey", "myOtherValue"));
@@ -429,9 +521,11 @@ public class InboundCorrelationHandlerTest {
       when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
 
       var point = new MessageStartEventCorrelationPoint("testMsg", "=myVar", "", "1", 1, 0);
-      var definition = mock(InboundConnectorElementImpl.class);
-      when(definition.correlationPoint()).thenReturn(point);
-      when(definition.activationCondition()).thenReturn("  ");
+      var element = mock(InboundConnectorElementImpl.class);
+      when(element.correlationPoint()).thenReturn(point);
+      when(element.activationCondition()).thenReturn("  ");
+      var definition = mock(InboundConnectorDefinitionImpl.class);
+      when(definition.elements()).thenReturn(Collections.singletonList(element));
 
       Map<String, Object> variables =
           Map.of("myVar", "myValue", "myOtherMap", Map.of("myOtherKey", "myOtherValue"));
@@ -453,8 +547,10 @@ public class InboundCorrelationHandlerTest {
     void noResultVar_noResultExpr_shouldNotCopyVariables() {
       // given
       var point = new StartEventCorrelationPoint("process1", 0, 0);
-      var definition = mock(InboundConnectorElementImpl.class);
-      when(definition.correlationPoint()).thenReturn(point);
+      var element = mock(InboundConnectorElementImpl.class);
+      when(element.correlationPoint()).thenReturn(point);
+      var definition = mock(InboundConnectorDefinitionImpl.class);
+      when(definition.elements()).thenReturn(Collections.singletonList(element));
 
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
@@ -465,7 +561,7 @@ public class InboundCorrelationHandlerTest {
       handler.correlate(definition, variables);
 
       // then
-      ArgumentCaptor<Map> argumentsCaptured = ArgumentCaptor.forClass(Map.class);
+      var argumentsCaptured = ArgumentCaptor.forClass(Map.class);
       verify(dummyCommand).variables((Map<String, String>) argumentsCaptured.capture());
 
       assertThat(argumentsCaptured.getValue()).isEmpty();
@@ -475,9 +571,11 @@ public class InboundCorrelationHandlerTest {
     void resultVarProvided_noResultExpr_shouldCopyAllVarsToResultVar() {
       // given
       var point = new StartEventCorrelationPoint("process1", 0, 0);
-      var definition = mock(InboundConnectorElementImpl.class);
-      when(definition.correlationPoint()).thenReturn(point);
-      when(definition.resultVariable()).thenReturn("resultVar");
+      var element = mock(InboundConnectorElementImpl.class);
+      when(element.correlationPoint()).thenReturn(point);
+      when(element.resultVariable()).thenReturn("resultVar");
+      var definition = mock(InboundConnectorDefinitionImpl.class);
+      when(definition.elements()).thenReturn(Collections.singletonList(element));
 
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
@@ -488,7 +586,7 @@ public class InboundCorrelationHandlerTest {
       handler.correlate(definition, variables);
 
       // then
-      ArgumentCaptor<Map> argumentsCaptured = ArgumentCaptor.forClass(Map.class);
+      var argumentsCaptured = ArgumentCaptor.forClass(Map.class);
       verify(dummyCommand).variables((Map<String, String>) argumentsCaptured.capture());
 
       assertThat(argumentsCaptured.getValue())
@@ -499,9 +597,11 @@ public class InboundCorrelationHandlerTest {
     void noResultVar_resultExprProvided_shouldExtractVariables() {
       // given
       var point = new StartEventCorrelationPoint("process1", 0, 0);
-      var definition = mock(InboundConnectorElementImpl.class);
-      when(definition.correlationPoint()).thenReturn(point);
-      when(definition.resultExpression()).thenReturn("={otherKeyAlias: otherKey}");
+      var element = mock(InboundConnectorElementImpl.class);
+      when(element.correlationPoint()).thenReturn(point);
+      when(element.resultExpression()).thenReturn("={otherKeyAlias: otherKey}");
+      var definition = mock(InboundConnectorDefinitionImpl.class);
+      when(definition.elements()).thenReturn(Collections.singletonList(element));
 
       Map<String, Object> variables = Map.of("testKey", "testValue", "otherKey", "otherValue");
 
@@ -512,7 +612,7 @@ public class InboundCorrelationHandlerTest {
       handler.correlate(definition, variables);
 
       // then
-      ArgumentCaptor<Map> argumentsCaptured = ArgumentCaptor.forClass(Map.class);
+      var argumentsCaptured = ArgumentCaptor.forClass(Map.class);
       verify(dummyCommand).variables((Map<String, String>) argumentsCaptured.capture());
 
       assertThat(argumentsCaptured.getValue())
@@ -523,10 +623,12 @@ public class InboundCorrelationHandlerTest {
     void resultVarProvided_resultExprProvided_shouldExtractVarsAndCopyAllVarsToResultVar() {
       // given
       var point = new StartEventCorrelationPoint("process1", 0, 0);
-      var definition = mock(InboundConnectorElementImpl.class);
-      when(definition.correlationPoint()).thenReturn(point);
-      when(definition.resultVariable()).thenReturn("resultVar");
-      when(definition.resultExpression()).thenReturn("={otherKeyAlias: otherKey}");
+      var element = mock(InboundConnectorElementImpl.class);
+      when(element.correlationPoint()).thenReturn(point);
+      when(element.resultVariable()).thenReturn("resultVar");
+      when(element.resultExpression()).thenReturn("={otherKeyAlias: otherKey}");
+      var definition = mock(InboundConnectorDefinitionImpl.class);
+      when(definition.elements()).thenReturn(Collections.singletonList(element));
 
       Map<String, Object> variables = Map.of("testKey", "testValue", "otherKey", "otherValue");
 
@@ -537,7 +639,7 @@ public class InboundCorrelationHandlerTest {
       handler.correlate(definition, variables);
 
       // then
-      ArgumentCaptor<Map> argumentsCaptured = ArgumentCaptor.forClass(Map.class);
+      var argumentsCaptured = ArgumentCaptor.forClass(Map.class);
       verify(dummyCommand).variables((Map<String, String>) argumentsCaptured.capture());
 
       assertThat(argumentsCaptured.getValue())
@@ -558,9 +660,11 @@ public class InboundCorrelationHandlerTest {
     @Test
     void messageIdIsNull_expressionIsNull_usesRandomUuid() {
       // given
-      var point = new MessageCorrelationPoint("msg1", "=correlationKey", null);
-      var definition = mock(InboundConnectorElementImpl.class);
-      when(definition.correlationPoint()).thenReturn(point);
+      var point = new StandaloneMessageCorrelationPoint("msg1", "=correlationKey", null);
+      var element = mock(InboundConnectorElementImpl.class);
+      when(element.correlationPoint()).thenReturn(point);
+      var definition = mock(InboundConnectorDefinitionImpl.class);
+      when(definition.elements()).thenReturn(Collections.singletonList(element));
 
       var dummyCommand = spy(new PublishMessageCommandDummy());
       when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
@@ -578,9 +682,11 @@ public class InboundCorrelationHandlerTest {
     @Test
     void messageIdIsNull_expressionIsProvided_usesExtractedMessageId() {
       // given
-      var point = new MessageCorrelationPoint("msg1", "=extractedId", "=extractedId");
-      var definition = mock(InboundConnectorElementImpl.class);
-      when(definition.correlationPoint()).thenReturn(point);
+      var point = new StandaloneMessageCorrelationPoint("msg1", "=extractedId", "=extractedId");
+      var element = mock(InboundConnectorElementImpl.class);
+      when(element.correlationPoint()).thenReturn(point);
+      var definition = mock(InboundConnectorDefinitionImpl.class);
+      when(definition.elements()).thenReturn(Collections.singletonList(element));
       var dummyCommand = spy(new PublishMessageCommandDummy());
       when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
       Map<String, Object> variables = Map.of("extractedId", "resolvedIdValue");
@@ -593,9 +699,11 @@ public class InboundCorrelationHandlerTest {
     @Test
     void messageIdIsProvided_usesGivenMessageId() {
       // given
-      var point = new MessageCorrelationPoint("msg1", "=123", null);
-      var definition = mock(InboundConnectorElementImpl.class);
-      when(definition.correlationPoint()).thenReturn(point);
+      var point = new StandaloneMessageCorrelationPoint("msg1", "=123", null);
+      var element = mock(InboundConnectorElementImpl.class);
+      when(element.correlationPoint()).thenReturn(point);
+      var definition = mock(InboundConnectorDefinitionImpl.class);
+      when(definition.elements()).thenReturn(Collections.singletonList(element));
       var dummyCommand = spy(new PublishMessageCommandDummy());
       when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
       // when

@@ -67,11 +67,17 @@ public class ProcessDefinitionImporter {
     }
     try {
       meter(definitions.size());
-      var result = new ProcessImportResult(definitions.stream().collect(Collectors.toMap(
-          definition -> new ProcessDefinitionIdentifier(definition.getBpmnProcessId(),
-              definition.getTenantId()),
-          definition -> new ProcessDefinitionVersion(definition.getKey(),
-              definition.getVersion().intValue()))));
+      var result =
+          new ProcessImportResult(
+              definitions.stream()
+                  .collect(
+                      Collectors.toMap(
+                          definition ->
+                              new ProcessDefinitionIdentifier(
+                                  definition.getBpmnProcessId(), definition.getTenantId()),
+                          definition ->
+                              new ProcessDefinitionVersion(
+                                  definition.getKey(), definition.getVersion().intValue()))));
       stateStore.update(result);
     } catch (Exception e) {
       LOG.error("Failed to handle imported definitions", e);

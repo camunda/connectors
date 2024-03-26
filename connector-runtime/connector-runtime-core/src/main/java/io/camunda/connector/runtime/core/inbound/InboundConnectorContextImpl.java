@@ -29,7 +29,6 @@ import io.camunda.connector.api.inbound.CorrelationResult.Failure.Other;
 import io.camunda.connector.api.inbound.CorrelationResult.Success;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
-import io.camunda.connector.api.inbound.InboundConnectorDefinition;
 import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
@@ -44,7 +43,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class InboundConnectorContextImpl extends AbstractConnectorContext
-    implements InboundConnectorContext, InboundConnectorReportingContext {
+    implements InboundConnectorContext, RuntimeSpecificInboundConnectorContext {
 
   private final Logger LOG = LoggerFactory.getLogger(InboundConnectorContextImpl.class);
   private final InboundConnectorDefinitionImpl definition;
@@ -70,7 +69,8 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
     super(secretProvider, validationProvider);
     this.correlationHandler = correlationHandler;
     this.definition = definition;
-    this.properties = InboundPropertyHandler.readWrappedProperties(definition.rawPropertiesWithoutKeywords());
+    this.properties =
+        InboundPropertyHandler.readWrappedProperties(definition.rawPropertiesWithoutKeywords());
     this.objectMapper = objectMapper;
     this.cancellationCallback = cancellationCallback;
     this.logs = logs;
@@ -129,7 +129,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   }
 
   @Override
-  public InboundConnectorDefinition getDefinition() {
+  public InboundConnectorDefinitionImpl getDefinition() {
     return definition;
   }
 
