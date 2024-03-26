@@ -55,6 +55,27 @@
                 </file>
               </files>
             </connector>
+            <connector>
+              <connectorClass>io.camunda.connector.inbound.SqsExecutable</connectorClass>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.AWSSQS.StartEvent.v1</templateId>
+                  <templateFileName>aws-sqs-start-event.json</templateFileName>
+                </file>
+                <file>
+                  <templateId>io.camunda.connectors.AWSSQS.startmessage.v1</templateId>
+                  <templateFileName>aws-sqs-start-message-event.json</templateFileName>
+                </file>
+                <file>
+                  <templateId>io.camunda.connectors.AWSSQS.intermediate.v1</templateId>
+                  <templateFileName>aws-sqs-intermediate-event.json</templateFileName>
+                </file>
+                <file>
+                  <templateId>io.camunda.connectors.AWSSQS.boundary.v1</templateId>
+                  <templateFileName>aws-sqs-boundary-event.json</templateFileName>
+                </file>
+              </files>
+            </connector>
           </connectors>
           <includeDependencies>
             <includeDependency>io.camunda.connector:connector-aws-base</includeDependency>

@@ -20,12 +20,6 @@ public class MessageMapper {
   private static final Logger LOGGER = LoggerFactory.getLogger(MessageMapper.class);
 
   public static SqsInboundMessage toSqsInboundMessage(final Message message) {
-    SqsInboundMessage sqsInboundMessage = new SqsInboundMessage();
-    sqsInboundMessage.setMessageId(message.getMessageId());
-    sqsInboundMessage.setReceiptHandle(message.getReceiptHandle());
-    sqsInboundMessage.setMD5OfMessageAttributes(message.getMD5OfMessageAttributes());
-    sqsInboundMessage.setAttributes(message.getAttributes());
-
     Map<String, io.camunda.connector.inbound.model.message.MessageAttributeValue>
         sqsInboundMessageAttributes = new HashMap<>();
     for (Map.Entry<String, MessageAttributeValue> entry :
@@ -35,12 +29,15 @@ public class MessageMapper {
 
       sqsInboundMessageAttributes.put(entry.getKey(), sqsInboundMessageAttribute);
     }
-    sqsInboundMessage.setMessageAttributes(sqsInboundMessageAttributes);
 
-    sqsInboundMessage.setBody(toObjectIfPossible(message.getBody()));
-    sqsInboundMessage.setmD5OfBody(message.getMD5OfBody());
-
-    return sqsInboundMessage;
+    return new SqsInboundMessage(
+        message.getMessageId(),
+        message.getReceiptHandle(),
+        message.getMD5OfBody(),
+        toObjectIfPossible(message.getBody()),
+        message.getAttributes(),
+        message.getMD5OfMessageAttributes(),
+        sqsInboundMessageAttributes);
   }
 
   private static Object toObjectIfPossible(final String body) {
@@ -54,15 +51,11 @@ public class MessageMapper {
 
   private static io.camunda.connector.inbound.model.message.MessageAttributeValue
       toSqsInboundMessageAttribute(final MessageAttributeValue attributeValue) {
-    io.camunda.connector.inbound.model.message.MessageAttributeValue sqsInboundMessageAttribute =
-        new io.camunda.connector.inbound.model.message.MessageAttributeValue();
-
-    sqsInboundMessageAttribute.setBinaryValue(attributeValue.getBinaryValue());
-    sqsInboundMessageAttribute.setDataType(attributeValue.getDataType());
-    sqsInboundMessageAttribute.setStringValue(attributeValue.getStringValue());
-    sqsInboundMessageAttribute.setBinaryListValues(attributeValue.getBinaryListValues());
-    sqsInboundMessageAttribute.setStringListValues(attributeValue.getStringListValues());
-
-    return sqsInboundMessageAttribute;
+    return new io.camunda.connector.inbound.model.message.MessageAttributeValue(
+        attributeValue.getStringValue(),
+        attributeValue.getBinaryValue(),
+        attributeValue.getStringListValues(),
+        attributeValue.getBinaryListValues(),
+        attributeValue.getDataType());
   }
 }

@@ -40,7 +40,7 @@ public class SqsQueueConsumer implements Runnable {
 
   @Override
   public void run() {
-    LOGGER.info("Started SQS consumer for queue {}", properties.getQueue().getUrl());
+    LOGGER.info("Started SQS consumer for queue {}", properties.getQueue().url());
 
     final ReceiveMessageRequest receiveMessageRequest = createReceiveMessageRequest();
     ReceiveMessageResult receiveMessageResult;
@@ -51,7 +51,7 @@ public class SqsQueueConsumer implements Runnable {
         for (Message message : messages) {
           try {
             context.correlate(MessageMapper.toSqsInboundMessage(message));
-            sqsClient.deleteMessage(properties.getQueue().getUrl(), message.getReceiptHandle());
+            sqsClient.deleteMessage(properties.getQueue().url(), message.getReceiptHandle());
           } catch (ConnectorInputException e) {
             LOGGER.warn("NACK - failed to parse SQS message body: {}", e.getMessage());
           }
@@ -60,19 +60,19 @@ public class SqsQueueConsumer implements Runnable {
         LOGGER.debug("NACK - failed to correlate event", e);
       }
     } while (queueConsumerActive.get());
-    LOGGER.info("Stopping SQS consumer for queue {}", properties.getQueue().getUrl());
+    LOGGER.info("Stopping SQS consumer for queue {}", properties.getQueue().url());
   }
 
   private ReceiveMessageRequest createReceiveMessageRequest() {
     return new ReceiveMessageRequest()
-        .withWaitTimeSeconds(Integer.valueOf(properties.getQueue().getPollingWaitTime()))
-        .withQueueUrl(properties.getQueue().getUrl())
+        .withWaitTimeSeconds(Integer.valueOf(properties.getQueue().pollingWaitTime()))
+        .withQueueUrl(properties.getQueue().url())
         .withMessageAttributeNames(
-            Optional.ofNullable(properties.getQueue().getMessageAttributeNames())
+            Optional.ofNullable(properties.getQueue().messageAttributeNames())
                 .filter(list -> !list.isEmpty())
                 .orElse(ALL_ATTRIBUTES_KEY))
         .withAttributeNames(
-            Optional.ofNullable(properties.getQueue().getAttributeNames())
+            Optional.ofNullable(properties.getQueue().attributeNames())
                 .filter(list -> !list.isEmpty())
                 .orElse(ALL_ATTRIBUTES_KEY));
   }
