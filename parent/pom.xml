@@ -105,7 +105,7 @@ limitations under the License.</license.inlineheader>
 
     <version.kafka-clients>3.7.0</version.kafka-clients>
 
-    <version.microsoft-graph>5.80.0</version.microsoft-graph>
+    <version.microsoft-graph>6.5.0</version.microsoft-graph>
     <version.azure-identity>1.11.4</version.azure-identity>
 
     <version.bcprov-jdk15on>1.70</version.bcprov-jdk15on>
