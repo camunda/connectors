@@ -31,10 +31,12 @@ import io.camunda.connector.http.base.model.HttpCommonResult;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,6 +77,9 @@ public class HttpInteractionService {
         }
       }
       throw new ConnectorException(errorCode, errorMessage, hrex);
+    } catch (UnknownHostException uhe) {
+      throw new ConnectorException(
+          HttpStatus.SC_NOT_FOUND + "", "Unknown host: " + externalRequest.getUrl(), uhe);
     }
   }
 
