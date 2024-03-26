@@ -80,32 +80,32 @@ public class ProcessDefinitionInspector {
     this.operate = operate;
   }
 
-  List<InboundConnectorElementImpl> findInboundConnectors(
-      Map.Entry<ProcessDefinitionIdentifier, ProcessDefinitionVersion> entry) throws OperateException {
+  public List<InboundConnectorElementImpl> findInboundConnectors(
+      ProcessDefinitionIdentifier identifier, ProcessDefinitionVersion version)
+      throws OperateException {
 
-    LOG.debug("Checking " + entry.getKey() + " (tenant " + entry.getKey().tenantId() + ", version "
-        + entry.getValue().version() + ") for connectors.");
-    BpmnModelInstance modelInstance = operate.getProcessDefinitionModel(entry.getValue()
-        .processDefinitionKey());
+    LOG.debug("Checking " + identifier + " (version " + version.version() + ") for connectors.");
+    BpmnModelInstance modelInstance =
+        operate.getProcessDefinitionModel(version.processDefinitionKey());
 
     var processes =
         modelInstance.getDefinitions().getChildElementsByType(Process.class).stream()
-            .filter(p -> p.getId().equals(entry.getKey().bpmnProcessId()))
+            .filter(p -> p.getId().equals(identifier.bpmnProcessId()))
             .findFirst();
 
     return processes.stream()
-        .flatMap(process -> inspectBpmnProcess(process, entry).stream())
+        .flatMap(process -> inspectBpmnProcess(process, identifier, version).stream())
         .toList();
   }
 
   private List<InboundConnectorElementImpl> inspectBpmnProcess(
-      Process process, Map.Entry<ProcessDefinitionIdentifier, ProcessDefinitionVersion> entry)  {
+      Process process, ProcessDefinitionIdentifier identifier, ProcessDefinitionVersion version) {
     Collection<BaseElement> inboundEligibleElements = retrieveEligibleElementsFromProcess(process);
 
     List<InboundConnectorElementImpl> discoveredInboundConnectors = new ArrayList<>();
     for (BaseElement element : inboundEligibleElements) {
       Optional<ProcessCorrelationPoint> optionalTarget =
-          getCorrelationPointForElement(element, process, entry);
+          getCorrelationPointForElement(element, process, identifier, version);
       if (optionalTarget.isEmpty()) {
         continue;
       }
@@ -122,10 +122,10 @@ public class ProcessDefinitionInspector {
               rawProperties,
               target,
               process.getId(),
-              entry.getValue().version(),
-              entry.getValue().processDefinitionKey(),
+              version.version(),
+              version.processDefinitionKey(),
               element.getId(),
-              entry.getKey().tenantId());
+              identifier.tenantId());
 
       discoveredInboundConnectors.add(def);
     }
@@ -172,11 +172,13 @@ public class ProcessDefinitionInspector {
   }
 
   private Optional<ProcessCorrelationPoint> getCorrelationPointForElement(
-      BaseElement element, Process process,
-      Map.Entry<ProcessDefinitionIdentifier, ProcessDefinitionVersion> entry) {
+      BaseElement element,
+      Process process,
+      ProcessDefinitionIdentifier identifier,
+      ProcessDefinitionVersion version) {
     try {
       if (element instanceof StartEvent se) {
-        return getCorrelationPointForStartEvent(se, process, entry);
+        return getCorrelationPointForStartEvent(se, process, version);
       } else if (element instanceof IntermediateCatchEvent ice) {
         return getCorrelationPointForIntermediateCatchEvent(ice);
       } else if (element instanceof BoundaryEvent be) {
@@ -187,16 +189,16 @@ public class ProcessDefinitionInspector {
       LOG.warn(
           "Unsupported Inbound element type: {}, in process definition: {} (Key: {}, Version: {})",
           element.getClass().getSimpleName(),
-          entry.getKey().bpmnProcessId(),
-          entry.getValue().processDefinitionKey(),
-          entry.getValue().version());
+          identifier.bpmnProcessId(),
+          version.processDefinitionKey(),
+          version.version());
     } catch (InvalidInboundConnectorDefinitionException e) {
       LOG.warn(
           "Error getting correlation point for {} in process definition: {} (Key: {}, Version: {}): {}",
           element.getClass().getSimpleName(),
-          entry.getKey().bpmnProcessId(),
-          entry.getValue().processDefinitionKey(),
-          entry.getValue().version(),
+          identifier.bpmnProcessId(),
+          version.processDefinitionKey(),
+          version.version(),
           e.getMessage(),
           e);
     }
@@ -243,15 +245,15 @@ public class ProcessDefinitionInspector {
               name, correlationKeyExpression, messageIdExpression, activity);
     } else {
       correlationPoint =
-          new StandaloneMessageCorrelationPoint(name, correlationKeyExpression, messageIdExpression);
+          new StandaloneMessageCorrelationPoint(
+              name, correlationKeyExpression, messageIdExpression);
     }
 
     return Optional.of(correlationPoint);
   }
 
   private Optional<ProcessCorrelationPoint> getCorrelationPointForStartEvent(
-      StartEvent startEvent, Process process,
-      Map.Entry<ProcessDefinitionIdentifier, ProcessDefinitionVersion> entry) {
+      StartEvent startEvent, Process process, ProcessDefinitionVersion version) {
 
     MessageEventDefinition msgDef =
         (MessageEventDefinition)
@@ -270,13 +272,13 @@ public class ProcessDefinitionInspector {
               messageIdExpression,
               correlationKeyExpression,
               process.getId(),
-              entry.getValue().version(),
-              entry.getValue().processDefinitionKey()));
+              version.version(),
+              version.processDefinitionKey()));
     }
 
     return Optional.of(
         new StartEventCorrelationPoint(
-            process.getId(), entry.getValue().version(), entry.getValue().processDefinitionKey()));
+            process.getId(), version.version(), version.processDefinitionKey()));
   }
 
   private Optional<ProcessCorrelationPoint> getCorrelationPointForReceiveTask(

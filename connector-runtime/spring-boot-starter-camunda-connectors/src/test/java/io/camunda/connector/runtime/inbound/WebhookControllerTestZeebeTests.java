@@ -38,6 +38,7 @@ import io.camunda.connector.api.inbound.webhook.WebhookResultContext;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorElementImpl;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.inbound.executable.ActiveExecutable;
@@ -48,6 +49,7 @@ import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.spring.test.ZeebeSpringTest;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -219,9 +221,14 @@ class WebhookControllerTestZeebeTests {
     when(webhookConnectorExecutable.triggerWebhook(any(WebhookProcessingPayload.class)))
         .thenReturn(webhookResult);
 
+    var element =
+        new InboundConnectorElementImpl(
+            Map.of("inbound.context", "myPath"), null, "processA", 1, 1, "myElement", "myTenant");
+
     var correlationHandlerMock = mock(InboundCorrelationHandler.class);
     when(correlationHandlerMock.correlate(any(), any()))
-        .thenReturn(new CorrelationResult.Success.MessageAlreadyCorrelated());
+        .thenReturn(
+            new CorrelationResult.Success.MessageAlreadyCorrelated(List.of(element), element));
 
     var webhookDef = webhookDefinition("nonExistingProcess", 1, "myPath");
     var webhookContext =
@@ -455,9 +462,15 @@ class WebhookControllerTestZeebeTests {
   public void testSuccessfulProcessingWithResponseBodyExpression() throws Exception {
     var webhookConnectorExecutable = mock(WebhookConnectorExecutable.class);
 
+    var element =
+        new InboundConnectorElementImpl(
+            Map.of("inbound.context", "myPath"), null, "processA", 1, 1, "myElement", "myTenant");
+
     var correlationHandlerMock = mock(InboundCorrelationHandler.class);
     when(correlationHandlerMock.correlate(any(), any()))
-        .thenReturn(new CorrelationResult.Success.ProcessInstanceCreated(1L, "test"));
+        .thenReturn(
+            new CorrelationResult.Success.ProcessInstanceCreated(
+                List.of(element), element, 1L, "test"));
 
     WebhookResult webhookResult = mock(WebhookResult.class);
     when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));

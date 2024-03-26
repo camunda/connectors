@@ -18,23 +18,21 @@ package io.camunda.connector.runtime.core.inbound.correlation;
 
 public sealed interface MessageCorrelationPoint extends ProcessCorrelationPoint {
   String messageName();
+
   String correlationKeyExpression();
+
   String messageIdExpression();
 
   record StandaloneMessageCorrelationPoint(
-      String messageName,
-      String correlationKeyExpression,
-      String messageIdExpression
-  ) implements MessageCorrelationPoint {}
+      String messageName, String correlationKeyExpression, String messageIdExpression)
+      implements MessageCorrelationPoint {}
 
   record BoundaryEventCorrelationPoint(
       String messageName,
       String correlationKeyExpression,
       String messageIdExpression,
-      Activity attachedTo
-  ) implements MessageCorrelationPoint {
+      Activity attachedTo)
+      implements MessageCorrelationPoint {
     public record Activity(String elementId, String name) {}
   }
 }
-
-

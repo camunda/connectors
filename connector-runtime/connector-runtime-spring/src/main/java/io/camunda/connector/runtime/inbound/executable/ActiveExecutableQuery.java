@@ -17,8 +17,4 @@
 package io.camunda.connector.runtime.inbound.executable;
 
 public record ActiveExecutableQuery(
-    String bpmnProcessId,
-    String elementId,
-    String type,
-    String tenantId
-) {}
+    String bpmnProcessId, String elementId, String type, String tenantId) {}

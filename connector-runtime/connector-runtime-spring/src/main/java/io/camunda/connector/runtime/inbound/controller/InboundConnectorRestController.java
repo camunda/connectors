@@ -69,15 +69,13 @@ public class InboundConnectorRestController {
     var result =
         executableRegistry.query(
             new ActiveExecutableQuery(bpmnProcessId, elementId, null, tenantId));
-    return result.stream()
-        .map(ActiveExecutableResponse::logs)
-        .collect(Collectors.toList());
+    return result.stream().map(ActiveExecutableResponse::logs).collect(Collectors.toList());
   }
 
   private List<ActiveInboundConnectorResponse> getActiveInboundConnectors(
       String bpmnProcessId, String elementId, String type, String tenantId) {
-    return executableRegistry.query(
-            new ActiveExecutableQuery(bpmnProcessId, elementId, type, tenantId))
+    return executableRegistry
+        .query(new ActiveExecutableQuery(bpmnProcessId, elementId, type, tenantId))
         .stream()
         .map(this::mapToInboundResponse)
         .collect(Collectors.toList());
@@ -87,8 +85,8 @@ public class InboundConnectorRestController {
     Map<String, Object> data = Map.of();
     if (WebhookConnectorExecutable.class.equals(connector.executableClass())) {
       try {
-        var properties = connector.definition().elements().getFirst()
-            .rawPropertiesWithoutKeywords();
+        var properties =
+            connector.definition().elements().getFirst().rawPropertiesWithoutKeywords();
         var contextPath = properties.get("inbound.context");
         data = Map.of("path", contextPath);
       } catch (Exception e) {
@@ -101,6 +99,7 @@ public class InboundConnectorRestController {
   private ActiveInboundConnectorResponse mapToInboundResponse(ActiveExecutableResponse connector) {
     var definition = connector.definition();
     return new ActiveInboundConnectorResponse(
+        connector.executableId(),
         definition.type(),
         definition.tenantId(),
         definition.elements().stream().map(e -> (InboundConnectorElement) e).toList(),

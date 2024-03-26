@@ -52,10 +52,20 @@ public class WebhookConnectorRegistry {
 
   private void checkIfEndpointExists(ActiveExecutable existingEndpoint, String context) {
     if (existingEndpoint != null) {
-      var bpmnProcessId = existingEndpoint.context().getDefinition().bpmnProcessId();
-      var elementId = existingEndpoint.context().getDefinition().elementId();
+      Map<String, String> elementIdsByProcessId =
+          existingEndpoint.context().getDefinition().elements().stream()
+              .collect(
+                  HashMap::new,
+                  (map, element) -> map.put(element.bpmnProcessId(), element.elementId()),
+                  HashMap::putAll);
       var logMessage =
-          "Context: " + context + " already in use by " + bpmnProcessId + "/" + elementId + ".";
+          "Context: "
+              + context
+              + " already in use by: "
+              + elementIdsByProcessId.entrySet().stream()
+                  .map(e -> "process " + e.getKey() + "(" + e.getValue() + ")")
+                  .reduce((a, b) -> a + ", " + b)
+                  .orElse("");
       LOG.debug(logMessage);
       throw new RuntimeException(logMessage);
     }
@@ -70,15 +80,12 @@ public class WebhookConnectorRegistry {
       throw new RuntimeException(logMessage);
     }
     if (registeredConnector != connector) {
-      var bpmnProcessId = registeredConnector.context().getDefinition().bpmnProcessId();
-      var elementId = registeredConnector.context().getDefinition().elementId();
+      var deduplicationId = registeredConnector.context().getDefinition().deduplicationId();
       var logMessage =
           "Context: "
               + context
-              + " is not registered by "
-              + bpmnProcessId
-              + "/"
-              + elementId
+              + " is not registered by the connector with deduplication ID: "
+              + deduplicationId
               + ". Cannot deregister.";
       LOG.debug(logMessage);
       throw new RuntimeException(logMessage);

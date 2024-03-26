@@ -20,8 +20,10 @@ import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorElement;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 public record ActiveInboundConnectorResponse(
+    UUID executableId, // consider
     String type,
     String tenantId,
     List<InboundConnectorElement> elements,

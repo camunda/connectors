@@ -21,14 +21,13 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import io.camunda.connector.api.inbound.InboundConnectorDefinition;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElementImpl;
 import io.camunda.connector.runtime.inbound.state.ProcessDefinitionInspector;
+import io.camunda.connector.runtime.inbound.state.ProcessImportResult;
+import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionIdentifier;
 import io.camunda.operate.CamundaOperateClient;
-import io.camunda.operate.model.ProcessDefinition;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import java.io.FileInputStream;
-import java.util.Comparator;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.util.ResourceUtils;
@@ -59,7 +58,6 @@ public class ProcessDefinitionInspectorUtilTests {
   @Test
   public void testMultipleWebhookStartEventsInCollaborationP1() {
     var inboundConnectors = fromModel("multi-webhook-start-collaboration.bpmn", "process1");
-    inboundConnectors.sort(Comparator.comparing(InboundConnectorDefinition::elementId));
     assertEquals(1, inboundConnectors.size());
     assertEquals("start_1", inboundConnectors.get(0).elementId());
   }
@@ -67,7 +65,6 @@ public class ProcessDefinitionInspectorUtilTests {
   @Test
   public void testMultipleWebhookStartEventsInCollaborationP2() {
     var inboundConnectors = fromModel("multi-webhook-start-collaboration.bpmn", "process2");
-    inboundConnectors.sort(Comparator.comparing(InboundConnectorDefinition::elementId));
     assertEquals(1, inboundConnectors.size());
     assertEquals("start_2", inboundConnectors.get(0).elementId());
   }
@@ -117,11 +114,10 @@ public class ProcessDefinitionInspectorUtilTests {
       var inspector = new ProcessDefinitionInspector(operateClientMock);
       var modelFile = ResourceUtils.getFile("classpath:bpmn/" + fileName);
       var model = Bpmn.readModelFromStream(new FileInputStream(modelFile));
-      var processDefinitionMock = mock(ProcessDefinition.class);
-      when(processDefinitionMock.getKey()).thenReturn(1L);
-      when(processDefinitionMock.getBpmnProcessId()).thenReturn(processId);
+      var processDefinitionID = new ProcessDefinitionIdentifier(processId, "tenant1");
+      var processDefinitionVersion = new ProcessImportResult.ProcessDefinitionVersion(1, 1);
       when(operateClientMock.getProcessDefinitionModel(1L)).thenReturn(model);
-      return inspector.findInboundConnectors(processDefinitionMock);
+      return inspector.findInboundConnectors(processDefinitionID, processDefinitionVersion);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

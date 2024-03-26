@@ -19,7 +19,6 @@ package io.camunda.connector.runtime.inbound;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.FeelEngineWrapper;
-import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.inbound.DefaultInboundConnectorContextFactory;
 import io.camunda.connector.runtime.core.inbound.DefaultInboundConnectorFactory;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextFactory;
@@ -47,10 +46,9 @@ import org.springframework.context.annotation.Import;
 
 @Configuration
 @Import({
-    InboundConnectorConfiguration.class,
-    ProcessDefinitionImportConfiguration.class,
-    OperateClientConfiguration.class,
-    InboundConnectorRestController.class
+  ProcessDefinitionImportConfiguration.class,
+  OperateClientConfiguration.class,
+  InboundConnectorRestController.class
 })
 public class InboundConnectorRuntimeConfiguration {
 
@@ -109,8 +107,8 @@ public class InboundConnectorRuntimeConfiguration {
   }
 
   @Bean
-  public ProcessStateStore processStateStore(InboundExecutableRegistry registry,
-      ProcessDefinitionInspector inspector) {
+  public ProcessStateStore processStateStore(
+      InboundExecutableRegistry registry, ProcessDefinitionInspector inspector) {
     return new TenantAwareProcessStateStoreImpl(inspector, registry);
   }
 }

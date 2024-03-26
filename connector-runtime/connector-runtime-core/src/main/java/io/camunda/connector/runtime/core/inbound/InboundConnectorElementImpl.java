@@ -27,9 +27,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-/**
- * Inbound connector definition implementation that also contains connector properties
- */
+/** Inbound connector definition implementation that also contains connector properties */
 public record InboundConnectorElementImpl(
     @JsonIgnore Map<String, String> rawProperties,
     ProcessCorrelationPoint correlationPoint,
@@ -37,10 +35,8 @@ public record InboundConnectorElementImpl(
     int version,
     long processDefinitionKey,
     String elementId,
-    String tenantId
-) implements InboundConnectorElement {
-
-  private static String alreadyComputedDeduplicationId = null;
+    String tenantId)
+    implements InboundConnectorElement {
 
   public String type() {
     return Optional.ofNullable(rawProperties.get(Keywords.INBOUND_TYPE_KEYWORD))
@@ -64,26 +60,26 @@ public record InboundConnectorElementImpl(
   }
 
   public String deduplicationId() {
-    if (alreadyComputedDeduplicationId == null) {
-      var deduplicationMode = rawProperties.get(Keywords.DEDUPLICATION_MODE_KEYWORD);
-      if (deduplicationMode == null) {
-        // legacy deployment, return a deterministic unique id
-        alreadyComputedDeduplicationId = tenantId + "-" + processDefinitionKey + "-" + elementId;
-      } else if (DeduplicationMode.AUTO.name().equals(deduplicationMode)) {
-        // auto mode, compute deduplicationId from properties
-        alreadyComputedDeduplicationId = computeDeduplicationId();
-      } else if (DeduplicationMode.MANUAL.name().equals(deduplicationMode)) {
-        // manual mode, expect deduplicationId property
-        alreadyComputedDeduplicationId = Optional.ofNullable(
-                rawProperties.get(Keywords.DEDUPLICATION_ID_KEYWORD))
-            .orElseThrow(() -> new InvalidInboundConnectorDefinitionException(
-                "Missing deduplicationId property, expected a value due to deduplicationMode=AUTO"));
-      }
+
+    var deduplicationMode = rawProperties.get(Keywords.DEDUPLICATION_MODE_KEYWORD);
+    if (deduplicationMode == null) {
+      // legacy deployment, return a deterministic unique id
+      return tenantId + "-" + processDefinitionKey + "-" + elementId;
+    } else if (DeduplicationMode.AUTO.name().equals(deduplicationMode)) {
+      // auto mode, compute deduplicationId from properties
+      return computeDeduplicationId();
+    } else if (DeduplicationMode.MANUAL.name().equals(deduplicationMode)) {
+      // manual mode, expect deduplicationId property
+      return Optional.ofNullable(rawProperties.get(Keywords.DEDUPLICATION_ID_KEYWORD))
+          .orElseThrow(
+              () ->
+                  new InvalidInboundConnectorDefinitionException(
+                      "Missing deduplicationId property, expected a value due to deduplicationMode=MANUAL"));
+    } else {
       throw new InvalidInboundConnectorDefinitionException(
           "Invalid deduplicationMode property, expected AUTO or MANUAL, but was "
               + deduplicationMode);
     }
-    return alreadyComputedDeduplicationId;
   }
 
   private String computeDeduplicationId() {
@@ -100,9 +96,7 @@ public record InboundConnectorElementImpl(
   @Override
   public String toString() {
     return "InboundConnectorDefinitionImpl{"
-        + "correlationPoint="
-        + correlationPoint
-        + ", bpmnProcessId='"
+        + "bpmnProcessId='"
         + bpmnProcessId
         + '\''
         + ", version="
