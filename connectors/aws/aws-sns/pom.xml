@@ -66,6 +66,27 @@ except in compliance with the proprietary license.</license.inlineheader>
                 </file>
               </files>
             </connector>
+            <connector>
+              <connectorClass>io.camunda.connector.sns.inbound.SnsWebhookExecutable</connectorClass>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.inbound.AWSSNS.StartEvent.v1</templateId>
+                  <templateFileName>aws-sns-inbound-start-event.json</templateFileName>
+                </file>
+                <file>
+                  <templateId>io.camunda.connectors.inbound.AWSSNS.MessageStartEvent.v1</templateId>
+                  <templateFileName>aws-sns-inbound-message-start.json</templateFileName>
+                </file>
+                <file>
+                  <templateId>io.camunda.connectors.inbound.AWSSNS.IntermediateCatchEvent.v1</templateId>
+                  <templateFileName>aws-sns-inbound-intermediate.json</templateFileName>
+                </file>
+                <file>
+                  <templateId>io.camunda.connectors.inbound.AWSSNS.Boundary.v1</templateId>
+                  <templateFileName>aws-sns-inbound-boundary.json</templateFileName>
+                </file>
+              </files>
+            </connector>
           </connectors>
           <includeDependencies>
             <includeDependency>io.camunda.connector:connector-aws-base</includeDependency>
