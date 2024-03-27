@@ -38,9 +38,9 @@ public record SqsInboundQueueProperties(
             id = "queue.pollingWaitTime",
             label = "Polling wait time",
             group = "messagePollingProperties",
+            defaultValue = "20",
             description =
                 "The duration (in seconds) for which the call waits for a message to arrive in the queue before returning. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound\" target=\"_blank\">documentation</a> for details")
-        // Polling wait time TODO: when migrating to template generator, default to 20 (max possible
-        // value)
         @Pattern(regexp = "^([0-9]?|1[0-9]|20|secrets\\..+)$")
+        @NotBlank
         String pollingWaitTime) {}

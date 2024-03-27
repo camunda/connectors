@@ -37,6 +37,7 @@ import org.slf4j.LoggerFactory;
         "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound",
     propertyGroups = {
       @PropertyGroup(id = "authentication", label = "Authentication"),
+      @PropertyGroup(id = "configuration", label = "Configuration"),
       @PropertyGroup(id = "queueProperties", label = "Queue properties"),
       @PropertyGroup(id = "messagePollingProperties", label = "Message polling properties"),
       @PropertyGroup(id = "input", label = "Use next attribute names for activation condition")
