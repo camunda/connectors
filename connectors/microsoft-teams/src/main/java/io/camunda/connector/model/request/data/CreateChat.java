@@ -36,6 +36,10 @@ public record CreateChat(
             id = "createChat.topic",
             label = "Topic",
             optional = true,
+            condition =
+                @TemplateProperty.PropertyCondition(
+                    property = "data.createChat.chatType",
+                    equals = "group"),
             description = "Set topic of chat (optional)")
         String topic,
     @NotNull

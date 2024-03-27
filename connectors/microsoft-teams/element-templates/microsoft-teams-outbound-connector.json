@@ -381,6 +381,10 @@
     },
     "condition" : {
       "allMatch" : [ {
+        "property" : "data.createChat.chatType",
+        "equals" : "group",
+        "type" : "simple"
+      }, {
         "property" : "data.chatMethod",
         "equals" : "createChat",
         "type" : "simple"
