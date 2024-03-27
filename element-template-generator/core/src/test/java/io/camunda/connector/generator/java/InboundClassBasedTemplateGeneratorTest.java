@@ -27,10 +27,12 @@ import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.dsl.DropdownProperty;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
+import io.camunda.connector.generator.dsl.PropertyBinding;
 import io.camunda.connector.generator.dsl.PropertyBinding.MessageProperty;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeProperty;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeSubscriptionProperty;
 import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
+import io.camunda.connector.generator.dsl.StringProperty;
 import io.camunda.connector.generator.java.example.inbound.MyConnectorExecutable;
 import java.util.List;
 import java.util.Set;
@@ -257,5 +259,26 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
       assertThat(((ZeebeProperty) messageIdExpressionProperty.getBinding()).name())
           .isEqualTo("messageIdExpression");
     }
+  }
+
+  @Test
+  void stringProperty_hasCorrectDefaults() {
+    // given
+    var type =
+        new ConnectorElementType(
+            Set.of(BpmnType.START_EVENT), BpmnType.MESSAGE_START_EVENT, null, null);
+    var config = new GeneratorConfiguration(ConnectorMode.NORMAL, null, null, null, Set.of(type));
+
+    // when
+    var template = generator.generate(MyConnectorExecutable.class, config).getFirst();
+
+    var property = getPropertyByLabel("Prop 1", template);
+
+    assertThat(property).isInstanceOf(StringProperty.class);
+    assertThat(property.getType()).isEqualTo("String");
+    assertThat(property.isOptional()).isFalse();
+    assertThat(property.getFeel()).isEqualTo(null);
+    assertThat(property.getBinding()).isEqualTo(new PropertyBinding.ZeebeProperty("prop1"));
+    assertThat(property.getConstraints()).isNull();
   }
 }

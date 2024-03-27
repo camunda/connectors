@@ -16,4 +16,6 @@
  */
 package io.camunda.connector.generator.java.example.inbound;
 
-public record MyConnectorProperties(String prop1) {}
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+
+public record MyConnectorProperties(@TemplateProperty() String prop1) {}

@@ -203,7 +203,7 @@ public class TemplatePropertiesUtil {
             .binding(createBinding(bindingName, context));
 
     for (FieldProcessor processor : fieldProcessors) {
-      processor.process(field, propertyBuilder);
+      processor.process(field, propertyBuilder, context);
     }
     return propertyBuilder;
   }

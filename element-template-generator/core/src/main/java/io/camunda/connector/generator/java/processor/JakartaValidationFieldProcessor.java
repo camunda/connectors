@@ -19,6 +19,7 @@ package io.camunda.connector.generator.java.processor;
 import io.camunda.connector.generator.dsl.PropertyBuilder;
 import io.camunda.connector.generator.dsl.PropertyConstraints;
 import io.camunda.connector.generator.dsl.PropertyConstraints.PropertyConstraintsBuilder;
+import io.camunda.connector.generator.java.util.TemplateGenerationContext;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -31,7 +32,8 @@ import org.apache.commons.lang3.tuple.Pair;
 public class JakartaValidationFieldProcessor implements FieldProcessor {
 
   @Override
-  public void process(Field field, PropertyBuilder propertyBuilder) {
+  public void process(
+      Field field, PropertyBuilder propertyBuilder, final TemplateGenerationContext context) {
     PropertyConstraintsBuilder constraintsBuilder = PropertyConstraints.builder();
 
     if (hasNotEmptyConstraint(field)) {

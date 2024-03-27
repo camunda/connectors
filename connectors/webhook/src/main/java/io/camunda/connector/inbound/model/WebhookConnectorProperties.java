@@ -43,6 +43,7 @@ public record WebhookConnectorProperties(
             label = "Webhook ID",
             group = "endpoint",
             description = "The webhook ID is a part of the URL",
+            feel = FeelMode.optional,
             binding = @PropertyBinding(name = "context"))
         @NotBlank
         @Pattern(
@@ -69,6 +70,7 @@ public record WebhookConnectorProperties(
             description = "Shared secret key",
             group = "authentication",
             optional = true,
+            feel = FeelMode.optional,
             condition =
                 @PropertyCondition(property = "inbound.shouldValidateHmac", equals = "enabled"))
         String hmacSecret,
@@ -77,6 +79,7 @@ public record WebhookConnectorProperties(
             label = "HMAC header",
             description = "Name of header attribute that will contain the HMAC value",
             group = "authentication",
+            feel = FeelMode.optional,
             optional = true,
             condition =
                 @PropertyCondition(property = "inbound.shouldValidateHmac", equals = "enabled"))

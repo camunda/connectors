@@ -69,8 +69,11 @@ public @interface TemplateProperty {
    */
   DropdownPropertyChoice[] choices() default {};
 
-  /** Whether the property should support FEEL expressions */
-  FeelMode feel() default FeelMode.optional;
+  /**
+   * Defines the support for FEEL expressions in the property. By default, for inbound connectors,
+   * FEEL is disabled; for outbound connectors, FEEL is optional.
+   */
+  FeelMode feel() default FeelMode.system_default;
 
   /** Default value for the property */
   String defaultValue() default "";
