@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.inbound.model;
 
+import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -17,7 +18,8 @@ public record SqsInboundQueueProperties(
             id = "queue.url",
             label = "Queue URL",
             group = "queueProperties",
-            description = "Specify the URL of the SQS queue where you would like to subscribe to")
+            description = "Specify the URL of the SQS queue where you would like to subscribe to",
+            feel = FeelMode.disabled)
         @NotBlank
         String url,
     @TemplateProperty(
@@ -25,22 +27,25 @@ public record SqsInboundQueueProperties(
             label = "Attribute names",
             group = "input",
             description =
-                "Array of queue attribute names. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound\" target=\"_blank\">documentation</a> for details")
+                "Array of queue attribute names. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound\" target=\"_blank\">documentation</a> for details",
+            feel = FeelMode.optional)
         List<String> attributeNames,
     @TemplateProperty(
             id = "queue.messageAttributeNames",
             label = "Message attribute names",
             group = "input",
             description =
-                "Array of message attribute names. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound\" target=\"_blank\">documentation</a> for details")
+                "Array of message attribute names. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound\" target=\"_blank\">documentation</a> for details",
+            feel = FeelMode.optional)
         List<String> messageAttributeNames,
     @TemplateProperty(
             id = "queue.pollingWaitTime",
             label = "Polling wait time",
             group = "messagePollingProperties",
+            defaultValue = "20",
             description =
-                "The duration (in seconds) for which the call waits for a message to arrive in the queue before returning. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound\" target=\"_blank\">documentation</a> for details")
-        // Polling wait time TODO: when migrating to template generator, default to 20 (max possible
-        // value)
+                "The duration (in seconds) for which the call waits for a message to arrive in the queue before returning. See <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound\" target=\"_blank\">documentation</a> for details",
+            feel = FeelMode.disabled)
         @Pattern(regexp = "^([0-9]?|1[0-9]|20|secrets\\..+)$")
+        @NotBlank
         String pollingWaitTime) {}
