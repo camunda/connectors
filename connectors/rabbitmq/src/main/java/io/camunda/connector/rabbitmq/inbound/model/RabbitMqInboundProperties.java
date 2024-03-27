@@ -19,7 +19,18 @@ import java.util.Objects;
 public class RabbitMqInboundProperties {
   @Valid @NotNull private RabbitMqAuthentication authentication;
   @Valid private FactoryRoutingData routing;
-  @NotBlank private String queueName;
+
+  @NotBlank
+  @TemplateProperty(
+      label = "Queue name",
+      group = "subscription",
+      description = "Name of the queue to subscribe to")
+  private String queueName;
+
+  @TemplateProperty(
+      label = "Consumer tag",
+      group = "subscription",
+      description = "Consumer tag to use for the subscription")
   private String consumerTag;
 
   @Valid

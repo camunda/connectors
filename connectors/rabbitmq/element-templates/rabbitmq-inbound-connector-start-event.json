@@ -37,27 +37,6 @@
     },
     "type" : "Hidden"
   }, {
-    "id" : "queueName",
-    "label" : "Queue name",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "binding" : {
-      "name" : "queueName",
-      "type" : "zeebe:property"
-    },
-    "type" : "String"
-  }, {
-    "id" : "consumerTag",
-    "label" : "Consumer tag",
-    "feel" : "optional",
-    "binding" : {
-      "name" : "consumerTag",
-      "type" : "zeebe:property"
-    },
-    "type" : "String"
-  }, {
     "id" : "authentication.authType",
     "label" : "Connection type",
     "value" : "uri",
@@ -146,6 +125,11 @@
       "name" : "routing.virtualHost",
       "type" : "zeebe:property"
     },
+    "condition" : {
+      "property" : "authentication.authType",
+      "equals" : "credentials",
+      "type" : "simple"
+    },
     "type" : "String"
   }, {
     "id" : "routing.hostName",
@@ -161,6 +145,11 @@
       "name" : "routing.hostName",
       "type" : "zeebe:property"
     },
+    "condition" : {
+      "property" : "authentication.authType",
+      "equals" : "credentials",
+      "type" : "simple"
+    },
     "type" : "String"
   }, {
     "id" : "routing.port",
@@ -174,6 +163,38 @@
     "group" : "routing",
     "binding" : {
       "name" : "routing.port",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "authentication.authType",
+      "equals" : "credentials",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "queueName",
+    "label" : "Queue name",
+    "description" : "Name of the queue to subscribe to",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "subscription",
+    "binding" : {
+      "name" : "queueName",
+      "type" : "zeebe:property"
+    },
+    "type" : "String"
+  }, {
+    "id" : "consumerTag",
+    "label" : "Consumer tag",
+    "description" : "Consumer tag to use for the subscription",
+    "optional" : false,
+    "feel" : "optional",
+    "group" : "subscription",
+    "binding" : {
+      "name" : "consumerTag",
       "type" : "zeebe:property"
     },
     "type" : "String"
