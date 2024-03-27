@@ -16,6 +16,12 @@ public record UriAuthentication(
         @TemplateProperty(
             group = "authentication",
             label = "URI",
+            constraints =
+                @TemplateProperty.PropertyConstraints(
+                    pattern =
+                        @TemplateProperty.Pattern(
+                            value = "^(amqps?://)|(\\{\\{secrets\\..+\\}\\}).*",
+                            message = "Must start with amqp(s):// or contain a secret reference")),
             description =
                 "URI should contain username, password, host name, port number, and virtual host")
         String uri)

@@ -15,6 +15,10 @@ public record FactoryRoutingData(
         @TemplateProperty(
             group = "routing",
             label = "Virtual host",
+            condition =
+                @TemplateProperty.PropertyCondition(
+                    property = "authentication.authType",
+                    equals = "credentials"),
             description =
                 "Virtual name: get from RabbitMQ external application configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\"target=\"_blank\">documentation</a>")
         String virtualHost,
@@ -22,6 +26,10 @@ public record FactoryRoutingData(
         @TemplateProperty(
             group = "routing",
             label = "Host name",
+            condition =
+                @TemplateProperty.PropertyCondition(
+                    property = "authentication.authType",
+                    equals = "credentials"),
             description =
                 "Host name: get from RabbitMQ external application configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\"target=\"_blank\">documentation</a>")
         String hostName,
@@ -29,6 +37,10 @@ public record FactoryRoutingData(
         @TemplateProperty(
             group = "routing",
             label = "Port",
+            condition =
+                @TemplateProperty.PropertyCondition(
+                    property = "authentication.authType",
+                    equals = "credentials"),
             description =
                 "Port: get from RabbitMQ external application configurations. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound#routing-data\"target=\"_blank\">documentation</a>")
         String port) {}
