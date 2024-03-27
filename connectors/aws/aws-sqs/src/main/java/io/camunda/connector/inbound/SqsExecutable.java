@@ -50,8 +50,8 @@ import org.slf4j.LoggerFactory;
       @ConnectorElementType(
           appliesTo = BpmnType.START_EVENT,
           elementType = BpmnType.MESSAGE_START_EVENT,
-          templateIdOverride = "Amazon SQS Message Start Event Connector",
-          templateNameOverride = "io.camunda.connectors.AWSSQS.startmessage.v1"),
+          templateIdOverride = "io.camunda.connectors.AWSSQS.startmessage.v1",
+          templateNameOverride = "Amazon SQS Message Start Event Connector"),
       @ConnectorElementType(
           appliesTo = {BpmnType.INTERMEDIATE_THROW_EVENT, BpmnType.INTERMEDIATE_CATCH_EVENT},
           elementType = BpmnType.INTERMEDIATE_CATCH_EVENT,
