@@ -26,6 +26,8 @@ import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.GetResponse;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.rabbitmq.outbound.RabbitMqResult;
+import io.camunda.zeebe.model.bpmn.Bpmn;
+import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.spring.test.ZeebeSpringTest;
 import java.io.File;
 import java.io.IOException;
@@ -112,7 +114,7 @@ public class RabbitMqOutboundTests extends BaseRabbitMqTest {
             .property("resultVariable", "result")
             .writeTo(new File(tempDir, "template.json"));
 
-    ZeebeTest bpmnTest = setupTestWithBpmnModel("rabbitMqTask", elementTemplate);
+    ZeebeTest bpmnTest = setupTestWithBpmnModel(elementTemplate);
 
     RabbitMqResult result = RabbitMqResult.success();
     assertThat(bpmnTest.getProcessInstanceEvent()).hasVariableWithValue("result", result);
@@ -147,7 +149,7 @@ public class RabbitMqOutboundTests extends BaseRabbitMqTest {
             .property("resultVariable", "result")
             .writeTo(new File(tempDir, "template.json"));
 
-    ZeebeTest bpmnTest = setupTestWithBpmnModel("rabbitMqTask", elementTemplate);
+    ZeebeTest bpmnTest = setupTestWithBpmnModel(elementTemplate);
 
     RabbitMqResult result = RabbitMqResult.success();
     assertThat(bpmnTest.getProcessInstanceEvent()).hasVariableWithValue("result", result);
@@ -170,5 +172,10 @@ public class RabbitMqOutboundTests extends BaseRabbitMqTest {
       }
     }
     return receivedMessage;
+  }
+
+  @Override
+  protected BpmnModelInstance getBpmnModelInstance() {
+    return Bpmn.createProcess().executable().startEvent().serviceTask(ELEMENT_ID).endEvent().done();
   }
 }

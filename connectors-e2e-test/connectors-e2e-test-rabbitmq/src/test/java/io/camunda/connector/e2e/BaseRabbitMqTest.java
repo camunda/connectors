@@ -21,7 +21,6 @@ import static org.mockito.Mockito.when;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
 import io.camunda.operate.CamundaOperateClient;
 import io.camunda.zeebe.client.ZeebeClient;
-import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.File;
 import java.util.Collections;
@@ -32,21 +31,17 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.server.LocalServerPort;
 
 public abstract class BaseRabbitMqTest {
+  protected static final String ELEMENT_ID = "elementId";
   protected static final String OUTBOUND_ELEMENT_TEMPLATE_PATH =
       "../../connectors/rabbitmq/element-templates/rabbitmq-outbound-connector.json";
-
   protected static final String INBOUND_START_EVENT_ELEMENT_TEMPLATE_PATH =
       "../../connectors/rabbitmq/element-templates/rabbitmq-inbound-connector-start-event.json";
-
   protected static final String INBOUND_MESSAGE_START_ELEMENT_TEMPLATE_PATH =
       "../../connectors/rabbitmq/element-templates/rabbitmq-inbound-connector-message-start.json";
-
   protected static final String INBOUND_INTERMEDIATE_ELEMENT_TEMPLATE_PATH =
       "../../connectors/rabbitmq/element-templates/rabbitmq-inbound-connector-intermediate.json";
-
   protected static final String INBOUND_BOUNDARY_ELEMENT_TEMPLATE_PATH =
       "../../connectors/rabbitmq/element-templates/rabbitmq-inbound-connector-boundary.json";
-
   @TempDir File tempDir;
 
   @Autowired ZeebeClient zeebeClient;
@@ -57,23 +52,16 @@ public abstract class BaseRabbitMqTest {
 
   @LocalServerPort int serverPort;
 
-  protected static BpmnModelInstance getBpmnModelInstance(final String serviceTaskName) {
-    return Bpmn.createProcess()
-        .executable()
-        .startEvent()
-        .serviceTask(serviceTaskName)
-        .endEvent()
-        .done();
-  }
+  protected abstract BpmnModelInstance getBpmnModelInstance();
 
   @BeforeEach
   void beforeEach() {
     when(processDefinitionSearch.query()).thenReturn(Collections.emptyList());
   }
 
-  protected ZeebeTest setupTestWithBpmnModel(String taskName, File elementTemplate) {
-    BpmnModelInstance model = getBpmnModelInstance(taskName);
-    BpmnModelInstance updatedModel = getBpmnModelInstance(model, elementTemplate, taskName);
+  protected ZeebeTest setupTestWithBpmnModel(File elementTemplate) {
+    BpmnModelInstance model = getBpmnModelInstance();
+    BpmnModelInstance updatedModel = getBpmnModelInstance(model, elementTemplate);
     return getZeebeTest(updatedModel);
   }
 
@@ -85,9 +73,9 @@ public abstract class BaseRabbitMqTest {
   }
 
   protected BpmnModelInstance getBpmnModelInstance(
-      final BpmnModelInstance model, final File elementTemplate, final String taskName) {
+      final BpmnModelInstance model, final File elementTemplate) {
     return new BpmnFile(model)
         .writeToFile(new File(tempDir, "test.bpmn"))
-        .apply(elementTemplate, taskName, new File(tempDir, "result.bpmn"));
+        .apply(elementTemplate, ELEMENT_ID, new File(tempDir, "result.bpmn"));
   }
 }
