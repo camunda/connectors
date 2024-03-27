@@ -43,12 +43,14 @@ public sealed interface WebhookAuthorization {
       @TemplateProperty(
               label = "Username",
               description = "Username for basic authentication",
+              feel = FeelMode.optional,
               group = "authorization")
           @FEEL
           String username,
       @TemplateProperty(
               label = "Password",
               description = "Password for basic authentication",
+              feel = FeelMode.optional,
               group = "authorization")
           @FEEL
           String password)
@@ -59,6 +61,7 @@ public sealed interface WebhookAuthorization {
       @TemplateProperty(
               label = "API key",
               description = "Expected API key",
+              feel = FeelMode.optional,
               group = "authorization")
           @FEEL
           String apiKey,
