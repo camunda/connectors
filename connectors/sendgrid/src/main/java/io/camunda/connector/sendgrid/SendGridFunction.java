@@ -34,7 +34,7 @@ import org.slf4j.LoggerFactory;
     version = 3,
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
-      @ElementTemplate.PropertyGroup(id = "sender", label = "sender"),
+      @ElementTemplate.PropertyGroup(id = "sender", label = "Sender"),
       @ElementTemplate.PropertyGroup(id = "receiver", label = "Receiver"),
       @ElementTemplate.PropertyGroup(id = "content", label = "Compose email")
     },
