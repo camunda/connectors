@@ -16,32 +16,26 @@
  */
 package io.camunda.connector.api.inbound;
 
-import java.util.List;
-
 public sealed interface CorrelationResult {
 
   sealed interface Success extends CorrelationResult {
 
-    List<InboundConnectorElement> matchedElements();
-
     InboundConnectorElement activatedElement();
 
     record ProcessInstanceCreated(
-        List<InboundConnectorElement> matchedElements,
         InboundConnectorElement activatedElement,
         Long processInstanceKey,
         String tenantId)
         implements Success {}
 
     record MessagePublished(
-        List<InboundConnectorElement> matchedElements,
         InboundConnectorElement activatedElement,
         Long messageKey,
         String tenantId)
         implements Success {}
 
     record MessageAlreadyCorrelated(
-        List<InboundConnectorElement> matchedElements, InboundConnectorElement activatedElement)
+        InboundConnectorElement activatedElement)
         implements Success {}
   }
 

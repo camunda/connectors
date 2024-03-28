@@ -59,11 +59,18 @@ public class InboundCorrelationHandler {
   public CorrelationResult correlate(
       InboundConnectorDefinitionImpl definitions, Object variables, String messageId) {
 
-    List<InboundConnectorElement> matchingElements =
-        definitions.elements().stream()
-            .filter(e -> isActivationConditionMet(e, variables))
-            .map(e -> (InboundConnectorElement) e)
-            .toList();
+    final List<InboundConnectorElement> matchingElements;
+    try {
+       matchingElements =
+          definitions.elements().stream()
+              .filter(e -> isActivationConditionMet(e, variables))
+              .map(e -> (InboundConnectorElement) e)
+              .toList();
+    } catch (ConnectorInputException e) {
+      LOG.info("Failed to evaluate activation condition", e);
+      return new CorrelationResult.Failure.InvalidInput(
+          "Failed to evaluate activation condition against the provided input", e);
+    }
 
     if (matchingElements.isEmpty()) {
       return ActivationConditionNotMet.INSTANCE;
@@ -73,43 +80,27 @@ public class InboundCorrelationHandler {
     }
 
     var activatedElement = matchingElements.getFirst();
-    return correlateInternal(
-        matchingElements, (InboundConnectorElementImpl) activatedElement, variables, messageId);
+    return correlateInternal((InboundConnectorElementImpl) activatedElement, variables, messageId);
   }
 
   protected CorrelationResult correlateInternal(
-      List<InboundConnectorElement> matchedElements,
       InboundConnectorElementImpl activatedElement,
       Object variables,
       String messageId) {
     var correlationPoint = activatedElement.correlationPoint();
 
-    try {
-      if (!isActivationConditionMet(activatedElement, variables)) {
-        LOG.info("Activation condition didn't match: {}", correlationPoint);
-        return ActivationConditionNotMet.INSTANCE;
-      }
-    } catch (ConnectorInputException e) {
-      LOG.info("Failed to evaluate activation condition: {}", correlationPoint);
-      return new CorrelationResult.Failure.InvalidInput(
-          "Failed to evaluate activation condition against the provided input", e);
-    }
-
     return switch (correlationPoint) {
-      case StartEventCorrelationPoint ignored -> triggerStartEvent(
-          matchedElements, activatedElement, variables);
+      case StartEventCorrelationPoint ignored -> triggerStartEvent(activatedElement, variables);
       case MessageCorrelationPoint msgCorPoint -> triggerMessage(
-          matchedElements,
           activatedElement,
           variables,
           resolveMessageId(msgCorPoint.messageIdExpression(), messageId, variables));
       case MessageStartEventCorrelationPoint ignored -> triggerMessageStartEvent(
-          matchedElements, activatedElement, variables);
+          activatedElement, variables);
     };
   }
 
   protected CorrelationResult triggerStartEvent(
-      List<InboundConnectorElement> matchedElements,
       InboundConnectorElementImpl activatedElement,
       Object variables) {
 
@@ -129,7 +120,7 @@ public class InboundCorrelationHandler {
 
       LOG.info("Created a process instance with key" + result.getProcessInstanceKey());
       return new CorrelationResult.Success.ProcessInstanceCreated(
-          matchedElements, activatedElement, result.getProcessInstanceKey(), result.getTenantId());
+          activatedElement, result.getProcessInstanceKey(), result.getTenantId());
 
     } catch (ClientStatusException e1) {
       LOG.info("Failed to publish message: ", e1);
@@ -141,7 +132,6 @@ public class InboundCorrelationHandler {
   }
 
   protected CorrelationResult triggerMessageStartEvent(
-      List<InboundConnectorElement> matchedElements,
       InboundConnectorElementImpl activatedElement,
       Object variables) {
 
@@ -180,11 +170,11 @@ public class InboundCorrelationHandler {
       LOG.info("Published message with key: " + response.getMessageKey());
       result =
           new CorrelationResult.Success.MessagePublished(
-              matchedElements, activatedElement, response.getMessageKey(), response.getTenantId());
+              activatedElement, response.getMessageKey(), response.getTenantId());
     } catch (ClientStatusException e1) {
       LOG.info("Failed to publish message: ", e1);
       if (Status.ALREADY_EXISTS.getCode().equals(e1.getStatus().getCode())) {
-        result = new MessageAlreadyCorrelated(matchedElements, activatedElement);
+        result = new MessageAlreadyCorrelated(activatedElement);
       } else {
         result =
             new CorrelationResult.Failure.ZeebeClientStatus(
@@ -195,7 +185,6 @@ public class InboundCorrelationHandler {
   }
 
   protected CorrelationResult triggerMessage(
-      List<InboundConnectorElement> matchedElements,
       InboundConnectorElementImpl activatedElement,
       Object variables,
       String messageId) {
@@ -225,10 +214,10 @@ public class InboundCorrelationHandler {
       LOG.info("Published message with key: " + response.getMessageKey());
       result =
           new CorrelationResult.Success.MessagePublished(
-              matchedElements, activatedElement, response.getMessageKey(), response.getTenantId());
+              activatedElement, response.getMessageKey(), response.getTenantId());
     } catch (ClientStatusException ex) {
       if (Status.ALREADY_EXISTS.getCode().equals(ex.getStatus().getCode())) {
-        result = new MessageAlreadyCorrelated(matchedElements, activatedElement);
+        result = new MessageAlreadyCorrelated(activatedElement);
       } else {
         LOG.info("Failed to publish message: ", ex);
         result =

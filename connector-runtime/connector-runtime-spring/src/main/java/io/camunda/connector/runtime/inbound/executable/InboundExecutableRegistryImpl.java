@@ -89,6 +89,11 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
   }
 
   @Override
+  public void publishEvent(InboundExecutableEvent event) {
+    eventQueue.add(event);
+    LOG.debug("Event added to the queue: " + event);
+  }
+
   public void handleEvent(InboundExecutableEvent event) {
     switch (event) {
       case Activated activated -> handleActivated(activated);

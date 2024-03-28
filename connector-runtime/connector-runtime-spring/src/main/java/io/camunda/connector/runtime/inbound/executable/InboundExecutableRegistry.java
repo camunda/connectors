@@ -20,7 +20,7 @@ import java.util.List;
 
 public interface InboundExecutableRegistry {
 
-  void handleEvent(InboundExecutableEvent event);
+  void publishEvent(InboundExecutableEvent event);
 
   List<ActiveExecutableResponse> query(ActiveExecutableQuery query);
 }
