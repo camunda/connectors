@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.model;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
@@ -15,11 +16,13 @@ import java.util.Optional;
 public class Member {
 
   public static final String USER_DATA_BIND = "user@odata.bind";
-  public static final String USER_DATA_TYPE = "@odata.type";
   public static final List<String> OWNER_ROLES = List.of("owner");
 
   private String userId;
+
+  @JsonAlias(value = {"userPrincipalName", "principalName"})
   private String userPrincipalName;
+
   @NotNull private List<String> roles;
 
   @AssertTrue(message = "Missing one of properties : [userId, userPrincipalName]")
