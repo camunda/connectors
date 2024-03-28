@@ -8,7 +8,7 @@ on:
       connectors_version:
         description: 'The version of the connectors to test'
         required: true
-        default: '8.5.0-alpha2'
+        default: 'SNAPSHOT'
 
 defaults:
   run:
@@ -26,36 +26,6 @@ jobs:
       persistent: true
       test-enabled: true
       extra-values: |
-        zeebe:
-          image:
-            tag: 8.5.0-alpha2
-        tasklist:
-          image:
-            tag: 8.5.0-alpha2
-        operate:
-          image:
-            tag: 8.5.0-alpha2
-        webModeler:
-          restapi:
-            image:
-              tag: latest
-          webapp:
-            image:
-              tag: latest
-          websockets:
-            image:
-              tag: latest
-        console:
-          image:
-            tag: latest
-        identity:
-          image:
-            tag: SNAPSHOT
         connectors:
           image:
             tag: ${{ github.event.inputs.connectors_version }}
-          env:
-          - name: username
-            value: username
-          - name: password
-            value: password
