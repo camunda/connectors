@@ -9,12 +9,13 @@ package io.camunda.connector.aws.model.impl;
 import io.camunda.connector.aws.model.AwsConfiguration;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
 
 public record AwsBaseConfiguration(
     @TemplateProperty(
             group = "configuration",
             description = "Specify the AWS region",
-            optional = true)
+            constraints = @PropertyConstraints(notEmpty = true))
         String region,
     @TemplateProperty(
             group = "configuration",
