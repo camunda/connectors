@@ -36,7 +36,7 @@ public class ConnectorMetrics {
     public static final String METRIC_NAME_ACTIVATIONS = "camunda.connector.inbound.activations";
     public static final String METRIC_NAME_TRIGGERS = "camunda.connector.inbound.triggers";
     public static final String METRIC_NAME_INBOUND_PROCESS_DEFINITIONS_CHECKED =
-        "camunda.connector.inbound.process-definitions-checked";
+        "camunda.connector.inbound.process-elements-checked";
 
     public static final String ACTION_ACTIVATED = "activated";
     public static final String ACTION_DEACTIVATED = "deactivated";

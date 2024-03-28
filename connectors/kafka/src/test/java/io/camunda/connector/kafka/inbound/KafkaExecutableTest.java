@@ -80,7 +80,7 @@ public class KafkaExecutableTest {
         InboundConnectorContextBuilder.create()
             .secret("test", "test")
             .properties(kafkaConnectorProperties)
-            .definition(InboundConnectorDefinitionBuilder.create().bpmnProcessId(processId).build())
+            .definition(InboundConnectorDefinitionBuilder.create().build())
             .validation(new DefaultValidationProvider())
             .build();
     originalContext = context;
@@ -151,12 +151,7 @@ public class KafkaExecutableTest {
     assertEquals(false, properties.get(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG));
 
     assertEquals(
-        "kafka-inbound-connector-"
-            + context.getDefinition().bpmnProcessId()
-            + "-"
-            + context.getDefinition().elementId()
-            + "-"
-            + context.getDefinition().processDefinitionKey(),
+        "kafka-inbound-connector-" + context.getDefinition().deduplicationId(),
         properties.get(ConsumerConfig.GROUP_ID_CONFIG));
   }
 
@@ -241,7 +236,7 @@ public class KafkaExecutableTest {
         InboundConnectorContextBuilder.create()
             .secret("test", "test")
             .properties(properties)
-            .definition(InboundConnectorDefinitionBuilder.create().bpmnProcessId(processId).build())
+            .definition(InboundConnectorDefinitionBuilder.create().build())
             .validation(new DefaultValidationProvider())
             .build();
 

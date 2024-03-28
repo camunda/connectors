@@ -90,6 +90,15 @@ public class Keywords {
    */
   public static final String RETRY_BACKOFF_KEYWORD = "retryBackoff";
 
+  public static final String DEDUPLICATION_MODE_KEYWORD = "deduplicationMode";
+
+  public enum DeduplicationMode {
+    AUTO,
+    MANUAL
+  }
+
+  public static final String DEDUPLICATION_ID_KEYWORD = "deduplicationId";
+
   public static final Set<String> ALL_KEYWORDS =
       Set.of(
           RESULT_VARIABLE_KEYWORD,
@@ -98,5 +107,9 @@ public class Keywords {
           CORRELATION_KEY_EXPRESSION_KEYWORD,
           DEPRECATED_ACTIVATION_CONDITION_KEYWORD,
           ACTIVATION_CONDITION_KEYWORD,
-          INBOUND_TYPE_KEYWORD);
+          INBOUND_TYPE_KEYWORD,
+          RETRY_BACKOFF_KEYWORD,
+          DEDUPLICATION_MODE_KEYWORD,
+          DEDUPLICATION_ID_KEYWORD,
+          MESSAGE_ID_EXPRESSION);
 }

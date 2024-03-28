@@ -18,62 +18,60 @@ package io.camunda.connector.runtime.core.inbound;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
-import io.camunda.connector.runtime.core.Keywords;
-import io.camunda.connector.runtime.core.inbound.correlation.ProcessCorrelationPoint;
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
-/** Inbound connector definition implementation that also contains connector properties */
+/** Group of inbound connector elements that share the same deduplication ID. */
 public record InboundConnectorDefinitionImpl(
-    @JsonIgnore Map<String, String> rawProperties,
-    ProcessCorrelationPoint correlationPoint,
-    String bpmnProcessId,
-    Integer version,
-    Long processDefinitionKey,
-    String elementId,
-    String tenantId)
+    String type,
+    String tenantId,
+    String deduplicationId,
+    @JsonIgnore Map<String, String> rawPropertiesWithoutKeywords,
+    List<InboundConnectorElementImpl> elements)
     implements InboundConnectorDefinition {
-
-  @Override
-  public String type() {
-    return Optional.ofNullable(rawProperties.get(Keywords.INBOUND_TYPE_KEYWORD))
-        .orElseThrow(
-            () ->
-                new IllegalArgumentException(
-                    "Missing connector type property. The connector element template is not valid"));
+  public InboundConnectorDefinitionImpl(List<InboundConnectorElementImpl> elements) {
+    this(
+        extractType(elements),
+        extractTenantId(elements),
+        extractDeduplicationId(elements),
+        extractRawProperties(elements),
+        elements);
   }
 
-  public String resultExpression() {
-    return rawProperties.get(Keywords.RESULT_EXPRESSION_KEYWORD);
+  private static String extractType(List<InboundConnectorElementImpl> elements) {
+    if (elements.stream().map(InboundConnectorElementImpl::type).distinct().count() > 1) {
+      throw new IllegalArgumentException("All elements in a group must have the same type");
+    }
+    return elements.getFirst().type();
   }
 
-  public String resultVariable() {
-    return rawProperties.get(Keywords.RESULT_VARIABLE_KEYWORD);
+  private static String extractTenantId(List<InboundConnectorElementImpl> elements) {
+    if (elements.stream().map(InboundConnectorElementImpl::tenantId).distinct().count() > 1) {
+      throw new IllegalArgumentException("All elements in a group must have the same tenant ID");
+    }
+    return elements.getFirst().tenantId();
   }
 
-  public String activationCondition() {
-    return Optional.ofNullable(rawProperties.get(Keywords.ACTIVATION_CONDITION_KEYWORD))
-        .orElseGet(() -> rawProperties.get(Keywords.DEPRECATED_ACTIVATION_CONDITION_KEYWORD));
+  private static String extractDeduplicationId(List<InboundConnectorElementImpl> elements) {
+    if (elements.stream().map(InboundConnectorElementImpl::deduplicationId).distinct().count()
+        > 1) {
+      throw new IllegalArgumentException(
+          "All elements in a group must have the same deduplication ID");
+    }
+    return elements.getFirst().deduplicationId();
   }
 
-  // override to exclude rawProperties
-  @Override
-  public String toString() {
-    return "InboundConnectorDefinitionImpl{"
-        + "correlationPoint="
-        + correlationPoint
-        + ", bpmnProcessId='"
-        + bpmnProcessId
-        + '\''
-        + ", version="
-        + version
-        + ", processDefinitionKey="
-        + processDefinitionKey
-        + ", elementId='"
-        + elementId
-        + ", tenantId='"
-        + tenantId
-        + '\''
-        + '}';
+  private static Map<String, String> extractRawProperties(
+      List<InboundConnectorElementImpl> elements) {
+    if (elements.stream()
+            .map(InboundConnectorElementImpl::rawPropertiesWithoutKeywords)
+            .distinct()
+            .count()
+        > 1) {
+
+      throw new IllegalArgumentException(
+          "All elements in a group must have the same properties (excluding runtime-level properties)");
+    }
+    return elements.getFirst().rawProperties();
   }
 }

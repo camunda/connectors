@@ -16,42 +16,42 @@
  */
 package io.camunda.connector.runtime.inbound.importer;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import io.camunda.connector.runtime.inbound.lifecycle.InboundConnectorManager;
+import io.camunda.connector.runtime.inbound.state.ProcessImportResult;
+import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
 import io.camunda.operate.model.ProcessDefinition;
 import io.camunda.zeebe.spring.client.metrics.DefaultNoopMetricsRecorder;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 public class ProcessDefinitionImporterTest {
 
   private ProcessDefinitionImporter importer;
-  private InboundConnectorManager manager;
+  private ProcessStateStore stateStore;
   private ProcessDefinitionSearch search;
 
   @BeforeEach
   public void init() {
-    manager = mock(InboundConnectorManager.class);
+    stateStore = mock(ProcessStateStore.class);
     search = mock(ProcessDefinitionSearch.class);
-    importer = new ProcessDefinitionImporter(manager, search, new DefaultNoopMetricsRecorder());
+    importer = new ProcessDefinitionImporter(stateStore, search, new DefaultNoopMetricsRecorder());
   }
 
   @Test
-  void newProcessDefinitionDeployed_shouldRegister() {
+  void shouldUpdateStateStore() {
     // given
-    List<ProcessDefinition> first = List.of(getProcessDefinition("process1", 1, 1));
+    List<ProcessDefinition> first = List.of(getProcessDefinition("process1", 1, 1, "tenant1"));
     List<ProcessDefinition> second =
-        List.of(getProcessDefinition("process1", 1, 1), getProcessDefinition("process2", 1, 2));
+        List.of(
+            getProcessDefinition("process1", 1, 1, "tenant1"),
+            getProcessDefinition("process2", 1, 2, "tenant1"));
 
     when(search.query()).thenReturn(first).thenReturn(second);
 
@@ -60,95 +60,20 @@ public class ProcessDefinitionImporterTest {
     importer.scheduleImport();
 
     // then
-    verify(manager, times(1)).handleNewProcessDefinitions(eq(new HashSet<>(first)));
-    verify(manager, times(0)).handleDeletedProcessDefinitions(any());
-    verify(manager, times(1)).handleNewProcessDefinitions(Set.of(second.get(1)));
+    ArgumentCaptor<ProcessImportResult> captor = ArgumentCaptor.forClass(ProcessImportResult.class);
+    verify(stateStore, times(2)).update(captor.capture());
+    List<ProcessImportResult> allValues = captor.getAllValues();
+    assertEquals(1, allValues.get(0).processDefinitionVersions().size());
+    assertEquals(2, allValues.get(1).processDefinitionVersions().size());
   }
 
-  @Test
-  void newVersionDeployed_shouldRegister() {
-    // given
-    List<ProcessDefinition> first = List.of(getProcessDefinition("process1", 1, 1));
-    List<ProcessDefinition> second = List.of(getProcessDefinition("process1", 2, 2));
-
-    when(search.query()).thenReturn(first).thenReturn(second).thenReturn(second);
-
-    // when
-    importer.scheduleImport();
-    importer.scheduleImport();
-
-    // then
-    verify(manager, times(1)).handleNewProcessDefinitions(new HashSet<>(first));
-    verify(manager, times(1))
-        .handleDeletedProcessDefinitions(Set.of(first.getFirst().getVersion()));
-    verify(manager, times(1)).handleNewProcessDefinitions(Set.of(second.getFirst()));
-
-    // verify old version was deregistered and no action is taken on the next polling iteration
-    importer.scheduleImport();
-    verifyNoMoreInteractions(manager);
-  }
-
-  @Test
-  void versionNotChanged_shouldNotRegister() {
-    // given
-    List<ProcessDefinition> definitions =
-        List.of(getProcessDefinition("process1", 1, 1), getProcessDefinition("process2", 1, 2));
-
-    when(search.query()).thenReturn(definitions);
-
-    // when
-    importer.scheduleImport();
-    importer.scheduleImport();
-
-    // then
-    verify(manager, times(1)).handleNewProcessDefinitions(new HashSet<>(definitions));
-    verifyNoMoreInteractions(manager);
-  }
-
-  @Test
-  void processDefinitionDeleted_shouldDeregister() {
-    // given
-    List<ProcessDefinition> first =
-        List.of(getProcessDefinition("process1", 1, 1), getProcessDefinition("process2", 1, 2));
-
-    List<ProcessDefinition> second = List.of(getProcessDefinition("process1", 1, 1));
-
-    when(search.query()).thenReturn(first).thenReturn(second);
-
-    // when
-    importer.scheduleImport();
-    importer.scheduleImport();
-
-    // then
-    verify(manager, times(1)).handleNewProcessDefinitions(new HashSet<>(first));
-    verify(manager, times(1)).handleDeletedProcessDefinitions(Set.of(first.get(1).getKey()));
-  }
-
-  @Test
-  void newerVersionDeleted_shouldRegisterOldOne() {
-    // given
-    List<ProcessDefinition> first = List.of(getProcessDefinition("process1", 2, 2));
-
-    List<ProcessDefinition> second = List.of(getProcessDefinition("process1", 1, 1));
-
-    when(search.query()).thenReturn(first).thenReturn(second);
-
-    // when
-    importer.scheduleImport();
-    importer.scheduleImport();
-
-    // then
-    verify(manager, times(1)).handleNewProcessDefinitions(Set.of(first.getFirst()));
-    verify(manager, times(1))
-        .handleDeletedProcessDefinitions(Set.of(first.getFirst().getVersion()));
-    verify(manager, times(1)).handleNewProcessDefinitions(new HashSet<>(second));
-  }
-
-  private ProcessDefinition getProcessDefinition(String bpmnProcessId, long version, long key) {
+  private ProcessDefinition getProcessDefinition(
+      String bpmnProcessId, long version, long key, String tenantId) {
     var pd = new ProcessDefinition();
     pd.setBpmnProcessId(bpmnProcessId);
     pd.setKey(key);
     pd.setVersion(version);
+    pd.setTenantId(tenantId);
     return pd;
   }
 }

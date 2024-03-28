@@ -14,25 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.core.inbound.correlation;
+package io.camunda.connector.runtime.inbound.executable;
 
-public sealed interface MessageCorrelationPoint extends ProcessCorrelationPoint {
-  String messageName();
+import io.camunda.connector.api.inbound.Activity;
+import io.camunda.connector.api.inbound.Health;
+import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
+import java.util.Collection;
+import java.util.UUID;
 
-  String correlationKeyExpression();
-
-  String messageIdExpression();
-
-  record StandaloneMessageCorrelationPoint(
-      String messageName, String correlationKeyExpression, String messageIdExpression)
-      implements MessageCorrelationPoint {}
-
-  record BoundaryEventCorrelationPoint(
-      String messageName,
-      String correlationKeyExpression,
-      String messageIdExpression,
-      Activity attachedTo)
-      implements MessageCorrelationPoint {
-    public record Activity(String elementId, String name) {}
-  }
-}
+public record ActiveExecutableResponse(
+    UUID executableId,
+    Class<? extends InboundConnectorExecutable> executableClass,
+    InboundConnectorDefinitionImpl definition,
+    Health health,
+    Collection<Activity> logs) {}

@@ -19,13 +19,24 @@ package io.camunda.connector.api.inbound;
 public sealed interface CorrelationResult {
 
   sealed interface Success extends CorrelationResult {
-    record ProcessInstanceCreated(Long processInstanceKey, String tenantId) implements Success {}
 
-    record MessagePublished(Long messageKey, String tenantId) implements Success {}
+    InboundConnectorElement activatedElement();
 
-    record MessageAlreadyCorrelated() implements Success {
-      public static final MessageAlreadyCorrelated INSTANCE = new MessageAlreadyCorrelated();
-    }
+    record ProcessInstanceCreated(
+        InboundConnectorElement activatedElement,
+        Long processInstanceKey,
+        String tenantId)
+        implements Success {}
+
+    record MessagePublished(
+        InboundConnectorElement activatedElement,
+        Long messageKey,
+        String tenantId)
+        implements Success {}
+
+    record MessageAlreadyCorrelated(
+        InboundConnectorElement activatedElement)
+        implements Success {}
   }
 
   sealed interface Failure extends CorrelationResult {

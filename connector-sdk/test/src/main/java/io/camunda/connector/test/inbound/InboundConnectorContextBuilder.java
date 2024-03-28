@@ -25,6 +25,7 @@ import io.camunda.connector.api.inbound.CorrelationResult.Success;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
+import io.camunda.connector.api.inbound.InboundConnectorElement;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.api.inbound.ProcessInstanceContext;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
@@ -222,7 +223,15 @@ public class InboundConnectorContextBuilder {
     @Override
     public CorrelationResult correlateWithResult(Object variables) {
       correlate(variables);
-      return Objects.requireNonNullElse(result, new Success.ProcessInstanceCreated(1L, "test"));
+      return Objects.requireNonNullElse(
+          result,
+          new Success.ProcessInstanceCreated(
+              definition.elements().stream()
+                  .map(element -> (InboundConnectorElement) element)
+                  .toList(),
+              definition.elements().get(0),
+              1L,
+              "test"));
     }
 
     @Override

@@ -16,25 +16,18 @@
  */
 package io.camunda.connector.runtime.inbound.importer;
 
-import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
-import io.camunda.operate.CamundaOperateClient;
-import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import io.camunda.connector.runtime.core.inbound.correlation.ProcessCorrelationPoint;
+import java.util.List;
+import java.util.Map;
 
-@Configuration
-public class ProcessDefinitionImportConfiguration {
-
-  @Bean
-  public ProcessDefinitionSearch processDefinitionSearch(CamundaOperateClient client) {
-    return new ProcessDefinitionSearch(client);
-  }
-
-  @Bean
-  public ProcessDefinitionImporter processDefinitionImporter(
-      ProcessStateStore stateStore,
-      ProcessDefinitionSearch search,
-      MetricsRecorder metricsRecorder) {
-    return new ProcessDefinitionImporter(stateStore, search, metricsRecorder);
-  }
+public record ProcessInspectionResult(
+    String bpmnProcessId,
+    int version,
+    long processDefinitionKey,
+    String tenantId,
+    List<ProcessInboundConnectorData> inboundConnectors) {
+  record ProcessInboundConnectorData(
+      String elementId,
+      Map<String, String> rawProperties,
+      ProcessCorrelationPoint correlationPoint) {}
 }

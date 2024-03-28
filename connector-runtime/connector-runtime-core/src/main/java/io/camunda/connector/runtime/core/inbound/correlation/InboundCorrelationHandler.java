@@ -16,22 +16,24 @@
  */
 package io.camunda.connector.runtime.core.inbound.correlation;
 
-import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure.ActivationConditionNotMet;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure.Other;
 import io.camunda.connector.api.inbound.CorrelationResult.Success.MessageAlreadyCorrelated;
+import io.camunda.connector.api.inbound.InboundConnectorElement;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.core.ConnectorHelper;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorElementImpl;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.client.api.command.ClientStatusException;
 import io.camunda.zeebe.client.api.response.ProcessInstanceEvent;
 import io.camunda.zeebe.client.api.response.PublishMessageResponse;
 import io.grpc.Status;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -50,61 +52,60 @@ public class InboundCorrelationHandler {
     this.feelEngine = feelEngine;
   }
 
-  public CorrelationResult correlate(InboundConnectorDefinitionImpl definition, Object variables) {
-    return correlate(definition, variables, null);
+  public CorrelationResult correlate(InboundConnectorDefinitionImpl definitions, Object variables) {
+    return correlate(definitions, variables, null);
   }
 
   public CorrelationResult correlate(
-      InboundConnectorDefinitionImpl definition, Object variables, String messageId) {
+      InboundConnectorDefinitionImpl definitions, Object variables, String messageId) {
 
-    var correlationPoint = definition.correlationPoint();
-
+    final List<InboundConnectorElement> matchingElements;
     try {
-      if (!isActivationConditionMet(definition, variables)) {
-        LOG.info("Activation condition didn't match: {}", correlationPoint);
-        return ActivationConditionNotMet.INSTANCE;
-      }
+       matchingElements =
+          definitions.elements().stream()
+              .filter(e -> isActivationConditionMet(e, variables))
+              .map(e -> (InboundConnectorElement) e)
+              .toList();
     } catch (ConnectorInputException e) {
-      LOG.info("Failed to evaluate activation condition: {}", correlationPoint);
+      LOG.info("Failed to evaluate activation condition", e);
       return new CorrelationResult.Failure.InvalidInput(
           "Failed to evaluate activation condition against the provided input", e);
     }
 
-    if (correlationPoint instanceof StartEventCorrelationPoint startCorPoint) {
-      return triggerStartEvent(definition, startCorPoint, variables);
-    } else if (correlationPoint instanceof MessageCorrelationPoint msgCorPoint) {
-      return triggerMessage(
-          definition,
-          msgCorPoint.messageName(),
-          msgCorPoint.correlationKeyExpression(),
+    if (matchingElements.isEmpty()) {
+      return ActivationConditionNotMet.INSTANCE;
+    }
+    if (matchingElements.size() > 1) {
+      return new Failure.InvalidInput("Multiple connectors are activated for the same input", null);
+    }
+
+    var activatedElement = matchingElements.getFirst();
+    return correlateInternal((InboundConnectorElementImpl) activatedElement, variables, messageId);
+  }
+
+  protected CorrelationResult correlateInternal(
+      InboundConnectorElementImpl activatedElement,
+      Object variables,
+      String messageId) {
+    var correlationPoint = activatedElement.correlationPoint();
+
+    return switch (correlationPoint) {
+      case StartEventCorrelationPoint ignored -> triggerStartEvent(activatedElement, variables);
+      case MessageCorrelationPoint msgCorPoint -> triggerMessage(
+          activatedElement,
           variables,
           resolveMessageId(msgCorPoint.messageIdExpression(), messageId, variables));
-    } else if (correlationPoint instanceof MessageStartEventCorrelationPoint msgStartCorPoint) {
-      return triggerMessageStartEvent(definition, msgStartCorPoint, variables);
-    } else if (correlationPoint
-        instanceof BoundaryEventCorrelationPoint boundaryEventCorrelationPoint) {
-      return triggerMessage(
-          definition,
-          boundaryEventCorrelationPoint.messageName(),
-          boundaryEventCorrelationPoint.correlationKeyExpression(),
-          variables,
-          resolveMessageId(
-              boundaryEventCorrelationPoint.messageIdExpression(), messageId, variables));
-    } else {
-      // this should never happen, thus not wrapped in a CorrelationResult
-      throw new ConnectorException(
-          "Process correlation point "
-              + correlationPoint.getClass()
-              + " is not supported by Runtime");
-    }
+      case MessageStartEventCorrelationPoint ignored -> triggerMessageStartEvent(
+          activatedElement, variables);
+    };
   }
 
   protected CorrelationResult triggerStartEvent(
-      InboundConnectorDefinitionImpl definition,
-      StartEventCorrelationPoint correlationPoint,
+      InboundConnectorElementImpl activatedElement,
       Object variables) {
 
-    Object extractedVariables = extractVariables(variables, definition);
+    Object extractedVariables = extractVariables(variables, activatedElement);
+    var correlationPoint = (StartEventCorrelationPoint) activatedElement.correlationPoint();
 
     try {
       ProcessInstanceEvent result =
@@ -112,14 +113,14 @@ public class InboundCorrelationHandler {
               .newCreateInstanceCommand()
               .bpmnProcessId(correlationPoint.bpmnProcessId())
               .version(correlationPoint.version())
-              .tenantId(definition.tenantId())
+              .tenantId(activatedElement.tenantId())
               .variables(extractedVariables)
               .send()
               .join();
 
       LOG.info("Created a process instance with key" + result.getProcessInstanceKey());
       return new CorrelationResult.Success.ProcessInstanceCreated(
-          result.getProcessInstanceKey(), result.getTenantId());
+          activatedElement, result.getProcessInstanceKey(), result.getTenantId());
 
     } catch (ClientStatusException e1) {
       LOG.info("Failed to publish message: ", e1);
@@ -131,11 +132,12 @@ public class InboundCorrelationHandler {
   }
 
   protected CorrelationResult triggerMessageStartEvent(
-      InboundConnectorDefinitionImpl definition,
-      MessageStartEventCorrelationPoint correlationPoint,
+      InboundConnectorElementImpl activatedElement,
       Object variables) {
 
+    var correlationPoint = (MessageStartEventCorrelationPoint) activatedElement.correlationPoint();
     String messageId = extractMessageId(correlationPoint.messageIdExpression(), variables);
+
     if (correlationPoint.messageIdExpression() != null
         && !correlationPoint.messageIdExpression().isBlank()
         && messageId == null) {
@@ -148,7 +150,7 @@ public class InboundCorrelationHandler {
           null);
     }
 
-    Object extractedVariables = extractVariables(variables, definition);
+    Object extractedVariables = extractVariables(variables, activatedElement);
     CorrelationResult result;
     try {
       var correlationKey =
@@ -161,18 +163,18 @@ public class InboundCorrelationHandler {
               // https://docs.camunda.io/docs/components/modeler/bpmn/message-events/#message-start-events
               .correlationKey(correlationKey.orElse(""))
               .messageId(messageId)
-              .tenantId(definition.tenantId())
+              .tenantId(activatedElement.tenantId())
               .variables(extractedVariables)
               .send()
               .join();
       LOG.info("Published message with key: " + response.getMessageKey());
       result =
           new CorrelationResult.Success.MessagePublished(
-              response.getMessageKey(), response.getTenantId());
+              activatedElement, response.getMessageKey(), response.getTenantId());
     } catch (ClientStatusException e1) {
       LOG.info("Failed to publish message: ", e1);
       if (Status.ALREADY_EXISTS.equals(e1.getStatus())) {
-        result = MessageAlreadyCorrelated.INSTANCE;
+        result = new MessageAlreadyCorrelated(activatedElement);
       } else {
         result =
             new CorrelationResult.Failure.ZeebeClientStatus(
@@ -183,28 +185,28 @@ public class InboundCorrelationHandler {
   }
 
   protected CorrelationResult triggerMessage(
-      InboundConnectorDefinitionImpl definition,
-      String messageName,
-      String correlationKeyExpression,
+      InboundConnectorElementImpl activatedElement,
       Object variables,
       String messageId) {
 
+    var correlationPoint = (MessageCorrelationPoint) activatedElement.correlationPoint();
+    var correlationKeyExpression = correlationPoint.correlationKeyExpression();
     var correlationKey = extractCorrelationKey(correlationKeyExpression, variables);
     if (correlationKey.isEmpty()) {
       return new CorrelationResult.Failure.InvalidInput(
           "Wasn't able to obtain correlation key for expression " + correlationKeyExpression, null);
     }
 
-    Object extractedVariables = extractVariables(variables, definition);
+    Object extractedVariables = extractVariables(variables, activatedElement);
     CorrelationResult result;
     try {
       PublishMessageResponse response =
           zeebeClient
               .newPublishMessageCommand()
-              .messageName(messageName)
+              .messageName(correlationPoint.messageName())
               .correlationKey(correlationKey.get())
               .messageId(messageId)
-              .tenantId(definition.tenantId())
+              .tenantId(activatedElement.tenantId())
               .variables(extractedVariables)
               .send()
               .join();
@@ -212,10 +214,10 @@ public class InboundCorrelationHandler {
       LOG.info("Published message with key: " + response.getMessageKey());
       result =
           new CorrelationResult.Success.MessagePublished(
-              response.getMessageKey(), response.getTenantId());
+              activatedElement, response.getMessageKey(), response.getTenantId());
     } catch (ClientStatusException ex) {
       if (Status.ALREADY_EXISTS.equals(ex.getStatus())) {
-        result = MessageAlreadyCorrelated.INSTANCE;
+        result = new MessageAlreadyCorrelated(activatedElement);
       } else {
         LOG.info("Failed to publish message: ", ex);
         result =
@@ -229,7 +231,7 @@ public class InboundCorrelationHandler {
   }
 
   protected boolean isActivationConditionMet(
-      InboundConnectorDefinitionImpl definition, Object context) {
+      InboundConnectorElementImpl definition, Object context) {
 
     var maybeCondition = definition.activationCondition();
     if (maybeCondition == null || maybeCondition.isBlank()) {
@@ -272,8 +274,7 @@ public class InboundCorrelationHandler {
     }
   }
 
-  protected Object extractVariables(
-      Object rawVariables, InboundConnectorDefinitionImpl definition) {
+  protected Object extractVariables(Object rawVariables, InboundConnectorElementImpl definition) {
     return ConnectorHelper.createOutputVariables(
         rawVariables, definition.resultVariable(), definition.resultExpression());
   }

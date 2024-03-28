@@ -14,25 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.core.inbound.correlation;
+package io.camunda.connector.runtime.inbound.executable;
 
-public sealed interface MessageCorrelationPoint extends ProcessCorrelationPoint {
-  String messageName();
+import java.util.List;
 
-  String correlationKeyExpression();
+public interface InboundExecutableRegistry {
 
-  String messageIdExpression();
+  void publishEvent(InboundExecutableEvent event);
 
-  record StandaloneMessageCorrelationPoint(
-      String messageName, String correlationKeyExpression, String messageIdExpression)
-      implements MessageCorrelationPoint {}
-
-  record BoundaryEventCorrelationPoint(
-      String messageName,
-      String correlationKeyExpression,
-      String messageIdExpression,
-      Activity attachedTo)
-      implements MessageCorrelationPoint {
-    public record Activity(String elementId, String name) {}
-  }
+  List<ActiveExecutableResponse> query(ActiveExecutableQuery query);
 }

@@ -14,25 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.core.inbound.correlation;
+package io.camunda.connector.runtime.inbound.state;
 
-public sealed interface MessageCorrelationPoint extends ProcessCorrelationPoint {
-  String messageName();
+public interface ProcessStateStore {
 
-  String correlationKeyExpression();
-
-  String messageIdExpression();
-
-  record StandaloneMessageCorrelationPoint(
-      String messageName, String correlationKeyExpression, String messageIdExpression)
-      implements MessageCorrelationPoint {}
-
-  record BoundaryEventCorrelationPoint(
-      String messageName,
-      String correlationKeyExpression,
-      String messageIdExpression,
-      Activity attachedTo)
-      implements MessageCorrelationPoint {
-    public record Activity(String elementId, String name) {}
-  }
+  /**
+   * Update the process state based on the latest versions of the process definitions.
+   * Implementations must be idempotent.
+   */
+  void update(ProcessImportResult processDefinitions);
 }

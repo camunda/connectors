@@ -14,16 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.inbound.lifecycle;
+package io.camunda.connector.runtime.inbound.executable;
 
-import io.camunda.connector.api.inbound.Health;
-import java.util.Map;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
+import java.util.UUID;
 
-public record ActiveInboundConnectorResponse(
-    String bpmnProcessId,
-    int version,
-    String elementId,
-    String type,
-    String tenantId,
-    Map<String, Object> data,
-    Health health) {}
+public sealed interface InboundExecutableEvent {
+
+  record Activated(UUID executableId, InboundConnectorDefinitionImpl definition)
+      implements InboundExecutableEvent {}
+
+  record Deactivated(UUID executableId) implements InboundExecutableEvent {}
+}

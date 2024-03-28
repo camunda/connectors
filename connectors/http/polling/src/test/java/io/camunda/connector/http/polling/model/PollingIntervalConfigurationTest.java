@@ -38,7 +38,7 @@ public class PollingIntervalConfigurationTest {
   public void setUp() {
     SecretProvider secretProvider = name -> name; // Simplified secret provider for testing purposes
     properties = new HashMap<>();
-    when(definition.rawProperties()).thenReturn(properties);
+    when(definition.rawPropertiesWithoutKeywords()).thenReturn(properties);
     inboundConnectorContext =
         new InboundConnectorContextImpl(
             secretProvider,
