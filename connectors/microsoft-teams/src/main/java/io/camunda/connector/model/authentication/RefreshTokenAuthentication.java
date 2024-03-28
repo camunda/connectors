@@ -29,12 +29,13 @@ public record RefreshTokenAuthentication(
             label = "Tenant ID",
             description = "The tenant ID of the application")
         String tenantId,
-    @NotBlank
-        @TemplateProperty(
+    @TemplateProperty(
             group = "authentication",
             id = "refresh.clientSecret",
             label = "Client secret",
-            description = "The secret value of the Azure AD application")
+            optional = true,
+            description =
+                "The secret value of the Azure AD application; optional, depends on whether the client is public or private")
         String clientSecret)
     implements MSTeamsAuthentication {
 

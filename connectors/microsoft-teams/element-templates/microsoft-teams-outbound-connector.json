@@ -221,11 +221,8 @@
   }, {
     "id" : "authentication.refresh.clientSecret",
     "label" : "Client secret",
-    "description" : "The secret value of the Azure AD application",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
+    "description" : "The secret value of the Azure AD application; optional, depends on whether the client is public or private",
+    "optional" : true,
     "feel" : "optional",
     "group" : "authentication",
     "binding" : {

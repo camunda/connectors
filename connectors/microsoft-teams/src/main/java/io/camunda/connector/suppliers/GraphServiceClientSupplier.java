@@ -22,8 +22,8 @@ import java.time.OffsetDateTime;
 import okhttp3.FormBody;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
-import okhttp3.RequestBody;
 import okhttp3.Response;
+import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import reactor.core.publisher.Mono;
 
@@ -79,29 +79,31 @@ public class GraphServiceClientSupplier {
 
   @NotNull
   private Request buildRequest(final RefreshTokenAuthentication authentication) {
-    RequestBody formBody =
+
+    FormBody.Builder formBodyBuilder =
         new FormBody.Builder()
             .add(CLIENT_ID, authentication.clientId())
             .add(GRANT_TYPE, REFRESH_TOKEN)
-            .add(CLIENT_SECRET, authentication.clientSecret())
-            .add(REFRESH_TOKEN, authentication.token())
-            .build();
+            .add(REFRESH_TOKEN, authentication.token());
+    if (StringUtils.isNoneBlank(authentication.clientSecret())) {
+      formBodyBuilder.add(CLIENT_SECRET, authentication.clientSecret());
+    }
     return new Request.Builder()
         .url(String.format(URL, authentication.tenantId()))
         .header(CONTENT_TYPE, X_WWW_FORM_URLENCODED)
-        .post(formBody)
+        .post(formBodyBuilder.build())
         .build();
   }
 
   private String getAccessToken(final Request request) {
-    try (Response execute = okHttpClient.newCall(request).execute()) {
-      if (execute.isSuccessful()) {
+    try (Response response = okHttpClient.newCall(request).execute()) {
+      if (response.isSuccessful()) {
         return ObjectMapperSupplier.objectMapper()
-            .readTree(execute.body().string())
+            .readTree(response.body().string())
             .get(ACCESS_TOKEN)
             .asText();
       } else {
-        throw new RuntimeException(execute.message());
+        throw new RuntimeException(response.message());
       }
     } catch (JsonProcessingException e) {
       throw new RuntimeException("Error while parse refresh token response", e);
