@@ -117,7 +117,7 @@ public class BodyUtil {
 
     if (schema.getEnum() != null) {
       return HttpOperationProperty.createEnumProperty(
-          name, Target.BODY, schema.getDescription(), true, (List<String>) schema.getEnum());
+          name, Target.BODY, schema.getDescription(), true, (List<Object>) schema.getEnum());
     } else if (schema.getType().equals("boolean")) {
       return HttpOperationProperty.createEnumProperty(
           name, Target.BODY, schema.getDescription(), true, Arrays.asList("true", "false"));

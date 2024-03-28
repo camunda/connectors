@@ -73,7 +73,7 @@ public class ParameterUtil {
           targetMapping.get(parameter.getIn()),
           parameter.getDescription(),
           parameter.getRequired() != null && parameter.getRequired(),
-          (List<String>) schema.getEnum());
+          (List<Object>) schema.getEnum());
     } else if (schema.getType().equals("boolean")) {
       return HttpOperationProperty.createEnumProperty(
           name,

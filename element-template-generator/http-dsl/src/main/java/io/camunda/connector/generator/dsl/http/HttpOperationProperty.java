@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.generator.dsl.http;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public record HttpOperationProperty(
@@ -33,8 +34,19 @@ public record HttpOperationProperty(
   }
 
   public static HttpOperationProperty createEnumProperty(
-      String id, Target target, String description, boolean required, List<String> choices) {
-    return new HttpOperationProperty(id, target, description, required, Type.ENUM, choices, null);
+      String id, Target target, String description, boolean required, List<Object> choices) {
+
+    List<String> strChoices = new ArrayList<>();
+    for (Object choice : choices) {
+      if (choice instanceof String) {
+        strChoices.add((String) choice);
+      } else {
+        strChoices.add(choice.toString());
+      }
+    }
+
+    return new HttpOperationProperty(
+        id, target, description, required, Type.ENUM, strChoices, null);
   }
 
   public static HttpOperationProperty createFeelProperty(
