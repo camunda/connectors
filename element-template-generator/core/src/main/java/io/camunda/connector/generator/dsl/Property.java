@@ -43,7 +43,9 @@ public abstract sealed class Property
     optional,
     required,
     @JsonIgnore
-    disabled
+    disabled,
+    @JsonIgnore
+    system_default,
   }
 
   public record GeneratedValue(String type) {}
