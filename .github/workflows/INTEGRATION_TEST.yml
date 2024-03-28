@@ -1,0 +1,29 @@
+
+name: Integration test
+
+on:
+  workflow_dispatch:
+    inputs:
+      connectors_version:
+        description: 'The version of the connectors to test'
+        required: true
+        default: 'SNAPSHOT'
+
+defaults:
+  run:
+    # use bash shell by default to ensure pipefail behavior is the default
+    # see https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#exit-codes-and-error-action-preference
+    shell: bash
+
+jobs:
+  helm-deploy:
+    name: Helm chart Integration Tests
+    uses: camunda/camunda-platform-helm/.github/workflows/test-integration-template.yaml@main
+    secrets: inherit
+    with:
+      identifier: connectors-int-${{ github.run_id }}
+      test-enabled: true
+      extra-values: |
+        connectors:
+          image:
+            tag: ${{ github.event.inputs.connectors_version }}
