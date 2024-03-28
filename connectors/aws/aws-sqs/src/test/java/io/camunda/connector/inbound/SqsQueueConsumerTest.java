@@ -52,11 +52,7 @@ public class SqsQueueConsumerTest {
 
     message = new Message().withMessageId("message id").withBody("body msg");
 
-    queue = new SqsInboundQueueProperties();
-    queue.setUrl("my-queue");
-    queue.setAttributeNames(null);
-    queue.setMessageAttributeNames(null);
-    queue.setPollingWaitTime("1");
+    queue = new SqsInboundQueueProperties("us-east-1", "my-queue", null, null, "1");
 
     properties.setQueue(queue);
 
@@ -96,8 +92,10 @@ public class SqsQueueConsumerTest {
     // given
     List<String> attributeNames = Collections.singletonList("attribute");
     List<String> messageAttributeNames = Collections.singletonList("attribute");
-    queue.setAttributeNames(attributeNames);
-    queue.setMessageAttributeNames(messageAttributeNames);
+    queue =
+        new SqsInboundQueueProperties(
+            "us-east-1", "my-queue", attributeNames, messageAttributeNames, "1");
+    properties.setQueue(queue);
     when(sqsClient.receiveMessage(requestArgumentCaptor.capture()))
         .thenReturn(receiveMessageResult);
     when(receiveMessageResult.getMessages()).thenReturn(messages);

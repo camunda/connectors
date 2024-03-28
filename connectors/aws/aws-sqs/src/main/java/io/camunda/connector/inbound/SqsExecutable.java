@@ -14,6 +14,10 @@ import io.camunda.connector.aws.AwsUtils;
 import io.camunda.connector.aws.CredentialsProviderSupport;
 import io.camunda.connector.common.suppliers.AmazonSQSClientSupplier;
 import io.camunda.connector.common.suppliers.DefaultAmazonSQSClientSupplier;
+import io.camunda.connector.generator.dsl.BpmnType;
+import io.camunda.connector.generator.java.annotation.ElementTemplate;
+import io.camunda.connector.generator.java.annotation.ElementTemplate.ConnectorElementType;
+import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
 import io.camunda.connector.inbound.model.SqsInboundProperties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -22,6 +26,44 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @InboundConnector(name = "AWS SQS Inbound", type = "io.camunda:aws-sqs-inbound:1")
+@ElementTemplate(
+    id = "io.camunda.connectors.AWSSQS.inbound.v1",
+    name = "Amazon SQS Connector",
+    icon = "icon.svg",
+    version = 9,
+    inputDataClass = SqsInboundProperties.class,
+    description = "Receive message from a queue",
+    documentationRef =
+        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound",
+    propertyGroups = {
+      @PropertyGroup(id = "authentication", label = "Authentication"),
+      @PropertyGroup(id = "configuration", label = "Configuration"),
+      @PropertyGroup(id = "queueProperties", label = "Queue properties"),
+      @PropertyGroup(id = "messagePollingProperties", label = "Message polling properties"),
+      @PropertyGroup(id = "input", label = "Use next attribute names for activation condition")
+    },
+    elementTypes = {
+      @ConnectorElementType(
+          appliesTo = BpmnType.START_EVENT,
+          elementType = BpmnType.START_EVENT,
+          templateIdOverride = "io.camunda.connectors.AWSSQS.StartEvent.v1",
+          templateNameOverride = "Amazon SQS Start Event Connector"),
+      @ConnectorElementType(
+          appliesTo = BpmnType.START_EVENT,
+          elementType = BpmnType.MESSAGE_START_EVENT,
+          templateIdOverride = "io.camunda.connectors.AWSSQS.startmessage.v1",
+          templateNameOverride = "Amazon SQS Message Start Event Connector"),
+      @ConnectorElementType(
+          appliesTo = {BpmnType.INTERMEDIATE_THROW_EVENT, BpmnType.INTERMEDIATE_CATCH_EVENT},
+          elementType = BpmnType.INTERMEDIATE_CATCH_EVENT,
+          templateIdOverride = "io.camunda.connectors.AWSSQS.intermediate.v1",
+          templateNameOverride = "Amazon SQS Intermediate Message Catch Event connector"),
+      @ConnectorElementType(
+          appliesTo = BpmnType.BOUNDARY_EVENT,
+          elementType = BpmnType.BOUNDARY_EVENT,
+          templateIdOverride = "io.camunda.connectors.AWSSQS.boundary.v1",
+          templateNameOverride = "Amazon SQS Boundary Event Connector")
+    })
 public class SqsExecutable implements InboundConnectorExecutable {
   private static final Logger LOGGER = LoggerFactory.getLogger(SqsExecutable.class);
   private final AmazonSQSClientSupplier sqsClientSupplier;
@@ -50,7 +92,7 @@ public class SqsExecutable implements InboundConnectorExecutable {
 
     var region =
         AwsUtils.extractRegionOrDefault(
-            properties.getConfiguration(), properties.getQueue().getRegion());
+            properties.getConfiguration(), properties.getQueue().region());
     amazonSQS =
         sqsClientSupplier.sqsClient(
             CredentialsProviderSupport.credentialsProvider(properties), region);
