@@ -167,13 +167,13 @@ public class ProcessStateStoreImpl implements ProcessStateStore {
   private UUID activateExecutable(InboundConnectorDefinitionImpl definition) {
     var id = UUID.randomUUID();
     var event = new InboundExecutableEvent.Activated(id, definition);
-    executableRegistry.handleEvent(event);
+    executableRegistry.publishEvent(event);
     return id;
   }
 
   private void deactivateExecutable(UUID id) {
     var event = new InboundExecutableEvent.Deactivated(id);
-    executableRegistry.handleEvent(event);
+    executableRegistry.publishEvent(event);
   }
 
   private void logResult(
