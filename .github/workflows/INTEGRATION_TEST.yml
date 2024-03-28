@@ -2,7 +2,6 @@
 name: Integration test
 
 on:
-  pull_request:
   workflow_dispatch:
     inputs:
       connectors_version:
@@ -23,7 +22,6 @@ jobs:
     secrets: inherit
     with:
       identifier: connectors-int-${{ github.run_id }}
-      persistent: true
       test-enabled: true
       extra-values: |
         connectors:
