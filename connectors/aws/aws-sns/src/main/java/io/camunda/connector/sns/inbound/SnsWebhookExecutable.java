@@ -32,8 +32,6 @@ import org.slf4j.LoggerFactory;
 @InboundConnector(name = "AWS SNS Inbound", type = "io.camunda:aws-sns-webhook:1")
 public class SnsWebhookExecutable implements WebhookConnectorExecutable {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(SnsWebhookExecutable.class);
-
   protected static final String TOPIC_ARN_HEADER = "x-amz-sns-topic-arn";
 
   private final ObjectMapper objectMapper;
@@ -92,13 +90,13 @@ public class SnsWebhookExecutable implements WebhookConnectorExecutable {
 
   private void checkMessageAllowListed(WebhookProcessingPayload webhookProcessingPayload)
       throws Exception {
-    if (SubscriptionAllowListFlag.specific.equals(props.getSubscriptionAllowListFlag())
+    if (SubscriptionAllowListFlag.specific.equals(props.subscriptionAllowListFlag())
         && !props
-            .getSubscriptionAllowList()
+            .subscriptionAllowList()
             .contains(webhookProcessingPayload.headers().get(TOPIC_ARN_HEADER))) {
       throw new Exception(
           "Request didn't match allow list. Allow list: "
-              + props.getSubscriptionAllowList()
+              + props.subscriptionAllowList()
               + ". Request coming from "
               + webhookProcessingPayload.headers().get(TOPIC_ARN_HEADER));
     }
@@ -109,7 +107,7 @@ public class SnsWebhookExecutable implements WebhookConnectorExecutable {
     if (context == null) {
       throw new Exception("Inbound connector context cannot be null");
     }
-    props = new SnsWebhookConnectorProperties(context.getProperties());
+    props = context.bindProperties(SnsWebhookConnectorProperties.class);
   }
 
   // Topic ARN header has a format arn:aws:sns:region-xyz:000011112222:TopicName, and
