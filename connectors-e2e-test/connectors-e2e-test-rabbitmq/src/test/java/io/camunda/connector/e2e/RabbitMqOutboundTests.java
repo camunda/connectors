@@ -174,8 +174,20 @@ public class RabbitMqOutboundTests extends BaseRabbitMqTest {
     return receivedMessage;
   }
 
-  @Override
   protected BpmnModelInstance getBpmnModelInstance() {
     return Bpmn.createProcess().executable().startEvent().serviceTask(ELEMENT_ID).endEvent().done();
+  }
+
+  protected ZeebeTest setupTestWithBpmnModel(File elementTemplate) {
+    BpmnModelInstance model = getBpmnModelInstance();
+    BpmnModelInstance updatedModel = getBpmnModelInstance(model, elementTemplate);
+    return getZeebeTest(updatedModel).waitForProcessCompletion();
+  }
+
+  protected BpmnModelInstance getBpmnModelInstance(
+      final BpmnModelInstance model, final File elementTemplate) {
+    return new BpmnFile(model)
+        .writeToFile(new File(tempDir, "test.bpmn"))
+        .apply(elementTemplate, ELEMENT_ID, new File(tempDir, "result.bpmn"));
   }
 }

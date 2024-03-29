@@ -34,34 +34,6 @@ public class BpmnFile {
     this.bpmnModelInstance = bpmnModelInstance;
   }
 
-  public BpmnFile writeToFile(File file) {
-    bpmnFile = file;
-    Bpmn.writeModelToFile(bpmnFile, bpmnModelInstance);
-    return this;
-  }
-
-  public BpmnModelInstance apply(File template, String elementId, File output) {
-    assertTrue("BPMN file must be written to disk: " + bpmnFile, bpmnFile.exists());
-    try {
-      new ProcessBuilder()
-          .command(
-              "element-templates-cli",
-              "--diagram",
-              bpmnFile.getPath(),
-              "--template",
-              template.getPath(),
-              "--element",
-              elementId,
-              "--output",
-              output.getPath())
-          .start()
-          .waitFor();
-      return Bpmn.readModelFromFile(output);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
-
   public static BpmnModelInstance replace(String resourceName, Replace... replaces) {
     try {
       var resource = BpmnFile.class.getClassLoader().getResource(resourceName);
@@ -84,13 +56,46 @@ public class BpmnFile {
     }
   }
 
-  public record Replace(String oldValue, String newValue) {
-    public static Replace replace(String oldValue, String newValue) {
-      return new Replace(oldValue, newValue);
+  public BpmnFile writeToFile(File file) {
+    bpmnFile = file;
+    Bpmn.writeModelToFile(bpmnFile, bpmnModelInstance);
+    return this;
+  }
+
+  public BpmnModelInstance apply(File template, String elementId, File output) {
+    assertTrue("BPMN file must be written to disk: " + bpmnFile, bpmnFile.exists());
+    try {
+      String command =
+          String.format(
+              "element-templates-cli --diagram %s --template %s --element %s --output %s",
+              bpmnFile.getPath(), template.getPath(), elementId, output.getPath());
+      System.out.println(command);
+      new ProcessBuilder()
+          .command(
+              "element-templates-cli",
+              "--diagram",
+              bpmnFile.getPath(),
+              "--template",
+              template.getPath(),
+              "--element",
+              elementId,
+              "--output",
+              output.getPath())
+          .start()
+          .waitFor();
+      return Bpmn.readModelFromFile(output);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
     }
   }
 
   public BpmnModelInstance getBpmnModelInstance() {
     return bpmnModelInstance;
+  }
+
+  public record Replace(String oldValue, String newValue) {
+    public static Replace replace(String oldValue, String newValue) {
+      return new Replace(oldValue, newValue);
+    }
   }
 }

@@ -34,14 +34,7 @@ public abstract class BaseRabbitMqTest {
   protected static final String ELEMENT_ID = "elementId";
   protected static final String OUTBOUND_ELEMENT_TEMPLATE_PATH =
       "../../connectors/rabbitmq/element-templates/rabbitmq-outbound-connector.json";
-  protected static final String INBOUND_START_EVENT_ELEMENT_TEMPLATE_PATH =
-      "../../connectors/rabbitmq/element-templates/rabbitmq-inbound-connector-start-event.json";
-  protected static final String INBOUND_MESSAGE_START_ELEMENT_TEMPLATE_PATH =
-      "../../connectors/rabbitmq/element-templates/rabbitmq-inbound-connector-message-start.json";
-  protected static final String INBOUND_INTERMEDIATE_ELEMENT_TEMPLATE_PATH =
-      "../../connectors/rabbitmq/element-templates/rabbitmq-inbound-connector-intermediate.json";
-  protected static final String INBOUND_BOUNDARY_ELEMENT_TEMPLATE_PATH =
-      "../../connectors/rabbitmq/element-templates/rabbitmq-inbound-connector-boundary.json";
+  protected static final String INTERMEDIATE_CATCH_EVENT_BPMN = "intermediate-catch-event.bpmn";
   @TempDir File tempDir;
 
   @Autowired ZeebeClient zeebeClient;
@@ -52,30 +45,12 @@ public abstract class BaseRabbitMqTest {
 
   @LocalServerPort int serverPort;
 
-  protected abstract BpmnModelInstance getBpmnModelInstance();
-
   @BeforeEach
   void beforeEach() {
     when(processDefinitionSearch.query()).thenReturn(Collections.emptyList());
   }
 
-  protected ZeebeTest setupTestWithBpmnModel(File elementTemplate) {
-    BpmnModelInstance model = getBpmnModelInstance();
-    BpmnModelInstance updatedModel = getBpmnModelInstance(model, elementTemplate);
-    return getZeebeTest(updatedModel);
-  }
-
   protected ZeebeTest getZeebeTest(final BpmnModelInstance updatedModel) {
-    return ZeebeTest.with(zeebeClient)
-        .deploy(updatedModel)
-        .createInstance()
-        .waitForProcessCompletion();
-  }
-
-  protected BpmnModelInstance getBpmnModelInstance(
-      final BpmnModelInstance model, final File elementTemplate) {
-    return new BpmnFile(model)
-        .writeToFile(new File(tempDir, "test.bpmn"))
-        .apply(elementTemplate, ELEMENT_ID, new File(tempDir, "result.bpmn"));
+    return ZeebeTest.with(zeebeClient).deploy(updatedModel).createInstance();
   }
 }
