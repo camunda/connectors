@@ -65,11 +65,6 @@ public class BpmnFile {
   public BpmnModelInstance apply(File template, String elementId, File output) {
     assertTrue("BPMN file must be written to disk: " + bpmnFile, bpmnFile.exists());
     try {
-      String command =
-          String.format(
-              "element-templates-cli --diagram %s --template %s --element %s --output %s",
-              bpmnFile.getPath(), template.getPath(), elementId, output.getPath());
-      System.out.println(command);
       new ProcessBuilder()
           .command(
               "element-templates-cli",
