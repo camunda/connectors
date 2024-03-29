@@ -104,7 +104,10 @@
     "id" : "configuration.region",
     "label" : "Region",
     "description" : "Specify the AWS region",
-    "optional" : true,
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
     "group" : "configuration",
     "binding" : {

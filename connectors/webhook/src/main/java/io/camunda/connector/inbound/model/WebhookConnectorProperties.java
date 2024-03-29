@@ -13,7 +13,6 @@ import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.DropdownPropertyChoice;
-import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyBinding;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
 import io.camunda.connector.inbound.utils.HttpMethods;
@@ -24,7 +23,7 @@ import java.util.function.Function;
 
 public record WebhookConnectorProperties(
     @TemplateProperty(
-            id = "webhookMethod",
+            id = "method",
             label = "Webhook method",
             group = "endpoint",
             description = "Select HTTP method",
@@ -39,11 +38,11 @@ public record WebhookConnectorProperties(
             defaultValue = "any")
         String method,
     @TemplateProperty(
-            id = "webhookId",
+            id = "context",
             label = "Webhook ID",
             group = "endpoint",
             description = "The webhook ID is a part of the URL",
-            binding = @PropertyBinding(name = "context"))
+            feel = FeelMode.disabled)
         @NotBlank
         @Pattern(
             regexp = "^[a-zA-Z0-9]+([-_][a-zA-Z0-9]+)*$",
