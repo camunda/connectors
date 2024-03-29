@@ -62,7 +62,11 @@
     "description" : "URI should contain username, password, host name, port number, and virtual host",
     "optional" : false,
     "constraints" : {
-      "notEmpty" : true
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "^(amqps?://)|(\\{\\{secrets\\..+\\}\\}).*",
+        "message" : "Must start with amqp(s):// or contain a secret reference"
+      }
     },
     "feel" : "optional",
     "group" : "authentication",

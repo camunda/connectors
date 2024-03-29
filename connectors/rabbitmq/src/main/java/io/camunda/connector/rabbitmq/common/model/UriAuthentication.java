@@ -9,19 +9,17 @@ package io.camunda.connector.rabbitmq.common.model;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 
 @TemplateSubType(id = "uri", label = "URI")
 public record UriAuthentication(
     @NotBlank
+        @Pattern(
+            regexp = "^(amqps?://)|(\\{\\{secrets\\..+\\}\\}).*",
+            message = "Must start with amqp(s):// or contain a secret reference")
         @TemplateProperty(
             group = "authentication",
             label = "URI",
-            constraints =
-                @TemplateProperty.PropertyConstraints(
-                    pattern =
-                        @TemplateProperty.Pattern(
-                            value = "^(amqps?://)|(\\{\\{secrets\\..+\\}\\}).*",
-                            message = "Must start with amqp(s):// or contain a secret reference")),
             description =
                 "URI should contain username, password, host name, port number, and virtual host")
         String uri)
