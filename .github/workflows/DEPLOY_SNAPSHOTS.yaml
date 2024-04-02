@@ -123,11 +123,12 @@ jobs:
           provenance: false
 
   helm-deploy:
+    needs: deploy-snapshots
     name: Helm chart Integration Tests
     uses: camunda/camunda-platform-helm/.github/workflows/test-integration-template.yaml@main
     secrets: inherit
     with:
-      identifier: connectors-int-${{ github.run_id }}
+      identifier: connectors-int
       test-enabled: true
       extra-values: |
         connectors:
