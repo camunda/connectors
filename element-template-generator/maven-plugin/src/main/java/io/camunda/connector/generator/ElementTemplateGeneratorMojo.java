@@ -16,7 +16,10 @@
  */
 package io.camunda.connector.generator;
 
+import com.fasterxml.jackson.core.util.DefaultIndenter;
+import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import io.camunda.connector.generator.ConnectorConfig.FileNameById;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
@@ -56,7 +59,11 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
   @Parameter(property = "outputDirectory", defaultValue = "${project.basedir}/element-templates")
   private String outputDirectory;
 
-  private static final ObjectMapper mapper = new ObjectMapper();
+  private static final ObjectWriter objectWriter =
+      new ObjectMapper()
+          .writer(
+              new DefaultPrettyPrinter()
+                  .withObjectIndenter(new DefaultIndenter().withLinefeed("\n")));
 
   private static final String COMPILED_CLASSES_DIR = "target" + File.separator + "classes";
   private static final String HYBRID_TEMPLATES_DIR = "hybrid";
@@ -193,7 +200,7 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
         file = new File(outputDirectory + File.separator + HYBRID_TEMPLATES_DIR, fileName);
         file.getParentFile().mkdirs();
       }
-      mapper.writerWithDefaultPrettyPrinter().writeValue(file, template);
+      objectWriter.writeValue(file, template);
     } catch (Exception e) {
       throw new RuntimeException("Failed to write element template", e);
     }
