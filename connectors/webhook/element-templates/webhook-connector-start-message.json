@@ -83,7 +83,6 @@
         "message" : "can only contain letters, numbers, or single underscores/hyphens and cannot begin or end with an underscore/hyphen"
       }
     },
-    "feel" : "optional",
     "group" : "endpoint",
     "binding" : {
       "name" : "inbound.context",

@@ -17,7 +17,6 @@
 package io.camunda.connector.generator.java.processor;
 
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownPropertyBuilder;
-import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.dsl.PropertyBuilder;
 import io.camunda.connector.generator.dsl.PropertyCondition;
 import io.camunda.connector.generator.dsl.PropertyConstraints;
@@ -35,7 +34,7 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
       return;
     }
     builder.optional(annotation.optional());
-    if (annotation.feel() != FeelMode.disabled && !(builder instanceof DropdownPropertyBuilder)) {
+    if (!(builder instanceof DropdownPropertyBuilder)) {
       builder.feel(annotation.feel());
     }
     if (!annotation.label().isBlank()) {
