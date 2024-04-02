@@ -19,7 +19,10 @@ import com.amazonaws.services.sns.message.SnsUnknownMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
+import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.sns.suppliers.SnsClientSupplier;
+import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
+import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
@@ -100,7 +103,7 @@ class SnsWebhookExecutableTest {
                 "context", "snstest",
                 "securitySubscriptionAllowedFor", "any"));
 
-    when(ctx.getProperties()).thenReturn(actualBPMNProperties);
+    ctx = createConnectorContext(actualBPMNProperties);
 
     // Configure payload
     final var headers = new HashMap<>(snsRequestHeaders);
@@ -134,7 +137,7 @@ class SnsWebhookExecutableTest {
                 "securitySubscriptionAllowedFor", "specific",
                 "topicsAllowList", "arn:aws:sns:eu-central-1:111222333444:SNSWebhook"));
 
-    when(ctx.getProperties()).thenReturn(actualBPMNProperties);
+    ctx = createConnectorContext(actualBPMNProperties);
 
     // Configure payload
     final var headers = new HashMap<>(snsRequestHeaders);
@@ -171,7 +174,7 @@ class SnsWebhookExecutableTest {
                 "topicsAllowList",
                 "arn:aws:sns:eu-central-1:111222333444:SNSWebhook, arn:aws:sns:eu-central-1:111222333444:AnotherTopic"));
 
-    when(ctx.getProperties()).thenReturn(actualBPMNProperties);
+    ctx = createConnectorContext(actualBPMNProperties);
 
     // Configure payload
     final var headers = new HashMap<>(snsRequestHeaders);
@@ -205,7 +208,7 @@ class SnsWebhookExecutableTest {
                 "securitySubscriptionAllowedFor", "specific",
                 "topicsAllowList", "arn:aws:sns:eu-central-1:111222333444:WrongTopic"));
 
-    when(ctx.getProperties()).thenReturn(actualBPMNProperties);
+    ctx = createConnectorContext(actualBPMNProperties);
 
     // Configure payload
     final var headers = new HashMap<>(snsRequestHeaders);
@@ -234,7 +237,7 @@ class SnsWebhookExecutableTest {
                 "context", "snstest",
                 "securitySubscriptionAllowedFor", "specific"));
 
-    when(ctx.getProperties()).thenReturn(actualBPMNProperties);
+    ctx = createConnectorContext(actualBPMNProperties);
 
     // Configure payload
     final var headers = new HashMap<>(snsRequestHeaders);
@@ -263,7 +266,7 @@ class SnsWebhookExecutableTest {
                 "context", "snstest",
                 "securitySubscriptionAllowedFor", "any"));
 
-    when(ctx.getProperties()).thenReturn(actualBPMNProperties);
+    ctx = createConnectorContext(actualBPMNProperties);
 
     // Configure payload
     final var headers = new HashMap<>(snsRequestHeaders);
@@ -295,6 +298,7 @@ class SnsWebhookExecutableTest {
                 "securitySubscriptionAllowedFor", "any"));
 
     when(ctx.getProperties()).thenReturn(actualBPMNProperties);
+    ctx = createConnectorContext(actualBPMNProperties);
 
     // Configure payload
     final var headers = new HashMap<>(snsRequestHeaders);
@@ -310,5 +314,13 @@ class SnsWebhookExecutableTest {
     // when & then
     testObject.activate(ctx);
     Assert.assertThrows(Exception.class, () -> testObject.triggerWebhook(payload));
+  }
+
+  private InboundConnectorContext createConnectorContext(Map<String, Object> properties) {
+    return InboundConnectorContextBuilder.create()
+        .properties(properties)
+        .objectMapper(ObjectMapperSupplier.getMapperInstance())
+        .validation(new DefaultValidationProvider())
+        .build();
   }
 }

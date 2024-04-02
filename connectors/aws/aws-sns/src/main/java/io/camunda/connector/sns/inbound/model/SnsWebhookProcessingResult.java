@@ -12,22 +12,8 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 
-public class SnsWebhookProcessingResult implements WebhookResult {
-
-  private MappedHttpRequest request;
-  private Map<String, Object> connectorData;
-
-  public SnsWebhookProcessingResult() {}
-
-  public SnsWebhookProcessingResult(MappedHttpRequest request, Map<String, Object> connectorData) {
-    this.request = request;
-    this.connectorData = connectorData;
-  }
-
-  @Override
-  public MappedHttpRequest request() {
-    return request;
-  }
+public record SnsWebhookProcessingResult(
+    MappedHttpRequest request, Map<String, Object> connectorData) implements WebhookResult {
 
   @Override
   public Map<String, Object> connectorData() {
