@@ -16,9 +16,12 @@
  */
 package io.camunda.connector.http.base.services;
 
+import static com.google.common.net.HttpHeaders.CONTENT_TYPE;
+import static io.camunda.connector.http.base.constants.Constants.APPLICATION_X_WWW_FORM_URLENCODED;
 import static org.apache.http.entity.ContentType.APPLICATION_FORM_URLENCODED;
 import static org.apache.http.entity.ContentType.APPLICATION_JSON;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.HttpContent;
 import com.google.api.client.http.HttpHeaders;
@@ -34,6 +37,9 @@ import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpMethod;
 import io.camunda.connector.http.base.model.HttpRequestBuilder;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import org.apache.commons.text.StringEscapeUtils;
 
 public class HttpRequestMapper {
@@ -49,7 +55,7 @@ public class HttpRequestMapper {
     if (authentication.clientAuthentication().equals(Constants.BASIC_AUTH_HEADER)) {
       headers.setBasicAuthentication(authentication.clientId(), authentication.clientSecret());
     }
-    headers.setContentType(Constants.APPLICATION_X_WWW_FORM_URLENCODED);
+    headers.setContentType(APPLICATION_X_WWW_FORM_URLENCODED);
 
     return new HttpRequestBuilder()
         .method(HttpMethod.POST)
@@ -92,12 +98,12 @@ public class HttpRequestMapper {
     }
 
     HttpContent content = null;
-    if (request.getMethod().supportsBody) {
-      if (APPLICATION_FORM_URLENCODED.getMimeType().equalsIgnoreCase(headers.getContentType())) {
+    if (request.getMethod().supportsBody && request.hasBody()) {
+      if (APPLICATION_FORM_URLENCODED.getMimeType().equalsIgnoreCase(headers.getContentType())
+          && request.getBody() instanceof LinkedHashMap) {
         content = new UrlEncodedContent(request.getBody());
       } else {
-        content =
-            request.hasBody() ? new JsonHttpContent(new GsonFactory(), request.getBody()) : null;
+        content = new JsonHttpContent(new GsonFactory(), request.getBody());
       }
     }
 
@@ -116,7 +122,16 @@ public class HttpRequestMapper {
   public static HttpHeaders createHeaders(final HttpCommonRequest request, String bearerToken) {
     final HttpHeaders httpHeaders = new HttpHeaders();
     if (request.getMethod().supportsBody) {
-      httpHeaders.setContentType(APPLICATION_JSON.getMimeType());
+      if (request.getHeaders() != null
+          && request.getHeaders().containsKey(CONTENT_TYPE)
+          && request
+              .getHeaders()
+              .get(CONTENT_TYPE)
+              .equals(APPLICATION_FORM_URLENCODED.getMimeType())) {
+        httpHeaders.setContentType(APPLICATION_FORM_URLENCODED.getMimeType());
+      } else {
+        httpHeaders.setContentType(APPLICATION_JSON.getMimeType());
+      }
     }
     if (request.hasAuthentication()) {
       if (bearerToken != null && !bearerToken.isEmpty()) {
