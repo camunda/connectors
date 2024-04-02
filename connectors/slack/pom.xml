@@ -76,6 +76,27 @@
               </files>
               <generateHybridTemplates>true</generateHybridTemplates>
             </connector>
+            <connector>
+              <connectorClass>io.camunda.connector.slack.inbound.SlackInboundWebhookExecutable</connectorClass>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.inbound.Slack.StartEvent.v1</templateId>
+                  <templateFileName>slack-inbound-start-event.json</templateFileName>
+                </file>
+                <file>
+                  <templateId>io.camunda.connectors.inbound.Slack.MessageStartEvent.v1</templateId>
+                  <templateFileName>slack-inbound-message-start.json</templateFileName>
+                </file>
+                <file>
+                  <templateId>io.camunda.connectors.inbound.Slack.IntermediateCatchEvent.v1</templateId>
+                  <templateFileName>slack-inbound-intermediate.json</templateFileName>
+                </file>
+                <file>
+                  <templateId>io.camunda.connectors.inbound.Slack.BoundaryEvent.v1</templateId>
+                  <templateFileName>slack-inbound-boundary.json</templateFileName>
+                </file>
+              </files>
+            </connector>
           </connectors>
         </configuration>
       </plugin>
