@@ -17,6 +17,7 @@ public record JWTProperties(
     @TemplateProperty(
             label = "JWK URL",
             description = "Well-known URL of JWKs",
+            feel = FeelMode.optional,
             group = "authorization")
         @FEEL
         String jwkUrl,

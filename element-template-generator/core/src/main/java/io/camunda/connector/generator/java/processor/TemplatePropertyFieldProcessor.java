@@ -17,10 +17,12 @@
 package io.camunda.connector.generator.java.processor;
 
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownPropertyBuilder;
+import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.dsl.PropertyBuilder;
 import io.camunda.connector.generator.dsl.PropertyCondition;
 import io.camunda.connector.generator.dsl.PropertyConstraints;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.util.TemplateGenerationContext;
 import java.lang.reflect.Field;
 import java.util.Arrays;
 
@@ -28,15 +30,22 @@ import java.util.Arrays;
 public class TemplatePropertyFieldProcessor implements FieldProcessor {
 
   @Override
-  public void process(Field field, PropertyBuilder builder) {
+  public void process(
+      Field field, PropertyBuilder builder, final TemplateGenerationContext context) {
     var annotation = field.getAnnotation(TemplateProperty.class);
     if (annotation == null) {
       return;
     }
     builder.optional(annotation.optional());
+
     if (!(builder instanceof DropdownPropertyBuilder)) {
-      builder.feel(annotation.feel());
+      if (annotation.feel() == Property.FeelMode.system_default) {
+        builder.feel(determineDefaultFeelModeBasedOnContext(context));
+      } else {
+        builder.feel(annotation.feel());
+      }
     }
+
     if (!annotation.label().isBlank()) {
       builder.label(annotation.label());
     }
@@ -51,6 +60,13 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
     }
     builder.condition(buildCondition(annotation));
     builder.constraints(buildConstraints(annotation));
+  }
+
+  private Property.FeelMode determineDefaultFeelModeBasedOnContext(
+      final TemplateGenerationContext context) {
+    return context instanceof TemplateGenerationContext.Inbound
+        ? Property.FeelMode.disabled
+        : Property.FeelMode.optional;
   }
 
   private PropertyCondition buildCondition(TemplateProperty propertyAnnotation) {
