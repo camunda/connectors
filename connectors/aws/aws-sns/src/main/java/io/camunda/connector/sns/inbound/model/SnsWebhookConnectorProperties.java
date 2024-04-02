@@ -6,93 +6,64 @@
  */
 package io.camunda.connector.sns.inbound.model;
 
+import io.camunda.connector.generator.dsl.Property.FeelMode;
+import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.DropdownPropertyChoice;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
+import jakarta.validation.constraints.NotBlank;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-public class SnsWebhookConnectorProperties {
+public record SnsWebhookConnectorProperties(
+    @TemplateProperty(
+            id = "context",
+            label = "Subscription ID",
+            group = "subscription",
+            description = "The subscription ID is a part of the URL endpoint",
+            feel = FeelMode.disabled)
+        @NotBlank
+        String context,
+    @TemplateProperty(
+            id = "securitySubscriptionAllowedFor",
+            label = "Allow to receive messages from topic(s)",
+            group = "subscription",
+            description = "Control which topic(s) is allowed to start a process",
+            defaultValue = "any",
+            type = PropertyType.Dropdown,
+            choices = {
+              @DropdownPropertyChoice(label = "Any", value = "any"),
+              @DropdownPropertyChoice(label = "Specific topic(s)", value = "specific")
+            })
+        SubscriptionAllowListFlag securitySubscriptionAllowedFor,
+    @TemplateProperty(
+            id = "topicsAllowList",
+            label = "Topic ARN(s)",
+            group = "subscription",
+            description = "Topics that allow to publish messages",
+            optional = true,
+            condition =
+                @PropertyCondition(
+                    property = "inbound.securitySubscriptionAllowedFor",
+                    equals = "specific"),
+            feel = FeelMode.optional)
+        String topicsAllowList,
+    @TemplateProperty(ignore = true) List<String> topicsAllowListParsed) {
 
-  private final Map<String, String> genericProperties;
-  private String context;
-  private SubscriptionAllowListFlag subscriptionAllowListFlag;
-  private List<String> subscriptionAllowList;
-
-  public SnsWebhookConnectorProperties(Map<String, Object> properties) {
-    this.genericProperties = (Map<String, String>) properties.get("inbound");
-    this.context = genericProperties.get("context");
-    // If no value somehow passed, force it to specific.
-    // In this case, BPMN process might fail but at the same time, we enforce security.
-    this.subscriptionAllowListFlag =
-        SubscriptionAllowListFlag.valueOf(
-            genericProperties.getOrDefault(
-                "securitySubscriptionAllowedFor", SubscriptionAllowListFlag.specific.name()));
-    this.subscriptionAllowList =
-        Arrays.stream(genericProperties.getOrDefault("topicsAllowList", "").trim().split(","))
-            .collect(Collectors.toList());
+  public SnsWebhookConnectorProperties(SnsWebhookConnectorPropertiesWrapper wrapper) {
+    this(
+        wrapper.inbound().context(),
+        wrapper.inbound().securitySubscriptionAllowedFor(),
+        wrapper.inbound().topicsAllowList(),
+        Arrays.stream(
+                Optional.ofNullable(wrapper.inbound().topicsAllowList())
+                    .orElse("")
+                    .trim()
+                    .split(","))
+            .collect(Collectors.toList()));
   }
 
-  public Map<String, String> getGenericProperties() {
-    return genericProperties;
-  }
-
-  public String getContext() {
-    return context;
-  }
-
-  public SubscriptionAllowListFlag getSubscriptionAllowListFlag() {
-    return Optional.ofNullable(subscriptionAllowListFlag)
-        .orElse(SubscriptionAllowListFlag.specific);
-  }
-
-  public List<String> getSubscriptionAllowList() {
-    return Optional.ofNullable(subscriptionAllowList).orElse(Collections.emptyList());
-  }
-
-  public void setContext(String context) {
-    this.context = context;
-  }
-
-  public void setSubscriptionAllowListFlag(SubscriptionAllowListFlag subscriptionAllowListFlag) {
-    this.subscriptionAllowListFlag = subscriptionAllowListFlag;
-  }
-
-  public void setSubscriptionAllowList(List<String> subscriptionAllowList) {
-    this.subscriptionAllowList = subscriptionAllowList;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    SnsWebhookConnectorProperties that = (SnsWebhookConnectorProperties) o;
-    return Objects.equals(genericProperties, that.genericProperties)
-        && Objects.equals(context, that.context)
-        && subscriptionAllowListFlag == that.subscriptionAllowListFlag
-        && Objects.equals(subscriptionAllowList, that.subscriptionAllowList);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(
-        genericProperties, context, subscriptionAllowListFlag, subscriptionAllowList);
-  }
-
-  @Override
-  public String toString() {
-    return "SnsWebhookConnectorProperties{"
-        + "genericProperties="
-        + genericProperties
-        + ", context='"
-        + context
-        + '\''
-        + ", subscriptionAllowListFlag="
-        + subscriptionAllowListFlag
-        + ", subscriptionAllowList="
-        + subscriptionAllowList
-        + '}';
-  }
+  public record SnsWebhookConnectorPropertiesWrapper(SnsWebhookConnectorProperties inbound) {}
 }
