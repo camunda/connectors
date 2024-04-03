@@ -54,7 +54,6 @@ public record KafkaConnectorProperties(
     @TemplateProperty(
             group = "kafka",
             label = "Consumer Group ID",
-            feel = Property.FeelMode.disabled,
             description =
                 "Provide the consumer group ID used by the connector. Leave empty for an automatically generated one")
         String groupId,
