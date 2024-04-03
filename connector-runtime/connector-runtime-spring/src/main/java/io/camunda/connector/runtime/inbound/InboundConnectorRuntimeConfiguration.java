@@ -93,7 +93,7 @@ public class InboundConnectorRuntimeConfiguration {
       InboundConnectorFactory inboundConnectorFactory,
       InboundConnectorContextFactory inboundConnectorContextFactory,
       @Autowired(required = false) MetricsRecorder metricsRecorder,
-      WebhookConnectorRegistry webhookConnectorRegistry) {
+      @Autowired(required = false) WebhookConnectorRegistry webhookConnectorRegistry) {
     return new InboundExecutableRegistryImpl(
         inboundConnectorFactory,
         inboundConnectorContextFactory,
