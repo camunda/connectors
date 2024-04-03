@@ -415,7 +415,7 @@
     },
     {
       "description": "Client authentication type",
-      "id": "authenticationType",
+      "id": "authentication.clientAuthentication",
       "value": "credentialsBody",
       "type": "Hidden",
       "binding": {
