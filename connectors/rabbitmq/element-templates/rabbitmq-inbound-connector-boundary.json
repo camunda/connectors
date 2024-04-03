@@ -69,7 +69,6 @@
         "message" : "Must start with amqp(s):// or contain a secret reference"
       }
     },
-    "feel" : "optional",
     "group" : "authentication",
     "binding" : {
       "name" : "authentication.uri",
@@ -88,7 +87,6 @@
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "optional",
     "group" : "authentication",
     "binding" : {
       "name" : "authentication.userName",
@@ -107,7 +105,6 @@
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "optional",
     "group" : "authentication",
     "binding" : {
       "name" : "authentication.password",
@@ -127,7 +124,6 @@
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "optional",
     "group" : "routing",
     "binding" : {
       "name" : "routing.virtualHost",
@@ -147,7 +143,6 @@
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "optional",
     "group" : "routing",
     "binding" : {
       "name" : "routing.hostName",
@@ -167,7 +162,6 @@
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "optional",
     "group" : "routing",
     "binding" : {
       "name" : "routing.port",
@@ -187,7 +181,6 @@
     "constraints" : {
       "notEmpty" : true
     },
-    "feel" : "optional",
     "group" : "subscription",
     "binding" : {
       "name" : "queueName",
@@ -199,7 +192,6 @@
     "label" : "Consumer tag",
     "description" : "Consumer tag to use for the subscription",
     "optional" : false,
-    "feel" : "optional",
     "group" : "subscription",
     "binding" : {
       "name" : "consumerTag",
