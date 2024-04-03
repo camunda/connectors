@@ -21,7 +21,6 @@ import static io.camunda.connector.http.base.constants.Constants.APPLICATION_X_W
 import static org.apache.http.entity.ContentType.APPLICATION_FORM_URLENCODED;
 import static org.apache.http.entity.ContentType.APPLICATION_JSON;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.HttpContent;
 import com.google.api.client.http.HttpHeaders;
@@ -37,8 +36,6 @@ import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpMethod;
 import io.camunda.connector.http.base.model.HttpRequestBuilder;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import org.apache.commons.text.StringEscapeUtils;
 
@@ -100,7 +97,7 @@ public class HttpRequestMapper {
     HttpContent content = null;
     if (request.getMethod().supportsBody && request.hasBody()) {
       if (APPLICATION_FORM_URLENCODED.getMimeType().equalsIgnoreCase(headers.getContentType())
-          && request.getBody() instanceof LinkedHashMap) {
+          && request.getBody() instanceof Map) {
         content = new UrlEncodedContent(request.getBody());
       } else {
         content = new JsonHttpContent(new GsonFactory(), request.getBody());
