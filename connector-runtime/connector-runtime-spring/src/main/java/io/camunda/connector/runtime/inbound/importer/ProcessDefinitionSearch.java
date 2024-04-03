@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
 /**
- * Stateful component that issues a process definition search based on the previous pagination
+ * Stateful component that issues a process connectorData search based on the previous pagination
  * index.
  */
 public class ProcessDefinitionSearch {
@@ -49,7 +49,7 @@ public class ProcessDefinitionSearch {
 
   /**
    * Query process elements from Camunda Operate. Guaranteed to return only the latest deployed
-   * version of each process definition.
+   * version of each process connectorData.
    */
   public List<ProcessDefinition> query() {
     LOG.trace("Query process deployments...");

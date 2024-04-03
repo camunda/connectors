@@ -17,8 +17,8 @@
 package io.camunda.connector.runtime.inbound.controller;
 
 import io.camunda.connector.api.inbound.Activity;
-import io.camunda.connector.api.inbound.InboundConnectorElement;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.inbound.executable.ActiveExecutableQuery;
 import io.camunda.connector.runtime.inbound.executable.ActiveExecutableResponse;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry;
@@ -85,8 +85,7 @@ public class InboundConnectorRestController {
     Map<String, Object> data = Map.of();
     if (WebhookConnectorExecutable.class.equals(connector.executableClass())) {
       try {
-        var properties =
-            connector.definition().elements().getFirst().rawPropertiesWithoutKeywords();
+        var properties = connector.elements().getFirst().rawPropertiesWithoutKeywords();
         var contextPath = properties.get("inbound.context");
         data = Map.of("path", contextPath);
       } catch (Exception e) {
@@ -97,12 +96,14 @@ public class InboundConnectorRestController {
   }
 
   private ActiveInboundConnectorResponse mapToInboundResponse(ActiveExecutableResponse connector) {
-    var definition = connector.definition();
+    var elements = connector.elements();
+    var type = elements.getFirst().type();
+    var tenantId = elements.getFirst().tenantId();
     return new ActiveInboundConnectorResponse(
         connector.executableId(),
-        definition.type(),
-        definition.tenantId(),
-        definition.elements().stream().map(e -> (InboundConnectorElement) e).toList(),
+        type,
+        tenantId,
+        elements.stream().map(InboundConnectorElement::element).toList(),
         getData(connector),
         connector.health());
   }

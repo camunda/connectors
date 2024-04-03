@@ -47,7 +47,7 @@ public interface InboundConnectorContextFactory {
    *     parameters.
    */
   <T extends InboundConnectorExecutable<?>> InboundConnectorContext createContext(
-      final InboundConnectorDefinitionImpl definition,
+      final InboundConnectorData definition,
       final Consumer<Throwable> cancellationCallback,
       final Class<T> executableClass,
       final EvictingQueue queue);

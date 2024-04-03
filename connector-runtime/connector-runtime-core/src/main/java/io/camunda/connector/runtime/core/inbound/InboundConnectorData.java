@@ -17,19 +17,18 @@
 package io.camunda.connector.runtime.core.inbound;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import io.camunda.connector.api.inbound.InboundConnectorDefinition;
 import java.util.List;
 import java.util.Map;
 
 /** Group of inbound connector elements that share the same deduplication ID. */
-public record InboundConnectorDefinitionImpl(
+public record InboundConnectorData(
     String type,
     String tenantId,
     String deduplicationId,
     @JsonIgnore Map<String, String> rawPropertiesWithoutKeywords,
-    List<InboundConnectorElementImpl> elements)
-    implements InboundConnectorDefinition {
-  public InboundConnectorDefinitionImpl(List<InboundConnectorElementImpl> elements) {
+    List<InboundConnectorElement> connectorElements) {
+
+  public InboundConnectorData(List<InboundConnectorElement> elements) {
     this(
         extractType(elements),
         extractTenantId(elements),
@@ -38,33 +37,31 @@ public record InboundConnectorDefinitionImpl(
         elements);
   }
 
-  private static String extractType(List<InboundConnectorElementImpl> elements) {
-    if (elements.stream().map(InboundConnectorElementImpl::type).distinct().count() > 1) {
+  private static String extractType(List<InboundConnectorElement> elements) {
+    if (elements.stream().map(InboundConnectorElement::type).distinct().count() > 1) {
       throw new IllegalArgumentException("All elements in a group must have the same type");
     }
     return elements.getFirst().type();
   }
 
-  private static String extractTenantId(List<InboundConnectorElementImpl> elements) {
-    if (elements.stream().map(InboundConnectorElementImpl::tenantId).distinct().count() > 1) {
+  private static String extractTenantId(List<InboundConnectorElement> elements) {
+    if (elements.stream().map(InboundConnectorElement::tenantId).distinct().count() > 1) {
       throw new IllegalArgumentException("All elements in a group must have the same tenant ID");
     }
     return elements.getFirst().tenantId();
   }
 
-  private static String extractDeduplicationId(List<InboundConnectorElementImpl> elements) {
-    if (elements.stream().map(InboundConnectorElementImpl::deduplicationId).distinct().count()
-        > 1) {
+  private static String extractDeduplicationId(List<InboundConnectorElement> elements) {
+    if (elements.stream().map(InboundConnectorElement::deduplicationId).distinct().count() > 1) {
       throw new IllegalArgumentException(
           "All elements in a group must have the same deduplication ID");
     }
     return elements.getFirst().deduplicationId();
   }
 
-  private static Map<String, String> extractRawProperties(
-      List<InboundConnectorElementImpl> elements) {
+  private static Map<String, String> extractRawProperties(List<InboundConnectorElement> elements) {
     if (elements.stream()
-            .map(InboundConnectorElementImpl::rawPropertiesWithoutKeywords)
+            .map(InboundConnectorElement::rawPropertiesWithoutKeywords)
             .distinct()
             .count()
         > 1) {

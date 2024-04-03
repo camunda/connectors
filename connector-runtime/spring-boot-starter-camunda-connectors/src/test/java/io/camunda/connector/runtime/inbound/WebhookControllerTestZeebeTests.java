@@ -28,6 +28,7 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.EvictingQueue;
 import io.camunda.connector.api.inbound.CorrelationResult;
+import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.VerifiableWebhook;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
@@ -38,7 +39,7 @@ import io.camunda.connector.api.inbound.webhook.WebhookResultContext;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
-import io.camunda.connector.runtime.core.inbound.InboundConnectorElementImpl;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.inbound.executable.ActiveExecutable;
@@ -221,12 +222,15 @@ class WebhookControllerTestZeebeTests {
         .thenReturn(webhookResult);
 
     var element =
-        new InboundConnectorElementImpl(
-            Map.of("inbound.context", "myPath"), null, "processA", 1, 1, "myElement", "myTenant");
+        new InboundConnectorElement(
+            Map.of("inbound.context", "myPath"),
+            null,
+            new ProcessElement("processA", 1, 1, "myElement"),
+            "myTenant");
 
     var correlationHandlerMock = mock(InboundCorrelationHandler.class);
     when(correlationHandlerMock.correlate(any(), any()))
-        .thenReturn(new CorrelationResult.Success.MessageAlreadyCorrelated(element));
+        .thenReturn(new CorrelationResult.Success.MessageAlreadyCorrelated(element.element()));
 
     var webhookDef = webhookDefinition("nonExistingProcess", 1, "myPath");
     var webhookContext =
@@ -461,12 +465,16 @@ class WebhookControllerTestZeebeTests {
     var webhookConnectorExecutable = mock(WebhookConnectorExecutable.class);
 
     var element =
-        new InboundConnectorElementImpl(
-            Map.of("inbound.context", "myPath"), null, "processA", 1, 1, "myElement", "myTenant");
+        new InboundConnectorElement(
+            Map.of("inbound.context", "myPath"),
+            null,
+            new ProcessElement("processA", 1, 1, "myElement"),
+            "myTenant");
 
     var correlationHandlerMock = mock(InboundCorrelationHandler.class);
     when(correlationHandlerMock.correlate(any(), any()))
-        .thenReturn(new CorrelationResult.Success.ProcessInstanceCreated(element, 1L, "test"));
+        .thenReturn(
+            new CorrelationResult.Success.ProcessInstanceCreated(element.element(), 1L, "test"));
 
     WebhookResult webhookResult = mock(WebhookResult.class);
     when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));

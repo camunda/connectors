@@ -18,7 +18,6 @@ package io.camunda.connector.runtime.core.inbound;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.api.inbound.ProcessInstanceContext;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.jackson.FeelContextAwareObjectReader;
@@ -30,7 +29,7 @@ import java.util.function.Supplier;
 
 public final class DefaultProcessInstanceContext implements ProcessInstanceContext {
 
-  private final InboundIntermediateConnectorContext context;
+  private final InboundIntermediateConnectorContextImpl context;
   private final FlowNodeInstance flowNodeInstance;
   private final ValidationProvider validationProvider;
   private final ObjectMapper objectMapper;
@@ -40,7 +39,7 @@ public final class DefaultProcessInstanceContext implements ProcessInstanceConte
   private final JsonNode processDefinitionProperties;
 
   public DefaultProcessInstanceContext(
-      final InboundIntermediateConnectorContext context,
+      final InboundIntermediateConnectorContextImpl context,
       final FlowNodeInstance flowNodeInstance,
       final ValidationProvider validationProvider,
       final InboundCorrelationHandler correlationHandler,
@@ -81,8 +80,7 @@ public final class DefaultProcessInstanceContext implements ProcessInstanceConte
   @Override
   public void correlate(final Object variables) {
     String messageId = flowNodeInstance.getFlowNodeId() + flowNodeInstance.getKey();
-    correlationHandler.correlate(
-        (InboundConnectorDefinitionImpl) context.getDefinition(), variables, messageId);
+    correlationHandler.correlate(context.connectorElements(), variables, messageId);
   }
 
   @Override

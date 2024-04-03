@@ -18,12 +18,12 @@ package io.camunda.connector.runtime.inbound;
 
 import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.feel.FeelEngineWrapper;
-import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
-import io.camunda.connector.runtime.core.inbound.InboundConnectorElementImpl;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics.Inbound;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
+import java.util.List;
 
 public class MeteredInboundCorrelationHandler extends InboundCorrelationHandler {
 
@@ -36,7 +36,7 @@ public class MeteredInboundCorrelationHandler extends InboundCorrelationHandler 
   }
 
   @Override
-  protected boolean isActivationConditionMet(InboundConnectorElementImpl def, Object context) {
+  protected boolean isActivationConditionMet(InboundConnectorElement def, Object context) {
     boolean isConditionMet = super.isActivationConditionMet(def, context);
     if (!isConditionMet) {
       metricsRecorder.increase(
@@ -46,18 +46,20 @@ public class MeteredInboundCorrelationHandler extends InboundCorrelationHandler 
   }
 
   @Override
-  public CorrelationResult correlate(InboundConnectorDefinitionImpl definition, Object variables) {
-    metricsRecorder.increase(
-        Inbound.METRIC_NAME_TRIGGERS, Inbound.ACTION_TRIGGERED, definition.type());
+  public CorrelationResult correlate(List<InboundConnectorElement> elementList, Object variables) {
+    if (elementList.isEmpty()) {
+      throw new IllegalArgumentException("No elements to correlate, potential API misuse");
+    }
+    var type = elementList.getFirst().type();
+    metricsRecorder.increase(Inbound.METRIC_NAME_TRIGGERS, Inbound.ACTION_TRIGGERED, type);
 
     try {
-      var result = super.correlate(definition, variables);
-      metricsRecorder.increase(
-          Inbound.METRIC_NAME_TRIGGERS, Inbound.ACTION_CORRELATED, definition.type());
+      var result = super.correlate(elementList, variables);
+      metricsRecorder.increase(Inbound.METRIC_NAME_TRIGGERS, Inbound.ACTION_CORRELATED, type);
       return result;
     } catch (Exception e) {
       metricsRecorder.increase(
-          Inbound.METRIC_NAME_TRIGGERS, Inbound.ACTION_CORRELATION_FAILED, definition.type());
+          Inbound.METRIC_NAME_TRIGGERS, Inbound.ACTION_CORRELATION_FAILED, type);
       throw e;
     }
   }

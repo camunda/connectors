@@ -42,7 +42,7 @@ class DefaultInboundConnectorContextFactoryTest {
   @Mock private ValidationProvider validationProvider;
   @Mock private OperateClientAdapter operateClientAdapter;
   @Mock private Consumer<Throwable> cancellationCallback;
-  @Mock private InboundConnectorDefinitionImpl newConnector;
+  @Mock private InboundConnectorData newConnector;
   private DefaultInboundConnectorContextFactory factory;
 
   @BeforeEach

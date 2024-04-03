@@ -21,6 +21,7 @@ import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
+import io.camunda.connector.api.inbound.InboundConnectorDefinition;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.api.inbound.ProcessInstanceContext;
 import io.camunda.connector.api.validation.ValidationProvider;
@@ -38,15 +39,15 @@ import java.util.stream.Collectors;
  * InboundConnectorContext} and enables runtime updates of context properties from Operate.
  */
 public class InboundIntermediateConnectorContextImpl
-    implements InboundIntermediateConnectorContext, RuntimeSpecificInboundConnectorContext {
-  private final RuntimeSpecificInboundConnectorContext inboundContext;
+    implements InboundIntermediateConnectorContext, InboundConnectorReportingContext {
+  private final InboundConnectorReportingContext inboundContext;
   private final OperateClientAdapter operateClient;
   private final ValidationProvider validationProvider;
   private final ObjectMapper objectMapper;
   private final InboundCorrelationHandler correlationHandler;
 
   public InboundIntermediateConnectorContextImpl(
-      final RuntimeSpecificInboundConnectorContext inboundContext,
+      final InboundConnectorReportingContext inboundContext,
       final OperateClientAdapter operateClient,
       final ValidationProvider validationProvider,
       final ObjectMapper objectMapper,
@@ -60,17 +61,17 @@ public class InboundIntermediateConnectorContextImpl
 
   @Override
   public List<ProcessInstanceContext> getProcessInstanceContexts() {
-    var elements = getDefinition().elements();
+    var elements = connectorElements();
 
     return elements.stream()
         .map(
-            element -> {
-              var elementId = element.elementId();
-              if (element.correlationPoint() instanceof BoundaryEventCorrelationPoint point) {
+            elementInfo -> {
+              var elementId = elementInfo.element().elementId();
+              if (elementInfo.correlationPoint() instanceof BoundaryEventCorrelationPoint point) {
                 elementId = point.attachedTo().elementId();
               }
               return operateClient.fetchActiveProcessInstanceKeyByDefinitionKeyAndElementId(
-                  element.processDefinitionKey(), elementId);
+                  elementInfo.element().processDefinitionKey(), elementId);
             })
         .flatMap(List::stream)
         .map(this::createProcessInstanceContext)
@@ -112,7 +113,7 @@ public class InboundIntermediateConnectorContextImpl
   }
 
   @Override
-  public InboundConnectorDefinitionImpl getDefinition() {
+  public InboundConnectorDefinition getDefinition() {
     return inboundContext.getDefinition();
   }
 
@@ -134,5 +135,10 @@ public class InboundIntermediateConnectorContextImpl
   @Override
   public Queue<Activity> getLogs() {
     return inboundContext.getLogs();
+  }
+
+  @Override
+  public List<InboundConnectorElement> connectorElements() {
+    return inboundContext.connectorElements();
   }
 }

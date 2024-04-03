@@ -16,12 +16,12 @@
  */
 package io.camunda.connector.runtime.inbound.executable;
 
-import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorData;
 import java.util.UUID;
 
 public sealed interface InboundExecutableEvent {
 
-  record Activated(UUID executableId, InboundConnectorDefinitionImpl definition)
+  record Activated(UUID executableId, InboundConnectorData definition)
       implements InboundExecutableEvent {}
 
   record Deactivated(UUID executableId) implements InboundExecutableEvent {}

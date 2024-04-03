@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.EvictingQueue;
+import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.feel.annotation.FEEL;
@@ -107,20 +108,17 @@ class InboundConnectorContextImplTest {
   }
 
   @NotNull
-  private static InboundConnectorDefinitionImpl getInboundConnectorDefinition(
+  private static InboundConnectorData getInboundConnectorDefinition(
       Map<String, String> properties) {
     properties = new HashMap<>(properties);
     properties.put("inbound.type", "io.camunda:connector:1");
-    InboundConnectorElementImpl element =
-        new InboundConnectorElementImpl(
+    InboundConnectorElement element =
+        new InboundConnectorElement(
             properties,
             new StandaloneMessageCorrelationPoint("", "", null),
-            "bool",
-            0,
-            0L,
-            "id",
+            new ProcessElement("bool", 0, 0, "id"),
             "");
-    return new InboundConnectorDefinitionImpl(Collections.singletonList(element));
+    return new InboundConnectorData(Collections.singletonList(element));
   }
 
   @Test

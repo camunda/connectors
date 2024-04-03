@@ -31,6 +31,7 @@ import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorReportingContext;
 import io.camunda.connector.test.ConnectorContextTestUtil;
 import java.util.ArrayList;
@@ -283,6 +284,12 @@ public class InboundConnectorContextBuilder {
     @Override
     public Queue<Activity> getLogs() {
       return new ConcurrentLinkedQueue<>();
+    }
+
+    @Override
+    public List<InboundConnectorElement> connectorElements() {
+      // never used in tests, runtime-specific method
+      return null;
     }
   }
 

@@ -20,8 +20,9 @@ import static io.camunda.connector.runtime.core.Keywords.CORRELATION_KEY_EXPRESS
 import static io.camunda.connector.runtime.core.Keywords.INBOUND_TYPE_KEYWORD;
 import static io.camunda.connector.runtime.core.Keywords.MESSAGE_ID_EXPRESSION;
 
+import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.runtime.core.error.InvalidInboundConnectorDefinitionException;
-import io.camunda.connector.runtime.core.inbound.InboundConnectorElementImpl;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.BoundaryEventCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.StandaloneMessageCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageStartEventCorrelationPoint;
@@ -80,7 +81,7 @@ public class ProcessDefinitionInspector {
     this.operate = operate;
   }
 
-  public List<InboundConnectorElementImpl> findInboundConnectors(
+  public List<InboundConnectorElement> findInboundConnectors(
       ProcessDefinitionIdentifier identifier, ProcessDefinitionVersion version)
       throws OperateException {
 
@@ -98,11 +99,11 @@ public class ProcessDefinitionInspector {
         .toList();
   }
 
-  private List<InboundConnectorElementImpl> inspectBpmnProcess(
+  private List<InboundConnectorElement> inspectBpmnProcess(
       Process process, ProcessDefinitionIdentifier identifier, ProcessDefinitionVersion version) {
     Collection<BaseElement> inboundEligibleElements = retrieveEligibleElementsFromProcess(process);
 
-    List<InboundConnectorElementImpl> discoveredInboundConnectors = new ArrayList<>();
+    List<InboundConnectorElement> discoveredInboundConnectors = new ArrayList<>();
     for (BaseElement element : inboundEligibleElements) {
       Optional<ProcessCorrelationPoint> optionalTarget =
           getCorrelationPointForElement(element, process, identifier, version);
@@ -117,15 +118,11 @@ public class ProcessDefinitionInspector {
         continue;
       }
 
-      InboundConnectorElementImpl def =
-          new InboundConnectorElementImpl(
-              rawProperties,
-              target,
-              process.getId(),
-              version.version(),
-              version.processDefinitionKey(),
-              element.getId(),
-              identifier.tenantId());
+      var processElement =
+          new ProcessElement(
+              process.getId(), version.version(), version.processDefinitionKey(), element.getId());
+      InboundConnectorElement def =
+          new InboundConnectorElement(rawProperties, target, processElement, identifier.tenantId());
 
       discoveredInboundConnectors.add(def);
     }
@@ -187,14 +184,14 @@ public class ProcessDefinitionInspector {
         return getCorrelationPointForReceiveTask(rt);
       }
       LOG.warn(
-          "Unsupported Inbound element type: {}, in process definition: {} (Key: {}, Version: {})",
+          "Unsupported Inbound element type: {}, in process connectorData: {} (Key: {}, Version: {})",
           element.getClass().getSimpleName(),
           identifier.bpmnProcessId(),
           version.processDefinitionKey(),
           version.version());
     } catch (InvalidInboundConnectorDefinitionException e) {
       LOG.warn(
-          "Error getting correlation point for {} in process definition: {} (Key: {}, Version: {}): {}",
+          "Error getting correlation point for {} in process connectorData: {} (Key: {}, Version: {}): {}",
           element.getClass().getSimpleName(),
           identifier.bpmnProcessId(),
           version.processDefinitionKey(),
@@ -226,7 +223,7 @@ public class ProcessDefinitionInspector {
                         new InvalidInboundConnectorDefinitionException(
                             "Sanity check failed: "
                                 + catchEvent.getClass().getSimpleName()
-                                + " must contain at least one event definition"));
+                                + " must contain at least one event connectorData"));
     String name = msgDef.getMessage().getName();
 
     String correlationKeyExpression =

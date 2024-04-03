@@ -25,12 +25,12 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
+import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.common.suppliers.AmazonSQSClientSupplier;
 import io.camunda.connector.inbound.model.SqsInboundProperties;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
 import io.camunda.connector.test.inbound.InboundConnectorDefinitionBuilder;
-import io.camunda.connector.test.inbound.InboundConnectorDefinitionBuilder.InboundConnectorElementImpl;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.File;
 import java.io.IOException;
@@ -119,7 +119,7 @@ class SqsExecutableTest {
   }
 
   private InboundConnectorDefinition createDefinition() {
-    var element = new InboundConnectorElementImpl("proc-id", 1, 2, "element-id");
+    var element = new ProcessElement("proc-id", 1, 2, "element-id");
     return InboundConnectorDefinitionBuilder.create().elements(element).type("type").build();
   }
 

@@ -55,13 +55,13 @@ public class OperateClientAdapterImpl implements OperateClientAdapter {
   }
 
   /**
-   * Fetches a list of 'ACTIVE' flow node instances associated with a given process definition key
-   * and element ID.
+   * Fetches a list of 'ACTIVE' flow node instances associated with a given process connectorData
+   * key and element ID.
    *
-   * @param processDefinitionKey The unique identifier for the process definition to retrieve flow
-   *     node instances from.
+   * @param processDefinitionKey The unique identifier for the process connectorData to retrieve
+   *     flow node instances from.
    * @param elementId The identifier of the specific flow node element within the process
-   *     definition.
+   *     connectorData.
    * @return A list of active {@link FlowNodeInstance} objects.
    * @throws RuntimeException If an error occurs during the fetch operation.
    */

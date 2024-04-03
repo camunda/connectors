@@ -17,7 +17,7 @@
 package io.camunda.connector.runtime.core.inbound;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import io.camunda.connector.api.inbound.InboundConnectorElement;
+import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.connector.runtime.core.Keywords.DeduplicationMode;
 import io.camunda.connector.runtime.core.error.InvalidInboundConnectorDefinitionException;
@@ -28,15 +28,11 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 /** Inbound connector definition implementation that also contains connector properties */
-public record InboundConnectorElementImpl(
+public record InboundConnectorElement(
     @JsonIgnore Map<String, String> rawProperties,
     ProcessCorrelationPoint correlationPoint,
-    String bpmnProcessId,
-    int version,
-    long processDefinitionKey,
-    String elementId,
-    String tenantId)
-    implements InboundConnectorElement {
+    ProcessElement element,
+    String tenantId) {
 
   public String type() {
     return Optional.ofNullable(rawProperties.get(Keywords.INBOUND_TYPE_KEYWORD))
@@ -64,7 +60,7 @@ public record InboundConnectorElementImpl(
     var deduplicationMode = rawProperties.get(Keywords.DEDUPLICATION_MODE_KEYWORD);
     if (deduplicationMode == null) {
       // legacy deployment, return a deterministic unique id
-      return tenantId + "-" + processDefinitionKey + "-" + elementId;
+      return tenantId + "-" + element.processDefinitionKey() + "-" + element.elementId();
     } else if (DeduplicationMode.AUTO.name().equals(deduplicationMode)) {
       // auto mode, compute deduplicationId from properties
       return computeDeduplicationId();
@@ -92,19 +88,14 @@ public record InboundConnectorElementImpl(
         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 
-  // override to exclude rawPropertiesWithoutKeywords
+  // override to exclude rawProperties
   @Override
   public String toString() {
     return "InboundConnectorDefinitionImpl{"
-        + "bpmnProcessId='"
-        + bpmnProcessId
-        + '\''
-        + ", version="
-        + version
-        + ", processDefinitionKey="
-        + processDefinitionKey
-        + ", elementId='"
-        + elementId
+        + ", correlationPoint="
+        + correlationPoint
+        + ", element="
+        + element
         + ", tenantId='"
         + tenantId
         + '\''

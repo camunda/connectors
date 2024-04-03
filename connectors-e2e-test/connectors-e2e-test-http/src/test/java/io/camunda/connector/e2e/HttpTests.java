@@ -341,7 +341,7 @@ public class HttpTests {
 
     var model = replace("webhook_connector.bpmn", replace("http://webhook", mockUrl));
 
-    // Prepare a mocked process definition backed by our test model
+    // Prepare a mocked process connectorData backed by our test model
     when(camundaOperateClient.getProcessDefinitionModel(1L)).thenReturn(model);
     var processDef = mock(ProcessDefinition.class);
     when(processDef.getKey()).thenReturn(1L);

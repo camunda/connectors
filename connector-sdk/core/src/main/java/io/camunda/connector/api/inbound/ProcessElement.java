@@ -14,11 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.core.inbound;
+package io.camunda.connector.api.inbound;
 
-public interface RuntimeSpecificInboundConnectorContext extends InboundConnectorReportingContext {
-
-  /** Overrides the default method signature with a more specific return type. */
-  @Override
-  InboundConnectorDefinitionImpl getDefinition();
-}
+/** Represents a BPMN process element that contains an inbound connector definition. */
+public record ProcessElement(
+    String bpmnProcessId, int version, long processDefinitionKey, String elementId) {}

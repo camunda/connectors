@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.connector.runtime.core.error.InvalidInboundConnectorDefinitionException;
@@ -29,20 +30,17 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 
-public class InboundConnectorElementImplTest {
+public class InboundConnectorElementTest {
 
   @Test
   void rawProperties_notSerializedAsJson() throws JsonProcessingException {
     // given
     var testObj =
-        new InboundConnectorElementImpl(
+        new InboundConnectorElement(
             Map.of("auth", "abc"),
             new StandaloneMessageCorrelationPoint("", "", null),
-            "",
-            0,
-            0L,
-            "",
-            "");
+            new ProcessElement("myProcess", 0, 0, "element1"),
+            "<default>");
 
     // when
     var result = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.writeValueAsString(testObj);
@@ -55,14 +53,11 @@ public class InboundConnectorElementImplTest {
   void rawProperties_notPartOfToString() {
     // given
     var testObj =
-        new InboundConnectorElementImpl(
+        new InboundConnectorElement(
             Map.of("auth", "abc"),
             new StandaloneMessageCorrelationPoint("", "", null),
-            "",
-            0,
-            0L,
-            "",
-            "");
+            new ProcessElement("myProcess", 0, 0, "element1"),
+            "<default>");
 
     // when
     var result = testObj.toString();
@@ -75,14 +70,11 @@ public class InboundConnectorElementImplTest {
   void connectorType_present() {
     // given
     var testObj =
-        new InboundConnectorElementImpl(
+        new InboundConnectorElement(
             Map.of("inbound.type", "test"),
             new StandaloneMessageCorrelationPoint("", "", null),
-            "",
-            0,
-            0L,
-            "",
-            "");
+            new ProcessElement("myProcess", 0, 0, "element1"),
+            "<default>");
 
     // when
     var result = testObj.type();
@@ -95,8 +87,11 @@ public class InboundConnectorElementImplTest {
   void connectorType_absent() {
     // given
     var testObj =
-        new InboundConnectorElementImpl(
-            Map.of(), new StandaloneMessageCorrelationPoint("", "", null), "", 0, 0L, "", "");
+        new InboundConnectorElement(
+            Map.of(),
+            new StandaloneMessageCorrelationPoint("", "", null),
+            new ProcessElement("", 0, 0, ""),
+            "");
 
     // when && then
     assertThatThrownBy(testObj::type)
@@ -108,33 +103,24 @@ public class InboundConnectorElementImplTest {
   void deduplicationId_autoMode() {
     // given
     var testObj =
-        new InboundConnectorElementImpl(
+        new InboundConnectorElement(
             Map.of("inbound.type", "test", "deduplicationMode", "AUTO", "property", "value"),
             new StandaloneMessageCorrelationPoint("", "", null),
-            "",
-            0,
-            0L,
-            "",
+            new ProcessElement("myProcess", 0, 0, "element1"),
             "");
 
     var testObjWithDifferentProperties =
-        new InboundConnectorElementImpl(
+        new InboundConnectorElement(
             Map.of("inbound.type", "test", "deduplicationMode", "AUTO", "property", "value2"),
             new StandaloneMessageCorrelationPoint("", "", null),
-            "",
-            0,
-            0L,
-            "",
+            new ProcessElement("myProcess", 0, 0, "element1"),
             "");
 
     var testObjWithSameProperties =
-        new InboundConnectorElementImpl(
+        new InboundConnectorElement(
             Map.of("inbound.type", "test1", "deduplicationMode", "AUTO", "property", "value"),
             new StandaloneMessageCorrelationPoint("", "", null),
-            "",
-            0,
-            0L,
-            "",
+            new ProcessElement("myProcess", 0, 0, "element1"),
             "");
 
     // when
@@ -151,13 +137,10 @@ public class InboundConnectorElementImplTest {
   void deduplicationId_manualMode() {
     // given
     var testObj =
-        new InboundConnectorElementImpl(
+        new InboundConnectorElement(
             Map.of("inbound.type", "test", "deduplicationMode", "MANUAL", "deduplicationId", "id"),
             new StandaloneMessageCorrelationPoint("", "", null),
-            "",
-            0,
-            0L,
-            "",
+            new ProcessElement("myProcess", 0, 0, "element1"),
             "");
 
     // when
@@ -171,13 +154,10 @@ public class InboundConnectorElementImplTest {
   void deduplicationId_manualMode_noId() {
     // given
     var testObj =
-        new InboundConnectorElementImpl(
+        new InboundConnectorElement(
             Map.of("inbound.type", "test", "deduplicationMode", "MANUAL"),
             new StandaloneMessageCorrelationPoint("", "", null),
-            "",
-            0,
-            0L,
-            "",
+            new ProcessElement("myProcess", 0, 0, "element1"),
             "");
 
     // when && then
@@ -191,13 +171,10 @@ public class InboundConnectorElementImplTest {
   void deduplicationId_legacyMode() {
     // given
     var testObj =
-        new InboundConnectorElementImpl(
+        new InboundConnectorElement(
             Map.of("inbound.type", "test"),
             new StandaloneMessageCorrelationPoint("", "", null),
-            "",
-            0,
-            42L,
-            "myElement",
+            new ProcessElement("myProcess", 0, 42L, "myElement"),
             "tenant");
 
     // when
@@ -211,13 +188,10 @@ public class InboundConnectorElementImplTest {
   void resultExpression() {
     // given
     var testObj =
-        new InboundConnectorElementImpl(
+        new InboundConnectorElement(
             Map.of("inbound.type", "test", "resultExpression", "expression"),
             new StandaloneMessageCorrelationPoint("", "", null),
-            "",
-            0,
-            0L,
-            "",
+            new ProcessElement("myProcess", 0, 0, "element1"),
             "");
 
     // when
@@ -231,13 +205,10 @@ public class InboundConnectorElementImplTest {
   void resultVariable() {
     // given
     var testObj =
-        new InboundConnectorElementImpl(
+        new InboundConnectorElement(
             Map.of("inbound.type", "test", "resultVariable", "variable"),
             new StandaloneMessageCorrelationPoint("", "", null),
-            "",
-            0,
-            0L,
-            "",
+            new ProcessElement("myProcess", 0, 0, "element1"),
             "");
 
     // when
@@ -251,13 +222,10 @@ public class InboundConnectorElementImplTest {
   void activationCondition() {
     // given
     var testObj =
-        new InboundConnectorElementImpl(
+        new InboundConnectorElement(
             Map.of("inbound.type", "test", "activationCondition", "condition"),
             new StandaloneMessageCorrelationPoint("", "", null),
-            "",
-            0,
-            0L,
-            "",
+            new ProcessElement("myProcess", 0, 0, "element1"),
             "");
 
     // when
@@ -271,13 +239,10 @@ public class InboundConnectorElementImplTest {
   void activationCondition_deprecated() {
     // given
     var testObj =
-        new InboundConnectorElementImpl(
+        new InboundConnectorElement(
             Map.of("inbound.type", "test", "inbound.activationCondition", "condition"),
             new StandaloneMessageCorrelationPoint("", "", null),
-            "",
-            0,
-            0L,
-            "",
+            new ProcessElement("myProcess", 0, 0, "element1"),
             "");
 
     // when
@@ -297,13 +262,10 @@ public class InboundConnectorElementImplTest {
     var withCustomProps = new HashMap<>(keywordProps);
     withCustomProps.put("property", "value");
     var testObj =
-        new InboundConnectorElementImpl(
+        new InboundConnectorElement(
             withCustomProps,
             new StandaloneMessageCorrelationPoint("", "", null),
-            "",
-            0,
-            0L,
-            "",
+            new ProcessElement("myProcess", 0, 0, "element1"),
             "");
 
     // when

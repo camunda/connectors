@@ -16,8 +16,8 @@
  */
 package io.camunda.connector.runtime.inbound.state;
 
-import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
-import io.camunda.connector.runtime.core.inbound.InboundConnectorElementImpl;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorData;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableEvent;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionIdentifier;
@@ -94,8 +94,7 @@ public class ProcessStateStoreImpl implements ProcessStateStore {
                 connectorDefinitions.stream()
                     .collect(
                         Collectors.toMap(
-                            InboundConnectorDefinitionImpl::deduplicationId,
-                            this::activateExecutable));
+                            InboundConnectorData::deduplicationId, this::activateExecutable));
 
             return new ProcessState(
                 entry.getValue().version(), entry.getValue().processDefinitionKey(), executables);
@@ -118,8 +117,7 @@ public class ProcessStateStoreImpl implements ProcessStateStore {
                 connectorDefinitions.stream()
                     .collect(
                         Collectors.toMap(
-                            InboundConnectorDefinitionImpl::deduplicationId,
-                            this::activateExecutable));
+                            InboundConnectorData::deduplicationId, this::activateExecutable));
             return new ProcessState(
                 entry.getValue().version(),
                 entry.getValue().processDefinitionKey(),
@@ -145,7 +143,7 @@ public class ProcessStateStoreImpl implements ProcessStateStore {
     }
   }
 
-  private List<InboundConnectorDefinitionImpl> getConnectors(
+  private List<InboundConnectorData> getConnectors(
       Map.Entry<ProcessDefinitionIdentifier, ProcessDefinitionVersion> entry) {
     try {
       var elements =
@@ -155,16 +153,14 @@ public class ProcessStateStoreImpl implements ProcessStateStore {
       }
       var groupedByDeduplicationId =
           elements.stream()
-              .collect(Collectors.groupingBy(InboundConnectorElementImpl::deduplicationId));
-      return groupedByDeduplicationId.values().stream()
-          .map(InboundConnectorDefinitionImpl::new)
-          .toList();
+              .collect(Collectors.groupingBy(InboundConnectorElement::deduplicationId));
+      return groupedByDeduplicationId.values().stream().map(InboundConnectorData::new).toList();
     } catch (OperateException e) {
       throw new RuntimeException(e);
     }
   }
 
-  private UUID activateExecutable(InboundConnectorDefinitionImpl definition) {
+  private UUID activateExecutable(InboundConnectorData definition) {
     var id = UUID.randomUUID();
     var event = new InboundExecutableEvent.Activated(id, definition);
     executableRegistry.publishEvent(event);

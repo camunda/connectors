@@ -27,13 +27,14 @@ import static org.mockito.Mockito.spy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.EvictingQueue;
+import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookResult;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
-import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
-import io.camunda.connector.runtime.core.inbound.InboundConnectorElementImpl;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorData;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.inbound.correlation.StartEventCorrelationPoint;
 import io.camunda.connector.runtime.inbound.executable.ActiveExecutable;
@@ -132,7 +133,7 @@ public class WebhookControllerPlainJavaTests {
 
   private static long nextProcessDefinitionKey = 0L;
 
-  public static ActiveExecutable buildConnector(InboundConnectorDefinitionImpl definition) {
+  public static ActiveExecutable buildConnector(InboundConnectorData definition) {
     WebhookConnectorExecutable executable = mock(WebhookConnectorExecutable.class);
     try {
       Mockito.when(executable.triggerWebhook(any(WebhookProcessingPayload.class)))
@@ -143,7 +144,7 @@ public class WebhookControllerPlainJavaTests {
     return new ActiveExecutable(executable, buildContext(definition));
   }
 
-  public static InboundConnectorContextImpl buildContext(InboundConnectorDefinitionImpl def) {
+  public static InboundConnectorContextImpl buildContext(InboundConnectorData def) {
     var context =
         new InboundConnectorContextImpl(
             name -> null,
@@ -157,22 +158,19 @@ public class WebhookControllerPlainJavaTests {
     return spy(context);
   }
 
-  public static InboundConnectorDefinitionImpl webhookDefinition(
+  public static InboundConnectorData webhookDefinition(
       String bpmnProcessId, int version, String path) {
-    return new InboundConnectorDefinitionImpl(
+    return new InboundConnectorData(
         List.of(webhookElement(++nextProcessDefinitionKey, bpmnProcessId, version, path)));
   }
 
-  public static InboundConnectorElementImpl webhookElement(
+  public static InboundConnectorElement webhookElement(
       long processDefinitionKey, String bpmnProcessId, int version, String path) {
 
-    return new InboundConnectorElementImpl(
+    return new InboundConnectorElement(
         Map.of("inbound.type", "io.camunda:webhook:1", "inbound.context", path),
         new StartEventCorrelationPoint(bpmnProcessId, version, processDefinitionKey),
-        bpmnProcessId,
-        version,
-        processDefinitionKey,
-        "testElement",
+        new ProcessElement(bpmnProcessId, version, processDefinitionKey, "testElement"),
         "testTenantId");
   }
 }

@@ -21,7 +21,6 @@ import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextFactory;
-import io.camunda.connector.runtime.core.inbound.InboundConnectorDefinitionImpl;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorReportingContext;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableEvent.Activated;
@@ -221,7 +220,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
     return new ActiveExecutableResponse(
         id,
         connector.executable().getClass(),
-        (InboundConnectorDefinitionImpl) connector.context().getDefinition(),
+        connector.context().connectorElements(),
         connector.context().getHealth(),
         connector.context().getLogs());
   }

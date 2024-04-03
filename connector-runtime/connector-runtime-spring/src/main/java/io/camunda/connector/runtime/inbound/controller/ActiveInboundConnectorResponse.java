@@ -17,7 +17,7 @@
 package io.camunda.connector.runtime.inbound.controller;
 
 import io.camunda.connector.api.inbound.Health;
-import io.camunda.connector.api.inbound.InboundConnectorElement;
+import io.camunda.connector.api.inbound.ProcessElement;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -26,6 +26,6 @@ public record ActiveInboundConnectorResponse(
     UUID executableId, // consider
     String type,
     String tenantId,
-    List<InboundConnectorElement> elements,
+    List<ProcessElement> elements,
     Map<String, Object> data,
     Health health) {}

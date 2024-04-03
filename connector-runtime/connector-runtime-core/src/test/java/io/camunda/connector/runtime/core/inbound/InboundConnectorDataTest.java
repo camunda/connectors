@@ -19,56 +19,58 @@ package io.camunda.connector.runtime.core.inbound;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
+import io.camunda.connector.api.inbound.ProcessElement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
-public class InboundConnectorDefinitionImplTest {
+public class InboundConnectorDataTest {
 
   @Test
   void minimallyValidElements() {
     // given
-    List<InboundConnectorElementImpl> elements = new ArrayList<>();
+    List<InboundConnectorElement> elements = new ArrayList<>();
     elements.add(
-        new InboundConnectorElementImpl(
+        new InboundConnectorElement(
             Map.of("inbound.type", "type1", "deduplicationMode", "AUTO"),
             null,
-            null,
-            0,
-            0,
-            "element1",
+            new ProcessElement("myProcess", 0, 0, "element1"),
             "<default>"));
     elements.add(
-        new InboundConnectorElementImpl(
+        new InboundConnectorElement(
             Map.of("inbound.type", "type1", "deduplicationMode", "AUTO"),
             null,
-            null,
-            0,
-            0,
-            "element2",
+            new ProcessElement("myProcess", 0, 0, "element2"),
             "<default>"));
 
     // when
-    InboundConnectorDefinitionImpl result = new InboundConnectorDefinitionImpl(elements);
+    InboundConnectorData result = new InboundConnectorData(elements);
 
     // then
-    assertThat(result).isExactlyInstanceOf(InboundConnectorDefinitionImpl.class);
+    assertThat(result).isExactlyInstanceOf(InboundConnectorData.class);
   }
 
   @Test
   void notMatchingTypes_throwsException() {
     // given
-    List<InboundConnectorElementImpl> elements = new ArrayList<>();
+    List<InboundConnectorElement> elements = new ArrayList<>();
     elements.add(
-        new InboundConnectorElementImpl(
-            Map.of("inbound.type", "type1"), null, null, 0, 0, "element1", null));
+        new InboundConnectorElement(
+            Map.of("inbound.type", "type1"),
+            null,
+            new ProcessElement("myProcess", 0, 0, "element1"),
+            "<default>"));
+
     elements.add(
-        new InboundConnectorElementImpl(
-            Map.of("inbound.type", "type2"), null, null, 0, 0, "element2", null));
+        new InboundConnectorElement(
+            Map.of("inbound.type", "type2"),
+            null,
+            new ProcessElement("myProcess", 0, 0, "element2"),
+            "<default>"));
 
     // when & then
-    assertThatThrownBy(() -> new InboundConnectorDefinitionImpl(elements))
+    assertThatThrownBy(() -> new InboundConnectorData(elements))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("All elements in a group must have the same type");
   }
@@ -76,34 +78,29 @@ public class InboundConnectorDefinitionImplTest {
   @Test
   void notMatchingTenantIds_throwsException() {
     // given
-    List<InboundConnectorElementImpl> elements = new ArrayList<>();
+    List<InboundConnectorElement> elements = new ArrayList<>();
     elements.add(
-        new InboundConnectorElementImpl(
+        new InboundConnectorElement(
             Map.of(
                 "inbound.type", "type1",
                 "deduplicationMode", "MANUAL",
                 "deduplicationId", "deduplicationId"),
             null,
-            null,
-            0,
-            0,
-            "element1",
+            new ProcessElement("myProcess", 0, 0, "element1"),
             "tenant1"));
+
     elements.add(
-        new InboundConnectorElementImpl(
+        new InboundConnectorElement(
             Map.of(
                 "inbound.type", "type1",
                 "deduplicationMode", "MANUAL",
                 "deduplicationId", "deduplicationId"),
             null,
-            null,
-            0,
-            0,
-            "element2",
+            new ProcessElement("myProcess", 0, 0, "element2"),
             "tenant2"));
 
     // when & then
-    assertThatThrownBy(() -> new InboundConnectorDefinitionImpl(elements))
+    assertThatThrownBy(() -> new InboundConnectorData(elements))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("All elements in a group must have the same tenant ID");
   }
@@ -111,34 +108,30 @@ public class InboundConnectorDefinitionImplTest {
   @Test
   void notMatchingDeduplicationIds_throwsException() {
     // given
-    List<InboundConnectorElementImpl> elements = new ArrayList<>();
+    List<InboundConnectorElement> elements = new ArrayList<>();
+
     elements.add(
-        new InboundConnectorElementImpl(
+        new InboundConnectorElement(
             Map.of(
                 "inbound.type", "type1",
                 "deduplicationMode", "MANUAL",
                 "deduplicationId", "deduplicationId1"),
             null,
-            null,
-            0,
-            0,
-            "element1",
-            null));
+            new ProcessElement("myProcess", 0, 0, "element1"),
+            "tenant"));
+
     elements.add(
-        new InboundConnectorElementImpl(
+        new InboundConnectorElement(
             Map.of(
                 "inbound.type", "type1",
                 "deduplicationMode", "MANUAL",
                 "deduplicationId", "deduplicationId2"),
             null,
-            null,
-            0,
-            0,
-            "element2",
-            null));
+            new ProcessElement("myProcess", 0, 0, "element2"),
+            "tenant"));
 
     // when & then
-    assertThatThrownBy(() -> new InboundConnectorDefinitionImpl(elements))
+    assertThatThrownBy(() -> new InboundConnectorData(elements))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("All elements in a group must have the same deduplication ID");
   }
@@ -146,36 +139,31 @@ public class InboundConnectorDefinitionImplTest {
   @Test
   void notMatchingProperties_throwsExceptions() {
     // given
-    List<InboundConnectorElementImpl> elements = new ArrayList<>();
+    List<InboundConnectorElement> elements = new ArrayList<>();
     elements.add(
-        new InboundConnectorElementImpl(
+        new InboundConnectorElement(
             Map.of(
                 "inbound.type", "type1",
                 "deduplicationMode", "MANUAL",
                 "deduplicationId", "deduplicationId",
                 "property1", "property1"),
             null,
-            null,
-            0,
-            0,
-            "element1",
-            null));
+            new ProcessElement("myProcess", 0, 0, "element1"),
+            "tenant"));
+
     elements.add(
-        new InboundConnectorElementImpl(
+        new InboundConnectorElement(
             Map.of(
                 "inbound.type", "type1",
                 "deduplicationMode", "MANUAL",
                 "deduplicationId", "deduplicationId",
                 "property2", "property2"),
             null,
-            null,
-            0,
-            0,
-            "element2",
-            null));
+            new ProcessElement("myProcess", 0, 0, "element2"),
+            "tenant"));
 
     // when & then
-    assertThatThrownBy(() -> new InboundConnectorDefinitionImpl(elements))
+    assertThatThrownBy(() -> new InboundConnectorData(elements))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage(
             "All elements in a group must have the same properties (excluding runtime-level properties)");
