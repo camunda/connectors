@@ -23,20 +23,14 @@ public sealed interface CorrelationResult {
     InboundConnectorElement activatedElement();
 
     record ProcessInstanceCreated(
-        InboundConnectorElement activatedElement,
-        Long processInstanceKey,
-        String tenantId)
+        InboundConnectorElement activatedElement, Long processInstanceKey, String tenantId)
         implements Success {}
 
     record MessagePublished(
-        InboundConnectorElement activatedElement,
-        Long messageKey,
-        String tenantId)
+        InboundConnectorElement activatedElement, Long messageKey, String tenantId)
         implements Success {}
 
-    record MessageAlreadyCorrelated(
-        InboundConnectorElement activatedElement)
-        implements Success {}
+    record MessageAlreadyCorrelated(InboundConnectorElement activatedElement) implements Success {}
   }
 
   sealed interface Failure extends CorrelationResult {

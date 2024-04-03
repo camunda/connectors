@@ -49,7 +49,6 @@ import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.spring.test.ZeebeSpringTest;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -227,8 +226,7 @@ class WebhookControllerTestZeebeTests {
 
     var correlationHandlerMock = mock(InboundCorrelationHandler.class);
     when(correlationHandlerMock.correlate(any(), any()))
-        .thenReturn(
-            new CorrelationResult.Success.MessageAlreadyCorrelated(List.of(element), element));
+        .thenReturn(new CorrelationResult.Success.MessageAlreadyCorrelated(element));
 
     var webhookDef = webhookDefinition("nonExistingProcess", 1, "myPath");
     var webhookContext =
@@ -468,9 +466,7 @@ class WebhookControllerTestZeebeTests {
 
     var correlationHandlerMock = mock(InboundCorrelationHandler.class);
     when(correlationHandlerMock.correlate(any(), any()))
-        .thenReturn(
-            new CorrelationResult.Success.ProcessInstanceCreated(
-                List.of(element), element, 1L, "test"));
+        .thenReturn(new CorrelationResult.Success.ProcessInstanceCreated(element, 1L, "test"));
 
     WebhookResult webhookResult = mock(WebhookResult.class);
     when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));

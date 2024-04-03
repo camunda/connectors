@@ -61,7 +61,7 @@ public class InboundCorrelationHandler {
 
     final List<InboundConnectorElement> matchingElements;
     try {
-       matchingElements =
+      matchingElements =
           definitions.elements().stream()
               .filter(e -> isActivationConditionMet(e, variables))
               .map(e -> (InboundConnectorElement) e)
@@ -84,9 +84,7 @@ public class InboundCorrelationHandler {
   }
 
   protected CorrelationResult correlateInternal(
-      InboundConnectorElementImpl activatedElement,
-      Object variables,
-      String messageId) {
+      InboundConnectorElementImpl activatedElement, Object variables, String messageId) {
     var correlationPoint = activatedElement.correlationPoint();
 
     return switch (correlationPoint) {
@@ -101,8 +99,7 @@ public class InboundCorrelationHandler {
   }
 
   protected CorrelationResult triggerStartEvent(
-      InboundConnectorElementImpl activatedElement,
-      Object variables) {
+      InboundConnectorElementImpl activatedElement, Object variables) {
 
     Object extractedVariables = extractVariables(variables, activatedElement);
     var correlationPoint = (StartEventCorrelationPoint) activatedElement.correlationPoint();
@@ -132,8 +129,7 @@ public class InboundCorrelationHandler {
   }
 
   protected CorrelationResult triggerMessageStartEvent(
-      InboundConnectorElementImpl activatedElement,
-      Object variables) {
+      InboundConnectorElementImpl activatedElement, Object variables) {
 
     var correlationPoint = (MessageStartEventCorrelationPoint) activatedElement.correlationPoint();
     String messageId = extractMessageId(correlationPoint.messageIdExpression(), variables);
@@ -185,9 +181,7 @@ public class InboundCorrelationHandler {
   }
 
   protected CorrelationResult triggerMessage(
-      InboundConnectorElementImpl activatedElement,
-      Object variables,
-      String messageId) {
+      InboundConnectorElementImpl activatedElement, Object variables, String messageId) {
 
     var correlationPoint = (MessageCorrelationPoint) activatedElement.correlationPoint();
     var correlationKeyExpression = correlationPoint.correlationKeyExpression();
