@@ -27,7 +27,7 @@ public record KafkaConnectorRequest(
               @TemplateProperty.DropdownPropertyChoice(value = "json", label = "Default (JSON)"),
               @TemplateProperty.DropdownPropertyChoice(
                   value = "avro",
-                  label = "AVRO (experimental)")
+                  label = "Avro (experimental)")
             },
             description =
                 "Select the serialization type. For details, visit the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=outbound\" target=\"_blank\">documentation</a>")

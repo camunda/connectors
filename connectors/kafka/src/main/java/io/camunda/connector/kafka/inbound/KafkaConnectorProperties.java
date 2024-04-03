@@ -30,7 +30,7 @@ public record KafkaConnectorProperties(
               @TemplateProperty.DropdownPropertyChoice(value = "json", label = "Default (JSON)"),
               @TemplateProperty.DropdownPropertyChoice(
                   value = "avro",
-                  label = "AVRO (experimental)")
+                  label = "Avro (experimental)")
             },
             description =
                 "Select the deserialization type. For details, visit the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=inbound\" target=\"_blank\">documentation</a>")
