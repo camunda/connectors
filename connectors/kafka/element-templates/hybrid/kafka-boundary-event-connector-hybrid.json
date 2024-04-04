@@ -15,6 +15,9 @@
     "eventDefinition" : "bpmn:MessageEventDefinition"
   },
   "groups" : [ {
+    "id" : "connectorType",
+    "label" : "Connector type"
+  }, {
     "id" : "authentication",
     "label" : "Authentication"
   }, {
@@ -34,12 +37,14 @@
     "label" : "Output mapping"
   } ],
   "properties" : [ {
+    "id" : "connectorType",
     "value" : "io.camunda:connector-kafka-inbound:1",
+    "group" : "connectorType",
     "binding" : {
       "name" : "inbound.type",
       "type" : "zeebe:property"
     },
-    "type" : "Hidden"
+    "type" : "String"
   }, {
     "id" : "authenticationType",
     "label" : "Authentication type",
@@ -100,7 +105,7 @@
       "name" : "Default (JSON)",
       "value" : "json"
     }, {
-      "name" : "Avro (experimental)",
+      "name" : "AVRO (experimental)",
       "value" : "avro"
     } ]
   }, {

@@ -100,7 +100,7 @@
       "name" : "Default (JSON)",
       "value" : "json"
     }, {
-      "name" : "Avro (experimental)",
+      "name" : "AVRO (experimental)",
       "value" : "avro"
     } ]
   }, {

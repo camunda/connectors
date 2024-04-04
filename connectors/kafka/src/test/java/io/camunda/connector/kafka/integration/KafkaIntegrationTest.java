@@ -180,13 +180,19 @@ public class KafkaIntegrationTest {
   void setInvalidOffsetForInboundConnectorWhenAutoOffsetResetIsNone() {
     // Given
     KafkaTopic kafkaTopic = new KafkaTopic(BOOTSTRAP_SERVERS, TOPIC);
+    KafkaAuthentication kafkaAuthentication = new KafkaAuthentication(null, null);
 
-    KafkaConnectorProperties kafkaConnectorProperties = new KafkaConnectorProperties();
-    kafkaConnectorProperties.setAutoOffsetReset(KafkaConnectorProperties.AutoOffsetReset.NONE);
-    kafkaConnectorProperties.setAuthenticationType(
-        KafkaConnectorProperties.AuthenticationType.custom);
-    kafkaConnectorProperties.setOffsets(List.of(9999L, 8888L));
-    kafkaConnectorProperties.setTopic(kafkaTopic);
+    KafkaConnectorProperties kafkaConnectorProperties =
+        new KafkaConnectorProperties(
+            SerializationType.JSON,
+            KafkaConnectorProperties.AuthenticationType.custom,
+            kafkaAuthentication,
+            kafkaTopic,
+            null,
+            null,
+            List.of(9999L, 8888L),
+            KafkaConnectorProperties.AutoOffsetReset.NONE,
+            null);
 
     InboundConnectorContextBuilder.TestInboundConnectorContext context =
         InboundConnectorContextBuilder.create()
@@ -220,11 +226,19 @@ public class KafkaIntegrationTest {
   void consumeMessageWithInboundConnector() throws Exception {
     // Given
     KafkaTopic kafkaTopic = new KafkaTopic(BOOTSTRAP_SERVERS, TOPIC);
-    KafkaConnectorProperties kafkaConnectorProperties = new KafkaConnectorProperties();
-    kafkaConnectorProperties.setAutoOffsetReset(KafkaConnectorProperties.AutoOffsetReset.EARLIEST);
-    kafkaConnectorProperties.setAuthenticationType(
-        KafkaConnectorProperties.AuthenticationType.custom);
-    kafkaConnectorProperties.setTopic(kafkaTopic);
+    KafkaAuthentication kafkaAuthentication = new KafkaAuthentication(null, null);
+
+    KafkaConnectorProperties kafkaConnectorProperties =
+        new KafkaConnectorProperties(
+            SerializationType.JSON,
+            KafkaConnectorProperties.AuthenticationType.custom,
+            kafkaAuthentication,
+            kafkaTopic,
+            null,
+            null,
+            null,
+            KafkaConnectorProperties.AutoOffsetReset.EARLIEST,
+            null);
 
     InboundConnectorContextBuilder.TestInboundConnectorContext context =
         InboundConnectorContextBuilder.create()
@@ -262,12 +276,19 @@ public class KafkaIntegrationTest {
   void consumeSameMessageWithInboundConnectorAgainWithOffsets() throws Exception {
     // Given
     KafkaTopic kafkaTopic = new KafkaTopic(BOOTSTRAP_SERVERS, TOPIC);
-    KafkaConnectorProperties kafkaConnectorProperties = new KafkaConnectorProperties();
-    kafkaConnectorProperties.setAutoOffsetReset(KafkaConnectorProperties.AutoOffsetReset.EARLIEST);
-    kafkaConnectorProperties.setAuthenticationType(
-        KafkaConnectorProperties.AuthenticationType.custom);
-    kafkaConnectorProperties.setOffsets(List.of(0L, 0L));
-    kafkaConnectorProperties.setTopic(kafkaTopic);
+
+    KafkaAuthentication kafkaAuthentication = new KafkaAuthentication(null, null);
+    KafkaConnectorProperties kafkaConnectorProperties =
+        new KafkaConnectorProperties(
+            SerializationType.JSON,
+            KafkaConnectorProperties.AuthenticationType.custom,
+            kafkaAuthentication,
+            kafkaTopic,
+            null,
+            null,
+            List.of(0L, 0L),
+            KafkaConnectorProperties.AutoOffsetReset.EARLIEST,
+            null);
 
     InboundConnectorContextBuilder.TestInboundConnectorContext context =
         InboundConnectorContextBuilder.create()
@@ -345,12 +366,18 @@ public class KafkaIntegrationTest {
     // Given
     KafkaTopic kafkaTopic = new KafkaTopic(BOOTSTRAP_SERVERS, AVRO_TOPIC);
 
-    KafkaConnectorProperties kafkaConnectorProperties = new KafkaConnectorProperties();
-    kafkaConnectorProperties.setAutoOffsetReset(KafkaConnectorProperties.AutoOffsetReset.EARLIEST);
-    kafkaConnectorProperties.setAuthenticationType(
-        KafkaConnectorProperties.AuthenticationType.custom);
-    kafkaConnectorProperties.setTopic(kafkaTopic);
-    kafkaConnectorProperties.setAvro(avro);
+    KafkaAuthentication kafkaAuthentication = new KafkaAuthentication(null, null);
+    KafkaConnectorProperties kafkaConnectorProperties =
+        new KafkaConnectorProperties(
+            SerializationType.AVRO,
+            KafkaConnectorProperties.AuthenticationType.custom,
+            kafkaAuthentication,
+            kafkaTopic,
+            null,
+            null,
+            List.of(0L, 0L),
+            KafkaConnectorProperties.AutoOffsetReset.EARLIEST,
+            avro);
 
     InboundConnectorContextBuilder.TestInboundConnectorContext context =
         InboundConnectorContextBuilder.create()
@@ -413,11 +440,19 @@ public class KafkaIntegrationTest {
   void consumeMessageWithHeaders() {
     // Given
     KafkaTopic kafkaTopic = new KafkaTopic(BOOTSTRAP_SERVERS, TOPIC);
-    KafkaConnectorProperties kafkaConnectorProperties = new KafkaConnectorProperties();
-    kafkaConnectorProperties.setAutoOffsetReset(KafkaConnectorProperties.AutoOffsetReset.EARLIEST);
-    kafkaConnectorProperties.setAuthenticationType(
-        KafkaConnectorProperties.AuthenticationType.custom);
-    kafkaConnectorProperties.setTopic(kafkaTopic);
+
+    KafkaAuthentication kafkaAuthentication = new KafkaAuthentication(null, null);
+    KafkaConnectorProperties kafkaConnectorProperties =
+        new KafkaConnectorProperties(
+            SerializationType.JSON,
+            KafkaConnectorProperties.AuthenticationType.custom,
+            kafkaAuthentication,
+            kafkaTopic,
+            null,
+            null,
+            List.of(0L, 0L),
+            KafkaConnectorProperties.AutoOffsetReset.EARLIEST,
+            null);
 
     InboundConnectorContextBuilder.TestInboundConnectorContext context =
         InboundConnectorContextBuilder.create()
