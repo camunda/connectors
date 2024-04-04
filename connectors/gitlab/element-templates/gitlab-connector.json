@@ -129,7 +129,7 @@
     },
     {
       "label": "Operation",
-      "id": "operation",
+      "id": "issueOperation",
       "group": "operation",
       "description": "Choose operation to perform",
       "type": "Dropdown",
@@ -166,7 +166,7 @@
     },
     {
       "label": "Operation",
-      "id": "operation",
+      "id": "releaseOperation",
       "group": "operation",
       "description": "Choose operation to perform",
       "type": "Dropdown",
@@ -195,7 +195,7 @@
     },
     {
       "label": "Operation",
-      "id": "operation",
+      "id": "branchOperation",
       "group": "operation",
       "description": "Choose operation to perform",
       "type": "Dropdown",
@@ -220,7 +220,7 @@
     },
     {
       "label": "Operation",
-      "id": "operation",
+      "id": "reposOperation",
       "group": "operation",
       "description": "Choose operation to perform",
       "type": "Dropdown",
@@ -241,7 +241,7 @@
     },
     {
       "label": "Operation",
-      "id": "operation",
+      "id": "mergeOperation",
       "group": "operation",
       "description": "Choose operation to perform",
       "type": "Dropdown",
@@ -268,13 +268,39 @@
         "name": "method"
       },
       "condition": {
-        "property": "operation",
+        "property": "branchOperation",
+        "oneOf": [
+          "getRepositoryBranchesByProjectId"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "get",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "method"
+      },
+      "condition": {
+        "property": "releaseOperation",
+        "oneOf": [
+          "getReleasesByProjectId",
+          "getReleaseByTagName"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "get",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "method"
+      },
+      "condition": {
+        "property": "issueOperation",
         "oneOf": [
           "getIssueById",
-          "searchIssues",
-          "getReleasesByProjectId",
-          "getReleaseByTagName",
-          "getRepositoryBranchesByProjectId"
+          "searchIssues"
         ]
       }
     },
@@ -286,14 +312,66 @@
         "name": "method"
       },
       "condition": {
-        "property": "operation",
+        "property": "mergeOperation",
+        "oneOf": [
+          "createMergeRequest"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "post",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "method"
+      },
+      "condition": {
+        "property": "reposOperation",
+        "oneOf": [
+          "createRepositoryFile"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "post",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "method"
+      },
+      "condition": {
+        "property": "branchOperation",
+        "oneOf": [
+          "createRepositoryBranch"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "post",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "method"
+      },
+      "condition": {
+        "property": "releaseOperation",
+        "oneOf": [
+          "createRelease"
+        ]
+      }
+    },
+    {
+      "type": "Hidden",
+      "value": "post",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "method"
+      },
+      "condition": {
+        "property": "issueOperation",
         "oneOf": [
           "commentToAnIssue",
-          "createAnIssue",
-          "createRelease",
-          "createRepositoryBranch",
-          "createRepositoryFile",
-          "createMergeRequest"
+          "createAnIssue"
         ]
       }
     },
@@ -305,7 +383,7 @@
         "name": "method"
       },
       "condition": {
-        "property": "operation",
+        "property": "issueOperation",
         "oneOf": [
           "deleteAnIssue"
         ]
@@ -325,19 +403,95 @@
         "notEmpty": true
       },
       "condition": {
-        "property": "operation",
+        "property": "mergeOperation",
+        "oneOf": [
+          "createMergeRequest"
+        ]
+      }
+    },
+    {
+      "label": "Project ID",
+      "description": "The global ID or URL-encoded path of the project owned by the authenticated user",
+      "group": "operation",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "projectId"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "reposOperation",
+        "oneOf": [
+          "createRepositoryFile"
+        ]
+      }
+    },
+    {
+      "label": "Project ID",
+      "description": "The global ID or URL-encoded path of the project owned by the authenticated user",
+      "group": "operation",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "projectId"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "branchOperation",
+        "oneOf": [
+          "getRepositoryBranchesByProjectId",
+          "createRepositoryBranch"
+        ]
+      }
+    },
+    {
+      "label": "Project ID",
+      "description": "The global ID or URL-encoded path of the project owned by the authenticated user",
+      "group": "operation",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "projectId"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "releaseOperation",
+        "oneOf": [
+          "getReleasesByProjectId",
+          "getReleaseByTagName",
+          "createRelease"
+        ]
+      }
+    },
+    {
+      "label": "Project ID",
+      "description": "The global ID or URL-encoded path of the project owned by the authenticated user",
+      "group": "operation",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "type": "zeebe:input",
+        "name": "projectId"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "condition": {
+        "property": "issueOperation",
         "oneOf": [
           "getIssueById",
           "createAnIssue",
           "deleteAnIssue",
-          "commentToAnIssue",
-          "getReleasesByProjectId",
-          "getReleaseByTagName",
-          "createRelease",
-          "getRepositoryBranchesByProjectId",
-          "createRepositoryBranch",
-          "createRepositoryFile",
-          "createMergeRequest"
+          "commentToAnIssue"
         ]
       }
     },
@@ -355,7 +509,7 @@
         "notEmpty": true
       },
       "condition": {
-        "property": "operation",
+        "property": "issueOperation",
         "oneOf": [
           "getIssueById"
         ]
@@ -369,7 +523,7 @@
         "name": "url"
       },
       "condition": {
-        "property": "operation",
+        "property": "issueOperation",
         "oneOf": [
           "getIssueById"
         ]
@@ -389,7 +543,7 @@
         "notEmpty": true
       },
       "condition": {
-        "property": "operation",
+        "property": "issueOperation",
         "oneOf": [
           "createAnIssue"
         ]
@@ -409,7 +563,7 @@
         "notEmpty": true
       },
       "condition": {
-        "property": "operation",
+        "property": "issueOperation",
         "oneOf": [
           "createAnIssue"
         ]
@@ -423,7 +577,7 @@
         "name": "url"
       },
       "condition": {
-        "property": "operation",
+        "property": "issueOperation",
         "oneOf": [
           "createAnIssue"
         ]
@@ -437,7 +591,7 @@
         "name": "queryParameters"
       },
       "condition": {
-        "property": "operation",
+        "property": "issueOperation",
         "oneOf": [
           "createAnIssue"
         ]
@@ -457,7 +611,7 @@
         "notEmpty": true
       },
       "condition": {
-        "property": "operation",
+        "property": "issueOperation",
         "oneOf": [
           "deleteAnIssue"
         ]
@@ -471,7 +625,7 @@
         "name": "url"
       },
       "condition": {
-        "property": "operation",
+        "property": "issueOperation",
         "oneOf": [
           "deleteAnIssue"
         ]
@@ -491,7 +645,7 @@
         "notEmpty": true
       },
       "condition": {
-        "property": "operation",
+        "property": "issueOperation",
         "oneOf": [
           "commentToAnIssue"
         ]
@@ -511,7 +665,7 @@
         "notEmpty": true
       },
       "condition": {
-        "property": "operation",
+        "property": "issueOperation",
         "oneOf": [
           "commentToAnIssue"
         ]
@@ -538,7 +692,7 @@
         "name": "issueIsConfidential"
       },
       "condition": {
-        "property": "operation",
+        "property": "issueOperation",
         "oneOf": [
           "commentToAnIssue"
         ]
@@ -552,7 +706,7 @@
         "name": "queryParameters"
       },
       "condition": {
-        "property": "operation",
+        "property": "issueOperation",
         "oneOf": [
           "commentToAnIssue"
         ]
@@ -566,7 +720,7 @@
         "name": "url"
       },
       "condition": {
-        "property": "operation",
+        "property": "issueOperation",
         "oneOf": [
           "commentToAnIssue"
         ]
@@ -598,7 +752,7 @@
         "name": "searchIssueScope"
       },
       "condition": {
-        "property": "operation",
+        "property": "issueOperation",
         "oneOf": [
           "searchIssues"
         ]
@@ -630,7 +784,7 @@
         "name": "searchIssueState"
       },
       "condition": {
-        "property": "operation",
+        "property": "issueOperation",
         "oneOf": [
           "searchIssues"
         ]
@@ -648,7 +802,7 @@
         "name": "searchIssueAssigneeId"
       },
       "condition": {
-        "property": "operation",
+        "property": "issueOperation",
         "oneOf": [
           "searchIssues"
         ]
@@ -666,7 +820,7 @@
         "name": "searchIssueAssigneeUsername"
       },
       "condition": {
-        "property": "operation",
+        "property": "issueOperation",
         "oneOf": [
           "searchIssues"
         ]
@@ -684,7 +838,7 @@
         "name": "searchIssueAuthorId"
       },
       "condition": {
-        "property": "operation",
+        "property": "issueOperation",
         "oneOf": [
           "searchIssues"
         ]
@@ -702,7 +856,7 @@
         "name": "searchIssueSearch"
       },
       "condition": {
-        "property": "operation",
+        "property": "issueOperation",
         "oneOf": [
           "searchIssues"
         ]
@@ -716,7 +870,7 @@
         "name": "queryParameters"
       },
       "condition": {
-        "property": "operation",
+        "property": "issueOperation",
         "oneOf": [
           "searchIssues"
         ]
@@ -730,7 +884,7 @@
         "name": "url"
       },
       "condition": {
-        "property": "operation",
+        "property": "issueOperation",
         "oneOf": [
           "searchIssues"
         ]
@@ -744,7 +898,7 @@
         "name": "url"
       },
       "condition": {
-        "property": "operation",
+        "property": "releaseOperation",
         "oneOf": [
           "getReleasesByProjectId"
         ]
@@ -764,7 +918,7 @@
         "notEmpty": true
       },
       "condition": {
-        "property": "operation",
+        "property": "releaseOperation",
         "oneOf": [
           "getReleaseByTagName"
         ]
@@ -778,7 +932,7 @@
         "name": "url"
       },
       "condition": {
-        "property": "operation",
+        "property": "releaseOperation",
         "oneOf": [
           "getReleaseByTagName"
         ]
@@ -798,7 +952,7 @@
         "notEmpty": true
       },
       "condition": {
-        "property": "operation",
+        "property": "releaseOperation",
         "oneOf": [
           "createRelease"
         ]
@@ -818,7 +972,7 @@
         "notEmpty": true
       },
       "condition": {
-        "property": "operation",
+        "property": "releaseOperation",
         "oneOf": [
           "createRelease"
         ]
@@ -836,7 +990,7 @@
         "name": "releaseName"
       },
       "condition": {
-        "property": "operation",
+        "property": "releaseOperation",
         "oneOf": [
           "createRelease"
         ]
@@ -854,7 +1008,7 @@
         "name": "releaseDescription"
       },
       "condition": {
-        "property": "operation",
+        "property": "releaseOperation",
         "oneOf": [
           "createRelease"
         ]
@@ -868,7 +1022,7 @@
         "name": "url"
       },
       "condition": {
-        "property": "operation",
+        "property": "releaseOperation",
         "oneOf": [
           "createRelease"
         ]
@@ -882,7 +1036,7 @@
         "name": "body"
       },
       "condition": {
-        "property": "operation",
+        "property": "releaseOperation",
         "oneOf": [
           "createRelease"
         ]
@@ -900,7 +1054,7 @@
         "name": "searchString"
       },
       "condition": {
-        "property": "operation",
+        "property": "branchOperation",
         "oneOf": [
           "getRepositoryBranchesByProjectId"
         ]
@@ -918,7 +1072,7 @@
         "name": "regex"
       },
       "condition": {
-        "property": "operation",
+        "property": "branchOperation",
         "oneOf": [
           "getRepositoryBranchesByProjectId"
         ]
@@ -932,7 +1086,7 @@
         "name": "url"
       },
       "condition": {
-        "property": "operation",
+        "property": "branchOperation",
         "oneOf": [
           "getRepositoryBranchesByProjectId",
           "createRepositoryBranch"
@@ -947,7 +1101,7 @@
         "name": "queryParameters"
       },
       "condition": {
-        "property": "operation",
+        "property": "branchOperation",
         "oneOf": [
           "getRepositoryBranchesByProjectId"
         ]
@@ -967,7 +1121,7 @@
         "notEmpty": true
       },
       "condition": {
-        "property": "operation",
+        "property": "branchOperation",
         "oneOf": [
           "createRepositoryBranch"
         ]
@@ -987,7 +1141,7 @@
         "notEmpty": true
       },
       "condition": {
-        "property": "operation",
+        "property": "branchOperation",
         "oneOf": [
           "createRepositoryBranch"
         ]
@@ -1001,7 +1155,7 @@
         "name": "body"
       },
       "condition": {
-        "property": "operation",
+        "property": "branchOperation",
         "oneOf": [
           "createRepositoryBranch"
         ]
@@ -1021,7 +1175,7 @@
         "notEmpty": true
       },
       "condition": {
-        "property": "operation",
+        "property": "reposOperation",
         "oneOf": [
           "createRepositoryFile"
         ]
@@ -1041,7 +1195,7 @@
         "notEmpty": true
       },
       "condition": {
-        "property": "operation",
+        "property": "reposOperation",
         "oneOf": [
           "createRepositoryFile"
         ]
@@ -1060,7 +1214,7 @@
         "notEmpty": true
       },
       "condition": {
-        "property": "operation",
+        "property": "reposOperation",
         "oneOf": [
           "createRepositoryFile"
         ]
@@ -1080,7 +1234,7 @@
         "notEmpty": true
       },
       "condition": {
-        "property": "operation",
+        "property": "reposOperation",
         "oneOf": [
           "createRepositoryFile"
         ]
@@ -1098,7 +1252,7 @@
         "name": "authorEmail"
       },
       "condition": {
-        "property": "operation",
+        "property": "reposOperation",
         "oneOf": [
           "createRepositoryFile"
         ]
@@ -1116,7 +1270,7 @@
         "name": "authorName"
       },
       "condition": {
-        "property": "operation",
+        "property": "reposOperation",
         "oneOf": [
           "createRepositoryFile"
         ]
@@ -1134,7 +1288,7 @@
         "name": "encoding"
       },
       "condition": {
-        "property": "operation",
+        "property": "reposOperation",
         "oneOf": [
           "createRepositoryFile"
         ]
@@ -1152,7 +1306,7 @@
         "name": "executeFilemode"
       },
       "condition": {
-        "property": "operation",
+        "property": "reposOperation",
         "oneOf": [
           "createRepositoryFile"
         ]
@@ -1170,7 +1324,7 @@
         "name": "startBranch"
       },
       "condition": {
-        "property": "operation",
+        "property": "reposOperation",
         "oneOf": [
           "createRepositoryFile"
         ]
@@ -1184,7 +1338,7 @@
         "name": "url"
       },
       "condition": {
-        "property": "operation",
+        "property": "reposOperation",
         "oneOf": [
           "createRepositoryFile"
         ]
@@ -1198,7 +1352,7 @@
         "name": "body"
       },
       "condition": {
-        "property": "operation",
+        "property": "reposOperation",
         "oneOf": [
           "createRepositoryFile"
         ]
@@ -1214,10 +1368,10 @@
         "name": "sourceBranch"
       },
       "constraints": {
-          "notEmpty": true
+        "notEmpty": true
       },
       "condition": {
-        "property": "operation",
+        "property": "mergeOperation",
         "oneOf": [
           "createMergeRequest"
         ]
@@ -1236,7 +1390,7 @@
         "notEmpty": true
       },
       "condition": {
-        "property": "operation",
+        "property": "mergeOperation",
         "oneOf": [
           "createMergeRequest"
         ]
@@ -1255,7 +1409,7 @@
         "notEmpty": true
       },
       "condition": {
-        "property": "operation",
+        "property": "mergeOperation",
         "oneOf": [
           "createMergeRequest"
         ]
@@ -1273,7 +1427,7 @@
         "name": "allowCollaboration"
       },
       "condition": {
-        "property": "operation",
+        "property": "reposOperation",
         "oneOf": [
           "createRepositoryFile"
         ]
@@ -1291,7 +1445,7 @@
         "name": "assigneeIds"
       },
       "condition": {
-        "property": "operation",
+        "property": "mergeOperation",
         "oneOf": [
           "createMergeRequest"
         ]
@@ -1308,7 +1462,7 @@
         "name": "description"
       },
       "condition": {
-        "property": "operation",
+        "property": "mergeOperation",
         "oneOf": [
           "createMergeRequest"
         ]
@@ -1326,7 +1480,7 @@
         "name": "labels"
       },
       "condition": {
-        "property": "operation",
+        "property": "mergeOperation",
         "oneOf": [
           "createMergeRequest"
         ]
@@ -1343,7 +1497,7 @@
         "name": "assigneeIds"
       },
       "condition": {
-        "property": "operation",
+        "property": "mergeOperation",
         "oneOf": [
           "createMergeRequest"
         ]
@@ -1361,7 +1515,7 @@
         "name": "removeSourceBranch"
       },
       "condition": {
-        "property": "operation",
+        "property": "mergeOperation",
         "oneOf": [
           "createMergeRequest"
         ]
@@ -1379,7 +1533,7 @@
         "name": "reviewerIds"
       },
       "condition": {
-        "property": "operation",
+        "property": "mergeOperation",
         "oneOf": [
           "createMergeRequest"
         ]
@@ -1397,7 +1551,7 @@
         "name": "squash"
       },
       "condition": {
-        "property": "operation",
+        "property": "mergeOperation",
         "oneOf": [
           "createMergeRequest"
         ]
@@ -1415,7 +1569,7 @@
         "name": "targetProjectId"
       },
       "condition": {
-        "property": "operation",
+        "property": "mergeOperation",
         "oneOf": [
           "createMergeRequest"
         ]
@@ -1429,7 +1583,7 @@
         "name": "url"
       },
       "condition": {
-        "property": "operation",
+        "property": "mergeOperation",
         "oneOf": [
           "createMergeRequest"
         ]
@@ -1443,7 +1597,7 @@
         "name": "body"
       },
       "condition": {
-        "property": "operation",
+        "property": "mergeOperation",
         "oneOf": [
           "createMergeRequest"
         ]
