@@ -24,9 +24,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure;
 import io.camunda.connector.api.inbound.CorrelationResult.Success;
 import io.camunda.connector.feel.FeelEngineWrapper;
+import io.camunda.connector.runtime.core.NoOpSecretProvider;
+import io.camunda.connector.runtime.core.inbound.DefaultProcessElementContextFactory;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.BoundaryEventCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.StandaloneMessageCorrelationPoint;
@@ -56,7 +59,12 @@ public class InboundCorrelationHandlerTest {
   @BeforeEach
   public void initMock() {
     zeebeClient = mock(ZeebeClient.class);
-    handler = new InboundCorrelationHandler(zeebeClient, new FeelEngineWrapper());
+    handler =
+        new InboundCorrelationHandler(
+            zeebeClient,
+            new FeelEngineWrapper(),
+            new DefaultProcessElementContextFactory(
+                new NoOpSecretProvider(), (e) -> {}, new ObjectMapper()));
   }
 
   @Test
@@ -135,7 +143,7 @@ public class InboundCorrelationHandlerTest {
 
       assertThat(result).isInstanceOf(Success.ProcessInstanceCreated.class);
       var success = (Success.ProcessInstanceCreated) result;
-      assertThat(success.activatedElement()).isEqualTo(element.element());
+      assertThat(success.activatedElement().getElement()).isEqualTo(element.element());
     }
 
     @Test
@@ -164,7 +172,7 @@ public class InboundCorrelationHandlerTest {
 
       assertThat(result).isInstanceOf(Success.MessagePublished.class);
       var success = (Success.MessagePublished) result;
-      assertThat(success.activatedElement()).isEqualTo(element.element());
+      assertThat(success.activatedElement().getElement()).isEqualTo(element.element());
     }
 
     @Test
@@ -190,7 +198,7 @@ public class InboundCorrelationHandlerTest {
 
       assertThat(result).isInstanceOf(Success.MessagePublished.class);
       var success = (Success.MessagePublished) result;
-      assertThat(success.activatedElement()).isEqualTo(element.element());
+      assertThat(success.activatedElement().getElement()).isEqualTo(element.element());
     }
 
     @Test
@@ -222,7 +230,7 @@ public class InboundCorrelationHandlerTest {
 
       assertThat(result).isInstanceOf(Success.MessagePublished.class);
       var success = (Success.MessagePublished) result;
-      assertThat(success.activatedElement()).isEqualTo(element.element());
+      assertThat(success.activatedElement().getElement()).isEqualTo(element.element());
     }
 
     @Test
@@ -250,7 +258,7 @@ public class InboundCorrelationHandlerTest {
 
       assertThat(result).isInstanceOf(Success.MessageAlreadyCorrelated.class);
       var success = (Success.MessageAlreadyCorrelated) result;
-      assertThat(success.activatedElement()).isEqualTo(element.element());
+      assertThat(success.activatedElement().getElement()).isEqualTo(element.element());
     }
   }
 
@@ -282,7 +290,7 @@ public class InboundCorrelationHandlerTest {
 
     assertThat(result).isInstanceOf(Success.ProcessInstanceCreated.class);
     var success = (Success.ProcessInstanceCreated) result;
-    assertThat(success.activatedElement()).isEqualTo(startEventElement.element());
+    assertThat(success.activatedElement().getElement()).isEqualTo(startEventElement.element());
   }
 
   @Test

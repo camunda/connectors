@@ -38,6 +38,7 @@ import io.camunda.connector.api.inbound.webhook.WebhookResult;
 import io.camunda.connector.api.inbound.webhook.WebhookResultContext;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
+import io.camunda.connector.runtime.core.inbound.DefaultProcessElementContextFactory;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
@@ -229,8 +230,10 @@ class WebhookControllerTestZeebeTests {
             "myTenant");
 
     var correlationHandlerMock = mock(InboundCorrelationHandler.class);
+    var factory = new DefaultProcessElementContextFactory(secretProvider, (e) -> {}, mapper);
     when(correlationHandlerMock.correlate(any(), any()))
-        .thenReturn(new CorrelationResult.Success.MessageAlreadyCorrelated(element.element()));
+        .thenReturn(
+            new CorrelationResult.Success.MessageAlreadyCorrelated(factory.createContext(element)));
 
     var webhookDef = webhookDefinition("nonExistingProcess", 1, "myPath");
     var webhookContext =
@@ -472,9 +475,11 @@ class WebhookControllerTestZeebeTests {
             "myTenant");
 
     var correlationHandlerMock = mock(InboundCorrelationHandler.class);
+    var factory = new DefaultProcessElementContextFactory(secretProvider, (e) -> {}, mapper);
     when(correlationHandlerMock.correlate(any(), any()))
         .thenReturn(
-            new CorrelationResult.Success.ProcessInstanceCreated(element.element(), 1L, "test"));
+            new CorrelationResult.Success.ProcessInstanceCreated(
+                factory.createContext(element), 1L, "test"));
 
     WebhookResult webhookResult = mock(WebhookResult.class);
     when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));

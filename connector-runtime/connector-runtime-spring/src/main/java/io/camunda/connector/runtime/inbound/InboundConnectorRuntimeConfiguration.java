@@ -21,9 +21,11 @@ import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.core.inbound.DefaultInboundConnectorContextFactory;
 import io.camunda.connector.runtime.core.inbound.DefaultInboundConnectorFactory;
+import io.camunda.connector.runtime.core.inbound.DefaultProcessElementContextFactory;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextFactory;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
 import io.camunda.connector.runtime.core.inbound.OperateClientAdapter;
+import io.camunda.connector.runtime.core.inbound.ProcessElementContextFactory;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.inbound.controller.InboundConnectorRestController;
@@ -53,11 +55,22 @@ import org.springframework.context.annotation.Import;
 public class InboundConnectorRuntimeConfiguration {
 
   @Bean
+  public ProcessElementContextFactory processElementContextFactory(
+      ObjectMapper objectMapper,
+      @Autowired(required = false) ValidationProvider validationProvider,
+      SecretProviderAggregator secretProviderAggregator) {
+    return new DefaultProcessElementContextFactory(
+        secretProviderAggregator, validationProvider, objectMapper);
+  }
+
+  @Bean
   public InboundCorrelationHandler inboundCorrelationHandler(
       final ZeebeClient zeebeClient,
       final FeelEngineWrapper feelEngine,
-      final MetricsRecorder metricsRecorder) {
-    return new MeteredInboundCorrelationHandler(zeebeClient, feelEngine, metricsRecorder);
+      final MetricsRecorder metricsRecorder,
+      final ProcessElementContextFactory elementContextFactory) {
+    return new MeteredInboundCorrelationHandler(
+        zeebeClient, feelEngine, metricsRecorder, elementContextFactory);
   }
 
   @Bean

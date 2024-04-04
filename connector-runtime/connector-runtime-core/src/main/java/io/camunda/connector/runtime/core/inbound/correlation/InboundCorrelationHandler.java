@@ -22,10 +22,12 @@ import io.camunda.connector.api.inbound.CorrelationResult.Failure;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure.ActivationConditionNotMet;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure.Other;
 import io.camunda.connector.api.inbound.CorrelationResult.Success.MessageAlreadyCorrelated;
+import io.camunda.connector.api.inbound.ProcessElementContext;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.core.ConnectorHelper;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
+import io.camunda.connector.runtime.core.inbound.ProcessElementContextFactory;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.client.api.command.ClientStatusException;
 import io.camunda.zeebe.client.api.response.ProcessInstanceEvent;
@@ -45,9 +47,15 @@ public class InboundCorrelationHandler {
   private final ZeebeClient zeebeClient;
   private final FeelEngineWrapper feelEngine;
 
-  public InboundCorrelationHandler(ZeebeClient zeebeClient, FeelEngineWrapper feelEngine) {
+  private final ProcessElementContextFactory processElementContextFactory;
+
+  public InboundCorrelationHandler(
+      ZeebeClient zeebeClient,
+      FeelEngineWrapper feelEngine,
+      ProcessElementContextFactory processElementContextFactory) {
     this.zeebeClient = zeebeClient;
     this.feelEngine = feelEngine;
+    this.processElementContextFactory = processElementContextFactory;
   }
 
   public CorrelationResult correlate(List<InboundConnectorElement> elements, Object variables) {
@@ -115,7 +123,9 @@ public class InboundCorrelationHandler {
 
       LOG.info("Created a process instance with key" + result.getProcessInstanceKey());
       return new CorrelationResult.Success.ProcessInstanceCreated(
-          activatedElement.element(), result.getProcessInstanceKey(), result.getTenantId());
+          getElementContext(activatedElement),
+          result.getProcessInstanceKey(),
+          result.getTenantId());
 
     } catch (ClientStatusException e1) {
       LOG.info("Failed to publish message: ", e1);
@@ -198,10 +208,12 @@ public class InboundCorrelationHandler {
       LOG.info("Published message with key: " + response.getMessageKey());
       result =
           new CorrelationResult.Success.MessagePublished(
-              activatedElement.element(), response.getMessageKey(), response.getTenantId());
+              getElementContext(activatedElement),
+              response.getMessageKey(),
+              response.getTenantId());
     } catch (ClientStatusException ex) {
       if (Status.ALREADY_EXISTS.getCode().equals(ex.getStatus().getCode())) {
-        result = new MessageAlreadyCorrelated(activatedElement.element());
+        result = new MessageAlreadyCorrelated(getElementContext(activatedElement));
       } else {
         LOG.info("Failed to publish message: ", ex);
         result =
@@ -271,5 +283,9 @@ public class InboundCorrelationHandler {
       }
     }
     return messageId;
+  }
+
+  private ProcessElementContext getElementContext(InboundConnectorElement element) {
+    return processElementContextFactory.createContext(element);
   }
 }

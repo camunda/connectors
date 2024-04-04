@@ -16,8 +16,6 @@
  */
 package io.camunda.connector.runtime.core.inbound;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.EvictingQueue;
 import io.camunda.connector.api.error.ConnectorException;
@@ -121,12 +119,12 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   @Override
   public Map<String, Object> getProperties() {
-    return getPropertiesWithSecrets();
+    return getPropertiesWithSecrets(properties);
   }
 
   @Override
   public <T> T bindProperties(Class<T> cls) {
-    var mappedObject = objectMapper.convertValue(getPropertiesWithSecrets(), cls);
+    var mappedObject = objectMapper.convertValue(getPropertiesWithSecrets(properties), cls);
     getValidationProvider().validate(mappedObject);
     return mappedObject;
   }
@@ -169,16 +167,11 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   private Map<String, Object> propertiesWithSecrets;
 
-  private Map<String, Object> getPropertiesWithSecrets() {
+  private Map<String, Object> getPropertiesWithSecrets(Map<String, Object> properties) {
     if (propertiesWithSecrets == null) {
-      try {
-        var propertiesAsJsonString = objectMapper.writeValueAsString(properties);
-        var propertiesWithSecretsJson = getSecretHandler().replaceSecrets(propertiesAsJsonString);
-        propertiesWithSecrets =
-            objectMapper.readValue(propertiesWithSecretsJson, new TypeReference<>() {});
-      } catch (JsonProcessingException e) {
-        throw new RuntimeException(e);
-      }
+      propertiesWithSecrets =
+          InboundPropertyHandler.getPropertiesWithSecrets(
+              getSecretHandler(), objectMapper, properties);
     }
     return propertiesWithSecrets;
   }

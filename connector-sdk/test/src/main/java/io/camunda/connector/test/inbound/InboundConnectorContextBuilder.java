@@ -26,6 +26,8 @@ import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
+import io.camunda.connector.api.inbound.ProcessElement;
+import io.camunda.connector.api.inbound.ProcessElementContext;
 import io.camunda.connector.api.inbound.ProcessInstanceContext;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.secret.SecretProvider;
@@ -224,7 +226,27 @@ public class InboundConnectorContextBuilder {
     public CorrelationResult correlateWithResult(Object variables) {
       correlate(variables);
       return Objects.requireNonNullElse(
-          result, new Success.ProcessInstanceCreated(definition.elements().get(0), 1L, "test"));
+          result,
+          new Success.ProcessInstanceCreated(
+              new ProcessElementContext() {
+
+                @Override
+                public ProcessElement getElement() {
+                  return new ProcessElement("test", 0, 0, "test");
+                }
+
+                @Override
+                public <T> T bindProperties(Class<T> cls) {
+                  return TestInboundConnectorContext.this.bindProperties(cls);
+                }
+
+                @Override
+                public Map<String, Object> getProperties() {
+                  return TestInboundConnectorContext.this.getProperties();
+                }
+              },
+              0L,
+              "test"));
     }
 
     @Override
