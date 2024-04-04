@@ -28,10 +28,6 @@
       "label": "Authentication"
     },
     {
-      "id": "operation",
-      "label": "Operation"
-    },
-    {
       "id": "output",
       "label": "Output"
     },

@@ -307,7 +307,7 @@
     },
     {
       "label": "Client authentication",
-      "id": "authenticationType",
+      "id": "authentication.clientAuthentication",
       "group": "authentication",
       "description": "Send client ID and client secret as Basic Auth request in the header, or as client credentials in the request body",
       "value": "basicAuthHeader",
