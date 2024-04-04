@@ -1,0 +1,168 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. See the NOTICE file
+ * distributed with this work for additional information regarding copyright
+ * ownership. Camunda licenses this file to you under the Apache License,
+ * Version 2.0; you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.camunda.connector.e2e;
+
+import static io.camunda.connector.e2e.BpmnFile.replace;
+import static org.mockito.Mockito.when;
+
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ConnectionFactory;
+import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
+import io.camunda.connector.runtime.inbound.lifecycle.InboundConnectorManager;
+import io.camunda.operate.exception.OperateException;
+import io.camunda.operate.model.ProcessDefinition;
+import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
+import io.camunda.zeebe.model.bpmn.instance.Process;
+import io.camunda.zeebe.process.test.assertions.BpmnAssert;
+import io.camunda.zeebe.spring.test.ZeebeSpringTest;
+import java.io.IOException;
+import java.util.Set;
+import java.util.concurrent.TimeoutException;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.testcontainers.containers.RabbitMQContainer;
+import org.testcontainers.utility.DockerImageName;
+
+@SpringBootTest(
+    classes = {TestConnectorRuntimeApplication.class},
+    properties = {
+      "spring.main.allow-bean-definition-overriding=true",
+      "camunda.connector.webhook.enabled=false",
+      "camunda.connector.polling.enabled=true"
+    },
+    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ZeebeSpringTest
+@ExtendWith(MockitoExtension.class)
+public class RabbitMqInboundStartEventTests extends BaseRabbitMqTest {
+
+  private static final String QUEUE_NAME = "testQueue";
+  private static final String EXCHANGE_NAME = "testExchange";
+  private static final String ROUTING_KEY = "testRoutingKey";
+  private static String PORT;
+  private static RabbitMQContainer rabbitMQContainer;
+  private static ConnectionFactory factory;
+
+  @Autowired InboundConnectorManager inboundManager;
+  @Mock private ProcessDefinition processDef;
+
+  @BeforeAll
+  public static void setup() throws IOException, TimeoutException {
+    rabbitMQContainer =
+        new RabbitMQContainer(DockerImageName.parse("rabbitmq:3.7.25-management-alpine"));
+    rabbitMQContainer.start();
+    PORT = String.valueOf(rabbitMQContainer.getAmqpPort());
+    factory = new ConnectionFactory();
+    factory.setHost(rabbitMQContainer.getHost());
+    factory.setPort(rabbitMQContainer.getAmqpPort());
+    factory.setUsername(rabbitMQContainer.getAdminUsername());
+    factory.setPassword(rabbitMQContainer.getAdminPassword());
+
+    try (Connection connection = factory.newConnection();
+        Channel channel = connection.createChannel()) {
+      channel.queueDeclare(QUEUE_NAME, true, false, false, null);
+      channel.exchangeDeclare(EXCHANGE_NAME, "direct", true);
+      channel.queueBind(QUEUE_NAME, EXCHANGE_NAME, ROUTING_KEY);
+    }
+  }
+
+  @AfterAll
+  public static void tearDown() {
+    rabbitMQContainer.stop();
+  }
+
+  @BeforeEach
+  public void cleanQueue() throws IOException, TimeoutException {
+    try (Connection connection = factory.newConnection();
+        Channel channel = connection.createChannel()) {
+      // Purge the queue to ensure it is empty before conducting the test
+      channel.queuePurge(QUEUE_NAME);
+    }
+  }
+
+  @Test
+  public void credentialsAuthenticationReceiveMessageTest() throws Exception {
+    var model =
+        replace(
+            INTERMEDIATE_CATCH_EVENT_BPMN,
+            BpmnFile.Replace.replace("rabbitMqAuthType", "credentials"),
+            BpmnFile.Replace.replace("rabbitMqUserName", rabbitMQContainer.getAdminUsername()),
+            BpmnFile.Replace.replace("rabbitMqPassword", rabbitMQContainer.getAdminPassword()),
+            BpmnFile.Replace.replace("rabbitMqPort", PORT));
+    assertIntermediateCatchEventUsingModel(model);
+  }
+
+  @Test
+  public void uriAuthenticationReceiveMessageTest() throws Exception {
+    String uri =
+        String.format(
+            "amqp://%s:%s@localhost:%s/%%2f",
+            rabbitMQContainer.getAdminUsername(), rabbitMQContainer.getAdminPassword(), PORT);
+
+    var model =
+        replace(
+            INTERMEDIATE_CATCH_EVENT_BPMN,
+            BpmnFile.Replace.replace("rabbitMqAuthType", "uri"),
+            BpmnFile.Replace.replace("rabbitMqUri", uri));
+
+    assertIntermediateCatchEventUsingModel(model);
+  }
+
+  private void assertIntermediateCatchEventUsingModel(BpmnModelInstance model) throws Exception {
+    Object expectedJsonResponse =
+        ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.readValue(
+            "{\"message\":{\"consumerTag\":\"myConsumerTag\",\"body\":{\"foo\": {\"bar\": \"barValue\"}},\"properties\":{}}}",
+            Object.class);
+
+    mockProcessDefinition(model);
+    inboundManager.handleNewProcessDefinitions(Set.of(processDef));
+
+    var bpmnTest = getZeebeTest(model);
+    postMessage();
+    bpmnTest = bpmnTest.waitForProcessCompletion();
+
+    BpmnAssert.assertThat(bpmnTest.getProcessInstanceEvent())
+        .hasVariableWithValue("allResult", expectedJsonResponse);
+
+    BpmnAssert.assertThat(bpmnTest.getProcessInstanceEvent())
+        .hasVariableWithValue("partialResult", "barValue");
+  }
+
+  private void postMessage() throws Exception {
+    try (Connection connection = factory.newConnection();
+        Channel channel = connection.createChannel()) {
+      byte[] messageBodyBytes = "{\"foo\": {\"bar\": \"barValue\"}}".getBytes();
+      channel.basicPublish(EXCHANGE_NAME, ROUTING_KEY, null, messageBodyBytes);
+    }
+  }
+
+  private void mockProcessDefinition(BpmnModelInstance model) throws OperateException {
+    when(camundaOperateClient.getProcessDefinitionModel(1L)).thenReturn(model);
+    when(processDef.getKey()).thenReturn(1L);
+    when(processDef.getTenantId()).thenReturn(zeebeClient.getConfiguration().getDefaultTenantId());
+    when(processDef.getBpmnProcessId())
+        .thenReturn(model.getModelElementsByType(Process.class).stream().findFirst().get().getId());
+  }
+}

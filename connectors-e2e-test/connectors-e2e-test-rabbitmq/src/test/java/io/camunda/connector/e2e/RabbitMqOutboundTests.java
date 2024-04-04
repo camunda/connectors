@@ -26,6 +26,8 @@ import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.GetResponse;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.rabbitmq.outbound.RabbitMqResult;
+import io.camunda.zeebe.model.bpmn.Bpmn;
+import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.spring.test.ZeebeSpringTest;
 import java.io.File;
 import java.io.IOException;
@@ -51,7 +53,7 @@ import org.testcontainers.utility.DockerImageName;
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ZeebeSpringTest
 @ExtendWith(MockitoExtension.class)
-public class RabbitMqTests extends BaseRabbitMqTest {
+public class RabbitMqOutboundTests extends BaseRabbitMqTest {
   private static final String QUEUE_NAME = "testQueue";
   private static final String EXCHANGE_NAME = "testExchange";
   private static final String ROUTING_KEY = "testRoutingKey";
@@ -82,6 +84,11 @@ public class RabbitMqTests extends BaseRabbitMqTest {
     }
   }
 
+  @AfterAll
+  public static void tearDown() {
+    rabbitMQContainer.stop();
+  }
+
   @BeforeEach
   public void cleanQueue() throws IOException, TimeoutException {
     try (Connection connection = factory.newConnection();
@@ -91,15 +98,10 @@ public class RabbitMqTests extends BaseRabbitMqTest {
     }
   }
 
-  @AfterAll
-  public static void tearDown() {
-    rabbitMQContainer.stop();
-  }
-
   @Test
   public void credentialsAuthenticationSendMessageTest() throws Exception {
     var elementTemplate =
-        ElementTemplate.from(ELEMENT_TEMPLATE_PATH)
+        ElementTemplate.from(OUTBOUND_ELEMENT_TEMPLATE_PATH)
             .property("authentication.authType", "credentials")
             .property("authentication.userName", rabbitMQContainer.getAdminUsername())
             .property("authentication.password", rabbitMQContainer.getAdminPassword())
@@ -112,7 +114,7 @@ public class RabbitMqTests extends BaseRabbitMqTest {
             .property("resultVariable", "result")
             .writeTo(new File(tempDir, "template.json"));
 
-    ZeebeTest bpmnTest = setupTestWithBpmnModel("rabbitMqTask", elementTemplate);
+    ZeebeTest bpmnTest = setupTestWithBpmnModel(elementTemplate);
 
     RabbitMqResult result = RabbitMqResult.success();
     assertThat(bpmnTest.getProcessInstanceEvent()).hasVariableWithValue("result", result);
@@ -138,7 +140,7 @@ public class RabbitMqTests extends BaseRabbitMqTest {
             "%2F");
 
     var elementTemplate =
-        ElementTemplate.from(ELEMENT_TEMPLATE_PATH)
+        ElementTemplate.from(OUTBOUND_ELEMENT_TEMPLATE_PATH)
             .property("authentication.authType", "uri")
             .property("authentication.uri", uri)
             .property("routing.exchange", EXCHANGE_NAME)
@@ -147,7 +149,7 @@ public class RabbitMqTests extends BaseRabbitMqTest {
             .property("resultVariable", "result")
             .writeTo(new File(tempDir, "template.json"));
 
-    ZeebeTest bpmnTest = setupTestWithBpmnModel("rabbitMqTask", elementTemplate);
+    ZeebeTest bpmnTest = setupTestWithBpmnModel(elementTemplate);
 
     RabbitMqResult result = RabbitMqResult.success();
     assertThat(bpmnTest.getProcessInstanceEvent()).hasVariableWithValue("result", result);
@@ -170,5 +172,22 @@ public class RabbitMqTests extends BaseRabbitMqTest {
       }
     }
     return receivedMessage;
+  }
+
+  protected BpmnModelInstance getBpmnModelInstance() {
+    return Bpmn.createProcess().executable().startEvent().serviceTask(ELEMENT_ID).endEvent().done();
+  }
+
+  protected ZeebeTest setupTestWithBpmnModel(File elementTemplate) {
+    BpmnModelInstance model = getBpmnModelInstance();
+    BpmnModelInstance updatedModel = getBpmnModelInstance(model, elementTemplate);
+    return getZeebeTest(updatedModel).waitForProcessCompletion();
+  }
+
+  protected BpmnModelInstance getBpmnModelInstance(
+      final BpmnModelInstance model, final File elementTemplate) {
+    return new BpmnFile(model)
+        .writeToFile(new File(tempDir, "test.bpmn"))
+        .apply(elementTemplate, ELEMENT_ID, new File(tempDir, "result.bpmn"));
   }
 }

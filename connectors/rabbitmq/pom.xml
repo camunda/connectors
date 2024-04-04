@@ -1,4 +1,4 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -63,6 +63,27 @@
                 </file>
               </files>
               <generateHybridTemplates>true</generateHybridTemplates>
+            </connector>
+            <connector>
+              <connectorClass>io.camunda.connector.rabbitmq.inbound.RabbitMqExecutable</connectorClass>
+              <files>
+                <file>
+                  <templateId>io.camunda.connectors.inbound.RabbitMQ.StartEvent.v1</templateId>
+                  <templateFileName>rabbitmq-inbound-connector-start-event.json</templateFileName>
+                </file>
+                <file>
+                  <templateId>io.camunda.connectors.inbound.RabbitMQ.MessageStart.v1</templateId>
+                  <templateFileName>rabbitmq-inbound-connector-message-start.json</templateFileName>
+                </file>
+                <file>
+                  <templateId>io.camunda.connectors.inbound.RabbitMQ.Intermediate.v1</templateId>
+                  <templateFileName>rabbitmq-inbound-connector-intermediate.json</templateFileName>
+                </file>
+                <file>
+                  <templateId>io.camunda.connectors.inbound.RabbitMQ.Boundary.v1</templateId>
+                  <templateFileName>rabbitmq-inbound-connector-boundary.json</templateFileName>
+                </file>
+              </files>
             </connector>
           </connectors>
         </configuration>

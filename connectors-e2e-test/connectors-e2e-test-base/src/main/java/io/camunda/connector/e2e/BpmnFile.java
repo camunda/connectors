@@ -34,6 +34,28 @@ public class BpmnFile {
     this.bpmnModelInstance = bpmnModelInstance;
   }
 
+  public static BpmnModelInstance replace(String resourceName, Replace... replaces) {
+    try {
+      var resource = BpmnFile.class.getClassLoader().getResource(resourceName);
+      var file = new File(resource.toURI());
+      return replace(file, replaces);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public static BpmnModelInstance replace(File file, Replace... replaces) {
+    try {
+      var modelXml = IOUtils.toString(file.toURI(), StandardCharsets.UTF_8);
+      for (var replace : replaces) {
+        modelXml = modelXml.replaceAll(replace.oldValue, replace.newValue);
+      }
+      return Bpmn.readModelFromStream(IOUtils.toInputStream(modelXml, StandardCharsets.UTF_8));
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   public BpmnFile writeToFile(File file) {
     bpmnFile = file;
     Bpmn.writeModelToFile(bpmnFile, bpmnModelInstance);
@@ -62,35 +84,13 @@ public class BpmnFile {
     }
   }
 
-  public static BpmnModelInstance replace(String resourceName, Replace... replaces) {
-    try {
-      var resource = BpmnFile.class.getClassLoader().getResource(resourceName);
-      var file = new File(resource.toURI());
-      return replace(file, replaces);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  public static BpmnModelInstance replace(File file, Replace... replaces) {
-    try {
-      var modelXml = IOUtils.toString(file.toURI(), StandardCharsets.UTF_8);
-      for (var replace : replaces) {
-        modelXml = modelXml.replaceAll(replace.oldValue, replace.newValue);
-      }
-      return Bpmn.readModelFromStream(IOUtils.toInputStream(modelXml, StandardCharsets.UTF_8));
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
+  public BpmnModelInstance getBpmnModelInstance() {
+    return bpmnModelInstance;
   }
 
   public record Replace(String oldValue, String newValue) {
     public static Replace replace(String oldValue, String newValue) {
       return new Replace(oldValue, newValue);
     }
-  }
-
-  public BpmnModelInstance getBpmnModelInstance() {
-    return bpmnModelInstance;
   }
 }

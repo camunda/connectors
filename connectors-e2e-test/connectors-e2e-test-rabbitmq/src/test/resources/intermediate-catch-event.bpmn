@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:modeler="http://camunda.org/schema/modeler/1.0" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.20.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.3.0" camunda:diagramRelationId="27b6716f-e23c-450e-a680-8aa4bba57026">
+  <bpmn:process id="Process_15eq1vm" isExecutable="true">
+    <bpmn:intermediateCatchEvent id="Event_01ovsuj" zeebe:modelerTemplate="io.camunda.connectors.inbound.RabbitMQ.Intermediate.v1" zeebe:modelerTemplateVersion="5" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScxOCcgaGVpZ2h0PScxOCcgdmlld0JveD0nLTcuNSAwIDI3MSAyNzEnIHByZXNlcnZlQXNwZWN0UmF0aW89J3hNaWRZTWlkJz4KICAgIDxwYXRoIGQ9J00yNDUuNDQgMTA4LjMwOGgtODUuMDlhNy43MzggNy43MzggMCAwIDEtNy43MzUtNy43MzR2LTg4LjY4QzE1Mi42MTUgNS4zMjcgMTQ3LjI5IDAgMTQwLjcyNiAwaC0zMC4zNzVjLTYuNTY4IDAtMTEuODkgNS4zMjctMTEuODkgMTEuODk0djg4LjE0M2MwIDQuNTczLTMuNjk3IDguMjktOC4yNyA4LjMxbC0yNy44ODUuMTMzYy00LjYxMi4wMjUtOC4zNTktMy43MTctOC4zNS04LjMyNWwuMTczLTg4LjI0MUM1NC4xNDQgNS4zMzcgNDguODE3IDAgNDIuMjQgMEgxMS44OUM1LjMyMSAwIDAgNS4zMjcgMCAxMS44OTRWMjYwLjIxYzAgNS44MzQgNC43MjYgMTAuNTYgMTAuNTU1IDEwLjU2SDI0NS40NGM1LjgzNCAwIDEwLjU2LTQuNzI2IDEwLjU2LTEwLjU2VjExOC44NjhjMC01LjgzNC00LjcyNi0xMC41Ni0xMC41Ni0xMC41NnptLTM5LjkwMiA5My4yMzNjMCA3LjY0NS02LjE5OCAxMy44NDQtMTMuODQzIDEzLjg0NEgxNjcuNjljLTcuNjQ2IDAtMTMuODQ0LTYuMTk5LTEzLjg0NC0xMy44NDR2LTI0LjAwNWMwLTcuNjQ2IDYuMTk4LTEzLjg0NCAxMy44NDQtMTMuODQ0aDI0LjAwNWM3LjY0NSAwIDEzLjg0MyA2LjE5OCAxMy44NDMgMTMuODQ0djI0LjAwNXonCiAgICAgICAgICBmaWxsPScjRjYwJy8+Cjwvc3ZnPg==">
+      <bpmn:extensionElements>
+        <zeebe:properties>
+          <zeebe:property name="inbound.type" value="io.camunda:connector-rabbitmq-inbound:1" />
+          <zeebe:property name="authentication.authType" value="rabbitMqAuthType" />
+          <zeebe:property name="authentication.uri" value="rabbitMqUri" />
+          <zeebe:property name="authentication.userName" value="rabbitMqUserName" />
+          <zeebe:property name="authentication.password" value="rabbitMqPassword" />
+          <zeebe:property name="routing.virtualHost" value="/" />
+          <zeebe:property name="routing.hostName" value="localhost" />
+          <zeebe:property name="routing.port" value="rabbitMqPort" />
+          <zeebe:property name="queueName" value="testQueue" />
+          <zeebe:property name="consumerTag" value="myConsumerTag" />
+          <zeebe:property name="exclusive" value="false" />
+          <zeebe:property name="activationCondition" value="=true" />
+          <zeebe:property name="correlationKeyExpression" value="=&#34;ok&#34;" />
+          <zeebe:property name="resultVariable" value="allResult" />
+          <zeebe:property name="resultExpression" value="={&#34;partialResult&#34;: message.body.foo.bar}" />
+        </zeebe:properties>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_09gkii6</bpmn:incoming>
+      <bpmn:outgoing>Flow_0vg65mb</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDefinition_1h44zht" messageRef="Message_0a8snki" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:startEvent id="Event_0kib24x">
+      <bpmn:outgoing>Flow_09gkii6</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="Flow_09gkii6" sourceRef="Event_0kib24x" targetRef="Event_01ovsuj" />
+    <bpmn:endEvent id="Event_1pk7cjb">
+      <bpmn:incoming>Flow_0vg65mb</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_0vg65mb" sourceRef="Event_01ovsuj" targetRef="Event_1pk7cjb" />
+  </bpmn:process>
+  <bpmn:message id="Message_0a8snki" name="6d6b85a2-88e5-4217-8aab-ddd226a66d07" zeebe:modelerTemplate="io.camunda.connectors.inbound.RabbitMQ.Intermediate.v1">
+    <bpmn:extensionElements>
+      <zeebe:subscription correlationKey="=&#34;ok&#34;" />
+    </bpmn:extensionElements>
+  </bpmn:message>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_15eq1vm">
+      <bpmndi:BPMNShape id="Event_1i260qy_di" bpmnElement="Event_01ovsuj">
+        <dc:Bounds x="342" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_0kib24x_di" bpmnElement="Event_0kib24x">
+        <dc:Bounds x="152" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1pk7cjb_di" bpmnElement="Event_1pk7cjb">
+        <dc:Bounds x="522" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_0vg65mb_di" bpmnElement="Flow_0vg65mb">
+        <di:waypoint x="378" y="120" />
+        <di:waypoint x="522" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_09gkii6_di" bpmnElement="Flow_09gkii6">
+        <di:waypoint x="188" y="120" />
+        <di:waypoint x="342" y="120" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
