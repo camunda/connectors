@@ -11,30 +11,36 @@ mvn clean package
 
 ## API
 
-### Input
+### Input (Uri authentication)
 
 ```json
 {
+  "database": "MYSQL",
   "authentication": {
-    "username": "{{secrets.KAFKA_USER_NAME}}",
-    "password": "{{secrets.KAFKA_PASSWORD}}"
+    "authType": "URI",
+    "uri": "jdbc:mysql://root:mypass@myhost1:3306/db_name"
   },
-  "topic": {
-    "bootstrapServers": "{{secrets.KAFKA_BOOTSTRAP_SERVERS}}",
-    "topicName": "{{secrets.KAFKA_TOPIC_NAME}}"
+  "isModifyingQuery": true,
+  "query": "INSERT INTO Employee (Id,Name,Age,Department) VALUES (?, ?, ?, ?)",
+  "variables": "[\"TheId\", \"TheName\", 42, \"TheDepartment\"]"
+}
+```
+
+### Input (Detailed authentication)
+
+```json
+{
+  "database": "MYSQL",
+  "authentication": {
+    "authType": "detailed",
+    "host": "localhost",
+    "port": 5868,
+    "username": "myLogin",
+    "password": "mySecretPassword"
   },
-  "message": {
-    "key": "document-id-1234567890",
-    "value": {
-      "documentId": "1234567890",
-      "signedBy": "Tester Testerson",
-      "contentBase64": "Q2FtdW5kYSBLYWZrYSBDb25uZWN0b3I="
-    }
-  },
-  "additionalProperties": {
-    "delivery.timeout.ms": "25000",
-    "request.timeout.ms": "25000"
-  }
+  "isModifyingQuery": true,
+  "query": "INSERT INTO Employee (Id,Name,Age,Department) VALUES (?, ?, ?, ?)",
+  "variables": "[\"TheId\", \"TheName\", 42, \"TheDepartment\"]"
 }
 ```
 
@@ -43,15 +49,13 @@ mvn clean package
 ```json
 {
   "result": {
-    "topic": "topic_0",
-    "timestamp": 1665927163361,
-    "offset": 9,
-    "partition": 1
+    // TODO
   }
 }
 ```
 
 ## Element Template
 
+// TODO to be updated
 The element templates can be found in
 the [element-templates/kafka--outbound-connector.json](element-templates/kafka-outbound-connector.json) file.
