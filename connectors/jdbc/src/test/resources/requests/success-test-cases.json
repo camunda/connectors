@@ -1,0 +1,26 @@
+[
+  {
+    "testDescription": "Regular happy case with URI authentication",
+    "database": "MYSQL",
+    "authentication": {
+      "authType": "URI",
+      "uri": "jdbc:mysql://root:mypass@myhost1:3306/db_name"
+    },
+    "isModifyingQuery": true,
+    "query": "UPDATE users SET name = ? WHERE id = 1",
+    "variables": "[\"john\"]"
+  },
+  {
+    "testDescription": "Regular happy case with Detailed authentication",
+    "database": "MYSQL",
+    "authentication": {
+      "authType": "detailed",
+      "host": "localhost",
+      "port": 5868,
+      "username": "myLogin",
+      "password": "mySecretPassword"
+    },
+    "isModifyingQuery": false,
+    "query": "SELECT * FROM users"
+  }
+]

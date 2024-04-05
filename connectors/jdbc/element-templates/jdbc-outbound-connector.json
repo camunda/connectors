@@ -1,0 +1,290 @@
+{
+  "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name" : "SQL Database Connector",
+  "id" : "io.camunda.connectors.Jdbc.v1",
+  "description" : "Read and write data from a Camunda process directly to a SQL database(MSSQL, MySQL, PostgreSQL)",
+  "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/jdbc",
+  "version" : 1,
+  "category" : {
+    "id" : "connectors",
+    "name" : "Connectors"
+  },
+  "appliesTo" : [ "bpmn:Task" ],
+  "elementType" : {
+    "value" : "bpmn:ServiceTask"
+  },
+  "groups" : [ {
+    "id" : "database",
+    "label" : "Database"
+  }, {
+    "id" : "authentication",
+    "label" : "Authentication"
+  }, {
+    "id" : "query",
+    "label" : "Query"
+  }, {
+    "id" : "output",
+    "label" : "Output mapping"
+  }, {
+    "id" : "error",
+    "label" : "Error handling"
+  }, {
+    "id" : "retries",
+    "label" : "Retries"
+  } ],
+  "properties" : [ {
+    "value" : "io.camunda:connector-jdbc:1",
+    "binding" : {
+      "property" : "type",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "database",
+    "label" : "Database",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "database",
+    "binding" : {
+      "name" : "database",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "MSSQL",
+      "value" : "MSSQL"
+    }, {
+      "name" : "MySQL",
+      "value" : "MYSQL"
+    }, {
+      "name" : "PostgreSQL",
+      "value" : "POSTGRESQL"
+    } ]
+  }, {
+    "id" : "authentication.authType",
+    "label" : "Connection type",
+    "value" : "uri",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.authType",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "URI",
+      "value" : "uri"
+    }, {
+      "name" : "Detailed",
+      "value" : "detailed"
+    } ]
+  }, {
+    "id" : "authentication.uri",
+    "label" : "URI",
+    "description" : "URI should contain JDBC driver, username, password, host name, and port number",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "^(jdbc://|secrets|\\{\\{).*$",
+        "message" : "Must start with jdbc:// or contain a secret reference"
+      }
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.uri",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.authType",
+      "equals" : "uri",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.host",
+    "label" : "Host",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.host",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.authType",
+      "equals" : "detailed",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.port",
+    "label" : "Port",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.port",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.authType",
+      "equals" : "detailed",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.username",
+    "label" : "Username",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.username",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.authType",
+      "equals" : "detailed",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "authentication.password",
+    "label" : "Password",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.password",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.authType",
+      "equals" : "detailed",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "isModifyingQuery",
+    "label" : "Modifying query",
+    "description" : "Check this box if the query is anything other than a SELECT query",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "query",
+    "binding" : {
+      "name" : "isModifyingQuery",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Yes",
+      "value" : "true"
+    }, {
+      "name" : "No",
+      "value" : "false"
+    } ]
+  }, {
+    "id" : "query",
+    "label" : "Query",
+    "description" : "The SQL query to execute. You can use placeholders (?) for variables",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "query",
+    "binding" : {
+      "name" : "query",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "variables",
+    "label" : "Variables",
+    "description" : "The variables to use in the SQL query. Use the same order as in the statement",
+    "optional" : false,
+    "feel" : "required",
+    "group" : "query",
+    "binding" : {
+      "name" : "variables",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "resultVariable",
+    "label" : "Result variable",
+    "description" : "Name of variable to store the response in",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultVariable",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  }, {
+    "id" : "resultExpression",
+    "label" : "Result expression",
+    "description" : "Expression to map the response into process variables",
+    "feel" : "required",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "errorExpression",
+    "label" : "Error expression",
+    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "error",
+    "binding" : {
+      "key" : "errorExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "retryCount",
+    "label" : "Retries",
+    "description" : "Number of retries",
+    "value" : "3",
+    "feel" : "optional",
+    "group" : "retries",
+    "binding" : {
+      "property" : "retries",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "String"
+  }, {
+    "id" : "retryBackoff",
+    "label" : "Retry backoff",
+    "description" : "ISO-8601 duration to wait between retries",
+    "value" : "PT0S",
+    "feel" : "optional",
+    "group" : "retries",
+    "binding" : {
+      "key" : "retryBackoff",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  } ],
+  "icon" : {
+    "contents" : "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMTgiIHdpZHRoPSIxOCIgdmlld0JveD0iMCAwIDEwIDEwIiBzaGFwZS1yZW5kZXJpbmc9Imdlb21ldHJpY1ByZWNpc2lvbiI+PHRpdGxlPlNsYWNrPC90aXRsZT48ZyBmaWxsPSJub25lIj48cGF0aCBkPSJNMCwwIEwwLDEwIEwxMCwxMCBMMTAsMCB6IiBmaWxsPSIjZWNiMTJmIi8+PC9nPjwvc3ZnPg=="
+  }
+}

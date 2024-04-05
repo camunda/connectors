@@ -1,1 +1,1 @@
-io.camunda.example.MyConnectorFunction
+io.camunda.connector.jdbc.outbound.JdbcFunction
