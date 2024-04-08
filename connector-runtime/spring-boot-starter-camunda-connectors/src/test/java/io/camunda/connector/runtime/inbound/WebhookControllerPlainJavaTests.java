@@ -37,11 +37,12 @@ import io.camunda.connector.runtime.core.inbound.InboundConnectorData;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.inbound.correlation.StartEventCorrelationPoint;
-import io.camunda.connector.runtime.inbound.executable.ActiveExecutable;
+import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
@@ -133,7 +134,7 @@ public class WebhookControllerPlainJavaTests {
 
   private static long nextProcessDefinitionKey = 0L;
 
-  public static ActiveExecutable buildConnector(InboundConnectorData definition) {
+  public static RegisteredExecutable.Activated buildConnector(InboundConnectorData definition) {
     WebhookConnectorExecutable executable = mock(WebhookConnectorExecutable.class);
     try {
       Mockito.when(executable.triggerWebhook(any(WebhookProcessingPayload.class)))
@@ -141,7 +142,7 @@ public class WebhookControllerPlainJavaTests {
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
-    return new ActiveExecutable(executable, buildContext(definition));
+    return new RegisteredExecutable.Activated(executable, buildContext(definition));
   }
 
   public static InboundConnectorContextImpl buildContext(InboundConnectorData def) {
@@ -161,6 +162,7 @@ public class WebhookControllerPlainJavaTests {
   public static InboundConnectorData webhookDefinition(
       String bpmnProcessId, int version, String path) {
     return new InboundConnectorData(
+        UUID.randomUUID().toString(),
         List.of(webhookElement(++nextProcessDefinitionKey, bpmnProcessId, version, path)));
   }
 
@@ -170,7 +172,7 @@ public class WebhookControllerPlainJavaTests {
     return new InboundConnectorElement(
         Map.of("inbound.type", "io.camunda:webhook:1", "inbound.context", path),
         new StartEventCorrelationPoint(bpmnProcessId, version, processDefinitionKey),
-        new ProcessElement(bpmnProcessId, version, processDefinitionKey, "testElement"),
-        "testTenantId");
+        new ProcessElement(
+            bpmnProcessId, version, processDefinitionKey, "testElement", "testTenantId"));
   }
 }

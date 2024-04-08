@@ -98,7 +98,7 @@ public class InboundConnectorRestController {
   private ActiveInboundConnectorResponse mapToInboundResponse(ActiveExecutableResponse connector) {
     var elements = connector.elements();
     var type = elements.getFirst().type();
-    var tenantId = elements.getFirst().tenantId();
+    var tenantId = elements.getFirst().element().tenantId();
     return new ActiveInboundConnectorResponse(
         connector.executableId(),
         type,

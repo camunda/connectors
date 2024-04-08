@@ -30,7 +30,7 @@ public class InboundConnectorDefinitionBuilder {
   private String deduplicationId = "test-deduplication-id";
 
   private List<ProcessElement> elements =
-      List.of(new ProcessElement("test-process", 1, 1L, "test-element"));
+      List.of(new ProcessElement("test-process", 1, 1L, "test-element", "<default>"));
 
   public static InboundConnectorDefinitionBuilder create() {
     return new InboundConnectorDefinitionBuilder();

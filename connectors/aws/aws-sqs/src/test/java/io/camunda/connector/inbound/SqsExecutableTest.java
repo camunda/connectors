@@ -119,7 +119,7 @@ class SqsExecutableTest {
   }
 
   private InboundConnectorDefinition createDefinition() {
-    var element = new ProcessElement("proc-id", 1, 2, "element-id");
+    var element = new ProcessElement("proc-id", 1, 2, "element-id", "<default>");
     return InboundConnectorDefinitionBuilder.create().elements(element).type("type").build();
   }
 

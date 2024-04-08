@@ -17,7 +17,17 @@
 package io.camunda.connector.runtime.inbound.executable;
 
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorData;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorReportingContext;
 
-public record ActiveExecutable(
-    InboundConnectorExecutable<?> executable, InboundConnectorReportingContext context) {}
+public sealed interface RegisteredExecutable {
+
+  record Activated(
+      InboundConnectorExecutable<?> executable, InboundConnectorReportingContext context)
+      implements RegisteredExecutable {}
+
+  record ConnectorNotRegistered(InboundConnectorData data) implements RegisteredExecutable {}
+
+  record FailedToActivate(InboundConnectorData data, String reason)
+      implements RegisteredExecutable {}
+}

@@ -16,19 +16,21 @@
  */
 package io.camunda.connector.runtime.inbound.executable;
 
-import com.google.common.collect.EvictingQueue;
 import io.camunda.connector.api.inbound.Health;
-import io.camunda.connector.api.inbound.InboundConnectorExecutable;
-import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
-import io.camunda.connector.runtime.core.inbound.InboundConnectorContextFactory;
+import io.camunda.connector.api.inbound.ProcessElement;
+import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorData;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
-import io.camunda.connector.runtime.core.inbound.InboundConnectorReportingContext;
-import io.camunda.connector.runtime.inbound.executable.InboundExecutableEvent.Activated;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableEvent.Deactivated;
-import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
-import io.camunda.connector.runtime.metrics.ConnectorMetrics.Inbound;
-import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
+import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.Activated;
+import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.ConnectorNotRegistered;
+import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.FailedToActivate;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -39,38 +41,33 @@ import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 
 public class InboundExecutableRegistryImpl implements InboundExecutableRegistry {
 
-  @Value("${camunda.connector.inbound.log.size:10}")
-  private int inboundLogsSize;
-
-  private final InboundConnectorFactory connectorFactory;
-  private final InboundConnectorContextFactory connectorContextFactory;
-  private final MetricsRecorder metricsRecorder;
-  private final WebhookConnectorRegistry webhookConnectorRegistry;
-
   private final BlockingQueue<InboundExecutableEvent> eventQueue;
   private final ExecutorService executorService;
 
-  private final ConcurrentHashMap<UUID, ActiveExecutable> executables = new ConcurrentHashMap<>();
+  private final BatchExecutableProcessor batchExecutableProcessor;
+
+  private final Map<ProcessElement, UUID> executablesByElement = new ConcurrentHashMap<>();
+  private final Map<UUID, RegisteredExecutable> executables = new HashMap<>();
 
   private static final Logger LOG = LoggerFactory.getLogger(InboundExecutableRegistryImpl.class);
 
+  private final Map<String, List<String>> deduplicationScopesByType;
+
   public InboundExecutableRegistryImpl(
-      InboundConnectorFactory connectorFactory,
-      InboundConnectorContextFactory connectorContextFactory,
-      MetricsRecorder metricsRecorder,
-      @Autowired(required = false) WebhookConnectorRegistry webhookConnectorRegistry) {
-    this.connectorFactory = connectorFactory;
-    this.connectorContextFactory = connectorContextFactory;
-    this.metricsRecorder = metricsRecorder;
-    this.webhookConnectorRegistry = webhookConnectorRegistry;
+      InboundConnectorFactory connectorFactory, BatchExecutableProcessor batchExecutableProcessor) {
+    this.batchExecutableProcessor = batchExecutableProcessor;
     this.executorService = Executors.newSingleThreadExecutor();
     eventQueue = new LinkedBlockingQueue<>();
+    deduplicationScopesByType =
+        connectorFactory.getConfigurations().stream()
+            .collect(
+                Collectors.toMap(
+                    InboundConnectorConfiguration::type,
+                    InboundConnectorConfiguration::deduplicationProperties));
     startEventProcessing();
   }
 
@@ -90,14 +87,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
   @Override
   public void publishEvent(InboundExecutableEvent event) {
     eventQueue.add(event);
-    LOG.debug("Event added to the queue: " + event);
-  }
-
-  public void handleEvent(InboundExecutableEvent event) {
-    switch (event) {
-      case Activated activated -> handleActivated(activated);
-      case Deactivated deactivated -> handleDeactivated(deactivated);
-    }
+    LOG.debug("Event added to the queue: {}", event);
   }
 
   private final BiConsumer<Throwable, UUID> cancellationCallback =
@@ -105,95 +95,92 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
         LOG.warn("Inbound connector executable has requested its cancellation", throwable);
         var toCancel = executables.get(id);
         if (toCancel == null) {
-          LOG.error("Inbound connector executable not found for the given ID: " + id);
+          LOG.error("Inbound connector executable not found for the given ID: {}", id);
           return;
         }
-        toCancel.context().reportHealth(Health.down(throwable));
-        try {
-          toCancel.executable().deactivate();
-        } catch (Exception e) {
-          LOG.error("Failed to deactivate connector", e);
+        if (toCancel instanceof Activated activated) {
+          activated.context().reportHealth(Health.down(throwable));
+          try {
+            activated.executable().deactivate();
+          } catch (Exception e) {
+            LOG.error("Failed to deactivate connector", e);
+          }
+        } else {
+          LOG.error(
+              "Attempted to cancel an inbound connector executable that is not in the active state: {}",
+              id);
         }
       };
 
-  private void handleActivated(Activated activated) {
-    LOG.debug("Handling activated event for connector: " + activated.executableId());
-    var definition = activated.definition();
-    final InboundConnectorExecutable executable;
-    final InboundConnectorReportingContext context;
-
-    try {
-      executable = connectorFactory.getInstance(activated.definition().type());
-      context =
-          (InboundConnectorReportingContext)
-              connectorContextFactory.createContext(
-                  definition,
-                  (throwable) -> cancellationCallback.accept(throwable, activated.executableId()),
-                  executable.getClass(),
-                  EvictingQueue.create(inboundLogsSize));
-    } catch (Exception e) {
-      LOG.error("Failed to create executable", e);
-      return;
+  private void handleEvent(InboundExecutableEvent event) {
+    switch (event) {
+      case InboundExecutableEvent.Activated activated -> handleActivated(activated);
+      case Deactivated deactivated -> handleDeactivated(deactivated);
     }
-
-    var result =
-        executables.putIfAbsent(
-            activated.executableId(), new ActiveExecutable(executable, context));
-    if (result != null) {
-      throw new IllegalStateException(
-          "Executable with ID " + activated.executableId() + " already exists");
-    }
-
-    if (webhookConnectorRegistry == null && executable instanceof WebhookConnectorExecutable) {
-      LOG.error("Webhook connector is not supported in this environment");
-      context.reportHealth(
-          Health.down(
-              new UnsupportedOperationException(
-                  "Webhook connectors are not supported in this environment")));
-      return;
-    }
-
-    try {
-      if (executable instanceof WebhookConnectorExecutable) {
-        LOG.debug("Registering webhook: " + definition.type());
-        webhookConnectorRegistry.register(new ActiveExecutable(executable, context));
-      }
-      executable.activate(context);
-    } catch (Exception e) {
-      LOG.error("Failed to activate connector", e);
-      context.reportHealth(Health.down(e));
-    }
-
-    LOG.info(
-        "Inbound connector {} activated with deduplication ID '{}' and executable ID '{}'",
-        definition.type(),
-        definition.deduplicationId(),
-        activated.executableId());
-    metricsRecorder.increase(
-        Inbound.METRIC_NAME_ACTIVATIONS, Inbound.ACTION_ACTIVATED, definition.type());
   }
 
-  void handleDeactivated(Deactivated deactivated) {
-    LOG.debug("Handling deactivated event for connector: " + deactivated.executableId());
-    var activeExecutable = executables.remove(deactivated.executableId());
-    if (activeExecutable == null) {
-      LOG.error("Executable with ID " + deactivated.executableId() + " not found");
+  private void handleActivated(InboundExecutableEvent.Activated activated) {
+    LOG.debug(
+        "Handling activated event for process definition {} (tenant {})",
+        activated.processDefinitionKey(),
+        activated.tenantId());
+
+    var elements = activated.elements();
+    if (elements.isEmpty()) {
+      LOG.error("No elements provided for activation");
       return;
     }
 
-    try {
-      if (activeExecutable.executable() instanceof WebhookConnectorExecutable) {
-        LOG.debug("Unregistering webhook: " + activeExecutable.context().getDefinition().type());
-        webhookConnectorRegistry.deregister(activeExecutable);
+    var processId = activated.tenantId() + activated.processDefinitionKey();
+
+    synchronized (processId.intern()) {
+      try {
+        Map<UUID, InboundConnectorData> groupedConnectors =
+            groupElements(elements).stream()
+                .collect(Collectors.toMap(connector -> UUID.randomUUID(), connector -> connector));
+
+        groupedConnectors.forEach(
+            (id, connectorData) ->
+                connectorData
+                    .connectorElements()
+                    .forEach(element -> executablesByElement.put(element.element(), id)));
+
+        var activationResult =
+            batchExecutableProcessor.activateBatch(groupedConnectors, cancellationCallback);
+        executables.putAll(activationResult);
+
+      } catch (Exception e) {
+        LOG.error("Failed to activate connectors", e);
       }
-      activeExecutable.executable().deactivate();
-    } catch (Exception e) {
-      LOG.error("Failed to deactivate executable", e);
     }
-    metricsRecorder.increase(
-        Inbound.METRIC_NAME_ACTIVATIONS,
-        Inbound.ACTION_DEACTIVATED,
-        activeExecutable.context().getDefinition().type());
+  }
+
+  private void handleDeactivated(Deactivated deactivated) {
+    LOG.debug(
+        "Handling deactivated event for process {} (tenant {}) ",
+        deactivated.processDefinitionKey(),
+        deactivated.tenantId());
+
+    var processId = deactivated.tenantId() + deactivated.processDefinitionKey();
+
+    synchronized (processId.intern()) {
+      try {
+        var executablesToDeactivate =
+            executablesByElement.keySet().stream()
+                .filter(
+                    element ->
+                        element.tenantId().equals(deactivated.tenantId())
+                            && element.processDefinitionKey() == deactivated.processDefinitionKey())
+                .map(executablesByElement::remove)
+                .map(executables::remove)
+                .toList();
+
+        batchExecutableProcessor.deactivateBatch(executablesToDeactivate);
+
+      } catch (Exception e) {
+        LOG.error("Failed to deactivate connectors", e);
+      }
+    }
   }
 
   @Override
@@ -204,25 +191,87 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
         .toList();
   }
 
-  private boolean matchesQuery(ActiveExecutable executable, ActiveExecutableQuery query) {
-    var definition = executable.context().getDefinition();
-    var elements = executable.context().getDefinition().elements();
+  private List<InboundConnectorData> groupElements(List<InboundConnectorElement> elements) {
+
+    Map<String, List<InboundConnectorElement>> groupedElements = new HashMap<>();
+
+    for (InboundConnectorElement element : elements) {
+      try {
+        var deduplicationProperties =
+            Optional.ofNullable(deduplicationScopesByType.get(element.type())).orElse(List.of());
+        var deduplicationId = element.deduplicationId(deduplicationProperties);
+        groupedElements.computeIfAbsent(deduplicationId, k -> new ArrayList<>()).add(element);
+      } catch (Exception e) {
+        LOG.error(
+            "Failed to get deduplication ID for element {} in process {}",
+            element.element().elementId(),
+            element.element().bpmnProcessId(),
+            e);
+      }
+    }
+
+    return groupedElements.entrySet().stream()
+        .map(entry -> new InboundConnectorData(entry.getKey(), entry.getValue()))
+        .toList();
+  }
+
+  private boolean matchesQuery(RegisteredExecutable executable, ActiveExecutableQuery query) {
+    List<ProcessElement> elements =
+        switch (executable) {
+          case Activated activated -> activated.context().connectorElements().stream()
+              .map(InboundConnectorElement::element)
+              .toList();
+          case FailedToActivate failed -> failed.data().connectorElements().stream()
+              .map(InboundConnectorElement::element)
+              .toList();
+          case ConnectorNotRegistered notRegistered -> notRegistered
+              .data()
+              .connectorElements()
+              .stream()
+              .map(InboundConnectorElement::element)
+              .toList();
+        };
+    var type =
+        switch (executable) {
+          case Activated activated -> activated.context().getDefinition().type();
+          case FailedToActivate failed -> failed.data().type();
+          case ConnectorNotRegistered notRegistered -> notRegistered.data().type();
+        };
+
     return elements.stream()
         .anyMatch(
             element ->
-                element.bpmnProcessId().equals(query.bpmnProcessId())
-                    && definition.type().equals(query.type())
-                    && definition.tenantId().equals(query.tenantId())
-                    && element.elementId().equals(query.elementId()));
+                query.bpmnProcessId() == null
+                    || query.bpmnProcessId().equals(element.bpmnProcessId())
+                        && (query.type() == null || query.type().equals(type))
+                        && (query.tenantId() == null
+                            || query.tenantId().equals(element.tenantId())
+                                && (query.elementId() == null
+                                    || query.elementId().equals(element.elementId()))));
   }
 
-  private ActiveExecutableResponse mapToResponse(UUID id, ActiveExecutable connector) {
-    return new ActiveExecutableResponse(
-        id,
-        connector.executable().getClass(),
-        connector.context().connectorElements(),
-        connector.context().getHealth(),
-        connector.context().getLogs());
+  private ActiveExecutableResponse mapToResponse(UUID id, RegisteredExecutable connector) {
+
+    return switch (connector) {
+      case Activated activated -> new ActiveExecutableResponse(
+          id,
+          activated.executable().getClass(),
+          activated.context().connectorElements(),
+          activated.context().getHealth(),
+          activated.context().getLogs());
+      case FailedToActivate failed -> new ActiveExecutableResponse(
+          id,
+          null,
+          failed.data().connectorElements(),
+          Health.down("reason", failed.reason()),
+          List.of());
+      case ConnectorNotRegistered ignored -> new ActiveExecutableResponse(
+          id,
+          null,
+          ignored.data().connectorElements(),
+          Health.down("reason", "Connector not registered"),
+          List.of());
+    };
   }
 
   // print status report every hour
@@ -232,8 +281,40 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
     executables.values().stream()
         .collect(
             Collectors.groupingBy(
-                activeExecutable -> activeExecutable.context().getDefinition().type(),
-                Collectors.counting()))
-        .forEach((type, count) -> LOG.info(". '{}' - {}", type, count));
+                activeExecutable ->
+                    switch (activeExecutable) {
+                      case Activated activated -> activated.context().getDefinition().type();
+                      case FailedToActivate failed -> failed.data().type();
+                      case ConnectorNotRegistered notRegistered -> notRegistered.data().type();
+                    },
+                Collectors.toList()))
+        .forEach(
+            (type, list) -> {
+              var successfullyActivatedCount =
+                  list.stream().filter(Activated.class::isInstance).count();
+              LOG.info(
+                  ". '{}' - {}, of which {} successfully activated",
+                  type,
+                  list.size(),
+                  successfullyActivatedCount);
+              var groupedByTenant =
+                  list.stream()
+                      .collect(
+                          Collectors.groupingBy(
+                              activeExecutable ->
+                                  switch (activeExecutable) {
+                                    case Activated activated -> activated
+                                        .context()
+                                        .getDefinition()
+                                        .tenantId();
+                                    case FailedToActivate failed -> failed.data().tenantId();
+                                    case ConnectorNotRegistered notRegistered -> notRegistered
+                                        .data()
+                                        .tenantId();
+                                  },
+                              Collectors.counting()));
+              groupedByTenant.forEach(
+                  (tenant, count) -> LOG.info(". . {} for tenant {}", count, tenant));
+            });
   }
 }

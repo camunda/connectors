@@ -22,6 +22,7 @@ import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -74,7 +75,10 @@ public final class ConnectorUtil {
           toConnectorTypeEnvVariable(toNormalizedConnectorName(annotation.get().name()));
       final var type =
           Optional.ofNullable(env.get(normalizedConnectorName)).orElse(annotation.get().type());
-      return Optional.of(new InboundConnectorConfiguration(annotation.get().name(), type, cls));
+      final var deduplicationProperties = Arrays.asList(annotation.get().deduplicationProperties());
+      return Optional.of(
+          new InboundConnectorConfiguration(
+              annotation.get().name(), type, cls, deduplicationProperties));
     }
     return Optional.empty();
   }

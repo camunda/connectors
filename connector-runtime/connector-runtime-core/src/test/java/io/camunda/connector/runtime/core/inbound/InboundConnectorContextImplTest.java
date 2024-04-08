@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
@@ -116,9 +117,9 @@ class InboundConnectorContextImplTest {
         new InboundConnectorElement(
             properties,
             new StandaloneMessageCorrelationPoint("", "", null),
-            new ProcessElement("bool", 0, 0, "id"),
-            "");
-    return new InboundConnectorData(Collections.singletonList(element));
+            new ProcessElement("bool", 0, 0, "id", "<default>"));
+    return new InboundConnectorData(
+        UUID.randomUUID().toString(), Collections.singletonList(element));
   }
 
   @Test

@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.core.inbound;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.camunda.connector.api.inbound.ProcessElement;
 import java.util.List;
 import java.util.Map;
 
@@ -28,11 +29,11 @@ public record InboundConnectorData(
     @JsonIgnore Map<String, String> rawPropertiesWithoutKeywords,
     List<InboundConnectorElement> connectorElements) {
 
-  public InboundConnectorData(List<InboundConnectorElement> elements) {
+  public InboundConnectorData(String deduplicationId, List<InboundConnectorElement> elements) {
     this(
         extractType(elements),
         extractTenantId(elements),
-        extractDeduplicationId(elements),
+        deduplicationId,
         extractRawProperties(elements),
         elements);
   }
@@ -45,18 +46,15 @@ public record InboundConnectorData(
   }
 
   private static String extractTenantId(List<InboundConnectorElement> elements) {
-    if (elements.stream().map(InboundConnectorElement::tenantId).distinct().count() > 1) {
+    if (elements.stream()
+            .map(InboundConnectorElement::element)
+            .map(ProcessElement::tenantId)
+            .distinct()
+            .count()
+        > 1) {
       throw new IllegalArgumentException("All elements in a group must have the same tenant ID");
     }
-    return elements.getFirst().tenantId();
-  }
-
-  private static String extractDeduplicationId(List<InboundConnectorElement> elements) {
-    if (elements.stream().map(InboundConnectorElement::deduplicationId).distinct().count() > 1) {
-      throw new IllegalArgumentException(
-          "All elements in a group must have the same deduplication ID");
-    }
-    return elements.getFirst().deduplicationId();
+    return elements.getFirst().element().tenantId();
   }
 
   private static Map<String, String> extractRawProperties(List<InboundConnectorElement> elements) {

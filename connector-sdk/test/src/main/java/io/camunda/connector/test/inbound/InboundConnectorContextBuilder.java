@@ -232,7 +232,7 @@ public class InboundConnectorContextBuilder {
 
                 @Override
                 public ProcessElement getElement() {
-                  return new ProcessElement("test", 0, 0, "test");
+                  return new ProcessElement("test", 0, 0, "test", "<default>");
                 }
 
                 @Override

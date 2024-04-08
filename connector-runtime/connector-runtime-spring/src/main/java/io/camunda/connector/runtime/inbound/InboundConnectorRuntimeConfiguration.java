@@ -29,6 +29,7 @@ import io.camunda.connector.runtime.core.inbound.ProcessElementContextFactory;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.inbound.controller.InboundConnectorRestController;
+import io.camunda.connector.runtime.inbound.executable.BatchExecutableProcessor;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistryImpl;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionImportConfiguration;
@@ -102,16 +103,20 @@ public class InboundConnectorRuntimeConfiguration {
   }
 
   @Bean
+  public BatchExecutableProcessor batchExecutableProcessor(
+      InboundConnectorFactory connectorFactory,
+      InboundConnectorContextFactory connectorContextFactory,
+      MetricsRecorder metricsRecorder,
+      @Autowired(required = false) WebhookConnectorRegistry webhookConnectorRegistry) {
+    return new BatchExecutableProcessor(
+        connectorFactory, connectorContextFactory, metricsRecorder, webhookConnectorRegistry);
+  }
+
+  @Bean
   public InboundExecutableRegistry inboundExecutableRegistry(
       InboundConnectorFactory inboundConnectorFactory,
-      InboundConnectorContextFactory inboundConnectorContextFactory,
-      @Autowired(required = false) MetricsRecorder metricsRecorder,
-      @Autowired(required = false) WebhookConnectorRegistry webhookConnectorRegistry) {
-    return new InboundExecutableRegistryImpl(
-        inboundConnectorFactory,
-        inboundConnectorContextFactory,
-        metricsRecorder,
-        webhookConnectorRegistry);
+      BatchExecutableProcessor batchExecutableProcessor) {
+    return new InboundExecutableRegistryImpl(inboundConnectorFactory, batchExecutableProcessor);
   }
 
   @Bean

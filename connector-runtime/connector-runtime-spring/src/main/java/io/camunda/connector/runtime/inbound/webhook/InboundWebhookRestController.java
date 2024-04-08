@@ -36,7 +36,7 @@ import io.camunda.connector.api.inbound.webhook.WebhookResult;
 import io.camunda.connector.api.inbound.webhook.WebhookResultContext;
 import io.camunda.connector.api.inbound.webhook.WebhookTriggerResultContext;
 import io.camunda.connector.feel.FeelEngineWrapperException;
-import io.camunda.connector.runtime.inbound.executable.ActiveExecutable;
+import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable;
 import io.camunda.connector.runtime.inbound.webhook.model.HttpServletRequestWebhookProcessingPayload;
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
@@ -91,7 +91,7 @@ public class InboundWebhookRestController {
   }
 
   private ResponseEntity<?> processWebhook(
-      ActiveExecutable connector, WebhookProcessingPayload payload) {
+      RegisteredExecutable.Activated connector, WebhookProcessingPayload payload) {
     ResponseEntity<?> response;
     try {
       WebhookConnectorExecutable connectorHook =

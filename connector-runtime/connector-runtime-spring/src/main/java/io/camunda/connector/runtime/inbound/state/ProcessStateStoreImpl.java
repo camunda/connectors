@@ -16,18 +16,15 @@
  */
 package io.camunda.connector.runtime.inbound.state;
 
-import io.camunda.connector.runtime.core.inbound.InboundConnectorData;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableEvent;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionIdentifier;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionVersion;
 import io.camunda.operate.exception.OperateException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,13 +32,13 @@ public class ProcessStateStoreImpl implements ProcessStateStore {
 
   private static final Logger LOG = LoggerFactory.getLogger(ProcessStateStoreImpl.class);
 
-  private final ConcurrentHashMap<String, ProcessState> processStates = new ConcurrentHashMap<>();
+  private final Map<String, ProcessState> processStates = new HashMap<>();
 
   private final ProcessDefinitionInspector processDefinitionInspector;
   private final InboundExecutableRegistry executableRegistry;
 
   private record ProcessState(
-      int version, long processDefinitionKey, Map<String, UUID> executablesByDeduplicationId) {}
+      int version, long processDefinitionKey, List<InboundConnectorElement> connectorElements) {}
 
   public ProcessStateStoreImpl(
       ProcessDefinitionInspector processDefinitionInspector,
@@ -89,15 +86,16 @@ public class ProcessStateStoreImpl implements ProcessStateStore {
       processStates.compute(
           entry.getKey().bpmnProcessId(),
           (key, state) -> {
-            var connectorDefinitions = getConnectors(entry);
-            var executables =
-                connectorDefinitions.stream()
-                    .collect(
-                        Collectors.toMap(
-                            InboundConnectorData::deduplicationId, this::activateExecutable));
+            var connectorElements = getConnectors(entry);
+            activate(
+                entry.getKey().tenantId(),
+                entry.getValue().processDefinitionKey(),
+                connectorElements);
 
             return new ProcessState(
-                entry.getValue().version(), entry.getValue().processDefinitionKey(), executables);
+                entry.getValue().version(),
+                entry.getValue().processDefinitionKey(),
+                connectorElements);
           });
     } catch (Throwable e) {
       LOG.error("Failed to register process {}", entry.getKey().bpmnProcessId(), e);
@@ -111,17 +109,16 @@ public class ProcessStateStoreImpl implements ProcessStateStore {
       processStates.computeIfPresent(
           entry.getKey().bpmnProcessId(),
           (key, state) -> {
-            var connectorDefinitions = getConnectors(entry);
-            state.executablesByDeduplicationId().values().forEach(this::deactivateExecutable);
-            var newExecutables =
-                connectorDefinitions.stream()
-                    .collect(
-                        Collectors.toMap(
-                            InboundConnectorData::deduplicationId, this::activateExecutable));
+            var newConnectorElements = getConnectors(entry);
+            deactivate(entry.getKey().tenantId(), state.processDefinitionKey);
+            activate(
+                entry.getKey().tenantId(),
+                entry.getValue().processDefinitionKey(),
+                newConnectorElements);
             return new ProcessState(
                 entry.getValue().version(),
                 entry.getValue().processDefinitionKey(),
-                newExecutables);
+                newConnectorElements);
           });
     } catch (Throwable e) {
       LOG.error("Failed to update process {}", entry.getKey().bpmnProcessId(), e);
@@ -134,7 +131,8 @@ public class ProcessStateStoreImpl implements ProcessStateStore {
       processStates.computeIfPresent(
           processId,
           (key1, state) -> {
-            state.executablesByDeduplicationId.values().forEach(this::deactivateExecutable);
+            var tenantId = state.connectorElements.getFirst().element().tenantId();
+            deactivate(tenantId, state.processDefinitionKey);
             return null;
           });
     } catch (Throwable e) {
@@ -143,7 +141,7 @@ public class ProcessStateStoreImpl implements ProcessStateStore {
     }
   }
 
-  private List<InboundConnectorData> getConnectors(
+  private List<InboundConnectorElement> getConnectors(
       Map.Entry<ProcessDefinitionIdentifier, ProcessDefinitionVersion> entry) {
     try {
       var elements =
@@ -151,24 +149,20 @@ public class ProcessStateStoreImpl implements ProcessStateStore {
       if (elements.isEmpty()) {
         LOG.debug("No inbound connectors found for process {}", entry.getKey().bpmnProcessId());
       }
-      var groupedByDeduplicationId =
-          elements.stream()
-              .collect(Collectors.groupingBy(InboundConnectorElement::deduplicationId));
-      return groupedByDeduplicationId.values().stream().map(InboundConnectorData::new).toList();
+      return elements;
     } catch (OperateException e) {
       throw new RuntimeException(e);
     }
   }
 
-  private UUID activateExecutable(InboundConnectorData definition) {
-    var id = UUID.randomUUID();
-    var event = new InboundExecutableEvent.Activated(id, definition);
+  private void activate(
+      String tenantId, long processDefinitionKey, List<InboundConnectorElement> elements) {
+    var event = new InboundExecutableEvent.Activated(tenantId, processDefinitionKey, elements);
     executableRegistry.publishEvent(event);
-    return id;
   }
 
-  private void deactivateExecutable(UUID id) {
-    var event = new InboundExecutableEvent.Deactivated(id);
+  private void deactivate(String tenantId, long processDefinitionKey) {
+    var event = new InboundExecutableEvent.Deactivated(tenantId, processDefinitionKey);
     executableRegistry.publishEvent(event);
   }
 

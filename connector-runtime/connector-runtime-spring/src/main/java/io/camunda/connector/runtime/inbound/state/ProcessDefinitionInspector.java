@@ -120,9 +120,13 @@ public class ProcessDefinitionInspector {
 
       var processElement =
           new ProcessElement(
-              process.getId(), version.version(), version.processDefinitionKey(), element.getId());
+              process.getId(),
+              version.version(),
+              version.processDefinitionKey(),
+              element.getId(),
+              identifier.tenantId());
       InboundConnectorElement def =
-          new InboundConnectorElement(rawProperties, target, processElement, identifier.tenantId());
+          new InboundConnectorElement(rawProperties, target, processElement);
 
       discoveredInboundConnectors.add(def);
     }

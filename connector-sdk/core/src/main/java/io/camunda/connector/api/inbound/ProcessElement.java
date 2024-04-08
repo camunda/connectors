@@ -18,4 +18,8 @@ package io.camunda.connector.api.inbound;
 
 /** Represents a BPMN process element that contains an inbound connector definition. */
 public record ProcessElement(
-    String bpmnProcessId, int version, long processDefinitionKey, String elementId) {}
+    String bpmnProcessId,
+    int version,
+    long processDefinitionKey,
+    String elementId,
+    String tenantId) {}

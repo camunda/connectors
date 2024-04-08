@@ -21,6 +21,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.runtime.core.ConnectorUtil;
 import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.config.OutboundConnectorConfiguration;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -141,7 +142,19 @@ public class EnvVarsConnectorDiscovery {
           getEnv(name, "TYPE")
               .or(() -> annotationConfig.map(InboundConnectorConfiguration::type))
               .orElseThrow(() -> envMissing("Type not specified", name, "TYPE")),
-          cls);
+          cls,
+          getEnv(name, "DEDUPLICATION_PROPERTIES")
+              .map(properties -> properties.split(","))
+              .map(Arrays::asList)
+              .or(
+                  () ->
+                      annotationConfig.map(InboundConnectorConfiguration::deduplicationProperties))
+              .orElseThrow(
+                  () ->
+                      envMissing(
+                          "Deduplication properties not specified",
+                          name,
+                          "DEDUPLICATION_PROPERTIES")));
 
     } catch (ClassNotFoundException | ClassCastException e) {
       throw loadFailed("Failed to load " + executableFqdn, e);

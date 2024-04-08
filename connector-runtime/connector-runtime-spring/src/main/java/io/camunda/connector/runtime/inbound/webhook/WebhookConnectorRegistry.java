@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.runtime.inbound.webhook;
 
-import io.camunda.connector.runtime.inbound.executable.ActiveExecutable;
+import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable;
 import io.camunda.connector.runtime.inbound.webhook.model.CommonWebhookProperties;
 import java.util.HashMap;
 import java.util.Map;
@@ -28,19 +28,20 @@ public class WebhookConnectorRegistry {
 
   private final Logger LOG = LoggerFactory.getLogger(WebhookConnectorRegistry.class);
 
-  private final Map<String, ActiveExecutable> activeEndpointsByContext = new HashMap<>();
+  private final Map<String, RegisteredExecutable.Activated> activeEndpointsByContext =
+      new HashMap<>();
 
-  public Optional<ActiveExecutable> getWebhookConnectorByContextPath(String context) {
+  public Optional<RegisteredExecutable.Activated> getWebhookConnectorByContextPath(String context) {
     return Optional.ofNullable(activeEndpointsByContext.get(context));
   }
 
-  public boolean isRegistered(ActiveExecutable connector) {
+  public boolean isRegistered(RegisteredExecutable.Activated connector) {
     var context = connector.context().bindProperties(CommonWebhookProperties.class).getContext();
     return activeEndpointsByContext.containsKey(context)
         && activeEndpointsByContext.get(context) == connector;
   }
 
-  public void register(ActiveExecutable connector) {
+  public void register(RegisteredExecutable.Activated connector) {
     var properties = connector.context().bindProperties(CommonWebhookProperties.class);
     var context = properties.getContext();
 
@@ -50,7 +51,8 @@ public class WebhookConnectorRegistry {
     checkIfEndpointExists(existingEndpoint, context);
   }
 
-  private void checkIfEndpointExists(ActiveExecutable existingEndpoint, String context) {
+  private void checkIfEndpointExists(
+      RegisteredExecutable.Activated existingEndpoint, String context) {
     if (existingEndpoint != null) {
       Map<String, String> elementIdsByProcessId =
           existingEndpoint.context().getDefinition().elements().stream()
@@ -71,7 +73,7 @@ public class WebhookConnectorRegistry {
     }
   }
 
-  public void deregister(ActiveExecutable connector) {
+  public void deregister(RegisteredExecutable.Activated connector) {
     var context = connector.context().bindProperties(CommonWebhookProperties.class).getContext();
     var registeredConnector = activeEndpointsByContext.get(context);
     if (registeredConnector == null) {

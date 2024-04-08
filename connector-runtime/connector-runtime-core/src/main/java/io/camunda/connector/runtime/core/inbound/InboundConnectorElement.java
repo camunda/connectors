@@ -22,6 +22,7 @@ import io.camunda.connector.runtime.core.Keywords;
 import io.camunda.connector.runtime.core.Keywords.DeduplicationMode;
 import io.camunda.connector.runtime.core.error.InvalidInboundConnectorDefinitionException;
 import io.camunda.connector.runtime.core.inbound.correlation.ProcessCorrelationPoint;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -31,8 +32,7 @@ import java.util.stream.Collectors;
 public record InboundConnectorElement(
     @JsonIgnore Map<String, String> rawProperties,
     ProcessCorrelationPoint correlationPoint,
-    ProcessElement element,
-    String tenantId) {
+    ProcessElement element) {
 
   public String type() {
     return Optional.ofNullable(rawProperties.get(Keywords.INBOUND_TYPE_KEYWORD))
@@ -40,6 +40,10 @@ public record InboundConnectorElement(
             () ->
                 new IllegalArgumentException(
                     "Missing connector type property. The connector element template is not valid"));
+  }
+
+  public String tenantId() {
+    return element.tenantId();
   }
 
   public String resultExpression() {
@@ -55,15 +59,15 @@ public record InboundConnectorElement(
         .orElseGet(() -> rawProperties.get(Keywords.DEPRECATED_ACTIVATION_CONDITION_KEYWORD));
   }
 
-  public String deduplicationId() {
+  public String deduplicationId(List<String> deduplicationProperties) {
 
     var deduplicationMode = rawProperties.get(Keywords.DEDUPLICATION_MODE_KEYWORD);
     if (deduplicationMode == null) {
       // legacy deployment, return a deterministic unique id
-      return tenantId + "-" + element.processDefinitionKey() + "-" + element.elementId();
+      return element.tenantId() + "-" + element.processDefinitionKey() + "-" + element.elementId();
     } else if (DeduplicationMode.AUTO.name().equals(deduplicationMode)) {
       // auto mode, compute deduplicationId from properties
-      return computeDeduplicationId();
+      return computeDeduplicationId(deduplicationProperties);
     } else if (DeduplicationMode.MANUAL.name().equals(deduplicationMode)) {
       // manual mode, expect deduplicationId property
       return Optional.ofNullable(rawProperties.get(Keywords.DEDUPLICATION_ID_KEYWORD))
@@ -78,8 +82,22 @@ public record InboundConnectorElement(
     }
   }
 
-  private String computeDeduplicationId() {
-    return String.valueOf(Objects.hash(rawPropertiesWithoutKeywords()));
+  private String computeDeduplicationId(List<String> deduplicationProperties) {
+    List<String> propsToHash;
+    if (!deduplicationProperties.isEmpty()) {
+      propsToHash =
+          deduplicationProperties.stream()
+              .map(rawProperties::get)
+              .filter(Objects::nonNull)
+              .toList();
+    } else {
+      propsToHash = rawPropertiesWithoutKeywords().values().stream().toList();
+    }
+    if (propsToHash.isEmpty()) {
+      throw new InvalidInboundConnectorDefinitionException(
+          "Missing deduplication properties, expected at least one property to compute deduplicationId");
+    }
+    return String.valueOf(Objects.hash(propsToHash));
   }
 
   public Map<String, String> rawPropertiesWithoutKeywords() {
@@ -96,8 +114,6 @@ public record InboundConnectorElement(
         + correlationPoint
         + ", element="
         + element
-        + ", tenantId='"
-        + tenantId
         + '\''
         + '}';
   }

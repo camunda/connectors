@@ -17,17 +17,22 @@
 package io.camunda.connector.runtime.core.config;
 
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import java.util.List;
 import java.util.function.Supplier;
 
 public record InboundConnectorConfiguration(
     String name,
     String type,
     Class<? extends InboundConnectorExecutable> connectorClass,
-    Supplier<InboundConnectorExecutable> customInstanceSupplier)
+    Supplier<InboundConnectorExecutable> customInstanceSupplier,
+    List<String> deduplicationProperties)
     implements ConnectorConfiguration {
 
   public InboundConnectorConfiguration(
-      String name, String type, Class<? extends InboundConnectorExecutable> connectorClass) {
-    this(name, type, connectorClass, null);
+      String name,
+      String type,
+      Class<? extends InboundConnectorExecutable> connectorClass,
+      List<String> deduplicationProperties) {
+    this(name, type, connectorClass, null, deduplicationProperties);
   }
 }
