@@ -5,7 +5,7 @@
     <groupId>io.camunda.connector</groupId>
     <artifactId>connector-sdk-parent</artifactId>
     <relativePath>../pom.xml</relativePath>
-    <version>8.5.0-SNAPSHOT</version>
+    <version>8.6.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>jackson-datatype-feel</artifactId>
