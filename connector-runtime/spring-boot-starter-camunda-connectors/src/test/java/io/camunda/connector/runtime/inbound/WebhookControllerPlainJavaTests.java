@@ -134,7 +134,7 @@ public class WebhookControllerPlainJavaTests {
 
   private static long nextProcessDefinitionKey = 0L;
 
-  public static RegisteredExecutable.Activated buildConnector(InboundConnectorData definition) {
+  public static RegisteredExecutable.Activated buildConnector(InboundConnectorData connectorData) {
     WebhookConnectorExecutable executable = mock(WebhookConnectorExecutable.class);
     try {
       Mockito.when(executable.triggerWebhook(any(WebhookProcessingPayload.class)))
@@ -142,7 +142,7 @@ public class WebhookControllerPlainJavaTests {
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
-    return new RegisteredExecutable.Activated(executable, buildContext(definition));
+    return new RegisteredExecutable.Activated(executable, buildContext(connectorData));
   }
 
   public static InboundConnectorContextImpl buildContext(InboundConnectorData def) {

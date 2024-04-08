@@ -31,18 +31,18 @@ public class PollingIntervalConfigurationTest {
   private InboundConnectorContextImpl inboundConnectorContext;
   private Map<String, String> properties;
 
-  @Mock private InboundConnectorData definition; // Initialize or mock the connector definition
+  @Mock private InboundConnectorData connectorData; // Initialize or mock the connector definition
 
   @BeforeEach
   public void setUp() {
     SecretProvider secretProvider = name -> name; // Simplified secret provider for testing purposes
     properties = new HashMap<>();
-    when(definition.rawPropertiesWithoutKeywords()).thenReturn(properties);
+    when(connectorData.rawPropertiesWithoutKeywords()).thenReturn(properties);
     inboundConnectorContext =
         new InboundConnectorContextImpl(
             secretProvider,
             (e) -> {},
-            definition,
+            connectorData,
             null,
             (e) -> {},
             ConnectorsObjectMapperSupplier.getCopy(),
