@@ -9,7 +9,7 @@ package io.camunda.connector.jdbc.model.request;
 import static io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType.Dropdown;
 
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
-import io.camunda.connector.jdbc.model.request.auth.JdbcConnection;
+import io.camunda.connector.jdbc.model.request.connection.JdbcConnection;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
@@ -27,5 +27,5 @@ public record JdbcRequest(
               @TemplateProperty.DropdownPropertyChoice(label = "PostgreSQL", value = "POSTGRESQL"),
             })
         SupportedDatabase database,
-    @Valid JdbcConnection authentication,
+    @Valid @NotNull JdbcConnection connection,
     @Valid @NotNull JdbcRequestData data) {}

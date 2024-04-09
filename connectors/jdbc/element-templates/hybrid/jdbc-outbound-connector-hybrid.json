@@ -20,7 +20,7 @@
     "id" : "database",
     "label" : "Database"
   }, {
-    "id" : "authentication",
+    "id" : "connection",
     "label" : "Authentication"
   }, {
     "id" : "query",
@@ -68,12 +68,12 @@
       "value" : "POSTGRESQL"
     } ]
   }, {
-    "id" : "authentication.authType",
+    "id" : "connection.authType",
     "label" : "Connection type",
     "value" : "uri",
-    "group" : "authentication",
+    "group" : "connection",
     "binding" : {
-      "name" : "authentication.authType",
+      "name" : "connection.authType",
       "type" : "zeebe:input"
     },
     "type" : "Dropdown",
@@ -85,7 +85,7 @@
       "value" : "detailed"
     } ]
   }, {
-    "id" : "authentication.uri",
+    "id" : "connection.uri",
     "label" : "URI",
     "description" : "URI should contain JDBC driver, username, password, host name, and port number",
     "optional" : false,
@@ -97,83 +97,83 @@
       }
     },
     "feel" : "optional",
-    "group" : "authentication",
+    "group" : "connection",
     "binding" : {
-      "name" : "authentication.uri",
+      "name" : "connection.uri",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "authentication.authType",
+      "property" : "connection.authType",
       "equals" : "uri",
       "type" : "simple"
     },
     "type" : "String"
   }, {
-    "id" : "authentication.host",
+    "id" : "connection.host",
     "label" : "Host",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
-    "group" : "authentication",
+    "group" : "connection",
     "binding" : {
-      "name" : "authentication.host",
+      "name" : "connection.host",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "authentication.authType",
+      "property" : "connection.authType",
       "equals" : "detailed",
       "type" : "simple"
     },
     "type" : "String"
   }, {
-    "id" : "authentication.port",
+    "id" : "connection.port",
     "label" : "Port",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
     },
     "feel" : "optional",
-    "group" : "authentication",
+    "group" : "connection",
     "binding" : {
-      "name" : "authentication.port",
+      "name" : "connection.port",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "authentication.authType",
+      "property" : "connection.authType",
       "equals" : "detailed",
       "type" : "simple"
     },
     "type" : "String"
   }, {
-    "id" : "authentication.username",
+    "id" : "connection.username",
     "label" : "Username",
     "optional" : false,
     "feel" : "optional",
-    "group" : "authentication",
+    "group" : "connection",
     "binding" : {
-      "name" : "authentication.username",
+      "name" : "connection.username",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "authentication.authType",
+      "property" : "connection.authType",
       "equals" : "detailed",
       "type" : "simple"
     },
     "type" : "String"
   }, {
-    "id" : "authentication.password",
+    "id" : "connection.password",
     "label" : "Password",
     "optional" : false,
     "feel" : "optional",
-    "group" : "authentication",
+    "group" : "connection",
     "binding" : {
-      "name" : "authentication.password",
+      "name" : "connection.password",
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "authentication.authType",
+      "property" : "connection.authType",
       "equals" : "detailed",
       "type" : "simple"
     },

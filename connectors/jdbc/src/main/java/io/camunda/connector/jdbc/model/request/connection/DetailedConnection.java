@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.jdbc.model.request.auth;
+package io.camunda.connector.jdbc.model.request.connection;
 
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
@@ -15,10 +15,10 @@ import java.util.function.Function;
 
 @TemplateSubType(id = "detailed", label = "Detailed")
 public record DetailedConnection(
-    @NotBlank @TemplateProperty(group = "authentication", label = "Host") String host,
-    @NotBlank @TemplateProperty(group = "authentication", label = "Port") String port,
-    @TemplateProperty(group = "authentication", label = "Username") String username,
-    @TemplateProperty(group = "authentication", label = "Password") String password)
+    @NotBlank @TemplateProperty(group = "connection", label = "Host") String host,
+    @NotBlank @TemplateProperty(group = "connection", label = "Port") String port,
+    @TemplateProperty(group = "connection", label = "Username") String username,
+    @TemplateProperty(group = "connection", label = "Password") String password)
     implements JdbcConnection {
   @Override
   public String getConnectionString(SupportedDatabase database) {

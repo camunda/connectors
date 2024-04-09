@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.jdbc.model.request.auth;
+package io.camunda.connector.jdbc.model.request.connection;
 
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
@@ -19,7 +19,7 @@ public record UriConnection(
             regexp = "^(jdbc:|secrets|\\{\\{).*$",
             message = "Must start with jdbc: or contain a secret reference")
         @TemplateProperty(
-            group = "authentication",
+            group = "connection",
             label = "URI",
             description =
                 "URI should contain JDBC driver, username, password, host name, and port number")
