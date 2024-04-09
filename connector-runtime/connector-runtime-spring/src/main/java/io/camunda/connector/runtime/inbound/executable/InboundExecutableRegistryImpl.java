@@ -127,7 +127,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
 
     var elements = activated.elements();
     if (elements.isEmpty()) {
-      LOG.error("No elements provided for activation");
+      LOG.debug("No elements provided for activation");
       return;
     }
 
@@ -174,6 +174,11 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
                 .map(executablesByElement::remove)
                 .map(executables::remove)
                 .toList();
+
+        if (executablesToDeactivate.isEmpty()) {
+          LOG.debug("No executables found for deactivation");
+          return;
+        }
 
         batchExecutableProcessor.deactivateBatch(executablesToDeactivate);
 
