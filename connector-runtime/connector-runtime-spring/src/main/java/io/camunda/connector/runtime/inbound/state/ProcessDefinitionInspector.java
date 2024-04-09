@@ -85,7 +85,7 @@ public class ProcessDefinitionInspector {
       ProcessDefinitionIdentifier identifier, ProcessDefinitionVersion version)
       throws OperateException {
 
-    LOG.debug("Checking " + identifier + " (version " + version.version() + ") for connectors.");
+    LOG.debug("Checking {} (version {}) for connectors.", identifier, version.version());
     BpmnModelInstance modelInstance =
         operate.getProcessDefinitionModel(version.processDefinitionKey());
 

@@ -86,16 +86,21 @@ public class BatchExecutableProcessor {
         case Activated activated -> alreadyActivated.put(id, activated);
         case ConnectorNotRegistered notRegistered -> alreadyActivated.put(id, notRegistered);
         case FailedToActivate failed -> {
+          LOG.error(
+              "Failed to activate connector of type '{}' with deduplication ID '{}', reason: {}. "
+                  + "All previously activated executables from this batch will be discarded.",
+              failed.data().type(), failed.data().deduplicationId(), failed.reason());
+
           // deactivate all previously activated connectors
           deactivateBatch(List.of(failed));
 
           var failureReasonForOthers =
               "Process contains invalid connector(s): "
                   + String.join(
-                      ", ",
-                      failed.data().connectorElements().stream()
-                          .map(e -> e.element().elementId())
-                          .toList())
+                  ", ",
+                  failed.data().connectorElements().stream()
+                      .map(e -> e.element().elementId())
+                      .toList())
                   + ". Reason: "
                   + failed.reason();
 
@@ -166,7 +171,9 @@ public class BatchExecutableProcessor {
     return new Activated(executable, context);
   }
 
-  /** Deactivates a batch of inbound connectors. */
+  /**
+   * Deactivates a batch of inbound connectors.
+   */
   public void deactivateBatch(List<RegisteredExecutable> executables) {
     for (var activeExecutable : executables) {
       if (activeExecutable instanceof Activated activated) {
