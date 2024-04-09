@@ -22,14 +22,14 @@ import java.util.List;
 import java.util.Map;
 
 /** Group of inbound connector elements that share the same deduplication ID. */
-public record InboundConnectorData(
+public record InboundConnectorDetails(
     String type,
     String tenantId,
     String deduplicationId,
     @JsonIgnore Map<String, String> rawPropertiesWithoutKeywords,
     List<InboundConnectorElement> connectorElements) {
 
-  public InboundConnectorData(String deduplicationId, List<InboundConnectorElement> elements) {
+  public InboundConnectorDetails(String deduplicationId, List<InboundConnectorElement> elements) {
     this(
         extractType(elements),
         extractTenantId(elements),

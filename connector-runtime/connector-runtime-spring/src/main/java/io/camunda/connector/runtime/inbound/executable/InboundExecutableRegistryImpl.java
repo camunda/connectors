@@ -19,7 +19,7 @@ package io.camunda.connector.runtime.inbound.executable;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
-import io.camunda.connector.runtime.core.inbound.InboundConnectorData;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorDetails;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableEvent.Deactivated;
@@ -135,13 +135,13 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
 
     synchronized (processId.intern()) {
       try {
-        Map<UUID, InboundConnectorData> groupedConnectors =
+        Map<UUID, InboundConnectorDetails> groupedConnectors =
             groupElements(elements).stream()
                 .collect(Collectors.toMap(connector -> UUID.randomUUID(), connector -> connector));
 
         groupedConnectors.forEach(
-            (id, connectorData) ->
-                connectorData
+            (id, connectorDetails) ->
+                connectorDetails
                     .connectorElements()
                     .forEach(element -> executablesByElement.put(element.element(), id)));
 
@@ -191,7 +191,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
         .toList();
   }
 
-  private List<InboundConnectorData> groupElements(List<InboundConnectorElement> elements) {
+  private List<InboundConnectorDetails> groupElements(List<InboundConnectorElement> elements) {
 
     Map<String, List<InboundConnectorElement>> groupedElements = new HashMap<>();
 
@@ -211,7 +211,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
     }
 
     return groupedElements.entrySet().stream()
-        .map(entry -> new InboundConnectorData(entry.getKey(), entry.getValue()))
+        .map(entry -> new InboundConnectorDetails(entry.getKey(), entry.getValue()))
         .toList();
   }
 

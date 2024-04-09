@@ -13,7 +13,7 @@ import com.google.common.collect.EvictingQueue;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
-import io.camunda.connector.runtime.core.inbound.InboundConnectorData;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorDetails;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -31,7 +31,7 @@ public class PollingIntervalConfigurationTest {
   private InboundConnectorContextImpl inboundConnectorContext;
   private Map<String, String> properties;
 
-  @Mock private InboundConnectorData connectorData; // Initialize or mock the connector definition
+  @Mock private InboundConnectorDetails connectorData; // Initialize or mock the connector definition
 
   @BeforeEach
   public void setUp() {

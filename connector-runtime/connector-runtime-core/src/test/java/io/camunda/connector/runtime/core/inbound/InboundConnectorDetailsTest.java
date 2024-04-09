@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
-public class InboundConnectorDataTest {
+public class InboundConnectorDetailsTest {
 
   @Test
   void minimallyValidElements() {
@@ -44,7 +44,8 @@ public class InboundConnectorDataTest {
 
     // when & then
     assertDoesNotThrow(
-        () -> new InboundConnectorData(elements.getFirst().deduplicationId(List.of()), elements));
+        () ->
+            new InboundConnectorDetails(elements.getFirst().deduplicationId(List.of()), elements));
   }
 
   @Test
@@ -66,7 +67,8 @@ public class InboundConnectorDataTest {
     // when & then
     assertThatThrownBy(
             () ->
-                new InboundConnectorData(elements.getFirst().deduplicationId(List.of()), elements))
+                new InboundConnectorDetails(
+                    elements.getFirst().deduplicationId(List.of()), elements))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("All elements in a group must have the same type");
   }
@@ -95,7 +97,8 @@ public class InboundConnectorDataTest {
     // when & then
     assertThatThrownBy(
             () ->
-                new InboundConnectorData(elements.getFirst().deduplicationId(List.of()), elements))
+                new InboundConnectorDetails(
+                    elements.getFirst().deduplicationId(List.of()), elements))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("All elements in a group must have the same tenant ID");
   }
@@ -127,7 +130,8 @@ public class InboundConnectorDataTest {
     // when & then
     assertThatThrownBy(
             () ->
-                new InboundConnectorData(elements.getFirst().deduplicationId(List.of()), elements))
+                new InboundConnectorDetails(
+                    elements.getFirst().deduplicationId(List.of()), elements))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage(
             "All elements in a group must have the same properties (excluding runtime-level properties)");

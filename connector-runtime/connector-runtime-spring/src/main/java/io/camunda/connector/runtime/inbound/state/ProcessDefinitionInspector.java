@@ -188,14 +188,14 @@ public class ProcessDefinitionInspector {
         return getCorrelationPointForReceiveTask(rt);
       }
       LOG.warn(
-          "Unsupported Inbound element type: {}, in process connectorData: {} (Key: {}, Version: {})",
+          "Unsupported Inbound element type: {}, in process definition: {} (Key: {}, Version: {})",
           element.getClass().getSimpleName(),
           identifier.bpmnProcessId(),
           version.processDefinitionKey(),
           version.version());
     } catch (InvalidInboundConnectorDefinitionException e) {
       LOG.warn(
-          "Error getting correlation point for {} in process connectorData: {} (Key: {}, Version: {}): {}",
+          "Error getting correlation point for {} in process definition: {} (Key: {}, Version: {}): {}",
           element.getClass().getSimpleName(),
           identifier.bpmnProcessId(),
           version.processDefinitionKey(),
@@ -227,7 +227,7 @@ public class ProcessDefinitionInspector {
                         new InvalidInboundConnectorDefinitionException(
                             "Sanity check failed: "
                                 + catchEvent.getClass().getSimpleName()
-                                + " must contain at least one event connectorData"));
+                                + " must contain at least one event definition"));
     String name = msgDef.getMessage().getName();
 
     String correlationKeyExpression =

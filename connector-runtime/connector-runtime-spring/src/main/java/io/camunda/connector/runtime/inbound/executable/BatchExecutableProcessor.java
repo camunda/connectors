@@ -21,7 +21,7 @@ import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextFactory;
-import io.camunda.connector.runtime.core.inbound.InboundConnectorData;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorDetails;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorReportingContext;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.Activated;
@@ -71,13 +71,14 @@ public class BatchExecutableProcessor {
    * considered valid).
    */
   public Map<UUID, RegisteredExecutable> activateBatch(
-      Map<UUID, InboundConnectorData> request, BiConsumer<Throwable, UUID> cancellationCallback) {
+      Map<UUID, InboundConnectorDetails> request,
+      BiConsumer<Throwable, UUID> cancellationCallback) {
 
     final Map<UUID, RegisteredExecutable> alreadyActivated = new HashMap<>();
 
     for (var entry : request.entrySet()) {
       final UUID id = entry.getKey();
-      final InboundConnectorData data = entry.getValue();
+      final InboundConnectorDetails data = entry.getValue();
 
       final RegisteredExecutable result =
           activateSingle(data, e -> cancellationCallback.accept(e, id));
@@ -89,7 +90,9 @@ public class BatchExecutableProcessor {
           LOG.error(
               "Failed to activate connector of type '{}' with deduplication ID '{}', reason: {}. "
                   + "All previously activated executables from this batch will be discarded.",
-              failed.data().type(), failed.data().deduplicationId(), failed.reason());
+              failed.data().type(),
+              failed.data().deduplicationId(),
+              failed.reason());
 
           // deactivate all previously activated connectors
           deactivateBatch(List.of(failed));
@@ -97,10 +100,10 @@ public class BatchExecutableProcessor {
           var failureReasonForOthers =
               "Process contains invalid connector(s): "
                   + String.join(
-                  ", ",
-                  failed.data().connectorElements().stream()
-                      .map(e -> e.element().elementId())
-                      .toList())
+                      ", ",
+                      failed.data().connectorElements().stream()
+                          .map(e -> e.element().elementId())
+                          .toList())
                   + ". Reason: "
                   + failed.reason();
 
@@ -121,7 +124,7 @@ public class BatchExecutableProcessor {
   }
 
   private RegisteredExecutable activateSingle(
-      InboundConnectorData data, Consumer<Throwable> cancellationCallback) {
+      InboundConnectorDetails data, Consumer<Throwable> cancellationCallback) {
 
     final InboundConnectorExecutable executable;
     final InboundConnectorReportingContext context;
@@ -171,9 +174,7 @@ public class BatchExecutableProcessor {
     return new Activated(executable, context);
   }
 
-  /**
-   * Deactivates a batch of inbound connectors.
-   */
+  /** Deactivates a batch of inbound connectors. */
   public void deactivateBatch(List<RegisteredExecutable> executables) {
     for (var activeExecutable : executables) {
       if (activeExecutable instanceof Activated activated) {

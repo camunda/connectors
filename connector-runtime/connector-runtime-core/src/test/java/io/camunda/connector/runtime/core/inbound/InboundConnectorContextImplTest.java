@@ -109,7 +109,7 @@ class InboundConnectorContextImplTest {
   }
 
   @NotNull
-  private static InboundConnectorData getInboundConnectorDefinition(
+  private static InboundConnectorDetails getInboundConnectorDefinition(
       Map<String, String> properties) {
     properties = new HashMap<>(properties);
     properties.put("inbound.type", "io.camunda:connector:1");
@@ -118,7 +118,7 @@ class InboundConnectorContextImplTest {
             properties,
             new StandaloneMessageCorrelationPoint("", "", null),
             new ProcessElement("bool", 0, 0, "id", "<default>"));
-    return new InboundConnectorData(
+    return new InboundConnectorDetails(
         UUID.randomUUID().toString(), Collections.singletonList(element));
   }
 
