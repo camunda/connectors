@@ -179,7 +179,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "isModifyingQuery",
+    "id" : "data.isModifyingQuery",
     "label" : "Modifying query",
     "description" : "Check this box if the query is anything other than a SELECT query",
     "optional" : false,
@@ -188,7 +188,7 @@
     },
     "group" : "query",
     "binding" : {
-      "name" : "isModifyingQuery",
+      "name" : "data.isModifyingQuery",
       "type" : "zeebe:input"
     },
     "type" : "Dropdown",
@@ -200,7 +200,7 @@
       "value" : "false"
     } ]
   }, {
-    "id" : "query",
+    "id" : "data.query",
     "label" : "Query",
     "description" : "The SQL query to execute. You can use placeholders (?) for variables",
     "optional" : false,
@@ -210,19 +210,19 @@
     "feel" : "optional",
     "group" : "query",
     "binding" : {
-      "name" : "query",
+      "name" : "data.query",
       "type" : "zeebe:input"
     },
     "type" : "String"
   }, {
-    "id" : "variables",
+    "id" : "data.variables",
     "label" : "Variables",
     "description" : "The variables to use in the SQL query. Use the same order as in the statement",
     "optional" : false,
     "feel" : "required",
     "group" : "query",
     "binding" : {
-      "name" : "variables",
+      "name" : "data.variables",
       "type" : "zeebe:input"
     },
     "type" : "String"

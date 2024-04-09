@@ -4,15 +4,16 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.jdbc.model.auth;
+package io.camunda.connector.jdbc.model.request.auth;
 
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
+import io.camunda.connector.jdbc.model.request.SupportedDatabase;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 
 @TemplateSubType(id = "uri", label = "URI")
-public record UriAuthentication(
+public record UriConnection(
     @NotBlank
         @Pattern(
             regexp = "^(jdbc:|secrets|\\{\\{).*$",
@@ -23,4 +24,9 @@ public record UriAuthentication(
             description =
                 "URI should contain JDBC driver, username, password, host name, and port number")
         String uri)
-    implements JdbcAuthentication {}
+    implements JdbcConnection {
+  @Override
+  public String getConnectionString(SupportedDatabase database) {
+    return uri;
+  }
+}

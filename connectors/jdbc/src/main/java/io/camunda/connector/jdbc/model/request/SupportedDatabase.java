@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.jdbc.model;
+package io.camunda.connector.jdbc.model.request;
 
 public enum SupportedDatabase {
   MSSQL("com.microsoft.sqlserver.jdbc.SQLServerDriver", "jdbc:sqlserver://"),
