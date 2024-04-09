@@ -25,7 +25,7 @@ import static org.mockito.Mockito.verify;
 
 import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.Severity;
-import io.camunda.connector.runtime.inbound.lifecycle.ActiveInboundConnector;
+import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable;
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -106,7 +106,7 @@ public class WebhookControllerLogTest {
   }
 
   private static void assertWebhookRegistered(
-      String webhookPath, WebhookConnectorRegistry webhook, ActiveInboundConnector processA1) {
+      String webhookPath, WebhookConnectorRegistry webhook, RegisteredExecutable processA1) {
     var existingConnector = webhook.getWebhookConnectorByContextPath(webhookPath);
     assertTrue(existingConnector.isPresent());
     assertEquals(processA1, existingConnector.get());

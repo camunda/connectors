@@ -14,25 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.core.config;
+package io.camunda.connector.runtime.inbound.executable;
 
-import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import java.util.List;
-import java.util.function.Supplier;
 
-public record InboundConnectorConfiguration(
-    String name,
-    String type,
-    Class<? extends InboundConnectorExecutable> connectorClass,
-    Supplier<InboundConnectorExecutable> customInstanceSupplier,
-    List<String> deduplicationProperties)
-    implements ConnectorConfiguration {
+public interface InboundExecutableRegistry {
 
-  public InboundConnectorConfiguration(
-      String name,
-      String type,
-      Class<? extends InboundConnectorExecutable> connectorClass,
-      List<String> deduplicationProperties) {
-    this(name, type, connectorClass, null, deduplicationProperties);
-  }
+  void publishEvent(InboundExecutableEvent event);
+
+  List<ActiveExecutableResponse> query(ActiveExecutableQuery query);
 }

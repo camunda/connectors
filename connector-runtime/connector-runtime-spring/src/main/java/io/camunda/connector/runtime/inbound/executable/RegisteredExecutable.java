@@ -14,25 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.core.config;
+package io.camunda.connector.runtime.inbound.executable;
 
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
-import java.util.List;
-import java.util.function.Supplier;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorDetails;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorReportingContext;
 
-public record InboundConnectorConfiguration(
-    String name,
-    String type,
-    Class<? extends InboundConnectorExecutable> connectorClass,
-    Supplier<InboundConnectorExecutable> customInstanceSupplier,
-    List<String> deduplicationProperties)
-    implements ConnectorConfiguration {
+public sealed interface RegisteredExecutable {
 
-  public InboundConnectorConfiguration(
-      String name,
-      String type,
-      Class<? extends InboundConnectorExecutable> connectorClass,
-      List<String> deduplicationProperties) {
-    this(name, type, connectorClass, null, deduplicationProperties);
-  }
+  record Activated(
+      InboundConnectorExecutable<?> executable, InboundConnectorReportingContext context)
+      implements RegisteredExecutable {}
+
+  record ConnectorNotRegistered(InboundConnectorDetails data) implements RegisteredExecutable {}
+
+  record FailedToActivate(InboundConnectorDetails data, String reason)
+      implements RegisteredExecutable {}
 }

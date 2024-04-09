@@ -16,8 +16,6 @@
  */
 package io.camunda.connector.runtime.core.inbound;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.EvictingQueue;
 import io.camunda.connector.api.error.ConnectorException;
@@ -36,10 +34,12 @@ import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,7 +47,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
     implements InboundConnectorContext, InboundConnectorReportingContext {
 
   private final Logger LOG = LoggerFactory.getLogger(InboundConnectorContextImpl.class);
-  private final InboundConnectorDefinitionImpl definition;
+  private final InboundConnectorDetails connectorDetails;
   private final Map<String, Object> properties;
 
   private final InboundCorrelationHandler correlationHandler;
@@ -57,20 +57,22 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   private Health health = Health.unknown();
 
-  private EvictingQueue<Activity> logs;
+  private final EvictingQueue<Activity> logs;
 
   public InboundConnectorContextImpl(
       SecretProvider secretProvider,
       ValidationProvider validationProvider,
-      InboundConnectorDefinitionImpl definition,
+      InboundConnectorDetails connectorDetails,
       InboundCorrelationHandler correlationHandler,
       Consumer<Throwable> cancellationCallback,
       ObjectMapper objectMapper,
       EvictingQueue logs) {
     super(secretProvider, validationProvider);
     this.correlationHandler = correlationHandler;
-    this.definition = definition;
-    this.properties = InboundPropertyHandler.readWrappedProperties(definition.rawProperties());
+    this.connectorDetails = connectorDetails;
+    this.properties =
+        InboundPropertyHandler.readWrappedProperties(
+            connectorDetails.rawPropertiesWithoutKeywords());
     this.objectMapper = objectMapper;
     this.cancellationCallback = cancellationCallback;
     this.logs = logs;
@@ -97,7 +99,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   @Override
   public CorrelationResult correlateWithResult(Object variables) {
     try {
-      return correlationHandler.correlate(definition, variables);
+      return correlationHandler.correlate(connectorDetails.connectorElements(), variables);
     } catch (FeelEngineWrapperException e) {
       log(Activity.level(Severity.ERROR).tag("error").message(e.getMessage()));
       return new CorrelationResult.Failure.Other(e);
@@ -118,19 +120,25 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   @Override
   public Map<String, Object> getProperties() {
-    return getPropertiesWithSecrets();
+    return getPropertiesWithSecrets(properties);
   }
 
   @Override
   public <T> T bindProperties(Class<T> cls) {
-    var mappedObject = objectMapper.convertValue(getPropertiesWithSecrets(), cls);
+    var mappedObject = objectMapper.convertValue(getPropertiesWithSecrets(properties), cls);
     getValidationProvider().validate(mappedObject);
     return mappedObject;
   }
 
   @Override
   public InboundConnectorDefinition getDefinition() {
-    return definition;
+    return new InboundConnectorDefinition(
+        connectorDetails.type(),
+        connectorDetails.tenantId(),
+        connectorDetails.deduplicationId(),
+        connectorDetails.connectorElements().stream()
+            .map(InboundConnectorElement::element)
+            .collect(Collectors.toList()));
   }
 
   @Override
@@ -153,18 +161,18 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
     return this.logs;
   }
 
+  @Override
+  public List<InboundConnectorElement> connectorElements() {
+    return connectorDetails.connectorElements();
+  }
+
   private Map<String, Object> propertiesWithSecrets;
 
-  private Map<String, Object> getPropertiesWithSecrets() {
+  private Map<String, Object> getPropertiesWithSecrets(Map<String, Object> properties) {
     if (propertiesWithSecrets == null) {
-      try {
-        var propertiesAsJsonString = objectMapper.writeValueAsString(properties);
-        var propertiesWithSecretsJson = getSecretHandler().replaceSecrets(propertiesAsJsonString);
-        propertiesWithSecrets =
-            objectMapper.readValue(propertiesWithSecretsJson, new TypeReference<>() {});
-      } catch (JsonProcessingException e) {
-        throw new RuntimeException(e);
-      }
+      propertiesWithSecrets =
+          InboundPropertyHandler.getPropertiesWithSecrets(
+              getSecretHandler(), objectMapper, properties);
     }
     return propertiesWithSecrets;
   }
@@ -178,16 +186,16 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       return false;
     }
     InboundConnectorContextImpl that = (InboundConnectorContextImpl) o;
-    return Objects.equals(definition, that.definition);
+    return Objects.equals(connectorDetails, that.connectorDetails);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(definition);
+    return Objects.hash(connectorDetails);
   }
 
   @Override
   public String toString() {
-    return "InboundConnectorContextImpl{" + "definition=" + definition + '}';
+    return "InboundConnectorContextImpl{" + "connectorDetails=" + connectorDetails + '}';
   }
 }

@@ -40,6 +40,8 @@ public class InboundConnectorDiscoveryTest {
           "io.camunda.connector.runtime.core.inbound.AnnotatedExecutable",
           "CONNECTOR_ANNOTATED_OVERRIDE_TYPE",
           "io.camunda:annotated-override",
+          "CONNECTOR_ANNOTATED_OVERRIDE_DEDUPLICATION_PROPERTIES",
+          "prop1,prop2,prop3",
 
           // shall be picked up with meta-data
           "CONNECTOR_ANNOTATED_EXECUTABLE",
@@ -49,7 +51,9 @@ public class InboundConnectorDiscoveryTest {
           "CONNECTOR_NOT_ANNOTATED_EXECUTABLE",
           "io.camunda.connector.runtime.core.inbound.NotAnnotatedExecutable",
           "CONNECTOR_NOT_ANNOTATED_TYPE",
-          "io.camunda:not-annotated"
+          "io.camunda:not-annotated",
+          "CONNECTOR_NOT_ANNOTATED_DEDUPLICATION_PROPERTIES",
+          "prop1,prop2"
         };
 
     // when
@@ -63,16 +67,22 @@ public class InboundConnectorDiscoveryTest {
         registrations,
         "ANNOTATED_OVERRIDE",
         "io.camunda:annotated-override",
-        AnnotatedExecutable.class.getName());
+        AnnotatedExecutable.class.getName(),
+        List.of("prop1", "prop2", "prop3"));
 
     assertRegistration(
-        registrations, "ANNOTATED", "io.camunda:annotated", AnnotatedExecutable.class.getName());
+        registrations,
+        "ANNOTATED",
+        "io.camunda:annotated",
+        AnnotatedExecutable.class.getName(),
+        List.of("id"));
 
     assertRegistration(
         registrations,
         "NOT_ANNOTATED",
         "io.camunda:not-annotated",
-        NotAnnotatedExecutable.class.getName());
+        NotAnnotatedExecutable.class.getName(),
+        List.of("prop1", "prop2"));
   }
 
   @Test
@@ -128,7 +138,7 @@ public class InboundConnectorDiscoveryTest {
     // when
     factory.registerConfiguration(
         new InboundConnectorConfiguration(
-            "ANNOTATED", "io.camunda:annotated", NotAnnotatedExecutable.class));
+            "ANNOTATED", "io.camunda:annotated", NotAnnotatedExecutable.class, List.of()));
 
     // then
     var registrations = factory.getConfigurations();
@@ -143,11 +153,25 @@ public class InboundConnectorDiscoveryTest {
       String type,
       String functionCls) {
 
+    assertRegistration(registrations, name, type, functionCls, null);
+  }
+
+  private static void assertRegistration(
+      List<InboundConnectorConfiguration> registrations,
+      String name,
+      String type,
+      String functionCls,
+      List<String> deduplicationProperties) {
+
     Assertions.assertThatList(registrations)
         .anyMatch(
             registration ->
                 (registration.name().equals(name)
                     && registration.type().equals(type)
-                    && registration.connectorClass().getName().equals(functionCls)));
+                    && registration.connectorClass().getName().equals(functionCls)
+                    && (deduplicationProperties == null
+                        || registration
+                            .deduplicationProperties()
+                            .equals(deduplicationProperties))));
   }
 }

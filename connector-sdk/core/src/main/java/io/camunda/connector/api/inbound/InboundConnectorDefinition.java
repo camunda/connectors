@@ -16,23 +16,7 @@
  */
 package io.camunda.connector.api.inbound;
 
-public interface InboundConnectorDefinition {
+import java.util.List;
 
-  /** Returns the connector type. It is used by the runtime to find the connector implementation. */
-  String type();
-
-  /** Returns the BPMN process id of the process definition that contains the connector. */
-  String bpmnProcessId();
-
-  /** Returns the version of the process definition that contains the connector. */
-  Integer version();
-
-  /** Returns the process definition key of the process definition that contains the connector. */
-  Long processDefinitionKey();
-
-  /** Returns the element id of the connector in the process definition. */
-  String elementId();
-
-  /** Returns the tenantId the process definition is assigned to. */
-  String tenantId();
-}
+public record InboundConnectorDefinition(
+    String type, String tenantId, String deduplicationId, List<ProcessElement> elements) {}

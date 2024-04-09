@@ -38,7 +38,10 @@ import io.camunda.connector.http.base.auth.BearerAuthentication;
 import io.camunda.connector.http.base.auth.OAuthAuthentication;
 import io.camunda.connector.http.base.constants.Constants;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
-import io.camunda.connector.runtime.inbound.lifecycle.InboundConnectorManager;
+import io.camunda.connector.runtime.inbound.state.ProcessImportResult;
+import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionIdentifier;
+import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionVersion;
+import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
 import io.camunda.operate.CamundaOperateClient;
 import io.camunda.operate.model.ProcessDefinition;
 import io.camunda.zeebe.client.ZeebeClient;
@@ -48,7 +51,6 @@ import io.camunda.zeebe.spring.test.ZeebeSpringTest;
 import java.io.File;
 import java.util.Collections;
 import java.util.Map;
-import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -82,7 +84,7 @@ public class HttpTests {
 
   @MockBean ProcessDefinitionSearch processDefinitionSearch;
 
-  @Autowired InboundConnectorManager inboundManager;
+  @Autowired ProcessStateStore stateStore;
 
   @Autowired CamundaOperateClient camundaOperateClient;
 
@@ -339,7 +341,7 @@ public class HttpTests {
 
     var model = replace("webhook_connector.bpmn", replace("http://webhook", mockUrl));
 
-    // Prepare a mocked process definition backed by our test model
+    // Prepare a mocked process connectorData backed by our test model
     when(camundaOperateClient.getProcessDefinitionModel(1L)).thenReturn(model);
     var processDef = mock(ProcessDefinition.class);
     when(processDef.getKey()).thenReturn(1L);
@@ -348,7 +350,13 @@ public class HttpTests {
         .thenReturn(model.getModelElementsByType(Process.class).stream().findFirst().get().getId());
 
     // Deploy the webhook
-    inboundManager.handleNewProcessDefinitions(Set.of(processDef));
+    stateStore.update(
+        new ProcessImportResult(
+            Map.of(
+                new ProcessDefinitionIdentifier(
+                    processDef.getBpmnProcessId(), processDef.getTenantId()),
+                new ProcessDefinitionVersion(
+                    processDef.getKey(), processDef.getVersion().intValue()))));
 
     var bpmnTest =
         ZeebeTest.with(zeebeClient).deploy(model).createInstance().waitForProcessCompletion();

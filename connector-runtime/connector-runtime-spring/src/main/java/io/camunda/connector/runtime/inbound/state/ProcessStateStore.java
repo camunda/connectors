@@ -14,16 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.inbound.lifecycle;
+package io.camunda.connector.runtime.inbound.state;
 
-import io.camunda.connector.api.inbound.Health;
-import java.util.Map;
+public interface ProcessStateStore {
 
-public record ActiveInboundConnectorResponse(
-    String bpmnProcessId,
-    int version,
-    String elementId,
-    String type,
-    String tenantId,
-    Map<String, Object> data,
-    Health health) {}
+  /**
+   * Update the process state based on the latest versions of the process definitions.
+   * Implementations must be idempotent.
+   */
+  void update(ProcessImportResult processDefinitions);
+}

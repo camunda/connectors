@@ -14,25 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.core.config;
+package io.camunda.connector.api.inbound;
 
-import io.camunda.connector.api.inbound.InboundConnectorExecutable;
-import java.util.List;
-import java.util.function.Supplier;
-
-public record InboundConnectorConfiguration(
-    String name,
-    String type,
-    Class<? extends InboundConnectorExecutable> connectorClass,
-    Supplier<InboundConnectorExecutable> customInstanceSupplier,
-    List<String> deduplicationProperties)
-    implements ConnectorConfiguration {
-
-  public InboundConnectorConfiguration(
-      String name,
-      String type,
-      Class<? extends InboundConnectorExecutable> connectorClass,
-      List<String> deduplicationProperties) {
-    this(name, type, connectorClass, null, deduplicationProperties);
-  }
-}
+/** Represents a BPMN process element that contains an inbound connector definition. */
+public record ProcessElement(
+    String bpmnProcessId,
+    int version,
+    long processDefinitionKey,
+    String elementId,
+    String tenantId) {}

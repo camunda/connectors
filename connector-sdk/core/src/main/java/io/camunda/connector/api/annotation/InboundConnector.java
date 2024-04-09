@@ -29,4 +29,10 @@ public @interface InboundConnector {
 
   /** Type the connector registers for */
   String type();
+
+  /**
+   * Names of the properties that are taken into account for connector deduplication. If empty, all
+   * properties are taken into account.
+   */
+  String[] deduplicationProperties() default {};
 }

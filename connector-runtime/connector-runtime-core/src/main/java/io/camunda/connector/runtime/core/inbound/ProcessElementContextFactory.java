@@ -14,7 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.inbound.lifecycle;
+package io.camunda.connector.runtime.core.inbound;
 
-public record ActiveInboundConnectorQuery(
-    String bpmnProcessId, String elementId, String type, String tenantId) {}
+import io.camunda.connector.api.inbound.ProcessElementContext;
+
+public interface ProcessElementContextFactory {
+
+  ProcessElementContext createContext(InboundConnectorElement connectorElement);
+}

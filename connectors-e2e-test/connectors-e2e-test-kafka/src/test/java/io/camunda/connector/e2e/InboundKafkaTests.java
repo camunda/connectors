@@ -21,6 +21,9 @@ import static org.mockito.Mockito.when;
 
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.e2e.helper.KafkaTestProducer;
+import io.camunda.connector.runtime.inbound.state.ProcessImportResult;
+import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionIdentifier;
+import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionVersion;
 import io.camunda.operate.exception.OperateException;
 import io.camunda.operate.model.ProcessDefinition;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
@@ -28,7 +31,6 @@ import io.camunda.zeebe.model.bpmn.instance.Process;
 import io.camunda.zeebe.process.test.assertions.BpmnAssert;
 import io.camunda.zeebe.spring.test.ZeebeSpringTest;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -81,7 +83,13 @@ public class InboundKafkaTests extends BaseKafkaTest {
             BpmnFile.Replace.replace("kafkaTopic", TOPIC));
 
     mockProcessDefinition(model);
-    inboundManager.handleNewProcessDefinitions(Set.of(processDef));
+    processStateStore.update(
+        new ProcessImportResult(
+            Map.of(
+                new ProcessDefinitionIdentifier(
+                    processDef.getBpmnProcessId(), processDef.getTenantId()),
+                new ProcessDefinitionVersion(
+                    processDef.getKey(), processDef.getVersion().intValue()))));
 
     AtomicBoolean kafkaProducerThreadRun =
         producer.startContinuousMessageSending(
@@ -118,7 +126,13 @@ public class InboundKafkaTests extends BaseKafkaTest {
             BpmnFile.Replace.replace("kafkaTopic", TOPIC));
 
     mockProcessDefinition(model);
-    inboundManager.handleNewProcessDefinitions(Set.of(processDef));
+    processStateStore.update(
+        new ProcessImportResult(
+            Map.of(
+                new ProcessDefinitionIdentifier(
+                    processDef.getBpmnProcessId(), processDef.getTenantId()),
+                new ProcessDefinitionVersion(
+                    processDef.getKey(), processDef.getVersion().intValue()))));
 
     AtomicBoolean kafkaProducerThreadRun =
         producer.startContinuousMessageSending(

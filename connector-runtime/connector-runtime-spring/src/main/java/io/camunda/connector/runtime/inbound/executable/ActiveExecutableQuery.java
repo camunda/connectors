@@ -14,10 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.inbound.lifecycle;
+package io.camunda.connector.runtime.inbound.executable;
 
-import io.camunda.connector.api.inbound.InboundConnectorContext;
-import io.camunda.connector.api.inbound.InboundConnectorExecutable;
-
-public record ActiveInboundConnector(
-    InboundConnectorExecutable executable, InboundConnectorContext context) {}
+public record ActiveExecutableQuery(
+    String bpmnProcessId, String elementId, String type, String tenantId) {}

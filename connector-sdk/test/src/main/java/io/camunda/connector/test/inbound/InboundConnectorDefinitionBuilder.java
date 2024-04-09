@@ -17,49 +17,27 @@
 package io.camunda.connector.test.inbound;
 
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
-import io.camunda.connector.runtime.core.inbound.correlation.ProcessCorrelationPoint;
-import io.camunda.connector.runtime.core.inbound.correlation.StartEventCorrelationPoint;
+import io.camunda.connector.api.inbound.ProcessElement;
+import java.util.List;
 
 /** Test helper class for creating an {@link InboundConnectorDefinition} with a fluent API. */
 public class InboundConnectorDefinitionBuilder {
 
   private String type = "test-connector";
-  private String bpmnProcessId = "test-process";
-  private int version = 1;
-  private long processDefinitionKey = 1;
-  private String elementId = "test-element";
 
   private String tenantId = "test-tenant";
-  private ProcessCorrelationPoint correlationPoint =
-      new StartEventCorrelationPoint(bpmnProcessId, version, processDefinitionKey);
+
+  private String deduplicationId = "test-deduplication-id";
+
+  private List<ProcessElement> elements =
+      List.of(new ProcessElement("test-process", 1, 1L, "test-element", "<default>"));
 
   public static InboundConnectorDefinitionBuilder create() {
     return new InboundConnectorDefinitionBuilder();
   }
 
-  public InboundConnectorDefinitionBuilder version(int version) {
-    this.version = version;
-    return this;
-  }
-
-  public InboundConnectorDefinitionBuilder processDefinitionKey(long processDefinitionKey) {
-    this.processDefinitionKey = processDefinitionKey;
-    return this;
-  }
-
-  public InboundConnectorDefinitionBuilder elementId(String elementId) {
-    this.elementId = elementId;
-    return this;
-  }
-
   public InboundConnectorDefinitionBuilder tenantId(String tenantId) {
     this.tenantId = tenantId;
-    return this;
-  }
-
-  public InboundConnectorDefinitionBuilder correlationPoint(
-      ProcessCorrelationPoint correlationPoint) {
-    this.correlationPoint = correlationPoint;
     return this;
   }
 
@@ -68,23 +46,22 @@ public class InboundConnectorDefinitionBuilder {
     return this;
   }
 
-  public InboundConnectorDefinitionBuilder bpmnProcessId(String bpmnProcessId) {
-    this.bpmnProcessId = bpmnProcessId;
+  public InboundConnectorDefinitionBuilder deduplicationId(String deduplicationId) {
+    this.deduplicationId = deduplicationId;
+    return this;
+  }
+
+  public InboundConnectorDefinitionBuilder elements(List<ProcessElement> elements) {
+    this.elements = elements;
+    return this;
+  }
+
+  public InboundConnectorDefinitionBuilder elements(ProcessElement... elements) {
+    this.elements = List.of(elements);
     return this;
   }
 
   public InboundConnectorDefinition build() {
-    return new InboundConnectorDefinitionImpl(
-        type, correlationPoint, bpmnProcessId, version, processDefinitionKey, elementId, tenantId);
+    return new InboundConnectorDefinition(type, tenantId, deduplicationId, elements);
   }
-
-  public record InboundConnectorDefinitionImpl(
-      String type,
-      ProcessCorrelationPoint correlationPoint,
-      String bpmnProcessId,
-      Integer version,
-      Long processDefinitionKey,
-      String elementId,
-      String tenantId)
-      implements InboundConnectorDefinition {}
 }

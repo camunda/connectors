@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.inbound.lifecycle;
+package io.camunda.connector.runtime.inbound;
 
 import static org.springframework.beans.factory.config.BeanDefinition.SCOPE_PROTOTYPE;
 
@@ -27,6 +27,7 @@ import io.camunda.zeebe.spring.client.annotation.processor.AbstractZeebeAnnotati
 import io.camunda.zeebe.spring.client.bean.BeanInfo;
 import io.camunda.zeebe.spring.client.bean.ClassInfo;
 import java.lang.invoke.MethodHandles;
+import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
@@ -74,18 +75,24 @@ public class InboundConnectorAnnotationProcessor extends AbstractZeebeAnnotation
               + beanInfo.getBean());
     } else {
       InboundConnectorConfiguration configuration =
-          new InboundConnectorConfiguration(
-              inboundConnector.name(),
-              inboundConnector.type(),
-              (Class<? extends InboundConnectorExecutable>) beanInfo.getTargetClass(),
-              () ->
-                  (InboundConnectorExecutable)
-                      configurableBeanFactory.getBean(beanInfo.getTargetClass()));
+          getInboundConnectorConfiguration(inboundConnector, beanInfo);
       LOGGER.info(
           "Configuring inbound connector {} of bean '{}'", configuration, beanInfo.getBeanName());
       inboundConnectorFactory.registerConfiguration(configuration);
       return configuration;
     }
+  }
+
+  private InboundConnectorConfiguration getInboundConnectorConfiguration(
+      InboundConnector inboundConnector, BeanInfo beanInfo) {
+    var deduplicationProperties = Arrays.asList(inboundConnector.deduplicationProperties());
+    return new InboundConnectorConfiguration(
+        inboundConnector.name(),
+        inboundConnector.type(),
+        (Class<? extends InboundConnectorExecutable>) beanInfo.getTargetClass(),
+        () ->
+            (InboundConnectorExecutable) configurableBeanFactory.getBean(beanInfo.getTargetClass()),
+        deduplicationProperties);
   }
 
   @Override

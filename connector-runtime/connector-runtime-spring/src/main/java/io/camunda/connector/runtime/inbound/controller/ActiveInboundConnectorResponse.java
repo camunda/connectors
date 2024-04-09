@@ -14,25 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.runtime.core.config;
+package io.camunda.connector.runtime.inbound.controller;
 
-import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import io.camunda.connector.api.inbound.Health;
+import io.camunda.connector.api.inbound.ProcessElement;
 import java.util.List;
-import java.util.function.Supplier;
+import java.util.Map;
+import java.util.UUID;
 
-public record InboundConnectorConfiguration(
-    String name,
+public record ActiveInboundConnectorResponse(
+    UUID executableId, // consider
     String type,
-    Class<? extends InboundConnectorExecutable> connectorClass,
-    Supplier<InboundConnectorExecutable> customInstanceSupplier,
-    List<String> deduplicationProperties)
-    implements ConnectorConfiguration {
-
-  public InboundConnectorConfiguration(
-      String name,
-      String type,
-      Class<? extends InboundConnectorExecutable> connectorClass,
-      List<String> deduplicationProperties) {
-    this(name, type, connectorClass, null, deduplicationProperties);
-  }
-}
+    String tenantId,
+    List<ProcessElement> elements,
+    Map<String, Object> data,
+    Health health) {}

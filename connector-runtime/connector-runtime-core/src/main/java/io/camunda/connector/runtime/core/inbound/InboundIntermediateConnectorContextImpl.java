@@ -25,8 +25,8 @@ import io.camunda.connector.api.inbound.InboundConnectorDefinition;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.api.inbound.ProcessInstanceContext;
 import io.camunda.connector.api.validation.ValidationProvider;
-import io.camunda.connector.runtime.core.inbound.correlation.BoundaryEventCorrelationPoint;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
+import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.BoundaryEventCorrelationPoint;
 import io.camunda.operate.model.FlowNodeInstance;
 import java.util.List;
 import java.util.Map;
@@ -61,17 +61,19 @@ public class InboundIntermediateConnectorContextImpl
 
   @Override
   public List<ProcessInstanceContext> getProcessInstanceContexts() {
-    var elementId = getDefinition().elementId();
-    var definition = (InboundConnectorDefinitionImpl) getDefinition();
-    if (definition.correlationPoint() instanceof BoundaryEventCorrelationPoint point) {
-      elementId = point.attachedTo().elementId();
-    }
+    var elements = connectorElements();
 
-    List<FlowNodeInstance> activeProcessInstanceKeys =
-        operateClient.fetchActiveProcessInstanceKeyByDefinitionKeyAndElementId(
-            getDefinition().processDefinitionKey(), elementId);
-
-    return activeProcessInstanceKeys.stream()
+    return elements.stream()
+        .map(
+            elementInfo -> {
+              var elementId = elementInfo.element().elementId();
+              if (elementInfo.correlationPoint() instanceof BoundaryEventCorrelationPoint point) {
+                elementId = point.attachedTo().elementId();
+              }
+              return operateClient.fetchActiveProcessInstanceKeyByDefinitionKeyAndElementId(
+                  elementInfo.element().processDefinitionKey(), elementId);
+            })
+        .flatMap(List::stream)
         .map(this::createProcessInstanceContext)
         .collect(Collectors.toList());
   }
@@ -133,5 +135,10 @@ public class InboundIntermediateConnectorContextImpl
   @Override
   public Queue<Activity> getLogs() {
     return inboundContext.getLogs();
+  }
+
+  @Override
+  public List<InboundConnectorElement> connectorElements() {
+    return inboundContext.connectorElements();
   }
 }

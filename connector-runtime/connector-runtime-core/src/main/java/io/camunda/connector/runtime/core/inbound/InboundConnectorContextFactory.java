@@ -34,11 +34,11 @@ public interface InboundConnectorContextFactory {
    * Creates an appropriate {@link InboundConnectorContext} instance based on the provided
    * parameters.
    *
-   * <p>This method will produce a context that aligns with the nature of the given connector
-   * definition and its execution requirements. The context is also influenced by the type of the
-   * executable connector provided.
+   * <p>This method will produce a context that aligns with the nature of the given connector data
+   * and its execution requirements. The context is also influenced by the type of the executable
+   * connector provided.
    *
-   * @param definition The specific inbound connector definition which gives details about the
+   * @param connectorDetails The specific inbound connector data which gives details about the
    *     connector and its related properties.
    * @param cancellationCallback Callback that gets invoked during connector execution errors or
    *     cancellations.
@@ -47,7 +47,7 @@ public interface InboundConnectorContextFactory {
    *     parameters.
    */
   <T extends InboundConnectorExecutable<?>> InboundConnectorContext createContext(
-      final InboundConnectorDefinitionImpl definition,
+      final InboundConnectorDetails connectorDetails,
       final Consumer<Throwable> cancellationCallback,
       final Class<T> executableClass,
       final EvictingQueue queue);

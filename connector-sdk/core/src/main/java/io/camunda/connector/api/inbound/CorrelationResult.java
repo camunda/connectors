@@ -16,16 +16,26 @@
  */
 package io.camunda.connector.api.inbound;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 public sealed interface CorrelationResult {
 
   sealed interface Success extends CorrelationResult {
-    record ProcessInstanceCreated(Long processInstanceKey, String tenantId) implements Success {}
 
-    record MessagePublished(Long messageKey, String tenantId) implements Success {}
+    ProcessElementContext activatedElement();
 
-    record MessageAlreadyCorrelated() implements Success {
-      public static final MessageAlreadyCorrelated INSTANCE = new MessageAlreadyCorrelated();
-    }
+    record ProcessInstanceCreated(
+        @JsonIgnore ProcessElementContext activatedElement,
+        Long processInstanceKey,
+        String tenantId)
+        implements Success {}
+
+    record MessagePublished(
+        @JsonIgnore ProcessElementContext activatedElement, Long messageKey, String tenantId)
+        implements Success {}
+
+    record MessageAlreadyCorrelated(@JsonIgnore ProcessElementContext activatedElement)
+        implements Success {}
   }
 
   sealed interface Failure extends CorrelationResult {

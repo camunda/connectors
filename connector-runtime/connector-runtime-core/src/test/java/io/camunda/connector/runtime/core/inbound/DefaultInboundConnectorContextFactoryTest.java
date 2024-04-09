@@ -42,7 +42,7 @@ class DefaultInboundConnectorContextFactoryTest {
   @Mock private ValidationProvider validationProvider;
   @Mock private OperateClientAdapter operateClientAdapter;
   @Mock private Consumer<Throwable> cancellationCallback;
-  @Mock private InboundConnectorDefinitionImpl newConnector;
+  @Mock private InboundConnectorDetails newConnector;
   private DefaultInboundConnectorContextFactory factory;
 
   @BeforeEach
@@ -102,7 +102,9 @@ class DefaultInboundConnectorContextFactoryTest {
     public void deactivate() throws Exception {}
   }
 
-  static class ExecutableWithEmptyParameterizedType implements InboundConnectorExecutable {
+  static class ExecutableWithEmptyParameterizedType
+      implements InboundConnectorExecutable<InboundConnectorContext> {
+
     @Override
     public void activate(final InboundConnectorContext context) throws Exception {}
 
@@ -112,6 +114,7 @@ class DefaultInboundConnectorContextFactoryTest {
 
   static class ExecutableWithIntermediate
       implements InboundConnectorExecutable<InboundIntermediateConnectorContext> {
+
     @Override
     public void activate(final InboundIntermediateConnectorContext context) throws Exception {}
 
