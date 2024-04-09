@@ -1,0 +1,77 @@
+[
+  {
+    "testDescription": "Test case with URI authentication but no URI provided",
+    "database": "MYSQL",
+    "authentication": {
+      "authType": "uri"
+    },
+    "isModifyingQuery": true,
+    "query": "UPDATE users SET name = ? WHERE id = 1",
+    "variables": "[\"john\"]"
+  },
+  {
+    "testDescription": "Test case with URI authentication but URI has an invalid format",
+    "database": "MYSQL",
+    "authentication": {
+      "authType": "uri",
+      "uri": "mysql://myLogin:mySecretPassword@localhost:5868"
+    },
+    "isModifyingQuery": true,
+    "query": "UPDATE users SET name = ? WHERE id = 1",
+    "variables": "[\"john\"]"
+  },
+  {
+    "testDescription": "Test with detailed authentication but no host provided",
+    "database": "MYSQL",
+    "authentication": {
+      "authType": "detailed",
+      "port": 5868,
+      "username": "myLogin",
+      "password": "mySecretPassword"
+    },
+    "isModifyingQuery": false,
+    "query": "SELECT * FROM users"
+  },
+  {
+    "testDescription": "Test with detailed authentication but no port provided",
+    "database": "MYSQL",
+    "authentication": {
+      "authType": "detailed",
+      "host": "localhost",
+      "username": "myLogin",
+      "password": "mySecretPassword"
+    },
+    "isModifyingQuery": false,
+    "query": "SELECT * FROM users"
+  },
+  {
+    "testDescription": "Test with no database provided",
+    "authentication": {
+      "authType": "uri",
+      "uri": "jdbc://mysql://localhost"
+    },
+    "isModifyingQuery": true,
+    "query": "UPDATE users SET name = ? WHERE id = 1",
+    "variables": "[\"john\"]"
+  },
+  {
+    "testDescription": "Test with no isModifyingQuery provided",
+    "database": "MYSQL",
+    "authentication": {
+      "authType": "uri",
+      "uri": "jdbc://mysql://localhost"
+    },
+    "query": "UPDATE users SET name = ? WHERE id = 1",
+    "variables": "[\"john\"]"
+  },
+  {
+    "testDescription": "Test with no query provided",
+    "database": "MYSQL",
+    "authentication": {
+      "authType": "uri",
+      "uri": "jdbc://mysql://localhost"
+    },
+    "isModifyingQuery": true,
+    "variables": "[\"john\"]"
+  }
+]
