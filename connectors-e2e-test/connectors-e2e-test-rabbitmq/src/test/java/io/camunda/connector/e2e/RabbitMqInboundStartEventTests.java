@@ -50,9 +50,9 @@ import org.testcontainers.utility.DockerImageName;
 @SpringBootTest(
     classes = {TestConnectorRuntimeApplication.class},
     properties = {
-        "spring.main.allow-bean-definition-overriding=true",
-        "camunda.connector.webhook.enabled=false",
-        "camunda.connector.polling.enabled=true"
+      "spring.main.allow-bean-definition-overriding=true",
+      "camunda.connector.webhook.enabled=false",
+      "camunda.connector.polling.enabled=true"
     },
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ZeebeSpringTest
@@ -66,8 +66,7 @@ public class RabbitMqInboundStartEventTests extends BaseRabbitMqTest {
   private static RabbitMQContainer rabbitMQContainer;
   private static ConnectionFactory factory;
 
-  @Autowired
-  ProcessStateStore processStateStore;
+  @Autowired ProcessStateStore processStateStore;
 
   @BeforeAll
   public static void setup() throws IOException, TimeoutException {
@@ -164,7 +163,8 @@ public class RabbitMqInboundStartEventTests extends BaseRabbitMqTest {
     var bpmnId = model.getModelElementsByType(Process.class).stream().findFirst().get().getId();
     var tenantId = zeebeClient.getConfiguration().getDefaultTenantId();
     return new ProcessImportResult(
-        Map.of(new ProcessDefinitionIdentifier(bpmnId, tenantId),
+        Map.of(
+            new ProcessDefinitionIdentifier(bpmnId, tenantId),
             new ProcessDefinitionVersion(1L, 1)));
   }
 }

@@ -31,7 +31,8 @@ public class PollingIntervalConfigurationTest {
   private InboundConnectorContextImpl inboundConnectorContext;
   private Map<String, String> properties;
 
-  @Mock private InboundConnectorDetails connectorData; // Initialize or mock the connector definition
+  @Mock
+  private InboundConnectorDetails connectorData; // Initialize or mock the connector definition
 
   @BeforeEach
   public void setUp() {
