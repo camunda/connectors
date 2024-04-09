@@ -58,7 +58,7 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "MSSQL",
+      "name" : "Microsoft SQL Server",
       "value" : "MSSQL"
     }, {
       "name" : "MySQL",

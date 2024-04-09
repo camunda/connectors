@@ -22,7 +22,9 @@ public record JdbcRequest(
             type = Dropdown,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             choices = {
-              @TemplateProperty.DropdownPropertyChoice(label = "MSSQL", value = "MSSQL"),
+              @TemplateProperty.DropdownPropertyChoice(
+                  label = "Microsoft SQL Server",
+                  value = "MSSQL"),
               @TemplateProperty.DropdownPropertyChoice(label = "MySQL", value = "MYSQL"),
               @TemplateProperty.DropdownPropertyChoice(label = "PostgreSQL", value = "POSTGRESQL"),
             })
