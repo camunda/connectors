@@ -2,7 +2,7 @@
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name" : "SQL Database Connector",
   "id" : "io.camunda.connectors.Jdbc.v1",
-  "description" : "Read and write data from a Camunda process directly to a SQL database(MSSQL, MySQL, PostgreSQL)",
+  "description" : "Read and write data from a Camunda process directly to a SQL database(Microsoft SQL Server, MySQL, PostgreSQL)",
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/jdbc",
   "version" : 1,
   "category" : {
@@ -21,7 +21,7 @@
     "label" : "Database"
   }, {
     "id" : "connection",
-    "label" : "Authentication"
+    "label" : "Connection"
   }, {
     "id" : "query",
     "label" : "Query"
