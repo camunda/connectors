@@ -4,7 +4,7 @@
   "id" : "io.camunda.connectors.inbound.RabbitMQ.Boundary.v1",
   "description" : "Receive a message from RabbitMQ",
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=inbound",
-  "version" : 5,
+  "version" : 6,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -65,7 +65,7 @@
     "constraints" : {
       "notEmpty" : true,
       "pattern" : {
-        "value" : "^(amqps?://|secrets|\\{\\{).*$",
+        "value" : "^(=|amqps?://|secrets|\\{\\{).*$",
         "message" : "Must start with amqp(s):// or contain a secret reference"
       }
     },
