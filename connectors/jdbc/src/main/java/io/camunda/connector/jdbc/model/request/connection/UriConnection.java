@@ -11,22 +11,36 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.jdbc.model.request.SupportedDatabase;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
+import java.util.Map;
+import java.util.Properties;
 
 @TemplateSubType(id = "uri", label = "URI")
 public record UriConnection(
     @NotBlank
         @Pattern(
-            regexp = "^(jdbc:|secrets|\\{\\{).*$",
+            regexp = "^(=|jdbc:|secrets|\\{\\{).*$",
             message = "Must start with jdbc: or contain a secret reference")
         @TemplateProperty(
             group = "connection",
             label = "URI",
             description =
                 "URI should contain JDBC driver, username, password, host name, and port number")
-        String uri)
+        String uri,
+    @TemplateProperty(group = "connection", label = "Properties", description = "")
+        Map<String, String> properties)
     implements JdbcConnection {
   @Override
   public String getConnectionString(SupportedDatabase database) {
     return uri;
+  }
+
+  @Override
+  public Properties getProperties() {
+    if (properties == null) {
+      return new Properties();
+    }
+    Properties properties = new Properties();
+    properties.putAll(this.properties());
+    return properties;
   }
 }

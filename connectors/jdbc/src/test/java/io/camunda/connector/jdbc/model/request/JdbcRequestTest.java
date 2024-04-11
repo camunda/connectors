@@ -4,7 +4,7 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.jdbc.model;
+package io.camunda.connector.jdbc.model.request;
 
 import static io.camunda.connector.jdbc.outbound.OutboundBaseTest.getContextBuilderWithSecrets;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -13,7 +13,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.jdbc.BaseTest;
-import io.camunda.connector.jdbc.model.request.JdbcRequest;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;

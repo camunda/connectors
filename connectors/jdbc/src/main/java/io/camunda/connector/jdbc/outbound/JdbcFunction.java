@@ -10,6 +10,7 @@ import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
+import io.camunda.connector.jdbc.model.JdbcClient;
 import io.camunda.connector.jdbc.model.request.JdbcRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,17 +41,19 @@ public class JdbcFunction implements OutboundConnectorFunction {
   static final String CONNECTION_GROUP_ID = "connection";
   static final String QUERY_GROUP_ID = "query";
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(JdbcFunction.class);
+  private final JdbcClient jdbcClient;
+
+  public JdbcFunction() {
+    this.jdbcClient = new JdbcClient.ApacheJdbcClient();
+  }
+
+  JdbcFunction(JdbcClient jdbcClient) {
+    this.jdbcClient = jdbcClient;
+  }
 
   @Override
   public Object execute(OutboundConnectorContext context) {
-    final var connectorRequest = context.bindVariables(JdbcRequest.class);
-    return executeConnector(connectorRequest);
-  }
-
-  private Object executeConnector(JdbcRequest jdbcRequest) {
-    LOGGER.info("Executing SQL Database Connector with request: {}", jdbcRequest);
-    // TODO implement connector logic
-    return null;
+    final var jdbcRequest = context.bindVariables(JdbcRequest.class);
+    return jdbcClient.executeRequest(jdbcRequest);
   }
 }

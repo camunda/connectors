@@ -11,6 +11,8 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.jdbc.model.request.SupportedDatabase;
 
+import java.util.Properties;
+
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "authType")
 @JsonSubTypes({
   @JsonSubTypes.Type(value = UriConnection.class, name = "uri"),
@@ -23,4 +25,6 @@ import io.camunda.connector.jdbc.model.request.SupportedDatabase;
     defaultValue = "uri")
 public sealed interface JdbcConnection permits UriConnection, DetailedConnection {
   String getConnectionString(SupportedDatabase database);
+
+  Properties getProperties();
 }

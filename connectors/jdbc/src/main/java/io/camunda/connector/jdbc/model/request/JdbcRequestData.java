@@ -44,4 +44,8 @@ public record JdbcRequestData(
             description =
                 "The variables to use in the SQL query. Use the same order as in the statement")
         @FEEL
-        List<?> variables) {}
+        List<?> variables) {
+  public JdbcRequestData(Boolean isModifyingQuery, String query) {
+    this(isModifyingQuery, query, List.of());
+  }
+}

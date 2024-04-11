@@ -35,8 +35,8 @@ public class JdbcFunctionTest extends OutboundBaseTest {
     //            .secret(SECRET_BOOTSTRAP_KEY, SECRET_BOOTSTRAP_SERVER)
     //            .secret(SECRET_TOPIC_KEY, SECRET_TOPIC_NAME)
     //            .build();
-
-    // when
+    //
+    //    // when
     //    objectUnderTest.execute(ctx);
     //    var request = ctx.bindVariables(JdbcRequest.class);
 
