@@ -30,12 +30,10 @@ import com.google.common.collect.EvictingQueue;
 import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
-import io.camunda.connector.api.inbound.webhook.VerifiableWebhook;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookHttpResponse;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookResult;
-import io.camunda.connector.api.inbound.webhook.WebhookResultContext;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.core.inbound.DefaultProcessElementContextFactory;
@@ -136,7 +134,8 @@ class WebhookControllerTestZeebeTests {
     WebhookResult webhookResult = mock(WebhookResult.class);
     when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));
     when(webhookResult.response())
-        .thenReturn(new WebhookHttpResponse(Map.of("keyResponse", "valueResponse"), null));
+        .thenReturn(
+            (c) -> new WebhookHttpResponse(Map.of("keyResponse", "valueResponse"), null, 201));
     when(webhookConnectorExecutable.triggerWebhook(any(WebhookProcessingPayload.class)))
         .thenReturn(webhookResult);
 
@@ -166,7 +165,7 @@ class WebhookControllerTestZeebeTests {
                 new HashMap<>(),
                 new MockHttpServletRequest());
 
-    assertEquals(200, responseEntity.getStatusCode().value());
+    assertEquals(201, responseEntity.getStatusCode().value());
     assertEquals("valueResponse", responseEntity.getBody().get("keyResponse"));
 
     var result = responseEntity.getBody();
@@ -178,7 +177,8 @@ class WebhookControllerTestZeebeTests {
     WebhookConnectorExecutable webhookConnectorExecutable = mock(WebhookConnectorExecutable.class);
     WebhookResult webhookResult = mock(WebhookResult.class);
     when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));
-    when(webhookResult.responseBodyExpression()).thenReturn((WebhookResultContext) -> Map.of());
+    when(webhookResult.response())
+        .thenReturn((WebhookResultContext) -> new WebhookHttpResponse(Map.of(), null, null));
     when(webhookConnectorExecutable.triggerWebhook(any(WebhookProcessingPayload.class)))
         .thenReturn(webhookResult);
 
@@ -218,7 +218,8 @@ class WebhookControllerTestZeebeTests {
     WebhookConnectorExecutable webhookConnectorExecutable = mock(WebhookConnectorExecutable.class);
     WebhookResult webhookResult = mock(WebhookResult.class);
     when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));
-    when(webhookResult.responseBodyExpression()).thenReturn((WebhookResultContext) -> Map.of());
+    when(webhookResult.response())
+        .thenReturn((WebhookResultContext) -> WebhookHttpResponse.ok(Map.of()));
     when(webhookConnectorExecutable.triggerWebhook(any(WebhookProcessingPayload.class)))
         .thenReturn(webhookResult);
 
@@ -268,7 +269,7 @@ class WebhookControllerTestZeebeTests {
     WebhookResult webhookResult = mock(WebhookResult.class);
     when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));
     // default use-case, when result expression not set
-    when(webhookResult.responseBodyExpression()).thenReturn(webhookResultContext -> null);
+    when(webhookResult.response()).thenReturn(webhookResultContext -> null);
     when(webhookConnectorExecutable.triggerWebhook(any(WebhookProcessingPayload.class)))
         .thenReturn(webhookResult);
 
@@ -409,7 +410,7 @@ class WebhookControllerTestZeebeTests {
     assertEquals("expression", responseEntity.getBody().expression());
   }
 
-  interface MyVerifiableWebhook extends WebhookConnectorExecutable, VerifiableWebhook {}
+  interface MyVerifiableWebhook extends WebhookConnectorExecutable {}
 
   @Test
   @SuppressWarnings("unchecked")
@@ -418,14 +419,12 @@ class WebhookControllerTestZeebeTests {
     WebhookResult webhookResult = mock(WebhookResult.class);
     when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));
     when(webhookResult.response())
-        .thenReturn(new WebhookHttpResponse(Map.of("keyResponse", "valueResponse"), null));
+        .thenReturn((c) -> WebhookHttpResponse.ok(Map.of("keyResponse", "valueResponse")));
     when(webhookConnectorExecutable.triggerWebhook(any(WebhookProcessingPayload.class)))
         .thenReturn(webhookResult);
 
     when(webhookConnectorExecutable.verify(any(WebhookProcessingPayload.class)))
-        .thenReturn(
-            new VerifiableWebhook.WebhookHttpVerificationResult(
-                Map.of("result", "GOOD"), Map.of(), 201));
+        .thenReturn(new WebhookHttpResponse(Map.of("result", "GOOD"), Map.of(), null));
 
     var webhookDef = webhookDefinition("processA", 1, "myPath");
     var webhookContext =
@@ -453,7 +452,7 @@ class WebhookControllerTestZeebeTests {
                 new HashMap<>(),
                 new MockHttpServletRequest());
 
-    assertEquals(201, responseEntity.getStatusCode().value());
+    assertEquals(200, responseEntity.getStatusCode().value());
     assertNull(responseEntity.getBody().get("keyResponse"));
     assertEquals("GOOD", responseEntity.getBody().get("result"));
 
@@ -481,7 +480,7 @@ class WebhookControllerTestZeebeTests {
 
     WebhookResult webhookResult = mock(WebhookResult.class);
     when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));
-    when(webhookResult.responseBodyExpression()).thenReturn((WebhookResultContext::correlation));
+    when(webhookResult.response()).thenReturn((c) -> WebhookHttpResponse.ok(c.correlation()));
     when(webhookConnectorExecutable.triggerWebhook(any(WebhookProcessingPayload.class)))
         .thenReturn(webhookResult);
 

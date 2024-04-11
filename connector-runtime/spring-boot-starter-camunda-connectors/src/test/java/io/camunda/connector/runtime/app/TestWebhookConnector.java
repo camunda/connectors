@@ -17,7 +17,6 @@
 package io.camunda.connector.runtime.app;
 
 import io.camunda.connector.api.annotation.InboundConnector;
-import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
@@ -44,10 +43,4 @@ public class TestWebhookConnector implements WebhookConnectorExecutable {
       }
     };
   }
-
-  @Override
-  public void activate(InboundConnectorContext context) throws Exception {}
-
-  @Override
-  public void deactivate() throws Exception {}
 }

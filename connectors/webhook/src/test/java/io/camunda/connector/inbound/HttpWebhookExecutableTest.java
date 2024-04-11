@@ -10,13 +10,18 @@ import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.di
 import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.enabled;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchException;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.google.common.net.HttpHeaders;
 import com.google.common.net.MediaType;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
+import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorException;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
+import io.camunda.connector.api.inbound.webhook.WebhookResultContext;
 import io.camunda.connector.inbound.signature.HMACAlgoCustomerChoice;
 import io.camunda.connector.inbound.utils.HttpMethods;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
@@ -37,7 +42,7 @@ class HttpWebhookExecutableTest {
   }
 
   @Test
-  void triggerWebhook_JsonBody_HappyCase() throws Exception {
+  void triggerWebhook_JsonBody_HappyCase() {
     InboundConnectorContext ctx =
         InboundConnectorContextBuilder.create()
             .properties(
@@ -59,11 +64,49 @@ class HttpWebhookExecutableTest {
     testObject.activate(ctx);
     var result = testObject.triggerWebhook(payload);
 
+    assertNull(result.response());
     assertThat((Map) result.request().body()).containsEntry("key", "value");
   }
 
   @Test
-  void triggerWebhook_FormDataBody_HappyCase() throws Exception {
+  void triggerWebhook_ResponseExpression_HappyCase() {
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context",
+                        "webhookContext",
+                        "method",
+                        "any",
+                        "auth",
+                        Map.of("type", "NONE"),
+                        "responseExpression",
+                        "=if request.body.key != null then {body: request.body.key} else null")))
+            .build();
+
+    WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
+    Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
+    Mockito.when(payload.headers())
+        .thenReturn(Map.of(HttpHeaders.CONTENT_TYPE, MediaType.JSON_UTF_8.toString()));
+    Mockito.when(payload.rawBody())
+        .thenReturn("{\"key\": \"value\"}".getBytes(StandardCharsets.UTF_8));
+
+    testObject.activate(ctx);
+    var result = testObject.triggerWebhook(payload);
+
+    assertNotNull(result.response());
+    assertThat((Map) result.request().body()).containsEntry("key", "value");
+
+    var request = new MappedHttpRequest(Map.of("key", "value"), null, null);
+    var context = new WebhookResultContext(request, null, null);
+    var response = result.response().apply(context);
+    assertEquals("value", response.body());
+  }
+
+  @Test
+  void triggerWebhook_FormDataBody_HappyCase() {
     InboundConnectorContext ctx =
         InboundConnectorContextBuilder.create()
             .properties(
@@ -89,7 +132,7 @@ class HttpWebhookExecutableTest {
   }
 
   @Test
-  void triggerWebhook_UnknownJsonLikeBody_HappyCase() throws Exception {
+  void triggerWebhook_UnknownJsonLikeBody_HappyCase() {
     InboundConnectorContext ctx =
         InboundConnectorContextBuilder.create()
             .properties(
@@ -114,7 +157,7 @@ class HttpWebhookExecutableTest {
   }
 
   @Test
-  void triggerWebhook_BinaryData_RaisesException() throws Exception {
+  void triggerWebhook_BinaryData_RaisesException() {
     InboundConnectorContext ctx =
         InboundConnectorContextBuilder.create()
             .properties(
@@ -138,7 +181,7 @@ class HttpWebhookExecutableTest {
   }
 
   @Test
-  void triggerWebhook_HttpMethodNotAllowed_RaisesException() throws Exception {
+  void triggerWebhook_HttpMethodNotAllowed_RaisesException() {
     InboundConnectorContext ctx =
         InboundConnectorContextBuilder.create()
             .properties(
@@ -165,7 +208,7 @@ class HttpWebhookExecutableTest {
   }
 
   @Test
-  void triggerWebhook_HmacSignatureMatches_HappyCase() throws Exception {
+  void triggerWebhook_HmacSignatureMatches_HappyCase() {
     InboundConnectorContext ctx =
         InboundConnectorContextBuilder.create()
             .properties(
@@ -199,7 +242,7 @@ class HttpWebhookExecutableTest {
   }
 
   @Test
-  void triggerWebhook_HmacSignatureDidntMatch_RaisesException() throws Exception {
+  void triggerWebhook_HmacSignatureDidntMatch_RaisesException() {
     InboundConnectorContext ctx =
         InboundConnectorContextBuilder.create()
             .properties(
@@ -235,7 +278,7 @@ class HttpWebhookExecutableTest {
   }
 
   @Test
-  void triggerWebhook_BadApiKey_RaisesException() throws Exception {
+  void triggerWebhook_BadApiKey_RaisesException() {
     InboundConnectorContext ctx =
         InboundConnectorContextBuilder.create()
             .properties(
@@ -276,7 +319,7 @@ class HttpWebhookExecutableTest {
   }
 
   @Test
-  void triggerWebhook_MissingApiKey_RaisesException() throws Exception {
+  void triggerWebhook_MissingApiKey_RaisesException() {
     InboundConnectorContext ctx =
         InboundConnectorContextBuilder.create()
             .properties(
@@ -312,7 +355,7 @@ class HttpWebhookExecutableTest {
   }
 
   @Test
-  void triggerWebhook_VerificationExpression_ReturnsChallenge() throws Exception {
+  void triggerWebhook_VerificationExpression_ReturnsChallenge() {
     final var verificationExpression =
         "=if request.body.challenge != null then {\"body\": {\"challenge\":request.body.challenge}} else null";
     InboundConnectorContext ctx =
@@ -341,13 +384,12 @@ class HttpWebhookExecutableTest {
     testObject.activate(ctx);
     var result = testObject.verify(payload);
 
-    assertThat(result.statusCode()).isEqualTo(200);
     assertThat(result.body()).isInstanceOf(Map.class);
     assertThat((Map) result.body()).containsEntry("challenge", "12345");
   }
 
   @Test
-  void triggerWebhook_VerificationExpressionWithModifiedBody_ReturnsChallenge() throws Exception {
+  void triggerWebhook_VerificationExpressionWithModifiedBody_ReturnsChallenge() {
     final var verificationExpression =
         "=if request.body.challenge != null then {\"body\": {\"challenge123\":request.body.challenge + \"QQQ\"}} else null";
     InboundConnectorContext ctx =
@@ -376,13 +418,12 @@ class HttpWebhookExecutableTest {
     testObject.activate(ctx);
     var result = testObject.verify(payload);
 
-    assertThat(result.statusCode()).isEqualTo(200);
     assertThat(result.body()).isInstanceOf(Map.class);
     assertThat((Map) result.body()).containsEntry("challenge123", "12345QQQ");
   }
 
   @Test
-  void triggerWebhook_VerificationExpressionWithFoldedBody_ReturnsChallenge() throws Exception {
+  void triggerWebhook_VerificationExpressionWithFoldedBody_ReturnsChallenge() {
     final var verificationExpression =
         "=if request.body.event_type = \"verification\" then {\"body\": {\"challenge\":request.body.event.challenge}} else null";
     InboundConnectorContext ctx =
@@ -413,13 +454,12 @@ class HttpWebhookExecutableTest {
     testObject.activate(ctx);
     var result = testObject.verify(payload);
 
-    assertThat(result.statusCode()).isEqualTo(200);
     assertThat(result.body()).isInstanceOf(Map.class);
     assertThat((Map) result.body()).containsEntry("challenge", "12345");
   }
 
   @Test
-  void triggerWebhook_VerificationExpressionWithStatusCode_ReturnsChallenge() throws Exception {
+  void triggerWebhook_VerificationExpressionWithStatusCode_ReturnsChallenge() {
     final var verificationExpression =
         "=if request.body.challenge != null then {\"body\": {\"challenge\":request.body.challenge}, \"statusCode\": 409} else null";
     InboundConnectorContext ctx =
@@ -454,7 +494,7 @@ class HttpWebhookExecutableTest {
   }
 
   @Test
-  void triggerWebhook_VerificationExpressionWithCustomHeaders_ReturnsChallenge() throws Exception {
+  void triggerWebhook_VerificationExpressionWithCustomHeaders_ReturnsChallenge() {
     final var verificationExpression =
         "=if request.body.challenge != null then {\"body\": {\"challenge\":request.body.challenge}, \"headers\":{\"Content-Type\":\"application/camunda-bin\"}} else null";
     InboundConnectorContext ctx =
@@ -483,7 +523,6 @@ class HttpWebhookExecutableTest {
     testObject.activate(ctx);
     var result = testObject.verify(payload);
 
-    assertThat(result.statusCode()).isEqualTo(200);
     assertThat(result.body()).isInstanceOf(Map.class);
     assertThat((Map) result.body()).containsEntry("challenge", "12345");
     assertThat(result.headers()).containsEntry("Content-Type", "application/camunda-bin");

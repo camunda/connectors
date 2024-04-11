@@ -27,10 +27,10 @@ import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.CorrelationResult.Success.MessagePublished;
 import io.camunda.connector.api.inbound.CorrelationResult.Success.ProcessInstanceCreated;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
-import io.camunda.connector.api.inbound.webhook.VerifiableWebhook;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorException;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorException.WebhookSecurityException;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
+import io.camunda.connector.api.inbound.webhook.WebhookHttpResponse;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookResult;
 import io.camunda.connector.api.inbound.webhook.WebhookResultContext;
@@ -40,6 +40,7 @@ import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable;
 import io.camunda.connector.runtime.inbound.webhook.model.HttpServletRequestWebhookProcessingPayload;
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -117,23 +118,12 @@ public class InboundWebhookRestController {
   }
 
   protected ResponseEntity<?> verify(
-      WebhookConnectorExecutable connectorHook, WebhookProcessingPayload payload) throws Exception {
+      WebhookConnectorExecutable connectorHook, WebhookProcessingPayload payload) {
+    WebhookHttpResponse verificationResponse = connectorHook.verify(payload);
     ResponseEntity<?> response = null;
-
-    VerifiableWebhook.WebhookHttpVerificationResult verificationResult = null;
-    if (connectorHook instanceof VerifiableWebhook verifiableWebhook) {
-      verificationResult = verifiableWebhook.verify(payload);
+    if (verificationResponse != null) {
+      response = toResponseEntity(verificationResponse);
     }
-
-    if (verificationResult != null) {
-      HttpHeaders headers = new HttpHeaders();
-      Optional.of(verificationResult)
-          .map(VerifiableWebhook.WebhookHttpVerificationResult::headers)
-          .ifPresent(map -> map.forEach(headers::add));
-      response =
-          new ResponseEntity<>(verificationResult.body(), headers, verificationResult.statusCode());
-    }
-
     return response;
   }
 
@@ -176,27 +166,28 @@ public class InboundWebhookRestController {
   private ResponseEntity<?> buildSuccessfulResponse(
       WebhookResult webhookResult, CorrelationResult.Success correlationResult) {
     ResponseEntity<?> response;
-    var processVariablesContext = toWebhookResultContext(webhookResult, correlationResult);
     if (webhookResult.response() != null) {
-      // Step 3a: return response crafted by webhook itself
-      response = ResponseEntity.ok(webhookResult.response().body());
-    } else {
-      // Step 3b: response body expression was defined and evaluated, or 200 OK otherwise
-      response = buildBodyExpressionResponseOrOk(webhookResult, processVariablesContext);
-    }
-    return response;
-  }
-
-  protected ResponseEntity<?> buildBodyExpressionResponseOrOk(
-      WebhookResult webhookResult, WebhookResultContext processVariablesContext) {
-    ResponseEntity<?> response;
-    if (webhookResult.responseBodyExpression() != null) {
-      var httpResponseData = webhookResult.responseBodyExpression().apply(processVariablesContext);
-      response = ResponseEntity.ok(httpResponseData);
+      var processVariablesContext = toWebhookResultContext(webhookResult, correlationResult);
+      var httpResponseData = webhookResult.response().apply(processVariablesContext);
+      if (httpResponseData != null) {
+        response = toResponseEntity(httpResponseData);
+      } else {
+        response = ResponseEntity.ok().build();
+      }
     } else {
       response = ResponseEntity.ok().build();
     }
     return response;
+  }
+
+  protected static ResponseEntity<?> toResponseEntity(WebhookHttpResponse webhookHttpResponse) {
+    int status =
+        Optional.ofNullable(webhookHttpResponse.statusCode()).orElse(HttpStatus.OK.value());
+    HttpHeaders headers = new HttpHeaders();
+    Optional.ofNullable(webhookHttpResponse.headers())
+        .orElse(Collections.emptyMap())
+        .forEach(headers::add);
+    return ResponseEntity.status(status).headers(headers).body(webhookHttpResponse.body());
   }
 
   protected ResponseEntity<?> buildErrorResponse(Exception e) {

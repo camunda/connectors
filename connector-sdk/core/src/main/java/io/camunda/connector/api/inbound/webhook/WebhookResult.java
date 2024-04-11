@@ -33,10 +33,11 @@ public interface WebhookResult {
   MappedHttpRequest request();
 
   /**
-   * @return strict response from the connector. May be useful to handle challenges, or special
-   *     response cases.
+   * Returns a function that can be used to generate a response to the webhook request.
+   *
+   * @return
    */
-  default WebhookHttpResponse response() {
+  default Function<WebhookResultContext, WebhookHttpResponse> response() {
     return null;
   }
 
@@ -48,9 +49,5 @@ public interface WebhookResult {
    */
   default Map<String, Object> connectorData() {
     return Collections.emptyMap();
-  }
-
-  default Function<WebhookResultContext, Object> responseBodyExpression() {
-    return response -> null;
   }
 }
