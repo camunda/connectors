@@ -12,8 +12,6 @@ import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.jdbc.model.JdbcClient;
 import io.camunda.connector.jdbc.model.request.JdbcRequest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @OutboundConnector(
     name = "SQL Database Connector",

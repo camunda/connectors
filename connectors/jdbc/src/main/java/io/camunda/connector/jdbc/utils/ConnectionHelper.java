@@ -39,12 +39,12 @@ public class ConnectionHelper {
       String password,
       String databaseName) {
     return switch (database) {
-      case MYSQL ->
-          buildMySqlConnectionString(database, host, port, username, password, databaseName);
-      case POSTGRESQL ->
-          buildPostgresConnectionString(database, host, port, username, password, databaseName);
-      case MSSQL ->
-          buildMssqlConnectionString(database, host, port, username, password, databaseName);
+      case MYSQL -> buildMySqlConnectionString(
+          database, host, port, username, password, databaseName);
+      case POSTGRESQL -> buildPostgresConnectionString(
+          database, host, port, username, password, databaseName);
+      case MSSQL -> buildMssqlConnectionString(
+          database, host, port, username, password, databaseName);
       default -> throw new ConnectorException("Unsupported database: " + database);
     };
   }
