@@ -92,7 +92,7 @@
     "constraints" : {
       "notEmpty" : true,
       "pattern" : {
-        "value" : "^(jdbc:|secrets|\\{\\{).*$",
+        "value" : "^(=|jdbc:|secrets|\\{\\{).*$",
         "message" : "Must start with jdbc: or contain a secret reference"
       }
     },
@@ -100,6 +100,22 @@
     "group" : "connection",
     "binding" : {
       "name" : "connection.uri",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "connection.authType",
+      "equals" : "uri",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "connection.uriProperties",
+    "label" : "Properties",
+    "optional" : false,
+    "feel" : "optional",
+    "group" : "connection",
+    "binding" : {
+      "name" : "connection.uriProperties",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -170,6 +186,39 @@
     "group" : "connection",
     "binding" : {
       "name" : "connection.password",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "connection.authType",
+      "equals" : "detailed",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "connection.databaseName",
+    "label" : "Database name",
+    "optional" : false,
+    "feel" : "optional",
+    "group" : "connection",
+    "binding" : {
+      "name" : "connection.databaseName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "connection.authType",
+      "equals" : "detailed",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "connection.properties",
+    "label" : "Properties",
+    "description" : "Provide the payload for the event as JSON. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound\" target=\"_blank\">documentation</a>",
+    "optional" : false,
+    "feel" : "optional",
+    "group" : "connection",
+    "binding" : {
+      "name" : "connection.properties",
       "type" : "zeebe:input"
     },
     "condition" : {

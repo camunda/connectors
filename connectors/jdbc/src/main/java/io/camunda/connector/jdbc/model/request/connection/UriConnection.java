@@ -27,7 +27,7 @@ public record UriConnection(
                 "URI should contain JDBC driver, username, password, host name, and port number")
         String uri,
     @TemplateProperty(group = "connection", label = "Properties", description = "")
-        Map<String, String> properties)
+        Map<String, String> uriProperties)
     implements JdbcConnection {
   @Override
   public String getConnectionString(SupportedDatabase database) {
@@ -36,11 +36,11 @@ public record UriConnection(
 
   @Override
   public Properties getProperties() {
-    if (properties == null) {
+    if (uriProperties == null) {
       return new Properties();
     }
     Properties properties = new Properties();
-    properties.putAll(this.properties());
+    properties.putAll(this.uriProperties());
     return properties;
   }
 }

@@ -39,7 +39,7 @@ public sealed interface JdbcClient permits JdbcClient.ApacheJdbcClient {
       }
     }
 
-    protected JdbcResponse internalExecuteRequest(JdbcRequestData data, Connection connection)
+    JdbcResponse internalExecuteRequest(JdbcRequestData data, Connection connection)
         throws SQLException {
       JdbcResponse response;
       if (data.isModifyingQuery()) {
