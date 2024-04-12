@@ -5,6 +5,8 @@
 | \__/\ (_) | | | | | | |  __/ (__| || (_) | |  \__ \
  \____/\___/|_| |_|_| |_|\___|\___|\__\___/|_|  |___/
  
+EXPERIMENTAL
+ 
 Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH.
 ${application.title} ${application.version}
 Powered by Spring Boot ${spring-boot.version}

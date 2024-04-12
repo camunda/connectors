@@ -17,7 +17,14 @@
 package io.camunda.connector.runtime.app;
 
 import org.springframework.boot.SpringApplication;
+import org.springframework.context.annotation.PropertySource;
+import org.springframework.context.annotation.PropertySources;
 
+@PropertySources(
+    value = {
+      @PropertySource("file:c-runtime.properties"),
+      @PropertySource("file:application.properties")
+    })
 public class LocalConnectorRuntime {
 
   public static void main(String[] args) {

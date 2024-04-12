@@ -16,4 +16,6 @@ if [[ -n ${DEBUG_JVM_PRINT_JAVA_OPTS} ]]; then
   echo "Applied JVM options: $JAVA_OPTS"
 fi
 
+JAVA_OPTS="${JAVA_OPTS} -Dspring.config.location=classpath:c-runtime.properties,classpath:application.properties -Dspring.banner.location=classpath:banner.txt"
+
 exec java ${JAVA_OPTS} -cp "/opt/app/*:/opt/custom/*" "io.camunda.connector.runtime.app.ConnectorRuntimeApplication"
