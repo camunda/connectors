@@ -20,6 +20,7 @@ import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeProperty;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeSubscriptionProperty;
+import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
 import java.util.List;
 
 public class CommonProperties {
@@ -136,5 +137,45 @@ public class CommonProperties {
         .group("correlation")
         .value("notRequired")
         .binding(new ZeebeProperty("correlationRequired"));
+  }
+
+  public static PropertyBuilder deduplicationModeManualFlag() {
+    return BooleanProperty.builder()
+        .id("deduplicationModeManualFlag")
+        .label("Manual mode")
+        .group("deduplication")
+        .description(
+            "By default, similar connectors receive the same deduplication ID. Customize by activating manual mode")
+        .value(false)
+        .binding(new ZeebeProperty("deduplicationModeManualFlag"));
+  }
+
+  public static PropertyBuilder deduplicationModeManual() {
+    return HiddenProperty.builder()
+        .id("deduplicationModeManual")
+        .group("deduplication")
+        .value("MANUAL")
+        .condition(new Equals("deduplicationModeManualFlag", true))
+        .binding(new ZeebeProperty("deduplicationMode"));
+  }
+
+  public static PropertyBuilder deduplicationModeAuto() {
+    return HiddenProperty.builder()
+        .id("deduplicationModeAuto")
+        .group("deduplication")
+        .value("AUTO")
+        .condition(new Equals("deduplicationModeManualFlag", false))
+        .binding(new ZeebeProperty("deduplicationMode"));
+  }
+
+  public static PropertyBuilder deduplicationId() {
+    return StringProperty.builder()
+        .id("deduplicationId")
+        .label("Deduplication ID")
+        .group("deduplication")
+        .feel(FeelMode.disabled)
+        .binding(new ZeebeProperty("deduplicationId"))
+        .constraints(PropertyConstraints.builder().notEmpty(true).build())
+        .condition(new Equals("deduplicationModeManualFlag", true));
   }
 }

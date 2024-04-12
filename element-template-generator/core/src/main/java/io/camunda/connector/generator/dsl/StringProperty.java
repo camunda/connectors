@@ -31,7 +31,8 @@ public final class StringProperty extends Property {
       FeelMode feel,
       String group,
       PropertyBinding binding,
-      PropertyCondition condition) {
+      PropertyCondition condition,
+      String tooltip) {
     super(
         name,
         label,
@@ -44,6 +45,7 @@ public final class StringProperty extends Property {
         group,
         binding,
         condition,
+        tooltip,
         TYPE);
   }
 
@@ -59,18 +61,22 @@ public final class StringProperty extends Property {
       if (feel == null) {
         feel = FeelMode.optional;
       }
+      if (value != null && !(value instanceof String)) {
+        throw new IllegalStateException("Value of a string property must be a string");
+      }
       return new StringProperty(
           id,
           label,
           description,
           optional,
-          value,
+          (String) value,
           generatedValue,
           constraints,
           feel,
           group,
           binding,
-          condition);
+          condition,
+          tooltip);
     }
   }
 }

@@ -28,7 +28,7 @@ public sealed interface PropertyCondition {
     }
   }
 
-  record Equals(String property, String equals) implements PropertyCondition {
+  record Equals(String property, Object equals) implements PropertyCondition {
 
     public String getType() {
       return "simple";

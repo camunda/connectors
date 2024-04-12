@@ -101,6 +101,7 @@ public class ElementTemplateSerializationTest {
                 PropertyGroup.builder()
                     .id("output")
                     .label("Output Mapping")
+                    .tooltip("Map the response to process variables")
                     .properties(
                         StringProperty.builder()
                             .label("Result Variable")

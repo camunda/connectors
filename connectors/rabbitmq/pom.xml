@@ -84,6 +84,9 @@
                   <templateFileName>rabbitmq-inbound-connector-boundary.json</templateFileName>
                 </file>
               </files>
+              <features>
+                <INBOUND_DEDUPLICATION>true</INBOUND_DEDUPLICATION>
+              </features>
             </connector>
           </connectors>
         </configuration>

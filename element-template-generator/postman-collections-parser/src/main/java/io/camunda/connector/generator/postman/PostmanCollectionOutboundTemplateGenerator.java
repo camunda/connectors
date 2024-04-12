@@ -82,11 +82,12 @@ public class PostmanCollectionOutboundTemplateGenerator
         firstTemplate.id(),
         firstTemplate.name(),
         firstTemplate.version(),
-        firstTemplate.properties().stream()
-            .filter(p -> p.getBinding().equals(ZeebeTaskDefinition.TYPE))
-            .findFirst()
-            .orElseThrow()
-            .getValue(),
+        (String)
+            firstTemplate.properties().stream()
+                .filter(p -> p.getBinding().equals(ZeebeTaskDefinition.TYPE))
+                .findFirst()
+                .orElseThrow()
+                .getValue(),
         supportedOperations);
   }
 

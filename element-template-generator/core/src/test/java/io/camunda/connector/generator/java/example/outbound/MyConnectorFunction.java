@@ -54,7 +54,11 @@ public abstract class MyConnectorFunction implements OutboundConnectorFunction {
       inputDataClass = MyConnectorInput.class,
       propertyGroups = {
         @PropertyGroup(id = "group2", label = "Group Two"),
-        @PropertyGroup(id = "group1", label = "Group One")
+        @PropertyGroup(
+            id = "group1",
+            label = "Group One",
+            openByDefault = false,
+            tooltip = "Group One Tooltip")
       })
   public static class FullyAnnotated extends MyConnectorFunction {}
 

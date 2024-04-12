@@ -29,13 +29,14 @@ public abstract sealed class Property
   protected final String label;
   protected final String description;
   protected final Boolean optional;
-  protected final String value;
+  protected final Object value;
   protected final GeneratedValue generatedValue;
   protected final PropertyConstraints constraints;
   protected final FeelMode feel;
   protected final String group;
   protected final PropertyBinding binding;
   protected final PropertyCondition condition;
+  protected final String tooltip;
 
   protected final String type;
 
@@ -55,13 +56,14 @@ public abstract sealed class Property
       String label,
       String description,
       Boolean optional,
-      String value,
+      Object value,
       GeneratedValue generatedValue,
       PropertyConstraints constraints,
       FeelMode feel,
       String group,
       PropertyBinding binding,
       PropertyCondition condition,
+      String tooltip,
       String type) {
     this.id = id;
     this.label = label;
@@ -74,6 +76,7 @@ public abstract sealed class Property
     this.group = group;
     this.binding = binding;
     this.condition = condition;
+    this.tooltip = tooltip;
     this.type = type;
   }
 
@@ -93,7 +96,7 @@ public abstract sealed class Property
     return optional;
   }
 
-  public String getValue() {
+  public Object getValue() {
     return value;
   }
 
@@ -126,6 +129,10 @@ public abstract sealed class Property
 
   public PropertyCondition getCondition() {
     return condition;
+  }
+
+  public String getTooltip() {
+    return tooltip;
   }
 
   @Override
@@ -163,7 +170,8 @@ public abstract sealed class Property
         feel,
         group,
         binding,
-        type);
+        type,
+        tooltip);
   }
 
   @Override
@@ -197,6 +205,12 @@ public abstract sealed class Property
         + binding
         + ", type='"
         + type
+        + '\''
+        + ", condition='"
+        + condition
+        + '\''
+        + ", tooltip='"
+        + tooltip
         + '\''
         + '}';
   }

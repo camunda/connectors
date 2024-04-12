@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
     id = "io.camunda.connectors.inbound.RabbitMQ",
     name = "RabbitMQ Connector",
     icon = "icon.svg",
-    version = 6,
+    version = 7,
     inputDataClass = RabbitMqInboundProperties.class,
     description = "Receive a message from RabbitMQ",
     documentationRef =

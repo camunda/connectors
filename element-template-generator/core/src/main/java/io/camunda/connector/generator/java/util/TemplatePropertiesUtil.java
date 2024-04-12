@@ -172,7 +172,7 @@ public class TemplatePropertiesUtil {
 
   private static PropertyBuilder buildProperty(Field field, TemplateGenerationContext context) {
     var annotation = field.getAnnotation(TemplateProperty.class);
-    String name, label;
+    String name, label, tooltip = null;
     String bindingName = field.getName();
     if (annotation != null) {
       if (annotation.ignore()) {
@@ -191,6 +191,9 @@ public class TemplatePropertiesUtil {
       if (!annotation.binding().name().isBlank()) {
         bindingName = annotation.binding().name();
       }
+      if (!annotation.tooltip().isBlank()) {
+        tooltip = annotation.tooltip();
+      }
     } else {
       name = field.getName();
       label = transformIdIntoLabel(name);
@@ -200,6 +203,7 @@ public class TemplatePropertiesUtil {
         createPropertyBuilder(field, annotation)
             .id(name)
             .label(label)
+            .tooltip(tooltip)
             .binding(createBinding(bindingName, context));
 
     for (FieldProcessor processor : fieldProcessors) {

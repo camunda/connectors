@@ -22,6 +22,7 @@ import io.camunda.connector.generator.api.ElementTemplateGenerator;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElementType;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
+import io.camunda.connector.generator.api.GeneratorConfiguration.GenerationFeature;
 import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.dsl.ElementTemplateBuilder;
 import io.camunda.connector.generator.dsl.ElementTemplateIcon;
@@ -86,6 +87,8 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
             PropertyGroup.builder()
                 .id(group.id())
                 .label(group.label())
+                .tooltip(group.tooltip().isBlank() ? null : group.tooltip())
+                .openByDefault(group.openByDefault() == Boolean.TRUE ? null : false)
                 .properties(groupDefinedInProperties.get().build().properties())
                 .build());
       }
@@ -132,7 +135,8 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
                       template.documentationRef().isEmpty() ? null : template.documentationRef())
                   .description(template.description().isEmpty() ? null : template.description())
                   .properties(nonGroupedProperties.stream().map(PropertyBuilder::build).toList())
-                  .propertyGroups(addServiceProperties(mergedGroups, context, elementType))
+                  .propertyGroups(
+                      addServiceProperties(mergedGroups, context, elementType, configuration))
                   .build();
             })
         .toList();
@@ -166,7 +170,8 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
   private List<PropertyGroup> addServiceProperties(
       List<PropertyGroup> groups,
       TemplateGenerationContext context,
-      ConnectorElementType elementType) {
+      ConnectorElementType elementType,
+      GeneratorConfiguration configuration) {
     var newGroups = new ArrayList<>(groups);
     if (context instanceof Outbound) {
       newGroups.add(PropertyGroup.OUTPUT_GROUP_OUTBOUND);
@@ -179,6 +184,9 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
       } else if (elementType.elementType().equals(BpmnType.INTERMEDIATE_CATCH_EVENT)
           || elementType.elementType().equals(BpmnType.BOUNDARY_EVENT)) {
         newGroups.add(PropertyGroup.CORRELATION_GROUP_INTERMEDIATE_CATCH_EVENT_OR_BOUNDARY);
+      }
+      if (configuration.features().get(GenerationFeature.INBOUND_DEDUPLICATION) == Boolean.TRUE) {
+        newGroups.add(PropertyGroup.DEDUPLICATION_GROUP);
       }
       newGroups.add(PropertyGroup.OUTPUT_GROUP_INBOUND);
     }

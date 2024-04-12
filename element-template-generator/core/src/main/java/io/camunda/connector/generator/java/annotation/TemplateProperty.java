@@ -78,6 +78,9 @@ public @interface TemplateProperty {
   /** Default value for the property */
   String defaultValue() default "";
 
+  /** Resulting JSON type for the default value */
+  DefaultValueType defaultValueType() default DefaultValueType.String;
+
   /**
    * Group ID for the property.
    *
@@ -108,6 +111,9 @@ public @interface TemplateProperty {
    */
   PropertyConstraints constraints() default @PropertyConstraints;
 
+  /** Tooltip for the property */
+  String tooltip() default "";
+
   enum PropertyType {
     Boolean,
     Dropdown,
@@ -117,6 +123,11 @@ public @interface TemplateProperty {
     Unknown
   }
 
+  enum DefaultValueType {
+    String,
+    Boolean
+  }
+
   @interface PropertyBinding {
     String name();
   }
@@ -124,7 +135,25 @@ public @interface TemplateProperty {
   @interface PropertyCondition {
     String property();
 
+    /** For string properties */
     String equals() default "";
+
+    /** For boolean properties */
+    boolean equalsBoolean() default true;
+
+    String[] oneOf() default {};
+
+    NestedPropertyCondition[] allMatch() default {};
+  }
+
+  @interface NestedPropertyCondition {
+    String property();
+
+    /** For string properties */
+    String equals() default "";
+
+    /** For boolean properties */
+    boolean equalsBoolean() default true;
 
     String[] oneOf() default {};
   }

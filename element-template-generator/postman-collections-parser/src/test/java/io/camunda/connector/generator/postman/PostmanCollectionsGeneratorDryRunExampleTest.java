@@ -21,6 +21,7 @@ import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
 import io.camunda.connector.generator.postman.utils.ObjectMapperProvider;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -35,7 +36,9 @@ public class PostmanCollectionsGeneratorDryRunExampleTest {
     var source = new PostmanCollectionsGenerationSource(args);
     var gen = new PostmanCollectionOutboundTemplateGenerator();
     var templates =
-        gen.generate(source, new GeneratorConfiguration(ConnectorMode.NORMAL, null, null, 1, null));
+        gen.generate(
+            source,
+            new GeneratorConfiguration(ConnectorMode.NORMAL, null, null, 1, null, Map.of()));
     var resultString =
         ObjectMapperProvider.getInstance()
             .writerWithDefaultPrettyPrinter()

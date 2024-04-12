@@ -18,6 +18,7 @@ package io.camunda.connector.generator.api;
 
 import io.camunda.connector.generator.dsl.BpmnType;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 
 /** Configuration for the element template generator */
@@ -26,7 +27,8 @@ public record GeneratorConfiguration(
     String templateId,
     String templateName,
     Integer templateVersion,
-    Set<ConnectorElementType> elementTypes) {
+    Set<ConnectorElementType> elementTypes,
+    Map<GenerationFeature, Boolean> features) {
 
   /**
    * Connectors in hybrid mode have a configurable task definition type (for outbound), or a
@@ -38,8 +40,13 @@ public record GeneratorConfiguration(
     HYBRID
   }
 
+  public enum GenerationFeature {
+    INBOUND_DEDUPLICATION
+  }
+
   public static final GeneratorConfiguration DEFAULT =
-      new GeneratorConfiguration(ConnectorMode.NORMAL, null, null, null, Collections.emptySet());
+      new GeneratorConfiguration(
+          ConnectorMode.NORMAL, null, null, null, Collections.emptySet(), Collections.emptyMap());
 
   public record ConnectorElementType(
       Set<BpmnType> appliesTo,

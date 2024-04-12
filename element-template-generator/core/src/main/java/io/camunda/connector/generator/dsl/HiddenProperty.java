@@ -44,6 +44,7 @@ public final class HiddenProperty extends Property {
         group,
         binding,
         condition,
+        null,
         TYPE);
   }
 
@@ -56,12 +57,15 @@ public final class HiddenProperty extends Property {
     private HiddenPropertyBuilder() {}
 
     public HiddenProperty build() {
+      if (value != null && !(value instanceof String)) {
+        throw new IllegalStateException("Value of a hidden property must be a string");
+      }
       return new HiddenProperty(
           id,
           label,
           description,
           optional,
-          value,
+          (String) value,
           generatedValue,
           constraints,
           feel,
