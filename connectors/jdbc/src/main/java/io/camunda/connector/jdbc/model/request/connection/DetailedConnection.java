@@ -9,7 +9,7 @@ package io.camunda.connector.jdbc.model.request.connection;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.jdbc.model.request.SupportedDatabase;
-import io.camunda.connector.jdbc.utils.ConnectionHelper;
+import io.camunda.connector.jdbc.utils.ConnectionStringHelper;
 import jakarta.validation.constraints.NotBlank;
 import java.util.Map;
 import java.util.Properties;
@@ -30,8 +30,7 @@ public record DetailedConnection(
     implements JdbcConnection {
   @Override
   public String getConnectionString(SupportedDatabase database) {
-    return ConnectionHelper.buildConnectionString(
-        database, host, port, username, password, databaseName);
+    return ConnectionStringHelper.buildConnectionString(database, this);
   }
 
   @Override
