@@ -4,7 +4,7 @@
   "id" : "io.camunda.connectors.webhook.WebhookConnectorBoundary.v1",
   "description" : "Configure webhook to receive callbacks",
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/http-webhook/",
-  "version" : 10,
+  "version" : 11,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -356,7 +356,7 @@
       "name" : "inbound.responseBodyExpression",
       "type" : "zeebe:property"
     },
-    "type" : "Text"
+    "type" : "Hidden"
   }, {
     "id" : "inbound.verificationExpression",
     "label" : "One time verification response expression",

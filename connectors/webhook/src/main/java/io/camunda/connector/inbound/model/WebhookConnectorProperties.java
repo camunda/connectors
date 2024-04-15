@@ -122,7 +122,7 @@ public record WebhookConnectorProperties(
     @TemplateProperty(
             id = "responseBodyExpression",
             label = "Response body expression",
-            type = PropertyType.Text,
+            type = PropertyType.Hidden,
             group = "webhookResponse",
             description = "Specify condition and response",
             feel = FeelMode.required,
