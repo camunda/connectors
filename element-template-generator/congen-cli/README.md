@@ -5,7 +5,7 @@
 It can be bundled with generators via Java Service Loader mechanism. Generators must be available in the classpath
 and implement the `io.camunda.connector.generator.api.CliCompatibleTemplateGenerator` interface.
 
-`congen` comes pre-bundled with [OpenAPI template generator](../openapi-parser).
+`congen` comes pre-bundled with [OpenAPI template generator](../openapi-parser) and [Postman collections template generator](../postman-collections-parser).
 
 ## Installation
 
