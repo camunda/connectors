@@ -11,14 +11,14 @@ followed by an optional list of operation IDs to include in the generated templa
 The following command will ask the generator to include only the `listPets` operation.
 
 ```shell
-congen generate openapi-outbound https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/examples/v3.0/petstore.json listPets
+congen openapi-outbound generate https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/examples/v3.0/petstore.json listPets
 ```
 
 Use the options provided by `congen` to customize the generated template.
 For example, the following command will generate the template with the custom element template ID.
 
 ```shell
-congen --id my-element-template generate openapi-outbound https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/examples/v3.0/petstore.json
+congen --id my-element-template openapi-outbound generate https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/examples/v3.0/petstore.json
 ```
 
 Refer to the [congen documentation](../congen-cli/README.md) for more information on the available options.
@@ -34,7 +34,7 @@ Note that this is not a standard option of `congen` and is only supported by the
 Add it after all other inputs.
 
 ```shell
-congen generate openapi-outbound https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/examples/v3.0/petstore.json --raw-body
+congen openapi-outbound generate https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/examples/v3.0/petstore.json --raw-body
 ```
 
 ## Known limitations
