@@ -67,8 +67,7 @@ public class ApacheJdbcClientTest {
         new JdbcRequest(
             SupportedDatabase.MSSQL,
             new UriConnection("", null),
-            new JdbcRequestData(
-                true, "UPDATE table SET column = value WHERE column = value", null));
+            new JdbcRequestData(true, "UPDATE table SET column = value WHERE column = value"));
     JdbcResponse result = apacheJdbcClient.internalExecuteRequest(jdbcRequest.data(), connection);
 
     assertNotNull(result.modifiedRows());

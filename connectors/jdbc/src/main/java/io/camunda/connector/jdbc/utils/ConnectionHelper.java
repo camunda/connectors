@@ -31,10 +31,9 @@ public class ConnectionHelper {
       LOG.debug("Connection established for Database {}: {}", request.database(), conn);
       return conn;
     } catch (ClassNotFoundException e) {
-      throw new ConnectorException(
-          "Cannot find class: " + request.database().getDriverClassName(), e);
+      throw new ConnectorException("Cannot find class: " + request.database().getDriverClassName());
     } catch (SQLException e) {
-      throw new ConnectorException("Cannot create the Database connection", e);
+      throw new ConnectorException("Cannot create the Database connection: " + e.getMessage());
     }
   }
 }

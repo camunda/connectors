@@ -11,10 +11,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.jdbc.model.JdbcClient;
 import io.camunda.connector.jdbc.model.request.JdbcRequest;
 import io.camunda.connector.jdbc.model.request.JdbcRequestData;
+import io.camunda.connector.jdbc.model.request.SupportedDatabase;
 import io.camunda.connector.jdbc.model.request.connection.DetailedConnection;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -51,7 +54,8 @@ public abstract class IntegrationBaseTest {
     }
   }
 
-  List<Map<String, Object>> selectAllEmployees(IntegrationTestConfig config) throws SQLException {
+  List<Map<String, Object>> selectAll(IntegrationTestConfig config, String tableName)
+      throws SQLException {
     try (Connection conn =
         DriverManager.getConnection(config.url(), config.username(), config.password())) {
       // using apache query runner
@@ -60,7 +64,7 @@ public abstract class IntegrationBaseTest {
         queryRunner.update(conn, "USE " + config.databaseName());
       }
       return queryRunner.query(
-          conn, "SELECT * FROM Employee ORDER BY id ASC", new MapListHandler());
+          conn, "SELECT * FROM " + tableName + " ORDER BY id ASC", new MapListHandler());
     }
   }
 
@@ -80,14 +84,16 @@ public abstract class IntegrationBaseTest {
     }
   }
 
-  void deleteAllEmployees(IntegrationTestConfig config) throws SQLException {
+  void cleanUp(IntegrationTestConfig config) throws SQLException {
     try (Connection conn =
             DriverManager.getConnection(config.url(), config.username(), config.password());
         Statement stmt = conn.createStatement()) {
+      stmt.executeUpdate("DELETE FROM Employee");
+      stmt.executeUpdate("DROP DATABASE IF EXISTS mydb");
       if (config.databaseName() != null) {
         stmt.executeUpdate("USE " + config.databaseName());
       }
-      stmt.executeUpdate(Employee.DELETE_ALL);
+      stmt.executeUpdate("DROP TABLE IF EXISTS TestTable");
     }
   }
 
@@ -115,6 +121,24 @@ public abstract class IntegrationBaseTest {
     }
   }
 
+  void selectDataAndAssertNoResult(IntegrationTestConfig config) {
+    JdbcRequest request =
+        new JdbcRequest(
+            config.database(),
+            new DetailedConnection(
+                config.host(),
+                config.port(),
+                config.username(),
+                config.password(),
+                config.databaseName(),
+                config.properties()),
+            new JdbcRequestData(true, "SELECT * FROM Employee ORDER BY Id ASC"));
+    var response = apacheJdbcClient.executeRequest(request);
+    // calling QueryRunner.execute() with a SELECT works, it's just that there's no object returned
+    assertEquals(-1, response.modifiedRows());
+    assertNull(response.resultSet());
+  }
+
   void updateDataAndAssertSuccess(IntegrationTestConfig config) {
     String name = DEFAULT_EMPLOYEES.get(0).name() + " UPDATED";
     JdbcRequest request =
@@ -133,10 +157,64 @@ public abstract class IntegrationBaseTest {
     assertNull(response.resultSet());
   }
 
+  void updateDataAndAssertThrows(IntegrationTestConfig config) {
+    JdbcRequest request =
+        new JdbcRequest(
+            config.database(),
+            new DetailedConnection(
+                config.host(),
+                config.port(),
+                config.username(),
+                config.password(),
+                config.databaseName(),
+                config.properties()),
+            new JdbcRequestData(
+                false, "UPDATE Employee SET name = 'John Doe UPDATED' WHERE id = 1"));
+    assertThrows(ConnectorException.class, () -> apacheJdbcClient.executeRequest(request));
+  }
+
   void assertEmployeeUpdated(IntegrationTestConfig config) throws SQLException {
-    List<Map<String, Object>> result = selectAllEmployees(config);
+    List<Map<String, Object>> result = selectAll(config, "Employee");
     assertEquals(DEFAULT_EMPLOYEES.size(), result.size());
     assertEquals(DEFAULT_EMPLOYEES.get(0).name() + " UPDATED", result.get(0).get("name"));
+  }
+
+  void deleteDataAndAssertSuccess(IntegrationTestConfig config) {
+    JdbcRequest request =
+        new JdbcRequest(
+            config.database(),
+            new DetailedConnection(
+                config.host(),
+                config.port(),
+                config.username(),
+                config.password(),
+                config.databaseName(),
+                config.properties()),
+            new JdbcRequestData(true, "DELETE FROM Employee WHERE id = 1"));
+    var response = apacheJdbcClient.executeRequest(request);
+    assertEquals(1, response.modifiedRows());
+    assertNull(response.resultSet());
+  }
+
+  void deleteDataAndAssertThrows(IntegrationTestConfig config) {
+    JdbcRequest request =
+        new JdbcRequest(
+            config.database(),
+            new DetailedConnection(
+                config.host(),
+                config.port(),
+                config.username(),
+                config.password(),
+                config.databaseName(),
+                config.properties()),
+            new JdbcRequestData(false, "DELETE FROM Employee WHERE id = 1"));
+    assertThrows(ConnectorException.class, () -> apacheJdbcClient.executeRequest(request));
+  }
+
+  void assertEmployeeDeleted(IntegrationTestConfig config) throws SQLException {
+    List<Map<String, Object>> result = selectAll(config, "Employee");
+    assertEquals(DEFAULT_EMPLOYEES.size() - 1, result.size());
+    assertThat(result).doesNotContain(DEFAULT_EMPLOYEES.get(0).toMap());
   }
 
   void insertDataAndAssertSuccess(IntegrationTestConfig config) {
@@ -157,15 +235,94 @@ public abstract class IntegrationBaseTest {
     assertNull(response.resultSet());
   }
 
+  void insertDataAndAssertThrows(IntegrationTestConfig config) {
+    JdbcRequest request =
+        new JdbcRequest(
+            config.database(),
+            new DetailedConnection(
+                config.host(),
+                config.port(),
+                config.username(),
+                config.password(),
+                config.databaseName(),
+                config.properties()),
+            new JdbcRequestData(
+                false, Employee.INSERT.formatted(NEW_EMPLOYEE.toInsertQueryFormat())));
+    assertThrows(ConnectorException.class, () -> apacheJdbcClient.executeRequest(request));
+  }
+
   void assertNewEmployeeCreated(IntegrationTestConfig config) throws SQLException {
-    List<Map<String, Object>> result = selectAllEmployees(config);
+    List<Map<String, Object>> result = selectAll(config, "Employee");
     assertEquals(DEFAULT_EMPLOYEES.size() + 1, result.size());
     assertThat(result).contains(NEW_EMPLOYEE.toMap());
   }
 
+  void createTableAndAssertSuccess(IntegrationTestConfig config, String tableName, String columns) {
+    JdbcRequest request =
+        new JdbcRequest(
+            config.database(),
+            new DetailedConnection(
+                config.host(),
+                config.port(),
+                config.username(),
+                config.password(),
+                config.databaseName(),
+                config.properties()),
+            new JdbcRequestData(true, "CREATE TABLE " + tableName + " (" + columns + ")"));
+    var response = apacheJdbcClient.executeRequest(request);
+    assertNull(response.resultSet());
+    assertEquals(0, response.modifiedRows());
+  }
+
+  void createTableAndAssertThrows(IntegrationTestConfig config, String tableName, String columns) {
+    JdbcRequest request =
+        new JdbcRequest(
+            config.database(),
+            new DetailedConnection(
+                config.host(),
+                config.port(),
+                config.username(),
+                config.password(),
+                config.databaseName(),
+                config.properties()),
+            new JdbcRequestData(false, "CREATE TABLE " + tableName + " (" + columns + ")"));
+    assertThrows(ConnectorException.class, () -> apacheJdbcClient.executeRequest(request));
+  }
+
+  void createDatabaseAndAssertSuccess(IntegrationTestConfig config, String databaseName) {
+    JdbcRequest request =
+        new JdbcRequest(
+            config.database(),
+            new DetailedConnection(
+                config.host(),
+                config.port(),
+                config.username(),
+                config.password(),
+                config.databaseName(),
+                config.properties()),
+            new JdbcRequestData(true, "CREATE DATABASE " + databaseName));
+    var response = apacheJdbcClient.executeRequest(request);
+    assertNull(response.resultSet());
+    assertEquals(config.database() == SupportedDatabase.MYSQL ? 1 : 0, response.modifiedRows());
+  }
+
+  void createDatabaseAndAssertThrows(IntegrationTestConfig config, String databaseName) {
+    JdbcRequest request =
+        new JdbcRequest(
+            config.database(),
+            new DetailedConnection(
+                config.host(),
+                config.port(),
+                config.username(),
+                config.password(),
+                config.databaseName(),
+                config.properties()),
+            new JdbcRequestData(false, "CREATE DATABASE " + databaseName));
+    assertThrows(ConnectorException.class, () -> apacheJdbcClient.executeRequest(request));
+  }
+
   record Employee(int id, String name, int age, String department) {
 
-    static final String DELETE_ALL = "DELETE FROM Employee";
     static final String INSERT = "INSERT INTO Employee (id, name, age, department) VALUES %s";
     static final String CREATE_TABLE =
         """

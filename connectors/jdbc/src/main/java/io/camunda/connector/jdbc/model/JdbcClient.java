@@ -35,7 +35,8 @@ public sealed interface JdbcClient permits JdbcClient.ApacheJdbcClient {
       try (Connection connection = openConnection(request)) {
         return internalExecuteRequest(data, connection);
       } catch (SQLException e) {
-        throw new ConnectorException("Error while executing the query " + data.query(), e);
+        throw new ConnectorException(
+            "Error while executing the query [" + data.query() + "]: " + e.getMessage());
       }
     }
 
