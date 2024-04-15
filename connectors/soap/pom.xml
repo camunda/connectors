@@ -88,12 +88,12 @@
     <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcpkix-jdk18on</artifactId>
-      <version>1.77</version>
+      <version>${version.bouncycastle}</version>
     </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcprov-jdk18on</artifactId>
-      <version>1.77</version>
+      <version>${version.bouncycastle}</version>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
