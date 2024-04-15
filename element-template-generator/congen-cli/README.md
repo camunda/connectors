@@ -5,7 +5,7 @@
 It can be bundled with generators via Java Service Loader mechanism. Generators must be available in the classpath
 and implement the `io.camunda.connector.generator.api.CliCompatibleTemplateGenerator` interface.
 
-`congen` comes pre-bundled with [OpenAPI template generator](../openapi-parser).
+`congen` comes pre-bundled with [OpenAPI template generator](../openapi-parser) and [Postman collections template generator](../postman-collections-parser).
 
 ## Installation
 
@@ -43,7 +43,7 @@ Run `congen -h` to see the usage information and a list of available parameters.
 The following command will invoke the generator named `openapi-outbound` and pass the specified OpenAPI specification.
 
 ```shell
-congen generate openapi-outbound https://petstore3.swagger.io/api/v3/openapi.json
+congen openapi-outbound generate https://petstore3.swagger.io/api/v3/openapi.json
 ```
 
 Note that `congen` will pass all parameters specified after the command name to the generator implementation.
@@ -53,14 +53,14 @@ followed by an optional list of operation IDs to include in the generated templa
 The following command will ask the generator to include only the `placeOrder` operation.
 
 ```shell
-congen generate openapi-outbound https://petstore3.swagger.io/api/v3/openapi.json placeOrder
+congen openapi-outbound generate https://petstore3.swagger.io/api/v3/openapi.json placeOrder
 ```
 
 Note that not all operations in the OpenAPI specification can be converted to a template. The generator will
 ignore operations that cannot be converted. To see the list of operations that can be converted, use the `scan` command.
 
 ```shell
-congen scan openapi-outbound https://petstore3.swagger.io/api/v3/openapi.json
+congen openapi-outbound scan https://petstore3.swagger.io/api/v3/openapi.json
 ```
 
 ```shell
@@ -68,7 +68,7 @@ congen scan openapi-outbound https://petstore3.swagger.io/api/v3/openapi.json
 The command below will generate the template with the custom element template ID.
 
 ```shell
-congen --id my-element-template generate openapi-outbound https://petstore3.swagger.io/api/v3/openapi.json
+congen --id my-element-template openapi-outbound generate https://petstore3.swagger.io/api/v3/openapi.json
 ```
 
 Refer to the [OpenAPI generator documentation](../openapi-parser/README.md) for more information on
@@ -79,26 +79,26 @@ how to use it.
 The following command will invoke the generator named `postman-collections-outbound` and pass the specified Postman Collections v.2.1.0 specification:
 
 ```shell
-congen generate postman-collections-outbound https://raw.githubusercontent.com/camunda-community-hub/camunda-8-api-postman-collection/main/Operate%20Public%20API%20-%20SaaS.postman_collection.json
+congen postman-collections-outbound generate https://raw.githubusercontent.com/camunda-community-hub/camunda-8-api-postman-collection/main/Operate%20Public%20API%20-%20SaaS.postman_collection.json
 ```
 
 The following command will ask the generator to include only the `/Process instances/Search for process instances` operation.
 
 ```shell
-congen generate postman-collections-outbound https://raw.githubusercontent.com/camunda-community-hub/camunda-8-api-postman-collection/main/Operate%20Public%20API%20-%20SaaS.postman_collection.json "/Process instances/Search for process instances"
+congen postman-collections-outbound generate https://raw.githubusercontent.com/camunda-community-hub/camunda-8-api-postman-collection/main/Operate%20Public%20API%20-%20SaaS.postman_collection.json "/Process instances/Search for process instances"
 ```
 
 Note that not all operations in the Postman Collections specification can be converted to a template. The generator will
 ignore operations that cannot be converted. To see the list of operations that can be converted, use the `scan` command.
 
 ```shell
-congen scan postman-collections-outbound https://raw.githubusercontent.com/camunda-community-hub/camunda-8-api-postman-collection/main/Operate%20Public%20API%20-%20SaaS.postman_collection.json
+congen postman-collections-outbound scan https://raw.githubusercontent.com/camunda-community-hub/camunda-8-api-postman-collection/main/Operate%20Public%20API%20-%20SaaS.postman_collection.json
 ```
 
 The command below will generate the template with the custom element template ID.
 
 ```shell
-congen --id my-element-template generate postman-collections-outbound https://raw.githubusercontent.com/camunda-community-hub/camunda-8-api-postman-collection/main/Operate%20Public%20API%20-%20SaaS.postman_collection.json
+congen --id my-element-template postman-collections-outbound generate https://raw.githubusercontent.com/camunda-community-hub/camunda-8-api-postman-collection/main/Operate%20Public%20API%20-%20SaaS.postman_collection.json
 ```
 
 Refer to the [Postman Collections generator documentation](../postman-collections-parser/README.md) for more information on
