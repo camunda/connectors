@@ -6,154 +6,90 @@
  */
 package io.camunda.connector.jdbc.integration;
 
-import io.camunda.connector.jdbc.model.request.SupportedDatabase;
 import java.sql.SQLException;
-import java.util.Map;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.testcontainers.containers.MSSQLServerContainer;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 @ExtendWith(MockitoExtension.class)
-public class ApacheJdbcClientIntegrationTest {
+public class ApacheJdbcClientIntegrationTest extends IntegrationBaseTest {
+  public static final String PROVIDE_SQL_SERVERS_CONFIG =
+      "io.camunda.connector.jdbc.integration.ApacheJdbcClientIntegrationTest#provideSqlServersConfig";
 
-  @Nested
-  class MsSqlApacheJdbcClientTest extends IntegrationBaseTest {
-    public static final MSSQLServerContainer mssqlserver =
-        new MSSQLServerContainer().acceptLicense();
+  static final MSSQLServerContainer msSqlServer = new MSSQLServerContainer().acceptLicense();
+  static final MySQLContainer mySqlServer = new MySQLContainer<>();
+  static final PostgreSQLContainer postgreServer = new PostgreSQLContainer();
 
-    @BeforeAll
-    public static void setUp() throws SQLException {
-      mssqlserver.start();
-      createEmployeeTable(
-          mssqlserver.getJdbcUrl(), mssqlserver.getUsername(), mssqlserver.getPassword());
+  static Stream<IntegrationTestConfig> provideSqlServersConfig() {
+    return IntegrationTestConfig.from(mySqlServer, msSqlServer, postgreServer).stream();
+  }
+
+  @BeforeAll
+  public static void setUp() throws SQLException {
+    msSqlServer.start();
+    mySqlServer.start();
+    postgreServer.start();
+
+    for (IntegrationTestConfig config :
+        IntegrationTestConfig.from(mySqlServer, msSqlServer, postgreServer)) {
+      createEmployeeTable(config);
     }
+  }
 
-    @AfterAll
-    public static void tearDown() {
-      mssqlserver.stop();
+  @AfterAll
+  public static void tearDown() {
+    msSqlServer.stop();
+    mySqlServer.stop();
+    postgreServer.stop();
+  }
+
+  @BeforeEach
+  public void insertData() throws SQLException {
+    for (IntegrationTestConfig config :
+        IntegrationTestConfig.from(mySqlServer, msSqlServer, postgreServer)) {
+      insertDefaultEmployees(config);
     }
+  }
 
-    @BeforeEach
-    public void insertData() throws SQLException {
-      insertDefaultEmployees(
-          mssqlserver.getJdbcUrl(), mssqlserver.getUsername(), mssqlserver.getPassword());
-    }
-
-    @AfterEach
-    public void cleanUp() throws SQLException {
-      deleteAllEmployees(
-          mssqlserver.getJdbcUrl(), mssqlserver.getUsername(), mssqlserver.getPassword());
-    }
-
-    @Test
-    public void shouldReturnResultList_whenSelectQuery() {
-      super.shouldReturnResultList_whenSelectQuery(
-          SupportedDatabase.MSSQL,
-          mssqlserver.getHost(),
-          String.valueOf(mssqlserver.getMappedPort(1433)),
-          mssqlserver.getUsername(),
-          mssqlserver.getPassword(),
-          null,
-          Map.of("encrypt", "false"));
+  @AfterEach
+  public void cleanUp() throws SQLException {
+    for (IntegrationTestConfig config :
+        IntegrationTestConfig.from(mySqlServer, msSqlServer, postgreServer)) {
+      deleteAllEmployees(config);
     }
   }
 
   @Nested
-  class MySqlApacheJdbcExecutorTest extends IntegrationBaseTest {
-    public static final MySQLContainer mysqlserver = new MySQLContainer<>();
+  class HappyPathTests {
 
-    @BeforeAll
-    public static void setUp() throws SQLException {
-      mysqlserver.start();
-      createEmployeeTable(
-          mysqlserver.getDatabaseName(),
-          mysqlserver.getJdbcUrl(),
-          mysqlserver.getUsername(),
-          mysqlserver.getPassword());
+    @ParameterizedTest
+    @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
+    public void shouldReturnResultList_whenSelectQuery(IntegrationTestConfig config) {
+      selectDataAndAssertSuccess(config);
     }
 
-    @AfterAll
-    public static void tearDown() {
-      mysqlserver.stop();
+    @ParameterizedTest
+    @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
+    public void shouldInsertData_whenInsertQuery(IntegrationTestConfig config) throws SQLException {
+      insertDataAndAssertSuccess(config);
+      assertNewEmployeeCreated(config);
     }
 
-    @BeforeEach
-    public void insertData() throws SQLException {
-      insertDefaultEmployees(
-          mysqlserver.getDatabaseName(),
-          mysqlserver.getJdbcUrl(),
-          mysqlserver.getUsername(),
-          mysqlserver.getPassword());
-    }
-
-    @AfterEach
-    public void cleanUp() throws SQLException {
-      deleteAllEmployees(
-          mysqlserver.getDatabaseName(),
-          mysqlserver.getJdbcUrl(),
-          mysqlserver.getUsername(),
-          mysqlserver.getPassword());
-    }
-
-    @Test
-    public void shouldReturnResultList_whenSelectQuery() {
-      super.shouldReturnResultList_whenSelectQuery(
-          SupportedDatabase.MYSQL,
-          mysqlserver.getHost(),
-          String.valueOf(mysqlserver.getMappedPort(3306)),
-          mysqlserver.getUsername(),
-          mysqlserver.getPassword(),
-          mysqlserver.getDatabaseName(),
-          null);
-    }
-  }
-
-  @Nested
-  class PostgreApacheJdbcExecutorTest extends IntegrationBaseTest {
-    public static final PostgreSQLContainer postgreServer = new PostgreSQLContainer();
-
-    @BeforeAll
-    public static void setUp() throws SQLException {
-      postgreServer.start();
-      createEmployeeTable(
-          postgreServer.getJdbcUrl(), postgreServer.getUsername(), postgreServer.getPassword());
-    }
-
-    @AfterAll
-    public static void tearDown() {
-      postgreServer.stop();
-    }
-
-    @BeforeEach
-    public void insertData() throws SQLException {
-      insertDefaultEmployees(
-          postgreServer.getJdbcUrl(), postgreServer.getUsername(), postgreServer.getPassword());
-    }
-
-    @AfterEach
-    public void cleanUp() throws SQLException {
-      deleteAllEmployees(
-          postgreServer.getJdbcUrl(), postgreServer.getUsername(), postgreServer.getPassword());
-    }
-
-    @Test
-    public void shouldReturnResultList_whenSelectQuery() {
-      super.shouldReturnResultList_whenSelectQuery(
-          SupportedDatabase.POSTGRESQL,
-          postgreServer.getHost(),
-          String.valueOf(postgreServer.getMappedPort(5432)),
-          postgreServer.getUsername(),
-          postgreServer.getPassword(),
-          null,
-          null);
+    @ParameterizedTest
+    @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
+    public void shouldUpdateData_whenUpdateQuery(IntegrationTestConfig config) throws SQLException {
+      updateDataAndAssertSuccess(config);
+      assertEmployeeUpdated(config);
     }
   }
 }

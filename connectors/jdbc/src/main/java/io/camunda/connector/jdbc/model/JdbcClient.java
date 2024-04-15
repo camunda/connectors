@@ -44,7 +44,8 @@ public sealed interface JdbcClient permits JdbcClient.ApacheJdbcClient {
       JdbcResponse response;
       if (data.isModifyingQuery()) {
         LOG.debug("Executing modifying query: {}", data.query());
-        response = JdbcResponse.of(runner.execute(connection, data.query(), data.variables()));
+        response =
+            JdbcResponse.of(runner.execute(connection, data.query(), data.variables().toArray()));
       } else {
         LOG.debug("Executing query: {}", data.query());
         MapListHandler beanListHandler = new MapListHandler();

@@ -25,7 +25,7 @@ public record DetailedConnection(
             group = "connection",
             label = "Properties",
             description =
-                "Provide the payload for the event as JSON. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound\" target=\"_blank\">documentation</a>")
+                "Provide the payload for the event as JSON. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound\" target=\"_blank\">documentation</a>") // TODO description
         Map<String, String> properties)
     implements JdbcConnection {
   @Override

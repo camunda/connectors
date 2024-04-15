@@ -26,7 +26,10 @@ public record UriConnection(
             description =
                 "URI should contain JDBC driver, username, password, host name, and port number")
         String uri,
-    @TemplateProperty(group = "connection", label = "Properties", description = "")
+    @TemplateProperty(
+            group = "connection",
+            label = "Properties",
+            description = "") // TODO description
         Map<String, String> uriProperties)
     implements JdbcConnection {
   @Override
