@@ -8,7 +8,7 @@
         <groupId>io.camunda.connector</groupId>
         <artifactId>connectors-e2e-test-aws-parent</artifactId>
         <relativePath>../pom.xml</relativePath>
-        <version>8.5.0-SNAPSHOT</version>
+        <version>8.6.0-SNAPSHOT</version>
     </parent>
 
     <name>connectors-e2e-test-aws-base</name>
