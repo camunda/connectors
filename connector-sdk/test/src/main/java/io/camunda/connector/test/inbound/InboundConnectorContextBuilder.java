@@ -26,11 +26,14 @@ import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
+import io.camunda.connector.api.inbound.ProcessElement;
+import io.camunda.connector.api.inbound.ProcessElementContext;
 import io.camunda.connector.api.inbound.ProcessInstanceContext;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorReportingContext;
 import io.camunda.connector.test.ConnectorContextTestUtil;
 import java.util.ArrayList;
@@ -222,7 +225,28 @@ public class InboundConnectorContextBuilder {
     @Override
     public CorrelationResult correlateWithResult(Object variables) {
       correlate(variables);
-      return Objects.requireNonNullElse(result, new Success.ProcessInstanceCreated(1L, "test"));
+      return Objects.requireNonNullElse(
+          result,
+          new Success.ProcessInstanceCreated(
+              new ProcessElementContext() {
+
+                @Override
+                public ProcessElement getElement() {
+                  return new ProcessElement("test", 0, 0, "test", "<default>");
+                }
+
+                @Override
+                public <T> T bindProperties(Class<T> cls) {
+                  return TestInboundConnectorContext.this.bindProperties(cls);
+                }
+
+                @Override
+                public Map<String, Object> getProperties() {
+                  return TestInboundConnectorContext.this.getProperties();
+                }
+              },
+              0L,
+              "test"));
     }
 
     @Override
@@ -282,6 +306,12 @@ public class InboundConnectorContextBuilder {
     @Override
     public Queue<Activity> getLogs() {
       return new ConcurrentLinkedQueue<>();
+    }
+
+    @Override
+    public List<InboundConnectorElement> connectorElements() {
+      // never used in tests, runtime-specific method
+      return null;
     }
   }
 

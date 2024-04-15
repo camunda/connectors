@@ -89,7 +89,7 @@ public class ProcessInstancesFetcherTask implements Runnable {
   }
 
   private String getRequestTaskKey(final ProcessInstanceContext processInstanceContext) {
-    return context.getDefinition().elementId() + processInstanceContext.getKey();
+    return context.getDefinition().deduplicationId() + processInstanceContext.getKey();
   }
 
   public void start() {

@@ -25,6 +25,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
+import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.common.suppliers.AmazonSQSClientSupplier;
 import io.camunda.connector.inbound.model.SqsInboundProperties;
@@ -118,13 +119,8 @@ class SqsExecutableTest {
   }
 
   private InboundConnectorDefinition createDefinition() {
-    return InboundConnectorDefinitionBuilder.create()
-        .bpmnProcessId("proc-id")
-        .version(1)
-        .processDefinitionKey(2)
-        .elementId("element-id")
-        .type("type")
-        .build();
+    var element = new ProcessElement("proc-id", 1, 2, "element-id", "<default>");
+    return InboundConnectorDefinitionBuilder.create().elements(element).type("type").build();
   }
 
   private InboundConnectorContext createConnectorContext(

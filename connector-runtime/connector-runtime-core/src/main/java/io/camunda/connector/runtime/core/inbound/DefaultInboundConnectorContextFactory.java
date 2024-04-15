@@ -50,7 +50,7 @@ public class DefaultInboundConnectorContextFactory implements InboundConnectorCo
 
   @Override
   public <T extends InboundConnectorExecutable<?>> InboundConnectorContext createContext(
-      final InboundConnectorDefinitionImpl newConnector,
+      final InboundConnectorDetails connectorDetails,
       final Consumer<Throwable> cancellationCallback,
       final Class<T> executableClass,
       final EvictingQueue queue) {
@@ -59,7 +59,7 @@ public class DefaultInboundConnectorContextFactory implements InboundConnectorCo
         new InboundConnectorContextImpl(
             secretProviderAggregator,
             validationProvider,
-            newConnector,
+            connectorDetails,
             correlationHandler,
             cancellationCallback,
             objectMapper,

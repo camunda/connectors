@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.runtime.inbound.importer;
 
-import io.camunda.connector.runtime.inbound.lifecycle.InboundConnectorManager;
+import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
 import io.camunda.operate.CamundaOperateClient;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
 import org.springframework.context.annotation.Bean;
@@ -32,14 +32,9 @@ public class ProcessDefinitionImportConfiguration {
 
   @Bean
   public ProcessDefinitionImporter processDefinitionImporter(
-      InboundConnectorManager manager,
+      ProcessStateStore stateStore,
       ProcessDefinitionSearch search,
       MetricsRecorder metricsRecorder) {
-    return new ProcessDefinitionImporter(manager, search, metricsRecorder);
-  }
-
-  @Bean
-  public ProcessDefinitionInspector processDefinitionInspector(CamundaOperateClient client) {
-    return new ProcessDefinitionInspector(client);
+    return new ProcessDefinitionImporter(stateStore, search, metricsRecorder);
   }
 }

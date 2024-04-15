@@ -15,7 +15,7 @@ import jakarta.validation.constraints.Pattern;
 public record UriAuthentication(
     @NotBlank
         @Pattern(
-            regexp = "^(amqps?://|secrets|\\{\\{).*$",
+            regexp = "^(=|amqps?://|secrets|\\{\\{).*$",
             message = "Must start with amqp(s):// or contain a secret reference")
         @TemplateProperty(
             group = "authentication",

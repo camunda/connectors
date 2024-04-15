@@ -1,0 +1,284 @@
+{
+  "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name" : "SQL Database Connector",
+  "id" : "io.camunda.connectors.Jdbc.v1",
+  "description" : "Read and write data from a Camunda process directly to a SQL database(Microsoft SQL Server, MySQL, PostgreSQL)",
+  "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/jdbc",
+  "version" : 1,
+  "category" : {
+    "id" : "connectors",
+    "name" : "Connectors"
+  },
+  "appliesTo" : [ "bpmn:Task" ],
+  "elementType" : {
+    "value" : "bpmn:ServiceTask"
+  },
+  "groups" : [ {
+    "id" : "database",
+    "label" : "Database"
+  }, {
+    "id" : "connection",
+    "label" : "Connection"
+  }, {
+    "id" : "query",
+    "label" : "Query"
+  }, {
+    "id" : "output",
+    "label" : "Output mapping"
+  }, {
+    "id" : "error",
+    "label" : "Error handling"
+  }, {
+    "id" : "retries",
+    "label" : "Retries"
+  } ],
+  "properties" : [ {
+    "value" : "io.camunda:connector-jdbc:1",
+    "binding" : {
+      "property" : "type",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "database",
+    "label" : "Database",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "database",
+    "binding" : {
+      "name" : "database",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Microsoft SQL Server",
+      "value" : "MSSQL"
+    }, {
+      "name" : "MySQL",
+      "value" : "MYSQL"
+    }, {
+      "name" : "PostgreSQL",
+      "value" : "POSTGRESQL"
+    } ]
+  }, {
+    "id" : "connection.authType",
+    "label" : "Connection type",
+    "value" : "uri",
+    "group" : "connection",
+    "binding" : {
+      "name" : "connection.authType",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "URI",
+      "value" : "uri"
+    }, {
+      "name" : "Detailed",
+      "value" : "detailed"
+    } ]
+  }, {
+    "id" : "connection.uri",
+    "label" : "URI",
+    "description" : "URI should contain JDBC driver, username, password, host name, and port number",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "^(jdbc:|secrets|\\{\\{).*$",
+        "message" : "Must start with jdbc: or contain a secret reference"
+      }
+    },
+    "feel" : "optional",
+    "group" : "connection",
+    "binding" : {
+      "name" : "connection.uri",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "connection.authType",
+      "equals" : "uri",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "connection.host",
+    "label" : "Host",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "connection",
+    "binding" : {
+      "name" : "connection.host",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "connection.authType",
+      "equals" : "detailed",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "connection.port",
+    "label" : "Port",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "connection",
+    "binding" : {
+      "name" : "connection.port",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "connection.authType",
+      "equals" : "detailed",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "connection.username",
+    "label" : "Username",
+    "optional" : false,
+    "feel" : "optional",
+    "group" : "connection",
+    "binding" : {
+      "name" : "connection.username",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "connection.authType",
+      "equals" : "detailed",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "connection.password",
+    "label" : "Password",
+    "optional" : false,
+    "feel" : "optional",
+    "group" : "connection",
+    "binding" : {
+      "name" : "connection.password",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "connection.authType",
+      "equals" : "detailed",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.isModifyingQuery",
+    "label" : "Modifying query",
+    "description" : "Check this box if the query is anything other than a SELECT query",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "query",
+    "binding" : {
+      "name" : "data.isModifyingQuery",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Yes",
+      "value" : "true"
+    }, {
+      "name" : "No",
+      "value" : "false"
+    } ]
+  }, {
+    "id" : "data.query",
+    "label" : "Query",
+    "description" : "The SQL query to execute. You can use placeholders (?) for variables",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "query",
+    "binding" : {
+      "name" : "data.query",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.variables",
+    "label" : "Variables",
+    "description" : "The variables to use in the SQL query. Use the same order as in the statement",
+    "optional" : false,
+    "feel" : "required",
+    "group" : "query",
+    "binding" : {
+      "name" : "data.variables",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "resultVariable",
+    "label" : "Result variable",
+    "description" : "Name of variable to store the response in",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultVariable",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  }, {
+    "id" : "resultExpression",
+    "label" : "Result expression",
+    "description" : "Expression to map the response into process variables",
+    "feel" : "required",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "errorExpression",
+    "label" : "Error expression",
+    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "error",
+    "binding" : {
+      "key" : "errorExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "retryCount",
+    "label" : "Retries",
+    "description" : "Number of retries",
+    "value" : "3",
+    "feel" : "optional",
+    "group" : "retries",
+    "binding" : {
+      "property" : "retries",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "String"
+  }, {
+    "id" : "retryBackoff",
+    "label" : "Retry backoff",
+    "description" : "ISO-8601 duration to wait between retries",
+    "value" : "PT0S",
+    "feel" : "optional",
+    "group" : "retries",
+    "binding" : {
+      "key" : "retryBackoff",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  } ],
+  "icon" : {
+    "contents" : "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwcHgiCiAgICAgaGVpZ2h0PSI4MDBweCIgdmlld0JveD0iLTguNzggMCA3MCA3MCIKICAgICB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgogIDxwYXRoIGQ9Im0gODUyLjk3MDc3LDEwMTMuOTM2MyBjIC02LjU1MjM4LC0wLjQ3MjMgLTEzLjAyODU3LC0yLjEyMTYgLTE3LjAwMDM0LC00LjMyOTYgLTIuMjYyMzIsLTEuMjU3NiAtMy45ODU4OSwtMi44MDMyIC00LjY2MjIzLC00LjE4MDcgbCAtMC40MDI0LC0wLjgxOTYgMCwtMjUuNzA4MDcgMCwtMjUuNzA4MSAwLjMxODQzLC0wLjY0NjUgYyAxLjQyMjk3LC0yLjg4OSA1Ljk2NDMyLC01LjQ5MzUgMTIuMzAzNzgsLTcuMDU2MiAyLjE1MTk1LC0wLjUzMDUgNS4yNTg2LC0xLjA1ODggNy43OTMwNCwtMS4zMjUyIDIuNTg3OTcsLTAuMjcyMSA5LjQ0NzY1LC0wLjIzMDcgMTIuMDI5MTksMC4wNzMgNi44NjEyMywwLjgwNjEgMTIuNjk5NjcsMi42MTA4IDE2LjI5NzY4LDUuMDM3NyAxLjM4NzU2LDAuOTM1OSAyLjgxMTM3LDIuNDMzNCAzLjI5MzcxLDMuNDY0MiBsIDAuNDEzNTgsMC44ODM4IC0wLjAzNTQsMjUuNjMwMyAtMC4wMzU0LDI1LjYzMDQ3IC0wLjMzMTk1LDAuNjc0NCBjIC0wLjE4MjU3LDAuMzcwOSAtMC43MzQwNiwxLjEwMDcgLTEuMjI1NTMsMS42MjE2IC0yLjk5MTgxLDMuMTcxNSAtOS40MDkxOSw1LjUxNzYgLTE3LjgyNjcsNi41MTcyIC0xLjcxNTY3LDAuMjAzOCAtOS4xNjkxNiwwLjM2ODYgLTEwLjkyOTM3LDAuMjQxNyB6IG0gMTIuMDc1MDEsLTIyLjAyODM5IGMgLTAuMDI1MiwtMC4wNjU3IC0xLjAwNDcyLC0wLjkzODMxIC0yLjE3NjcxLC0xLjkzOTIyIC0xLjE3MTk5LC0xLjAwMDkxIC0yLjE4MTM4LC0xLjg2Njg3IC0yLjI0MzA5LC0xLjkyNDM2IC0wLjA2MTcsLTAuMDU3NSAwLjE1NDgxLC0wLjI2MTA2IDAuNDgxMTcsLTAuNDUyMzcgMC4zMjYzNSwtMC4xOTEzMSAwLjk1MTYzLC0wLjcyMzUgMS4zODk1LC0xLjE4MjY1IDEuMjgwNSwtMS4zNDI3MiAxLjg4NDY2LC0zLjAwMTMxIDEuODg0NjYsLTUuMTczODggMCwtMi4xMzg4IC0wLjY1MTYyLC0zLjg2NDUgLTEuOTU2NzEsLTUuMTgxOCAtMS4zMTUzMywtMS4zMjc4IC0yLjgyNTU0LC0xLjg5ODMgLTUuMDI0ODYsLTEuODk4MyAtMy4zOTAwNywwIC01Ljk5MzY4LDEuOTc4MSAtNi44MjQ2OCw1LjE4NTEgLTAuMjg1ODYsMS4xMDMxIC0wLjI4NDMyLDMuMzMyMTEgMC4wMDMsNC4zMTAyMyAwLjc0OTQxLDIuNTUxMzYgMi43OTA0NCw0LjQwNDM0IDUuMzMwNjIsNC44Mzk0NiAwLjg1OTYsMC4xNDcyNCAwLjk3NjA1LDAuMjEwNzEgMS41NjIxLDAuODUxNDQgMC4zNDgyOSwwLjM4MDc4IDEuMDYzMDEsMS4xNDA4NSAxLjU4ODI3LDEuNjg5MDQgbCAwLjk1NTAxLDAuOTk2NyAyLjUzODc4LDAgYyAxLjM5NjMzLDAgMi41MTgxNiwtMC4wNTM3IDIuNDkyOTYsLTAuMTE5MzkgeiBtIC04LjcwNjUzLC03LjEwODQ4IGMgLTAuNjExMTksLTAuMzE4NjggLTAuODQyMjUsLTAuNTY1OTkgLTEuMTkwNzksLTEuMjc0NTMgLTAuMjY5MTksLTAuNTQ3MjQgLTAuMzE1MjIsLTAuODU4NTEgLTAuMzE4MjQsLTIuMTUxOTcgLTAuMDAzLC0xLjMxNDMgMC4wMzg4LC0xLjU5ODMgMC4zMTk4NywtMi4xNjkgMC40NTk4NSwtMC45MzM5IDEuMDkzNTUsLTEuMzc2IDIuMDczODQsLTEuNDQ2OSAxLjM2NDU0LC0wLjA5OSAyLjE1MjE3LDAuNTcwNyAyLjU2NDk4LDIuMTgwMSAwLjUwNjEyLDEuOTczMjEgLTAuMDUwNCw0LjA3MTA3IC0xLjI2NDcxLDQuNzY3MjkgLTAuNjM3MDcsMC4zNjUyNyAtMS41ODczNywwLjQwNjU5IC0yLjE4NDk1LDAuMDk1IHogbSAtMTEuMjUzMTUsMy42NjI2OSBjIDIuNjYxNzksLTAuNTA0OCA0LjE3MjgsLTIuMDUyOCA0LjE3MjgsLTQuMjc0OTUgMCwtMS45NzEzNyAtMC45NzU0OCwtMy4xMjAwNCAtMy42NzE2LC00LjMyMzY0IC0xLjU0MzM4LC0wLjY4OSAtMi4xMDI0MSwtMS4xMjE1IC0yLjEwMjQxLC0xLjYyNjggMCwtMC40MTg4IDAuNTMwNTIsLTAuODc3NyAxLjE0ODEzLC0wLjk5MyAwLjYwMzAyLC0wLjExMjYgMi4yMDIzNywwLjE2NTIgMy4xNDY4MywwLjU0NjcgbCAwLjc5MTY3LDAuMzE5OCAwLC0xLjc1MjQgMCwtMS43NTI1IC0wLjg1OTIzLC0wLjE5MDYgYyAtMC41MzEwMywtMC4xMTc4IC0xLjY0Njg5LC0wLjE4ODUgLTIuOTIxMzcsLTAuMTg0OSAtMS44MDUyOCwwIC0yLjE1ODgxLDAuMDQ0IC0yLjgzODE4LDAuMzEzOCAtMS45ODQ0NSwwLjc4NzggLTIuOTI2MTMsMi4xMjk4IC0yLjkxMTA3LDQuMTQ4NSAwLjAxNDEsMS44ODk4IDEuMDExMDgsMy4wNjg2NCAzLjQ5MjI3LDQuMTI5MTIgMS40NjM5OSwwLjYyNTcyIDIuMDUwNzYsMS4xMDIxOCAyLjA1MDc2LDEuNjY1MjIgMCwxLjE5NjUgLTEuOTkzNjIsMS4zNDM3NSAtNC4xMDQzNywwLjMwMzE1IC0wLjU3ODA1LC0wLjI4NDk4IC0xLjA5NzM5LC0wLjU0MTM3IC0xLjE1NDEsLTAuNTY5NzYgLTAuMDU2NywtMC4wMjg0IC0wLjEwMzExLDAuNzkwMjMgLTAuMTAzMTEsMS44MTkxNyAwLDEuODYyMzkgMC4wMDIsMS44NzEzNyAwLjMzOTE5LDEuOTk5NzQgMS4yNjk3OSwwLjQ4Mjc4IDQuMDc2MjYsMC42OTc4NyA1LjUyMzc5LDAuNDIzMzUgeiBtIDMwLjQzMDgsLTEuNzI3NjYgMCwtMS41ODA5OCAtMi40MDU4NCwwIC0yLjQwNTgzLDAgMCwtNS40MzAzNSAwLC01LjQzMDMgLTIuMTMwODksMCAtMi4xMzA4OCwwIDAsNy4wMTEzIDAsNy4wMTEzMSA0LjUzNjcyLDAgNC41MzY3MiwwIDAsLTEuNTgwOTggeiBtIC0xNC44NDc0NSwtMjcuNzA1MDMgYyA0LjIzNDQ3LC0wLjI5MzcgNy40MDg2LC0wLjg0ODIgMTAuMjAxNzgsLTEuNzgyMSAyLjc4MjY0LC0wLjkzMDQgNC40MjY0MywtMi4wNTYyIDQuNzk0MTMsLTMuMjgzNCAwLjE0MTY2LC0wLjQ3MjkgMC4xMzE0NiwtMC42NTIzIC0wLjA2NjUsLTEuMTcwOCAtMC44ODc3NSwtMi4zMjQ1IC01Ljg0Njk0LC00LjExMDQgLTEzLjQyNDkzLC00LjgzNDUgLTMuMjQxNTQsLTAuMzA5OCAtOS4xMzY3MSwtMC4yMDk0IC0xMi4yMjc0NSwwLjIwODEgLTQuNzE2MDQsMC42MzcyIC04LjU0MzMzLDEuODIwOCAtMTAuMjQ1MSwzLjE2ODMgLTMuNDQyNTEsMi43MjYgMC4xOTc5Myw1LjcyNDIgOC42NjM5Nyw3LjEzNTQgMy42NzA4NCwwLjYxMTkgOC40MjY3NCwwLjgyOCAxMi4zMDQxNCwwLjU1OSB6IgogICAgICAgIGZpbGw9IiMwMGJjZjIiIHRyYW5zZm9ybT0idHJhbnNsYXRlKC04MzAuOTA2IC05NDMuOTgxKSIvPgo8L3N2Zz4="
+  }
+}

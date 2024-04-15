@@ -78,13 +78,7 @@ public class KafkaPropertyTransformer {
   }
 
   private static String computeGroupId(InboundConnectorContext context) {
-    return DEFAULT_GROUP_ID_PREFIX
-        + "-"
-        + context.getDefinition().bpmnProcessId()
-        + "-"
-        + context.getDefinition().elementId()
-        + "-"
-        + context.getDefinition().processDefinitionKey();
+    return DEFAULT_GROUP_ID_PREFIX + "-" + context.getDefinition().deduplicationId();
   }
 
   public static KafkaInboundMessage convertConsumerRecordToKafkaInboundMessage(

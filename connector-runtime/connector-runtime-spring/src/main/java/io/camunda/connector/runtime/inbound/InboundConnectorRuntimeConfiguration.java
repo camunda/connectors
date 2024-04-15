@@ -20,16 +20,25 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.runtime.core.inbound.DefaultInboundConnectorContextFactory;
+import io.camunda.connector.runtime.core.inbound.DefaultInboundConnectorFactory;
+import io.camunda.connector.runtime.core.inbound.DefaultProcessElementContextFactory;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextFactory;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
 import io.camunda.connector.runtime.core.inbound.OperateClientAdapter;
+import io.camunda.connector.runtime.core.inbound.ProcessElementContextFactory;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
+import io.camunda.connector.runtime.inbound.controller.InboundConnectorRestController;
+import io.camunda.connector.runtime.inbound.executable.BatchExecutableProcessor;
+import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistry;
+import io.camunda.connector.runtime.inbound.executable.InboundExecutableRegistryImpl;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionImportConfiguration;
-import io.camunda.connector.runtime.inbound.lifecycle.InboundConnectorAnnotationProcessor;
-import io.camunda.connector.runtime.inbound.lifecycle.InboundConnectorLifecycleConfiguration;
-import io.camunda.connector.runtime.inbound.lifecycle.MeteredInboundCorrelationHandler;
 import io.camunda.connector.runtime.inbound.operate.OperateClientConfiguration;
+import io.camunda.connector.runtime.inbound.state.ProcessDefinitionInspector;
+import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
+import io.camunda.connector.runtime.inbound.state.TenantAwareProcessStateStoreImpl;
+import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
+import io.camunda.operate.CamundaOperateClient;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,18 +49,29 @@ import org.springframework.context.annotation.Import;
 
 @Configuration
 @Import({
-  InboundConnectorLifecycleConfiguration.class,
   ProcessDefinitionImportConfiguration.class,
-  OperateClientConfiguration.class
+  OperateClientConfiguration.class,
+  InboundConnectorRestController.class
 })
 public class InboundConnectorRuntimeConfiguration {
+
+  @Bean
+  public ProcessElementContextFactory processElementContextFactory(
+      ObjectMapper objectMapper,
+      @Autowired(required = false) ValidationProvider validationProvider,
+      SecretProviderAggregator secretProviderAggregator) {
+    return new DefaultProcessElementContextFactory(
+        secretProviderAggregator, validationProvider, objectMapper);
+  }
 
   @Bean
   public InboundCorrelationHandler inboundCorrelationHandler(
       final ZeebeClient zeebeClient,
       final FeelEngineWrapper feelEngine,
-      final MetricsRecorder metricsRecorder) {
-    return new MeteredInboundCorrelationHandler(zeebeClient, feelEngine, metricsRecorder);
+      final MetricsRecorder metricsRecorder,
+      final ProcessElementContextFactory elementContextFactory) {
+    return new MeteredInboundCorrelationHandler(
+        zeebeClient, feelEngine, metricsRecorder, elementContextFactory);
   }
 
   @Bean
@@ -75,5 +95,38 @@ public class InboundConnectorRuntimeConfiguration {
         secretProviderAggregator,
         validationProvider,
         operateClientAdapter);
+  }
+
+  @Bean
+  public InboundConnectorFactory springInboundConnectorFactory() {
+    return new DefaultInboundConnectorFactory();
+  }
+
+  @Bean
+  public BatchExecutableProcessor batchExecutableProcessor(
+      InboundConnectorFactory connectorFactory,
+      InboundConnectorContextFactory connectorContextFactory,
+      MetricsRecorder metricsRecorder,
+      @Autowired(required = false) WebhookConnectorRegistry webhookConnectorRegistry) {
+    return new BatchExecutableProcessor(
+        connectorFactory, connectorContextFactory, metricsRecorder, webhookConnectorRegistry);
+  }
+
+  @Bean
+  public InboundExecutableRegistry inboundExecutableRegistry(
+      InboundConnectorFactory inboundConnectorFactory,
+      BatchExecutableProcessor batchExecutableProcessor) {
+    return new InboundExecutableRegistryImpl(inboundConnectorFactory, batchExecutableProcessor);
+  }
+
+  @Bean
+  public ProcessDefinitionInspector processDefinitionInspector(CamundaOperateClient client) {
+    return new ProcessDefinitionInspector(client);
+  }
+
+  @Bean
+  public ProcessStateStore processStateStore(
+      InboundExecutableRegistry registry, ProcessDefinitionInspector inspector) {
+    return new TenantAwareProcessStateStoreImpl(inspector, registry);
   }
 }

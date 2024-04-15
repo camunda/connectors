@@ -197,10 +197,8 @@ public class KafkaConnectorConsumer {
       consumerStatus = newStatus;
       context.reportHealth(Health.up(details));
       LOG.info(
-          "Consumer status changed to UP, process {}, version {}, element {} ",
-          context.getDefinition().bpmnProcessId(),
-          context.getDefinition().version(),
-          context.getDefinition().elementId());
+          "Consumer status changed to UP, deduplication ID: {}",
+          context.getDefinition().deduplicationId());
     }
   }
 
@@ -210,10 +208,8 @@ public class KafkaConnectorConsumer {
       consumerStatus = newStatus;
       context.reportHealth(Health.down(error));
       LOG.error(
-          "Kafka Consumer status changed to DOWN, process {}, version {}, element {}",
-          context.getDefinition().bpmnProcessId(),
-          context.getDefinition().version(),
-          context.getDefinition().elementId(),
+          "Kafka Consumer status changed to DOWN, deduplication ID: {}",
+          context.getDefinition().deduplicationId(),
           error);
     }
   }

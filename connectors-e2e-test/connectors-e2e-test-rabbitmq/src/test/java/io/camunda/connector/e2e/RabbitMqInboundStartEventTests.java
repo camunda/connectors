@@ -24,22 +24,23 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
-import io.camunda.connector.runtime.inbound.lifecycle.InboundConnectorManager;
+import io.camunda.connector.runtime.inbound.state.ProcessImportResult;
+import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionIdentifier;
+import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionVersion;
+import io.camunda.connector.runtime.inbound.state.ProcessStateStore;
 import io.camunda.operate.exception.OperateException;
-import io.camunda.operate.model.ProcessDefinition;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import io.camunda.zeebe.model.bpmn.instance.Process;
 import io.camunda.zeebe.process.test.assertions.BpmnAssert;
 import io.camunda.zeebe.spring.test.ZeebeSpringTest;
 import java.io.IOException;
-import java.util.Set;
+import java.util.Map;
 import java.util.concurrent.TimeoutException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -65,8 +66,7 @@ public class RabbitMqInboundStartEventTests extends BaseRabbitMqTest {
   private static RabbitMQContainer rabbitMQContainer;
   private static ConnectionFactory factory;
 
-  @Autowired InboundConnectorManager inboundManager;
-  @Mock private ProcessDefinition processDef;
+  @Autowired ProcessStateStore processStateStore;
 
   @BeforeAll
   public static void setup() throws IOException, TimeoutException {
@@ -136,8 +136,7 @@ public class RabbitMqInboundStartEventTests extends BaseRabbitMqTest {
             "{\"message\":{\"consumerTag\":\"myConsumerTag\",\"body\":{\"foo\": {\"bar\": \"barValue\"}},\"properties\":{}}}",
             Object.class);
 
-    mockProcessDefinition(model);
-    inboundManager.handleNewProcessDefinitions(Set.of(processDef));
+    processStateStore.update(mockProcessDefinition(model));
 
     var bpmnTest = getZeebeTest(model);
     postMessage();
@@ -158,11 +157,14 @@ public class RabbitMqInboundStartEventTests extends BaseRabbitMqTest {
     }
   }
 
-  private void mockProcessDefinition(BpmnModelInstance model) throws OperateException {
+  private ProcessImportResult mockProcessDefinition(BpmnModelInstance model)
+      throws OperateException {
     when(camundaOperateClient.getProcessDefinitionModel(1L)).thenReturn(model);
-    when(processDef.getKey()).thenReturn(1L);
-    when(processDef.getTenantId()).thenReturn(zeebeClient.getConfiguration().getDefaultTenantId());
-    when(processDef.getBpmnProcessId())
-        .thenReturn(model.getModelElementsByType(Process.class).stream().findFirst().get().getId());
+    var bpmnId = model.getModelElementsByType(Process.class).stream().findFirst().get().getId();
+    var tenantId = zeebeClient.getConfiguration().getDefaultTenantId();
+    return new ProcessImportResult(
+        Map.of(
+            new ProcessDefinitionIdentifier(bpmnId, tenantId),
+            new ProcessDefinitionVersion(1L, 1)));
   }
 }

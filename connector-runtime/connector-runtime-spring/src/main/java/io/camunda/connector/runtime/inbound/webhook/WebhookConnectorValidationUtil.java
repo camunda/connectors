@@ -18,7 +18,7 @@ package io.camunda.connector.runtime.inbound.webhook;
 
 import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.Severity;
-import io.camunda.connector.runtime.inbound.lifecycle.ActiveInboundConnector;
+import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable;
 import java.util.regex.Pattern;
 
 final class WebhookConnectorValidationUtil {
@@ -31,7 +31,7 @@ final class WebhookConnectorValidationUtil {
           + CURRENT_WEBHOOK_PATH_PATTERN;
   private static final String DEPRECATED_WEBHOOK_MESSAGE_PREFIX = "Deprecated webhook path: ";
 
-  static void logIfWebhookPathDeprecated(ActiveInboundConnector connector, String webhook) {
+  static void logIfWebhookPathDeprecated(RegisteredExecutable.Activated connector, String webhook) {
 
     if (!CURRENT_WEBHOOK_PATH_PATTERN.matcher(webhook).matches()) {
       String message =
