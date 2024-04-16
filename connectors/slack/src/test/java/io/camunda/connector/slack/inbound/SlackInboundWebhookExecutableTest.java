@@ -26,8 +26,9 @@ import com.google.common.net.HttpHeaders;
 import com.google.common.net.MediaType;
 import com.slack.api.app_backend.SlackSignature;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
-import io.camunda.connector.api.inbound.webhook.VerifiableWebhook.WebhookHttpVerificationResult;
+import io.camunda.connector.api.inbound.webhook.WebhookHttpResponse;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
+import io.camunda.connector.slack.inbound.model.SlackWebhookProcessingResult;
 import io.camunda.connector.slack.inbound.model.SlackWebhookProperties;
 import java.util.Map;
 import java.util.function.Function;
@@ -49,10 +50,10 @@ class SlackInboundWebhookExecutableTest {
   private static final String ARBITRARY_SLACK_REQUEST =
       "{\"token\":\"qQqQqQqQqQqQqQqQqQ\",\"type\":\"myType\",\"event\":{\"user\":{\"id\":\"aAaAaAaAaAaAaA\"}}}";
 
-  private static final Function<Map<String, Object>, WebhookHttpVerificationResult>
+  private static final Function<Map<String, Object>, WebhookHttpResponse>
       CHALLENGE_RESPONSE_VERIFICATION_FUNCTION =
           (ctx) ->
-              new WebhookHttpVerificationResult(
+              new WebhookHttpResponse(
                   Map.of("challenge", ((Map) ctx.get("body")).get("challenge")), Map.of(), 200);
 
   private static final String SLASH_COMMAND =
@@ -152,7 +153,6 @@ class SlackInboundWebhookExecutableTest {
     final var result = testObject.verify(payload);
 
     assertNotNull(result);
-    assertThat(result).isInstanceOf(WebhookHttpVerificationResult.class);
     assertThat(result.body()).isInstanceOf(Map.class);
     assertThat((Map) result.body()).containsEntry(FIELD_CHALLENGE, "aAaAaAaAaAaAaAaAaAaA");
   }
@@ -174,13 +174,14 @@ class SlackInboundWebhookExecutableTest {
     when(payload.rawBody()).thenReturn(SLASH_COMMAND.getBytes(UTF_8));
 
     testObject.activate(ctx);
-    final var result = testObject.triggerWebhook(payload);
+    final var result = (SlackWebhookProcessingResult) testObject.triggerWebhook(payload);
 
     assertNotNull(result);
     assertThat(result.request().body()).isInstanceOf(Map.class);
-    assertThat((Map) result.response().body())
+
+    assertThat((Map) result.getResponse().body())
         .containsEntry(COMMAND_RESPONSE_TYPE_KEY, COMMAND_RESPONSE_TYPE_DEFAULT_VALUE);
-    assertThat((Map) result.response().body())
+    assertThat((Map) result.getResponse().body())
         .containsEntry(COMMAND_RESPONSE_TEXT_KEY, COMMAND_RESPONSE_TEXT_DEFAULT_VALUE);
     assertThat((Map) result.connectorData()).containsEntry(FORM_VALUE_COMMAND, "/test123");
     assertThat((Map) result.connectorData()).containsEntry("text", "hello world");
@@ -203,13 +204,14 @@ class SlackInboundWebhookExecutableTest {
     when(payload.rawBody()).thenReturn(SLASH_COMMAND.getBytes(UTF_8));
 
     testObject.activate(ctx);
-    final var result = testObject.triggerWebhook(payload);
+    final var result = (SlackWebhookProcessingResult) testObject.triggerWebhook(payload);
 
     assertNotNull(result);
     assertThat(result.request().body()).isInstanceOf(Map.class);
-    assertThat((Map) result.response().body())
+
+    assertThat((Map) result.getResponse().body())
         .containsEntry(COMMAND_RESPONSE_TYPE_KEY, COMMAND_RESPONSE_TYPE_DEFAULT_VALUE);
-    assertThat((Map) result.response().body())
+    assertThat((Map) result.getResponse().body())
         .containsEntry(COMMAND_RESPONSE_TEXT_KEY, COMMAND_RESPONSE_TEXT_DEFAULT_VALUE);
     assertThat((Map) result.connectorData()).containsEntry(FORM_VALUE_COMMAND, "/test123");
     assertThat((Map) result.connectorData()).containsEntry("text", "hello world");

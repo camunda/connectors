@@ -7,7 +7,7 @@
 package io.camunda.connector.slack.inbound.model;
 
 import com.slack.api.app_backend.SlackSignature;
-import io.camunda.connector.api.inbound.webhook.VerifiableWebhook;
+import io.camunda.connector.api.inbound.webhook.WebhookHttpResponse;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
@@ -41,8 +41,7 @@ public record SlackWebhookProperties(
             optional = true,
             defaultValue =
                 "=if (body.type != null and body.type = \"url_verification\") then {body:{\"challenge\":body.challenge}, statusCode: 200} else null")
-        Function<Map<String, Object>, VerifiableWebhook.WebhookHttpVerificationResult>
-            verificationExpression) {
+        Function<Map<String, Object>, WebhookHttpResponse> verificationExpression) {
   public SlackWebhookProperties(SlackConnectorPropertiesWrapper wrapper) {
     this(
         wrapper.inbound.context,

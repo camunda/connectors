@@ -7,20 +7,21 @@
 package io.camunda.connector.inbound.model;
 
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
+import io.camunda.connector.api.inbound.webhook.WebhookHttpResponse;
 import io.camunda.connector.api.inbound.webhook.WebhookResult;
 import io.camunda.connector.api.inbound.webhook.WebhookResultContext;
 import java.util.Collections;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 
-public class WebhookProcessingResultImpl implements WebhookResult {
+public record WebhookProcessingResultImpl(
+    MappedHttpRequest request,
+    Function<WebhookResultContext, WebhookHttpResponse> responseExpression,
+    Map<String, Object> connectorData)
+    implements WebhookResult {
 
-  private MappedHttpRequest request;
-  private Map<String, Object> connectorData;
-
-  private Function<WebhookResultContext, Object> responseBodyExpression;
+  public WebhookProcessingResultImpl {}
 
   @Override
   public MappedHttpRequest request() {
@@ -33,50 +34,7 @@ public class WebhookProcessingResultImpl implements WebhookResult {
   }
 
   @Override
-  public Function<WebhookResultContext, Object> responseBodyExpression() {
-    if (responseBodyExpression != null) {
-      return responseBodyExpression;
-    }
-    return (response) -> null;
-  }
-
-  public void setRequest(MappedHttpRequest request) {
-    this.request = request;
-  }
-
-  public void setConnectorData(Map<String, Object> connectorData) {
-    this.connectorData = connectorData;
-  }
-
-  public void setResponseBodyExpression(
-      Function<WebhookResultContext, Object> responseBodyExpression) {
-    this.responseBodyExpression = responseBodyExpression;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    WebhookProcessingResultImpl that = (WebhookProcessingResultImpl) o;
-    return Objects.equals(request, that.request)
-        && Objects.equals(connectorData, that.connectorData)
-        && Objects.equals(responseBodyExpression, that.responseBodyExpression);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(request, connectorData, responseBodyExpression);
-  }
-
-  @Override
-  public String toString() {
-    return "WebhookProcessingResultImpl{"
-        + "request="
-        + request
-        + ", connectorData="
-        + connectorData
-        + ", responseBodyExpression="
-        + responseBodyExpression
-        + '}';
+  public Function<WebhookResultContext, WebhookHttpResponse> response() {
+    return responseExpression;
   }
 }

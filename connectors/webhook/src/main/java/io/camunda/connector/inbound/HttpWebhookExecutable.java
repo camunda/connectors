@@ -14,13 +14,14 @@ import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
-import io.camunda.connector.api.inbound.webhook.VerifiableWebhook;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorException;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorException.WebhookSecurityException;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorException.WebhookSecurityException.Reason;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
+import io.camunda.connector.api.inbound.webhook.WebhookHttpResponse;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookResult;
+import io.camunda.connector.api.inbound.webhook.WebhookResultContext;
 import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.ConnectorElementType;
@@ -42,6 +43,8 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,7 +53,7 @@ import org.slf4j.LoggerFactory;
     id = "io.camunda.connectors.webhook",
     name = "Webhook Connector",
     icon = "icon.svg",
-    version = 10,
+    version = 11,
     inputDataClass = WebhookConnectorPropertiesWrapper.class,
     description = "Configure webhook to receive callbacks",
     documentationRef =
@@ -83,65 +86,99 @@ import org.slf4j.LoggerFactory;
           templateIdOverride = "io.camunda.connectors.webhook.WebhookConnectorBoundary.v1",
           templateNameOverride = "Webhook Boundary Event Connector")
     })
-public class HttpWebhookExecutable implements WebhookConnectorExecutable, VerifiableWebhook {
+public class HttpWebhookExecutable implements WebhookConnectorExecutable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(HttpWebhookExecutable.class);
 
   private WebhookConnectorProperties props;
   private WebhookAuthorizationHandler<?> authChecker;
-
   private InboundConnectorContext context;
+  private Function<WebhookResultContext, WebhookHttpResponse> responseExpression;
 
   @Override
-  public WebhookResult triggerWebhook(WebhookProcessingPayload payload)
-      throws NoSuchAlgorithmException, InvalidKeyException, IOException {
-    LOGGER.trace("Triggered webhook with context " + props.context() + " and payload " + payload);
+  public void activate(InboundConnectorContext context) {
+    this.context = context;
+    var wrappedProps = context.bindProperties(WebhookConnectorPropertiesWrapper.class);
+    props = new WebhookConnectorProperties(wrappedProps);
+    authChecker = WebhookAuthorizationHandler.getHandlerForAuth(props.auth());
+    responseExpression = mapResponseExpression();
+  }
+
+  @Override
+  public WebhookResult triggerWebhook(WebhookProcessingPayload payload) {
+    LOGGER.trace("Triggered webhook with context {} and payload {}", props.context(), payload);
+
     this.context.log(
         Activity.level(Severity.INFO)
             .tag(payload.method())
             .message("Url: " + payload.requestURL()));
-    if (!HttpMethods.any.name().equalsIgnoreCase(props.method())
-        && !payload.method().equalsIgnoreCase(props.method())) {
-      throw new WebhookConnectorException(
-          HttpResponseStatus.METHOD_NOT_ALLOWED.code(),
-          "Method " + payload.method() + " not supported");
-    }
 
-    WebhookProcessingResultImpl response = new WebhookProcessingResultImpl();
-
-    if (!webhookSignatureIsValid(payload)) {
-      throw new WebhookSecurityException(
-          HttpResponseStatus.UNAUTHORIZED.code(),
-          Reason.INVALID_SIGNATURE,
-          "HMAC signature check didn't pass");
-    }
+    validateHttpMethod(payload);
+    verifySignature(payload);
 
     var authResult = authChecker.checkAuthorization(payload);
     if (authResult instanceof Failure failureResult) {
       throw failureResult.toException();
     }
 
-    response.setRequest(
-        new MappedHttpRequest(
-            HttpWebhookUtil.transformRawBodyToMap(
-                payload.rawBody(), HttpWebhookUtil.extractContentType(payload.headers())),
-            payload.headers(),
-            payload.params()));
-
-    if (props.responseBodyExpression() != null) {
-      response.setResponseBodyExpression(props.responseBodyExpression());
-    }
-
-    return response;
+    var mappedRequest = mapRequest(payload);
+    return new WebhookProcessingResultImpl(mappedRequest, responseExpression, null);
   }
 
-  private boolean webhookSignatureIsValid(WebhookProcessingPayload payload)
-      throws NoSuchAlgorithmException, InvalidKeyException, IOException {
-    if (shouldValidateHmac()) {
-      HMACEncodingStrategy strategy =
-          HMACEncodingStrategyFactory.getStrategy(props.hmacScopes(), payload.method());
-      byte[] bytesToSign = strategy.getBytesToSign(payload);
-      return validateHmacSignature(bytesToSign, payload);
+  private void validateHttpMethod(WebhookProcessingPayload payload) {
+    if (!HttpMethods.any.name().equalsIgnoreCase(props.method())
+        && !payload.method().equalsIgnoreCase(props.method())) {
+      throw new WebhookConnectorException(
+          HttpResponseStatus.METHOD_NOT_ALLOWED.code(),
+          "Method " + payload.method() + " not supported");
+    }
+  }
+
+  private static MappedHttpRequest mapRequest(WebhookProcessingPayload payload) {
+    return new MappedHttpRequest(
+        HttpWebhookUtil.transformRawBodyToMap(
+            payload.rawBody(), HttpWebhookUtil.extractContentType(payload.headers())),
+        payload.headers(),
+        payload.params());
+  }
+
+  @Nullable
+  private Function<WebhookResultContext, WebhookHttpResponse> mapResponseExpression() {
+    Function<WebhookResultContext, WebhookHttpResponse> responseExpression = null;
+    if (props.responseExpression() != null) {
+      responseExpression = props.responseExpression();
+    } else if (props.responseBodyExpression() != null) {
+      // To be backwards compatible we need to wrap the responseBodyExpression into a
+      // responseExpression
+      // and only use the body in the final response
+      responseExpression =
+          (context) -> {
+            Object responseBody = props.responseBodyExpression().apply(context);
+            return WebhookHttpResponse.ok(responseBody);
+          };
+    }
+    return responseExpression;
+  }
+
+  private void verifySignature(WebhookProcessingPayload payload) {
+    if (!webhookSignatureIsValid(payload)) {
+      throw new WebhookSecurityException(
+          HttpResponseStatus.UNAUTHORIZED.code(),
+          Reason.INVALID_SIGNATURE,
+          "HMAC signature check didn't pass");
+    }
+  }
+
+  private boolean webhookSignatureIsValid(WebhookProcessingPayload payload) {
+    try {
+      if (shouldValidateHmac()) {
+        HMACEncodingStrategy strategy =
+            HMACEncodingStrategyFactory.getStrategy(props.hmacScopes(), payload.method());
+        byte[] bytesToSign = strategy.getBytesToSign(payload);
+        return validateHmacSignature(bytesToSign, payload);
+      }
+    } catch (Exception e) {
+      throw new RuntimeException(e);
     }
     return true;
   }
@@ -165,19 +202,8 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable, Verifi
   }
 
   @Override
-  public void activate(InboundConnectorContext context) {
-    this.context = context;
-    var wrappedProps = context.bindProperties(WebhookConnectorPropertiesWrapper.class);
-    props = new WebhookConnectorProperties(wrappedProps);
-    authChecker = WebhookAuthorizationHandler.getHandlerForAuth(props.auth());
-  }
-
-  @Override
-  public void deactivate() {}
-
-  @Override
-  public WebhookHttpVerificationResult verify(final WebhookProcessingPayload payload) {
-    WebhookHttpVerificationResult result = null;
+  public WebhookHttpResponse verify(WebhookProcessingPayload payload) {
+    WebhookHttpResponse result = null;
     if (props.verificationExpression() != null) {
       result =
           props

@@ -24,7 +24,20 @@ import io.camunda.connector.api.inbound.InboundConnectorExecutable;
  * supports HTTP webhooks uses this interface to control the execution of inbound webhook
  * Connectors.
  */
-public interface WebhookConnectorExecutable extends InboundConnectorExecutable {
+public interface WebhookConnectorExecutable
+    extends InboundConnectorExecutable<InboundConnectorContext> {
+
+  /**
+   * Entry point for custom verification logic. The purpose of the method is to perform a
+   * verification for Webhook implementation that use an initial request to verify the existence and
+   * correctness of the webhook. Can also be used for one time validation purposes.
+   *
+   * @param payload
+   * @return The response returned by the webhook call.
+   */
+  default WebhookHttpResponse verify(WebhookProcessingPayload payload) {
+    return null;
+  }
 
   /**
    * Entry-point method whenever webhook was triggered. The purpose of the method is to perform

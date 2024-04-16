@@ -6,8 +6,7 @@
  */
 package io.camunda.connector.inbound.model;
 
-import static io.camunda.connector.api.inbound.webhook.VerifiableWebhook.WebhookHttpVerificationResult;
-
+import io.camunda.connector.api.inbound.webhook.WebhookHttpResponse;
 import io.camunda.connector.api.inbound.webhook.WebhookResultContext;
 import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
@@ -112,14 +111,15 @@ public record WebhookConnectorProperties(
         HMACScope[] hmacScopes,
     WebhookAuthorization auth,
     @TemplateProperty(
-            id = "responseBodyExpression",
-            label = "Response body expression",
+            id = "responseExpression",
+            label = "Response expression",
             type = PropertyType.Text,
             group = "webhookResponse",
-            description = "Specify condition and response",
+            description = "Expression used to generate the HTTP response",
             feel = FeelMode.required,
             optional = true)
-        Function<WebhookResultContext, Object> responseBodyExpression,
+        Function<WebhookResultContext, WebhookHttpResponse> responseExpression,
+    @TemplateProperty(ignore = true) Function<WebhookResultContext, Object> responseBodyExpression,
     @TemplateProperty(
             id = "verificationExpression",
             label = "One time verification response expression",
@@ -129,7 +129,7 @@ public record WebhookConnectorProperties(
             group = "webhookResponse",
             feel = FeelMode.required,
             optional = true)
-        Function<Map<String, Object>, WebhookHttpVerificationResult> verificationExpression) {
+        Function<Map<String, Object>, WebhookHttpResponse> verificationExpression) {
 
   public WebhookConnectorProperties(WebhookConnectorPropertiesWrapper wrapper) {
     this(
@@ -142,6 +142,7 @@ public record WebhookConnectorProperties(
         // default to BODY if no scopes are provided
         getOrDefault(wrapper.inbound.hmacScopes, new HMACScope[] {HMACScope.BODY}),
         getOrDefault(wrapper.inbound.auth, new WebhookAuthorization.None()),
+        wrapper.inbound.responseExpression,
         wrapper.inbound.responseBodyExpression,
         wrapper.inbound.verificationExpression);
   }

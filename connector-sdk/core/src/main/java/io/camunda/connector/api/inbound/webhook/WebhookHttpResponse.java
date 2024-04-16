@@ -18,4 +18,9 @@ package io.camunda.connector.api.inbound.webhook;
 
 import java.util.Map;
 
-public record WebhookHttpResponse(Object body, Map<String, String> headers) {}
+public record WebhookHttpResponse(Object body, Map<String, String> headers, Integer statusCode) {
+
+  public static WebhookHttpResponse ok(Object body) {
+    return new WebhookHttpResponse(body, null, 200);
+  }
+}

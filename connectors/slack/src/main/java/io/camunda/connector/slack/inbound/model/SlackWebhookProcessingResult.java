@@ -9,14 +9,15 @@ package io.camunda.connector.slack.inbound.model;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.WebhookHttpResponse;
 import io.camunda.connector.api.inbound.webhook.WebhookResult;
+import io.camunda.connector.api.inbound.webhook.WebhookResultContext;
 import java.util.Map;
+import java.util.function.Function;
 
 public class SlackWebhookProcessingResult implements WebhookResult {
 
-  private MappedHttpRequest request;
+  private final MappedHttpRequest request;
   private final Map<String, Object> connectorData;
-
-  private WebhookHttpResponse response;
+  private final WebhookHttpResponse response;
 
   public SlackWebhookProcessingResult(
       MappedHttpRequest request, Map<String, Object> connectorData, WebhookHttpResponse response) {
@@ -36,7 +37,11 @@ public class SlackWebhookProcessingResult implements WebhookResult {
   }
 
   @Override
-  public WebhookHttpResponse response() {
+  public Function<WebhookResultContext, WebhookHttpResponse> response() {
+    return (c) -> response;
+  }
+
+  public WebhookHttpResponse getResponse() {
     return response;
   }
 }

@@ -12,7 +12,6 @@ import com.google.common.net.MediaType;
 import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
-import io.camunda.connector.api.inbound.webhook.VerifiableWebhook;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookHttpResponse;
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
@@ -69,8 +68,7 @@ import java.util.stream.Collectors;
           templateIdOverride = "io.camunda.connectors.inbound.Slack.BoundaryEvent.v1",
           templateNameOverride = "Slack Webhook Boundary Event Connector")
     })
-public class SlackInboundWebhookExecutable
-    implements WebhookConnectorExecutable, VerifiableWebhook {
+public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable {
 
   protected static final String HEADER_SLACK_REQUEST_TIMESTAMP = "x-slack-request-timestamp";
   protected static final String HEADER_SLACK_SIGNATURE = "x-slack-signature";
@@ -106,14 +104,14 @@ public class SlackInboundWebhookExecutable
           new MappedHttpRequest(
               bodyAsMap, Map.of(HttpHeaders.CONTENT_TYPE, MediaType.JSON_UTF_8.toString()), null),
           bodyAsMap,
-          new WebhookHttpResponse(defaultCommandResponse(), null));
+          new WebhookHttpResponse(defaultCommandResponse(), null, 200));
     }
 
     // Other requests, e.g. events
     return new SlackWebhookProcessingResult(
         new MappedHttpRequest(bodyAsMap, webhookProcessingPayload.headers(), null),
         null,
-        new WebhookHttpResponse(bodyAsMap, null));
+        new WebhookHttpResponse(bodyAsMap, null, 200));
   }
 
   @Override
@@ -123,7 +121,7 @@ public class SlackInboundWebhookExecutable
   }
 
   @Override
-  public WebhookHttpVerificationResult verify(WebhookProcessingPayload payload) {
+  public WebhookHttpResponse verify(WebhookProcessingPayload payload) {
     verifySlackRequestAuthentic(payload);
     return Optional.ofNullable(props.verificationExpression())
         .orElse(stringObjectMap -> null)
