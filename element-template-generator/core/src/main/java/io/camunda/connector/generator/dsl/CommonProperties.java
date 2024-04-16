@@ -22,6 +22,7 @@ import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeProperty;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeSubscriptionProperty;
 import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
 import io.camunda.connector.generator.dsl.PropertyCondition.IsActive;
+import io.camunda.connector.generator.dsl.PropertyConstraints.Pattern;
 import java.util.List;
 
 public class CommonProperties {
@@ -158,7 +159,14 @@ public class CommonProperties {
         .group("deduplication")
         .feel(FeelMode.disabled)
         .binding(new ZeebeProperty("deduplicationId"))
-        .constraints(PropertyConstraints.builder().notEmpty(true).build())
+        .constraints(
+            PropertyConstraints.builder()
+                .notEmpty(true)
+                .pattern(
+                    new Pattern(
+                        "^[a-zA-Z0-9_-]+$",
+                        "Only alphanumeric characters, dashes, and underscores are allowed"))
+                .build())
         .condition(new Equals("deduplicationModeManualFlag", true));
   }
 
