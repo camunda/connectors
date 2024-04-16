@@ -10,7 +10,7 @@ import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
-import io.camunda.connector.jdbc.model.JdbcClient;
+import io.camunda.connector.jdbc.model.client.JdbcClient;
 import io.camunda.connector.jdbc.model.request.JdbcRequest;
 
 @OutboundConnector(

@@ -42,9 +42,9 @@ public record JdbcRequestData(
             group = "query",
             feel = Property.FeelMode.required,
             description =
-                "The variables to use in the SQL query. Use the same order as in the statement")
+                "The variables to use in the SQL query. Could be a list of values (if you used the ? syntax), or a map of names to values (if you used named parameters).")
         @FEEL
-        List<?> variables) {
+        Object variables) {
   public JdbcRequestData(Boolean isModifyingQuery, String query) {
     this(isModifyingQuery, query, List.of());
   }

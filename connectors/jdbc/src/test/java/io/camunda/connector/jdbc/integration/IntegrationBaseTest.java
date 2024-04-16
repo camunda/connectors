@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.jdbc.model.JdbcClient;
+import io.camunda.connector.jdbc.model.client.JdbcClient;
 import io.camunda.connector.jdbc.model.request.JdbcRequest;
 import io.camunda.connector.jdbc.model.request.JdbcRequestData;
 import io.camunda.connector.jdbc.model.request.SupportedDatabase;

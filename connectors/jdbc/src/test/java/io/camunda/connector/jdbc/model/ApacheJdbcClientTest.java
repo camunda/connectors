@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.jdbc.model.client.JdbcClient;
 import io.camunda.connector.jdbc.model.request.JdbcRequest;
 import io.camunda.connector.jdbc.model.request.JdbcRequestData;
 import io.camunda.connector.jdbc.model.request.SupportedDatabase;
