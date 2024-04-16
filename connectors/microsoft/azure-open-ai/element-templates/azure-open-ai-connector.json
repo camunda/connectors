@@ -3,6 +3,7 @@
   "name" : "Azure OpenAI Connector",
   "id" : "io.camunda.connectors.AzureOpenAI.outbound.v1",
   "description" : "Interact with Azure OpenAI from your BPMN process",
+  "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/azure-open-ai/",
   "version" : 1,
   "category" : {
     "id" : "connectors",
