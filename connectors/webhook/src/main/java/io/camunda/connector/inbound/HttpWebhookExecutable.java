@@ -154,7 +154,7 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
       responseExpression =
           (context) -> {
             Object responseBody = props.responseBodyExpression().apply(context);
-            return new WebhookHttpResponse(responseBody, null, 200);
+            return WebhookHttpResponse.ok(responseBody);
           };
     }
     return responseExpression;
@@ -202,7 +202,7 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
   }
 
   @Override
-  public WebhookHttpResponse verify(final WebhookProcessingPayload payload) {
+  public WebhookHttpResponse verify(WebhookProcessingPayload payload) {
     WebhookHttpResponse result = null;
     if (props.verificationExpression() != null) {
       result =

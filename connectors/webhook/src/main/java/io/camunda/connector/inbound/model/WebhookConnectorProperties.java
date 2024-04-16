@@ -119,15 +119,7 @@ public record WebhookConnectorProperties(
             feel = FeelMode.required,
             optional = true)
         Function<WebhookResultContext, WebhookHttpResponse> responseExpression,
-    @TemplateProperty(
-            id = "responseBodyExpression",
-            label = "Response body expression",
-            type = PropertyType.Hidden,
-            group = "webhookResponse",
-            description = "Specify condition and response",
-            feel = FeelMode.required,
-            optional = true)
-        Function<WebhookResultContext, Object> responseBodyExpression,
+    @TemplateProperty(ignore = true) Function<WebhookResultContext, Object> responseBodyExpression,
     @TemplateProperty(
             id = "verificationExpression",
             label = "One time verification response expression",

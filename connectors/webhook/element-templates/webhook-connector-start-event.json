@@ -342,18 +342,6 @@
     },
     "type" : "Text"
   }, {
-    "id" : "inbound.responseBodyExpression",
-    "label" : "Response body expression",
-    "description" : "Specify condition and response",
-    "optional" : true,
-    "feel" : "required",
-    "group" : "webhookResponse",
-    "binding" : {
-      "name" : "inbound.responseBodyExpression",
-      "type" : "zeebe:property"
-    },
-    "type" : "Hidden"
-  }, {
     "id" : "inbound.verificationExpression",
     "label" : "One time verification response expression",
     "description" : "Specify condition and response. Learn more in the <a href='https://docs.camunda.io/docs/components/connectors/protocol/http-webhook/#verification-expression' target='_blank'>documentation</a>",
