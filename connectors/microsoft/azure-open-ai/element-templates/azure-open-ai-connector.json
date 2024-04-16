@@ -1,0 +1,1136 @@
+{
+  "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name" : "Azure OpenAI Connector",
+  "id" : "io.camunda.connectors.AzureOpenAI.outbound.v1",
+  "description" : "Interact with Azure OpenAI from your BPMN process",
+  "version" : 1,
+  "category" : {
+    "id" : "connectors",
+    "name" : "Connectors"
+  },
+  "appliesTo" : [ "bpmn:Task" ],
+  "elementType" : {
+    "value" : "bpmn:ServiceTask"
+  },
+  "groups" : [ {
+    "id" : "authentication",
+    "label" : "Authentication"
+  }, {
+    "id" : "operation",
+    "label" : "Operation"
+  }, {
+    "id" : "parameters",
+    "label" : "Parameters"
+  }, {
+    "id" : "output",
+    "label" : "Output mapping"
+  }, {
+    "id" : "error",
+    "label" : "Error handling"
+  }, {
+    "id" : "retries",
+    "label" : "Retries"
+  } ],
+  "properties" : [ {
+    "value" : "io.camunda:http-json:1",
+    "binding" : {
+      "property" : "type",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "authentication.type",
+    "label" : "Type",
+    "description" : "Choose the authentication type",
+    "value" : "apiKey",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.type",
+      "type" : "zeebe:input"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "authentication.apiKeyLocation",
+    "value" : "headers",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.apiKeyLocation",
+      "type" : "zeebe:input"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "authentication.name",
+    "label" : "API key name",
+    "value": "api-key",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.name",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "apiKey",
+      "type" : "simple"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "authentication.value",
+    "label" : "API key value",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "authentication",
+    "binding" : {
+      "name" : "authentication.value",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "authentication.type",
+      "equals" : "apiKey",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "label": "Operation",
+    "id": "operation",
+    "group": "operation",
+    "type": "Dropdown",
+    "value": "completion",
+    "choices": [
+      {
+        "name": "Completion",
+        "value": "completion"
+      },
+      {
+        "name": "Chat completion",
+        "value": "chatCompletion"
+      },
+      {
+        "name": "Completions extension",
+        "value": "completionsExtension"
+      }
+    ],
+    "binding": {
+      "type": "zeebe:input",
+      "name": "operation"
+    }
+  }, {
+    "label": "Resource name",
+    "description": "The name of your Azure OpenAI Resource. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">See documentation</a>",
+    "group": "operation",
+    "type": "String",
+    "feel": "optional",
+    "binding": {
+      "type": "zeebe:input",
+      "name": "completion_resourceName"
+    },
+    "constraints": {
+      "notEmpty": true
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "completion"
+    }
+  }, {
+    "label": "Deployment ID",
+    "description": "The deployment name you chose when you deployed the model. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">See documentation</a>",
+    "group": "operation",
+    "type": "String",
+    "feel": "optional",
+    "binding": {
+      "type": "zeebe:input",
+      "name": "completion_deploymentId"
+    },
+    "constraints": {
+      "notEmpty": true
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "completion"
+    }
+  }, {
+    "label": "API version",
+    "description": "The API version to use for this operation. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">See documentation</a>",
+    "group": "operation",
+    "type": "String",
+    "value": "2024-02-01",
+    "feel": "optional",
+    "binding": {
+      "type": "zeebe:input",
+      "name": "completion_apiVersion"
+    },
+    "constraints": {
+      "notEmpty": true
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "completion"
+    }
+  }, {
+    "label": "Prompt",
+    "description": "The prompt or prompts to generate completions for, encoded as a string, or array of strings. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">See documentation</a>",
+    "group": "parameters",
+    "type": "Text",
+    "feel": "optional",
+    "binding": {
+      "type": "zeebe:input",
+      "name": "completion_prompt"
+    },
+    "constraints": {
+      "notEmpty": true
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "completion"
+    }
+  }, {
+    "label": "Max tokens",
+    "description": "The maximum number of tokens to generate in the completion. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">See documentation</a>",
+    "group": "parameters",
+    "type": "String",
+    "value": "16",
+    "feel": "optional",
+    "optional": true,
+    "binding": {
+      "type": "zeebe:input",
+      "name": "completion_maxTokens"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "completion"
+    }
+  }, {
+    "label": "Temperature",
+    "description": "What sampling temperature to use, between 0 and 2. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">See documentation</a>",
+    "group": "parameters",
+    "type": "String",
+    "value": "1",
+    "feel": "optional",
+    "optional": true,
+    "binding": {
+      "type": "zeebe:input",
+      "name": "completion_temperature"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "completion"
+    }
+  }, {
+    "label": "Top P",
+    "description": "An alternative to sampling with temperature, AKA nucleus sampling. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">See documentation</a>",
+    "group": "parameters",
+    "type": "String",
+    "value": "1",
+    "feel": "optional",
+    "optional": true,
+    "binding": {
+      "type": "zeebe:input",
+      "name": "completion_topP"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "completion"
+    }
+  }, {
+    "label": "Logit bias",
+    "description": "Modify the likelihood of specified tokens appearing in the completion. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">See documentation</a>",
+    "group": "parameters",
+    "type": "Text",
+    "feel": "required",
+    "optional": true,
+    "binding": {
+      "type": "zeebe:input",
+      "name": "completion_logitBias"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "completion"
+    }
+  }, {
+    "label": "User",
+    "description": "A unique identifier representing your end-user. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">See documentation</a>",
+    "group": "parameters",
+    "type": "String",
+    "optional": true,
+    "binding": {
+      "type": "zeebe:input",
+      "name": "completion_user"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "completion"
+    }
+  }, {
+    "label": "Number of completions",
+    "description": "How many completions to generate for each prompt. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">See documentation</a>",
+    "group": "parameters",
+    "value": "1",
+    "type": "String",
+    "optional": true,
+    "binding": {
+      "type": "zeebe:input",
+      "name": "completion_numberOfCompletions"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "completion"
+    }
+  }, {
+    "label": "Stream",
+    "description": "Whether to stream back partial progress. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">See documentation</a>",
+    "group": "parameters",
+    "value": "False",
+    "type": "Dropdown",
+    "choices": [
+      {
+        "name": "False",
+        "value": "False"
+      },
+      {
+        "name": "True",
+        "value": "true"
+      }
+    ],
+    "binding": {
+      "type": "zeebe:input",
+      "name": "completion_stream"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "completion"
+    }
+  }, {
+    "label": "Log probabilities",
+    "description": "Include the log probabilities on the logprobs most likely tokens, as well the chosen tokens. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">See documentation</a>",
+    "group": "parameters",
+    "type": "String",
+    "optional": true,
+    "binding": {
+      "type": "zeebe:input",
+      "name": "completion_logprobs"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "completion"
+    }
+  }, {
+    "label": "Suffix",
+    "description": "The suffix that comes after a completion of inserted text. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">See documentation</a>",
+    "group": "parameters",
+    "type": "String",
+    "optional": true,
+    "binding": {
+      "type": "zeebe:input",
+      "name": "completion_suffix"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "completion"
+    }
+  }, {
+    "label": "Echo",
+    "description": "Echo back the prompt in addition to the completion. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">See documentation</a>",
+    "group": "parameters",
+    "value": "False",
+    "type": "Dropdown",
+    "optional": true,
+    "choices": [
+      {
+        "name": "False",
+        "value": "False"
+      },
+      {
+        "name": "True",
+        "value": "true"
+      }
+    ],
+    "binding": {
+      "type": "zeebe:input",
+      "name": "completion_echo"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "completion"
+    }
+  }, {
+    "label": "Stop",
+    "description": "Up to four sequences where the API will stop generating further tokens. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">See documentation</a>",
+    "group": "parameters",
+    "type": "String",
+    "optional": true,
+    "binding": {
+      "type": "zeebe:input",
+      "name": "completion_stop"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "completion"
+    }
+  }, {
+    "label": "Presence penalty",
+    "description": "Positive values penalize new tokens based on whether they appear in the text so far. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">See documentation</a>",
+    "group": "parameters",
+    "type": "String",
+    "value": "0",
+    "optional": true,
+    "binding": {
+      "type": "zeebe:input",
+      "name": "completion_presencePenalty"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "completion"
+    }
+  }, {
+    "label": "Frequency penalty",
+    "description": "Positive values penalize new tokens based on their existing frequency in the text so far. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">See documentation</a>",
+    "group": "parameters",
+    "type": "String",
+    "value": "0",
+    "optional": true,
+    "binding": {
+      "type": "zeebe:input",
+      "name": "completion_frequencyPenalty"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "completion"
+    }
+  }, {
+    "label": "Best of",
+    "description": "Generates 'best of' completions server-side and returns the \"best\". <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions\" target=\"_blank\">See documentation</a>",
+    "group": "parameters",
+    "type": "String",
+    "value": "1",
+    "optional": true,
+    "binding": {
+      "type": "zeebe:input",
+      "name": "completion_bestOf"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "completion"
+    }
+  }, {
+    "id": "completion_method",
+    "type": "Hidden",
+    "value": "post",
+    "binding": {
+      "type": "zeebe:input",
+      "name": "method"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "completion"
+    }
+  }, {
+    "id": "completion_url",
+    "type": "Hidden",
+    "value": "=\"https://\" + completion_resourceName + \".openai.azure.com/openai/deployments/\" + completion_deploymentId + \"/completions?api-version=\" + completion_apiVersion",
+    "binding": {
+      "type": "zeebe:input",
+      "name": "url"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "completion"
+    }
+  }, {
+    "id": "completion_body",
+    "type": "Hidden",
+    "value": "={\"prompt\":if completion_prompt = null then null else completion_prompt, \"max_tokens\": if completion_maxTokens = null then null else decimal(number(completion_maxTokens), 0), \"temperature\": if completion_temperature = null then null else number(completion_temperature), \"top_p\": if completion_topP = null then null else number(completion_topP), \"logit_bias\": if completion_logitBias = null then null else completion_logitBias, \"user\": if completion_user = null then null else completion_user, \"n\": if completion_numberOfCompletions = null then null else decimal(number(completion_numberOfCompletions), 0), \"stream\": completion_stream = \"False\", \"logprobs\": if completion_logprobs = null then null else decimal(number(completion_logprobs), 0), \"suffix\": if completion_suffix = null then null else completion_suffix, \"echo\": completion_echo = \"True\", \"stop\": if completion_stop = null then null else completion_stop, \"presence_penalty\": if completion_presencePenalty = null then null else number(completion_presencePenalty), \"frequency_penalty\": if completion_frequencyPenalty = null then null else number(completion_frequencyPenalty), \"best_of\": if completion_bestOf = null then null else decimal(number(completion_bestOf), 0)}",
+    "binding": {
+      "type": "zeebe:input",
+      "name": "body"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "completion"
+    }
+  }, {
+    "label": "Resource name",
+    "description": "The name of your Azure OpenAI Resource. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">See documentation</a>",
+    "group": "operation",
+    "type": "String",
+    "feel": "optional",
+    "binding": {
+      "type": "zeebe:input",
+      "name": "chatCompletion_resourceName"
+    },
+    "constraints": {
+      "notEmpty": true
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "chatCompletion"
+    }
+  }, {
+    "label": "Deployment ID",
+    "description": "The deployment name you chose when you deployed the model. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">See documentation</a>",
+    "group": "operation",
+    "type": "String",
+    "feel": "optional",
+    "binding": {
+      "type": "zeebe:input",
+      "name": "chatCompletion_deploymentId"
+    },
+    "constraints": {
+      "notEmpty": true
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "chatCompletion"
+    }
+  }, {
+    "label": "API version",
+    "description": "The API version to use for this operation. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">See documentation</a>",
+    "group": "operation",
+    "type": "String",
+    "value": "2024-02-01",
+    "feel": "optional",
+    "binding": {
+      "type": "zeebe:input",
+      "name": "chatCompletion_apiVersion"
+    },
+    "constraints": {
+      "notEmpty": true
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "chatCompletion"
+    }
+  }, {
+    "label": "Messages",
+    "description": "The array of messages associated with this chat completion request. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">See documentation</a>",
+    "group": "parameters",
+    "type": "String",
+    "feel": "required",
+    "optional": false,
+    "constraints": {
+      "notEmpty": true
+    },
+    "binding": {
+      "type": "zeebe:input",
+      "name": "chatCompletion_messages"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "chatCompletion"
+    }
+  }, {
+    "label": "Content part",
+    "description": "Part of a user's multi-modal message. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">See documentation</a>",
+    "group": "parameters",
+    "type": "String",
+    "feel": "required",
+    "optional": true,
+    "binding": {
+      "type": "zeebe:input",
+      "name": "chatCompletion_contentPart"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "chatCompletion"
+    }
+  }, {
+    "label": "Enhancements",
+    "description": "Represents the Vision enhancement features requested for the chat. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">See documentation</a>",
+    "group": "parameters",
+    "type": "String",
+    "feel": "required",
+    "optional": true,
+    "binding": {
+      "type": "zeebe:input",
+      "name": "chatCompletion_enhancements"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "chatCompletion"
+    }
+  }, {
+    "label": "Temperature",
+    "description": "What sampling temperature to use, between 0 and 2. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">See documentation</a>",
+    "value": "1",
+    "group": "parameters",
+    "type": "String",
+    "feel": "optional",
+    "optional": true,
+    "binding": {
+      "type": "zeebe:input",
+      "name": "chatCompletion_temperature"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "chatCompletion"
+    }
+  }, {
+    "label": "Number of completions",
+    "description": "How many completions to generate for each prompt. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">See documentation</a>",
+    "value": "1",
+    "group": "parameters",
+    "type": "String",
+    "feel": "optional",
+    "optional": true,
+    "binding": {
+      "type": "zeebe:input",
+      "name": "chatCompletion_n"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "chatCompletion"
+    }
+  }, {
+    "label": "Stream",
+    "description": "Whether to stream back partial progress. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">See documentation</a>",
+    "value": "False",
+    "group": "parameters",
+    "type": "Dropdown",
+    "choices": [
+      {
+        "name": "False",
+        "value": "False"
+      },
+      {
+        "name": "True",
+        "value": "true"
+      }
+    ],
+    "binding": {
+      "type": "zeebe:input",
+      "name": "chatCompletion_stream"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "chatCompletion"
+    }
+  }, {
+    "label": "Stop",
+    "description": "Up to four sequences where the API will stop generating further tokens. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">See documentation</a>",
+    "group": "parameters",
+    "type": "String",
+    "feel": "required",
+    "optional": true,
+    "binding": {
+      "type": "zeebe:input",
+      "name": "chatCompletion_stop"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "chatCompletion"
+    }
+  }, {
+    "label": "Max tokens",
+    "description": "The maximum number of tokens to generate in the completion. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">See documentation</a>",
+    "group": "parameters",
+    "type": "String",
+    "feel": "optional",
+    "optional": true,
+    "binding": {
+      "type": "zeebe:input",
+      "name": "chatCompletion_maxTokens"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "chatCompletion"
+    }
+  }, {
+    "label": "Presence penalty",
+    "description": "Positive values penalize new tokens based on whether they appear in the text so far. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">See documentation</a>",
+    "group": "parameters",
+    "type": "String",
+    "feel": "optional",
+    "optional": true,
+    "binding": {
+      "type": "zeebe:input",
+      "name": "chatCompletion_presencePenalty"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "chatCompletion"
+    }
+  }, {
+    "label": "Frequency penalty",
+    "description": "Positive values penalize new tokens based on their existing frequency in the text so far. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">See documentation</a>",
+    "group": "parameters",
+    "type": "String",
+    "feel": "optional",
+    "optional": true,
+    "binding": {
+      "type": "zeebe:input",
+      "name": "chatCompletion_frequencyPenalty"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "chatCompletion"
+    }
+  }, {
+    "label": "Logit bias",
+    "description": "Modify the likelihood of specified tokens appearing in the completion. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">See documentation</a>",
+    "group": "parameters",
+    "type": "String",
+    "feel": "required",
+    "optional": true,
+    "binding": {
+      "type": "zeebe:input",
+      "name": "chatCompletion_logitBias"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "chatCompletion"
+    }
+  }, {
+    "label": "User",
+    "description": "A unique identifier representing your end-user. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">See documentation</a>",
+    "group": "parameters",
+    "type": "String",
+    "feel": "optional",
+    "optional": true,
+    "binding": {
+      "type": "zeebe:input",
+      "name": "chatCompletion_user"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "chatCompletion"
+    }
+  }, {
+    "label": "Tools",
+    "description": "A list of tools the model can call. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">See documentation</a>",
+    "group": "parameters",
+    "type": "String",
+    "feel": "optional",
+    "optional": true,
+    "binding": {
+      "type": "zeebe:input",
+      "name": "chatCompletion_tools"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "chatCompletion"
+    }
+  }, {
+    "label": "Data sources",
+    "description": "Represents additional resource data. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#chat-completions\" target=\"_blank\">See documentation</a>",
+    "group": "parameters",
+    "type": "String",
+    "feel": "required",
+    "optional": true,
+    "binding": {
+      "type": "zeebe:input",
+      "name": "chatCompletion_dataSources"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "chatCompletion"
+    }
+  }, {
+    "id": "chatCompletion_method",
+    "type": "Hidden",
+    "value": "post",
+    "binding": {
+      "type": "zeebe:input",
+      "name": "method"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "chatCompletion"
+    }
+  }, {
+    "id": "chatCompletion_url",
+    "type": "Hidden",
+    "value": "=\"https://\" + chatCompletion_resourceName + \".openai.azure.com/openai/deployments/\" + chatCompletion_deploymentId + \"/chat/completions?api-version=\" + chatCompletion_apiVersion",
+    "binding": {
+      "type": "zeebe:input",
+      "name": "url"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "chatCompletion"
+    }
+  }, {
+    "id": "chatCompletion_body",
+    "type": "Hidden",
+    "value": "={\"messages\": if chatCompletion_messages = null then null else chatCompletion_messages, \"contentPart\": if chatCompletion_contentPart = null then null else chatCompletion_contentPart, \"enhancements\": if chatCompletion_enhancements = null then null else chatCompletion_enhancements, \"dataSources\": if chatCompletion_dataSources = null then null else chatCompletion_dataSources, \"temperature\": if chatCompletion_temperature = null then null else number(chatCompletion_temperature), \"n\": if chatCompletion_n = null then null else decimal(number(chatCompletion_n), 0), \"stream\": chatCompletion_stream = \"True\", \"stop\": if chatCompletion_stop = null then null else chatCompletion_stop, \"max_tokens\": if chatCompletion_maxTokens = null then null else decimal(number(chatCompletion_maxTokens), 0), \"presence_penalty\": if chatCompletion_presencePenalty = null then null else number(chatCompletion_presencePenalty), \"frequency_penalty\": if chatCompletion_frequencyPenalty = null then null else number(chatCompletion_frequencyPenalty), \"logit_bias\": if chatCompletion_logitBias = null then null else chatCompletion_logitBias, \"user\": if chatCompletion_user = null then null else chatCompletion_user, \"tools\": if chatCompletion_tools = null then null else chatCompletion_tools}",
+    "binding": {
+      "type": "zeebe:input",
+      "name": "body"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "chatCompletion"
+    }
+  }, {
+    "label": "Resource name",
+    "description": "The name of your Azure OpenAI Resource. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">See documentation</a>",
+    "group": "operation",
+    "type": "String",
+    "feel": "optional",
+    "binding": {
+      "type": "zeebe:input",
+      "name": "completionsExtension_resourceName"
+    },
+    "constraints": {
+      "notEmpty": true
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "completionsExtension"
+    }
+  }, {
+    "label": "Deployment ID",
+    "description": "The deployment name you chose when you deployed the model. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">See documentation</a>",
+    "group": "operation",
+    "type": "String",
+    "feel": "optional",
+    "binding": {
+      "type": "zeebe:input",
+      "name": "completionsExtension_deploymentId"
+    },
+    "constraints": {
+      "notEmpty": true
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "completionsExtension"
+    }
+  }, {
+    "label": "API version",
+    "description": "The API version to use for this operation. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">See documentation</a>",
+    "group": "operation",
+    "type": "String",
+    "value": "2023-12-01-preview",
+    "feel": "optional",
+    "binding": {
+      "type": "zeebe:input",
+      "name": "completionsExtension_apiVersion"
+    },
+    "constraints": {
+      "notEmpty": true
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "completionsExtension"
+    }
+  }, {
+    "label": "Messages",
+    "description": "The array of messages associated with this chat completion request. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">See documentation</a>",
+    "group": "parameters",
+    "type": "String",
+    "feel": "required",
+    "optional": false,
+    "constraints": {
+      "notEmpty": true
+    },
+    "binding": {
+      "type": "zeebe:input",
+      "name": "completionsExtension_messages"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "completionsExtension"
+    }
+  }, {
+    "label": "Content part",
+    "description": "Part of a user's multi-modal message. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">See documentation</a>",
+    "group": "parameters",
+    "type": "String",
+    "feel": "required",
+    "optional": true,
+    "binding": {
+      "type": "zeebe:input",
+      "name": "completionsExtension_contentPart"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "completionsExtension"
+    }
+  }, {
+    "label": "Enhancements",
+    "description": "Represents the Vision enhancement features requested for the chat. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">See documentation</a>",
+    "group": "parameters",
+    "type": "String",
+    "feel": "required",
+    "optional": true,
+    "binding": {
+      "type": "zeebe:input",
+      "name": "completionsExtension_enhancements"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "completionsExtension"
+    }
+  }, {
+    "label": "Temperature",
+    "description": "What sampling temperature to use, between 0 and 2. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">See documentation</a>",
+    "value": "1",
+    "group": "parameters",
+    "type": "String",
+    "feel": "optional",
+    "optional": true,
+    "binding": {
+      "type": "zeebe:input",
+      "name": "completionsExtension_temperature"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "completionsExtension"
+    }
+  }, {
+    "label": "Number of completions",
+    "description": "How many completions to generate for each prompt. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">See documentation</a>",
+    "value": "1",
+    "group": "parameters",
+    "type": "String",
+    "feel": "optional",
+    "optional": true,
+    "binding": {
+      "type": "zeebe:input",
+      "name": "completionsExtension_n"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "completionsExtension"
+    }
+  }, {
+    "label": "Stream",
+    "description": "Whether to stream back partial progress. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">See documentation</a>",
+    "value": "False",
+    "group": "parameters",
+    "type": "Dropdown",
+    "choices": [
+      {
+        "name": "False",
+        "value": "False"
+      },
+      {
+        "name": "True",
+        "value": "true"
+      }
+    ],
+    "binding": {
+      "type": "zeebe:input",
+      "name": "completionsExtension_stream"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "completionsExtension"
+    }
+  }, {
+    "label": "Stop",
+    "description": "Up to four sequences where the API will stop generating further tokens. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">See documentation</a>",
+    "group": "parameters",
+    "type": "String",
+    "feel": "required",
+    "optional": true,
+    "binding": {
+      "type": "zeebe:input",
+      "name": "completionsExtension_stop"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "completionsExtension"
+    }
+  }, {
+    "label": "Max tokens",
+    "description": "The maximum number of tokens to generate in the completion. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">See documentation</a>",
+    "group": "parameters",
+    "type": "String",
+    "feel": "optional",
+    "optional": true,
+    "binding": {
+      "type": "zeebe:input",
+      "name": "completionsExtension_maxTokens"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "completionsExtension"
+    }
+  }, {
+    "label": "Presence penalty",
+    "description": "Positive values penalize new tokens based on whether they appear in the text so far. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">See documentation</a>",
+    "group": "parameters",
+    "type": "String",
+    "feel": "optional",
+    "optional": true,
+    "binding": {
+      "type": "zeebe:input",
+      "name": "completionsExtension_presencePenalty"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "completionsExtension"
+    }
+  }, {
+    "label": "Frequency penalty",
+    "description": "Positive values penalize new tokens based on their existing frequency in the text so far. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">See documentation</a>",
+    "group": "parameters",
+    "type": "String",
+    "feel": "optional",
+    "optional": true,
+    "binding": {
+      "type": "zeebe:input",
+      "name": "completionsExtension_frequencyPenalty"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "completionsExtension"
+    }
+  }, {
+    "label": "Logit bias",
+    "description": "Modify the likelihood of specified tokens appearing in the completion. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">See documentation</a>",
+    "group": "parameters",
+    "type": "String",
+    "feel": "required",
+    "optional": true,
+    "binding": {
+      "type": "zeebe:input",
+      "name": "completionsExtension_logitBias"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "completionsExtension"
+    }
+  }, {
+    "label": "User",
+    "description": "A unique identifier representing your end-user. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">See documentation</a>",
+    "group": "parameters",
+    "type": "String",
+    "feel": "optional",
+    "optional": true,
+    "binding": {
+      "type": "zeebe:input",
+      "name": "completionsExtension_user"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "completionsExtension"
+    }
+  }, {
+    "label": "Tools",
+    "description": "A list of tools the model can call. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">See documentation</a>",
+    "group": "parameters",
+    "type": "String",
+    "feel": "optional",
+    "optional": true,
+    "binding": {
+      "type": "zeebe:input",
+      "name": "completionsExtension_tools"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "completionsExtension"
+    }
+  }, {
+    "label": "Data sources",
+    "description": "Represents additional resource data. <a href=\"https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#completions-extensions\" target=\"_blank\">See documentation</a>",
+    "group": "parameters",
+    "type": "String",
+    "feel": "required",
+    "optional": true,
+    "binding": {
+      "type": "zeebe:input",
+      "name": "completionsExtension_dataSources"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "completionsExtension"
+    }
+  }, {
+    "id": "completionsExtension_method",
+    "type": "Hidden",
+    "value": "post",
+    "binding": {
+      "type": "zeebe:input",
+      "name": "method"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "completionsExtension"
+    }
+  }, {
+    "id": "completionsExtension_url",
+    "type": "Hidden",
+    "value": "=\"https://\" + completionsExtension_resourceName + \".openai.azure.com/openai/deployments/\" + completionsExtension_deploymentId + \"/extensions/chat/completions?api-version=\" + completionsExtension_apiVersion",
+    "binding": {
+      "type": "zeebe:input",
+      "name": "url"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "completionsExtension"
+    }
+  }, {
+    "id": "completionsExtension_body",
+    "type": "Hidden",
+    "value": "={\"messages\": if completionsExtension_messages = null then null else completionsExtension_messages, \"contentPart\": if completionsExtension_contentPart = null then null else completionsExtension_contentPart, \"enhancements\": if completionsExtension_enhancements = null then null else completionsExtension_enhancements, \"dataSources\": if completionsExtension_dataSources = null then null else completionsExtension_dataSources, \"temperature\": if completionsExtension_temperature = null then null else number(completionsExtension_temperature), \"n\": if completionsExtension_n = null then null else decimal(number(completionsExtension_n), 0), \"stream\": completionsExtension_stream = \"True\", \"stop\": if completionsExtension_stop = null then null else completionsExtension_stop, \"max_tokens\": if completionsExtension_maxTokens = null then null else decimal(number(completionsExtension_maxTokens), 0), \"presence_penalty\": if completionsExtension_presencePenalty = null then null else number(completionsExtension_presencePenalty), \"frequency_penalty\": if completionsExtension_frequencyPenalty = null then null else number(completionsExtension_frequencyPenalty), \"logit_bias\": if completionsExtension_logitBias = null then null else completionsExtension_logitBias, \"user\": if completionsExtension_user = null then null else completionsExtension_user, \"tools\": if completionsExtension_tools = null then null else completionsExtension_tools}",
+    "binding": {
+      "type": "zeebe:input",
+      "name": "body"
+    },
+    "condition": {
+      "property": "operation",
+      "equals": "completionsExtension"
+    }
+  }, {
+    "id" : "resultVariable",
+    "label" : "Result variable",
+    "description" : "Name of variable to store the response in",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultVariable",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  }, {
+    "id" : "resultExpression",
+    "label" : "Result expression",
+    "description" : "Expression to map the response into process variables",
+    "feel" : "required",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "errorExpression",
+    "label" : "Error expression",
+    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "error",
+    "binding" : {
+      "key" : "errorExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "retryCount",
+    "label" : "Retries",
+    "description" : "Number of retries",
+    "value" : "3",
+    "feel" : "optional",
+    "group" : "retries",
+    "binding" : {
+      "property" : "retries",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "String"
+  }, {
+    "id" : "retryBackoff",
+    "label" : "Retry backoff",
+    "description" : "ISO-8601 duration to wait between retries",
+    "value" : "PT0S",
+    "feel" : "optional",
+    "group" : "retries",
+    "binding" : {
+      "key" : "retryBackoff",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  } ],
+  "icon": {
+    "contents": "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' id='uuid-adbdae8e-5a41-46d1-8c18-aa73cdbfee32' width='16' height='16' viewBox='0 0 18 18'%3E%3Cdefs%3E%3CradialGradient id='uuid-2a7407aa-b787-48dd-a96a-0d81ab6e93bb' cx='-67.981' cy='793.199' r='.45' gradientTransform='translate(-17939.03 20368.029) rotate(45) scale(25.091 -34.149)' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%2383b9f9'/%3E%3Cstop offset='1' stop-color='%230078d4'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cpath d='m0,2.7v12.6c0,1.491,1.209,2.7,2.7,2.7h12.6c1.491,0,2.7-1.209,2.7-2.7V2.7c0-1.491-1.209-2.7-2.7-2.7H2.7C1.209,0,0,1.209,0,2.7ZM10.8,0v3.6c0,3.976,3.224,7.2,7.2,7.2h-3.6c-3.976,0-7.199,3.222-7.2,7.198v-3.598c0-3.976-3.224-7.2-7.2-7.2h3.6c3.976,0,7.2-3.224,7.2-7.2Z' fill='url(%23uuid-2a7407aa-b787-48dd-a96a-0d81ab6e93bb)' stroke-width='0'/%3E%3C/svg%3E"
+  }
+}
