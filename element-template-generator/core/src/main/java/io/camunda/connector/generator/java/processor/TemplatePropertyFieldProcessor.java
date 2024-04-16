@@ -108,8 +108,9 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
               .map(TemplatePropertyFieldProcessor::transformToNestedCondition)
               .toList());
     } else {
-      return new PropertyCondition.Equals(
-          conditionAnnotation.property(), conditionAnnotation.equalsBoolean());
+      // isActive always has a value, so we consider it is selected if nothing else is set
+      return new PropertyCondition.IsActive(
+          conditionAnnotation.property(), conditionAnnotation.isActive());
     }
   }
 
@@ -127,8 +128,9 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
       return new PropertyCondition.OneOf(
           conditionAnnotation.property(), Arrays.asList(conditionAnnotation.oneOf()));
     } else {
-      return new PropertyCondition.Equals(
-          conditionAnnotation.property(), conditionAnnotation.equalsBoolean());
+      // isActive always has a value, so we consider it is selected if nothing else is set
+      return new PropertyCondition.IsActive(
+          conditionAnnotation.property(), conditionAnnotation.isActive());
     }
   }
 

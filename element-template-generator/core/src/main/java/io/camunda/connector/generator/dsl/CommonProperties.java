@@ -21,6 +21,7 @@ import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeProperty;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeSubscriptionProperty;
 import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
+import io.camunda.connector.generator.dsl.PropertyCondition.IsActive;
 import java.util.List;
 
 public class CommonProperties {
@@ -150,24 +151,6 @@ public class CommonProperties {
         .binding(new ZeebeProperty("deduplicationModeManualFlag"));
   }
 
-  public static PropertyBuilder deduplicationModeManual() {
-    return HiddenProperty.builder()
-        .id("deduplicationModeManual")
-        .group("deduplication")
-        .value("MANUAL")
-        .condition(new Equals("deduplicationModeManualFlag", true))
-        .binding(new ZeebeProperty("deduplicationMode"));
-  }
-
-  public static PropertyBuilder deduplicationModeAuto() {
-    return HiddenProperty.builder()
-        .id("deduplicationModeAuto")
-        .group("deduplication")
-        .value("AUTO")
-        .condition(new Equals("deduplicationModeManualFlag", false))
-        .binding(new ZeebeProperty("deduplicationMode"));
-  }
-
   public static PropertyBuilder deduplicationId() {
     return StringProperty.builder()
         .id("deduplicationId")
@@ -177,5 +160,23 @@ public class CommonProperties {
         .binding(new ZeebeProperty("deduplicationId"))
         .constraints(PropertyConstraints.builder().notEmpty(true).build())
         .condition(new Equals("deduplicationModeManualFlag", true));
+  }
+
+  public static PropertyBuilder deduplicationModeManual() {
+    return HiddenProperty.builder()
+        .id("deduplicationModeManual")
+        .group("deduplication")
+        .value("MANUAL")
+        .condition(new IsActive("deduplicationId", true))
+        .binding(new ZeebeProperty("deduplicationMode"));
+  }
+
+  public static PropertyBuilder deduplicationModeAuto() {
+    return HiddenProperty.builder()
+        .id("deduplicationModeAuto")
+        .group("deduplication")
+        .value("AUTO")
+        .condition(new IsActive("deduplicationId", false))
+        .binding(new ZeebeProperty("deduplicationMode"));
   }
 }

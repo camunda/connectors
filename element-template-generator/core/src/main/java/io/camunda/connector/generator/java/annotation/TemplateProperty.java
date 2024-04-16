@@ -135,15 +135,13 @@ public @interface TemplateProperty {
   @interface PropertyCondition {
     String property();
 
-    /** For string properties */
     String equals() default "";
-
-    /** For boolean properties */
-    boolean equalsBoolean() default true;
 
     String[] oneOf() default {};
 
     NestedPropertyCondition[] allMatch() default {};
+
+    boolean isActive() default false;
   }
 
   @interface NestedPropertyCondition {
@@ -152,10 +150,9 @@ public @interface TemplateProperty {
     /** For string properties */
     String equals() default "";
 
-    /** For boolean properties */
-    boolean equalsBoolean() default true;
-
     String[] oneOf() default {};
+
+    boolean isActive() default false;
   }
 
   @interface DropdownPropertyChoice {

@@ -34,6 +34,7 @@ import io.camunda.connector.generator.dsl.PropertyBinding.MessageProperty;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeProperty;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeSubscriptionProperty;
 import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
+import io.camunda.connector.generator.dsl.PropertyCondition.IsActive;
 import io.camunda.connector.generator.dsl.StringProperty;
 import io.camunda.connector.generator.java.example.inbound.MyConnectorExecutable;
 import java.util.List;
@@ -374,7 +375,7 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
           .isEqualTo("deduplicationMode");
       assertThat(manualModeProperty.getValue()).isEqualTo("MANUAL");
       assertThat(manualModeProperty.getCondition())
-          .isEqualTo(new Equals("deduplicationModeManualFlag", true));
+          .isEqualTo(new IsActive("deduplicationId", true));
 
       var autoModeProperty = getPropertyById("deduplicationModeAuto", template);
       assertThat(autoModeProperty).isNotNull();
@@ -383,8 +384,7 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
       assertThat(((ZeebeProperty) autoModeProperty.getBinding()).name())
           .isEqualTo("deduplicationMode");
       assertThat(autoModeProperty.getValue()).isEqualTo("AUTO");
-      assertThat(autoModeProperty.getCondition())
-          .isEqualTo(new Equals("deduplicationModeManualFlag", false));
+      assertThat(autoModeProperty.getCondition()).isEqualTo(new IsActive("deduplicationId", false));
 
       var deduplicationKeyProperty = getPropertyById("deduplicationId", template);
       assertThat(deduplicationKeyProperty).isNotNull();

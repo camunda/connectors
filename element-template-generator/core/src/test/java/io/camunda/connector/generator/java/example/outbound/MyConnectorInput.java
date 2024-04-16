@@ -94,11 +94,11 @@ public record MyConnectorInput(
         Boolean booleanProperty,
     @TemplateProperty(
             id = "dependsOnBooleanPropertyFalse",
-            condition = @PropertyCondition(property = "booleanProperty", equalsBoolean = false))
+            condition = @PropertyCondition(property = "booleanProperty", equals = "false"))
         String dependsOnBooleanPropertyFalse,
     @TemplateProperty(
             id = "dependsOnBooleanPropertyTrue",
-            condition = @PropertyCondition(property = "booleanProperty"))
+            condition = @PropertyCondition(property = "booleanProperty", equals = "true"))
         String dependsOnBooleanPropertyTrue) {
 
   sealed interface NonAnnotatedSealedType permits FirstSubType, NestedSealedType, SecondSubType {

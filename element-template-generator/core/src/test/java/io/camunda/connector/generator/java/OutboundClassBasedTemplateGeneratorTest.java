@@ -554,11 +554,9 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
     void booleanProperty_dependants() {
       var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
       var dependsOnTrue = getPropertyById("dependsOnBooleanPropertyTrue", template);
-      assertThat(dependsOnTrue.getCondition())
-          .isEqualTo(new Equals("booleanProperty", Boolean.TRUE));
+      assertThat(dependsOnTrue.getCondition()).isEqualTo(new Equals("booleanProperty", "true"));
       var dependsOnFalse = getPropertyById("dependsOnBooleanPropertyFalse", template);
-      assertThat(dependsOnFalse.getCondition())
-          .isEqualTo(new Equals("booleanProperty", Boolean.FALSE));
+      assertThat(dependsOnFalse.getCondition()).isEqualTo(new Equals("booleanProperty", "false"));
     }
   }
 

@@ -307,34 +307,6 @@
     },
     "type" : "Boolean"
   }, {
-    "id" : "deduplicationModeManual",
-    "value" : "MANUAL",
-    "group" : "deduplication",
-    "binding" : {
-      "name" : "deduplicationMode",
-      "type" : "zeebe:property"
-    },
-    "condition" : {
-      "property" : "deduplicationModeManualFlag",
-      "equals" : true,
-      "type" : "simple"
-    },
-    "type" : "Hidden"
-  }, {
-    "id" : "deduplicationModeAuto",
-    "value" : "AUTO",
-    "group" : "deduplication",
-    "binding" : {
-      "name" : "deduplicationMode",
-      "type" : "zeebe:property"
-    },
-    "condition" : {
-      "property" : "deduplicationModeManualFlag",
-      "equals" : false,
-      "type" : "simple"
-    },
-    "type" : "Hidden"
-  }, {
     "id" : "deduplicationId",
     "label" : "Deduplication ID",
     "constraints" : {
@@ -351,6 +323,34 @@
       "type" : "simple"
     },
     "type" : "String"
+  }, {
+    "id" : "deduplicationModeManual",
+    "value" : "MANUAL",
+    "group" : "deduplication",
+    "binding" : {
+      "name" : "deduplicationMode",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "deduplicationId",
+      "isActive" : true,
+      "type" : "simple"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "deduplicationModeAuto",
+    "value" : "AUTO",
+    "group" : "deduplication",
+    "binding" : {
+      "name" : "deduplicationMode",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "deduplicationId",
+      "isActive" : false,
+      "type" : "simple"
+    },
+    "type" : "Hidden"
   }, {
     "id" : "resultVariable",
     "label" : "Result variable",

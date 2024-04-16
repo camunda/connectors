@@ -41,4 +41,11 @@ public sealed interface PropertyCondition {
       this(List.of(conditions));
     }
   }
+
+  record IsActive(String property, boolean isActive) implements PropertyCondition {
+
+    public String getType() {
+      return "simple";
+    }
+  }
 }

@@ -27,12 +27,16 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Inbound connector definition implementation that also contains connector properties */
 public record InboundConnectorElement(
     @JsonIgnore Map<String, String> rawProperties,
     ProcessCorrelationPoint correlationPoint,
     ProcessElement element) {
+
+  private static final Logger LOG = LoggerFactory.getLogger(InboundConnectorElement.class);
 
   public String type() {
     return Optional.ofNullable(rawProperties.get(Keywords.INBOUND_TYPE_KEYWORD))
@@ -60,16 +64,19 @@ public record InboundConnectorElement(
   }
 
   public String deduplicationId(List<String> deduplicationProperties) {
-
+    LOG.debug("Computing deduplicationId for element {}", element.elementId());
     var deduplicationMode = rawProperties.get(Keywords.DEDUPLICATION_MODE_KEYWORD);
     if (deduplicationMode == null) {
       // legacy deployment, return a deterministic unique id
+      LOG.debug("Missing deduplicationMode property, using legacy deduplicationId computation");
       return element.tenantId() + "-" + element.processDefinitionKey() + "-" + element.elementId();
     } else if (DeduplicationMode.AUTO.name().equals(deduplicationMode)) {
       // auto mode, compute deduplicationId from properties
+      LOG.debug("Using deduplicationMode=AUTO, computing deduplicationId from properties");
       return computeDeduplicationId(deduplicationProperties);
     } else if (DeduplicationMode.MANUAL.name().equals(deduplicationMode)) {
       // manual mode, expect deduplicationId property
+      LOG.debug("Using deduplicationMode=MANUAL, expecting deduplicationId property");
       return Optional.ofNullable(rawProperties.get(Keywords.DEDUPLICATION_ID_KEYWORD))
           .orElseThrow(
               () ->
@@ -97,7 +104,7 @@ public record InboundConnectorElement(
       throw new InvalidInboundConnectorDefinitionException(
           "Missing deduplication properties, expected at least one property to compute deduplicationId");
     }
-    return String.valueOf(Objects.hash(propsToHash));
+    return tenantId() + "-" + element.bpmnProcessId() + "-" + Objects.hash(propsToHash);
   }
 
   public Map<String, String> rawPropertiesWithoutKeywords() {

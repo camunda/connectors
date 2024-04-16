@@ -128,9 +128,9 @@ public record PropertyGroup(
               "Deduplication allows you to configure multiple inbound connector elements to reuse the same backend (consumer/thread/endpoint) by sharing the same deduplication ID.")
           .properties(
               CommonProperties.deduplicationModeManualFlag().build(),
+              CommonProperties.deduplicationId().build(),
               CommonProperties.deduplicationModeManual().build(),
-              CommonProperties.deduplicationModeAuto().build(),
-              CommonProperties.deduplicationId().build())
+              CommonProperties.deduplicationModeAuto().build())
           .build();
 
   public PropertyGroup {
