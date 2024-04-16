@@ -29,14 +29,30 @@ public class SendGridRequest {
   private String apiKey;
 
   public record Sender(
-      @TemplateProperty(group = "sender", label = "Name") String name,
-      @TemplateProperty(group = "sender", label = "Email address") String email) {}
+      @TemplateProperty(
+              group = "sender",
+              label = "Name",
+              constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+          String name,
+      @TemplateProperty(
+              group = "sender",
+              label = "Email address",
+              constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+          String email) {}
 
   @Valid @NotNull private Sender from;
 
   public record Recipient(
-      @TemplateProperty(group = "receiver", label = "Name") String name,
-      @TemplateProperty(group = "receiver", label = "Email address") String email) {}
+      @TemplateProperty(
+              group = "receiver",
+              label = "Name",
+              constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+          String name,
+      @TemplateProperty(
+              group = "receiver",
+              label = "Email address",
+              constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+          String email) {}
 
   @Valid @NotNull private Recipient to;
 
