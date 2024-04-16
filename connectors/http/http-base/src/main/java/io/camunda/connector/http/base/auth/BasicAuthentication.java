@@ -44,4 +44,9 @@ public record BasicAuthentication(
     }
     headers.setBasicAuthentication(username, passwordForHeader);
   }
+
+  @Override
+  public String toString() {
+    return "BasicAuthentication{" + "username='" + username + "'" + ", password=[REDACTED]" + "}";
+  }
 }

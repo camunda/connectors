@@ -62,4 +62,16 @@ public record ApiKeyAuthentication(
   public boolean isQueryLocationApiKeyAuthentication() {
     return ApiKeyLocation.QUERY == apiKeyLocation;
   }
+
+  @Override
+  public String toString() {
+    return "ApiKeyAuthentication{"
+        + "apiKeyLocation="
+        + apiKeyLocation
+        + ", name='"
+        + name
+        + "'"
+        + ", value=[REDACTED]"
+        + "}";
+  }
 }
