@@ -35,4 +35,9 @@ public record BearerAuthentication(
   public void setHeaders(HttpHeaders headers) {
     headers.setAuthorization("Bearer " + token);
   }
+
+  @Override
+  public String toString() {
+    return "BearerAuthentication{" + "token=[REDACTED]" + "}";
+  }
 }

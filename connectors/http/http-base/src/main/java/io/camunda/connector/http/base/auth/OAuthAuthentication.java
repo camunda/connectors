@@ -105,4 +105,26 @@ public record OAuthAuthentication(
     }
     return data;
   }
+
+  @Override
+  public String toString() {
+    return "OAuthAuthentication{"
+        + "oauthTokenEndpoint='"
+        + oauthTokenEndpoint
+        + "'"
+        + ", clientId='"
+        + clientId
+        + "'"
+        + ", clientSecret=[REDACTED]"
+        + ", audience='"
+        + audience
+        + "'"
+        + ", clientAuthentication='"
+        + clientAuthentication
+        + "'"
+        + ", scopes='"
+        + scopes
+        + "'"
+        + "}";
+  }
 }
