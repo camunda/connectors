@@ -60,6 +60,9 @@
     "id" : "from.name",
     "label" : "Name",
     "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
     "group" : "sender",
     "binding" : {
@@ -71,6 +74,9 @@
     "id" : "from.email",
     "label" : "Email address",
     "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
     "group" : "sender",
     "binding" : {
@@ -82,6 +88,9 @@
     "id" : "to.name",
     "label" : "Name",
     "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
     "group" : "receiver",
     "binding" : {
@@ -93,6 +102,9 @@
     "id" : "to.email",
     "label" : "Email address",
     "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
     "group" : "receiver",
     "binding" : {
