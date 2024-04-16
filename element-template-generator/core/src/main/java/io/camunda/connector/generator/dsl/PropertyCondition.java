@@ -28,7 +28,7 @@ public sealed interface PropertyCondition {
     }
   }
 
-  record Equals(String property, String equals) implements PropertyCondition {
+  record Equals(String property, Object equals) implements PropertyCondition {
 
     public String getType() {
       return "simple";
@@ -39,6 +39,13 @@ public sealed interface PropertyCondition {
 
     public AllMatch(PropertyCondition... conditions) {
       this(List.of(conditions));
+    }
+  }
+
+  record IsActive(String property, boolean isActive) implements PropertyCondition {
+
+    public String getType() {
+      return "simple";
     }
   }
 }

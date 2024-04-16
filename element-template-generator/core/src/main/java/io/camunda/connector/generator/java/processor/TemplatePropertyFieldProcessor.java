@@ -22,6 +22,7 @@ import io.camunda.connector.generator.dsl.PropertyBuilder;
 import io.camunda.connector.generator.dsl.PropertyCondition;
 import io.camunda.connector.generator.dsl.PropertyConstraints;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.NestedPropertyCondition;
 import io.camunda.connector.generator.java.util.TemplateGenerationContext;
 import java.lang.reflect.Field;
 import java.util.Arrays;
@@ -53,7 +54,17 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
       builder.description(annotation.description());
     }
     if (!annotation.defaultValue().isBlank()) {
-      builder.value(annotation.defaultValue());
+      var value = annotation.defaultValue();
+      switch (annotation.defaultValueType()) {
+        case Boolean:
+          builder.value(Boolean.parseBoolean(value));
+          break;
+        case String:
+          builder.value(value);
+          break;
+        default:
+          throw new IllegalStateException("Unexpected value: " + annotation.defaultValueType());
+      }
     }
     if (!annotation.group().isBlank()) {
       builder.group(annotation.group());
@@ -71,12 +82,14 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
 
   private PropertyCondition buildCondition(TemplateProperty propertyAnnotation) {
     var conditionAnnotation = propertyAnnotation.condition();
-    if (conditionAnnotation.property().isBlank()) {
+    if (conditionAnnotation.property().isBlank() && conditionAnnotation.allMatch().length == 0) {
       return null;
     }
-    if (conditionAnnotation.equals().isBlank() && conditionAnnotation.oneOf().length == 0) {
-      throw new IllegalStateException("InvalidCondition must have either 'equals' or 'oneOf' set");
-    }
+    validateCondition(
+        conditionAnnotation.property(),
+        conditionAnnotation.equals(),
+        conditionAnnotation.oneOf(),
+        conditionAnnotation.allMatch());
     return transformToCondition(conditionAnnotation);
   }
 
@@ -86,9 +99,67 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
     if (!conditionAnnotation.equals().isBlank()) {
       return new PropertyCondition.Equals(
           conditionAnnotation.property(), conditionAnnotation.equals());
-    } else {
+    } else if (conditionAnnotation.oneOf().length > 0) {
       return new PropertyCondition.OneOf(
           conditionAnnotation.property(), Arrays.asList(conditionAnnotation.oneOf()));
+    } else if (conditionAnnotation.allMatch().length > 0) {
+      return new PropertyCondition.AllMatch(
+          Arrays.stream(conditionAnnotation.allMatch())
+              .map(TemplatePropertyFieldProcessor::transformToNestedCondition)
+              .toList());
+    } else {
+      // isActive always has a value, so we consider it is selected if nothing else is set
+      return new PropertyCondition.IsActive(
+          conditionAnnotation.property(), conditionAnnotation.isActive());
+    }
+  }
+
+  public static PropertyCondition transformToNestedCondition(
+      TemplateProperty.NestedPropertyCondition conditionAnnotation) {
+    validateCondition(
+        conditionAnnotation.property(),
+        conditionAnnotation.equals(),
+        conditionAnnotation.oneOf(),
+        new NestedPropertyCondition[] {});
+    if (!conditionAnnotation.equals().isBlank()) {
+      return new PropertyCondition.Equals(
+          conditionAnnotation.property(), conditionAnnotation.equals());
+    } else if (conditionAnnotation.oneOf().length > 0) {
+      return new PropertyCondition.OneOf(
+          conditionAnnotation.property(), Arrays.asList(conditionAnnotation.oneOf()));
+    } else {
+      // isActive always has a value, so we consider it is selected if nothing else is set
+      return new PropertyCondition.IsActive(
+          conditionAnnotation.property(), conditionAnnotation.isActive());
+    }
+  }
+
+  private static void validateCondition(
+      String property, String equals, String[] oneOf, NestedPropertyCondition[] allMatch) {
+    var equalsSet = !equals.isBlank();
+    var oneOfSet = oneOf != null && oneOf.length > 0;
+    var allMatchSet = allMatch != null && allMatch.length > 0;
+    // equalsBoolean always has a value, so it's not included in the check
+    // if everything else is not set, we consider it an equalsBoolean condition
+
+    if (equalsSet && oneOfSet || equalsSet && allMatchSet || oneOfSet && allMatchSet) {
+      throw new IllegalStateException(
+          "Condition must have only one of 'equals', 'oneOf', 'isActive', or 'allMatch' set");
+    }
+    if (equalsSet && property.isBlank()) {
+      throw new IllegalStateException("Condition 'equals' must have 'property' set");
+    }
+
+    if (oneOfSet && property.isBlank()) {
+      throw new IllegalStateException("Condition 'oneOf' must have 'property' set");
+    }
+
+    if (allMatchSet && !property.isBlank()) {
+      throw new IllegalStateException("Condition 'allMatch' must not have 'property' set");
+    }
+
+    if (!equalsSet && !oneOfSet && !allMatchSet && property.isBlank()) {
+      throw new IllegalStateException("Condition 'isActive' must have 'property' set");
     }
   }
 

@@ -26,7 +26,8 @@
     },
     {
       "id": "output",
-      "label": "Output Mapping"
+      "label": "Output Mapping",
+      "tooltip": "Map the response to process variables"
     },
     {
       "id": "errors",
@@ -37,8 +38,8 @@
     {
       "value": "io.camunda:template:1",
       "binding": {
-        "type": "zeebe:taskDefinition",
-        "property": "type"
+        "property": "type",
+        "type": "zeebe:taskDefinition"
       },
       "type": "Hidden"
     },

@@ -17,6 +17,8 @@
 package io.camunda.connector.generator.dsl;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeProperty;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskDefinition;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskHeader;
@@ -26,7 +28,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
 
-public record PropertyGroup(String id, String label, @JsonIgnore List<Property> properties) {
+@JsonInclude(Include.NON_NULL)
+public record PropertyGroup(
+    String id,
+    String label,
+    @JsonIgnore List<Property> properties,
+    String tooltip,
+    Boolean openByDefault) {
 
   public static PropertyGroup OUTPUT_GROUP_OUTBOUND =
       PropertyGroup.builder()
@@ -112,6 +120,19 @@ public record PropertyGroup(String id, String label, @JsonIgnore List<Property> 
               CommonProperties.messageNameUuidHidden().build())
           .build();
 
+  public static PropertyGroup DEDUPLICATION_GROUP =
+      PropertyGroup.builder()
+          .id("deduplication")
+          .label("Deduplication")
+          .tooltip(
+              "Deduplication allows you to configure multiple inbound connector elements to reuse the same backend (consumer/thread/endpoint) by sharing the same deduplication ID.")
+          .properties(
+              CommonProperties.deduplicationModeManualFlag().build(),
+              CommonProperties.deduplicationId().build(),
+              CommonProperties.deduplicationModeManual().build(),
+              CommonProperties.deduplicationModeAuto().build())
+          .build();
+
   public PropertyGroup {
     if (id == null) {
       throw new IllegalArgumentException("id is required");
@@ -132,6 +153,8 @@ public record PropertyGroup(String id, String label, @JsonIgnore List<Property> 
 
     private String id;
     private String label;
+    private String tooltip;
+    private Boolean openByDefault;
     private final List<Property> properties = new ArrayList<>();
 
     private PropertyGroupBuilder() {}
@@ -143,6 +166,16 @@ public record PropertyGroup(String id, String label, @JsonIgnore List<Property> 
 
     public PropertyGroupBuilder label(String label) {
       this.label = label;
+      return this;
+    }
+
+    public PropertyGroupBuilder tooltip(String tooltip) {
+      this.tooltip = tooltip;
+      return this;
+    }
+
+    public PropertyGroupBuilder openByDefault(Boolean openByDefault) {
+      this.openByDefault = openByDefault;
       return this;
     }
 
@@ -180,7 +213,7 @@ public record PropertyGroup(String id, String label, @JsonIgnore List<Property> 
     }
 
     public PropertyGroup build() {
-      return new PropertyGroup(id, label, properties);
+      return new PropertyGroup(id, label, properties, tooltip, openByDefault);
     }
 
     private void requireIdSet() {

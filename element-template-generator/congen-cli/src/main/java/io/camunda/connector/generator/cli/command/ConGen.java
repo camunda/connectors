@@ -22,6 +22,7 @@ import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
 import io.camunda.connector.generator.dsl.BpmnType;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -91,7 +92,8 @@ public class ConGen {
         templateId,
         templateName,
         null,
-        bpmnTypes);
+        bpmnTypes,
+        Map.of()); // todo: do we need to support feature overrides from the CLI?
   }
 
   private BpmnType parseBpmnType(String type) {

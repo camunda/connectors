@@ -91,11 +91,12 @@ public class OpenApiOutboundTemplateGenerator
         template.id(),
         template.name(),
         template.version(),
-        template.properties().stream()
-            .filter(p -> p.getBinding().equals(ZeebeTaskDefinition.TYPE))
-            .findFirst()
-            .orElseThrow()
-            .getValue(),
+        (String)
+            template.properties().stream()
+                .filter(p -> p.getBinding().equals(ZeebeTaskDefinition.TYPE))
+                .findFirst()
+                .orElseThrow()
+                .getValue(),
         operations);
   }
 

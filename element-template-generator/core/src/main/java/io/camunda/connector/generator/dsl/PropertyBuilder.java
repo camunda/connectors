@@ -24,7 +24,7 @@ public abstract class PropertyBuilder {
   protected String label;
   protected String description;
   protected Boolean optional;
-  protected String value;
+  protected Object value;
   protected Property.GeneratedValue generatedValue;
   protected PropertyConstraints constraints;
   protected FeelMode feel;
@@ -32,6 +32,7 @@ public abstract class PropertyBuilder {
   protected PropertyBinding binding;
   protected String type;
   protected PropertyCondition condition;
+  protected String tooltip;
 
   protected PropertyBuilder() {}
 
@@ -67,7 +68,7 @@ public abstract class PropertyBuilder {
     return this;
   }
 
-  public PropertyBuilder value(String value) {
+  public PropertyBuilder value(Object value) {
     if (generatedValue != null) {
       throw new IllegalStateException("Generated value is already set");
     }
@@ -105,6 +106,11 @@ public abstract class PropertyBuilder {
 
   public PropertyBuilder group(String group) {
     this.group = group;
+    return this;
+  }
+
+  public PropertyBuilder tooltip(String tooltip) {
+    this.tooltip = tooltip;
     return this;
   }
 

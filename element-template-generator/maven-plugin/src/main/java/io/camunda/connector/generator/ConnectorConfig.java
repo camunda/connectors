@@ -17,6 +17,7 @@
 package io.camunda.connector.generator;
 
 import java.util.List;
+import java.util.Map;
 
 public class ConnectorConfig {
 
@@ -25,6 +26,8 @@ public class ConnectorConfig {
   private boolean generateHybridTemplates = false;
 
   private List<FileNameById> files = List.of();
+
+  private Map<String, Boolean> features = Map.of();
 
   public static class FileNameById {
     private String templateId;
@@ -73,5 +76,13 @@ public class ConnectorConfig {
 
   public void setGenerateHybridTemplates(boolean generateHybridTemplates) {
     this.generateHybridTemplates = generateHybridTemplates;
+  }
+
+  public Map<String, Boolean> getFeatures() {
+    return features;
+  }
+
+  public void setFeatures(Map<String, Boolean> features) {
+    this.features = features;
   }
 }

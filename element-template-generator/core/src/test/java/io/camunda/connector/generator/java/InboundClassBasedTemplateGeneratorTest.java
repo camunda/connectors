@@ -23,18 +23,22 @@ import io.camunda.connector.generator.BaseTest;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElementType;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
+import io.camunda.connector.generator.api.GeneratorConfiguration.GenerationFeature;
 import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.dsl.DropdownProperty;
 import io.camunda.connector.generator.dsl.DropdownProperty.DropdownChoice;
+import io.camunda.connector.generator.dsl.ElementTemplate;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.dsl.PropertyBinding;
 import io.camunda.connector.generator.dsl.PropertyBinding.MessageProperty;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeProperty;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeSubscriptionProperty;
 import io.camunda.connector.generator.dsl.PropertyCondition.Equals;
+import io.camunda.connector.generator.dsl.PropertyCondition.IsActive;
 import io.camunda.connector.generator.dsl.StringProperty;
 import io.camunda.connector.generator.java.example.inbound.MyConnectorExecutable;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -138,7 +142,9 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
       var type =
           new ConnectorElementType(
               Set.of(BpmnType.START_EVENT), BpmnType.MESSAGE_START_EVENT, null, null);
-      var config = new GeneratorConfiguration(ConnectorMode.NORMAL, null, null, null, Set.of(type));
+      var config =
+          new GeneratorConfiguration(
+              ConnectorMode.NORMAL, null, null, null, Set.of(type), Map.of());
 
       // when
       var templates = generator.generate(MyConnectorExecutable.class, config);
@@ -159,7 +165,9 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
       // given
       var type =
           new ConnectorElementType(Set.of(BpmnType.START_EVENT), BpmnType.START_EVENT, null, null);
-      var config = new GeneratorConfiguration(ConnectorMode.NORMAL, null, null, null, Set.of(type));
+      var config =
+          new GeneratorConfiguration(
+              ConnectorMode.NORMAL, null, null, null, Set.of(type), Map.of());
 
       // when
       var templates = generator.generate(MyConnectorExecutable.class, config);
@@ -183,7 +191,8 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
           new ConnectorElementType(
               Set.of(BpmnType.BOUNDARY_EVENT), BpmnType.BOUNDARY_EVENT, null, null);
       var config =
-          new GeneratorConfiguration(ConnectorMode.NORMAL, null, null, null, Set.of(type1, type2));
+          new GeneratorConfiguration(
+              ConnectorMode.NORMAL, null, null, null, Set.of(type1, type2), Map.of());
 
       // when
       var templates = generator.generate(MyConnectorExecutable.class, config);
@@ -216,7 +225,9 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
       var type =
           new ConnectorElementType(
               Set.of(BpmnType.START_EVENT), BpmnType.MESSAGE_START_EVENT, null, null);
-      var config = new GeneratorConfiguration(ConnectorMode.NORMAL, null, null, null, Set.of(type));
+      var config =
+          new GeneratorConfiguration(
+              ConnectorMode.NORMAL, null, null, null, Set.of(type), Map.of());
 
       // when
       var templates = generator.generate(MyConnectorExecutable.class, config);
@@ -267,7 +278,8 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
     var type =
         new ConnectorElementType(
             Set.of(BpmnType.START_EVENT), BpmnType.MESSAGE_START_EVENT, null, null);
-    var config = new GeneratorConfiguration(ConnectorMode.NORMAL, null, null, null, Set.of(type));
+    var config =
+        new GeneratorConfiguration(ConnectorMode.NORMAL, null, null, null, Set.of(type), Map.of());
 
     // when
     var template = generator.generate(MyConnectorExecutable.class, config).getFirst();
@@ -280,5 +292,108 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
     assertThat(property.getFeel()).isEqualTo(null);
     assertThat(property.getBinding()).isEqualTo(new PropertyBinding.ZeebeProperty("prop1"));
     assertThat(property.getConstraints()).isNull();
+  }
+
+  @Nested
+  class Deduplication {
+
+    @Test
+    void deduplicationFeatureFlagNotSet_shouldNotAddDeduplicationProperties() {
+      // given
+      var type =
+          new ConnectorElementType(
+              Set.of(BpmnType.START_EVENT), BpmnType.MESSAGE_START_EVENT, null, null);
+      var config =
+          new GeneratorConfiguration(
+              ConnectorMode.NORMAL, null, null, null, Set.of(type), Map.of());
+
+      // when
+      var template = generator.generate(MyConnectorExecutable.class, config).getFirst();
+
+      // then
+      assertThrows(Exception.class, () -> assertDeduplicationProperties(template));
+    }
+
+    @Test
+    void deduplicationFeatureFlagTrue_shouldAddDeduplicationProperties() {
+      // given
+      var type =
+          new ConnectorElementType(
+              Set.of(BpmnType.START_EVENT), BpmnType.MESSAGE_START_EVENT, null, null);
+      var config =
+          new GeneratorConfiguration(
+              ConnectorMode.NORMAL,
+              null,
+              null,
+              null,
+              Set.of(type),
+              Map.of(GenerationFeature.INBOUND_DEDUPLICATION, true));
+
+      // when
+      var template = generator.generate(MyConnectorExecutable.class, config).getFirst();
+
+      // then
+      assertDeduplicationProperties(template);
+    }
+
+    @Test
+    void deduplicationFeatureFlagFalse_shouldNotAddDeduplicationProperties() {
+      // given
+      var type =
+          new ConnectorElementType(
+              Set.of(BpmnType.START_EVENT), BpmnType.MESSAGE_START_EVENT, null, null);
+      var config =
+          new GeneratorConfiguration(
+              ConnectorMode.NORMAL,
+              null,
+              null,
+              null,
+              Set.of(type),
+              Map.of(GenerationFeature.INBOUND_DEDUPLICATION, false));
+
+      // when
+      var template = generator.generate(MyConnectorExecutable.class, config).getFirst();
+
+      // then
+      assertThrows(Exception.class, () -> assertDeduplicationProperties(template));
+    }
+
+    private void assertDeduplicationProperties(ElementTemplate template) {
+      var manualModeFlagProperty = getPropertyById("deduplicationModeManualFlag", template);
+      assertThat(manualModeFlagProperty).isNotNull();
+      assertThat(manualModeFlagProperty.getType()).isEqualTo("Boolean");
+      assertThat(manualModeFlagProperty.getBinding().type()).isEqualTo("zeebe:property");
+      assertThat(((ZeebeProperty) manualModeFlagProperty.getBinding()).name())
+          .isEqualTo("deduplicationModeManualFlag");
+      assertThat(manualModeFlagProperty.getValue()).isEqualTo(Boolean.FALSE);
+
+      var manualModeProperty = getPropertyById("deduplicationModeManual", template);
+      assertThat(manualModeProperty).isNotNull();
+      assertThat(manualModeProperty.getType()).isEqualTo("Hidden");
+      assertThat(manualModeProperty.getBinding().type()).isEqualTo("zeebe:property");
+      assertThat(((ZeebeProperty) manualModeProperty.getBinding()).name())
+          .isEqualTo("deduplicationMode");
+      assertThat(manualModeProperty.getValue()).isEqualTo("MANUAL");
+      assertThat(manualModeProperty.getCondition())
+          .isEqualTo(new IsActive("deduplicationId", true));
+
+      var autoModeProperty = getPropertyById("deduplicationModeAuto", template);
+      assertThat(autoModeProperty).isNotNull();
+      assertThat(autoModeProperty.getType()).isEqualTo("Hidden");
+      assertThat(autoModeProperty.getBinding().type()).isEqualTo("zeebe:property");
+      assertThat(((ZeebeProperty) autoModeProperty.getBinding()).name())
+          .isEqualTo("deduplicationMode");
+      assertThat(autoModeProperty.getValue()).isEqualTo("AUTO");
+      assertThat(autoModeProperty.getCondition()).isEqualTo(new IsActive("deduplicationId", false));
+
+      var deduplicationKeyProperty = getPropertyById("deduplicationId", template);
+      assertThat(deduplicationKeyProperty).isNotNull();
+      assertThat(deduplicationKeyProperty.getType()).isEqualTo("String");
+      assertThat(deduplicationKeyProperty.getBinding().type()).isEqualTo("zeebe:property");
+      assertThat(((ZeebeProperty) deduplicationKeyProperty.getBinding()).name())
+          .isEqualTo("deduplicationId");
+      assertThat(deduplicationKeyProperty.getCondition())
+          .isEqualTo(new Equals("deduplicationModeManualFlag", true));
+    }
   }
 }

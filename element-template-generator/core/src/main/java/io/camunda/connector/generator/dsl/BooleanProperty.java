@@ -25,13 +25,14 @@ public final class BooleanProperty extends Property {
       String label,
       String description,
       Boolean required,
-      String value,
+      Boolean value,
       GeneratedValue generatedValue,
       PropertyConstraints constraints,
       FeelMode feel,
       String group,
       PropertyBinding binding,
-      PropertyCondition condition) {
+      PropertyCondition condition,
+      String tooltip) {
     super(
         name,
         label,
@@ -44,6 +45,7 @@ public final class BooleanProperty extends Property {
         group,
         binding,
         condition,
+        tooltip,
         TYPE);
   }
 
@@ -56,18 +58,22 @@ public final class BooleanProperty extends Property {
     private BooleanPropertyBuilder() {}
 
     public BooleanProperty build() {
+      if (value != null && !(value instanceof Boolean)) {
+        throw new IllegalStateException("Value of a boolean property must be a boolean");
+      }
       return new BooleanProperty(
           id,
           label,
           description,
           optional,
-          value,
+          (Boolean) value,
           generatedValue,
           constraints,
           feel,
           group,
           binding,
-          condition);
+          condition,
+          tooltip);
     }
   }
 }

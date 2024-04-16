@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.DefaultValueType;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
@@ -47,7 +48,8 @@ public record MyConnectorInput(
             type = PropertyType.Text,
             group = "group1",
             description = "description",
-            constraints = @TemplateProperty.PropertyConstraints(notEmpty = true))
+            constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+            tooltip = "tooltip")
         String annotatedStringProperty,
     String notAnnotatedStringProperty,
     Object objectProperty,
@@ -84,7 +86,20 @@ public record MyConnectorInput(
     @Size(min = Integer.MIN_VALUE, max = 10) String propertyWithMaxSize,
     @NotEmpty String stringPropertyWithNotEmpty,
     @NotBlank String stringPropertyWithNotBlank,
-    @NotNull Object objectPropertyWithNotNull) {
+    @NotNull Object objectPropertyWithNotNull,
+    @TemplateProperty(
+            id = "booleanProperty",
+            defaultValue = "false",
+            defaultValueType = DefaultValueType.Boolean)
+        Boolean booleanProperty,
+    @TemplateProperty(
+            id = "dependsOnBooleanPropertyFalse",
+            condition = @PropertyCondition(property = "booleanProperty", equals = "false"))
+        String dependsOnBooleanPropertyFalse,
+    @TemplateProperty(
+            id = "dependsOnBooleanPropertyTrue",
+            condition = @PropertyCondition(property = "booleanProperty", equals = "true"))
+        String dependsOnBooleanPropertyTrue) {
 
   sealed interface NonAnnotatedSealedType permits FirstSubType, NestedSealedType, SecondSubType {
 

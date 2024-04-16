@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import io.camunda.connector.generator.ConnectorConfig.FileNameById;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
+import io.camunda.connector.generator.api.GeneratorConfiguration.GenerationFeature;
 import io.camunda.connector.generator.dsl.ElementTemplate;
 import io.camunda.connector.generator.java.ClassBasedTemplateGenerator;
 import java.io.File;
@@ -31,7 +32,10 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoFailureException;
@@ -136,14 +140,32 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
   private void generateElementTemplates(ConnectorConfig config, ClassLoader classLoader)
       throws ClassNotFoundException {
     var clazz = classLoader.loadClass(config.getConnectorClass());
-    var generatorConfig = new GeneratorConfiguration(ConnectorMode.NORMAL, null, null, null, null);
+    var features =
+        config.getFeatures().entrySet().stream()
+            .map(
+                e -> {
+                  try {
+                    var feature = GenerationFeature.valueOf(e.getKey());
+                    return Map.entry(feature, e.getValue());
+                  } catch (IllegalArgumentException ex) {
+                    throw new IllegalArgumentException(
+                        "Unknown feature: "
+                            + e.getKey()
+                            + ". Known features are: "
+                            + Arrays.toString(GenerationFeature.values()));
+                  }
+                })
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+    var generatorConfig =
+        new GeneratorConfiguration(ConnectorMode.NORMAL, null, null, null, null, features);
     var generator = new ClassBasedTemplateGenerator(classLoader);
     var templates = generator.generate(clazz, generatorConfig);
     writeElementTemplates(templates, false, config.getFiles());
 
     if (config.isGenerateHybridTemplates()) {
       var hybridGeneratorConfig =
-          new GeneratorConfiguration(ConnectorMode.HYBRID, null, null, null, null);
+          new GeneratorConfiguration(ConnectorMode.HYBRID, null, null, null, null, features);
       var hybridTemplates = generator.generate(clazz, hybridGeneratorConfig);
       writeElementTemplates(hybridTemplates, true, config.getFiles());
     }

@@ -36,6 +36,7 @@ public final class DropdownProperty extends Property {
       String group,
       PropertyBinding binding,
       PropertyCondition condition,
+      String tooltip,
       List<DropdownChoice> choices) {
     super(
         name,
@@ -49,6 +50,7 @@ public final class DropdownProperty extends Property {
         group,
         binding,
         condition,
+        tooltip,
         TYPE);
     this.choices = choices;
   }
@@ -75,18 +77,22 @@ public final class DropdownProperty extends Property {
     }
 
     public DropdownProperty build() {
+      if (value != null && !(value instanceof String)) {
+        throw new IllegalStateException("Value of a dropdown property must be a string");
+      }
       return new DropdownProperty(
           id,
           label,
           description,
           optional,
-          value,
+          (String) value,
           generatedValue,
           constraints,
           feel,
           group,
           binding,
           condition,
+          tooltip,
           choices);
     }
   }

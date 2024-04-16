@@ -121,7 +121,7 @@ public class InboundCorrelationHandler {
               .send()
               .join();
 
-      LOG.info("Created a process instance with key" + result.getProcessInstanceKey());
+      LOG.info("Created a process instance with key {}", result.getProcessInstanceKey());
       return new CorrelationResult.Success.ProcessInstanceCreated(
           getElementContext(activatedElement),
           result.getProcessInstanceKey(),
@@ -205,7 +205,7 @@ public class InboundCorrelationHandler {
               .send()
               .join();
 
-      LOG.info("Published message with key: " + response.getMessageKey());
+      LOG.info("Published message with key: {}", response.getMessageKey());
       result =
           new CorrelationResult.Success.MessagePublished(
               getElementContext(activatedElement),
@@ -233,8 +233,10 @@ public class InboundCorrelationHandler {
       LOG.debug("No activation condition specified for connector");
       return true;
     }
+    LOG.debug("Evaluating activation condition: {}", maybeCondition);
     try {
       Object shouldActivate = feelEngine.evaluate(maybeCondition, context);
+      LOG.debug("Activation condition evaluated to: {}", shouldActivate);
       return Boolean.TRUE.equals(shouldActivate);
     } catch (FeelEngineWrapperException e) {
       throw new ConnectorInputException(e);

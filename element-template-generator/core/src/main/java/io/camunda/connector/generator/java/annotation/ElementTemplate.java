@@ -96,6 +96,10 @@ public @interface ElementTemplate {
     String id();
 
     String label() default "";
+
+    String tooltip() default "";
+
+    boolean openByDefault() default true;
   }
 
   @interface ConnectorElementType {
