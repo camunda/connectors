@@ -26,9 +26,9 @@ import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 @ExtendWith(MockitoExtension.class)
-public class ApacheJdbcClientIntegrationTest extends IntegrationBaseTest {
+public class JdbiJdbcClientIntegrationTest extends IntegrationBaseTest {
   public static final String PROVIDE_SQL_SERVERS_CONFIG =
-      "io.camunda.connector.jdbc.integration.ApacheJdbcClientIntegrationTest#provideSqlServersConfig";
+      "io.camunda.connector.jdbc.integration.JdbiJdbcClientIntegrationTest#provideSqlServersConfig";
 
   static final MSSQLServerContainer msSqlServer = new MSSQLServerContainer().acceptLicense();
   static final MySQLContainer mySqlServer = new MySQLContainer<>();

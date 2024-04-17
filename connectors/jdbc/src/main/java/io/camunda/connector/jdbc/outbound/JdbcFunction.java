@@ -11,6 +11,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.jdbc.model.client.JdbcClient;
+import io.camunda.connector.jdbc.model.client.JdbiJdbcClient;
 import io.camunda.connector.jdbc.model.request.JdbcRequest;
 
 @OutboundConnector(
@@ -42,7 +43,7 @@ public class JdbcFunction implements OutboundConnectorFunction {
   private final JdbcClient jdbcClient;
 
   public JdbcFunction() {
-    this.jdbcClient = new JdbcClient.ApacheJdbcClient();
+    this.jdbcClient = new JdbiJdbcClient();
   }
 
   JdbcFunction(JdbcClient jdbcClient) {

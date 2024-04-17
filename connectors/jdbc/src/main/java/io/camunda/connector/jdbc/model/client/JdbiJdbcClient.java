@@ -1,20 +1,9 @@
 /*
  * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
- * under one or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information regarding copyright
- * ownership. Camunda licenses this file to you under the Apache License,
- * Version 2.0; you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
  */
-
 package io.camunda.connector.jdbc.model.client;
 
 import static io.camunda.connector.jdbc.utils.ConnectionHelper.openConnection;
@@ -27,7 +16,9 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.jdbi.v3.core.Jdbi;
+import org.jdbi.v3.core.statement.SqlStatement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,24 +42,49 @@ public record JdbiJdbcClient() implements JdbcClient {
     Jdbi jdbi = Jdbi.create(connection);
     if (data.isModifyingQuery()) {
       LOG.debug("Executing modifying query: {}", data.query());
-      jdbi.withHandle(handle -> handle.createUpdate(data.query()).execute());
-      response = JdbcResponse.of(connection.createStatement().execute(data.query()));
+      Integer result =
+          jdbi.withHandle(
+              handle ->
+                  bindVariables(handle.createUpdate(data.query()), data.variables()).execute());
+      response = JdbcResponse.of(result);
     } else {
+      // SELECT query
       LOG.debug("Executing query: {}", data.query());
-      if (data.variables() != null && !(data.variables() instanceof Map)) {
-        throw new IllegalAccessException("Variables must be a map when performing a SELECT query");
-      }
       List<Map<String, Object>> result =
           jdbi.withHandle(
               handle ->
-                  handle
-                      .createQuery(data.query())
-                      .bindMap((Map<String, Object>) data.variables())
+                  bindVariables(handle.createQuery(data.query()), data.variables())
                       .mapToMap()
                       .list());
       response = JdbcResponse.of(result);
     }
     LOG.debug("JdbcResponse: {}", response);
     return response;
+  }
+
+  private <T extends SqlStatement<T>> T bindVariables(T stmt, Object variables) {
+    if (variables == null) {
+      return stmt;
+    }
+    switch (variables) {
+      case Map<?, ?> map -> map.forEach(
+          (key, value) -> {
+            if (Objects.requireNonNull(value) instanceof List<?> l) {
+              bindVariables(stmt, l);
+            } else {
+              stmt.bind(key.toString(), value);
+            }
+          });
+      case List<?> list -> {
+        for (int i = 0; i < list.size(); i++) {
+          stmt.bind(i, list.get(i));
+        }
+      }
+      default -> throw new IllegalStateException(
+          "Unexpected type: "
+              + variables.getClass().getName()
+              + ". Only Map and List are supported.");
+    }
+    return stmt;
   }
 }

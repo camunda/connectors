@@ -13,8 +13,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.jdbc.model.client.JdbcClient;
+import io.camunda.connector.jdbc.model.client.JdbiJdbcClient;
 import io.camunda.connector.jdbc.model.request.JdbcRequest;
 import io.camunda.connector.jdbc.model.request.JdbcRequestData;
 import io.camunda.connector.jdbc.model.request.SupportedDatabase;
@@ -26,8 +26,8 @@ import java.sql.Statement;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import org.apache.commons.dbutils.QueryRunner;
-import org.apache.commons.dbutils.handlers.MapListHandler;
+import org.jdbi.v3.core.Jdbi;
+import org.jdbi.v3.core.result.NoResultsException;
 
 public abstract class IntegrationBaseTest {
   static final Employee NEW_EMPLOYEE = new Employee(7, "Eve", 55, "HR");
@@ -41,7 +41,7 @@ public abstract class IntegrationBaseTest {
           new Employee(5, "Charlie", 45, "HR"),
           new Employee(6, "David", 50, "Finance"));
 
-  private final JdbcClient.ApacheJdbcClient apacheJdbcClient = new JdbcClient.ApacheJdbcClient();
+  private final JdbcClient jdbiJdbcClient = new JdbiJdbcClient();
 
   static void createEmployeeTable(IntegrationTestConfig config) throws SQLException {
     try (Connection conn =
@@ -58,13 +58,16 @@ public abstract class IntegrationBaseTest {
       throws SQLException {
     try (Connection conn =
         DriverManager.getConnection(config.url(), config.username(), config.password())) {
-      // using apache query runner
-      QueryRunner queryRunner = new QueryRunner();
-      if (config.databaseName() != null) {
-        queryRunner.update(conn, "USE " + config.databaseName());
+      // using jdbi
+      try (var handle = Jdbi.create(conn).open()) {
+        if (config.databaseName() != null) {
+          handle.execute("USE " + config.databaseName());
+        }
+        return handle
+            .createQuery("SELECT * FROM " + tableName + " ORDER BY id ASC")
+            .mapToMap()
+            .list();
       }
-      return queryRunner.query(
-          conn, "SELECT * FROM " + tableName + " ORDER BY id ASC", new MapListHandler());
     }
   }
 
@@ -109,7 +112,7 @@ public abstract class IntegrationBaseTest {
                 config.databaseName(),
                 config.properties()),
             new JdbcRequestData(false, "SELECT * FROM Employee ORDER BY Id ASC"));
-    var response = apacheJdbcClient.executeRequest(request);
+    var response = jdbiJdbcClient.executeRequest(request);
     assertNull(response.modifiedRows());
     assertNotNull(response.resultSet());
     assertEquals(6, response.resultSet().size());
@@ -133,7 +136,7 @@ public abstract class IntegrationBaseTest {
                 config.databaseName(),
                 config.properties()),
             new JdbcRequestData(true, "SELECT * FROM Employee ORDER BY Id ASC"));
-    var response = apacheJdbcClient.executeRequest(request);
+    var response = jdbiJdbcClient.executeRequest(request);
     // calling QueryRunner.execute() with a SELECT works, it's just that there's no object returned
     assertEquals(-1, response.modifiedRows());
     assertNull(response.resultSet());
@@ -152,7 +155,7 @@ public abstract class IntegrationBaseTest {
                 config.databaseName(),
                 config.properties()),
             new JdbcRequestData(true, "UPDATE Employee SET name = '" + name + "' WHERE id = 1"));
-    var response = apacheJdbcClient.executeRequest(request);
+    var response = jdbiJdbcClient.executeRequest(request);
     assertEquals(1, response.modifiedRows());
     assertNull(response.resultSet());
   }
@@ -170,7 +173,7 @@ public abstract class IntegrationBaseTest {
                 config.properties()),
             new JdbcRequestData(
                 false, "UPDATE Employee SET name = 'John Doe UPDATED' WHERE id = 1"));
-    assertThrows(ConnectorException.class, () -> apacheJdbcClient.executeRequest(request));
+    assertThrows(NoResultsException.class, () -> jdbiJdbcClient.executeRequest(request));
   }
 
   void assertEmployeeUpdated(IntegrationTestConfig config) throws SQLException {
@@ -191,7 +194,7 @@ public abstract class IntegrationBaseTest {
                 config.databaseName(),
                 config.properties()),
             new JdbcRequestData(true, "DELETE FROM Employee WHERE id = 1"));
-    var response = apacheJdbcClient.executeRequest(request);
+    var response = jdbiJdbcClient.executeRequest(request);
     assertEquals(1, response.modifiedRows());
     assertNull(response.resultSet());
   }
@@ -208,7 +211,7 @@ public abstract class IntegrationBaseTest {
                 config.databaseName(),
                 config.properties()),
             new JdbcRequestData(false, "DELETE FROM Employee WHERE id = 1"));
-    assertThrows(ConnectorException.class, () -> apacheJdbcClient.executeRequest(request));
+    assertThrows(NoResultsException.class, () -> jdbiJdbcClient.executeRequest(request));
   }
 
   void assertEmployeeDeleted(IntegrationTestConfig config) throws SQLException {
@@ -230,7 +233,7 @@ public abstract class IntegrationBaseTest {
                 config.properties()),
             new JdbcRequestData(
                 true, Employee.INSERT.formatted(NEW_EMPLOYEE.toInsertQueryFormat())));
-    var response = apacheJdbcClient.executeRequest(request);
+    var response = jdbiJdbcClient.executeRequest(request);
     assertEquals(1, response.modifiedRows());
     assertNull(response.resultSet());
   }
@@ -248,7 +251,7 @@ public abstract class IntegrationBaseTest {
                 config.properties()),
             new JdbcRequestData(
                 false, Employee.INSERT.formatted(NEW_EMPLOYEE.toInsertQueryFormat())));
-    assertThrows(ConnectorException.class, () -> apacheJdbcClient.executeRequest(request));
+    assertThrows(NoResultsException.class, () -> jdbiJdbcClient.executeRequest(request));
   }
 
   void assertNewEmployeeCreated(IntegrationTestConfig config) throws SQLException {
@@ -269,7 +272,7 @@ public abstract class IntegrationBaseTest {
                 config.databaseName(),
                 config.properties()),
             new JdbcRequestData(true, "CREATE TABLE " + tableName + " (" + columns + ")"));
-    var response = apacheJdbcClient.executeRequest(request);
+    var response = jdbiJdbcClient.executeRequest(request);
     assertNull(response.resultSet());
     assertEquals(0, response.modifiedRows());
   }
@@ -286,7 +289,7 @@ public abstract class IntegrationBaseTest {
                 config.databaseName(),
                 config.properties()),
             new JdbcRequestData(false, "CREATE TABLE " + tableName + " (" + columns + ")"));
-    assertThrows(ConnectorException.class, () -> apacheJdbcClient.executeRequest(request));
+    assertThrows(NoResultsException.class, () -> jdbiJdbcClient.executeRequest(request));
   }
 
   void createDatabaseAndAssertSuccess(IntegrationTestConfig config, String databaseName) {
@@ -301,7 +304,7 @@ public abstract class IntegrationBaseTest {
                 config.databaseName(),
                 config.properties()),
             new JdbcRequestData(true, "CREATE DATABASE " + databaseName));
-    var response = apacheJdbcClient.executeRequest(request);
+    var response = jdbiJdbcClient.executeRequest(request);
     assertNull(response.resultSet());
     assertEquals(config.database() == SupportedDatabase.MYSQL ? 1 : 0, response.modifiedRows());
   }
@@ -318,7 +321,7 @@ public abstract class IntegrationBaseTest {
                 config.databaseName(),
                 config.properties()),
             new JdbcRequestData(false, "CREATE DATABASE " + databaseName));
-    assertThrows(ConnectorException.class, () -> apacheJdbcClient.executeRequest(request));
+    assertThrows(NoResultsException.class, () -> jdbiJdbcClient.executeRequest(request));
   }
 
   record Employee(int id, String name, int age, String department) {
