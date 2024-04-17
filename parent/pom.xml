@@ -116,7 +116,7 @@ limitations under the License.</license.inlineheader>
     <version.microsoft-graph>6.4.0</version.microsoft-graph>
     <version.azure-identity>1.11.4</version.azure-identity>
 
-    <version.bcprov-jdk15on>1.70</version.bcprov-jdk15on>
+    <version.bouncycastle>1.78</version.bouncycastle>
     <version.sendGrid>4.10.2</version.sendGrid>
 
     <version.slack>1.38.3</version.slack>
@@ -401,11 +401,6 @@ limitations under the License.</license.inlineheader>
       </dependency>
 
       <dependency>
-        <groupId>org.bouncycastle</groupId>
-        <artifactId>bcprov-jdk15on</artifactId>
-        <version>${version.bcprov-jdk15on}</version>
-      </dependency>
-      <dependency>
         <groupId>com.sendgrid</groupId>
         <artifactId>sendgrid-java</artifactId>
         <version>${version.sendGrid}</version>
@@ -458,6 +453,17 @@ limitations under the License.</license.inlineheader>
         <groupId>com.google.protobuf</groupId>
         <artifactId>protobuf-java</artifactId>
         <version>3.25.3</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcpkix-jdk18on</artifactId>
+        <version>${version.bouncycastle}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcprov-jdk18on</artifactId>
+        <version>${version.bouncycastle}</version>
       </dependency>
 
       <!-- test dependencies -->
