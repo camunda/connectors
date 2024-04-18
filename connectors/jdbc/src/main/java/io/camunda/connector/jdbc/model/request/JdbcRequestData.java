@@ -41,7 +41,7 @@ public record JdbcRequestData(
             group = "query",
             feel = Property.FeelMode.required,
             description =
-                "The variables to use in the SQL query. Could be a list of values (if you used the ? syntax), or a map of names to values (if you used named parameters).")
+                "The variables to use in the SQL query. Could be a list of values (if you used the positional (?) syntax), or a map of names to values (if you used named (:myValue) parameters).")
         @FEEL
         Object variables) {
   public JdbcRequestData(Boolean isModifyingQuery, String query) {

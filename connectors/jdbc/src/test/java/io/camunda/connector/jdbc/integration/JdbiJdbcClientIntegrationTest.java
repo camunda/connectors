@@ -224,18 +224,88 @@ public class JdbiJdbcClientIntegrationTest extends IntegrationBaseTest {
   }
 
   @Nested
-  class NamedParametersTests {}
+  class ParametersTests {
 
-  @Nested
-  class InsertTests {
-    //    @ParameterizedTest
-    //    @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
-    //    public void shouldInsertData_whenInsertQueryWithNamedParameters(IntegrationTestConfig
-    // config)
-    //        throws SQLException {
-    //      insertDataWithNamedParametersAndAssertSuccess(config);
-    //      assertNewEmployeeCreated(config);
-    //    }
+    @Nested
+    class DeleteTests {
+      @ParameterizedTest
+      @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
+      public void shouldDeleteData_whenDeleteQueryWithNamedParameters(IntegrationTestConfig config)
+          throws SQLException {
+        deleteDataWithNamedParametersAndAssertSuccess(config);
+        assertEmployeeDeleted(config);
+      }
+
+      @ParameterizedTest
+      @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
+      public void shouldDeleteData_whenDeleteQueryWithPositionalParameters(
+          IntegrationTestConfig config) throws SQLException {
+        deleteDataWithPositionalParametersAndAssertSuccess(config);
+        assertEmployeeDeleted(config);
+      }
+
+      @ParameterizedTest
+      @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
+      public void shouldDeleteData_whenDeleteQueryWithBindingParameters(
+          IntegrationTestConfig config) throws SQLException {
+        deleteDataWithBindingParametersAndAssertSuccess(config);
+        assertEmployeeDeleted(config);
+      }
+    }
+
+    @Nested
+    class UpdateTests {
+      @ParameterizedTest
+      @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
+      public void shouldUpdateData_whenUpdateQueryWithNamedParameters(IntegrationTestConfig config)
+          throws SQLException {
+        updateDataWithNamedParametersAndAssertSuccess(config);
+        assertEmployeeUpdated(config);
+      }
+
+      @ParameterizedTest
+      @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
+      public void shouldUpdateData_whenUpdateQueryWithPositionalParameters(
+          IntegrationTestConfig config) throws SQLException {
+        updateDataWithPositionalParametersAndAssertSuccess(config);
+        assertEmployeeUpdated(config);
+      }
+
+      @ParameterizedTest
+      @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
+      public void shouldUpdateData_whenUpdateQueryWithBindingParameters(
+          IntegrationTestConfig config) throws SQLException {
+        updateDataWithBindingParametersAndAssertSuccess(config);
+        assertEmployeeUpdated(config);
+      }
+    }
+
+    @Nested
+    class InsertTests {
+      @ParameterizedTest
+      @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
+      public void shouldInsertData_whenInsertQueryWithNamedParameters(IntegrationTestConfig config)
+          throws SQLException {
+        insertDataWithNamedParametersAndAssertSuccess(config);
+        assertNewEmployeeCreated(config);
+      }
+
+      @ParameterizedTest
+      @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
+      public void shouldInsertData_whenInsertQueryWithPositionalParameters(
+          IntegrationTestConfig config) throws SQLException {
+        insertDataWithPositionalParametersAndAssertSuccess(config);
+        assertNewEmployeeCreated(config);
+      }
+
+      @ParameterizedTest
+      @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
+      public void shouldInsertData_whenInsertQueryWithBindingParameters(
+          IntegrationTestConfig config) throws SQLException {
+        insertDataWithBindingParametersAndAssertSuccess(config);
+        assertNewEmployeeCreated(config);
+      }
+    }
 
     @Nested
     class SelectTests {
@@ -268,6 +338,27 @@ public class JdbiJdbcClientIntegrationTest extends IntegrationBaseTest {
 
       @ParameterizedTest
       @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
+      public void
+          shouldThrowUnableToCreateStatementException_whenSelectQueryWhereInWithUselessParameters(
+              IntegrationTestConfig config) {
+        // "SELECT * FROM Employee WHERE name IN (\"John Doe\", \"Jane Doe\")",
+        /// Map.of("uselessVar", List.of("John Doe", "Jane Doe"))
+        // NOT ALLOWED
+        selectDataWithUselessNamedParametersWhereInAndAssertThrows(config);
+      }
+
+      @ParameterizedTest
+      @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
+      public void
+          shouldThrowUnableToCreateStatementException_whenSelectQueryWhereInWithMissingParameters(
+              IntegrationTestConfig config) {
+        // "SELECT * FROM Employee WHERE name = :name", Map.of())
+        // NOT ALLOWED
+        selectDataWithMissingNamedParametersWhereInAndAssertThrows(config);
+      }
+
+      @ParameterizedTest
+      @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
       public void shouldReturnResultList_whenSelectQueryWhereInWithPositionalParameters(
           IntegrationTestConfig config) {
         // "SELECT * FROM Employee WHERE name IN (?, ?)", List.of("John Doe", "Jane Doe")
@@ -282,23 +373,5 @@ public class JdbiJdbcClientIntegrationTest extends IntegrationBaseTest {
         selectDataWithBindingParametersWhereInAndAssertSuccess(config);
       }
     }
-    //
-    //    @ParameterizedTest
-    //    @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
-    //    public void shouldUpdateData_whenUpdateQueryWithNamedParameters(IntegrationTestConfig
-    // config)
-    //        throws SQLException {
-    //      updateDataWithNamedParametersAndAssertSuccess(config);
-    //      assertEmployeeUpdated(config);
-    //    }
-    //
-    //    @ParameterizedTest
-    //    @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
-    //    public void shouldDeleteData_whenDeleteQueryWithNamedParameters(IntegrationTestConfig
-    // config)
-    //        throws SQLException {
-    //      deleteDataWithNamedParametersAndAssertSuccess(config);
-    //      assertEmployeeDeleted(config);
-    //    }
   }
 }

@@ -74,28 +74,26 @@ public record JdbiJdbcClient() implements JdbcClient {
     }
     switch (variables) {
         // Named parameters (:name, :id)
-      case Map<?, ?> map ->
-          map.forEach(
-              (key, value) -> {
-                if (hasBindingVariable(query, key.toString())
-                    && Objects.requireNonNull(value) instanceof List<?> l) {
-                  // Bind a list of values to a single named parameter (<myList>)
-                  stmt.bindList(key.toString(), l);
-                } else {
-                  stmt.bind(key.toString(), value);
-                }
-              });
+      case Map<?, ?> map -> map.forEach(
+          (key, value) -> {
+            if (hasBindingVariable(query, key.toString())
+                && Objects.requireNonNull(value) instanceof List<?> l) {
+              // Bind a list of values to a single named parameter (<myList>)
+              stmt.bindList(key.toString(), l);
+            } else {
+              stmt.bind(key.toString(), value);
+            }
+          });
         // Positional parameters (?,?)
       case List<?> list -> {
         for (int i = 0; i < list.size(); i++) {
           stmt.bind(i, list.get(i));
         }
       }
-      default ->
-          throw new IllegalStateException(
-              "Unexpected type: "
-                  + variables.getClass().getName()
-                  + ". Only Map and List are supported.");
+      default -> throw new IllegalStateException(
+          "Unexpected type: "
+              + variables.getClass().getName()
+              + ". Only Map and List are supported.");
     }
     return stmt;
   }
