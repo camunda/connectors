@@ -11,7 +11,6 @@ import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import java.util.List;
 
 public record JdbcRequestData(
     @NotNull
@@ -46,6 +45,6 @@ public record JdbcRequestData(
         @FEEL
         Object variables) {
   public JdbcRequestData(Boolean isModifyingQuery, String query) {
-    this(isModifyingQuery, query, List.of());
+    this(isModifyingQuery, query, null);
   }
 }

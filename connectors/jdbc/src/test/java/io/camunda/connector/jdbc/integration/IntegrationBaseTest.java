@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.core.result.NoResultsException;
+import org.jdbi.v3.core.statement.UnableToCreateStatementException;
 
 public abstract class IntegrationBaseTest {
   static final Employee NEW_EMPLOYEE = new Employee(7, "Eve", 55, "HR");
@@ -140,6 +141,131 @@ public abstract class IntegrationBaseTest {
     // calling QueryRunner.execute() with a SELECT works, it's just that there's no object returned
     assertEquals(-1, response.modifiedRows());
     assertNull(response.resultSet());
+  }
+
+  void selectDataWithNamedParametersAndAssertSuccess(IntegrationTestConfig config) {
+    JdbcRequest request =
+        new JdbcRequest(
+            config.database(),
+            new DetailedConnection(
+                config.host(),
+                config.port(),
+                config.username(),
+                config.password(),
+                config.databaseName(),
+                config.properties()),
+            new JdbcRequestData(
+                false, "SELECT * FROM Employee WHERE name = :name", Map.of("name", "John Doe")));
+    var response = jdbiJdbcClient.executeRequest(request);
+    assertNull(response.modifiedRows());
+    assertNotNull(response.resultSet());
+    assertEquals(1, response.resultSet().size());
+    assertEquals(
+        DEFAULT_EMPLOYEES.stream()
+            .filter(e -> e.name().equals("John Doe"))
+            .map(Employee::toMap)
+            .findFirst()
+            .get(),
+        response.resultSet().get(0));
+  }
+
+  void selectDataWithNamedParametersWhereInAndAssertThrows(IntegrationTestConfig config) {
+    JdbcRequest request =
+        new JdbcRequest(
+            config.database(),
+            new DetailedConnection(
+                config.host(),
+                config.port(),
+                config.username(),
+                config.password(),
+                config.databaseName(),
+                config.properties()),
+            new JdbcRequestData(
+                false,
+                "SELECT * FROM Employee WHERE name IN (:nameList)",
+                Map.of("nameList", List.of("John Doe", "Jane Doe"))));
+    assertThrows(
+        UnableToCreateStatementException.class, () -> jdbiJdbcClient.executeRequest(request));
+  }
+
+  void selectDataWithPositionalParametersAndAssertSuccess(IntegrationTestConfig config) {
+    JdbcRequest request =
+        new JdbcRequest(
+            config.database(),
+            new DetailedConnection(
+                config.host(),
+                config.port(),
+                config.username(),
+                config.password(),
+                config.databaseName(),
+                config.properties()),
+            new JdbcRequestData(
+                false, "SELECT * FROM Employee WHERE name = ?", List.of("John Doe")));
+    var response = jdbiJdbcClient.executeRequest(request);
+    assertNull(response.modifiedRows());
+    assertNotNull(response.resultSet());
+    assertEquals(1, response.resultSet().size());
+    assertEquals(
+        DEFAULT_EMPLOYEES.stream()
+            .filter(e -> e.name().equals("John Doe"))
+            .map(Employee::toMap)
+            .findFirst()
+            .get(),
+        response.resultSet().get(0));
+  }
+
+  void selectDataWithPositionalParametersWhereInAndAssertSuccess(IntegrationTestConfig config) {
+    JdbcRequest request =
+        new JdbcRequest(
+            config.database(),
+            new DetailedConnection(
+                config.host(),
+                config.port(),
+                config.username(),
+                config.password(),
+                config.databaseName(),
+                config.properties()),
+            new JdbcRequestData(
+                false,
+                "SELECT * FROM Employee WHERE name IN (?, ?)",
+                List.of("John Doe", "Jane Doe")));
+    var response = jdbiJdbcClient.executeRequest(request);
+    assertNull(response.modifiedRows());
+    assertNotNull(response.resultSet());
+    assertEquals(2, response.resultSet().size());
+    assertEquals(
+        DEFAULT_EMPLOYEES.stream()
+            .filter(e -> e.name().equals("John Doe") || e.name().equals("Jane Doe"))
+            .map(Employee::toMap)
+            .collect(Collectors.toList()),
+        response.resultSet());
+  }
+
+  void selectDataWithBindingParametersWhereInAndAssertSuccess(IntegrationTestConfig config) {
+    JdbcRequest request =
+        new JdbcRequest(
+            config.database(),
+            new DetailedConnection(
+                config.host(),
+                config.port(),
+                config.username(),
+                config.password(),
+                config.databaseName(),
+                config.properties()),
+            new JdbcRequestData(
+                false,
+                "SELECT * FROM Employee WHERE name IN (<params>)",
+                Map.of("params", List.of("John Doe", "Jane Doe"))));
+    var response = jdbiJdbcClient.executeRequest(request);
+    assertNull(response.modifiedRows());
+    assertNotNull(response.resultSet());
+    assertEquals(2, response.resultSet().size());
+    assertEquals(
+        DEFAULT_EMPLOYEES.stream()
+            .filter(e -> e.name().equals("John Doe") || e.name().equals("Jane Doe"))
+            .map(Employee::toMap)
+            .collect(Collectors.toList()),
+        response.resultSet());
   }
 
   void updateDataAndAssertSuccess(IntegrationTestConfig config) {

@@ -222,4 +222,83 @@ public class JdbiJdbcClientIntegrationTest extends IntegrationBaseTest {
       assertThat(exception.getMessage()).contains("Cannot create the Database connection");
     }
   }
+
+  @Nested
+  class NamedParametersTests {}
+
+  @Nested
+  class InsertTests {
+    //    @ParameterizedTest
+    //    @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
+    //    public void shouldInsertData_whenInsertQueryWithNamedParameters(IntegrationTestConfig
+    // config)
+    //        throws SQLException {
+    //      insertDataWithNamedParametersAndAssertSuccess(config);
+    //      assertNewEmployeeCreated(config);
+    //    }
+
+    @Nested
+    class SelectTests {
+      @ParameterizedTest
+      @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
+      public void shouldReturnResultList_whenSelectQueryWithNamedParameters(
+          IntegrationTestConfig config) {
+        // "SELECT * FROM Employee WHERE name = :name", Map.of("name", "John Doe")
+        selectDataWithNamedParametersAndAssertSuccess(config);
+      }
+
+      @ParameterizedTest
+      @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
+      public void shouldReturnResultList_whenSelectQueryWithPositionalParameters(
+          IntegrationTestConfig config) {
+        // "SELECT * FROM Employee WHERE name = ?", List.of("John Doe")
+        selectDataWithPositionalParametersAndAssertSuccess(config);
+      }
+
+      @ParameterizedTest
+      @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
+      public void
+          shouldThrowUnableToCreateStatementException_whenSelectQueryWhereInWithNamedParameters(
+              IntegrationTestConfig config) {
+        // "SELECT * FROM Employee WHERE name IN (:nameList)", Map.of("nameList", List.of("John
+        // Doe", "Jane Doe"))
+        // NOT ALLOWED
+        selectDataWithNamedParametersWhereInAndAssertThrows(config);
+      }
+
+      @ParameterizedTest
+      @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
+      public void shouldReturnResultList_whenSelectQueryWhereInWithPositionalParameters(
+          IntegrationTestConfig config) {
+        // "SELECT * FROM Employee WHERE name IN (?, ?)", List.of("John Doe", "Jane Doe")
+        selectDataWithPositionalParametersWhereInAndAssertSuccess(config);
+      }
+
+      @ParameterizedTest
+      @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
+      public void shouldReturnResultList_whenSelectQueryWhereInWithBindingParameters(
+          IntegrationTestConfig config) {
+        // "SELECT * FROM Employee WHERE name IN (?, ?)", List.of("John Doe", "Jane Doe")
+        selectDataWithBindingParametersWhereInAndAssertSuccess(config);
+      }
+    }
+    //
+    //    @ParameterizedTest
+    //    @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
+    //    public void shouldUpdateData_whenUpdateQueryWithNamedParameters(IntegrationTestConfig
+    // config)
+    //        throws SQLException {
+    //      updateDataWithNamedParametersAndAssertSuccess(config);
+    //      assertEmployeeUpdated(config);
+    //    }
+    //
+    //    @ParameterizedTest
+    //    @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
+    //    public void shouldDeleteData_whenDeleteQueryWithNamedParameters(IntegrationTestConfig
+    // config)
+    //        throws SQLException {
+    //      deleteDataWithNamedParametersAndAssertSuccess(config);
+    //      assertEmployeeDeleted(config);
+    //    }
+  }
 }
