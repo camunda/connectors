@@ -227,22 +227,13 @@
     "label" : "Modifying query",
     "description" : "Check this box if the query is anything other than a SELECT query",
     "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
+    "feel" : "optional",
     "group" : "query",
     "binding" : {
       "name" : "data.isModifyingQuery",
       "type" : "zeebe:input"
     },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Yes",
-      "value" : "true"
-    }, {
-      "name" : "No",
-      "value" : "false"
-    } ]
+    "type" : "Boolean"
   }, {
     "id" : "data.query",
     "label" : "Query",
@@ -261,7 +252,7 @@
   }, {
     "id" : "data.variables",
     "label" : "Variables",
-    "description" : "The variables to use in the SQL query. Could be a list of values (if you used the ? syntax), or a map of names to values (if you used named parameters).",
+    "description" : "The variables to use in the SQL query. Could be a list of values (if you used the positional (?) syntax), or a map of names to values (if you used named (:myValue) parameters).",
     "optional" : false,
     "feel" : "required",
     "group" : "query",

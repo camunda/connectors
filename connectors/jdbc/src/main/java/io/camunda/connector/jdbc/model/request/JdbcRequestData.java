@@ -10,21 +10,15 @@ import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 
 public record JdbcRequestData(
-    @NotNull
-        @TemplateProperty(
+    @TemplateProperty(
             id = "isModifyingQuery",
             label = "Modifying query",
-            type = TemplateProperty.PropertyType.Dropdown,
             group = "query",
-            description = "Check this box if the query is anything other than a SELECT query",
-            choices = {
-              @TemplateProperty.DropdownPropertyChoice(value = "true", label = "Yes"),
-              @TemplateProperty.DropdownPropertyChoice(value = "false", label = "No")
-            })
-        Boolean isModifyingQuery,
+            type = TemplateProperty.PropertyType.Boolean,
+            description = "Check this box if the query is anything other than a SELECT query")
+        boolean isModifyingQuery,
     @NotBlank
         @TemplateProperty(
             id = "query",
