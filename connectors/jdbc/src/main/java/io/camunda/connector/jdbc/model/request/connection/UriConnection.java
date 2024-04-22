@@ -6,6 +6,8 @@
  */
 package io.camunda.connector.jdbc.model.request.connection;
 
+import io.camunda.connector.feel.annotation.FEEL;
+import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.jdbc.model.request.SupportedDatabase;
@@ -29,7 +31,9 @@ public record UriConnection(
     @TemplateProperty(
             group = "connection",
             label = "Properties",
+            feel = Property.FeelMode.required,
             description = "") // TODO description
+        @FEEL
         Map<String, String> uriProperties)
     implements JdbcConnection {
   @Override

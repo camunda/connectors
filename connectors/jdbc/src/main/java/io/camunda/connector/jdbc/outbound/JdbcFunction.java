@@ -26,9 +26,7 @@ import io.camunda.connector.jdbc.model.request.JdbcRequest;
         "Read and write data from a Camunda process directly to a SQL database(Microsoft SQL Server, MySQL, PostgreSQL)",
     icon = "icon.svg",
     documentationRef =
-        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/jdbc", // TODO
-    // docs
-    // write docs
+        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/sql",
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = JdbcFunction.DATABASE_GROUP_ID, label = "Database"),
       @ElementTemplate.PropertyGroup(id = JdbcFunction.CONNECTION_GROUP_ID, label = "Connection"),

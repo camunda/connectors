@@ -27,7 +27,6 @@ public record JdbcRequestData(
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             description =
                 "The SQL query to execute. You can use placeholders (?) for variables") // TODO link
-        // to docs
         String query,
     @TemplateProperty(
             id = "variables",
