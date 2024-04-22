@@ -156,8 +156,7 @@ public class WebhookControllerPlainJavaTests {
             new DefaultValidationProvider(),
             def,
             mock(InboundCorrelationHandler.class),
-            e -> {
-            },
+            e -> {},
             mapper,
             EvictingQueue.create(10));
 

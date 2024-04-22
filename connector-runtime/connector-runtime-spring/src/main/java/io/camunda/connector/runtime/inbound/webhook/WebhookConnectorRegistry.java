@@ -65,9 +65,9 @@ public class WebhookConnectorRegistry {
               + context
               + " already in use by: "
               + elementIdsByProcessId.entrySet().stream()
-              .map(e -> "process " + e.getKey() + "(" + e.getValue() + ")")
-              .reduce((a, b) -> a + ", " + b)
-              .orElse("");
+                  .map(e -> "process " + e.getKey() + "(" + e.getValue() + ")")
+                  .reduce((a, b) -> a + ", " + b)
+                  .orElse("");
       LOG.debug(logMessage);
       throw new RuntimeException(logMessage);
     }
