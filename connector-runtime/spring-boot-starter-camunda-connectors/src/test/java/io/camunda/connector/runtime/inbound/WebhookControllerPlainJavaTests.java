@@ -42,7 +42,6 @@ import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
@@ -77,12 +76,16 @@ public class WebhookControllerPlainJavaTests {
     var processB1 = buildConnector(webhookDefinition("processB", 1, "myPath2"));
 
     webhook.register(processA1);
-    webhook.deregister(processA1);
+
+    // create a new object to ensure correct instance comparison
+    var processA1Copy = buildConnector(webhookDefinition("processA", 1, "myPath"));
+    webhook.deregister(processA1Copy);
 
     webhook.register(processA2);
 
     webhook.register(processB1);
-    webhook.deregister(processB1);
+    var processB1Copy = buildConnector(webhookDefinition("processB", 1, "myPath2"));
+    webhook.deregister(processB1Copy);
 
     var connectorForPath1 = webhook.getWebhookConnectorByContextPath("myPath");
 
@@ -163,7 +166,7 @@ public class WebhookControllerPlainJavaTests {
   public static InboundConnectorDetails webhookDefinition(
       String bpmnProcessId, int version, String path) {
     return new InboundConnectorDetails(
-        UUID.randomUUID().toString(),
+        bpmnProcessId + version + path,
         List.of(webhookElement(++nextProcessDefinitionKey, bpmnProcessId, version, path)));
   }
 

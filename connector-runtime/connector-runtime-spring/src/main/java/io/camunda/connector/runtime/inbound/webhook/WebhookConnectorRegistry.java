@@ -81,13 +81,15 @@ public class WebhookConnectorRegistry {
       LOG.debug(logMessage);
       throw new RuntimeException(logMessage);
     }
-    if (registeredConnector != connector) {
-      var deduplicationId = registeredConnector.context().getDefinition().deduplicationId();
+    var requesterDeduplicationId = connector.context().getDefinition().deduplicationId();
+    var registeredDeduplicationId = registeredConnector.context().getDefinition().deduplicationId();
+
+    if (!registeredDeduplicationId.equals(requesterDeduplicationId)) {
       var logMessage =
           "Context: "
               + context
               + " is not registered by the connector with deduplication ID: "
-              + deduplicationId
+              + requesterDeduplicationId
               + ". Cannot deregister.";
       LOG.debug(logMessage);
       throw new RuntimeException(logMessage);
