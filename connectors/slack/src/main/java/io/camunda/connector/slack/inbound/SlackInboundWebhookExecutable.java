@@ -10,7 +10,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.net.HttpHeaders;
 import com.google.common.net.MediaType;
 import io.camunda.connector.api.annotation.InboundConnector;
+import io.camunda.connector.api.inbound.Activity;
+import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
+import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
 import io.camunda.connector.api.inbound.webhook.WebhookHttpResponse;
@@ -34,6 +37,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @InboundConnector(name = "Slack Inbound", type = "io.camunda:slack-webhook:1")
 @ElementTemplate(
@@ -69,6 +74,7 @@ import java.util.stream.Collectors;
           templateNameOverride = "Slack Webhook Boundary Event Connector")
     })
 public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable {
+  private static final Logger LOGGER = LoggerFactory.getLogger(SlackInboundWebhookExecutable.class);
 
   protected static final String HEADER_SLACK_REQUEST_TIMESTAMP = "x-slack-request-timestamp";
   protected static final String HEADER_SLACK_SIGNATURE = "x-slack-signature";
@@ -81,6 +87,7 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
 
   private final ObjectMapper objectMapper;
   private SlackWebhookProperties props;
+  private InboundConnectorContext context;
 
   public SlackInboundWebhookExecutable() {
     this(ConnectorsObjectMapperSupplier.getCopy());
@@ -91,8 +98,15 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
   }
 
   @Override
-  public WebhookResult triggerWebhook(WebhookProcessingPayload webhookProcessingPayload)
-      throws Exception {
+  public WebhookResult triggerWebhook(WebhookProcessingPayload webhookProcessingPayload) {
+    LOGGER.trace(
+        "Triggered Slack webhook with method: {} and URL: {}",
+        webhookProcessingPayload.method(),
+        webhookProcessingPayload.requestURL());
+    context.log(
+        Activity.level(Severity.INFO)
+            .tag(webhookProcessingPayload.method())
+            .message("URL: " + webhookProcessingPayload.requestURL()));
     verifySlackRequestAuthentic(webhookProcessingPayload);
 
     Map bodyAsMap =
@@ -116,8 +130,10 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
 
   @Override
   public void activate(InboundConnectorContext context) {
+    this.context = context;
     var wrapperProps = context.bindProperties(SlackConnectorPropertiesWrapper.class);
     props = new SlackWebhookProperties(wrapperProps);
+    context.reportHealth(Health.up());
   }
 
   @Override
@@ -152,6 +168,11 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
       try {
         return objectMapper.readValue(rawBody, Map.class);
       } catch (IOException e) {
+        context.log(
+            Activity.level(Severity.ERROR)
+                .tag("JSON Parsing")
+                .message(
+                    "Failed to parse JSON from raw body due to an IOException: " + e.getMessage()));
         throw new RuntimeException(e);
       }
     }
@@ -165,6 +186,10 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
             new String(webhookProcessingPayload.rawBody(), StandardCharsets.UTF_8),
             webhookProcessingPayload.headers().get(HEADER_SLACK_SIGNATURE),
             ZonedDateTime.now().toInstant().toEpochMilli())) {
+      context.log(
+          Activity.level(Severity.ERROR)
+              .tag(webhookProcessingPayload.method())
+              .message("HMAC signature did not match"));
       throw new RuntimeException("HMAC signature did not match");
     }
   }
@@ -175,5 +200,11 @@ public class SlackInboundWebhookExecutable implements WebhookConnectorExecutable
         COMMAND_RESPONSE_TYPE_DEFAULT_VALUE,
         COMMAND_RESPONSE_TEXT_KEY,
         COMMAND_RESPONSE_TEXT_DEFAULT_VALUE);
+  }
+
+  @Override
+  public void deactivate() {
+    context.reportHealth(Health.down());
+    LOGGER.info("Deactivated Slack Inbound Webhook.");
   }
 }
