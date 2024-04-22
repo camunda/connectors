@@ -191,7 +191,14 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
       newGroups.add(PropertyGroup.ERROR_GROUP);
       newGroups.add(PropertyGroup.RETRIES_GROUP);
     } else {
-      newGroups.add(PropertyGroup.ACTIVATION_GROUP);
+
+      if (configuration.features().get(GenerationFeature.ACKNOWLEDGEMENT_STRATEGY_SELECTION)
+          == Boolean.TRUE) {
+        newGroups.add(PropertyGroup.ACTIVATION_GROUP_WITH_CONSUME_UNMATCHED_EVENTS);
+      } else {
+        newGroups.add(PropertyGroup.ACTIVATION_GROUP);
+      }
+
       if (elementType.elementType().equals(BpmnType.MESSAGE_START_EVENT)) {
         newGroups.add(PropertyGroup.CORRELATION_GROUP_MESSAGE_START_EVENT);
       } else if (elementType.elementType().equals(BpmnType.INTERMEDIATE_CATCH_EVENT)

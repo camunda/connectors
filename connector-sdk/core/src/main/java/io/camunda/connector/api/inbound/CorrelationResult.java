@@ -46,8 +46,11 @@ public sealed interface CorrelationResult {
 
     record InvalidInput(String message, Throwable error) implements Failure {}
 
-    record ActivationConditionNotMet() implements Failure {
-      public static final ActivationConditionNotMet INSTANCE = new ActivationConditionNotMet();
+    record ActivationConditionNotMet(boolean isRetryable) implements Failure {
+      @Override
+      public boolean isRetryable() {
+        return isRetryable;
+      }
     }
 
     record ZeebeClientStatus(String status, String message) implements Failure {

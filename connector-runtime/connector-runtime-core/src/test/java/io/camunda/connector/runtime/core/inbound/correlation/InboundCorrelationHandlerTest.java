@@ -323,10 +323,11 @@ public class InboundCorrelationHandlerTest {
   class ActivationCondition {
 
     @Test
-    void activationConditionFalse_shouldNotCorrelate() {
+    void activationConditionFalse_shouldNotCorrelate_shouldNotDiscard() {
       // given
       var element = mock(InboundConnectorElement.class);
       when(element.activationCondition()).thenReturn("=testKey=\"otherValue\"");
+      when(element.consumeUnmatchedEvents()).thenReturn(false);
 
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
@@ -334,6 +335,23 @@ public class InboundCorrelationHandlerTest {
       var result = assertDoesNotThrow(() -> handler.correlate(List.of(element), variables));
       verifyNoMoreInteractions(zeebeClient);
       assertThat(result).isInstanceOf(Failure.ActivationConditionNotMet.class);
+      assertThat(((Failure.ActivationConditionNotMet) result).isRetryable()).isTrue();
+    }
+
+    @Test
+    void activationConditionFalse_shouldNotCorrelate_shouldDiscard() {
+      // given
+      var element = mock(InboundConnectorElement.class);
+      when(element.activationCondition()).thenReturn("=testKey=\"otherValue\"");
+      when(element.consumeUnmatchedEvents()).thenReturn(true);
+
+      Map<String, Object> variables = Map.of("testKey", "testValue");
+
+      // when & then
+      var result = assertDoesNotThrow(() -> handler.correlate(List.of(element), variables));
+      verifyNoMoreInteractions(zeebeClient);
+      assertThat(result).isInstanceOf(Failure.ActivationConditionNotMet.class);
+      assertThat(((Failure) result).isRetryable()).isFalse();
     }
 
     @Test

@@ -16,6 +16,7 @@ import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.ShutdownSignalException;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.Activity;
+import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.Severity;
@@ -51,17 +52,24 @@ public class RabbitMqConsumer extends DefaultConsumer {
             .message("Received AMQP message with delivery tag " + envelope.getDeliveryTag()));
     try {
       RabbitMqInboundResult variables = prepareVariables(consumerTag, properties, body);
-      context.correlate(variables);
-      getChannel().basicAck(envelope.getDeliveryTag(), false);
-    } catch (ConnectorInputException e) {
-      LOGGER.warn("NACK (no requeue) - failed to parse AMQP message body: {}", e.getMessage());
-      context.log(
+      var result = context.correlateWithResult(variables);
+      if (result instanceof CorrelationResult.Success) {
+        LOGGER.debug("ACK - message correlated successfully");
+        getChannel().basicAck(envelope.getDeliveryTag(), false);
+      } else if (
+          result instanceof CorrelationResult.Failure failureResult
+          && !failureResult.isRetryable()) {
+        LOGGER.debug("NACK (no requeue) - message not correlated, reason: {}", result);
+        context.log(
           Activity.level(Severity.WARNING)
               .tag("Message")
-              .message("NACK (no requeue) - failed to parse AMQP message body: " + e.getMessage()));
-      getChannel().basicReject(envelope.getDeliveryTag(), false);
+              .message("NACK (no requeue) - failed to parse AMQP message body: " + e.getMessage()));getChannel().basicReject(envelope.getDeliveryTag(), false);
+      } else {
+        LOGGER.debug("NACK (requeue) - message not correlated, reason: {}", result);
+        getChannel().basicReject(envelope.getDeliveryTag(), true);
+      }
     } catch (Exception e) {
-      LOGGER.debug("NACK (requeue) - failed to correlate event", e);
+      LOGGER.debug("NACK (requeue) - unhandled exception", e);
       context.log(
           Activity.level(Severity.DEBUG)
               .tag("Message")

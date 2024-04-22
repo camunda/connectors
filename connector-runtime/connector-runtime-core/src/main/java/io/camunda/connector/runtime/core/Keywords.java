@@ -83,6 +83,15 @@ public class Keywords {
    */
   public static final String ACTIVATION_CONDITION_KEYWORD = "activationCondition";
 
+  /**
+   * The keyword that defines whether connector should reject or consume events that did not lead to
+   * a successful activation due to unmatched activation condition.
+   *
+   * <p>This value only exists for inbound Connectors and comes from the extension properties of a
+   * BPMN element.
+   */
+  public static final String CONSUME_UNMATCHED_EVENTS_KEYWORD = "consumeUnmatchedEvents";
+
   @Deprecated
   public static final String DEPRECATED_ACTIVATION_CONDITION_KEYWORD =
       "inbound.activationCondition";
@@ -118,19 +127,35 @@ public class Keywords {
 
   public static final String DEDUPLICATION_ID_KEYWORD = "deduplicationId";
 
-  public static final Set<String> ALL_KEYWORDS =
+  /**
+   * Properties that are handled by the connector runtime and should not be passed to the inbound
+   * connector along with the properties defined by the connector.
+   */
+  public static final Set<String> INBOUND_RUNTIME_PROPERTIES =
       Set.of(
-          RESULT_VARIABLE_KEYWORD,
-          RESULT_EXPRESSION_KEYWORD,
-          ERROR_EXPRESSION_KEYWORD,
-          CORRELATION_KEY_EXPRESSION_KEYWORD,
-          DEPRECATED_ACTIVATION_CONDITION_KEYWORD,
-          ACTIVATION_CONDITION_KEYWORD,
           INBOUND_TYPE_KEYWORD,
-          RETRY_BACKOFF_KEYWORD,
           DEDUPLICATION_MODE_KEYWORD,
           DEDUPLICATION_ID_KEYWORD,
           MESSAGE_ID_EXPRESSION,
+          CORRELATION_KEY_EXPRESSION_KEYWORD,
+          DEPRECATED_ACTIVATION_CONDITION_KEYWORD,
+          ACTIVATION_CONDITION_KEYWORD,
+          CONSUME_UNMATCHED_EVENTS_KEYWORD,
+          MESSAGE_TTL);
+
+  /**
+   * Subset of {@link #INBOUND_RUNTIME_PROPERTIES} that should not be used for connector
+   * deduplication
+   */
+  public static final Set<String> PROPERTIES_EXCLUDED_FROM_DEDUPLICATION =
+      Set.of(
+          INBOUND_TYPE_KEYWORD,
+          DEDUPLICATION_MODE_KEYWORD,
+          DEDUPLICATION_ID_KEYWORD,
+          MESSAGE_ID_EXPRESSION,
+          CORRELATION_KEY_EXPRESSION_KEYWORD,
+          DEPRECATED_ACTIVATION_CONDITION_KEYWORD,
+          ACTIVATION_CONDITION_KEYWORD,
           MESSAGE_TTL,
           CORRELATION_REQUIRED_KEYWORD,
           DEDUPLICATION_MODE_MANUAL_FLAG_KEYWORD);

@@ -88,7 +88,7 @@ public class InboundConnectorRestController {
     if (executableClass != null
         && WebhookConnectorExecutable.class.isAssignableFrom(executableClass)) {
       try {
-        var properties = connector.elements().getFirst().rawPropertiesWithoutKeywords();
+        var properties = connector.elements().getFirst().connectorLevelProperties();
         var contextPath = properties.get("inbound.context");
         data = Map.of("path", contextPath);
       } catch (Exception e) {

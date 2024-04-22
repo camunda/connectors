@@ -246,6 +246,17 @@
     },
     "type" : "String"
   }, {
+    "id" : "consumeUnmatchedEvents",
+    "label" : "Consume unmatched events",
+    "value" : false,
+    "group" : "activation",
+    "binding" : {
+      "name" : "consumeUnmatchedEvents",
+      "type" : "zeebe:property"
+    },
+    "tooltip" : "Unmatched events are rejected by default, allowing the upstream service to handle the error. Check this box to consume unmatched events and return a success response",
+    "type" : "Boolean"
+  }, {
     "id" : "correlationKeyProcess",
     "label" : "Correlation key (process)",
     "description" : "Sets up the correlation key from process variables",

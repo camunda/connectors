@@ -13,6 +13,7 @@ import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.Health;
+import io.camunda.connector.api.inbound.CorrelationResult.Success;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.inbound.model.SqsInboundProperties;

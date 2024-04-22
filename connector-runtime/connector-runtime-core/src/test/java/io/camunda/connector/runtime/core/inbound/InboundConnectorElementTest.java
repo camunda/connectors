@@ -283,10 +283,10 @@ public class InboundConnectorElementTest {
   }
 
   @Test
-  void rawPropertiesWithoutKeywords() {
+  void connectorLevelProperties() {
     // given
     var keywordProps =
-        Keywords.ALL_KEYWORDS.stream()
+        Keywords.INBOUND_RUNTIME_PROPERTIES.stream()
             .map(k -> Map.entry(k, "value"))
             .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     var withCustomProps = new HashMap<>(keywordProps);
@@ -298,7 +298,7 @@ public class InboundConnectorElementTest {
             new ProcessElement("myProcess", 0, 0, "element1", "<default>"));
 
     // when
-    var result = testObj.rawPropertiesWithoutKeywords();
+    var result = testObj.connectorLevelProperties();
 
     // then
     assertThat(result).containsOnlyKeys("property");

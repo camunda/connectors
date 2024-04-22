@@ -28,6 +28,7 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.EvictingQueue;
 import io.camunda.connector.api.inbound.CorrelationResult;
+import io.camunda.connector.api.inbound.CorrelationResult.Failure;
 import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
@@ -184,7 +185,9 @@ class WebhookControllerTestZeebeTests {
 
     var correlationHandlerMock = mock(InboundCorrelationHandler.class);
     when(correlationHandlerMock.correlate(any(), any()))
-        .thenReturn(new CorrelationResult.Failure.ActivationConditionNotMet());
+        .thenReturn(
+            new CorrelationResult.Failure.ActivationConditionNotMet(
+                Failure.HandlingStrategy.FORWARD_ERROR_TO_UPSTREAM));
 
     var webhookDef = webhookDefinition("nonExistingProcess", 1, "myPath");
     var webhookContext =
