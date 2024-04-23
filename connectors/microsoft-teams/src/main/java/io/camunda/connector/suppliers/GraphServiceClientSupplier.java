@@ -12,6 +12,7 @@ import com.azure.core.credential.TokenRequestContext;
 import com.azure.identity.ClientSecretCredential;
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.microsoft.graph.serviceclient.GraphServiceClient;
 import io.camunda.connector.model.authentication.BearerAuthentication;
 import io.camunda.connector.model.authentication.ClientSecretAuthentication;
@@ -97,18 +98,25 @@ public class GraphServiceClientSupplier {
 
   private String getAccessToken(final Request request) {
     try (Response response = okHttpClient.newCall(request).execute()) {
-      if (response.isSuccessful()) {
-        return ObjectMapperSupplier.objectMapper()
-            .readTree(response.body().string())
-            .get(ACCESS_TOKEN)
-            .asText();
+      if (response.isSuccessful() && response.body() != null) {
+        JsonNode jsonNode = ObjectMapperSupplier.objectMapper().readTree(response.body().string());
+        if (jsonNode.has(ACCESS_TOKEN)) {
+          return jsonNode.get(ACCESS_TOKEN).asText();
+        } else {
+          throw new RuntimeException("Access token not found in the response");
+        }
       } else {
-        throw new RuntimeException(response.message());
+        throw new RuntimeException(
+            "Failed to fetch access token. Verify authentication details. "
+                + "Note: Client secret is optional, depending on the client's privacy status. Status code: "
+                + response.code()
+                + ", message: "
+                + response.message());
       }
     } catch (JsonProcessingException e) {
-      throw new RuntimeException("Error while parse refresh token response", e);
+      throw new RuntimeException("Error while parsing refresh token response", e);
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      throw new RuntimeException("Network error occurred", e);
     }
   }
 
