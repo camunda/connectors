@@ -4,6 +4,7 @@
   "id": "io.camunda.connectors.HuggingFace.v1",
   "version": 1,
   "description": "Interact with Hugging Face inference API",
+  "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/hugging-face/",
   "category": {
     "id": "connectors",
     "name": "Connectors"
@@ -86,6 +87,9 @@
       "binding": {
         "type": "zeebe:input",
         "name": "body"
+      },
+      "constraints": {
+        "notEmpty": true
       }
     },
     {
