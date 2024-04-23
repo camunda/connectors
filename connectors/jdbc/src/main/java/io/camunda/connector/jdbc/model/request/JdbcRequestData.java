@@ -24,7 +24,7 @@ public record JdbcRequestData(
     @NotBlank
         @TemplateProperty(
             id = "query",
-            label = "Query",
+            label = "Insert the SQL Query to execute",
             group = "query",
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             description =
@@ -32,7 +32,7 @@ public record JdbcRequestData(
         String query,
     @TemplateProperty(
             id = "variables",
-            label = "Variables",
+            label = "SQL Query variables",
             group = "query",
             feel = Property.FeelMode.required,
             description =

@@ -25,6 +25,7 @@ public record UriConnection(
         @TemplateProperty(
             group = "connection",
             label = "URI",
+            defaultValue = "jdbc:postgresql://localhost:5432/mydb",
             description =
                 "URI should contain JDBC driver, username, password, host name, and port number")
         String uri,

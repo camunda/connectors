@@ -17,7 +17,7 @@ public record JdbcRequest(
     @NotNull
         @TemplateProperty(
             id = "database",
-            label = "Database",
+            label = "Select a database",
             group = "database",
             type = Dropdown,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
