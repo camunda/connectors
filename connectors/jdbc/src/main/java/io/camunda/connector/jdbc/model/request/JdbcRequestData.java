@@ -13,13 +13,14 @@ import jakarta.validation.constraints.NotBlank;
 
 public record JdbcRequestData(
     @TemplateProperty(
-            id = "isModifyingQuery",
-            label = "Modifying query",
+            id = "returnResults",
+            label = "Return results",
             feel = Property.FeelMode.disabled,
             group = "query",
             type = TemplateProperty.PropertyType.Boolean,
-            description = "Check this box if the query is anything other than a SELECT query")
-        boolean isModifyingQuery,
+            description =
+                "Check this box if the SQL statement return results, e.g. a SELECT or any statement with a RETURNING clause")
+        boolean returnResults,
     @NotBlank
         @TemplateProperty(
             id = "query",
@@ -38,7 +39,7 @@ public record JdbcRequestData(
                 "The variables to use in the SQL query. Could be a list of values (if you used the positional (?) syntax), or a map of names to values (if you used named (:myValue) parameters).")
         @FEEL
         Object variables) {
-  public JdbcRequestData(Boolean isModifyingQuery, String query) {
-    this(isModifyingQuery, query, null);
+  public JdbcRequestData(boolean returnResults, String query) {
+    this(returnResults, query, null);
   }
 }

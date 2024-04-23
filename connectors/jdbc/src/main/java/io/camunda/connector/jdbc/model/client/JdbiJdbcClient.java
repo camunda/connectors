@@ -40,22 +40,22 @@ public record JdbiJdbcClient() implements JdbcClient {
       throws SQLException, IllegalAccessException {
     JdbcResponse response;
     Jdbi jdbi = Jdbi.create(connection);
-    if (data.isModifyingQuery()) {
+    if (data.returnResults()) {
+      // SELECT query, or RETURNING clause
+      LOG.debug("Executing query: {}", data.query());
+      List<Map<String, Object>> result =
+          jdbi.withHandle(
+              handle -> bindVariables(handle.createQuery(data.query()), data).mapToMap().list());
+      response = JdbcResponse.of(result);
+      LOG.debug("JdbcResponse: {}", response);
+    } else {
       LOG.debug("Executing modifying query: {}", data.query());
       Integer result =
           jdbi.withHandle(
               // Note that we might use executeAndReturnGeneratedKeys in the future
               handle -> bindVariables(handle.createUpdate(data.query()), data).execute());
       response = JdbcResponse.of(result);
-    } else {
-      // SELECT query
-      LOG.debug("Executing query: {}", data.query());
-      List<Map<String, Object>> result =
-          jdbi.withHandle(
-              handle -> bindVariables(handle.createQuery(data.query()), data).mapToMap().list());
-      response = JdbcResponse.of(result);
     }
-    LOG.debug("JdbcResponse: {}", response);
     return response;
   }
 
@@ -75,26 +75,28 @@ public record JdbiJdbcClient() implements JdbcClient {
     }
     switch (variables) {
         // Named parameters (:name, :id)
-      case Map<?, ?> map -> map.forEach(
-          (key, value) -> {
-            if (hasBindingVariable(query, key.toString())
-                && Objects.requireNonNull(value) instanceof List<?> l) {
-              // Bind a list of values to a single named parameter (<myList>)
-              stmt.bindList(key.toString(), l);
-            } else {
-              stmt.bind(key.toString(), value);
-            }
-          });
+      case Map<?, ?> map ->
+          map.forEach(
+              (key, value) -> {
+                if (hasBindingVariable(query, key.toString())
+                    && Objects.requireNonNull(value) instanceof List<?> l) {
+                  // Bind a list of values to a single named parameter (<myList>)
+                  stmt.bindList(key.toString(), l);
+                } else {
+                  stmt.bind(key.toString(), value);
+                }
+              });
         // Positional parameters (?,?)
       case List<?> list -> {
         for (int i = 0; i < list.size(); i++) {
           stmt.bind(i, list.get(i));
         }
       }
-      default -> throw new IllegalStateException(
-          "Unexpected type: "
-              + variables.getClass().getName()
-              + ". Only Map and List are supported.");
+      default ->
+          throw new IllegalStateException(
+              "Unexpected type: "
+                  + variables.getClass().getName()
+                  + ". Only Map and List are supported.");
     }
     return stmt;
   }

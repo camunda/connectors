@@ -24,7 +24,7 @@ mvn clean package
     }
   },
   "data": {
-    "isModifyingQuery": true,
+    "returnResults": true,
     "query": "INSERT INTO Employee (Id,Name,Age,Department) VALUES (?, ?, ?, ?)",
     "variables": "[\"TheId\", \"TheName\", 42, \"TheDepartment\"]"
   }
@@ -47,7 +47,7 @@ mvn clean package
     }
   },
   "data": {
-    "isModifyingQuery": true,
+    "returnResults": true,
     "query": "INSERT INTO Employee (Id,Name,Age,Department) VALUES (?, ?, ?, ?)",
     "variables": "[\"TheId\", \"TheName\", 42, \"TheDepartment\"]"
   }
@@ -56,7 +56,7 @@ mvn clean package
 
 ### Output
 
-The output depends on the value of the `isModifyingQuery` field in the input data.
+The output depends on the value of the `returnResults` field in the input data.
 
 If the query returns a result set (_SELECT_ query, or a query using _RETURNING_), the output will be:
 

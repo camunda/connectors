@@ -112,7 +112,7 @@ public abstract class IntegrationBaseTest {
                 config.password(),
                 config.databaseName(),
                 config.properties()),
-            new JdbcRequestData(false, "SELECT * FROM Employee ORDER BY Id ASC"));
+            new JdbcRequestData(true, "SELECT * FROM Employee ORDER BY Id ASC"));
     var response = jdbiJdbcClient.executeRequest(request);
     assertNull(response.modifiedRows());
     assertNotNull(response.resultSet());
@@ -136,7 +136,7 @@ public abstract class IntegrationBaseTest {
                 config.password(),
                 config.databaseName(),
                 config.properties()),
-            new JdbcRequestData(true, "SELECT * FROM Employee ORDER BY Id ASC"));
+            new JdbcRequestData(false, "SELECT * FROM Employee ORDER BY Id ASC"));
     var response = jdbiJdbcClient.executeRequest(request);
     // calling QueryRunner.execute() with a SELECT works, it's just that there's no object returned
     assertEquals(-1, response.modifiedRows());
@@ -155,7 +155,7 @@ public abstract class IntegrationBaseTest {
                 config.databaseName(),
                 config.properties()),
             new JdbcRequestData(
-                false, "SELECT * FROM Employee WHERE name = :name", Map.of("name", "John Doe")));
+                true, "SELECT * FROM Employee WHERE name = :name", Map.of("name", "John Doe")));
     var response = jdbiJdbcClient.executeRequest(request);
     assertNull(response.modifiedRows());
     assertNotNull(response.resultSet());
@@ -181,7 +181,7 @@ public abstract class IntegrationBaseTest {
                 config.databaseName(),
                 config.properties()),
             new JdbcRequestData(
-                false,
+                true,
                 "SELECT * FROM Employee WHERE name IN (:nameList)",
                 Map.of("nameList", List.of("John Doe", "Jane Doe"))));
     assertThrows(
@@ -200,7 +200,7 @@ public abstract class IntegrationBaseTest {
                 config.databaseName(),
                 config.properties()),
             new JdbcRequestData(
-                false,
+                true,
                 "SELECT * FROM Employee WHERE name IN (\"John Doe\", \"Jane Doe\")",
                 Map.of("uselessVar", List.of("John Doe", "Jane Doe"))));
     assertThrows(
@@ -218,7 +218,7 @@ public abstract class IntegrationBaseTest {
                 config.password(),
                 config.databaseName(),
                 config.properties()),
-            new JdbcRequestData(false, "SELECT * FROM Employee WHERE name = :name", Map.of()));
+            new JdbcRequestData(true, "SELECT * FROM Employee WHERE name = :name", Map.of()));
     assertThrows(
         UnableToCreateStatementException.class, () -> jdbiJdbcClient.executeRequest(request));
   }
@@ -235,7 +235,7 @@ public abstract class IntegrationBaseTest {
                 config.databaseName(),
                 config.properties()),
             new JdbcRequestData(
-                false, "SELECT * FROM Employee WHERE name = ?", List.of("John Doe")));
+                true, "SELECT * FROM Employee WHERE name = ?", List.of("John Doe")));
     var response = jdbiJdbcClient.executeRequest(request);
     assertNull(response.modifiedRows());
     assertNotNull(response.resultSet());
@@ -261,7 +261,7 @@ public abstract class IntegrationBaseTest {
                 config.databaseName(),
                 config.properties()),
             new JdbcRequestData(
-                false,
+                true,
                 "SELECT * FROM Employee WHERE name IN (?, ?)",
                 List.of("John Doe", "Jane Doe")));
     var response = jdbiJdbcClient.executeRequest(request);
@@ -288,7 +288,7 @@ public abstract class IntegrationBaseTest {
                 config.databaseName(),
                 config.properties()),
             new JdbcRequestData(
-                false,
+                true,
                 "SELECT * FROM Employee WHERE name IN (<params>)",
                 Map.of("params", List.of("John Doe", "Jane Doe"))));
     var response = jdbiJdbcClient.executeRequest(request);
@@ -315,7 +315,7 @@ public abstract class IntegrationBaseTest {
                 config.password(),
                 config.databaseName(),
                 config.properties()),
-            new JdbcRequestData(true, "UPDATE Employee SET name = '" + name + "' WHERE id = 1"));
+            new JdbcRequestData(false, "UPDATE Employee SET name = '" + name + "' WHERE id = 1"));
     var response = jdbiJdbcClient.executeRequest(request);
     assertEquals(1, response.modifiedRows());
     assertNull(response.resultSet());
@@ -333,7 +333,7 @@ public abstract class IntegrationBaseTest {
                 config.databaseName(),
                 config.properties()),
             new JdbcRequestData(
-                false, "UPDATE Employee SET name = 'John Doe UPDATED' WHERE id = 1"));
+                true, "UPDATE Employee SET name = 'John Doe UPDATED' WHERE id = 1"));
     assertThrows(NoResultsException.class, () -> jdbiJdbcClient.executeRequest(request));
   }
 
@@ -350,7 +350,7 @@ public abstract class IntegrationBaseTest {
                 config.databaseName(),
                 config.properties()),
             new JdbcRequestData(
-                true,
+                false,
                 "UPDATE Employee SET name = :name WHERE id = :id",
                 Map.of("name", name, "id", 1)));
     var response = jdbiJdbcClient.executeRequest(request);
@@ -371,7 +371,7 @@ public abstract class IntegrationBaseTest {
                 config.databaseName(),
                 config.properties()),
             new JdbcRequestData(
-                true, "UPDATE Employee SET name = ? WHERE id = ?", List.of(name, 1)));
+                false, "UPDATE Employee SET name = ? WHERE id = ?", List.of(name, 1)));
     var response = jdbiJdbcClient.executeRequest(request);
     assertEquals(1, response.modifiedRows());
     assertNull(response.resultSet());
@@ -390,7 +390,7 @@ public abstract class IntegrationBaseTest {
                 config.databaseName(),
                 config.properties()),
             new JdbcRequestData(
-                true,
+                false,
                 "UPDATE Employee SET name = :name WHERE id in (<ids>)",
                 Map.of("name", name, "ids", List.of(1))));
     var response = jdbiJdbcClient.executeRequest(request);
@@ -415,7 +415,7 @@ public abstract class IntegrationBaseTest {
                 config.password(),
                 config.databaseName(),
                 config.properties()),
-            new JdbcRequestData(true, "DELETE FROM Employee WHERE id = 1"));
+            new JdbcRequestData(false, "DELETE FROM Employee WHERE id = 1"));
     var response = jdbiJdbcClient.executeRequest(request);
     assertEquals(1, response.modifiedRows());
     assertNull(response.resultSet());
@@ -432,7 +432,7 @@ public abstract class IntegrationBaseTest {
                 config.password(),
                 config.databaseName(),
                 config.properties()),
-            new JdbcRequestData(false, "DELETE FROM Employee WHERE id = 1"));
+            new JdbcRequestData(true, "DELETE FROM Employee WHERE id = 1"));
     assertThrows(NoResultsException.class, () -> jdbiJdbcClient.executeRequest(request));
   }
 
@@ -447,7 +447,7 @@ public abstract class IntegrationBaseTest {
                 config.password(),
                 config.databaseName(),
                 config.properties()),
-            new JdbcRequestData(true, "DELETE FROM Employee WHERE id = :id", Map.of("id", 1)));
+            new JdbcRequestData(false, "DELETE FROM Employee WHERE id = :id", Map.of("id", 1)));
     var response = jdbiJdbcClient.executeRequest(request);
     assertEquals(1, response.modifiedRows());
     assertNull(response.resultSet());
@@ -464,7 +464,7 @@ public abstract class IntegrationBaseTest {
                 config.password(),
                 config.databaseName(),
                 config.properties()),
-            new JdbcRequestData(true, "DELETE FROM Employee WHERE id = ?", List.of(1)));
+            new JdbcRequestData(false, "DELETE FROM Employee WHERE id = ?", List.of(1)));
     var response = jdbiJdbcClient.executeRequest(request);
     assertEquals(1, response.modifiedRows());
     assertNull(response.resultSet());
@@ -482,7 +482,7 @@ public abstract class IntegrationBaseTest {
                 config.databaseName(),
                 config.properties()),
             new JdbcRequestData(
-                true, "DELETE FROM Employee WHERE id in (<ids>)", Map.of("ids", List.of(1))));
+                false, "DELETE FROM Employee WHERE id in (<ids>)", Map.of("ids", List.of(1))));
     var response = jdbiJdbcClient.executeRequest(request);
     assertEquals(1, response.modifiedRows());
     assertNull(response.resultSet());
@@ -506,7 +506,7 @@ public abstract class IntegrationBaseTest {
                 config.databaseName(),
                 config.properties()),
             new JdbcRequestData(
-                true, Employee.INSERT.formatted(NEW_EMPLOYEE.toInsertQueryFormat())));
+                false, Employee.INSERT.formatted(NEW_EMPLOYEE.toInsertQueryFormat())));
     var response = jdbiJdbcClient.executeRequest(request);
     assertEquals(1, response.modifiedRows());
     assertNull(response.resultSet());
@@ -524,7 +524,7 @@ public abstract class IntegrationBaseTest {
                 config.databaseName(),
                 config.properties()),
             new JdbcRequestData(
-                false, Employee.INSERT.formatted(NEW_EMPLOYEE.toInsertQueryFormat())));
+                true, Employee.INSERT.formatted(NEW_EMPLOYEE.toInsertQueryFormat())));
     assertThrows(NoResultsException.class, () -> jdbiJdbcClient.executeRequest(request));
   }
 
@@ -540,7 +540,7 @@ public abstract class IntegrationBaseTest {
                 config.databaseName(),
                 config.properties()),
             new JdbcRequestData(
-                true,
+                false,
                 "INSERT INTO Employee (id, name, age, department) VALUES (:id, :name, :age, :department)",
                 NEW_EMPLOYEE.toMap()));
     var response = jdbiJdbcClient.executeRequest(request);
@@ -560,7 +560,7 @@ public abstract class IntegrationBaseTest {
                 config.databaseName(),
                 config.properties()),
             new JdbcRequestData(
-                true,
+                false,
                 "INSERT INTO Employee (id, name, age, department) VALUES (?, ?, ?, ?)",
                 List.of(
                     NEW_EMPLOYEE.id(),
@@ -584,7 +584,7 @@ public abstract class IntegrationBaseTest {
                 config.databaseName(),
                 config.properties()),
             new JdbcRequestData(
-                true,
+                false,
                 "INSERT INTO Employee (id, name, age, department) VALUES (<params>)",
                 Map.of(
                     "params",
@@ -615,7 +615,7 @@ public abstract class IntegrationBaseTest {
                 config.password(),
                 config.databaseName(),
                 config.properties()),
-            new JdbcRequestData(true, "CREATE TABLE " + tableName + " (" + columns + ")"));
+            new JdbcRequestData(false, "CREATE TABLE " + tableName + " (" + columns + ")"));
     var response = jdbiJdbcClient.executeRequest(request);
     assertNull(response.resultSet());
     assertEquals(0, response.modifiedRows());
@@ -632,7 +632,7 @@ public abstract class IntegrationBaseTest {
                 config.password(),
                 config.databaseName(),
                 config.properties()),
-            new JdbcRequestData(false, "CREATE TABLE " + tableName + " (" + columns + ")"));
+            new JdbcRequestData(true, "CREATE TABLE " + tableName + " (" + columns + ")"));
     assertThrows(NoResultsException.class, () -> jdbiJdbcClient.executeRequest(request));
   }
 
@@ -647,7 +647,7 @@ public abstract class IntegrationBaseTest {
                 config.password(),
                 config.databaseName(),
                 config.properties()),
-            new JdbcRequestData(true, "CREATE DATABASE " + databaseName));
+            new JdbcRequestData(false, "CREATE DATABASE " + databaseName));
     var response = jdbiJdbcClient.executeRequest(request);
     assertNull(response.resultSet());
     assertEquals(config.database() == SupportedDatabase.MYSQL ? 1 : 0, response.modifiedRows());
@@ -664,7 +664,7 @@ public abstract class IntegrationBaseTest {
                 config.password(),
                 config.databaseName(),
                 config.properties()),
-            new JdbcRequestData(false, "CREATE DATABASE " + databaseName));
+            new JdbcRequestData(true, "CREATE DATABASE " + databaseName));
     assertThrows(NoResultsException.class, () -> jdbiJdbcClient.executeRequest(request));
   }
 
