@@ -44,6 +44,7 @@ public record JdbiJdbcClient() implements JdbcClient {
       LOG.debug("Executing modifying query: {}", data.query());
       Integer result =
           jdbi.withHandle(
+              // Note that we might use executeAndReturnGeneratedKeys in the future
               handle -> bindVariables(handle.createUpdate(data.query()), data).execute());
       response = JdbcResponse.of(result);
     } else {

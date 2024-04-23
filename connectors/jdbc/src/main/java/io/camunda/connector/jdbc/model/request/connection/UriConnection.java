@@ -32,7 +32,8 @@ public record UriConnection(
             group = "connection",
             label = "Properties",
             feel = Property.FeelMode.required,
-            description = "") // TODO description
+            description =
+                "Additional properties for the connection. For more information, see the <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/sql/#connection\" target=\"_blank\">documentation</a>.")
         @FEEL
         Map<String, String> uriProperties)
     implements JdbcConnection {

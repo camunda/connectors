@@ -15,6 +15,7 @@ public record JdbcRequestData(
     @TemplateProperty(
             id = "isModifyingQuery",
             label = "Modifying query",
+            feel = Property.FeelMode.disabled,
             group = "query",
             type = TemplateProperty.PropertyType.Boolean,
             description = "Check this box if the query is anything other than a SELECT query")
@@ -26,7 +27,7 @@ public record JdbcRequestData(
             group = "query",
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             description =
-                "The SQL query to execute. You can use placeholders (?) for variables") // TODO link
+                "The SQL query to execute. You can use named, positional or binding <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/sql/#variables\" target=\"_blank\">parameters</a>")
         String query,
     @TemplateProperty(
             id = "variables",

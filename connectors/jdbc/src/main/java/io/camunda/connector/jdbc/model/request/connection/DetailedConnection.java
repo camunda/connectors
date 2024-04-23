@@ -28,7 +28,7 @@ public record DetailedConnection(
             label = "Properties",
             feel = Property.FeelMode.required,
             description =
-                "Provide the payload for the event as JSON. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-eventbridge/?awseventbridge=outbound\" target=\"_blank\">documentation</a>") // TODO description
+                "Additional properties for the connection. For more information, see the <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/sql/#connection\" target=\"_blank\">documentation</a>.")
         @FEEL
         Map<String, String> properties)
     implements JdbcConnection {
