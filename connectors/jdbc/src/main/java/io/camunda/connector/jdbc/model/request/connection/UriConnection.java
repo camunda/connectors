@@ -27,7 +27,7 @@ public record UriConnection(
             label = "URI",
             defaultValue = "jdbc:postgresql://localhost:5432/mydb",
             description =
-                "URI should contain JDBC driver, username, password, host name, and port number")
+                "URI should contain JDBC driver, username, password, host name, and port number. See the <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/sql/#uri-connection\" target=\"_blank\">documentation</a>.)")
         String uri,
     @TemplateProperty(
             group = "connection",
