@@ -55,6 +55,7 @@
                                     <templateFileName>aws-dynamodb-outbound-connector.json</templateFileName>
                                 </file>
                             </files>
+                            <generateHybridTemplates>true</generateHybridTemplates>
                         </connector>
                     </connectors>
                     <includeDependencies>

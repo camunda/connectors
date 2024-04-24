@@ -1,10 +1,10 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "GraphQL Outbound Connector",
-  "id" : "io.camunda.connectors.GraphQL.v1",
+  "name" : "Hybrid GraphQL Outbound Connector",
+  "id" : "io.camunda.connectors.GraphQL.v1-hybrid",
   "description" : "Execute GraphQL query",
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/graphql/",
-  "version" : 5,
+  "version" : 6,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
@@ -198,11 +198,15 @@
     "type" : "String"
   }, {
     "id" : "authentication.oauthTokenEndpoint",
-    "label" : "Oauth token endpoint",
+    "label" : "OAuth 2.0 token endpoint",
     "description" : "The OAuth token endpoint",
     "optional" : false,
     "constraints" : {
-      "notEmpty" : true
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "^(=|http://|https://|secrets|\\{\\{).*$",
+        "message" : "Must be a http(s) URL"
+      }
     },
     "feel" : "optional",
     "group" : "authentication",
@@ -218,7 +222,7 @@
     "type" : "String"
   }, {
     "id" : "authentication.clientId",
-    "label" : "Client id",
+    "label" : "Client ID",
     "description" : "Your application's client ID from the OAuth client",
     "optional" : false,
     "constraints" : {
@@ -331,11 +335,11 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
-      "name" : "POST",
-      "value" : "post"
-    }, {
       "name" : "GET",
       "value" : "get"
+    }, {
+      "name" : "POST",
+      "value" : "post"
     } ]
   }, {
     "id" : "graphql.url",

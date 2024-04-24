@@ -48,6 +48,7 @@
                   <templateFileName>automation-anywhere-outbound-connector.json</templateFileName>
                 </file>
               </files>
+              <generateHybridTemplates>true</generateHybridTemplates>
             </connector>
           </connectors>
         </configuration>

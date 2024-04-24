@@ -58,6 +58,7 @@
                   <templateFileName>aws-eventbridge-outbound-connector.json</templateFileName>
                 </file>
               </files>
+              <generateHybridTemplates>true</generateHybridTemplates>
             </connector>
           </connectors>
           <includeDependencies>
@@ -67,6 +68,5 @@
       </plugin>
     </plugins>
   </build>
-
 
 </project>

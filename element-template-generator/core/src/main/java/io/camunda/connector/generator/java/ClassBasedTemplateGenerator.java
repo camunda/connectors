@@ -121,12 +121,11 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
                   context instanceof Outbound
                       ? ElementTemplateBuilder.createOutbound()
                       : ElementTemplateBuilder.createInbound();
+              boolean isHybridMode = ConnectorMode.HYBRID.equals(configuration.connectorMode());
               return builder
-                  .id(createId(context, template.id(), elementType))
-                  .type(
-                      context.connectorType(),
-                      ConnectorMode.HYBRID.equals(configuration.connectorMode()))
-                  .name(createName(context, template.name(), elementType))
+                  .id(createId(context, template.id(), elementType, isHybridMode))
+                  .type(context.connectorType(), isHybridMode)
+                  .name(createName(context, template.name(), elementType, isHybridMode))
                   .version(template.version())
                   .appliesTo(elementType.appliesTo())
                   .elementType(elementType.elementType())
@@ -143,28 +142,42 @@ public class ClassBasedTemplateGenerator implements ElementTemplateGenerator<Cla
   }
 
   private static String createId(
-      TemplateGenerationContext context, String templateId, ConnectorElementType elementType) {
-    return Optional.ofNullable(elementType.templateIdOverride())
-        .orElseGet(
-            () ->
-                context.elementTypes().size() > 1
-                    ? templateId + ":" + elementType.elementType().getId()
-                    : templateId);
+      TemplateGenerationContext context,
+      String templateId,
+      ConnectorElementType elementType,
+      final boolean isHybridMode) {
+    String baseTemplateId =
+        Optional.ofNullable(elementType.templateIdOverride())
+            .orElseGet(
+                () ->
+                    context.elementTypes().size() > 1
+                        ? templateId + ":" + elementType.elementType().getId()
+                        : templateId);
+    return isHybridMode
+        ? baseTemplateId + GeneratorConfiguration.HYBRID_TEMPLATE_ID_SUFFIX
+        : baseTemplateId;
   }
 
   private static String createName(
-      TemplateGenerationContext context, String templateName, ConnectorElementType elementType) {
-    return Optional.ofNullable(elementType.templateNameOverride())
-        .orElseGet(
-            () -> {
-              if (context.elementTypes().size() > 1) {
-                return templateName
-                    + " ("
-                    + camelCaseToSpaces(elementType.elementType().getId())
-                    + ")";
-              }
-              return templateName;
-            });
+      TemplateGenerationContext context,
+      String templateName,
+      ConnectorElementType elementType,
+      boolean isHybridMode) {
+    String baseTemplateName =
+        Optional.ofNullable(elementType.templateNameOverride())
+            .orElseGet(
+                () -> {
+                  if (context.elementTypes().size() > 1) {
+                    return templateName
+                        + " ("
+                        + camelCaseToSpaces(elementType.elementType().getId())
+                        + ")";
+                  }
+                  return templateName;
+                });
+    return isHybridMode
+        ? GeneratorConfiguration.HYBRID_TEMPLATE_NAME_PREFIX + baseTemplateName
+        : baseTemplateName;
   }
 
   private List<PropertyGroup> addServiceProperties(

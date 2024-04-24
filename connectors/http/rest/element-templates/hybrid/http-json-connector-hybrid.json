@@ -1,7 +1,7 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "REST Outbound Connector",
-  "id" : "io.camunda.connectors.HttpJson.v2",
+  "name" : "Hybrid REST Outbound Connector",
+  "id" : "io.camunda.connectors.HttpJson.v2-hybrid",
   "description" : "Invoke REST API",
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/rest/",
   "version" : 7,

@@ -65,6 +65,7 @@ except in compliance with the proprietary license.</license.inlineheader>
                   <templateFileName>aws-sns-outbound-connector.json</templateFileName>
                 </file>
               </files>
+              <generateHybridTemplates>true</generateHybridTemplates>
             </connector>
             <connector>
               <connectorClass>io.camunda.connector.sns.inbound.SnsWebhookExecutable</connectorClass>
@@ -86,6 +87,7 @@ except in compliance with the proprietary license.</license.inlineheader>
                   <templateFileName>aws-sns-inbound-boundary.json</templateFileName>
                 </file>
               </files>
+              <generateHybridTemplates>true</generateHybridTemplates>
             </connector>
           </connectors>
           <includeDependencies>

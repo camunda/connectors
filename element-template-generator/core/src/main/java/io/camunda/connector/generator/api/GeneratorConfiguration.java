@@ -40,6 +40,9 @@ public record GeneratorConfiguration(
     HYBRID
   }
 
+  public static String HYBRID_TEMPLATE_ID_SUFFIX = "-hybrid";
+  public static String HYBRID_TEMPLATE_NAME_PREFIX = "Hybrid ";
+
   public enum GenerationFeature {
     INBOUND_DEDUPLICATION
   }
