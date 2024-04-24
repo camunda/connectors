@@ -102,6 +102,6 @@ class GraphServiceClientSupplierTest extends BaseTest {
             RuntimeException.class,
             () -> supplier.buildAndGetGraphServiceClient(authentication),
             "RuntimeException was expected");
-    assertThat(thrown.getMessage()).contains("Error while parse refresh token response");
+    assertThat(thrown.getMessage()).contains("Error while parsing refresh token response");
   }
 }
