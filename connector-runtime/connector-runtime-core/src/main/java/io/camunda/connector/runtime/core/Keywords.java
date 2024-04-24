@@ -62,6 +62,8 @@ public class Keywords {
 
   public static final String MESSAGE_ID_EXPRESSION = "messageIdExpression";
 
+  public static final String MESSAGE_TTL = "messageTtl";
+
   /**
    * The keyword that identifies the source of `activation condition` property of a Connector.
    * Activation condition is a boolean FEEL expression that determines whether the inbound Connector
@@ -111,5 +113,6 @@ public class Keywords {
           RETRY_BACKOFF_KEYWORD,
           DEDUPLICATION_MODE_KEYWORD,
           DEDUPLICATION_ID_KEYWORD,
-          MESSAGE_ID_EXPRESSION);
+          MESSAGE_ID_EXPRESSION,
+          MESSAGE_TTL);
 }

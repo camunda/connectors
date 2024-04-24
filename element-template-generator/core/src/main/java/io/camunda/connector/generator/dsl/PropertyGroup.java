@@ -95,6 +95,8 @@ public record PropertyGroup(
       PropertyGroup.builder()
           .id("correlation")
           .label("Correlation")
+          .tooltip(
+              "Learn more about message correlation in the <a href=\"https://docs.camunda.io/docs/components/concepts/messages/#message-correlation-overview\">documentation</a>.")
           .properties(
               CommonProperties.correlationRequiredDropdown().build(),
               CommonProperties.correlationKeyProcess()
@@ -105,6 +107,7 @@ public record PropertyGroup(
                   .condition(
                       new Equals(CommonProperties.correlationRequiredDropdown().id, "required"))
                   .build(),
+              CommonProperties.messageTtl().build(),
               CommonProperties.messageIdExpression().build(),
               CommonProperties.messageNameUuidHidden().build())
           .build();
@@ -113,10 +116,13 @@ public record PropertyGroup(
       PropertyGroup.builder()
           .id("correlation")
           .label("Correlation")
+          .tooltip(
+              "Learn more about message correlation in the <a href=\"https://docs.camunda.io/docs/components/concepts/messages/#message-correlation-overview\">documentation</a>.")
           .properties(
               CommonProperties.correlationKeyProcess().build(),
               CommonProperties.correlationKeyPayload().build(),
               CommonProperties.messageIdExpression().build(),
+              CommonProperties.messageTtl().build(),
               CommonProperties.messageNameUuidHidden().build())
           .build();
 

@@ -33,6 +33,7 @@ import io.camunda.zeebe.client.api.command.ClientStatusException;
 import io.camunda.zeebe.client.api.response.ProcessInstanceEvent;
 import io.camunda.zeebe.client.api.response.PublishMessageResponse;
 import io.grpc.Status;
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -161,6 +162,7 @@ public class InboundCorrelationHandler {
         correlationPoint.messageName(),
         variables,
         messageId,
+        correlationPoint.timeToLive(),
         correlationKey.orElse(""));
   }
 
@@ -182,6 +184,7 @@ public class InboundCorrelationHandler {
         correlationPoint.messageName(),
         variables,
         messageId,
+        correlationPoint.timeToLive(),
         correlationKey.get());
   }
 
@@ -190,6 +193,7 @@ public class InboundCorrelationHandler {
       String messageName,
       Object variables,
       String messageId,
+      Duration timeToLive,
       String correlationKey) {
     Object extractedVariables = extractVariables(variables, activatedElement);
     CorrelationResult result;
@@ -200,6 +204,7 @@ public class InboundCorrelationHandler {
               .messageName(messageName)
               .correlationKey(correlationKey)
               .messageId(messageId)
+              .timeToLive(timeToLive)
               .tenantId(activatedElement.tenantId())
               .variables(extractedVariables)
               .send()

@@ -16,9 +16,12 @@
  */
 package io.camunda.connector.runtime.core.inbound.correlation;
 
+import java.time.Duration;
+
 public record MessageStartEventCorrelationPoint(
     String messageName,
     String messageIdExpression,
+    Duration timeToLive,
     String correlationKeyExpression,
     String bpmnProcessId,
     int version,
