@@ -89,7 +89,7 @@
       "notEmpty" : true,
       "pattern" : {
         "value" : "^(=|jdbc:|secrets|\\{\\{).*$",
-        "message" : "Must start with jdbc: or contain a secret reference"
+        "message" : "Must start with 'jdbc:' or contain a secret reference"
       }
     },
     "feel" : "optional",
@@ -108,7 +108,7 @@
     "id" : "connection.uriProperties",
     "label" : "Properties",
     "description" : "Additional properties for the connection. For more information, see the <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/sql/#connection\" target=\"_blank\">documentation</a>.",
-    "optional" : false,
+    "optional" : true,
     "feel" : "required",
     "group" : "connection",
     "binding" : {
@@ -162,7 +162,7 @@
   }, {
     "id" : "connection.username",
     "label" : "Username",
-    "optional" : false,
+    "optional" : true,
     "feel" : "optional",
     "group" : "connection",
     "binding" : {
@@ -178,7 +178,7 @@
   }, {
     "id" : "connection.password",
     "label" : "Password",
-    "optional" : false,
+    "optional" : true,
     "feel" : "optional",
     "group" : "connection",
     "binding" : {
@@ -194,7 +194,7 @@
   }, {
     "id" : "connection.databaseName",
     "label" : "Database name",
-    "optional" : false,
+    "optional" : true,
     "feel" : "optional",
     "group" : "connection",
     "binding" : {
@@ -211,7 +211,7 @@
     "id" : "connection.properties",
     "label" : "Properties",
     "description" : "Additional properties for the connection. For more information, see the <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/sql/#connection\" target=\"_blank\">documentation</a>.",
-    "optional" : false,
+    "optional" : true,
     "feel" : "required",
     "group" : "connection",
     "binding" : {
@@ -254,7 +254,7 @@
     "id" : "data.variables",
     "label" : "SQL Query variables",
     "description" : "The variables to use in the SQL query. Could be a list of values (if you used the positional (?) syntax), or a map of names to values (if you used named (:myValue) parameters).",
-    "optional" : false,
+    "optional" : true,
     "feel" : "required",
     "group" : "query",
     "binding" : {

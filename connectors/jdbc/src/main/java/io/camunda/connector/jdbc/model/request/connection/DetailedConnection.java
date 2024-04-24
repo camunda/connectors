@@ -20,12 +20,14 @@ import java.util.Properties;
 public record DetailedConnection(
     @NotBlank @TemplateProperty(group = "connection", label = "Host") String host,
     @NotBlank @TemplateProperty(group = "connection", label = "Port") String port,
-    @TemplateProperty(group = "connection", label = "Username") String username,
-    @TemplateProperty(group = "connection", label = "Password") String password,
-    @TemplateProperty(group = "connection", label = "Database name") String databaseName,
+    @TemplateProperty(group = "connection", label = "Username", optional = true) String username,
+    @TemplateProperty(group = "connection", label = "Password", optional = true) String password,
+    @TemplateProperty(group = "connection", label = "Database name", optional = true)
+        String databaseName,
     @TemplateProperty(
             group = "connection",
             label = "Properties",
+            optional = true,
             feel = Property.FeelMode.required,
             description =
                 "Additional properties for the connection. For more information, see the <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/sql/#connection\" target=\"_blank\">documentation</a>.")

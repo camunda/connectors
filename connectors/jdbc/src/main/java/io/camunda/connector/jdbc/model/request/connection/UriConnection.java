@@ -21,7 +21,7 @@ public record UriConnection(
     @NotBlank
         @Pattern(
             regexp = "^(=|jdbc:|secrets|\\{\\{).*$",
-            message = "Must start with jdbc: or contain a secret reference")
+            message = "Must start with 'jdbc:' or contain a secret reference")
         @TemplateProperty(
             group = "connection",
             label = "URI",
@@ -33,6 +33,7 @@ public record UriConnection(
             group = "connection",
             label = "Properties",
             feel = Property.FeelMode.required,
+            optional = true,
             description =
                 "Additional properties for the connection. For more information, see the <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/sql/#connection\" target=\"_blank\">documentation</a>.")
         @FEEL
