@@ -79,8 +79,8 @@ public class InboundCorrelationHandler {
     if (matchingElements.isEmpty()) {
       var discardUnmatchedEvents =
           elements.stream()
-                  .map(InboundConnectorElement::consumeUnmatchedEvents)
-                  .anyMatch(e -> e.equals(Boolean.TRUE));
+              .map(InboundConnectorElement::consumeUnmatchedEvents)
+              .anyMatch(e -> e.equals(Boolean.TRUE));
       return new ActivationConditionNotMet(discardUnmatchedEvents);
     }
     if (matchingElements.size() > 1) {

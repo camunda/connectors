@@ -17,6 +17,8 @@
 package io.camunda.connector.api.inbound;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.ForwardErrorToUpstream;
+import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.Ignore;
 
 public sealed interface CorrelationResult {
 
@@ -40,31 +42,54 @@ public sealed interface CorrelationResult {
 
   sealed interface Failure extends CorrelationResult {
 
+    default CorrelationFailureHandlingStrategy handlingStrategy() {
+      return ForwardErrorToUpstream.RETRYABLE;
+    }
+
+    /**
+     * @deprecated Use {@link #handlingStrategy()} instead
+     */
+    @Deprecated(forRemoval = true)
     default boolean isRetryable() {
       return false;
     }
 
-    record InvalidInput(String message, Throwable error) implements Failure {}
+    record InvalidInput(String message, Throwable error) implements Failure {
 
-    record ActivationConditionNotMet(boolean isRetryable) implements Failure {
+      @Override
+      public CorrelationFailureHandlingStrategy handlingStrategy() {
+        return ForwardErrorToUpstream.NON_RETRYABLE;
+      }
+
       @Override
       public boolean isRetryable() {
-        return isRetryable;
+        return false;
       }
     }
 
-    record ZeebeClientStatus(String status, String message) implements Failure {
+    record ActivationConditionNotMet(boolean consumeUnmatched) implements Failure {
+
+      @Override
+      public CorrelationFailureHandlingStrategy handlingStrategy() {
+        if (consumeUnmatched) {
+          return Ignore.INSTANCE;
+        } else {
+          return ForwardErrorToUpstream.NON_RETRYABLE;
+        }
+      }
+
+      /**
+       * @deprecated Use {@link #handlingStrategy()} instead
+       */
+      @Deprecated(forRemoval = true)
       @Override
       public boolean isRetryable() {
-        return true;
+        return false;
       }
     }
 
-    record Other(Throwable error) implements Failure {
-      @Override
-      public boolean isRetryable() {
-        return true;
-      }
-    }
+    record ZeebeClientStatus(String status, String message) implements Failure {}
+
+    record Other(Throwable error) implements Failure {}
   }
 }

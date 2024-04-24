@@ -18,13 +18,8 @@ package io.camunda.connector.runtime.core.inbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.EvictingQueue;
-import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.CorrelationResult;
-import io.camunda.connector.api.inbound.CorrelationResult.Failure.ActivationConditionNotMet;
-import io.camunda.connector.api.inbound.CorrelationResult.Failure.Other;
-import io.camunda.connector.api.inbound.CorrelationResult.Success;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;

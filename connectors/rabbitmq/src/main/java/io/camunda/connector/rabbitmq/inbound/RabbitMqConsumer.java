@@ -15,8 +15,12 @@ import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.ShutdownSignalException;
 import io.camunda.connector.api.error.ConnectorInputException;
+import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.ForwardErrorToUpstream;
+import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.Ignore;
 import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.CorrelationResult;
+import io.camunda.connector.api.inbound.CorrelationResult.Failure;
+import io.camunda.connector.api.inbound.CorrelationResult.Success;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.Severity;
@@ -68,6 +72,7 @@ public class RabbitMqConsumer extends DefaultConsumer {
         LOGGER.debug("NACK (requeue) - message not correlated, reason: {}", result);
         getChannel().basicReject(envelope.getDeliveryTag(), true);
       }
+      handleCorrelationResult(envelope, result);
     } catch (Exception e) {
       LOGGER.debug("NACK (requeue) - unhandled exception", e);
       context.log(
@@ -75,6 +80,35 @@ public class RabbitMqConsumer extends DefaultConsumer {
               .tag("Message")
               .message("NACK (requeue) - failed to correlate event"));
       getChannel().basicReject(envelope.getDeliveryTag(), true);
+    }
+  }
+
+  private void handleCorrelationResult(Envelope envelope, CorrelationResult result)
+      throws IOException {
+
+    switch (result) {
+      case Success ignored -> {
+        LOGGER.debug("ACK - message correlated successfully");
+        getChannel().basicAck(envelope.getDeliveryTag(), false);
+      }
+
+      case Failure failure -> {
+        switch (failure.handlingStrategy()) {
+          case ForwardErrorToUpstream fwdStrategy -> {
+            if (fwdStrategy.isRetryable()) {
+              LOGGER.debug("NACK (requeue) - message not correlated");
+              getChannel().basicReject(envelope.getDeliveryTag(), true);
+            } else {
+              LOGGER.debug("NACK (drop) - message not correlated");
+              getChannel().basicReject(envelope.getDeliveryTag(), false);
+            }
+          }
+          case Ignore ignored -> {
+            LOGGER.debug("ACK - message ignored");
+            getChannel().basicAck(envelope.getDeliveryTag(), false);
+          }
+        }
+      }
     }
   }
 

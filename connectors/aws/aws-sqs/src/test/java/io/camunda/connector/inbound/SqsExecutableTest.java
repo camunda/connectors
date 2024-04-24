@@ -104,7 +104,7 @@ class SqsExecutableTest {
     consumer.setQueueConsumerActive(false);
     executorService.shutdown();
     executorService.awaitTermination(1, TimeUnit.SECONDS);
-    verify(spyContext, atLeast(1)).correlate(MessageMapper.toSqsInboundMessage(message));
+    verify(spyContext, atLeast(1)).correlateWithResult(MessageMapper.toSqsInboundMessage(message));
   }
 
   @Test

@@ -54,6 +54,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 public class KafkaExecutableTest {
+
   private InboundConnectorContextBuilder.TestInboundConnectorContext context;
   private InboundConnectorContextBuilder.TestInboundConnectorContext originalContext;
   private List<PartitionInfo> topicPartitions;

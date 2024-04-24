@@ -25,14 +25,6 @@ import java.util.Map;
 public interface InboundConnectorContext {
 
   /**
-   * Correlates the inbound event to the matching process definition
-   *
-   * @deprecated since 8.4. Use {@link #correlateWithResult(Object)} instead.
-   */
-  @Deprecated(since = "8.4")
-  void correlate(Object variables);
-
-  /**
    * Correlates the inbound event to the matching process definition and returns the result.
    *
    * <p>Correlation may not succeed due to Connector configuration (e.g. if activation condition

@@ -8,7 +8,7 @@ package io.camunda.connector.rabbitmq.inbound;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -17,7 +17,9 @@ import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.ShutdownSignalException;
-import io.camunda.connector.api.error.ConnectorInputException;
+import io.camunda.connector.api.inbound.CorrelationResult.Failure.ActivationConditionNotMet;
+import io.camunda.connector.api.inbound.CorrelationResult.Failure.InvalidInput;
+import io.camunda.connector.api.inbound.CorrelationResult.Failure.ZeebeClientStatus;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.rabbitmq.inbound.model.RabbitMqInboundResult;
 import io.camunda.connector.rabbitmq.inbound.model.RabbitMqInboundResult.RabbitMqInboundMessage;
@@ -192,7 +194,9 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
   void consumer_shouldNackAndRequeue_UnexpectedError() throws IOException {
     // Given that correlation throws random exception
     var mockContext = mock(InboundConnectorContext.class);
-    doThrow(new RuntimeException("Meh, Zeebe is broken")).when(mockContext).correlate(any());
+    doReturn(new ZeebeClientStatus("BAD STATUS", "Meh, Zeebe is broken"))
+        .when(mockContext)
+        .correlateWithResult(any());
     var consumer = new RabbitMqConsumer(mockChannel, mockContext);
 
     ArgumentCaptor<RabbitMqInboundResult> captor =
@@ -206,7 +210,7 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
     consumer.handleDelivery("consumerTag", envelope, properties, body.getBytes());
 
     // Then
-    verify(mockContext, times(1)).correlate(captor.capture());
+    verify(mockContext, times(1)).correlateWithResult(captor.capture());
     RabbitMqInboundMessage message = captor.getValue().message();
 
     assertThat(message.body()).isInstanceOf(String.class);
@@ -219,12 +223,12 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
   }
 
   @Test
-  void consumer_shouldNackAndNoRequeue_ConnectorInputException() throws IOException {
+  void consumer_shouldNackAndNoRequeue_InvalidInput() throws IOException {
     // Given that correlation error is wrapped into ConnectorInputException
     var mockContext = mock(InboundConnectorContext.class);
-    doThrow(new ConnectorInputException(new RuntimeException("Payload is invalid")))
+    doReturn(new InvalidInput("Invalid input", new RuntimeException("It's just totally wrong")))
         .when(mockContext)
-        .correlate(any());
+        .correlateWithResult(any());
 
     var consumer = new RabbitMqConsumer(mockChannel, mockContext);
 
@@ -239,7 +243,7 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
     consumer.handleDelivery("consumerTag", envelope, properties, body.getBytes());
 
     // Then
-    verify(mockContext, times(1)).correlate(captor.capture());
+    verify(mockContext, times(1)).correlateWithResult(captor.capture());
     RabbitMqInboundMessage message = captor.getValue().message();
 
     assertThat(message.body()).isInstanceOf(String.class);
@@ -249,6 +253,26 @@ public class RabbitMqConsumerTest extends InboundBaseTest {
     assertThat(message.consumerTag()).isEqualTo("consumerTag");
 
     verify(mockChannel, times(1)).basicReject(1, false);
+  }
+
+  @Test
+  void consumer_shouldAck_ignoredError() throws IOException {
+    // Given that correlation error is ignored
+    var mockContext = mock(InboundConnectorContext.class);
+    var consumer = new RabbitMqConsumer(mockChannel, mockContext);
+
+    Envelope envelope = new Envelope(1, false, "exchange", "routingKey");
+    BasicProperties properties = new BasicProperties.Builder().build();
+    String body = "plaintext";
+
+    doReturn(new ActivationConditionNotMet(true)).when(mockContext).correlateWithResult(any());
+
+    // When
+    consumer.handleDelivery("consumerTag", envelope, properties, body.getBytes());
+
+    // Then
+    verify(mockContext, times(1)).correlateWithResult(any());
+    verify(mockChannel, times(1)).basicAck(1, false);
   }
 
   @Test
