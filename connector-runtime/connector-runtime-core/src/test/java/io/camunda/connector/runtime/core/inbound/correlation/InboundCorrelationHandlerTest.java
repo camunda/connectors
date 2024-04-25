@@ -18,8 +18,10 @@ package io.camunda.connector.runtime.core.inbound.correlation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -172,7 +174,7 @@ public class InboundCorrelationHandlerTest {
 
       verify(dummyCommand).messageName(point.messageName());
       verify(dummyCommand).correlationKey(correlationKeyValue);
-      verify(dummyCommand).timeToLive(null);
+      verify(dummyCommand, times(0)).timeToLive(any());
       verify(dummyCommand).send();
 
       assertThat(result).isInstanceOf(Success.MessagePublished.class);
