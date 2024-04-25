@@ -42,6 +42,11 @@ public class PublishMessageCommandDummy
   }
 
   @Override
+  public PublishMessageCommandStep3 withoutCorrelationKey() {
+    return null;
+  }
+
+  @Override
   public PublishMessageCommandStep3 messageId(String messageId) {
     return this;
   }
