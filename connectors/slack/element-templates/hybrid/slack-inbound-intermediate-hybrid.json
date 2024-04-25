@@ -1,0 +1,169 @@
+{
+  "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name" : "Slack Webhook Intermediate Catch Event Connector",
+  "id" : "io.camunda.connectors.inbound.Slack.IntermediateCatchEvent.v1",
+  "description" : "Receive events from Slack",
+  "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/slack/?slack=inbound",
+  "version" : 5,
+  "category" : {
+    "id" : "connectors",
+    "name" : "Connectors"
+  },
+  "appliesTo" : [ "bpmn:IntermediateCatchEvent", "bpmn:IntermediateThrowEvent" ],
+  "elementType" : {
+    "value" : "bpmn:IntermediateCatchEvent",
+    "eventDefinition" : "bpmn:MessageEventDefinition"
+  },
+  "groups" : [ {
+    "id" : "connectorType",
+    "label" : "Connector type"
+  }, {
+    "id" : "endpoint",
+    "label" : "Webhook configuration"
+  }, {
+    "id" : "activation",
+    "label" : "Activation"
+  }, {
+    "id" : "correlation",
+    "label" : "Correlation"
+  }, {
+    "id" : "output",
+    "label" : "Output mapping"
+  } ],
+  "properties" : [ {
+    "id" : "connectorType",
+    "value" : "io.camunda:slack-webhook:1",
+    "group" : "connectorType",
+    "binding" : {
+      "name" : "inbound.type",
+      "type" : "zeebe:property"
+    },
+    "type" : "String"
+  }, {
+    "id" : "inbound.context",
+    "label" : "Webhook ID",
+    "description" : "The webhook ID is a part of the URL endpoint",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "endpoint",
+    "binding" : {
+      "name" : "inbound.context",
+      "type" : "zeebe:property"
+    },
+    "type" : "String"
+  }, {
+    "id" : "inbound.slackSigningSecret",
+    "label" : "Slack signing secret",
+    "description" : "Slack signing secret. <a href='https://api.slack.com/authentication/verifying-requests-from-slack' target='_blank'>See documentation</a> regarding the Slack signing secret",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "endpoint",
+    "binding" : {
+      "name" : "inbound.slackSigningSecret",
+      "type" : "zeebe:property"
+    },
+    "type" : "String"
+  }, {
+    "id" : "inbound.verificationExpression",
+    "label" : "Verification expression",
+    "optional" : true,
+    "value" : "=if (body.type != null and body.type = \"url_verification\") then {body:{\"challenge\":body.challenge}, statusCode: 200} else null",
+    "group" : "endpoint",
+    "binding" : {
+      "name" : "inbound.verificationExpression",
+      "type" : "zeebe:property"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "activationCondition",
+    "label" : "Activation condition",
+    "description" : "Condition under which the Connector triggers. Leave empty to catch all events",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "activation",
+    "binding" : {
+      "name" : "activationCondition",
+      "type" : "zeebe:property"
+    },
+    "type" : "String"
+  }, {
+    "id" : "correlationKeyProcess",
+    "label" : "Correlation key (process)",
+    "description" : "Sets up the correlation key from process variables",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "correlation",
+    "binding" : {
+      "name" : "correlationKey",
+      "type" : "bpmn:Message#zeebe:subscription#property"
+    },
+    "type" : "String"
+  }, {
+    "id" : "correlationKeyPayload",
+    "label" : "Correlation key (payload)",
+    "description" : "Extracts the correlation key from the incoming message payload",
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "required",
+    "group" : "correlation",
+    "binding" : {
+      "name" : "correlationKeyExpression",
+      "type" : "zeebe:property"
+    },
+    "type" : "String"
+  }, {
+    "id" : "messageIdExpression",
+    "label" : "Message ID expression",
+    "description" : "Expression to extract unique identifier of a message",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "correlation",
+    "binding" : {
+      "name" : "messageIdExpression",
+      "type" : "zeebe:property"
+    },
+    "type" : "String"
+  }, {
+    "id" : "messageNameUuid",
+    "generatedValue" : {
+      "type" : "uuid"
+    },
+    "group" : "correlation",
+    "binding" : {
+      "name" : "name",
+      "type" : "bpmn:Message#property"
+    },
+    "type" : "Hidden"
+  }, {
+    "id" : "resultVariable",
+    "label" : "Result variable",
+    "description" : "Name of variable to store the response in",
+    "group" : "output",
+    "binding" : {
+      "name" : "resultVariable",
+      "type" : "zeebe:property"
+    },
+    "type" : "String"
+  }, {
+    "id" : "resultExpression",
+    "label" : "Result expression",
+    "description" : "Expression to map the response into process variables",
+    "feel" : "required",
+    "group" : "output",
+    "binding" : {
+      "name" : "resultExpression",
+      "type" : "zeebe:property"
+    },
+    "type" : "Text"
+  } ],
+  "icon" : {
+    "contents" : "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTI3IiBoZWlnaHQ9IjEyNyIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cGF0aCBkPSJNMjcuMiA4MGMwIDcuMy01LjkgMTMuMi0xMy4yIDEzLjJDNi43IDkzLjIuOCA4Ny4zLjggODBjMC03LjMgNS45LTEzLjIgMTMuMi0xMy4yaDEzLjJWODB6bTYuNiAwYzAtNy4zIDUuOS0xMy4yIDEzLjItMTMuMiA3LjMgMCAxMy4yIDUuOSAxMy4yIDEzLjJ2MzNjMCA3LjMtNS45IDEzLjItMTMuMiAxMy4yLTcuMyAwLTEzLjItNS45LTEzLjItMTMuMlY4MHoiIGZpbGw9IiNFMDFFNUEiLz4KICA8cGF0aCBkPSJNNDcgMjdjLTcuMyAwLTEzLjItNS45LTEzLjItMTMuMkMzMy44IDYuNSAzOS43LjYgNDcgLjZjNy4zIDAgMTMuMiA1LjkgMTMuMiAxMy4yVjI3SDQ3em0wIDYuN2M3LjMgMCAxMy4yIDUuOSAxMy4yIDEzLjIgMCA3LjMtNS45IDEzLjItMTMuMiAxMy4ySDEzLjlDNi42IDYwLjEuNyA1NC4yLjcgNDYuOWMwLTcuMyA1LjktMTMuMiAxMy4yLTEzLjJINDd6IiBmaWxsPSIjMzZDNUYwIi8+CiAgPHBhdGggZD0iTTk5LjkgNDYuOWMwLTcuMyA1LjktMTMuMiAxMy4yLTEzLjIgNy4zIDAgMTMuMiA1LjkgMTMuMiAxMy4yIDAgNy4zLTUuOSAxMy4yLTEzLjIgMTMuMkg5OS45VjQ2Ljl6bS02LjYgMGMwIDcuMy01LjkgMTMuMi0xMy4yIDEzLjItNy4zIDAtMTMuMi01LjktMTMuMi0xMy4yVjEzLjhDNjYuOSA2LjUgNzIuOC42IDgwLjEuNmM3LjMgMCAxMy4yIDUuOSAxMy4yIDEzLjJ2MzMuMXoiIGZpbGw9IiMyRUI2N0QiLz4KICA8cGF0aCBkPSJNODAuMSA5OS44YzcuMyAwIDEzLjIgNS45IDEzLjIgMTMuMiAwIDcuMy01LjkgMTMuMi0xMy4yIDEzLjItNy4zIDAtMTMuMi01LjktMTMuMi0xMy4yVjk5LjhoMTMuMnptMC02LjZjLTcuMyAwLTEzLjItNS45LTEzLjItMTMuMiAwLTcuMyA1LjktMTMuMiAxMy4yLTEzLjJoMzMuMWM3LjMgMCAxMy4yIDUuOSAxMy4yIDEzLjIgMCA3LjMtNS45IDEzLjItMTMuMiAxMy4ySDgwLjF6IiBmaWxsPSIjRUNCMjJFIi8+Cjwvc3ZnPgo="
+  }
+}
