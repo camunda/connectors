@@ -198,17 +198,16 @@ public class InboundCorrelationHandler {
     Object extractedVariables = extractVariables(variables, activatedElement);
     CorrelationResult result;
     try {
-      PublishMessageResponse response =
-          zeebeClient
-              .newPublishMessageCommand()
-              .messageName(messageName)
-              .correlationKey(correlationKey)
-              .messageId(messageId)
-              .timeToLive(timeToLive)
-              .tenantId(activatedElement.tenantId())
-              .variables(extractedVariables)
-              .send()
-              .join();
+      var command = zeebeClient.newPublishMessageCommand()
+          .messageName(messageName)
+          .correlationKey(correlationKey)
+          .messageId(messageId)
+          .tenantId(activatedElement.tenantId())
+          .variables(extractedVariables);
+      if (timeToLive != null) {
+        command.timeToLive(timeToLive);
+      }
+      PublishMessageResponse response = command.send().join();
 
       LOG.info("Published message with key: {}", response.getMessageKey());
       result =
