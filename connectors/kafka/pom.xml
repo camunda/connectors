@@ -118,6 +118,9 @@ except in compliance with the proprietary license.</license.inlineheader>
                 </file>
               </files>
               <generateHybridTemplates>true</generateHybridTemplates>
+              <features>
+                <INBOUND_DEDUPLICATION>true</INBOUND_DEDUPLICATION>
+              </features>
             </connector>
           </connectors>
         </configuration>
