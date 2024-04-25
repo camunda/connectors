@@ -173,44 +173,32 @@ public class ElementTemplateGeneratorMojo extends AbstractMojo {
 
   private void writeElementTemplates(
       List<ElementTemplate> templates, boolean hybrid, List<FileNameById> fileNames) {
-    if (templates.size() == 1) {
-      var fileName =
-          fileNames.stream()
-              .filter(f -> f.getTemplateId().equals(templates.getFirst().id()))
-              .findFirst()
-              .map(FileNameById::getTemplateFileName)
-              .orElseGet(
-                  () -> {
-                    getLog()
-                        .warn(
-                            "No file name specified for "
-                                + templates.getFirst().id()
-                                + ". Using default.");
-                    return transformConnectorNameToTemplateFileName(templates.getFirst().name());
-                  });
-      if (hybrid) {
-        fileName = fileName.replace(".json", "-hybrid.json");
-      }
-      writeElementTemplate(templates.getFirst(), hybrid, fileName);
-    } else {
-      for (var template : templates) {
-        var fileName =
-            fileNames.stream()
-                .filter(f -> f.getTemplateId().equals(template.id()))
-                .findFirst()
-                .map(FileNameById::getTemplateFileName)
-                .orElseGet(
-                    () -> {
-                      getLog()
-                          .warn("No file name specified for " + template.id() + ". Using default.");
-                      return transformConnectorNameToTemplateFileName(template.name());
-                    });
-        if (hybrid) {
-          fileName = fileName.replace(".json", "-hybrid.json");
-        }
-        writeElementTemplate(template, hybrid, fileName);
-      }
+    for (var template : templates) {
+      var fileName = determineFileName(template, fileNames, hybrid);
+      writeElementTemplate(template, hybrid, fileName);
     }
+  }
+
+  private String determineFileName(
+      ElementTemplate template, List<FileNameById> fileNames, boolean hybrid) {
+    String expectedId =
+        hybrid && template.id() != null
+            ? template.id().replace(GeneratorConfiguration.HYBRID_TEMPLATE_ID_SUFFIX, "")
+            : template.id();
+    String fileName =
+        fileNames.stream()
+            .filter(f -> f.getTemplateId().equals(expectedId))
+            .findFirst()
+            .map(FileNameById::getTemplateFileName)
+            .orElseGet(
+                () -> {
+                  getLog().warn("No file name specified for " + expectedId + ". Using default.");
+                  return transformConnectorNameToTemplateFileName(template.name());
+                });
+    if (hybrid) {
+      fileName = fileName.replace(".json", "-hybrid.json");
+    }
+    return fileName;
   }
 
   private void writeElementTemplate(ElementTemplate template, boolean hybrid, String fileName) {

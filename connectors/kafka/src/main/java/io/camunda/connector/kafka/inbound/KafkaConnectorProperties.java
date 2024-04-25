@@ -53,7 +53,7 @@ public record KafkaConnectorProperties(
     @Valid @NotNull KafkaTopic topic,
     @TemplateProperty(
             group = "kafka",
-            label = "Consumer Group ID",
+            label = "Consumer group ID",
             description =
                 "Provide the consumer group ID used by the connector. Leave empty for an automatically generated one")
         String groupId,

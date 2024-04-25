@@ -54,6 +54,7 @@
                   <templateFileName>aws-sqs-outbound-connector.json</templateFileName>
                 </file>
               </files>
+              <generateHybridTemplates>true</generateHybridTemplates>
             </connector>
             <connector>
               <connectorClass>io.camunda.connector.inbound.SqsExecutable</connectorClass>

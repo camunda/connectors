@@ -1,7 +1,7 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "RabbitMQ Outbound Connector",
-  "id" : "io.camunda.connectors.RabbitMQ.v1",
+  "name" : "Hybrid RabbitMQ Outbound Connector",
+  "id" : "io.camunda.connectors.RabbitMQ.v1-hybrid",
   "description" : "Send message to RabbitMQ",
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=outbound",
   "version" : 5,

@@ -104,6 +104,7 @@
                   <templateFileName>webhook-connector-boundary.json</templateFileName>
                 </file>
               </files>
+              <generateHybridTemplates>true</generateHybridTemplates>
             </connector>
           </connectors>
         </configuration>

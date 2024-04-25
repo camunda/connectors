@@ -137,7 +137,7 @@
     "type" : "String"
   }, {
     "id" : "groupId",
-    "label" : "Consumer Group ID",
+    "label" : "Consumer group ID",
     "description" : "Provide the consumer group ID used by the connector. Leave empty for an automatically generated one",
     "optional" : false,
     "group" : "kafka",

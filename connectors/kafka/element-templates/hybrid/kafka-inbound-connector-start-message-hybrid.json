@@ -1,7 +1,7 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
-  "name" : "Kafka Message Start Event Connector",
-  "id" : "io.camunda.connectors.inbound.KafkaMessageStart.v1",
+  "name" : "Hybrid Kafka Message Start Event Connector",
+  "id" : "io.camunda.connectors.inbound.KafkaMessageStart.v1-hybrid",
   "description" : "Consume Kafka messages",
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=inbound",
   "version" : 5,
@@ -142,7 +142,7 @@
     "type" : "String"
   }, {
     "id" : "groupId",
-    "label" : "Consumer Group ID",
+    "label" : "Consumer group ID",
     "description" : "Provide the consumer group ID used by the connector. Leave empty for an automatically generated one",
     "optional" : false,
     "group" : "kafka",
