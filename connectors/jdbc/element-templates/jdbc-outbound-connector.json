@@ -229,6 +229,7 @@
     "label" : "Return results",
     "description" : "Check this box if the SQL statement return results, e.g. a SELECT or any statement with a RETURNING clause",
     "optional" : false,
+    "value" : false,
     "group" : "query",
     "binding" : {
       "name" : "data.returnResults",
@@ -253,7 +254,7 @@
   }, {
     "id" : "data.variables",
     "label" : "SQL Query variables",
-    "description" : "The variables to use in the SQL query. Could be a list of values (if you used the positional (?) syntax), or a map of names to values (if you used named (:myValue) parameters).",
+    "description" : "The <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/sql/#variables\" target=\"_blank\">variables</a> to use in the SQL query.",
     "optional" : true,
     "feel" : "required",
     "group" : "query",
