@@ -43,7 +43,7 @@ public class PublishMessageCommandDummy
 
   @Override
   public PublishMessageCommandStep3 withoutCorrelationKey() {
-    return null;
+    return this;
   }
 
   @Override
