@@ -75,6 +75,9 @@
                   <templateFileName>aws-sqs-boundary-connector.json</templateFileName>
                 </file>
               </files>
+              <features>
+                <INBOUND_DEDUPLICATION>true</INBOUND_DEDUPLICATION>
+              </features>
             </connector>
           </connectors>
           <includeDependencies>
