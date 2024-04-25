@@ -37,7 +37,7 @@ public record JdbcRequestData(
             optional = true,
             feel = Property.FeelMode.required,
             description =
-                "The variables to use in the SQL query. Could be a list of values (if you used the positional (?) syntax), or a map of names to values (if you used named (:myValue) parameters).")
+                "The <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/sql/#variables\" target=\"_blank\">variables</a> to use in the SQL query.")
         @FEEL
         Object variables) {
   public JdbcRequestData(boolean returnResults, String query) {
