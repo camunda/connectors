@@ -24,6 +24,8 @@ public abstract class BaseTest {
       "src/test/resources/requests/fail-request-validation-test-cases.json";
   private static final String SUCCESS_CASES_PATH =
       "src/test/resources/requests/success-test-cases.json";
+  private static final String SUCCESS_CASES_WITH_SECRETS_PATH =
+      "src/test/resources/requests/success-test-cases-with-secrets.json";
   protected ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER;
 
   protected static Stream<String> failRequestValidationTestCases() throws IOException {
@@ -32,6 +34,10 @@ public abstract class BaseTest {
 
   protected static Stream<String> successTestCases() throws IOException {
     return loadTestCasesFromResourceFile(SUCCESS_CASES_PATH);
+  }
+
+  protected static Stream<String> successTestCasesWithSecrets() throws IOException {
+    return loadTestCasesFromResourceFile(SUCCESS_CASES_WITH_SECRETS_PATH);
   }
 
   @SuppressWarnings("unchecked")
@@ -54,7 +60,7 @@ public abstract class BaseTest {
 
   public interface ActualValue {
 
-    interface Authentication {
+    interface Connection {
       String USERNAME = "testUserName";
       String PASSWORD = "testPassword";
       String URI = "jdbc:mysql//userName:password@localhost:5672";
@@ -62,18 +68,20 @@ public abstract class BaseTest {
       String HOST = "localhost";
     }
 
-    interface Query {
-      String QUERY = "SELECT * FROM table";
-    }
+    interface Data {
+      interface Query {
+        String QUERY = "SELECT * FROM table";
+      }
 
-    interface Variables {
-      String VARIABLES = "[\"var1\", \"var2\"]";
+      interface Variables {
+        String VARIABLES = "var1";
+      }
     }
   }
 
   protected interface SecretsConstant {
 
-    interface Authentication {
+    interface Connection {
       String URI = "URI_KEY";
       String USERNAME = "USERNAME_KEY";
       String PASSWORD = "PASSWORD_KEY";
@@ -81,12 +89,14 @@ public abstract class BaseTest {
       String PORT = "PORT_KEY";
     }
 
-    interface Query {
-      String QUERY = "QUERY_KEY";
-    }
+    interface Data {
+      interface Query {
+        String QUERY = "QUERY_KEY";
+      }
 
-    interface Variables {
-      String VARIABLES = "VARIABLES_KEY";
+      interface Variables {
+        String VARIABLES = "VARIABLES_KEY";
+      }
     }
   }
 }

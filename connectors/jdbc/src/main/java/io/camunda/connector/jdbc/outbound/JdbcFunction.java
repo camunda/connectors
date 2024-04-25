@@ -10,9 +10,9 @@ import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
+import io.camunda.connector.jdbc.model.client.JdbcClient;
+import io.camunda.connector.jdbc.model.client.JdbiJdbcClient;
 import io.camunda.connector.jdbc.model.request.JdbcRequest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @OutboundConnector(
     name = "SQL Database Connector",
@@ -26,9 +26,7 @@ import org.slf4j.LoggerFactory;
         "Read and write data from a Camunda process directly to a SQL database(Microsoft SQL Server, MySQL, PostgreSQL)",
     icon = "icon.svg",
     documentationRef =
-        "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/jdbc", // TODO
-    // docs
-    // write docs
+        "https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/sql",
     propertyGroups = {
       @ElementTemplate.PropertyGroup(id = JdbcFunction.DATABASE_GROUP_ID, label = "Database"),
       @ElementTemplate.PropertyGroup(id = JdbcFunction.CONNECTION_GROUP_ID, label = "Connection"),
@@ -40,17 +38,19 @@ public class JdbcFunction implements OutboundConnectorFunction {
   static final String CONNECTION_GROUP_ID = "connection";
   static final String QUERY_GROUP_ID = "query";
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(JdbcFunction.class);
+  private final JdbcClient jdbcClient;
+
+  public JdbcFunction() {
+    this.jdbcClient = new JdbiJdbcClient();
+  }
+
+  JdbcFunction(JdbcClient jdbcClient) {
+    this.jdbcClient = jdbcClient;
+  }
 
   @Override
   public Object execute(OutboundConnectorContext context) {
-    final var connectorRequest = context.bindVariables(JdbcRequest.class);
-    return executeConnector(connectorRequest);
-  }
-
-  private Object executeConnector(JdbcRequest jdbcRequest) {
-    LOGGER.info("Executing SQL Database Connector with request: {}", jdbcRequest);
-    // TODO implement connector logic
-    return null;
+    final var jdbcRequest = context.bindVariables(JdbcRequest.class);
+    return jdbcClient.executeRequest(jdbcRequest);
   }
 }

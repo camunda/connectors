@@ -10,38 +10,37 @@ import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import java.util.List;
 
 public record JdbcRequestData(
-    @NotNull
-        @TemplateProperty(
-            id = "isModifyingQuery",
-            label = "Modifying query",
-            type = TemplateProperty.PropertyType.Dropdown,
+    @TemplateProperty(
+            id = "returnResults",
+            label = "Return results",
+            feel = Property.FeelMode.disabled,
             group = "query",
-            description = "Check this box if the query is anything other than a SELECT query",
-            choices = {
-              @TemplateProperty.DropdownPropertyChoice(value = "true", label = "Yes"),
-              @TemplateProperty.DropdownPropertyChoice(value = "false", label = "No")
-            })
-        Boolean isModifyingQuery,
+            type = TemplateProperty.PropertyType.Boolean,
+            description =
+                "Check this box if the SQL statement return results, e.g. a SELECT or any statement with a RETURNING clause")
+        boolean returnResults,
     @NotBlank
         @TemplateProperty(
             id = "query",
-            label = "Query",
+            label = "Insert the SQL Query to execute",
             group = "query",
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             description =
-                "The SQL query to execute. You can use placeholders (?) for variables") // TODO link
-        // to docs
+                "The SQL query to execute. You can use named, positional or binding <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/sql/#variables\" target=\"_blank\">parameters</a>")
         String query,
     @TemplateProperty(
             id = "variables",
-            label = "Variables",
+            label = "SQL Query variables",
             group = "query",
+            optional = true,
             feel = Property.FeelMode.required,
             description =
-                "The variables to use in the SQL query. Use the same order as in the statement")
+                "The <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/sql/#variables\" target=\"_blank\">variables</a> to use in the SQL query.")
         @FEEL
-        List<?> variables) {}
+        Object variables) {
+  public JdbcRequestData(boolean returnResults, String query) {
+    this(returnResults, query, null);
+  }
+}

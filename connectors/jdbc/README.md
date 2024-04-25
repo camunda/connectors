@@ -16,13 +16,18 @@ mvn clean package
 ```json
 {
   "database": "MYSQL",
-  "authentication": {
+  "connection": {
     "authType": "URI",
-    "uri": "jdbc:mysql://root:mypass@myhost1:3306/db_name"
+    "uri": "jdbc:mysql://root:mypass@myhost1:3306/db_name",
+    "properties": {
+      "useSSL": false
+    }
   },
-  "isModifyingQuery": true,
-  "query": "INSERT INTO Employee (Id,Name,Age,Department) VALUES (?, ?, ?, ?)",
-  "variables": "[\"TheId\", \"TheName\", 42, \"TheDepartment\"]"
+  "data": {
+    "returnResults": true,
+    "query": "INSERT INTO Employee (Id,Name,Age,Department) VALUES (?, ?, ?, ?)",
+    "variables": "[\"TheId\", \"TheName\", 42, \"TheDepartment\"]"
+  }
 }
 ```
 
@@ -31,31 +36,58 @@ mvn clean package
 ```json
 {
   "database": "MYSQL",
-  "authentication": {
+  "connection": {
     "authType": "detailed",
     "host": "localhost",
     "port": 5868,
     "username": "myLogin",
-    "password": "mySecretPassword"
+    "password": "mySecretPassword",
+    "properties": {
+      "useSSL": false
+    }
   },
-  "isModifyingQuery": true,
-  "query": "INSERT INTO Employee (Id,Name,Age,Department) VALUES (?, ?, ?, ?)",
-  "variables": "[\"TheId\", \"TheName\", 42, \"TheDepartment\"]"
+  "data": {
+    "returnResults": true,
+    "query": "INSERT INTO Employee (Id,Name,Age,Department) VALUES (?, ?, ?, ?)",
+    "variables": "[\"TheId\", \"TheName\", 42, \"TheDepartment\"]"
+  }
 }
 ```
 
 ### Output
 
+The output depends on the value of the `returnResults` field in the input data.
+
+If the query returns a result set (_SELECT_ query, or a query using _RETURNING_), the output will be:
+
 ```json
 {
-  "result": {
-    // TODO
-  }
+  "resultSet": [
+    {
+      "Id": 1,
+      "Name": "John",
+      "Age": 42,
+      "Department": "IT"
+    },
+    {
+      "Id": 2,
+      "Name": "Jane",
+      "Age": 35,
+      "Department": "HR"
+    }
+  ]
+}
+```
+
+otherwise, the output will be:
+
+```json
+{
+  "modifiedRows": 1
 }
 ```
 
 ## Element Template
 
-// TODO to be updated
 The element templates can be found in
-the [element-templates/kafka--outbound-connector.json](element-templates/kafka-outbound-connector.json) file.
+the [element-templates/jdbc-outbound-connector.json](element-templates/jdbc-outbound-connector.json) file.
