@@ -6,7 +6,7 @@
     <groupId>io.camunda.connector</groupId>
     <artifactId>connectors-bundle-parent</artifactId>
     <relativePath>../../pom.xml</relativePath>
-    <version>8.3.10</version>
+    <version>8.3.11-rc1</version>
   </parent>
 
   <name>connector-runtime-core</name>
