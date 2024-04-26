@@ -203,14 +203,14 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
+      "name" : "None",
+      "value" : "NONE"
+    }, {
       "name" : "Basic",
       "value" : "BASIC"
     }, {
       "name" : "API key",
       "value" : "APIKEY"
-    }, {
-      "name" : "None",
-      "value" : "NONE"
     }, {
       "name" : "JWT",
       "value" : "JWT"
