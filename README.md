@@ -5,6 +5,7 @@
 [![Outbound template](https://img.shields.io/badge/outbound_connector-use_template-blue)](https://github.com/camunda/connector-template-outbound)
 [![Inbound template](https://img.shields.io/badge/inbound_connector-use_template-blue)](https://github.com/camunda/connector-template-inbound)
 
+
 This is the repository for Camunda Connectors. It manages all parts of the Connectors ecosystem,
 including the Connector SDK, out-of-the-box Connectors available in Camunda, the Connector Runtime, and the Docker images.
 
