@@ -31,6 +31,18 @@
             <artifactId>aws-java-sdk-core</artifactId>
             <version>${version.aws-java-sdk}</version>
         </dependency>
+        
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-sagemakerruntime</artifactId>
+            <version>${version.aws-java-sdk}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-sagemaker</artifactId>
+            <version>${version.aws-java-sdk}</version>
+        </dependency>
     </dependencies>
 
 </project>
