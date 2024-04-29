@@ -162,7 +162,7 @@
     "id" : "offsets",
     "label" : "Offsets",
     "description" : "List of offsets, e.g. '10' or '=[10, 23]'. If specified, it has to have the same number of values as the number of partitions",
-    "optional" : false,
+    "optional" : true,
     "feel" : "optional",
     "group" : "kafka",
     "binding" : {

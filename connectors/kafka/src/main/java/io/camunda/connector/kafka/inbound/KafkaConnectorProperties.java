@@ -70,6 +70,7 @@ public record KafkaConnectorProperties(
             group = "kafka",
             label = "Offsets",
             feel = Property.FeelMode.optional,
+            optional = true,
             description =
                 "List of offsets, e.g. '10' or '=[10, 23]'. If specified, it has to have the same number of values as the number of partitions")
         List<Long> offsets,

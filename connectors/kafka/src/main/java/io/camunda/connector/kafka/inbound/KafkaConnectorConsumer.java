@@ -109,6 +109,7 @@ public class KafkaConnectorConsumer {
       this.consumer = consumerCreatorFunction.apply(getKafkaProperties(elementProps, context));
       var partitions = assignTopicPartitions(consumer, elementProps.topic().topicName());
       Optional.ofNullable(elementProps.offsets())
+          .filter(listOffsets -> !listOffsets.isEmpty())
           .ifPresent(offsets -> seekOffsets(consumer, partitions, offsets));
       reportUp();
     } catch (Exception ex) {
