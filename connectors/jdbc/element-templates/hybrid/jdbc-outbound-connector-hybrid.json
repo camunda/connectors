@@ -87,9 +87,8 @@
   }, {
     "id" : "connection.uri",
     "label" : "URI",
-    "description" : "URI should contain JDBC driver, username, password, host name, and port number. See the <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/sql/#uri-connection\" target=\"_blank\">documentation</a>.)",
+    "description" : "URI should contain JDBC driver, username, password, host name, and port number. For more information, see the <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/sql/#uri-connection\" target=\"_blank\">documentation</a>.)",
     "optional" : false,
-    "value" : "jdbc:postgresql://localhost:5432/mydb",
     "constraints" : {
       "notEmpty" : true,
       "pattern" : {
@@ -243,8 +242,8 @@
     "type" : "Boolean"
   }, {
     "id" : "data.query",
-    "label" : "Insert the SQL Query to execute",
-    "description" : "The SQL query to execute. You can use named, positional or binding <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/sql/#variables\" target=\"_blank\">parameters</a>",
+    "label" : "SQL Query to execute",
+    "description" : "You can use named, positional or binding <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/sql/#variables\" target=\"_blank\">parameters</a>",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
