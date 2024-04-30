@@ -106,16 +106,8 @@ public class Health {
     return new Health(Status.DOWN, error, null);
   }
 
-  public static Health down(String key, Object value) {
-    return Health.status(Status.DOWN).detail(key, value);
-  }
-
-  public static Health down(Map<String, Object> details) {
-    return Health.status(Status.DOWN).details(details);
-  }
-
   public static Health down(Error error, Map<String, Object> details) {
-    return Health.status(Status.DOWN).details(details);
+    return new Health(Status.DOWN, error, details);
   }
 
   public static Health down(Throwable ex) {
@@ -131,7 +123,7 @@ public class Health {
   public static class Builder implements DetailsStep {
     private final Health.Status status;
     private Map<String, Object> details;
-    private Error error;
+    private final Error error;
 
     private Builder(Status status, Error error) {
       this.status = status;
