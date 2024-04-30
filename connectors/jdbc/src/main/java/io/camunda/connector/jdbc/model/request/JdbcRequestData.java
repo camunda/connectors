@@ -26,11 +26,11 @@ public record JdbcRequestData(
     @NotBlank
         @TemplateProperty(
             id = "query",
-            label = "Insert the SQL Query to execute",
+            label = "SQL Query to execute",
             group = "query",
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             description =
-                "The SQL query to execute. You can use named, positional or binding <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/sql/#variables\" target=\"_blank\">parameters</a>")
+                "You can use named, positional or binding <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/sql/#variables\" target=\"_blank\">parameters</a>")
         String query,
     @TemplateProperty(
             id = "variables",
