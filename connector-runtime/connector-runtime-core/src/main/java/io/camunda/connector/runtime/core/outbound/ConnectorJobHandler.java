@@ -97,8 +97,14 @@ public class ConnectorJobHandler implements JobHandler {
     }
     if (exception instanceof ConnectorException connectorException) {
       var code = connectorException.getErrorCode();
+      var errorVariables = connectorException.getErrorVariables();
+
       if (code != null) {
         result.put("code", code);
+      }
+
+      if (errorVariables != null) {
+        result.put("errorVariables", errorVariables);
       }
     }
     return Map.copyOf(result);
