@@ -15,7 +15,7 @@
   <packaging>jar</packaging>
 
   <properties>
-    <version.swagger-parser>2.1.21</version.swagger-parser>
+    <version.swagger-parser>2.1.22</version.swagger-parser>
   </properties>
 
   <dependencies>
