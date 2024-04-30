@@ -34,6 +34,7 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.error.ConnectorExceptionBuilder;
 import io.camunda.connector.api.error.ConnectorRetryExceptionBuilder;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.runtime.core.ConnectorHelper;
@@ -803,6 +804,33 @@ class ConnectorJobHandlerTest {
               .executeAndCaptureResult(jobHandler, false, true);
       // then
       assertThat(result.getErrorCode()).isEqualTo("1013");
+      assertThat(result.getErrorMessage()).isEqualTo("Message: exception message");
+    }
+
+    @Test
+    void shouldCreateBpmnError_UsingExceptionCodeAndErrorVariables() {
+      // given
+      var errorExpression =
+          "if error.code != null then "
+              + "{ \"errorType\": \"bpmnError\", \"code\": error.code, \"message\": \"Message: \" + error.message, \"variables\": error.errorVariables} "
+              + "else {}";
+      var jobHandler =
+          newConnectorJobHandler(
+              context -> {
+                throw new ConnectorExceptionBuilder()
+                    .errorCode("1013")
+                    .message("exception message")
+                    .errorVariables(Map.of("foo", "bar"))
+                    .build();
+              });
+      // when
+      var result =
+          JobBuilder.create()
+              .withErrorExpressionHeader(errorExpression)
+              .executeAndCaptureResult(jobHandler, false, true);
+      // then
+      assertThat(result.getErrorCode()).isEqualTo("1013");
+      assertThat(result.getVariables()).isEqualTo(Map.of("foo", "bar"));
       assertThat(result.getErrorMessage()).isEqualTo("Message: exception message");
     }
 
