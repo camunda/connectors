@@ -33,6 +33,7 @@ import io.camunda.zeebe.client.api.command.ClientStatusException;
 import io.camunda.zeebe.client.api.response.ProcessInstanceEvent;
 import io.camunda.zeebe.client.api.response.PublishMessageResponse;
 import io.grpc.Status;
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -161,6 +162,7 @@ public class InboundCorrelationHandler {
         correlationPoint.messageName(),
         variables,
         messageId,
+        correlationPoint.timeToLive(),
         correlationKey.orElse(""));
   }
 
@@ -182,6 +184,7 @@ public class InboundCorrelationHandler {
         correlationPoint.messageName(),
         variables,
         messageId,
+        correlationPoint.timeToLive(),
         correlationKey.get());
   }
 
@@ -190,20 +193,23 @@ public class InboundCorrelationHandler {
       String messageName,
       Object variables,
       String messageId,
+      Duration timeToLive,
       String correlationKey) {
     Object extractedVariables = extractVariables(variables, activatedElement);
     CorrelationResult result;
     try {
-      PublishMessageResponse response =
+      var command =
           zeebeClient
               .newPublishMessageCommand()
               .messageName(messageName)
               .correlationKey(correlationKey)
               .messageId(messageId)
               .tenantId(activatedElement.tenantId())
-              .variables(extractedVariables)
-              .send()
-              .join();
+              .variables(extractedVariables);
+      if (timeToLive != null) {
+        command.timeToLive(timeToLive);
+      }
+      PublishMessageResponse response = command.send().join();
 
       LOG.info("Published message with key: {}", response.getMessageKey());
       result =

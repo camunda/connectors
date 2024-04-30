@@ -116,7 +116,7 @@ class InboundConnectorContextImplTest {
     InboundConnectorElement element =
         new InboundConnectorElement(
             properties,
-            new StandaloneMessageCorrelationPoint("", "", null),
+            new StandaloneMessageCorrelationPoint("", "", null, null),
             new ProcessElement("bool", 0, 0, "id", "<default>"));
     return new InboundConnectorDetails(
         UUID.randomUUID().toString(), Collections.singletonList(element));

@@ -118,6 +118,22 @@ public class CommonProperties {
         .binding(new PropertyBinding.ZeebeProperty("messageIdExpression"));
   }
 
+  public static PropertyBuilder messageTtl() {
+    return StringProperty.builder()
+        .id("messageTtl")
+        .label("Message TTL")
+        .description("Time-to-live for the message in the broker (ISO-8601 duration)")
+        .group("correlation")
+        .optional(false)
+        .value("PT0S")
+        .constraints(
+            PropertyConstraints.builder()
+                .notEmpty(true)
+                .pattern(new Pattern("P.*", "must be an ISO-8601 duration"))
+                .build())
+        .binding(new PropertyBinding.ZeebeProperty("messageTtl"));
+  }
+
   public static PropertyBuilder messageNameUuidHidden() {
     return HiddenProperty.builder()
         .id("messageNameUuid")

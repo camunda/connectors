@@ -19,6 +19,7 @@ package io.camunda.connector.runtime.inbound.state;
 import static io.camunda.connector.runtime.core.Keywords.CORRELATION_KEY_EXPRESSION_KEYWORD;
 import static io.camunda.connector.runtime.core.Keywords.INBOUND_TYPE_KEYWORD;
 import static io.camunda.connector.runtime.core.Keywords.MESSAGE_ID_EXPRESSION;
+import static io.camunda.connector.runtime.core.Keywords.MESSAGE_TTL;
 
 import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.runtime.core.error.InvalidInboundConnectorDefinitionException;
@@ -46,6 +47,7 @@ import io.camunda.zeebe.model.bpmn.instance.StartEvent;
 import io.camunda.zeebe.model.bpmn.instance.SubProcess;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeProperties;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeProperty;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -235,6 +237,9 @@ public class ProcessDefinitionInspector {
 
     String messageIdExpression = extractProperty(catchEvent, MESSAGE_ID_EXPRESSION).orElse(null);
 
+    Duration messageTtl =
+        extractProperty(catchEvent, MESSAGE_TTL).map(Duration::parse).orElse(null);
+
     ProcessCorrelationPoint correlationPoint;
     if (BoundaryEvent.class.isAssignableFrom(catchEvent.getClass())) {
       var boundaryEvent = (BoundaryEvent) catchEvent;
@@ -243,11 +248,11 @@ public class ProcessDefinitionInspector {
           new BoundaryEventCorrelationPoint.Activity(attachedTo.getId(), attachedTo.getName());
       correlationPoint =
           new BoundaryEventCorrelationPoint(
-              name, correlationKeyExpression, messageIdExpression, activity);
+              name, correlationKeyExpression, messageIdExpression, messageTtl, activity);
     } else {
       correlationPoint =
           new StandaloneMessageCorrelationPoint(
-              name, correlationKeyExpression, messageIdExpression);
+              name, correlationKeyExpression, messageIdExpression, messageTtl);
     }
 
     return Optional.of(correlationPoint);
@@ -265,12 +270,17 @@ public class ProcessDefinitionInspector {
 
     if (msgDef != null) {
       String messageIdExpression = extractProperty(startEvent, MESSAGE_ID_EXPRESSION).orElse(null);
+
+      Duration messageTtl =
+          extractProperty(startEvent, MESSAGE_TTL).map(Duration::parse).orElse(null);
+
       String correlationKeyExpression =
           extractProperty(startEvent, CORRELATION_KEY_EXPRESSION_KEYWORD).orElse(null);
       return Optional.of(
           new MessageStartEventCorrelationPoint(
               msgDef.getMessage().getName(),
               messageIdExpression,
+              messageTtl,
               correlationKeyExpression,
               process.getId(),
               version.version(),
@@ -288,9 +298,11 @@ public class ProcessDefinitionInspector {
     String correlationKeyExpression =
         extractRequiredProperty(receiveTask, CORRELATION_KEY_EXPRESSION_KEYWORD);
     String messageIdExpression = extractProperty(receiveTask, MESSAGE_ID_EXPRESSION).orElse(null);
+    Duration messageTtl =
+        extractProperty(receiveTask, MESSAGE_TTL).map(Duration::parse).orElse(null);
     return Optional.of(
         new StandaloneMessageCorrelationPoint(
-            message.getName(), correlationKeyExpression, messageIdExpression));
+            message.getName(), correlationKeyExpression, messageIdExpression, messageTtl));
   }
 
   private Map<String, String> getRawProperties(BaseElement element) {
