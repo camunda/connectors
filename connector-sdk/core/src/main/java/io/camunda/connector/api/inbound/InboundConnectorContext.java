@@ -32,9 +32,16 @@ public interface InboundConnectorContext {
    * code.
    *
    * <p>This method does not throw any exceptions. If correlation fails, the error is returned as a
-   * part of the response.
+   * part of the response. The connector implementation should handle the error according to the
+   * {@link CorrelationFailureHandlingStrategy} provided in the response. If the strategy is {@link
+   * CorrelationFailureHandlingStrategy.ForwardErrorToUpstream}, the error should be forwarded to
+   * the upstream system. If the strategy is {@link CorrelationFailureHandlingStrategy.Ignore}, the
+   * error should be ignored.
    *
    * @param variables - an object containing inbound connector variables
+   * @return correlation result that should be interpreted by the Connector implementation
+   * @see CorrelationResult
+   * @see CorrelationFailureHandlingStrategy
    */
   CorrelationResult correlateWithResult(Object variables);
 

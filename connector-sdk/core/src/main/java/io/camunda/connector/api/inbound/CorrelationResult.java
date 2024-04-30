@@ -46,24 +46,11 @@ public sealed interface CorrelationResult {
       return ForwardErrorToUpstream.RETRYABLE;
     }
 
-    /**
-     * @deprecated Use {@link #handlingStrategy()} instead
-     */
-    @Deprecated(forRemoval = true)
-    default boolean isRetryable() {
-      return false;
-    }
-
     record InvalidInput(String message, Throwable error) implements Failure {
 
       @Override
       public CorrelationFailureHandlingStrategy handlingStrategy() {
         return ForwardErrorToUpstream.NON_RETRYABLE;
-      }
-
-      @Override
-      public boolean isRetryable() {
-        return false;
       }
     }
 
@@ -76,15 +63,6 @@ public sealed interface CorrelationResult {
         } else {
           return ForwardErrorToUpstream.NON_RETRYABLE;
         }
-      }
-
-      /**
-       * @deprecated Use {@link #handlingStrategy()} instead
-       */
-      @Deprecated(forRemoval = true)
-      @Override
-      public boolean isRetryable() {
-        return false;
       }
     }
 

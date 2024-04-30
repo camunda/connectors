@@ -177,7 +177,6 @@ public class KafkaConnectorConsumer {
       handleMessage(record);
     }
     if (!records.isEmpty()) {
-      consumer.commitSync();
       this.consumer.commitSync();
     }
   }
