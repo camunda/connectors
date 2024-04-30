@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.inbound.executable;
 
 import io.camunda.connector.api.inbound.Health;
+import io.camunda.connector.api.inbound.Health.Error;
 import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorDetails;
@@ -268,13 +269,16 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
           id,
           null,
           failed.data().connectorElements(),
-          Health.down("reason", failed.reason()),
+          Health.down(new Error("Activation failure", failed.reason())),
           List.of());
-      case ConnectorNotRegistered ignored -> new ActiveExecutableResponse(
+      case ConnectorNotRegistered notRegistered -> new ActiveExecutableResponse(
           id,
           null,
-          ignored.data().connectorElements(),
-          Health.down("reason", "Connector not registered"),
+          notRegistered.data().connectorElements(),
+          Health.down(
+              new Error(
+                  "Activation failure",
+                  "Connector " + notRegistered.data().type() + " not registered")),
           List.of());
     };
   }
