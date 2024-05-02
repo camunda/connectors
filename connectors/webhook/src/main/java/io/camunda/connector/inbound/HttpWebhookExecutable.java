@@ -11,6 +11,7 @@ import static io.camunda.connector.inbound.signature.HMACSwitchCustomerChoice.en
 
 import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.inbound.Activity;
+import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
@@ -102,6 +103,7 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
     props = new WebhookConnectorProperties(wrappedProps);
     authChecker = WebhookAuthorizationHandler.getHandlerForAuth(props.auth());
     responseExpression = mapResponseExpression();
+    context.reportHealth(Health.up());
   }
 
   @Override
@@ -222,5 +224,11 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
                           payload.params())));
     }
     return result;
+  }
+
+  @Override
+  public void deactivate() {
+    LOGGER.debug("Deactivating webhook connector");
+    context.reportHealth(Health.down());
   }
 }
