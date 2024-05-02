@@ -16,15 +16,16 @@
  */
 package io.camunda.connector.runtime.saas;
 
-import io.camunda.common.auth.Authentication;
+import io.camunda.common.auth.JwtConfig;
+import io.camunda.common.auth.JwtCredential;
+import io.camunda.common.auth.Product;
+import io.camunda.common.auth.SaaSAuthenticationBuilder;
+import io.camunda.common.json.JsonMapper;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.operate.CamundaOperateClient;
 import io.camunda.zeebe.spring.client.properties.OperateClientConfigurationProperties;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -32,7 +33,6 @@ import org.springframework.context.annotation.Primary;
 @Configuration
 public class SaaSOperateClientFactory {
 
-  private static final Logger LOG = LoggerFactory.getLogger(SaaSOperateClientFactory.class);
   public static String SECRET_NAME_CLIENT_ID = "M2MClientId";
   public static String SECRET_NAME_SECRET = "M2MSecret";
 
@@ -46,36 +46,25 @@ public class SaaSOperateClientFactory {
   }
 
   @Bean
-  public OperatePropertiesPostProcessor operatePropertiesPostProcessor() {
-    return new OperatePropertiesPostProcessor();
-  }
-
-  @Bean
   @Primary
-  public CamundaOperateClient camundaOperateClientBundle(Authentication authentication) {
+  public CamundaOperateClient camundaOperateClientBundle(
+      OperateClientConfigurationProperties operateProperties, JsonMapper jsonMapper) {
+
+    var jwtConfig = new JwtConfig();
+    var jwtCredential = new JwtCredential(internalSecretProvider.getSecret(SECRET_NAME_CLIENT_ID),
+        internalSecretProvider.getSecret(SECRET_NAME_SECRET), operateProperties.getBaseUrl(),
+        operateProperties.getAuthUrl());
+    jwtConfig.addProduct(Product.OPERATE, jwtCredential);
+
+    var authentication = new SaaSAuthenticationBuilder()
+        .withJwtConfig(jwtConfig)
+        .withJsonMapper(jsonMapper)
+        .build();
+
     return CamundaOperateClient.builder()
         .operateUrl(operateUrl)
         .authentication(authentication)
         .setup()
         .build();
-  }
-
-  public class OperatePropertiesPostProcessor implements BeanPostProcessor {
-
-    public OperatePropertiesPostProcessor() {
-      LOG.info("OperatePropertiesPostProcessor created");
-    }
-
-    @Override
-    public Object postProcessBeforeInitialization(Object bean, String beanName) {
-      if (bean instanceof OperateClientConfigurationProperties operateProperties) {
-        String operateClientId = internalSecretProvider.getSecret(SECRET_NAME_CLIENT_ID);
-        String operateClientSecret = internalSecretProvider.getSecret(SECRET_NAME_SECRET);
-        operateProperties.setClientId(operateClientId);
-        operateProperties.setClientSecret(operateClientSecret);
-        return operateProperties;
-      }
-      return bean;
-    }
   }
 }
