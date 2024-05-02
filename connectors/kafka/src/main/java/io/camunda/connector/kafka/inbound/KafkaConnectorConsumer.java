@@ -58,7 +58,7 @@ public class KafkaConnectorConsumer {
 
   KafkaConnectorProperties elementProps;
 
-  private Health consumerStatus = Health.up();
+  private Health consumerStatus = Health.unknown();
 
   public static ObjectMapper objectMapper =
       new ObjectMapper()
