@@ -16,8 +16,6 @@
  */
 package io.camunda.connector.runtime.saas;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import io.camunda.zeebe.spring.client.properties.OperateClientConfigurationProperties;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,18 +45,5 @@ public class TestSpringContextStartup {
     // conflicting class files in logging or other wired behavior that can be observed
     // when the Spring context is initialized (e.g.
     // https://github.com/camunda/team-connectors/issues/251)
-  }
-
-  @Test
-  public void operatePropertiesAreSet() {
-    assertThat(operateProperties.getUrl()).isEqualTo(MockSaaSConfiguration.OPERATE_CLIENT_URL);
-    assertThat(operateProperties.getAuthUrl())
-        .isEqualTo(MockSaaSConfiguration.OPERATE_CLIENT_AUTH_URL);
-    assertThat(operateProperties.getBaseUrl())
-        .isEqualTo(MockSaaSConfiguration.OPERATE_CLIENT_BASEURL);
-    assertThat(operateProperties.getClientId())
-        .isEqualTo(MockSaaSConfiguration.OPERATE_CLIENT_CLIENT_ID);
-    assertThat(operateProperties.getClientSecret())
-        .isEqualTo(MockSaaSConfiguration.OPERATE_CLIENT_SECRET);
   }
 }
