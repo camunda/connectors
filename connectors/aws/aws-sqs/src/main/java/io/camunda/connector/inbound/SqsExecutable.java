@@ -114,9 +114,7 @@ public class SqsExecutable implements InboundConnectorExecutable {
 
     sqsQueueConsumer.setQueueConsumerActive(false);
     LOGGER.debug("Deactivating subscription");
-    if (context != null) {
-      context.reportHealth(Health.down());
-    }
+    context.reportHealth(Health.down());
     if (executorService != null) {
       LOGGER.debug("Shutting down executor service");
       executorService.shutdown();
