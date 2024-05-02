@@ -1,4 +1,4 @@
-FROM eclipse-temurin:17.0.10_7-jre
+FROM eclipse-temurin:17.0.11_9-jre
 
 RUN mkdir /opt/app
 
