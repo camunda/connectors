@@ -16,9 +16,8 @@
  */
 package io.camunda.connector.runtime.saas;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
-import io.camunda.zeebe.spring.client.properties.OperateClientConfigurationProperties;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -39,7 +38,7 @@ import org.springframework.test.context.ActiveProfiles;
 @ActiveProfiles("test")
 public class TestSpringContextStartup {
 
-  @Autowired private OperateClientConfigurationProperties operateProperties;
+  @Autowired private SaaSOperateClientFactory operateClientFactory;
 
   @Test
   public void contextLoaded() {
@@ -50,15 +49,14 @@ public class TestSpringContextStartup {
   }
 
   @Test
-  public void operatePropertiesAreSet() {
-    assertThat(operateProperties.getUrl()).isEqualTo(MockSaaSConfiguration.OPERATE_CLIENT_URL);
-    assertThat(operateProperties.getAuthUrl())
-        .isEqualTo(MockSaaSConfiguration.OPERATE_CLIENT_AUTH_URL);
-    assertThat(operateProperties.getBaseUrl())
-        .isEqualTo(MockSaaSConfiguration.OPERATE_CLIENT_BASEURL);
-    assertThat(operateProperties.getClientId())
+  public void jwtCredentialConfigured() {
+    var jwtCredential = operateClientFactory.configureJwtCredential();
+    assertThat(jwtCredential).isNotNull();
+    assertThat(jwtCredential.getClientId())
         .isEqualTo(MockSaaSConfiguration.OPERATE_CLIENT_CLIENT_ID);
-    assertThat(operateProperties.getClientSecret())
+    assertThat(jwtCredential.getClientSecret())
         .isEqualTo(MockSaaSConfiguration.OPERATE_CLIENT_SECRET);
+    assertThat(jwtCredential.getAudience()).isEqualTo(MockSaaSConfiguration.OPERATE_CLIENT_BASEURL);
+    assertThat(jwtCredential.getAuthUrl()).isEqualTo(MockSaaSConfiguration.OPERATE_CLIENT_AUTH_URL);
   }
 }
