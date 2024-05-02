@@ -25,7 +25,8 @@
     "label" : "Activation"
   }, {
     "id" : "correlation",
-    "label" : "Correlation"
+    "label" : "Correlation",
+    "tooltip" : "Learn more about message correlation in the <a href=\"https://docs.camunda.io/docs/components/concepts/messages/#message-correlation-overview\">documentation</a>."
   }, {
     "id" : "output",
     "label" : "Output mapping"
@@ -138,6 +139,26 @@
     "group" : "correlation",
     "binding" : {
       "name" : "messageIdExpression",
+      "type" : "zeebe:property"
+    },
+    "type" : "String"
+  }, {
+    "id" : "messageTtl",
+    "label" : "Message TTL",
+    "description" : "Time-to-live for the message in the broker (ISO-8601 duration)",
+    "optional" : false,
+    "value" : "PT0S",
+    "constraints" : {
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "P.*",
+        "message" : "must be an ISO-8601 duration"
+      }
+    },
+    "feel" : "optional",
+    "group" : "correlation",
+    "binding" : {
+      "name" : "messageTtl",
       "type" : "zeebe:property"
     },
     "type" : "String"
