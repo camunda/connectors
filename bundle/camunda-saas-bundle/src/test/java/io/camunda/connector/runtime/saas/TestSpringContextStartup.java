@@ -16,7 +16,8 @@
  */
 package io.camunda.connector.runtime.saas;
 
-import io.camunda.zeebe.spring.client.properties.OperateClientConfigurationProperties;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -37,7 +38,7 @@ import org.springframework.test.context.ActiveProfiles;
 @ActiveProfiles("test")
 public class TestSpringContextStartup {
 
-  @Autowired private OperateClientConfigurationProperties operateProperties;
+  @Autowired private SaaSOperateClientFactory operateClientFactory;
 
   @Test
   public void contextLoaded() {
@@ -45,5 +46,17 @@ public class TestSpringContextStartup {
     // conflicting class files in logging or other wired behavior that can be observed
     // when the Spring context is initialized (e.g.
     // https://github.com/camunda/team-connectors/issues/251)
+  }
+
+  @Test
+  public void jwtCredentialConfigured() {
+    var jwtCredential = operateClientFactory.configureJwtCredential();
+    assertThat(jwtCredential).isNotNull();
+    assertThat(jwtCredential.getClientId())
+        .isEqualTo(MockSaaSConfiguration.OPERATE_CLIENT_CLIENT_ID);
+    assertThat(jwtCredential.getClientSecret())
+        .isEqualTo(MockSaaSConfiguration.OPERATE_CLIENT_SECRET);
+    assertThat(jwtCredential.getAudience()).isEqualTo(MockSaaSConfiguration.OPERATE_CLIENT_BASEURL);
+    assertThat(jwtCredential.getAuthUrl()).isEqualTo(MockSaaSConfiguration.OPERATE_CLIENT_AUTH_URL);
   }
 }
