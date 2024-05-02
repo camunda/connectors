@@ -51,15 +51,16 @@ public class SaaSOperateClientFactory {
       OperateClientConfigurationProperties operateProperties, JsonMapper jsonMapper) {
 
     var jwtConfig = new JwtConfig();
-    var jwtCredential = new JwtCredential(internalSecretProvider.getSecret(SECRET_NAME_CLIENT_ID),
-        internalSecretProvider.getSecret(SECRET_NAME_SECRET), operateProperties.getBaseUrl(),
-        operateProperties.getAuthUrl());
+    var jwtCredential =
+        new JwtCredential(
+            internalSecretProvider.getSecret(SECRET_NAME_CLIENT_ID),
+            internalSecretProvider.getSecret(SECRET_NAME_SECRET),
+            operateProperties.getBaseUrl(),
+            operateProperties.getAuthUrl());
     jwtConfig.addProduct(Product.OPERATE, jwtCredential);
 
-    var authentication = new SaaSAuthenticationBuilder()
-        .withJwtConfig(jwtConfig)
-        .withJsonMapper(jsonMapper)
-        .build();
+    var authentication =
+        new SaaSAuthenticationBuilder().withJwtConfig(jwtConfig).withJsonMapper(jsonMapper).build();
 
     return CamundaOperateClient.builder()
         .operateUrl(operateUrl)
