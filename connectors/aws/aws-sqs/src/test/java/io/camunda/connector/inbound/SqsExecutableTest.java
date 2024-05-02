@@ -108,7 +108,8 @@ class SqsExecutableTest {
   @Test
   public void deactivateTest() {
     // Given
-    consumer = new SqsQueueConsumer(sqsClient, null, null);
+    var context = createConnectorContext(Map.of(), createDefinition());
+    consumer = new SqsQueueConsumer(sqsClient, null, context);
     consumer.setQueueConsumerActive(true);
     SqsExecutable sqsExecutable = new SqsExecutable(supplier, executorService, consumer);
     // When
