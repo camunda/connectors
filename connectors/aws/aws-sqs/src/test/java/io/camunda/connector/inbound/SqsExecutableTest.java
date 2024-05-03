@@ -23,6 +23,7 @@ import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
 import io.camunda.connector.api.inbound.ProcessElement;
@@ -30,6 +31,7 @@ import io.camunda.connector.aws.ObjectMapperSupplier;
 import io.camunda.connector.common.suppliers.AmazonSQSClientSupplier;
 import io.camunda.connector.inbound.model.SqsInboundProperties;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
+import io.camunda.connector.test.inbound.InboundConnectorContextBuilder.TestInboundConnectorContext;
 import io.camunda.connector.test.inbound.InboundConnectorDefinitionBuilder;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.io.File;
@@ -108,13 +110,26 @@ class SqsExecutableTest {
   @Test
   public void deactivateTest() {
     // Given
-    consumer = new SqsQueueConsumer(sqsClient, null, null);
+    Map<String, Object> properties =
+        Map.of(
+            "authentication",
+            Map.of(
+                "secretKey", ACTUAL_SECRET_KEY,
+                "accessKey", ACTUAL_ACCESS_KEY),
+            "configuration",
+            Map.of("region", "us-east-1"),
+            "queue",
+            Map.of("url", ACTUAL_QUEUE_URL, "pollingWaitTime", "1"));
+    var context = createConnectorContext(properties, createDefinition());
+    consumer = new SqsQueueConsumer(sqsClient, new SqsInboundProperties(), context);
     consumer.setQueueConsumerActive(true);
     SqsExecutable sqsExecutable = new SqsExecutable(supplier, executorService, consumer);
     // When
+    sqsExecutable.activate(context);
     sqsExecutable.deactivate();
     // Then
     assertThat(consumer.isQueueConsumerActive()).isFalse();
+    assertThat(context.getHealth()).isEqualTo(Health.down());
     assertThat(executorService.isShutdown()).isTrue();
   }
 
@@ -123,7 +138,7 @@ class SqsExecutableTest {
     return InboundConnectorDefinitionBuilder.create().elements(element).type("type").build();
   }
 
-  private InboundConnectorContext createConnectorContext(
+  private TestInboundConnectorContext createConnectorContext(
       Map<String, Object> properties, InboundConnectorDefinition definition) {
     return InboundConnectorContextBuilder.create()
         .secret(AWS_SECRET_KEY, ACTUAL_SECRET_KEY)

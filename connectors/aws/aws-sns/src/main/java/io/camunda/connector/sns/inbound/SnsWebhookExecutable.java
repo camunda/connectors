@@ -12,6 +12,7 @@ import com.amazonaws.services.sns.message.SnsNotification;
 import com.amazonaws.services.sns.message.SnsSubscriptionConfirmation;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.annotation.InboundConnector;
+import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.webhook.MappedHttpRequest;
 import io.camunda.connector.api.inbound.webhook.WebhookConnectorExecutable;
@@ -72,6 +73,7 @@ public class SnsWebhookExecutable implements WebhookConnectorExecutable {
   private final ObjectMapper objectMapper;
   private final SnsClientSupplier snsClientSupplier;
 
+  private InboundConnectorContext context;
   private SnsWebhookConnectorProperties props;
 
   public SnsWebhookExecutable() {
@@ -142,9 +144,11 @@ public class SnsWebhookExecutable implements WebhookConnectorExecutable {
     if (context == null) {
       throw new Exception("Inbound connector context cannot be null");
     }
+    this.context = context;
     props =
         new SnsWebhookConnectorProperties(
             context.bindProperties(SnsWebhookConnectorPropertiesWrapper.class));
+    context.reportHealth(Health.up());
   }
 
   // Topic ARN header has a format arn:aws:sns:region-xyz:000011112222:TopicName, and
@@ -156,5 +160,10 @@ public class SnsWebhookExecutable implements WebhookConnectorExecutable {
             .orElseThrow(
                 () -> new Exception("SNS request did not contain header: " + TOPIC_ARN_HEADER));
     return topicArn.split(":")[3];
+  }
+
+  @Override
+  public void deactivate() throws Exception {
+    context.reportHealth(Health.down());
   }
 }

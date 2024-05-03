@@ -8,6 +8,7 @@ package io.camunda.connector.inbound;
 
 import com.amazonaws.services.sqs.AmazonSQS;
 import io.camunda.connector.api.annotation.InboundConnector;
+import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.aws.AwsUtils;
@@ -70,6 +71,7 @@ public class SqsExecutable implements InboundConnectorExecutable {
   private final ExecutorService executorService;
   private AmazonSQS amazonSQS;
   private SqsQueueConsumer sqsQueueConsumer;
+  private InboundConnectorContext context;
 
   public SqsExecutable() {
     this.sqsClientSupplier = new DefaultAmazonSQSClientSupplier();
@@ -90,6 +92,8 @@ public class SqsExecutable implements InboundConnectorExecutable {
     SqsInboundProperties properties = context.bindProperties(SqsInboundProperties.class);
     LOGGER.info("Subscription activation requested by the Connector runtime: {}", properties);
 
+    this.context = context;
+
     var region =
         AwsUtils.extractRegionOrDefault(
             properties.getConfiguration(), properties.getQueue().region());
@@ -102,12 +106,15 @@ public class SqsExecutable implements InboundConnectorExecutable {
     }
     executorService.execute(sqsQueueConsumer);
     LOGGER.debug("SQS queue consumer started successfully");
+    context.reportHealth(Health.up());
   }
 
   @Override
   public void deactivate() {
+
     sqsQueueConsumer.setQueueConsumerActive(false);
     LOGGER.debug("Deactivating subscription");
+    context.reportHealth(Health.down());
     if (executorService != null) {
       LOGGER.debug("Shutting down executor service");
       executorService.shutdown();
