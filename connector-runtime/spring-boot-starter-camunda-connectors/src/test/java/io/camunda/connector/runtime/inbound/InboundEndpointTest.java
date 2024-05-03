@@ -48,7 +48,7 @@ public class InboundEndpointTest {
   }
 
   @Test
-  public void testInboundEndpointResponse() {
+  public void testDataReturnedForWebhookConnectorExecutableSubclass() {
     var executableRegistry = mock(InboundExecutableRegistry.class);
 
     when(executableRegistry.query(any()))
