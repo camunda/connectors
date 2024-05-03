@@ -93,6 +93,10 @@
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-soap</artifactId>
     </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-aws-sagemaker</artifactId>
+    </dependency>
   </dependencies>
 
   <build>

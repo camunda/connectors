@@ -129,6 +129,11 @@
         <artifactId>connector-soap</artifactId>
         <version>${project.version}</version>
       </dependency>
+      <dependency>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>connector-aws-sagemaker</artifactId>
+        <version>${project.version}</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
