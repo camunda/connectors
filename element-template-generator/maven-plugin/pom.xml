@@ -6,7 +6,7 @@
     <groupId>io.camunda.connector</groupId>
     <artifactId>connector-parent</artifactId>
     <relativePath>../../parent/pom.xml</relativePath>
-    <version>8.6.0-alpha1-rc1</version>
+    <version>8.6.0-alpha1-rc5</version>
   </parent>
 
   <name>element-template-generator-maven-plugin</name>
