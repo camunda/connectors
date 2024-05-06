@@ -73,4 +73,30 @@ public class InboundEndpointTest {
     assertEquals(1, response.size());
     assertEquals("myPath", response.get(0).data().get("path"));
   }
+
+  @Test
+  public void executableClassNullHandledCorrectly() {
+    var executableRegistry = mock(InboundExecutableRegistry.class);
+    when(executableRegistry.query(any()))
+        .thenReturn(
+            List.of(
+                new ActiveExecutableResponse(
+                    UUID.randomUUID(),
+                    null, // executable class is null
+                    List.of(
+                        new InboundConnectorElement(
+                            Map.of("inbound.context", "myPath", "inbound.type", "webhook"),
+                            new StandaloneMessageCorrelationPoint(
+                                "myPath", "=expression", "=myPath", null),
+                            new ProcessElement("", 1, 1, "", ""))),
+                    Health.down(),
+                    Collections.emptyList())));
+
+    InboundConnectorRestController statusController =
+        new InboundConnectorRestController(executableRegistry);
+
+    var response = statusController.getActiveInboundConnectors(null, null, null);
+    assertEquals(1, response.size());
+    assertEquals(Health.down(), response.get(0).health());
+  }
 }
