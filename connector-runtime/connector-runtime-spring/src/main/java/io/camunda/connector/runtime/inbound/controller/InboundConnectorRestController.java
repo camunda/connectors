@@ -83,8 +83,10 @@ public class InboundConnectorRestController {
 
   private Map<String, Object> getData(ActiveExecutableResponse connector) {
     Map<String, Object> data = Map.of();
-    if (connector.executableClass() != null
-        && WebhookConnectorExecutable.class.isAssignableFrom(connector.executableClass())) {
+    var executableClass = connector.executableClass();
+
+    if (executableClass != null
+        && WebhookConnectorExecutable.class.isAssignableFrom(executableClass)) {
       try {
         var properties = connector.elements().getFirst().rawPropertiesWithoutKeywords();
         var contextPath = properties.get("inbound.context");
