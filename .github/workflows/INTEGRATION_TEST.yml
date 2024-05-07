@@ -21,6 +21,7 @@ jobs:
     uses: camunda/camunda-platform-helm/.github/workflows/test-integration-template.yaml@main
     secrets: inherit
     with:
+      flows: 'upgrade'
       identifier: connectors-int
       test-enabled: true
       extra-values: |
