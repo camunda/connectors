@@ -264,3 +264,15 @@ jobs:
             bundle/default-bundle/target/connectors-bundle-sbom.xml
             connectors-bundle-templates-${{ github.event.release.tag_name }}.tar.gz
             connectors-bundle-templates-${{ github.event.release.tag_name }}.zip
+
+  helm-deploy:
+    name: Helm chart Integration Tests
+    uses: camunda/camunda-platform-helm/.github/workflows/test-integration-template.yaml@main
+    secrets: inherit
+    with:
+      identifier: connectors-int-${{ github.run_id }}
+      test-enabled: true
+      extra-values: |
+        connectors:
+          image:
+            tag: ${{ github.event.release.tag_name }}
