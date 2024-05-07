@@ -8,7 +8,9 @@ package io.camunda.connector.jdbc.utils;
 
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.jdbc.model.request.JdbcRequest;
+import io.camunda.connector.jdbc.model.request.SupportedDatabase;
 import io.camunda.connector.jdbc.model.request.connection.JdbcConnection;
+import java.net.URISyntaxException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -27,13 +29,33 @@ public class ConnectionHelper {
       JdbcConnection connection = request.connection();
       Connection conn =
           DriverManager.getConnection(
-              connection.getConnectionString(request.database()), connection.getProperties());
+              ensureMySQLCompatibleUrl(
+                  connection.getConnectionString(request.database()), request.database()),
+              connection.getProperties());
       LOG.debug("Connection established for Database {}: {}", request.database(), conn);
       return conn;
     } catch (ClassNotFoundException e) {
       throw new ConnectorException("Cannot find class: " + request.database().getDriverClassName());
+    } catch (URISyntaxException e) {
+      throw new ConnectorException("Cannot parse the Database connection URL: " + e.getMessage());
     } catch (SQLException e) {
       throw new ConnectorException("Cannot create the Database connection: " + e.getMessage());
     }
+  }
+
+  /**
+   * Ensure MySQL compatibility as we are using MariaDB driver for MySQL.
+   *
+   * @return Properties with permitMysqlScheme set to true if the database is MySQL.
+   * @see <a
+   *     href="https://mariadb.com/kb/en/about-mariadb-connector-j/#jdbcmysql-scheme-compatibility">Compatibility
+   *     details</a>
+   */
+  private static String ensureMySQLCompatibleUrl(String url, SupportedDatabase database)
+      throws URISyntaxException {
+    if (database == SupportedDatabase.MYSQL) {
+      return ConnectionParameterHelper.addQueryParameterToURL(url, "permitMysqlScheme");
+    }
+    return url;
   }
 }
