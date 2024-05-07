@@ -33,7 +33,7 @@ import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.api.inbound.webhook.WebhookResult;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
-import io.camunda.connector.runtime.core.inbound.InboundConnectorDetails;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorDetails.ValidInboundConnectorDetails;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.inbound.correlation.StartEventCorrelationPoint;
@@ -138,7 +138,7 @@ public class WebhookControllerPlainJavaTests {
   private static long nextProcessDefinitionKey = 0L;
 
   public static RegisteredExecutable.Activated buildConnector(
-      InboundConnectorDetails connectorData) {
+      ValidInboundConnectorDetails connectorData) {
     WebhookConnectorExecutable executable = mock(WebhookConnectorExecutable.class);
     try {
       Mockito.when(executable.triggerWebhook(any(WebhookProcessingPayload.class)))
@@ -149,7 +149,7 @@ public class WebhookControllerPlainJavaTests {
     return new RegisteredExecutable.Activated(executable, buildContext(connectorData));
   }
 
-  public static InboundConnectorContextImpl buildContext(InboundConnectorDetails def) {
+  public static InboundConnectorContextImpl buildContext(ValidInboundConnectorDetails def) {
     var context =
         new InboundConnectorContextImpl(
             name -> null,
@@ -163,9 +163,9 @@ public class WebhookControllerPlainJavaTests {
     return spy(context);
   }
 
-  public static InboundConnectorDetails webhookDefinition(
+  public static ValidInboundConnectorDetails webhookDefinition(
       String bpmnProcessId, int version, String path) {
-    return new InboundConnectorDetails(
+    return new ValidInboundConnectorDetails(
         bpmnProcessId + version + path,
         List.of(webhookElement(++nextProcessDefinitionKey, bpmnProcessId, version, path)));
   }

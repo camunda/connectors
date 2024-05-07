@@ -22,51 +22,88 @@ import java.util.List;
 import java.util.Map;
 
 /** Group of inbound connector elements that share the same deduplication ID. */
-public record InboundConnectorDetails(
-    String type,
-    String tenantId,
-    String deduplicationId,
-    @JsonIgnore Map<String, String> rawPropertiesWithoutKeywords,
-    List<InboundConnectorElement> connectorElements) {
+public sealed interface InboundConnectorDetails {
 
-  public InboundConnectorDetails(String deduplicationId, List<InboundConnectorElement> elements) {
-    this(
-        extractType(elements),
-        extractTenantId(elements),
-        deduplicationId,
-        extractRawProperties(elements),
-        elements);
+  static InboundConnectorDetails of(
+      String deduplicationId, List<InboundConnectorElement> groupedElements) {
+    if (groupedElements.isEmpty()) {
+      throw new IllegalArgumentException("At least one element must be provided");
+    }
+    try {
+      return new ValidInboundConnectorDetails(deduplicationId, groupedElements);
+    } catch (Exception e) {
+      var tenantId = groupedElements.getFirst().element().tenantId();
+      var type = groupedElements.getFirst().type();
+      return new InvalidInboundConnectorDetails(
+          groupedElements, e, tenantId, deduplicationId, type);
+    }
   }
 
-  private static String extractType(List<InboundConnectorElement> elements) {
-    if (elements.stream().map(InboundConnectorElement::type).distinct().count() > 1) {
-      throw new IllegalArgumentException("All elements in a group must have the same type");
-    }
-    return elements.getFirst().type();
-  }
+  List<InboundConnectorElement> connectorElements();
 
-  private static String extractTenantId(List<InboundConnectorElement> elements) {
-    if (elements.stream()
-            .map(InboundConnectorElement::element)
-            .map(ProcessElement::tenantId)
-            .distinct()
-            .count()
-        > 1) {
-      throw new IllegalArgumentException("All elements in a group must have the same tenant ID");
-    }
-    return elements.getFirst().element().tenantId();
-  }
+  String type();
 
-  private static Map<String, String> extractRawProperties(List<InboundConnectorElement> elements) {
-    if (elements.stream()
-            .map(InboundConnectorElement::rawPropertiesWithoutKeywords)
-            .distinct()
-            .count()
-        > 1) {
+  String deduplicationId();
 
-      throw new IllegalArgumentException(
-          "All elements in a group must have the same properties (excluding runtime-level properties)");
+  String tenantId();
+
+  record InvalidInboundConnectorDetails(
+      List<InboundConnectorElement> connectorElements,
+      Throwable error,
+      String tenantId,
+      String deduplicationId,
+      String type)
+      implements InboundConnectorDetails {}
+
+  record ValidInboundConnectorDetails(
+      String type,
+      String tenantId,
+      String deduplicationId,
+      @JsonIgnore Map<String, String> rawPropertiesWithoutKeywords,
+      List<InboundConnectorElement> connectorElements)
+      implements InboundConnectorDetails {
+
+    public ValidInboundConnectorDetails(
+        String deduplicationId, List<InboundConnectorElement> elements) {
+      this(
+          extractType(elements),
+          extractTenantId(elements),
+          deduplicationId,
+          extractRawProperties(elements),
+          elements);
     }
-    return elements.getFirst().rawProperties();
+
+    private static String extractType(List<InboundConnectorElement> elements) {
+      if (elements.stream().map(InboundConnectorElement::type).distinct().count() > 1) {
+        throw new IllegalArgumentException("All elements in a group must have the same type");
+      }
+      return elements.getFirst().type();
+    }
+
+    private static String extractTenantId(List<InboundConnectorElement> elements) {
+      if (elements.stream()
+              .map(InboundConnectorElement::element)
+              .map(ProcessElement::tenantId)
+              .distinct()
+              .count()
+          > 1) {
+        throw new IllegalArgumentException("All elements in a group must have the same tenant ID");
+      }
+      return elements.getFirst().element().tenantId();
+    }
+
+    private static Map<String, String> extractRawProperties(
+        List<InboundConnectorElement> elements) {
+      if (elements.stream()
+              .map(InboundConnectorElement::rawPropertiesWithoutKeywords)
+              .distinct()
+              .count()
+          > 1) {
+
+        throw new IllegalArgumentException(
+            "All elements in a group must have the same properties (excluding runtime-level properties)");
+      }
+      return elements.getFirst().rawProperties();
+    }
   }
 }

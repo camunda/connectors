@@ -20,6 +20,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 import io.camunda.connector.api.inbound.ProcessElement;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorDetails.ValidInboundConnectorDetails;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -45,7 +46,8 @@ public class InboundConnectorDetailsTest {
     // when & then
     assertDoesNotThrow(
         () ->
-            new InboundConnectorDetails(elements.getFirst().deduplicationId(List.of()), elements));
+            new ValidInboundConnectorDetails(
+                elements.getFirst().deduplicationId(List.of()), elements));
   }
 
   @Test
@@ -67,7 +69,7 @@ public class InboundConnectorDetailsTest {
     // when & then
     assertThatThrownBy(
             () ->
-                new InboundConnectorDetails(
+                new ValidInboundConnectorDetails(
                     elements.getFirst().deduplicationId(List.of()), elements))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("All elements in a group must have the same type");
@@ -97,7 +99,7 @@ public class InboundConnectorDetailsTest {
     // when & then
     assertThatThrownBy(
             () ->
-                new InboundConnectorDetails(
+                new ValidInboundConnectorDetails(
                     elements.getFirst().deduplicationId(List.of()), elements))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("All elements in a group must have the same tenant ID");
@@ -130,7 +132,7 @@ public class InboundConnectorDetailsTest {
     // when & then
     assertThatThrownBy(
             () ->
-                new InboundConnectorDetails(
+                new ValidInboundConnectorDetails(
                     elements.getFirst().deduplicationId(List.of()), elements))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage(

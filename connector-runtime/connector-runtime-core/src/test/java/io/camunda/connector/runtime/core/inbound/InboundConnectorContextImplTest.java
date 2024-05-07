@@ -27,6 +27,7 @@ import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.runtime.core.FooBarSecretProvider;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImplTest.TestPropertiesClass.InnerObject;
+import io.camunda.connector.runtime.core.inbound.InboundConnectorDetails.ValidInboundConnectorDetails;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.StandaloneMessageCorrelationPoint;
 import java.util.Collections;
 import java.util.HashMap;
@@ -109,7 +110,7 @@ class InboundConnectorContextImplTest {
   }
 
   @NotNull
-  private static InboundConnectorDetails getInboundConnectorDefinition(
+  private static ValidInboundConnectorDetails getInboundConnectorDefinition(
       Map<String, String> properties) {
     properties = new HashMap<>(properties);
     properties.put("inbound.type", "io.camunda:connector:1");
@@ -118,7 +119,7 @@ class InboundConnectorContextImplTest {
             properties,
             new StandaloneMessageCorrelationPoint("", "", null, null),
             new ProcessElement("bool", 0, 0, "id", "<default>"));
-    return new InboundConnectorDetails(
+    return new ValidInboundConnectorDetails(
         UUID.randomUUID().toString(), Collections.singletonList(element));
   }
 

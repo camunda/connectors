@@ -27,6 +27,7 @@ import io.camunda.connector.runtime.inbound.executable.InboundExecutableEvent.De
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.Activated;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.ConnectorNotRegistered;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.FailedToActivate;
+import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.InvalidDefinition;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -113,7 +114,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
         }
       };
 
-  private void handleEvent(InboundExecutableEvent event) {
+  void handleEvent(InboundExecutableEvent event) {
     switch (event) {
       case InboundExecutableEvent.Activated activated -> handleActivated(activated);
       case Deactivated deactivated -> handleDeactivated(deactivated);
@@ -217,7 +218,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
     }
 
     return groupedElements.entrySet().stream()
-        .map(entry -> new InboundConnectorDetails(entry.getKey(), entry.getValue()))
+        .map(entry -> InboundConnectorDetails.of(entry.getKey(), entry.getValue()))
         .toList();
   }
 
@@ -236,12 +237,16 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
               .stream()
               .map(InboundConnectorElement::element)
               .toList();
+          case InvalidDefinition invalid -> invalid.data().connectorElements().stream()
+              .map(InboundConnectorElement::element)
+              .toList();
         };
     var type =
         switch (executable) {
           case Activated activated -> activated.context().getDefinition().type();
-          case FailedToActivate failed -> failed.data().type();
+          case FailedToActivate failed -> failed.data().connectorElements().getFirst();
           case ConnectorNotRegistered notRegistered -> notRegistered.data().type();
+          case InvalidDefinition invalid -> invalid.data().connectorElements().getFirst().type();
         };
 
     return elements.stream()
@@ -249,7 +254,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
             element ->
                 query.bpmnProcessId() == null
                     || query.bpmnProcessId().equals(element.bpmnProcessId())
-                        && (query.type() == null || query.type().equals(type))
+                        && (query.type() == null || type == null || query.type().equals(type))
                         && (query.tenantId() == null
                             || query.tenantId().equals(element.tenantId())
                                 && (query.elementId() == null
@@ -280,6 +285,13 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
                   "Activation failure",
                   "Connector " + notRegistered.data().type() + " not registered")),
           List.of());
+      case InvalidDefinition invalid -> new ActiveExecutableResponse(
+          id,
+          null,
+          invalid.data().connectorElements(),
+          Health.down(
+              new Error("Activation failure", "Invalid connector definition: " + invalid.reason())),
+          List.of());
     };
   }
 
@@ -293,8 +305,13 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
                 activeExecutable ->
                     switch (activeExecutable) {
                       case Activated activated -> activated.context().getDefinition().type();
-                      case FailedToActivate failed -> failed.data().type();
+                      case FailedToActivate failed -> failed
+                          .data()
+                          .connectorElements()
+                          .getFirst()
+                          .type();
                       case ConnectorNotRegistered notRegistered -> notRegistered.data().type();
+                      case InvalidDefinition invalid -> invalid.data().type();
                     },
                 Collectors.toList()))
         .forEach(
@@ -320,6 +337,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
                                     case ConnectorNotRegistered notRegistered -> notRegistered
                                         .data()
                                         .tenantId();
+                                    case InvalidDefinition invalid -> invalid.data().tenantId();
                                   },
                               Collectors.counting()));
               groupedByTenant.forEach(
