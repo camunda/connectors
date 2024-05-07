@@ -24,6 +24,9 @@ jobs:
       identifier: connectors-int
       test-enabled: true
       extra-values: |
+        global:
+          image:
+            tag: 8.3.10
         connectors:
           image:
             tag: ${{ github.event.inputs.connectors_version }}
