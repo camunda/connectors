@@ -51,6 +51,15 @@ public class Keywords {
   public static final String ERROR_EXPRESSION_KEYWORD = "errorExpression";
 
   /**
+   * A dropdown property that indicates whether the correlation is required for the inbound
+   * Connector.
+   *
+   * <p>This value only exists for inbound Connectors and comes from the extension properties of a
+   * BPMN element. It is only present in Message Start Event element templates.
+   */
+  public static final String CORRELATION_REQUIRED_KEYWORD = "correlationRequired";
+
+  /**
    * The keyword that identifies the source of `correlation key expression` property of a Connector.
    * Correlation key expression is a FEEL expression that is extracts the correlation key from the
    * inbound Connector output.
@@ -92,6 +101,14 @@ public class Keywords {
    */
   public static final String RETRY_BACKOFF_KEYWORD = "retryBackoff";
 
+  /**
+   * ID of the boolean flag that indicates whether the deduplication mode is manual or automatic.
+   *
+   * <p>This value only exists for inbound Connectors and comes from the extension properties of a
+   * BPMN element.
+   */
+  public static final String DEDUPLICATION_MODE_MANUAL_FLAG_KEYWORD = "deduplicationModeManualFlag";
+
   public static final String DEDUPLICATION_MODE_KEYWORD = "deduplicationMode";
 
   public enum DeduplicationMode {
@@ -114,5 +131,7 @@ public class Keywords {
           DEDUPLICATION_MODE_KEYWORD,
           DEDUPLICATION_ID_KEYWORD,
           MESSAGE_ID_EXPRESSION,
-          MESSAGE_TTL);
+          MESSAGE_TTL,
+          CORRELATION_REQUIRED_KEYWORD,
+          DEDUPLICATION_MODE_MANUAL_FLAG_KEYWORD);
 }
