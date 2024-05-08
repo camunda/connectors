@@ -71,4 +71,14 @@ public class ConnectionParameterHelperTest {
     String result = ConnectionParameterHelper.addQueryParameterToURL(urlString, paramName);
     assertThat(result).isEqualTo(urlString + "?paramName");
   }
+
+  @Test
+  void
+      shouldCreateQueryParametersAfterPath_whenQueryPathExistsAndQueryParametersExistAndPasswordHasWeirdChars()
+          throws Exception {
+    String urlString = "jdbc:mysql//localhost:3306/database?user=test&password=ab#!xij:()_s23";
+    String paramName = "paramName";
+    String result = ConnectionParameterHelper.addQueryParameterToURL(urlString, paramName);
+    assertThat(result).isEqualTo(urlString + "&paramName");
+  }
 }

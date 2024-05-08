@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.jdbc.utils;
 
-import java.net.URI;
 import java.net.URISyntaxException;
 
 /**
@@ -24,7 +23,6 @@ public class ConnectionParameterHelper {
 
   public static String addQueryParameterToURL(String urlString, String paramName, String paramValue)
       throws URISyntaxException {
-    URI uri = new URI(urlString);
     // Check if the URL already has query parameters
     int queryParamsIndex = urlString.indexOf('?');
     String query;
@@ -43,6 +41,6 @@ public class ConnectionParameterHelper {
     // jdbc:mysql//localhost:3306?paramName=paramValue for instance is not detected as a regular
     // URI,
     // so we need to reconstruct the URI using the scheme and the scheme specific part
-    return new URI(uri.getScheme() + ":" + uri.getSchemeSpecificPart() + query).toString();
+    return urlString + query;
   }
 }
