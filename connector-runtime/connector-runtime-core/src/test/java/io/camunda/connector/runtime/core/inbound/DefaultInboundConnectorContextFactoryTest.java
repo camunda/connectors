@@ -25,6 +25,7 @@ import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
+import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,7 +43,7 @@ class DefaultInboundConnectorContextFactoryTest {
   @Mock private ValidationProvider validationProvider;
   @Mock private OperateClientAdapter operateClientAdapter;
   @Mock private Consumer<Throwable> cancellationCallback;
-  @Mock private InboundConnectorDetails newConnector;
+  @Mock private ValidInboundConnectorDetails newConnector;
   private DefaultInboundConnectorContextFactory factory;
 
   @BeforeEach
