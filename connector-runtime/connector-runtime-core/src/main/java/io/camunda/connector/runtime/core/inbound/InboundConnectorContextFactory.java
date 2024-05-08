@@ -19,7 +19,7 @@ package io.camunda.connector.runtime.core.inbound;
 import com.google.common.collect.EvictingQueue;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
-import io.camunda.connector.runtime.core.inbound.InboundConnectorDetails.ValidInboundConnectorDetails;
+import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
 import java.util.function.Consumer;
 
 /**

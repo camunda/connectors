@@ -56,7 +56,7 @@ public class InboundExecutableRegistryTest {
   }
 
   @Test
-  public void invalidDeduplicationConfig_shouldYieldInvalidDefinition() {
+  public void invalidDeduplicationConfig_propertyMismatch_shouldYieldInvalidDefinition() {
     // given
     var elementId = "elementId";
     var element1 =
@@ -80,6 +80,32 @@ public class InboundExecutableRegistryTest {
     assertThat(result.getFirst().health().getStatus()).isEqualTo(Status.DOWN);
     assertThat(result.getFirst().health().getError().message())
         .isEqualTo("Invalid connector definition: All elements in a group must have the same type");
+  }
+
+  @Test
+  public void validDeduplicationConfig_runtimePropertyMismatch_shouldActivateNormally()
+      throws Exception {
+    // given
+    // different MESSAGE_TTL property
+    var elementId = "elementId";
+    var element1 =
+        new InboundConnectorElement(
+            Map.of(Keywords.INBOUND_TYPE_KEYWORD, "type1", Keywords.MESSAGE_TTL, "PT2S"),
+            new StartEventCorrelationPoint("processId", 0, 0),
+            new ProcessElement("id", 0, 0, elementId, "tenant"));
+    var element2 =
+        new InboundConnectorElement(
+            Map.of(Keywords.INBOUND_TYPE_KEYWORD, "type1", Keywords.MESSAGE_TTL, "PT1S"),
+            new StartEventCorrelationPoint("processId", 0, 0),
+            new ProcessElement("id", 0, 0, elementId, "tenant"));
+    var executable = mock(InboundConnectorExecutable.class);
+    when(factory.getInstance(any())).thenReturn(executable);
+
+    // when
+    registry.handleEvent(new Activated("tenant", 0, List.of(element1, element2)));
+
+    // then
+    verify(executable).activate(any());
   }
 
   @Test

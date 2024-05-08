@@ -27,14 +27,13 @@ import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.runtime.core.FooBarSecretProvider;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImplTest.TestPropertiesClass.InnerObject;
-import io.camunda.connector.runtime.core.inbound.InboundConnectorDetails.ValidInboundConnectorDetails;
 import io.camunda.connector.runtime.core.inbound.correlation.MessageCorrelationPoint.StandaloneMessageCorrelationPoint;
-import java.util.Collections;
+import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
+import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.UUID;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
@@ -119,8 +118,9 @@ class InboundConnectorContextImplTest {
             properties,
             new StandaloneMessageCorrelationPoint("", "", null, null),
             new ProcessElement("bool", 0, 0, "id", "<default>"));
-    return new ValidInboundConnectorDetails(
-        UUID.randomUUID().toString(), Collections.singletonList(element));
+    var details = InboundConnectorDetails.of(element.deduplicationId(List.of()), List.of(element));
+    assertThat(details).isInstanceOf(ValidInboundConnectorDetails.class);
+    return (ValidInboundConnectorDetails) details;
   }
 
   @Test

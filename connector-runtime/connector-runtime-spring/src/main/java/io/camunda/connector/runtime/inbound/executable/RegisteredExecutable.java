@@ -17,10 +17,10 @@
 package io.camunda.connector.runtime.inbound.executable;
 
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
-import io.camunda.connector.runtime.core.inbound.InboundConnectorDetails;
-import io.camunda.connector.runtime.core.inbound.InboundConnectorDetails.InvalidInboundConnectorDetails;
-import io.camunda.connector.runtime.core.inbound.InboundConnectorDetails.ValidInboundConnectorDetails;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorReportingContext;
+import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
+import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.InvalidInboundConnectorDetails;
+import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
 
 public sealed interface RegisteredExecutable {
 

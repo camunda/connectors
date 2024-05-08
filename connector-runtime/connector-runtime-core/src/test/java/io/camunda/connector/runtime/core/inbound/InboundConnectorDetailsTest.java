@@ -16,11 +16,11 @@
  */
 package io.camunda.connector.runtime.core.inbound;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 import io.camunda.connector.api.inbound.ProcessElement;
-import io.camunda.connector.runtime.core.inbound.InboundConnectorDetails.ValidInboundConnectorDetails;
+import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -45,13 +45,11 @@ public class InboundConnectorDetailsTest {
 
     // when & then
     assertDoesNotThrow(
-        () ->
-            new ValidInboundConnectorDetails(
-                elements.getFirst().deduplicationId(List.of()), elements));
+        () -> InboundConnectorDetails.of(elements.getFirst().deduplicationId(List.of()), elements));
   }
 
   @Test
-  void notMatchingTypes_throwsException() {
+  void notMatchingTypes_returnsInvalid() {
     // given
     List<InboundConnectorElement> elements = new ArrayList<>();
     elements.add(
@@ -67,16 +65,17 @@ public class InboundConnectorDetailsTest {
             new ProcessElement("myProcess", 0, 0, "element2", "<default>")));
 
     // when & then
-    assertThatThrownBy(
-            () ->
-                new ValidInboundConnectorDetails(
-                    elements.getFirst().deduplicationId(List.of()), elements))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessage("All elements in a group must have the same type");
+    var result =
+        InboundConnectorDetails.of(elements.getFirst().deduplicationId(List.of()), elements);
+    assertThat(result).isInstanceOf(InboundConnectorDetails.InvalidInboundConnectorDetails.class);
+    var invalid = (InboundConnectorDetails.InvalidInboundConnectorDetails) result;
+    assertThat(invalid.error()).isInstanceOf(IllegalArgumentException.class);
+    assertThat(invalid.error().getMessage())
+        .isEqualTo("All elements in a group must have the same type");
   }
 
   @Test
-  void notMatchingTenantIds_throwsException() {
+  void notMatchingTenantIds_returnsInvalid() {
     // given
     List<InboundConnectorElement> elements = new ArrayList<>();
     elements.add(
@@ -97,16 +96,17 @@ public class InboundConnectorDetailsTest {
             new ProcessElement("myProcess", 0, 0, "element2", "tenant2")));
 
     // when & then
-    assertThatThrownBy(
-            () ->
-                new ValidInboundConnectorDetails(
-                    elements.getFirst().deduplicationId(List.of()), elements))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessage("All elements in a group must have the same tenant ID");
+    var result =
+        InboundConnectorDetails.of(elements.getFirst().deduplicationId(List.of()), elements);
+    assertThat(result).isInstanceOf(InboundConnectorDetails.InvalidInboundConnectorDetails.class);
+    var invalid = (InboundConnectorDetails.InvalidInboundConnectorDetails) result;
+    assertThat(invalid.error()).isInstanceOf(IllegalArgumentException.class);
+    assertThat(invalid.error().getMessage())
+        .isEqualTo("All elements in a group must have the same tenant ID");
   }
 
   @Test
-  void notMatchingProperties_throwsExceptions() {
+  void notMatchingProperties_returnsInvalid() {
     // given
     List<InboundConnectorElement> elements = new ArrayList<>();
     elements.add(
@@ -130,12 +130,14 @@ public class InboundConnectorDetailsTest {
             new ProcessElement("myProcess", 0, 0, "element2", "tenant")));
 
     // when & then
-    assertThatThrownBy(
-            () ->
-                new ValidInboundConnectorDetails(
-                    elements.getFirst().deduplicationId(List.of()), elements))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessage(
-            "All elements in a group must have the same properties (excluding runtime-level properties)");
+    var result =
+        InboundConnectorDetails.of(elements.getFirst().deduplicationId(List.of()), elements);
+    assertThat(result).isInstanceOf(InboundConnectorDetails.InvalidInboundConnectorDetails.class);
+    var invalid = (InboundConnectorDetails.InvalidInboundConnectorDetails) result;
+    assertThat(invalid.error()).isInstanceOf(IllegalArgumentException.class);
+    assertThat(invalid.error().getMessage())
+        .contains(
+            "All elements in a group must have the same properties (excluding runtime-level properties). The following properties are different:");
+    assertThat(invalid.error().getMessage()).contains("property1", "property2");
   }
 }

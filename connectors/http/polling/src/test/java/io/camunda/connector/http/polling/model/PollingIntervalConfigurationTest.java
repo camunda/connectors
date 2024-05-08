@@ -13,7 +13,7 @@ import com.google.common.collect.EvictingQueue;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorContextImpl;
-import io.camunda.connector.runtime.core.inbound.InboundConnectorDetails.ValidInboundConnectorDetails;
+import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
