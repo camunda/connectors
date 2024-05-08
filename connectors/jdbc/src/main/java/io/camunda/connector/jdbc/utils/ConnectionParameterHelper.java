@@ -13,7 +13,7 @@ import java.net.URISyntaxException;
  * Helper class to add parameters to a URL. Parameters values can be added to the URL as well, but
  * it is optional.
  *
- * @see ConnectionParameterHelperTest for usage examples.
+ * <p>See ConnectionParameterHelperTest for usage examples.
  */
 public class ConnectionParameterHelper {
 
