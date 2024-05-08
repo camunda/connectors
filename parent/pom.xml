@@ -71,9 +71,9 @@ limitations under the License.</license.inlineheader>
     <nexus.sonatype.url>https://s01.oss.sonatype.org</nexus.sonatype.url>
 
     <!-- Camunda internal libraries -->
-    <version.zeebe>8.5.0</version.zeebe>
+    <version.zeebe>8.5.1</version.zeebe>
     <version.feel-engine>1.17.7</version.feel-engine>
-    <version.spring-zeebe>8.5.2</version.spring-zeebe>
+    <version.spring-zeebe>8.5.3</version.spring-zeebe>
 
     <!-- Third party dependencies -->
 
@@ -138,7 +138,7 @@ limitations under the License.</license.inlineheader>
     <plugin.version.maven-enforcer-plugin>3.1.0</plugin.version.maven-enforcer-plugin>
     <plugin.version.maven-exec-plugin>3.2.0</plugin.version.maven-exec-plugin>
     <plugin.version.maven-install-plugin>3.1.2</plugin.version.maven-install-plugin>
-    <plugin.version.license>4.3</plugin.version.license>
+    <plugin.version.license>4.4</plugin.version.license>
     <plugin.version.license.codehaus>2.4.0</plugin.version.license.codehaus>
     <plugin.version.maven-resources-plugin>3.2.0</plugin.version.maven-resources-plugin>
     <plugin.version.maven-shade-plugin>3.5.3</plugin.version.maven-shade-plugin>
