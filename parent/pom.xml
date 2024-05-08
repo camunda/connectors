@@ -71,9 +71,9 @@ limitations under the License.</license.inlineheader>
     <nexus.sonatype.url>https://s01.oss.sonatype.org</nexus.sonatype.url>
 
     <!-- Camunda internal libraries -->
-    <version.zeebe>8.5.0</version.zeebe>
+    <version.zeebe>8.5.1</version.zeebe>
     <version.feel-engine>1.17.7</version.feel-engine>
-    <version.spring-zeebe>8.5.2</version.spring-zeebe>
+    <version.spring-zeebe>8.5.3</version.spring-zeebe>
 
     <!-- Third party dependencies -->
 
@@ -81,16 +81,16 @@ limitations under the License.</license.inlineheader>
     <version.mockito>5.11.0</version.mockito>
     <version.junit-jupiter>5.10.2</version.junit-jupiter>
     <version.assertj>3.25.3</version.assertj>
-    <version.jackson-bom>2.17.0</version.jackson-bom>
-    <version.jackson-datatype-jsr310>2.17.0</version.jackson-datatype-jsr310>
+    <version.jackson-bom>2.17.1</version.jackson-bom>
+    <version.jackson-datatype-jsr310>2.17.1</version.jackson-datatype-jsr310>
     <version.hibernate-validator>8.0.1.Final</version.hibernate-validator>
     <version.jsonassert>1.5.1</version.jsonassert>
 
     <version.spring-boot>3.2.5</version.spring-boot>
-    <version.spring-cloud-gcp-starter-logging>5.1.2</version.spring-cloud-gcp-starter-logging>
+    <version.spring-cloud-gcp-starter-logging>5.2.1</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.5.6</version.logback>
 
-    <version.aws-java-sdk>1.12.714</version.aws-java-sdk>
+    <version.aws-java-sdk>1.12.716</version.aws-java-sdk>
     <version.aws-lambda-java-events>3.11.5</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.2.3</version.aws-lambda-java-core>
 
@@ -138,7 +138,7 @@ limitations under the License.</license.inlineheader>
     <plugin.version.maven-enforcer-plugin>3.1.0</plugin.version.maven-enforcer-plugin>
     <plugin.version.maven-exec-plugin>3.2.0</plugin.version.maven-exec-plugin>
     <plugin.version.maven-install-plugin>3.1.2</plugin.version.maven-install-plugin>
-    <plugin.version.license>4.3</plugin.version.license>
+    <plugin.version.license>4.4</plugin.version.license>
     <plugin.version.license.codehaus>2.4.0</plugin.version.license.codehaus>
     <plugin.version.maven-resources-plugin>3.2.0</plugin.version.maven-resources-plugin>
     <plugin.version.maven-shade-plugin>3.5.3</plugin.version.maven-shade-plugin>

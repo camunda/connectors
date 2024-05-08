@@ -8,7 +8,7 @@ package io.camunda.connector.jdbc.model.request;
 
 public enum SupportedDatabase {
   MSSQL("com.microsoft.sqlserver.jdbc.SQLServerDriver", "jdbc:sqlserver://"),
-  MYSQL("com.mysql.cj.jdbc.Driver", "jdbc:mysql://"),
+  MYSQL("org.mariadb.jdbc.Driver", "jdbc:mysql://"),
   POSTGRESQL("org.postgresql.Driver", "jdbc:postgresql://");
 
   private final String driverClassName;
