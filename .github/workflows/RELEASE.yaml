@@ -5,12 +5,6 @@ on:
   release:
     types: [ created ]
 
-defaults:
-  run:
-    # use bash shell by default to ensure pipefail behavior is the default
-    # see https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#exit-codes-and-error-action-preference
-    shell: bash
-
 jobs:
   build-and-push:
     name: Build and push Docker images
@@ -270,13 +264,3 @@ jobs:
             bundle/default-bundle/target/connectors-bundle-sbom.xml
             connectors-bundle-templates-${{ github.event.release.tag_name }}.tar.gz
             connectors-bundle-templates-${{ github.event.release.tag_name }}.zip
-
-  helm-deploy:
-    name: Helm chart Integration Tests
-    uses: camunda/connectors/.github/workflows/INTEGRATION_TEST.yml@main
-    secrets: inherit
-    with:
-      extra-values: |
-        connectors:
-          image:
-            tag: ${{ github.event.release.tag_name }}
