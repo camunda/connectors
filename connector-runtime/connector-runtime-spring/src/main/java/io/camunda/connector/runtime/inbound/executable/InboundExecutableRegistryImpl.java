@@ -20,13 +20,14 @@ import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.Health.Error;
 import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
-import io.camunda.connector.runtime.core.inbound.InboundConnectorDetails;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
+import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableEvent.Deactivated;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.Activated;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.ConnectorNotRegistered;
 import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.FailedToActivate;
+import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.InvalidDefinition;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -113,7 +114,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
         }
       };
 
-  private void handleEvent(InboundExecutableEvent event) {
+  void handleEvent(InboundExecutableEvent event) {
     switch (event) {
       case InboundExecutableEvent.Activated activated -> handleActivated(activated);
       case Deactivated deactivated -> handleDeactivated(deactivated);
@@ -217,7 +218,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
     }
 
     return groupedElements.entrySet().stream()
-        .map(entry -> new InboundConnectorDetails(entry.getKey(), entry.getValue()))
+        .map(entry -> InboundConnectorDetails.of(entry.getKey(), entry.getValue()))
         .toList();
   }
 
@@ -236,24 +237,41 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
               .stream()
               .map(InboundConnectorElement::element)
               .toList();
+          case InvalidDefinition invalid -> invalid.data().connectorElements().stream()
+              .map(InboundConnectorElement::element)
+              .toList();
         };
     var type =
         switch (executable) {
           case Activated activated -> activated.context().getDefinition().type();
-          case FailedToActivate failed -> failed.data().type();
+          case FailedToActivate failed -> failed.data().connectorElements().getFirst().type();
           case ConnectorNotRegistered notRegistered -> notRegistered.data().type();
+          case InvalidDefinition invalid -> invalid.data().connectorElements().getFirst().type();
         };
 
     return elements.stream()
         .anyMatch(
             element ->
-                query.bpmnProcessId() == null
-                    || query.bpmnProcessId().equals(element.bpmnProcessId())
-                        && (query.type() == null || query.type().equals(type))
-                        && (query.tenantId() == null
-                            || query.tenantId().equals(element.tenantId())
-                                && (query.elementId() == null
-                                    || query.elementId().equals(element.elementId()))));
+                processIdMatches(element, query)
+                    && typeMatches(type, query)
+                    && tenantIdMatches(element, query)
+                    && elementIdMatches(element.elementId(), query));
+  }
+
+  private boolean processIdMatches(ProcessElement element, ActiveExecutableQuery query) {
+    return query.bpmnProcessId() == null || query.bpmnProcessId().equals(element.bpmnProcessId());
+  }
+
+  private boolean tenantIdMatches(ProcessElement element, ActiveExecutableQuery query) {
+    return query.tenantId() == null || query.tenantId().equals(element.tenantId());
+  }
+
+  private boolean typeMatches(String type, ActiveExecutableQuery query) {
+    return query.type() == null || type == null || query.type().equals(type);
+  }
+
+  private boolean elementIdMatches(String elementId, ActiveExecutableQuery query) {
+    return query.elementId() == null || query.elementId().equals(elementId);
   }
 
   private ActiveExecutableResponse mapToResponse(UUID id, RegisteredExecutable connector) {
@@ -280,6 +298,13 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
                   "Activation failure",
                   "Connector " + notRegistered.data().type() + " not registered")),
           List.of());
+      case InvalidDefinition invalid -> new ActiveExecutableResponse(
+          id,
+          null,
+          invalid.data().connectorElements(),
+          Health.down(
+              new Error("Activation failure", "Invalid connector definition: " + invalid.reason())),
+          List.of());
     };
   }
 
@@ -293,8 +318,13 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
                 activeExecutable ->
                     switch (activeExecutable) {
                       case Activated activated -> activated.context().getDefinition().type();
-                      case FailedToActivate failed -> failed.data().type();
+                      case FailedToActivate failed -> failed
+                          .data()
+                          .connectorElements()
+                          .getFirst()
+                          .type();
                       case ConnectorNotRegistered notRegistered -> notRegistered.data().type();
+                      case InvalidDefinition invalid -> invalid.data().type();
                     },
                 Collectors.toList()))
         .forEach(
@@ -320,6 +350,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
                                     case ConnectorNotRegistered notRegistered -> notRegistered
                                         .data()
                                         .tenantId();
+                                    case InvalidDefinition invalid -> invalid.data().tenantId();
                                   },
                               Collectors.counting()));
               groupedByTenant.forEach(

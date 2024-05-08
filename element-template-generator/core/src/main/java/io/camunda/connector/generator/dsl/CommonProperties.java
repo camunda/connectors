@@ -165,7 +165,7 @@ public class CommonProperties {
                 .pattern(
                     new Pattern(
                         "^[a-zA-Z0-9_-]+$",
-                        "Only alphanumeric characters, dashes, and underscores are allowed"))
+                        "can only contain alphanumeric characters, dashes, and underscores"))
                 .build())
         .condition(new Equals("deduplicationModeManualFlag", true));
   }
