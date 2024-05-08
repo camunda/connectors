@@ -21,6 +21,7 @@ jobs:
     uses: camunda/camunda-platform-helm/.github/workflows/test-integration-template.yaml@main
     secrets: inherit
     with:
+      camunda-helm-git-ref: camunda-platform-8.3
       identifier: connectors-int
       test-enabled: true
       extra-values: |
