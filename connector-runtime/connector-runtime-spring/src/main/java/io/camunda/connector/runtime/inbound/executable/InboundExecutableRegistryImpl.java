@@ -244,7 +244,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
     var type =
         switch (executable) {
           case Activated activated -> activated.context().getDefinition().type();
-          case FailedToActivate failed -> failed.data().connectorElements().getFirst();
+          case FailedToActivate failed -> failed.data().connectorElements().getFirst().type();
           case ConnectorNotRegistered notRegistered -> notRegistered.data().type();
           case InvalidDefinition invalid -> invalid.data().connectorElements().getFirst().type();
         };
@@ -252,13 +252,26 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
     return elements.stream()
         .anyMatch(
             element ->
-                query.bpmnProcessId() == null
-                    || query.bpmnProcessId().equals(element.bpmnProcessId())
-                        && (query.type() == null || type == null || query.type().equals(type))
-                        && (query.tenantId() == null
-                            || query.tenantId().equals(element.tenantId())
-                                && (query.elementId() == null
-                                    || query.elementId().equals(element.elementId()))));
+                processIdMatches(element, query)
+                    && typeMatches(type, query)
+                    && tenantIdMatches(element, query)
+                    && elementIdMatches(element.elementId(), query));
+  }
+
+  private boolean processIdMatches(ProcessElement element, ActiveExecutableQuery query) {
+    return query.bpmnProcessId() == null || query.bpmnProcessId().equals(element.bpmnProcessId());
+  }
+
+  private boolean tenantIdMatches(ProcessElement element, ActiveExecutableQuery query) {
+    return query.tenantId() == null || query.tenantId().equals(element.tenantId());
+  }
+
+  private boolean typeMatches(String type, ActiveExecutableQuery query) {
+    return query.type() == null || type == null || query.type().equals(type);
+  }
+
+  private boolean elementIdMatches(String elementId, ActiveExecutableQuery query) {
+    return query.elementId() == null || query.elementId().equals(elementId);
   }
 
   private ActiveExecutableResponse mapToResponse(UUID id, RegisteredExecutable connector) {
