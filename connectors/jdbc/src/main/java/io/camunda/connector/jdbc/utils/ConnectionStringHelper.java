@@ -15,35 +15,13 @@ public class ConnectionStringHelper {
   public static String buildConnectionString(
       SupportedDatabase database, DetailedConnection connection) {
     return switch (database) {
-      case MYSQL -> buildMySqlConnectionString(database, connection);
-      case POSTGRESQL -> buildPostgresConnectionString(database, connection);
+      case MYSQL, POSTGRESQL -> buildCommonConnectionString(database, connection);
       case MSSQL -> buildMssqlConnectionString(database, connection);
       default -> throw new ConnectorException("Unsupported database: " + database);
     };
   }
 
-  private static String buildMySqlConnectionString(
-      SupportedDatabase database, DetailedConnection connection) {
-    String host = connection.host();
-    String port = connection.port();
-    String username = connection.username();
-    String password = connection.password();
-    String databaseName = connection.databaseName();
-    String authentication = "";
-    if (username != null && !username.isEmpty()) {
-      authentication += username;
-      if (password != null && !password.isEmpty()) {
-        authentication += ":" + password + "@";
-      }
-    }
-    String connectionString = database.getUrlSchema() + authentication + host + ":" + port;
-    if (databaseName != null && !databaseName.isEmpty()) {
-      connectionString += "/" + databaseName;
-    }
-    return connectionString;
-  }
-
-  private static String buildPostgresConnectionString(
+  private static String buildCommonConnectionString(
       SupportedDatabase database, DetailedConnection connection) {
     String host = connection.host();
     String port = connection.port();
