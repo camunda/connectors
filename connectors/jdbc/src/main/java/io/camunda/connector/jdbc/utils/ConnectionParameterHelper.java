@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.jdbc.utils;
 
-import java.net.URISyntaxException;
 
 /**
  * Helper class to add parameters to a URL. Parameters values can be added to the URL as well, but
@@ -16,13 +15,12 @@ import java.net.URISyntaxException;
  */
 public class ConnectionParameterHelper {
 
-  public static String addQueryParameterToURL(String urlString, String paramName)
-      throws URISyntaxException {
+  public static String addQueryParameterToURL(String urlString, String paramName) {
     return addQueryParameterToURL(urlString, paramName, null);
   }
 
-  public static String addQueryParameterToURL(String urlString, String paramName, String paramValue)
-      throws URISyntaxException {
+  public static String addQueryParameterToURL(
+      String urlString, String paramName, String paramValue) {
     // Check if the URL already has query parameters
     int queryParamsIndex = urlString.indexOf('?');
     String query;
