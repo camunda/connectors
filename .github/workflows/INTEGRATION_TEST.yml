@@ -25,6 +25,9 @@ jobs:
       identifier: connectors-int
       test-enabled: true
       extra-values: |
+        global:
+          image:
+            tag: 8.3.10
         identity:
           keycloak:
             # https://hub.docker.com/r/bitnami/keycloak/tags
