@@ -6,7 +6,6 @@
  */
 package io.camunda.connector.jdbc.utils;
 
-
 /**
  * Helper class to add parameters to a URL. Parameters values can be added to the URL as well, but
  * it is optional.
@@ -23,22 +22,18 @@ public class ConnectionParameterHelper {
       String urlString, String paramName, String paramValue) {
     // Check if the URL already has query parameters
     int queryParamsIndex = urlString.indexOf('?');
-    String query;
     if (queryParamsIndex == -1) {
       // No query parameters
-      query = "?";
+      urlString += "?";
     } else {
       // Query parameters already exist let's add the new one
-      query = "&";
+      urlString += "&";
     }
-    query += paramName;
+    urlString += paramName;
     // Value is optional
     if (paramValue != null) {
-      query += "=" + paramValue;
+      urlString += "=" + paramValue;
     }
-    // jdbc:mysql//localhost:3306?paramName=paramValue for instance is not detected as a regular
-    // URI,
-    // so we need to reconstruct the URI using the scheme and the scheme specific part
-    return urlString + query;
+    return urlString;
   }
 }
