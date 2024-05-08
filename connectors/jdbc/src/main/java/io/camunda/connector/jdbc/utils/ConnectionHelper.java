@@ -22,20 +22,21 @@ public class ConnectionHelper {
   private static final Logger LOG = LoggerFactory.getLogger(ConnectionHelper.class);
 
   public static Connection openConnection(JdbcRequest request) {
+    SupportedDatabase database = request.database();
+    String driverClassName = database.getDriverClassName();
     try {
       LOG.debug("Executing JDBC request: {}", request);
-      LOG.debug("Loading JDBC driver: {}", request.database().getDriverClassName());
-      Class.forName(request.database().getDriverClassName());
+      LOG.debug("Loading JDBC driver: {}", driverClassName);
+      Class.forName(driverClassName);
       JdbcConnection connection = request.connection();
       Connection conn =
           DriverManager.getConnection(
-              ensureMySQLCompatibleUrl(
-                  connection.getConnectionString(request.database()), request.database()),
+              ensureMySQLCompatibleUrl(connection.getConnectionString(database), database),
               connection.getProperties());
-      LOG.debug("Connection established for Database {}: {}", request.database(), conn);
+      LOG.debug("Connection established for Database {}: {}", database, conn);
       return conn;
     } catch (ClassNotFoundException e) {
-      throw new ConnectorException("Cannot find class: " + request.database().getDriverClassName());
+      throw new ConnectorException("Cannot find class: " + driverClassName);
     } catch (URISyntaxException e) {
       throw new ConnectorException("Cannot parse the Database connection URL: " + e.getMessage());
     } catch (SQLException e) {
