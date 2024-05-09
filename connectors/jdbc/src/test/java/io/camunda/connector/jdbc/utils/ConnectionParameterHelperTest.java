@@ -92,16 +92,6 @@ public class ConnectionParameterHelperTest {
   }
 
   @Test
-  void shouldEncodeSpecialCharactersInParamValue() {
-    String urlString = "jdbc:mysql//localhost:3306";
-    String paramName = "paramName";
-    String paramValue = "special&=value%";
-    String result =
-        ConnectionParameterHelper.addQueryParameterToURL(urlString, paramName, paramValue);
-    assertThat(result).isEqualTo(urlString + "?paramName=special%26%3Dvalue%25");
-  }
-
-  @Test
   void shouldHandleEmptyParamValue() {
     String urlString = "jdbc:mysql//localhost:3306";
     String paramName = "paramName";
@@ -117,35 +107,5 @@ public class ConnectionParameterHelperTest {
     String paramName = "paramName";
     String result = ConnectionParameterHelper.addQueryParameterToURL(urlString, paramName, null);
     assertThat(result).isEqualTo(urlString + "?paramName");
-  }
-
-  @Test
-  void shouldHandleParameterValueWithAmpersand() {
-    String urlString = "jdbc:mysql//localhost:3306";
-    String paramName = "paramName";
-    String paramValue = "value1&value2";
-    String result =
-        ConnectionParameterHelper.addQueryParameterToURL(urlString, paramName, paramValue);
-    assertThat(result).isEqualTo(urlString + "?paramName=value1%26value2");
-  }
-
-  @Test
-  void shouldHandleParameterValueWithEqualsSign() {
-    String urlString = "jdbc:mysql//localhost:3306";
-    String paramName = "paramName";
-    String paramValue = "value=123";
-    String result =
-        ConnectionParameterHelper.addQueryParameterToURL(urlString, paramName, paramValue);
-    assertThat(result).isEqualTo(urlString + "?paramName=value%3D123");
-  }
-
-  @Test
-  void shouldHandleParameterValueWithPercentSign() {
-    String urlString = "jdbc:mysql//localhost:3306";
-    String paramName = "paramName";
-    String paramValue = "25%discount";
-    String result =
-        ConnectionParameterHelper.addQueryParameterToURL(urlString, paramName, paramValue);
-    assertThat(result).isEqualTo(urlString + "?paramName=25%25discount");
   }
 }

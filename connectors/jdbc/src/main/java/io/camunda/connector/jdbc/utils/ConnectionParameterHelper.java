@@ -6,9 +6,6 @@
  */
 package io.camunda.connector.jdbc.utils;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-
 /**
  * Helper class to add parameters to a URL. Parameters values can be added to the URL as well, but
  * it is optional.
@@ -23,9 +20,7 @@ public class ConnectionParameterHelper {
 
   public static String addQueryParameterToURL(
       String urlString, String paramName, String paramValue) {
-    String encodedValue =
-        paramValue != null ? URLEncoder.encode(paramValue, StandardCharsets.UTF_8) : null;
     String separator = urlString.contains("?") ? "&" : "?";
-    return urlString + separator + paramName + (encodedValue != null ? "=" + encodedValue : "");
+    return urlString + separator + paramName + (paramValue != null ? "=" + paramValue : "");
   }
 }
