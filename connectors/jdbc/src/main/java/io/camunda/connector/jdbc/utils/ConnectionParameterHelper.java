@@ -6,9 +6,6 @@
  */
 package io.camunda.connector.jdbc.utils;
 
-import java.net.URI;
-import java.net.URISyntaxException;
-
 /**
  * Helper class to add parameters to a URL. Parameters values can be added to the URL as well, but
  * it is optional.
@@ -17,32 +14,13 @@ import java.net.URISyntaxException;
  */
 public class ConnectionParameterHelper {
 
-  public static String addQueryParameterToURL(String urlString, String paramName)
-      throws URISyntaxException {
+  public static String addQueryParameterToURL(String urlString, String paramName) {
     return addQueryParameterToURL(urlString, paramName, null);
   }
 
-  public static String addQueryParameterToURL(String urlString, String paramName, String paramValue)
-      throws URISyntaxException {
-    URI uri = new URI(urlString);
-    // Check if the URL already has query parameters
-    int queryParamsIndex = urlString.indexOf('?');
-    String query;
-    if (queryParamsIndex == -1) {
-      // No query parameters
-      query = "?";
-    } else {
-      // Query parameters already exist let's add the new one
-      query = "&";
-    }
-    query += paramName;
-    // Value is optional
-    if (paramValue != null) {
-      query += "=" + paramValue;
-    }
-    // jdbc:mysql//localhost:3306?paramName=paramValue for instance is not detected as a regular
-    // URI,
-    // so we need to reconstruct the URI using the scheme and the scheme specific part
-    return new URI(uri.getScheme() + ":" + uri.getSchemeSpecificPart() + query).toString();
+  public static String addQueryParameterToURL(
+      String urlString, String paramName, String paramValue) {
+    String separator = urlString.contains("?") ? "&" : "?";
+    return urlString + separator + paramName + (paramValue != null ? "=" + paramValue : "");
   }
 }
