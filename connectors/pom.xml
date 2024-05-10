@@ -22,7 +22,6 @@
     <module>aws</module>
     <module>google</module>
     <module>http</module>
-    <module>jdbc</module>
     <module>kafka</module>
     <module>microsoft-teams</module>
     <module>rabbitmq</module>
