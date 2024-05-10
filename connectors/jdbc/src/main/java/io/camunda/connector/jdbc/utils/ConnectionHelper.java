@@ -10,7 +10,6 @@ import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.jdbc.model.request.JdbcRequest;
 import io.camunda.connector.jdbc.model.request.SupportedDatabase;
 import io.camunda.connector.jdbc.model.request.connection.JdbcConnection;
-import java.net.URISyntaxException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -37,8 +36,6 @@ public class ConnectionHelper {
       return conn;
     } catch (ClassNotFoundException e) {
       throw new ConnectorException("Cannot find class: " + driverClassName);
-    } catch (URISyntaxException e) {
-      throw new ConnectorException("Cannot parse the Database connection URL: " + e.getMessage());
     } catch (SQLException e) {
       throw new ConnectorException("Cannot create the Database connection: " + e.getMessage());
     }
@@ -52,8 +49,7 @@ public class ConnectionHelper {
    *     href="https://mariadb.com/kb/en/about-mariadb-connector-j/#jdbcmysql-scheme-compatibility">Compatibility
    *     details</a>
    */
-  private static String ensureMySQLCompatibleUrl(String url, SupportedDatabase database)
-      throws URISyntaxException {
+  private static String ensureMySQLCompatibleUrl(String url, SupportedDatabase database) {
     if (database == SupportedDatabase.MYSQL) {
       return ConnectionParameterHelper.addQueryParameterToURL(url, "permitMysqlScheme");
     }
