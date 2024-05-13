@@ -53,7 +53,14 @@ public class ProcessDefinitionImporter {
   public synchronized void scheduleImport() {
     try {
       var result = search.query();
-      handleImportedDefinitions(result);
+      // We need to catch all exceptions here to ensure that the runtime is not shut down due to
+      // health check failures
+      // This is fixed in newer versions of the code since 8.6.x
+      try {
+        handleImportedDefinitions(result);
+      } catch (Exception e) {
+        LOG.error("Error during process definition import handling.", e);
+      }
       ready = true;
     } catch (Exception e) {
       LOG.error("Failed to import process definitions", e);
