@@ -10,9 +10,11 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.Consumer;
 import io.camunda.connector.api.annotation.InboundConnector;
+import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.rabbitmq.inbound.model.RabbitMqInboundProperties;
@@ -82,7 +84,11 @@ public class RabbitMqExecutable implements InboundConnectorExecutable<InboundCon
     RabbitMqInboundProperties properties = context.bindProperties(RabbitMqInboundProperties.class);
 
     LOGGER.info("Subscription activation requested by the Connector runtime: {}", properties);
-
+    context.log(
+        Activity.level(Severity.INFO)
+            .tag("Subscription activation")
+            .message(
+                "Subscription activation requested for queue name :" + properties.getQueueName()));
     connection = openConnection(properties);
     channel = connection.createChannel();
     Consumer consumer = new RabbitMqConsumer(channel, context);
@@ -96,6 +102,11 @@ public class RabbitMqExecutable implements InboundConnectorExecutable<InboundCon
 
     consumerTag = startConsumer(properties, consumer);
     LOGGER.info("Started RabbitMQ consumer for queue {}", properties.getQueueName());
+    context.log(
+        Activity.level(Severity.INFO)
+            .tag("Subscription activation")
+            .message("Activated subscription for queue: " + properties.getQueueName()));
+    context.reportHealth(Health.up());
   }
 
   @Override

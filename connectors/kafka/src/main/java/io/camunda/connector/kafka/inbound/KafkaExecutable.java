@@ -7,9 +7,11 @@
 package io.camunda.connector.kafka.inbound;
 
 import io.camunda.connector.api.annotation.InboundConnector;
+import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import java.util.Properties;
@@ -71,15 +73,30 @@ public class KafkaExecutable implements InboundConnectorExecutable<InboundConnec
   }
 
   @Override
-  public void activate(InboundConnectorContext connectorContext) {
+  public void activate(InboundConnectorContext context) {
     try {
+      LOG.info("Subscription activation requested by the Connector runtime");
+      context.log(
+          Activity.level(Severity.INFO)
+              .tag("Subscription activation")
+              .message("Subscription activation requested by the Connector runtime"));
+
       KafkaConnectorProperties elementProps =
-          connectorContext.bindProperties(KafkaConnectorProperties.class);
+          context.bindProperties(KafkaConnectorProperties.class);
       this.kafkaConnectorConsumer =
-          new KafkaConnectorConsumer(consumerCreatorFunction, connectorContext, elementProps);
+          new KafkaConnectorConsumer(consumerCreatorFunction, context, elementProps);
       this.kafkaConnectorConsumer.startConsumer();
+      context.log(
+          Activity.level(Severity.INFO)
+              .tag("Subscription activation")
+              .message("Subscription activated successfully"));
     } catch (Exception ex) {
-      connectorContext.reportHealth(Health.down(ex));
+      context.log(
+          Activity.level(Severity.ERROR)
+              .tag("Subscription activation")
+              .message("Subscription activation failed: " + ex.getMessage()));
+      context.reportHealth(Health.down(ex));
+      LOG.warn("Subscription activation failed: ", ex);
       throw ex;
     }
   }

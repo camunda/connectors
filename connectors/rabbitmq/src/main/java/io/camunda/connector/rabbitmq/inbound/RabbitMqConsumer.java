@@ -15,8 +15,10 @@ import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.ShutdownSignalException;
 import io.camunda.connector.api.error.ConnectorInputException;
+import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
+import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.rabbitmq.inbound.model.RabbitMqInboundResult;
 import io.camunda.connector.rabbitmq.inbound.model.RabbitMqInboundResult.RabbitMqInboundMessage;
 import io.camunda.connector.rabbitmq.supplier.ObjectMapperSupplier;
@@ -60,6 +62,10 @@ public class RabbitMqConsumer extends DefaultConsumer {
   public void handleCancel(String consumerTag) {
     LOGGER.info("Consumer cancelled: {}", consumerTag);
     try {
+      context.log(
+          Activity.level(Severity.INFO)
+              .tag("Subscription")
+              .message("Consumer cancelled: " + consumerTag));
       context.cancel(null);
     } catch (Exception e) {
       context.reportHealth(Health.down(e));
@@ -70,6 +76,10 @@ public class RabbitMqConsumer extends DefaultConsumer {
   @Override
   public void handleShutdownSignal(String consumerTag, ShutdownSignalException sig) {
     LOGGER.error("Consumer shutdown: {}", consumerTag, sig);
+    context.log(
+        Activity.level(Severity.INFO)
+            .tag("Subscription")
+            .message("Consumer shutdown: " + consumerTag + sig));
     try {
       context.cancel(sig);
     } catch (Exception e) {

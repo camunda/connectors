@@ -21,8 +21,10 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.scala.DefaultScalaModule$;
 import io.camunda.connector.api.error.ConnectorInputException;
+import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
+import io.camunda.connector.api.inbound.Severity;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
@@ -205,6 +207,10 @@ public class KafkaConnectorConsumer {
 
   private void reportDown(Throwable error) {
     var newStatus = Health.down(error);
+    context.log(
+        Activity.level(Severity.ERROR)
+            .tag("Kafka Consumer")
+            .message("Kafka Consumer status changed to DOWN: " + newStatus));
     if (!newStatus.equals(consumerStatus)) {
       consumerStatus = newStatus;
       context.reportHealth(Health.down(error));
