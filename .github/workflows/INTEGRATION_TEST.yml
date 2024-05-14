@@ -22,6 +22,8 @@ jobs:
       camunda-helm-git-ref: ${{ steps.set_vars.outputs.camunda-helm-git-ref }}
       extra-values-url: ${{ steps.set_vars.outputs.extra-values-url }}
     steps:
+      - name: Install jq
+        uses: dcarbone/install-jq-action@v2.1.0
       - name: Define version map
         run: |
           if [[ "${{ inputs.connectors_version }}" == 8.3* ]]; then
