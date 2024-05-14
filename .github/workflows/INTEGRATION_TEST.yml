@@ -46,47 +46,50 @@ jobs:
           VARS_8_4: '{"camunda-helm-git-ref": "camunda-platform-8.4", "extra-values-url": "https://raw.githubusercontent.com/camunda/camunda-platform-helm/main/charts/camunda-platform/values/values-v8.4.yaml"}'
           VARS_8_5: '{"camunda-helm-git-ref": "main", "extra-values-url": "https://raw.githubusercontent.com/camunda/camunda-platform-helm/main/charts/camunda-platform/values/values-latest.yaml"}'
 
-  get-extra-values:
-      needs: determine-inputs
-      if: ${{ needs.determine-inputs.outputs.extra-values-url != 'null' }}
-      runs-on: ubuntu-latest
-      steps:
-        - name: HTTP Request Action
-          id: extra-values-content
-          uses: fjogeleit/http-request-action@v1.15.5
-          with:
-            url: ${{ needs.process_version.outputs.extra-values-url }}
-        - name: WIP Take HTTP response and convert into a .yaml file
-          run: |
-            echo ${{ steps.extra-values-content.outputs.response }}
-            echo ${{ steps.extra-values-content.outputs.headers }}
-            echo ${{ steps.extra-values-content.outputs.status }}
-        - name: WIP Take YAML file from last step and delete the connectors value
-          uses: mikefarah/yq@v4.44.1
-          # hint: https://github.com/marketplace/actions/yq-portable-yaml-processor#github-action
-          # output to something like "non-connectors-extra-values"
-
-  use-input-connectors-version-in-extra-values:
-    needs: get-extra-values
-    runs-on: ubuntu-latest
-    steps:
-      - name: WIP Only Set Extra Values as Connectors By Default
-      - name: WIP Append input connectors version to non-connectors-extra-values from previous
-        uses: mikefarah/yq@v4.44.1
-        # hint: https://github.com/marketplace/actions/yq-portable-yaml-processor#github-action
-        # append this yaml for the connectors version:
-        #   connectors:
-        #      image:
-        #        tag: ${{ github.event.inputs.connectors_version }}
+#  get-extra-values:
+#      needs: determine-inputs
+#      if: ${{ needs.determine-inputs.outputs.extra-values-url != 'null' }}
+#      runs-on: ubuntu-latest
+#      steps:
+#        - name: HTTP Request Action
+#          id: extra-values-content
+#          uses: fjogeleit/http-request-action@v1.15.5
+#          with:
+#            url: ${{ needs.process_version.outputs.extra-values-url }}
+#        - name: WIP Take HTTP response and convert into a .yaml file
+#          run: |
+#            echo ${{ steps.extra-values-content.outputs.response }}
+#            echo ${{ steps.extra-values-content.outputs.headers }}
+#            echo ${{ steps.extra-values-content.outputs.status }}
+#        - name: WIP Take YAML file from last step and delete the connectors value
+#          uses: mikefarah/yq@v4.44.1
+#          # hint: https://github.com/marketplace/actions/yq-portable-yaml-processor#github-action
+#          # output to something like "non-connectors-extra-values"
+#
+#  use-input-connectors-version-in-extra-values:
+#    needs: get-extra-values
+#    runs-on: ubuntu-latest
+#    steps:
+#      - name: WIP Only Set Extra Values as Connectors By Default
+#      - name: WIP Append input connectors version to non-connectors-extra-values from previous
+#        uses: mikefarah/yq@v4.44.1
+#        # hint: https://github.com/marketplace/actions/yq-portable-yaml-processor#github-action
+#        # append this yaml for the connectors version:
+#        #   connectors:
+#        #      image:
+#        #        tag: ${{ github.event.inputs.connectors_version }}
 
 
   helm-deploy:
-    needs: [determine-inputs, use-input-connectors-version-in-extra-values]
+    needs: determine-inputs
     name: Helm chart Integration Tests
     uses: camunda/camunda-platform-helm/.github/workflows/test-integration-template.yaml@main
     secrets: inherit
     with:
       identifier: connectors-int
       test-enabled: true
-      camunda-helm-git-ref: ${{ TO_DEFINE_FROM_LAST_STEP || 'main' }}
-      extra-values: ${{ TO_DEFINE_FROM_LAST_STEP }}
+      camunda-helm-git-ref: ${{ needs.determine-inputs.outputs.camunda-help-git-ref || 'main' }}
+      extra-values: |
+        connectors:
+          image:
+            tag: ${{ github.event.inputs.connectors_version }}
