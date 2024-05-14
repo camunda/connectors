@@ -84,17 +84,27 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   public void correlate(Object variables) {
     var result = correlateWithResult(variables);
     if (result == null) {
+      log(
+          Activity.level(Severity.ERROR)
+              .tag("error")
+              .message("Failed to correlate inbound event, result is null"));
       throw new ConnectorException("Failed to correlate inbound event, result is null");
     }
     if (result instanceof ActivationConditionNotMet || result instanceof Success) {
       return;
     }
     if (result instanceof CorrelationResult.Failure.InvalidInput invalidInput) {
+      log(Activity.level(Severity.ERROR).tag("error").message(invalidInput.message()));
       throw new ConnectorInputException(invalidInput.message(), invalidInput.error());
     }
     if (result instanceof Other exception) {
+      log(Activity.level(Severity.ERROR).tag("error").message(exception.error().getMessage()));
       throw new ConnectorException(exception.error());
     }
+    log(
+        Activity.level(Severity.ERROR)
+            .tag("error")
+            .message("Failed to correlate inbound event, details: " + result));
     throw new ConnectorException("Failed to correlate inbound event, details: " + result);
   }
 
@@ -106,6 +116,10 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       log(Activity.level(Severity.ERROR).tag("error").message(e.getMessage()));
       return new CorrelationResult.Failure.Other(e);
     } catch (Exception e) {
+      log(
+          Activity.level(Severity.ERROR)
+              .tag("error")
+              .message("Failed to correlate inbound event " + e.getMessage()));
       LOG.error("Failed to correlate inbound event", e);
       return new CorrelationResult.Failure.Other(e);
     }
