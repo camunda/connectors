@@ -15,6 +15,7 @@ import io.camunda.connector.jdbc.utils.ConnectionStringHelper;
 import jakarta.validation.constraints.NotBlank;
 import java.util.Map;
 import java.util.Properties;
+import org.apache.commons.lang3.StringUtils;
 
 @TemplateSubType(id = "detailed", label = "Detailed")
 public record DetailedConnection(
@@ -41,11 +42,16 @@ public record DetailedConnection(
 
   @Override
   public Properties getProperties() {
-    if (properties == null) {
-      return new Properties();
-    }
     Properties properties = new Properties();
-    properties.putAll(this.properties());
+    if (this.properties() != null) {
+      properties.putAll(this.properties());
+    }
+    if (StringUtils.isNotBlank(this.username())) {
+      properties.put(AuthProperties.USER, this.username());
+    }
+    if (StringUtils.isNotBlank(this.password())) {
+      properties.put(AuthProperties.PASSWORD, this.password());
+    }
     return properties;
   }
 }

@@ -59,6 +59,10 @@
     </dependency>
     <dependency>
       <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-jdbc</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
       <artifactId>connector-kafka</artifactId>
     </dependency>
     <dependency>

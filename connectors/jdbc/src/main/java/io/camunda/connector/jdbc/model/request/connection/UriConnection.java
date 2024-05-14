@@ -26,7 +26,7 @@ public record UriConnection(
             group = "connection",
             label = "URI",
             description =
-                "URI should contain JDBC driver, username, password, host name, and port number. For more information, see the <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/sql/#uri-connection\" target=\"_blank\">documentation</a>.)")
+                "URI should contain JDBC driver, host name, and port number. For more information, see the <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/sql/#uri-connection\" target=\"_blank\">documentation</a>.)")
         String uri,
     @TemplateProperty(
             group = "connection",
@@ -34,7 +34,7 @@ public record UriConnection(
             feel = Property.FeelMode.required,
             optional = true,
             description =
-                "Additional properties for the connection. For more information, see the <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/sql/#connection\" target=\"_blank\">documentation</a>.")
+                "Additional properties for the connection ('user' and 'password' for instance). For more information, see the <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/sql/#connection\" target=\"_blank\">documentation</a>.")
         @FEEL
         Map<String, String> uriProperties)
     implements JdbcConnection {

@@ -7,6 +7,7 @@
 package io.camunda.connector.jdbc.model.request;
 
 public enum SupportedDatabase {
+  MARIADB("org.mariadb.jdbc.Driver", "jdbc:mariadb://"),
   MSSQL("com.microsoft.sqlserver.jdbc.SQLServerDriver", "jdbc:sqlserver://"),
   MYSQL("org.mariadb.jdbc.Driver", "jdbc:mysql://"),
   POSTGRESQL("org.postgresql.Driver", "jdbc:postgresql://");

@@ -1,0 +1,330 @@
+{
+  "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
+  "name" : "Hybrid SQL Database Connector",
+  "id" : "io.camunda.connectors.Jdbc.v1-hybrid",
+  "description" : "Read and write data from a Camunda process directly to a SQL database(Microsoft SQL Server, MySQL, PostgreSQL)",
+  "documentationRef" : "https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/sql",
+  "version" : 1,
+  "category" : {
+    "id" : "connectors",
+    "name" : "Connectors"
+  },
+  "appliesTo" : [ "bpmn:Task" ],
+  "elementType" : {
+    "value" : "bpmn:ServiceTask"
+  },
+  "groups" : [ {
+    "id" : "taskDefinitionType",
+    "label" : "Task definition type"
+  }, {
+    "id" : "database",
+    "label" : "Database"
+  }, {
+    "id" : "connection",
+    "label" : "Connection"
+  }, {
+    "id" : "query",
+    "label" : "Query"
+  }, {
+    "id" : "output",
+    "label" : "Output mapping"
+  }, {
+    "id" : "error",
+    "label" : "Error handling"
+  }, {
+    "id" : "retries",
+    "label" : "Retries"
+  } ],
+  "properties" : [ {
+    "id" : "taskDefinitionType",
+    "value" : "io.camunda:connector-jdbc:1",
+    "group" : "taskDefinitionType",
+    "binding" : {
+      "property" : "type",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "String"
+  }, {
+    "id" : "database",
+    "label" : "Select a database",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "group" : "database",
+    "binding" : {
+      "name" : "database",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Microsoft SQL Server",
+      "value" : "MSSQL"
+    }, {
+      "name" : "MySQL",
+      "value" : "MYSQL"
+    }, {
+      "name" : "PostgreSQL",
+      "value" : "POSTGRESQL"
+    } ]
+  }, {
+    "id" : "connection.authType",
+    "label" : "Connection type",
+    "value" : "uri",
+    "group" : "connection",
+    "binding" : {
+      "name" : "connection.authType",
+      "type" : "zeebe:input"
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "URI",
+      "value" : "uri"
+    }, {
+      "name" : "Detailed",
+      "value" : "detailed"
+    } ]
+  }, {
+    "id" : "connection.uri",
+    "label" : "URI",
+    "description" : "URI should contain JDBC driver, host name, and port number. For more information, see the <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/sql/#uri-connection\" target=\"_blank\">documentation</a>.)",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "^(=|jdbc:|secrets|\\{\\{).*$",
+        "message" : "Must start with 'jdbc:' or contain a secret reference"
+      }
+    },
+    "feel" : "optional",
+    "group" : "connection",
+    "binding" : {
+      "name" : "connection.uri",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "connection.authType",
+      "equals" : "uri",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "connection.uriProperties",
+    "label" : "Properties",
+    "description" : "Additional properties for the connection ('user' and 'password' for instance). For more information, see the <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/sql/#connection\" target=\"_blank\">documentation</a>.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "connection",
+    "binding" : {
+      "name" : "connection.uriProperties",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "connection.authType",
+      "equals" : "uri",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "connection.host",
+    "label" : "Host",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "connection",
+    "binding" : {
+      "name" : "connection.host",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "connection.authType",
+      "equals" : "detailed",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "connection.port",
+    "label" : "Port",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "connection",
+    "binding" : {
+      "name" : "connection.port",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "connection.authType",
+      "equals" : "detailed",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "connection.username",
+    "label" : "Username",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "connection",
+    "binding" : {
+      "name" : "connection.username",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "connection.authType",
+      "equals" : "detailed",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "connection.password",
+    "label" : "Password",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "connection",
+    "binding" : {
+      "name" : "connection.password",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "connection.authType",
+      "equals" : "detailed",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "connection.databaseName",
+    "label" : "Database name",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "connection",
+    "binding" : {
+      "name" : "connection.databaseName",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "connection.authType",
+      "equals" : "detailed",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "connection.properties",
+    "label" : "Properties",
+    "description" : "Additional properties for the connection. For more information, see the <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/sql/#connection\" target=\"_blank\">documentation</a>.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "connection",
+    "binding" : {
+      "name" : "connection.properties",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "connection.authType",
+      "equals" : "detailed",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.returnResults",
+    "label" : "Return results",
+    "description" : "Check this box if the SQL statement return results, e.g. a SELECT or any statement with a RETURNING clause",
+    "optional" : false,
+    "value" : false,
+    "group" : "query",
+    "binding" : {
+      "name" : "data.returnResults",
+      "type" : "zeebe:input"
+    },
+    "type" : "Boolean"
+  }, {
+    "id" : "data.query",
+    "label" : "SQL Query to execute",
+    "description" : "You can use named, positional or binding <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/sql/#variables\" target=\"_blank\">parameters</a>",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
+    "feel" : "optional",
+    "group" : "query",
+    "binding" : {
+      "name" : "data.query",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.variables",
+    "label" : "SQL Query variables",
+    "description" : "The <a href=\"https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/sql/#variables\" target=\"_blank\">variables</a> to use in the SQL query.",
+    "optional" : true,
+    "feel" : "required",
+    "group" : "query",
+    "binding" : {
+      "name" : "data.variables",
+      "type" : "zeebe:input"
+    },
+    "type" : "String"
+  }, {
+    "id" : "resultVariable",
+    "label" : "Result variable",
+    "description" : "Name of variable to store the response in",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultVariable",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  }, {
+    "id" : "resultExpression",
+    "label" : "Result expression",
+    "description" : "Expression to map the response into process variables",
+    "feel" : "required",
+    "group" : "output",
+    "binding" : {
+      "key" : "resultExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "errorExpression",
+    "label" : "Error expression",
+    "description" : "Expression to handle errors. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/use-connectors/\" target=\"_blank\">documentation</a>.",
+    "feel" : "required",
+    "group" : "error",
+    "binding" : {
+      "key" : "errorExpression",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "Text"
+  }, {
+    "id" : "retryCount",
+    "label" : "Retries",
+    "description" : "Number of retries",
+    "value" : "3",
+    "feel" : "optional",
+    "group" : "retries",
+    "binding" : {
+      "property" : "retries",
+      "type" : "zeebe:taskDefinition"
+    },
+    "type" : "String"
+  }, {
+    "id" : "retryBackoff",
+    "label" : "Retry backoff",
+    "description" : "ISO-8601 duration to wait between retries",
+    "value" : "PT0S",
+    "feel" : "optional",
+    "group" : "retries",
+    "binding" : {
+      "key" : "retryBackoff",
+      "type" : "zeebe:taskHeader"
+    },
+    "type" : "String"
+  } ],
+  "icon" : {
+    "contents" : "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MTMiIGhlaWdodD0iNTEyIiBmaWxsPSJub25lIiB2aWV3Qm94PSIwIDAgNTEzIDUxMiI+CiAgPGcgY2xpcC1wYXRoPSJ1cmwoI2EpIj4KICAgIDxwYXRoIGZpbGw9IiMwMDAiIGQ9Ik00MjIuMDY5IDQxNi45OTVWMjUzLjA0NGgtMjQuNzU2VjQ0NC4zMmg5OS4wMjR2LTI3LjMyNWgtNzQuMjY4Wm0tNzQuMjY4LTE2My45NTFoLTQ5LjUxMmMtNi41NjUgMC0xMi44NjIgMi44NzktMTcuNTA1IDguMDA0LTQuNjQzIDUuMTI0LTcuMjUxIDEyLjA3NC03LjI1MSAxOS4zMjJ2MTM2LjYyNWMwIDcuMjQ3IDIuNjA4IDE0LjE5NyA3LjI1MSAxOS4zMjEgNC42NDMgNS4xMjUgMTAuOTQgOC4wMDQgMTcuNTA1IDguMDA0aDEyLjM3OHYyNy4zMjVjMCA3LjI0NyAyLjYwOCAxNC4xOTcgNy4yNTEgMTkuMzIxIDQuNjQzIDUuMTI1IDEwLjk0IDguMDA0IDE3LjUwNSA4LjAwNGgyNC43NTZ2LTI3LjMyNWgtMjQuNzU2VjQ0NC4zMmgxMi4zNzhjNi41NjYgMCAxMi44NjMtMi44NzkgMTcuNTA1LTguMDA0IDQuNjQzLTUuMTI0IDcuMjUxLTEyLjA3NCA3LjI1MS0xOS4zMjFWMjgwLjM3YzAtNy4yNDgtMi42MDgtMTQuMTk4LTcuMjUxLTE5LjMyMi00LjY0Mi01LjEyNS0xMC45MzktOC4wMDQtMTcuNTA1LTguMDA0Wm0tNDkuNTEyIDE2My45NTFWMjgwLjM3aDQ5LjUxMnYxMzYuNjI1aC00OS41MTJabS03NC4yNjggMjcuMzI1aC03NC4yNjh2LTI3LjMyNWg3NC4yNjh2LTU0LjY1aC00OS41MTJjLTYuNTY2IDAtMTIuODYyLTIuODc5LTE3LjUwNS04LjAwNC00LjY0My01LjEyNC03LjI1MS0xMi4wNzQtNy4yNTEtMTkuMzIxdi01NC42NWMwLTcuMjQ4IDIuNjA4LTE0LjE5OCA3LjI1MS0xOS4zMjIgNC42NDMtNS4xMjUgMTAuOTM5LTguMDA0IDE3LjUwNS04LjAwNGg3NC4yNjh2MjcuMzI2aC03NC4yNjh2NTQuNjVoNDkuNTEyYzYuNTY2IDAgMTIuODYzIDIuODc4IDE3LjUwNSA4LjAwMyA0LjY0MyA1LjEyNCA3LjI1MSAxMi4wNzUgNy4yNTEgMTkuMzIydjU0LjY1YzAgNy4yNDctMi42MDggMTQuMTk3LTcuMjUxIDE5LjMyMS00LjY0MiA1LjEyNS0xMC45MzkgOC4wMDQtMTcuNTA1IDguMDA0WiIvPgogICAgPHBhdGggZmlsbD0iI0M2MjlDRCIgZD0iTTE2MC42OTUgMTMuMDMyYy02My4wNjYgMC0xMzAuOTQzIDE2LjQ1LTEzMC45NDMgNTIuNTU3djIzNi41MDZjMCAyMi4wNyAyNS40MDMgMzYuNzYyIDU5LjUyIDQ0Ljg3di0yNi44ODJjLTIzLjczNi02LjIxLTM1LjA2LTE1LjAxOS0zNS43MTItMTcuOTg4di00Ni45MzhjMTcuNzggOS44NDIgMTcuNzMzIDkuMTg1IDQ1LjQyNCAxMi4wMDl2LTI2LjI0N2MtNDYuMTYyLTQuOTU5LTQzLjk2NS0xMS44OTktNDUuNDI0LTE3LjY2MXYtNDYuOTM3YzI1LjMzIDE0LjAyNSA2Ny4xNjkgMjAuNjU5IDEwNy4xMzUgMjAuNjU5IDYzLjA2NiAwIDEzMC45NDMtMTYuNDUxIDEzMC45NDMtNTIuNTU3di03OC44NGMtLjAwOS0zNi4xMDctNjcuODgxLTUyLjU1LTEzMC45NDMtNTIuNTVaTTUzLjU0MiA2NS43ODdjMS44MTMtNy4yOTUgMzcuNTE0LTI2LjQ3NyAxMDcuMTUzLTI2LjQ3NyA2OS4wMTQgMCAxMDQuNjk0IDE4Ljg0MyAxMDcuMDk3IDI2LjI3OS0yLjQwMyA3LjQzNS0zOC4wODMgMjYuMjc4LTEwNy4wOTcgMjYuMjc4LTY5LjYzOSAwLTEwNS4zMzktMTkuMTgzLTEwNy4xNTMtMjYuMDhabTIxNC4yODggNzguNDdjLTEuOTEyIDcuMzItMzcuNjAxIDI2LjQ0Ni0xMDcuMTM1IDI2LjQ0Ni02OS42MzkgMC0xMDUuMzM5LTE5LjE4NC0xMDcuMTM1LTI2LjI3OVY5Ny40ODdjMjUuMzMgMTQuMDI1IDY3LjE2OSAyMC42NTkgMTA3LjEzNSAyMC42NTkgMzkuOTY2IDAgODEuODA1LTYuNjM0IDEwNy4xMzUtMjAuNjU5djQ2Ljc3WiIvPgogIDwvZz4KICA8ZGVmcz4KICAgIDxjbGlwUGF0aCBpZD0iYSI+CiAgICAgIDxwYXRoIGZpbGw9IiNmZmYiIGQ9Ik0yOS43NTQgNmg0NTIuOTkxdjUwMEgyOS43NTR6Ii8+CiAgICA8L2NsaXBQYXRoPgogIDwvZGVmcz4KPC9zdmc+Cg=="
+  }
+}
