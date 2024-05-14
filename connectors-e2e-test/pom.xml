@@ -1,0 +1,28 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.camunda.connector</groupId>
+        <artifactId>connector-parent</artifactId>
+        <relativePath>../parent/pom.xml</relativePath>
+        <version>8.6.0-SNAPSHOT</version>
+    </parent>
+
+    <description>Parent POM for Connectors e2e tests</description>
+    <name>connectors-e2e-test-parent</name>
+    <artifactId>connectors-e2e-test-parent</artifactId>
+    <packaging>pom</packaging>
+
+    <modules>
+        <module>connectors-e2e-test-base</module>
+        <module>connectors-e2e-test-http</module>
+        <module>connectors-e2e-test-automation-anywhere</module>
+        <module>connectors-e2e-test-kafka</module>
+        <module>connectors-e2e-test-aws</module>
+        <module>connectors-e2e-test-easy-post</module>
+        <module>connectors-e2e-test-soap</module>
+        <module>connectors-e2e-test-rabbitmq</module>
+    </modules>
+
+</project>

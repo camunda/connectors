@@ -33,14 +33,7 @@
     <module>connector-runtime/connector-runtime-application</module>
     <module>connectors</module>
     <module>bundle</module>
-    <module>connectors-e2e-test/connectors-e2e-test-base</module>
-    <module>connectors-e2e-test/connectors-e2e-test-http</module>
-    <module>connectors-e2e-test/connectors-e2e-test-automation-anywhere</module>
-    <module>connectors-e2e-test/connectors-e2e-test-kafka</module>
-    <module>connectors-e2e-test/connectors-e2e-test-aws</module>
-    <module>connectors-e2e-test/connectors-e2e-test-easy-post</module>
-    <module>connectors-e2e-test/connectors-e2e-test-soap</module>
-    <module>connectors-e2e-test/connectors-e2e-test-rabbitmq</module>
+    <module>connectors-e2e-test</module>
   </modules>
 
 </project>
