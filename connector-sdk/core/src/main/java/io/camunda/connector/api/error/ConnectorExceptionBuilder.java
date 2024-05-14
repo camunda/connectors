@@ -21,10 +21,10 @@ import java.util.Map;
 
 public class ConnectorExceptionBuilder {
 
-  protected String errorCode;
-  protected String message;
-  protected Throwable cause;
-  protected Map<String, Object> errorVariables;
+  private String errorCode;
+  private String message;
+  private Throwable cause;
+  private Map<String, Object> errorVariables;
 
   public ConnectorExceptionBuilder errorCode(String errorCode) {
     this.errorCode = errorCode;

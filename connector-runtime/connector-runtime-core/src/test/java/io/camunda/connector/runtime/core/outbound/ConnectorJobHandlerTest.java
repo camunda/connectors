@@ -835,6 +835,37 @@ class ConnectorJobHandlerTest {
     }
 
     @Test
+    void shouldCreateBpmnErro2r_UsingExceptionCodeAndErrorVariables() {
+      // given
+      var jobHandler =
+          newConnectorJobHandler(
+              context -> {
+                throw new ConnectorExceptionBuilder()
+                    .errorCode("1013")
+                    .message("exception message")
+                    .errorVariables(Map.of("foo", "bar"))
+                    .build();
+              });
+      // when
+      var result = JobBuilder.create().executeAndCaptureResult(jobHandler, false, false);
+      // then
+      assertThat(result.getVariables())
+          .isEqualTo(
+              Map.of(
+                  "error",
+                  Map.of(
+                      "code",
+                      "1013",
+                      "errorVariables",
+                      Map.of("foo", "bar"),
+                      "message",
+                      "exception message",
+                      "type",
+                      "io.camunda.connector.api.error.ConnectorException")));
+      assertThat(result.getErrorMessage()).isEqualTo("exception message");
+    }
+
+    @Test
     void shouldCreateBpmnError_UsingExceptionWithBpmnErrorFunction() {
       // given
       var errorExpression =
