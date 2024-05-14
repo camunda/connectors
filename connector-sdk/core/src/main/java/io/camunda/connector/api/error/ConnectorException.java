@@ -17,13 +17,20 @@
 package io.camunda.connector.api.error;
 
 import java.io.Serial;
+import java.util.Map;
 
-/** Unchecked exception indicating issues with a connector. */
+/**
+ * Unchecked exception indicating issues with a connector.
+ *
+ * @see ConnectorExceptionBuilder
+ */
 public class ConnectorException extends RuntimeException {
 
   @Serial private static final long serialVersionUID = 1L;
 
   protected String errorCode;
+
+  protected Map<String, Object> errorVariables;
 
   public ConnectorException(Throwable cause) {
     super(cause);
@@ -74,9 +81,33 @@ public class ConnectorException extends RuntimeException {
   }
 
   /**
+   * Constructs a new exception with the specified error code, message, cause, and error variables.
+   *
+   * @param errorCode the error code to populate
+   * @param message the message detailing what went wrong
+   * @param cause the cause (which is saved for later retrieval by the {@link #getCause()} method).
+   *     (A <code>null</code> value is permitted, and indicates that the cause is nonexistent or
+   *     unknown.)
+   * @param errorVariables the error variables to populate
+   * @see ConnectorExceptionBuilder
+   */
+  ConnectorException(
+      String errorCode, String message, Throwable cause, Map<String, Object> errorVariables) {
+    this(errorCode, message, cause);
+    this.errorVariables = errorVariables;
+  }
+
+  /**
    * @return the error code
    */
   public String getErrorCode() {
     return errorCode;
+  }
+
+  /**
+   * @return the error variables
+   */
+  public Map<String, Object> getErrorVariables() {
+    return errorVariables;
   }
 }
