@@ -25,6 +25,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.core.result.NoResultsException;
@@ -92,11 +93,10 @@ public abstract class IntegrationBaseTest {
     try (Connection conn =
             DriverManager.getConnection(config.url(), config.username(), config.password());
         Statement stmt = conn.createStatement()) {
-      stmt.executeUpdate("DELETE FROM Employee");
-      stmt.executeUpdate("DROP DATABASE IF EXISTS mydb");
       if (config.databaseName() != null) {
         stmt.executeUpdate("USE " + config.databaseName());
       }
+      stmt.executeUpdate("DELETE FROM Employee");
       stmt.executeUpdate("DROP TABLE IF EXISTS TestTable");
     }
   }
@@ -235,7 +235,11 @@ public abstract class IntegrationBaseTest {
                 config.databaseName(),
                 config.properties()),
             new JdbcRequestData(
-                true, "SELECT * FROM Employee WHERE name = ?", List.of("John Doe")));
+                true,
+                "SELECT * FROM "
+                    + Optional.ofNullable(config.databaseName()).map(s -> s + ".").orElse("")
+                    + "Employee WHERE name = ?",
+                List.of("John Doe")));
     var response = jdbiJdbcClient.executeRequest(request);
     assertNull(response.modifiedRows());
     assertNotNull(response.resultSet());
@@ -643,14 +647,19 @@ public abstract class IntegrationBaseTest {
             new DetailedConnection(
                 config.host(),
                 config.port(),
-                config.username(),
+                Optional.ofNullable(config.rootUser()).orElse(config.username()),
                 config.password(),
                 config.databaseName(),
                 config.properties()),
             new JdbcRequestData(false, "CREATE DATABASE " + databaseName));
     var response = jdbiJdbcClient.executeRequest(request);
     assertNull(response.resultSet());
-    assertEquals(config.database() == SupportedDatabase.MYSQL ? 1 : 0, response.modifiedRows());
+    assertEquals(
+        (config.database() == SupportedDatabase.MYSQL
+                || config.database() == SupportedDatabase.MARIADB)
+            ? 1
+            : 0,
+        response.modifiedRows());
   }
 
   void createDatabaseAndAssertThrows(IntegrationTestConfig config, String databaseName) {
@@ -660,12 +669,23 @@ public abstract class IntegrationBaseTest {
             new DetailedConnection(
                 config.host(),
                 config.port(),
-                config.username(),
+                Optional.ofNullable(config.rootUser()).orElse(config.username()),
                 config.password(),
                 config.databaseName(),
                 config.properties()),
             new JdbcRequestData(true, "CREATE DATABASE " + databaseName));
     assertThrows(NoResultsException.class, () -> jdbiJdbcClient.executeRequest(request));
+  }
+
+  void cleanUpDatabase(IntegrationTestConfig config, String databaseName) throws SQLException {
+    try (Connection conn =
+            DriverManager.getConnection(
+                config.url(),
+                Optional.ofNullable(config.rootUser()).orElse(config.username()),
+                config.password());
+        Statement stmt = conn.createStatement()) {
+      stmt.executeUpdate("DROP DATABASE IF EXISTS " + databaseName);
+    }
   }
 
   record Employee(int id, String name, int age, String department) {

@@ -41,11 +41,16 @@ public record DetailedConnection(
 
   @Override
   public Properties getProperties() {
-    if (properties == null) {
-      return new Properties();
-    }
     Properties properties = new Properties();
-    properties.putAll(this.properties());
+    if (this.properties() != null) {
+      properties.putAll(this.properties());
+    }
+    if (this.username() != null) {
+      properties.put(AuthProperties.USER, this.username());
+    }
+    if (this.password() != null) {
+      properties.put(AuthProperties.PASSWORD, this.password());
+    }
     return properties;
   }
 }

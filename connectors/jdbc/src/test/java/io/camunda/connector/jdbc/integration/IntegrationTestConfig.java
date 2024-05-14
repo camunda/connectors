@@ -10,6 +10,7 @@ import io.camunda.connector.jdbc.model.request.SupportedDatabase;
 import java.util.List;
 import java.util.Map;
 import org.testcontainers.containers.MSSQLServerContainer;
+import org.testcontainers.containers.MariaDBContainer;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 
@@ -18,6 +19,7 @@ record IntegrationTestConfig(
     String url,
     String host,
     String port,
+    String rootUser,
     String username,
     String password,
     String databaseName,
@@ -26,13 +28,15 @@ record IntegrationTestConfig(
   public static List<IntegrationTestConfig> from(
       MySQLContainer mySqlServer,
       MSSQLServerContainer msSqlServer,
-      PostgreSQLContainer postgreServer) {
+      PostgreSQLContainer postgreServer,
+      MariaDBContainer mariaDbContainer) {
     return List.of(
         new IntegrationTestConfig(
             SupportedDatabase.MSSQL,
             msSqlServer.getJdbcUrl(),
             msSqlServer.getHost(),
             String.valueOf(msSqlServer.getMappedPort(1433)),
+            null,
             msSqlServer.getUsername(),
             msSqlServer.getPassword(),
             null,
@@ -42,6 +46,7 @@ record IntegrationTestConfig(
             mySqlServer.getJdbcUrl(),
             mySqlServer.getHost(),
             String.valueOf(mySqlServer.getMappedPort(3306)),
+            "root",
             mySqlServer.getUsername(),
             mySqlServer.getPassword(),
             mySqlServer.getDatabaseName(),
@@ -51,9 +56,21 @@ record IntegrationTestConfig(
             postgreServer.getJdbcUrl(),
             postgreServer.getHost(),
             String.valueOf(postgreServer.getMappedPort(5432)),
+            null,
             postgreServer.getUsername(),
             postgreServer.getPassword(),
             null,
-            null));
+            null),
+        new IntegrationTestConfig(
+            SupportedDatabase.MARIADB,
+            mariaDbContainer.getJdbcUrl(),
+            mariaDbContainer.getHost(),
+            String.valueOf(mariaDbContainer.getMappedPort(3306)),
+            "root",
+            mariaDbContainer.getUsername(),
+            mariaDbContainer.getPassword(),
+            mariaDbContainer.getDatabaseName(),
+            Map.of(
+                "TC_INITFUNCTION", "org.testcontainers.jdbc.JDBCDriverTest::sampleInitFunction")));
   }
 }

@@ -15,7 +15,7 @@ public class ConnectionStringHelper {
   public static String buildConnectionString(
       SupportedDatabase database, DetailedConnection connection) {
     return switch (database) {
-      case MYSQL, POSTGRESQL -> buildCommonConnectionString(database, connection);
+      case MARIADB, MYSQL, POSTGRESQL -> buildCommonConnectionString(database, connection);
       case MSSQL -> buildMssqlConnectionString(database, connection);
       default -> throw new ConnectorException("Unsupported database: " + database);
     };
@@ -23,41 +23,28 @@ public class ConnectionStringHelper {
 
   private static String buildCommonConnectionString(
       SupportedDatabase database, DetailedConnection connection) {
-    String host = connection.host();
-    String port = connection.port();
-    String username = connection.username();
-    String password = connection.password();
+    String connectionString = buildConnectionStringSegment(database, connection) + "/";
     String databaseName = connection.databaseName();
-    String connectionString = database.getUrlSchema() + host + ":" + port + "/";
     if (databaseName != null && !databaseName.isEmpty()) {
       connectionString += databaseName;
-    }
-    if (username != null && !username.isEmpty()) {
-      connectionString += "?user=" + username;
-      if (password != null && !password.isEmpty()) {
-        connectionString += "&password=" + password;
-      }
     }
     return connectionString;
   }
 
   private static String buildMssqlConnectionString(
       SupportedDatabase database, DetailedConnection connection) {
-    String host = connection.host();
-    String port = connection.port();
-    String username = connection.username();
-    String password = connection.password();
     String databaseName = connection.databaseName();
-    String connectionString = database.getUrlSchema() + host + ":" + port;
-    if (username != null && !username.isEmpty()) {
-      connectionString += ";user=" + username;
-      if (password != null && !password.isEmpty()) {
-        connectionString += ";password=" + password;
-      }
-    }
+    String connectionString = buildConnectionStringSegment(database, connection);
     if (databaseName != null && !databaseName.isEmpty()) {
       connectionString += ";databaseName=" + databaseName;
     }
     return connectionString;
+  }
+
+  private static String buildConnectionStringSegment(
+      SupportedDatabase database, DetailedConnection connection) {
+    String host = connection.host();
+    String port = connection.port();
+    return database.getUrlSchema() + host + ":" + port;
   }
 }

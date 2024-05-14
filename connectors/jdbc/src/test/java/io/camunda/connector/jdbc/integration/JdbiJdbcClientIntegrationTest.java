@@ -11,6 +11,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.camunda.connector.api.error.ConnectorException;
 import java.sql.SQLException;
+import java.util.List;
+import java.util.Optional;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -22,32 +24,44 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.testcontainers.containers.MSSQLServerContainer;
+import org.testcontainers.containers.MariaDBContainer;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.utility.DockerImageName;
 
 @ExtendWith(MockitoExtension.class)
 public class JdbiJdbcClientIntegrationTest extends IntegrationBaseTest {
+
   public static final String PROVIDE_SQL_SERVERS_CONFIG =
       "io.camunda.connector.jdbc.integration.JdbiJdbcClientIntegrationTest#provideSqlServersConfig";
-
   static final MSSQLServerContainer msSqlServer = new MSSQLServerContainer().acceptLicense();
   static final MySQLContainer mySqlServer = new MySQLContainer<>();
   static final PostgreSQLContainer postgreServer = new PostgreSQLContainer();
+  static final MariaDBContainer mariaDbServer =
+      new MariaDBContainer(DockerImageName.parse("mariadb:11.3.2"));
+
+  static List<IntegrationTestConfig> sqlServersConfig;
 
   static Stream<IntegrationTestConfig> provideSqlServersConfig() {
-    return IntegrationTestConfig.from(mySqlServer, msSqlServer, postgreServer).stream();
+    return sqlServersConfig.stream();
   }
 
   @BeforeAll
   public static void setUp() throws SQLException {
-    // otherwise the "test" user has no permission to create a database for instance
-    mySqlServer.withUsername("root");
+    String password = "password&the#restofit";
+    mySqlServer.withPassword(password);
+    mariaDbServer.withPassword(password);
+    mySqlServer.withPassword(password);
+    postgreServer.withPassword(password);
+
     msSqlServer.start();
     mySqlServer.start();
     postgreServer.start();
+    mariaDbServer.start();
+    sqlServersConfig =
+        IntegrationTestConfig.from(mySqlServer, msSqlServer, postgreServer, mariaDbServer);
 
-    for (IntegrationTestConfig config :
-        IntegrationTestConfig.from(mySqlServer, msSqlServer, postgreServer)) {
+    for (IntegrationTestConfig config : sqlServersConfig) {
       createEmployeeTable(config);
     }
   }
@@ -57,20 +71,19 @@ public class JdbiJdbcClientIntegrationTest extends IntegrationBaseTest {
     msSqlServer.stop();
     mySqlServer.stop();
     postgreServer.stop();
+    mariaDbServer.stop();
   }
 
   @BeforeEach
   public void insertData() throws SQLException {
-    for (IntegrationTestConfig config :
-        IntegrationTestConfig.from(mySqlServer, msSqlServer, postgreServer)) {
+    for (IntegrationTestConfig config : sqlServersConfig) {
       insertDefaultEmployees(config);
     }
   }
 
   @AfterEach
   public void cleanUp() throws SQLException {
-    for (IntegrationTestConfig config :
-        IntegrationTestConfig.from(mySqlServer, msSqlServer, postgreServer)) {
+    for (IntegrationTestConfig config : sqlServersConfig) {
       cleanUp(config);
     }
   }
@@ -115,7 +128,8 @@ public class JdbiJdbcClientIntegrationTest extends IntegrationBaseTest {
 
     @ParameterizedTest
     @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
-    public void shouldCreateDatabase_whenCreateTableQuery(IntegrationTestConfig config) {
+    public void shouldCreateDatabase_whenCreateTableQuery(IntegrationTestConfig config)
+        throws SQLException {
       createDatabaseAndAssertSuccess(config, "mydb");
       createTableAndAssertSuccess(
           new IntegrationTestConfig(
@@ -123,12 +137,14 @@ public class JdbiJdbcClientIntegrationTest extends IntegrationBaseTest {
               config.url(),
               config.host(),
               config.port(),
-              config.username(),
+              config.rootUser(),
+              Optional.ofNullable(config.rootUser()).orElse(config.username()),
               config.password(),
               "mydb",
               config.properties()),
           "TestTable",
           "id INT PRIMARY KEY, name VARCHAR(255)");
+      cleanUpDatabase(config, "mydb");
     }
   }
 
@@ -173,8 +189,9 @@ public class JdbiJdbcClientIntegrationTest extends IntegrationBaseTest {
     @ParameterizedTest
     @MethodSource(PROVIDE_SQL_SERVERS_CONFIG)
     public void shouldThrowConnectorException_whenIsModifyingIsFalseWhileCreatingDatabaseInDb(
-        IntegrationTestConfig config) {
+        IntegrationTestConfig config) throws SQLException {
       createDatabaseAndAssertThrows(config, "mydb");
+      cleanUpDatabase(config, "mydb");
     }
   }
 
@@ -194,6 +211,7 @@ public class JdbiJdbcClientIntegrationTest extends IntegrationBaseTest {
                           config.url(),
                           config.host(),
                           config.port(),
+                          config.rootUser(),
                           config.username(),
                           config.password() + "wrong",
                           config.databaseName(),
@@ -215,6 +233,7 @@ public class JdbiJdbcClientIntegrationTest extends IntegrationBaseTest {
                           config.url(),
                           config.host(),
                           config.port(),
+                          config.rootUser(),
                           config.username(),
                           config.password() + "wrong",
                           config.databaseName(),
