@@ -11,8 +11,10 @@ import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 import io.camunda.connector.api.error.ConnectorInputException;
+import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
+import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.inbound.model.SqsInboundProperties;
 import java.util.List;
 import java.util.Optional;
@@ -50,15 +52,27 @@ public class SqsQueueConsumer implements Runnable {
         receiveMessageResult = sqsClient.receiveMessage(receiveMessageRequest);
         List<Message> messages = receiveMessageResult.getMessages();
         for (Message message : messages) {
+          context.log(
+              Activity.level(Severity.INFO)
+                  .tag("Message")
+                  .message("Received SQS Message with ID " + message.getMessageId()));
           try {
             context.correlate(MessageMapper.toSqsInboundMessage(message));
             sqsClient.deleteMessage(properties.getQueue().url(), message.getReceiptHandle());
           } catch (ConnectorInputException e) {
             LOGGER.warn("NACK - failed to parse SQS message body: {}", e.getMessage());
+            context.log(
+                Activity.level(Severity.WARNING)
+                    .tag("Message")
+                    .message("NACK - failed to parse SQS message body: " + e.getMessage()));
           }
         }
       } catch (Exception e) {
         LOGGER.debug("NACK - failed to correlate event", e);
+        context.log(
+            Activity.level(Severity.WARNING)
+                .tag("Message")
+                .message("NACK - failed to correlate event : " + e.getMessage()));
       }
     } while (queueConsumerActive.get());
     LOGGER.info("Stopping SQS consumer for queue {}", properties.getQueue().url());

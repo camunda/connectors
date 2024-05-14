@@ -45,15 +45,27 @@ public class RabbitMqConsumer extends DefaultConsumer {
       throws IOException {
 
     LOGGER.debug("Received AMQP message with delivery tag {}", envelope.getDeliveryTag());
+    context.log(
+        Activity.level(Severity.INFO)
+            .tag("Message")
+            .message("Received AMQP message with delivery tag " + envelope.getDeliveryTag()));
     try {
       RabbitMqInboundResult variables = prepareVariables(consumerTag, properties, body);
       context.correlate(variables);
       getChannel().basicAck(envelope.getDeliveryTag(), false);
     } catch (ConnectorInputException e) {
       LOGGER.warn("NACK (no requeue) - failed to parse AMQP message body: {}", e.getMessage());
+      context.log(
+          Activity.level(Severity.WARNING)
+              .tag("Message")
+              .message("NACK (no requeue) - failed to parse AMQP message body: " + e.getMessage()));
       getChannel().basicReject(envelope.getDeliveryTag(), false);
     } catch (Exception e) {
       LOGGER.debug("NACK (requeue) - failed to correlate event", e);
+      context.log(
+          Activity.level(Severity.DEBUG)
+              .tag("Message")
+              .message("NACK (requeue) - failed to correlate event"));
       getChannel().basicReject(envelope.getDeliveryTag(), true);
     }
   }
