@@ -70,7 +70,6 @@ record IntegrationTestConfig(
             mariaDbContainer.getUsername(),
             mariaDbContainer.getPassword(),
             mariaDbContainer.getDatabaseName(),
-            Map.of(
-                "TC_INITFUNCTION", "org.testcontainers.jdbc.JDBCDriverTest::sampleInitFunction")));
+            null));
   }
 }
