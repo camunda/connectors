@@ -64,18 +64,29 @@ jobs:
         - name: WIP Take YAML file from last step and delete the connectors value
           uses: mikefarah/yq@v4.44.1
           # hint: https://github.com/marketplace/actions/yq-portable-yaml-processor#github-action
-        -
+          # output to something like "non-connectors-extra-values"
 
+  use-input-connectors-version-in-extra-values:
+    needs: get-extra-values
+    runs-on: ubuntu-latest
+    steps:
+      - name: WIP Only Set Extra Values as Connectors By Default
+      - name: WIP Append input connectors version to non-connectors-extra-values from previous
+        uses: mikefarah/yq@v4.44.1
+        # hint: https://github.com/marketplace/actions/yq-portable-yaml-processor#github-action
+        # append this yaml for the connectors version:
+        #   connectors:
+        #      image:
+        #        tag: ${{ github.event.inputs.connectors_version }}
 
 
   helm-deploy:
+    needs: [determine-inputs, use-input-connectors-version-in-extra-values]
     name: Helm chart Integration Tests
     uses: camunda/camunda-platform-helm/.github/workflows/test-integration-template.yaml@main
     secrets: inherit
     with:
       identifier: connectors-int
       test-enabled: true
-      extra-values: |
-        connectors:
-          image:
-            tag: ${{ github.event.inputs.connectors_version }}
+      camunda-helm-git-ref: ${{ TO_DEFINE_FROM_LAST_STEP || 'main' }}
+      extra-values: ${{ TO_DEFINE_FROM_LAST_STEP }}
