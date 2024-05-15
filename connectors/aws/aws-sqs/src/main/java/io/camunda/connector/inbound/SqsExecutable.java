@@ -8,9 +8,11 @@ package io.camunda.connector.inbound;
 
 import com.amazonaws.services.sqs.AmazonSQS;
 import io.camunda.connector.api.annotation.InboundConnector;
+import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
+import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.aws.AwsUtils;
 import io.camunda.connector.aws.CredentialsProviderSupport;
 import io.camunda.connector.common.suppliers.AmazonSQSClientSupplier;
@@ -89,10 +91,13 @@ public class SqsExecutable implements InboundConnectorExecutable {
 
   @Override
   public void activate(final InboundConnectorContext context) {
-    SqsInboundProperties properties = context.bindProperties(SqsInboundProperties.class);
-    LOGGER.info("Subscription activation requested by the Connector runtime: {}", properties);
-
     this.context = context;
+    LOGGER.info("Subscription activation requested by the Connector runtime");
+    context.log(
+        Activity.level(Severity.INFO)
+            .tag("Subscription activation")
+            .message("Subscription activation requested"));
+    SqsInboundProperties properties = context.bindProperties(SqsInboundProperties.class);
 
     var region =
         AwsUtils.extractRegionOrDefault(
@@ -106,14 +111,21 @@ public class SqsExecutable implements InboundConnectorExecutable {
     }
     executorService.execute(sqsQueueConsumer);
     LOGGER.debug("SQS queue consumer started successfully");
+    context.log(
+        Activity.level(Severity.INFO)
+            .tag("Subscription activation")
+            .message("Activated subscription for queue: " + properties.getQueue().url()));
     context.reportHealth(Health.up());
   }
 
   @Override
   public void deactivate() {
-
     sqsQueueConsumer.setQueueConsumerActive(false);
     LOGGER.debug("Deactivating subscription");
+    context.log(
+        Activity.level(Severity.INFO)
+            .tag("Subscription activation")
+            .message("Deactivating subscription"));
     context.reportHealth(Health.down());
     if (executorService != null) {
       LOGGER.debug("Shutting down executor service");

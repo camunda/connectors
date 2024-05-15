@@ -15,8 +15,10 @@ import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.ShutdownSignalException;
 import io.camunda.connector.api.error.ConnectorInputException;
+import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
+import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.rabbitmq.inbound.model.RabbitMqInboundResult;
 import io.camunda.connector.rabbitmq.inbound.model.RabbitMqInboundResult.RabbitMqInboundMessage;
 import io.camunda.connector.rabbitmq.supplier.ObjectMapperSupplier;
@@ -43,15 +45,27 @@ public class RabbitMqConsumer extends DefaultConsumer {
       throws IOException {
 
     LOGGER.debug("Received AMQP message with delivery tag {}", envelope.getDeliveryTag());
+    context.log(
+        Activity.level(Severity.INFO)
+            .tag("Message")
+            .message("Received AMQP message with delivery tag " + envelope.getDeliveryTag()));
     try {
       RabbitMqInboundResult variables = prepareVariables(consumerTag, properties, body);
       context.correlate(variables);
       getChannel().basicAck(envelope.getDeliveryTag(), false);
     } catch (ConnectorInputException e) {
       LOGGER.warn("NACK (no requeue) - failed to parse AMQP message body: {}", e.getMessage());
+      context.log(
+          Activity.level(Severity.WARNING)
+              .tag("Message")
+              .message("NACK (no requeue) - failed to parse AMQP message body: " + e.getMessage()));
       getChannel().basicReject(envelope.getDeliveryTag(), false);
     } catch (Exception e) {
       LOGGER.debug("NACK (requeue) - failed to correlate event", e);
+      context.log(
+          Activity.level(Severity.DEBUG)
+              .tag("Message")
+              .message("NACK (requeue) - failed to correlate event"));
       getChannel().basicReject(envelope.getDeliveryTag(), true);
     }
   }
@@ -60,6 +74,10 @@ public class RabbitMqConsumer extends DefaultConsumer {
   public void handleCancel(String consumerTag) {
     LOGGER.info("Consumer cancelled: {}", consumerTag);
     try {
+      context.log(
+          Activity.level(Severity.INFO)
+              .tag("Subscription")
+              .message("Consumer cancelled: " + consumerTag));
       context.cancel(null);
     } catch (Exception e) {
       context.reportHealth(Health.down(e));
@@ -70,6 +88,10 @@ public class RabbitMqConsumer extends DefaultConsumer {
   @Override
   public void handleShutdownSignal(String consumerTag, ShutdownSignalException sig) {
     LOGGER.error("Consumer shutdown: {}", consumerTag, sig);
+    context.log(
+        Activity.level(Severity.INFO)
+            .tag("Subscription")
+            .message("Consumer shutdown: " + consumerTag + sig));
     try {
       context.cancel(sig);
     } catch (Exception e) {
