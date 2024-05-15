@@ -1921,7 +1921,7 @@
       "constraints": {
         "notEmpty": true,
         "pattern": {
-          "value": "^(=.+|refs\\/[^\\/]+\\/[^\\/]*)",
+          "value": "^(=|refs\\/[^\\/]+\\/[^\\/]*)",
           "message": "must be a fully qualified reference (i.e: refs/heads/main) starting with \"refs\" and containing at least two slashes."
         }
       },
@@ -1946,7 +1946,7 @@
       "constraints": {
         "notEmpty": true,
         "pattern": {
-          "value": "^(=.+|.{40})",
+          "value": "^(=|.{40})",
           "message": "must consist of 40 characters."
         }
       },
@@ -2738,7 +2738,7 @@
       "constraints": {
         "notEmpty": false,
         "pattern": {
-          "value": "^(=.+|[0-9]+|\\{\\{secrets\\..+\\}\\})$",
+          "value": "^(=|([0-9]+|\\{\\{secrets\\..+\\}\\})$)",
           "message": "must be a timeout in seconds (default value is 20 seconds) or a FEEL expression."
         }
       }

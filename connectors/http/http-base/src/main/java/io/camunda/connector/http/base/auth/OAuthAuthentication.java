@@ -33,7 +33,7 @@ public record OAuthAuthentication(
     @FEEL
         @NotEmpty
         @Pattern(
-            regexp = "^(=|http://|https://|secrets|\\{\\{).*$",
+            regexp = "^(=|(http://|https://|secrets|\\{\\{).*$)",
             message = "Must be a http(s) URL")
         @TemplateProperty(
             group = "authentication",

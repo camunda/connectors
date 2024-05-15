@@ -204,7 +204,7 @@
     "constraints" : {
       "notEmpty" : true,
       "pattern" : {
-        "value" : "^(=|http://|https://|secrets|\\{\\{).*$",
+        "value" : "^(=|(http://|https://|secrets|\\{\\{).*$)",
         "message" : "Must be a http(s) URL"
       }
     },
@@ -348,7 +348,7 @@
     "constraints" : {
       "notEmpty" : true,
       "pattern" : {
-        "value" : "^(=|http://|https://|secrets|\\{\\{).*$",
+        "value" : "^(=|(http://|https://|secrets|\\{\\{).*$)",
         "message" : "Must be a http(s) URL"
       }
     },

@@ -61,7 +61,7 @@ public record GraphQLRequest(@Valid GraphQL graphql, @Valid Authentication authe
       @FEEL
           @NotBlank
           @Pattern(
-              regexp = "^(=|http://|https://|secrets|\\{\\{).*$",
+              regexp = "^(=|(http://|https://|secrets|\\{\\{).*$)",
               message = "Must be a http(s) URL")
           @TemplateProperty(id = "url", group = "endpoint", label = "URL")
           String url,

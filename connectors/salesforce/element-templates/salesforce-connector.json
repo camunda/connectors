@@ -64,7 +64,7 @@
       "constraints": {
         "notEmpty": true,
         "pattern": {
-          "value": "^(=|https?://|\\{\\{secrets\\..+\\}\\}).*$",
+          "value": "^(=|(https?://|\\{\\{secrets\\..+\\}\\}).*$)",
           "message": "Must be a http(s) URL."
         }
       }
@@ -442,7 +442,7 @@
       "constraints": {
         "notEmpty": false,
         "pattern": {
-          "value": "^(=.+|[0-9]+|secrets\\..+)$",
+          "value": "^(=|([0-9]+|\\{\\{secrets\\..+\\}\\})$)",
           "message": "Must be a timeout in seconds (default value is 20 seconds) or a FEEL expression"
         }
       }
