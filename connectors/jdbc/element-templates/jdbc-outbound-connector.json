@@ -53,6 +53,9 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
+      "name" : "MariaDB",
+      "value" : "MARIADB"
+    }, {
       "name" : "Microsoft SQL Server",
       "value" : "MSSQL"
     }, {

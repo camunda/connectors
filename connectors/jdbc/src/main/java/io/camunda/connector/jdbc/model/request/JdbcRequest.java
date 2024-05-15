@@ -22,6 +22,7 @@ public record JdbcRequest(
             type = Dropdown,
             constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
             choices = {
+              @TemplateProperty.DropdownPropertyChoice(label = "MariaDB", value = "MARIADB"),
               @TemplateProperty.DropdownPropertyChoice(
                   label = "Microsoft SQL Server",
                   value = "MSSQL"),
