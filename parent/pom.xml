@@ -113,7 +113,7 @@ limitations under the License.</license.inlineheader>
 
     <version.slack>1.39.0</version.slack>
 
-    <version.testcontainers>1.19.7</version.testcontainers>
+    <version.testcontainers>1.19.8</version.testcontainers>
     <version.awaitility>4.2.1</version.awaitility>
     <version.json-path>2.9.0</version.json-path>
 
