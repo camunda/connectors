@@ -10,13 +10,13 @@ import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
+import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.ForwardErrorToUpstream;
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.Ignore;
 import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure;
-import io.camunda.connector.api.inbound.Activity;
-import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.CorrelationResult.Success;
+import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.inbound.model.SqsInboundProperties;
@@ -60,16 +60,6 @@ public class SqsQueueConsumer implements Runnable {
               Activity.level(Severity.INFO)
                   .tag("Message")
                   .message("Received SQS Message with ID " + message.getMessageId()));
-          try {
-            context.correlate(MessageMapper.toSqsInboundMessage(message));
-            sqsClient.deleteMessage(properties.getQueue().url(), message.getReceiptHandle());
-          } catch (ConnectorInputException e) {
-            LOGGER.warn("NACK - failed to parse SQS message body: {}", e.getMessage());
-            context.log(
-                Activity.level(Severity.WARNING)
-                    .tag("Message")
-                    .message("NACK - failed to parse SQS message body: " + e.getMessage()));
-          }
           var result = context.correlateWithResult(MessageMapper.toSqsInboundMessage(message));
           handleCorrelationResult(message, result);
         }
@@ -93,9 +83,11 @@ public class SqsQueueConsumer implements Runnable {
       }
 
       case Failure failure -> {
+        context.log(Activity.level(Severity.WARNING).tag("Message").message(failure.message()));
         switch (failure.handlingStrategy()) {
-          case ForwardErrorToUpstream ignored1 -> LOGGER.debug(
-              "NACK (requeue) - message not correlated");
+          case ForwardErrorToUpstream ignored1 -> {
+            LOGGER.debug("NACK (requeue) - message not correlated");
+          }
           case Ignore ignored -> {
             LOGGER.debug("ACK - message ignored");
             sqsClient.deleteMessage(properties.getQueue().url(), message.getReceiptHandle());

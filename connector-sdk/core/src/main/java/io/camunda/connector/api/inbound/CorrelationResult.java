@@ -42,6 +42,8 @@ public sealed interface CorrelationResult {
 
   sealed interface Failure extends CorrelationResult {
 
+    String message();
+
     default CorrelationFailureHandlingStrategy handlingStrategy() {
       return ForwardErrorToUpstream.RETRYABLE;
     }
@@ -57,6 +59,11 @@ public sealed interface CorrelationResult {
     record ActivationConditionNotMet(boolean consumeUnmatched) implements Failure {
 
       @Override
+      public String message() {
+        return "Activation condition not met";
+      }
+
+      @Override
       public CorrelationFailureHandlingStrategy handlingStrategy() {
         if (consumeUnmatched) {
           return Ignore.INSTANCE;
@@ -68,6 +75,12 @@ public sealed interface CorrelationResult {
 
     record ZeebeClientStatus(String status, String message) implements Failure {}
 
-    record Other(Throwable error) implements Failure {}
+    record Other(Throwable error) implements Failure {
+
+      @Override
+      public String message() {
+        return error.getMessage();
+      }
+    }
   }
 }

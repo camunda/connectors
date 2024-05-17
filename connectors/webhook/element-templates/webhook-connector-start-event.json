@@ -194,52 +194,18 @@
     },
     "type" : "Dropdown",
     "choices" : [ {
+      "name" : "API key",
+      "value" : "APIKEY"
+    }, {
       "name" : "None",
       "value" : "NONE"
     }, {
       "name" : "Basic",
       "value" : "BASIC"
     }, {
-      "name" : "API key",
-      "value" : "APIKEY"
-    }, {
       "name" : "JWT",
       "value" : "JWT"
     } ]
-  }, {
-    "id" : "inbound.auth.username",
-    "label" : "Username",
-    "description" : "Username for basic authentication",
-    "optional" : false,
-    "feel" : "optional",
-    "group" : "authorization",
-    "binding" : {
-      "name" : "inbound.auth.username",
-      "type" : "zeebe:property"
-    },
-    "condition" : {
-      "property" : "inbound.auth.type",
-      "equals" : "BASIC",
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
-    "id" : "inbound.auth.password",
-    "label" : "Password",
-    "description" : "Password for basic authentication",
-    "optional" : false,
-    "feel" : "optional",
-    "group" : "authorization",
-    "binding" : {
-      "name" : "inbound.auth.password",
-      "type" : "zeebe:property"
-    },
-    "condition" : {
-      "property" : "inbound.auth.type",
-      "equals" : "BASIC",
-      "type" : "simple"
-    },
-    "type" : "String"
   }, {
     "id" : "inbound.auth.apiKey",
     "label" : "API key",
@@ -275,6 +241,40 @@
     "condition" : {
       "property" : "inbound.auth.type",
       "equals" : "APIKEY",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "inbound.auth.username",
+    "label" : "Username",
+    "description" : "Username for basic authentication",
+    "optional" : false,
+    "feel" : "optional",
+    "group" : "authorization",
+    "binding" : {
+      "name" : "inbound.auth.username",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "inbound.auth.type",
+      "equals" : "BASIC",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "inbound.auth.password",
+    "label" : "Password",
+    "description" : "Password for basic authentication",
+    "optional" : false,
+    "feel" : "optional",
+    "group" : "authorization",
+    "binding" : {
+      "name" : "inbound.auth.password",
+      "type" : "zeebe:property"
+    },
+    "condition" : {
+      "property" : "inbound.auth.type",
+      "equals" : "BASIC",
       "type" : "simple"
     },
     "type" : "String"

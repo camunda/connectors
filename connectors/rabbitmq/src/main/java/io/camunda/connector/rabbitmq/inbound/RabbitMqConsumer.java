@@ -15,9 +15,9 @@ import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.ShutdownSignalException;
 import io.camunda.connector.api.error.ConnectorInputException;
+import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.ForwardErrorToUpstream;
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.Ignore;
-import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure;
 import io.camunda.connector.api.inbound.CorrelationResult.Success;
@@ -54,29 +54,15 @@ public class RabbitMqConsumer extends DefaultConsumer {
         Activity.level(Severity.INFO)
             .tag("Message")
             .message("Received AMQP message with delivery tag " + envelope.getDeliveryTag()));
+
     try {
       RabbitMqInboundResult variables = prepareVariables(consumerTag, properties, body);
       var result = context.correlateWithResult(variables);
-      if (result instanceof CorrelationResult.Success) {
-        LOGGER.debug("ACK - message correlated successfully");
-        getChannel().basicAck(envelope.getDeliveryTag(), false);
-      } else if (
-          result instanceof CorrelationResult.Failure failureResult
-          && !failureResult.isRetryable()) {
-        LOGGER.debug("NACK (no requeue) - message not correlated, reason: {}", result);
-        context.log(
-          Activity.level(Severity.WARNING)
-              .tag("Message")
-              .message("NACK (no requeue) - failed to parse AMQP message body: " + e.getMessage()));getChannel().basicReject(envelope.getDeliveryTag(), false);
-      } else {
-        LOGGER.debug("NACK (requeue) - message not correlated, reason: {}", result);
-        getChannel().basicReject(envelope.getDeliveryTag(), true);
-      }
       handleCorrelationResult(envelope, result);
     } catch (Exception e) {
       LOGGER.debug("NACK (requeue) - unhandled exception", e);
       context.log(
-          Activity.level(Severity.DEBUG)
+          Activity.level(Severity.WARNING)
               .tag("Message")
               .message("NACK (requeue) - failed to correlate event"));
       getChannel().basicReject(envelope.getDeliveryTag(), true);
@@ -93,6 +79,14 @@ public class RabbitMqConsumer extends DefaultConsumer {
       }
 
       case Failure failure -> {
+        context.log(
+            Activity.level(Severity.WARNING)
+                .tag("Message")
+                .message(
+                    "Failed to handle AMQP message with delivery tag "
+                        + envelope.getDeliveryTag()
+                        + ", reason: "
+                        + failure.message()));
         switch (failure.handlingStrategy()) {
           case ForwardErrorToUpstream fwdStrategy -> {
             if (fwdStrategy.isRetryable()) {

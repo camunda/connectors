@@ -75,7 +75,7 @@ public class InboundConnectorDetailsUtil {
 
     var distinctPropertySets =
         elements.stream()
-            .collect(Collectors.groupingBy(InboundConnectorElement::rawPropertiesWithoutKeywords));
+            .collect(Collectors.groupingBy(InboundConnectorElement::propertiesForDeduplication));
     if (distinctPropertySets.size() > 1) {
       Set<String> divergingProperties = getDivergingProperties(distinctPropertySets);
 
