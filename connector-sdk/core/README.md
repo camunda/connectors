@@ -47,7 +47,8 @@ public class SubscriptionConnector implements InboundConnectorExecutable {
     // subscribe to events
     subscription = new MockSubscription(properties.getTopic());
     subscription.subscribe(event -> {
-      context.correlate(event);
+      var result = context.correlateWithResult(event);
+      // handleResult(result);
     });
   }
 
