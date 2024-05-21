@@ -23,7 +23,7 @@ import java.util.function.Function;
 /**
  * A wrapper object that returns data processed by a webhook. Depending on webhook runtime
  * implementation, this data can be used in the BPMN process correlation. See {@link
- * io.camunda.connector.api.inbound.InboundConnectorContext#correlate(Object)}.
+ * io.camunda.connector.api.inbound.InboundConnectorContext#correlateWithResult(Object)}.
  */
 public interface WebhookResult {
 
@@ -32,11 +32,7 @@ public interface WebhookResult {
    */
   MappedHttpRequest request();
 
-  /**
-   * Returns a function that can be used to generate a response to the webhook request.
-   *
-   * @return
-   */
+  /** Returns a function that can be used to generate a response to the webhook request. */
   default Function<WebhookResultContext, WebhookHttpResponse> response() {
     return null;
   }
@@ -45,7 +41,8 @@ public interface WebhookResult {
    * @return additional connector data that can be computed during webhook {@link
    *     WebhookConnectorExecutable#triggerWebhook(WebhookProcessingPayload)} execution, and the
    *     implementer wants to preserve that data and use it during the {@link
-   *     io.camunda.connector.api.inbound.InboundConnectorContext#correlate(Object)} phase.
+   *     io.camunda.connector.api.inbound.InboundConnectorContext#correlateWithResult(Object)}
+   *     phase.
    */
   default Map<String, Object> connectorData() {
     return Collections.emptyMap();
