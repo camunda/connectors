@@ -44,7 +44,8 @@ public record GeneratorConfiguration(
   public static String HYBRID_TEMPLATE_NAME_PREFIX = "Hybrid ";
 
   public enum GenerationFeature {
-    INBOUND_DEDUPLICATION
+    INBOUND_DEDUPLICATION,
+    ACKNOWLEDGEMENT_STRATEGY_SELECTION
   }
 
   public static final GeneratorConfiguration DEFAULT =

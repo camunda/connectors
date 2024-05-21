@@ -85,6 +85,17 @@ public class CommonProperties {
         .binding(new ZeebeProperty("activationCondition"));
   }
 
+  public static PropertyBuilder consumeUnmatchedEvents() {
+    return BooleanProperty.builder()
+        .id("consumeUnmatchedEvents")
+        .label("Consume unmatched events")
+        .tooltip(
+            "Unmatched events are rejected by default, allowing the upstream service to handle the error. Check this box to consume unmatched events and return a success response")
+        .group("activation")
+        .value(false)
+        .binding(new ZeebeProperty("consumeUnmatchedEvents"));
+  }
+
   public static PropertyBuilder correlationKeyProcess() {
     return StringProperty.builder()
         .id("correlationKeyProcess")

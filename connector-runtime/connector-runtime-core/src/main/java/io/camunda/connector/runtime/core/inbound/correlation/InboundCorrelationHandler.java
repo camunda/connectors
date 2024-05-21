@@ -77,7 +77,11 @@ public class InboundCorrelationHandler {
     }
 
     if (matchingElements.isEmpty()) {
-      return ActivationConditionNotMet.INSTANCE;
+      var discardUnmatchedEvents =
+          elements.stream()
+              .map(InboundConnectorElement::consumeUnmatchedEvents)
+              .anyMatch(e -> e.equals(Boolean.TRUE));
+      return new ActivationConditionNotMet(discardUnmatchedEvents);
     }
     if (matchingElements.size() > 1) {
       return new Failure.InvalidInput("Multiple connectors are activated for the same input", null);

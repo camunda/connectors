@@ -217,8 +217,7 @@ public class InboundConnectorContextBuilder {
       }
     }
 
-    @Override
-    public void correlate(Object variables) {
+    protected void correlate(Object variables) {
       correlatedEvents.add(variables);
     }
 

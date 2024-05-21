@@ -184,7 +184,7 @@ class WebhookControllerTestZeebeTests {
 
     var correlationHandlerMock = mock(InboundCorrelationHandler.class);
     when(correlationHandlerMock.correlate(any(), any()))
-        .thenReturn(new CorrelationResult.Failure.ActivationConditionNotMet());
+        .thenReturn(new CorrelationResult.Failure.ActivationConditionNotMet(false));
 
     var webhookDef = webhookDefinition("nonExistingProcess", 1, "myPath");
     var webhookContext =

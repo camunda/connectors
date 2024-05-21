@@ -17,6 +17,8 @@
 package io.camunda.connector.api.inbound;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.ForwardErrorToUpstream;
+import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.Ignore;
 
 public sealed interface CorrelationResult {
 
@@ -40,27 +42,44 @@ public sealed interface CorrelationResult {
 
   sealed interface Failure extends CorrelationResult {
 
-    default boolean isRetryable() {
-      return false;
+    String message();
+
+    default CorrelationFailureHandlingStrategy handlingStrategy() {
+      return ForwardErrorToUpstream.RETRYABLE;
     }
 
-    record InvalidInput(String message, Throwable error) implements Failure {}
+    record InvalidInput(String message, Throwable error) implements Failure {
 
-    record ActivationConditionNotMet() implements Failure {
-      public static final ActivationConditionNotMet INSTANCE = new ActivationConditionNotMet();
-    }
-
-    record ZeebeClientStatus(String status, String message) implements Failure {
       @Override
-      public boolean isRetryable() {
-        return true;
+      public CorrelationFailureHandlingStrategy handlingStrategy() {
+        return ForwardErrorToUpstream.NON_RETRYABLE;
       }
     }
 
-    record Other(Throwable error) implements Failure {
+    record ActivationConditionNotMet(boolean consumeUnmatched) implements Failure {
+
       @Override
-      public boolean isRetryable() {
-        return true;
+      public String message() {
+        return "Activation condition not met";
+      }
+
+      @Override
+      public CorrelationFailureHandlingStrategy handlingStrategy() {
+        if (consumeUnmatched) {
+          return Ignore.INSTANCE;
+        } else {
+          return ForwardErrorToUpstream.NON_RETRYABLE;
+        }
+      }
+    }
+
+    record ZeebeClientStatus(String status, String message) implements Failure {}
+
+    record Other(Throwable error) implements Failure {
+
+      @Override
+      public String message() {
+        return error.getMessage();
       }
     }
   }

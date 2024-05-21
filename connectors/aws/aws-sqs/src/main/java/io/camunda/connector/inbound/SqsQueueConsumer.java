@@ -10,8 +10,12 @@ import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
-import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.Activity;
+import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.ForwardErrorToUpstream;
+import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.Ignore;
+import io.camunda.connector.api.inbound.CorrelationResult;
+import io.camunda.connector.api.inbound.CorrelationResult.Failure;
+import io.camunda.connector.api.inbound.CorrelationResult.Success;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.Severity;
@@ -56,19 +60,11 @@ public class SqsQueueConsumer implements Runnable {
               Activity.level(Severity.INFO)
                   .tag("Message")
                   .message("Received SQS Message with ID " + message.getMessageId()));
-          try {
-            context.correlate(MessageMapper.toSqsInboundMessage(message));
-            sqsClient.deleteMessage(properties.getQueue().url(), message.getReceiptHandle());
-          } catch (ConnectorInputException e) {
-            LOGGER.warn("NACK - failed to parse SQS message body: {}", e.getMessage());
-            context.log(
-                Activity.level(Severity.WARNING)
-                    .tag("Message")
-                    .message("NACK - failed to parse SQS message body: " + e.getMessage()));
-          }
+          var result = context.correlateWithResult(MessageMapper.toSqsInboundMessage(message));
+          handleCorrelationResult(message, result);
         }
       } catch (Exception e) {
-        LOGGER.debug("NACK - failed to correlate event", e);
+        LOGGER.debug("NACK - unhandled exception", e);
         context.log(
             Activity.level(Severity.WARNING)
                 .tag("Message")
@@ -77,6 +73,28 @@ public class SqsQueueConsumer implements Runnable {
     } while (queueConsumerActive.get());
     LOGGER.info("Stopping SQS consumer for queue {}", properties.getQueue().url());
     context.reportHealth(Health.down());
+  }
+
+  private void handleCorrelationResult(Message message, CorrelationResult result) {
+    switch (result) {
+      case Success ignored -> {
+        LOGGER.debug("ACK - message correlated successfully");
+        sqsClient.deleteMessage(properties.getQueue().url(), message.getReceiptHandle());
+      }
+
+      case Failure failure -> {
+        context.log(Activity.level(Severity.WARNING).tag("Message").message(failure.message()));
+        switch (failure.handlingStrategy()) {
+          case ForwardErrorToUpstream ignored1 -> {
+            LOGGER.debug("NACK (requeue) - message not correlated");
+          }
+          case Ignore ignored -> {
+            LOGGER.debug("ACK - message ignored");
+            sqsClient.deleteMessage(properties.getQueue().url(), message.getReceiptHandle());
+          }
+        }
+      }
+    }
   }
 
   private ReceiveMessageRequest createReceiveMessageRequest() {

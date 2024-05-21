@@ -17,6 +17,9 @@ import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
+import io.camunda.connector.api.inbound.CorrelationResult.Failure.ActivationConditionNotMet;
+import io.camunda.connector.api.inbound.CorrelationResult.Failure.Other;
+import io.camunda.connector.api.inbound.CorrelationResult.Success.MessagePublished;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.inbound.model.SqsInboundProperties;
@@ -70,6 +73,7 @@ public class SqsQueueConsumerTest {
     when(messages.iterator())
         .thenReturn(Collections.singletonList(message).iterator())
         .thenReturn(emptyMessageList.iterator());
+    when(context.correlateWithResult(any())).thenReturn(new MessagePublished(null, 1L, null));
     // when
     Thread thread =
         new Thread(
@@ -81,7 +85,8 @@ public class SqsQueueConsumerTest {
     thread.join();
     // then
     verify(sqsClient, atLeast(1)).receiveMessage(any(ReceiveMessageRequest.class));
-    verify(context).correlate(any(SqsInboundMessage.class));
+    verify(context).correlateWithResult(any(SqsInboundMessage.class));
+    verify(sqsClient).deleteMessage(queue.url(), message.getReceiptHandle());
 
     ReceiveMessageRequest receiveMessageRequest = requestArgumentCaptor.getValue();
     assertThat(receiveMessageRequest.getAttributeNames()).isEqualTo(List.of("All"));
@@ -103,6 +108,8 @@ public class SqsQueueConsumerTest {
     when(messages.iterator())
         .thenReturn(Collections.singletonList(message).iterator())
         .thenReturn(emptyMessageList.iterator());
+    when(context.correlateWithResult(any())).thenReturn(new MessagePublished(null, 1L, null));
+
     // when
     Thread thread =
         new Thread(
@@ -114,10 +121,61 @@ public class SqsQueueConsumerTest {
     thread.join();
     // then
     verify(sqsClient, atLeast(1)).receiveMessage(any(ReceiveMessageRequest.class));
-    verify(context).correlate(MessageMapper.toSqsInboundMessage(message));
+    verify(context).correlateWithResult(MessageMapper.toSqsInboundMessage(message));
     ReceiveMessageRequest receiveMessageRequest = requestArgumentCaptor.getValue();
     assertThat(receiveMessageRequest.getAttributeNames()).isEqualTo(attributeNames);
     assertThat(receiveMessageRequest.getMessageAttributeNames()).isEqualTo(messageAttributeNames);
+    verify(sqsClient).deleteMessage(queue.url(), message.getReceiptHandle());
+  }
+
+  @Test
+  void correlationFailure_ForwardToUpstream() throws InterruptedException {
+    // given
+    when(sqsClient.receiveMessage(any(ReceiveMessageRequest.class)))
+        .thenReturn(receiveMessageResult);
+    when(receiveMessageResult.getMessages()).thenReturn(messages);
+    when(messages.iterator())
+        .thenReturn(Collections.singletonList(message).iterator())
+        .thenReturn(emptyMessageList.iterator());
+    when(context.correlateWithResult(any())).thenReturn(new Other(new RuntimeException()));
+    // when
+    Thread thread =
+        new Thread(
+            () -> {
+              consumer.run();
+            });
+    thread.start();
+    consumer.setQueueConsumerActive(false);
+    thread.join();
+    // then
+    verify(sqsClient).receiveMessage(any(ReceiveMessageRequest.class));
+    verify(context).correlateWithResult(any(SqsInboundMessage.class));
+    verifyNoMoreInteractions(sqsClient);
+  }
+
+  @Test
+  void correlationFailure_Ignored() throws InterruptedException {
+    // given
+    when(sqsClient.receiveMessage(any(ReceiveMessageRequest.class)))
+        .thenReturn(receiveMessageResult);
+    when(receiveMessageResult.getMessages()).thenReturn(messages);
+    when(messages.iterator())
+        .thenReturn(Collections.singletonList(message).iterator())
+        .thenReturn(emptyMessageList.iterator());
+    when(context.correlateWithResult(any())).thenReturn(new ActivationConditionNotMet(true));
+    // when
+    Thread thread =
+        new Thread(
+            () -> {
+              consumer.run();
+            });
+    thread.start();
+    consumer.setQueueConsumerActive(false);
+    thread.join();
+    // then
+    verify(sqsClient).receiveMessage(any(ReceiveMessageRequest.class));
+    verify(context).correlateWithResult(any(SqsInboundMessage.class));
+    verify(sqsClient).deleteMessage(queue.url(), message.getReceiptHandle());
   }
 
   @Test

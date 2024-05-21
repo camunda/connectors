@@ -91,6 +91,19 @@ public record PropertyGroup(
                   .build())
           .build();
 
+  public static PropertyGroup ACTIVATION_GROUP_WITH_CONSUME_UNMATCHED_EVENTS =
+      PropertyGroup.builder()
+          .id("activation")
+          .label("Activation")
+          .properties(
+              CommonProperties.activationCondition()
+                  .binding(new ZeebeProperty("activationCondition"))
+                  .build(),
+              CommonProperties.consumeUnmatchedEvents()
+                  .binding(new ZeebeProperty("consumeUnmatchedEvents"))
+                  .build())
+          .build();
+
   public static PropertyGroup CORRELATION_GROUP_MESSAGE_START_EVENT =
       PropertyGroup.builder()
           .id("correlation")

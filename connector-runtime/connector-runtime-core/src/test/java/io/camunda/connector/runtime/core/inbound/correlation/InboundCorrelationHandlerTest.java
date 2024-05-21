@@ -27,6 +27,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy;
 import io.camunda.connector.api.inbound.CorrelationResult.Failure;
 import io.camunda.connector.api.inbound.CorrelationResult.Success;
 import io.camunda.connector.feel.FeelEngineWrapper;
@@ -323,10 +324,11 @@ public class InboundCorrelationHandlerTest {
   class ActivationCondition {
 
     @Test
-    void activationConditionFalse_shouldNotCorrelate() {
+    void activationConditionFalse_strategyForwardErrorToUpstream() {
       // given
       var element = mock(InboundConnectorElement.class);
       when(element.activationCondition()).thenReturn("=testKey=\"otherValue\"");
+      when(element.consumeUnmatchedEvents()).thenReturn(false);
 
       Map<String, Object> variables = Map.of("testKey", "testValue");
 
@@ -334,6 +336,25 @@ public class InboundCorrelationHandlerTest {
       var result = assertDoesNotThrow(() -> handler.correlate(List.of(element), variables));
       verifyNoMoreInteractions(zeebeClient);
       assertThat(result).isInstanceOf(Failure.ActivationConditionNotMet.class);
+      assertThat(((Failure.ActivationConditionNotMet) result).handlingStrategy())
+          .isInstanceOf(CorrelationFailureHandlingStrategy.ForwardErrorToUpstream.class);
+    }
+
+    @Test
+    void activationConditionFalse_strategyIgnore() {
+      // given
+      var element = mock(InboundConnectorElement.class);
+      when(element.activationCondition()).thenReturn("=testKey=\"otherValue\"");
+      when(element.consumeUnmatchedEvents()).thenReturn(true);
+
+      Map<String, Object> variables = Map.of("testKey", "testValue");
+
+      // when & then
+      var result = assertDoesNotThrow(() -> handler.correlate(List.of(element), variables));
+      verifyNoMoreInteractions(zeebeClient);
+      assertThat(result).isInstanceOf(Failure.ActivationConditionNotMet.class);
+      assertThat(((Failure) result).handlingStrategy())
+          .isInstanceOf(CorrelationFailureHandlingStrategy.Ignore.class);
     }
 
     @Test

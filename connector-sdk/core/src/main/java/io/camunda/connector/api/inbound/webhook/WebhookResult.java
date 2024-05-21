@@ -23,7 +23,7 @@ import java.util.function.Function;
 /**
  * A wrapper object that returns data processed by a webhook. Depending on webhook runtime
  * implementation, this data can be used in the BPMN process correlation. See {@link
- * io.camunda.connector.api.inbound.InboundConnectorContext#correlate(Object)}.
+ * io.camunda.connector.api.inbound.InboundConnectorContext#correlateWithResult(Object)}.
  */
 public interface WebhookResult {
 

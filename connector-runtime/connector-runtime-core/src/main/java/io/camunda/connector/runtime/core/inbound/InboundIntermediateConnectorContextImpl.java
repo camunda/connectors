@@ -87,12 +87,6 @@ public class InboundIntermediateConnectorContextImpl
   }
 
   @Override
-  @Deprecated
-  public void correlate(final Object variables) {
-    inboundContext.correlate(variables);
-  }
-
-  @Override
   public CorrelationResult correlateWithResult(Object variables) {
     return inboundContext.correlateWithResult(variables);
   }

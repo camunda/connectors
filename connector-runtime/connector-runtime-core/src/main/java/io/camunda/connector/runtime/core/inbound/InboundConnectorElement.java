@@ -63,6 +63,12 @@ public record InboundConnectorElement(
         .orElseGet(() -> rawProperties.get(Keywords.DEPRECATED_ACTIVATION_CONDITION_KEYWORD));
   }
 
+  public boolean consumeUnmatchedEvents() {
+    return Optional.ofNullable(rawProperties.get(Keywords.CONSUME_UNMATCHED_EVENTS_KEYWORD))
+        .map(Boolean::parseBoolean)
+        .orElse(false);
+  }
+
   public String deduplicationId(List<String> deduplicationProperties) {
     LOG.debug("Computing deduplicationId for element {}", element.elementId());
     var deduplicationMode = rawProperties.get(Keywords.DEDUPLICATION_MODE_KEYWORD);
@@ -98,7 +104,7 @@ public record InboundConnectorElement(
               .filter(Objects::nonNull)
               .toList();
     } else {
-      propsToHash = rawPropertiesWithoutKeywords().values().stream().toList();
+      propsToHash = propertiesForDeduplication().values().stream().toList();
     }
     if (propsToHash.isEmpty()) {
       throw new InvalidInboundConnectorDefinitionException(
@@ -107,9 +113,15 @@ public record InboundConnectorElement(
     return tenantId() + "-" + element.bpmnProcessId() + "-" + Objects.hash(propsToHash);
   }
 
-  public Map<String, String> rawPropertiesWithoutKeywords() {
+  public Map<String, String> connectorLevelProperties() {
     return rawProperties.entrySet().stream()
-        .filter(e -> !Keywords.ALL_KEYWORDS.contains(e.getKey()))
+        .filter(e -> !Keywords.INBOUND_RUNTIME_PROPERTIES.contains(e.getKey()))
+        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+  }
+
+  public Map<String, String> propertiesForDeduplication() {
+    return rawProperties.entrySet().stream()
+        .filter(e -> !Keywords.PROPERTIES_EXCLUDED_FROM_DEDUPLICATION.contains(e.getKey()))
         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 

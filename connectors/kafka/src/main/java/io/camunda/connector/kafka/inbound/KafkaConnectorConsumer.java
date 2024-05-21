@@ -22,6 +22,11 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.scala.DefaultScalaModule$;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.Activity;
+import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.ForwardErrorToUpstream;
+import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.Ignore;
+import io.camunda.connector.api.inbound.CorrelationResult;
+import io.camunda.connector.api.inbound.CorrelationResult.Failure;
+import io.camunda.connector.api.inbound.CorrelationResult.Success;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.Severity;
@@ -184,7 +189,25 @@ public class KafkaConnectorConsumer {
             .message("Received message with key : " + record.key()));
     var reader = avroObjectReader != null ? avroObjectReader : objectMapper.reader();
     var mappedMessage = convertConsumerRecordToKafkaInboundMessage(record, reader);
-    this.context.correlate(mappedMessage);
+    var result = context.correlateWithResult(mappedMessage);
+    handleCorrelationResult(result);
+  }
+
+  private void handleCorrelationResult(CorrelationResult result) {
+    switch (result) {
+      case Success ignored -> LOG.debug("Message correlated successfully");
+      case Failure failure -> {
+        switch (failure.handlingStrategy()) {
+          case ForwardErrorToUpstream ignored -> {
+            LOG.debug("Message not correlated, reason: {}. Offset will not be committed", failure);
+            throw new RuntimeException(
+                "Message cannot be processed: " + failure.getClass().getSimpleName());
+          }
+          case Ignore ignored -> LOG.debug(
+              "Message not correlated, but the error is ignored. Offset will be committed");
+        }
+      }
+    }
   }
 
   public void stopConsumer() throws ExecutionException, InterruptedException {
