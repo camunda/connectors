@@ -33,12 +33,6 @@ jobs:
       - name: Install jq
         run: sudo apt-get install jq
 
-      - name: Prepare Java and Maven settings
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '21'
-
       - name: Determine current Maven project version
         id: maven-version
         run: |
@@ -69,6 +63,11 @@ jobs:
           else
             echo "::set-output name=helm-branch::${{ github.event.inputs.helm-branch }}"
           fi
+
+      - name: Log results
+        run: |
+          echo "Connectors version: ${{ steps.connectors-version.outputs.connectors-version }}"
+          echo "Helm branch: ${{ steps.helm-branch.outputs.helm-branch }}"
 
   helm-deploy:
     needs: prepare-inputs
