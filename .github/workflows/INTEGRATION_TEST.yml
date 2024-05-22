@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Prepare inputs
     outputs:
-      connectors-version: ${{ steps.maven-version.outputs.version }}
+      connectors-version: ${{ steps.connectors-version.outputs.connectors-version }}
       helm-branch: ${{ steps.helm-branch.outputs.helm-branch }}
     steps:
       - uses: actions/checkout@v2
