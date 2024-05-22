@@ -21,8 +21,12 @@ defaults:
     shell: bash
 
 jobs:
-  helm-deploy:
+  prepare-inputs:
     runs-on: ubuntu-latest
+    name: Prepare inputs
+    outputs:
+      connectors-version: ${{ steps.maven-version.outputs.version }}
+      helm-branch: ${{ steps.helm-branch.outputs.helm-branch }}
     steps:
       - uses: actions/checkout@v2
 
@@ -59,14 +63,17 @@ jobs:
           else
             echo "::set-output name=helm-branch::${{ github.event.inputs.helm-branch }}"
           fi
-      - name: Helm chart Integration Tests
-        uses: camunda/camunda-platform-helm/.github/workflows/test-integration-template.yaml@main
-        secrets: inherit
-        with:
-          identifier: connectors-int
-          camunda-helm-git-ref: ${{ steps.helm-branch.outputs.helm-branch }}
-          test-enabled: true
-          extra-values: |
-            connectors:
-              image:
-                tag: ${{ steps.connectors-version.outputs.connectors-version }}
+
+  helm-deploy:
+    needs: prepare-inputs
+    name: Helm chart Integration Tests
+    uses: camunda/camunda-platform-helm/.github/workflows/test-integration-template.yaml@main
+    secrets: inherit
+    with:
+      identifier: connectors-int
+      camunda-helm-git-ref: ${{ needs.prepare-inputs.outputs.helm-branch }}
+      test-enabled: true
+      extra-values: |
+        connectors:
+          image:
+            tag: ${{ needs.prepare-inputs.outputs.connectors-version }}
