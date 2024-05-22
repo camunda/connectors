@@ -20,7 +20,7 @@ import java.util.Properties;
 public record UriConnection(
     @NotBlank
         @Pattern(
-            regexp = "^(=|jdbc:|secrets|\\{\\{).*$",
+            regexp = "^(=|(jdbc:|secrets|\\{\\{).*$)",
             message = "Must start with 'jdbc:' or contain a secret reference")
         @TemplateProperty(
             group = "connection",

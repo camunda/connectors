@@ -90,7 +90,7 @@
     "constraints" : {
       "notEmpty" : true,
       "pattern" : {
-        "value" : "^(=|jdbc:|secrets|\\{\\{).*$",
+        "value" : "^(=|(jdbc:|secrets|\\{\\{).*$)",
         "message" : "Must start with 'jdbc:' or contain a secret reference"
       }
     },

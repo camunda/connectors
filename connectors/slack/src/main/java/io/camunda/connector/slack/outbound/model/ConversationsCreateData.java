@@ -35,7 +35,7 @@ public record ConversationsCreateData(
                     notEmpty = true,
                     pattern =
                         @Pattern(
-                            value = "^(=|[-_a-z0-9]{1,80}$)",
+                            value = "^(=|([-_a-z0-9]{1,80}$))",
                             message =
                                 "May contain up to 80 lowercase letters, digits, underscores, and dashes")),
             feel = FeelMode.optional)
