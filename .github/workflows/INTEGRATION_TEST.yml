@@ -42,19 +42,19 @@ jobs:
       - name: Determine current Maven project version
         id: maven-version
         run: |
-          echo "::set-output name=version::$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)"
+          echo "version=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_OUTPUT
 
       - name: Determine version of the Connectors image to use
         id: connectors-version
         run: |
           if [ -z "${{ github.event.inputs.connectors-version }}" ]; then
             if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-              echo "::set-output name=connectors-version::SNAPSHOT"
+              echo "connectors-version=SNAPSHOT" >> $GITHUB_OUTPUT
             else
-              echo "::set-output name=connectors-version::${{ steps.maven-version.outputs.version }}"
+              echo "connectors-version=${{ steps.maven-version.outputs.version }}" >> $GITHUB_OUTPUT
             fi
           else
-            echo "::set-output name=connectors-version::${{ github.event.inputs.connectors-version }}"
+            echo "connectors-version=${{ github.event.inputs.connectors-version }}" >> $GITHUB_OUTPUT
           fi
 
       - name: Determine Helm chart ref to use
@@ -65,9 +65,9 @@ jobs:
               echo "::error::Could not determine Helm chart branch to use, please provide helm-branch input or adjust the mappings in .github/workflows/helm-git-refs.json"
               exit 1
             fi
-            echo "::set-output name=helm-branch::$helm_branch"
+            echo "helm-branch=$helm_branch" >> $GITHUB_OUTPUT
           else
-            echo "::set-output name=helm-branch::${{ github.event.inputs.helm-branch }}"
+            echo "helm-branch=${{ github.event.inputs.helm-branch }}" >> $GITHUB_OUTPUT
           fi
 
       - name: Log results
