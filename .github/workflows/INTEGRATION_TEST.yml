@@ -33,6 +33,12 @@ jobs:
       - name: Install jq
         run: sudo apt-get install jq
 
+      - name: Prepare Java and Maven settings
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
       - name: Determine current Maven project version
         id: maven-version
         run: |
