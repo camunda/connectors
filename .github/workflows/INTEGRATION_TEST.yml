@@ -42,7 +42,7 @@ jobs:
       - name: Determine current Maven project version
         id: maven-version
         run: |
-          echo "version=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_OUTPUT
+          echo "version=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout -o)" >> $GITHUB_OUTPUT
 
       - name: Determine version of the Connectors image to use
         id: connectors-version
