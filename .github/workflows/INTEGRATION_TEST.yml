@@ -58,6 +58,7 @@ jobs:
           fi
 
       - name: Determine Helm chart ref to use
+        id: helm-branch
         run: |
           if [ -z "${{ github.event.inputs.helm-branch }}" ]; then
             helm_branch=$(jq -r ".[\"${{ github.ref }}\"]" .github/workflows/helm-git-refs.json)
