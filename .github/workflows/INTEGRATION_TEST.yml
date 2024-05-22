@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       connectors-version:
-        description: 'The version of the connectors to test. If not provided, the version is determined based on the Maven project version. On main branch, the default is SNAPSHOT'
+        description: 'The version of the Connectors to test. If not provided, the version is determined based on the Maven project version. On main branch, the default is SNAPSHOT'
         required: false
       helm-branch:
         description: 'The branch of the Helm chart to test against. If not provided, the branch is determined based on the ref (see helm-git-refs.json)'
