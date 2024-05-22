@@ -33,16 +33,10 @@ jobs:
       - name: Install jq
         run: sudo apt-get install jq
 
-      - name: Prepare Java and Maven settings
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '21'
-
       - name: Determine current Maven project version
         id: maven-version
         run: |
-          echo "version=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout -o)" >> $GITHUB_OUTPUT
+          echo "version=$(grep -oPm1 "(?<=<version>)[^<]+" "pom.xml")" >> $GITHUB_OUTPUT
 
       - name: Determine version of the Connectors image to use
         id: connectors-version
