@@ -43,6 +43,7 @@ import org.springframework.ws.soap.client.SoapFaultClientException;
     version = 1,
     inputDataClass = SoapConnectorInput.class,
     description = "A Connector to execute a SOAP request",
+    documentationRef = "https://docs.camunda.io/docs/components/connectors/protocol/soap/",
     propertyGroups = {
       @PropertyGroup(id = "connection", label = "Connection"),
       @PropertyGroup(id = "authentication", label = "Authentication"),

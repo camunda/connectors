@@ -3,6 +3,7 @@
   "name" : "SOAP Connector",
   "id" : "io.camunda:soap",
   "description" : "A Connector to execute a SOAP request",
+  "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/soap/",
   "version" : 1,
   "category" : {
     "id" : "connectors",

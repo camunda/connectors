@@ -68,6 +68,7 @@
                   <templateFileName>aws-sagemaker-outbound-connector.json</templateFileName>
                 </file>
               </files>
+              <generateHybridTemplates>true</generateHybridTemplates>
             </connector>
           </connectors>
           <includeDependencies>
