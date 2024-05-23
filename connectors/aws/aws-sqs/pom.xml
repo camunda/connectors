@@ -78,6 +78,7 @@
               </files>
               <features>
                 <INBOUND_DEDUPLICATION>true</INBOUND_DEDUPLICATION>
+                <ACKNOWLEDGEMENT_STRATEGY_SELECTION>true</ACKNOWLEDGEMENT_STRATEGY_SELECTION>
               </features>
             </connector>
           </connectors>
