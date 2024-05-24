@@ -61,7 +61,7 @@ public class InboundEndpointTest {
                         new InboundConnectorElement(
                             Map.of("inbound.context", "myPath", "inbound.type", "webhook"),
                             new StandaloneMessageCorrelationPoint(
-                                "myPath", "=expression", "=myPath"),
+                                "myPath", "=expression", "=myPath", null),
                             new ProcessElement("", 1, 1, "", ""))),
                     Health.up(),
                     Collections.emptyList())));
