@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.release.tag_name || github.event.release.target_commitish }}
+          ref: ${{ github.event.release.target_commitish }}
           fetch-depth: 0
 
       - name: Validate release tag and determine previous tag
@@ -30,6 +30,7 @@ jobs:
       - name: Determine release branch name
         id: determine_release_branch
         run: |
+          git fetch --tags
           releaseBranch=$( git branch --contains ${RELEASE_VERSION} --format='%(refname:short)' | tail -1 )
           git checkout "$releaseBranch"
           echo "releaseBranch=$releaseBranch" >> $GITHUB_OUTPUT
