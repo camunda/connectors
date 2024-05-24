@@ -32,7 +32,9 @@ final class WebhookConnectorValidationUtil {
   private static final String DEPRECATED_WEBHOOK_MESSAGE_PREFIX = "Deprecated webhook path: ";
 
   static void logIfWebhookPathDeprecated(RegisteredExecutable.Activated connector, String webhook) {
-
+    if (webhook == null) {
+      return;
+    }
     if (!CURRENT_WEBHOOK_PATH_PATTERN.matcher(webhook).matches()) {
       String message =
           DEPRECATED_WEBHOOK_MESSAGE_PREFIX + webhook + DEPRECATED_WEBHOOK_MESSAGE_SUFFIX;

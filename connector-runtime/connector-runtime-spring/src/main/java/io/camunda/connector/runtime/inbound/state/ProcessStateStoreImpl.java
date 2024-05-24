@@ -38,7 +38,10 @@ public class ProcessStateStoreImpl implements ProcessStateStore {
   private final InboundExecutableRegistry executableRegistry;
 
   private record ProcessState(
-      int version, long processDefinitionKey, List<InboundConnectorElement> connectorElements) {}
+      int version,
+      long processDefinitionKey,
+      String tenantId,
+      List<InboundConnectorElement> connectorElements) {}
 
   public ProcessStateStoreImpl(
       ProcessDefinitionInspector processDefinitionInspector,
@@ -95,6 +98,7 @@ public class ProcessStateStoreImpl implements ProcessStateStore {
             return new ProcessState(
                 entry.getValue().version(),
                 entry.getValue().processDefinitionKey(),
+                entry.getKey().tenantId(),
                 connectorElements);
           });
     } catch (Throwable e) {
@@ -118,6 +122,7 @@ public class ProcessStateStoreImpl implements ProcessStateStore {
             return new ProcessState(
                 entry.getValue().version(),
                 entry.getValue().processDefinitionKey(),
+                entry.getKey().tenantId(),
                 newConnectorElements);
           });
     } catch (Throwable e) {
@@ -131,7 +136,7 @@ public class ProcessStateStoreImpl implements ProcessStateStore {
       processStates.computeIfPresent(
           processId,
           (key1, state) -> {
-            var tenantId = state.connectorElements.getFirst().element().tenantId();
+            var tenantId = state.tenantId;
             deactivate(tenantId, state.processDefinitionKey);
             return null;
           });

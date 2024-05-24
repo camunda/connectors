@@ -33,6 +33,7 @@ import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.Inva
 import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.connector.runtime.metrics.ConnectorMetrics.Inbound;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -108,7 +109,7 @@ public class BatchExecutableProcessor {
               failed.reason());
 
           // deactivate all previously activated connectors
-          deactivateBatch(List.of(failed));
+          deactivateBatch(new ArrayList<>(alreadyActivated.values()));
 
           var failureReasonForOthers =
               "Process contains invalid connector(s): "
@@ -199,6 +200,7 @@ public class BatchExecutableProcessor {
     for (var activeExecutable : executables) {
       if (activeExecutable instanceof Activated activated) {
         try {
+          LOG.info("Deactivating executable: {}", activated.context().getDefinition().type());
           if (activated.executable() instanceof WebhookConnectorExecutable) {
             LOG.debug("Unregistering webhook: {}", activated.context().getDefinition().type());
             webhookConnectorRegistry.deregister(activated);

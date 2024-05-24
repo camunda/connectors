@@ -53,7 +53,7 @@ public class InboundExecutableRegistryImpl implements InboundExecutableRegistry 
   private final BatchExecutableProcessor batchExecutableProcessor;
 
   private final Map<ProcessElement, UUID> executablesByElement = new ConcurrentHashMap<>();
-  private final Map<UUID, RegisteredExecutable> executables = new HashMap<>();
+  final Map<UUID, RegisteredExecutable> executables = new HashMap<>();
 
   private static final Logger LOG = LoggerFactory.getLogger(InboundExecutableRegistryImpl.class);
 

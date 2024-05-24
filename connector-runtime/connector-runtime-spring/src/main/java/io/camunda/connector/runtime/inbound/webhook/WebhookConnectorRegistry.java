@@ -44,6 +44,11 @@ public class WebhookConnectorRegistry {
   public void register(RegisteredExecutable.Activated connector) {
     var properties = connector.context().bindProperties(CommonWebhookProperties.class);
     var context = properties.getContext();
+    if (context == null) {
+      var logMessage = "Webhook path not provided";
+      LOG.debug(logMessage);
+      throw new RuntimeException(logMessage);
+    }
 
     WebhookConnectorValidationUtil.logIfWebhookPathDeprecated(connector, context);
 

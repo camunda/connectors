@@ -21,9 +21,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.Health.Status;
+import io.camunda.connector.api.inbound.InboundConnectorDefinition;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.ProcessElement;
 import io.camunda.connector.runtime.core.Keywords;
@@ -34,6 +37,7 @@ import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
 import io.camunda.connector.runtime.core.inbound.correlation.StartEventCorrelationPoint;
 import io.camunda.connector.runtime.inbound.executable.InboundExecutableEvent.Activated;
+import io.camunda.connector.runtime.inbound.executable.RegisteredExecutable.ConnectorNotRegistered;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -143,6 +147,11 @@ public class InboundExecutableRegistryTest {
     when(factory.getInstance(any())).thenReturn(executable);
     doThrow(new RuntimeException("failed")).when(executable).activate(any());
 
+    var mockContext = mock(InboundConnectorContextImpl.class);
+    when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(mockContext);
+
+    doThrow(new RuntimeException("failed")).when(executable).activate(any());
+
     // when
     registry.handleEvent(new Activated("tenant", 0, List.of(element)));
 
@@ -150,6 +159,97 @@ public class InboundExecutableRegistryTest {
     var result = registry.query(new ActiveExecutableQuery(null, elementId, null, null));
     assertThat(result.getFirst().health().getStatus()).isEqualTo(Status.DOWN);
     assertThat(result.getFirst().health().getError().message()).isEqualTo("failed");
+  }
+
+  @Test
+  public void activationFailure_batch_shouldRollbackOtherConnectors() throws Exception {
+    // given
+    var processId = "processId";
+    var element1 =
+        new InboundConnectorElement(
+            Map.of(Keywords.INBOUND_TYPE_KEYWORD, "type"),
+            new StartEventCorrelationPoint(processId, 0, 0),
+            new ProcessElement(processId, 0, 0, "element1", "tenant"));
+    var element2 =
+        new InboundConnectorElement(
+            Map.of(Keywords.INBOUND_TYPE_KEYWORD, "type"),
+            new StartEventCorrelationPoint(processId, 0, 0),
+            new ProcessElement(processId, 0, 0, "element2", "tenant"));
+
+    var executable1 = mock(InboundConnectorExecutable.class);
+    var executable2 = mock(InboundConnectorExecutable.class);
+
+    when(factory.getInstance(any())).thenReturn(executable1).thenReturn(executable2);
+    var mockContext = mock(InboundConnectorContextImpl.class);
+    when(mockContext.connectorElements()).thenReturn(List.of(element1, element2));
+    when(mockContext.getDefinition())
+        .thenReturn(new InboundConnectorDefinition("type", "tenant", "id", null));
+    when(mockContext.getHealth()).thenReturn(Health.up());
+    when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(mockContext);
+
+    doThrow(new RuntimeException("failed")).when(executable2).activate(mockContext);
+
+    // when
+    registry.handleEvent(new Activated("tenant", 0, List.of(element1, element2)));
+
+    // then
+    verify(executable1).activate(mockContext);
+    verify(executable2).activate(mockContext);
+    verify(executable1).deactivate();
+
+    assertThat(registry.executables.size()).isEqualTo(2);
+    assertThat(
+            registry.executables.values().stream()
+                .allMatch(e -> e instanceof RegisteredExecutable.FailedToActivate))
+        .isTrue();
+  }
+
+  @Test
+  public void connectorNotFound_batch_shouldNotRollbackOtherConnectors() throws Exception {
+    // we want to allow other connectors to be activated even if one is not registered in the
+    // connector factory - this way we can also support hybrid mode.
+
+    // given
+    var processId = "processId";
+    var element1 =
+        new InboundConnectorElement(
+            Map.of(Keywords.INBOUND_TYPE_KEYWORD, "type"),
+            new StartEventCorrelationPoint(processId, 0, 0),
+            new ProcessElement(processId, 0, 0, "element1", "tenant"));
+    var element2 =
+        new InboundConnectorElement(
+            Map.of(Keywords.INBOUND_TYPE_KEYWORD, "type"),
+            new StartEventCorrelationPoint(processId, 0, 0),
+            new ProcessElement(processId, 0, 0, "element2", "tenant"));
+
+    var executable1 = mock(InboundConnectorExecutable.class);
+
+    when(factory.getInstance(any()))
+        .thenReturn(executable1)
+        .thenThrow(new NoSuchElementException("not registered"));
+    var mockContext = mock(InboundConnectorContextImpl.class);
+    when(mockContext.connectorElements()).thenReturn(List.of(element1, element2));
+    when(mockContext.getDefinition())
+        .thenReturn(new InboundConnectorDefinition("type", "tenant", "id", null));
+    when(mockContext.getHealth()).thenReturn(Health.up());
+    when(contextFactory.createContext(any(), any(), any(), any())).thenReturn(mockContext);
+
+    // when
+    registry.handleEvent(new Activated("tenant", 0, List.of(element1, element2)));
+
+    // then
+    verify(executable1).activate(mockContext);
+    verifyNoMoreInteractions(executable1);
+
+    assertThat(registry.executables.size()).isEqualTo(2);
+    assertThat(
+            registry.executables.values().stream()
+                .anyMatch(e -> e instanceof ConnectorNotRegistered))
+        .isTrue();
+    assertThat(
+            registry.executables.values().stream()
+                .anyMatch(e -> e instanceof RegisteredExecutable.Activated))
+        .isTrue();
   }
 
   @Test
