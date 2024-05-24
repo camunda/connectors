@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.release.tag_name || github.event.release.target_commitish }}
+          ref: main
           fetch-depth: 0
 
       - name: Validate release tag and determine previous tag
