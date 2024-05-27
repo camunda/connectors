@@ -110,16 +110,4 @@ public class ConnectorException extends RuntimeException {
   public Map<String, Object> getErrorVariables() {
     return errorVariables;
   }
-
-  @Override
-  public String toString() {
-    return "ConnectorException{"
-        + "errorCode='"
-        + errorCode
-        + '\''
-        + ", errorVariables="
-        + errorVariables
-        + '}'
-        + (getCause() != null ? ", cause=" + getCause().getMessage() : "");
-  }
 }
