@@ -264,3 +264,8 @@ jobs:
             bundle/default-bundle/target/connectors-bundle-sbom.xml
             connectors-bundle-templates-${{ github.event.release.tag_name }}.tar.gz
             connectors-bundle-templates-${{ github.event.release.tag_name }}.zip
+
+      - name: Run Helm Integration Tests
+        uses: ./.github/workflows/INTEGRATION_TEST.yml
+        with:
+          connectors-version: ${{ github.event.release.tag_name }}
