@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.http.base.blocklist;
 
-
 /**
  * This interface defines the contract for an HTTP Blocklist Manager. Implementing classes should
  * provide logic for validating a URL against a set of blocklist criteria.
