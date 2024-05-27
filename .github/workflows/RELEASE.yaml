@@ -265,7 +265,10 @@ jobs:
             connectors-bundle-templates-${{ github.event.release.tag_name }}.tar.gz
             connectors-bundle-templates-${{ github.event.release.tag_name }}.zip
 
-      - name: Run Helm Integration Tests
-        uses: ./.github/workflows/INTEGRATION_TEST.yml
-        with:
-          connectors-version: ${{ github.event.release.tag_name }}
+  helm-deploy:
+    needs: build-and-push
+    name: Run Helm Integration Tests
+    uses: ./.github/workflows/INTEGRATION_TEST.yml
+    secrets: inherit
+    with:
+      connectors-version: ${{ github.event.release.tag_name }}
