@@ -14,19 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.http.base.constants;
 
-public class Constants {
-  public static final String GRANT_TYPE = "grant_type";
-  public static final String CLIENT_ID = "client_id";
-  public static final String CLIENT_SECRET = "client_secret";
-  public static final String AUDIENCE = "audience";
-  public static final String SCOPE = "scope";
-  public static final String ACCESS_TOKEN = "access_token";
-  public static final String BASIC_AUTH_HEADER = "basicAuthHeader";
-  public static final String CREDENTIALS_BODY = "credentialsBody";
-  public static final String PROXY_FUNCTION_URL_ENV_NAME = "CAMUNDA_CONNECTOR_HTTP_PROXY_URL";
+package io.camunda.connector.http.base.request;
 
-  public static final String APPLICATION_X_WWW_FORM_URLENCODED =
-      "application/x-www-form-urlencoded";
+import io.camunda.connector.http.base.model.HttpCommonRequest;
+
+public interface RequestFactory<T> {
+
+  /**
+   * Create a request from a {@link HttpCommonRequest}. This method is used to convert a domain
+   * model to a request object that can be executed by the HTTP client of your choice.
+   *
+   * @param request the domain model
+   * @return the request object
+   * @throws Exception You can throw any exception you want
+   */
+  T createHttpRequest(HttpCommonRequest request) throws Exception;
 }

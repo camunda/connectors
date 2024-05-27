@@ -52,6 +52,15 @@ public class HttpInteractionService {
     this.httpBlocklistManager = new DefaultHttpBlocklistManager();
   }
 
+  protected static boolean isJSONValid(String jsonInString) {
+    try (JsonReader reader = new JsonReader(new StringReader(jsonInString))) {
+      final JsonElement jsonElement = JsonParser.parseReader(reader);
+      return jsonElement.isJsonObject() || jsonElement.isJsonArray();
+    } catch (JsonParseException | IOException e) {
+      return false;
+    }
+  }
+
   public HttpResponse executeHttpRequest(com.google.api.client.http.HttpRequest externalRequest)
       throws IOException {
     return executeHttpRequest(externalRequest, false);
@@ -61,7 +70,7 @@ public class HttpInteractionService {
       com.google.api.client.http.HttpRequest externalRequest, boolean isProxyCall)
       throws IOException {
     try {
-      httpBlocklistManager.validateUrlAgainstBlocklist(externalRequest.getUrl());
+      //    httpBlocklistManager.validateUrlAgainstBlocklist(externalRequest.getUrl());
       return externalRequest.execute();
     } catch (HttpResponseException hrex) {
       var errorCode = String.valueOf(hrex.getStatusCode());
@@ -118,14 +127,5 @@ public class HttpInteractionService {
       LOGGER.error("Failed to parse external response: {}", externalResponse, e);
     }
     return connectorResult;
-  }
-
-  protected static boolean isJSONValid(String jsonInString) {
-    try (JsonReader reader = new JsonReader(new StringReader(jsonInString))) {
-      final JsonElement jsonElement = JsonParser.parseReader(reader);
-      return jsonElement.isJsonObject() || jsonElement.isJsonArray();
-    } catch (JsonParseException | IOException e) {
-      return false;
-    }
   }
 }

@@ -18,83 +18,53 @@ package io.camunda.connector.http.base.services;
 
 import static io.camunda.connector.http.base.constants.Constants.PROXY_FUNCTION_URL_ENV_NAME;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.api.client.http.HttpRequest;
-import com.google.api.client.http.HttpRequestFactory;
-import com.google.api.client.http.HttpResponse;
 import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.http.base.auth.OAuthAuthentication;
+import io.camunda.connector.http.base.blocklist.DefaultHttpBlocklistManager;
+import io.camunda.connector.http.base.blocklist.HttpBlockListManager;
+import io.camunda.connector.http.base.components.HttpClient;
+import io.camunda.connector.http.base.components.apache.CustomApacheHttpClient;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class HttpService {
   private static final Logger LOGGER = LoggerFactory.getLogger(HttpService.class);
 
-  private final ObjectMapper objectMapper;
-  private final HttpRequestFactory requestFactory;
   private final String proxyFunctionUrl = System.getenv(PROXY_FUNCTION_URL_ENV_NAME);
 
-  private final HttpInteractionService httpInteractionService;
+  private final RemoteExecutionService remoteExecutionService = new RemoteExecutionService();
+  private final HttpClient httpClient = CustomApacheHttpClient.getDefault();
+  private final HttpBlockListManager httpBlocklistManager = new DefaultHttpBlocklistManager();
 
-  public HttpService(final ObjectMapper objectMapper, final HttpRequestFactory requestFactory) {
-    this.objectMapper = objectMapper;
-    this.requestFactory = requestFactory;
-    this.httpInteractionService = new HttpInteractionService(objectMapper);
-  }
+  public HttpCommonResult executeConnectorRequest(HttpCommonRequest request) throws Exception {
+    // Will throw ConnectorInputException if URL is blocked
+    httpBlocklistManager.validateUrlAgainstBlocklist(request.getUrl());
+    boolean remoteExecutionEnabled = isRemoteExecutionEnabled();
 
-  public HttpCommonResult executeConnectorRequest(final HttpCommonRequest request)
-      throws IOException, InstantiationException, IllegalAccessException {
-    return proxyFunctionUrl == null
-        ? executeRequestDirectly(request)
-        : executeRequestViaProxy(request);
-  }
-
-  private HttpCommonResult executeRequestDirectly(HttpCommonRequest request)
-      throws IOException, InstantiationException, IllegalAccessException {
-    String bearerToken = null;
-    HttpInteractionService httpInteractionService = new HttpInteractionService(objectMapper);
-    if (request.getAuthentication() != null
-        && request.getAuthentication() instanceof OAuthAuthentication) {
-      AuthenticationService authService = new AuthenticationService(objectMapper, requestFactory);
-      bearerToken = getTokenFromOAuthRequest(request, httpInteractionService, authService);
+    if (remoteExecutionEnabled) {
+      // Wrap the request in a proxy request
+      request = remoteExecutionService.toRemotelyExecutableRequest(request, proxyFunctionUrl);
     }
-    com.google.api.client.http.HttpRequest httpRequest =
-        HttpRequestMapper.toHttpRequest(requestFactory, request, bearerToken);
-    HttpResponse httpResponse = httpInteractionService.executeHttpRequest(httpRequest, false);
-    return httpInteractionService.toHttpResponse(httpResponse, HttpCommonResult.class);
+    return executeRequest(request, remoteExecutionEnabled);
   }
 
-  private String getTokenFromOAuthRequest(
-      final HttpCommonRequest connectorRequest,
-      final HttpInteractionService httpInteractionService,
-      final AuthenticationService authService)
-      throws IOException {
-    final com.google.api.client.http.HttpRequest oauthRequest =
-        authService.createOAuthRequest(connectorRequest);
-    final HttpResponse oauthResponse = httpInteractionService.executeHttpRequest(oauthRequest);
-    return authService.extractOAuthAccessToken(oauthResponse);
-  }
-
-  public HttpCommonResult executeRequestViaProxy(HttpCommonRequest request) throws IOException {
-    HttpRequest httpRequest =
-        HttpProxyService.toRequestViaProxy(requestFactory, request, proxyFunctionUrl);
-
-    HttpResponse httpResponse = httpInteractionService.executeHttpRequest(httpRequest, true);
-
-    try (InputStream responseContentStream = httpResponse.getContent();
-        Reader reader = new InputStreamReader(responseContentStream)) {
-      final HttpCommonResult jsonResult = objectMapper.readValue(reader, HttpCommonResult.class);
-      LOGGER.debug("Proxy returned result: " + jsonResult);
+  private HttpCommonResult executeRequest(HttpCommonRequest request, boolean useInternalProxy) {
+    try {
+      HttpCommonResult jsonResult = httpClient.execute(request, useInternalProxy);
+      LOGGER.debug("Connector returned result: {}", jsonResult);
       return jsonResult;
     } catch (final Exception e) {
-      LOGGER.debug("Failed to parse external response: {}", httpResponse, e);
+      LOGGER.debug("Failed to parse external response", e);
       throw new ConnectorException("Failed to parse result: " + e.getMessage(), e);
     }
+  }
+
+  /**
+   * Check if our internal Google Function should be used to execute the {@link HttpCommonRequest}
+   * remotely.
+   */
+  private boolean isRemoteExecutionEnabled() {
+    return proxyFunctionUrl != null;
   }
 }

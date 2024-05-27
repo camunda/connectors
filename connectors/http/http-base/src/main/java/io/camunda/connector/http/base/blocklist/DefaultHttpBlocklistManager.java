@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.http.base.blocklist;
 
-import com.google.api.client.http.GenericUrl;
 import io.camunda.connector.http.base.blocklist.block.Block;
 import io.camunda.connector.http.base.blocklist.factory.BlockFactory;
 import java.util.List;
@@ -65,7 +64,8 @@ public class DefaultHttpBlocklistManager implements HttpBlockListManager {
     return null;
   }
 
-  public void validateUrlAgainstBlocklist(GenericUrl url) {
+  @Override
+  public void validateUrlAgainstBlocklist(String url) {
     for (Block block : blockList) {
       block.validate(url);
     }

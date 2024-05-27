@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.http.base.blocklist;
 
-import com.google.api.client.http.GenericUrl;
 
 /**
  * This interface defines the contract for an HTTP Blocklist Manager. Implementing classes should
@@ -37,9 +36,9 @@ public interface HttpBlockListManager {
    * CAMUNDA_CONNECTOR_HTTP_BLOCK_REGEX_BadPattern=.*badpattern.*
    * }</pre>
    *
-   * @param url The URL to validate, encapsulated as a {@link GenericUrl}.
+   * @param url The URL to validate.
    * @throws io.camunda.connector.api.error.ConnectorInputException if the URL is found to be in the
    *     blocklist.
    */
-  void validateUrlAgainstBlocklist(GenericUrl url);
+  void validateUrlAgainstBlocklist(String url);
 }

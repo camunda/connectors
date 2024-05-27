@@ -16,8 +16,6 @@
  */
 package io.camunda.connector.http.base.blocklist.block;
 
-import com.google.api.client.http.GenericUrl;
-
 /**
  * This is a sealed interface that represents a Block of a URL, Port, or Regex type. Classes that
  * implement this interface are permitted to validate a URL against a particular set of blocking
@@ -37,9 +35,9 @@ public sealed interface Block permits UrlBlock, PortBlock, RegexBlock {
    * Validates a given URL against the blocking criteria. Implementing classes should throw an
    * appropriate exception if the URL is found to match the block conditions.
    *
-   * @param url The URL to validate, encapsulated as a {@link GenericUrl}.
+   * @param url The URL to validate.
    * @throws io.camunda.connector.api.error.ConnectorInputException if the URL matches the block
    *     conditions.
    */
-  void validate(GenericUrl url);
+  void validate(String url);
 }

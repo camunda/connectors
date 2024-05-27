@@ -19,7 +19,6 @@ package io.camunda.connector.http.base.blocklist.block;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.google.api.client.http.GenericUrl;
 import io.camunda.connector.api.error.ConnectorInputException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,32 +36,32 @@ class PortBlockTest {
 
   @Test
   public void testMultiBlockedPortThrowsException() {
-    GenericUrl url = new GenericUrl("http://example.com:8080");
     ConnectorInputException exception =
-        assertThrows(ConnectorInputException.class, () -> multiPortBlock.validate(url));
+        assertThrows(
+            ConnectorInputException.class,
+            () -> multiPortBlock.validate("http://example.com:8080"));
     assert (exception.getMessage()).contains("Block Name: TEST_MULTI_PORT");
   }
 
   @Test
   public void testSingleBlockedPortThrowsException() {
-    GenericUrl url = new GenericUrl("http://example.com:8080");
     ConnectorInputException exception =
-        assertThrows(ConnectorInputException.class, () -> singlePortBlock.validate(url));
+        assertThrows(
+            ConnectorInputException.class,
+            () -> singlePortBlock.validate("http://example.com:8080"));
     assert (exception.getMessage()).contains("Block Name: TEST_PORT");
   }
 
   @Test
   public void testUnblockedPortDoesNotThrowException() {
-    GenericUrl url = new GenericUrl("http://example.com:8083");
-    assertDoesNotThrow(() -> multiPortBlock.validate(url));
-    assertDoesNotThrow(() -> singlePortBlock.validate(url));
+    assertDoesNotThrow(() -> multiPortBlock.validate("http://example.com:8083"));
+    assertDoesNotThrow(() -> singlePortBlock.validate("http://example.com:8083"));
   }
 
   @Test
   public void testNoPortDoesNotThrowException() {
-    GenericUrl url = new GenericUrl("http://example.com");
-    assertDoesNotThrow(() -> multiPortBlock.validate(url));
-    assertDoesNotThrow(() -> singlePortBlock.validate(url));
+    assertDoesNotThrow(() -> multiPortBlock.validate("http://example.com"));
+    assertDoesNotThrow(() -> singlePortBlock.validate("http://example.com"));
   }
 
   @Test
@@ -79,17 +78,16 @@ class PortBlockTest {
   @Test
   public void testBoundaryPorts() {
     Block boundaryBlock = PortBlock.create("0,65535", "BOUNDARY_PORT");
-    GenericUrl low = new GenericUrl("http://example.com:0");
-    GenericUrl high = new GenericUrl("http://example.com:65535");
 
-    assertThrows(ConnectorInputException.class, () -> boundaryBlock.validate(low));
-    assertThrows(ConnectorInputException.class, () -> boundaryBlock.validate(high));
+    assertThrows(
+        ConnectorInputException.class, () -> boundaryBlock.validate("http://example.com:0"));
+    assertThrows(
+        ConnectorInputException.class, () -> boundaryBlock.validate("http://example.com:65535"));
   }
 
   @Test
   public void testNullBlockNameAllowed() {
     UrlBlock nullNameBlock = new UrlBlock("2020", null);
-    GenericUrl url = new GenericUrl("http://example.com:8080");
-    assertDoesNotThrow(() -> nullNameBlock.validate(url));
+    assertDoesNotThrow(() -> nullNameBlock.validate("http://example.com:8080"));
   }
 }

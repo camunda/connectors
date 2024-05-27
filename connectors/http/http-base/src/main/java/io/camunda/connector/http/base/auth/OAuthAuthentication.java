@@ -99,10 +99,6 @@ public record OAuthAuthentication(
     data.put(Constants.AUDIENCE, this.audience());
     data.put(Constants.SCOPE, this.scopes());
 
-    if (Constants.CREDENTIALS_BODY.equals(this.clientAuthentication())) {
-      data.put(Constants.CLIENT_ID, this.clientId());
-      data.put(Constants.CLIENT_SECRET, this.clientSecret());
-    }
     return data;
   }
 

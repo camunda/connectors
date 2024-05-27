@@ -29,8 +29,6 @@ import com.google.api.client.http.HttpResponse;
 import com.google.api.client.testing.http.MockHttpTransport;
 import io.camunda.connector.http.base.constants.Constants;
 import io.camunda.connector.http.base.model.HttpMethod;
-import io.camunda.connector.http.base.services.AuthenticationService;
-import io.camunda.connector.http.base.services.HttpRequestMapper;
 import io.camunda.connector.http.rest.BaseTest;
 import io.camunda.connector.http.rest.model.HttpJsonRequest;
 import java.io.IOException;
@@ -44,14 +42,16 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class OAuthAuthenticationTest extends BaseTest {
 
-  private static final String SUCCESS_CASES_OAUTH_RESOURCE_PATH =
-      "src/test/resources/requests/success-test-cases-oauth.json";
-
   public static final String ACCESS_TOKEN =
       "{\"access_token\": \"abcd\", \"scope\":\"read:clients\", \"expires_in\":86400,\"token_type\":\"Bearer\"}";
-
+  private static final String SUCCESS_CASES_OAUTH_RESOURCE_PATH =
+      "src/test/resources/requests/success-test-cases-oauth.json";
   @Mock private HttpRequestFactory requestFactory;
   @Mock private HttpResponse httpResponse;
+
+  private static Stream<String> successCasesOauth() throws IOException {
+    return loadTestCasesFromResourceFile(SUCCESS_CASES_OAUTH_RESOURCE_PATH);
+  }
 
   @ParameterizedTest(name = "Executing test case: {0}")
   @MethodSource("successCasesOauth")
@@ -84,9 +84,5 @@ class OAuthAuthenticationTest extends BaseTest {
     AuthenticationService authenticationService =
         new AuthenticationService(objectMapper, requestFactory);
     assertFalse(authenticationService.extractOAuthAccessToken(httpResponse).contains("\""));
-  }
-
-  private static Stream<String> successCasesOauth() throws IOException {
-    return loadTestCasesFromResourceFile(SUCCESS_CASES_OAUTH_RESOURCE_PATH);
   }
 }

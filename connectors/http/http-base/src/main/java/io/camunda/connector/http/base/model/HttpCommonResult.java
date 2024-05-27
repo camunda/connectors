@@ -16,14 +16,16 @@
  */
 package io.camunda.connector.http.base.model;
 
-import com.google.common.base.Objects;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.Map;
+import java.util.Objects;
 
 public class HttpCommonResult {
 
   private int status;
   private Map<String, Object> headers;
   private Object body;
+  @JsonIgnore private String reason;
 
   public int getStatus() {
     return status;
@@ -49,6 +51,14 @@ public class HttpCommonResult {
     this.body = body;
   }
 
+  public String getReason() {
+    return reason;
+  }
+
+  public void setReason(String reason) {
+    this.reason = reason;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {
@@ -59,13 +69,14 @@ public class HttpCommonResult {
     }
     HttpCommonResult that = (HttpCommonResult) o;
     return status == that.status
-        && Objects.equal(headers, that.headers)
-        && Objects.equal(body, that.body);
+        && Objects.equals(headers, that.headers)
+        && Objects.equals(body, that.body)
+        && Objects.equals(reason, that.reason);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(status, headers, body);
+    return Objects.hash(status, headers, body, reason);
   }
 
   @Override
@@ -75,6 +86,8 @@ public class HttpCommonResult {
         + status
         + ", headers="
         + headers
+        + ", reason='"
+        + reason
         + ", body="
         + body
         + '}';

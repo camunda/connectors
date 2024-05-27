@@ -31,7 +31,7 @@ public final class ProxyOAuthHelper {
 
   private ProxyOAuthHelper() {}
 
-  public static OAuth2Credentials initializeCredentials(String proxyUrl) {
+  private static OAuth2Credentials initializeCredentials(String proxyUrl) {
     if (proxyUrl == null) {
       return null;
     }
@@ -46,8 +46,17 @@ public final class ProxyOAuthHelper {
     }
   }
 
-  public static void addOauthHeaders(HttpRequest request, OAuth2Credentials credentials)
-      throws IOException {
+  public static String getOAuthToken(String proxyUrl) throws IOException {
+    OAuth2Credentials credentials = initializeCredentials(proxyUrl);
+    if (credentials != null) {
+      credentials.refreshIfExpired();
+      return credentials.getAccessToken().getTokenValue();
+    }
+    return null;
+  }
+
+  public static void addOauthHeaders(HttpRequest request, String proxyUrl) throws IOException {
+    OAuth2Credentials credentials = initializeCredentials(proxyUrl);
     if (credentials != null) {
       credentials.refreshIfExpired();
       request
@@ -59,7 +68,7 @@ public final class ProxyOAuthHelper {
   private static IdTokenProvider createIdTokenProvider() throws IOException {
     // Searches credentials via GOOGLE_APPLICATION_CREDENTIALS
     // See
-    // https://cloud.google.com/java/docs/reference/google-auth-library/latest/com.google.auth.oauth2.GoogleCredentials
+    // https://cloud.google.com/java/docs/reference/google-auth-library/latest/com.google.auth.oauth2.GoogleCredentials#com_google_auth_oauth2_GoogleCredentials_getApplicationDefault__
     final var googleCredentials = GoogleCredentials.getApplicationDefault();
     if (!(googleCredentials instanceof IdTokenProvider)) {
       throw new IOException("Google Credentials are not an instance of IdTokenProvider.");

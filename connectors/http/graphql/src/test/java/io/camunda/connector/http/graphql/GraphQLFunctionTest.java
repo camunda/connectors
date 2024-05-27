@@ -30,7 +30,6 @@ import com.google.api.client.http.HttpResponseException;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.http.base.model.HttpCommonResult;
-import io.camunda.connector.http.base.services.HttpRequestMapper;
 import io.camunda.connector.http.graphql.model.GraphQLRequest;
 import io.camunda.connector.http.graphql.utils.GraphQLRequestMapper;
 import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
@@ -62,6 +61,18 @@ public class GraphQLFunctionTest extends BaseTest {
   @Mock private HttpResponse httpResponse;
 
   private GraphQLFunction functionUnderTest;
+
+  private static Stream<String> successCases() throws IOException {
+    return loadTestCasesFromResourceFile(SUCCESS_CASES_RESOURCE_PATH);
+  }
+
+  private static Stream<String> successCasesOauth() throws IOException {
+    return loadTestCasesFromResourceFile(SUCCESS_CASES_OAUTH_RESOURCE_PATH);
+  }
+
+  private static Stream<String> failCases() throws IOException {
+    return loadTestCasesFromResourceFile(FAIL_CASES_RESOURCE_PATH);
+  }
 
   @BeforeEach
   public void setup() {
@@ -235,17 +246,5 @@ public class GraphQLFunctionTest extends BaseTest {
                             entry ->
                                 httpHeaders.containsKey(entry.getKey())
                                     && httpHeaders.containsValue(entry.getValue()))));
-  }
-
-  private static Stream<String> successCases() throws IOException {
-    return loadTestCasesFromResourceFile(SUCCESS_CASES_RESOURCE_PATH);
-  }
-
-  private static Stream<String> successCasesOauth() throws IOException {
-    return loadTestCasesFromResourceFile(SUCCESS_CASES_OAUTH_RESOURCE_PATH);
-  }
-
-  private static Stream<String> failCases() throws IOException {
-    return loadTestCasesFromResourceFile(FAIL_CASES_RESOURCE_PATH);
   }
 }

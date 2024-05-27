@@ -22,10 +22,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpRequestFactory;
-import io.camunda.connector.http.base.components.HttpTransportComponentSupplier;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpMethod;
-import io.camunda.connector.http.base.services.HttpRequestMapper;
 import java.io.IOException;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
