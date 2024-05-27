@@ -856,7 +856,7 @@ class ConnectorJobHandlerTest {
                   Map.of(
                       "code",
                       "1013",
-                      "errorVariables",
+                      "variables",
                       Map.of("foo", "bar"),
                       "message",
                       "exception message",
