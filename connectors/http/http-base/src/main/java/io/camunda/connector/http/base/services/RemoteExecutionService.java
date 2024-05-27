@@ -16,9 +16,11 @@
  */
 package io.camunda.connector.http.base.services;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.http.base.auth.BearerAuthentication;
+import io.camunda.connector.http.base.model.ErrorResponse;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpMethod;
 import java.io.IOException;
@@ -67,5 +69,25 @@ public class RemoteExecutionService {
     proxyRequest.setAuthentication(new BearerAuthentication(token));
 
     return proxyRequest;
+  }
+
+  /**
+   * Tries to parse the error response from the given exception and sets the error code and message.
+   *
+   * @param e the exception to be parsed
+   * @param errorResponse the error response to be updated if possible
+   */
+  public void tryUpdateErrorUsingRemoteExecutionError(
+      ConnectorException e, ErrorResponse errorResponse) {
+    ErrorResponse errorContent;
+    try {
+      errorContent =
+          ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.readValue(
+              e.getMessage(), ErrorResponse.class);
+      errorResponse.setErrorCode(errorContent.getErrorCode());
+      errorResponse.setError(errorContent.getError());
+    } catch (JsonProcessingException ex) {
+      LOG.warn("Error response cannot be parsed as JSON! Will use the plain message.");
+    }
   }
 }

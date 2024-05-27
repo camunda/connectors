@@ -23,6 +23,11 @@ public class ErrorResponse {
 
   private String errorCode;
 
+  public ErrorResponse(String error, String errorCode) {
+    this.error = error;
+    this.errorCode = errorCode;
+  }
+
   public String getError() {
     return error;
   }

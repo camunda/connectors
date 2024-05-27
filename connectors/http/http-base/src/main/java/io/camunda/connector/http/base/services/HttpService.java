@@ -23,6 +23,7 @@ import io.camunda.connector.http.base.blocklist.DefaultHttpBlocklistManager;
 import io.camunda.connector.http.base.blocklist.HttpBlockListManager;
 import io.camunda.connector.http.base.components.HttpClient;
 import io.camunda.connector.http.base.components.apache.CustomApacheHttpClient;
+import io.camunda.connector.http.base.model.ErrorResponse;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import org.slf4j.Logger;
@@ -49,14 +50,24 @@ public class HttpService {
     return executeRequest(request, remoteExecutionEnabled);
   }
 
-  private HttpCommonResult executeRequest(HttpCommonRequest request, boolean useInternalProxy) {
+  private HttpCommonResult executeRequest(
+      HttpCommonRequest request, boolean remoteExecutionEnabled) {
     try {
-      HttpCommonResult jsonResult = httpClient.execute(request, useInternalProxy);
+      HttpCommonResult jsonResult = httpClient.execute(request, remoteExecutionEnabled);
       LOGGER.debug("Connector returned result: {}", jsonResult);
       return jsonResult;
+    } catch (ConnectorException e) {
+      LOGGER.debug("Failed to execute request {}", request, e);
+      var errorResponse = new ErrorResponse(e.getErrorCode(), e.getMessage());
+      if (remoteExecutionEnabled) {
+        // Will try to parse the exception message as a ErrorResponse
+        remoteExecutionService.tryUpdateErrorUsingRemoteExecutionError(e, errorResponse);
+      }
+      throw new ConnectorException(errorResponse.getErrorCode(), errorResponse.getError(), e);
     } catch (final Exception e) {
-      LOGGER.debug("Failed to parse external response", e);
-      throw new ConnectorException("Failed to parse result: " + e.getMessage(), e);
+      LOGGER.debug("Failed to execute request {}", request, e);
+      throw new ConnectorException(
+          "Failed to execute request: " + request + ". An error occurred: " + e.getMessage(), e);
     }
   }
 
