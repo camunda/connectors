@@ -126,5 +126,6 @@ jobs:
     needs: deploy-snapshots
     name: Helm chart Integration Tests
     uses: ./.github/workflows/INTEGRATION_TEST.yml
+    secrets: inherit
     with:
       connectors-version: SNAPSHOT
