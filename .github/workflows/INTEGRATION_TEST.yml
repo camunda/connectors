@@ -1,0 +1,85 @@
+
+name: Integration test
+
+on:
+  push:
+    branches:
+      - release/*
+  workflow_dispatch:
+    inputs:
+      connectors-version:
+        description: 'The version of the Connectors to test. If not provided, the version is determined based on the Maven project version. On main branch, the default is SNAPSHOT'
+        required: false
+      helm-branch:
+        description: 'The branch of the Helm chart to test against. If not provided, the branch is determined based on the ref (see helm-git-refs.json)'
+        required: false
+
+defaults:
+  run:
+    # use bash shell by default to ensure pipefail behavior is the default
+    # see https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#exit-codes-and-error-action-preference
+    shell: bash
+
+jobs:
+  prepare-inputs:
+    runs-on: ubuntu-latest
+    name: Prepare inputs
+    outputs:
+      connectors-version: ${{ steps.connectors-version.outputs.connectors-version }}
+      helm-branch: ${{ steps.helm-branch.outputs.helm-branch }}
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install jq
+        run: sudo apt-get install jq
+
+      - name: Determine current Maven project version
+        id: maven-version
+        run: |
+          echo "version=$(grep -oPm1 "(?<=<version>)[^<]+" "pom.xml")" >> $GITHUB_OUTPUT
+
+      - name: Determine version of the Connectors image to use
+        id: connectors-version
+        run: |
+          if [ -z "${{ github.event.inputs.connectors-version }}" ]; then
+            if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+              echo "connectors-version=SNAPSHOT" >> $GITHUB_OUTPUT
+            else
+              echo "connectors-version=${{ steps.maven-version.outputs.version }}" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "connectors-version=${{ github.event.inputs.connectors-version }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Determine Helm chart ref to use
+        id: helm-branch
+        run: |
+          if [ -z "${{ github.event.inputs.helm-branch }}" ]; then
+            helm_branch=$(jq -r ".[\"${{ github.ref }}\"]" .github/workflows/helm-git-refs.json)
+            if [ -z "$helm_branch" ] || [ "$helm_branch" == "null" ]; then
+              echo "::error::Could not determine Helm chart branch to use, please provide helm-branch input or adjust the mappings in .github/workflows/helm-git-refs.json"
+              exit 1
+            fi
+            echo "helm-branch=$helm_branch" >> $GITHUB_OUTPUT
+          else
+            echo "helm-branch=${{ github.event.inputs.helm-branch }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Log results
+        run: |
+          echo "Connectors version: ${{ steps.connectors-version.outputs.connectors-version }}"
+          echo "Helm branch: ${{ steps.helm-branch.outputs.helm-branch }}"
+
+  helm-deploy:
+    needs: prepare-inputs
+    name: Helm chart Integration Tests
+    uses: camunda/camunda-platform-helm/.github/workflows/test-integration-template.yaml@main
+    secrets: inherit
+    with:
+      identifier: connectors-int
+      camunda-helm-git-ref: ${{ needs.prepare-inputs.outputs.helm-branch }}
+      test-enabled: true
+      extra-values: |
+        connectors:
+          image:
+            tag: ${{ needs.prepare-inputs.outputs.connectors-version }}
