@@ -125,12 +125,6 @@ jobs:
   helm-deploy:
     needs: deploy-snapshots
     name: Helm chart Integration Tests
-    uses: camunda/camunda-platform-helm/.github/workflows/test-integration-template.yaml@main
-    secrets: inherit
+    uses: ./.github/workflows/INTEGRATION_TEST.yml
     with:
-      identifier: connectors-int
-      test-enabled: true
-      extra-values: |
-        connectors:
-          image:
-            tag: SNAPSHOT
+      connectors-version: SNAPSHOT
