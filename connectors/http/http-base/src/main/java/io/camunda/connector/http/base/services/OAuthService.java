@@ -39,12 +39,11 @@ public class OAuthService {
    * Constants#BASIC_AUTH_HEADER}), or as client credentials in the request body (if the client
    * authentication is set to {@link Constants#CREDENTIALS_BODY}).
    *
-   * @param request the request to convert
+   * @param authentication the OAuth authentication data
    * @return a new request that can be used to fetch an OAuth token
    * @see OAuthAuthentication
    */
-  public HttpCommonRequest createOAuthRequestFrom(HttpCommonRequest request) {
-    OAuthAuthentication authentication = (OAuthAuthentication) request.getAuthentication();
+  public HttpCommonRequest createOAuthRequestFrom(OAuthAuthentication authentication) {
     HttpCommonRequest oauthRequest = new HttpCommonRequest();
     Map<String, String> headers = new HashMap<>();
 
@@ -59,10 +58,6 @@ public class OAuthService {
     addCredentials(body, headers, authentication);
 
     oauthRequest.setBody(body);
-    // copy timeouts from request
-    oauthRequest.setConnectionTimeoutInSeconds(request.getConnectionTimeoutInSeconds());
-    oauthRequest.setReadTimeoutInSeconds(request.getReadTimeoutInSeconds());
-
     oauthRequest.setHeaders(headers);
 
     return oauthRequest;
@@ -78,18 +73,20 @@ public class OAuthService {
   private void addCredentials(
       Map<String, String> body, Map<String, String> headers, OAuthAuthentication authentication) {
     switch (authentication.clientAuthentication()) {
-      case Constants.BASIC_AUTH_HEADER -> headers.put(
-          HttpHeaders.AUTHORIZATION,
-          Base64Helper.buildBasicAuthenticationHeader(
-              authentication.clientId(), authentication.clientSecret()));
+      case Constants.BASIC_AUTH_HEADER ->
+          headers.put(
+              HttpHeaders.AUTHORIZATION,
+              Base64Helper.buildBasicAuthenticationHeader(
+                  authentication.clientId(), authentication.clientSecret()));
       case Constants.CREDENTIALS_BODY -> {
         body.put(Constants.CLIENT_ID, authentication.clientId());
         body.put(Constants.CLIENT_SECRET, authentication.clientSecret());
       }
-      default -> throw new IllegalArgumentException(
-          "Unsupported client authentication method: "
-              + authentication.clientAuthentication()
-              + ". Please use either 'basicAuthHeader' or 'credentialsBody'.");
+      default ->
+          throw new IllegalArgumentException(
+              "Unsupported client authentication method: "
+                  + authentication.clientAuthentication()
+                  + ". Please use either 'basicAuthHeader' or 'credentialsBody'.");
     }
   }
 }

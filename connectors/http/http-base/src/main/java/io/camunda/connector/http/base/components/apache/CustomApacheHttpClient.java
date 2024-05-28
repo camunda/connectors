@@ -30,11 +30,15 @@ import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
 import org.apache.hc.core5.http.io.SocketConfig;
 import org.apache.hc.core5.util.Timeout;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CustomApacheHttpClient implements HttpClient {
 
   public static final CustomApacheHttpClient DEFAULT =
       new CustomApacheHttpClient(createHttpClientBuilder());
+
+  private static final Logger LOG = LoggerFactory.getLogger(CustomApacheHttpClient.class);
 
   private final HttpClientBuilder httpClientBuilder;
 
@@ -104,6 +108,11 @@ public class CustomApacheHttpClient implements HttpClient {
               .execute(apacheRequest, new HttpCommonResultResponseHandler(remoteExecutionEnabled));
 
       if (response.getStatus() >= 400) {
+        LOG.warn(
+            "Request {} failed with status code {}. Response body: {}",
+            request,
+            response.getStatus(),
+            response.getBody());
         throw new ConnectorException(
             String.valueOf(response.getStatus()),
             ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.writeValueAsString(response.getBody()));

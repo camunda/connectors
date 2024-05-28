@@ -33,35 +33,35 @@ public class HttpService {
   private static final Logger LOGGER = LoggerFactory.getLogger(HttpService.class);
 
   private final String proxyFunctionUrl = System.getenv(PROXY_FUNCTION_URL_ENV_NAME);
+  private final CloudFunctionService cloudFunctionService = new CloudFunctionService();
 
-  private final RemoteExecutionService remoteExecutionService = new RemoteExecutionService();
   private final HttpClient httpClient = CustomApacheHttpClient.getDefault();
+
   private final HttpBlockListManager httpBlocklistManager = new DefaultHttpBlocklistManager();
 
   public HttpCommonResult executeConnectorRequest(HttpCommonRequest request) throws Exception {
     // Will throw ConnectorInputException if URL is blocked
     httpBlocklistManager.validateUrlAgainstBlocklist(request.getUrl());
-    boolean remoteExecutionEnabled = isRemoteExecutionEnabled();
+    boolean cloudFunctionEnabled = isCloudFunctionEnabled();
 
-    if (remoteExecutionEnabled) {
+    if (cloudFunctionEnabled) {
       // Wrap the request in a proxy request
-      request = remoteExecutionService.toRemotelyExecutableRequest(request, proxyFunctionUrl);
+      request = cloudFunctionService.toCloudFunctionRequest(request, proxyFunctionUrl);
     }
-    return executeRequest(request, remoteExecutionEnabled);
+    return executeRequest(request, cloudFunctionEnabled);
   }
 
-  private HttpCommonResult executeRequest(
-      HttpCommonRequest request, boolean remoteExecutionEnabled) {
+  private HttpCommonResult executeRequest(HttpCommonRequest request, boolean cloudFunctionEnabled) {
     try {
-      HttpCommonResult jsonResult = httpClient.execute(request, remoteExecutionEnabled);
+      HttpCommonResult jsonResult = httpClient.execute(request, cloudFunctionEnabled);
       LOGGER.debug("Connector returned result: {}", jsonResult);
       return jsonResult;
     } catch (ConnectorException e) {
       LOGGER.debug("Failed to execute request {}", request, e);
       var errorResponse = new ErrorResponse(e.getErrorCode(), e.getMessage());
-      if (remoteExecutionEnabled) {
+      if (cloudFunctionEnabled) {
         // Will try to parse the exception message as a ErrorResponse
-        remoteExecutionService.tryUpdateErrorUsingRemoteExecutionError(e, errorResponse);
+        cloudFunctionService.tryUpdateErrorUsingCloudFunctionError(e, errorResponse);
       }
       throw new ConnectorException(errorResponse.getErrorCode(), errorResponse.getError(), e);
     } catch (final Exception e) {
@@ -75,7 +75,7 @@ public class HttpService {
    * Check if our internal Google Function should be used to execute the {@link HttpCommonRequest}
    * remotely.
    */
-  private boolean isRemoteExecutionEnabled() {
+  private boolean isCloudFunctionEnabled() {
     return proxyFunctionUrl != null;
   }
 }

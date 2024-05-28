@@ -20,17 +20,23 @@ import static org.apache.hc.core5.http.ContentType.APPLICATION_JSON;
 import static org.apache.hc.core5.http.HttpHeaders.CONTENT_TYPE;
 
 import io.camunda.connector.http.base.model.HttpCommonRequest;
+import java.util.Optional;
 import org.apache.hc.core5.http.io.support.ClassicRequestBuilder;
 
 public class ApacheRequestHeadersBuilder implements ApacheRequestPartBuilder {
   @Override
   public void build(ClassicRequestBuilder builder, HttpCommonRequest request) throws Exception {
-    if (request.hasHeaders()) {
-      if (request.getMethod().supportsBody && !request.getHeaders().containsKey(CONTENT_TYPE)) {
-        // default content type
-        builder.addHeader(CONTENT_TYPE, APPLICATION_JSON.getMimeType());
-      }
-      request.getHeaders().forEach(builder::addHeader);
+    var hasContentTypeHeader =
+        Optional.ofNullable(request.getHeaders())
+            .map(headers -> headers.containsKey(CONTENT_TYPE))
+            .orElse(false);
+    if (request.getMethod().supportsBody && !hasContentTypeHeader) {
+      // default content type
+      builder.addHeader(CONTENT_TYPE, APPLICATION_JSON.getMimeType());
     }
+    if (request.getHeaders() == null) {
+      request.setHeaders(new java.util.HashMap<>());
+    }
+    request.getHeaders().forEach(builder::addHeader);
   }
 }

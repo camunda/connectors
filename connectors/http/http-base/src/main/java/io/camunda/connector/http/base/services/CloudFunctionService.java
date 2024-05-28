@@ -23,6 +23,7 @@ import io.camunda.connector.http.base.auth.BearerAuthentication;
 import io.camunda.connector.http.base.model.ErrorResponse;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpMethod;
+import io.camunda.connector.http.base.utils.CloudFunctionHelper;
 import java.io.IOException;
 import java.util.Map;
 import org.apache.hc.core5.http.ContentType;
@@ -30,45 +31,45 @@ import org.apache.hc.core5.http.HttpHeaders;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class RemoteExecutionService {
+public class CloudFunctionService {
 
-  private static final Logger LOG = LoggerFactory.getLogger(RemoteExecutionService.class);
+  private static final Logger LOG = LoggerFactory.getLogger(CloudFunctionService.class);
 
   /**
    * Wraps the given request into a new request that is targeted at the Google function to execute
    * the request remotely.
    *
    * @param request the request to be executed remotely
-   * @param proxyFunctionUrl the URL of the Google function
+   * @param cloudFunctionUrl the URL of the Google function
    * @return the new request that is targeted at the Google function
    * @throws IOException if the request cannot be serialized
    */
-  public HttpCommonRequest toRemotelyExecutableRequest(
-      final HttpCommonRequest request, final String proxyFunctionUrl) throws IOException {
+  public HttpCommonRequest toCloudFunctionRequest(
+      final HttpCommonRequest request, final String cloudFunctionUrl) throws IOException {
     // Using the JsonHttpContent cannot work with an element on the root content,
     // hence write it ourselves:
     String contentAsJson =
         ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.writeValueAsString(request);
     String token;
     try {
-      token = ProxyOAuthHelper.getOAuthToken(proxyFunctionUrl);
+      token = CloudFunctionHelper.getOAuthToken(cloudFunctionUrl);
     } catch (Exception e) {
-      LOG.error("Failure during OAuth authentication attempt for the Google function", e);
+      LOG.error("Failure during OAuth authentication attempt for the Google cloud function", e);
       // this will be visible in Operate, so should hide the internal exception
       throw new ConnectorException(
-          "Failure during OAuth authentication attempt for the Google function");
+          "Failure during OAuth authentication attempt for the Google cloud function");
     }
-    HttpCommonRequest proxyRequest = new HttpCommonRequest();
-    proxyRequest.setMethod(HttpMethod.POST);
-    proxyRequest.setUrl(proxyFunctionUrl);
-    proxyRequest.setBody(contentAsJson);
-    proxyRequest.setHeaders(
+    HttpCommonRequest cloudFunctionRequest = new HttpCommonRequest();
+    cloudFunctionRequest.setMethod(HttpMethod.POST);
+    cloudFunctionRequest.setUrl(cloudFunctionUrl);
+    cloudFunctionRequest.setBody(contentAsJson);
+    cloudFunctionRequest.setHeaders(
         Map.of(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType()));
-    proxyRequest.setConnectionTimeoutInSeconds(request.getConnectionTimeoutInSeconds());
-    proxyRequest.setReadTimeoutInSeconds(request.getReadTimeoutInSeconds());
-    proxyRequest.setAuthentication(new BearerAuthentication(token));
+    cloudFunctionRequest.setConnectionTimeoutInSeconds(request.getConnectionTimeoutInSeconds());
+    cloudFunctionRequest.setReadTimeoutInSeconds(request.getReadTimeoutInSeconds());
+    cloudFunctionRequest.setAuthentication(new BearerAuthentication(token));
 
-    return proxyRequest;
+    return cloudFunctionRequest;
   }
 
   /**
@@ -77,7 +78,7 @@ public class RemoteExecutionService {
    * @param e the exception to be parsed
    * @param errorResponse the error response to be updated if possible
    */
-  public void tryUpdateErrorUsingRemoteExecutionError(
+  public void tryUpdateErrorUsingCloudFunctionError(
       ConnectorException e, ErrorResponse errorResponse) {
     ErrorResponse errorContent;
     try {

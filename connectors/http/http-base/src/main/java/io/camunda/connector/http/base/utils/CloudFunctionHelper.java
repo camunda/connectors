@@ -1,22 +1,11 @@
 /*
  * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
- * under one or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information regarding copyright
- * ownership. Camunda licenses this file to you under the Apache License,
- * Version 2.0; you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
  */
-package io.camunda.connector.http.base.services;
+package io.camunda.connector.http.base.utils;
 
-import com.google.api.client.http.HttpRequest;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.IdTokenCredentials;
 import com.google.auth.oauth2.IdTokenProvider;
@@ -25,11 +14,11 @@ import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class ProxyOAuthHelper {
+public final class CloudFunctionHelper {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(ProxyOAuthHelper.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(CloudFunctionHelper.class);
 
-  private ProxyOAuthHelper() {}
+  private CloudFunctionHelper() {}
 
   private static OAuth2Credentials initializeCredentials(String proxyUrl) {
     if (proxyUrl == null) {
@@ -53,16 +42,6 @@ public final class ProxyOAuthHelper {
       return credentials.getAccessToken().getTokenValue();
     }
     return null;
-  }
-
-  public static void addOauthHeaders(HttpRequest request, String proxyUrl) throws IOException {
-    OAuth2Credentials credentials = initializeCredentials(proxyUrl);
-    if (credentials != null) {
-      credentials.refreshIfExpired();
-      request
-          .getHeaders()
-          .setAuthorization("Bearer " + credentials.getAccessToken().getTokenValue());
-    }
   }
 
   private static IdTokenProvider createIdTokenProvider() throws IOException {
