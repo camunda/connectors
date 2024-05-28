@@ -129,3 +129,4 @@ jobs:
     secrets: inherit
     with:
       connectors-version: SNAPSHOT
+      helm-branch: main
