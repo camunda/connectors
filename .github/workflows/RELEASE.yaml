@@ -272,3 +272,4 @@ jobs:
     secrets: inherit
     with:
       connectors-version: ${{ github.event.release.tag_name }}
+      release-branch: ${{ steps.determine_release_branch.outputs.releaseBranch }}
