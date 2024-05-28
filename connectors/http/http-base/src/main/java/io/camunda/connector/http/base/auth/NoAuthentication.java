@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.http.base.auth;
 
-import com.google.api.client.http.HttpHeaders;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 
@@ -24,7 +23,4 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
 public record NoAuthentication() implements Authentication {
   @TemplateProperty(ignore = true)
   public static final String TYPE = "noAuth";
-
-  @Override
-  public void setHeaders(HttpHeaders headers) {}
 }

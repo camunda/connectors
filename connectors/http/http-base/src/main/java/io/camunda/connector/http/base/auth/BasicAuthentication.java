@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.http.base.auth;
 
-import com.google.api.client.http.HttpHeaders;
 import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
@@ -34,16 +33,6 @@ public record BasicAuthentication(
 
   @TemplateProperty(ignore = true)
   public static final String TYPE = "basic";
-
-  @Override
-  public void setHeaders(final HttpHeaders headers) {
-    String passwordForHeader = password;
-    // checking against "SPEC_PASSWORD_EMPTY_PATTERN" to prevent breaking change
-    if (password == null || password.equals("SPEC_PASSWORD_EMPTY_PATTERN")) {
-      passwordForHeader = "";
-    }
-    headers.setBasicAuthentication(username, passwordForHeader);
-  }
 
   @Override
   public String toString() {

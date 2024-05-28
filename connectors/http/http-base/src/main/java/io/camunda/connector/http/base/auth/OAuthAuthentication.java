@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.http.base.auth;
 
-import com.google.api.client.http.HttpHeaders;
 import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.DropdownPropertyChoice;
@@ -89,9 +88,6 @@ public record OAuthAuthentication(
 
   @TemplateProperty(ignore = true)
   public static final String GRANT_TYPE = "client_credentials";
-
-  @Override
-  public void setHeaders(HttpHeaders headers) {}
 
   public Map<String, String> getDataForAuthRequestBody() {
     Map<String, String> data = new HashMap<>();

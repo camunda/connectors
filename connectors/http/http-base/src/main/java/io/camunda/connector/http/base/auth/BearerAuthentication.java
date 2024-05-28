@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.http.base.auth;
 
-import com.google.api.client.http.HttpHeaders;
 import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
@@ -30,11 +29,6 @@ public record BearerAuthentication(
 
   @TemplateProperty(ignore = true)
   public static final String TYPE = "bearer";
-
-  @Override
-  public void setHeaders(HttpHeaders headers) {
-    headers.setAuthorization("Bearer " + token);
-  }
 
   @Override
   public String toString() {
