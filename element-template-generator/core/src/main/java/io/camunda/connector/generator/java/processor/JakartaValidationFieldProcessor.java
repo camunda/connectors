@@ -57,6 +57,9 @@ public class JakartaValidationFieldProcessor implements FieldProcessor {
 
     var constraints = constraintsBuilder.build();
     if (!isConstraintEmpty(constraints)) {
+      if (pattern != null && !hasNotEmptyConstraint(field)) {
+        constraintsBuilder.notEmpty(false);
+      }
       propertyBuilder.constraints(constraints);
     }
   }
