@@ -812,7 +812,7 @@ class ConnectorJobHandlerTest {
       // given
       var errorExpression =
           "if error.code != null then "
-              + "{ \"errorType\": \"bpmnError\", \"code\": error.code, \"message\": \"Message: \" + error.message, \"variables\": error.errorVariables} "
+              + "{ \"errorType\": \"bpmnError\", \"code\": error.code, \"message\": \"Message: \" + error.message, \"variables\": error.variables} "
               + "else {}";
       var jobHandler =
           newConnectorJobHandler(
@@ -856,7 +856,7 @@ class ConnectorJobHandlerTest {
                   Map.of(
                       "code",
                       "1013",
-                      "errorVariables",
+                      "variables",
                       Map.of("foo", "bar"),
                       "message",
                       "exception message",
