@@ -38,6 +38,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.FIELD, ElementType.RECORD_COMPONENT})
 public @interface TemplateProperty {
+  public static boolean OPTIONAL_DEFAULT = false;
 
   /** Custom property ID that can be referenced in conditions */
   String id() default "";
@@ -52,7 +53,7 @@ public @interface TemplateProperty {
   String description() default "";
 
   /** Whether the property should be marked as optional in the element template */
-  boolean optional() default false;
+  boolean optional() default OPTIONAL_DEFAULT;
 
   /**
    * Overrides the property type. By default, the generator will use the field type to determine the
