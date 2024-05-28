@@ -80,7 +80,7 @@ limitations under the License.</license.inlineheader>
     <version.jakarta-validation>3.1.0</version.jakarta-validation>
     <version.mockito>5.12.0</version.mockito>
     <version.junit-jupiter>5.10.2</version.junit-jupiter>
-    <version.assertj>3.25.3</version.assertj>
+    <version.assertj>3.26.0</version.assertj>
     <version.jackson-bom>2.17.1</version.jackson-bom>
     <version.jackson-datatype-jsr310>2.17.1</version.jackson-datatype-jsr310>
     <version.hibernate-validator>8.0.1.Final</version.hibernate-validator>
@@ -90,7 +90,7 @@ limitations under the License.</license.inlineheader>
     <version.spring-cloud-gcp-starter-logging>5.3.0</version.spring-cloud-gcp-starter-logging>
     <version.logback>1.5.6</version.logback>
 
-    <version.aws-java-sdk>1.12.729</version.aws-java-sdk>
+    <version.aws-java-sdk>1.12.730</version.aws-java-sdk>
     <version.aws-lambda-java-events>3.11.5</version.aws-lambda-java-events>
     <version.aws-lambda-java-core>1.2.3</version.aws-lambda-java-core>
 
@@ -98,7 +98,7 @@ limitations under the License.</license.inlineheader>
     <version.localstack>1.19.8</version.localstack>
 
     <version.google-api-client>2.5.1</version.google-api-client>
-    <version.google-api-services-drive>v3-rev20240509-2.0.0</version.google-api-services-drive>
+    <version.google-api-services-drive>v3-rev20240521-2.0.0</version.google-api-services-drive>
     <version.google-oauth-client-jetty>1.36.0</version.google-oauth-client-jetty>
     <version.google-auth-library-oauth2-http>1.23.0</version.google-auth-library-oauth2-http>
     <version.google-api-services-docs>v1-rev20230929-2.0.0</version.google-api-services-docs>
@@ -119,7 +119,7 @@ limitations under the License.</license.inlineheader>
     <version.bouncycastle>1.78.1</version.bouncycastle>
     <version.sendGrid>4.10.2</version.sendGrid>
 
-    <version.slack>1.39.2</version.slack>
+    <version.slack>1.39.3</version.slack>
 
     <version.testcontainers>1.19.8</version.testcontainers>
     <version.awaitility>4.2.1</version.awaitility>
