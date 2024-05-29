@@ -1,7 +1,7 @@
 {
-  "refs/heads/main": "main",
-  "refs/heads/release/8.6": "main",
-  "refs/heads/release/8.5": "main",
-  "refs/heads/release/8.4": "camunda-platform-8.4",
-  "refs/heads/release/8.3": "camunda-platform-8.3"
+  "main": "main",
+  "release/8.6": "main",
+  "release/8.5": "main",
+  "release/8.4": "camunda-platform-8.4",
+  "release/8.3": "camunda-platform-8.3"
 }

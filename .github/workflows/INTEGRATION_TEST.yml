@@ -2,9 +2,20 @@
 name: Integration test
 
 on:
-  push:
-    branches:
-      - release/*
+  workflow_call:
+    inputs:
+      connectors-version:
+        description: 'The version of the Connectors to test. If not provided, the version is determined based on the Maven project version. On main branch, the default is SNAPSHOT'
+        required: false
+        type: string
+      helm-branch:
+        description: 'The branch of the Helm chart to test against. If not provided, the Helm branch is determined based on the release-branch or the ref (see helm-git-refs.json)'
+        required: false
+        type: string
+      release-branch:
+        description: 'Connectors release branch containing code to test. If not provided, the Helm branch is determined based on the ref (see helm-git-refs.json)'
+        required: false
+        type: string
   workflow_dispatch:
     inputs:
       connectors-version:
@@ -55,7 +66,7 @@ jobs:
         id: helm-branch
         run: |
           if [ -z "${{ github.event.inputs.helm-branch }}" ]; then
-            helm_branch=$(jq -r ".[\"${{ github.ref }}\"]" .github/workflows/helm-git-refs.json)
+            helm_branch=$(jq -r ".[\"${{ github.event.inputs.release-branch || github.ref_name }}\"]" .github/workflows/helm-git-refs.json)
             if [ -z "$helm_branch" ] || [ "$helm_branch" == "null" ]; then
               echo "::error::Could not determine Helm chart branch to use, please provide helm-branch input or adjust the mappings in .github/workflows/helm-git-refs.json"
               exit 1
