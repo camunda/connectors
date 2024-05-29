@@ -53,4 +53,9 @@ public record SlackRequest<T extends SlackRequestData>(
     MethodsClient methods = slack.methods(token);
     return data.invoke(methods);
   }
+
+  @Override
+  public String toString() {
+    return "SlackRequest{" + "token=[REDACTED]" + ", data=" + data + "}";
+  }
 }

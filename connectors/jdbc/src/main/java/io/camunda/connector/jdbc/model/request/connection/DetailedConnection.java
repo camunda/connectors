@@ -54,4 +54,23 @@ public record DetailedConnection(
     }
     return properties;
   }
+
+  @Override
+  public String toString() {
+    return "DetailedConnection{"
+        + "host='"
+        + host
+        + "'"
+        + ", port='"
+        + port
+        + "'"
+        + ", username=[REDACTED]"
+        + ", password=[REDACTED]"
+        + ", databaseName='"
+        + databaseName
+        + "'"
+        + ", properties="
+        + properties
+        + "}";
+  }
 }

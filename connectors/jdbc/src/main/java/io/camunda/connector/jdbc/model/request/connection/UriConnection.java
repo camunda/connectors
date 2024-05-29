@@ -52,4 +52,9 @@ public record UriConnection(
     properties.putAll(this.uriProperties());
     return properties;
   }
+
+  @Override
+  public String toString() {
+    return "UriConnection{" + "uri='" + uri + "'" + ", uriProperties=[REDACTED]" + "}";
+  }
 }

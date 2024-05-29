@@ -23,4 +23,9 @@ public record UriAuthentication(
             description =
                 "URI should contain username, password, host name, port number, and virtual host")
         String uri)
-    implements RabbitMqAuthentication {}
+    implements RabbitMqAuthentication {
+  @Override
+  public String toString() {
+    return "UriAuthentication{" + "uri=[REDACTED]" + "}";
+  }
+}

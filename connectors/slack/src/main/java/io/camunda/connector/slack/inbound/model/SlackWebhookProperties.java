@@ -54,4 +54,16 @@ public record SlackWebhookProperties(
   }
 
   public record SlackConnectorPropertiesWrapper(SlackWebhookProperties inbound) {}
+
+  @Override
+  public String toString() {
+    return "SlackWebhookProperties{"
+        + "context='"
+        + context
+        + "'"
+        + ", slackSigningSecret=[REDACTED]"
+        + ", verificationExpression="
+        + verificationExpression
+        + "}";
+  }
 }

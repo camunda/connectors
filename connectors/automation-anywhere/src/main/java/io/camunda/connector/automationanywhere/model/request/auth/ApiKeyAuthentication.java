@@ -15,4 +15,9 @@ public record ApiKeyAuthentication(
     @NotBlank @TemplateProperty(label = "Username", id = "apiUsername", group = "authentication")
         String username,
     @NotBlank @TemplateProperty(label = "API key", group = "authentication") String apiKey)
-    implements Authentication {}
+    implements Authentication {
+  @Override
+  public String toString() {
+    return "ApiKeyAuthentication{" + "username='" + username + "'" + ", apiKey=[REDACTED]" + "}";
+  }
+}
