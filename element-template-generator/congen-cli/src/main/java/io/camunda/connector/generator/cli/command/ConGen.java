@@ -71,7 +71,7 @@ public class ConGen {
         "-e bpmn:ServiceTask -e bpmn:IntermediateThrowEvent"
       },
       showDefaultValue = CommandLine.Help.Visibility.ALWAYS,
-      defaultValue = "bpmn:ServiceTask")
+      defaultValue = "ServiceTask")
   List<String> elementTypes;
 
   GeneratorConfiguration generatorConfiguration() {

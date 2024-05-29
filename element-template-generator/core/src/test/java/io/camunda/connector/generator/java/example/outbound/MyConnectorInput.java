@@ -22,6 +22,7 @@ import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorPrope
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.DefaultValueType;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.generator.java.example.outbound.MyConnectorInput.AnnotatedSealedType.FirstAnnotatedSubType;
@@ -99,7 +100,17 @@ public record MyConnectorInput(
     @TemplateProperty(
             id = "dependsOnBooleanPropertyTrue",
             condition = @PropertyCondition(property = "booleanProperty", equals = "true"))
-        String dependsOnBooleanPropertyTrue) {
+        String dependsOnBooleanPropertyTrue,
+    @TemplateProperty(
+            id = "mayBeEmptyOrRegexValidated",
+            optional = true,
+            constraints =
+                @PropertyConstraints(
+                    pattern = @TemplateProperty.Pattern(value = "xxx", message = "Oh no!")))
+        String mayBeEmptyOrRegexValidated,
+    @TemplateProperty(id = "mayBeEmptyOrRegexValidatedJakartaStyle", optional = true)
+        @Pattern(regexp = "xxx", message = "Oh no!")
+        String mayBeEmptyOrRegexValidatedJakartaStyle) {
 
   sealed interface NonAnnotatedSealedType permits FirstSubType, NestedSealedType, SecondSubType {
 
