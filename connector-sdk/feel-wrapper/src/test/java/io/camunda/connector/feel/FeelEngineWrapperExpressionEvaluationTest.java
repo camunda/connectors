@@ -243,10 +243,10 @@ class FeelEngineWrapperExpressionEvaluationTest {
   @Test
   void bpmnErrorFunctionWithVars() {
     // given
-    final var resultExpression = "=bpmnError(\"test\", \"test message\", errorVariables)";
+    final var resultExpression = "=bpmnError(\"test\", \"test message\", variables)";
     final var errorVariables = Map.of("errorVariable", "test");
     final var variables =
-        Map.of("code", "TestCode", "message", "TestMessage", "errorVariables", errorVariables);
+        Map.of("code", "TestCode", "message", "TestMessage", "variables", errorVariables);
     // when
     Map<String, Object> result = objectUnderTest.evaluate(resultExpression, variables);
     assertEquals("test", result.get("code"));
