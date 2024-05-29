@@ -21,6 +21,7 @@ import io.camunda.connector.generator.java.annotation.NestedProperties;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
+import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyConstraints;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import io.camunda.connector.generator.java.example.outbound.MyConnectorInput.AnnotatedSealedType.FirstAnnotatedSubType;
@@ -84,7 +85,30 @@ public record MyConnectorInput(
     @Size(min = Integer.MIN_VALUE, max = 10) String propertyWithMaxSize,
     @NotEmpty String stringPropertyWithNotEmpty,
     @NotBlank String stringPropertyWithNotBlank,
-    @NotNull Object objectPropertyWithNotNull) {
+    @NotNull Object objectPropertyWithNotNull,
+    @TemplateProperty(
+            id = "booleanProperty",
+            defaultValue = "false",
+            defaultValueType = DefaultValueType.Boolean)
+        Boolean booleanProperty,
+    @TemplateProperty(
+            id = "dependsOnBooleanPropertyFalse",
+            condition = @PropertyCondition(property = "booleanProperty", equals = "false"))
+        String dependsOnBooleanPropertyFalse,
+    @TemplateProperty(
+            id = "dependsOnBooleanPropertyTrue",
+            condition = @PropertyCondition(property = "booleanProperty", equals = "true"))
+        String dependsOnBooleanPropertyTrue,
+    @TemplateProperty(
+            id = "mayBeEmptyOrRegexValidated",
+            optional = true,
+            constraints =
+                @PropertyConstraints(
+                    pattern = @TemplateProperty.Pattern(value = "xxx", message = "Oh no!")))
+        String mayBeEmptyOrRegexValidated,
+    @TemplateProperty(id = "mayBeEmptyOrRegexValidatedJakartaStyle", optional = true)
+        @Pattern(regexp = "xxx", message = "Oh no!")
+        String mayBeEmptyOrRegexValidatedJakartaStyle) {
 
   sealed interface NonAnnotatedSealedType permits FirstSubType, NestedSealedType, SecondSubType {
 
