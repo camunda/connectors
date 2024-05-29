@@ -30,8 +30,7 @@ jobs:
       - name: Determine release branch name
         id: determine_release_branch
         run: |
-          git fetch --tags
-          releaseBranch=$( git branch --contains ${RELEASE_VERSION} --format='%(refname:short)' | tail -1 )
+          releaseBranch=$( git branch --contains ${RELEASE_VERSION} --format='%(refname:short)' )
           git checkout "$releaseBranch"
           echo "releaseBranch=$releaseBranch" >> $GITHUB_OUTPUT
         env:
