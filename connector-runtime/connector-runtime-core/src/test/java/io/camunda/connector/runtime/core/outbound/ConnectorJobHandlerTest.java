@@ -426,7 +426,7 @@ class ConnectorJobHandlerTest {
         var jobHandler =
             new ConnectorJobHandler(
                 (context) -> Map.of("callStatus", Map.of("statusCode", "200 OK")), e -> {});
-        var resultExpression = "{\"processedOutput\": response.callStatus }";
+        var resultExpression = "{\"processedOutput\": response.callStatus, \"nullVar\": null}";
         var resultVariable = "result";
 
         // when

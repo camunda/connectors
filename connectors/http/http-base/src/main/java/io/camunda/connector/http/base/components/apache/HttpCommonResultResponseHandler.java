@@ -36,10 +36,10 @@ public class HttpCommonResultResponseHandler
   private static final Logger LOGGER =
       LoggerFactory.getLogger(HttpCommonResultResponseHandler.class);
 
-  boolean remoteExecutionEnabled;
+  boolean cloudFunctionEnabled;
 
-  public HttpCommonResultResponseHandler(boolean remoteExecutionEnabled) {
-    this.remoteExecutionEnabled = remoteExecutionEnabled;
+  public HttpCommonResultResponseHandler(boolean cloudFunctionEnabled) {
+    this.cloudFunctionEnabled = cloudFunctionEnabled;
   }
 
   @Override
@@ -48,7 +48,7 @@ public class HttpCommonResultResponseHandler
 
     if (response.getEntity() != null) {
       try (InputStream content = response.getEntity().getContent()) {
-        if (remoteExecutionEnabled) {
+        if (cloudFunctionEnabled) {
           // Unwrap the response as a HttpCommonResult directly
           return ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.readValue(
               content, HttpCommonResult.class);

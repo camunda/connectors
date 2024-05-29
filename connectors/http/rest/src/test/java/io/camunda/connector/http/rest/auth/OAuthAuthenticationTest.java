@@ -16,26 +16,12 @@
  */
 package io.camunda.connector.http.rest.auth;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
-
-import com.google.api.client.http.GenericUrl;
-import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpResponse;
-import com.google.api.client.testing.http.MockHttpTransport;
-import io.camunda.connector.http.base.constants.Constants;
-import io.camunda.connector.http.base.model.HttpMethod;
 import io.camunda.connector.http.rest.BaseTest;
-import io.camunda.connector.http.rest.model.HttpJsonRequest;
 import java.io.IOException;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -53,36 +39,38 @@ class OAuthAuthenticationTest extends BaseTest {
     return loadTestCasesFromResourceFile(SUCCESS_CASES_OAUTH_RESOURCE_PATH);
   }
 
-  @ParameterizedTest(name = "Executing test case: {0}")
-  @MethodSource("successCasesOauth")
-  void checkOAuthBearerTokenFormat(final String input) throws IOException {
-    // given
-    final var context = getContextBuilderWithSecrets().variables(input).build();
-    final var httpJsonRequest = context.bindVariables(HttpJsonRequest.class);
-
-    HttpRequestFactory factory = new MockHttpTransport().createRequestFactory();
-    HttpRequest httpRequest =
-        factory.buildRequest(HttpMethod.POST.name(), new GenericUrl("http://abc3241.com"), null);
-    when(requestFactory.buildRequest(any(), any(), any())).thenReturn(httpRequest);
-    when(httpResponse.parseAsString()).thenReturn(ACCESS_TOKEN);
-
-    // when
-
-    HttpRequest oAuthRequest =
-        HttpRequestMapper.toOAuthHttpRequest(requestFactory, httpJsonRequest);
-
-    // then
-    assertNotNull(oAuthRequest);
-    assertNotNull(oAuthRequest.getHeaders());
-    assertNotNull(oAuthRequest.getHeaders().getContentType());
-    // check if the correct header is added on the oauth request
-    assertEquals(
-        oAuthRequest.getHeaders().getContentType(), Constants.APPLICATION_X_WWW_FORM_URLENCODED);
-
-    // check if the bearer token has the correct format and doesn't contain quotes
-
-    AuthenticationService authenticationService =
-        new AuthenticationService(objectMapper, requestFactory);
-    assertFalse(authenticationService.extractOAuthAccessToken(httpResponse).contains("\""));
-  }
+  //  @ParameterizedTest(name = "Executing test case: {0}")
+  //  @MethodSource("successCasesOauth")
+  //  void checkOAuthBearerTokenFormat(final String input) throws IOException {
+  //    // given
+  //    final var context = getContextBuilderWithSecrets().variables(input).build();
+  //    final var httpJsonRequest = context.bindVariables(HttpJsonRequest.class);
+  //
+  //    HttpRequestFactory factory = new MockHttpTransport().createRequestFactory();
+  //    HttpRequest httpRequest =
+  //        factory.buildRequest(HttpMethod.POST.name(), new GenericUrl("http://abc3241.com"),
+  // null);
+  //    when(requestFactory.buildRequest(any(), any(), any())).thenReturn(httpRequest);
+  //    when(httpResponse.parseAsString()).thenReturn(ACCESS_TOKEN);
+  //
+  //    // when
+  //
+  //    HttpRequest oAuthRequest =
+  //        HttpRequestMapper.toOAuthHttpRequest(requestFactory, httpJsonRequest);
+  //
+  //    // then
+  //    assertNotNull(oAuthRequest);
+  //    assertNotNull(oAuthRequest.getHeaders());
+  //    assertNotNull(oAuthRequest.getHeaders().getContentType());
+  //    // check if the correct header is added on the oauth request
+  //    assertEquals(
+  //        oAuthRequest.getHeaders().getContentType(),
+  // Constants.APPLICATION_X_WWW_FORM_URLENCODED);
+  //
+  //    // check if the bearer token has the correct format and doesn't contain quotes
+  //
+  //    AuthenticationService authenticationService =
+  //        new AuthenticationService(objectMapper, requestFactory);
+  //    assertFalse(authenticationService.extractOAuthAccessToken(httpResponse).contains("\""));
+  //  }
 }

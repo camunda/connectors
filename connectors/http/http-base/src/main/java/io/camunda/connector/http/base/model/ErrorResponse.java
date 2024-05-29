@@ -23,7 +23,9 @@ public class ErrorResponse {
 
   private String errorCode;
 
-  public ErrorResponse(String error, String errorCode) {
+  public ErrorResponse() {}
+
+  public ErrorResponse(String errorCode, String error) {
     this.error = error;
     this.errorCode = errorCode;
   }

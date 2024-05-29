@@ -75,15 +75,26 @@ public class HttpJsonFunctionTest extends BaseTest {
 
   private HttpJsonFunction functionUnderTest;
 
+  private static Stream<String> successCases() throws IOException {
+    return loadTestCasesFromResourceFile(SUCCESS_CASES_RESOURCE_PATH);
+  }
+
+  private static Stream<String> successCasesOauth() throws IOException {
+    return loadTestCasesFromResourceFile(SUCCESS_CASES_OAUTH_RESOURCE_PATH);
+  }
+
+  private static Stream<String> failCases() throws IOException {
+    return loadTestCasesFromResourceFile(FAIL_CASES_RESOURCE_PATH);
+  }
+
   @BeforeEach
   public void setup() {
-    functionUnderTest = new HttpJsonFunction(objectMapper, requestFactory);
+    functionUnderTest = new HttpJsonFunction();
   }
 
   @ParameterizedTest(name = "Executing test case: {0}")
   @MethodSource("successCases")
-  void shouldReturnResult_WhenExecuted(final String input)
-      throws IOException, InstantiationException, IllegalAccessException {
+  void shouldReturnResult_WhenExecuted(final String input) throws Exception {
     // given - minimal required entity
     Object functionCallResponseAsObject = arrange(input);
 
@@ -96,8 +107,7 @@ public class HttpJsonFunctionTest extends BaseTest {
 
   @ParameterizedTest(name = "Executing test case: {0}")
   @MethodSource("successCasesOauth")
-  void shouldReturnResultOAuth_WhenExecuted(final String input)
-      throws IOException, InstantiationException, IllegalAccessException {
+  void shouldReturnResultOAuth_WhenExecuted(final String input) throws Exception {
     Object functionCallResponseAsObject = arrange(input);
 
     // then
@@ -107,8 +117,7 @@ public class HttpJsonFunctionTest extends BaseTest {
         .containsValue(APPLICATION_JSON.getMimeType());
   }
 
-  private Object arrange(String input)
-      throws IOException, InstantiationException, IllegalAccessException {
+  private Object arrange(String input) throws Exception {
     final var context =
         OutboundConnectorContextBuilder.create().variables(input).secrets(name -> "foo").build();
     when(requestFactory.buildRequest(
@@ -142,8 +151,7 @@ public class HttpJsonFunctionTest extends BaseTest {
   }
 
   @Test
-  void execute_shouldReturnNullFieldWhenResponseWithContainNullField()
-      throws IOException, InstantiationException, IllegalAccessException {
+  void execute_shouldReturnNullFieldWhenResponseWithContainNullField() throws Exception {
     // given request, and response body with null field value
     final var request =
         "{ \"method\": \"get\", \"url\": \"https://camunda.io/http-endpoint\", \"authentication\": { \"type\": \"noAuth\" } }";
@@ -171,8 +179,7 @@ public class HttpJsonFunctionTest extends BaseTest {
 
   @ParameterizedTest(name = "Executing test case: {0}")
   @MethodSource("successCases")
-  void execute_shouldSetTimeoutConfiguration(final String input)
-      throws IOException, InstantiationException, IllegalAccessException {
+  void execute_shouldSetTimeoutConfiguration(final String input) throws Exception {
     // given - minimal required entity
     final var context =
         OutboundConnectorContextBuilder.create().variables(input).secrets(name -> "foo").build();
@@ -180,8 +187,6 @@ public class HttpJsonFunctionTest extends BaseTest {
         context.bindVariables(HttpJsonRequest.class).getConnectionTimeoutInSeconds() * 1000;
     final var expectedReadTimeoutInMilliseconds =
         context.bindVariables(HttpJsonRequest.class).getReadTimeoutInSeconds() * 1000;
-    final var expectedWriteTimeoutInMilliseconds =
-        context.bindVariables(HttpJsonRequest.class).getWriteTimeoutInSeconds() * 1000;
 
     when(requestFactory.buildRequest(
             anyString(), any(GenericUrl.class), nullable(HttpContent.class)))
@@ -194,7 +199,6 @@ public class HttpJsonFunctionTest extends BaseTest {
     // then
     verify(httpRequest).setConnectTimeout(expectedConnectionTimeoutInMilliseconds);
     verify(httpRequest).setReadTimeout(expectedReadTimeoutInMilliseconds);
-    verify(httpRequest).setWriteTimeout(expectedWriteTimeoutInMilliseconds);
   }
 
   @ParameterizedTest
@@ -246,17 +250,5 @@ public class HttpJsonFunctionTest extends BaseTest {
         .hasMessage("message")
         .extracting("errorCode")
         .isEqualTo("500");
-  }
-
-  private static Stream<String> successCases() throws IOException {
-    return loadTestCasesFromResourceFile(SUCCESS_CASES_RESOURCE_PATH);
-  }
-
-  private static Stream<String> successCasesOauth() throws IOException {
-    return loadTestCasesFromResourceFile(SUCCESS_CASES_OAUTH_RESOURCE_PATH);
-  }
-
-  private static Stream<String> failCases() throws IOException {
-    return loadTestCasesFromResourceFile(FAIL_CASES_RESOURCE_PATH);
   }
 }

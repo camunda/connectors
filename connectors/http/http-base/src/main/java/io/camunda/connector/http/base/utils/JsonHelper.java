@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.http.base.utils;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonParseException;
@@ -25,8 +26,13 @@ import java.util.Optional;
 
 public class JsonHelper {
 
-  public static JsonNode getAsJsonElement(final Object body, final ObjectMapper mapper) {
-    return Optional.ofNullable(body).map(mapper::<JsonNode>valueToTree).orElse(null);
+  public static JsonNode getAsJsonElement(Object body, final ObjectMapper mapper)
+      throws JsonProcessingException {
+    if (body instanceof String stringBody && isJsonValid(stringBody)) {
+      return mapper.readTree(stringBody);
+    } else {
+      return Optional.ofNullable(body).map(mapper::<JsonNode>valueToTree).orElse(null);
+    }
   }
 
   public static boolean isJsonValid(String jsonString) {

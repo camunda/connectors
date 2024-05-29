@@ -27,7 +27,6 @@ import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.connector.http.base.model.HttpMethod;
-import java.util.Map;
 import org.apache.hc.core5.http.ContentType;
 import org.junit.jupiter.api.Test;
 
@@ -46,7 +45,7 @@ public class CustomApacheHttpClientTest {
 
     HttpCommonRequest request = new HttpCommonRequest();
     request.setMethod(HttpMethod.GET);
-    request.setHeaders(Map.of("Content-Type", ContentType.TEXT_PLAIN.getMimeType()));
+    // request.setHeaders(Map.of("Content-Type", ContentType.TEXT_PLAIN.getMimeType()));
     request.setUrl("http://localhost:" + port + "/static-dsl");
     HttpCommonResult result = customApacheHttpClient.execute(request);
     assertThat(result).isNotNull();

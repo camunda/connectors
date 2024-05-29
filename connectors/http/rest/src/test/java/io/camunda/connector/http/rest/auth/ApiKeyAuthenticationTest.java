@@ -59,9 +59,17 @@ public class ApiKeyAuthenticationTest extends BaseTest {
   @Captor private ArgumentCaptor<GenericUrl> urlCaptor;
   @Captor private ArgumentCaptor<HttpHeaders> headersCaptor;
 
+  private static Stream<String> successCasesApiKeyAuthInQueryParameters() throws IOException {
+    return loadTestCasesFromResourceFile(SUCCESS_CASES_API_KEY_AUTH_IN_QUERY);
+  }
+
+  private static Stream<String> successCasesApiKeyAuthInHeaders() throws IOException {
+    return loadTestCasesFromResourceFile(SUCCESS_CASES_API_KEY_AUTH_IN_HEADERS);
+  }
+
   @BeforeEach
   public void beforeEach() throws IOException {
-    connector = new HttpJsonFunction(objectMapper, requestFactory);
+    connector = new HttpJsonFunction();
     when(requestFactory.buildRequest(eq(HttpMethod.GET.name()), urlCaptor.capture(), any()))
         .thenReturn(httpRequest);
 
@@ -75,8 +83,7 @@ public class ApiKeyAuthenticationTest extends BaseTest {
 
   @ParameterizedTest(name = "Executing test case: {0}")
   @MethodSource("successCasesApiKeyAuthInQueryParameters")
-  void apiKeyAuthenticationWithApiKeyAsQueryParamsTest(final String input)
-      throws IOException, InstantiationException, IllegalAccessException {
+  void apiKeyAuthenticationWithApiKeyAsQueryParamsTest(final String input) throws Exception {
     // given
     final var context = getContextBuilderWithSecrets().variables(input).build();
     // when
@@ -95,8 +102,7 @@ public class ApiKeyAuthenticationTest extends BaseTest {
 
   @ParameterizedTest(name = "Executing test case: {0}")
   @MethodSource("successCasesApiKeyAuthInHeaders")
-  void apiKeyAuthenticationWithApiKeyInHeadersTest(final String input)
-      throws IOException, InstantiationException, IllegalAccessException {
+  void apiKeyAuthenticationWithApiKeyInHeadersTest(final String input) throws Exception {
     // given
     final var context = getContextBuilderWithSecrets().variables(input).build();
     // when
@@ -110,13 +116,5 @@ public class ApiKeyAuthenticationTest extends BaseTest {
                 .getValue()
                 .getFirstHeaderStringValue(ActualValue.Authentication.API_KEY_NAME))
         .isEqualTo(ActualValue.Authentication.API_KEY_VALUE);
-  }
-
-  private static Stream<String> successCasesApiKeyAuthInQueryParameters() throws IOException {
-    return loadTestCasesFromResourceFile(SUCCESS_CASES_API_KEY_AUTH_IN_QUERY);
-  }
-
-  private static Stream<String> successCasesApiKeyAuthInHeaders() throws IOException {
-    return loadTestCasesFromResourceFile(SUCCESS_CASES_API_KEY_AUTH_IN_HEADERS);
   }
 }

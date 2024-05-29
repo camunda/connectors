@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.http.base.services;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.http.base.auth.BearerAuthentication;
@@ -87,7 +86,7 @@ public class CloudFunctionService {
               e.getMessage(), ErrorResponse.class);
       errorResponse.setErrorCode(errorContent.getErrorCode());
       errorResponse.setError(errorContent.getError());
-    } catch (JsonProcessingException ex) {
+    } catch (Exception ex) {
       LOG.warn("Error response cannot be parsed as JSON! Will use the plain message.");
     }
   }

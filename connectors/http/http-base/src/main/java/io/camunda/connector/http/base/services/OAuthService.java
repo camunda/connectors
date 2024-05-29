@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.http.base.services;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.http.base.auth.OAuthAuthentication;
 import io.camunda.connector.http.base.constants.Constants;
@@ -25,6 +27,7 @@ import io.camunda.connector.http.base.utils.Base64Helper;
 import io.camunda.connector.http.base.utils.JsonHelper;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.HttpHeaders;
@@ -63,10 +66,13 @@ public class OAuthService {
     return oauthRequest;
   }
 
-  public String extractTokenFromResponse(Object body) {
+  public String extractTokenFromResponse(Object body) throws JsonProcessingException {
     return Optional.ofNullable(
             JsonHelper.getAsJsonElement(body, ConnectorsObjectMapperSupplier.DEFAULT_MAPPER))
-        .map(jsonNode -> jsonNode.findValue(Constants.ACCESS_TOKEN).asText())
+        .filter(JsonNode::isObject)
+        .map(jsonNode -> jsonNode.findValue(Constants.ACCESS_TOKEN))
+        .filter(Objects::nonNull)
+        .map(JsonNode::asText)
         .orElse(null);
   }
 

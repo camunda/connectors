@@ -63,26 +63,28 @@ public class HttpJsonFunctionProxyTest extends BaseTest {
 
   private static final String PROXY_FUNCTION_URL = "http://localhost/my-proxy/";
 
-  @Mock private HttpRequestFactory requestFactory;
-  @Mock private HttpRequest httpRequest;
-  @Mock private HttpResponse httpResponse;
-
   @SystemStub
   private final EnvironmentVariables variables =
       new EnvironmentVariables(Constants.PROXY_FUNCTION_URL_ENV_NAME, PROXY_FUNCTION_URL);
 
+  @Mock private HttpRequestFactory requestFactory;
+  @Mock private HttpRequest httpRequest;
+  @Mock private HttpResponse httpResponse;
   private HttpJsonFunction functionUnderTest;
+
+  private static Stream<String> successCases() throws IOException {
+    return loadTestCasesFromResourceFile(SUCCESS_CASES_RESOURCE_PATH);
+  }
 
   @BeforeEach
   public void setup() {
-    functionUnderTest = new HttpJsonFunction(objectMapper, requestFactory);
+    functionUnderTest = new HttpJsonFunction();
     when(httpRequest.getHeaders()).thenReturn(Mockito.mock(HttpHeaders.class));
   }
 
   @ParameterizedTest(name = "Executing test case: {0}")
   @MethodSource("successCases")
-  void shouldReturnResult_WhenExecuted(final String input)
-      throws IOException, InstantiationException, IllegalAccessException {
+  void shouldReturnResult_WhenExecuted(final String input) throws Exception {
     // given - minimal required entity
     final var context =
         OutboundConnectorContextBuilder.create().variables(input).secrets(name -> "foo").build();
@@ -188,9 +190,5 @@ public class HttpJsonFunctionProxyTest extends BaseTest {
         .hasMessage("my error message")
         .extracting("errorCode")
         .isEqualTo("500");
-  }
-
-  private static Stream<String> successCases() throws IOException {
-    return loadTestCasesFromResourceFile(SUCCESS_CASES_RESOURCE_PATH);
   }
 }
