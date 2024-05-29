@@ -858,6 +858,27 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
       assertThat(notEmptyProperty.getConstraints().minLength()).isNull();
       assertThat(notEmptyProperty.getConstraints().maxLength()).isNull();
     }
+
+    @Test
+    void validationPresent_Pattern_optional() {
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
+      var mayBeEmptyOrRegexValidated = getPropertyById("mayBeEmptyOrRegexValidated", template);
+      assertThat(mayBeEmptyOrRegexValidated.getConstraints()).isNotNull();
+      assertThat(mayBeEmptyOrRegexValidated.getConstraints().notEmpty()).isFalse();
+      assertThat(mayBeEmptyOrRegexValidated.getConstraints().minLength()).isNull();
+      assertThat(mayBeEmptyOrRegexValidated.getConstraints().maxLength()).isNull();
+    }
+
+    @Test
+    void validationPresent_Pattern_optional_jakarta() {
+      var template = generator.generate(MyConnectorFunction.MinimallyAnnotated.class).getFirst();
+      var mayBeEmptyOrRegexValidated =
+          getPropertyById("mayBeEmptyOrRegexValidatedJakartaStyle", template);
+      assertThat(mayBeEmptyOrRegexValidated.getConstraints()).isNotNull();
+      assertThat(mayBeEmptyOrRegexValidated.getConstraints().notEmpty()).isFalse();
+      assertThat(mayBeEmptyOrRegexValidated.getConstraints().minLength()).isNull();
+      assertThat(mayBeEmptyOrRegexValidated.getConstraints().maxLength()).isNull();
+    }
   }
 
   @Nested
