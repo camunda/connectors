@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.commons.text.StringEscapeUtils;
+import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.io.entity.HttpEntities;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.io.support.ClassicRequestBuilder;
@@ -49,32 +50,49 @@ public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
           if (isFormUrlEncoded(request)) {
             setUrlEncodedFormEntity(body, builder);
           } else {
-            setStringEntity(builder, request.getBody());
+            setStringEntity(builder, request);
           }
         }
-        case List<?> body -> setStringEntity(builder, body);
-        case String body -> setStringEntity(builder, body);
-        default -> throw new IllegalStateException(
-            "Unexpected value type for the request body. Excepting Map or String, got "
-                + request.getBody().getClass().getSimpleName());
+        case List<?> ignored -> setStringEntity(builder, request);
+        case String ignored -> setStringEntity(builder, request);
+        default ->
+            throw new IllegalStateException(
+                "Unexpected value type for the request body. Excepting Map, List, or String, got "
+                    + request.getBody().getClass().getSimpleName());
       }
     }
   }
 
-  private boolean isFormUrlEncoded(HttpCommonRequest request) {
-    return request.hasHeaders()
-        && Optional.ofNullable(request.getHeaders().get(CONTENT_TYPE))
-            .map(s -> s.equalsIgnoreCase(APPLICATION_FORM_URLENCODED.getMimeType()))
-            .orElse(false);
+  private Optional<String> tryGetContentType(HttpCommonRequest request) {
+    return Optional.ofNullable(request.getHeaders()).map(headers -> headers.get(CONTENT_TYPE));
   }
 
-  private void setStringEntity(ClassicRequestBuilder requestBuilder, Object body)
+  private boolean isFormUrlEncoded(HttpCommonRequest request) {
+    return tryGetContentType(request)
+        .map(
+            s ->
+                ContentType.parse(s)
+                    .getMimeType()
+                    .equalsIgnoreCase(APPLICATION_FORM_URLENCODED.getMimeType()))
+        .orElse(false);
+  }
+
+  private void setStringEntity(ClassicRequestBuilder requestBuilder, HttpCommonRequest request)
       throws JsonProcessingException {
+    Object body = request.getBody();
+    Optional<String> contentType = tryGetContentType(request);
     requestBuilder.setEntity(
         body instanceof String s
-            ? new StringEntity(s)
+            ? new StringEntity(
+                s,
+                contentType
+                    .map(ContentType::parse)
+                    .orElse(ContentType.TEXT_PLAIN.withCharset(StandardCharsets.UTF_8)))
             : new StringEntity(
-                ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.writeValueAsString(body)));
+                ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.writeValueAsString(body),
+                contentType
+                    .map(ContentType::parse)
+                    .orElse(ContentType.APPLICATION_JSON.withCharset(StandardCharsets.UTF_8))));
   }
 
   private void setUrlEncodedFormEntity(Map<?, ?> body, ClassicRequestBuilder requestBuilder) {
