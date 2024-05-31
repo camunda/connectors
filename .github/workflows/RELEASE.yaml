@@ -9,6 +9,8 @@ jobs:
   build-and-push:
     name: Build and push Docker images
     runs-on: ubuntu-latest
+    outputs:
+      releaseBranch: ${{ steps.determine_release_branch.outputs.releaseBranch }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -272,4 +274,4 @@ jobs:
     secrets: inherit
     with:
       connectors-version: ${{ github.event.release.tag_name }}
-      release-branch: ${{ steps.determine_release_branch.outputs.releaseBranch }}
+      release-branch: ${{ needs.build-and-push.outputs.releaseBranch }}
