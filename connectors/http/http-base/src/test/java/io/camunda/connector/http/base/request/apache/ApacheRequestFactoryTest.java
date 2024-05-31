@@ -88,8 +88,7 @@ public class ApacheRequestFactoryTest {
     @Test
     public void shouldSetOAuthAuthentication_whenProvided() throws Exception {
       // given request with oauth authentication
-      HttpCommonResult result = new HttpCommonResult();
-      result.setBody("{\"access_token\":\"token\"}");
+      HttpCommonResult result = new HttpCommonResult(200, null, "{\"access_token\":\"token\"}");
       HttpCommonRequest request = new HttpCommonRequest();
       request.setMethod(HttpMethod.GET);
       request.setAuthentication(

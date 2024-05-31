@@ -77,17 +77,17 @@ public class CloudFunctionService {
    * @param e the exception to be parsed
    * @param errorResponse the error response to be updated if possible
    */
-  public void tryUpdateErrorUsingCloudFunctionError(
+  public ErrorResponse tryUpdateErrorUsingCloudFunctionError(
       ConnectorException e, ErrorResponse errorResponse) {
     ErrorResponse errorContent;
     try {
       errorContent =
           ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.readValue(
               e.getMessage(), ErrorResponse.class);
-      errorResponse.setErrorCode(errorContent.getErrorCode());
-      errorResponse.setError(errorContent.getError());
+      return new ErrorResponse(errorContent.errorCode(), errorContent.error());
     } catch (Exception ex) {
       LOG.warn("Error response cannot be parsed as JSON! Will use the plain message.");
+      return errorResponse;
     }
   }
 }

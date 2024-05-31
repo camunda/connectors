@@ -35,10 +35,10 @@ public class HttpCommonResultResponseHandlerTest {
 
     // then
     assertThat(result).isNotNull();
-    assertThat(result.getStatus()).isEqualTo(200);
-    assertThat((Map) result.getBody()).containsEntry("key", "value");
-    assertThat(result.getHeaders()).hasSize(1);
-    assertThat(result.getHeaders()).containsEntry("Content-Type", "application/json");
+    assertThat(result.status()).isEqualTo(200);
+    assertThat((Map) result.body()).containsEntry("key", "value");
+    assertThat(result.headers()).hasSize(1);
+    assertThat(result.headers()).containsEntry("Content-Type", "application/json");
   }
 
   @Test
@@ -55,10 +55,10 @@ public class HttpCommonResultResponseHandlerTest {
 
     // then
     assertThat(result).isNotNull();
-    assertThat(result.getStatus()).isEqualTo(200);
-    assertThat(result.getBody()).isEqualTo("text");
-    assertThat(result.getHeaders()).hasSize(1);
-    assertThat(result.getHeaders()).containsEntry("Content-Type", "text/plain");
+    assertThat(result.status()).isEqualTo(200);
+    assertThat(result.body()).isEqualTo("text");
+    assertThat(result.headers()).hasSize(1);
+    assertThat(result.headers()).containsEntry("Content-Type", "text/plain");
   }
 
   @Test
@@ -68,10 +68,8 @@ public class HttpCommonResultResponseHandlerTest {
     ClassicHttpResponse response = new BasicClassicHttpResponse(201);
     Header[] headers = new Header[] {new BasicHeader("Content-Type", "application/json")};
     response.setHeaders(headers);
-    HttpCommonResult cloudFunctionResult = new HttpCommonResult();
-    cloudFunctionResult.setBody(Map.of("key", "value"));
-    cloudFunctionResult.setHeaders(Map.of("X-Header", "value"));
-    cloudFunctionResult.setStatus(200);
+    HttpCommonResult cloudFunctionResult =
+        new HttpCommonResult(200, Map.of("X-Header", "value"), Map.of("key", "value"));
     response.setEntity(
         new StringEntity(
             ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.writeValueAsString(cloudFunctionResult)));
@@ -81,10 +79,10 @@ public class HttpCommonResultResponseHandlerTest {
 
     // then
     assertThat(result).isNotNull();
-    assertThat(result.getStatus()).isEqualTo(200);
-    assertThat((Map) result.getBody()).containsEntry("key", "value");
-    assertThat(result.getHeaders()).hasSize(1);
-    assertThat(result.getHeaders()).containsEntry("X-Header", "value");
+    assertThat(result.status()).isEqualTo(200);
+    assertThat((Map) result.body()).containsEntry("key", "value");
+    assertThat(result.headers()).hasSize(1);
+    assertThat(result.headers()).containsEntry("X-Header", "value");
   }
 
   @Test
@@ -94,10 +92,8 @@ public class HttpCommonResultResponseHandlerTest {
     ClassicHttpResponse response = new BasicClassicHttpResponse(201);
     Header[] headers = new Header[] {new BasicHeader("Content-Type", "application/json")};
     response.setHeaders(headers);
-    HttpCommonResult cloudFunctionResult = new HttpCommonResult();
-    cloudFunctionResult.setBody("{\"key\":\"value\"}");
-    cloudFunctionResult.setHeaders(Map.of("X-Header", "value"));
-    cloudFunctionResult.setStatus(200);
+    HttpCommonResult cloudFunctionResult =
+        new HttpCommonResult(200, Map.of("X-Header", "value"), "{\"key\":\"value\"}");
     response.setEntity(
         new StringEntity(
             ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.writeValueAsString(cloudFunctionResult)));
@@ -107,9 +103,9 @@ public class HttpCommonResultResponseHandlerTest {
 
     // then
     assertThat(result).isNotNull();
-    assertThat(result.getStatus()).isEqualTo(200);
-    assertThat(result.getBody()).isEqualTo("{\"key\":\"value\"}");
-    assertThat(result.getHeaders()).hasSize(1);
-    assertThat(result.getHeaders()).containsEntry("X-Header", "value");
+    assertThat(result.status()).isEqualTo(200);
+    assertThat(result.body()).isEqualTo("{\"key\":\"value\"}");
+    assertThat(result.headers()).hasSize(1);
+    assertThat(result.headers()).containsEntry("X-Header", "value");
   }
 }

@@ -70,6 +70,11 @@ limitations under the License.</license.inlineheader>
       <version>${version.wiremock}</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.skyscreamer</groupId>
+      <artifactId>jsonassert</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
 

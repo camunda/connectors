@@ -64,6 +64,6 @@ public class ApacheRequestAuthenticationBuilder implements ApacheRequestPartBuil
   String fetchOAuthToken(OAuthAuthentication authentication) throws Exception {
     HttpCommonRequest oAuthRequest = oAuthService.createOAuthRequestFrom(authentication);
     HttpCommonResult response = CustomApacheHttpClient.getDefault().execute(oAuthRequest);
-    return oAuthService.extractTokenFromResponse(response.getBody());
+    return oAuthService.extractTokenFromResponse(response.body());
   }
 }

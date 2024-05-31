@@ -61,9 +61,10 @@ public class HttpService {
       var errorResponse = new ErrorResponse(e.getErrorCode(), e.getMessage());
       if (cloudFunctionEnabled) {
         // Will try to parse the exception message as a ErrorResponse
-        cloudFunctionService.tryUpdateErrorUsingCloudFunctionError(e, errorResponse);
+        errorResponse =
+            cloudFunctionService.tryUpdateErrorUsingCloudFunctionError(e, errorResponse);
       }
-      throw new ConnectorException(errorResponse.getErrorCode(), errorResponse.getError(), e);
+      throw new ConnectorException(errorResponse.errorCode(), errorResponse.error(), e);
     } catch (final Exception e) {
       LOGGER.debug("Failed to execute request {}", request, e);
       throw new ConnectorException(

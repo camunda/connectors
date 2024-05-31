@@ -61,6 +61,6 @@ public sealed interface AuthenticationProvider
    * @return The extracted token as a String.
    */
   default String fetchToken(final HttpCommonResult result, final ObjectMapper objectMapper) {
-    return objectMapper.convertValue(result.getBody(), TokenResponse.class).token();
+    return objectMapper.convertValue(result.body(), TokenResponse.class).token();
   }
 }

@@ -28,6 +28,7 @@ import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
+import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.io.SocketConfig;
 import org.apache.hc.core5.util.Timeout;
 import org.slf4j.Logger;
@@ -107,23 +108,28 @@ public class CustomApacheHttpClient implements HttpClient {
               .build()
               .execute(apacheRequest, new HttpCommonResultResponseHandler(remoteExecutionEnabled));
 
-      if (response.getStatus() >= 400) {
+      if (response.status() >= 400) {
         LOG.warn(
             "Request {} failed with status code {}. Response body: {}",
             request,
-            response.getStatus(),
-            response.getBody());
+            response.status(),
+            response.body());
         throw new ConnectorException(
-            String.valueOf(response.getStatus()),
-            ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.writeValueAsString(response.getBody()));
+            String.valueOf(response.status()),
+            ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.writeValueAsString(response.body()));
       }
 
       return response;
     } catch (ClientProtocolException e) {
-      throw new ConnectorException("An error with the HTTP protocol occurred", e);
+      throw new ConnectorException(
+          String.valueOf(HttpStatus.SC_SERVER_ERROR),
+          "An error with the HTTP protocol occurred",
+          e);
     } catch (IOException e) {
       throw new ConnectorException(
-          "An error occurred while executing the request, or the connection was aborted", e);
+          String.valueOf(HttpStatus.SC_REQUEST_TIMEOUT),
+          "An error occurred while executing the request, or the connection was aborted",
+          e);
     }
   }
 

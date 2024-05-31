@@ -108,8 +108,8 @@ public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
   }
 
   private void unescapeBody(HttpCommonRequest request) {
-    if (request.getBody() instanceof String) {
-      String unescapedBody = StringEscapeUtils.unescapeJson((String) request.getBody());
+    if (request.getBody() instanceof String bodyString) {
+      String unescapedBody = StringEscapeUtils.unescapeJson(bodyString);
       request.setBody(unescapedBody);
     }
   }

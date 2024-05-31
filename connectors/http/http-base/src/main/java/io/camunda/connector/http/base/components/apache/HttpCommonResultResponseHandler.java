@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.stream.Collectors;
 import org.apache.hc.core5.http.ClassicHttpResponse;
 import org.apache.hc.core5.http.Header;
@@ -44,8 +45,10 @@ public class HttpCommonResultResponseHandler
 
   @Override
   public HttpCommonResult handleResponse(ClassicHttpResponse response) {
-    HttpCommonResult result = new HttpCommonResult();
-
+    int code = response.getCode();
+    Map<String, Object> headers =
+        Arrays.stream(response.getHeaders())
+            .collect(Collectors.toMap(Header::getName, Header::getValue));
     if (response.getEntity() != null) {
       try (InputStream content = response.getEntity().getContent()) {
         if (cloudFunctionEnabled) {
@@ -53,16 +56,12 @@ public class HttpCommonResultResponseHandler
           return ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.readValue(
               content, HttpCommonResult.class);
         }
-        result.setStatus(response.getCode());
-        result.setHeaders(
-            Arrays.stream(response.getHeaders())
-                .collect(Collectors.toMap(Header::getName, Header::getValue)));
-        result.setBody(extractBody(content));
+        return new HttpCommonResult(code, headers, extractBody(content));
       } catch (final Exception e) {
         LOGGER.error("Failed to parse external response: {}", response, e);
       }
     }
-    return result;
+    return new HttpCommonResult(code, headers, null);
   }
 
   /**

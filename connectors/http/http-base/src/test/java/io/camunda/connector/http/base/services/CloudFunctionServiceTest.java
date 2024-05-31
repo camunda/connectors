@@ -80,8 +80,8 @@ public class CloudFunctionServiceTest {
     cloudFunctionService.tryUpdateErrorUsingCloudFunctionError(exception, errorResponse);
 
     // then
-    assertThat(errorResponse.getError()).isEqualTo("Not Found");
-    assertThat(errorResponse.getErrorCode()).isEqualTo("404");
+    assertThat(errorResponse.error()).isEqualTo("Not Found");
+    assertThat(errorResponse.errorCode()).isEqualTo("404");
   }
 
   @Test
@@ -95,7 +95,7 @@ public class CloudFunctionServiceTest {
     cloudFunctionService.tryUpdateErrorUsingCloudFunctionError(exception, errorResponse);
 
     // then
-    assertThat(errorResponse.getError()).isEqualTo("Unknown error");
-    assertThat(errorResponse.getErrorCode()).isEqualTo("500");
+    assertThat(errorResponse.error()).isEqualTo("Unknown error");
+    assertThat(errorResponse.errorCode()).isEqualTo("500");
   }
 }
