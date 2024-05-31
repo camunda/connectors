@@ -8,10 +8,6 @@ on:
         description: 'The version of the Connectors to test. If not provided, the version is determined based on the Maven project version. On main branch, the default is SNAPSHOT'
         required: false
         type: string
-      helm-branch:
-        description: 'The branch of the Helm chart to test against. If not provided, the Helm branch is determined based on the release-branch or the ref (see helm-git-refs.json)'
-        required: false
-        type: string
       release-branch:
         description: 'Connectors release branch containing code to test. If not provided, the Helm branch is determined based on the ref (see helm-git-refs.json)'
         required: false
@@ -52,28 +48,28 @@ jobs:
       - name: Determine version of the Connectors image to use
         id: connectors-version
         run: |
-          if [ -z "${{ github.event.inputs.connectors-version }}" ]; then
+          if [ -z "${{ inputs.connectors-version }}" ]; then
             if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
               echo "connectors-version=SNAPSHOT" >> $GITHUB_OUTPUT
             else
               echo "connectors-version=${{ steps.maven-version.outputs.version }}" >> $GITHUB_OUTPUT
             fi
           else
-            echo "connectors-version=${{ github.event.inputs.connectors-version }}" >> $GITHUB_OUTPUT
+            echo "connectors-version=${{ inputs.connectors-version }}" >> $GITHUB_OUTPUT
           fi
 
       - name: Determine Helm chart ref to use
         id: helm-branch
         run: |
-          if [ -z "${{ github.event.inputs.helm-branch }}" ]; then
-            helm_branch=$(jq -r ".[\"${{ github.event.inputs.release-branch || github.ref_name }}\"]" .github/workflows/helm-git-refs.json)
+          if [ -z "${{ inputs.helm-branch }}" ]; then
+            helm_branch=$(jq -r ".[\"${{ inputs.release-branch || github.ref_name }}\"]" .github/workflows/helm-git-refs.json)
             if [ -z "$helm_branch" ] || [ "$helm_branch" == "null" ]; then
               echo "::error::Could not determine Helm chart branch to use, please provide helm-branch input or adjust the mappings in .github/workflows/helm-git-refs.json"
               exit 1
             fi
             echo "helm-branch=$helm_branch" >> $GITHUB_OUTPUT
           else
-            echo "helm-branch=${{ github.event.inputs.helm-branch }}" >> $GITHUB_OUTPUT
+            echo "helm-branch=${{ inputs.helm-branch }}" >> $GITHUB_OUTPUT
           fi
 
       - name: Log results

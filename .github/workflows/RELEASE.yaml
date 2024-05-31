@@ -9,6 +9,8 @@ jobs:
   build-and-push:
     name: Build and push Docker images
     runs-on: ubuntu-latest
+    outputs:
+      releaseBranch: ${{ steps.determine_release_branch.outputs.releaseBranch }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -264,3 +266,12 @@ jobs:
             bundle/default-bundle/target/connectors-bundle-sbom.xml
             connectors-bundle-templates-${{ github.event.release.tag_name }}.tar.gz
             connectors-bundle-templates-${{ github.event.release.tag_name }}.zip
+
+  helm-deploy:
+    needs: build-and-push
+    name: Run Helm Integration Tests
+    uses: ./.github/workflows/INTEGRATION_TEST.yml
+    secrets: inherit
+    with:
+      connectors-version: ${{ github.event.release.tag_name }}
+      release-branch: ${{ needs.build-and-push.outputs.releaseBranch }}
