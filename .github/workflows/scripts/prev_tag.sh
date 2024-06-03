@@ -97,10 +97,10 @@ determine_prev_tag() {
     prev_tag=$(get_previous_rc_tag "$base_version" "$current_rc_version" "$prev_tags")
   fi
 
-  if [[ $type == "ALPHA" ]] || { [[ -z $prev_tag ]] && [[ $current_tag =~ -alpha[0-9]+-rc[0-9]+$ ]]; }; then
+  if [[ $type == "ALPHA" ]] || { [[ -z $prev_tag ]] && [[ $current_tag =~ -alpha[0-9]+(\.[0-9]+)?-rc[0-9]+$ ]]; }; then
     # Extract the alpha base version
     local base_version="${current_tag%-alpha*}"
-    local current_alpha_version=$(echo "$current_tag" | grep -oE "alpha[0-9]+" | sed 's/alpha//')
+    local current_alpha_version=$(echo "$current_tag" | grep -oE "alpha[0-9]+(\.[0-9]+)?" | sed 's/alpha//')
     prev_tag=$(get_previous_alpha_tag "$base_version" "$current_alpha_version" "$prev_tags")
   fi
 
@@ -132,7 +132,6 @@ get_previous_rc_tag() {
     done
     echo "$candidate_tag"
 }
-
 # Function to get the previous alpha tag
 get_previous_alpha_tag() {
     local base_version=$1
@@ -143,8 +142,8 @@ get_previous_alpha_tag() {
 
     for tag in $prev_tags; do
       if [[ $tag == $base_version-alpha* ]] && [[ $tag =~ $ALPHA_PATTERN ]]; then
-        local tag_alpha_version=$(echo "$tag" | grep -oE "alpha[0-9]+" | sed 's/alpha//')
-        if (( tag_alpha_version < current_alpha_version )) && (( tag_alpha_version > candidate_alpha_version )); then
+        local tag_alpha_version=$(echo "$tag" | grep -oE "alpha[0-9]+(\.[0-9]+)?" | sed 's/alpha//')
+        if [ $(echo "$tag_alpha_version < $current_alpha_version" | bc) -eq 1 ] && [ $(echo "$tag_alpha_version > $candidate_alpha_version" | bc) -eq 1 ]; then
           candidate_tag="$tag"
           candidate_alpha_version=$tag_alpha_version
         fi
@@ -155,13 +154,13 @@ get_previous_alpha_tag() {
 }
 
 # validation for tag format
-if [[ ! $1 =~ ^[0-9]+\.[0-9]+\.[0-9]+(-alpha[0-9]+)?(-rc[0-9]+)?$ ]]; then
+if [[ ! $1 =~ ^[0-9]+\.[0-9]+\.[0-9]+(-alpha[0-9]+(\.[0-9]+)?)?(-rc[0-9]+)?$ ]]; then
   echo "Release tag is invalid"
   exit 1
 fi
 # Determine the tag type
 NORMAL_PATTERN='^[0-9]+\.[0-9]+\.[0-9]+$'
-ALPHA_PATTERN='-alpha[0-9]+$'
+ALPHA_PATTERN='-alpha[0-9]+(\.[0-9]+)?$'
 RC_PATTERN='-rc[0-9]+$'
 
 TYPE=""
