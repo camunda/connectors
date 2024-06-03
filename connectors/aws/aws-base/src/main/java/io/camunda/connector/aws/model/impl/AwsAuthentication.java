@@ -52,7 +52,15 @@ public sealed interface AwsAuthentication
                   "Provide a secret key of a user with permissions to invoke specified AWS Lambda function")
           @NotBlank
           String secretKey)
-      implements AwsAuthentication {}
+      implements AwsAuthentication {
+    @Override
+    public String toString() {
+      return "AwsStaticCredentialsAuthentication{"
+          + "accessKey=[REDACTED]"
+          + ", secretKey=[REDACTED]"
+          + "}";
+    }
+  }
 
   @TemplateSubType(
       id = "defaultCredentialsChain",

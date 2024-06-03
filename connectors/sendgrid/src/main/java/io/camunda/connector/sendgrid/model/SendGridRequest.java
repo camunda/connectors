@@ -216,9 +216,7 @@ public class SendGridRequest {
   @Override
   public String toString() {
     return "SendGridRequest{"
-        + "apiKey='"
-        + apiKey
-        + '\''
+        + "apiKey=[REDACTED]"
         + ", from="
         + from
         + ", to="

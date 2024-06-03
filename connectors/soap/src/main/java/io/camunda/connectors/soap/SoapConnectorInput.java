@@ -196,7 +196,19 @@ public record SoapConnectorInput(
         @TemplateProperty(label = "Encoded", group = "authentication", type = PropertyType.Dropdown)
             @NotNull
             SoapConnectorInput.YesNo encoded)
-        implements Authentication {}
+        implements Authentication {
+      @Override
+      public String toString() {
+        return "UsernameToken{"
+            + "username='"
+            + username
+            + "'"
+            + ", password=[REDACTED]"
+            + ", encoded="
+            + encoded
+            + "}";
+      }
+    }
 
     @TemplateSubType(id = "signature", label = "WSS signature")
     record Signature(
@@ -267,7 +279,17 @@ public record SoapConnectorInput(
                     description = "The private key for the certificate")
                 @NotNull
                 String privateKey)
-            implements Certificate {}
+            implements Certificate {
+          @Override
+          public String toString() {
+            return "SingleCertificate{"
+                + "certificate='"
+                + certificate
+                + "'"
+                + ", privateKey=[REDACTED]"
+                + "}";
+          }
+        }
 
         @TemplateSubType(id = "keystore", label = "Keystore certificate")
         record KeystoreCertificate(
@@ -291,7 +313,21 @@ public record SoapConnectorInput(
                     description = "The password to access the certificate",
                     group = "authentication")
                 String password)
-            implements Certificate {}
+            implements Certificate {
+          @Override
+          public String toString() {
+            return "KeystoreCertificate{"
+                + "keystoreLocation='"
+                + keystoreLocation
+                + "'"
+                + ", keystorePassword=[REDACTED]"
+                + ", alias='"
+                + alias
+                + "'"
+                + ", password=[REDACTED]"
+                + "}";
+          }
+        }
       }
 
       public record EncryptionPart(

@@ -13,4 +13,9 @@ import jakarta.validation.constraints.NotBlank;
 @TemplateSubType(id = "tokenBasedAuthentication", label = "Authentication (refresh) token")
 public record TokenBasedAuthentication(
     @NotBlank @TemplateProperty(label = "Token", group = "authentication") String token)
-    implements Authentication {}
+    implements Authentication {
+  @Override
+  public String toString() {
+    return "TokenBasedAuthentication{token=[REDACTED]}";
+  }
+}

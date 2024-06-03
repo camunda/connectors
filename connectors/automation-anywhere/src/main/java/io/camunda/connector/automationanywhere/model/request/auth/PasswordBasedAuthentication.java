@@ -30,4 +30,16 @@ public record PasswordBasedAuthentication(
               @TemplateProperty.DropdownPropertyChoice(value = "false", label = "FALSE")
             })
         Boolean multipleLogin)
-    implements Authentication {}
+    implements Authentication {
+  @Override
+  public String toString() {
+    return "PasswordBasedAuthentication{"
+        + "username='"
+        + username
+        + "'"
+        + ", password=[REDACTED]"
+        + ", multipleLogin="
+        + multipleLogin
+        + "}";
+  }
+}

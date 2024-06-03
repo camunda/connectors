@@ -54,7 +54,12 @@ public sealed interface WebhookAuthorization {
               group = "authorization")
           @FEEL
           String password)
-      implements WebhookAuthorization {}
+      implements WebhookAuthorization {
+    @Override
+    public String toString() {
+      return "BasicAuth{" + "username='" + username + "'" + ", password=[REDACTED]" + "}";
+    }
+  }
 
   @TemplateSubType(id = "APIKEY", label = "API key")
   record ApiKeyAuth(
@@ -74,8 +79,18 @@ public sealed interface WebhookAuthorization {
               defaultValue = "=split(request.headers.authorization, \" \")[2]")
           @NotEmpty
           Function<Object, String> apiKeyLocator)
-      implements WebhookAuthorization {}
+      implements WebhookAuthorization {
+    @Override
+    public String toString() {
+      return "ApiKeyAuth{" + "apiKey=[REDACTED]" + ", apiKeyLocator=" + apiKeyLocator + "}";
+    }
+  }
 
   @TemplateSubType(id = "JWT", label = "JWT")
-  record JwtAuth(JWTProperties jwt) implements WebhookAuthorization {}
+  record JwtAuth(JWTProperties jwt) implements WebhookAuthorization {
+    @Override
+    public String toString() {
+      return "JwtAuth{jwt=[REDACTED]}";
+    }
+  }
 }

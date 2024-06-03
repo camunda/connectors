@@ -17,6 +17,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyT
 import io.camunda.connector.inbound.utils.HttpMethods;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -151,5 +152,37 @@ public record WebhookConnectorProperties(
 
   private static <T> T getOrDefault(T value, T defaultValue) {
     return value != null ? value : defaultValue;
+  }
+
+  @Override
+  public String toString() {
+    return "WebhookConnectorProperties{"
+        + "method='"
+        + method
+        + "'"
+        + ", context='"
+        + context
+        + "'"
+        + ", shouldValidateHmac='"
+        + shouldValidateHmac
+        + "'"
+        + ", hmacSecret=[REDACTED]"
+        + ", hmacHeader='"
+        + hmacHeader
+        + "'"
+        + ", hmacAlgorithm='"
+        + hmacAlgorithm
+        + "'"
+        + ", hmacScopes="
+        + Arrays.toString(hmacScopes)
+        + ", auth="
+        + auth
+        + ", responseExpression="
+        + responseExpression
+        + ", responseBodyExpression="
+        + responseBodyExpression
+        + ", verificationExpression="
+        + verificationExpression
+        + "}";
   }
 }
