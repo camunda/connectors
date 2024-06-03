@@ -87,19 +87,6 @@ public record MyConnectorInput(
     @NotBlank String stringPropertyWithNotBlank,
     @NotNull Object objectPropertyWithNotNull,
     @TemplateProperty(
-            id = "booleanProperty",
-            defaultValue = "false",
-            defaultValueType = DefaultValueType.Boolean)
-        Boolean booleanProperty,
-    @TemplateProperty(
-            id = "dependsOnBooleanPropertyFalse",
-            condition = @PropertyCondition(property = "booleanProperty", equals = "false"))
-        String dependsOnBooleanPropertyFalse,
-    @TemplateProperty(
-            id = "dependsOnBooleanPropertyTrue",
-            condition = @PropertyCondition(property = "booleanProperty", equals = "true"))
-        String dependsOnBooleanPropertyTrue,
-    @TemplateProperty(
             id = "mayBeEmptyOrRegexValidated",
             optional = true,
             constraints =

@@ -35,13 +35,8 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
       return;
     }
     builder.optional(FieldProcessor.isOptional(field));
-
-    if (!(builder instanceof DropdownPropertyBuilder)) {
-      if (annotation.feel() == Property.FeelMode.system_default) {
-        builder.feel(determineDefaultFeelModeBasedOnContext(context));
-      } else {
-        builder.feel(annotation.feel());
-      }
+    if (annotation.feel() != FeelMode.disabled && !(builder instanceof DropdownPropertyBuilder)) {
+      builder.feel(annotation.feel());
     }
     if (!annotation.label().isBlank()) {
       builder.label(annotation.label());
