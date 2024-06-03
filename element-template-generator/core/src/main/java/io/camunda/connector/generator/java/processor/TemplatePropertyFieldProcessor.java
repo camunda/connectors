@@ -34,7 +34,7 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
     if (annotation == null) {
       return;
     }
-    builder.optional(annotation.optional());
+    builder.optional(FieldProcessor.isOptional(field));
     if (annotation.feel() != FeelMode.disabled && !(builder instanceof DropdownPropertyBuilder)) {
       builder.feel(annotation.feel());
     }
@@ -96,6 +96,9 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
       builder.minLength(constraintsAnnotation.minLength());
     }
     if (!constraintsAnnotation.pattern().value().isBlank()) {
+      if (!constraintsAnnotation.notEmpty() && propertyAnnotation.optional()) {
+        builder.notEmpty(false);
+      }
       builder.pattern(
           new PropertyConstraints.Pattern(
               constraintsAnnotation.pattern().value(), constraintsAnnotation.pattern().message()));
