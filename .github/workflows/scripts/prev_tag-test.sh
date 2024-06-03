@@ -77,6 +77,7 @@ setup_mock_repo() {
   git tag 20.4.1-alpha2-rc1
   git tag 20.4.1-alpha2
   git tag 20.4.1-alpha2.1
+  git tag 20.4.1-alpha2.2
 }
 
 # Function to clean up the mock repository
@@ -186,6 +187,7 @@ run_test "20.4.1-alpha30-rc1" "20.4.1-alpha11" "RC"
 run_test "20.4.1-alpha2-rc1" "20.3.0" "RC"
 run_test "20.4.1-alpha2" "20.3.0" "ALPHA"
 run_test "20.4.1-alpha2.1" "20.4.1-alpha2" "ALPHA"
+run_test "20.4.1-alpha2.2" "20.4.1-alpha2.1" "ALPHA"
 
 # Invalid Tag Format
 run_test "invalid-tag" "Release tag is invalid" # Invalid tag format
