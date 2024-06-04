@@ -23,6 +23,7 @@ import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.connector.http.base.request.apache.ApacheRequestFactory;
 import java.io.IOException;
+import org.apache.commons.text.StringEscapeUtils;
 import org.apache.hc.client5.http.ClientProtocolException;
 import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
@@ -116,7 +117,7 @@ public class CustomApacheHttpClient implements HttpClient {
             response.body());
         throw new ConnectorException(
             String.valueOf(response.status()),
-            ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.writeValueAsString(response.body()));
+                StringEscapeUtils.unescapeJson(ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.writeValueAsString(response.body())));
       }
 
       return response;
