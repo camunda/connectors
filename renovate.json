@@ -9,6 +9,12 @@
       "automerge": true
     },
     {
+      "matchManagers": ["maven"],
+      "matchBaseBranches": ["/^release/.*/"],
+      "matchUpdateTypes": ["major", "minor"],
+      "enabled": false
+    },
+    {
       "matchPackagePrefixes": ["io.camunda.connector"],
       "enabled": false
     },
