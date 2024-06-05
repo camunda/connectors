@@ -3,7 +3,7 @@
   "name" : "Hybrid AWS SageMaker Outbound Connector",
   "id" : "io.camunda.connectors.AWSSAGEMAKER.v1-hybrid",
   "description" : "Execute SageMaker models",
-  "documentationRef" : "https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/aws-sagemaker/",
+  "documentationRef" : "https://docs.camunda.io/docs/next/components/connectors/out-of-the-box-connectors/amazon-sagemaker/",
   "version" : 1,
   "category" : {
     "id" : "connectors",
