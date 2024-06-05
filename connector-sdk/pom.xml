@@ -22,6 +22,7 @@
     <module>test</module>
     <module>feel-wrapper</module>
     <module>jackson-datatype-feel</module>
+    <module>jackson-datatype-document</module>
   </modules>
 
   <build>
