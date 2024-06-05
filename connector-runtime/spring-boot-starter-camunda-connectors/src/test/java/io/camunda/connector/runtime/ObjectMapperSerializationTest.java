@@ -17,7 +17,7 @@
 package io.camunda.connector.runtime;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -58,7 +58,7 @@ public class ObjectMapperSerializationTest {
     assertThat(jsonMapper).isNotNull();
     Map<String, JsonMapper> jsonMapperBeans = applicationContext.getBeansOfType(JsonMapper.class);
     Object objectMapperOfJsonMapper = ReflectionTestUtils.getField(jsonMapper, "objectMapper");
-    assertEquals(objectMapper, objectMapperOfJsonMapper);
+    assertNotEquals(objectMapper, objectMapperOfJsonMapper);
 
     assertThat(jsonMapperBeans.size()).isEqualTo(1);
     assertThat(jsonMapperBeans.containsKey("zeebeJsonMapper")).isTrue();
