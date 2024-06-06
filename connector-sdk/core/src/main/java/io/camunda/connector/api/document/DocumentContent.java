@@ -18,7 +18,7 @@ package io.camunda.connector.api.document;
 
 public interface DocumentContent {
 
-  byte[] getBytes();
+  byte[] asBytes();
 
-  String getBase64();
+  String asBase64();
 }
