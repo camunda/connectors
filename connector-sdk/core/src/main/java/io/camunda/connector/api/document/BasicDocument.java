@@ -16,8 +16,8 @@
  */
 package io.camunda.connector.api.document;
 
-import io.camunda.connector.api.document.DocumentSource.Base64Document;
-import io.camunda.connector.api.document.DocumentSource.ByteArrayDocument;
+import io.camunda.connector.api.document.DocumentSource.Base64DocumentSource;
+import io.camunda.connector.api.document.DocumentSource.ByteArrayDocumentSource;
 import java.util.Base64;
 import java.util.Objects;
 
@@ -64,12 +64,12 @@ public class BasicDocument implements Document {
 
   record DocumentContentImpl(byte[] bytes) implements DocumentContent {
     @Override
-    public byte[] getBytes() {
+    public byte[] asBytes() {
       return bytes;
     }
 
     @Override
-    public String getBase64() {
+    public String asBase64() {
       return Base64.getEncoder().encodeToString(bytes);
     }
   }
@@ -89,11 +89,12 @@ public class BasicDocument implements Document {
     }
 
     public Builder source(DocumentSource source) {
-      if (source instanceof ByteArrayDocument byteArrayDocument) {
+      if (source instanceof ByteArrayDocumentSource byteArrayDocument) {
         return content(byteArrayDocument.content());
-      } else if (source instanceof Base64Document base64Document) {
+      } else if (source instanceof Base64DocumentSource base64Document) {
         return content(Base64.getDecoder().decode(base64Document.content()));
       } else {
+        // TODO: reference document
         throw new IllegalArgumentException("Unsupported source type: " + source.getClass());
       }
     }
