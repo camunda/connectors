@@ -18,24 +18,24 @@ package io.camunda.connector.api.document;
 
 public sealed interface DocumentSource {
 
-  record Base64Document(String content) implements DocumentSource {
-    public Base64Document {
+  record Base64DocumentSource(String content) implements DocumentSource {
+    public Base64DocumentSource {
       if (content == null) {
         throw new IllegalArgumentException("Content must not be null");
       }
     }
   }
 
-  record ByteArrayDocument(byte[] content) implements DocumentSource {
-    public ByteArrayDocument {
+  record ByteArrayDocumentSource(byte[] content) implements DocumentSource {
+    public ByteArrayDocumentSource {
       if (content == null) {
         throw new IllegalArgumentException("Content must not be null");
       }
     }
   }
 
-  record ReferenceDocument(String reference) implements DocumentSource {
-    public ReferenceDocument {
+  record ReferenceDocumentSource(String reference) implements DocumentSource {
+    public ReferenceDocumentSource {
       if (reference == null) {
         throw new IllegalArgumentException("Reference must not be null");
       }
