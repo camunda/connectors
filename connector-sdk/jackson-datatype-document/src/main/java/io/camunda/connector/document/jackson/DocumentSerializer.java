@@ -28,6 +28,6 @@ public class DocumentSerializer extends JsonSerializer<Document> {
   public void serialize(
       Document document, JsonGenerator jsonGenerator, SerializerProvider serializerProvider)
       throws IOException {
-    jsonGenerator.writeString(document.getContent().getBase64());
+    jsonGenerator.writeString(document.getContent().asBase64());
   }
 }
