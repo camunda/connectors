@@ -17,7 +17,7 @@ on:
       connectors-version:
         description: 'The version of the Connectors to test. If not provided, the version is determined based on the Maven project version. On main branch, the default is SNAPSHOT'
         required: false
-      helm-branch:
+      helm-dir:
         description: 'The branch of the Helm chart to test against. If not provided, the branch is determined based on the ref (see helm-git-refs.json)'
         required: false
 
@@ -33,7 +33,7 @@ jobs:
     name: Prepare inputs
     outputs:
       connectors-version: ${{ steps.connectors-version.outputs.connectors-version }}
-      helm-branch: ${{ steps.helm-branch.outputs.helm-branch }}
+      helm-dir: ${{ steps.helm-dir.outputs.helm-dir }}
     steps:
       - uses: actions/checkout@v2
 
@@ -59,23 +59,23 @@ jobs:
           fi
 
       - name: Determine Helm chart ref to use
-        id: helm-branch
+        id: helm-dir
         run: |
-          if [ -z "${{ inputs.helm-branch }}" ]; then
+          if [ -z "${{ inputs.helm-dir }}" ]; then
             helm_branch=$(jq -r ".[\"${{ inputs.release-branch || github.ref_name }}\"]" .github/workflows/helm-git-refs.json)
             if [ -z "$helm_branch" ] || [ "$helm_branch" == "null" ]; then
-              echo "::error::Could not determine Helm chart branch to use, please provide helm-branch input or adjust the mappings in .github/workflows/helm-git-refs.json"
+              echo "::error::Could not determine Helm chart branch to use, please provide helm-dir input or adjust the mappings in .github/workflows/helm-git-refs.json"
               exit 1
             fi
-            echo "helm-branch=$helm_branch" >> $GITHUB_OUTPUT
+            echo "helm-dir=$helm_branch" >> $GITHUB_OUTPUT
           else
-            echo "helm-branch=${{ inputs.helm-branch }}" >> $GITHUB_OUTPUT
+            echo "helm-dir=${{ inputs.helm-dir }}" >> $GITHUB_OUTPUT
           fi
 
       - name: Log results
         run: |
           echo "Connectors version: ${{ steps.connectors-version.outputs.connectors-version }}"
-          echo "Helm branch: ${{ steps.helm-branch.outputs.helm-branch }}"
+          echo "Helm branch: ${{ steps.helm-dir.outputs.helm-dir }}"
 
   helm-deploy:
     needs: prepare-inputs
@@ -84,7 +84,7 @@ jobs:
     secrets: inherit
     with:
       identifier: connectors-int
-      camunda-helm-dir: ${{ needs.prepare-inputs.outputs.helm-branch }}
+      camunda-helm-dir: ${{ needs.prepare-inputs.outputs.helm-dir }}
       test-enabled: true
       extra-values: |
         connectors:
