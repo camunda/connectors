@@ -19,4 +19,8 @@ package io.camunda.connector.http.base.model;
 import java.util.Map;
 
 public record HttpCommonResult(
-    int status, Map<String, Object> headers, Object body) {}
+    int status, Map<String, Object> headers, Object body, String reason) {
+  public HttpCommonResult(int status, Map<String, Object> headers, Object body) {
+    this(status, headers, body, null);
+  }
+}

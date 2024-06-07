@@ -101,7 +101,7 @@ public class HttpJsonFunctionTest extends BaseTest {
     // then
     verify(httpRequest).execute();
     assertThat(functionCallResponseAsObject).isInstanceOf(HttpCommonResult.class);
-    assertThat(((HttpCommonResult) functionCallResponseAsObject).getHeaders())
+    assertThat(((HttpCommonResult) functionCallResponseAsObject).headers())
         .containsValue(APPLICATION_JSON.getMimeType());
   }
 
@@ -113,7 +113,7 @@ public class HttpJsonFunctionTest extends BaseTest {
     // then
     verify(httpRequest, times(2)).execute();
     assertThat(functionCallResponseAsObject).isInstanceOf(HttpCommonResult.class);
-    assertThat(((HttpCommonResult) functionCallResponseAsObject).getHeaders())
+    assertThat(((HttpCommonResult) functionCallResponseAsObject).headers())
         .containsValue(APPLICATION_JSON.getMimeType());
   }
 
@@ -172,7 +172,7 @@ public class HttpJsonFunctionTest extends BaseTest {
     // then null field 'unknown' exists in response body and has a null value
     var asJsonObject =
         objectMapper.convertValue(
-            ((HttpCommonResult) functionCallResponseAsObject).getBody(), JsonNode.class);
+            ((HttpCommonResult) functionCallResponseAsObject).body(), JsonNode.class);
     assertThat(asJsonObject.has("unknown")).isTrue();
     assertThat(asJsonObject.get("unknown").isNull()).isTrue();
   }

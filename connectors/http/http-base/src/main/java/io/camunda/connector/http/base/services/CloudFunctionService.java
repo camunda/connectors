@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.http.base.services;
 
+import static io.camunda.connector.http.base.constants.Constants.PROXY_FUNCTION_URL_ENV_NAME;
+
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.http.base.auth.BearerAuthentication;
@@ -34,41 +36,33 @@ public class CloudFunctionService {
 
   private static final Logger LOG = LoggerFactory.getLogger(CloudFunctionService.class);
 
+  private final String proxyFunctionUrl = System.getenv(PROXY_FUNCTION_URL_ENV_NAME);
+
   /**
    * Wraps the given request into a new request that is targeted at the Google function to execute
    * the request remotely.
    *
    * @param request the request to be executed remotely
-   * @param cloudFunctionUrl the URL of the Google function
    * @return the new request that is targeted at the Google function
    * @throws IOException if the request cannot be serialized
    */
-  public HttpCommonRequest toCloudFunctionRequest(
-      final HttpCommonRequest request, final String cloudFunctionUrl) throws IOException {
+  public HttpCommonRequest toCloudFunctionRequest(final HttpCommonRequest request)
+      throws IOException {
     // Using the JsonHttpContent cannot work with an element on the root content,
     // hence write it ourselves:
     String contentAsJson =
         ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.writeValueAsString(request);
     String token;
     try {
-      token = CloudFunctionHelper.getOAuthToken(cloudFunctionUrl);
+      token = CloudFunctionHelper.getOAuthToken(getProxyFunctionUrl());
     } catch (Exception e) {
       LOG.error("Failure during OAuth authentication attempt for the Google cloud function", e);
       // this will be visible in Operate, so should hide the internal exception
       throw new ConnectorException(
           "Failure during OAuth authentication attempt for the Google cloud function");
     }
-    HttpCommonRequest cloudFunctionRequest = new HttpCommonRequest();
-    cloudFunctionRequest.setMethod(HttpMethod.POST);
-    cloudFunctionRequest.setUrl(cloudFunctionUrl);
-    cloudFunctionRequest.setBody(contentAsJson);
-    cloudFunctionRequest.setHeaders(
-        Map.of(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType()));
-    cloudFunctionRequest.setConnectionTimeoutInSeconds(request.getConnectionTimeoutInSeconds());
-    cloudFunctionRequest.setReadTimeoutInSeconds(request.getReadTimeoutInSeconds());
-    cloudFunctionRequest.setAuthentication(new BearerAuthentication(token));
 
-    return cloudFunctionRequest;
+    return createCloudFunctionRequest(contentAsJson, token);
   }
 
   /**
@@ -89,5 +83,28 @@ public class CloudFunctionService {
       LOG.warn("Error response cannot be parsed as JSON! Will use the plain message.");
       return errorResponse;
     }
+  }
+
+  /**
+   * Check if our internal Google Function should be used to execute the {@link HttpCommonRequest}
+   * remotely.
+   */
+  public boolean isCloudFunctionEnabled() {
+    return proxyFunctionUrl != null;
+  }
+
+  public String getProxyFunctionUrl() {
+    return proxyFunctionUrl;
+  }
+
+  private HttpCommonRequest createCloudFunctionRequest(String contentAsJson, String token) {
+    HttpCommonRequest cloudFunctionRequest = new HttpCommonRequest();
+    cloudFunctionRequest.setMethod(HttpMethod.POST);
+    cloudFunctionRequest.setUrl(getProxyFunctionUrl());
+    cloudFunctionRequest.setBody(contentAsJson);
+    cloudFunctionRequest.setHeaders(
+        Map.of(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType()));
+    cloudFunctionRequest.setAuthentication(new BearerAuthentication(token));
+    return cloudFunctionRequest;
   }
 }

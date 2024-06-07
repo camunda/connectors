@@ -27,6 +27,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.put;
 import static com.github.tomakehurst.wiremock.client.WireMock.putRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.serverError;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.unauthorized;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
@@ -65,8 +66,8 @@ import wiremock.com.fasterxml.jackson.databind.node.JsonNodeFactory;
 @WireMockTest
 public class CustomApacheHttpClientTest {
 
-  CustomApacheHttpClient customApacheHttpClient = CustomApacheHttpClient.getDefault();
-  ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER;
+  private final CustomApacheHttpClient customApacheHttpClient = CustomApacheHttpClient.getDefault();
+  private final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER;
 
   private String getHostAndPort(WireMockRuntimeInfo wmRuntimeInfo) {
     return "http://localhost:" + wmRuntimeInfo.getHttpPort();
@@ -158,6 +159,18 @@ public class CustomApacheHttpClientTest {
                   + "  <heading>Reminder</heading>\n"
                   + "  <body>Don't forget me this weekend!</body>\n"
                   + "</note>");
+    }
+
+    @Test
+    public void shouldReturn500_whenGetWithInvalidBody(WireMockRuntimeInfo wmRuntimeInfo) {
+      stubFor(get("/path").willReturn(serverError().withStatusMessage("Invalid JSON")));
+      HttpCommonRequest request = new HttpCommonRequest();
+      request.setMethod(HttpMethod.GET);
+      request.setUrl(getHostAndPort(wmRuntimeInfo) + "/path");
+      ConnectorException e =
+          assertThrows(ConnectorException.class, () -> customApacheHttpClient.execute(request));
+      assertThat(e.getErrorCode()).isEqualTo("500");
+      assertThat(e.getMessage()).contains("Invalid JSON");
     }
 
     @Test

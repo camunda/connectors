@@ -79,20 +79,18 @@ public class OAuthService {
   private void addCredentials(
       Map<String, String> body, Map<String, String> headers, OAuthAuthentication authentication) {
     switch (authentication.clientAuthentication()) {
-      case Constants.BASIC_AUTH_HEADER ->
-          headers.put(
-              HttpHeaders.AUTHORIZATION,
-              Base64Helper.buildBasicAuthenticationHeader(
-                  authentication.clientId(), authentication.clientSecret()));
+      case Constants.BASIC_AUTH_HEADER -> headers.put(
+          HttpHeaders.AUTHORIZATION,
+          Base64Helper.buildBasicAuthenticationHeader(
+              authentication.clientId(), authentication.clientSecret()));
       case Constants.CREDENTIALS_BODY -> {
         body.put(Constants.CLIENT_ID, authentication.clientId());
         body.put(Constants.CLIENT_SECRET, authentication.clientSecret());
       }
-      default ->
-          throw new IllegalArgumentException(
-              "Unsupported client authentication method: "
-                  + authentication.clientAuthentication()
-                  + ". Please use either 'basicAuthHeader' or 'credentialsBody'.");
+      default -> throw new IllegalArgumentException(
+          "Unsupported client authentication method: "
+              + authentication.clientAuthentication()
+              + ". Please use either 'basicAuthHeader' or 'credentialsBody'.");
     }
   }
 }

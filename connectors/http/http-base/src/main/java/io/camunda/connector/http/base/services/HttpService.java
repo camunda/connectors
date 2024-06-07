@@ -16,8 +16,6 @@
  */
 package io.camunda.connector.http.base.services;
 
-import static io.camunda.connector.http.base.constants.Constants.PROXY_FUNCTION_URL_ENV_NAME;
-
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.http.base.blocklist.DefaultHttpBlocklistManager;
 import io.camunda.connector.http.base.blocklist.HttpBlockListManager;
@@ -32,21 +30,28 @@ import org.slf4j.LoggerFactory;
 public class HttpService {
   private static final Logger LOGGER = LoggerFactory.getLogger(HttpService.class);
 
-  private final String proxyFunctionUrl = System.getenv(PROXY_FUNCTION_URL_ENV_NAME);
-  private final CloudFunctionService cloudFunctionService = new CloudFunctionService();
+  private final CloudFunctionService cloudFunctionService;
 
   private final HttpClient httpClient = CustomApacheHttpClient.getDefault();
 
   private final HttpBlockListManager httpBlocklistManager = new DefaultHttpBlocklistManager();
 
+  public HttpService() {
+    this(new CloudFunctionService());
+  }
+
+  public HttpService(CloudFunctionService cloudFunctionService) {
+    this.cloudFunctionService = cloudFunctionService;
+  }
+
   public HttpCommonResult executeConnectorRequest(HttpCommonRequest request) throws Exception {
     // Will throw ConnectorInputException if URL is blocked
     httpBlocklistManager.validateUrlAgainstBlocklist(request.getUrl());
-    boolean cloudFunctionEnabled = isCloudFunctionEnabled();
+    boolean cloudFunctionEnabled = cloudFunctionService.isCloudFunctionEnabled();
 
     if (cloudFunctionEnabled) {
       // Wrap the request in a proxy request
-      request = cloudFunctionService.toCloudFunctionRequest(request, proxyFunctionUrl);
+      request = cloudFunctionService.toCloudFunctionRequest(request);
     }
     return executeRequest(request, cloudFunctionEnabled);
   }
@@ -70,13 +75,5 @@ public class HttpService {
       throw new ConnectorException(
           "Failed to execute request: " + request + ". An error occurred: " + e.getMessage(), e);
     }
-  }
-
-  /**
-   * Check if our internal Google Function should be used to execute the {@link HttpCommonRequest}
-   * remotely.
-   */
-  private boolean isCloudFunctionEnabled() {
-    return proxyFunctionUrl != null;
   }
 }

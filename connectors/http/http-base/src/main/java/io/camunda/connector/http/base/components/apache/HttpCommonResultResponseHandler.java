@@ -19,13 +19,16 @@ package io.camunda.connector.http.base.components.apache;
 import static io.camunda.connector.http.base.utils.JsonHelper.isJsonValid;
 
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.http.base.model.ErrorResponse;
 import io.camunda.connector.http.base.model.HttpCommonResult;
+import io.camunda.connector.http.base.utils.HttpStatusHelper;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hc.core5.http.ClassicHttpResponse;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.io.HttpClientResponseHandler;
@@ -46,22 +49,30 @@ public class HttpCommonResultResponseHandler
   @Override
   public HttpCommonResult handleResponse(ClassicHttpResponse response) {
     int code = response.getCode();
+    String reason = response.getReasonPhrase();
     Map<String, Object> headers =
         Arrays.stream(response.getHeaders())
             .collect(Collectors.toMap(Header::getName, Header::getValue));
     if (response.getEntity() != null) {
       try (InputStream content = response.getEntity().getContent()) {
         if (cloudFunctionEnabled) {
+          if (HttpStatusHelper.isError(code)) {
+            // unwrap as ErrorResponse
+            var errorResponse =
+                ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.readValue(
+                    content, ErrorResponse.class);
+            return new HttpCommonResult(code, headers, errorResponse, reason);
+          }
           // Unwrap the response as a HttpCommonResult directly
           return ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.readValue(
               content, HttpCommonResult.class);
         }
-        return new HttpCommonResult(code, headers, extractBody(content));
+        return new HttpCommonResult(code, headers, extractBody(content), reason);
       } catch (final Exception e) {
         LOGGER.error("Failed to parse external response: {}", response, e);
       }
     }
-    return new HttpCommonResult(code, headers, null);
+    return new HttpCommonResult(code, headers, null, reason);
   }
 
   /**
@@ -74,7 +85,7 @@ public class HttpCommonResultResponseHandler
       bodyString = new String(content.readAllBytes(), StandardCharsets.UTF_8);
     }
 
-    if (bodyString != null) {
+    if (StringUtils.isNotBlank(bodyString)) {
       return isJsonValid(bodyString)
           ? ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.readValue(bodyString, Object.class)
           : bodyString;

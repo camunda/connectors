@@ -63,16 +63,15 @@ class HttpServiceTest extends BaseTest {
     var oauthRequest =
         oAuthService.createOAuthRequestFrom(
             (OAuthAuthentication) httpJsonRequest.getAuthentication());
-    HttpCommonResult oauthResult = new HttpCommonResult();
-    oauthResult.setStatus(200);
-    oauthResult.setBody(Map.of(Constants.ACCESS_TOKEN, ACCESS_TOKEN));
+    HttpCommonResult oauthResult =
+        new HttpCommonResult(200, null, Map.of(Constants.ACCESS_TOKEN, ACCESS_TOKEN));
     var mockedClient = mock(CustomApacheHttpClient.class);
     try (MockedStatic<CustomApacheHttpClient> mockedClientSupplier =
         mockStatic(CustomApacheHttpClient.class)) {
       mockedClientSupplier.when(CustomApacheHttpClient::getDefault).thenReturn(mockedClient);
       when(mockedClient.execute(oauthRequest)).thenReturn(oauthResult);
       // when
-      String bearerToken = oAuthService.extractTokenFromResponse(oauthResult.getBody());
+      String bearerToken = oAuthService.extractTokenFromResponse(oauthResult.body());
       var apacheRequest = ApacheRequestFactory.get().createHttpRequest(httpJsonRequest);
 
       // check if the bearer token is correctly added on the header of the main request

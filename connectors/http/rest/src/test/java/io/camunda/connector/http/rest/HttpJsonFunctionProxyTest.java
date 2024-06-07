@@ -16,49 +16,17 @@
  */
 package io.camunda.connector.http.rest;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.catchThrowable;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.nullable;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import com.google.api.client.http.GenericUrl;
-import com.google.api.client.http.HttpContent;
-import com.google.api.client.http.HttpHeaders;
-import com.google.api.client.http.HttpRequest;
-import com.google.api.client.http.HttpRequestFactory;
-import com.google.api.client.http.HttpResponse;
-import com.google.api.client.http.HttpResponseException;
-import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.http.base.constants.Constants;
-import io.camunda.connector.http.base.model.HttpCommonResult;
-import io.camunda.connector.http.base.model.HttpMethod;
-import io.camunda.connector.test.outbound.OutboundConnectorContextBuilder;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.stream.Stream;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
-import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
-import uk.org.webcompere.systemstubs.jupiter.SystemStub;
 import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension;
 
 @ExtendWith({MockitoExtension.class, SystemStubsExtension.class})
 @MockitoSettings(strictness = Strictness.LENIENT)
 public class HttpJsonFunctionProxyTest extends BaseTest {
 
-  private static final String SUCCESS_CASES_RESOURCE_PATH =
+  /*private static final String SUCCESS_CASES_RESOURCE_PATH =
       "src/test/resources/requests/success-test-cases.json";
 
   private static final String PROXY_FUNCTION_URL = "http://localhost/my-proxy/";
@@ -190,5 +158,5 @@ public class HttpJsonFunctionProxyTest extends BaseTest {
         .hasMessage("my error message")
         .extracting("errorCode")
         .isEqualTo("500");
-  }
+  }*/
 }

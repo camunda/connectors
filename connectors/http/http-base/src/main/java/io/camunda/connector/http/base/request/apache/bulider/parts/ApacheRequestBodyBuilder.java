@@ -23,7 +23,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -45,20 +44,14 @@ public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
     if (request.getMethod().supportsBody && request.hasBody()) {
       unescapeBody(request);
 
-      switch (request.getBody()) {
-        case Map<?, ?> body -> {
-          if (isFormUrlEncoded(request)) {
-            setUrlEncodedFormEntity(body, builder);
-          } else {
-            setStringEntity(builder, request);
-          }
+      if (request.getBody() instanceof Map<?, ?> body) {
+        if (isFormUrlEncoded(request)) {
+          setUrlEncodedFormEntity(body, builder);
+        } else {
+          setStringEntity(builder, request);
         }
-        case List<?> ignored -> setStringEntity(builder, request);
-        case String ignored -> setStringEntity(builder, request);
-        default ->
-            throw new IllegalStateException(
-                "Unexpected value type for the request body. Excepting Map, List, or String, got "
-                    + request.getBody().getClass().getSimpleName());
+      } else {
+        setStringEntity(builder, request);
       }
     }
   }
@@ -108,9 +101,29 @@ public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
   }
 
   private void unescapeBody(HttpCommonRequest request) {
-    if (request.getBody() instanceof String bodyString) {
-      String unescapedBody = StringEscapeUtils.unescapeJson(bodyString);
-      request.setBody(unescapedBody);
+    switch (request.getBody()) {
+      case String body -> {
+        String unescapedValue = StringEscapeUtils.unescapeJson(body);
+        request.setBody(unescapedValue);
+      }
+        //      case Map<?, ?> body -> {
+        //        body.forEach(
+        //            (key, value) -> {
+        //              if (value instanceof String valueString) {
+        //                String unescapedValue = StringEscapeUtils.unescapeJson(valueString);
+        //                body.put(key, unescapedValue);
+        //              }
+        //            });
+        //      }
+        //      case List<?> body -> {
+        //        for (int i = 0; i < body.size(); i++) {
+        //          if (body.get(i) instanceof String valueString) {
+        //            String unescapedValue = StringEscapeUtils.unescapeJson(valueString);
+        //            body.set(i, unescapedValue);
+        //          }
+        //        }
+        //      }
+      default -> {}
     }
   }
 }

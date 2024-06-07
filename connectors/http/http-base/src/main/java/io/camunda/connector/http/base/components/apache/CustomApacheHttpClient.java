@@ -16,14 +16,16 @@
  */
 package io.camunda.connector.http.base.components.apache;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.http.base.components.HttpClient;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.connector.http.base.request.apache.ApacheRequestFactory;
+import io.camunda.connector.http.base.utils.HttpStatusHelper;
 import java.io.IOException;
-import org.apache.commons.text.StringEscapeUtils;
+import java.util.Optional;
 import org.apache.hc.client5.http.ClientProtocolException;
 import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
@@ -103,24 +105,27 @@ public class CustomApacheHttpClient implements HttpClient {
       throws Exception {
     var apacheRequest = ApacheRequestFactory.get().createHttpRequest(request);
     try {
-      HttpCommonResult response =
+      var result =
           httpClientBuilder
               .setDefaultRequestConfig(getRequestConfig(request))
               .build()
               .execute(apacheRequest, new HttpCommonResultResponseHandler(remoteExecutionEnabled));
-
-      if (response.status() >= 400) {
-        LOG.warn(
-            "Request {} failed with status code {}. Response body: {}",
-            request,
-            response.status(),
-            response.body());
+      if (HttpStatusHelper.isError(result.status())) {
         throw new ConnectorException(
-            String.valueOf(response.status()),
-                StringEscapeUtils.unescapeJson(ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.writeValueAsString(response.body())));
+            String.valueOf(result.status()),
+            Optional.ofNullable(result.body())
+                .map(
+                    body -> {
+                      try {
+                        return ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.writeValueAsString(
+                            body);
+                      } catch (JsonProcessingException e) {
+                        throw new RuntimeException(e);
+                      }
+                    })
+                .orElse(result.reason()));
       }
-
-      return response;
+      return result;
     } catch (ClientProtocolException e) {
       throw new ConnectorException(
           String.valueOf(HttpStatus.SC_SERVER_ERROR),
