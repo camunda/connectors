@@ -51,12 +51,17 @@ import wiremock.com.fasterxml.jackson.databind.node.JsonNodeFactory;
 public class HttpServiceTest {
 
   private static final CloudFunctionService cloudFunctionService = spy(new CloudFunctionService());
+  private static final CloudFunctionService disabledCloudFunctionService =
+      spy(new CloudFunctionService());
   private final HttpService httpService = new HttpService(cloudFunctionService);
+  private final HttpService httpServiceWithoutCloudFunction =
+      new HttpService(disabledCloudFunctionService);
   private final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER;
 
   @BeforeAll
   public static void setUp() {
     when(cloudFunctionService.isCloudFunctionEnabled()).thenReturn(true);
+    when(disabledCloudFunctionService.isCloudFunctionEnabled()).thenReturn(false);
   }
 
   private String getHostAndPort(WireMockRuntimeInfo wmRuntimeInfo) {
@@ -72,6 +77,95 @@ public class HttpServiceTest {
                 aResponse()
                     .withTransformers(
                         CloudFunctionResponseTransformer.CLOUD_FUNCTION_TRANSFORMER)));
+  }
+
+  @Nested
+  class DisabledCloudFunctionTests {
+    @Test
+    public void shouldReturn200WithBody_whenGetRequestThroughHttpService(
+        WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+      stubFor(
+          get("/path")
+              .willReturn(
+                  ok().withJsonBody(
+                          JsonNodeFactory.instance
+                              .objectNode()
+                              .put("name", "John")
+                              .put("age", 30)
+                              .putNull("message"))));
+
+      // given
+      HttpCommonRequest request = new HttpCommonRequest();
+      request.setMethod(HttpMethod.GET);
+      request.setHeaders(Map.of("Accept", "application/json"));
+      request.setUrl(getHostAndPort(wmRuntimeInfo) + "/path");
+
+      // when
+      HttpCommonResult result = httpServiceWithoutCloudFunction.executeConnectorRequest(request);
+
+      // then
+      assertThat(result).isNotNull();
+      assertThat(result.status()).isEqualTo(200);
+      JSONAssert.assertEquals(
+          "{\"name\":\"John\",\"age\":30,\"message\":null}",
+          objectMapper.writeValueAsString(result.body()),
+          JSONCompareMode.STRICT);
+    }
+
+    @Test
+    public void shouldReturn401_whenUnauthorizedGetRequestThroughHttpServiceWithBody(
+        WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+      stubFor(
+          get("/path")
+              .willReturn(
+                  unauthorized()
+                      .withStatusMessage("Unauthorized sorry!")
+                      .withBody("Unauthorized sorry in the body!")));
+
+      // given
+      HttpCommonRequest request = new HttpCommonRequest();
+      request.setMethod(HttpMethod.GET);
+      request.setConnectionTimeoutInSeconds(10000);
+      request.setReadTimeoutInSeconds(10000);
+      request.setHeaders(Map.of("Accept", "application/json"));
+      request.setUrl(getHostAndPort(wmRuntimeInfo) + "/path");
+
+      // when
+      var e =
+          assertThrows(
+              ConnectorException.class,
+              () -> httpServiceWithoutCloudFunction.executeConnectorRequest(request));
+
+      // then
+      assertThat(e).isNotNull();
+      assertThat(e.getErrorCode()).isEqualTo("401");
+      assertThat(e.getMessage()).isEqualTo("Unauthorized sorry in the body!");
+    }
+
+    @Test
+    public void shouldReturn401_whenUnauthorizedGetRequestThroughHttpServiceWithReason(
+        WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+      stubFor(get("/path").willReturn(unauthorized().withStatusMessage("Unauthorized sorry!")));
+
+      // given
+      HttpCommonRequest request = new HttpCommonRequest();
+      request.setMethod(HttpMethod.GET);
+      request.setConnectionTimeoutInSeconds(10000);
+      request.setReadTimeoutInSeconds(10000);
+      request.setHeaders(Map.of("Accept", "application/json"));
+      request.setUrl(getHostAndPort(wmRuntimeInfo) + "/path");
+
+      // when
+      var e =
+          assertThrows(
+              ConnectorException.class,
+              () -> httpServiceWithoutCloudFunction.executeConnectorRequest(request));
+
+      // then
+      assertThat(e).isNotNull();
+      assertThat(e.getErrorCode()).isEqualTo("401");
+      assertThat(e.getMessage()).isEqualTo("Unauthorized sorry!");
+    }
   }
 
   @Nested
@@ -112,7 +206,40 @@ public class HttpServiceTest {
     }
 
     @Test
-    public void shouldReturn401_whenUnauthorizedGetRequestThroughCloudFunction(
+    public void shouldReturn401_whenUnauthorizedGetRequestThroughCloudFunctionWithBody(
+        WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+      stubCloudFunction(wmRuntimeInfo);
+      stubFor(
+          get("/path")
+              .willReturn(
+                  unauthorized()
+                      .withStatusMessage("Unauthorized sorry!")
+                      .withBody("Unauthorized sorry in the body!")));
+
+      // given
+      HttpCommonRequest request = new HttpCommonRequest();
+      request.setMethod(HttpMethod.GET);
+      request.setConnectionTimeoutInSeconds(10000);
+      request.setReadTimeoutInSeconds(10000);
+      request.setHeaders(Map.of("Accept", "application/json"));
+      request.setUrl(getHostAndPort(wmRuntimeInfo) + "/path");
+
+      // when
+      var e =
+          assertThrows(
+              ConnectorException.class, () -> httpService.executeConnectorRequest(request));
+
+      // then
+      verify(
+          postRequestedFor(urlEqualTo("/proxy"))
+              .withRequestBody(equalTo(objectMapper.writeValueAsString(request))));
+      assertThat(e).isNotNull();
+      assertThat(e.getErrorCode()).isEqualTo("401");
+      assertThat(e.getMessage()).isEqualTo("Unauthorized sorry in the body!");
+    }
+
+    @Test
+    public void shouldReturn401_whenUnauthorizedGetRequestThroughCloudFunctionWithReason(
         WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
       stubCloudFunction(wmRuntimeInfo);
       stubFor(get("/path").willReturn(unauthorized().withStatusMessage("Unauthorized sorry!")));

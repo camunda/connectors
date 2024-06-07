@@ -28,14 +28,14 @@ public class JsonHelper {
 
   public static JsonNode getAsJsonElement(Object body, final ObjectMapper mapper)
       throws JsonProcessingException {
-    if (body instanceof String stringBody && isJsonValid(stringBody)) {
-      return mapper.readTree(stringBody);
+    if (body instanceof String stringBody) {
+      return isJsonStringValid(stringBody) ? mapper.readTree(stringBody) : null;
     } else {
       return Optional.ofNullable(body).map(mapper::<JsonNode>valueToTree).orElse(null);
     }
   }
 
-  public static boolean isJsonValid(String jsonString) {
+  public static boolean isJsonStringValid(String jsonString) {
     try {
       ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER;
       JsonNode jsonNode = objectMapper.readTree(jsonString);
@@ -43,5 +43,9 @@ public class JsonHelper {
     } catch (JsonParseException | IOException e) {
       return false;
     }
+  }
+
+  public static boolean isJsonValid(Object maybeJson) throws JsonProcessingException {
+    return getAsJsonElement(maybeJson, ConnectorsObjectMapperSupplier.DEFAULT_MAPPER) != null;
   }
 }

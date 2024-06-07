@@ -31,13 +31,13 @@ import org.junit.jupiter.api.Test;
 public class JsonHelperTest {
 
   @Nested
-  class IsJsonValidTests {
+  class IsJsonStringValidTests {
     @Test
     public void shouldReturnTrue_whenJsonIsValid() {
       // given
       String jsonString = "{\"key\": \"value\"}";
       // when
-      boolean result = JsonHelper.isJsonValid(jsonString);
+      boolean result = JsonHelper.isJsonStringValid(jsonString);
       // then
       assertThat(result).isTrue();
     }
@@ -47,7 +47,7 @@ public class JsonHelperTest {
       // given
       String jsonString = "{\"key\": \"value\"";
       // when
-      boolean result = JsonHelper.isJsonValid(jsonString);
+      boolean result = JsonHelper.isJsonStringValid(jsonString);
       // then
       assertThat(result).isFalse();
     }
@@ -57,7 +57,7 @@ public class JsonHelperTest {
       // given
       String jsonString = "key: value";
       // when
-      boolean result = JsonHelper.isJsonValid(jsonString);
+      boolean result = JsonHelper.isJsonStringValid(jsonString);
       // then
       assertThat(result).isFalse();
     }
@@ -67,7 +67,7 @@ public class JsonHelperTest {
       // given
       String jsonString = "{\"key\": null}";
       // when
-      boolean result = JsonHelper.isJsonValid(jsonString);
+      boolean result = JsonHelper.isJsonStringValid(jsonString);
       // then
       assertThat(result).isTrue();
     }
@@ -77,13 +77,77 @@ public class JsonHelperTest {
       // given
       String jsonString = "[{\"key\": \"value\"}]";
       // when
-      boolean result = JsonHelper.isJsonValid(jsonString);
+      boolean result = JsonHelper.isJsonStringValid(jsonString);
       // then
       assertThat(result).isTrue();
     }
 
     @Test
     public void shouldReturnTrue_whenJsonContainsArrayOfStrings() {
+      // given
+      String jsonString = "[\"value\"]";
+      // when
+      boolean result = JsonHelper.isJsonStringValid(jsonString);
+      // then
+      assertThat(result).isTrue();
+    }
+  }
+
+  @Nested
+  class IsJsonValidTests {
+    @Test
+    public void shouldReturnTrue_whenJsonIsValid() throws JsonProcessingException {
+      // given
+      String jsonString = "{\"key\": \"value\"}";
+      // when
+      boolean result = JsonHelper.isJsonValid(jsonString);
+      // then
+      assertThat(result).isTrue();
+    }
+
+    @Test
+    public void shouldReturnFalse_whenJsonIsInvalid() throws JsonProcessingException {
+      // given
+      String jsonString = "{\"key\": \"value\"";
+      // when
+      boolean result = JsonHelper.isJsonValid(jsonString);
+      // then
+      assertThat(result).isFalse();
+    }
+
+    @Test
+    public void shouldReturnFalse_whenJsonIsInvalidMissingBrackets()
+        throws JsonProcessingException {
+      // given
+      String jsonString = "key: value";
+      // when
+      boolean result = JsonHelper.isJsonValid(jsonString);
+      // then
+      assertThat(result).isFalse();
+    }
+
+    @Test
+    public void shouldReturnTrue_whenJsonContainsNull() throws JsonProcessingException {
+      // given
+      String jsonString = "{\"key\": null}";
+      // when
+      boolean result = JsonHelper.isJsonValid(jsonString);
+      // then
+      assertThat(result).isTrue();
+    }
+
+    @Test
+    public void shouldReturnTrue_whenJsonContainsArrayOfObjects() throws JsonProcessingException {
+      // given
+      String jsonString = "[{\"key\": \"value\"}]";
+      // when
+      boolean result = JsonHelper.isJsonValid(jsonString);
+      // then
+      assertThat(result).isTrue();
+    }
+
+    @Test
+    public void shouldReturnTrue_whenJsonContainsArrayOfStrings() throws JsonProcessingException {
       // given
       String jsonString = "[\"value\"]";
       // when
@@ -104,9 +168,7 @@ public class JsonHelperTest {
       // when
       JsonNode jsonElement = JsonHelper.getAsJsonElement(input, objectMapper);
       // then
-      assertThat(jsonElement).isNotNull();
-      // assert Class in TextNode
-      assertThat(jsonElement.getNodeType()).isEqualTo(JsonNodeType.STRING);
+      assertThat(jsonElement).isNull();
     }
 
     @Test

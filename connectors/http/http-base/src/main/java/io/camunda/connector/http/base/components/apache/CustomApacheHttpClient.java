@@ -16,16 +16,14 @@
  */
 package io.camunda.connector.http.base.components.apache;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.error.ConnectorException;
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.http.base.components.HttpClient;
+import io.camunda.connector.http.base.exception.HttpCommonResultException;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.connector.http.base.request.apache.ApacheRequestFactory;
 import io.camunda.connector.http.base.utils.HttpStatusHelper;
 import java.io.IOException;
-import java.util.Optional;
 import org.apache.hc.client5.http.ClientProtocolException;
 import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
@@ -111,19 +109,7 @@ public class CustomApacheHttpClient implements HttpClient {
               .build()
               .execute(apacheRequest, new HttpCommonResultResponseHandler(remoteExecutionEnabled));
       if (HttpStatusHelper.isError(result.status())) {
-        throw new ConnectorException(
-            String.valueOf(result.status()),
-            Optional.ofNullable(result.body())
-                .map(
-                    body -> {
-                      try {
-                        return ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.writeValueAsString(
-                            body);
-                      } catch (JsonProcessingException e) {
-                        throw new RuntimeException(e);
-                      }
-                    })
-                .orElse(result.reason()));
+        throw new HttpCommonResultException(result);
       }
       return result;
     } catch (ClientProtocolException e) {

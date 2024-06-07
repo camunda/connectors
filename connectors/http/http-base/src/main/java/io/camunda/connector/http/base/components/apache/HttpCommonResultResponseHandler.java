@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.http.base.components.apache;
 
-import static io.camunda.connector.http.base.utils.JsonHelper.isJsonValid;
+import static io.camunda.connector.http.base.utils.JsonHelper.isJsonStringValid;
 
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.http.base.model.ErrorResponse;
@@ -56,16 +56,7 @@ public class HttpCommonResultResponseHandler
     if (response.getEntity() != null) {
       try (InputStream content = response.getEntity().getContent()) {
         if (cloudFunctionEnabled) {
-          if (HttpStatusHelper.isError(code)) {
-            // unwrap as ErrorResponse
-            var errorResponse =
-                ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.readValue(
-                    content, ErrorResponse.class);
-            return new HttpCommonResult(code, headers, errorResponse, reason);
-          }
-          // Unwrap the response as a HttpCommonResult directly
-          return ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.readValue(
-              content, HttpCommonResult.class);
+          return getResultForCloudFunction(code, content, headers, reason);
         }
         return new HttpCommonResult(code, headers, extractBody(content), reason);
       } catch (final Exception e) {
@@ -73,6 +64,23 @@ public class HttpCommonResultResponseHandler
       }
     }
     return new HttpCommonResult(code, headers, null, reason);
+  }
+
+  /**
+   * Will parse the response as a Cloud Function response. If the response is an error, it will be
+   * unwrapped as an ErrorResponse. Otherwise, it will be unwrapped as a HttpCommonResult.
+   */
+  private HttpCommonResult getResultForCloudFunction(
+      int code, InputStream content, Map<String, Object> headers, String reason)
+      throws IOException {
+    if (HttpStatusHelper.isError(code)) {
+      // unwrap as ErrorResponse
+      var errorResponse =
+          ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.readValue(content, ErrorResponse.class);
+      return new HttpCommonResult(code, headers, errorResponse, reason);
+    }
+    // Unwrap the response as a HttpCommonResult directly
+    return ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.readValue(content, HttpCommonResult.class);
   }
 
   /**
@@ -86,7 +94,7 @@ public class HttpCommonResultResponseHandler
     }
 
     if (StringUtils.isNotBlank(bodyString)) {
-      return isJsonValid(bodyString)
+      return isJsonStringValid(bodyString)
           ? ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.readValue(bodyString, Object.class)
           : bodyString;
     }
