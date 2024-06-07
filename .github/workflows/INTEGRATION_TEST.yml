@@ -28,7 +28,7 @@ jobs:
       connectors-version: ${{ steps.connectors-version.outputs.connectors-version }}
       helm-branch: ${{ steps.helm-branch.outputs.helm-branch }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: Install jq
         run: sudo apt-get install jq
