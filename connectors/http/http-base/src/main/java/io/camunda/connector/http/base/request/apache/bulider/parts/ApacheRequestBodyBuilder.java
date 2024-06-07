@@ -26,7 +26,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import org.apache.commons.text.StringEscapeUtils;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.io.entity.HttpEntities;
 import org.apache.hc.core5.http.io.entity.StringEntity;
@@ -42,8 +41,6 @@ public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
   public void build(ClassicRequestBuilder builder, HttpCommonRequest request)
       throws JsonProcessingException {
     if (request.getMethod().supportsBody && request.hasBody()) {
-      unescapeBody(request);
-
       if (request.getBody() instanceof Map<?, ?> body) {
         if (isFormUrlEncoded(request)) {
           setUrlEncodedFormEntity(body, builder);
@@ -98,32 +95,5 @@ public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
                             String.valueOf(e.getKey()), String.valueOf(e.getValue())))
                 .collect(Collectors.toList()),
             StandardCharsets.UTF_8));
-  }
-
-  private void unescapeBody(HttpCommonRequest request) {
-    switch (request.getBody()) {
-      case String body -> {
-        String unescapedValue = StringEscapeUtils.unescapeJson(body);
-        request.setBody(unescapedValue);
-      }
-        //      case Map<?, ?> body -> {
-        //        body.forEach(
-        //            (key, value) -> {
-        //              if (value instanceof String valueString) {
-        //                String unescapedValue = StringEscapeUtils.unescapeJson(valueString);
-        //                body.put(key, unescapedValue);
-        //              }
-        //            });
-        //      }
-        //      case List<?> body -> {
-        //        for (int i = 0; i < body.size(); i++) {
-        //          if (body.get(i) instanceof String valueString) {
-        //            String unescapedValue = StringEscapeUtils.unescapeJson(valueString);
-        //            body.set(i, unescapedValue);
-        //          }
-        //        }
-        //      }
-      default -> {}
-    }
   }
 }

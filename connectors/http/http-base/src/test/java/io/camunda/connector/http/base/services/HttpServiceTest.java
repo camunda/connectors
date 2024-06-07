@@ -19,6 +19,7 @@ package io.camunda.connector.http.base.services;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath;
 import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
@@ -41,8 +42,8 @@ import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.connector.http.base.model.HttpMethod;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
 import wiremock.com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -79,191 +80,119 @@ public class HttpServiceTest {
                         CloudFunctionResponseTransformer.CLOUD_FUNCTION_TRANSFORMER)));
   }
 
-  @Nested
-  class DisabledCloudFunctionTests {
-    @Test
-    public void shouldReturn200WithBody_whenGetRequestThroughHttpService(
-        WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
-      stubFor(
-          get("/path")
-              .willReturn(
-                  ok().withJsonBody(
-                          JsonNodeFactory.instance
-                              .objectNode()
-                              .put("name", "John")
-                              .put("age", 30)
-                              .putNull("message"))));
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  public void shouldReturn200WithBody_whenPostRequest(
+      boolean cloudFunctionEnabled, WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+    stubCloudFunction(wmRuntimeInfo);
+    HttpService httpService =
+        cloudFunctionEnabled ? HttpServiceTest.this.httpService : httpServiceWithoutCloudFunction;
 
-      // given
-      HttpCommonRequest request = new HttpCommonRequest();
-      request.setMethod(HttpMethod.GET);
-      request.setHeaders(Map.of("Accept", "application/json"));
-      request.setUrl(getHostAndPort(wmRuntimeInfo) + "/path");
+    stubFor(
+        post("/path")
+            .willReturn(
+                ok().withJsonBody(
+                        JsonNodeFactory.instance
+                            .objectNode()
+                            .put("responseKey1", "value1")
+                            .put("responseKey2", 40)
+                            .putNull("responseKey3"))));
 
-      // when
-      HttpCommonResult result = httpServiceWithoutCloudFunction.executeConnectorRequest(request);
+    // given
+    HttpCommonRequest request = new HttpCommonRequest();
+    request.setMethod(HttpMethod.POST);
+    request.setBody(Map.of("name", "John", "age", 30, "message", "{\"key\":\"value\"}"));
+    request.setHeaders(Map.of("Accept", "application/json"));
+    request.setUrl(getHostAndPort(wmRuntimeInfo) + "/path");
 
-      // then
-      assertThat(result).isNotNull();
-      assertThat(result.status()).isEqualTo(200);
-      JSONAssert.assertEquals(
-          "{\"name\":\"John\",\"age\":30,\"message\":null}",
-          objectMapper.writeValueAsString(result.body()),
-          JSONCompareMode.STRICT);
-    }
+    // when
+    HttpCommonResult result = httpService.executeConnectorRequest(request);
 
-    @Test
-    public void shouldReturn401_whenUnauthorizedGetRequestThroughHttpServiceWithBody(
-        WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
-      stubFor(
-          get("/path")
-              .willReturn(
-                  unauthorized()
-                      .withStatusMessage("Unauthorized sorry!")
-                      .withBody("Unauthorized sorry in the body!")));
-
-      // given
-      HttpCommonRequest request = new HttpCommonRequest();
-      request.setMethod(HttpMethod.GET);
-      request.setConnectionTimeoutInSeconds(10000);
-      request.setReadTimeoutInSeconds(10000);
-      request.setHeaders(Map.of("Accept", "application/json"));
-      request.setUrl(getHostAndPort(wmRuntimeInfo) + "/path");
-
-      // when
-      var e =
-          assertThrows(
-              ConnectorException.class,
-              () -> httpServiceWithoutCloudFunction.executeConnectorRequest(request));
-
-      // then
-      assertThat(e).isNotNull();
-      assertThat(e.getErrorCode()).isEqualTo("401");
-      assertThat(e.getMessage()).isEqualTo("Unauthorized sorry in the body!");
-    }
-
-    @Test
-    public void shouldReturn401_whenUnauthorizedGetRequestThroughHttpServiceWithReason(
-        WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
-      stubFor(get("/path").willReturn(unauthorized().withStatusMessage("Unauthorized sorry!")));
-
-      // given
-      HttpCommonRequest request = new HttpCommonRequest();
-      request.setMethod(HttpMethod.GET);
-      request.setConnectionTimeoutInSeconds(10000);
-      request.setReadTimeoutInSeconds(10000);
-      request.setHeaders(Map.of("Accept", "application/json"));
-      request.setUrl(getHostAndPort(wmRuntimeInfo) + "/path");
-
-      // when
-      var e =
-          assertThrows(
-              ConnectorException.class,
-              () -> httpServiceWithoutCloudFunction.executeConnectorRequest(request));
-
-      // then
-      assertThat(e).isNotNull();
-      assertThat(e.getErrorCode()).isEqualTo("401");
-      assertThat(e.getMessage()).isEqualTo("Unauthorized sorry!");
+    // then
+    assertThat(result).isNotNull();
+    assertThat(result.status()).isEqualTo(200);
+    JSONAssert.assertEquals(
+        "{\"responseKey1\":\"value1\",\"responseKey2\":40,\"responseKey3\":null}",
+        objectMapper.writeValueAsString(result.body()),
+        JSONCompareMode.STRICT);
+    verify(
+        postRequestedFor(urlEqualTo("/path"))
+            .withHeader("Accept", equalTo("application/json"))
+            .withRequestBody(
+                matchingJsonPath("$.name", equalTo("John"))
+                    .and(matchingJsonPath("$.message", equalTo("{\"key\":\"value\"}")))
+                    .and(matchingJsonPath("$.age", equalTo("30")))));
+    if (cloudFunctionEnabled) {
+      verify(
+          postRequestedFor(urlEqualTo("/proxy"))
+              .withRequestBody(equalTo(objectMapper.writeValueAsString(request))));
     }
   }
 
-  @Nested
-  class CloudFunctionTests {
-    @Test
-    public void shouldReturn200WithBody_whenGetRequestThroughCloudFunction(
-        WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
-      stubCloudFunction(wmRuntimeInfo);
-      stubFor(
-          get("/path")
-              .willReturn(
-                  ok().withJsonBody(
-                          JsonNodeFactory.instance
-                              .objectNode()
-                              .put("name", "John")
-                              .put("age", 30)
-                              .putNull("message"))));
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  public void shouldReturn401_whenUnauthorizedGetRequestWithBody(
+      boolean cloudFunctionEnabled, WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+    stubCloudFunction(wmRuntimeInfo);
+    HttpService httpService =
+        cloudFunctionEnabled ? HttpServiceTest.this.httpService : httpServiceWithoutCloudFunction;
+    stubFor(
+        get("/path")
+            .willReturn(
+                unauthorized()
+                    .withStatusMessage("Unauthorized sorry!")
+                    .withBody("Unauthorized sorry in the body!")));
 
-      // given
-      HttpCommonRequest request = new HttpCommonRequest();
-      request.setMethod(HttpMethod.GET);
-      request.setHeaders(Map.of("Accept", "application/json"));
-      request.setUrl(getHostAndPort(wmRuntimeInfo) + "/path");
+    // given
+    HttpCommonRequest request = new HttpCommonRequest();
+    request.setMethod(HttpMethod.GET);
+    request.setHeaders(Map.of("Accept", "application/json"));
+    request.setUrl(getHostAndPort(wmRuntimeInfo) + "/path");
 
-      // when
-      HttpCommonResult result = httpService.executeConnectorRequest(request);
+    // when
+    var e =
+        assertThrows(ConnectorException.class, () -> httpService.executeConnectorRequest(request));
 
-      // then
+    // then
+    assertThat(e).isNotNull();
+    assertThat(e.getErrorCode()).isEqualTo("401");
+    assertThat(e.getMessage()).isEqualTo("Unauthorized sorry in the body!");
+    if (cloudFunctionEnabled) {
       verify(
           postRequestedFor(urlEqualTo("/proxy"))
               .withRequestBody(equalTo(objectMapper.writeValueAsString(request))));
-      assertThat(result).isNotNull();
-      assertThat(result.status()).isEqualTo(200);
-      JSONAssert.assertEquals(
-          "{\"name\":\"John\",\"age\":30,\"message\":null}",
-          objectMapper.writeValueAsString(result.body()),
-          JSONCompareMode.STRICT);
     }
+  }
 
-    @Test
-    public void shouldReturn401_whenUnauthorizedGetRequestThroughCloudFunctionWithBody(
-        WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
-      stubCloudFunction(wmRuntimeInfo);
-      stubFor(
-          get("/path")
-              .willReturn(
-                  unauthorized()
-                      .withStatusMessage("Unauthorized sorry!")
-                      .withBody("Unauthorized sorry in the body!")));
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  public void shouldReturn401_whenUnauthorizedGetRequestWithReason(
+      boolean cloudFunctionEnabled, WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+    stubCloudFunction(wmRuntimeInfo);
+    HttpService httpService =
+        cloudFunctionEnabled ? HttpServiceTest.this.httpService : httpServiceWithoutCloudFunction;
+    stubFor(get("/path").willReturn(unauthorized().withStatusMessage("Unauthorized sorry!")));
 
-      // given
-      HttpCommonRequest request = new HttpCommonRequest();
-      request.setMethod(HttpMethod.GET);
-      request.setConnectionTimeoutInSeconds(10000);
-      request.setReadTimeoutInSeconds(10000);
-      request.setHeaders(Map.of("Accept", "application/json"));
-      request.setUrl(getHostAndPort(wmRuntimeInfo) + "/path");
+    // given
+    HttpCommonRequest request = new HttpCommonRequest();
+    request.setMethod(HttpMethod.GET);
+    request.setConnectionTimeoutInSeconds(10000);
+    request.setReadTimeoutInSeconds(10000);
+    request.setHeaders(Map.of("Accept", "application/json"));
+    request.setUrl(getHostAndPort(wmRuntimeInfo) + "/path");
 
-      // when
-      var e =
-          assertThrows(
-              ConnectorException.class, () -> httpService.executeConnectorRequest(request));
+    // when
+    var e =
+        assertThrows(ConnectorException.class, () -> httpService.executeConnectorRequest(request));
 
-      // then
+    // then
+    assertThat(e).isNotNull();
+    assertThat(e.getErrorCode()).isEqualTo("401");
+    assertThat(e.getMessage()).isEqualTo("Unauthorized sorry!");
+    if (cloudFunctionEnabled) {
       verify(
           postRequestedFor(urlEqualTo("/proxy"))
               .withRequestBody(equalTo(objectMapper.writeValueAsString(request))));
-      assertThat(e).isNotNull();
-      assertThat(e.getErrorCode()).isEqualTo("401");
-      assertThat(e.getMessage()).isEqualTo("Unauthorized sorry in the body!");
-    }
-
-    @Test
-    public void shouldReturn401_whenUnauthorizedGetRequestThroughCloudFunctionWithReason(
-        WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
-      stubCloudFunction(wmRuntimeInfo);
-      stubFor(get("/path").willReturn(unauthorized().withStatusMessage("Unauthorized sorry!")));
-
-      // given
-      HttpCommonRequest request = new HttpCommonRequest();
-      request.setMethod(HttpMethod.GET);
-      request.setConnectionTimeoutInSeconds(10000);
-      request.setReadTimeoutInSeconds(10000);
-      request.setHeaders(Map.of("Accept", "application/json"));
-      request.setUrl(getHostAndPort(wmRuntimeInfo) + "/path");
-
-      // when
-      var e =
-          assertThrows(
-              ConnectorException.class, () -> httpService.executeConnectorRequest(request));
-
-      // then
-      verify(
-          postRequestedFor(urlEqualTo("/proxy"))
-              .withRequestBody(equalTo(objectMapper.writeValueAsString(request))));
-      assertThat(e).isNotNull();
-      assertThat(e.getErrorCode()).isEqualTo("401");
-      assertThat(e.getMessage()).isEqualTo("Unauthorized sorry!");
     }
   }
 }
