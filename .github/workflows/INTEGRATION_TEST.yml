@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Prepare inputs
     outputs:
-      connectors-version: ${{ steps.connectors-version.outputs.connectors-version }}
+      connectors-version: ${{ steps.determine-connectors-version.outputs.connectors-version }}
       helm-dir: ${{ steps.helm-dir.outputs.helm-dir }}
     steps:
       - uses: actions/checkout@v2
@@ -46,7 +46,7 @@ jobs:
           echo "version=$(grep -oPm1 "(?<=<version>)[^<]+" "pom.xml")" >> $GITHUB_OUTPUT
 
       - name: Determine version of the Connectors image to use
-        id: connectors-version
+        id: determine-connectors-version
         run: |
           if [ -z "${{ inputs.connectors-version }}" ]; then
             if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
@@ -74,7 +74,7 @@ jobs:
 
       - name: Log results
         run: |
-          echo "Connectors version: ${{ steps.connectors-version.outputs.connectors-version }}"
+          echo "Connectors version: ${{ steps.determine-connectors-version.outputs.connectors-version }}"
           echo "Helm dir: ${{ steps.helm-dir.outputs.helm-dir }}"
 
   helm-deploy:
