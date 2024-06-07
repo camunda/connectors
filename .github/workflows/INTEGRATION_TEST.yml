@@ -84,7 +84,7 @@ jobs:
     secrets: inherit
     with:
       identifier: connectors-int
-      camunda-helm-git-ref: ${{ needs.prepare-inputs.outputs.helm-branch }}
+      camunda-helm-dir: ${{ needs.prepare-inputs.outputs.helm-branch }}
       test-enabled: true
       extra-values: |
         connectors:
