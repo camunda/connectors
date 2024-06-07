@@ -62,12 +62,12 @@ jobs:
         id: helm-dir
         run: |
           if [ -z "${{ inputs.helm-dir }}" ]; then
-            helm_branch=$(jq -r ".[\"${{ inputs.release-branch || github.ref_name }}\"]" .github/workflows/helm-git-refs.json)
-            if [ -z "$helm_branch" ] || [ "$helm_branch" == "null" ]; then
-              echo "::error::Could not determine Helm chart branch to use, please provide helm-dir input or adjust the mappings in .github/workflows/helm-git-refs.json"
+            helm_dir=$(jq -r ".[\"${{ inputs.release-branch || github.ref_name }}\"]" .github/workflows/helm-git-refs.json)
+            if [ -z "$helm_dir" ] || [ "$helm_dir" == "null" ]; then
+              echo "::error::Could not determine Helm chart dir to use, please provide helm-dir input or adjust the mappings in .github/workflows/helm-git-refs.json"
               exit 1
             fi
-            echo "helm-dir=$helm_branch" >> $GITHUB_OUTPUT
+            echo "helm-dir=$helm_dir" >> $GITHUB_OUTPUT
           else
             echo "helm-dir=${{ inputs.helm-dir }}" >> $GITHUB_OUTPUT
           fi
