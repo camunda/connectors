@@ -33,7 +33,7 @@ jobs:
     name: Prepare inputs
     outputs:
       connectors-version: ${{ steps.determine-connectors-version.outputs.connectors-version }}
-      helm-dir: ${{ steps.helm-dir.outputs.helm-dir }}
+      helm-dir: ${{ steps.determine-helm-dir.outputs.helm-dir }}
     steps:
       - uses: actions/checkout@v2
 
@@ -58,8 +58,8 @@ jobs:
             echo "connectors-version=${{ inputs.connectors-version }}" >> $GITHUB_OUTPUT
           fi
 
-      - name: Determine Helm chart ref to use
-        id: helm-dir
+      - name: Determine Helm chart directory to use
+        id: determine-helm-dir
         run: |
           if [ -z "${{ inputs.helm-dir }}" ]; then
             helm_dir=$(jq -r ".[\"${{ inputs.release-branch || github.ref_name }}\"]" .github/workflows/helm-git-refs.json)
@@ -75,7 +75,7 @@ jobs:
       - name: Log results
         run: |
           echo "Connectors version: ${{ steps.determine-connectors-version.outputs.connectors-version }}"
-          echo "Helm dir: ${{ steps.helm-dir.outputs.helm-dir }}"
+          echo "Helm dir: ${{ steps.determine-helm-dir.outputs.helm-dir }}"
 
   helm-deploy:
     needs: prepare-inputs
