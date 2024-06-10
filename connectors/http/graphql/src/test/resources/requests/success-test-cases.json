@@ -6,7 +6,7 @@
     },
     "graphql": {
       "method": "get",
-      "url": "https://camunda.io/http-endpoint",
+      "url": "http://localhost:8085/http-endpoint",
       "connectionTimeoutInSeconds": "20",
       "query": "query Root($id: ID) {\n  person (id: $id) {\n    id\n    name\n  }\n}",
       "variables": {
@@ -18,7 +18,7 @@
     "descriptionOfTest": "Normal request with basic auth",
     "graphql": {
       "method": "get",
-      "url": "https://camunda.io/http-endpoint",
+      "url": "http://localhost:8085/http-endpoint",
       "connectionTimeoutInSeconds": "0",
       "query": "query Root($id: ID) {\n  person (id: $id) {\n    id\n    name\n  }\n}",
       "variables": {
@@ -34,7 +34,7 @@
     },
     "graphql": {
       "method": "get",
-      "url": "https://camunda.io/http-endpoint",
+      "url": "http://localhost:8085/http-endpoint",
       "connectionTimeoutInSeconds": "30",
       "query": "query Root($id: ID) {\n  person (id: $id) {\n    id\n    name\n  }\n}",
       "variables": {
@@ -50,7 +50,7 @@
     },
     "graphql": {
       "method": "get",
-      "url": "https://camunda.io/http-endpoint",
+      "url": "http://localhost:8085/http-endpoint",
       "connectionTimeoutInSeconds": "200",
       "query": "query Root($id: ID) {\n  person (id: $id) {\n    id\n    name\n  }\n}"
     }
@@ -63,7 +63,7 @@
     },
     "graphql": {
       "method": "get",
-      "url": "https://camunda.io/http-endpoint",
+      "url": "http://localhost:8085/http-endpoint",
       "connectionTimeoutInSeconds": "0",
       "query": "query Root($id: ID) {\n  person (id: $id) {\n    id\n    name\n  }\n}",
       "variables": {}
@@ -77,7 +77,7 @@
     },
     "graphql": {
       "method": "get",
-      "url": "https://camunda.io/http-endpoint",
+      "url": "http://localhost:8085/http-endpoint",
       "connectionTimeoutInSeconds": "50",
       "query": "query Root($id: ID) {\n  person (id: $id) {\n    id\n    name\n  }\n}",
       "variables": {
@@ -92,7 +92,7 @@
     },
     "graphql": {
       "method": "get",
-      "url": "https://camunda.io/http-endpoint",
+      "url": "http://localhost:8085/http-endpoint",
       "connectionTimeoutInSeconds": "50",
       "query": "query Root($id: ID) {\n  person (id: $id) {\n    id\n    name\n  }\n}",
       "variables": {

@@ -48,9 +48,6 @@ public class HttpJsonFunctionTest extends BaseTest {
 
   private static final String SUCCESS_CASES_RESOURCE_PATH =
       "src/test/resources/requests/success-test-cases.json";
-
-  private static final String SUCCESS_CASES_OAUTH_RESOURCE_PATH =
-      "src/test/resources/requests/success-test-cases-oauth.json";
   private static final String FAIL_CASES_RESOURCE_PATH =
       "src/test/resources/requests/fail-test-cases.json";
 
@@ -58,10 +55,6 @@ public class HttpJsonFunctionTest extends BaseTest {
 
   private static Stream<String> successCases() throws IOException {
     return loadTestCasesFromResourceFile(SUCCESS_CASES_RESOURCE_PATH);
-  }
-
-  private static Stream<String> successCasesOauth() throws IOException {
-    return loadTestCasesFromResourceFile(SUCCESS_CASES_OAUTH_RESOURCE_PATH);
   }
 
   private static Stream<String> failCases() throws IOException {

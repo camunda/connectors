@@ -47,6 +47,13 @@
       <artifactId>commons-text</artifactId>
     </dependency>
 
+    <dependency>
+      <groupId>org.wiremock</groupId>
+      <artifactId>wiremock-standalone</artifactId>
+      <version>${version.wiremock}</version>
+      <scope>test</scope>
+    </dependency>
+
   </dependencies>
 
   <build>

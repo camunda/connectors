@@ -3,7 +3,7 @@
     "descriptionOfTest": "Negative value",
     "graphql": {
       "method": "get",
-      "url": "https://camunda.io/http-endpoint",
+      "url": "http://localhost:8085/http-endpoint",
       "connectionTimeoutInSeconds": "-1",
       "authentication": {
         "type": "noAuth"
@@ -14,7 +14,7 @@
     "descriptionOfTest": "Negative value",
     "graphql": {
       "method": "get",
-      "url": "https://camunda.io/http-endpoint",
+      "url": "http://localhost:8085/http-endpoint",
       "connectionTimeoutInSeconds": "-99",
       "authentication": {
         "type": "noAuth"
@@ -25,7 +25,7 @@
     "descriptionOfTest": "String value",
     "graphql": {
       "method": "get",
-      "url": "https://camunda.io/http-endpoint",
+      "url": "http://localhost:8085/http-endpoint",
       "connectionTimeoutInSeconds": "bad value",
       "authentication": {
         "type": "noAuth"
@@ -36,7 +36,7 @@
     "descriptionOfTest": "Blank value",
     "graphql": {
       "method": "get",
-      "url": "https://camunda.io/http-endpoint",
+      "url": "http://localhost:8085/http-endpoint",
       "connectionTimeoutInSeconds": " ",
       "authentication": {
         "type": "noAuth"
@@ -47,7 +47,7 @@
     "descriptionOfTest": "Float value",
     "graphql": {
       "method": "get",
-      "url": "https://camunda.io/http-endpoint",
+      "url": "http://localhost:8085/http-endpoint",
       "connectionTimeoutInSeconds": "1.56",
       "authentication": {
         "type": "bearer",
@@ -59,7 +59,7 @@
     "descriptionOfTest": "Float value",
     "graphql": {
       "method": "get",
-      "url": "https://camunda.io/http-endpoint",
+      "url": "http://localhost:8085/http-endpoint",
       "connectionTimeoutInSeconds": "0.1",
       "authentication": {
         "type": "noAuth"
@@ -70,7 +70,7 @@
     "descriptionOfTest": "Binary value",
     "graphql": {
       "method": "get",
-      "url": "https://camunda.io/http-endpoint",
+      "url": "http://localhost:8085/http-endpoint",
       "connectionTimeoutInSeconds": "0xFF",
       "authentication": {
         "type": "noAuth"
@@ -81,7 +81,7 @@
     "descriptionOfTest": "Binary value",
     "graphql": {
       "method": "get",
-      "url": "https://camunda.io/http-endpoint",
+      "url": "http://localhost:8085/http-endpoint",
       "connectionTimeoutInSeconds": "0b0011",
       "authentication": {
         "type": "bearer",
@@ -93,7 +93,7 @@
     "descriptionOfTest": "Value with 'secrets' token in the middle",
     "graphql": {
       "method": "get",
-      "url": "https://camunda.io/http-endpoint",
+      "url": "http://localhost:8085/http-endpoint",
       "connectionTimeoutInSeconds": "bad secrets.TOKEN_KEY value}}"
     },
     "authentication": {
@@ -104,7 +104,7 @@
     "descriptionOfTest": "Value with a numeric token in the middle",
     "graphql": {
       "method": "get",
-      "url": "https://camunda.io/http-endpoint",
+      "url": "http://localhost:8085/http-endpoint",
       "connectionTimeoutInSeconds": "bad 123 value"
     },
     "authentication": {
