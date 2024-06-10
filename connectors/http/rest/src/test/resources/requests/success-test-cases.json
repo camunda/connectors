@@ -2,13 +2,13 @@
   {
     "descriptionOfTest": "Normal request with no auth",
     "method": "get",
-    "url": "https://camunda.io/http-endpoint",
+    "url": "http://localhost:8085/http-endpoint",
     "authentication": {
       "type": "noAuth"
     },
-    "connectionTimeoutInSeconds" : 20,
-    "readTimeoutInSeconds" : 30,
-    "writeTimeoutInSeconds" : 40,
+    "connectionTimeoutInSeconds": 20,
+    "readTimeoutInSeconds": 30,
+    "writeTimeoutInSeconds": 40,
     "queryParameters": {
       "q": "test",
       "priority": 12
@@ -27,10 +27,10 @@
   {
     "descriptionOfTest": "Normal request with basic auth",
     "method": "get",
-    "url": "https://camunda.io/http-endpoint",
-    "connectionTimeoutInSeconds" : 0,
-    "readTimeoutInSeconds" : 0,
-    "writeTimeoutInSeconds" : 0,
+    "url": "http://localhost:8085/http-endpoint",
+    "connectionTimeoutInSeconds": 0,
+    "readTimeoutInSeconds": 0,
+    "writeTimeoutInSeconds": 0,
     "queryParameters": {
       "q": "test",
       "priority": 12
@@ -55,10 +55,10 @@
   {
     "descriptionOfTest": "Normal request with bearer auth",
     "method": "get",
-    "url": "https://camunda.io/http-endpoint",
-    "connectionTimeoutInSeconds" : 60,
-    "readTimeoutInSeconds" : 70,
-    "writeTimeoutInSeconds" : 200,
+    "url": "http://localhost:8085/http-endpoint",
+    "connectionTimeoutInSeconds": 60,
+    "readTimeoutInSeconds": 70,
+    "writeTimeoutInSeconds": 200,
     "queryParameters": {
       "q": "test",
       "priority": 12
@@ -82,10 +82,10 @@
   {
     "descriptionOfTest": "Normal request with no query params",
     "method": "get",
-    "url": "https://camunda.io/http-endpoint",
-    "connectionTimeoutInSeconds" : 202,
-    "readTimeoutInSeconds" : 301,
-    "writeTimeoutInSeconds" : 402,
+    "url": "http://localhost:8085/http-endpoint",
+    "connectionTimeoutInSeconds": 202,
+    "readTimeoutInSeconds": 301,
+    "writeTimeoutInSeconds": 402,
     "headers": {
       "X-Camunda-Cluster-ID": "abcdef",
       "User-Agent": "http-connector-demo"
@@ -105,10 +105,10 @@
   {
     "descriptionOfTest": "Normal request with no headers",
     "method": "get",
-    "url": "https://camunda.io/http-endpoint",
-    "connectionTimeoutInSeconds" : 5,
-    "readTimeoutInSeconds" : 67,
-    "writeTimeoutInSeconds" : 34,
+    "url": "http://localhost:8085/http-endpoint",
+    "connectionTimeoutInSeconds": 5,
+    "readTimeoutInSeconds": 67,
+    "writeTimeoutInSeconds": 34,
     "queryParameters": {
       "q": "test",
       "priority": 12
@@ -129,10 +129,10 @@
   {
     "descriptionOfTest": "Normal request with no body",
     "method": "get",
-    "connectionTimeoutInSeconds" : 20,
-    "readTimeoutInSeconds" : 30,
-    "writeTimeoutInSeconds" : 40,
-    "url": "https://camunda.io/http-endpoint",
+    "connectionTimeoutInSeconds": 20,
+    "readTimeoutInSeconds": 30,
+    "writeTimeoutInSeconds": 40,
+    "url": "http://localhost:8085/http-endpoint",
     "queryParameters": {
       "q": "test",
       "priority": 12
@@ -149,10 +149,10 @@
   {
     "descriptionOfTest": "Normal request with empty body",
     "method": "get",
-    "url": "https://camunda.io/http-endpoint",
-    "connectionTimeoutInSeconds" : 20,
-    "readTimeoutInSeconds" : 0,
-    "writeTimeoutInSeconds" : 10,
+    "url": "http://localhost:8085/http-endpoint",
+    "connectionTimeoutInSeconds": 20,
+    "readTimeoutInSeconds": 0,
+    "writeTimeoutInSeconds": 10,
     "queryParameters": {
       "q": "test",
       "priority": 12
@@ -171,7 +171,7 @@
   {
     "descriptionOfTest": "Normal request with connectionTimeoutInSeconds",
     "method": "get",
-    "url": "https://camunda.io/http-endpoint",
+    "url": "http://localhost:8085/http-endpoint",
     "queryParameters": {
       "q": "test",
       "priority": 12
@@ -184,9 +184,9 @@
       "type": "bearer",
       "token": "{{secrets.MY_TOKEN}}"
     },
-    "connectionTimeoutInSeconds" : 50,
-    "readTimeoutInSeconds" : 30,
-    "writeTimeoutInSeconds" : 40,
+    "connectionTimeoutInSeconds": 50,
+    "readTimeoutInSeconds": 30,
+    "writeTimeoutInSeconds": 40,
     "body": {
       "customer": {
         "id": 1231231,

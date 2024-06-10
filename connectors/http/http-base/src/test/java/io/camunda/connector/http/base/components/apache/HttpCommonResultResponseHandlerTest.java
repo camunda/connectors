@@ -19,6 +19,7 @@ package io.camunda.connector.http.base.components.apache;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.http.base.model.ErrorResponse;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import java.util.Map;
 import org.apache.hc.core5.http.ClassicHttpResponse;
@@ -92,6 +93,33 @@ public class HttpCommonResultResponseHandlerTest {
     assertThat((Map) result.body()).containsEntry("key", "value");
     assertThat(result.headers()).hasSize(1);
     assertThat(result.headers()).containsEntry("X-Header", "value");
+  }
+
+  @Test
+  public void shouldHandleError_whenCloudFunctionEnabled() throws Exception {
+    // given
+    HttpCommonResultResponseHandler handler = new HttpCommonResultResponseHandler(true);
+    ClassicHttpResponse response = new BasicClassicHttpResponse(500);
+    Header[] headers =
+        new Header[] {
+          new BasicHeader("Content-Type", "application/json"), new BasicHeader("X-Header", "value")
+        };
+    response.setHeaders(headers);
+    response.setEntity(
+        new StringEntity(
+            ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.writeValueAsString(
+                new ErrorResponse("500", "Custom message"))));
+
+    // when
+    HttpCommonResult result = handler.handleResponse(response);
+
+    // then
+    assertThat(result).isNotNull();
+    assertThat(result.status()).isEqualTo(500);
+    assertThat((ErrorResponse) result.body()).isEqualTo(new ErrorResponse("500", "Custom message"));
+    assertThat(result.headers()).hasSize(2);
+    assertThat(result.headers()).containsEntry("X-Header", "value");
+    assertThat(result.headers()).containsEntry("Content-Type", "application/json");
   }
 
   @Test

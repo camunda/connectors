@@ -20,9 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeType;
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Nested;
@@ -159,14 +157,13 @@ public class JsonHelperTest {
 
   @Nested
   class GetAsJsonElementTests {
-    private final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER;
 
     @Test
     public void shouldReturnStringJsonNode_whenStringParameter() throws JsonProcessingException {
       // given
       String input = "hello";
       // when
-      JsonNode jsonElement = JsonHelper.getAsJsonElement(input, objectMapper);
+      JsonNode jsonElement = JsonHelper.getAsJsonElement(input);
       // then
       assertThat(jsonElement).isNull();
     }
@@ -177,7 +174,7 @@ public class JsonHelperTest {
       // given
       String input = "{\"key\": \"value\"}";
       // when
-      JsonNode jsonElement = JsonHelper.getAsJsonElement(input, objectMapper);
+      JsonNode jsonElement = JsonHelper.getAsJsonElement(input);
       // then
       assertThat(jsonElement).isNotNull();
       // assert Class in TextNode
@@ -189,7 +186,7 @@ public class JsonHelperTest {
       // given
       String input = null;
       // when
-      JsonNode jsonElement = JsonHelper.getAsJsonElement(input, objectMapper);
+      JsonNode jsonElement = JsonHelper.getAsJsonElement(input);
       // then
       assertThat(jsonElement).isNull();
     }
@@ -200,7 +197,7 @@ public class JsonHelperTest {
       Map<String, String> input = new HashMap<>(Map.of("key", "value"));
       input.put("key2", null);
       // when
-      JsonNode jsonElement = JsonHelper.getAsJsonElement(input, objectMapper);
+      JsonNode jsonElement = JsonHelper.getAsJsonElement(input);
       // then
       assertThat(jsonElement).isNotNull();
       // assert Class in ObjectNode

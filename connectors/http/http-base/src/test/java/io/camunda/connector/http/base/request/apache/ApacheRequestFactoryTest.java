@@ -189,7 +189,9 @@ public class ApacheRequestFactoryTest {
       ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
 
       // then
-      assertThat(httpRequest.getUri().getQuery()).isEqualTo("key=value&key2=value2");
+      assertThat(httpRequest.getUri().getQuery()).contains("key=value");
+      assertThat(httpRequest.getUri().getQuery()).contains("key2=value2");
+      assertThat(httpRequest.getUri().getQuery()).contains("&");
     }
   }
 

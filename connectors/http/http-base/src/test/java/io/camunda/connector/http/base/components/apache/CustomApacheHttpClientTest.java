@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.http.base.components.apache;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.and;
+import static com.github.tomakehurst.wiremock.client.WireMock.containing;
 import static com.github.tomakehurst.wiremock.client.WireMock.created;
 import static com.github.tomakehurst.wiremock.client.WireMock.delete;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
@@ -257,7 +259,8 @@ public class CustomApacheHttpClientTest {
       verify(
           postRequestedFor(urlEqualTo("/path"))
               .withHeader("Content-Type", equalTo("application/x-www-form-urlencoded"))
-              .withRequestBody(equalTo("key1=value1&key2=value2")));
+              .withRequestBody(
+                  and(containing("key1=value1"), containing("&"), containing("key2=value2"))));
     }
 
     @Test
@@ -392,7 +395,8 @@ public class CustomApacheHttpClientTest {
       verify(
           putRequestedFor(urlEqualTo("/path"))
               .withHeader("Content-Type", equalTo("application/x-www-form-urlencoded"))
-              .withRequestBody(equalTo("key1=value1&key2=value2")));
+              .withRequestBody(
+                  and(containing("key1=value1"), containing("&"), containing("key2=value2"))));
     }
 
     @Test

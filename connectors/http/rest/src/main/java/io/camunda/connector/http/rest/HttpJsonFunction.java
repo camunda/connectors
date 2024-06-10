@@ -59,7 +59,11 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
   private final HttpService httpService;
 
   public HttpJsonFunction() {
-    this.httpService = new HttpService();
+    this(new HttpService());
+  }
+
+  HttpJsonFunction(HttpService httpService) {
+    this.httpService = httpService;
   }
 
   @Override

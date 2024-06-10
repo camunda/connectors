@@ -17,6 +17,8 @@
 package io.camunda.connector.http.base.services;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.error.ConnectorException;
@@ -28,10 +30,16 @@ import io.camunda.connector.http.base.model.HttpMethod;
 import java.io.IOException;
 import java.util.Map;
 import org.apache.hc.core5.http.ContentType;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 public class CloudFunctionServiceTest {
-  private final CloudFunctionService cloudFunctionService = new CloudFunctionService();
+  private static final CloudFunctionService cloudFunctionService = spy(new CloudFunctionService());
+
+  @BeforeAll
+  public static void setUp() {
+    when(cloudFunctionService.getProxyFunctionUrl()).thenReturn("proxyUrl");
+  }
 
   @Test
   public void shouldConvertToCloudFunctionRequest() throws IOException {
