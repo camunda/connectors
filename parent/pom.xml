@@ -719,6 +719,7 @@ limitations under the License.</license.inlineheader>
             </formats>
             <java>
               <googleJavaFormat/>
+              <removeUnusedImports />
             </java>
             <pom/>
           </configuration>
