@@ -17,6 +17,7 @@
 package io.camunda.connector.http.base.components.apache;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.and;
+import static com.github.tomakehurst.wiremock.client.WireMock.any;
 import static com.github.tomakehurst.wiremock.client.WireMock.containing;
 import static com.github.tomakehurst.wiremock.client.WireMock.created;
 import static com.github.tomakehurst.wiremock.client.WireMock.delete;
@@ -60,6 +61,7 @@ import org.apache.hc.core5.http.HttpStatus;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
@@ -131,11 +133,12 @@ public class CustomApacheHttpClientTest {
           JSONCompareMode.STRICT);
     }
 
-    @Test
-    public void shouldReturn200WithBody_whenGetWithBodyXML(WireMockRuntimeInfo wmRuntimeInfo)
-        throws Exception {
+    @ParameterizedTest
+    @EnumSource(HttpMethod.class)
+    public void shouldReturn200WithBody_whenGetWithBodyXML(
+        HttpMethod method, WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
       stubFor(
-          get("/path?format=xml")
+          any(urlEqualTo("/path?format=xml"))
               .willReturn(
                   ok().withBody(
                           "<note>\n"
@@ -146,7 +149,7 @@ public class CustomApacheHttpClientTest {
                               + "</note>")));
 
       HttpCommonRequest request = new HttpCommonRequest();
-      request.setMethod(HttpMethod.GET);
+      request.setMethod(method);
       request.setQueryParameters(Map.of("format", "xml"));
       request.setHeaders(Map.of("Accept", "application/xml"));
       request.setUrl(getHostAndPort(wmRuntimeInfo) + "/path");

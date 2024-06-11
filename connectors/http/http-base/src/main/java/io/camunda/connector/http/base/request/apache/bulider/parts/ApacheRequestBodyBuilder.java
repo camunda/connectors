@@ -36,11 +36,23 @@ import org.apache.hc.core5.http.message.BasicNameValuePair;
  * Maps the request body of a {@link HttpCommonRequest} to an Apache {@link ClassicRequestBuilder}.
  */
 public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
+  public static final String EMPTY_BODY = "";
 
   @Override
   public void build(ClassicRequestBuilder builder, HttpCommonRequest request)
       throws JsonProcessingException {
-    if (request.getMethod().supportsBody && request.hasBody()) {
+    if (request.getMethod().supportsBody) {
+      if (!request.hasBody()) {
+        /**
+         * We need to set the body to something not null due to how {@link
+         * io.camunda.connector.http.base.components.apache.CustomApacheHttpClient}{@link
+         * #build(ClassicRequestBuilder, HttpCommonRequest)} works. If the body is null, the {@link
+         * ClassicRequestBuilder} will override it in some cases (PUT/POST using query parameters).
+         */
+        builder.setEntity(EMPTY_BODY);
+        return;
+      }
+
       if (request.getBody() instanceof Map<?, ?> body) {
         if (isFormUrlEncoded(request)) {
           setUrlEncodedFormEntity(body, builder);
