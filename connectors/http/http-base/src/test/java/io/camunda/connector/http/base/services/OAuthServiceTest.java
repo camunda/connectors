@@ -20,11 +20,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import io.camunda.connector.http.base.authentication.Base64Helper;
+import io.camunda.connector.http.base.authentication.OAuthConstants;
+import io.camunda.connector.http.base.authentication.OAuthService;
 import io.camunda.connector.http.base.model.HttpMethod;
 import io.camunda.connector.http.base.model.auth.OAuthAuthentication;
-import io.camunda.connector.http.base.model.auth.OAuthConstants;
-import io.camunda.connector.http.base.model.auth.OAuthService;
-import io.camunda.connector.http.base.utils.Base64Helper;
 import java.util.Map;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

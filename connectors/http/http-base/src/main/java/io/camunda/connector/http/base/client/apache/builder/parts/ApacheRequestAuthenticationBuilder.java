@@ -8,6 +8,8 @@ package io.camunda.connector.http.base.client.apache.builder.parts;
 
 import static org.apache.hc.core5.http.HttpHeaders.AUTHORIZATION;
 
+import io.camunda.connector.http.base.authentication.Base64Helper;
+import io.camunda.connector.http.base.authentication.OAuthService;
 import io.camunda.connector.http.base.client.apache.CustomApacheHttpClient;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
@@ -16,8 +18,6 @@ import io.camunda.connector.http.base.model.auth.BasicAuthentication;
 import io.camunda.connector.http.base.model.auth.BearerAuthentication;
 import io.camunda.connector.http.base.model.auth.NoAuthentication;
 import io.camunda.connector.http.base.model.auth.OAuthAuthentication;
-import io.camunda.connector.http.base.model.auth.OAuthService;
-import io.camunda.connector.http.base.utils.Base64Helper;
 import org.apache.hc.core5.http.io.support.ClassicRequestBuilder;
 
 public class ApacheRequestAuthenticationBuilder implements ApacheRequestPartBuilder {

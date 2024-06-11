@@ -22,12 +22,12 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
+import io.camunda.connector.http.base.authentication.OAuthConstants;
+import io.camunda.connector.http.base.authentication.OAuthService;
 import io.camunda.connector.http.base.client.apache.ApacheRequestFactory;
 import io.camunda.connector.http.base.client.apache.CustomApacheHttpClient;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.connector.http.base.model.auth.OAuthAuthentication;
-import io.camunda.connector.http.base.model.auth.OAuthConstants;
-import io.camunda.connector.http.base.model.auth.OAuthService;
 import io.camunda.connector.http.rest.model.HttpJsonRequest;
 import java.io.IOException;
 import java.util.Map;

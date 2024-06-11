@@ -18,6 +18,7 @@ package io.camunda.connector.http.base.utils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.camunda.connector.http.base.authentication.Base64Helper;
 import java.util.Base64;
 import org.junit.jupiter.api.Test;
 

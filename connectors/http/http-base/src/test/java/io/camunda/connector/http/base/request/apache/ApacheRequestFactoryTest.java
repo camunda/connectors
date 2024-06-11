@@ -25,6 +25,8 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.http.base.authentication.Base64Helper;
+import io.camunda.connector.http.base.authentication.OAuthConstants;
 import io.camunda.connector.http.base.client.apache.ApacheRequestFactory;
 import io.camunda.connector.http.base.client.apache.CustomApacheHttpClient;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
@@ -35,8 +37,6 @@ import io.camunda.connector.http.base.model.auth.ApiKeyLocation;
 import io.camunda.connector.http.base.model.auth.BasicAuthentication;
 import io.camunda.connector.http.base.model.auth.BearerAuthentication;
 import io.camunda.connector.http.base.model.auth.OAuthAuthentication;
-import io.camunda.connector.http.base.model.auth.OAuthConstants;
-import io.camunda.connector.http.base.utils.Base64Helper;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import org.apache.hc.core5.http.ClassicHttpRequest;

@@ -4,12 +4,12 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.http.base.model.auth;
+package io.camunda.connector.http.base.authentication;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpMethod;
-import io.camunda.connector.http.base.utils.Base64Helper;
+import io.camunda.connector.http.base.model.auth.OAuthAuthentication;
 import io.camunda.connector.http.base.utils.JsonHelper;
 import java.util.HashMap;
 import java.util.Map;
