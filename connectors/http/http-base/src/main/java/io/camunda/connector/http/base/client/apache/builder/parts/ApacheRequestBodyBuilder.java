@@ -72,7 +72,7 @@ public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
       ContentType contentType, Map<?, ?> body, HttpCommonRequest request) {
     HttpEntity entity;
     if (contentType.getMimeType().equals(MULTIPART_FORM_DATA.getMimeType())) {
-      entity = createMultiPartEntity(body);
+      entity = createMultiPartEntity(body, contentType);
     } else if (contentType
         .getMimeType()
         .equals(ContentType.APPLICATION_FORM_URLENCODED.getMimeType())) {
@@ -115,9 +115,10 @@ public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
         StandardCharsets.UTF_8);
   }
 
-  private HttpEntity createMultiPartEntity(Map<?, ?> body) {
+  private HttpEntity createMultiPartEntity(Map<?, ?> body, ContentType contentType) {
     final MultipartEntityBuilder builder = MultipartEntityBuilder.create();
     builder.setMode(HttpMultipartMode.LEGACY);
+    Optional.ofNullable(contentType.getParameter("boundary")).ifPresent(builder::setBoundary);
     for (Map.Entry<?, ?> entry : body.entrySet()) {
       builder.addTextBody(
           String.valueOf(entry.getKey()), String.valueOf(entry.getValue()), MULTIPART_FORM_DATA);

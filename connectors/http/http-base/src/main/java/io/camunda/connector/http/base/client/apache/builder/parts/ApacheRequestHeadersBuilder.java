@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.http.base.client.apache.builder.parts;
 
+import static java.util.function.Predicate.not;
 import static org.apache.hc.core5.http.ContentType.APPLICATION_JSON;
 import static org.apache.hc.core5.http.ContentType.MULTIPART_FORM_DATA;
 import static org.apache.hc.core5.http.HttpHeaders.CONTENT_TYPE;
@@ -42,18 +43,21 @@ public class ApacheRequestHeadersBuilder implements ApacheRequestPartBuilder {
       request.setHeaders(new java.util.HashMap<>());
     }
     request.getHeaders().entrySet().stream()
-        .filter(notMultipartContentType())
+        .filter(not(defaultMultipartContentType()))
         .forEach(e -> builder.addHeader(e.getKey(), e.getValue()));
   }
 
   /**
-   * Filters out the content type header if it is a multipart form data content type. Otherwise the
-   * {@link ClassicRequestBuilder} won't be able to set the boundary and will use the existing
-   * header.
+   * Used to filter out the content type header if it is a multipart form data content type.
+   * Otherwise, the {@link ClassicRequestBuilder} won't be able to set the boundary and will use the
+   * existing header.
+   *
+   * <p>We should allow for custom boundary to be set in the content type header though.
    */
-  private Predicate<Map.Entry<String, String>> notMultipartContentType() {
+  private Predicate<Map.Entry<String, String>> defaultMultipartContentType() {
     return e ->
-        !e.getKey().equals(CONTENT_TYPE)
-            || !e.getValue().contains(MULTIPART_FORM_DATA.getMimeType());
+        e.getKey().equals(CONTENT_TYPE)
+            && e.getValue().contains(MULTIPART_FORM_DATA.getMimeType())
+            && !e.getValue().contains("boundary");
   }
 }

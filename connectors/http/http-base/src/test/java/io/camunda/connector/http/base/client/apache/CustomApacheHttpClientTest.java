@@ -43,6 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
+import com.github.tomakehurst.wiremock.matching.MultipartValuePatternBuilder;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.http.base.authentication.OAuthConstants;
@@ -283,9 +284,54 @@ public class CustomApacheHttpClientTest {
 
       verify(
           postRequestedFor(urlEqualTo("/path"))
-              .withHeader("Content-Type", equalTo("multipart/form-data"))
-              .withRequestBody(
-                  and(containing("key1=value1"), containing("&"), containing("key2=value2"))));
+              .withHeader(
+                  "Content-Type", and(containing("multipart/form-data"), containing("boundary=")))
+              .withRequestBodyPart(
+                  new MultipartValuePatternBuilder()
+                      .withName("key1")
+                      .withBody(equalTo("value1"))
+                      .build())
+              .withRequestBodyPart(
+                  new MultipartValuePatternBuilder()
+                      .withName("key2")
+                      .withBody(equalTo("value2"))
+                      .build()));
+    }
+
+    @Test
+    public void shouldReturn201WithBody_whenPostBodyMultiPartWithBoundaryProvided(
+        WireMockRuntimeInfo wmRuntimeInfo) {
+      stubFor(post("/path").withMultipartRequestBody(aMultipart()).willReturn(created()));
+
+      HttpCommonRequest request = new HttpCommonRequest();
+      request.setMethod(HttpMethod.POST);
+      request.setHeaders(
+          Map.of(
+              HttpHeaders.CONTENT_TYPE,
+              "multipart/form-data; charset=ISO-8859-1; boundary=g7wNbtOKHnEq4vnSoWdDYS88OICfGHzBA68DqmJS"));
+      request.setBody(Map.of("key1", "value1", "key2", "value2"));
+      request.setUrl(getHostAndPort(wmRuntimeInfo) + "/path");
+      HttpCommonResult result = customApacheHttpClient.execute(request);
+      assertThat(result).isNotNull();
+      assertThat(result.status()).isEqualTo(201);
+
+      verify(
+          postRequestedFor(urlEqualTo("/path"))
+              .withHeader(
+                  "Content-Type",
+                  and(
+                      containing("multipart/form-data"),
+                      containing("boundary=g7wNbtOKHnEq4vnSoWdDYS88OICfGHzBA68DqmJS")))
+              .withRequestBodyPart(
+                  new MultipartValuePatternBuilder()
+                      .withName("key1")
+                      .withBody(equalTo("value1"))
+                      .build())
+              .withRequestBodyPart(
+                  new MultipartValuePatternBuilder()
+                      .withName("key2")
+                      .withBody(equalTo("value2"))
+                      .build()));
     }
 
     @Test
