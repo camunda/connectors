@@ -17,13 +17,17 @@
 package io.camunda.connector.http.base.client.apache.builder.parts;
 
 import static org.apache.hc.core5.http.ContentType.APPLICATION_JSON;
+import static org.apache.hc.core5.http.ContentType.MULTIPART_FORM_DATA;
 import static org.apache.hc.core5.http.HttpHeaders.CONTENT_TYPE;
 
 import io.camunda.connector.http.base.model.HttpCommonRequest;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Predicate;
 import org.apache.hc.core5.http.io.support.ClassicRequestBuilder;
 
 public class ApacheRequestHeadersBuilder implements ApacheRequestPartBuilder {
+
   @Override
   public void build(ClassicRequestBuilder builder, HttpCommonRequest request) {
     var hasContentTypeHeader =
@@ -37,6 +41,19 @@ public class ApacheRequestHeadersBuilder implements ApacheRequestPartBuilder {
     if (request.getHeaders() == null) {
       request.setHeaders(new java.util.HashMap<>());
     }
-    request.getHeaders().forEach(builder::addHeader);
+    request.getHeaders().entrySet().stream()
+        .filter(notMultipartContentType())
+        .forEach(e -> builder.addHeader(e.getKey(), e.getValue()));
+  }
+
+  /**
+   * Filters out the content type header if it is a multipart form data content type. Otherwise the
+   * {@link ClassicRequestBuilder} won't be able to set the boundary and will use the existing
+   * header.
+   */
+  private Predicate<Map.Entry<String, String>> notMultipartContentType() {
+    return e ->
+        !e.getKey().equals(CONTENT_TYPE)
+            || !e.getValue().contains(MULTIPART_FORM_DATA.getMimeType());
   }
 }

@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.http.base.client.apache.builder.parts;
 
-import static org.apache.hc.core5.http.ContentType.APPLICATION_FORM_URLENCODED;
+import static org.apache.hc.core5.http.ContentType.MULTIPART_FORM_DATA;
 import static org.apache.hc.core5.http.HttpHeaders.CONTENT_TYPE;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -27,7 +27,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.apache.hc.client5.http.entity.mime.HttpMultipartMode;
+import org.apache.hc.client5.http.entity.mime.MultipartEntityBuilder;
 import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.io.entity.HttpEntities;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.io.support.ClassicRequestBuilder;
@@ -54,61 +57,71 @@ public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
       }
 
       if (request.getBody() instanceof Map<?, ?> body) {
-        if (isFormUrlEncoded(request)) {
-          setUrlEncodedFormEntity(body, builder);
-        } else {
-          setStringEntity(builder, request);
-        }
+        tryGetContentType(request)
+            .ifPresentOrElse(
+                contentType ->
+                    builder.setEntity(createEntityForContentType(contentType, body, request)),
+                () -> builder.setEntity(createStringEntity(request)));
       } else {
-        setStringEntity(builder, request);
+        builder.setEntity(createStringEntity(request));
       }
     }
   }
 
-  private Optional<String> tryGetContentType(HttpCommonRequest request) {
-    return Optional.ofNullable(request.getHeaders()).map(headers -> headers.get(CONTENT_TYPE));
+  private HttpEntity createEntityForContentType(
+      ContentType contentType, Map<?, ?> body, HttpCommonRequest request) {
+    HttpEntity entity;
+    if (contentType.getMimeType().equals(MULTIPART_FORM_DATA.getMimeType())) {
+      entity = createMultiPartEntity(body);
+    } else if (contentType
+        .getMimeType()
+        .equals(ContentType.APPLICATION_FORM_URLENCODED.getMimeType())) {
+      entity = createUrlEncodedFormEntity(body);
+    } else {
+      entity = createStringEntity(request);
+    }
+    return entity;
   }
 
-  private boolean isFormUrlEncoded(HttpCommonRequest request) {
-    return tryGetContentType(request)
-        .map(
-            s ->
-                ContentType.parse(s)
-                    .getMimeType()
-                    .equalsIgnoreCase(APPLICATION_FORM_URLENCODED.getMimeType()))
-        .orElse(false);
+  private Optional<ContentType> tryGetContentType(HttpCommonRequest request) {
+    return Optional.ofNullable(request.getHeaders())
+        .map(headers -> headers.get(CONTENT_TYPE))
+        .map(ContentType::parse);
   }
 
-  private void setStringEntity(ClassicRequestBuilder requestBuilder, HttpCommonRequest request) {
+  private HttpEntity createStringEntity(HttpCommonRequest request) {
     Object body = request.getBody();
-    Optional<String> contentType = tryGetContentType(request);
+    Optional<ContentType> contentType = tryGetContentType(request);
     try {
-      requestBuilder.setEntity(
-          body instanceof String s
-              ? new StringEntity(
-                  s,
-                  contentType
-                      .map(ContentType::parse)
-                      .orElse(ContentType.TEXT_PLAIN.withCharset(StandardCharsets.UTF_8)))
-              : new StringEntity(
-                  ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.writeValueAsString(body),
-                  contentType
-                      .map(ContentType::parse)
-                      .orElse(ContentType.APPLICATION_JSON.withCharset(StandardCharsets.UTF_8))));
+      return body instanceof String s
+          ? new StringEntity(
+              s, contentType.orElse(ContentType.TEXT_PLAIN.withCharset(StandardCharsets.UTF_8)))
+          : new StringEntity(
+              ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.writeValueAsString(body),
+              contentType.orElse(ContentType.APPLICATION_JSON.withCharset(StandardCharsets.UTF_8)));
     } catch (JsonProcessingException e) {
       throw new ConnectorException("Failed to serialize request body:" + body, e);
     }
   }
 
-  private void setUrlEncodedFormEntity(Map<?, ?> body, ClassicRequestBuilder requestBuilder) {
-    requestBuilder.setEntity(
-        HttpEntities.createUrlEncoded(
-            body.entrySet().stream()
-                .map(
-                    e ->
-                        new BasicNameValuePair(
-                            String.valueOf(e.getKey()), String.valueOf(e.getValue())))
-                .collect(Collectors.toList()),
-            StandardCharsets.UTF_8));
+  private HttpEntity createUrlEncodedFormEntity(Map<?, ?> body) {
+    return HttpEntities.createUrlEncoded(
+        body.entrySet().stream()
+            .map(
+                e ->
+                    new BasicNameValuePair(
+                        String.valueOf(e.getKey()), String.valueOf(e.getValue())))
+            .collect(Collectors.toList()),
+        StandardCharsets.UTF_8);
+  }
+
+  private HttpEntity createMultiPartEntity(Map<?, ?> body) {
+    final MultipartEntityBuilder builder = MultipartEntityBuilder.create();
+    builder.setMode(HttpMultipartMode.LEGACY);
+    for (Map.Entry<?, ?> entry : body.entrySet()) {
+      builder.addTextBody(
+          String.valueOf(entry.getKey()), String.valueOf(entry.getValue()), MULTIPART_FORM_DATA);
+    }
+    return builder.build();
   }
 }

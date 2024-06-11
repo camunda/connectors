@@ -1,1 +1,1 @@
-io.camunda.connector.http.base.services.CloudFunctionResponseTransformer
+io.camunda.connector.http.base.cloudfunction.CloudFunctionResponseTransformer

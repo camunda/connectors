@@ -1,21 +1,12 @@
 /*
  * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
- * under one or more contributor license agreements. See the NOTICE file
- * distributed with this work for additional information regarding copyright
- * ownership. Camunda licenses this file to you under the Apache License,
- * Version 2.0; you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
  */
-package io.camunda.connector.http.base.components.apache;
+package io.camunda.connector.http.base.client.apache;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.aMultipart;
 import static com.github.tomakehurst.wiremock.client.WireMock.and;
 import static com.github.tomakehurst.wiremock.client.WireMock.any;
 import static com.github.tomakehurst.wiremock.client.WireMock.containing;
@@ -45,7 +36,6 @@ import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.http.base.authentication.OAuthConstants;
-import io.camunda.connector.http.base.client.apache.CustomApacheHttpClient;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.connector.http.base.model.HttpMethod;
@@ -263,6 +253,27 @@ public class CustomApacheHttpClientTest {
       verify(
           postRequestedFor(urlEqualTo("/path"))
               .withHeader("Content-Type", equalTo("application/x-www-form-urlencoded"))
+              .withRequestBody(
+                  and(containing("key1=value1"), containing("&"), containing("key2=value2"))));
+    }
+
+    @Test
+    public void shouldReturn201WithBody_whenPostBodyMultiPart(WireMockRuntimeInfo wmRuntimeInfo) {
+      stubFor(post("/path").withMultipartRequestBody(aMultipart()).willReturn(created()));
+
+      HttpCommonRequest request = new HttpCommonRequest();
+      request.setMethod(HttpMethod.POST);
+      request.setHeaders(
+          Map.of(HttpHeaders.CONTENT_TYPE, ContentType.MULTIPART_FORM_DATA.getMimeType()));
+      request.setBody(Map.of("key1", "value1", "key2", "value2"));
+      request.setUrl(getHostAndPort(wmRuntimeInfo) + "/path");
+      HttpCommonResult result = customApacheHttpClient.execute(request);
+      assertThat(result).isNotNull();
+      assertThat(result.status()).isEqualTo(201);
+
+      verify(
+          postRequestedFor(urlEqualTo("/path"))
+              .withHeader("Content-Type", equalTo("multipart/form-data"))
               .withRequestBody(
                   and(containing("key1=value1"), containing("&"), containing("key2=value2"))));
     }
