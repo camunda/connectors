@@ -36,19 +36,20 @@ public class ApacheRequestAuthenticationBuilder implements ApacheRequestPartBuil
   private final OAuthService oAuthService = new OAuthService();
 
   @Override
-  public void build(ClassicRequestBuilder builder, HttpCommonRequest request) throws Exception {
+  public void build(ClassicRequestBuilder builder, HttpCommonRequest request) {
     if (request.hasAuthentication()) {
       switch (request.getAuthentication()) {
         case NoAuthentication ignored -> {}
-        case BasicAuthentication auth -> builder.addHeader(
-            AUTHORIZATION,
-            Base64Helper.buildBasicAuthenticationHeader(auth.username(), auth.password()));
+        case BasicAuthentication auth ->
+            builder.addHeader(
+                AUTHORIZATION,
+                Base64Helper.buildBasicAuthenticationHeader(auth.username(), auth.password()));
         case OAuthAuthentication auth -> {
           String token = fetchOAuthToken(auth);
           builder.addHeader(AUTHORIZATION, String.format(BEARER, token));
         }
-        case BearerAuthentication auth -> builder.addHeader(
-            AUTHORIZATION, String.format(BEARER, auth.token()));
+        case BearerAuthentication auth ->
+            builder.addHeader(AUTHORIZATION, String.format(BEARER, auth.token()));
         case ApiKeyAuthentication auth -> {
           if (auth.isQueryLocationApiKeyAuthentication()) {
             builder.addParameter(auth.name(), auth.value());
@@ -60,7 +61,7 @@ public class ApacheRequestAuthenticationBuilder implements ApacheRequestPartBuil
     }
   }
 
-  String fetchOAuthToken(OAuthAuthentication authentication) throws Exception {
+  String fetchOAuthToken(OAuthAuthentication authentication) {
     HttpCommonRequest oAuthRequest = oAuthService.createOAuthRequestFrom(authentication);
     HttpCommonResult response = CustomApacheHttpClient.getDefault().execute(oAuthRequest);
     return oAuthService.extractTokenFromResponse(response.body());

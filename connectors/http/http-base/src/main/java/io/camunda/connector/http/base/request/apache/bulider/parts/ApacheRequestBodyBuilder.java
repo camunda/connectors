@@ -20,6 +20,7 @@ import static org.apache.hc.core5.http.ContentType.APPLICATION_FORM_URLENCODED;
 import static org.apache.hc.core5.http.HttpHeaders.CONTENT_TYPE;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import java.nio.charset.StandardCharsets;
@@ -39,8 +40,7 @@ public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
   public static final String EMPTY_BODY = "";
 
   @Override
-  public void build(ClassicRequestBuilder builder, HttpCommonRequest request)
-      throws JsonProcessingException {
+  public void build(ClassicRequestBuilder builder, HttpCommonRequest request) {
     if (request.getMethod().supportsBody) {
       if (!request.hasBody()) {
         /**
@@ -79,22 +79,25 @@ public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
         .orElse(false);
   }
 
-  private void setStringEntity(ClassicRequestBuilder requestBuilder, HttpCommonRequest request)
-      throws JsonProcessingException {
+  private void setStringEntity(ClassicRequestBuilder requestBuilder, HttpCommonRequest request) {
     Object body = request.getBody();
     Optional<String> contentType = tryGetContentType(request);
-    requestBuilder.setEntity(
-        body instanceof String s
-            ? new StringEntity(
-                s,
-                contentType
-                    .map(ContentType::parse)
-                    .orElse(ContentType.TEXT_PLAIN.withCharset(StandardCharsets.UTF_8)))
-            : new StringEntity(
-                ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.writeValueAsString(body),
-                contentType
-                    .map(ContentType::parse)
-                    .orElse(ContentType.APPLICATION_JSON.withCharset(StandardCharsets.UTF_8))));
+    try {
+      requestBuilder.setEntity(
+          body instanceof String s
+              ? new StringEntity(
+                  s,
+                  contentType
+                      .map(ContentType::parse)
+                      .orElse(ContentType.TEXT_PLAIN.withCharset(StandardCharsets.UTF_8)))
+              : new StringEntity(
+                  ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.writeValueAsString(body),
+                  contentType
+                      .map(ContentType::parse)
+                      .orElse(ContentType.APPLICATION_JSON.withCharset(StandardCharsets.UTF_8))));
+    } catch (JsonProcessingException e) {
+      throw new ConnectorException("Failed to serialize request body:" + body, e);
+    }
   }
 
   private void setUrlEncodedFormEntity(Map<?, ?> body, ClassicRequestBuilder requestBuilder) {

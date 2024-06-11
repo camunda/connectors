@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.http.base.services;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.http.base.auth.OAuthAuthentication;
 import io.camunda.connector.http.base.constants.Constants;
@@ -65,7 +64,7 @@ public class OAuthService {
     return oauthRequest;
   }
 
-  public String extractTokenFromResponse(Object body) throws JsonProcessingException {
+  public String extractTokenFromResponse(Object body) {
     return Optional.ofNullable(JsonHelper.getAsJsonElement(body))
         .filter(JsonNode::isObject)
         .map(jsonNode -> jsonNode.findValue(Constants.ACCESS_TOKEN))
@@ -77,18 +76,20 @@ public class OAuthService {
   private void addCredentials(
       Map<String, String> body, Map<String, String> headers, OAuthAuthentication authentication) {
     switch (authentication.clientAuthentication()) {
-      case Constants.BASIC_AUTH_HEADER -> headers.put(
-          HttpHeaders.AUTHORIZATION,
-          Base64Helper.buildBasicAuthenticationHeader(
-              authentication.clientId(), authentication.clientSecret()));
+      case Constants.BASIC_AUTH_HEADER ->
+          headers.put(
+              HttpHeaders.AUTHORIZATION,
+              Base64Helper.buildBasicAuthenticationHeader(
+                  authentication.clientId(), authentication.clientSecret()));
       case Constants.CREDENTIALS_BODY -> {
         body.put(Constants.CLIENT_ID, authentication.clientId());
         body.put(Constants.CLIENT_SECRET, authentication.clientSecret());
       }
-      default -> throw new IllegalArgumentException(
-          "Unsupported client authentication method: "
-              + authentication.clientAuthentication()
-              + ". Please use either 'basicAuthHeader' or 'credentialsBody'.");
+      default ->
+          throw new IllegalArgumentException(
+              "Unsupported client authentication method: "
+                  + authentication.clientAuthentication()
+                  + ". Please use either 'basicAuthHeader' or 'credentialsBody'.");
     }
   }
 }

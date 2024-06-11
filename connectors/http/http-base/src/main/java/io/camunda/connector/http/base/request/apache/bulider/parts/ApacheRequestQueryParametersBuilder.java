@@ -21,7 +21,7 @@ import org.apache.hc.core5.http.io.support.ClassicRequestBuilder;
 
 public class ApacheRequestQueryParametersBuilder implements ApacheRequestPartBuilder {
   @Override
-  public void build(ClassicRequestBuilder builder, HttpCommonRequest request) throws Exception {
+  public void build(ClassicRequestBuilder builder, HttpCommonRequest request) {
     if (request.hasQueryParameters()) {
       request.getQueryParameters().forEach(builder::addParameter);
     }

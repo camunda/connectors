@@ -26,8 +26,7 @@ public record AddWorkItemOperation(
 
   @Override
   public Object execute(
-      final HttpService httpService, final Map<String, String> authenticationHeader)
-      throws Exception {
+      final HttpService httpService, final Map<String, String> authenticationHeader) {
     final var request =
         new AutomationAnywhereHttpRequestBuilder()
             .withMethod(HttpMethod.POST)

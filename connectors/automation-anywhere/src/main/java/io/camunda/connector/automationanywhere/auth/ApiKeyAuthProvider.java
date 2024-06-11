@@ -20,8 +20,7 @@ public record ApiKeyAuthProvider(
   private static final String API_KEY = "apiKey";
 
   @Override
-  public String obtainToken(final HttpService httpService, final ObjectMapper objectMapper)
-      throws Exception {
+  public String obtainToken(final HttpService httpService, final ObjectMapper objectMapper) {
 
     final var request =
         new AutomationAnywhereHttpRequestBuilder()

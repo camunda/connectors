@@ -31,8 +31,7 @@ public record GetWorkItemOperation(
 
   @Override
   public Object execute(
-      final HttpService httpService, final Map<String, String> authenticationHeader)
-      throws Exception {
+      final HttpService httpService, final Map<String, String> authenticationHeader) {
 
     final var request =
         new AutomationAnywhereHttpRequestBuilder()

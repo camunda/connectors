@@ -44,7 +44,7 @@ public class HttpService {
     this.cloudFunctionService = cloudFunctionService;
   }
 
-  public HttpCommonResult executeConnectorRequest(HttpCommonRequest request) throws Exception {
+  public HttpCommonResult executeConnectorRequest(HttpCommonRequest request) {
     // Will throw ConnectorInputException if URL is blocked
     httpBlocklistManager.validateUrlAgainstBlocklist(request.getUrl());
     boolean cloudFunctionEnabled = cloudFunctionService.isCloudFunctionEnabled();

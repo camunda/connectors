@@ -20,6 +20,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonParseException;
+import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import java.io.IOException;
 import java.util.Optional;
@@ -28,9 +29,13 @@ public class JsonHelper {
 
   private static final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER;
 
-  public static JsonNode getAsJsonElement(Object body) throws JsonProcessingException {
+  public static JsonNode getAsJsonElement(Object body) {
     if (body instanceof String stringBody) {
-      return isJsonStringValid(stringBody) ? objectMapper.readTree(stringBody) : null;
+      try {
+        return isJsonStringValid(stringBody) ? objectMapper.readTree(stringBody) : null;
+      } catch (JsonProcessingException e) {
+        throw new ConnectorException("Failed to parse JSON string: " + stringBody, e);
+      }
     } else {
       return Optional.ofNullable(body).map(objectMapper::<JsonNode>valueToTree).orElse(null);
     }
@@ -45,7 +50,7 @@ public class JsonHelper {
     }
   }
 
-  public static boolean isJsonValid(Object maybeJson) throws JsonProcessingException {
+  public static boolean isJsonValid(Object maybeJson) {
     return getAsJsonElement(maybeJson) != null;
   }
 }

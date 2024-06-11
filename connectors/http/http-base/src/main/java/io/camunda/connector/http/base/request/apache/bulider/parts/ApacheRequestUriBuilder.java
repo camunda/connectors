@@ -22,7 +22,7 @@ import org.apache.hc.core5.http.io.support.ClassicRequestBuilder;
 public class ApacheRequestUriBuilder implements ApacheRequestPartBuilder {
 
   @Override
-  public void build(ClassicRequestBuilder builder, HttpCommonRequest request) throws Exception {
+  public void build(ClassicRequestBuilder builder, HttpCommonRequest request) {
     builder.setUri(request.getUrl());
   }
 }

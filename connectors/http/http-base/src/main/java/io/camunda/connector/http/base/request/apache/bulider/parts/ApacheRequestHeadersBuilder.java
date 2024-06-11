@@ -25,7 +25,7 @@ import org.apache.hc.core5.http.io.support.ClassicRequestBuilder;
 
 public class ApacheRequestHeadersBuilder implements ApacheRequestPartBuilder {
   @Override
-  public void build(ClassicRequestBuilder builder, HttpCommonRequest request) throws Exception {
+  public void build(ClassicRequestBuilder builder, HttpCommonRequest request) {
     var hasContentTypeHeader =
         Optional.ofNullable(request.getHeaders())
             .map(headers -> headers.containsKey(CONTENT_TYPE))

@@ -95,8 +95,7 @@ public class CustomApacheHttpClient implements HttpClient {
    * @return the {@link HttpCommonResult}
    */
   @Override
-  public HttpCommonResult execute(HttpCommonRequest request, boolean remoteExecutionEnabled)
-      throws Exception {
+  public HttpCommonResult execute(HttpCommonRequest request, boolean remoteExecutionEnabled) {
     var apacheRequest = ApacheRequestFactory.get().createHttpRequest(request);
     try {
       var result =

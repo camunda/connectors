@@ -55,7 +55,7 @@ public class GraphQLFunction implements OutboundConnectorFunction {
   }
 
   @Override
-  public Object execute(OutboundConnectorContext context) throws Exception {
+  public Object execute(OutboundConnectorContext context) {
     var graphQLRequest = context.bindVariables(GraphQLRequest.class);
     HttpCommonRequest commonRequest = graphQLRequestMapper.toHttpCommonRequest(graphQLRequest);
     LOGGER.debug("Executing graphql connector with request {}", commonRequest);

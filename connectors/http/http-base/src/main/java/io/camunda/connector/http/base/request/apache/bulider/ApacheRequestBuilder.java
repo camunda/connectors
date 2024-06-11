@@ -65,7 +65,7 @@ public class ApacheRequestBuilder {
             new ApacheRequestQueryParametersBuilder()));
   }
 
-  public ClassicHttpRequest build(HttpCommonRequest request) throws Exception {
+  public ClassicHttpRequest build(HttpCommonRequest request) {
     ClassicRequestBuilder requestBuilder = ClassicRequestBuilder.create(request.getMethod().name());
     for (ApacheRequestPartBuilder b : builders) {
       b.build(requestBuilder, request);

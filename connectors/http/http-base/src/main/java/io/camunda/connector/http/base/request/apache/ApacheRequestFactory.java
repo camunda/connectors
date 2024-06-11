@@ -34,7 +34,7 @@ public class ApacheRequestFactory implements RequestFactory<ClassicHttpRequest> 
   }
 
   @Override
-  public ClassicHttpRequest createHttpRequest(HttpCommonRequest request) throws Exception {
+  public ClassicHttpRequest createHttpRequest(HttpCommonRequest request) {
     return ApacheRequestBuilder.create().build(request);
   }
 }

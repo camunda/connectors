@@ -29,10 +29,8 @@ public interface HttpClient {
    * @param remoteExecutionEnabled whether to use the internal Google Function to execute the
    *     request remotely
    * @return the result of the request as a {@link HttpCommonResult}
-   * @throws Exception if an error occurs during the execution of the request
    */
-  HttpCommonResult execute(HttpCommonRequest request, boolean remoteExecutionEnabled)
-      throws Exception;
+  HttpCommonResult execute(HttpCommonRequest request, boolean remoteExecutionEnabled);
 
   /**
    * Executes the given {@link HttpCommonRequest} and returns the result as a {@link
@@ -40,9 +38,8 @@ public interface HttpClient {
    *
    * @param request the {@link HttpCommonRequest} to execute
    * @return the result of the request as a {@link HttpCommonResult}
-   * @throws Exception if an error occurs during the execution of the request
    */
-  default HttpCommonResult execute(HttpCommonRequest request) throws Exception {
+  default HttpCommonResult execute(HttpCommonRequest request) {
     return execute(request, false);
   }
 }

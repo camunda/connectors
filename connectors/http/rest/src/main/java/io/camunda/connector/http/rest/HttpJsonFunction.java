@@ -67,7 +67,7 @@ public class HttpJsonFunction implements OutboundConnectorFunction {
   }
 
   @Override
-  public Object execute(final OutboundConnectorContext context) throws Exception {
+  public Object execute(final OutboundConnectorContext context) {
     final var request = context.bindVariables(HttpJsonRequest.class);
     return httpService.executeConnectorRequest(request);
   }

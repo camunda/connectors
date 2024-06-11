@@ -25,8 +25,7 @@ public record PasswordBasedAuthProvider(
   private static final String MULTIPLE_LOGIN_KEY = "multipleLogin";
 
   @Override
-  public String obtainToken(final HttpService httpService, final ObjectMapper objectMapper)
-      throws Exception {
+  public String obtainToken(final HttpService httpService, final ObjectMapper objectMapper) {
 
     final var request =
         new AutomationAnywhereHttpRequestBuilder()

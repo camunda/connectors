@@ -44,25 +44,24 @@ public class CloudFunctionService {
    *
    * @param request the request to be executed remotely
    * @return the new request that is targeted at the Google function
-   * @throws IOException if the request cannot be serialized
    */
-  public HttpCommonRequest toCloudFunctionRequest(final HttpCommonRequest request)
-      throws IOException {
-    // Using the JsonHttpContent cannot work with an element on the root content,
-    // hence write it ourselves:
-    String contentAsJson =
-        ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.writeValueAsString(request);
-    String token;
+  public HttpCommonRequest toCloudFunctionRequest(final HttpCommonRequest request) {
     try {
-      token = CloudFunctionHelper.getOAuthToken(getProxyFunctionUrl());
+      // Using the JsonHttpContent cannot work with an element on the root content,
+      // hence write it ourselves:
+      String contentAsJson =
+          ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.writeValueAsString(request);
+      String token = CloudFunctionHelper.getOAuthToken(getProxyFunctionUrl());
+      return createCloudFunctionRequest(contentAsJson, token);
+    } catch (IOException e) {
+      LOG.error("Failed to serialize the request to JSON: {}", request, e);
+      throw new ConnectorException("Failed to serialize the request to JSON: " + request, e);
     } catch (Exception e) {
       LOG.error("Failure during OAuth authentication attempt for the Google cloud function", e);
       // this will be visible in Operate, so should hide the internal exception
       throw new ConnectorException(
           "Failure during OAuth authentication attempt for the Google cloud function");
     }
-
-    return createCloudFunctionRequest(contentAsJson, token);
   }
 
   /**

@@ -27,7 +27,6 @@ public interface RequestFactory<T> {
    *
    * @param request the domain model
    * @return the request object
-   * @throws Exception You can throw any exception you want
    */
-  T createHttpRequest(HttpCommonRequest request) throws Exception;
+  T createHttpRequest(HttpCommonRequest request);
 }

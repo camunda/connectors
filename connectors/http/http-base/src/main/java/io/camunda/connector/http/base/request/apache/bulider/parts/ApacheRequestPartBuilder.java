@@ -26,5 +26,5 @@ import org.apache.hc.core5.http.io.support.ClassicRequestBuilder;
  */
 public interface ApacheRequestPartBuilder {
 
-  void build(ClassicRequestBuilder builder, HttpCommonRequest request) throws Exception;
+  void build(ClassicRequestBuilder builder, HttpCommonRequest request);
 }
