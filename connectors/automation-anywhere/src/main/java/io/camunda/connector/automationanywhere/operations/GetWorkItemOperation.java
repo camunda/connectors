@@ -7,8 +7,8 @@
 package io.camunda.connector.automationanywhere.operations;
 
 import io.camunda.connector.automationanywhere.model.AutomationAnywhereHttpRequestBuilder;
+import io.camunda.connector.http.base.HttpService;
 import io.camunda.connector.http.base.model.HttpMethod;
-import io.camunda.connector.http.base.services.HttpService;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -31,8 +31,7 @@ public record GetWorkItemOperation(
 
   @Override
   public Object execute(
-      final HttpService httpService, final Map<String, String> authenticationHeader)
-      throws Exception {
+      final HttpService httpService, final Map<String, String> authenticationHeader) {
 
     final var request =
         new AutomationAnywhereHttpRequestBuilder()

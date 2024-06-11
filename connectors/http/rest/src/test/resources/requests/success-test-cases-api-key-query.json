@@ -1,24 +1,24 @@
 [
   {
-  "descriptionOfTest": "Normal request with apiKey in headers",
-  "method": "get",
-  "url": "https://camunda.io/http-endpoint",
-  "authentication":{
-    "apiKeyLocation" : "query",
-    "name" : "api-key-auth",
-    "value" : "my-api-key-value",
-    "type":"apiKey"
-  }
-},
+    "descriptionOfTest": "Normal request with apiKey in headers",
+    "method": "get",
+    "url": "http://localhost:8085/http-endpoint",
+    "authentication": {
+      "apiKeyLocation": "query",
+      "name": "api-key-auth",
+      "value": "my-api-key-value",
+      "type": "apiKey"
+    }
+  },
   {
     "descriptionOfTest": "Normal request with apiKey in headers with secrets",
     "method": "get",
-    "url": "https://camunda.io/http-endpoint",
-    "authentication":{
-      "apiKeyLocation" : "query",
-      "name" : "{{secrets.API_KEY_NAME}}",
-      "value" : "{{secrets.API_KEY_VALUE}}",
-      "type":"apiKey"
+    "url": "http://localhost:8085/http-endpoint",
+    "authentication": {
+      "apiKeyLocation": "query",
+      "name": "{{secrets.API_KEY_NAME}}",
+      "value": "{{secrets.API_KEY_VALUE}}",
+      "type": "apiKey"
     }
   }
 ]

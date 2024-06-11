@@ -19,7 +19,6 @@ package io.camunda.connector.http.base.blocklist;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.google.api.client.http.GenericUrl;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.http.base.blocklist.block.Block;
 import io.camunda.connector.http.base.blocklist.block.PortBlock;
@@ -53,9 +52,8 @@ public class DefaultHttpBlocklistManagerTest {
             "CAMUNDA_CONNECTOR_HTTP_BLOCK_REGEX_TEST_REGEX", "^http://regex.*");
 
     HttpBlockListManager manager = new DefaultHttpBlocklistManager(mockEnv);
-    GenericUrl url = new GenericUrl(blockedUrl);
     // when and then
-    assertThatThrownBy(() -> manager.validateUrlAgainstBlocklist(url))
+    assertThatThrownBy(() -> manager.validateUrlAgainstBlocklist(blockedUrl))
         .isInstanceOf(ConnectorInputException.class);
   }
 

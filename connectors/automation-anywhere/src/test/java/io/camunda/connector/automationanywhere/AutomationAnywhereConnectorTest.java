@@ -15,11 +15,11 @@ import static org.mockito.Mockito.when;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import io.camunda.connector.http.base.auth.NoAuthentication;
+import io.camunda.connector.http.base.HttpService;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.connector.http.base.model.HttpMethod;
-import io.camunda.connector.http.base.services.HttpService;
+import io.camunda.connector.http.base.model.auth.NoAuthentication;
 import java.io.IOException;
 import java.util.List;
 import org.junit.jupiter.api.BeforeAll;
@@ -56,8 +56,7 @@ class AutomationAnywhereConnectorTest extends BaseTest {
   @BeforeEach
   public void beforeEach() {
     connector = new AutomationAnywhereConnector(httpService, objectMapper);
-    successHttpCommonResult = new HttpCommonResult();
-    successHttpCommonResult.setStatus(STATUS_SUCCESS);
+    successHttpCommonResult = new HttpCommonResult(200, null, null);
   }
 
   @ParameterizedTest
@@ -70,14 +69,14 @@ class AutomationAnywhereConnectorTest extends BaseTest {
         .thenReturn(httpCommonResult)
         .thenReturn(successHttpCommonResult);
 
-    when(httpCommonResult.getBody()).thenReturn(authenticationResponse);
+    when(httpCommonResult.body()).thenReturn(authenticationResponse);
     // when
     Object execute = connector.execute(context);
     // then
     verify(httpService, times(2)).executeConnectorRequest(any(HttpCommonRequest.class));
 
     assertThat(execute).isNotNull().isInstanceOf(HttpCommonResult.class);
-    assertThat(((HttpCommonResult) execute).getStatus()).isEqualTo(STATUS_SUCCESS);
+    assertThat(((HttpCommonResult) execute).status()).isEqualTo(STATUS_SUCCESS);
 
     List<HttpCommonRequest> allValues = requestCaptor.getAllValues();
     HttpCommonRequest authRequest = allValues.get(0);
@@ -97,7 +96,7 @@ class AutomationAnywhereConnectorTest extends BaseTest {
         .thenReturn(httpCommonResult)
         .thenReturn(successHttpCommonResult);
 
-    when(httpCommonResult.getBody()).thenReturn(authenticationResponse);
+    when(httpCommonResult.body()).thenReturn(authenticationResponse);
 
     // when
     Object execute = connector.execute(context);
@@ -106,7 +105,7 @@ class AutomationAnywhereConnectorTest extends BaseTest {
     verify(httpService, times(2)).executeConnectorRequest(any(HttpCommonRequest.class));
 
     assertThat(execute).isNotNull().isInstanceOf(HttpCommonResult.class);
-    assertThat(((HttpCommonResult) execute).getStatus()).isEqualTo(STATUS_SUCCESS);
+    assertThat(((HttpCommonResult) execute).status()).isEqualTo(STATUS_SUCCESS);
 
     List<HttpCommonRequest> allValues = requestCaptor.getAllValues();
 
@@ -131,7 +130,7 @@ class AutomationAnywhereConnectorTest extends BaseTest {
     verify(httpService, times(1)).executeConnectorRequest(any(HttpCommonRequest.class));
 
     assertThat(execute).isNotNull().isInstanceOf(HttpCommonResult.class);
-    assertThat(((HttpCommonResult) execute).getStatus()).isEqualTo(STATUS_SUCCESS);
+    assertThat(((HttpCommonResult) execute).status()).isEqualTo(STATUS_SUCCESS);
 
     HttpCommonRequest operationRequest = requestCaptor.getValue();
     verifyRequest(operationRequest, EXPECTED_GET_ITEM_URL, EXPECTED_BODY_WITH_FILTER);

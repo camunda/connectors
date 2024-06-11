@@ -6,9 +6,9 @@
  */
 package io.camunda.connector.automationanywhere.model;
 
-import io.camunda.connector.http.base.auth.NoAuthentication;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpMethod;
+import io.camunda.connector.http.base.model.auth.NoAuthentication;
 import java.util.Map;
 
 public class AutomationAnywhereHttpRequestBuilder {

@@ -12,11 +12,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.api.inbound.ProcessInstanceContext;
+import io.camunda.connector.http.base.HttpService;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
-import io.camunda.connector.http.base.services.HttpService;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
-import java.io.IOException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,13 +25,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 public class HttpRequestTaskTest {
 
+  InboundConnectorContextBuilder.TestInboundIntermediateConnectorContext context;
   @Mock private HttpService mockHttpService;
-
   @Mock private HttpCommonResult httpCommonResult;
-
   @Mock private ProcessInstanceContext mockProcessInstanceContext;
 
-  InboundConnectorContextBuilder.TestInboundIntermediateConnectorContext context;
+  public static InboundConnectorContextBuilder getContextBuilder() {
+    return InboundConnectorContextBuilder.create();
+  }
 
   @BeforeEach
   void init() {
@@ -40,8 +40,7 @@ public class HttpRequestTaskTest {
   }
 
   @Test
-  public void shouldExecuteAndCorrelateHttpRequestOnRun()
-      throws IOException, InstantiationException, IllegalAccessException {
+  public void shouldExecuteAndCorrelateHttpRequestOnRun() throws Exception {
     // Given
     HttpRequestTask task =
         new HttpRequestTask(mockHttpService, mockProcessInstanceContext, context);
@@ -58,8 +57,7 @@ public class HttpRequestTaskTest {
   }
 
   @Test
-  public void shouldHandleExceptionWhileExecutingHttpRequest()
-      throws IOException, InstantiationException, IllegalAccessException {
+  public void shouldHandleExceptionWhileExecutingHttpRequest() throws Exception {
     // Given
     HttpRequestTask task =
         new HttpRequestTask(mockHttpService, mockProcessInstanceContext, context);
@@ -76,8 +74,7 @@ public class HttpRequestTaskTest {
   }
 
   @Test
-  public void shouldNotExecuteHttpRequestIfNoBindingFound()
-      throws IOException, InstantiationException, IllegalAccessException {
+  public void shouldNotExecuteHttpRequestIfNoBindingFound() throws Exception {
     // Given
     HttpRequestTask task =
         new HttpRequestTask(mockHttpService, mockProcessInstanceContext, context);
@@ -89,9 +86,5 @@ public class HttpRequestTaskTest {
     // Then
     verify(mockHttpService, never()).executeConnectorRequest(any());
     verify(mockProcessInstanceContext, never()).correlate(any());
-  }
-
-  public static InboundConnectorContextBuilder getContextBuilder() {
-    return InboundConnectorContextBuilder.create();
   }
 }

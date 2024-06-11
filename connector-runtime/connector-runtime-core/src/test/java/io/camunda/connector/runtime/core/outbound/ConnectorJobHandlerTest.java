@@ -426,7 +426,7 @@ class ConnectorJobHandlerTest {
         var jobHandler =
             new ConnectorJobHandler(
                 (context) -> Map.of("callStatus", Map.of("statusCode", "200 OK")), e -> {});
-        var resultExpression = "{\"processedOutput\": response.callStatus }";
+        var resultExpression = "{\"processedOutput\": response.callStatus, \"nullVar\": null}";
         var resultVariable = "result";
 
         // when
@@ -439,8 +439,9 @@ class ConnectorJobHandlerTest {
                 .executeAndCaptureResult(jobHandler);
 
         // then
-        assertThat(result.getVariables().size()).isEqualTo(2);
+        assertThat(result.getVariables().size()).isEqualTo(3);
         assertThat(result.getVariable("processedOutput")).isEqualTo(Map.of("statusCode", "200 OK"));
+        assertThat(result.getVariable("nullVar")).isNull();
         assertThat(result.getVariable(resultVariable))
             .isEqualTo(Map.of("callStatus", Map.of("statusCode", "200 OK")));
       }

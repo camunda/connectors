@@ -9,9 +9,7 @@ package io.camunda.connector.http.polling;
 import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
-import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
-import io.camunda.connector.http.base.components.HttpTransportComponentSupplier;
-import io.camunda.connector.http.base.services.HttpService;
+import io.camunda.connector.http.base.HttpService;
 import io.camunda.connector.http.polling.service.SharedExecutorService;
 import io.camunda.connector.http.polling.task.ProcessInstancesFetcherTask;
 import org.slf4j.Logger;
@@ -28,11 +26,7 @@ public class HttpPollingConnector
   private ProcessInstancesFetcherTask processInstancesFetcherTask;
 
   public HttpPollingConnector() {
-    this(
-        new HttpService(
-            ConnectorsObjectMapperSupplier.getCopy(),
-            HttpTransportComponentSupplier.httpRequestFactoryInstance()),
-        SharedExecutorService.getInstance());
+    this(new HttpService(), SharedExecutorService.getInstance());
   }
 
   public HttpPollingConnector(

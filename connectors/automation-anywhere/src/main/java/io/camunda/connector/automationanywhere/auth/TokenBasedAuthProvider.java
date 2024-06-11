@@ -7,7 +7,7 @@
 package io.camunda.connector.automationanywhere.auth;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.http.base.services.HttpService;
+import io.camunda.connector.http.base.HttpService;
 
 public record TokenBasedAuthProvider(String token) implements AuthenticationProvider {
   @Override

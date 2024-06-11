@@ -17,7 +17,7 @@ import static org.mockito.Mockito.when;
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.api.inbound.ProcessInstanceContext;
-import io.camunda.connector.http.base.services.HttpService;
+import io.camunda.connector.http.base.HttpService;
 import io.camunda.connector.http.polling.model.PollingIntervalConfiguration;
 import io.camunda.connector.http.polling.service.SharedExecutorService;
 import java.time.Duration;

@@ -21,7 +21,6 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.google.api.client.http.GenericUrl;
 import io.camunda.connector.api.error.ConnectorInputException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,24 +40,24 @@ public class RegexBlockTest {
 
   @Test
   public void testHttpBlockThrowsException() {
-    GenericUrl url = new GenericUrl("http://example.com");
     ConnectorInputException exception =
-        assertThrows(ConnectorInputException.class, () -> httpRegexBlock.validate(url));
+        assertThrows(
+            ConnectorInputException.class, () -> httpRegexBlock.validate("http://example.com"));
     assertThat(exception.getMessage()).contains("Block Name: HTTP_BLOCK");
   }
 
   @Test
   public void testSpecificDomainBlockThrowsException() {
-    GenericUrl url = new GenericUrl("http://example.com/path");
     ConnectorInputException exception =
-        assertThrows(ConnectorInputException.class, () -> specificDomainRegexBlock.validate(url));
+        assertThrows(
+            ConnectorInputException.class,
+            () -> specificDomainRegexBlock.validate("http://example.com/path"));
     assertThat(exception.getMessage()).contains("Block Name: SPECIFIC_DOMAIN");
   }
 
   @Test
   public void testSpecificDomainBlockDoesNotThrowException() {
-    GenericUrl url = new GenericUrl("http://another.com");
-    assertDoesNotThrow(() -> specificDomainRegexBlock.validate(url));
+    assertDoesNotThrow(() -> specificDomainRegexBlock.validate("http://another.com"));
   }
 
   @ParameterizedTest
@@ -69,9 +68,8 @@ public class RegexBlockTest {
       })
   public void testComputeMetadataBlockThrowsException(String urlString) {
     Block computeMetadataBlock = RegexBlock.create(".*computeMetadata.*", "COMPUTE_METADATA_BLOCK");
-    GenericUrl url = new GenericUrl(urlString);
     ConnectorInputException exception =
-        assertThrows(ConnectorInputException.class, () -> computeMetadataBlock.validate(url));
+        assertThrows(ConnectorInputException.class, () -> computeMetadataBlock.validate(urlString));
     assertTrue(exception.getMessage().contains("Block Name: COMPUTE_METADATA_BLOCK"));
   }
 
@@ -85,7 +83,6 @@ public class RegexBlockTest {
   @Test
   public void testNullBlockNameAllowed() {
     UrlBlock nullNameBlock = new UrlBlock("ignore", null);
-    GenericUrl url = new GenericUrl("http://example.com:8080");
-    assertDoesNotThrow(() -> nullNameBlock.validate(url));
+    assertDoesNotThrow(() -> nullNameBlock.validate("http://example.com:8080"));
   }
 }

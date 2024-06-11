@@ -16,10 +16,13 @@
  */
 package io.camunda.connector.http.base.blocklist.block;
 
-import com.google.api.client.http.GenericUrl;
 import io.camunda.connector.http.base.blocklist.util.BlocklistExceptionHelper;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URL;
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -79,6 +82,21 @@ public record PortBlock(String blockName, Set<Integer> blockedPorts) implements 
     return new PortBlock(blockName, blockedPorts);
   }
 
+  private Optional<Integer> getPortFromURL(String urlString) {
+    try {
+      URL url = URI.create(urlString).toURL();
+      int port = url.getPort();
+
+      // If no port is specified, to return the default port for the scheme
+      if (port == -1) {
+        port = url.getDefaultPort();
+      }
+      return port == -1 ? Optional.empty() : Optional.of(port);
+    } catch (MalformedURLException e) {
+      throw new IllegalArgumentException("Can't parse port from URL: " + urlString, e);
+    }
+  }
+
   /**
    * Validates a given URL against the blocking criteria.
    *
@@ -86,13 +104,14 @@ public record PortBlock(String blockName, Set<Integer> blockedPorts) implements 
    * io.camunda.connector.api.error.ConnectorInputException} is thrown, indicating that the URL is
    * blocked.
    *
-   * @param url The URL to validate, encapsulated as a {@link GenericUrl}.
+   * @param url The URL to validate.
    * @throws io.camunda.connector.api.error.ConnectorInputException if the URL matches the block
    *     conditions.
    */
   @Override
-  public void validate(GenericUrl url) {
-    if (blockedPorts.contains(url.getPort())) {
+  public void validate(String url) {
+    Optional<Integer> port = getPortFromURL(url);
+    if (port.isPresent() && blockedPorts.contains(port.get())) {
       BlocklistExceptionHelper.throwBlocklistException("port", blockName);
     }
   }

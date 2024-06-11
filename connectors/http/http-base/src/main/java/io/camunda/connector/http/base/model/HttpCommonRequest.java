@@ -21,7 +21,7 @@ import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyCondition;
 import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyType;
-import io.camunda.connector.http.base.auth.Authentication;
+import io.camunda.connector.http.base.model.auth.Authentication;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -50,7 +50,7 @@ public class HttpCommonRequest {
       defaultValue = "20",
       constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
       description = "Defines the connection timeout in seconds, or 0 for an infinite timeout")
-  private Integer connectionTimeoutInSeconds;
+  private Integer connectionTimeoutInSeconds = 20;
 
   @TemplateProperty(
       group = "timeout",
@@ -59,19 +59,7 @@ public class HttpCommonRequest {
       constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
       description =
           "Timeout in seconds to read data from an established connection or 0 for an infinite timeout")
-  private Integer readTimeoutInSeconds;
-
-  @TemplateProperty(
-      group = "timeout",
-      label = "Write timeout in seconds",
-      defaultValue = "0",
-      constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
-      condition =
-          @PropertyCondition(
-              property = "method",
-              oneOf = {"POST", "PUT", "PATCH"}),
-      description = "Timeout in seconds to set data or 0 for an infinite timeout")
-  private Integer writeTimeoutInSeconds;
+  private Integer readTimeoutInSeconds = 20;
 
   @FEEL
   @TemplateProperty(
@@ -183,14 +171,6 @@ public class HttpCommonRequest {
     this.readTimeoutInSeconds = readTimeoutInSeconds;
   }
 
-  public Integer getWriteTimeoutInSeconds() {
-    return writeTimeoutInSeconds;
-  }
-
-  public void setWriteTimeoutInSeconds(final Integer writeTimeoutInSeconds) {
-    this.writeTimeoutInSeconds = writeTimeoutInSeconds;
-  }
-
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
@@ -200,6 +180,7 @@ public class HttpCommonRequest {
         && method.equals(that.method)
         && Objects.equals(authentication, that.authentication)
         && Objects.equals(connectionTimeoutInSeconds, that.connectionTimeoutInSeconds)
+        && Objects.equals(readTimeoutInSeconds, that.readTimeoutInSeconds)
         && Objects.equals(headers, that.headers)
         && Objects.equals(body, that.body)
         && Objects.equals(queryParameters, that.queryParameters);
@@ -208,7 +189,14 @@ public class HttpCommonRequest {
   @Override
   public int hashCode() {
     return Objects.hash(
-        url, method, authentication, connectionTimeoutInSeconds, headers, body, queryParameters);
+        url,
+        method,
+        authentication,
+        connectionTimeoutInSeconds,
+        readTimeoutInSeconds,
+        headers,
+        body,
+        queryParameters);
   }
 
   @Override
@@ -227,6 +215,9 @@ public class HttpCommonRequest {
         + '\''
         + ", headers="
         + headers
+        + '\''
+        + ", readTimeoutInSeconds='"
+        + readTimeoutInSeconds
         + ", body="
         + body
         + ", queryParameters="

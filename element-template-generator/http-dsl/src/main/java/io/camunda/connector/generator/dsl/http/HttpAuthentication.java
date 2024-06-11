@@ -22,21 +22,15 @@ import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeInput;
 import io.camunda.connector.generator.dsl.PropertyBuilder;
 import io.camunda.connector.generator.dsl.PropertyConstraints;
 import io.camunda.connector.generator.dsl.StringProperty;
-import io.camunda.connector.http.base.auth.ApiKeyAuthentication;
-import io.camunda.connector.http.base.auth.BasicAuthentication;
-import io.camunda.connector.http.base.auth.BearerAuthentication;
-import io.camunda.connector.http.base.auth.NoAuthentication;
-import io.camunda.connector.http.base.auth.OAuthAuthentication;
+import io.camunda.connector.http.base.model.auth.ApiKeyAuthentication;
+import io.camunda.connector.http.base.model.auth.BasicAuthentication;
+import io.camunda.connector.http.base.model.auth.BearerAuthentication;
+import io.camunda.connector.http.base.model.auth.NoAuthentication;
+import io.camunda.connector.http.base.model.auth.OAuthAuthentication;
 import java.util.List;
 import java.util.Set;
 
 public interface HttpAuthentication {
-
-  /** Human-readable id */
-  String label();
-
-  /** Connector-readable ID */
-  String id();
 
   static List<PropertyBuilder> getPropertyPrefabs(HttpAuthentication auth) {
     if (auth instanceof OAuth2) {
@@ -171,6 +165,12 @@ public interface HttpAuthentication {
 
     throw new IllegalArgumentException("Unknown authentication type: " + auth);
   }
+
+  /** Human-readable id */
+  String label();
+
+  /** Connector-readable ID */
+  String id();
 
   class NoAuth implements HttpAuthentication {
 

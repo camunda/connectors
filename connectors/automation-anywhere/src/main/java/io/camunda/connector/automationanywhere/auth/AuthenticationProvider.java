@@ -8,8 +8,8 @@ package io.camunda.connector.automationanywhere.auth;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.automationanywhere.model.TokenResponse;
+import io.camunda.connector.http.base.HttpService;
 import io.camunda.connector.http.base.model.HttpCommonResult;
-import io.camunda.connector.http.base.services.HttpService;
 
 /**
  * Interface representing a provider for obtaining authentication tokens. This is part of the
@@ -61,6 +61,6 @@ public sealed interface AuthenticationProvider
    * @return The extracted token as a String.
    */
   default String fetchToken(final HttpCommonResult result, final ObjectMapper objectMapper) {
-    return objectMapper.convertValue(result.getBody(), TokenResponse.class).token();
+    return objectMapper.convertValue(result.body(), TokenResponse.class).token();
   }
 }

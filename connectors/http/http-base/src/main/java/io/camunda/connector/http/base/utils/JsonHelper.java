@@ -19,26 +19,38 @@ package io.camunda.connector.http.base.utils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.JsonParseException;
+import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
+import java.io.IOException;
 import java.util.Optional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class JsonHelper {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(JsonHelper.class);
+  private static final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER;
 
-  public static JsonNode getAsJsonElement(final String strResponse, final ObjectMapper mapper) {
-    return Optional.ofNullable(strResponse)
-        .filter(response -> !response.isBlank())
-        .map(
-            response -> {
-              try {
-                return mapper.readTree(response);
-              } catch (JsonProcessingException e) {
-                LOGGER.error("Wasn't able to create a JSON node from string: " + strResponse);
-                throw new RuntimeException(e);
-              }
-            })
-        .orElse(null);
+  public static JsonNode getAsJsonElement(Object body) {
+    if (body instanceof String stringBody) {
+      try {
+        return isJsonStringValid(stringBody) ? objectMapper.readTree(stringBody) : null;
+      } catch (JsonProcessingException e) {
+        throw new ConnectorException("Failed to parse JSON string: " + stringBody, e);
+      }
+    } else {
+      return Optional.ofNullable(body).map(objectMapper::<JsonNode>valueToTree).orElse(null);
+    }
+  }
+
+  public static boolean isJsonStringValid(String jsonString) {
+    try {
+      JsonNode jsonNode = objectMapper.readTree(jsonString);
+      return jsonNode.isObject() || jsonNode.isArray();
+    } catch (JsonParseException | IOException e) {
+      return false;
+    }
+  }
+
+  public static boolean isJsonValid(Object maybeJson) {
+    return getAsJsonElement(maybeJson) != null;
   }
 }

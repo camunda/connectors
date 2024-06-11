@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.google.api.client.http.GenericUrl;
 import io.camunda.connector.api.error.ConnectorInputException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -42,46 +41,48 @@ public class UrlBlockTest {
 
   @Test
   public void testSpecificUrlBlockThrowsException() {
-    GenericUrl url = new GenericUrl("http://example.com/specificPath");
     ConnectorInputException exception =
-        assertThrows(ConnectorInputException.class, () -> specificUrlBlock.validate(url));
+        assertThrows(
+            ConnectorInputException.class,
+            () -> specificUrlBlock.validate("http://example.com/specificPath"));
     assertThat(exception.getMessage()).contains("Block Name: SPECIFIC_URL");
   }
 
   @Test
   public void testCommonUrlBlockThrowsException() {
-    GenericUrl url = new GenericUrl("http://example.com/somePath");
     ConnectorInputException exception =
-        assertThrows(ConnectorInputException.class, () -> commonUrlBlock.validate(url));
+        assertThrows(
+            ConnectorInputException.class,
+            () -> commonUrlBlock.validate("http://example.com/somePath"));
     assertThat(exception.getMessage()).contains("Block Name: COMMON_URL");
   }
 
   @Test
   public void testDomainBlockThrowsException() {
-    GenericUrl url = new GenericUrl("http://blocked.com/somePath");
     ConnectorInputException exception =
-        assertThrows(ConnectorInputException.class, () -> domainUrlBlock.validate(url));
+        assertThrows(
+            ConnectorInputException.class,
+            () -> domainUrlBlock.validate("http://blocked.com/somePath"));
     assertThat(exception.getMessage()).contains("Block Name: DOMAIN_BLOCK");
   }
 
   @Test
   public void testStringBlockThrowsException() {
-    GenericUrl url = new GenericUrl("http://example.com/forbiddenString/somePath");
     ConnectorInputException exception =
-        assertThrows(ConnectorInputException.class, () -> stringBlock.validate(url));
+        assertThrows(
+            ConnectorInputException.class,
+            () -> stringBlock.validate("http://example.com/forbiddenString/somePath"));
     assertThat(exception.getMessage()).contains("Block Name: STRING_BLOCK");
   }
 
   @Test
   public void testSpecificUrlBlockDoesNotThrowException() {
-    GenericUrl url = new GenericUrl("http://another.com/specificPath");
-    assertDoesNotThrow(() -> specificUrlBlock.validate(url));
+    assertDoesNotThrow(() -> specificUrlBlock.validate("http://another.com/specificPath"));
   }
 
   @Test
   public void testNullBlockNameAllowed() {
     UrlBlock nullNameBlock = new UrlBlock("ignore", null);
-    GenericUrl url = new GenericUrl("http://example.com/nullBlock");
-    assertDoesNotThrow(() -> nullNameBlock.validate(url));
+    assertDoesNotThrow(() -> nullNameBlock.validate("http://example.com/nullBlock"));
   }
 }

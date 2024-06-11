@@ -32,11 +32,11 @@ import static org.mockito.Mockito.when;
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import io.camunda.connector.e2e.app.TestConnectorRuntimeApplication;
-import io.camunda.connector.http.base.auth.ApiKeyAuthentication;
-import io.camunda.connector.http.base.auth.BasicAuthentication;
-import io.camunda.connector.http.base.auth.BearerAuthentication;
-import io.camunda.connector.http.base.auth.OAuthAuthentication;
-import io.camunda.connector.http.base.constants.Constants;
+import io.camunda.connector.http.base.authentication.OAuthConstants;
+import io.camunda.connector.http.base.model.auth.ApiKeyAuthentication;
+import io.camunda.connector.http.base.model.auth.BasicAuthentication;
+import io.camunda.connector.http.base.model.auth.BearerAuthentication;
+import io.camunda.connector.http.base.model.auth.OAuthAuthentication;
 import io.camunda.connector.runtime.inbound.importer.ProcessDefinitionSearch;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult;
 import io.camunda.connector.runtime.inbound.state.ProcessImportResult.ProcessDefinitionIdentifier;
@@ -74,12 +74,11 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 @ExtendWith(MockitoExtension.class)
 public class HttpTests {
 
-  @TempDir File tempDir;
-
   @RegisterExtension
   static WireMockExtension wm =
       WireMockExtension.newInstance().options(wireMockConfig().dynamicPort()).build();
 
+  @TempDir File tempDir;
   @Autowired ZeebeClient zeebeClient;
 
   @MockBean ProcessDefinitionSearch processDefinitionSearch;
@@ -279,7 +278,7 @@ public class HttpTests {
         post(urlPathMatching("/mock-oauth"))
             .withBasicAuth("test-clientId", "test-clientSecret")
             .willReturn(
-                ResponseDefinitionBuilder.okForJson(Map.of(Constants.ACCESS_TOKEN, "123"))));
+                ResponseDefinitionBuilder.okForJson(Map.of(OAuthConstants.ACCESS_TOKEN, "123"))));
 
     var mockOauthUrl = "http://localhost:" + wm.getPort() + "/mock-oauth";
 
@@ -295,7 +294,7 @@ public class HttpTests {
             .property("authentication.oauthTokenEndpoint", mockOauthUrl)
             .property("authentication.clientId", "test-clientId")
             .property("authentication.clientSecret", "test-clientSecret")
-            .property("authentication.clientAuthentication", Constants.BASIC_AUTH_HEADER)
+            .property("authentication.clientAuthentication", OAuthConstants.BASIC_AUTH_HEADER)
             .property("resultExpression", "={orderStatus: response.body.order.status}")
             .writeTo(new File(tempDir, "template.json"));
 

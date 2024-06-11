@@ -6,7 +6,7 @@
  */
 package io.camunda.connector.automationanywhere.operations;
 
-import io.camunda.connector.http.base.services.HttpService;
+import io.camunda.connector.http.base.HttpService;
 import java.util.Map;
 
 /**

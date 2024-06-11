@@ -425,27 +425,6 @@
     },
     "type" : "String"
   }, {
-    "id" : "writeTimeoutInSeconds",
-    "label" : "Write timeout in seconds",
-    "description" : "Timeout in seconds to set data or 0 for an infinite timeout",
-    "optional" : false,
-    "value" : "0",
-    "constraints" : {
-      "notEmpty" : true
-    },
-    "feel" : "optional",
-    "group" : "timeout",
-    "binding" : {
-      "name" : "writeTimeoutInSeconds",
-      "type" : "zeebe:input"
-    },
-    "condition" : {
-      "property" : "method",
-      "oneOf" : [ "POST", "PUT", "PATCH" ],
-      "type" : "simple"
-    },
-    "type" : "String"
-  }, {
     "id" : "body",
     "label" : "Request body",
     "description" : "Payload to send with the request",

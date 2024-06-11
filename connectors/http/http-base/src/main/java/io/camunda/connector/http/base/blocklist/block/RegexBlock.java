@@ -16,7 +16,6 @@
  */
 package io.camunda.connector.http.base.blocklist.block;
 
-import com.google.api.client.http.GenericUrl;
 import io.camunda.connector.http.base.blocklist.util.BlocklistExceptionHelper;
 import java.util.Objects;
 import java.util.regex.Pattern;
@@ -59,13 +58,13 @@ public record RegexBlock(String blockName, Pattern pattern) implements Block {
    * io.camunda.connector.api.error.ConnectorInputException} is thrown, indicating that the URL is
    * blocked.
    *
-   * @param url The URL to validate, encapsulated as a {@link GenericUrl}.
+   * @param url The URL to validate.
    * @throws io.camunda.connector.api.error.ConnectorInputException if the URL matches the block
    *     conditions.
    */
   @Override
-  public void validate(GenericUrl url) {
-    if (pattern.matcher(url.build()).matches()) {
+  public void validate(String url) {
+    if (pattern.matcher(url).matches()) {
       BlocklistExceptionHelper.throwBlocklistException("URL", blockName);
     }
   }

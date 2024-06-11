@@ -7,18 +7,15 @@
 package io.camunda.connector.http.graphql;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.api.client.http.HttpRequestFactory;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
+import io.camunda.connector.http.base.HttpService;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
-import io.camunda.connector.http.base.services.HttpService;
-import io.camunda.connector.http.graphql.components.HttpTransportComponentSupplier;
 import io.camunda.connector.http.graphql.model.GraphQLRequest;
 import io.camunda.connector.http.graphql.utils.GraphQLRequestMapper;
-import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,19 +46,16 @@ public class GraphQLFunction implements OutboundConnectorFunction {
   private final GraphQLRequestMapper graphQLRequestMapper;
 
   public GraphQLFunction() {
-    this(
-        ConnectorsObjectMapperSupplier.getCopy(),
-        HttpTransportComponentSupplier.httpRequestFactoryInstance());
+    this(ConnectorsObjectMapperSupplier.getCopy());
   }
 
-  public GraphQLFunction(final ObjectMapper objectMapper, final HttpRequestFactory requestFactory) {
-    this.httpService = new HttpService(objectMapper, requestFactory);
+  public GraphQLFunction(final ObjectMapper objectMapper) {
+    this.httpService = new HttpService();
     this.graphQLRequestMapper = new GraphQLRequestMapper(objectMapper);
   }
 
   @Override
-  public Object execute(OutboundConnectorContext context)
-      throws IOException, InstantiationException, IllegalAccessException {
+  public Object execute(OutboundConnectorContext context) {
     var graphQLRequest = context.bindVariables(GraphQLRequest.class);
     HttpCommonRequest commonRequest = graphQLRequestMapper.toHttpCommonRequest(graphQLRequest);
     LOGGER.debug("Executing graphql connector with request {}", commonRequest);
