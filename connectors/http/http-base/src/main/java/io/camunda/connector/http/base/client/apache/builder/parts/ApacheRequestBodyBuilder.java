@@ -12,7 +12,6 @@ import static org.apache.hc.core5.http.HttpHeaders.CONTENT_TYPE;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
-import io.camunda.connector.http.base.client.apache.CustomApacheHttpClient;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;

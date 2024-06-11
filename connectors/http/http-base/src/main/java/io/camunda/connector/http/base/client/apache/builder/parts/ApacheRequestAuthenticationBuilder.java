@@ -30,16 +30,15 @@ public class ApacheRequestAuthenticationBuilder implements ApacheRequestPartBuil
     if (request.hasAuthentication()) {
       switch (request.getAuthentication()) {
         case NoAuthentication ignored -> {}
-        case BasicAuthentication auth ->
-            builder.addHeader(
-                AUTHORIZATION,
-                Base64Helper.buildBasicAuthenticationHeader(auth.username(), auth.password()));
+        case BasicAuthentication auth -> builder.addHeader(
+            AUTHORIZATION,
+            Base64Helper.buildBasicAuthenticationHeader(auth.username(), auth.password()));
         case OAuthAuthentication auth -> {
           String token = fetchOAuthToken(auth);
           builder.addHeader(AUTHORIZATION, String.format(BEARER, token));
         }
-        case BearerAuthentication auth ->
-            builder.addHeader(AUTHORIZATION, String.format(BEARER, auth.token()));
+        case BearerAuthentication auth -> builder.addHeader(
+            AUTHORIZATION, String.format(BEARER, auth.token()));
         case ApiKeyAuthentication auth -> {
           if (auth.isQueryLocationApiKeyAuthentication()) {
             builder.addParameter(auth.name(), auth.value());

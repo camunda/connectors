@@ -12,9 +12,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.api.inbound.ProcessInstanceContext;
+import io.camunda.connector.http.base.HttpService;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
-import io.camunda.connector.http.base.HttpService;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
