@@ -25,16 +25,17 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
-import io.camunda.connector.http.base.auth.ApiKeyAuthentication;
-import io.camunda.connector.http.base.auth.ApiKeyLocation;
-import io.camunda.connector.http.base.auth.BasicAuthentication;
-import io.camunda.connector.http.base.auth.BearerAuthentication;
-import io.camunda.connector.http.base.auth.OAuthAuthentication;
-import io.camunda.connector.http.base.components.apache.CustomApacheHttpClient;
-import io.camunda.connector.http.base.constants.Constants;
+import io.camunda.connector.http.base.client.apache.ApacheRequestFactory;
+import io.camunda.connector.http.base.client.apache.CustomApacheHttpClient;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.connector.http.base.model.HttpMethod;
+import io.camunda.connector.http.base.model.auth.ApiKeyAuthentication;
+import io.camunda.connector.http.base.model.auth.ApiKeyLocation;
+import io.camunda.connector.http.base.model.auth.BasicAuthentication;
+import io.camunda.connector.http.base.model.auth.BearerAuthentication;
+import io.camunda.connector.http.base.model.auth.OAuthAuthentication;
+import io.camunda.connector.http.base.model.auth.OAuthConstants;
 import io.camunda.connector.http.base.utils.Base64Helper;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -102,7 +103,7 @@ public class ApacheRequestFactoryTest {
       request.setMethod(HttpMethod.GET);
       request.setAuthentication(
           new OAuthAuthentication(
-              "url", "clientId", "secret", "audience", Constants.CREDENTIALS_BODY, "scopes"));
+              "url", "clientId", "secret", "audience", OAuthConstants.CREDENTIALS_BODY, "scopes"));
       var mockedClient = mock(CustomApacheHttpClient.class);
       try (MockedStatic<CustomApacheHttpClient> mockedClientSupplier =
           mockStatic(CustomApacheHttpClient.class)) {

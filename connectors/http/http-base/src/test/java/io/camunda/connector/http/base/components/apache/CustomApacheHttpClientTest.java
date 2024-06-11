@@ -44,15 +44,16 @@ import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
-import io.camunda.connector.http.base.auth.ApiKeyAuthentication;
-import io.camunda.connector.http.base.auth.ApiKeyLocation;
-import io.camunda.connector.http.base.auth.BasicAuthentication;
-import io.camunda.connector.http.base.auth.BearerAuthentication;
-import io.camunda.connector.http.base.auth.OAuthAuthentication;
-import io.camunda.connector.http.base.constants.Constants;
+import io.camunda.connector.http.base.client.apache.CustomApacheHttpClient;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.connector.http.base.model.HttpMethod;
+import io.camunda.connector.http.base.model.auth.ApiKeyAuthentication;
+import io.camunda.connector.http.base.model.auth.ApiKeyLocation;
+import io.camunda.connector.http.base.model.auth.BasicAuthentication;
+import io.camunda.connector.http.base.model.auth.BearerAuthentication;
+import io.camunda.connector.http.base.model.auth.OAuthAuthentication;
+import io.camunda.connector.http.base.model.auth.OAuthConstants;
 import java.util.Map;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.hc.core5.http.ContentType;
@@ -567,7 +568,7 @@ public class CustomApacheHttpClientTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {Constants.BASIC_AUTH_HEADER, Constants.CREDENTIALS_BODY})
+    @ValueSource(strings = {OAuthConstants.BASIC_AUTH_HEADER, OAuthConstants.CREDENTIALS_BODY})
     public void shouldReturn200WithBody_whenGetWithOAuthAndCredentialsInBody(
         String credentialsLocation, WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
       createAuthServer(credentialsLocation);
@@ -603,7 +604,7 @@ public class CustomApacheHttpClientTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {Constants.BASIC_AUTH_HEADER, Constants.CREDENTIALS_BODY})
+    @ValueSource(strings = {OAuthConstants.BASIC_AUTH_HEADER, OAuthConstants.CREDENTIALS_BODY})
     public void shouldReturn401_whenGetWithOAuthReturns401(
         String credentialsLocation, WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
       createFailingAuthServer(credentialsLocation);
@@ -644,7 +645,7 @@ public class CustomApacheHttpClientTest {
               .withFormParam("grant_type", equalTo("client_credentials"))
               .withFormParam("audience", equalTo("theAudience"))
               .withFormParam("scope", equalTo("read:resource"));
-      if (Constants.CREDENTIALS_BODY.equals(credentialsLocation)) {
+      if (OAuthConstants.CREDENTIALS_BODY.equals(credentialsLocation)) {
         request
             .withFormParam("client_id", equalTo("clientId"))
             .withFormParam("client_secret", equalTo("clientSecret"));
@@ -670,7 +671,7 @@ public class CustomApacheHttpClientTest {
               .withFormParam("grant_type", equalTo("client_credentials"))
               .withFormParam("audience", equalTo("theAudience"))
               .withFormParam("scope", equalTo("read:resource"));
-      if (Constants.CREDENTIALS_BODY.equals(credentialsLocation)) {
+      if (OAuthConstants.CREDENTIALS_BODY.equals(credentialsLocation)) {
         request
             .withFormParam("client_id", equalTo("clientId"))
             .withFormParam("client_secret", equalTo("clientSecret"));

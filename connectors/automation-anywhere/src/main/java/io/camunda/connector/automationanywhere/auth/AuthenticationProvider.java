@@ -9,7 +9,7 @@ package io.camunda.connector.automationanywhere.auth;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.automationanywhere.model.TokenResponse;
 import io.camunda.connector.http.base.model.HttpCommonResult;
-import io.camunda.connector.http.base.services.HttpService;
+import io.camunda.connector.http.base.HttpService;
 
 /**
  * Interface representing a provider for obtaining authentication tokens. This is part of the

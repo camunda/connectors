@@ -21,7 +21,7 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import io.camunda.connector.generator.java.annotation.ElementTemplate.PropertyGroup;
-import io.camunda.connector.http.base.services.HttpService;
+import io.camunda.connector.http.base.HttpService;
 import io.camunda.connector.http.rest.model.HttpJsonRequest;
 
 @OutboundConnector(

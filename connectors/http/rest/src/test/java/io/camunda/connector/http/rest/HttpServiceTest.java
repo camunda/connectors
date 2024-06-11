@@ -22,12 +22,12 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
-import io.camunda.connector.http.base.auth.OAuthAuthentication;
-import io.camunda.connector.http.base.components.apache.CustomApacheHttpClient;
-import io.camunda.connector.http.base.constants.Constants;
+import io.camunda.connector.http.base.client.apache.ApacheRequestFactory;
+import io.camunda.connector.http.base.client.apache.CustomApacheHttpClient;
 import io.camunda.connector.http.base.model.HttpCommonResult;
-import io.camunda.connector.http.base.request.apache.ApacheRequestFactory;
-import io.camunda.connector.http.base.services.OAuthService;
+import io.camunda.connector.http.base.model.auth.OAuthAuthentication;
+import io.camunda.connector.http.base.model.auth.OAuthConstants;
+import io.camunda.connector.http.base.model.auth.OAuthService;
 import io.camunda.connector.http.rest.model.HttpJsonRequest;
 import java.io.IOException;
 import java.util.Map;
@@ -64,7 +64,7 @@ class HttpServiceTest extends BaseTest {
         oAuthService.createOAuthRequestFrom(
             (OAuthAuthentication) httpJsonRequest.getAuthentication());
     HttpCommonResult oauthResult =
-        new HttpCommonResult(200, null, Map.of(Constants.ACCESS_TOKEN, ACCESS_TOKEN));
+        new HttpCommonResult(200, null, Map.of(OAuthConstants.ACCESS_TOKEN, ACCESS_TOKEN));
     var mockedClient = mock(CustomApacheHttpClient.class);
     try (MockedStatic<CustomApacheHttpClient> mockedClientSupplier =
         mockStatic(CustomApacheHttpClient.class)) {

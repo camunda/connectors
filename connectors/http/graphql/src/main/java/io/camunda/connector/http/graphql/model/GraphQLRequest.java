@@ -9,7 +9,7 @@ package io.camunda.connector.http.graphql.model;
 import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
-import io.camunda.connector.http.base.auth.Authentication;
+import io.camunda.connector.http.base.model.auth.Authentication;
 import io.camunda.connector.http.base.model.HttpMethod;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;

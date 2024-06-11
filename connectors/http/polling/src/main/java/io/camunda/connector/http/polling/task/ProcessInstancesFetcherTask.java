@@ -9,7 +9,7 @@ package io.camunda.connector.http.polling.task;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundIntermediateConnectorContext;
 import io.camunda.connector.api.inbound.ProcessInstanceContext;
-import io.camunda.connector.http.base.services.HttpService;
+import io.camunda.connector.http.base.HttpService;
 import io.camunda.connector.http.polling.model.PollingIntervalConfiguration;
 import io.camunda.connector.http.polling.service.SharedExecutorService;
 import java.util.List;

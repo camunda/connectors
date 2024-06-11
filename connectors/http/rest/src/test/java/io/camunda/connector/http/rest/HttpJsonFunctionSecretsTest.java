@@ -21,11 +21,11 @@ import static org.assertj.core.api.Assertions.fail;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
-import io.camunda.connector.http.base.auth.Authentication;
-import io.camunda.connector.http.base.auth.BasicAuthentication;
-import io.camunda.connector.http.base.auth.BearerAuthentication;
-import io.camunda.connector.http.base.auth.NoAuthentication;
-import io.camunda.connector.http.base.auth.OAuthAuthentication;
+import io.camunda.connector.http.base.model.auth.Authentication;
+import io.camunda.connector.http.base.model.auth.BasicAuthentication;
+import io.camunda.connector.http.base.model.auth.BearerAuthentication;
+import io.camunda.connector.http.base.model.auth.NoAuthentication;
+import io.camunda.connector.http.base.model.auth.OAuthAuthentication;
 import io.camunda.connector.http.rest.model.HttpJsonRequest;
 import java.io.IOException;
 import java.util.stream.Stream;

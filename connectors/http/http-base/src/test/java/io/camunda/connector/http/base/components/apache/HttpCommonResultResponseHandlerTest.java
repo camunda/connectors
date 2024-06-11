@@ -19,6 +19,7 @@ package io.camunda.connector.http.base.components.apache;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.http.base.client.apache.HttpCommonResultResponseHandler;
 import io.camunda.connector.http.base.model.ErrorResponse;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import java.util.Map;

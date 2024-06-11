@@ -15,7 +15,7 @@ import io.camunda.connector.automationanywhere.auth.AuthenticationFactory;
 import io.camunda.connector.automationanywhere.model.request.AutomationAnywhereRequest;
 import io.camunda.connector.automationanywhere.operations.OperationFactory;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
-import io.camunda.connector.http.base.services.HttpService;
+import io.camunda.connector.http.base.HttpService;
 import java.util.Map;
 
 @OutboundConnector(

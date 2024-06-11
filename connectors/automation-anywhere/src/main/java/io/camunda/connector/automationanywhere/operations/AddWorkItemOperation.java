@@ -8,7 +8,7 @@ package io.camunda.connector.automationanywhere.operations;
 
 import io.camunda.connector.automationanywhere.model.AutomationAnywhereHttpRequestBuilder;
 import io.camunda.connector.http.base.model.HttpMethod;
-import io.camunda.connector.http.base.services.HttpService;
+import io.camunda.connector.http.base.HttpService;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;

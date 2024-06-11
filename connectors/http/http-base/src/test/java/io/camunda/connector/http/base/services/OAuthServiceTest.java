@@ -20,9 +20,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import io.camunda.connector.http.base.auth.OAuthAuthentication;
-import io.camunda.connector.http.base.constants.Constants;
 import io.camunda.connector.http.base.model.HttpMethod;
+import io.camunda.connector.http.base.model.auth.OAuthAuthentication;
+import io.camunda.connector.http.base.model.auth.OAuthConstants;
+import io.camunda.connector.http.base.model.auth.OAuthService;
 import io.camunda.connector.http.base.utils.Base64Helper;
 import java.util.Map;
 import org.junit.jupiter.api.Nested;
@@ -43,7 +44,7 @@ public class OAuthServiceTest {
               "clientId",
               "clientSecret",
               "theAudience",
-              Constants.CREDENTIALS_BODY,
+              OAuthConstants.CREDENTIALS_BODY,
               "theScope");
 
       // When
@@ -70,7 +71,7 @@ public class OAuthServiceTest {
               "clientId",
               "clientSecret",
               "theAudience",
-              Constants.BASIC_AUTH_HEADER,
+              OAuthConstants.BASIC_AUTH_HEADER,
               "theScope");
 
       // When
