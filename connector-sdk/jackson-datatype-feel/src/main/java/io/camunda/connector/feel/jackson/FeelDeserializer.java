@@ -39,8 +39,7 @@ public class FeelDeserializer extends AbstractFeelDeserializer<Object> {
 
   private final JavaType outputType;
 
-  public FeelDeserializer(
-      FeelEngineWrapper feelEngineWrapper) { // needed for references in @JsonDeserialize
+  public FeelDeserializer(FeelEngineWrapper feelEngineWrapper) {
     this(feelEngineWrapper, TypeFactory.unknownType());
   }
 
