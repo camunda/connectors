@@ -25,7 +25,6 @@ import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.parameters.Parameter;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /** Utility functions related to converting OpenAPI parameters to {@link HttpOperationProperty}s. */
@@ -73,7 +72,7 @@ public class ParameterUtil {
           targetMapping.get(parameter.getIn()),
           parameter.getDescription(),
           parameter.getRequired() != null && parameter.getRequired(),
-          (List<String>) schema.getEnum());
+          schema.getEnum());
     } else if (schema.getType().equals("boolean")) {
       return HttpOperationProperty.createEnumProperty(
           name,

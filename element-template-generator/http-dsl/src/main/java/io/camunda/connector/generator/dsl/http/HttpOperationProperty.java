@@ -17,6 +17,7 @@
 package io.camunda.connector.generator.dsl.http;
 
 import java.util.List;
+import java.util.Objects;
 
 public record HttpOperationProperty(
     String id,
@@ -33,8 +34,13 @@ public record HttpOperationProperty(
   }
 
   public static HttpOperationProperty createEnumProperty(
-      String id, Target target, String description, boolean required, List<String> choices) {
-    return new HttpOperationProperty(id, target, description, required, Type.ENUM, choices, null);
+      String id, Target target, String description, boolean required, List<?> choices) {
+
+    List<String> strChoices =
+        choices.stream().filter(Objects::nonNull).map(String::valueOf).toList();
+
+    return new HttpOperationProperty(
+        id, target, description, required, Type.ENUM, strChoices, null);
   }
 
   public static HttpOperationProperty createFeelProperty(
