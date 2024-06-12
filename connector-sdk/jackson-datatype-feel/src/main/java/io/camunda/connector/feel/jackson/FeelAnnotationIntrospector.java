@@ -18,15 +18,22 @@ package io.camunda.connector.feel.jackson;
 
 import com.fasterxml.jackson.databind.introspect.Annotated;
 import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
+import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.feel.annotation.FEEL;
 
 public class FeelAnnotationIntrospector extends JacksonAnnotationIntrospector {
+
+  private final FeelEngineWrapper feelEngineWrapper;
+
+  public FeelAnnotationIntrospector(FeelEngineWrapper feelEngineWrapper) {
+    this.feelEngineWrapper = feelEngineWrapper;
+  }
 
   @Override
   public Object findDeserializer(Annotated a) {
     FEEL ann = _findAnnotation(a, FEEL.class);
     if (ann != null) {
-      return new FeelDeserializer();
+      return new FeelDeserializer(feelEngineWrapper);
     }
     return super.findDeserializer(a);
   }

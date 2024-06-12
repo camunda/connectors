@@ -24,7 +24,6 @@ import io.camunda.common.auth.SaaSAuthentication;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.feel.FeelEngineWrapper;
-import io.camunda.connector.runtime.core.feel.ConnectorFeelFunction;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
 import io.camunda.connector.runtime.outbound.OutboundConnectorRuntimeConfiguration;
@@ -35,6 +34,7 @@ import java.time.Duration;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
+import org.camunda.feel.context.FunctionProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -73,8 +73,8 @@ public class OutboundConnectorsAutoConfiguration {
   /** Provides a {@link FeelEngineWrapper} unless already present in the Spring Context */
   @Bean
   @ConditionalOnMissingBean(FeelEngineWrapper.class)
-  public FeelEngineWrapper feelEngine() {
-    return new FeelEngineWrapper();
+  public FeelEngineWrapper feelEngine(List<FunctionProvider> functionProviders) {
+    return new FeelEngineWrapper(functionProviders);
   }
 
   @Bean
@@ -88,9 +88,7 @@ public class OutboundConnectorsAutoConfiguration {
       LOG.debug("Using secret providers discovered by lookup: {}", discoveredSecretProviders);
       secretProviders.addAll(discoveredSecretProviders);
     }
-    var aggregator = new SecretProviderAggregator(secretProviders);
-    ConnectorFeelFunction.setSecretProvider(aggregator);
-    return aggregator;
+    return new SecretProviderAggregator(secretProviders);
   }
 
   @Bean

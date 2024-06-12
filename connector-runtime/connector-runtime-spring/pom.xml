@@ -57,6 +57,18 @@
       <artifactId>connector-runtime-core</artifactId>
     </dependency>
 
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-http-json</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>connector-validation</artifactId>
+      <scope>test</scope>
+    </dependency>
+
     <!-- Test -->
     <dependency>
       <groupId>org.springframework</groupId>

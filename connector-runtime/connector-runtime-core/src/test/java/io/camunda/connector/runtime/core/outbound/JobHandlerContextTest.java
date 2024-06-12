@@ -26,7 +26,6 @@ import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -39,12 +38,12 @@ class JobHandlerContextTest {
 
   @Mock private ValidationProvider validationProvider;
 
-  @InjectMocks private JobHandlerContext jobHandlerContext;
-
   @Test
   void getVariablesAsType() throws JsonProcessingException {
-    Class<Integer> integerClass = Integer.class;
     when(activatedJob.getVariables()).thenReturn("");
+    JobHandlerContext jobHandlerContext =
+        new JobHandlerContext(activatedJob, secretProvider, validationProvider, objectMapper);
+    Class<Integer> integerClass = Integer.class;
     jobHandlerContext.bindVariables(integerClass);
     verify(objectMapper).readValue("", Integer.class);
   }
@@ -52,6 +51,8 @@ class JobHandlerContextTest {
   @Test
   void getVariables() {
     when(activatedJob.getVariables()).thenReturn("{}");
+    JobHandlerContext jobHandlerContext =
+        new JobHandlerContext(activatedJob, secretProvider, validationProvider, objectMapper);
     jobHandlerContext.getJobContext().getVariables();
     verify(activatedJob).getVariables();
   }

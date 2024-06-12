@@ -38,10 +38,10 @@ import java.util.stream.Collectors;
 public class FeelDeserializer extends AbstractFeelDeserializer<Object> {
 
   private final JavaType outputType;
-  private static final FeelEngineWrapper FEEL_ENGINE_WRAPPER = new FeelEngineWrapper();
 
-  public FeelDeserializer() { // needed for references in @JsonDeserialize
-    this(FEEL_ENGINE_WRAPPER, TypeFactory.unknownType());
+  public FeelDeserializer(
+      FeelEngineWrapper feelEngineWrapper) { // needed for references in @JsonDeserialize
+    this(feelEngineWrapper, TypeFactory.unknownType());
   }
 
   protected FeelDeserializer(FeelEngineWrapper feelEngineWrapper, JavaType outputType) {

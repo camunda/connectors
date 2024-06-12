@@ -25,7 +25,15 @@ import java.util.function.Supplier;
 
 public class JacksonModuleFeelFunction extends SimpleModule {
 
-  private final FeelEngineWrapper feelEngineWrapper = new FeelEngineWrapper();
+  private final FeelEngineWrapper feelEngineWrapper;
+
+  public JacksonModuleFeelFunction(FeelEngineWrapper feelEngineWrapper) {
+    this.feelEngineWrapper = feelEngineWrapper;
+  }
+
+  public JacksonModuleFeelFunction() {
+    this.feelEngineWrapper = new FeelEngineWrapper();
+  }
 
   @Override
   public String getModuleName() {
@@ -46,7 +54,7 @@ public class JacksonModuleFeelFunction extends SimpleModule {
     addDeserializer(
         Supplier.class,
         new FeelSupplierDeserializer<>(TypeFactory.unknownType(), feelEngineWrapper));
-    context.insertAnnotationIntrospector(new FeelAnnotationIntrospector());
+    context.insertAnnotationIntrospector(new FeelAnnotationIntrospector(feelEngineWrapper));
     super.setupModule(context);
   }
 }

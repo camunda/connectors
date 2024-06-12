@@ -18,7 +18,6 @@ package io.camunda.connector.runtime.saas;
 
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.runtime.cloud.GcpSecretManagerSecretProvider;
-import io.camunda.connector.runtime.core.feel.ConnectorFeelFunction;
 import io.camunda.zeebe.spring.client.properties.ZeebeClientConfigurationProperties;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -49,10 +48,8 @@ public class SaaSConfiguration {
 
   @Bean
   public SecretProvider getSecretProvider() {
-    var provider = new GcpSecretManagerSecretProvider(
+    return new GcpSecretManagerSecretProvider(
         conf.getCloud().getClusterId(), secretsProjectId, secretsNamePrefix);
-    ConnectorFeelFunction.setSecretProvider(provider);
-    return provider;
   }
 
   public SecretProvider getInternalSecretProvider() {
