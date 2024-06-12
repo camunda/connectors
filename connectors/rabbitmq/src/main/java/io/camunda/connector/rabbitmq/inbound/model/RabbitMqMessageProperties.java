@@ -6,11 +6,13 @@
  */
 package io.camunda.connector.rabbitmq.inbound.model;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.rabbitmq.client.AMQP;
 import java.util.Date;
 import java.util.Map;
 
 /** Model of the RabbitMQ message properties. Mirrors the {@link AMQP.BasicProperties}. */
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public record RabbitMqMessageProperties(
     String contentType,
     String contentEncoding,
