@@ -17,12 +17,9 @@
 package io.camunda.connector.runtime.core.outbound;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.JobContext;
-import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
-import io.camunda.connector.runtime.core.AbstractConnectorContext;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import java.util.Objects;
 
@@ -31,14 +28,9 @@ import java.util.Objects;
  * a {@link io.camunda.connector.api.outbound.OutboundConnectorFunction} when called from the {@link
  * ConnectorJobHandler}.
  */
-public class JobHandlerContext extends AbstractConnectorContext
-    implements OutboundConnectorContext {
+public class JobHandlerContext extends AbstractOutboundConnectorContext {
 
   private final ActivatedJob job;
-
-  private final ObjectMapper objectMapper;
-
-  private String jsonWithSecrets = null;
 
   private final JobContext jobContext;
 
@@ -47,33 +39,9 @@ public class JobHandlerContext extends AbstractConnectorContext
       final SecretProvider secretProvider,
       final ValidationProvider validationProvider,
       final ObjectMapper objectMapper) {
-    super(secretProvider, validationProvider);
+    super(secretProvider, validationProvider, objectMapper, job.getVariables());
     this.job = job;
-    this.objectMapper = objectMapper;
     this.jobContext = new ActivatedJobContext(job, this::getJsonReplacedWithSecrets);
-  }
-
-  @Override
-  public <T> T bindVariables(Class<T> cls) {
-    var mappedObject = mapJson(cls);
-    getValidationProvider().validate(mappedObject);
-    return mappedObject;
-  }
-
-  private String getJsonReplacedWithSecrets() {
-    if (jsonWithSecrets == null) {
-      jsonWithSecrets = getSecretHandler().replaceSecrets(job.getVariables());
-    }
-    return jsonWithSecrets;
-  }
-
-  private <T> T mapJson(Class<T> cls) {
-    var jsonWithSecrets = getJsonReplacedWithSecrets();
-    try {
-      return objectMapper.readValue(jsonWithSecrets, cls);
-    } catch (Exception e) {
-      throw new ConnectorException("JSON_MAPPING", "Error during json mapping.");
-    }
   }
 
   @Override

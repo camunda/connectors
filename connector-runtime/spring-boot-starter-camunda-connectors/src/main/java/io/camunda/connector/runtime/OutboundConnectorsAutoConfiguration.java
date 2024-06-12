@@ -24,6 +24,7 @@ import io.camunda.common.auth.SaaSAuthentication;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.feel.FeelEngineWrapper;
+import io.camunda.connector.runtime.core.feel.ConnectorFeelFunction;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
 import io.camunda.connector.runtime.outbound.OutboundConnectorRuntimeConfiguration;
@@ -87,7 +88,9 @@ public class OutboundConnectorsAutoConfiguration {
       LOG.debug("Using secret providers discovered by lookup: {}", discoveredSecretProviders);
       secretProviders.addAll(discoveredSecretProviders);
     }
-    return new SecretProviderAggregator(secretProviders);
+    var aggregator = new SecretProviderAggregator(secretProviders);
+    ConnectorFeelFunction.setSecretProvider(aggregator);
+    return aggregator;
   }
 
   @Bean

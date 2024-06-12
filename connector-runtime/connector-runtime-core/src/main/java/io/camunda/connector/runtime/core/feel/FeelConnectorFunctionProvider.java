@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.feel;
+package io.camunda.connector.runtime.core.feel;
 
 import java.time.Duration;
 import java.util.Collection;
@@ -41,6 +41,7 @@ public class FeelConnectorFunctionProvider extends JavaFunctionProvider {
   public static final String ERROR_TYPE_PROPERTY = "errorType";
   public static final String BPMN_ERROR_TYPE_VALUE = "bpmnError";
   public static final String JOB_ERROR_TYPE_VALUE = "jobError";
+  public static final String CONNECTOR_FUNCTION_NAME = "connector";
 
   // BPMN error
   private static final String BPMN_ERROR_FUNCTION_NAME = "bpmnError";
@@ -134,7 +135,9 @@ public class FeelConnectorFunctionProvider extends JavaFunctionProvider {
               JOB_ERROR_FUNCTION_1,
               JOB_ERROR_FUNCTION_2,
               JOB_ERROR_FUNCTION_3,
-              JOB_ERROR_FUNCTION_4));
+              JOB_ERROR_FUNCTION_4),
+          CONNECTOR_FUNCTION_NAME,
+          List.of(ConnectorFeelFunction.function));
 
   private static ValContext createJobErrorContext(
       ValString message, ValContext variables, ValNumber retries, ValDayTimeDuration retryBackoff) {

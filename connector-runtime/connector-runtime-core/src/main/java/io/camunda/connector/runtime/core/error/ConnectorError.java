@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.runtime.core.error;
 
-import static io.camunda.connector.feel.FeelConnectorFunctionProvider.*;
+import static io.camunda.connector.runtime.core.feel.FeelConnectorFunctionProvider.*;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
