@@ -36,14 +36,6 @@ public class BodyUtil {
   private static final List<String> SUPPORTED_BODY_MEDIA_TYPES =
       List.of("application/json", "text/plain");
 
-  public sealed interface BodyParseResult permits BodyParseResult.Detailed, BodyParseResult.Raw {
-
-    record Detailed(HttpFeelBuilder feelBuilder, List<HttpOperationProperty> properties)
-        implements BodyParseResult {}
-
-    record Raw(String rawBody) implements BodyParseResult {}
-  }
-
   public static BodyParseResult parseBody(
       RequestBody requestBody, Components components, OpenApiGenerationSource.Options options) {
 
@@ -117,7 +109,7 @@ public class BodyUtil {
 
     if (schema.getEnum() != null) {
       return HttpOperationProperty.createEnumProperty(
-          name, Target.BODY, schema.getDescription(), true, (List<Object>) schema.getEnum());
+          name, Target.BODY, schema.getDescription(), true, schema.getEnum());
     } else if (schema.getType().equals("boolean")) {
       return HttpOperationProperty.createEnumProperty(
           name, Target.BODY, schema.getDescription(), true, Arrays.asList("true", "false"));
@@ -155,5 +147,13 @@ public class BodyUtil {
           .anyMatch(s -> "object".equals(s.getType()) || "array".equals(s.getType()));
     }
     return false;
+  }
+
+  public sealed interface BodyParseResult permits BodyParseResult.Detailed, BodyParseResult.Raw {
+
+    record Detailed(HttpFeelBuilder feelBuilder, List<HttpOperationProperty> properties)
+        implements BodyParseResult {}
+
+    record Raw(String rawBody) implements BodyParseResult {}
   }
 }
