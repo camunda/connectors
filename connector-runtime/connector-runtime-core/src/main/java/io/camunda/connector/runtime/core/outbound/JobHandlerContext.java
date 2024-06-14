@@ -41,7 +41,8 @@ public class JobHandlerContext extends AbstractOutboundConnectorContext {
       final ObjectMapper objectMapper) {
     super(secretProvider, validationProvider, objectMapper, job.getVariables());
     this.job = job;
-    this.jobContext = new ActivatedJobContext(job, this::getJsonReplacedWithSecrets);
+    this.jobContext =
+        new ActivatedJobContext(job, () -> getVariablesWithReplacedSecrets(String.class));
   }
 
   @Override

@@ -23,6 +23,7 @@ import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.connector.runtime.core.discovery.SPIConnectorDiscovery;
+import io.camunda.connector.runtime.core.external.ExternalConnectorExecutor;
 import io.camunda.connector.runtime.core.outbound.DefaultOutboundConnectorFactory;
 import io.camunda.connector.runtime.core.secret.SecretProviderAggregator;
 import io.camunda.connector.runtime.core.secret.SecretProviderDiscovery;
@@ -35,12 +36,14 @@ public class ConnectorFeelFunctionTest {
 
   private final ObjectMapper objectMapper = ConnectorsObjectMapperSupplier.DEFAULT_MAPPER;
 
-  private final FunctionProvider functionProvider =
-      new ConnectorInvocationFeelFunctionProvider(
-          objectMapper,
+  private final ExternalConnectorExecutor externalConnectorExecutor =
+      new ExternalConnectorExecutor(
           new DefaultOutboundConnectorFactory(SPIConnectorDiscovery.discoverOutbound()),
           new SecretProviderAggregator(SecretProviderDiscovery.discoverSecretProviders()),
-          new DefaultValidationProvider());
+          new DefaultValidationProvider(),
+          objectMapper);
+  private final FunctionProvider functionProvider =
+      new ConnectorInvocationFeelFunctionProvider(externalConnectorExecutor);
 
   private final FeelEngineWrapper feelEngineWrapper =
       new FeelEngineWrapper(List.of(functionProvider));

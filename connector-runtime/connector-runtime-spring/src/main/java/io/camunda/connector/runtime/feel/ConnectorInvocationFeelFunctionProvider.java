@@ -16,13 +16,8 @@
  */
 package io.camunda.connector.runtime.feel;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.camunda.connector.api.secret.SecretProvider;
-import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.FeelEngineWrapperUtil;
-import io.camunda.connector.runtime.core.external.ExternalOutboundConnectorContext;
-import io.camunda.connector.runtime.core.outbound.OutboundConnectorFactory;
+import io.camunda.connector.runtime.core.external.ExternalConnectorExecutor;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -35,24 +30,14 @@ import org.camunda.feel.valuemapper.ValueMapper;
 
 public class ConnectorInvocationFeelFunctionProvider extends JavaFunctionProvider {
 
-  private final ObjectMapper objectMapper;
-  private final OutboundConnectorFactory connectorFactory;
-  private final SecretProvider secretProvider;
-  private final ValidationProvider validationProvider;
+  private final ExternalConnectorExecutor connectorExecutor;
 
   private static final ValueMapper feelValueMapper = ValueMapper.defaultValueMapper();
 
   private JavaFunction function;
 
-  public ConnectorInvocationFeelFunctionProvider(
-      ObjectMapper objectMapper,
-      OutboundConnectorFactory connectorFactory,
-      SecretProvider secretProvider,
-      ValidationProvider validationProvider) {
-    this.objectMapper = objectMapper;
-    this.connectorFactory = connectorFactory;
-    this.secretProvider = secretProvider;
-    this.validationProvider = validationProvider;
+  public ConnectorInvocationFeelFunctionProvider(ExternalConnectorExecutor connectorExecutor) {
+    this.connectorExecutor = connectorExecutor;
     initFunction();
   }
 
@@ -67,23 +52,12 @@ public class ConnectorInvocationFeelFunctionProvider extends JavaFunctionProvide
               final ValContext variables = (ValContext) args.get(1);
               Object unpackedVariables =
                   FeelEngineWrapperUtil.sanitizeScalaOutput(feelValueMapper.unpackVal(variables));
-              String variablesAsString;
-              try {
-                variablesAsString = objectMapper.writeValueAsString(unpackedVariables);
-              } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-              }
-
-              var connector = connectorFactory.getInstance(typeValue);
-              var context =
-                  new ExternalOutboundConnectorContext(
-                      secretProvider, validationProvider, objectMapper, variablesAsString);
 
               Object result;
               try {
-                result = connector.execute(context);
+                result = connectorExecutor.execute(typeValue, unpackedVariables);
               } catch (Exception e) {
-                throw new RuntimeException("Failed to execute connector: " + e.getMessage(), e);
+                throw new RuntimeException(e);
               }
               return feelValueMapper.toVal(result);
             });

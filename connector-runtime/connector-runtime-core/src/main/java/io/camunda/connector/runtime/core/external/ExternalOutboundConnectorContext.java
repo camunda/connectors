@@ -28,7 +28,7 @@ public class ExternalOutboundConnectorContext extends AbstractOutboundConnectorC
       SecretProvider secretProvider,
       ValidationProvider validationProvider,
       ObjectMapper objectMapper,
-      String jsonVariables) {
+      Object jsonVariables) {
     super(secretProvider, validationProvider, objectMapper, jsonVariables);
   }
 
