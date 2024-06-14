@@ -17,17 +17,21 @@
 package io.camunda.connector.http.base.client.apache;
 
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.error.ConnectorExceptionBuilder;
 import io.camunda.connector.http.base.client.HttpClient;
 import io.camunda.connector.http.base.client.HttpStatusHelper;
+import io.camunda.connector.http.base.client.ProxyConfiguration;
 import io.camunda.connector.http.base.exception.HttpCommonResultException;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import org.apache.hc.client5.http.ClientProtocolException;
 import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
+import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.io.SocketConfig;
 import org.apache.hc.core5.util.Timeout;
@@ -100,6 +104,7 @@ public class CustomApacheHttpClient implements HttpClient {
       var result =
           httpClientBuilder
               .setDefaultRequestConfig(getRequestConfig(request))
+              .setProxy(getProxyConfig())
               .build()
               .execute(apacheRequest, new HttpCommonResultResponseHandler(remoteExecutionEnabled));
       if (HttpStatusHelper.isError(result.status())) {
@@ -117,6 +122,24 @@ public class CustomApacheHttpClient implements HttpClient {
           "An error occurred while executing the request, or the connection was aborted",
           e);
     }
+  }
+
+  HttpHost getProxyConfig() {
+    ProxyConfiguration proxyConfiguration = new ProxyConfiguration();
+    return proxyConfiguration
+        .getHttpProxyUrl()
+        .map(
+            s -> {
+              try {
+                return HttpHost.create(s);
+              } catch (URISyntaxException e) {
+                throw new ConnectorExceptionBuilder()
+                    .message("Cannot create host from URL:" + s)
+                    .cause(e)
+                    .build();
+              }
+            })
+        .orElse(null);
   }
 
   private RequestConfig getRequestConfig(HttpCommonRequest request) {
