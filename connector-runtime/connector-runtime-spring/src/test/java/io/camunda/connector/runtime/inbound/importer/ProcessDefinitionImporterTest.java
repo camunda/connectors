@@ -137,9 +137,8 @@ public class ProcessDefinitionImporterTest {
     importer.scheduleImport();
 
     // then
-    verify(manager, times(1)).handleNewProcessDefinitions(Set.of(first.getFirst()));
-    verify(manager, times(1))
-        .handleDeletedProcessDefinitions(Set.of(first.getFirst().getVersion()));
+    verify(manager, times(1)).handleNewProcessDefinitions(Set.of(first.get(0)));
+    verify(manager, times(1)).handleDeletedProcessDefinitions(Set.of(first.get(0).getVersion()));
     verify(manager, times(1)).handleNewProcessDefinitions(new HashSet<>(second));
   }
 
