@@ -43,7 +43,7 @@ import io.camunda.connector.http.rest.model.HttpJsonRequest;
     name = "REST Outbound Connector",
     description = "Invoke REST API",
     inputDataClass = HttpJsonRequest.class,
-    version = 7,
+    version = 8,
     propertyGroups = {
       @PropertyGroup(id = "authentication", label = "Authentication"),
       @PropertyGroup(id = "endpoint", label = "HTTP endpoint"),

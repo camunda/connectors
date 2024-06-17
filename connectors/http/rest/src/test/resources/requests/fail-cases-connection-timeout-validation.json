@@ -3,9 +3,8 @@
     "descriptionOfTest": "String value",
     "method": "get",
     "url": "https://camunda.io/http-endpoint",
-    "connectionTimeoutInSeconds" : "bad value",
-    "readTimeoutInSeconds" : "bad value",
-    "writeTimeoutInSeconds" : "bad value",
+    "connectionTimeoutInSeconds": "bad value",
+    "readTimeoutInSeconds": "bad value",
     "authentication": {
       "type": "noAuth"
     }
@@ -14,9 +13,8 @@
     "descriptionOfTest": "Float value",
     "method": "get",
     "url": "https://camunda.io/http-endpoint",
-    "connectionTimeoutInSeconds" : "0.1",
-    "readTimeoutInSeconds" : "0.2",
-    "writeTimeoutInSeconds" : "0.4",
+    "connectionTimeoutInSeconds": "0.1",
+    "readTimeoutInSeconds": "0.2",
     "authentication": {
       "type": "noAuth"
     }
@@ -26,8 +24,7 @@
     "method": "get",
     "url": "https://camunda.io/http-endpoint",
     "connectionTimeoutInSeconds": "0xFF",
-    "readTimeoutInSeconds" : "0xFF",
-    "writeTimeoutInSeconds" : "0xFF",
+    "readTimeoutInSeconds": "0xFF",
     "authentication": {
       "type": "noAuth"
     }
@@ -37,8 +34,7 @@
     "method": "get",
     "url": "https://camunda.io/http-endpoint",
     "connectionTimeoutInSeconds": "0b0011",
-    "readTimeoutInSeconds" : "0b0011",
-    "writeTimeoutInSeconds" : "0b0011",
+    "readTimeoutInSeconds": "0b0011",
     "authentication": {
       "type": "bearer",
       "token": "{{secrets.TOKEN_KEY}}"
@@ -49,8 +45,7 @@
     "method": "get",
     "url": "https://camunda.io/http-endpoint",
     "connectionTimeoutInSeconds": "bad secrets.TOKEN_KEY value",
-    "readTimeoutInSeconds" : "bad secrets.TOKEN_KEY value",
-    "writeTimeoutInSeconds" : "bad secrets.TOKEN_KEY value",
+    "readTimeoutInSeconds": "bad secrets.TOKEN_KEY value",
     "authentication": {
       "type": "noAuth"
     }
@@ -60,8 +55,7 @@
     "method": "get",
     "url": "https://camunda.io/http-endpoint",
     "connectionTimeoutInSeconds": "bad 123 value",
-    "readTimeoutInSeconds" : "bad 123 value",
-    "writeTimeoutInSeconds" : "bad 123 value",
+    "readTimeoutInSeconds": "bad 123 value",
     "authentication": {
       "type": "noAuth"
     }
