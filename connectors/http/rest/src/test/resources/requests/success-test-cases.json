@@ -8,7 +8,6 @@
     },
     "connectionTimeoutInSeconds": 20,
     "readTimeoutInSeconds": 30,
-    "writeTimeoutInSeconds": 40,
     "queryParameters": {
       "q": "test",
       "priority": 12
@@ -30,7 +29,6 @@
     "url": "http://localhost:8085/http-endpoint",
     "connectionTimeoutInSeconds": 0,
     "readTimeoutInSeconds": 0,
-    "writeTimeoutInSeconds": 0,
     "queryParameters": {
       "q": "test",
       "priority": 12
@@ -58,7 +56,6 @@
     "url": "http://localhost:8085/http-endpoint",
     "connectionTimeoutInSeconds": 60,
     "readTimeoutInSeconds": 70,
-    "writeTimeoutInSeconds": 200,
     "queryParameters": {
       "q": "test",
       "priority": 12
@@ -85,7 +82,6 @@
     "url": "http://localhost:8085/http-endpoint",
     "connectionTimeoutInSeconds": 202,
     "readTimeoutInSeconds": 301,
-    "writeTimeoutInSeconds": 402,
     "headers": {
       "X-Camunda-Cluster-ID": "abcdef",
       "User-Agent": "http-connector-demo"
@@ -108,7 +104,6 @@
     "url": "http://localhost:8085/http-endpoint",
     "connectionTimeoutInSeconds": 5,
     "readTimeoutInSeconds": 67,
-    "writeTimeoutInSeconds": 34,
     "queryParameters": {
       "q": "test",
       "priority": 12
@@ -131,7 +126,6 @@
     "method": "get",
     "connectionTimeoutInSeconds": 20,
     "readTimeoutInSeconds": 30,
-    "writeTimeoutInSeconds": 40,
     "url": "http://localhost:8085/http-endpoint",
     "queryParameters": {
       "q": "test",
@@ -152,7 +146,6 @@
     "url": "http://localhost:8085/http-endpoint",
     "connectionTimeoutInSeconds": 20,
     "readTimeoutInSeconds": 0,
-    "writeTimeoutInSeconds": 10,
     "queryParameters": {
       "q": "test",
       "priority": 12
@@ -186,7 +179,6 @@
     },
     "connectionTimeoutInSeconds": 50,
     "readTimeoutInSeconds": 30,
-    "writeTimeoutInSeconds": 40,
     "body": {
       "customer": {
         "id": 1231231,

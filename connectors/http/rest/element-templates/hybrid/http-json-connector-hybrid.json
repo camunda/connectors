@@ -4,7 +4,7 @@
   "id" : "io.camunda.connectors.HttpJson.v2-hybrid",
   "description" : "Invoke REST API",
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/protocol/rest/",
-  "version" : 7,
+  "version" : 8,
   "category" : {
     "id" : "connectors",
     "name" : "Connectors"
