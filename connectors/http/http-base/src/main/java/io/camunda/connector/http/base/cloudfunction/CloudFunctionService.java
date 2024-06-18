@@ -40,7 +40,7 @@ public class CloudFunctionService {
     this(new CloudFunctionCredentials());
   }
 
-  CloudFunctionService(CloudFunctionCredentials credentials) {
+  public CloudFunctionService(CloudFunctionCredentials credentials) {
     this.credentials = credentials;
   }
 
