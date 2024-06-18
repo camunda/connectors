@@ -48,7 +48,10 @@ public class HttpCommonRequest {
       group = "timeout",
       label = "Connection timeout in seconds",
       defaultValue = "20",
-      constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+      constraints =
+          @TemplateProperty.PropertyConstraints(
+              notEmpty = true,
+              pattern = @TemplateProperty.Pattern(value = "^\\d+$", message = "Must be a number")),
       description = "Defines the connection timeout in seconds, or 0 for an infinite timeout")
   private Integer connectionTimeoutInSeconds = 20;
 
@@ -56,7 +59,10 @@ public class HttpCommonRequest {
       group = "timeout",
       label = "Read timeout in seconds",
       defaultValue = "20",
-      constraints = @TemplateProperty.PropertyConstraints(notEmpty = true),
+      constraints =
+          @TemplateProperty.PropertyConstraints(
+              notEmpty = true,
+              pattern = @TemplateProperty.Pattern(value = "^\\d+$", message = "Must be a number")),
       description =
           "Timeout in seconds to read data from an established connection or 0 for an infinite timeout")
   private Integer readTimeoutInSeconds = 20;

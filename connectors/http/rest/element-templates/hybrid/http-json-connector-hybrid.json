@@ -399,7 +399,11 @@
     "optional" : false,
     "value" : "20",
     "constraints" : {
-      "notEmpty" : true
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "^\\d+$",
+        "message" : "Must be a number"
+      }
     },
     "feel" : "optional",
     "group" : "timeout",
@@ -415,7 +419,11 @@
     "optional" : false,
     "value" : "20",
     "constraints" : {
-      "notEmpty" : true
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "^\\d+$",
+        "message" : "Must be a number"
+      }
     },
     "feel" : "optional",
     "group" : "timeout",
