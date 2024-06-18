@@ -97,7 +97,7 @@ jobs:
       - name: Build and Push Docker Image tag ${{ env.TAG }} - bundle-default
         env:
           TAG: pr-${{ github.sha }}
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: bundle/default-bundle/
           provenance: false
