@@ -43,7 +43,7 @@ public class CloudFunctionCredentialsCache {
 
     try {
       refreshAccessTokenIfExpired();
-    } catch (IOException e) {
+    } catch (Exception e) {
       LOG.warn("Failed to refresh access token", e);
       this.credentials = credentialsSupplier.get();
     }
