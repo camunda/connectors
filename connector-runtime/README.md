@@ -108,7 +108,7 @@ See also [Docker: Custom set of connectors](https://docs.camunda.io/docs/self-ma
 
 The following configuration properties can be set via `src/main/application.properties` if you run Java directly.
 
-You can also set those configuration options via environment variables (then named `ZEEBE_CLIENT_CLOUD_CLUSTER-ID` instead of `zeebe.client.cloud.cluster-id`), especially useful if you run via DOCKER.
+You can also set those configuration options via environment variables (then named `ZEEBE_CLIENT_CLOUD_CLUSTERID` instead of `zeebe.client.cloud.cluster-id`), especially useful if you run via DOCKER.
 
 In general, the Connector Runtime will respect all properties known to [Spring Zeebe](https://github.com/camunda-community-hub/spring-zeebe), which allows to specify some more options.
 
