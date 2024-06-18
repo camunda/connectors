@@ -40,6 +40,7 @@ public record ChatPostMessageData(
             label = "Thread",
             id = "data.thread",
             group = "channel",
+            optional = true,
             feel = FeelMode.optional,
             binding = @PropertyBinding(name = "data.thread"))
         String thread,
@@ -126,7 +127,7 @@ public record ChatPostMessageData(
     }
 
     var request = requestBuilder.build();
-
+    
     ChatPostMessageResponse chatPostMessageResponse = methodsClient.chatPostMessage(request);
     if (chatPostMessageResponse.isOk()) {
       return new ChatPostMessageSlackResponse(chatPostMessageResponse);

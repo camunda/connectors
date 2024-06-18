@@ -182,7 +182,7 @@
   }, {
     "id" : "data.thread",
     "label" : "Thread",
-    "optional" : false,
+    "optional" : true,
     "feel" : "optional",
     "group" : "channel",
     "binding" : {
