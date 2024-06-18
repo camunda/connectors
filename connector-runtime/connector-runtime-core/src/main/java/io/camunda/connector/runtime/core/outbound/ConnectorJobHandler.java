@@ -25,6 +25,9 @@ import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.ConnectorHelper;
 import io.camunda.connector.runtime.core.Keywords;
+import io.camunda.connector.runtime.core.document.DocumentFactory;
+import io.camunda.connector.runtime.core.document.DocumentUtil;
+import io.camunda.connector.runtime.core.document.TransientDataStore;
 import io.camunda.connector.runtime.core.error.BpmnError;
 import io.camunda.connector.runtime.core.error.ConnectorError;
 import io.camunda.connector.runtime.core.error.JobError;
@@ -60,6 +63,8 @@ public class ConnectorJobHandler implements JobHandler {
 
   protected ObjectMapper objectMapper;
 
+  protected TransientDataStore transientDataStore;
+
   /**
    * Create a handler wrapper for the specified connector function.
    *
@@ -80,11 +85,13 @@ public class ConnectorJobHandler implements JobHandler {
       final OutboundConnectorFunction call,
       final SecretProvider secretProvider,
       final ValidationProvider validationProvider,
-      final ObjectMapper objectMapper) {
+      final ObjectMapper objectMapper,
+      final TransientDataStore transientDataStore) {
     this.call = call;
     this.secretProvider = secretProvider;
     this.validationProvider = validationProvider;
     this.objectMapper = objectMapper;
+    this.transientDataStore = transientDataStore;
   }
 
   protected static Map<String, Object> exceptionToMap(Exception exception) {
@@ -178,15 +185,19 @@ public class ConnectorJobHandler implements JobHandler {
 
     ConnectorResult result;
 
-    try {
+    try (var dataTransaction = transientDataStore.createTransaction()) {
+      var documentFactory = new DocumentFactory(dataTransaction);
       var context =
-          new JobHandlerContext(job, getSecretProvider(), validationProvider, objectMapper);
+          new JobHandlerContext(
+              job, getSecretProvider(), validationProvider, objectMapper, documentFactory);
       var response = call.execute(context);
       var responseVariables =
           ConnectorHelper.createOutputVariables(
               response,
               job.getCustomHeaders().get(Keywords.RESULT_VARIABLE_KEYWORD),
               job.getCustomHeaders().get(Keywords.RESULT_EXPRESSION_KEYWORD));
+      var variablesWithTransformedDocuments =
+          DocumentUtil.replaceTransientDocumentsWithStatic(documentFactory, responseVariables);
       result = new ConnectorResult.SuccessResult(response, responseVariables);
     } catch (ConnectorRetryException ex) {
       LOGGER.debug(

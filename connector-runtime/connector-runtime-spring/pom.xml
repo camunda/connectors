@@ -13,6 +13,13 @@
   <artifactId>connector-runtime-spring</artifactId>
 
   <dependencies>
+
+    <dependency>
+      <groupId>io.camunda.connector</groupId>
+      <artifactId>jackson-datatype-document</artifactId>
+      <version>8.6.0-SNAPSHOT</version>
+    </dependency>
+
     <!-- Spring dependencies (scope: provided) -->
     <dependency>
       <groupId>org.springframework</groupId>

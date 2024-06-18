@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.outbound.JobContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
+import io.camunda.connector.runtime.core.document.DocumentFactory;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import java.util.Objects;
 
@@ -38,8 +39,9 @@ public class JobHandlerContext extends AbstractOutboundConnectorContext {
       final ActivatedJob job,
       final SecretProvider secretProvider,
       final ValidationProvider validationProvider,
-      final ObjectMapper objectMapper) {
-    super(secretProvider, validationProvider, objectMapper, job.getVariables());
+      final ObjectMapper objectMapper,
+      final DocumentFactory documentFactory) {
+    super(secretProvider, validationProvider, objectMapper, documentFactory, job.getVariables());
     this.job = job;
     this.jobContext =
         new ActivatedJobContext(job, () -> getVariablesWithReplacedSecrets(String.class));

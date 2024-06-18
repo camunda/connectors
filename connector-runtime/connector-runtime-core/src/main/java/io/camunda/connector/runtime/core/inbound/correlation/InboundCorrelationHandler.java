@@ -26,6 +26,9 @@ import io.camunda.connector.api.inbound.ProcessElementContext;
 import io.camunda.connector.feel.FeelEngineWrapper;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.core.ConnectorHelper;
+import io.camunda.connector.runtime.core.document.DocumentFactory;
+import io.camunda.connector.runtime.core.document.DocumentUtil;
+import io.camunda.connector.runtime.core.document.TransientDataStore;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorElement;
 import io.camunda.connector.runtime.core.inbound.ProcessElementContextFactory;
 import io.camunda.zeebe.client.ZeebeClient;
@@ -35,6 +38,7 @@ import io.camunda.zeebe.client.api.response.PublishMessageResponse;
 import io.grpc.Status;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -50,13 +54,20 @@ public class InboundCorrelationHandler {
 
   private final ProcessElementContextFactory processElementContextFactory;
 
+  private final TransientDataStore transientDataStore;
+  private final DocumentFactory documentFactory;
+
   public InboundCorrelationHandler(
       ZeebeClient zeebeClient,
       FeelEngineWrapper feelEngine,
-      ProcessElementContextFactory processElementContextFactory) {
+      ProcessElementContextFactory processElementContextFactory,
+      TransientDataStore transientDataStore,
+      DocumentFactory documentFactory) {
     this.zeebeClient = zeebeClient;
     this.feelEngine = feelEngine;
     this.processElementContextFactory = processElementContextFactory;
+    this.transientDataStore = transientDataStore;
+    this.documentFactory = documentFactory;
   }
 
   public CorrelationResult correlate(List<InboundConnectorElement> elements, Object variables) {
@@ -282,8 +293,10 @@ public class InboundCorrelationHandler {
   }
 
   protected Object extractVariables(Object rawVariables, InboundConnectorElement definition) {
-    return ConnectorHelper.createOutputVariables(
-        rawVariables, definition.resultVariable(), definition.resultExpression());
+    Map<String, Object> extractedVariables =
+        ConnectorHelper.createOutputVariables(
+            rawVariables, definition.resultVariable(), definition.resultExpression());
+    return DocumentUtil.replaceTransientDocumentsWithStatic(documentFactory, extractedVariables);
   }
 
   private String resolveMessageId(String messageIdExpression, String messageId, Object context) {

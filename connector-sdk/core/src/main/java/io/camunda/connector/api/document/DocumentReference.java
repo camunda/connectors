@@ -16,42 +16,12 @@
  */
 package io.camunda.connector.api.document;
 
-import java.util.Objects;
-
-public class BasicDocument implements Document {
-
-  private final Object metadata;
-  private final DocumentContent content;
-
-  private BasicDocument(Object metadata, DocumentContent content) {
-    this.metadata = metadata;
-    this.content = content;
-  }
-
-  @Override
-  public Object getMetadata() {
-    return metadata;
-  }
-
-  @Override
-  public DocumentContent getContent() {
-    return content;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    BasicDocument that = (BasicDocument) o;
-    return Objects.equals(metadata, that.metadata) && Objects.equals(content, that.content);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(metadata, content);
-  }
-}
+/**
+ * Represents a reference to a document that can be resolved by calling a connector of the specified
+ * type with the specified variables.
+ *
+ * @param type the type of the connector that can resolve the document, e.g.
+ *     "io.camunda:http-json:1"
+ * @param variables the variables that should be passed to the connector when resolving the document
+ */
+public record DocumentReference(String type, Object variables) {}

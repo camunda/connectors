@@ -112,4 +112,13 @@ public interface InboundConnectorContext {
    * implementation requires it.
    */
   void log(Activity activity);
+
+  /**
+   * Creates a new document transaction object that allows to create documents. When the document is
+   * created from a byte array, the Connector runtime will store the byte array reference in a
+   * transient storage during correlation processing. The transient document reference will be
+   * discarded after the transaction is closed. The connector implementation must close the
+   * transaction after the event is correlated.
+   */
+  DocumentTransaction createDocumentTransaction();
 }

@@ -22,11 +22,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentSource;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
+import io.camunda.connector.runtime.core.document.DocumentFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -40,16 +43,18 @@ public abstract class AbstractOutboundConnectorContext extends AbstractConnector
   private final Object variables;
   private JsonNode variablesWithReplacedSecrets = null;
 
-  private String jsonWithSecrets = null;
+  private final DocumentFactory documentFactory;
 
   public AbstractOutboundConnectorContext(
       final SecretProvider secretProvider,
       final ValidationProvider validationProvider,
       final ObjectMapper objectMapper,
+      DocumentFactory documentFactory,
       Object variables) {
     super(secretProvider, validationProvider);
     this.variables = variables;
     this.objectMapper = objectMapper;
+    this.documentFactory = documentFactory;
   }
 
   @Override
@@ -102,5 +107,10 @@ public abstract class AbstractOutboundConnectorContext extends AbstractConnector
     } else {
       return node;
     }
+  }
+
+  @Override
+  public Document createDocument(DocumentSource source) {
+    return documentFactory.createDocument(source);
   }
 }
