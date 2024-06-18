@@ -4,7 +4,8 @@
     "method": "chatpostMessage",
     "data": {
       "channel": "{{secrets.CHANNEL_NAME_KEY}}",
-      "text": "{{secrets.TEXT_KEY}}"
+      "text": "{{secrets.TEXT_KEY}}",
+      "thread" : "{{secrets.THREAD_NAME_KEY}}"
     }
   },
   {
@@ -12,7 +13,8 @@
     "method": null,
     "data": {
       "channel": "{{secrets.CHANNEL_NAME_KEY}}",
-      "text": "{{secrets.TEXT_KEY}}"
+      "text": "{{secrets.TEXT_KEY}}",
+      "thread" : "{{secrets.THREAD_NAME_KEY}}"
     }
   },
   {
@@ -20,7 +22,8 @@
     "method": " ",
     "data": {
       "channel": "channel",
-      "text": "some text"
+      "text": "some text",
+      "thread" : "normal_thread"
     }
   },
   {
@@ -28,7 +31,8 @@
     "method": "chat.getMessage",
     "data": {
       "channel": "channel",
-      "text": "some text"
+      "text": "some text",
+      "thread": "normal_thread"
     }
   }
 ]

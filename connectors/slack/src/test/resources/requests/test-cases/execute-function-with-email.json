@@ -5,7 +5,8 @@
     "method": "chat.postMessage",
     "data": {
       "channel": "{{secrets.EMAIL_KEY}}",
-      "text": "{{secrets.TEXT_KEY}}"
+      "text": "{{secrets.TEXT_KEY}}",
+      "thread" : "{{secrets.THREAD_NAME_KEY}}"
     }
   },
   {
@@ -14,7 +15,8 @@
     "method": "chat.postMessage",
     "data": {
       "channel": "{{secrets.EMAIL_KEY}}",
-      "text": "{{secrets.TEXT_KEY}}"
+      "text": "{{secrets.TEXT_KEY}}",
+      "thread" : "{{secrets.THREAD_NAME_KEY}}"
     }
   },
   {
@@ -23,7 +25,8 @@
     "method": "chat.postMessage",
     "data": {
       "channel": "john.dou@camundamail.com",
-      "text": "some text"
+      "text": "some text",
+      "thread" : "normal_thread"
     }
   }
 ]

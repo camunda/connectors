@@ -37,6 +37,13 @@ public record ChatPostMessageData(
         @NotBlank
         String channel,
     @TemplateProperty(
+            label = "Thread",
+            id = "data.thread",
+            group = "channel",
+            feel = FeelMode.optional,
+            binding = @PropertyBinding(name = "data.thread"))
+        String thread,
+    @TemplateProperty(
             label = "Message type",
             id = "data.messageType",
             group = "message",
@@ -108,7 +115,9 @@ public record ChatPostMessageData(
       // Enables plain text message formatting
       requestBuilder.linkNames(true);
     }
-
+    if (StringUtils.isNotBlank(thread)) {
+      requestBuilder.threadTs(thread);
+    }
     if (blockContent != null) {
       if (!blockContent.isArray()) {
         throw new ConnectorException("Block section must be an array");

@@ -25,42 +25,6 @@ public abstract class BaseTest {
 
   protected static OutboundConnectorContext context;
 
-  protected interface ActualValue {
-    String USER_ID = "1234567890123";
-    String USER_REAL_NAME = "JohnDou";
-    String TS = "ts";
-    String TOKEN = "xoxb-0123456789456-123467890987-thisIsTestToken";
-    String METHOD = "chat.postMessage";
-
-    interface ChatPostMessageData {
-      String EMAIL = "john.dou@camundamail.com";
-      String USERNAME = "@" + USER_REAL_NAME;
-      String CHANNEL_NAME = "#john.channel";
-      String CHANNEL_ID = "12345678";
-      String TEXT = "_ this is secret test text _";
-    }
-
-    interface ConversationsCreateData {
-      String NEW_CHANNEL_NAME = "_ new channel name _";
-    }
-  }
-
-  protected interface SecretsConstant {
-    String TOKEN = "TOKEN_KEY";
-
-    interface ChatPostMessageData {
-      String EMAIL = "EMAIL_KEY";
-      String USERNAME = "USERNAME_KEY";
-      String CHANNEL_NAME = "CHANNEL_NAME_KEY";
-      String CHANNEL_ID = "CHANNEL_ID_KEY";
-      String TEXT = "TEXT_KEY";
-    }
-
-    interface ConversationsCreateData {
-      String NEW_CHANNEL_NAME = "NEW_CHANNEL_NAME_KEY";
-    }
-  }
-
   protected static OutboundConnectorContextBuilder getContextBuilderWithSecrets() {
     return OutboundConnectorContextBuilder.create()
         .validation(new DefaultValidationProvider())
@@ -71,6 +35,9 @@ public abstract class BaseTest {
         .secret(
             SecretsConstant.ChatPostMessageData.CHANNEL_NAME,
             ActualValue.ChatPostMessageData.CHANNEL_NAME)
+        .secret(
+            SecretsConstant.ChatPostMessageData.THREAD_NAME,
+            ActualValue.ChatPostMessageData.THREAD_NAME)
         .secret(
             SecretsConstant.ChatPostMessageData.CHANNEL_ID,
             ActualValue.ChatPostMessageData.CHANNEL_ID)
@@ -132,5 +99,43 @@ public abstract class BaseTest {
               }
             })
         .map(Arguments::of);
+  }
+
+  protected interface ActualValue {
+    String USER_ID = "1234567890123";
+    String USER_REAL_NAME = "JohnDou";
+    String TS = "ts";
+    String TOKEN = "xoxb-0123456789456-123467890987-thisIsTestToken";
+    String METHOD = "chat.postMessage";
+
+    interface ChatPostMessageData {
+      String EMAIL = "john.dou@camundamail.com";
+      String USERNAME = "@" + USER_REAL_NAME;
+      String CHANNEL_NAME = "#john.channel";
+      String THREAD_NAME = "thread_ts";
+      String CHANNEL_ID = "12345678";
+      String TEXT = "_ this is secret test text _";
+    }
+
+    interface ConversationsCreateData {
+      String NEW_CHANNEL_NAME = "_ new channel name _";
+    }
+  }
+
+  protected interface SecretsConstant {
+    String TOKEN = "TOKEN_KEY";
+
+    interface ChatPostMessageData {
+      String EMAIL = "EMAIL_KEY";
+      String USERNAME = "USERNAME_KEY";
+      String CHANNEL_NAME = "CHANNEL_NAME_KEY";
+      String THREAD_NAME = "THREAD_NAME_KEY";
+      String CHANNEL_ID = "CHANNEL_ID_KEY";
+      String TEXT = "TEXT_KEY";
+    }
+
+    interface ConversationsCreateData {
+      String NEW_CHANNEL_NAME = "NEW_CHANNEL_NAME_KEY";
+    }
   }
 }

@@ -36,13 +36,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class ChatPostMessageDataTest {
 
-  @Mock private MethodsClient methodsClient;
-  @Mock private UsersLookupByEmailResponse lookupByEmailResponse;
-  @Mock private User user;
-  @Mock private ChatPostMessageResponse chatPostMessageResponse;
-
-  @Captor private ArgumentCaptor<ChatPostMessageRequest> chatPostMessageRequest;
-
   private static final String USERID = "testUserId";
   private static final JsonNode EMPTY_JSON;
 
@@ -54,11 +47,17 @@ class ChatPostMessageDataTest {
     }
   }
 
+  @Mock private MethodsClient methodsClient;
+  @Mock private UsersLookupByEmailResponse lookupByEmailResponse;
+  @Mock private User user;
+  @Mock private ChatPostMessageResponse chatPostMessageResponse;
+  @Captor private ArgumentCaptor<ChatPostMessageRequest> chatPostMessageRequest;
+
   @Test
   void invoke_shouldThrowExceptionWhenUserWithoutEmail() throws SlackApiException, IOException {
     // Given
     ChatPostMessageData chatPostMessageData =
-        new ChatPostMessageData("test@test.com", "plainText", "Test text", EMPTY_JSON);
+        new ChatPostMessageData("test@test.com", "thread_ts", "plainText", "Test text", EMPTY_JSON);
     when(methodsClient.usersLookupByEmail(any(UsersLookupByEmailRequest.class))).thenReturn(null);
     // When and then
     Throwable thrown = catchThrowable(() -> chatPostMessageData.invoke(methodsClient));
@@ -80,7 +79,7 @@ class ChatPostMessageDataTest {
   void invoke_shouldFindUserIdByEmail(String email) throws SlackApiException, IOException {
     // Given
     ChatPostMessageData chatPostMessageData =
-        new ChatPostMessageData(email, "plainText", "test", null);
+        new ChatPostMessageData(email, "thread_ts", "", "test", null);
 
     when(methodsClient.usersLookupByEmail(any(UsersLookupByEmailRequest.class)))
         .thenReturn(lookupByEmailResponse);
@@ -102,7 +101,7 @@ class ChatPostMessageDataTest {
   void invoke_WhenTextIsGiven_ShouldInvoke() throws SlackApiException, IOException {
     // Given
     ChatPostMessageData chatPostMessageData =
-        new ChatPostMessageData("test@test.com", "plainText", "test", null);
+        new ChatPostMessageData("test@test.com", "", "plainText", "test", null);
 
     when(methodsClient.usersLookupByEmail(any(UsersLookupByEmailRequest.class)))
         .thenReturn(lookupByEmailResponse);
@@ -125,51 +124,55 @@ class ChatPostMessageDataTest {
     // Given
     final var blockContent =
         """
-        [
-        	{
-        		"type": "header",
-        		"text": {
-        			"type": "plain_text",
-        			"text": "New request"
-        		}
-        	},
-        	{
-        		"type": "section",
-        		"fields": [
-        			{
-        				"type": "mrkdwn",
-        				"text": "*Type:*\\nPaid Time Off"
-        			},
-        			{
-        				"type": "mrkdwn",
-        				"text": "*Created by:*\\n<example.com|Fred Enriquez>"
-        			}
-        		]
-        	},
-        	{
-        		"type": "section",
-        		"fields": [
-        			{
-        				"type": "mrkdwn",
-        				"text": "*When:*\\nAug 10 - Aug 13"
-        			}
-        		]
-        	},
-        	{
-        		"type": "section",
-        		"text": {
-        			"type": "mrkdwn",
-        			"text": "<https://example.com|View request>"
-        		}
-        	}
-        ]
-        """;
+                        [
+                        	{
+                        		"type": "header",
+                        		"text": {
+                        			"type": "plain_text",
+                        			"text": "New request"
+                        		}
+                        	},
+                        	{
+                        		"type": "section",
+                        		"fields": [
+                        			{
+                        				"type": "mrkdwn",
+                        				"text": "*Type:*\\nPaid Time Off"
+                        			},
+                        			{
+                        				"type": "mrkdwn",
+                        				"text": "*Created by:*\\n<example.com|Fred Enriquez>"
+                        			}
+                        		]
+                        	},
+                        	{
+                        		"type": "section",
+                        		"fields": [
+                        			{
+                        				"type": "mrkdwn",
+                        				"text": "*When:*\\nAug 10 - Aug 13"
+                        			}
+                        		]
+                        	},
+                        	{
+                        		"type": "section",
+                        		"text": {
+                        			"type": "mrkdwn",
+                        			"text": "<https://example.com|View request>"
+                        		}
+                        	}
+                        ]
+                        """;
 
     var objectMapper = ConnectorsObjectMapperSupplier.getCopy();
 
     ChatPostMessageData chatPostMessageData =
         new ChatPostMessageData(
-            "test@test.com", "messageBlock", "test", objectMapper.readTree(blockContent));
+            "test@test.com",
+            "thread_ts",
+            "messageBlock",
+            "test",
+            objectMapper.readTree(blockContent));
 
     when(methodsClient.usersLookupByEmail(any(UsersLookupByEmailRequest.class)))
         .thenReturn(lookupByEmailResponse);
@@ -192,20 +195,20 @@ class ChatPostMessageDataTest {
     // Given
     final var blockContent =
         """
-        {
-           "type": "section",
-           "text": {
-             "type": "mrkdwn",
-             "text": "New Paid Time Off request from <example.com|Fred Enriquez>\\n\\n<https://example.com|View request>"
-           }
-         }
-        """;
+                        {
+                           "type": "section",
+                           "text": {
+                             "type": "mrkdwn",
+                             "text": "New Paid Time Off request from <example.com|Fred Enriquez>\\n\\n<https://example.com|View request>"
+                           }
+                         }
+                        """;
 
     var objectMapper = ConnectorsObjectMapperSupplier.getCopy();
 
     ChatPostMessageData chatPostMessageData =
         new ChatPostMessageData(
-            "test@test.com", "plainText", "test", objectMapper.readTree(blockContent));
+            "test@test.com", "thread_ts", "plainText", "test", objectMapper.readTree(blockContent));
 
     when(methodsClient.usersLookupByEmail(any(UsersLookupByEmailRequest.class)))
         .thenReturn(lookupByEmailResponse);

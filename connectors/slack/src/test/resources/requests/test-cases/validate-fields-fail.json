@@ -4,7 +4,8 @@
     "method": "chat.postMessage",
     "data": {
       "channel": "channel",
-      "text": "_ this is secret test text _"
+      "text": "_ this is secret test text _",
+      "thread": "normal_thread"
     }
   },
   {
@@ -13,7 +14,8 @@
     "method": "chat.postMessage",
     "data": {
       "channel": "channel",
-      "text": "_ this is secret test text _"
+      "text": "_ this is secret test text _",
+      "thread": "normal_thread"
     }
   },
 
@@ -23,7 +25,8 @@
     "method": "chat.postMessage",
     "data": {
       "channel": null,
-      "text": "_ this is secret test text _"
+      "text": "_ this is secret test text _",
+      "thread": "normal_thread"
     }
   },
   {
@@ -32,7 +35,8 @@
     "method": "chat.postMessage",
     "data": {
       "channel": "   ",
-      "text": "_ this is secret test text _"
+      "text": "_ this is secret test text _",
+      "thread": "normal_thread"
     }
   },
   {
