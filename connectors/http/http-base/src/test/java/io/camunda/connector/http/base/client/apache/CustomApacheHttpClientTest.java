@@ -17,13 +17,16 @@
 package io.camunda.connector.http.base.client.apache;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aMultipart;
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.and;
 import static com.github.tomakehurst.wiremock.client.WireMock.any;
 import static com.github.tomakehurst.wiremock.client.WireMock.containing;
 import static com.github.tomakehurst.wiremock.client.WireMock.created;
 import static com.github.tomakehurst.wiremock.client.WireMock.delete;
+import static com.github.tomakehurst.wiremock.client.WireMock.deleteRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.noContent;
 import static com.github.tomakehurst.wiremock.client.WireMock.notFound;
 import static com.github.tomakehurst.wiremock.client.WireMock.ok;
@@ -35,12 +38,16 @@ import static com.github.tomakehurst.wiremock.client.WireMock.serverError;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.unauthorized;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import com.github.tomakehurst.wiremock.matching.MultipartValuePatternBuilder;
@@ -55,11 +62,16 @@ import io.camunda.connector.http.base.model.auth.ApiKeyLocation;
 import io.camunda.connector.http.base.model.auth.BasicAuthentication;
 import io.camunda.connector.http.base.model.auth.BearerAuthentication;
 import io.camunda.connector.http.base.model.auth.OAuthAuthentication;
+import java.net.URISyntaxException;
 import java.util.Map;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.HttpHeaders;
+import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.HttpStatus;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -68,6 +80,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
 import wiremock.com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import wiremock.com.fasterxml.jackson.databind.node.POJONode;
 
 @WireMockTest
 public class CustomApacheHttpClientTest {
@@ -77,6 +90,111 @@ public class CustomApacheHttpClientTest {
 
   private String getHostAndPort(WireMockRuntimeInfo wmRuntimeInfo) {
     return "http://localhost:" + wmRuntimeInfo.getHttpPort();
+  }
+
+  @Nested
+  class ProxyTests {
+
+    private static final WireMockServer proxy = new WireMockServer(8090);
+
+    @BeforeAll
+    public static void startProxy() {
+      proxy.start();
+    }
+
+    @AfterAll
+    public static void stopProxy() {
+      proxy.stop();
+    }
+
+    @AfterEach
+    public void resetProxy() {
+      proxy.resetAll();
+    }
+
+    @Test
+    public void shouldReturn200_whenGetAndProxySet(WireMockRuntimeInfo wmRuntimeInfo)
+        throws Exception {
+      stubFor(get("/path").willReturn(ok().withBody("Hello, world!")));
+      var spied = spy(customApacheHttpClient);
+      when(spied.getProxyConfig()).thenReturn(HttpHost.create("http://localhost:8090"));
+      proxy.stubFor(
+          get(urlMatching(".*"))
+              .willReturn(
+                  aResponse().proxiedFrom("http://localhost:" + wmRuntimeInfo.getHttpPort())));
+
+      HttpCommonRequest request = new HttpCommonRequest();
+      request.setMethod(HttpMethod.GET);
+      request.setUrl(getHostAndPort(wmRuntimeInfo) + "/path");
+      HttpCommonResult result = spied.execute(request);
+      assertThat(result).isNotNull();
+      assertThat(result.status()).isEqualTo(200);
+      assertThat(result.body()).isEqualTo("Hello, world!");
+      proxy.verify(getRequestedFor(urlEqualTo("/path")));
+    }
+
+    @Test
+    public void shouldReturn200_whenPostAndProxySet(WireMockRuntimeInfo wmRuntimeInfo)
+        throws URISyntaxException {
+      stubFor(
+          post("/path").willReturn(created().withJsonBody(new POJONode(Map.of("key1", "value1")))));
+      var spied = spy(customApacheHttpClient);
+      when(spied.getProxyConfig()).thenReturn(HttpHost.create("http://localhost:8090"));
+      proxy.stubFor(
+          post(urlMatching(".*"))
+              .willReturn(
+                  aResponse().proxiedFrom("http://localhost:" + wmRuntimeInfo.getHttpPort())));
+
+      HttpCommonRequest request = new HttpCommonRequest();
+      request.setMethod(HttpMethod.POST);
+      request.setUrl(getHostAndPort(wmRuntimeInfo) + "/path");
+      HttpCommonResult result = spied.execute(request);
+      assertThat(result).isNotNull();
+      assertThat(result.status()).isEqualTo(201);
+      assertThat(result.body()).isEqualTo(Map.of("key1", "value1"));
+      proxy.verify(postRequestedFor(urlEqualTo("/path")));
+    }
+
+    @Test
+    public void shouldReturn200_whenPutAndProxySet(WireMockRuntimeInfo wmRuntimeInfo)
+        throws URISyntaxException {
+      stubFor(put("/path").willReturn(ok().withJsonBody(new POJONode(Map.of("key1", "value1")))));
+      var spied = spy(customApacheHttpClient);
+      when(spied.getProxyConfig()).thenReturn(HttpHost.create("http://localhost:8090"));
+      proxy.stubFor(
+          put(urlMatching(".*"))
+              .willReturn(
+                  aResponse().proxiedFrom("http://localhost:" + wmRuntimeInfo.getHttpPort())));
+
+      HttpCommonRequest request = new HttpCommonRequest();
+      request.setMethod(HttpMethod.PUT);
+      request.setUrl(getHostAndPort(wmRuntimeInfo) + "/path");
+      HttpCommonResult result = spied.execute(request);
+      assertThat(result).isNotNull();
+      assertThat(result.status()).isEqualTo(200);
+      assertThat(result.body()).isEqualTo(Map.of("key1", "value1"));
+      proxy.verify(putRequestedFor(urlEqualTo("/path")));
+    }
+
+    @Test
+    public void shouldReturn200_whenDeleteAndProxySet(WireMockRuntimeInfo wmRuntimeInfo)
+        throws URISyntaxException {
+      stubFor(delete("/path").willReturn(noContent()));
+      var spied = spy(customApacheHttpClient);
+      when(spied.getProxyConfig()).thenReturn(HttpHost.create("http://localhost:8090"));
+      proxy.stubFor(
+          delete(urlMatching(".*"))
+              .willReturn(
+                  aResponse().proxiedFrom("http://localhost:" + wmRuntimeInfo.getHttpPort())));
+
+      HttpCommonRequest request = new HttpCommonRequest();
+      request.setMethod(HttpMethod.DELETE);
+      request.setUrl(getHostAndPort(wmRuntimeInfo) + "/path");
+      HttpCommonResult result = spied.execute(request);
+      assertThat(result).isNotNull();
+      assertThat(result.status()).isEqualTo(204);
+      proxy.verify(deleteRequestedFor(urlEqualTo("/path")));
+    }
   }
 
   @Nested
