@@ -34,6 +34,15 @@ public class CloudFunctionService {
   private static final Logger LOG = LoggerFactory.getLogger(CloudFunctionService.class);
   private static final String PROXY_FUNCTION_URL_ENV_NAME = "CAMUNDA_CONNECTOR_HTTP_PROXY_URL";
   private final String proxyFunctionUrl = System.getenv(PROXY_FUNCTION_URL_ENV_NAME);
+  private final CloudFunctionCredentials credentials;
+
+  public CloudFunctionService() {
+    this(new CloudFunctionCredentials());
+  }
+
+  CloudFunctionService(CloudFunctionCredentials credentials) {
+    this.credentials = credentials;
+  }
 
   /**
    * Wraps the given request into a new request that is targeted at the Google function to execute
@@ -48,7 +57,7 @@ public class CloudFunctionService {
       // hence write it ourselves:
       String contentAsJson =
           ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.writeValueAsString(request);
-      String token = CloudFunctionHelper.getOAuthToken(getProxyFunctionUrl());
+      String token = credentials.getOAuthToken(getProxyFunctionUrl());
       return createCloudFunctionRequest(contentAsJson, token);
     } catch (IOException e) {
       LOG.error("Failed to serialize the request to JSON: {}", request, e);
