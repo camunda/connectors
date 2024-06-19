@@ -17,6 +17,8 @@
 package io.camunda.connector.http.base.cloudfunction;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
@@ -34,11 +36,15 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 public class CloudFunctionServiceTest {
-  private static final CloudFunctionService cloudFunctionService = spy(new CloudFunctionService());
+  private static final CloudFunctionCredentials cloudFunctionCredentials =
+      mock(CloudFunctionCredentials.class);
+  private static final CloudFunctionService cloudFunctionService =
+      spy(new CloudFunctionService(cloudFunctionCredentials));
 
   @BeforeAll
   public static void setUp() {
     when(cloudFunctionService.getProxyFunctionUrl()).thenReturn("proxyUrl");
+    when(cloudFunctionCredentials.getOAuthToken(anyString())).thenReturn("token");
   }
 
   @Test

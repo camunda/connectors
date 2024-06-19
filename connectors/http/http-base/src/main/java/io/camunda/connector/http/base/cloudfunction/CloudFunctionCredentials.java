@@ -24,13 +24,25 @@ import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class CloudFunctionHelper {
+public final class CloudFunctionCredentials {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(CloudFunctionHelper.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(CloudFunctionCredentials.class);
 
-  private CloudFunctionHelper() {}
+  private final CloudFunctionCredentialsCache cache;
 
-  private static OAuth2Credentials initializeCredentials(String proxyUrl) {
+  public CloudFunctionCredentials() {
+    this(new CloudFunctionCredentialsCache());
+  }
+
+  CloudFunctionCredentials(CloudFunctionCredentialsCache cache) {
+    this.cache = cache;
+  }
+
+  private String getAccessTokenValue(OAuth2Credentials credentials) {
+    return credentials.getAccessToken().getTokenValue();
+  }
+
+  private OAuth2Credentials initializeCredentials(String proxyUrl) {
     if (proxyUrl == null) {
       return null;
     }
@@ -45,16 +57,14 @@ public final class CloudFunctionHelper {
     }
   }
 
-  public static String getOAuthToken(String proxyUrl) throws IOException {
-    OAuth2Credentials credentials = initializeCredentials(proxyUrl);
-    if (credentials != null) {
-      credentials.refreshIfExpired();
-      return credentials.getAccessToken().getTokenValue();
-    }
-    return null;
+  public String getOAuthToken(String proxyUrl) {
+    return cache
+        .get(() -> initializeCredentials(proxyUrl))
+        .map(this::getAccessTokenValue)
+        .orElse(null);
   }
 
-  private static IdTokenProvider createIdTokenProvider() throws IOException {
+  private IdTokenProvider createIdTokenProvider() throws IOException {
     // Searches credentials via GOOGLE_APPLICATION_CREDENTIALS
     // See
     // https://cloud.google.com/java/docs/reference/google-auth-library/latest/com.google.auth.oauth2.GoogleCredentials#com_google_auth_oauth2_GoogleCredentials_getApplicationDefault__
@@ -65,7 +75,7 @@ public final class CloudFunctionHelper {
     return (IdTokenProvider) googleCredentials;
   }
 
-  private static IdTokenCredentials createIdTokenCredentials(
+  private IdTokenCredentials createIdTokenCredentials(
       final String url, final IdTokenProvider idTokenProvider) {
     return IdTokenCredentials.newBuilder()
         .setIdTokenProvider(idTokenProvider)

@@ -29,6 +29,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
@@ -37,6 +39,7 @@ import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
+import io.camunda.connector.http.base.cloudfunction.CloudFunctionCredentials;
 import io.camunda.connector.http.base.cloudfunction.CloudFunctionResponseTransformer;
 import io.camunda.connector.http.base.cloudfunction.CloudFunctionService;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
@@ -53,7 +56,10 @@ import wiremock.com.fasterxml.jackson.databind.node.JsonNodeFactory;
 @WireMockTest(extensionScanningEnabled = true)
 public class HttpServiceTest {
 
-  private static final CloudFunctionService cloudFunctionService = spy(new CloudFunctionService());
+  private static final CloudFunctionCredentials cloudFunctionCredentials =
+      mock(CloudFunctionCredentials.class);
+  private static final CloudFunctionService cloudFunctionService =
+      spy(new CloudFunctionService(cloudFunctionCredentials));
   private static final CloudFunctionService disabledCloudFunctionService =
       spy(new CloudFunctionService());
   private final HttpService httpService = new HttpService(cloudFunctionService);
@@ -64,6 +70,7 @@ public class HttpServiceTest {
   @BeforeAll
   public static void setUp() {
     when(cloudFunctionService.isCloudFunctionEnabled()).thenReturn(true);
+    when(cloudFunctionCredentials.getOAuthToken(anyString())).thenReturn("token");
     when(disabledCloudFunctionService.isCloudFunctionEnabled()).thenReturn(false);
   }
 
