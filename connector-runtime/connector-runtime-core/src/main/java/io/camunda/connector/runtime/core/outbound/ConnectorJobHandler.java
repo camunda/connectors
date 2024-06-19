@@ -198,7 +198,7 @@ public class ConnectorJobHandler implements JobHandler {
               job.getCustomHeaders().get(Keywords.RESULT_EXPRESSION_KEYWORD));
       var variablesWithTransformedDocuments =
           DocumentUtil.replaceTransientDocumentsWithStatic(documentFactory, responseVariables);
-      result = new ConnectorResult.SuccessResult(response, responseVariables);
+      result = new ConnectorResult.SuccessResult(response, variablesWithTransformedDocuments);
     } catch (ConnectorRetryException ex) {
       LOGGER.debug(
           "ConnectorRetryException while processing job: {} for tenant: {}",
