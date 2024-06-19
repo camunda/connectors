@@ -127,7 +127,7 @@ public record ChatPostMessageData(
     }
 
     var request = requestBuilder.build();
-    
+
     ChatPostMessageResponse chatPostMessageResponse = methodsClient.chatPostMessage(request);
     if (chatPostMessageResponse.isOk()) {
       return new ChatPostMessageSlackResponse(chatPostMessageResponse);
