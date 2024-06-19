@@ -39,7 +39,7 @@ public class DocumentDeserializer extends JsonDeserializer<Document> {
       decodedBytes = Base64.getDecoder().decode(base64Content);
       return BasicDocument.builder().content(decodedBytes).build();
     } catch (IllegalArgumentException e) {
-      throw new IOException("File content is not a valid base64 encoded string", e);
+      throw new IOException("Document content is not a valid base64 encoded string: " + e.getMessage(), e);
     }
   }
 }

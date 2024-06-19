@@ -18,11 +18,34 @@ package io.camunda.connector.feel;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
+import scala.collection.Iterable;
+import scala.jdk.javaapi.CollectionConverters;
 
 public class FeelEngineWrapperUtil {
   public static Map<String, Object> wrapResponse(Object response) {
     Map<String, Object> responseContext = new HashMap<>();
     responseContext.put("response", response);
     return responseContext;
+  }
+
+  @SuppressWarnings("unchecked")
+  public static <T> T sanitizeScalaOutput(T output) {
+    if (output instanceof scala.collection.Map<?, ?> scalaMap) {
+      return (T)
+          CollectionConverters.asJava(scalaMap).entrySet().stream()
+              .collect(
+                  HashMap::new,
+                  (m, v) -> m.put(v.getKey(), sanitizeScalaOutput(v.getValue())),
+                  HashMap::putAll);
+    } else if (output instanceof Iterable<?> scalaIterable) {
+      return (T)
+          StreamSupport.stream(CollectionConverters.asJava(scalaIterable).spliterator(), false)
+              .map(FeelEngineWrapperUtil::sanitizeScalaOutput)
+              .collect(Collectors.toList());
+    } else {
+      return output;
+    }
   }
 }

@@ -40,8 +40,6 @@ class FeelFunctionDeserializer<IN, OUT> extends AbstractFeelDeserializer<Functio
     this.outputType = outputType;
   }
 
-  private final FeelEngineWrapper feelEngineWrapper = new FeelEngineWrapper();
-
   @Override
   @SuppressWarnings("unchecked")
   protected Function<IN, OUT> doDeserialize(

@@ -14,27 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.feel.jackson;
+package io.camunda.connector.runtime.core.document;
 
-import com.fasterxml.jackson.databind.introspect.Annotated;
-import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
-import io.camunda.connector.feel.FeelEngineWrapper;
-import io.camunda.connector.feel.annotation.FEEL;
+public interface TransientDataTransaction extends AutoCloseable {
 
-public class FeelAnnotationIntrospector extends JacksonAnnotationIntrospector {
-
-  private final FeelEngineWrapper feelEngineWrapper;
-
-  public FeelAnnotationIntrospector(FeelEngineWrapper feelEngineWrapper) {
-    this.feelEngineWrapper = feelEngineWrapper;
-  }
+  String put(byte[] data);
 
   @Override
-  public Object findDeserializer(Annotated a) {
-    FEEL ann = _findAnnotation(a, FEEL.class);
-    if (ann != null) {
-      return new FeelDeserializer(feelEngineWrapper);
-    }
-    return super.findDeserializer(a);
-  }
+  void close();
 }

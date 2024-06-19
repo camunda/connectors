@@ -14,27 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.feel.jackson;
+package io.camunda.connector.runtime.core.document;
 
-import com.fasterxml.jackson.databind.introspect.Annotated;
-import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
-import io.camunda.connector.feel.FeelEngineWrapper;
-import io.camunda.connector.feel.annotation.FEEL;
+/**
+ * A store for transient binary data that is only needed in the context of a single outbound
+ * connector execution or a single inbound connector request, and that should not be persisted.
+ */
+public interface TransientDataStore {
 
-public class FeelAnnotationIntrospector extends JacksonAnnotationIntrospector {
+  byte[] get(String dataId);
 
-  private final FeelEngineWrapper feelEngineWrapper;
-
-  public FeelAnnotationIntrospector(FeelEngineWrapper feelEngineWrapper) {
-    this.feelEngineWrapper = feelEngineWrapper;
-  }
-
-  @Override
-  public Object findDeserializer(Annotated a) {
-    FEEL ann = _findAnnotation(a, FEEL.class);
-    if (ann != null) {
-      return new FeelDeserializer(feelEngineWrapper);
-    }
-    return super.findDeserializer(a);
-  }
+  TransientDataTransaction createTransaction();
 }

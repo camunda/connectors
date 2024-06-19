@@ -27,16 +27,18 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.scala.DefaultScalaModule$;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 import org.camunda.feel.FeelEngine;
+import org.camunda.feel.context.FunctionProvider;
+import org.camunda.feel.context.FunctionProvider.CompositeFunctionProvider;
 import org.camunda.feel.impl.JavaValueMapper;
 import org.camunda.feel.impl.SpiServiceLoader;
-import scala.collection.Iterable;
+import scala.collection.JavaConverters;
 import scala.jdk.javaapi.CollectionConverters;
 
 /** Wrapper for the FEEL engine, handling type conversions and expression evaluations. */
@@ -66,6 +68,34 @@ public class FeelEngineWrapper {
             .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
             .disable(SerializationFeature.WRITE_DURATIONS_AS_TIMESTAMPS));
+  }
+
+  /**
+   * Constructor allowing to pass in additional {@link FunctionProvider}s to the FEEL engine.
+   *
+   * @param additionalFunctionProviders the additional function providers to use, in addition to the
+   *     ones discovered via SPI
+   */
+  public FeelEngineWrapper(List<FunctionProvider> additionalFunctionProviders) {
+    this(
+        new FeelEngine.Builder()
+            .customValueMapper(new JavaValueMapper())
+            .functionProvider(mergeProviders(additionalFunctionProviders))
+            .build(),
+        new ObjectMapper()
+            .registerModule(DefaultScalaModule$.MODULE$)
+            .registerModule(new JavaTimeModule())
+            // deserialize unknown types as empty objects
+            .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+            .disable(SerializationFeature.WRITE_DURATIONS_AS_TIMESTAMPS));
+  }
+
+  private static FunctionProvider mergeProviders(List<FunctionProvider> additionalProviders) {
+    var spiProvider = SpiServiceLoader.loadFunctionProvider();
+    var allProviders = new LinkedList<>(additionalProviders);
+    allProviders.add(spiProvider);
+    return new CompositeFunctionProvider(JavaConverters.asScala(allProviders).toList());
   }
 
   /**
@@ -114,25 +144,6 @@ public class FeelEngineWrapper {
       return Optional.of(objectMapper.convertValue(o, MAP_TYPE_REFERENCE));
     } catch (IllegalArgumentException ex) {
       return Optional.empty();
-    }
-  }
-
-  @SuppressWarnings("unchecked")
-  private <T> T sanitizeScalaOutput(T output) {
-    if (output instanceof scala.collection.Map<?, ?> scalaMap) {
-      return (T)
-          CollectionConverters.asJava(scalaMap).entrySet().stream()
-              .collect(
-                  HashMap::new,
-                  (m, v) -> m.put(v.getKey(), sanitizeScalaOutput(v.getValue())),
-                  HashMap::putAll);
-    } else if (output instanceof Iterable<?> scalaIterable) {
-      return (T)
-          StreamSupport.stream(CollectionConverters.asJava(scalaIterable).spliterator(), false)
-              .map(this::sanitizeScalaOutput)
-              .collect(Collectors.toList());
-    } else {
-      return output;
     }
   }
 
@@ -249,7 +260,7 @@ public class FeelEngineWrapper {
       if (clazz.getRawClass().equals(String.class) && jsonNode.isObject()) {
         return (T) objectMapper.writeValueAsString(jsonNode);
       } else {
-        return sanitizeScalaOutput(converter.apply(jsonNode));
+        return FeelEngineWrapperUtil.sanitizeScalaOutput(converter.apply(jsonNode));
       }
     } catch (Exception e) {
       throw new FeelEngineWrapperException(

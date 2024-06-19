@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.EvictingQueue;
 import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.CorrelationResult;
+import io.camunda.connector.api.inbound.DocumentTransaction;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorDefinition;
@@ -28,6 +29,7 @@ import io.camunda.connector.api.secret.SecretProvider;
 import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.feel.FeelEngineWrapperException;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
+import io.camunda.connector.runtime.core.document.TransientDataStore;
 import io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandler;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails;
 import io.camunda.connector.runtime.core.inbound.details.InboundConnectorDetails.ValidInboundConnectorDetails;
@@ -56,6 +58,8 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
 
   private final EvictingQueue<Activity> logs;
 
+  private final TransientDataStore transientDataStore;
+
   public InboundConnectorContextImpl(
       SecretProvider secretProvider,
       ValidationProvider validationProvider,
@@ -63,7 +67,8 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
       InboundCorrelationHandler correlationHandler,
       Consumer<Throwable> cancellationCallback,
       ObjectMapper objectMapper,
-      EvictingQueue logs) {
+      EvictingQueue logs,
+      TransientDataStore transientDataStore) {
     super(secretProvider, validationProvider);
     this.correlationHandler = correlationHandler;
     this.connectorDetails = connectorDetails;
@@ -73,6 +78,7 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
     this.objectMapper = objectMapper;
     this.cancellationCallback = cancellationCallback;
     this.logs = logs;
+    this.transientDataStore = transientDataStore;
   }
 
   @Override
@@ -147,6 +153,11 @@ public class InboundConnectorContextImpl extends AbstractConnectorContext
   @Override
   public List<InboundConnectorElement> connectorElements() {
     return connectorDetails.connectorElements();
+  }
+
+  @Override
+  public DocumentTransaction createDocumentTransaction() {
+    return new DocumentTransactionImpl(transientDataStore);
   }
 
   private Map<String, Object> propertiesWithSecrets;

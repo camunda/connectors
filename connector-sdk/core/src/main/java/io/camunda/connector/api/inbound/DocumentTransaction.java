@@ -14,27 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.feel.jackson;
+package io.camunda.connector.api.inbound;
 
-import com.fasterxml.jackson.databind.introspect.Annotated;
-import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
-import io.camunda.connector.feel.FeelEngineWrapper;
-import io.camunda.connector.feel.annotation.FEEL;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentSource;
 
-public class FeelAnnotationIntrospector extends JacksonAnnotationIntrospector {
+public interface DocumentTransaction extends AutoCloseable {
 
-  private final FeelEngineWrapper feelEngineWrapper;
-
-  public FeelAnnotationIntrospector(FeelEngineWrapper feelEngineWrapper) {
-    this.feelEngineWrapper = feelEngineWrapper;
-  }
-
-  @Override
-  public Object findDeserializer(Annotated a) {
-    FEEL ann = _findAnnotation(a, FEEL.class);
-    if (ann != null) {
-      return new FeelDeserializer(feelEngineWrapper);
-    }
-    return super.findDeserializer(a);
-  }
+  Document createDocument(DocumentSource source);
 }
