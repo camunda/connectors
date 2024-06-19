@@ -11,7 +11,7 @@ Requires the following properties being set,e.g. via application.properties:
 or as environment variables:
 
 ```bash
-ZEEBE_CLIENT_CLOUD_CLUSTER-ID
+ZEEBE_CLIENT_CLOUD_CLUSTERID
 CAMUNDA_SECRETS_PROJECT_ID
 CAMUNDA_SECRETS_PREFIX
 ```
