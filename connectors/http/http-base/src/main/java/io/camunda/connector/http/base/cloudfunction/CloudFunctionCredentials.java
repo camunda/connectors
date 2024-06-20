@@ -43,36 +43,33 @@ public final class CloudFunctionCredentials {
   }
 
   private OAuth2Credentials initializeCredentials(String proxyUrl) {
-    if (proxyUrl == null) {
-      return null;
-    }
-    // Statically try to initialize
     try {
       IdTokenProvider idTokenProvider = createIdTokenProvider();
       return createIdTokenCredentials(proxyUrl, idTokenProvider);
     } catch (Exception ex) {
-      // and run without OAuth if not provided properly
       LOGGER.warn("Could not wire OAuth for proxy, not using OAuth", ex);
-      return null;
+      throw new RuntimeException("Could not wire OAuth for proxy, not using OAuth", ex);
     }
   }
 
   public String getOAuthToken(String proxyUrl) {
-    return cache
-        .get(() -> initializeCredentials(proxyUrl))
-        .map(this::getAccessTokenValue)
-        .orElse(null);
+    return getAccessTokenValue(cache.get(() -> initializeCredentials(proxyUrl)));
   }
 
-  private IdTokenProvider createIdTokenProvider() throws IOException {
+  private IdTokenProvider createIdTokenProvider() {
     // Searches credentials via GOOGLE_APPLICATION_CREDENTIALS
     // See
     // https://cloud.google.com/java/docs/reference/google-auth-library/latest/com.google.auth.oauth2.GoogleCredentials#com_google_auth_oauth2_GoogleCredentials_getApplicationDefault__
-    final var googleCredentials = GoogleCredentials.getApplicationDefault();
-    if (!(googleCredentials instanceof IdTokenProvider)) {
-      throw new IOException("Google Credentials are not an instance of IdTokenProvider.");
+    try {
+      final var googleCredentials = GoogleCredentials.getApplicationDefault();
+      if (!(googleCredentials instanceof IdTokenProvider)) {
+        throw new RuntimeException("Google Credentials are not an instance of IdTokenProvider.");
+      }
+      return (IdTokenProvider) googleCredentials;
+    } catch (IOException e) {
+      throw new RuntimeException(
+          "Could not get Google Credentials using GOOGLE_APPLICATION_CREDENTIALS", e);
     }
-    return (IdTokenProvider) googleCredentials;
   }
 
   private IdTokenCredentials createIdTokenCredentials(
