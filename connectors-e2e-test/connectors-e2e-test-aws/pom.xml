@@ -6,13 +6,13 @@
     <groupId>io.camunda.connector</groupId>
     <artifactId>connector-parent</artifactId>
     <relativePath>../../parent/pom.xml</relativePath>
-    <version>8.5.3</version>
+    <version>8.5.4-rc1</version>
   </parent>
 
   <artifactId>connectors-e2e-test-aws-parent</artifactId>
   <packaging>pom</packaging>
   <name>connectors-e2e-test-aws-parent</name>
-  <version>8.5.3</version>
+  <version>8.5.4-rc1</version>
 
   <modules>
     <module>connectors-e2e-test-aws-base</module>
