@@ -105,6 +105,9 @@
                 </file>
               </files>
               <generateHybridTemplates>true</generateHybridTemplates>
+              <features>
+                <ACKNOWLEDGEMENT_STRATEGY_SELECTION>true</ACKNOWLEDGEMENT_STRATEGY_SELECTION>
+              </features>
             </connector>
           </connectors>
         </configuration>

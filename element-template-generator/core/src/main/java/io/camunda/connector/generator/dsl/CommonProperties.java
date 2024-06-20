@@ -92,7 +92,7 @@ public class CommonProperties {
         .tooltip(
             "Unmatched events are rejected by default, allowing the upstream service to handle the error. Check this box to consume unmatched events and return a success response")
         .group("activation")
-        .value(false)
+        .value(true)
         .binding(new ZeebeProperty("consumeUnmatchedEvents"));
   }
 
