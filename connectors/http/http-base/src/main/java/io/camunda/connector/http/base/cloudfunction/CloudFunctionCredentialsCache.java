@@ -16,10 +16,10 @@
  */
 package io.camunda.connector.http.base.cloudfunction;
 
+import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.OAuth2Credentials;
 import java.io.IOException;
 import java.util.Date;
-import java.util.Optional;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,26 +35,38 @@ public class CloudFunctionCredentialsCache {
    * @param credentialsSupplier Supplier to fetch new credentials
    * @return Optional of credentials
    */
-  public Optional<OAuth2Credentials> get(Supplier<OAuth2Credentials> credentialsSupplier) {
+  public OAuth2Credentials get(Supplier<OAuth2Credentials> credentialsSupplier) {
     if (credentials == null) {
       LOG.debug("Credentials cache is empty, fetching new credentials");
       credentials = credentialsSupplier.get();
     }
 
     try {
-      refreshAccessTokenIfExpired();
-    } catch (IOException e) {
-      LOG.warn("Failed to refresh access token", e);
+      refreshAccessTokenIfExpired(credentials);
+    } catch (Exception e) {
       this.credentials = credentialsSupplier.get();
     }
-    return Optional.ofNullable(credentials);
+    return credentials;
   }
 
-  private void refreshAccessTokenIfExpired() throws IOException {
-    Date expirationTime = credentials.getAccessToken().getExpirationTime();
-    if (expirationTime != null && expirationTime.before(new Date())) {
-      LOG.debug("Access token expired, refreshing");
-      credentials.refreshIfExpired();
+  private void refreshAccessTokenIfExpired(OAuth2Credentials credentials) {
+    try {
+      AccessToken accessToken = credentials.getAccessToken();
+      if (accessToken == null || hasExpired(accessToken)) {
+        // Credentials are not initialized before calling refreshIfExpired
+        // See OAuth2Credentials#getAccessToken for more details
+        if (accessToken != null) {
+          LOG.debug("Access token expired, refreshing");
+        }
+        credentials.refreshIfExpired();
+      }
+    } catch (IOException e) {
+      throw new RuntimeException("Failed to refresh access token", e);
     }
+  }
+
+  private boolean hasExpired(AccessToken accessToken) {
+    return accessToken.getExpirationTime() != null
+        && accessToken.getExpirationTime().before(new Date());
   }
 }

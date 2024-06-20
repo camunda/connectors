@@ -50,8 +50,8 @@ public class CloudFunctionCredentialsCacheTest {
 
     // then
     assertThat(credentialsSupplierCalledCnt.get()).isEqualTo(1);
-    assertThat(credentials).isPresent();
-    assertThat(credentials.get().getAccessToken()).isEqualTo(new AccessToken("fakeToken", dateNow));
+    assertThat(credentials).isNotNull();
+    assertThat(credentials.getAccessToken()).isEqualTo(new AccessToken("fakeToken", dateNow));
   }
 
   @Test
@@ -72,8 +72,8 @@ public class CloudFunctionCredentialsCacheTest {
 
     // then
     assertThat(credentialsSupplierCalledCnt.get()).isEqualTo(1);
-    assertThat(credentials).isPresent();
-    assertThat(credentials.get().getAccessToken()).isEqualTo(new AccessToken("fakeToken", dateNow));
+    assertThat(credentials).isNotNull();
+    assertThat(credentials.getAccessToken()).isEqualTo(new AccessToken("fakeToken", dateNow));
   }
 
   @Test
@@ -99,9 +99,8 @@ public class CloudFunctionCredentialsCacheTest {
 
     // then
     assertThat(credentialsSupplierCalledCnt.get()).isEqualTo(1);
-    assertThat(credentials).isPresent();
-    assertThat(credentials.get().getAccessToken())
-        .isEqualTo(new AccessToken("fakeToken", expiredDate));
+    assertThat(credentials).isNotNull();
+    assertThat(credentials.getAccessToken()).isEqualTo(new AccessToken("fakeToken", expiredDate));
     verify(fakeCredentials, times(1)).refreshIfExpired();
   }
 
