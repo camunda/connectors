@@ -38,7 +38,6 @@ public abstract class BaseTest {
       String CHANNEL_NAME = "#john.channel";
       String THREAD_NAME = "thread_ts";
       String CHANNEL_ID = "12345678";
-
       String TEXT = "_ this is secret test text _";
     }
 

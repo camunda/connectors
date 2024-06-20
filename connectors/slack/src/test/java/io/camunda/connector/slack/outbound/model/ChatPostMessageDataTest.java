@@ -102,7 +102,7 @@ class ChatPostMessageDataTest {
   void invoke_WhenTextIsGiven_ShouldInvoke() throws SlackApiException, IOException {
     // Given
     ChatPostMessageData chatPostMessageData =
-        new ChatPostMessageData("test@test.com", "", "plainText", "test", null);
+        new ChatPostMessageData("test@test.com", "thread_ts", "plainText", "test", null);
 
     when(methodsClient.usersLookupByEmail(any(UsersLookupByEmailRequest.class)))
         .thenReturn(lookupByEmailResponse);
