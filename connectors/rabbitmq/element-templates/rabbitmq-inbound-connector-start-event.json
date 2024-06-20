@@ -243,7 +243,7 @@
   }, {
     "id" : "consumeUnmatchedEvents",
     "label" : "Consume unmatched events",
-    "value" : false,
+    "value" : true,
     "group" : "activation",
     "binding" : {
       "name" : "consumeUnmatchedEvents",
