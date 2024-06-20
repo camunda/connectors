@@ -36,6 +36,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class ChatPostMessageDataTest {
 
+  @Mock private MethodsClient methodsClient;
+  @Mock private UsersLookupByEmailResponse lookupByEmailResponse;
+  @Mock private User user;
+  @Mock private ChatPostMessageResponse chatPostMessageResponse;
+
+  @Captor private ArgumentCaptor<ChatPostMessageRequest> chatPostMessageRequest;
+
   private static final String USERID = "testUserId";
   private static final JsonNode EMPTY_JSON;
 
@@ -46,12 +53,6 @@ class ChatPostMessageDataTest {
       throw new RuntimeException(e);
     }
   }
-
-  @Mock private MethodsClient methodsClient;
-  @Mock private UsersLookupByEmailResponse lookupByEmailResponse;
-  @Mock private User user;
-  @Mock private ChatPostMessageResponse chatPostMessageResponse;
-  @Captor private ArgumentCaptor<ChatPostMessageRequest> chatPostMessageRequest;
 
   @Test
   void invoke_shouldThrowExceptionWhenUserWithoutEmail() throws SlackApiException, IOException {
@@ -79,7 +80,7 @@ class ChatPostMessageDataTest {
   void invoke_shouldFindUserIdByEmail(String email) throws SlackApiException, IOException {
     // Given
     ChatPostMessageData chatPostMessageData =
-        new ChatPostMessageData(email, "thread_ts", "", "test", null);
+        new ChatPostMessageData(email, "thread_ts", "plainText", "test", null);
 
     when(methodsClient.usersLookupByEmail(any(UsersLookupByEmailRequest.class)))
         .thenReturn(lookupByEmailResponse);
@@ -124,45 +125,45 @@ class ChatPostMessageDataTest {
     // Given
     final var blockContent =
         """
-                        [
-                        	{
-                        		"type": "header",
-                        		"text": {
-                        			"type": "plain_text",
-                        			"text": "New request"
-                        		}
-                        	},
-                        	{
-                        		"type": "section",
-                        		"fields": [
-                        			{
-                        				"type": "mrkdwn",
-                        				"text": "*Type:*\\nPaid Time Off"
-                        			},
-                        			{
-                        				"type": "mrkdwn",
-                        				"text": "*Created by:*\\n<example.com|Fred Enriquez>"
-                        			}
-                        		]
-                        	},
-                        	{
-                        		"type": "section",
-                        		"fields": [
-                        			{
-                        				"type": "mrkdwn",
-                        				"text": "*When:*\\nAug 10 - Aug 13"
-                        			}
-                        		]
-                        	},
-                        	{
-                        		"type": "section",
-                        		"text": {
-                        			"type": "mrkdwn",
-                        			"text": "<https://example.com|View request>"
-                        		}
-                        	}
-                        ]
-                        """;
+        [
+        	{
+        		"type": "header",
+        		"text": {
+        			"type": "plain_text",
+        			"text": "New request"
+        		}
+        	},
+        	{
+        		"type": "section",
+        		"fields": [
+        			{
+        				"type": "mrkdwn",
+        				"text": "*Type:*\\nPaid Time Off"
+        			},
+        			{
+        				"type": "mrkdwn",
+        				"text": "*Created by:*\\n<example.com|Fred Enriquez>"
+        			}
+        		]
+        	},
+        	{
+        		"type": "section",
+        		"fields": [
+        			{
+        				"type": "mrkdwn",
+        				"text": "*When:*\\nAug 10 - Aug 13"
+        			}
+        		]
+        	},
+        	{
+        		"type": "section",
+        		"text": {
+        			"type": "mrkdwn",
+        			"text": "<https://example.com|View request>"
+        		}
+        	}
+        ]
+        """;
 
     var objectMapper = ConnectorsObjectMapperSupplier.getCopy();
 
@@ -195,14 +196,14 @@ class ChatPostMessageDataTest {
     // Given
     final var blockContent =
         """
-                        {
-                           "type": "section",
-                           "text": {
-                             "type": "mrkdwn",
-                             "text": "New Paid Time Off request from <example.com|Fred Enriquez>\\n\\n<https://example.com|View request>"
-                           }
-                         }
-                        """;
+        {
+           "type": "section",
+           "text": {
+             "type": "mrkdwn",
+             "text": "New Paid Time Off request from <example.com|Fred Enriquez>\\n\\n<https://example.com|View request>"
+           }
+         }
+        """;
 
     var objectMapper = ConnectorsObjectMapperSupplier.getCopy();
 
