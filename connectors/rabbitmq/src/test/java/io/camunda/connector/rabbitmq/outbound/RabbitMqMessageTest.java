@@ -9,6 +9,7 @@ package io.camunda.connector.rabbitmq.outbound;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.camunda.connector.rabbitmq.outbound.model.RabbitMqMessage;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -57,5 +58,16 @@ class RabbitMqMessageTest {
     final byte[] bodyAsByteArray = MessageUtil.getBodyAsByteArray(rabbitMqMessage.body());
     // then
     assertThat(new String(bodyAsByteArray)).isEqualTo(msgWithDigital);
+  }
+
+  @Test
+  public void getBodyAsByteArray_shouldNotEscapeCharWhenObject() {
+    // Given
+    final Map<String, String> msgWithDigital = Map.of("key", "\"simple\" value");
+    final RabbitMqMessage rabbitMqMessage = new RabbitMqMessage(null, msgWithDigital);
+    // when
+    final byte[] bodyAsByteArray = MessageUtil.getBodyAsByteArray(rabbitMqMessage.body());
+    // then
+    assertThat(new String(bodyAsByteArray)).contains("\\\"");
   }
 }

@@ -62,7 +62,6 @@ public final class MessageUtil {
                 throw new RuntimeException(e);
               }
             })
-        .map(StringEscapeUtils::unescapeJson)
         .map(String::getBytes)
         .orElseThrow(() -> new RuntimeException("Parse error to byte array"));
   }
