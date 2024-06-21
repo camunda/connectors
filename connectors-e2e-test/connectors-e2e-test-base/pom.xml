@@ -6,7 +6,7 @@
         <groupId>io.camunda.connector</groupId>
         <artifactId>connectors-e2e-test-parent</artifactId>
         <relativePath>../pom.xml</relativePath>
-        <version>8.6.0-alpha3-rc2</version>
+        <version>8.6.0-alpha3-rc3</version>
     </parent>
 
     <description>Connectors Test Base project</description>
