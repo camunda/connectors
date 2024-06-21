@@ -24,7 +24,6 @@ import io.camunda.connector.sns.outbound.model.SnsConnectorRequest;
 import io.camunda.connector.sns.outbound.model.SnsConnectorResult;
 import io.camunda.connector.sns.suppliers.SnsClientSupplier;
 import java.util.Optional;
-import org.apache.commons.text.StringEscapeUtils;
 
 @OutboundConnector(
     name = "AWS SNS Outbound",
@@ -81,7 +80,7 @@ public class SnsConnectorFunction implements OutboundConnectorFunction {
     try {
       String topicMessage =
           request.getTopic().getMessage() instanceof String
-              ? StringEscapeUtils.unescapeJson(request.getTopic().getMessage().toString())
+              ? request.getTopic().getMessage().toString()
               : objectMapper.writeValueAsString(request.getTopic().getMessage());
       PublishRequest message =
           new PublishRequest()

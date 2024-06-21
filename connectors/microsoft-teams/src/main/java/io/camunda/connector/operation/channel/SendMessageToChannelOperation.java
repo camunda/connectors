@@ -13,7 +13,6 @@ import com.microsoft.graph.serviceclient.GraphServiceClient;
 import io.camunda.connector.model.request.data.SendMessageToChannel;
 import java.util.Locale;
 import java.util.Optional;
-import org.apache.commons.text.StringEscapeUtils;
 
 public record SendMessageToChannelOperation(SendMessageToChannel model)
     implements ChannelOperation {
@@ -25,7 +24,7 @@ public record SendMessageToChannelOperation(SendMessageToChannel model)
         Optional.ofNullable(model.bodyType())
             .map(type -> BodyType.forValue(type.toLowerCase(Locale.ROOT)))
             .orElse(BodyType.Text));
-    body.setContent(StringEscapeUtils.unescapeJson(model.content()));
+    body.setContent(model.content());
     chatMessage.setBody(body);
     return graphClient
         .teams()

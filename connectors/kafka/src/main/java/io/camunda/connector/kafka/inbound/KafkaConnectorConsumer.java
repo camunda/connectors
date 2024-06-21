@@ -42,7 +42,6 @@ import java.util.concurrent.Executors;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.avro.Schema;
-import org.apache.commons.text.StringEscapeUtils;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -96,8 +95,7 @@ public class KafkaConnectorConsumer {
 
   public void startConsumer() {
     if (elementProps.avro() != null) {
-      var schemaString = StringEscapeUtils.unescapeJson(elementProps.avro().schema());
-      Schema schema = new Schema.Parser().setValidate(true).parse(schemaString);
+      Schema schema = new Schema.Parser().setValidate(true).parse(elementProps.avro().schema());
       AvroSchema avroSchema = new AvroSchema(schema);
       AvroMapper avroMapper = new AvroMapper();
       avroObjectReader = avroMapper.reader(avroSchema);

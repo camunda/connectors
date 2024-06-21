@@ -13,7 +13,6 @@ import com.microsoft.graph.serviceclient.GraphServiceClient;
 import io.camunda.connector.model.request.data.SendMessageInChat;
 import java.util.Locale;
 import java.util.Optional;
-import org.apache.commons.text.StringEscapeUtils;
 
 public record SendMessageInChatChatOperation(SendMessageInChat model) implements ChatOperation {
   @Override
@@ -24,7 +23,7 @@ public record SendMessageInChatChatOperation(SendMessageInChat model) implements
         Optional.ofNullable(model.bodyType())
             .map(type -> BodyType.forValue(type.toLowerCase(Locale.ROOT)))
             .orElse(BodyType.Text));
-    body.setContent(StringEscapeUtils.unescapeJson(model.content()));
+    body.setContent(model.content());
     chatMessage.setBody(body);
     return graphClient.chats().byChatId(model.chatId()).messages().post(chatMessage);
   }

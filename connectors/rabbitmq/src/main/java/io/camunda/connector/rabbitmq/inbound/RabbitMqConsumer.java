@@ -29,7 +29,6 @@ import io.camunda.connector.rabbitmq.inbound.model.RabbitMqInboundResult.RabbitM
 import io.camunda.connector.rabbitmq.supplier.ObjectMapperSupplier;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import org.apache.commons.text.StringEscapeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -143,8 +142,7 @@ public class RabbitMqConsumer extends DefaultConsumer {
       Object bodyAsObject;
       if (isPayloadJson(bodyAsString)) {
         JsonNode bodyAsJsonElement =
-            ObjectMapperSupplier.instance()
-                .readValue(StringEscapeUtils.unescapeJson(bodyAsString), JsonNode.class);
+            ObjectMapperSupplier.instance().readValue(bodyAsString, JsonNode.class);
         if (bodyAsJsonElement instanceof ValueNode bodyAsPrimitive) {
           if (bodyAsPrimitive.isBoolean()) {
             bodyAsObject = bodyAsPrimitive.asBoolean();
@@ -173,8 +171,7 @@ public class RabbitMqConsumer extends DefaultConsumer {
 
   private boolean isPayloadJson(final String bodyAsString) {
     try {
-      ObjectMapperSupplier.instance()
-          .readValue(StringEscapeUtils.unescapeJson(bodyAsString), JsonNode.class);
+      ObjectMapperSupplier.instance().readValue(bodyAsString, JsonNode.class);
     } catch (JsonProcessingException e) {
       return false;
     }

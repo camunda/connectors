@@ -17,7 +17,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 class RabbitMqMessageTest {
 
   @ParameterizedTest
-  @ValueSource(strings = {"{\\\"key\\\": \\\"value\\\"}", "{\n \\\"key\\\":\n \\\"value\\\"} \n "})
+  @ValueSource(strings = {"{\"key\": \"value\"}", "{\n \"key\":\n \"value\"} \n "})
   public void getBodyAsByteArray_shouldRemoveBackslashesFormJson(String input) {
     // Given
     final RabbitMqMessage rabbitMqMessage = new RabbitMqMessage(null, input);
@@ -30,7 +30,7 @@ class RabbitMqMessageTest {
   @Test
   public void getBodyAsByteArray_shouldParseJsonWithInt() {
     // Given
-    final String msgWithDigital = "{\\\"key\\\": -1}";
+    final String msgWithDigital = "{\"key\": -1}";
     final RabbitMqMessage rabbitMqMessage = new RabbitMqMessage(null, msgWithDigital);
     // when
     final byte[] bodyAsByteArray = MessageUtil.getBodyAsByteArray(rabbitMqMessage.body());
