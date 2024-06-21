@@ -119,16 +119,16 @@ public class SnsConnectorFunctionTest extends BaseTest {
     Mockito.when(snsClient.publish(requestArgumentCaptor.capture())).thenReturn(publishResult);
     SnsClientSupplier snsClientSupplier = Mockito.mock(SnsClientSupplier.class);
     Mockito.when(
-                    snsClientSupplier.getSnsClient(
-                            any(AWSCredentialsProvider.class), ArgumentMatchers.anyString()))
-            .thenReturn(snsClient);
+            snsClientSupplier.getSnsClient(
+                any(AWSCredentialsProvider.class), ArgumentMatchers.anyString()))
+        .thenReturn(snsClient);
     connector = new SnsConnectorFunction(snsClientSupplier, objectMapper);
     context =
-            OutboundConnectorContextBuilder.create()
-                    .secret(AWS_ACCESS_KEY, ACTUAL_ACCESS_KEY)
-                    .secret(AWS_SECRET_KEY, ACTUAL_SECRET_KEY)
-                    .variables(REQUEST_WITH_JSON_MSG_BODY_SPECIAL_CHAR)
-                    .build();
+        OutboundConnectorContextBuilder.create()
+            .secret(AWS_ACCESS_KEY, ACTUAL_ACCESS_KEY)
+            .secret(AWS_SECRET_KEY, ACTUAL_SECRET_KEY)
+            .variables(REQUEST_WITH_JSON_MSG_BODY_SPECIAL_CHAR)
+            .build();
 
     // When
     connector.execute(context);

@@ -74,7 +74,7 @@ public abstract class BaseTest {
                   }""";
 
   protected static final String REQUEST_WITH_JSON_MSG_BODY_SPECIAL_CHAR =
-          """
+      """
                       {
                         "authentication":{
                           "secretKey":"abc",
