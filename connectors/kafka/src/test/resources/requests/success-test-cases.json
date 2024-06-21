@@ -1,191 +1,191 @@
 [
   {
-    "testDescription": "Regular happy case",
-    "authentication": {
-      "username": "myLogin",
-      "password": "mySecretPassword"
+    "testDescription":"Regular happy case",
+    "authentication":{
+      "username":"myLogin",
+      "password":"mySecretPassword"
     },
-    "topic": {
-      "bootstrapServers": "kafka-stub.kafka.cloud:1234",
-      "topicName": "some-awesome-topic"
+    "topic":{
+      "bootstrapServers":"kafka-stub.kafka.cloud:1234",
+      "topicName":"some-awesome-topic"
     },
-    "message": {
-      "key": "Happy",
-      "value": "Case"
+    "message":{
+      "key":"Happy",
+      "value":"Case"
     }
   },
   {
-    "testDescription": "Regular happy case with headers",
-    "authentication": {
-      "username": "myLogin",
-      "password": "mySecretPassword"
+    "testDescription":"Regular happy case with headers",
+    "authentication":{
+      "username":"myLogin",
+      "password":"mySecretPassword"
     },
-    "topic": {
-      "bootstrapServers": "kafka-stub.kafka.cloud:1234",
-      "topicName": "some-awesome-topic"
+    "topic":{
+      "bootstrapServers":"kafka-stub.kafka.cloud:1234",
+      "topicName":"some-awesome-topic"
     },
-    "message": {
-      "key": "Happy",
-      "value": "Case"
+    "message":{
+      "key":"Happy",
+      "value":"Case"
     },
-    "headers": {
-      "headerKey1": "headerValue",
-      "headerKey2": "headerValue2"
+    "headers":{
+      "headerKey1":"headerValue",
+      "headerKey2":"headerValue2"
     }
   },
   {
-    "testDescription": "Regular happy case with Avro Schema",
-    "authentication": {
-      "username": "myLogin",
-      "password": "mySecretPassword"
+    "testDescription":"Regular happy case with Avro Schema",
+    "authentication":{
+      "username":"myLogin",
+      "password":"mySecretPassword"
     },
-    "topic": {
-      "bootstrapServers": "kafka-stub.kafka.cloud:1234",
-      "topicName": "some-awesome-topic"
+    "topic":{
+      "bootstrapServers":"kafka-stub.kafka.cloud:1234",
+      "topicName":"some-awesome-topic"
     },
-    "message": {
-      "key": "Happy",
-      "value": {
-        "name": "Testname", "age": 40,
-        "emails": ["test@camunda.com"]
+    "message":{
+      "key":"Happy",
+      "value":{
+        "name":"Testname", "age":40,
+        "emails":["test@camunda.com"]
       }
     },
-    "avro": {
-      "schema": "{\"type\": \"record\",\"name\": \"Employee\",\"fields\": [{\"name\": \"name\", \"type\": \"string\"},{\"name\": \"age\", \"type\": \"int\"},{\"name\": \"emails\", \"type\": {\"type\": \"array\", \"items\": \"string\"}},{\"name\": \"boss\", \"type\": [\"Employee\",\"null\"]}]}"
+    "avro":{
+      "schema":"{\"type\": \"record\",\"name\": \"Employee\",\"fields\": [{\"name\": \"name\", \"type\": \"string\"},{\"name\": \"age\", \"type\": \"int\"},{\"name\": \"emails\", \"type\": {\"type\": \"array\", \"items\": \"string\"}},{\"name\": \"boss\", \"type\": [\"Employee\",\"null\"]}]}"
     }
   },
   {
-    "testDescription": "With additional properties",
-    "authentication": {
-      "username": "myLogin",
-      "password": "mySecretPassword"
+    "testDescription":"With additional properties",
+    "authentication":{
+      "username":"myLogin",
+      "password":"mySecretPassword"
     },
-    "topic": {
-      "bootstrapServers": "kafka-stub.kafka.cloud:1234",
-      "topicName": "some-awesome-topic"
+    "topic":{
+      "bootstrapServers":"kafka-stub.kafka.cloud:1234",
+      "topicName":"some-awesome-topic"
     },
-    "message": {
-      "key": "Happy",
-      "value": "Case"
+    "message":{
+      "key":"Happy",
+      "value":"Case"
     },
-    "additionalProperties": {
-      "transaction.timeout.ms": "20000"
+    "additionalProperties":{
+      "transaction.timeout.ms":"20000"
     }
   },
   {
-    "testDescription": "With overridden properties",
-    "authentication": {
-      "username": "myLogin",
-      "password": "mySecretPassword"
+    "testDescription":"With overridden properties",
+    "authentication":{
+      "username":"myLogin",
+      "password":"mySecretPassword"
     },
-    "topic": {
-      "bootstrapServers": "kafka-stub.kafka.cloud:1234",
-      "topicName": "some-awesome-topic"
+    "topic":{
+      "bootstrapServers":"kafka-stub.kafka.cloud:1234",
+      "topicName":"some-awesome-topic"
     },
-    "groupId": "test-group-id",
-    "message": {
-      "key": "Happy",
-      "value": "Case"
+    "groupId":"test-group-id",
+    "message":{
+      "key":"Happy",
+      "value":"Case"
     },
-    "additionalProperties": {
-      "delivery.timeout.ms": "20000",
-      "value.serializer": "org.apache.kafka.common.serialization.StringSerializer"
+    "additionalProperties":{
+      "delivery.timeout.ms":"20000",
+      "value.serializer":"org.apache.kafka.common.serialization.StringSerializer"
     }
   },
   {
-    "testDescription": "With value as JSON",
-    "authentication": {
-      "username": "myLogin",
-      "password": "mySecretPassword"
+    "testDescription":"With value as JSON",
+    "authentication":{
+      "username":"myLogin",
+      "password":"mySecretPassword"
     },
-    "topic": {
-      "bootstrapServers": "kafka-stub.kafka.cloud:1234",
-      "topicName": "some-awesome-topic"
+    "topic":{
+      "bootstrapServers":"kafka-stub.kafka.cloud:1234",
+      "topicName":"some-awesome-topic"
     },
-    "message": {
-      "key": "Happy",
-      "value": {
-        "documentId": "1234567890", "signee": "User Testerson",
-        "contentBase64": "QXQgbGVhc3Qgc29tZWJvZHkgcmVhZHMgdGhlIHRlc3RzLiBHcmVhdCBqb2Ih"
+    "message":{
+      "key":"Happy",
+      "value":{
+        "documentId":"1234567890", "signee":"User Testerson",
+        "contentBase64":"QXQgbGVhc3Qgc29tZWJvZHkgcmVhZHMgdGhlIHRlc3RzLiBHcmVhdCBqb2Ih"
       }
     },
-    "additionalProperties": {
-      "delivery.timeout.ms": "20000"
+    "additionalProperties":{
+      "delivery.timeout.ms":"20000"
     }
   },
   {
-    "testDescription": "Username as secret",
-    "authentication": {
-      "username": "{{secrets.USER_NAME}}",
-      "password": "mySecretPassword"
+    "testDescription":"Username as secret",
+    "authentication":{
+      "username":"{{secrets.USER_NAME}}",
+      "password":"mySecretPassword"
     },
-    "topic": {
-      "bootstrapServers": "kafka-stub.kafka.cloud:1234",
-      "topicName": "some-awesome-topic"
+    "topic":{
+      "bootstrapServers":"kafka-stub.kafka.cloud:1234",
+      "topicName":"some-awesome-topic"
     },
-    "message": {
-      "key": "Happy",
-      "value": "Case"
+    "message":{
+      "key":"Happy",
+      "value":"Case"
     }
   },
   {
-    "testDescription": "Password as secret",
-    "authentication": {
-      "username": "myLogin",
-      "password": "{{secrets.PASSWORD}}"
+    "testDescription":"Password as secret",
+    "authentication":{
+      "username":"myLogin",
+      "password":"{{secrets.PASSWORD}}"
     },
-    "topic": {
-      "bootstrapServers": "kafka-stub.kafka.cloud:1234",
-      "topicName": "some-awesome-topic"
+    "topic":{
+      "bootstrapServers":"kafka-stub.kafka.cloud:1234",
+      "topicName":"some-awesome-topic"
     },
-    "message": {
-      "key": "Happy",
-      "value": "Case"
+    "message":{
+      "key":"Happy",
+      "value":"Case"
     }
   },
   {
-    "testDescription": "Bootstrap server as secret",
-    "authentication": {
-      "username": "myLogin",
-      "password": "mySecretPassword"
+    "testDescription":"Bootstrap server as secret",
+    "authentication":{
+      "username":"myLogin",
+      "password":"mySecretPassword"
     },
-    "topic": {
-      "bootstrapServers": "{{secrets.BOOTSTRAP_SERVER}}",
-      "topicName": "some-awesome-topic"
+    "topic":{
+      "bootstrapServers":"{{secrets.BOOTSTRAP_SERVER}}",
+      "topicName":"some-awesome-topic"
     },
-    "message": {
-      "key": "Happy",
-      "value": "Case"
+    "message":{
+      "key":"Happy",
+      "value":"Case"
     }
   },
   {
-    "testDescription": "Topic name as secret",
-    "authentication": {
-      "username": "myLogin",
-      "password": "mySecretPassword"
+    "testDescription":"Topic name as secret",
+    "authentication":{
+      "username":"myLogin",
+      "password":"mySecretPassword"
     },
-    "topic": {
-      "bootstrapServers": "kafka-stub.kafka.cloud:1234",
-      "topicName": "{{secrets.TOPIC_NAME}}"
+    "topic":{
+      "bootstrapServers":"kafka-stub.kafka.cloud:1234",
+      "topicName":"{{secrets.TOPIC_NAME}}"
     },
-    "message": {
-      "key": "Happy",
-      "value": "Case"
+    "message":{
+      "key":"Happy",
+      "value":"Case"
     }
   },
   {
-    "testDescription": "Topic name as secret",
-    "authentication": {
-      "username": "myLogin",
-      "password": "mySecretPassword"
+    "testDescription":"Topic name as secret",
+    "authentication":{
+      "username":"myLogin",
+      "password":"mySecretPassword"
     },
-    "topic": {
-      "bootstrapServers": "kafka-stub.kafka.cloud:1234",
-      "topicName": "{{secrets.TOPIC_NAME}}"
+    "topic":{
+      "bootstrapServers":"kafka-stub.kafka.cloud:1234",
+      "topicName":"{{secrets.TOPIC_NAME}}"
     },
-    "message": {
-      "key": "Happy \"birthday\"",
-      "value": "Case"
+    "message":{
+      "key":"Happy \"birthday\"",
+      "value":"Case"
     }
   }
 ]
