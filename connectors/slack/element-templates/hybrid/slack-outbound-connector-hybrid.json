@@ -185,6 +185,22 @@
     },
     "type" : "String"
   }, {
+    "id" : "data.thread",
+    "label" : "Thread",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "channel",
+    "binding" : {
+      "name" : "data.thread",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "method",
+      "equals" : "chat.postMessage",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
     "id" : "data.newChannelName",
     "label" : "Channel name",
     "optional" : false,

@@ -36,6 +36,7 @@ public abstract class BaseTest {
       String EMAIL = "john.dou@camundamail.com";
       String USERNAME = "@" + USER_REAL_NAME;
       String CHANNEL_NAME = "#john.channel";
+      String THREAD_NAME = "thread_ts";
       String CHANNEL_ID = "12345678";
       String TEXT = "_ this is secret test text _";
     }
@@ -53,6 +54,7 @@ public abstract class BaseTest {
       String USERNAME = "USERNAME_KEY";
       String CHANNEL_NAME = "CHANNEL_NAME_KEY";
       String CHANNEL_ID = "CHANNEL_ID_KEY";
+      String THREAD_NAME = "THREAD_NAME_KEY";
       String TEXT = "TEXT_KEY";
     }
 
@@ -71,6 +73,9 @@ public abstract class BaseTest {
         .secret(
             SecretsConstant.ChatPostMessageData.CHANNEL_NAME,
             ActualValue.ChatPostMessageData.CHANNEL_NAME)
+        .secret(
+            SecretsConstant.ChatPostMessageData.THREAD_NAME,
+            ActualValue.ChatPostMessageData.THREAD_NAME)
         .secret(
             SecretsConstant.ChatPostMessageData.CHANNEL_ID,
             ActualValue.ChatPostMessageData.CHANNEL_ID)
