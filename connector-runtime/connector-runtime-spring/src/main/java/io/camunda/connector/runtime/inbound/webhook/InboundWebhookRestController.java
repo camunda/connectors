@@ -23,6 +23,8 @@ import static org.springframework.web.bind.annotation.RequestMethod.POST;
 import static org.springframework.web.bind.annotation.RequestMethod.PUT;
 
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.ForwardErrorToUpstream;
+import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.Ignore;
 import io.camunda.connector.api.inbound.CorrelationResult;
 import io.camunda.connector.api.inbound.CorrelationResult.Success.MessagePublished;
 import io.camunda.connector.api.inbound.CorrelationResult.Success.ProcessInstanceCreated;
@@ -134,21 +136,13 @@ public class InboundWebhookRestController {
       response = buildSuccessfulResponse(webhookResult, success);
     } else {
       if (correlationResult instanceof CorrelationResult.Failure failure) {
-        response = buildResponse(webhookResult, failure);
+        switch (failure.handlingStrategy()) {
+          case ForwardErrorToUpstream ignored -> response = buildErrorResponse(failure);
+          case Ignore ignored -> response = buildSuccessfulResponse(webhookResult, null);
+        }
       } else {
         throw new IllegalStateException("Illegal correlation result : " + correlationResult);
       }
-    }
-    return response;
-  }
-
-  private ResponseEntity<?> buildResponse(
-      WebhookResult webhookResult, CorrelationResult.Failure failure) {
-    ResponseEntity<?> response;
-    if (failure instanceof CorrelationResult.Failure.ActivationConditionNotMet) {
-      response = buildSuccessfulResponse(webhookResult, null);
-    } else {
-      response = buildErrorResponse(failure);
     }
     return response;
   }
