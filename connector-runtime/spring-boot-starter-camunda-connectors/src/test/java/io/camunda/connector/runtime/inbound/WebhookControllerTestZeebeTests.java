@@ -173,7 +173,7 @@ class WebhookControllerTestZeebeTests {
   }
 
   @Test
-  public void testSuccessfulProcessingWithFailedActivation() throws Exception {
+  public void testSuccessfulProcessingWithFailedActivation_NoConsumeUnmatched() throws Exception {
     WebhookConnectorExecutable webhookConnectorExecutable = mock(WebhookConnectorExecutable.class);
     WebhookResult webhookResult = mock(WebhookResult.class);
     when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));
@@ -185,6 +185,47 @@ class WebhookControllerTestZeebeTests {
     var correlationHandlerMock = mock(InboundCorrelationHandler.class);
     when(correlationHandlerMock.correlate(any(), any()))
         .thenReturn(new CorrelationResult.Failure.ActivationConditionNotMet(false));
+
+    var webhookDef = webhookDefinition("nonExistingProcess", 1, "myPath");
+    var webhookContext =
+        new InboundConnectorContextImpl(
+            secretProvider,
+            v -> {},
+            webhookDef,
+            correlationHandlerMock,
+            (e) -> {},
+            mapper,
+            EvictingQueue.create(10));
+
+    // Register webhook function 'implementation'
+    webhookConnectorRegistry.register(
+        new RegisteredExecutable.Activated(webhookConnectorExecutable, webhookContext));
+
+    ResponseEntity<?> responseEntity =
+        controller.inbound(
+            "myPath",
+            new HashMap<>(),
+            "{}".getBytes(),
+            new HashMap<>(),
+            new MockHttpServletRequest());
+
+    assertEquals(422, responseEntity.getStatusCode().value());
+    assertNotNull(responseEntity.getBody());
+  }
+
+  @Test
+  public void testSuccessfulProcessingWithFailedActivation_ConsumeUnmatched() throws Exception {
+    WebhookConnectorExecutable webhookConnectorExecutable = mock(WebhookConnectorExecutable.class);
+    WebhookResult webhookResult = mock(WebhookResult.class);
+    when(webhookResult.request()).thenReturn(new MappedHttpRequest(Map.of(), Map.of(), Map.of()));
+    when(webhookResult.response())
+        .thenReturn((WebhookResultContext) -> new WebhookHttpResponse(Map.of(), null, null));
+    when(webhookConnectorExecutable.triggerWebhook(any(WebhookProcessingPayload.class)))
+        .thenReturn(webhookResult);
+
+    var correlationHandlerMock = mock(InboundCorrelationHandler.class);
+    when(correlationHandlerMock.correlate(any(), any()))
+        .thenReturn(new CorrelationResult.Failure.ActivationConditionNotMet(true));
 
     var webhookDef = webhookDefinition("nonExistingProcess", 1, "myPath");
     var webhookContext =
