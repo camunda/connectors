@@ -33,7 +33,7 @@ import java.util.function.Function;
     group = "authorization",
     description = "Choose the authorization type",
     defaultValue = "NONE")
-public sealed interface WebhookAuthorization {
+public sealed interface WebhookAuthorization permits None, BasicAuth, ApiKeyAuth, JwtAuth {
 
   @TemplateSubType(id = "NONE", label = "None")
   final class None implements WebhookAuthorization {}
