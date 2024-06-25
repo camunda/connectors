@@ -63,8 +63,8 @@ except in compliance with the proprietary license.</license.inlineheader>
     </dependency>
 
     <dependency>
-      <groupId>io.github.resilience4j</groupId>
-      <artifactId>resilience4j-retry</artifactId>
+      <groupId>dev.failsafe</groupId>
+      <artifactId>failsafe</artifactId>
     </dependency>
 
     <dependency>

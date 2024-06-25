@@ -20,6 +20,9 @@ import com.fasterxml.jackson.dataformat.avro.AvroSchema;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.scala.DefaultScalaModule$;
+import dev.failsafe.Failsafe;
+import dev.failsafe.RetryPolicy;
+import dev.failsafe.function.CheckedSupplier;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.ForwardErrorToUpstream;
@@ -30,8 +33,6 @@ import io.camunda.connector.api.inbound.CorrelationResult.Success;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.Severity;
-import io.github.resilience4j.retry.Retry;
-import io.github.resilience4j.retry.RetryConfig;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
@@ -67,7 +68,7 @@ public class KafkaConnectorConsumer {
 
   private Health consumerStatus = Health.unknown();
 
-  private final RetryConfig retryConfig;
+  private final RetryPolicy<Object> retryPolicy;
 
   public static ObjectMapper objectMapper =
       new ObjectMapper()
@@ -90,12 +91,12 @@ public class KafkaConnectorConsumer {
       final Function<Properties, Consumer<Object, Object>> consumerCreatorFunction,
       final InboundConnectorContext connectorContext,
       final KafkaConnectorProperties elementProps,
-      final RetryConfig retryConfig) {
+      final RetryPolicy<Object> retryPolicy) {
     this.consumerCreatorFunction = consumerCreatorFunction;
     this.context = connectorContext;
     this.elementProps = elementProps;
     this.executorService = Executors.newSingleThreadExecutor();
-    this.retryConfig = retryConfig;
+    this.retryPolicy = retryPolicy;
   }
 
   public void startConsumer() {
@@ -106,24 +107,25 @@ public class KafkaConnectorConsumer {
       avroObjectReader = avroMapper.reader(avroSchema);
     }
 
-    Retry retry = Retry.of("kafkaConnectorRetry", retryConfig);
-    var consumerLoop =
-        Retry.decorateRunnable(
-            retry,
-            () -> {
-              try {
-                prepareConsumer();
-                consume();
-              } catch (Exception ex) {
-                LOG.error("Consumer loop failure, retry pending: {}", ex.getMessage());
-                throw ex;
-              }
-            });
-    this.future =
-        CompletableFuture.runAsync(consumerLoop, this.executorService)
+    CheckedSupplier<Void> retryableFutureSupplier =
+        () -> {
+          try {
+            prepareConsumer();
+            consume();
+            return null;
+          } catch (Exception ex) {
+            LOG.error("Consumer loop failure, retry pending: {}", ex.getMessage());
+            throw ex;
+          }
+        };
+
+    future =
+        Failsafe.with(retryPolicy)
+            .with(executorService)
+            .getAsync(retryableFutureSupplier)
             .exceptionally(
-                (ex) -> { // to exit the loop on retry exhaustion
-                  this.shouldLoop = false;
+                (e) -> {
+                  shouldLoop = false;
                   return null;
                 });
   }
