@@ -28,8 +28,10 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 public class HttpCommonRequest {
+  private static final int DEFAULT_TIMEOUT = 20;
 
   @FEEL
   @NotNull
@@ -162,7 +164,7 @@ public class HttpCommonRequest {
   }
 
   public Integer getConnectionTimeoutInSeconds() {
-    return connectionTimeoutInSeconds;
+    return Optional.ofNullable(connectionTimeoutInSeconds).orElse(DEFAULT_TIMEOUT);
   }
 
   public void setConnectionTimeoutInSeconds(Integer connectionTimeoutInSeconds) {
@@ -170,7 +172,7 @@ public class HttpCommonRequest {
   }
 
   public Integer getReadTimeoutInSeconds() {
-    return readTimeoutInSeconds;
+    return Optional.ofNullable(readTimeoutInSeconds).orElse(DEFAULT_TIMEOUT);
   }
 
   public void setReadTimeoutInSeconds(final Integer readTimeoutInSeconds) {

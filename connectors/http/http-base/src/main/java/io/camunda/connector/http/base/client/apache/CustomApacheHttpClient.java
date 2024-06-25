@@ -26,7 +26,6 @@ import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.util.Optional;
 import org.apache.hc.client5.http.ClientProtocolException;
 import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
@@ -144,15 +143,9 @@ public class CustomApacheHttpClient implements HttpClient {
   }
 
   private RequestConfig getRequestConfig(HttpCommonRequest request) {
-    var connectionTimeout =
-        Optional.ofNullable(request.getConnectionTimeoutInSeconds())
-            .map(Timeout::ofSeconds)
-            .orElse(null);
-    var readTimeout =
-        Optional.ofNullable(request.getReadTimeoutInSeconds()).map(Timeout::ofSeconds).orElse(null);
     return RequestConfig.custom()
-        .setConnectionRequestTimeout(connectionTimeout)
-        .setResponseTimeout(readTimeout)
+        .setConnectionRequestTimeout(Timeout.ofSeconds(request.getConnectionTimeoutInSeconds()))
+        .setResponseTimeout(Timeout.ofSeconds(request.getReadTimeoutInSeconds()))
         .build();
   }
 }
