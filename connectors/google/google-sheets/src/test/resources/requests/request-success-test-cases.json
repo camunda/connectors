@@ -143,6 +143,19 @@
     }
   },
   {
+    "testDescription": "Create row without row index",
+    "authentication": {
+      "authType": "bearer",
+      "bearerToken": "MyRealToken"
+    },
+    "operation": {
+      "values": ["{{secrets.ROW}}"],
+      "spreadsheetId": "id",
+      "worksheetName": "worksheet",
+      "type": "createRow"
+    }
+  },
+  {
     "testDescription": "Delete column by index as number",
     "authentication": {
       "authType": "bearer",

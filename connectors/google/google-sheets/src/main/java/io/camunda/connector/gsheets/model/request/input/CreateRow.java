@@ -13,7 +13,6 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyC
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
 @TemplateSubType(id = "createRow", label = "Create row")
@@ -43,9 +42,8 @@ public record CreateRow(
                 "Enter row index. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#what-is-a-row-index\" target=\"_blank\">documentation</a>",
             group = "operationDetails",
             feel = FeelMode.optional,
-            constraints = @PropertyConstraints(notEmpty = true),
+            optional = true,
             binding = @PropertyBinding(name = "operation.rowIndex"))
-        @NotNull
         Integer rowIndex,
     @TemplateProperty(
             label = "Enter values",

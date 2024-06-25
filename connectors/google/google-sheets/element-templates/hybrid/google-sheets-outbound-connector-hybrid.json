@@ -447,10 +447,7 @@
     "id" : "createRow.rowIndex",
     "label" : "Row index",
     "description" : "Enter row index. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#what-is-a-row-index\" target=\"_blank\">documentation</a>",
-    "optional" : false,
-    "constraints" : {
-      "notEmpty" : true
-    },
+    "optional" : true,
     "feel" : "optional",
     "group" : "operationDetails",
     "binding" : {
