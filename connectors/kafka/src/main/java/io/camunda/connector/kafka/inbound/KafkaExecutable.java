@@ -6,6 +6,7 @@
  */
 package io.camunda.connector.kafka.inbound;
 
+import dev.failsafe.RetryPolicy;
 import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.Health;
@@ -14,7 +15,6 @@ import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.api.inbound.Severity;
 import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
-import io.github.resilience4j.retry.RetryConfig;
 import java.time.Duration;
 import java.util.Properties;
 import java.util.function.Function;
@@ -65,17 +65,19 @@ public class KafkaExecutable implements InboundConnectorExecutable<InboundConnec
   private final Function<Properties, Consumer<Object, Object>> consumerCreatorFunction;
   public KafkaConnectorConsumer kafkaConnectorConsumer;
 
-  private final RetryConfig retryConfig;
+  private final RetryPolicy<Object> retryPolicy;
 
   public KafkaExecutable(
       final Function<Properties, Consumer<Object, Object>> consumerCreatorFunction,
-      final RetryConfig retryConfig) {
+      final RetryPolicy<Object> retryConfig) {
     this.consumerCreatorFunction = consumerCreatorFunction;
-    this.retryConfig = retryConfig;
+    this.retryPolicy = retryConfig;
   }
 
   public KafkaExecutable() {
-    this(KafkaConsumer::new, RetryConfig.custom().waitDuration(Duration.ofSeconds(30)).build());
+    this(
+        KafkaConsumer::new,
+        RetryPolicy.builder().handle(Exception.class).withDelay(Duration.ofSeconds(30)).build());
   }
 
   @Override
@@ -90,7 +92,7 @@ public class KafkaExecutable implements InboundConnectorExecutable<InboundConnec
       KafkaConnectorProperties elementProps =
           context.bindProperties(KafkaConnectorProperties.class);
       this.kafkaConnectorConsumer =
-          new KafkaConnectorConsumer(consumerCreatorFunction, context, elementProps, retryConfig);
+          new KafkaConnectorConsumer(consumerCreatorFunction, context, elementProps, retryPolicy);
       this.kafkaConnectorConsumer.startConsumer();
       context.log(
           Activity.level(Severity.INFO)

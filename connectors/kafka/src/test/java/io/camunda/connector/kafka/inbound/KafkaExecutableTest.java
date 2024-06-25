@@ -24,13 +24,13 @@ import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import dev.failsafe.RetryPolicy;
 import io.camunda.connector.kafka.model.KafkaAuthentication;
 import io.camunda.connector.kafka.model.KafkaTopic;
 import io.camunda.connector.kafka.model.SerializationType;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
 import io.camunda.connector.test.inbound.InboundConnectorDefinitionBuilder;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
-import io.github.resilience4j.retry.RetryConfig;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -273,9 +273,10 @@ public class KafkaExecutableTest {
   public KafkaExecutable getConsumerMock() {
     return new KafkaExecutable(
         properties -> mockConsumer,
-        RetryConfig.custom()
-            .waitDuration(Duration.ofMillis(500))
-            .maxAttempts(MAX_ATTEMPTS)
+        RetryPolicy.builder()
+            .handle(Exception.class)
+            .withDelay(Duration.ofMillis(500))
+            .withMaxAttempts(MAX_ATTEMPTS)
             .build());
   }
 
