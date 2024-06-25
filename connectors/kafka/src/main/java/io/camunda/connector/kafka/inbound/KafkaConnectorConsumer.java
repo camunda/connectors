@@ -30,6 +30,8 @@ import io.camunda.connector.api.inbound.CorrelationResult.Success;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.Severity;
+import io.github.resilience4j.retry.Retry;
+import io.github.resilience4j.retry.RetryConfig;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
@@ -45,7 +47,6 @@ import org.apache.avro.Schema;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.consumer.OffsetOutOfRangeException;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
@@ -65,6 +66,8 @@ public class KafkaConnectorConsumer {
   KafkaConnectorProperties elementProps;
 
   private Health consumerStatus = Health.unknown();
+
+  private final RetryConfig retryConfig;
 
   public static ObjectMapper objectMapper =
       new ObjectMapper()
@@ -86,11 +89,13 @@ public class KafkaConnectorConsumer {
   public KafkaConnectorConsumer(
       final Function<Properties, Consumer<Object, Object>> consumerCreatorFunction,
       final InboundConnectorContext connectorContext,
-      final KafkaConnectorProperties elementProps) {
+      final KafkaConnectorProperties elementProps,
+      final RetryConfig retryConfig) {
     this.consumerCreatorFunction = consumerCreatorFunction;
     this.context = connectorContext;
     this.elementProps = elementProps;
     this.executorService = Executors.newSingleThreadExecutor();
+    this.retryConfig = retryConfig;
   }
 
   public void startConsumer() {
@@ -100,13 +105,27 @@ public class KafkaConnectorConsumer {
       AvroMapper avroMapper = new AvroMapper();
       avroObjectReader = avroMapper.reader(avroSchema);
     }
-    this.future =
-        CompletableFuture.runAsync(
+
+    Retry retry = Retry.of("kafkaConnectorRetry", retryConfig);
+    var consumerLoop =
+        Retry.decorateRunnable(
+            retry,
             () -> {
-              prepareConsumer();
-              consume();
-            },
-            this.executorService);
+              try {
+                prepareConsumer();
+                consume();
+              } catch (Exception ex) {
+                LOG.error("Consumer loop failure, retry pending: {}", ex.getMessage());
+                throw ex;
+              }
+            });
+    this.future =
+        CompletableFuture.runAsync(consumerLoop, this.executorService)
+            .exceptionally(
+                (ex) -> { // to exit the loop on retry exhaustion
+                  this.shouldLoop = false;
+                  return null;
+                });
   }
 
   private void prepareConsumer() {
@@ -160,9 +179,7 @@ public class KafkaConnectorConsumer {
         reportUp();
       } catch (Exception ex) {
         reportDown(ex);
-        if (ex instanceof OffsetOutOfRangeException) {
-          throw ex;
-        }
+        throw ex;
       }
     }
     LOG.debug("Kafka inbound loop finished");
