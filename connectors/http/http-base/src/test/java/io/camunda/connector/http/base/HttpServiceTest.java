@@ -100,7 +100,9 @@ public class HttpServiceTest {
     stubFor(
         post("/path")
             .willReturn(
-                ok().withJsonBody(
+                ok().withHeader("Set-Cookie", "key=value")
+                    .withHeader("Set-Cookie", "key2=value2")
+                    .withJsonBody(
                         JsonNodeFactory.instance
                             .objectNode()
                             .put("responseKey1", "value1")
@@ -120,6 +122,8 @@ public class HttpServiceTest {
     // then
     assertThat(result).isNotNull();
     assertThat(result.status()).isEqualTo(200);
+    assertThat(result.headers()).contains(Map.entry("Set-Cookie", "key=value"));
+    assertThat(result.headers()).doesNotContain(Map.entry("Set-Cookie", "key2=value2"));
     JSONAssert.assertEquals(
         "{\"responseKey1\":\"value1\",\"responseKey2\":40,\"responseKey3\":null}",
         objectMapper.writeValueAsString(result.body()),

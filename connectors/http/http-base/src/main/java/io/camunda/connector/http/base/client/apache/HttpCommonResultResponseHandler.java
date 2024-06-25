@@ -52,7 +52,9 @@ public class HttpCommonResultResponseHandler
     String reason = response.getReasonPhrase();
     Map<String, Object> headers =
         Arrays.stream(response.getHeaders())
-            .collect(Collectors.toMap(Header::getName, Header::getValue));
+            .collect(
+                // Collect the headers into a map ignoring duplicates (Set Cookies for instance)
+                Collectors.toMap(Header::getName, Header::getValue, (first, second) -> first));
     if (response.getEntity() != null) {
       try (InputStream content = response.getEntity().getContent()) {
         if (cloudFunctionEnabled) {

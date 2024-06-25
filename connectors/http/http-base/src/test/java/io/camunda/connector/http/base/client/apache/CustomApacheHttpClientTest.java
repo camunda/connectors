@@ -201,6 +201,19 @@ public class CustomApacheHttpClientTest {
   class GetTests {
 
     @Test
+    public void shouldReturn200_whenNoTimeouts(WireMockRuntimeInfo wmRuntimeInfo) {
+      stubFor(get("/path").willReturn(ok()));
+      HttpCommonRequest request = new HttpCommonRequest();
+      request.setMethod(HttpMethod.GET);
+      request.setConnectionTimeoutInSeconds(null);
+      request.setReadTimeoutInSeconds(null);
+      request.setUrl(getHostAndPort(wmRuntimeInfo) + "/path");
+      HttpCommonResult result = customApacheHttpClient.execute(request);
+      assertThat(result).isNotNull();
+      assertThat(result.status()).isEqualTo(200);
+    }
+
+    @Test
     public void shouldReturn200WithoutBody_whenEmptyGet(WireMockRuntimeInfo wmRuntimeInfo)
         throws Exception {
       stubFor(get("/path").willReturn(ok()));
