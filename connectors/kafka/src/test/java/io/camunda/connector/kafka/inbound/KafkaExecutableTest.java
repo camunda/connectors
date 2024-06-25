@@ -273,7 +273,10 @@ public class KafkaExecutableTest {
   public KafkaExecutable getConsumerMock() {
     return new KafkaExecutable(
         properties -> mockConsumer,
-        RetryConfig.custom().waitDuration(Duration.ofMillis(500)).maxAttempts(MAX_ATTEMPTS).build());
+        RetryConfig.custom()
+            .waitDuration(Duration.ofMillis(500))
+            .maxAttempts(MAX_ATTEMPTS)
+            .build());
   }
 
   @ParameterizedTest
