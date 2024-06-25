@@ -31,6 +31,8 @@ import java.util.Objects;
 import java.util.Optional;
 
 public class HttpCommonRequest {
+
+  @TemplateProperty(ignore = true)
   private static final int DEFAULT_TIMEOUT = 20;
 
   @FEEL
