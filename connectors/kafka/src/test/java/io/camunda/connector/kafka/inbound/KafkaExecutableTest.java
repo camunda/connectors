@@ -19,6 +19,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -29,6 +30,8 @@ import io.camunda.connector.kafka.model.SerializationType;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
 import io.camunda.connector.test.inbound.InboundConnectorDefinitionBuilder;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
+import io.github.resilience4j.retry.RetryConfig;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -65,6 +68,8 @@ public class KafkaExecutableTest {
   private String topic;
 
   private final String processId = "Process_id";
+
+  private static final int MAX_ATTEMPTS = 3;
 
   @BeforeEach
   public void setUp() {
@@ -146,6 +151,30 @@ public class KafkaExecutableTest {
     assertEquals(originalContext, context);
     assertNotNull(kafkaExecutable.kafkaConnectorConsumer.consumer);
     assertFalse(kafkaExecutable.kafkaConnectorConsumer.shouldLoop);
+  }
+
+  @Test
+  void testActivateAndDeactivate_consumerThrows() {
+    // Given
+    when(mockConsumer.partitionsFor(topic)).thenReturn(topicPartitions);
+    doNothing().when(mockConsumer).assign(any());
+    KafkaExecutable kafkaExecutable = getConsumerMock();
+    var groupMetadataMock = mock(ConsumerGroupMetadata.class);
+    when(groupMetadataMock.groupId()).thenReturn("groupId");
+    when(groupMetadataMock.groupInstanceId()).thenReturn(Optional.of("groupInstanceId"));
+    when(groupMetadataMock.generationId()).thenReturn(1);
+    when(mockConsumer.groupMetadata()).thenReturn(groupMetadataMock);
+
+    // When
+    kafkaExecutable.activate(context);
+    when(mockConsumer.poll(any())).thenThrow(new RuntimeException("Test exception"));
+    await()
+        .atMost(Duration.ofSeconds(5))
+        .until(() -> !kafkaExecutable.kafkaConnectorConsumer.shouldLoop);
+    kafkaExecutable.deactivate();
+
+    // Then
+    verify(mockConsumer, times(MAX_ATTEMPTS)).poll(any());
   }
 
   @Test
@@ -242,7 +271,9 @@ public class KafkaExecutableTest {
   }
 
   public KafkaExecutable getConsumerMock() {
-    return new KafkaExecutable(properties -> mockConsumer);
+    return new KafkaExecutable(
+        properties -> mockConsumer,
+        RetryConfig.custom().waitDuration(Duration.ofSeconds(1)).maxAttempts(MAX_ATTEMPTS).build());
   }
 
   @ParameterizedTest
