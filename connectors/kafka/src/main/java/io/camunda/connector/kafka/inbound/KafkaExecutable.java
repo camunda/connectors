@@ -74,13 +74,15 @@ public class KafkaExecutable implements InboundConnectorExecutable<InboundConnec
     this.retryPolicy = retryConfig;
   }
 
+  private static final int INFINITE_RETRIES = -1;
+
   public KafkaExecutable() {
     this(
         KafkaConsumer::new,
         RetryPolicy.builder()
             .handle(Exception.class)
             .withDelay(Duration.ofSeconds(30))
-            .withMaxAttempts(-1)
+            .withMaxAttempts(INFINITE_RETRIES)
             .build());
   }
 
