@@ -152,5 +152,18 @@ public class OAuthServiceTest {
       // Then
       assertThat(token).isEqualTo("abcd");
     }
+
+    @Test
+    public void shouldReturnToken_whenExtractingTokenFromValidJsonStringWithoutScopes()
+        throws JsonProcessingException {
+      // Given
+      String body = "{\"access_token\": \"abcd\", \"expires_in\":86400,\"token_type\":\"Bearer\"}";
+
+      // When
+      String token = oAuthService.extractTokenFromResponse(body);
+
+      // Then
+      assertThat(token).isEqualTo("abcd");
+    }
   }
 }

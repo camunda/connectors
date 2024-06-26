@@ -57,7 +57,7 @@ public class HttpCommonRequest {
               notEmpty = true,
               pattern = @TemplateProperty.Pattern(value = "^\\d+$", message = "Must be a number")),
       description = "Defines the connection timeout in seconds, or 0 for an infinite timeout")
-  private Integer connectionTimeoutInSeconds = 20;
+  private Integer connectionTimeoutInSeconds;
 
   @TemplateProperty(
       group = "timeout",
@@ -69,7 +69,7 @@ public class HttpCommonRequest {
               pattern = @TemplateProperty.Pattern(value = "^\\d+$", message = "Must be a number")),
       description =
           "Timeout in seconds to read data from an established connection or 0 for an infinite timeout")
-  private Integer readTimeoutInSeconds = 20;
+  private Integer readTimeoutInSeconds;
 
   @FEEL
   @TemplateProperty(
