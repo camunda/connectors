@@ -58,9 +58,7 @@ public class CloudFunctionService {
       String contentAsJson =
           ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.writeValueAsString(request);
       String token = credentials.getOAuthToken(getProxyFunctionUrl());
-      HttpCommonRequest cloudFunctionRequest = createCloudFunctionRequest(contentAsJson, token);
-      copyTimeouts(request, cloudFunctionRequest);
-      return cloudFunctionRequest;
+      return createCloudFunctionRequest(contentAsJson, token);
     } catch (IOException e) {
       LOG.error("Failed to serialize the request to JSON: {}", request, e);
       throw new ConnectorException("Failed to serialize the request to JSON: " + request, e);
@@ -70,11 +68,6 @@ public class CloudFunctionService {
       throw new ConnectorException(
           "Failure during OAuth authentication attempt for the Google cloud function");
     }
-  }
-
-  private void copyTimeouts(HttpCommonRequest request, HttpCommonRequest cloudFunctionRequest) {
-    cloudFunctionRequest.setConnectionTimeoutInSeconds(request.getConnectionTimeoutInSeconds());
-    cloudFunctionRequest.setReadTimeoutInSeconds(request.getReadTimeoutInSeconds());
   }
 
   /**
