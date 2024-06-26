@@ -33,6 +33,7 @@ public class CloudFunctionService {
 
   private static final Logger LOG = LoggerFactory.getLogger(CloudFunctionService.class);
   private static final String PROXY_FUNCTION_URL_ENV_NAME = "CAMUNDA_CONNECTOR_HTTP_PROXY_URL";
+  private static final int NO_TIMEOUT = 0;
   private final String proxyFunctionUrl = System.getenv(PROXY_FUNCTION_URL_ENV_NAME);
   private final CloudFunctionCredentials credentials;
 
@@ -107,7 +108,7 @@ public class CloudFunctionService {
     cloudFunctionRequest.setMethod(HttpMethod.POST);
     cloudFunctionRequest.setUrl(getProxyFunctionUrl());
     cloudFunctionRequest.setBody(contentAsJson);
-    cloudFunctionRequest.setReadTimeoutInSeconds(0);
+    cloudFunctionRequest.setReadTimeoutInSeconds(NO_TIMEOUT);
     cloudFunctionRequest.setHeaders(
         Map.of(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType()));
     cloudFunctionRequest.setAuthentication(new BearerAuthentication(token));
