@@ -29,7 +29,6 @@ public class CreateRowOperation extends GoogleSheetOperation {
 
     try {
       if (Objects.isNull(model.rowIndex())) {
-        String range = buildRange(model.worksheetName(), "1:" + Integer.MAX_VALUE);
         this.append(auth, model.spreadsheetId(), model.worksheetName(), valueRange);
       } else {
         String range = buildRange(model.worksheetName(), buildRowRange(model.rowIndex()));
