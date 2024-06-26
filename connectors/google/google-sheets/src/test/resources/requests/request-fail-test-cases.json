@@ -202,19 +202,6 @@
     }
   },
   {
-    "testDescription": "Create row without row index",
-    "authentication": {
-      "authType": "bearer",
-      "bearerToken": "MyRealToken"
-    },
-    "operation": {
-      "values": [1],
-      "spreadsheetId": "id",
-      "worksheetName": "name",
-      "type": "createRow"
-    }
-  },
-  {
     "testDescription": "Create row without row values",
     "authentication": {
       "authType": "bearer",

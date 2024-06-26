@@ -79,4 +79,47 @@ class CreateRowOperationTest extends BaseTest {
           .execute();
     }
   }
+
+  @DisplayName("Should create row in defined worksheet even if no row index is specified")
+  @Test
+  void createRow_shouldCreateRowWithoutIndexInDefinedWorksheet() throws IOException {
+    // Given
+    List<Object> row = List.of(1, 2, 3);
+    List<List<Object>> values = List.of(List.of());
+    ValueRange valueRange = new ValueRange().setValues(values);
+
+    CreateRow model = new CreateRow(SPREADSHEET_ID, WORKSHEET_NAME, null, row);
+
+    try (MockedStatic<GoogleSheetsServiceSupplier> mockedServiceSupplier =
+        mockStatic(GoogleSheetsServiceSupplier.class)) {
+      mockedServiceSupplier
+          .when(() -> GoogleSheetsServiceSupplier.getGoogleSheetsService(any()))
+          .thenReturn(service);
+
+      when(service
+              .spreadsheets()
+              .values()
+              .append(anyString(), any(), any())
+              .setValueInputOption(any())
+              .execute())
+          .thenReturn(null);
+
+      // When
+      new CreateRowOperation(model)
+          .execute(new Authentication(AuthenticationType.BEARER, "abc", null, null, null));
+
+      // Then
+      mockedServiceSupplier.verify(
+          () ->
+              GoogleSheetsServiceSupplier.getGoogleSheetsService(
+                  new Authentication(AuthenticationType.BEARER, "abc", null, null, null)));
+      verify(
+              service
+                  .spreadsheets()
+                  .values()
+                  .append(SPREADSHEET_ID, this.getRangeWithWorksheetName(), valueRange)
+                  .setValueInputOption("USER_ENTERED"))
+          .execute();
+    }
+  }
 }

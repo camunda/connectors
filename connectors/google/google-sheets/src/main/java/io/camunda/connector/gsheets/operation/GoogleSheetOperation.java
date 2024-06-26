@@ -50,6 +50,22 @@ public abstract class GoogleSheetOperation {
         .execute();
   }
 
+  protected final void append(
+      final Authentication auth,
+      final String spreadsheetId,
+      final String range,
+      final ValueRange valueRange)
+      throws IOException {
+    Sheets service = GoogleSheetsServiceSupplier.getGoogleSheetsService(auth);
+
+    service
+        .spreadsheets()
+        .values()
+        .append(spreadsheetId, range, valueRange)
+        .setValueInputOption(VALUE_INPUT_OPTION)
+        .execute();
+  }
+
   protected final List<List<Object>> get(
       final Authentication auth, final String spreadsheetId, final String range)
       throws IOException {
