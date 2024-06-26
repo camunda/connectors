@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.http.rest;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.mockito.Mockito.mock;
@@ -58,6 +59,7 @@ class HttpServiceTest extends BaseTest {
     // given
     final var context = getContextBuilderWithSecrets().variables(input).build();
     final var httpJsonRequest = context.bindVariables(HttpJsonRequest.class);
+    var scopes = ((OAuthAuthentication) (httpJsonRequest.getAuthentication())).scopes();
 
     // Mock OAuth request result
     var oauthRequest =
@@ -77,6 +79,21 @@ class HttpServiceTest extends BaseTest {
       // check if the bearer token is correctly added on the header of the main request
       assertEquals("Bearer " + bearerToken, apacheRequest.getHeader("Authorization").getValue());
       assertNotEquals("Bearer abcde", apacheRequest.getHeader("Authorization").getValue());
+      assertThat(oauthRequest.getBody())
+          .isEqualTo(
+              scopes == null
+                  ? Map.of(
+                      "audience",
+                      "https://dev-test.eu.auth0.com/api/v2/",
+                      "grant_type",
+                      "client_credentials")
+                  : Map.of(
+                      "audience",
+                      "https://dev-test.eu.auth0.com/api/v2/",
+                      "grant_type",
+                      "client_credentials",
+                      "scope",
+                      scopes));
     }
   }
 }
