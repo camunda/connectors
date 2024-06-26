@@ -11,6 +11,14 @@ global:
     camunda.cloud/managed-by: Helm
     camunda.cloud/source: argocd
     team: connectors
+  
+  image:
+    pullSecrets:
+    - name: dockerhub-registry
+
+  # still required by some subcharts (e.g. elasticsearch)
+  imagePullSecrets:
+  - name: dockerhub-registry
 
   # Preview environment configurations
   preview:
@@ -72,6 +80,7 @@ camunda-platform:
       repository: team-connectors/connectors-bundle
       pullSecrets:
       - name: registry-camunda-cloud
+      - name: dockerhub-registry
     env:
     - name: JAVA_OPTS
       value: "-Xms512m -Xmx512m"
@@ -242,6 +251,7 @@ camunda-platform:
     contextPath: /modeler
     image:
       pullSecrets:
+      - name: dockerhub-registry
       - name: registry-camunda-cloud
       # tag: latest
     restapi:
