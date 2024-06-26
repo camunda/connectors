@@ -77,7 +77,11 @@ public class KafkaExecutable implements InboundConnectorExecutable<InboundConnec
   public KafkaExecutable() {
     this(
         KafkaConsumer::new,
-        RetryPolicy.builder().handle(Exception.class).withDelay(Duration.ofSeconds(30)).build());
+        RetryPolicy.builder()
+            .handle(Exception.class)
+            .withDelay(Duration.ofSeconds(30))
+            .withMaxAttempts(-1)
+            .build());
   }
 
   @Override
