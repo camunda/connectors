@@ -68,6 +68,18 @@ class SendMessageInChatTest extends BaseTest {
     assertThat(chatMessage.getBody().getContent()).isEqualTo("content");
   }
 
+  @Test
+  public void invoke_shouldSetTextBodyTypeContentIsNotEscaped() {
+    // Given SendMessageInChat without bodyType
+    // When
+    sendMessageInChat = new SendMessageInChat(ActualValue.Chat.CHAT_ID, "\"normal\" content", null);
+    operationFactory.getService(sendMessageInChat).invoke(graphServiceClient);
+    // Then
+    ChatMessage chatMessage = chatMessageCaptor.getValue();
+    assertThat(chatMessage.getBody().getContentType()).isEqualTo(BodyType.Text);
+    assertThat(chatMessage.getBody().getContent()).isEqualTo("\"normal\" content");
+  }
+
   @ParameterizedTest
   @ValueSource(strings = {"html", "HTML", "text", "TexT"})
   public void invoke_shouldSetTextBodyType(String input) {

@@ -28,7 +28,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import org.apache.avro.Schema;
-import org.apache.commons.text.StringEscapeUtils;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -82,13 +81,13 @@ public class KafkaConnectorFunction implements OutboundConnectorFunction {
   }
 
   public static byte[] produceAvroMessage(final KafkaConnectorRequest request) throws Exception {
-    var schemaString = StringEscapeUtils.unescapeJson(request.avro().schema());
+    var schemaString = request.avro().schema();
     Schema raw = new Schema.Parser().setValidate(true).parse(schemaString);
     AvroSchema schema = new AvroSchema(raw);
     AvroMapper avroMapper = new AvroMapper();
     Object messageValue = request.message().value();
     if (messageValue instanceof String messageValueAsString) {
-      messageValue = objectMapper.readTree(StringEscapeUtils.unescapeJson(messageValueAsString));
+      messageValue = objectMapper.readTree(messageValueAsString);
     }
     return avroMapper.writer(schema).writeValueAsBytes(messageValue);
   }

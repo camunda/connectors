@@ -1,6 +1,6 @@
 [
   {
-    "testDescription": "Regular happy case",
+    "testDescription":"Regular happy case",
     "authentication":{
       "username":"myLogin",
       "password":"mySecretPassword"
@@ -15,7 +15,7 @@
     }
   },
   {
-    "testDescription": "Regular happy case with headers",
+    "testDescription":"Regular happy case with headers",
     "authentication":{
       "username":"myLogin",
       "password":"mySecretPassword"
@@ -28,13 +28,13 @@
       "key":"Happy",
       "value":"Case"
     },
-    "headers": {
+    "headers":{
       "headerKey1":"headerValue",
       "headerKey2":"headerValue2"
     }
   },
   {
-    "testDescription": "Regular happy case with Avro Schema",
+    "testDescription":"Regular happy case with Avro Schema",
     "authentication":{
       "username":"myLogin",
       "password":"mySecretPassword"
@@ -45,16 +45,17 @@
     },
     "message":{
       "key":"Happy",
-      "value":{"name":  "Testname", "age": 40,
-        "emails": ["test@camunda.com"]
+      "value":{
+        "name":"Testname", "age":40,
+        "emails":["test@camunda.com"]
       }
     },
-    "avro": {
-      "schema": "{\"type\": \"record\",\"name\": \"Employee\",\"fields\": [{\"name\": \"name\", \"type\": \"string\"},{\"name\": \"age\", \"type\": \"int\"},{\"name\": \"emails\", \"type\": {\"type\": \"array\", \"items\": \"string\"}},{\"name\": \"boss\", \"type\": [\"Employee\",\"null\"]}]}"
+    "avro":{
+      "schema":"{\"type\": \"record\",\"name\": \"Employee\",\"fields\": [{\"name\": \"name\", \"type\": \"string\"},{\"name\": \"age\", \"type\": \"int\"},{\"name\": \"emails\", \"type\": {\"type\": \"array\", \"items\": \"string\"}},{\"name\": \"boss\", \"type\": [\"Employee\",\"null\"]}]}"
     }
   },
   {
-    "testDescription": "With additional properties",
+    "testDescription":"With additional properties",
     "authentication":{
       "username":"myLogin",
       "password":"mySecretPassword"
@@ -67,12 +68,12 @@
       "key":"Happy",
       "value":"Case"
     },
-    "additionalProperties" : {
-      "transaction.timeout.ms": "20000"
+    "additionalProperties":{
+      "transaction.timeout.ms":"20000"
     }
   },
   {
-    "testDescription": "With overridden properties",
+    "testDescription":"With overridden properties",
     "authentication":{
       "username":"myLogin",
       "password":"mySecretPassword"
@@ -81,18 +82,18 @@
       "bootstrapServers":"kafka-stub.kafka.cloud:1234",
       "topicName":"some-awesome-topic"
     },
-    "groupId":  "test-group-id",
+    "groupId":"test-group-id",
     "message":{
       "key":"Happy",
       "value":"Case"
     },
-    "additionalProperties" : {
-      "delivery.timeout.ms": "20000",
+    "additionalProperties":{
+      "delivery.timeout.ms":"20000",
       "value.serializer":"org.apache.kafka.common.serialization.StringSerializer"
     }
   },
   {
-    "testDescription": "With value as JSON",
+    "testDescription":"With value as JSON",
     "authentication":{
       "username":"myLogin",
       "password":"mySecretPassword"
@@ -103,14 +104,17 @@
     },
     "message":{
       "key":"Happy",
-      "value": {"documentId": "1234567890", "signee": "User Testerson", "contentBase64": "QXQgbGVhc3Qgc29tZWJvZHkgcmVhZHMgdGhlIHRlc3RzLiBHcmVhdCBqb2Ih"}
+      "value":{
+        "documentId":"1234567890", "signee":"User Testerson",
+        "contentBase64":"QXQgbGVhc3Qgc29tZWJvZHkgcmVhZHMgdGhlIHRlc3RzLiBHcmVhdCBqb2Ih"
+      }
     },
-    "additionalProperties" : {
-      "delivery.timeout.ms": "20000"
+    "additionalProperties":{
+      "delivery.timeout.ms":"20000"
     }
   },
   {
-    "testDescription": "Username as secret",
+    "testDescription":"Username as secret",
     "authentication":{
       "username":"{{secrets.USER_NAME}}",
       "password":"mySecretPassword"
@@ -125,7 +129,7 @@
     }
   },
   {
-    "testDescription": "Password as secret",
+    "testDescription":"Password as secret",
     "authentication":{
       "username":"myLogin",
       "password":"{{secrets.PASSWORD}}"
@@ -140,7 +144,7 @@
     }
   },
   {
-    "testDescription": "Bootstrap server as secret",
+    "testDescription":"Bootstrap server as secret",
     "authentication":{
       "username":"myLogin",
       "password":"mySecretPassword"
@@ -155,7 +159,7 @@
     }
   },
   {
-    "testDescription": "Topic name as secret",
+    "testDescription":"Topic name as secret",
     "authentication":{
       "username":"myLogin",
       "password":"mySecretPassword"
@@ -166,6 +170,21 @@
     },
     "message":{
       "key":"Happy",
+      "value":"Case"
+    }
+  },
+  {
+    "testDescription":"Topic name as secret",
+    "authentication":{
+      "username":"myLogin",
+      "password":"mySecretPassword"
+    },
+    "topic":{
+      "bootstrapServers":"kafka-stub.kafka.cloud:1234",
+      "topicName":"{{secrets.TOPIC_NAME}}"
+    },
+    "message":{
+      "key":"Happy \"birthday\"",
       "value":"Case"
     }
   }

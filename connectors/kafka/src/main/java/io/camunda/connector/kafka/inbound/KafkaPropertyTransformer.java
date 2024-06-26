@@ -14,7 +14,6 @@ import io.camunda.connector.kafka.outbound.model.KafkaConnectorRequest;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Properties;
-import org.apache.commons.text.StringEscapeUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.config.TopicConfig;
@@ -24,15 +23,12 @@ import org.slf4j.LoggerFactory;
 
 public class KafkaPropertyTransformer {
 
-  private static final Logger LOG = LoggerFactory.getLogger(KafkaPropertyTransformer.class);
-
-  static final String DEFAULT_GROUP_ID_PREFIX = "kafka-inbound-connector";
-
   protected static final String DEFAULT_KEY_DESERIALIZER =
       "org.apache.kafka.common.serialization.StringDeserializer";
-
   protected static final String BYTE_ARRAY_DESERIALIZER =
       "org.apache.kafka.common.serialization.ByteArrayDeserializer";
+  static final String DEFAULT_GROUP_ID_PREFIX = "kafka-inbound-connector";
+  private static final Logger LOG = LoggerFactory.getLogger(KafkaPropertyTransformer.class);
 
   public static Properties getKafkaProperties(
       KafkaConnectorProperties props, InboundConnectorContext context) {
@@ -109,7 +105,7 @@ public class KafkaPropertyTransformer {
       return objectReader.readTree((String) consumerRecord.key());
     } catch (Exception e) {
       LOG.debug("Cannot parse key to json object -> use as string");
-      return StringEscapeUtils.unescapeJson((String) consumerRecord.key());
+      return consumerRecord.key();
     }
   }
 

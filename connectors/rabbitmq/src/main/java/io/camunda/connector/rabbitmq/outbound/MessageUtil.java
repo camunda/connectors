@@ -13,7 +13,6 @@ import com.rabbitmq.client.AMQP;
 import io.camunda.connector.rabbitmq.outbound.model.RabbitMqMessage;
 import io.camunda.connector.rabbitmq.supplier.ObjectMapperSupplier;
 import java.util.Optional;
-import org.apache.commons.text.StringEscapeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,8 +37,7 @@ public final class MessageUtil {
     Object resBody = body;
     if (body instanceof String) {
       try {
-        JsonNode jsonElement =
-            OBJECT_MAPPER.readTree(StringEscapeUtils.unescapeJson(body.toString()));
+        JsonNode jsonElement = OBJECT_MAPPER.readTree(body.toString());
 
         if (jsonElement.isValueNode()) {
           return ((String) body).getBytes();
@@ -62,7 +60,6 @@ public final class MessageUtil {
                 throw new RuntimeException(e);
               }
             })
-        .map(StringEscapeUtils::unescapeJson)
         .map(String::getBytes)
         .orElseThrow(() -> new RuntimeException("Parse error to byte array"));
   }

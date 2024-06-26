@@ -24,7 +24,6 @@ import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import java.io.IOException;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.text.StringEscapeUtils;
 
 @TemplateSubType(id = "chat.postMessage", label = "Post message")
 public record ChatPostMessageData(
@@ -111,8 +110,7 @@ public record ChatPostMessageData(
 
     // Note: both text and block content can co-exist
     if (StringUtils.isNotBlank(text)) {
-      // Temporary workaround related to camunda/zeebe#9859
-      requestBuilder.text(StringEscapeUtils.unescapeJson(text));
+      requestBuilder.text(text);
       // Enables plain text message formatting
       requestBuilder.linkNames(true);
     }
