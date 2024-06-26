@@ -26,6 +26,7 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Pattern;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.commons.lang3.StringUtils;
 
 @TemplateSubType(id = OAuthAuthentication.TYPE, label = "OAuth 2.0")
 public record OAuthAuthentication(
@@ -93,7 +94,9 @@ public record OAuthAuthentication(
     Map<String, String> data = new HashMap<>();
     data.put(OAuthConstants.GRANT_TYPE, GRANT_TYPE);
     data.put(OAuthConstants.AUDIENCE, this.audience());
-    data.put(OAuthConstants.SCOPE, this.scopes());
+    if (StringUtils.isNotBlank(this.scopes())) {
+      data.put(OAuthConstants.SCOPE, this.scopes());
+    }
 
     return data;
   }

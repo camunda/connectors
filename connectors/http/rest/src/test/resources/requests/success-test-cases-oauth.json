@@ -24,5 +24,30 @@
         "email": "jane.doe@exampe.com"
       }
     }
+  },
+  {
+    "descriptionOfTest": "Normal request with oauth without scopes",
+    "method": "post",
+    "url": "http://localhost:8085/http-endpoint",
+    "connectionTimeoutInSeconds": "30",
+    "headers": {
+      "X-Camunda-Cluster-ID": "abcdef",
+      "User-Agent": "http-connector-demo"
+    },
+    "authentication": {
+      "oauthTokenEndpoint": "https://dev-test.eu.auth0.com/api/v2/",
+      "audience": "https://dev-test.eu.auth0.com/api/v2/",
+      "clientId": "{{secrets.CLIENT_ID_KEY}}",
+      "clientSecret": "{{secrets.CLIENT_SECRET_KEY}}",
+      "type": "oauth-client-credentials-flow",
+      "clientAuthentication": "basicAuthHeader"
+    },
+    "body": {
+      "customer": {
+        "id": 1231231,
+        "name": "Jane Doe",
+        "email": "jane.doe@exampe.com"
+      }
+    }
   }
 ]
