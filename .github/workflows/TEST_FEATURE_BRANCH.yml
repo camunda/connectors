@@ -9,6 +9,12 @@ on:
     branches: [ main ]
 
 jobs:
+  validate-commits:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check conventional commits syntax
+        uses: docker://aevea/commitsar
   run-tests:
     runs-on: ubuntu-latest
     steps:
@@ -82,7 +88,7 @@ jobs:
         env:
           PROJECTS: bundle/default-bundle
         run: mvn --batch-mode compile generate-sources package -DskipTests --projects "${PROJECTS}" --also-make
-  
+
       - name: Set up Docker Build
         uses: docker/setup-buildx-action@v3
 
