@@ -15,24 +15,22 @@ import java.util.List;
 import java.util.Map;
 
 public final class URLAndBodyEncodingStrategy implements HMACEncodingStrategy {
-  @Override
-  public byte[] getBytesToSign(final WebhookProcessingPayload payload) throws IOException {
-    return (payload.requestURL() + extractSignatureData(payload)).getBytes();
-  }
 
-  private static String extractSignatureData(final WebhookProcessingPayload payload)
-      throws IOException {
+  private static String extractSignatureData(final WebhookProcessingPayload payload) {
     if (payload.rawBody() == null || payload.rawBody().length == 0) {
       throw new NullPointerException(
           "Can't extract signature data from body, because body is null");
     }
     Map<String, String> signatureData =
-        HttpWebhookUtil.transformRawBodyToMap(
-            payload.rawBody(), HttpWebhookUtil.extractContentType(payload.headers()));
+        checkedCastToMap(
+            HttpWebhookUtil.transformRawBodyToObject(
+                payload.rawBody(), HttpWebhookUtil.extractContentType(payload.headers())),
+            String.class);
 
-    StringBuilder builder = new StringBuilder();
     List<String> sortedKeys = new ArrayList<>(signatureData.keySet());
     Collections.sort(sortedKeys);
+
+    StringBuilder builder = new StringBuilder();
 
     for (String key : sortedKeys) {
       builder.append(key);
@@ -40,5 +38,22 @@ public final class URLAndBodyEncodingStrategy implements HMACEncodingStrategy {
       builder.append(value == null ? "" : value);
     }
     return builder.toString();
+  }
+
+  private static <T> Map<T, T> checkedCastToMap(Object o, Class<T> tClass) {
+    if (o instanceof Map<?, ?> map) {
+      for (Map.Entry<?, ?> entry : map.entrySet()) {
+        if (!(tClass.isInstance(entry.getValue())) || !(tClass.isInstance(entry.getKey()))) {
+          return Map.of();
+        }
+      }
+      return (Map<T, T>) map;
+    }
+    return Map.of();
+  }
+
+  @Override
+  public byte[] getBytesToSign(final WebhookProcessingPayload payload) throws IOException {
+    return (payload.requestURL() + extractSignatureData(payload)).getBytes();
   }
 }

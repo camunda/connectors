@@ -27,7 +27,7 @@ public class HttpWebhookUtil {
     return caseInsensitiveMap.getOrDefault(HttpHeaders.CONTENT_TYPE, "").toString();
   }
 
-  public static Map transformRawBodyToMap(byte[] rawBody, String contentTypeHeader) {
+  public static Object transformRawBodyToObject(byte[] rawBody, String contentTypeHeader) {
     if (rawBody == null) {
       return Collections.emptyMap();
     }
@@ -41,7 +41,7 @@ public class HttpWebhookUtil {
     } else {
       // Do our best to parse to JSON (throws exception otherwise)
       try {
-        return ConnectorsObjectMapperSupplier.getCopy().readValue(rawBody, Map.class);
+        return ConnectorsObjectMapperSupplier.getCopy().readValue(rawBody, Object.class);
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
