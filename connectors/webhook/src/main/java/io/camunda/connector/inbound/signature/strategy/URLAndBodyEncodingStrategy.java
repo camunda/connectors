@@ -8,13 +8,11 @@ package io.camunda.connector.inbound.signature.strategy;
 
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.inbound.utils.HttpWebhookUtil;
-import org.apache.commons.lang3.StringUtils;
-
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import org.apache.commons.lang3.StringUtils;
 
 public final class URLAndBodyEncodingStrategy implements HMACEncodingStrategy {
 
