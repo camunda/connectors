@@ -8,6 +8,8 @@ package io.camunda.connector.inbound.signature.strategy;
 
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.inbound.utils.HttpWebhookUtil;
+import org.apache.commons.lang3.StringUtils;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -21,12 +23,15 @@ public final class URLAndBodyEncodingStrategy implements HMACEncodingStrategy {
       throw new NullPointerException(
           "Can't extract signature data from body, because body is null");
     }
-    Map<String, String> signatureData =
-        checkedCastToMap(
-            HttpWebhookUtil.transformRawBodyToObject(
-                payload.rawBody(), HttpWebhookUtil.extractContentType(payload.headers())),
-            String.class);
 
+    Object rawBody =
+        HttpWebhookUtil.transformRawBodyToObject(
+            payload.rawBody(), HttpWebhookUtil.extractContentType(payload.headers()));
+
+    if (!isMapOf(rawBody, String.class)) {
+      return StringUtils.EMPTY;
+    }
+    Map<String, String> signatureData = (Map<String, String>) rawBody;
     List<String> sortedKeys = new ArrayList<>(signatureData.keySet());
     Collections.sort(sortedKeys);
 
@@ -40,16 +45,16 @@ public final class URLAndBodyEncodingStrategy implements HMACEncodingStrategy {
     return builder.toString();
   }
 
-  private static <T> Map<T, T> checkedCastToMap(Object o, Class<T> tClass) {
+  private static boolean isMapOf(Object o, Class<?> tClass) {
     if (o instanceof Map<?, ?> map) {
       for (Map.Entry<?, ?> entry : map.entrySet()) {
         if (!(tClass.isInstance(entry.getValue())) || !(tClass.isInstance(entry.getKey()))) {
-          return Map.of();
+          return false;
         }
       }
-      return (Map<T, T>) map;
+      return true;
     }
-    return Map.of();
+    return false;
   }
 
   @Override
