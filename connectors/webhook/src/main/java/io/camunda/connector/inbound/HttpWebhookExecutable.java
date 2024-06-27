@@ -45,6 +45,9 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.regex.Pattern;
+
+import org.apache.commons.text.StringEscapeUtils;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -96,6 +99,14 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
   private InboundConnectorContext context;
   private Function<WebhookResultContext, WebhookHttpResponse> responseExpression;
 
+  private static MappedHttpRequest mapRequest(WebhookProcessingPayload payload) {
+    return new MappedHttpRequest(
+        HttpWebhookUtil.transformRawBodyToMap(
+            payload.rawBody(), HttpWebhookUtil.extractContentType(payload.headers())),
+        payload.headers(),
+        payload.params());
+  }
+
   @Override
   public void activate(InboundConnectorContext context) {
     this.context = context;
@@ -136,19 +147,11 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
     }
   }
 
-  private static MappedHttpRequest mapRequest(WebhookProcessingPayload payload) {
-    return new MappedHttpRequest(
-        HttpWebhookUtil.transformRawBodyToMap(
-            payload.rawBody(), HttpWebhookUtil.extractContentType(payload.headers())),
-        payload.headers(),
-        payload.params());
-  }
-
   @Nullable
   private Function<WebhookResultContext, WebhookHttpResponse> mapResponseExpression() {
     Function<WebhookResultContext, WebhookHttpResponse> responseExpression = null;
     if (props.responseExpression() != null) {
-      responseExpression = props.responseExpression();
+      responseExpression = props.responseExpression().andThen(this::sanitizeBody);
     } else if (props.responseBodyExpression() != null) {
       // To be backwards compatible we need to wrap the responseBodyExpression into a
       // responseExpression
@@ -160,6 +163,20 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
           };
     }
     return responseExpression;
+  }
+
+  private WebhookHttpResponse sanitizeBody(WebhookHttpResponse webhookHttpResponse) {
+    if (webhookHttpResponse.body() instanceof String bodyStr
+        && Pattern.compile("<//?[a-z][\\s\\S]*>").matcher(bodyStr).find()) {
+      return new WebhookHttpResponse(
+          StringEscapeUtils.escapeHtml4(bodyStr),
+          webhookHttpResponse.headers(),
+          webhookHttpResponse.statusCode());
+    }
+    return new WebhookHttpResponse(
+        webhookHttpResponse.body(),
+        webhookHttpResponse.headers(),
+        webhookHttpResponse.statusCode());
   }
 
   private void verifySignature(WebhookProcessingPayload payload) {
