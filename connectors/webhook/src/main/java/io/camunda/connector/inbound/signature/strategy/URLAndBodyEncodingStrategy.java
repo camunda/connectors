@@ -28,7 +28,7 @@ public final class URLAndBodyEncodingStrategy implements HMACEncodingStrategy {
         HttpWebhookUtil.transformRawBodyToObject(
             payload.rawBody(), HttpWebhookUtil.extractContentType(payload.headers()));
 
-    if (!isMapOf(rawBody, String.class)) {
+    if (!isMapOfString(rawBody)) {
       return StringUtils.EMPTY;
     }
     Map<String, String> signatureData = (Map<String, String>) rawBody;
@@ -45,20 +45,20 @@ public final class URLAndBodyEncodingStrategy implements HMACEncodingStrategy {
     return builder.toString();
   }
 
-  private static boolean isMapOf(Object o, Class<?> tClass) {
+  private static boolean isMapOfString(Object o) {
     if (o instanceof Map<?, ?> map) {
       for (Map.Entry<?, ?> entry : map.entrySet()) {
-        if (!(tClass.isInstance(entry.getValue())) || !(tClass.isInstance(entry.getKey()))) {
-          return false;
+        if (entry.getValue() instanceof String && entry.getKey() instanceof String) {
+          return true;
         }
       }
-      return true;
+      return false;
     }
     return false;
   }
 
   @Override
-  public byte[] getBytesToSign(final WebhookProcessingPayload payload) throws IOException {
+  public byte[] getBytesToSign(final WebhookProcessingPayload payload) {
     return (payload.requestURL() + extractSignatureData(payload)).getBytes();
   }
 }
