@@ -21,8 +21,8 @@ import static io.camunda.connector.generator.openapi.util.SecurityUtil.parseAuth
 import io.camunda.connector.generator.dsl.http.HttpFeelBuilder;
 import io.camunda.connector.generator.dsl.http.HttpOperation;
 import io.camunda.connector.generator.dsl.http.HttpOperationProperty;
+import io.camunda.connector.generator.dsl.http.OperationParseResult;
 import io.camunda.connector.generator.openapi.OpenApiGenerationSource.Options;
-import io.camunda.connector.generator.openapi.OperationParseResult;
 import io.camunda.connector.generator.openapi.util.BodyUtil.BodyParseResult;
 import io.camunda.connector.http.base.model.HttpMethod;
 import io.swagger.v3.oas.models.Components;

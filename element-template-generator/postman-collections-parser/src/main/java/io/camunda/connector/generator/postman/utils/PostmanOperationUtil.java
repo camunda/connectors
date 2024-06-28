@@ -19,7 +19,7 @@ package io.camunda.connector.generator.postman.utils;
 import io.camunda.connector.generator.dsl.http.HttpFeelBuilder;
 import io.camunda.connector.generator.dsl.http.HttpOperation;
 import io.camunda.connector.generator.dsl.http.HttpOperationProperty;
-import io.camunda.connector.generator.postman.OperationParseResult;
+import io.camunda.connector.generator.dsl.http.OperationParseResult;
 import io.camunda.connector.generator.postman.model.PostmanCollectionV210;
 import io.camunda.connector.generator.postman.model.PostmanCollectionV210.Item;
 import io.camunda.connector.generator.postman.model.PostmanCollectionV210.Item.Endpoint;
