@@ -14,12 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.generator.openapi;
+package io.camunda.connector.generator.dsl.http;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import io.camunda.connector.generator.dsl.http.HttpOperationBuilder;
 
 public record OperationParseResult(
     String id,

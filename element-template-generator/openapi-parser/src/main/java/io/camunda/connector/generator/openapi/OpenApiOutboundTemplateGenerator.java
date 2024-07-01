@@ -30,6 +30,7 @@ import io.camunda.connector.generator.dsl.http.HttpAuthentication.NoAuth;
 import io.camunda.connector.generator.dsl.http.HttpOperationBuilder;
 import io.camunda.connector.generator.dsl.http.HttpOutboundElementTemplateBuilder;
 import io.camunda.connector.generator.dsl.http.HttpServerData;
+import io.camunda.connector.generator.dsl.http.OperationParseResult;
 import io.camunda.connector.generator.openapi.util.OperationUtil;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.servers.Server;
