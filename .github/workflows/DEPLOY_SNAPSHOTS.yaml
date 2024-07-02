@@ -96,7 +96,7 @@ jobs:
           password: ${{ steps.secrets.outputs.DOCKERHUB_PASSWORD }}
 
       - name: Build and Push Docker Image tag SNAPSHOT - connector-runtime
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: connector-runtime/connector-runtime-application/
           push: true
@@ -105,7 +105,7 @@ jobs:
           provenance: false
 
       - name: Build and Push Docker Image tag SNAPSHOT - bundle-default
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: bundle/default-bundle/
           push: true
@@ -114,7 +114,7 @@ jobs:
           provenance: false
 
       - name: Build and Push Docker Image tag SNAPSHOT - bundle-saas
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: bundle/camunda-saas-bundle/
           push: true
