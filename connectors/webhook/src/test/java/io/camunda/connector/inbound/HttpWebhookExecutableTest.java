@@ -525,36 +525,4 @@ class HttpWebhookExecutableTest {
     assertThat(result.headers()).containsEntry("Content-Type", "application/camunda-bin");
     assertThat(result.headers()).hasSize(1);
   }
-
-  @Test
-  void triggerWebhook_JsonBodyWithHtmlResponseExpression() {
-    InboundConnectorContext ctx =
-        InboundConnectorContextBuilder.create()
-            .properties(
-                Map.of(
-                    "inbound",
-                    Map.of(
-                        "context",
-                        "webhookContext",
-                        "method",
-                        "any",
-                        "auth",
-                        Map.of("type", "NONE"),
-                        "responseExpression",
-                        "={\"body\" : \"<html></html>\" }")))
-            .build();
-
-    WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
-    Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
-    Mockito.when(payload.headers())
-        .thenReturn(Map.of(HttpHeaders.CONTENT_TYPE, MediaType.JSON_UTF_8.toString()));
-    Mockito.when(payload.rawBody()).thenReturn("{}".getBytes(StandardCharsets.UTF_8));
-
-    testObject.activate(ctx);
-    var result = testObject.triggerWebhook(payload);
-    WebhookHttpResponse webhookHttpResponse = result.response().apply(null);
-
-    assertNotNull(webhookHttpResponse);
-    assertEquals(webhookHttpResponse.body(), "&lt;html&gt;&lt;/html&gt;");
-  }
 }

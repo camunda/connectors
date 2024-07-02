@@ -45,8 +45,6 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
-import java.util.regex.Pattern;
-import org.apache.commons.text.StringEscapeUtils;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -150,7 +148,7 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
   private Function<WebhookResultContext, WebhookHttpResponse> mapResponseExpression() {
     Function<WebhookResultContext, WebhookHttpResponse> responseExpression = null;
     if (props.responseExpression() != null) {
-      responseExpression = props.responseExpression().andThen(this::sanitizeBody);
+      responseExpression = props.responseExpression();
     } else if (props.responseBodyExpression() != null) {
       // To be backwards compatible we need to wrap the responseBodyExpression into a
       // responseExpression
@@ -162,20 +160,6 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
           };
     }
     return responseExpression;
-  }
-
-  private WebhookHttpResponse sanitizeBody(WebhookHttpResponse webhookHttpResponse) {
-    if (webhookHttpResponse.body() instanceof String bodyStr
-        && Pattern.compile("<//?[a-z][\\s\\S]*>").matcher(bodyStr).find()) {
-      return new WebhookHttpResponse(
-          StringEscapeUtils.escapeHtml4(bodyStr),
-          webhookHttpResponse.headers(),
-          webhookHttpResponse.statusCode());
-    }
-    return new WebhookHttpResponse(
-        webhookHttpResponse.body(),
-        webhookHttpResponse.headers(),
-        webhookHttpResponse.statusCode());
   }
 
   private void verifySignature(WebhookProcessingPayload payload) {

@@ -44,6 +44,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,6 +58,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.util.HtmlUtils;
 
 @RestController
 public class InboundWebhookRestController {
@@ -68,6 +70,25 @@ public class InboundWebhookRestController {
   @Autowired
   public InboundWebhookRestController(final WebhookConnectorRegistry webhookConnectorRegistry) {
     this.webhookConnectorRegistry = webhookConnectorRegistry;
+  }
+
+  protected static ResponseEntity<?> toResponseEntity(WebhookHttpResponse webhookHttpResponse) {
+    int status =
+        Optional.ofNullable(webhookHttpResponse.statusCode()).orElse(HttpStatus.OK.value());
+    HttpHeaders headers = new HttpHeaders();
+    Optional.ofNullable(webhookHttpResponse.headers())
+        .orElse(Collections.emptyMap())
+        .forEach(headers::add);
+    return ResponseEntity.status(status)
+        .headers(headers)
+        .body(escapeValue(webhookHttpResponse.body()));
+  }
+
+  protected static Object escapeValue(Object value) {
+    if (Objects.requireNonNull(value) instanceof String s) {
+      return HtmlUtils.htmlEscape(s);
+    }
+    return value;
   }
 
   @RequestMapping(
@@ -172,16 +193,6 @@ public class InboundWebhookRestController {
       response = ResponseEntity.ok().build();
     }
     return response;
-  }
-
-  protected static ResponseEntity<?> toResponseEntity(WebhookHttpResponse webhookHttpResponse) {
-    int status =
-        Optional.ofNullable(webhookHttpResponse.statusCode()).orElse(HttpStatus.OK.value());
-    HttpHeaders headers = new HttpHeaders();
-    Optional.ofNullable(webhookHttpResponse.headers())
-        .orElse(Collections.emptyMap())
-        .forEach(headers::add);
-    return ResponseEntity.status(status).headers(headers).body(webhookHttpResponse.body());
   }
 
   protected ResponseEntity<?> buildErrorResponse(Exception e) {
