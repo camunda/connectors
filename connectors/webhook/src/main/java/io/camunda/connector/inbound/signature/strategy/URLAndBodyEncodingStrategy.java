@@ -8,11 +8,8 @@ package io.camunda.connector.inbound.signature.strategy;
 
 import io.camunda.connector.api.inbound.webhook.WebhookProcessingPayload;
 import io.camunda.connector.inbound.utils.HttpWebhookUtil;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import org.apache.commons.lang3.StringUtils;
+import java.util.*;
+import java.util.stream.Stream;
 
 public final class URLAndBodyEncodingStrategy implements HMACEncodingStrategy {
 
@@ -26,33 +23,28 @@ public final class URLAndBodyEncodingStrategy implements HMACEncodingStrategy {
         HttpWebhookUtil.transformRawBodyToObject(
             payload.rawBody(), HttpWebhookUtil.extractContentType(payload.headers()));
 
-    if (!isMapOfString(rawBody)) {
-      return StringUtils.EMPTY;
-    }
-    Map<String, String> signatureData = (Map<String, String>) rawBody;
-    List<String> sortedKeys = new ArrayList<>(signatureData.keySet());
-    Collections.sort(sortedKeys);
-
+    List<String> sortedKeys = convertToListOfString(rawBody);
     StringBuilder builder = new StringBuilder();
-
-    for (String key : sortedKeys) {
-      builder.append(key);
-      String value = signatureData.get(key);
-      builder.append(value == null ? "" : value);
-    }
+    sortedKeys.forEach(builder::append);
     return builder.toString();
   }
 
-  private static boolean isMapOfString(Object o) {
+  private static List<String> convertToListOfString(Object o) {
+    Map<String, String> result = new HashMap<>();
     if (o instanceof Map<?, ?> map) {
       for (Map.Entry<?, ?> entry : map.entrySet()) {
-        if (entry.getValue() instanceof String && entry.getKey() instanceof String) {
-          return true;
+        if (entry.getKey() instanceof String key) {
+          result.put(key, entry.getValue() == null ? "" : (String) entry.getValue());
         }
       }
-      return false;
+    } else if (o instanceof List<?> list) {
+      for (int i = 0; i < list.size(); i = i + 2) {
+        if (list.get(i) instanceof String key && i + 1 < list.size()) {
+          result.put(key, list.get(i + 1) == null ? "" : (String) list.get(i + 1));
+        }
+      }
     }
-    return false;
+    return result.keySet().stream().sorted().flatMap(s -> Stream.of(s, result.get(s))).toList();
   }
 
   @Override
