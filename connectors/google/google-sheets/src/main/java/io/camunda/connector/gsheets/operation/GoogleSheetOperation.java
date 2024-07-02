@@ -8,6 +8,7 @@ package io.camunda.connector.gsheets.operation;
 
 import com.google.api.services.sheets.v4.Sheets;
 import com.google.api.services.sheets.v4.model.BatchUpdateSpreadsheetRequest;
+import com.google.api.services.sheets.v4.model.BatchUpdateSpreadsheetResponse;
 import com.google.api.services.sheets.v4.model.ValueRange;
 import io.camunda.connector.gsheets.supplier.GoogleSheetsServiceSupplier;
 import io.camunda.google.model.Authentication;
@@ -17,20 +18,21 @@ import java.util.List;
 public abstract class GoogleSheetOperation {
 
   protected static final String SPREADSHEET_ID_FIELD = "spreadsheetId";
+  protected static final String REPLIES_FIELD = "replies";
   protected static final String SPREADSHEET_URL_FIELD = "spreadsheetUrl";
   protected static final String VALUE_INPUT_OPTION = "USER_ENTERED";
 
   public abstract Object execute(final Authentication auth);
 
-  protected final void batchUpdate(
+  protected final BatchUpdateSpreadsheetResponse batchUpdate(
       final Authentication auth, final String spreadsheetId, BatchUpdateSpreadsheetRequest request)
       throws IOException {
     Sheets service = GoogleSheetsServiceSupplier.getGoogleSheetsService(auth);
 
-    service
+    return service
         .spreadsheets()
         .batchUpdate(spreadsheetId, request)
-        .setFields(buildFields(SPREADSHEET_ID_FIELD))
+        .setFields(buildFields(SPREADSHEET_ID_FIELD, REPLIES_FIELD))
         .execute();
   }
 
