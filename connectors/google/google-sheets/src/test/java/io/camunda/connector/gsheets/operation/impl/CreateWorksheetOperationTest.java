@@ -6,20 +6,19 @@
  */
 package io.camunda.connector.gsheets.operation.impl;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.hasSize;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.hamcrest.MatcherAssert.*;
+import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import com.google.api.services.sheets.v4.Sheets;
+import com.google.api.services.sheets.v4.model.AddSheetResponse;
 import com.google.api.services.sheets.v4.model.BatchUpdateSpreadsheetRequest;
 import com.google.api.services.sheets.v4.model.BatchUpdateSpreadsheetResponse;
 import com.google.api.services.sheets.v4.model.Request;
+import com.google.api.services.sheets.v4.model.Response;
 import com.google.api.services.sheets.v4.model.SheetProperties;
 import io.camunda.connector.gsheets.BaseTest;
 import io.camunda.connector.gsheets.model.request.input.CreateWorksheet;
@@ -27,6 +26,7 @@ import io.camunda.connector.gsheets.supplier.GoogleSheetsServiceSupplier;
 import io.camunda.google.model.Authentication;
 import io.camunda.google.model.AuthenticationType;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -53,6 +53,11 @@ class CreateWorksheetOperationTest extends BaseTest {
   public void before() {
     response = new BatchUpdateSpreadsheetResponse();
     response.setSpreadsheetId(SPREADSHEET_ID);
+    response.setReplies(
+        Collections.singletonList(
+            new Response()
+                .setAddSheet(
+                    new AddSheetResponse().setProperties(new SheetProperties().setSheetId(123)))));
   }
 
   @DisplayName("Should create worksheet in the end of worksheets")
@@ -74,8 +79,12 @@ class CreateWorksheetOperationTest extends BaseTest {
           .thenReturn(response);
 
       // When
-      new CreateWorksheetOperation(model)
-          .execute(new Authentication(AuthenticationType.BEARER, "abc", null, null, null));
+      Object response =
+          new CreateWorksheetOperation(model)
+              .execute(new Authentication(AuthenticationType.BEARER, "abc", null, null, null));
+      assertThat(response.getClass(), typeCompatibleWith(SheetProperties.class));
+      SheetProperties responseTyped = (SheetProperties) response;
+      assertThat(responseTyped.getSheetId(), is(123));
 
       // Then
       mockedServiceSupplier.verify(
