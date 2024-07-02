@@ -30,7 +30,7 @@ final class ApiKeyAuthHandler extends WebhookAuthorizationHandler<ApiKeyAuth> {
       WebhookTriggerResultContext result =
           new WebhookTriggerResultContext(
               new MappedHttpRequest(
-                  HttpWebhookUtil.transformRawBodyToMap(
+                  HttpWebhookUtil.transformRawBodyToObject(
                       payload.rawBody(), HttpWebhookUtil.extractContentType(payload.headers())),
                   payload.headers(),
                   payload.params()),

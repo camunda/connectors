@@ -59,7 +59,7 @@ public class HMACTwilioSignatureTest {
   @ParameterizedTest
   @MethodSource("successCases")
   public void hmacSignatureVerificationParametrizedTest_shouldPassHMACValidation(
-      final WebhookProcessingPayload webhookProcessingPayload) throws Exception {
+      final WebhookProcessingPayload webhookProcessingPayload) {
     // Given
     Map<String, Object> nestedProps = (Map<String, Object>) baseProperties.get("inbound");
     if (webhookProcessingPayload.method().equalsIgnoreCase(HttpMethods.get.name())) {
@@ -79,7 +79,7 @@ public class HMACTwilioSignatureTest {
   @ParameterizedTest
   @MethodSource("successCases")
   public void hmacSignatureVerificationParametrizedTest_shouldPassHMACValidationWithMultiScopes(
-      final WebhookProcessingPayload webhookProcessingPayload) throws Exception {
+      final WebhookProcessingPayload webhookProcessingPayload) {
     // Given
     Map<String, Object> nestedProps = (Map<String, Object>) baseProperties.get("inbound");
     nestedProps.put("hmacScopes", "=[\"url\",\"body\",\"parameters\"]");
@@ -137,7 +137,7 @@ public class HMACTwilioSignatureTest {
 
     @Override
     public byte[] rawBody() {
-      return body == null ? null : body.getBytes();
+      return body == null ? rawBody : body.getBytes();
     }
 
     public void setBody(final String body) {

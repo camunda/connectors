@@ -138,7 +138,7 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
 
   private static MappedHttpRequest mapRequest(WebhookProcessingPayload payload) {
     return new MappedHttpRequest(
-        HttpWebhookUtil.transformRawBodyToMap(
+        HttpWebhookUtil.transformRawBodyToObject(
             payload.rawBody(), HttpWebhookUtil.extractContentType(payload.headers())),
         payload.headers(),
         payload.params());
@@ -215,7 +215,7 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
                       "request",
                       Map.of(
                           "body",
-                          HttpWebhookUtil.transformRawBodyToMap(
+                          HttpWebhookUtil.transformRawBodyToObject(
                               payload.rawBody(),
                               HttpWebhookUtil.extractContentType(payload.headers())),
                           "headers",
