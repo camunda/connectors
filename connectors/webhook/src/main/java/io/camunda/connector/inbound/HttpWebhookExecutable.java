@@ -96,6 +96,14 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
   private InboundConnectorContext context;
   private Function<WebhookResultContext, WebhookHttpResponse> responseExpression;
 
+  private static MappedHttpRequest mapRequest(WebhookProcessingPayload payload) {
+    return new MappedHttpRequest(
+        HttpWebhookUtil.transformRawBodyToMap(
+            payload.rawBody(), HttpWebhookUtil.extractContentType(payload.headers())),
+        payload.headers(),
+        payload.params());
+  }
+
   @Override
   public void activate(InboundConnectorContext context) {
     this.context = context;
@@ -134,14 +142,6 @@ public class HttpWebhookExecutable implements WebhookConnectorExecutable {
           HttpResponseStatus.METHOD_NOT_ALLOWED.code(),
           "Method " + payload.method() + " not supported");
     }
-  }
-
-  private static MappedHttpRequest mapRequest(WebhookProcessingPayload payload) {
-    return new MappedHttpRequest(
-        HttpWebhookUtil.transformRawBodyToMap(
-            payload.rawBody(), HttpWebhookUtil.extractContentType(payload.headers())),
-        payload.headers(),
-        payload.params());
   }
 
   @Nullable
