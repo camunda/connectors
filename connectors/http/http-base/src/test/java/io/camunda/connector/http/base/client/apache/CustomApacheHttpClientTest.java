@@ -63,6 +63,7 @@ import io.camunda.connector.http.base.model.auth.BasicAuthentication;
 import io.camunda.connector.http.base.model.auth.BearerAuthentication;
 import io.camunda.connector.http.base.model.auth.OAuthAuthentication;
 import java.net.URISyntaxException;
+import java.util.HashMap;
 import java.util.Map;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.hc.core5.http.ContentType;
@@ -199,6 +200,20 @@ public class CustomApacheHttpClientTest {
 
   @Nested
   class GetTests {
+
+    @Test
+    public void shouldReturn200_whenNullHeaders(WireMockRuntimeInfo wmRuntimeInfo) {
+      stubFor(get("/path").willReturn(ok()));
+      HttpCommonRequest request = new HttpCommonRequest();
+      request.setMethod(HttpMethod.GET);
+      var headers = new HashMap<String, String>();
+      headers.put("Content-Type", null);
+      request.setHeaders(headers);
+      request.setUrl(getHostAndPort(wmRuntimeInfo) + "/path");
+      HttpCommonResult result = customApacheHttpClient.execute(request);
+      assertThat(result).isNotNull();
+      assertThat(result.status()).isEqualTo(200);
+    }
 
     @Test
     public void shouldReturn200_whenNoTimeouts(WireMockRuntimeInfo wmRuntimeInfo) {
