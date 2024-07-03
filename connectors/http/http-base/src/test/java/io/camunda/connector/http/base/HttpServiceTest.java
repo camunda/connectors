@@ -234,6 +234,7 @@ public class HttpServiceTest {
     request.setBody(Map.of("name", "John", "age", 30, "message", "{\"key\":\"value\"}"));
     Map<String, String> headers = new HashMap<>();
     headers.put("Content-Type", null);
+    headers.put("Other", null);
     request.setHeaders(headers);
     request.setUrl(getHostAndPort(wmRuntimeInfo) + "/path");
 
@@ -250,6 +251,7 @@ public class HttpServiceTest {
     verify(
         postRequestedFor(urlEqualTo("/path"))
             .withHeader("Content-Type", equalTo("application/json"))
+            .withHeader("Other", equalTo(""))
             .withRequestBody(
                 matchingJsonPath("$.name", equalTo("John"))
                     .and(matchingJsonPath("$.message", equalTo("{\"key\":\"value\"}")))
