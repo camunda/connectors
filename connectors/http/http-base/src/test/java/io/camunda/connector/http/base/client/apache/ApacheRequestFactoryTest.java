@@ -36,13 +36,17 @@ import io.camunda.connector.http.base.model.auth.BasicAuthentication;
 import io.camunda.connector.http.base.model.auth.BearerAuthentication;
 import io.camunda.connector.http.base.model.auth.OAuthAuthentication;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.Map;
 import org.apache.hc.core5.http.ClassicHttpRequest;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpHeaders;
+import org.apache.hc.core5.http.ProtocolException;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.MockedStatic;
 
 public class ApacheRequestFactoryTest {
@@ -410,6 +414,31 @@ public class ApacheRequestFactoryTest {
 
   @Nested
   class HeadersTests {
+
+    @ParameterizedTest
+    @EnumSource(HttpMethod.class)
+    public void shouldSetContentType_whenNullProvidedAndPost(HttpMethod method)
+        throws ProtocolException {
+      // given request without content type
+      HttpCommonRequest request = new HttpCommonRequest();
+      request.setMethod(method);
+      Map<String, String> headers = new HashMap<>();
+      headers.put(HttpHeaders.CONTENT_TYPE, null);
+      headers.put(HttpHeaders.ACCEPT, null);
+      headers.put("Other", null);
+      request.setHeaders(headers);
+
+      // when
+      ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
+
+      // then
+      if (method.supportsBody) {
+        assertThat(httpRequest.getHeader(HttpHeaders.CONTENT_TYPE).getValue())
+            .isEqualTo(ContentType.APPLICATION_JSON.getMimeType());
+      } else {
+        assertThat(httpRequest.getHeader(HttpHeaders.CONTENT_TYPE)).isNull();
+      }
+    }
 
     @Test
     public void shouldSetJsonContentType_WhenNotProvidedAndSupportsBody() throws Exception {
