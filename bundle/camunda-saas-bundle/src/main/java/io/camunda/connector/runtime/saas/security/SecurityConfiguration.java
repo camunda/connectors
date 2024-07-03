@@ -19,10 +19,11 @@ package io.camunda.connector.runtime.saas.security;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -31,6 +32,10 @@ import org.springframework.security.oauth2.jwt.JwtDecoders;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.util.matcher.AnyRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
+import org.springframework.util.AntPathMatcher;
 
 @EnableWebSecurity
 @Configuration
@@ -43,25 +48,30 @@ public class SecurityConfiguration {
   private String issuer;
 
   @Bean
-  public WebSecurityCustomizer webSecurityCustomizer() {
-    return (web) ->
-        web.ignoring()
-            .requestMatchers(HttpMethod.POST, "/inbound/*")
-            .requestMatchers(HttpMethod.GET, "/inbound/*")
-            .requestMatchers(HttpMethod.PUT, "/inbound/*")
-            .requestMatchers(HttpMethod.DELETE, "/inbound/*")
-            .requestMatchers("/actuator/**");
-  }
-
-  @Bean
+  @Order(1)
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
     http.csrf(csrf -> csrf.ignoringRequestMatchers("/inbound/**"))
         .authorizeHttpRequests(
-            auth -> {
-              auth.requestMatchers("/inbound", "/tenants/**").hasAuthority("SCOPE_inbound:read");
-            })
+            auth ->
+                auth.requestMatchers("/inbound", "/tenants/**").hasAuthority("SCOPE_inbound:read"))
         .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.decoder(jwtDecoder())));
     return http.build();
+  }
+
+  @Bean
+  @Order(0)
+  public SecurityFilterChain filterChain2(HttpSecurity http) throws Exception {
+    return http.csrf(csrf -> csrf.ignoringRequestMatchers("/inbound/**"))
+        .securityMatchers(
+            requestMatcherConfigurer ->
+                requestMatcherConfigurer
+                    .requestMatchers(HttpMethod.GET, "/inbound/*")
+                    .requestMatchers(HttpMethod.POST, "/inbound/*")
+                    .requestMatchers(HttpMethod.PUT, "/inbound/*")
+                    .requestMatchers(HttpMethod.DELETE, "/inbound/*")
+                    .requestMatchers("actuator/**"))
+        .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+        .build();
   }
 
   @Bean
