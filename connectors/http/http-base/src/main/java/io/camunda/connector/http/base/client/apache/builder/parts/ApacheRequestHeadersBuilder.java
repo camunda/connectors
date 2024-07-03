@@ -22,6 +22,7 @@ import static org.apache.hc.core5.http.ContentType.MULTIPART_FORM_DATA;
 import static org.apache.hc.core5.http.HttpHeaders.CONTENT_TYPE;
 
 import io.camunda.connector.http.base.model.HttpCommonRequest;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -31,20 +32,15 @@ public class ApacheRequestHeadersBuilder implements ApacheRequestPartBuilder {
 
   @Override
   public void build(ClassicRequestBuilder builder, HttpCommonRequest request) {
-    sanitizeContentType(request);
+    var headers = sanitizedHeaders(request);
 
     var hasContentTypeHeader =
-        Optional.ofNullable(request.getHeaders())
-            .map(headers -> headers.containsKey(CONTENT_TYPE))
-            .orElse(false);
+        Optional.of(headers).map(hd -> hd.containsKey(CONTENT_TYPE)).orElse(false);
     if (request.getMethod().supportsBody && !hasContentTypeHeader) {
       // default content type
       builder.addHeader(CONTENT_TYPE, APPLICATION_JSON.getMimeType());
     }
-    if (request.getHeaders() == null) {
-      request.setHeaders(new java.util.HashMap<>());
-    }
-    request.getHeaders().entrySet().stream()
+    headers.entrySet().stream()
         .filter(not(defaultMultipartContentType()))
         .forEach(e -> builder.addHeader(e.getKey(), e.getValue()));
   }
@@ -64,9 +60,12 @@ public class ApacheRequestHeadersBuilder implements ApacheRequestPartBuilder {
   }
 
   /** Remove the content type header if it is {@code null}. */
-  private void sanitizeContentType(HttpCommonRequest request) {
-    if (request.getHeaders() != null && request.getHeaders().get(CONTENT_TYPE) == null) {
-      request.getHeaders().remove(CONTENT_TYPE);
+  private Map<String, String> sanitizedHeaders(HttpCommonRequest request) {
+    var headers =
+        Optional.ofNullable(request.getHeaders()).map(HashMap::new).orElse(new HashMap<>());
+    if (headers.get(CONTENT_TYPE) == null) {
+      headers.remove(CONTENT_TYPE);
     }
+    return headers;
   }
 }
