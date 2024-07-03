@@ -31,6 +31,8 @@ public class ApacheRequestHeadersBuilder implements ApacheRequestPartBuilder {
 
   @Override
   public void build(ClassicRequestBuilder builder, HttpCommonRequest request) {
+    sanitizeContentType(request);
+
     var hasContentTypeHeader =
         Optional.ofNullable(request.getHeaders())
             .map(headers -> headers.containsKey(CONTENT_TYPE))
@@ -59,5 +61,12 @@ public class ApacheRequestHeadersBuilder implements ApacheRequestPartBuilder {
         e.getKey().equals(CONTENT_TYPE)
             && e.getValue().contains(MULTIPART_FORM_DATA.getMimeType())
             && !e.getValue().contains("boundary");
+  }
+
+  /** Remove the content type header if it is {@code null}. */
+  private void sanitizeContentType(HttpCommonRequest request) {
+    if (request.getHeaders() != null && request.getHeaders().get(CONTENT_TYPE) == null) {
+      request.getHeaders().remove(CONTENT_TYPE);
+    }
   }
 }
