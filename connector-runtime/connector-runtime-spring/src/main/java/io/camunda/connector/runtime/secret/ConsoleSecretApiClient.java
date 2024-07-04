@@ -66,7 +66,7 @@ public class ConsoleSecretApiClient {
     try (CloseableHttpClient httpClient = HttpClientBuilder.create().build()) {
       var request = new HttpGet(secretsEndpoint);
       var authHeader = authentication.getTokenHeader(Product.CONSOLE);
-      request.addHeader(authHeader.getKey(), authHeader.getValue());
+      authHeader.forEach(request::addHeader);
       return httpClient.execute(request, this::handleSecretsResponse);
     } catch (Exception e) {
       throw new RuntimeException(e);
