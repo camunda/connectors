@@ -1,7 +1,7 @@
 [
   {
     "descriptionOfTest": "No method",
-    "url": "http://localhost:8085/http-endpoint",
+    "url": "http://localhost:8086/http-endpoint",
     "queryParameters": {
       "q": "test",
       "priority": 12
