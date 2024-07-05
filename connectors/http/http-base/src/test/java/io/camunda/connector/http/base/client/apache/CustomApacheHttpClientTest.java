@@ -199,6 +199,42 @@ public class CustomApacheHttpClientTest {
   }
 
   @Nested
+  class EscapeTests {
+
+    @ParameterizedTest
+    @EnumSource(HttpMethod.class)
+    public void shouldReturn200_whenSpaceInPathAndQueryParameters(
+        HttpMethod method, WireMockRuntimeInfo wmRuntimeInfo) {
+      stubFor(any(urlEqualTo("/path%20with%20spaces?andQuery=S%C3%A3o%20Paulo")).willReturn(ok()));
+
+      HttpCommonRequest request = new HttpCommonRequest();
+      request.setMethod(method);
+      request.setUrl(getHostAndPort(wmRuntimeInfo) + "/path with spaces");
+      request.setQueryParameters(Map.of("andQuery", "São Paulo"));
+      HttpCommonResult result = customApacheHttpClient.execute(request);
+      assertThat(result).isNotNull();
+      assertThat(result.status()).isEqualTo(200);
+    }
+
+    @ParameterizedTest
+    @EnumSource(HttpMethod.class)
+    public void shouldReturn200_whenSpaceInPathAndQueryParametersInPath(
+        HttpMethod method, WireMockRuntimeInfo wmRuntimeInfo) {
+      stubFor(
+          any(urlEqualTo("/path%20with%20spaces?andQuery=Param%20with%20space"))
+              .withQueryParams(Map.of("andQuery", equalTo("Param with space")))
+              .willReturn(ok()));
+
+      HttpCommonRequest request = new HttpCommonRequest();
+      request.setMethod(method);
+      request.setUrl(getHostAndPort(wmRuntimeInfo) + "/path with spaces?andQuery=Param with space");
+      HttpCommonResult result = customApacheHttpClient.execute(request);
+      assertThat(result).isNotNull();
+      assertThat(result.status()).isEqualTo(200);
+    }
+  }
+
+  @Nested
   class GetTests {
 
     @Test
