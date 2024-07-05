@@ -30,6 +30,7 @@ public class ApacheRequestUriBuilder implements ApacheRequestPartBuilder {
     try {
       var url = new URL(request.getUrl());
       builder.setUri(
+          // Only this URI constructor escapes the URL properly
           new URI(
               url.getProtocol(),
               url.getUserInfo(),
