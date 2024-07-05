@@ -35,7 +35,7 @@ public class ApacheRequestHeadersBuilder implements ApacheRequestPartBuilder {
     var headers = sanitizedHeaders(request);
 
     var hasContentTypeHeader =
-        Optional.of(headers).map(hd -> hd.containsKey(CONTENT_TYPE)).orElse(false);
+        headers.entrySet().stream().anyMatch(e -> e.getKey().equalsIgnoreCase(CONTENT_TYPE));
     if (request.getMethod().supportsBody && !hasContentTypeHeader) {
       // default content type
       builder.addHeader(CONTENT_TYPE, APPLICATION_JSON.getMimeType());
@@ -54,7 +54,7 @@ public class ApacheRequestHeadersBuilder implements ApacheRequestPartBuilder {
    */
   private Predicate<Map.Entry<String, String>> defaultMultipartContentType() {
     return e ->
-        e.getKey().equals(CONTENT_TYPE)
+        e.getKey().equalsIgnoreCase(CONTENT_TYPE)
             && e.getValue().contains(MULTIPART_FORM_DATA.getMimeType())
             && !e.getValue().contains("boundary");
   }
@@ -63,9 +63,11 @@ public class ApacheRequestHeadersBuilder implements ApacheRequestPartBuilder {
   private Map<String, String> sanitizedHeaders(HttpCommonRequest request) {
     var headers =
         Optional.ofNullable(request.getHeaders()).map(HashMap::new).orElse(new HashMap<>());
-    if (headers.get(CONTENT_TYPE) == null) {
-      headers.remove(CONTENT_TYPE);
-    }
+    var keysToRemove =
+        headers.entrySet().stream()
+            .filter(e -> e.getKey().equalsIgnoreCase(CONTENT_TYPE) && e.getValue() == null)
+            .findFirst();
+    keysToRemove.ifPresent(e -> headers.remove(e.getKey()));
     return headers;
   }
 }
