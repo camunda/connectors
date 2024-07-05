@@ -47,6 +47,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.MockedStatic;
 
 public class ApacheRequestFactoryTest {
@@ -356,6 +357,39 @@ public class ApacheRequestFactoryTest {
           ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.readTree(
               httpRequest.getEntity().getContent());
       assertThat(jsonNode.get("key").asText()).isEqualTo("value");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"content-type", "ContEnt-TyPe", "CONTENT-TYPE", "Content-type"})
+    public void
+        shouldSetFormUrlEncodedBody_whenBodySupportedAndWrongCaseContentTypeProvidedAndBodyIsMap(
+            String contentTypeHeader) throws Exception {
+      // given request with body
+      HttpCommonRequest request = new HttpCommonRequest();
+      request.setMethod(HttpMethod.POST);
+      request.setBody(Map.of("key", "value", "key2", "value2"));
+      request.setHeaders(
+          Map.of(
+              contentTypeHeader,
+              ContentType.APPLICATION_FORM_URLENCODED
+                  .withCharset(StandardCharsets.UTF_8)
+                  .toString()));
+
+      // when
+      ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
+
+      // then
+      assertThat(httpRequest.getEntity()).isNotNull();
+      assertThat(httpRequest.getEntity().getContentLength()).isGreaterThan(0);
+      assertThat(httpRequest.getEntity().getContentType())
+          .isEqualTo(
+              ContentType.APPLICATION_FORM_URLENCODED
+                  .withCharset(StandardCharsets.UTF_8)
+                  .toString());
+      String content = new String(httpRequest.getEntity().getContent().readAllBytes());
+      assertThat(content).contains("key=value");
+      assertThat(content).contains("key2=value2");
+      assertThat(content).contains("&");
     }
 
     @Test
