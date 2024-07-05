@@ -393,6 +393,41 @@ public class ApacheRequestFactoryTest {
     }
 
     @Test
+    public void shouldSetFormUrlEncodedBody_whenBodySupportedAndBodyIsMapAndHasNullValues()
+        throws Exception {
+      // given request with body
+      HttpCommonRequest request = new HttpCommonRequest();
+      request.setMethod(HttpMethod.POST);
+      var body = new HashMap<String, String>();
+      body.put("key", null);
+      body.put("key2", "value2");
+      request.setBody(body);
+      request.setHeaders(
+          Map.of(
+              HttpHeaders.CONTENT_TYPE,
+              ContentType.APPLICATION_FORM_URLENCODED
+                  .withCharset(StandardCharsets.UTF_8)
+                  .toString()));
+
+      // when
+      ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
+
+      // then
+      assertThat(httpRequest.getEntity()).isNotNull();
+      assertThat(httpRequest.getEntity().getContentLength()).isGreaterThan(0);
+      assertThat(httpRequest.getEntity().getContentType())
+          .isEqualTo(
+              ContentType.APPLICATION_FORM_URLENCODED
+                  .withCharset(StandardCharsets.UTF_8)
+                  .toString());
+      String content = new String(httpRequest.getEntity().getContent().readAllBytes());
+      assertThat(content).contains("key");
+      assertThat(content).doesNotContain("null");
+      assertThat(content).contains("key2=value2");
+      assertThat(content).contains("&");
+    }
+
+    @Test
     public void shouldSetFormUrlEncodedBody_whenBodySupportedAndContentTypeProvidedAndBodyIsMap()
         throws Exception {
       // given request with body

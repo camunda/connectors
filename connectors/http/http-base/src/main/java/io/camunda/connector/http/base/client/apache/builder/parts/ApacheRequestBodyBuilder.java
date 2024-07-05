@@ -115,7 +115,8 @@ public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
             .map(
                 e ->
                     new BasicNameValuePair(
-                        String.valueOf(e.getKey()), String.valueOf(e.getValue())))
+                        String.valueOf(e.getKey()),
+                        Optional.ofNullable(e.getValue()).map(String::valueOf).orElse(null)))
             .collect(Collectors.toList()),
         StandardCharsets.UTF_8);
   }

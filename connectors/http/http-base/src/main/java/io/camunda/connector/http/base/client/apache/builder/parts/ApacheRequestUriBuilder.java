@@ -17,12 +17,29 @@
 package io.camunda.connector.http.base.client.apache.builder.parts;
 
 import io.camunda.connector.http.base.model.HttpCommonRequest;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import org.apache.hc.core5.http.io.support.ClassicRequestBuilder;
 
 public class ApacheRequestUriBuilder implements ApacheRequestPartBuilder {
 
   @Override
   public void build(ClassicRequestBuilder builder, HttpCommonRequest request) {
-    builder.setUri(request.getUrl());
+    try {
+      var url = new URL(request.getUrl());
+      builder.setUri(
+          new URI(
+              url.getProtocol(),
+              url.getUserInfo(),
+              url.getHost(),
+              url.getPort(),
+              url.getPath(),
+              url.getQuery(),
+              null));
+    } catch (MalformedURLException | URISyntaxException e) {
+      builder.setUri(request.getUrl());
+    }
   }
 }
