@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.runtime.core.outbound;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.JobContext;
@@ -25,6 +26,8 @@ import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import java.util.Objects;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Implementation of {@link io.camunda.connector.api.outbound.OutboundConnectorContext} passed on to
@@ -34,13 +37,12 @@ import java.util.Objects;
 public class JobHandlerContext extends AbstractConnectorContext
     implements OutboundConnectorContext {
 
+  private static final Logger log = LoggerFactory.getLogger(JobHandlerContext.class);
   private final ActivatedJob job;
 
   private final ObjectMapper objectMapper;
-
-  private String jsonWithSecrets = null;
-
   private final JobContext jobContext;
+  private String jsonWithSecrets = null;
 
   public JobHandlerContext(
       final ActivatedJob job,
@@ -71,8 +73,9 @@ public class JobHandlerContext extends AbstractConnectorContext
     var jsonWithSecrets = getJsonReplacedWithSecrets();
     try {
       return objectMapper.readValue(jsonWithSecrets, cls);
-    } catch (Exception e) {
-      throw new ConnectorException("JSON_MAPPING", "Error during json mapping.");
+    } catch (JsonProcessingException e) {
+      log.error(e.getOriginalMessage());
+      throw new ConnectorException("JSON_PROCESSING", e.getOriginalMessage());
     }
   }
 
