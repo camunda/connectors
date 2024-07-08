@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.core.outbound;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.*;
 import io.camunda.connector.api.error.ConnectorException;
@@ -82,10 +83,19 @@ public class JobHandlerContext extends AbstractConnectorContext
         | InvalidTypeIdException
         | PropertyBindingException e) {
       String errorMessage =
-          e.getPathReference(new StringBuilder("Json object contains an invalid field: "))
-              .append(". Must be ")
-              .append(e.getTargetType().getSimpleName())
-              .toString();
+          e.getPath().stream()
+              .map(JsonMappingException.Reference::getFieldName)
+              .reduce((s, s2) -> s.concat(", ").concat(s2))
+              .map("Json object contains an invalid field: "::concat)
+              .map(
+                  s ->
+                      e.getTargetType() == null
+                          ? s
+                          : s.concat(". It Must be `")
+                              .concat(e.getTargetType().getSimpleName())
+                              .concat("`"))
+              .orElse("Unexpected Error, Further investigation is needed");
+
       throw new ConnectorException("JSON_FORMAT_ERROR", errorMessage);
     } catch (MismatchedInputException e) {
       throw new ConnectorException("JSON_MISMATCH_ERROR", e.getOriginalMessage());
