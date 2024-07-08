@@ -25,8 +25,11 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import org.apache.hc.core5.http.io.support.ClassicRequestBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ApacheRequestUriBuilder implements ApacheRequestPartBuilder {
+  private static final Logger LOG = LoggerFactory.getLogger(ApacheRequestUriBuilder.class);
 
   @Override
   public void build(ClassicRequestBuilder builder, HttpCommonRequest request) {
@@ -49,6 +52,7 @@ public class ApacheRequestUriBuilder implements ApacheRequestPartBuilder {
               url.getQuery(),
               null));
     } catch (MalformedURLException | URISyntaxException e) {
+      LOG.error("Failed to parse URL {}", request.getUrl(), e);
       builder.setUri(request.getUrl());
     }
   }
