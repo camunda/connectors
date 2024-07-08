@@ -44,7 +44,7 @@ public class ConsoleSecretProviderTest {
 
   static Authentication auth;
 
-  static Map.Entry<String, String> authToken;
+  static Map<String, String> authToken;
 
   static ConsoleSecretApiClient client;
 
@@ -52,8 +52,7 @@ public class ConsoleSecretProviderTest {
   static void beforeAll() {
     // Mock authentication
     auth = Mockito.mock(Authentication.class);
-    authToken =
-        Collections.singletonMap("Authorization", "Bearer XXX").entrySet().iterator().next();
+    authToken = Map.of("Authorization", "Bearer XXX");
     when(auth.getTokenHeader(Product.CONSOLE)).thenReturn(authToken);
 
     client = new ConsoleSecretApiClient(wm.baseUrl() + "/secrets", auth);
@@ -65,7 +64,7 @@ public class ConsoleSecretProviderTest {
     var secretsResponse = Collections.singletonMap("secretKey", "secretValue");
     wm.stubFor(
         get(urlPathMatching("/secrets"))
-            .withHeader("Authorization", matching(authToken.getValue()))
+            .withHeader("Authorization", matching("Bearer XXX"))
             .willReturn(ResponseDefinitionBuilder.okForJson(secretsResponse)));
 
     // Test the client
@@ -82,7 +81,7 @@ public class ConsoleSecretProviderTest {
     // Mock failing response
     wm.stubFor(
         get(urlPathMatching("/secrets"))
-            .withHeader("Authorization", matching(authToken.getValue()))
+            .withHeader("Authorization", matching("Bearer XXX"))
             .willReturn(ResponseDefinitionBuilder.responseDefinition().withStatus(500)));
 
     // Test the client
@@ -95,7 +94,7 @@ public class ConsoleSecretProviderTest {
     var secretsResponse = Collections.singletonMap("secretKey", "secretValue");
     wm.stubFor(
         get(urlPathMatching("/secrets"))
-            .withHeader("Authorization", matching(authToken.getValue()))
+            .withHeader("Authorization", matching("Bearer XXX"))
             .willReturn(ResponseDefinitionBuilder.okForJson(secretsResponse)));
 
     var consoleSecretProvider = new ConsoleSecretProvider(client, Duration.ofMillis(1));
@@ -107,7 +106,7 @@ public class ConsoleSecretProviderTest {
     // Mock failing response
     wm.stubFor(
         get(urlPathMatching("/secrets"))
-            .withHeader("Authorization", matching(authToken.getValue()))
+            .withHeader("Authorization", matching("Bearer XXX"))
             .willReturn(ResponseDefinitionBuilder.responseDefinition().withStatus(500)));
 
     // Previously cached secret should still be resolved
@@ -120,7 +119,7 @@ public class ConsoleSecretProviderTest {
     secretsResponse = Collections.singletonMap("secretKey", "newSecretValue");
     wm.stubFor(
         get(urlPathMatching("/secrets"))
-            .withHeader("Authorization", matching(authToken.getValue()))
+            .withHeader("Authorization", matching("Bearer XXX"))
             .willReturn(ResponseDefinitionBuilder.okForJson(secretsResponse)));
 
     // New secrets should be resolved
