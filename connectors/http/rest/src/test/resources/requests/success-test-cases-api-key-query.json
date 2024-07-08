@@ -2,7 +2,7 @@
   {
     "descriptionOfTest": "Normal request with apiKey in headers",
     "method": "get",
-    "url": "http://localhost:8085/http-endpoint",
+    "url": "http://localhost:8086/http-endpoint",
     "authentication": {
       "apiKeyLocation": "query",
       "name": "api-key-auth",
@@ -13,7 +13,7 @@
   {
     "descriptionOfTest": "Normal request with apiKey in headers with secrets",
     "method": "get",
-    "url": "http://localhost:8085/http-endpoint",
+    "url": "http://localhost:8086/http-endpoint",
     "authentication": {
       "apiKeyLocation": "query",
       "name": "{{secrets.API_KEY_NAME}}",

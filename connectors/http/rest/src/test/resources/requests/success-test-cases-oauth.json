@@ -2,7 +2,7 @@
   {
     "descriptionOfTest": "Normal request with oauth",
     "method": "post",
-    "url": "http://localhost:8085/http-endpoint",
+    "url": "http://localhost:8086/http-endpoint",
     "connectionTimeoutInSeconds": "30",
     "headers": {
       "X-Camunda-Cluster-ID": "abcdef",
@@ -28,7 +28,7 @@
   {
     "descriptionOfTest": "Normal request with oauth without scopes",
     "method": "post",
-    "url": "http://localhost:8085/http-endpoint",
+    "url": "http://localhost:8086/http-endpoint",
     "connectionTimeoutInSeconds": "30",
     "headers": {
       "X-Camunda-Cluster-ID": "abcdef",

@@ -41,7 +41,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
-@WireMockTest(httpPort = 8085)
+@WireMockTest(httpPort = 8086)
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 public class HttpJsonFunctionTest extends BaseTest {
@@ -101,7 +101,7 @@ public class HttpJsonFunctionTest extends BaseTest {
   void execute_shouldReturnNullFieldWhenResponseWithContainNullField() throws Exception {
     // given request, and response body with null field value
     final var request =
-        "{ \"method\": \"get\", \"url\": \"http://localhost:8085/http-endpoint\",\"authentication\": { \"type\": \"noAuth\" } }";
+        "{ \"method\": \"get\", \"url\": \"http://localhost:8086/http-endpoint\",\"authentication\": { \"type\": \"noAuth\" } }";
     final var response =
         "{ \"createdAt\": \"2022-10-10T05:03:14.723Z\", \"name\": \"Marvin Cremin\",\"unknown\": null, \"id\": \"1\" }";
     stubFor(any(urlPathEqualTo("/http-endpoint")).willReturn(aResponse().withBody(response)));

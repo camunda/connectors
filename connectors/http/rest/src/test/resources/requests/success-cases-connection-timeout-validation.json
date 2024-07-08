@@ -2,7 +2,7 @@
   {
     "descriptionOfTest": "0 value",
     "method": "get",
-    "url": "http://localhost:8085/http-endpoint",
+    "url": "http://localhost:8086/http-endpoint",
     "connectionTimeoutInSeconds": "0",
     "authentication": {
       "type": "noAuth"
@@ -11,7 +11,7 @@
   {
     "descriptionOfTest": "0 value with bearer auth",
     "method": "get",
-    "url": "http://localhost:8085/http-endpoint",
+    "url": "http://localhost:8086/http-endpoint",
     "connectionTimeoutInSeconds": "0",
     "authentication": {
       "type": "bearer",
@@ -21,7 +21,7 @@
   {
     "descriptionOfTest": "positive value",
     "method": "get",
-    "url": "http://localhost:8085/http-endpoint",
+    "url": "http://localhost:8086/http-endpoint",
     "connectionTimeoutInSeconds": "99",
     "authentication": {
       "type": "bearer",
@@ -31,7 +31,7 @@
   {
     "descriptionOfTest": "secrets value",
     "method": "get",
-    "url": "http://localhost:8085/http-endpoint",
+    "url": "http://localhost:8086/http-endpoint",
     "connectionTimeoutInSeconds": "{{secrets.CONNECT_TIMEOUT_KEY}}",
     "authentication": {
       "type": "bearer",
