@@ -7,20 +7,19 @@
 
 package io.camunda.connector.http.base.client.apache.builder.parts;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class UrlEncoder {
   private static final Logger LOG = LoggerFactory.getLogger(ApacheRequestUriBuilder.class);
 
-  public URI toEncodedUri(String requestUrl) {
+  public static URI toEncodedUri(String requestUrl) {
     try {
       // We try to decode the URL first, because it might be encoded already
       // which would lead to double encoding. Decoding is safe here, because it does nothing if

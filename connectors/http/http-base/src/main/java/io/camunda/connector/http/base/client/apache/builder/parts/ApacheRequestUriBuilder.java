@@ -20,18 +20,9 @@ import io.camunda.connector.http.base.model.HttpCommonRequest;
 import org.apache.hc.core5.http.io.support.ClassicRequestBuilder;
 
 public class ApacheRequestUriBuilder implements ApacheRequestPartBuilder {
-  private final UrlEncoder urlEncoder;
-
-  ApacheRequestUriBuilder(UrlEncoder urlEncoder) {
-    this.urlEncoder = urlEncoder;
-  }
-
-  public ApacheRequestUriBuilder() {
-    this(new UrlEncoder());
-  }
 
   @Override
   public void build(ClassicRequestBuilder builder, HttpCommonRequest request) {
-    builder.setUri(urlEncoder.toEncodedUri(request.getUrl()));
+    builder.setUri(UrlEncoder.toEncodedUri(request.getUrl()));
   }
 }
