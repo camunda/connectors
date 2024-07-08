@@ -16,8 +16,10 @@
  */
 package io.camunda.connector.runtime.core.outbound;
 
+import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.exc.*;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.JobContext;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
@@ -73,9 +75,23 @@ public class JobHandlerContext extends AbstractConnectorContext
     var jsonWithSecrets = getJsonReplacedWithSecrets();
     try {
       return objectMapper.readValue(jsonWithSecrets, cls);
+    } catch (JsonParseException e) {
+      throw new ConnectorException("JSON_PARSE_ERROR", "This is not a JSON object");
+    } catch (InvalidFormatException
+        | InvalidNullException
+        | InvalidTypeIdException
+        | PropertyBindingException e) {
+      String errorMessage =
+          e.getPathReference(new StringBuilder("Json object contains an invalid field: "))
+              .append(". Must be ")
+              .append(e.getTargetType().getSimpleName())
+              .toString();
+      throw new ConnectorException("JSON_FORMAT_ERROR", errorMessage);
+    } catch (MismatchedInputException e) {
+      throw new ConnectorException("JSON_MISMATCH_ERROR", e.getOriginalMessage());
     } catch (JsonProcessingException e) {
-      log.error(e.getOriginalMessage());
-      throw new ConnectorException("JSON_PROCESSING", e.getOriginalMessage());
+      throw new ConnectorException(
+          "JSON_PROCESSING_ERROR", "Exception: " + e.getClass().getSimpleName() + "was raised");
     }
   }
 
