@@ -19,10 +19,10 @@ package io.camunda.connector.runtime.saas.security;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -42,24 +42,49 @@ public class SecurityConfiguration {
   @Value("${camunda.connector.auth.issuer}")
   private String issuer;
 
+  /**
+   * This is the first (spring priority order) filter chain. This is going to be applied first, if
+   * nothing is matched, then the second one will be applied. Here, alls of the public endpoint are
+   * caught first.
+   *
+   * @param http
+   * @return The first security filter chain
+   * @throws Exception
+   */
   @Bean
-  public WebSecurityCustomizer webSecurityCustomizer() {
-    return (web) ->
-        web.ignoring()
-            .requestMatchers(HttpMethod.POST, "/inbound/*")
-            .requestMatchers(HttpMethod.GET, "/inbound/*")
-            .requestMatchers(HttpMethod.PUT, "/inbound/*")
-            .requestMatchers(HttpMethod.DELETE, "/inbound/*")
-            .requestMatchers("/actuator/**");
+  @Order(0)
+  public SecurityFilterChain filterChain2(HttpSecurity http) throws Exception {
+    return http.csrf(csrf -> csrf.ignoringRequestMatchers("/inbound/**"))
+        .securityMatchers(
+            requestMatcherConfigurer ->
+                requestMatcherConfigurer
+                    .requestMatchers(HttpMethod.GET, "/inbound/*")
+                    .requestMatchers(HttpMethod.POST, "/inbound/*")
+                    .requestMatchers(HttpMethod.PUT, "/inbound/*")
+                    .requestMatchers(HttpMethod.DELETE, "/inbound/*")
+                    .requestMatchers("actuator/**"))
+        .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+        .build();
   }
 
+  /**
+   * This is the second (spring priority order) filter chain. This has to be applied in second cause
+   * spring-security is secure by default and therefore will protect every endpoint with Oauth2 If
+   * this was first and endpoint like `GET /inbound/*` would respond 401 Those endpoint will be
+   * caught on the first security chain
+   *
+   * @param http
+   * @return The second security filter chain
+   * @throws Exception
+   */
   @Bean
+  @Order(1)
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
     http.csrf(csrf -> csrf.ignoringRequestMatchers("/inbound/**"))
         .authorizeHttpRequests(
-            auth -> {
-              auth.requestMatchers("/inbound", "/tenants/**").hasAuthority("SCOPE_inbound:read");
-            })
+            auth ->
+                auth.requestMatchers(HttpMethod.GET, "/inbound", "/tenants/**")
+                    .hasAuthority("SCOPE_inbound:read"))
         .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.decoder(jwtDecoder())));
     return http.build();
   }
