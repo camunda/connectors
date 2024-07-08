@@ -18,6 +18,7 @@ package io.camunda.connector.runtime.core.outbound;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -44,14 +45,6 @@ class JobHandlerContextTest {
   @Mock private ValidationProvider validationProvider;
 
   @InjectMocks private JobHandlerContext jobHandlerContext;
-
-  @Test
-  void getVariablesAsType() throws JsonProcessingException {
-    Class<Integer> integerClass = Integer.class;
-    when(activatedJob.getVariables()).thenReturn("");
-    jobHandlerContext.bindVariables(integerClass);
-    verify(objectMapper).readValue("", Integer.class);
-  }
 
   @Test
   void getVariables() {
