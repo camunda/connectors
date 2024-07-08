@@ -45,6 +45,7 @@ import io.camunda.connector.http.base.cloudfunction.CloudFunctionService;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.connector.http.base.model.HttpMethod;
+import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -202,6 +203,59 @@ public class HttpServiceTest {
     assertThat(e).isNotNull();
     assertThat(e.getErrorCode()).isEqualTo("401");
     assertThat(e.getMessage()).isEqualTo("Unauthorized sorry!");
+    if (cloudFunctionEnabled) {
+      verify(
+          postRequestedFor(urlEqualTo("/proxy"))
+              .withRequestBody(equalTo(objectMapper.writeValueAsString(request))));
+    }
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  public void shouldReturn200WithBody_whenPostRequestWithNullContentType(
+      boolean cloudFunctionEnabled, WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+    stubCloudFunction(wmRuntimeInfo);
+    HttpService httpService =
+        cloudFunctionEnabled ? HttpServiceTest.this.httpService : httpServiceWithoutCloudFunction;
+
+    stubFor(
+        post("/path")
+            .willReturn(
+                ok().withJsonBody(
+                        JsonNodeFactory.instance
+                            .objectNode()
+                            .put("responseKey1", "value1")
+                            .put("responseKey2", 40)
+                            .putNull("responseKey3"))));
+
+    // given
+    HttpCommonRequest request = new HttpCommonRequest();
+    request.setMethod(HttpMethod.POST);
+    request.setBody(Map.of("name", "John", "age", 30, "message", "{\"key\":\"value\"}"));
+    Map<String, String> headers = new HashMap<>();
+    headers.put("Content-Type", null);
+    headers.put("Other", null);
+    request.setHeaders(headers);
+    request.setUrl(getHostAndPort(wmRuntimeInfo) + "/path");
+
+    // when
+    HttpCommonResult result = httpService.executeConnectorRequest(request);
+
+    // then
+    assertThat(result).isNotNull();
+    assertThat(result.status()).isEqualTo(200);
+    JSONAssert.assertEquals(
+        "{\"responseKey1\":\"value1\",\"responseKey2\":40,\"responseKey3\":null}",
+        objectMapper.writeValueAsString(result.body()),
+        JSONCompareMode.STRICT);
+    verify(
+        postRequestedFor(urlEqualTo("/path"))
+            .withHeader("Content-Type", equalTo("application/json"))
+            .withHeader("Other", equalTo(""))
+            .withRequestBody(
+                matchingJsonPath("$.name", equalTo("John"))
+                    .and(matchingJsonPath("$.message", equalTo("{\"key\":\"value\"}")))
+                    .and(matchingJsonPath("$.age", equalTo("30")))));
     if (cloudFunctionEnabled) {
       verify(
           postRequestedFor(urlEqualTo("/proxy"))

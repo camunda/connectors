@@ -36,13 +36,18 @@ import io.camunda.connector.http.base.model.auth.BasicAuthentication;
 import io.camunda.connector.http.base.model.auth.BearerAuthentication;
 import io.camunda.connector.http.base.model.auth.OAuthAuthentication;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.Map;
 import org.apache.hc.core5.http.ClassicHttpRequest;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpHeaders;
+import org.apache.hc.core5.http.ProtocolException;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.MockedStatic;
 
 public class ApacheRequestFactoryTest {
@@ -354,6 +359,74 @@ public class ApacheRequestFactoryTest {
       assertThat(jsonNode.get("key").asText()).isEqualTo("value");
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"content-type", "ContEnt-TyPe", "CONTENT-TYPE", "Content-type"})
+    public void
+        shouldSetFormUrlEncodedBody_whenBodySupportedAndWrongCaseContentTypeProvidedAndBodyIsMap(
+            String contentTypeHeader) throws Exception {
+      // given request with body
+      HttpCommonRequest request = new HttpCommonRequest();
+      request.setMethod(HttpMethod.POST);
+      request.setBody(Map.of("key", "value", "key2", "value2"));
+      request.setHeaders(
+          Map.of(
+              contentTypeHeader,
+              ContentType.APPLICATION_FORM_URLENCODED
+                  .withCharset(StandardCharsets.UTF_8)
+                  .toString()));
+
+      // when
+      ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
+
+      // then
+      assertThat(httpRequest.getEntity()).isNotNull();
+      assertThat(httpRequest.getEntity().getContentLength()).isGreaterThan(0);
+      assertThat(httpRequest.getEntity().getContentType())
+          .isEqualTo(
+              ContentType.APPLICATION_FORM_URLENCODED
+                  .withCharset(StandardCharsets.UTF_8)
+                  .toString());
+      String content = new String(httpRequest.getEntity().getContent().readAllBytes());
+      assertThat(content).contains("key=value");
+      assertThat(content).contains("key2=value2");
+      assertThat(content).contains("&");
+    }
+
+    @Test
+    public void shouldSetFormUrlEncodedBody_whenBodySupportedAndBodyIsMapAndHasNullValues()
+        throws Exception {
+      // given request with body
+      HttpCommonRequest request = new HttpCommonRequest();
+      request.setMethod(HttpMethod.POST);
+      var body = new HashMap<String, String>();
+      body.put("key", null);
+      body.put("key2", "value2");
+      request.setBody(body);
+      request.setHeaders(
+          Map.of(
+              HttpHeaders.CONTENT_TYPE,
+              ContentType.APPLICATION_FORM_URLENCODED
+                  .withCharset(StandardCharsets.UTF_8)
+                  .toString()));
+
+      // when
+      ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
+
+      // then
+      assertThat(httpRequest.getEntity()).isNotNull();
+      assertThat(httpRequest.getEntity().getContentLength()).isGreaterThan(0);
+      assertThat(httpRequest.getEntity().getContentType())
+          .isEqualTo(
+              ContentType.APPLICATION_FORM_URLENCODED
+                  .withCharset(StandardCharsets.UTF_8)
+                  .toString());
+      String content = new String(httpRequest.getEntity().getContent().readAllBytes());
+      assertThat(content).contains("key");
+      assertThat(content).doesNotContain("null");
+      assertThat(content).contains("key2=value2");
+      assertThat(content).contains("&");
+    }
+
     @Test
     public void shouldSetFormUrlEncodedBody_whenBodySupportedAndContentTypeProvidedAndBodyIsMap()
         throws Exception {
@@ -410,6 +483,31 @@ public class ApacheRequestFactoryTest {
 
   @Nested
   class HeadersTests {
+
+    @ParameterizedTest
+    @EnumSource(HttpMethod.class)
+    public void shouldSetContentType_whenNullProvidedAndPost(HttpMethod method)
+        throws ProtocolException {
+      // given request without content type
+      HttpCommonRequest request = new HttpCommonRequest();
+      request.setMethod(method);
+      Map<String, String> headers = new HashMap<>();
+      headers.put(HttpHeaders.CONTENT_TYPE, null);
+      headers.put(HttpHeaders.ACCEPT, null);
+      headers.put("Other", null);
+      request.setHeaders(headers);
+
+      // when
+      ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
+
+      // then
+      if (method.supportsBody) {
+        assertThat(httpRequest.getHeader(HttpHeaders.CONTENT_TYPE).getValue())
+            .isEqualTo(ContentType.APPLICATION_JSON.getMimeType());
+      } else {
+        assertThat(httpRequest.getHeader(HttpHeaders.CONTENT_TYPE)).isNull();
+      }
+    }
 
     @Test
     public void shouldSetJsonContentType_WhenNotProvidedAndSupportsBody() throws Exception {

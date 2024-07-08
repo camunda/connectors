@@ -22,6 +22,7 @@ import static org.apache.hc.core5.http.ContentType.MULTIPART_FORM_DATA;
 import static org.apache.hc.core5.http.HttpHeaders.CONTENT_TYPE;
 
 import io.camunda.connector.http.base.model.HttpCommonRequest;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -31,18 +32,15 @@ public class ApacheRequestHeadersBuilder implements ApacheRequestPartBuilder {
 
   @Override
   public void build(ClassicRequestBuilder builder, HttpCommonRequest request) {
+    var headers = sanitizedHeaders(request);
+
     var hasContentTypeHeader =
-        Optional.ofNullable(request.getHeaders())
-            .map(headers -> headers.containsKey(CONTENT_TYPE))
-            .orElse(false);
+        headers.entrySet().stream().anyMatch(e -> e.getKey().equalsIgnoreCase(CONTENT_TYPE));
     if (request.getMethod().supportsBody && !hasContentTypeHeader) {
       // default content type
       builder.addHeader(CONTENT_TYPE, APPLICATION_JSON.getMimeType());
     }
-    if (request.getHeaders() == null) {
-      request.setHeaders(new java.util.HashMap<>());
-    }
-    request.getHeaders().entrySet().stream()
+    headers.entrySet().stream()
         .filter(not(defaultMultipartContentType()))
         .forEach(e -> builder.addHeader(e.getKey(), e.getValue()));
   }
@@ -56,8 +54,20 @@ public class ApacheRequestHeadersBuilder implements ApacheRequestPartBuilder {
    */
   private Predicate<Map.Entry<String, String>> defaultMultipartContentType() {
     return e ->
-        e.getKey().equals(CONTENT_TYPE)
+        e.getKey().equalsIgnoreCase(CONTENT_TYPE)
             && e.getValue().contains(MULTIPART_FORM_DATA.getMimeType())
             && !e.getValue().contains("boundary");
+  }
+
+  /** Remove the content type header if it is {@code null}. */
+  private Map<String, String> sanitizedHeaders(HttpCommonRequest request) {
+    var headers =
+        Optional.ofNullable(request.getHeaders()).map(HashMap::new).orElse(new HashMap<>());
+    var keysToRemove =
+        headers.entrySet().stream()
+            .filter(e -> e.getKey().equalsIgnoreCase(CONTENT_TYPE) && e.getValue() == null)
+            .findFirst();
+    keysToRemove.ifPresent(e -> headers.remove(e.getKey()));
+    return headers;
   }
 }
