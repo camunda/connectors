@@ -71,11 +71,11 @@ public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
   private HttpEntity createEntityForContentType(
       ContentType contentType, Map<?, ?> body, HttpCommonRequest request) {
     HttpEntity entity;
-    if (contentType.getMimeType().equals(MULTIPART_FORM_DATA.getMimeType())) {
+    if (contentType.getMimeType().equalsIgnoreCase(MULTIPART_FORM_DATA.getMimeType())) {
       entity = createMultiPartEntity(body, contentType);
     } else if (contentType
         .getMimeType()
-        .equals(ContentType.APPLICATION_FORM_URLENCODED.getMimeType())) {
+        .equalsIgnoreCase(ContentType.APPLICATION_FORM_URLENCODED.getMimeType())) {
       entity = createUrlEncodedFormEntity(body);
     } else {
       entity = createStringEntity(request);

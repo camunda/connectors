@@ -36,8 +36,11 @@ import io.camunda.connector.http.base.model.auth.BasicAuthentication;
 import io.camunda.connector.http.base.model.auth.BearerAuthentication;
 import io.camunda.connector.http.base.model.auth.OAuthAuthentication;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 import org.apache.hc.core5.http.ClassicHttpRequest;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.Header;
@@ -46,7 +49,9 @@ import org.apache.hc.core5.http.ProtocolException;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.MockedStatic;
 
@@ -249,6 +254,60 @@ public class ApacheRequestFactoryTest {
   @Nested
   class BodyTests {
 
+    private static Stream<Arguments> provideMultipartContentTypeHeaderWithWeirdCase() {
+      List<String> weirdContentTypes =
+          List.of("content-type", "ContEnt-TyPe", "CONTENT-TYPE", "Content-type");
+      List<String> weirdMultipart =
+          List.of(
+              "multipart/form-data",
+              "MULTIPART/FORM-DATA",
+              "MuLtIpArT/fOrM-dAtA",
+              ContentType.MULTIPART_FORM_DATA.toString(),
+              ContentType.MULTIPART_FORM_DATA.withCharset(StandardCharsets.UTF_8).toString());
+      List<String> combinedCases = new ArrayList<>();
+      for (String contentType : weirdContentTypes) {
+        for (String multipart : weirdMultipart) {
+          combinedCases.add(contentType);
+          combinedCases.add(multipart);
+        }
+      }
+      // combined values 2 by 2
+      List<Arguments> arguments = new ArrayList<>();
+      for (int i = 0; i < combinedCases.size(); i += 2) {
+        arguments.add(Arguments.of(combinedCases.get(i), combinedCases.get(i + 1)));
+      }
+
+      return arguments.stream();
+    }
+
+    private static Stream<Arguments> provideFormUrlEncodedContentTypeHeaderWithWeirdCase() {
+      List<String> weirdContentTypes =
+          List.of("content-type", "ContEnt-TyPe", "CONTENT-TYPE", "Content-type");
+      List<String> weirdFromUrlEncoded =
+          List.of(
+              "application/x-www-form-urlencodEd",
+              "APPLICATION/X-WWW-FORM-URLENCODED",
+              "AppLiCaTiOn/x-www-form-urlencoded",
+              ContentType.APPLICATION_FORM_URLENCODED.toString(),
+              ContentType.APPLICATION_FORM_URLENCODED
+                  .withCharset(StandardCharsets.UTF_8)
+                  .toString());
+      List<String> combinedCases = new ArrayList<>();
+      for (String contentType : weirdContentTypes) {
+        for (String formUrlEncoded : weirdFromUrlEncoded) {
+          combinedCases.add(contentType);
+          combinedCases.add(formUrlEncoded);
+        }
+      }
+      // combined values 2 by 2
+      List<Arguments> arguments = new ArrayList<>();
+      for (int i = 0; i < combinedCases.size(); i += 2) {
+        arguments.add(Arguments.of(combinedCases.get(i), combinedCases.get(i + 1)));
+      }
+
+      return arguments.stream();
+    }
+
     @Test
     public void shouldNotSetBody_whenBodyNotSupported() throws Exception {
       // given request with body
@@ -427,19 +486,15 @@ public class ApacheRequestFactoryTest {
       assertThat(content).contains("&");
     }
 
-    @Test
-    public void shouldSetFormUrlEncodedBody_whenBodySupportedAndContentTypeProvidedAndBodyIsMap()
-        throws Exception {
+    @ParameterizedTest
+    @MethodSource("provideFormUrlEncodedContentTypeHeaderWithWeirdCase")
+    public void shouldSetFormUrlEncodedBody_whenBodySupportedAndContentTypeProvidedAndBodyIsMap(
+        String contentType, String formUrlEncodedValue) throws Exception {
       // given request with body
       HttpCommonRequest request = new HttpCommonRequest();
       request.setMethod(HttpMethod.POST);
       request.setBody(Map.of("key", "value", "key2", "value2"));
-      request.setHeaders(
-          Map.of(
-              HttpHeaders.CONTENT_TYPE,
-              ContentType.APPLICATION_FORM_URLENCODED
-                  .withCharset(StandardCharsets.UTF_8)
-                  .toString()));
+      request.setHeaders(Map.of(contentType, formUrlEncodedValue));
 
       // when
       ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
@@ -458,16 +513,15 @@ public class ApacheRequestFactoryTest {
       assertThat(content).contains("&");
     }
 
-    @Test
-    public void shouldSetMultipartBody_whenBodySupportedAndContentTypeProvidedAndBodyIsMap() {
+    @ParameterizedTest
+    @MethodSource("provideMultipartContentTypeHeaderWithWeirdCase")
+    public void shouldSetMultipartBody_whenBodySupportedAndContentTypeProvidedAndBodyIsMap(
+        String contentType, String multipartValue) {
       // given request with body
       HttpCommonRequest request = new HttpCommonRequest();
       request.setMethod(HttpMethod.POST);
       request.setBody(Map.of("key", "value", "key2", "value2"));
-      request.setHeaders(
-          Map.of(
-              HttpHeaders.CONTENT_TYPE,
-              ContentType.MULTIPART_FORM_DATA.withCharset(StandardCharsets.UTF_8).toString()));
+      request.setHeaders(Map.of(contentType, multipartValue));
 
       // when
       ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);

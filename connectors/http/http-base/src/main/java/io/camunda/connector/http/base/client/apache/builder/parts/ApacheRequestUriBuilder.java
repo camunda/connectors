@@ -21,6 +21,9 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 import org.apache.hc.core5.http.io.support.ClassicRequestBuilder;
 
 public class ApacheRequestUriBuilder implements ApacheRequestPartBuilder {
@@ -28,7 +31,13 @@ public class ApacheRequestUriBuilder implements ApacheRequestPartBuilder {
   @Override
   public void build(ClassicRequestBuilder builder, HttpCommonRequest request) {
     try {
-      var url = new URL(request.getUrl());
+      // We try to decode the URL first, because it might be encoded already
+      // which would lead to double encoding. Decoding is safe here, because it does nothing if
+      // the URL is not encoded.
+      var decodedUrl =
+          URLDecoder.decode(
+              Optional.ofNullable(request.getUrl()).orElse(""), StandardCharsets.UTF_8);
+      var url = new URL(decodedUrl);
       builder.setUri(
           // Only this URI constructor escapes the URL properly
           new URI(
