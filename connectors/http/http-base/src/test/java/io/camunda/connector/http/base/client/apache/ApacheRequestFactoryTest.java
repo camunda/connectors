@@ -65,6 +65,7 @@ public class ApacheRequestFactoryTest {
       // given request without authentication
       HttpCommonRequest request = new HttpCommonRequest();
       request.setMethod(HttpMethod.GET);
+      request.setUrl("theurl");
 
       // when
       ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
@@ -79,6 +80,7 @@ public class ApacheRequestFactoryTest {
       HttpCommonRequest request = new HttpCommonRequest();
       request.setMethod(HttpMethod.GET);
       request.setAuthentication(new BasicAuthentication("user", "password"));
+      request.setUrl("theurl");
 
       // when
       ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
@@ -94,6 +96,7 @@ public class ApacheRequestFactoryTest {
       HttpCommonRequest request = new HttpCommonRequest();
       request.setMethod(HttpMethod.GET);
       request.setAuthentication(new BearerAuthentication("token"));
+      request.setUrl("theurl");
 
       // when
       ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
@@ -109,6 +112,7 @@ public class ApacheRequestFactoryTest {
       HttpCommonResult result = new HttpCommonResult(200, null, "{\"access_token\":\"token\"}");
       HttpCommonRequest request = new HttpCommonRequest();
       request.setMethod(HttpMethod.GET);
+      request.setUrl("theurl");
       request.setAuthentication(
           new OAuthAuthentication(
               "url", "clientId", "secret", "audience", OAuthConstants.CREDENTIALS_BODY, "scopes"));
@@ -133,6 +137,7 @@ public class ApacheRequestFactoryTest {
       HttpCommonRequest request = new HttpCommonRequest();
       request.setMethod(HttpMethod.GET);
       request.setAuthentication(new ApiKeyAuthentication(ApiKeyLocation.HEADERS, "name", "value"));
+      request.setUrl("theurl");
 
       // when
       ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
@@ -147,6 +152,7 @@ public class ApacheRequestFactoryTest {
       HttpCommonRequest request = new HttpCommonRequest();
       request.setMethod(HttpMethod.GET);
       request.setAuthentication(new ApiKeyAuthentication(ApiKeyLocation.QUERY, "name", "value"));
+      request.setUrl("theurl");
 
       // when
       ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
@@ -165,6 +171,7 @@ public class ApacheRequestFactoryTest {
       // given request without query parameters
       HttpCommonRequest request = new HttpCommonRequest();
       request.setMethod(HttpMethod.GET);
+      request.setUrl("theurl");
 
       // when
       ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
@@ -179,6 +186,7 @@ public class ApacheRequestFactoryTest {
       HttpCommonRequest request = new HttpCommonRequest();
       request.setMethod(HttpMethod.GET);
       request.setQueryParameters(Map.of("key", "value"));
+      request.setUrl("theurl");
 
       // when
       ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
@@ -193,6 +201,7 @@ public class ApacheRequestFactoryTest {
       HttpCommonRequest request = new HttpCommonRequest();
       request.setMethod(HttpMethod.GET);
       request.setQueryParameters(Map.of("key", "value", "key2", "value2"));
+      request.setUrl("theurl");
 
       // when
       ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
@@ -313,6 +322,7 @@ public class ApacheRequestFactoryTest {
       // given request with body
       HttpCommonRequest request = new HttpCommonRequest();
       request.setMethod(HttpMethod.GET);
+      request.setUrl("theurl");
 
       // when
       ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
@@ -327,6 +337,7 @@ public class ApacheRequestFactoryTest {
       HttpCommonRequest request = new HttpCommonRequest();
       request.setMethod(HttpMethod.POST);
       request.setBody(Map.of("key", "value"));
+      request.setUrl("theurl");
 
       // when
       ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
@@ -352,6 +363,7 @@ public class ApacheRequestFactoryTest {
           Map.of(
               HttpHeaders.CONTENT_TYPE,
               ContentType.TEXT_PLAIN.withCharset(StandardCharsets.UTF_8).toString()));
+      request.setUrl("theurl");
 
       // when
       ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
@@ -377,6 +389,7 @@ public class ApacheRequestFactoryTest {
           Map.of(
               HttpHeaders.CONTENT_TYPE,
               ContentType.APPLICATION_JSON.withCharset(StandardCharsets.UTF_8).toString()));
+      request.setUrl("theurl");
 
       // when
       ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
@@ -403,6 +416,7 @@ public class ApacheRequestFactoryTest {
           Map.of(
               HttpHeaders.CONTENT_TYPE,
               ContentType.APPLICATION_JSON.withCharset(StandardCharsets.UTF_8).toString()));
+      request.setUrl("theurl");
 
       // when
       ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
@@ -433,6 +447,7 @@ public class ApacheRequestFactoryTest {
               ContentType.APPLICATION_FORM_URLENCODED
                   .withCharset(StandardCharsets.UTF_8)
                   .toString()));
+      request.setUrl("theurl");
 
       // when
       ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
@@ -467,6 +482,7 @@ public class ApacheRequestFactoryTest {
               ContentType.APPLICATION_FORM_URLENCODED
                   .withCharset(StandardCharsets.UTF_8)
                   .toString()));
+      request.setUrl("theurl");
 
       // when
       ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
@@ -495,6 +511,7 @@ public class ApacheRequestFactoryTest {
       request.setMethod(HttpMethod.POST);
       request.setBody(Map.of("key", "value", "key2", "value2"));
       request.setHeaders(Map.of(contentType, formUrlEncodedValue));
+      request.setUrl("theurl");
 
       // when
       ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
@@ -522,6 +539,7 @@ public class ApacheRequestFactoryTest {
       request.setMethod(HttpMethod.POST);
       request.setBody(Map.of("key", "value", "key2", "value2"));
       request.setHeaders(Map.of(contentType, multipartValue));
+      request.setUrl("theurl");
 
       // when
       ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
@@ -549,6 +567,7 @@ public class ApacheRequestFactoryTest {
       headers.put(HttpHeaders.CONTENT_TYPE, null);
       headers.put(HttpHeaders.ACCEPT, null);
       headers.put("Other", null);
+      request.setUrl("theurl");
       request.setHeaders(headers);
 
       // when
@@ -568,6 +587,7 @@ public class ApacheRequestFactoryTest {
       // given request without headers
       HttpCommonRequest request = new HttpCommonRequest();
       request.setMethod(HttpMethod.POST);
+      request.setUrl("theurl");
 
       // when
       ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
@@ -585,6 +605,7 @@ public class ApacheRequestFactoryTest {
       HttpCommonRequest request = new HttpCommonRequest();
       request.setHeaders(Map.of("Authorization", "Bearer token"));
       request.setMethod(HttpMethod.POST);
+      request.setUrl("theurl");
 
       // when
       ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
@@ -602,6 +623,7 @@ public class ApacheRequestFactoryTest {
       // given request without headers
       HttpCommonRequest request = new HttpCommonRequest();
       request.setMethod(HttpMethod.GET);
+      request.setUrl("theurl");
 
       // when
       ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
@@ -617,6 +639,7 @@ public class ApacheRequestFactoryTest {
       HttpCommonRequest request = new HttpCommonRequest();
       request.setHeaders(Map.of(HttpHeaders.CONTENT_TYPE, "text/plain"));
       request.setMethod(HttpMethod.POST);
+      request.setUrl("theurl");
 
       // when
       ClassicHttpRequest httpRequest = ApacheRequestFactory.get().createHttpRequest(request);
