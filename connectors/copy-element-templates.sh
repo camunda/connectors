@@ -18,8 +18,17 @@ cd "$SCRIPT_DIR" || exit
 echo -e "${BLUE}Starting to copy element templates to ~/Library/Application\ Support/camunda-modeler/resources/element-templates${NC}"
 # Find all .json files in element-templates directories and copy them to /tmp/json
 find . -type d -name "element-templates" | while read -r dir; do
-  find "$dir" -type f -name "*.json" -exec cp {} ~/Library/Application\ Support/camunda-modeler/resources/element-templates/ \;
-  echo -e "${YELLOW}Copied ETs from [$dir]${NC}"
+  find "$dir" -type f -name "*.json" | while read -r file; do
+    dest_dir=~/Library/Application\ Support/camunda-modeler/resources/element-templates/
+    dest_file="$dest_dir$(basename "$file")"
+    # Remove the existing symlink if it exists
+    if [ -L "$dest_file" ]; then
+      rm "$dest_file"
+    fi
+    # Create the new symlink
+    ln -s "$SCRIPT_DIR/$file" "$dest_file"
+    echo -e "${YELLOW}Created symlink for [$file]${NC}"
+  done
 done
 
 echo -e "${GREEN}All element templates have been copied to ~/Library/Application\ Support/camunda-modeler/resources/element-templates${NC}"
