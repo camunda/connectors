@@ -108,7 +108,7 @@ public class HttpCommonResultResponseHandlerTest {
     response.setEntity(
         new StringEntity(
             ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.writeValueAsString(
-                new ErrorResponse("500", "Custom message"))));
+                new ErrorResponse("500", "Custom message", null))));
 
     // when
     HttpCommonResult result = handler.handleResponse(response);
@@ -116,7 +116,8 @@ public class HttpCommonResultResponseHandlerTest {
     // then
     assertThat(result).isNotNull();
     assertThat(result.status()).isEqualTo(500);
-    assertThat((ErrorResponse) result.body()).isEqualTo(new ErrorResponse("500", "Custom message"));
+    assertThat((ErrorResponse) result.body())
+        .isEqualTo(new ErrorResponse("500", "Custom message", null));
     assertThat(result.headers()).hasSize(2);
     assertThat(result.headers()).containsEntry("X-Header", "value");
     assertThat(result.headers()).containsEntry("Content-Type", "application/json");

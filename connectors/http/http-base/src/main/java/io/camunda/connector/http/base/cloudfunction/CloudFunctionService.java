@@ -17,6 +17,7 @@
 package io.camunda.connector.http.base.cloudfunction;
 
 import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.error.ConnectorExceptionBuilder;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.http.base.model.ErrorResponse;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
@@ -72,23 +73,26 @@ public class CloudFunctionService {
   }
 
   /**
-   * Tries to parse the error response from the given exception and sets the error code and message.
+   * Tries to parse the error response from the given exception and sets the error code, message,
+   * and errorVariables.
    *
-   * @param e the exception to be parsed
-   * @param errorResponse the error response to be updated if possible
+   * @param e the parsed exception
    */
-  public ErrorResponse tryUpdateErrorUsingCloudFunctionError(
-      ConnectorException e, ErrorResponse errorResponse) {
+  public ConnectorException parseCloudFunctionError(ConnectorException e) {
     ErrorResponse errorContent;
     try {
-      errorContent =
-          ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.readValue(
-              e.getMessage(), ErrorResponse.class);
-      return new ErrorResponse(errorContent.errorCode(), errorContent.error());
+      Map<String, Object> response = (Map<String, Object>) e.getErrorVariables().get("response");
+      errorContent = (ErrorResponse) response.get("body");
     } catch (Exception ex) {
       LOG.warn("Error response cannot be parsed as JSON! Will use the plain message.");
-      return errorResponse;
+      errorContent = new ErrorResponse(e.getErrorCode(), e.getMessage(), e.getErrorVariables());
     }
+
+    return new ConnectorExceptionBuilder()
+        .message(errorContent.error())
+        .errorVariables(errorContent.errorVariables())
+        .errorCode(errorContent.errorCode())
+        .build();
   }
 
   /**

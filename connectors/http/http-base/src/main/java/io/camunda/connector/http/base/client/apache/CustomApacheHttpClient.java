@@ -21,7 +21,7 @@ import io.camunda.connector.api.error.ConnectorExceptionBuilder;
 import io.camunda.connector.http.base.client.HttpClient;
 import io.camunda.connector.http.base.client.HttpStatusHelper;
 import io.camunda.connector.http.base.client.ProxyConfiguration;
-import io.camunda.connector.http.base.exception.HttpCommonResultException;
+import io.camunda.connector.http.base.exception.ConnectorExceptionMapper;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import java.io.IOException;
@@ -108,7 +108,7 @@ public class CustomApacheHttpClient implements HttpClient {
               .build()
               .execute(apacheRequest, new HttpCommonResultResponseHandler(remoteExecutionEnabled));
       if (HttpStatusHelper.isError(result.status())) {
-        throw new HttpCommonResultException(result);
+        throw ConnectorExceptionMapper.from(result);
       }
       return result;
     } catch (ClientProtocolException e) {

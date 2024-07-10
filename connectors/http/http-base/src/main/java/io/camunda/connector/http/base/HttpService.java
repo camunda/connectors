@@ -22,7 +22,6 @@ import io.camunda.connector.http.base.blocklist.HttpBlockListManager;
 import io.camunda.connector.http.base.client.HttpClient;
 import io.camunda.connector.http.base.client.apache.CustomApacheHttpClient;
 import io.camunda.connector.http.base.cloudfunction.CloudFunctionService;
-import io.camunda.connector.http.base.model.ErrorResponse;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import io.camunda.connector.http.base.model.HttpCommonResult;
 import org.slf4j.Logger;
@@ -64,13 +63,10 @@ public class HttpService {
       return jsonResult;
     } catch (ConnectorException e) {
       LOGGER.debug("Failed to execute request {}", request, e);
-      var errorResponse = new ErrorResponse(e.getErrorCode(), e.getMessage());
       if (cloudFunctionEnabled) {
-        // Will try to parse the exception message as a ErrorResponse
-        errorResponse =
-            cloudFunctionService.tryUpdateErrorUsingCloudFunctionError(e, errorResponse);
+        throw cloudFunctionService.parseCloudFunctionError(e);
       }
-      throw new ConnectorException(errorResponse.errorCode(), errorResponse.error(), e);
+      throw e;
     } catch (final Exception e) {
       LOGGER.debug("Failed to execute request {}", request, e);
       throw new ConnectorException(

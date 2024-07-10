@@ -16,6 +16,7 @@
  */
 package io.camunda.connector.e2e;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.badRequest;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.matching;
@@ -61,6 +62,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import wiremock.com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 @SpringBootTest(
     classes = {TestConnectorRuntimeApplication.class},
@@ -463,5 +465,59 @@ public class HttpTests {
 
     assertThat(bpmnTest.getProcessInstanceEvent())
         .hasVariableWithValue("orderStatus", "processing");
+  }
+
+  @Test
+  void useErrorResponse() {
+    // Prepare an HTTP mock server
+    wm.stubFor(
+        post(urlPathMatching("/mock"))
+            .willReturn(
+                badRequest()
+                    .withJsonBody(
+                        JsonNodeFactory.instance
+                            .objectNode()
+                            .put("message", "custom message")
+                            .put("booleanField", true)
+                            .put("temp", 36))));
+
+    var mockUrl = "http://localhost:" + wm.getPort() + "/mock";
+
+    var model =
+        Bpmn.createProcess()
+            .executable()
+            .startEvent()
+            .serviceTask("restTask")
+            .boundaryEvent("errorId")
+            .error()
+            .endEvent()
+            .done();
+
+    var elementTemplate =
+        ElementTemplate.from(
+                "../../connectors/http/rest/element-templates/http-json-connector.json")
+            .property("url", mockUrl)
+            .property("method", "post")
+            .property(
+                "errorExpression",
+                "if matches(error.code, \"400\") and error.variables.response.body.temp = 36 then bpmnError(\"Too hot\", error.variables.response.body.message, error.variables.response.body) else bpmnError(\"Not too hot\", \"The message default\",{fake: \"fakeValue\"})")
+            .writeTo(new File(tempDir, "template.json"));
+
+    var updatedModel =
+        new BpmnFile(model)
+            .writeToFile(new File(tempDir, "test.bpmn"))
+            .apply(elementTemplate, "restTask", new File(tempDir, "result.bpmn"));
+
+    var bpmnTest =
+        ZeebeTest.with(zeebeClient)
+            .deploy(updatedModel)
+            .createInstance()
+            .waitForProcessCompletion();
+
+    assertThat(bpmnTest.getProcessInstanceEvent()).hasNoIncidents();
+    assertThat(bpmnTest.getProcessInstanceEvent())
+        .hasVariableWithValue("temp", 36)
+        .hasVariableWithValue("booleanField", true)
+        .hasVariableWithValue("message", "custom message");
   }
 }
