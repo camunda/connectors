@@ -54,14 +54,13 @@ public class ConnectorHelper {
       outputVariables.put(resultVariableName, responseContent);
     }
 
-    Optional.ofNullable(resultExpression)
-        .filter(s -> !s.isBlank())
-        .map(
-            expression ->
-                FEEL_ENGINE_WRAPPER.evaluateToJson(
-                    expression, responseContent, wrapResponse(responseContent)))
-        .map(json -> parseJsonVarsAsTypeOrThrow(json, Map.class, resultExpression))
-        .ifPresent(outputVariables::putAll);
+    if (resultExpression != null && !resultExpression.isBlank()) {
+      var mappedResponseJson =
+          FEEL_ENGINE_WRAPPER.evaluateToJson(
+              resultExpression, responseContent, wrapResponse(responseContent));
+      var mappedResponse = parseJsonVarsAsTypeOrThrow(mappedResponseJson, Map.class, resultExpression);
+      outputVariables.putAll(mappedResponse);
+    }
 
     return outputVariables;
   }
