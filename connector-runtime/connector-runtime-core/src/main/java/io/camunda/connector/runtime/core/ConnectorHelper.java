@@ -17,6 +17,7 @@
 package io.camunda.connector.runtime.core;
 
 import static io.camunda.connector.feel.FeelEngineWrapperUtil.wrapResponse;
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -50,11 +51,11 @@ public class ConnectorHelper {
       final String resultExpression) {
     final Map<String, Object> outputVariables = new HashMap<>();
 
-    if (resultVariableName != null && !resultVariableName.isBlank()) {
+    if (isNotBlank(resultVariableName)) {
       outputVariables.put(resultVariableName, responseContent);
     }
 
-    if (resultExpression != null && !resultExpression.isBlank()) {
+    if (isNotBlank(resultExpression)) {
       var mappedResponseJson =
           FEEL_ENGINE_WRAPPER.evaluateToJson(
               resultExpression, responseContent, wrapResponse(responseContent));
