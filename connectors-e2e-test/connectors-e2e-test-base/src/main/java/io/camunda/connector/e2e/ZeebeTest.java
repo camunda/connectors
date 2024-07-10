@@ -71,6 +71,11 @@ public class ZeebeTest {
     return this;
   }
 
+  public ZeebeTest waitForProcessInstanceHasPassedElement(String elementId) {
+    ZeebeTestThreadSupport.waitForProcessInstanceHasPassedElement(processInstanceEvent, elementId);
+    return this;
+  }
+
   public DeploymentEvent getDeploymentEvent() {
     return deploymentEvent;
   }

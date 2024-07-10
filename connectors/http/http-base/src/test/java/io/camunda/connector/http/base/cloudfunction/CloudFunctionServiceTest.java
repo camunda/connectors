@@ -25,8 +25,9 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
-import io.camunda.connector.http.base.model.ErrorResponse;
+import io.camunda.connector.http.base.exception.ConnectorExceptionMapper;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
+import io.camunda.connector.http.base.model.HttpCommonResult;
 import io.camunda.connector.http.base.model.HttpMethod;
 import io.camunda.connector.http.base.model.auth.BearerAuthentication;
 import java.io.IOException;
@@ -90,36 +91,33 @@ public class CloudFunctionServiceTest {
   @Test
   public void shouldUpdateError_whenExceptionMessageIsJson() throws JsonProcessingException {
     // given
-    ConnectorException exception =
-        new ConnectorException(
-            "500",
-            ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.writeValueAsString(
-                Map.of("errorCode", "404", "error", "Not Found")));
-    ErrorResponse errorResponse =
-        new ErrorResponse(exception.getErrorCode(), exception.getMessage());
+    HttpCommonResult result =
+        new HttpCommonResult(404, Map.of("Content-Type", "text/plain"), "text_body", "the Reason");
 
     // when
-    errorResponse =
-        cloudFunctionService.tryUpdateErrorUsingCloudFunctionError(exception, errorResponse);
+    var exception =
+        cloudFunctionService.parseCloudFunctionError(ConnectorExceptionMapper.from(result));
 
     // then
-    assertThat(errorResponse.error()).isEqualTo("Not Found");
-    assertThat(errorResponse.errorCode()).isEqualTo("404");
+    assertThat(exception.getMessage()).isEqualTo("the Reason");
+    assertThat(exception.getErrorCode()).isEqualTo("404");
+    assertThat(exception.getErrorVariables())
+        .isEqualTo(
+            Map.of(
+                "response",
+                Map.of("body", "text_body", "headers", Map.of("Content-Type", "text/plain"))));
   }
 
   @Test
-  public void shouldNotUpdateError_whenExceptionMessageIsNotJson() throws JsonProcessingException {
+  public void shouldNotUpdateError_whenExceptionMessageIsNotJson() {
     // given
     ConnectorException exception = new ConnectorException("500", "Unknown error");
-    ErrorResponse errorResponse =
-        new ErrorResponse(exception.getErrorCode(), exception.getMessage());
 
     // when
-    errorResponse =
-        cloudFunctionService.tryUpdateErrorUsingCloudFunctionError(exception, errorResponse);
+    exception = cloudFunctionService.parseCloudFunctionError(exception);
 
     // then
-    assertThat(errorResponse.error()).isEqualTo("Unknown error");
-    assertThat(errorResponse.errorCode()).isEqualTo("500");
+    assertThat(exception.getMessage()).isEqualTo("Unknown error");
+    assertThat(exception.getErrorCode()).isEqualTo("500");
   }
 }

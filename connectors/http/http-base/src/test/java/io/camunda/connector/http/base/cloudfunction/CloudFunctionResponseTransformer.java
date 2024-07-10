@@ -55,7 +55,7 @@ public class CloudFunctionResponseTransformer implements ResponseTransformerV2 {
             .headers(new HttpHeaders(new HttpHeader("Content-Type", "application/json")))
             .body(
                 ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.writeValueAsString(
-                    new ErrorResponse(e.getErrorCode(), e.getMessage())))
+                    new ErrorResponse(e.getErrorCode(), e.getMessage(), e.getErrorVariables())))
             .build();
       } catch (JsonProcessingException ex) {
         throw new RuntimeException(ex);

@@ -154,6 +154,7 @@ public class HttpServiceTest {
         get("/path")
             .willReturn(
                 unauthorized()
+                    .withHeader("Content-Type", "text/plain")
                     .withStatusMessage("Unauthorized sorry!")
                     .withBody("Unauthorized sorry in the body!")));
 
@@ -170,7 +171,58 @@ public class HttpServiceTest {
     // then
     assertThat(e).isNotNull();
     assertThat(e.getErrorCode()).isEqualTo("401");
-    assertThat(e.getMessage()).isEqualTo("Unauthorized sorry in the body!");
+    assertThat(e.getMessage()).isEqualTo("Unauthorized sorry!");
+    var response = (Map<String, Object>) e.getErrorVariables().get("response");
+    assertThat((Map) response.get("headers")).containsEntry("Content-Type", "text/plain");
+    assertThat(response).containsEntry("body", "Unauthorized sorry in the body!");
+    if (cloudFunctionEnabled) {
+      verify(
+          postRequestedFor(urlEqualTo("/proxy"))
+              .withRequestBody(equalTo(objectMapper.writeValueAsString(request))));
+    }
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  public void shouldReturn401_whenUnauthorizedGetRequestWithJsonBody(
+      boolean cloudFunctionEnabled, WireMockRuntimeInfo wmRuntimeInfo) throws Exception {
+    stubCloudFunction(wmRuntimeInfo);
+    HttpService httpService =
+        cloudFunctionEnabled ? HttpServiceTest.this.httpService : httpServiceWithoutCloudFunction;
+    stubFor(
+        get("/path")
+            .willReturn(
+                unauthorized()
+                    .withHeader("Content-Type", "application/json")
+                    .withStatusMessage("Unauthorized sorry!")
+                    .withJsonBody(
+                        JsonNodeFactory.instance
+                            .objectNode()
+                            .put("responseKey1", "value1")
+                            .put("responseKey2", 40)
+                            .putNull("responseKey3"))));
+
+    // given
+    HttpCommonRequest request = new HttpCommonRequest();
+    request.setMethod(HttpMethod.GET);
+    request.setHeaders(Map.of("Accept", "application/json"));
+    request.setUrl(getHostAndPort(wmRuntimeInfo) + "/path");
+
+    // when
+    var e =
+        assertThrows(ConnectorException.class, () -> httpService.executeConnectorRequest(request));
+
+    // then
+    assertThat(e).isNotNull();
+    assertThat(e.getErrorCode()).isEqualTo("401");
+    assertThat(e.getMessage()).isEqualTo("Unauthorized sorry!");
+    var response = (Map<String, Object>) e.getErrorVariables().get("response");
+    assertThat((Map) response.get("headers")).containsEntry("Content-Type", "application/json");
+    var expectedBody = new HashMap<>();
+    expectedBody.put("responseKey1", "value1");
+    expectedBody.put("responseKey2", 40);
+    expectedBody.put("responseKey3", null);
+    assertThat((Map) response.get("body")).containsAllEntriesOf(expectedBody);
     if (cloudFunctionEnabled) {
       verify(
           postRequestedFor(urlEqualTo("/proxy"))

@@ -16,4 +16,6 @@
  */
 package io.camunda.connector.http.base.model;
 
-public record ErrorResponse(String errorCode, String error) {}
+import java.util.Map;
+
+public record ErrorResponse(String errorCode, String error, Map<String, Object> errorVariables) {}

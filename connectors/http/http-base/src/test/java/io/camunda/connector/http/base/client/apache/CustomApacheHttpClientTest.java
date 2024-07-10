@@ -390,7 +390,9 @@ public class CustomApacheHttpClientTest {
       ConnectorException e =
           assertThrows(ConnectorException.class, () -> customApacheHttpClient.execute(request));
       assertThat(e.getErrorCode()).isEqualTo("404");
-      assertThat(e.getMessage()).contains("Not Found: /path");
+      assertThat(e.getMessage()).contains("Not Found");
+      assertThat(((Map) e.getErrorVariables().get("response")).get("body"))
+          .isEqualTo("Not Found: /path");
     }
 
     @Test
