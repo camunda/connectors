@@ -58,7 +58,8 @@ public class ConnectorHelper {
       var mappedResponseJson =
           FEEL_ENGINE_WRAPPER.evaluateToJson(
               resultExpression, responseContent, wrapResponse(responseContent));
-      var mappedResponse = parseJsonVarsAsTypeOrThrow(mappedResponseJson, Map.class, resultExpression);
+      var mappedResponse =
+          parseJsonVarsAsTypeOrThrow(mappedResponseJson, Map.class, resultExpression);
       outputVariables.putAll(mappedResponse);
     }
 
