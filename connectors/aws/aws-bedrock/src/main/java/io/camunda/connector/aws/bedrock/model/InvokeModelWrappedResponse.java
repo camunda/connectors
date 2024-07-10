@@ -4,11 +4,6 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.aws.bedrock.core;
+package io.camunda.connector.aws.bedrock.model;
 
-public final class Formatter {
-
-  public static String AI21LabsJurassicFormatter(String s) {
-    return "{ \"prompt\": \"%s\" }".formatted(s);
-  }
-}
+public record InvokeModelWrappedResponse(Object body) implements BedrockResponse {}

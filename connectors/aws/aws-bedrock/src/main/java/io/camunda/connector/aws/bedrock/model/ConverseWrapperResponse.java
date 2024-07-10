@@ -4,6 +4,9 @@
  * See the License.txt file for more information. You may not use this file
  * except in compliance with the proprietary license.
  */
-package io.camunda.connector.aws.bedrock.core;
+package io.camunda.connector.aws.bedrock.model;
 
-public enum ConverseModel {}
+import java.util.List;
+
+public record ConverseWrapperResponse(List<PreviousMessage> messagesHistory, String newMessage)
+    implements BedrockResponse {}

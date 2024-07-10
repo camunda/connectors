@@ -9,15 +9,13 @@ package io.camunda.connector.aws.bedrock;
 import io.camunda.connector.api.annotation.OutboundConnector;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
-import io.camunda.connector.aws.CredentialsProviderSupportV2;
+import io.camunda.connector.aws.bedrock.core.BedrockExecutor;
 import io.camunda.connector.aws.bedrock.model.BedrockRequest;
 import io.camunda.connector.generator.java.annotation.ElementTemplate;
-import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 
 @OutboundConnector(
     name = "AWS BedRock",
-    inputVariables = {"authentication", "configuration", "action", "payload"},
+    inputVariables = {"authentication", "configuration", "action", "data"},
     type = "io.camunda:aws-bedrock:1")
 @ElementTemplate(
     id = "io.camunda.connectors.AWSBEDROCK.v1",
@@ -29,7 +27,7 @@ import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
       @ElementTemplate.PropertyGroup(id = "authentication", label = "Authentication"),
       @ElementTemplate.PropertyGroup(id = "configuration", label = "Configuration"),
       @ElementTemplate.PropertyGroup(id = "action", label = "Action"),
-      @ElementTemplate.PropertyGroup(id = "invokeModel", label = "Invoke"),
+      @ElementTemplate.PropertyGroup(id = "invokeModel", label = "Invoke Model"),
       @ElementTemplate.PropertyGroup(id = "converse", label = "Converse"),
     },
     documentationRef = "https://docs.camunda.io/docs/",
@@ -40,13 +38,7 @@ public class BedrockConnectorFunction implements OutboundConnectorFunction {
 
   @Override
   public Object execute(OutboundConnectorContext context) {
-    BedrockRequest bedrockRequest = context.bindVariables(BedrockRequest.class);
-    BedrockRuntimeClient bedrockRuntimeClient =
-        BedrockRuntimeClient.builder()
-            .credentialsProvider(CredentialsProviderSupportV2.credentialsProvider(bedrockRequest))
-            .region(Region.of(bedrockRequest.getConfiguration().region()))
-            .build();
-
-    return bedrockRequest;
+    BedrockRequest<?> bedrockRequest = context.bindVariables(BedrockRequest.class);
+    return BedrockExecutor.create(bedrockRequest).execute();
   }
 }

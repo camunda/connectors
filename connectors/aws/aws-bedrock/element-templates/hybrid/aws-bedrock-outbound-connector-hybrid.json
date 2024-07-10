@@ -27,7 +27,7 @@
     "label" : "Action"
   }, {
     "id" : "invokeModel",
-    "label" : "Invoke"
+    "label" : "Invoke Model"
   }, {
     "id" : "converse",
     "label" : "Converse"
@@ -152,8 +152,8 @@
       "value" : "converse"
     } ]
   }, {
-    "id" : "payload.userMessage",
-    "label" : "Message for bedrock",
+    "id" : "data.modelId0",
+    "label" : "Model id",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -161,7 +161,7 @@
     "feel" : "optional",
     "group" : "invokeModel",
     "binding" : {
-      "name" : "payload.userMessage",
+      "name" : "data.modelId",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -171,16 +171,16 @@
     },
     "type" : "String"
   }, {
-    "id" : "payload.model",
-    "label" : "Model to be used by bedrock",
+    "id" : "data.payload",
+    "label" : "Payload",
     "optional" : false,
-    "value" : "Jamba-Instruct",
     "constraints" : {
       "notEmpty" : true
     },
+    "feel" : "required",
     "group" : "invokeModel",
     "binding" : {
-      "name" : "payload.model",
+      "name" : "data.payload",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -188,14 +188,10 @@
       "equals" : "invokeModel",
       "type" : "simple"
     },
-    "type" : "Dropdown",
-    "choices" : [ {
-      "name" : "Jamba Instruct",
-      "value" : "Jamba-Instruct"
-    } ]
+    "type" : "String"
   }, {
-    "id" : "payload.userList",
-    "label" : "User Message List",
+    "id" : "data.modelId1",
+    "label" : "Model id",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -203,7 +199,7 @@
     "feel" : "optional",
     "group" : "converse",
     "binding" : {
-      "name" : "payload.userList",
+      "name" : "data.modelId",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -213,13 +209,80 @@
     },
     "type" : "String"
   }, {
-    "id" : "payload.assistantList",
-    "label" : "Assistant Message List",
+    "id" : "data.newMessage",
+    "label" : "New Message",
     "optional" : false,
+    "constraints" : {
+      "notEmpty" : true
+    },
     "feel" : "optional",
     "group" : "converse",
     "binding" : {
-      "name" : "payload.assistantList",
+      "name" : "data.newMessage",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "action",
+      "equals" : "converse",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.messagesHistory",
+    "label" : "Message History",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "converse",
+    "binding" : {
+      "name" : "data.messagesHistory",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "action",
+      "equals" : "converse",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.maxTokens",
+    "label" : "Max token returned",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "converse",
+    "binding" : {
+      "name" : "data.maxTokens",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "action",
+      "equals" : "converse",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.temperature",
+    "label" : "Temperature",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "converse",
+    "binding" : {
+      "name" : "data.temperature",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "property" : "action",
+      "equals" : "converse",
+      "type" : "simple"
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.topP",
+    "label" : "top P",
+    "optional" : true,
+    "feel" : "optional",
+    "group" : "converse",
+    "binding" : {
+      "name" : "data.topP",
       "type" : "zeebe:input"
     },
     "condition" : {

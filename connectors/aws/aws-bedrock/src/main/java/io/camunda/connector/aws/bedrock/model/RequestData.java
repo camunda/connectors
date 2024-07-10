@@ -6,8 +6,10 @@
  */
 package io.camunda.connector.aws.bedrock.model;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.connector.generator.java.annotation.TemplateDiscriminatorProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
+import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 
 @TemplateDiscriminatorProperty(
     label = "Action",
@@ -15,6 +17,6 @@ import io.camunda.connector.generator.java.annotation.TemplateSubType;
     name = "action",
     defaultValue = "invokeModel")
 @TemplateSubType(id = "action", label = "Action")
-public sealed interface RequestData permits InvokeModelPayload, ConversePayload {
-  BedrockResponse execute();
+public sealed interface RequestData permits InvokeModelData, ConverseData {
+  BedrockResponse execute(BedrockRuntimeClient bedrockRuntimeClient, ObjectMapper mapperInstance);
 }

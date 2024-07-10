@@ -20,11 +20,17 @@ public class BedrockRequest<T extends RequestData> extends AwsBaseRequest {
       property = "action")
   @JsonSubTypes(
       value = {
-        @JsonSubTypes.Type(value = ConversePayload.class, name = "converse"),
-        @JsonSubTypes.Type(value = InvokeModelPayload.class, name = "invokeModel"),
+        @JsonSubTypes.Type(value = ConverseData.class, name = "converse"),
+        @JsonSubTypes.Type(value = InvokeModelData.class, name = "invokeModel"),
       })
   @Valid
   @NotNull
   @NestedProperties(addNestedPath = false)
-  private T payload;
+  private T data;
+
+  @Valid
+  @NotNull
+  public T getData() {
+    return data;
+  }
 }
