@@ -1,5 +1,5 @@
 #!/bin/bash
-# This script copies all element templates from the connectors directory to the Camunda Desktop Modeler's element templates directory.
+# This script creates symlinks for all element templates in the current directory to the Camunda Modeler's element templates directory.
 
 # Define color codes
 RED='\033[0;31m'
@@ -15,6 +15,7 @@ SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 # Change to the script's directory
 cd "$SCRIPT_DIR" || exit
 
+echo -e "${YELLOW}NOTE: This script can be run only once. Until you create new element templates, you don't need to run this script again.${NC}"
 echo -e "${BLUE}Starting to copy element templates to ~/Library/Application\ Support/camunda-modeler/resources/element-templates${NC}"
 # Find all .json files in element-templates directories and copy them to /tmp/json
 find . -type d -name "element-templates" | while read -r dir; do
