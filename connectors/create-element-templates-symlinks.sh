@@ -19,6 +19,7 @@ echo -e "${YELLOW}NOTE: This script can be run only once. Until you create new e
 echo -e "${BLUE}Starting to copy element templates to ~/Library/Application\ Support/camunda-modeler/resources/element-templates${NC}"
 # Find all .json files in element-templates directories and copy them to /tmp/json
 find . -type d -name "element-templates" | while read -r dir; do
+  echo -e "${YELLOW}Creating symlink for [$dir]${NC}"
   find "$dir" -type f -name "*.json" | while read -r file; do
     dest_dir=~/Library/Application\ Support/camunda-modeler/resources/element-templates/
     dest_file="$dest_dir$(basename "$file")"
@@ -28,7 +29,6 @@ find . -type d -name "element-templates" | while read -r dir; do
     fi
     # Create the new symlink
     ln -s "$SCRIPT_DIR/$file" "$dest_file"
-    echo -e "${YELLOW}Created symlink for [$file]${NC}"
   done
 done
 
