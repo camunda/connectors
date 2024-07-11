@@ -69,7 +69,21 @@ public abstract class SoapConnectorBaseTest {
       </soap:Envelope>
       """;
 
-  @TempDir File tempDir;
+  protected static final String NUMBER_OF_WORDS_ERROR_RESPONSE =
+      """
+      <?xml version="1.0" encoding="utf-8"?>
+      <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+        <soap:Body>
+          <soap:Fault>
+            <faultcode>soap:Server</faultcode>
+            <faultstring>Server was unable to process request. Object reference not set to an instance of an object.</faultstring>
+            <detail>
+              <error>Object reference not set to an instance of an object.</error>
+            </detail>
+          </soap:Fault>
+        </soap:Body>
+      </soap:Envelope>
+      """;
 
   @RegisterExtension
   static WireMockExtension wm =
@@ -77,6 +91,7 @@ public abstract class SoapConnectorBaseTest {
           .options(wireMockConfig().dynamicPort().notifier(new ConsoleNotifier(true)))
           .build();
 
+  @TempDir File tempDir;
   @Autowired ZeebeClient zeebeClient;
 
   @MockBean ProcessDefinitionSearch processDefinitionSearch;
@@ -84,6 +99,18 @@ public abstract class SoapConnectorBaseTest {
   @Autowired CamundaOperateClient camundaOperateClient;
 
   @LocalServerPort int serverPort;
+
+  protected BpmnModelInstance getBpmnModelInstance(final String serviceTaskName) {
+    return Bpmn.createProcess()
+        .executable()
+        .startEvent()
+        .serviceTask(serviceTaskName)
+        .boundaryEvent()
+        .error()
+        .zeebeOutput("=response", "response")
+        .endEvent()
+        .done();
+  }
 
   @BeforeEach
   void beforeEach() {
@@ -94,15 +121,6 @@ public abstract class SoapConnectorBaseTest {
     BpmnModelInstance model = getBpmnModelInstance(taskName);
     BpmnModelInstance updatedModel = getBpmnModelInstance(model, elementTemplate, taskName);
     return getZeebeTest(updatedModel);
-  }
-
-  protected static BpmnModelInstance getBpmnModelInstance(final String serviceTaskName) {
-    return Bpmn.createProcess()
-        .executable()
-        .startEvent()
-        .serviceTask(serviceTaskName)
-        .endEvent()
-        .done();
   }
 
   protected ZeebeTest getZeebeTest(final BpmnModelInstance updatedModel) {
