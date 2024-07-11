@@ -17,6 +17,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 import software.amazon.awssdk.services.bedrockruntime.model.ContentBlock;
 import software.amazon.awssdk.services.bedrockruntime.model.ConversationRole;
@@ -138,5 +140,18 @@ public final class ConverseData implements RequestData {
 
   public void setTopP(Float topP) {
     this.topP = topP;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    ConverseData that = (ConverseData) o;
+    return Objects.equals(modelId, that.modelId) && Objects.equals(newMessage, that.newMessage) && Objects.equals(messagesHistory, that.messagesHistory) && Objects.equals(maxTokens, that.maxTokens) && Objects.equals(temperature, that.temperature) && Objects.equals(topP, that.topP);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(modelId, newMessage, messagesHistory, maxTokens, temperature, topP);
   }
 }

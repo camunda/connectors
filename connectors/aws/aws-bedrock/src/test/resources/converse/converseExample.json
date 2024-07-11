@@ -1,0 +1,20 @@
+[
+  {
+    "data":{
+      "modelId":"amazon.titan-text-premier-v1:0",
+      "newMessage":"ok",
+      "messagesHistory":[
+        {"message":"Hey", "role":"USER"}, {"message":"Hello there! How can I assist you today?", "role":"ASSISTANT"},
+        {"message":"You feel good ?", "role":"USER"}, {
+          "message":"Thank you for asking! As an AI, I don't have personal feelings or experiences, but I'm always here to help with any questions or information you may need. How can I assist you today?",
+          "role":"ASSISTANT"
+        }
+      ]
+    },
+    "action":"converse",
+    "configuration":{"region":"us-east-1"},
+    "authentication":{
+      "type":"credentials", "accessKey":"access", "secretKey":"secret"
+    }
+  }
+]

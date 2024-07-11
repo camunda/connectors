@@ -1,0 +1,10 @@
+[
+  {
+    "data":{
+      "modelId":"ai21.jamba-instruct-v1:0",
+      "payload":{"messages":[{"role":"user", "content":"Hello"}], "max_tokens":256, "top_p":0.8, "temperature":0.7}
+    }, "action":"invokeModel", "configuration":{"region":"us-east-1"}, "authentication":{
+    "type":"credentials", "accessKey":"access", "secretKey":"secret"
+  }
+  }
+]

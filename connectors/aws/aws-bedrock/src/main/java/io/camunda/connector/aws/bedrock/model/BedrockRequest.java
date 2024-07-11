@@ -28,6 +28,14 @@ public class BedrockRequest<T extends RequestData> extends AwsBaseRequest {
   @NestedProperties(addNestedPath = false)
   private T data;
 
+  public BedrockRequest(T invokeModelData) {
+    super();
+    this.data = invokeModelData;
+  }
+
+  public BedrockRequest() {
+  }
+
   @Valid
   @NotNull
   public T getData() {

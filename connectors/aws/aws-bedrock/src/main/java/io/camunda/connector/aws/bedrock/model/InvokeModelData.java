@@ -16,6 +16,8 @@ import jakarta.validation.constraints.NotNull;
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 
+import java.util.Objects;
+
 @TemplateSubType(id = "invokeModel", label = "Invoke Model")
 public final class InvokeModelData implements RequestData {
 
@@ -62,5 +64,18 @@ public final class InvokeModelData implements RequestData {
 
   public void setPayload(@Valid @NotNull Object payload) {
     this.payload = payload;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    InvokeModelData that = (InvokeModelData) o;
+    return Objects.equals(modelId, that.modelId) && Objects.equals(payload, that.payload);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(modelId, payload);
   }
 }
