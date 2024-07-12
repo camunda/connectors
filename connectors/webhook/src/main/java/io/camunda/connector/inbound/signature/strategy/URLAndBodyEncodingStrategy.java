@@ -19,12 +19,12 @@ import java.util.stream.Collectors;
 
 public final class URLAndBodyEncodingStrategy implements HMACEncodingStrategy {
 
-  private static String extractSignatureData(final WebhookProcessingPayload payload) {
+  private String extractSignatureData(final WebhookProcessingPayload payload) {
     return prepareForSignature(
         payload.rawBody(), HttpWebhookUtil.extractContentType(payload.headers()));
   }
 
-  private static String prepareForSignature(byte[] rawBody, String contentTypeHeader) {
+  private String prepareForSignature(byte[] rawBody, String contentTypeHeader) {
     if (MediaType.FORM_DATA.toString().equalsIgnoreCase(contentTypeHeader)) {
       String bodyAsString =
           URLDecoder.decode(new String(rawBody, StandardCharsets.UTF_8), StandardCharsets.UTF_8);
@@ -58,17 +58,17 @@ public final class URLAndBodyEncodingStrategy implements HMACEncodingStrategy {
     throw new RuntimeException("Can't extract signature data from body");
   }
 
-  private static String mapObjectToString(Object o) {
+  private String mapObjectToString(Object o) {
     try {
-      return ConnectorsObjectMapperSupplier.getCopy().writeValueAsString(o);
+      return ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.writeValueAsString(o);
     } catch (JsonProcessingException e) {
       throw new RuntimeException(e);
     }
   }
 
-  private static Object mapBytesToObject(byte[] rawBody) {
+  private Object mapBytesToObject(byte[] rawBody) {
     try {
-      return ConnectorsObjectMapperSupplier.getCopy().readValue(rawBody, Object.class);
+      return ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.readValue(rawBody, Object.class);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
