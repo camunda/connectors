@@ -2781,7 +2781,7 @@
     },
     {
       "type": "Hidden",
-      "value": "=baseUrl + \"/repos/\" + owner + \"/\" + repo + \"/issues/\" + issueNumber",
+      "value": "=baseUrl + \"/repos/\" + owner + \"/\" + repo + \"/issues/\" + string(issueNumber)",
       "binding": {
         "type": "zeebe:input",
         "name": "url"
@@ -2796,7 +2796,7 @@
     },
     {
       "type": "Hidden",
-      "value": "=baseUrl + \"/repos/\" + owner + \"/\" + repo + \"/issues/\" + issueNumber + \"/comments\"",
+      "value": "=baseUrl + \"/repos/\" + owner + \"/\" + repo + \"/issues/\" + string(issueNumber) + \"/comments\"",
       "binding": {
         "type": "zeebe:input",
         "name": "url"
