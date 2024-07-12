@@ -1,3 +1,9 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
+ */
 package io.camunda.connector.aws.bedrock;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -23,14 +29,13 @@ public class BaseTest {
     }
   }
 
-    public static Stream<String> loadConverseVariables() {
-        try {
-            return loadTestCasesFromResourceFile(
-                    "src/test/resources/converse/converseExample.json");
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+  public static Stream<String> loadConverseVariables() {
+    try {
+      return loadTestCasesFromResourceFile("src/test/resources/converse/converseExample.json");
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
+  }
 
   @SuppressWarnings("unchecked")
   protected static Stream<String> loadTestCasesFromResourceFile(final String fileWithTestCasesUri)

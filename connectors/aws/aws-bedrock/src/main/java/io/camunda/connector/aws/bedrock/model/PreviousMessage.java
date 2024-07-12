@@ -6,32 +6,4 @@
  */
 package io.camunda.connector.aws.bedrock.model;
 
-import software.amazon.awssdk.services.bedrockruntime.model.ConversationRole;
-
-public class PreviousMessage {
-  private String message;
-  private ConversationRole role;
-
-  public PreviousMessage(String message, ConversationRole role) {
-    this.message = message;
-    this.role = role;
-  }
-
-  public PreviousMessage() {}
-
-  public String getMessage() {
-    return message;
-  }
-
-  public void setMessage(String message) {
-    this.message = message;
-  }
-
-  public ConversationRole getRole() {
-    return role;
-  }
-
-  public void setRole(ConversationRole role) {
-    this.role = role;
-  }
-}
+public record PreviousMessage(String message, String role) {}

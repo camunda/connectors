@@ -1,7 +1,7 @@
 {
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name" : "AWS BedRock Outbound Connector",
-  "id" : "io.camunda.connectors.AWSBEDROCK.v1",
+  "id" : "io.camunda.connectors.aws.bedrock.v1",
   "description" : "Execute bedrock requests",
   "documentationRef" : "https://docs.camunda.io/docs/",
   "version" : 1,
@@ -204,7 +204,7 @@
     },
     "type" : "String"
   }, {
-    "id" : "data.newMessage",
+    "id" : "data.nextMessage",
     "label" : "New Message",
     "optional" : false,
     "constraints" : {
@@ -213,7 +213,7 @@
     "feel" : "optional",
     "group" : "converse",
     "binding" : {
-      "name" : "data.newMessage",
+      "name" : "data.nextMessage",
       "type" : "zeebe:input"
     },
     "condition" : {
@@ -223,13 +223,13 @@
     },
     "type" : "String"
   }, {
-    "id" : "data.messagesHistory",
-    "label" : "Message History",
+    "id" : "data.messages",
+    "label" : "Messages History",
     "optional" : true,
     "feel" : "optional",
     "group" : "converse",
     "binding" : {
-      "name" : "data.messagesHistory",
+      "name" : "data.messages",
       "type" : "zeebe:input"
     },
     "condition" : {

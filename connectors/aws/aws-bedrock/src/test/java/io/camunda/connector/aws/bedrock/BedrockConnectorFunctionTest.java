@@ -1,3 +1,9 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
+ */
 package io.camunda.connector.aws.bedrock;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -45,10 +51,10 @@ class BedrockConnectorFunctionTest extends BaseTest {
     var bedrockExecutor = Mockito.mock(BedrockExecutor.class);
 
     try (MockedStatic<BedrockExecutor> bedrockExecutorMockedStatic =
-                 Mockito.mockStatic(BedrockExecutor.class)) {
+        Mockito.mockStatic(BedrockExecutor.class)) {
       bedrockExecutorMockedStatic
-              .when(() -> BedrockExecutor.create(any()))
-              .thenReturn(bedrockExecutor);
+          .when(() -> BedrockExecutor.create(any()))
+          .thenReturn(bedrockExecutor);
       when(bedrockExecutor.execute()).thenReturn(new InvokeModelWrappedResponse("Hello"));
       var response = bedrockConnectorFunction.execute(context);
       Assertions.assertNotNull(response);

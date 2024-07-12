@@ -18,7 +18,6 @@ import jakarta.validation.constraints.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 import software.amazon.awssdk.services.bedrockruntime.model.ContentBlock;
 import software.amazon.awssdk.services.bedrockruntime.model.ConversationRole;
@@ -41,23 +40,23 @@ public final class ConverseData implements RequestData {
   @TemplateProperty(
       label = "New Message",
       group = "converse",
-      id = "data.newMessage",
+      id = "data.nextMessage",
       feel = Property.FeelMode.optional,
-      binding = @TemplateProperty.PropertyBinding(name = "data.newMessage"))
+      binding = @TemplateProperty.PropertyBinding(name = "data.nextMessage"))
   @Valid
   @NotBlank
-  private String newMessage;
+  private String nextMessage;
 
   @TemplateProperty(
       label = "Messages History",
       group = "converse",
-      id = "data.messagesHistory",
+      id = "data.messages",
       feel = Property.FeelMode.optional,
       optional = true,
-      binding = @TemplateProperty.PropertyBinding(name = "data.messagesHistory"))
+      binding = @TemplateProperty.PropertyBinding(name = "data.messages"))
   @Valid
   @JsonSetter(nulls = Nulls.SKIP)
-  private List<PreviousMessage> messagesHistory = new ArrayList<>();
+  private List<PreviousMessage> messages = new ArrayList<>();
 
   @TemplateProperty(
       label = "Max token returned",
@@ -89,15 +88,15 @@ public final class ConverseData implements RequestData {
   @Override
   public BedrockResponse execute(
       BedrockRuntimeClient bedrockRuntimeClient, ObjectMapper mapperInstance) {
-    this.messagesHistory.add(new PreviousMessage(this.newMessage, ConversationRole.USER));
+    this.messages.add(new PreviousMessage(this.nextMessage, ConversationRole.USER.name()));
     Message.Builder messageBuilder = Message.builder();
     List<Message> messages =
-        this.messagesHistory.stream()
+        this.messages.stream()
             .map(
                 message ->
                     messageBuilder
-                        .role(message.getRole())
-                        .content(ContentBlock.fromText(message.getMessage()))
+                        .role(ConversationRole.valueOf(message.role()))
+                        .content(ContentBlock.fromText(message.message()))
                         .build())
             .toList();
     ConverseResponse converseResponse =
@@ -114,20 +113,38 @@ public final class ConverseData implements RequestData {
                                 .topP(this.topP)
                                 .build()));
     String newMessage = converseResponse.output().message().content().getFirst().text();
-    this.messagesHistory.add(new PreviousMessage(newMessage, ConversationRole.ASSISTANT));
-    return new ConverseWrapperResponse(this.messagesHistory, newMessage);
+    this.messages.add(new PreviousMessage(newMessage, ConversationRole.ASSISTANT.name()));
+    return new ConverseWrapperResponse(this.messages, newMessage);
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    ConverseData that = (ConverseData) o;
+    return Objects.equals(modelId, that.modelId)
+        && Objects.equals(nextMessage, that.nextMessage)
+        && Objects.equals(messages, that.messages)
+        && Objects.equals(maxTokens, that.maxTokens)
+        && Objects.equals(temperature, that.temperature)
+        && Objects.equals(topP, that.topP);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(modelId, nextMessage, messages, maxTokens, temperature, topP);
   }
 
   public void setModelId(@Valid @NotNull String modelId) {
     this.modelId = modelId;
   }
 
-  public void setMessagesHistory(@Valid List<PreviousMessage> messagesHistory) {
-    this.messagesHistory = messagesHistory;
+  public void setNextMessage(@Valid @NotBlank String nextMessage) {
+    this.nextMessage = nextMessage;
   }
 
-  public void setNewMessage(@Valid @NotBlank String newMessage) {
-    this.newMessage = newMessage;
+  public void setMessages(@Valid List<PreviousMessage> messages) {
+    this.messages = messages;
   }
 
   public void setMaxTokens(Integer maxTokens) {
@@ -140,18 +157,5 @@ public final class ConverseData implements RequestData {
 
   public void setTopP(Float topP) {
     this.topP = topP;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    ConverseData that = (ConverseData) o;
-    return Objects.equals(modelId, that.modelId) && Objects.equals(newMessage, that.newMessage) && Objects.equals(messagesHistory, that.messagesHistory) && Objects.equals(maxTokens, that.maxTokens) && Objects.equals(temperature, that.temperature) && Objects.equals(topP, that.topP);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(modelId, newMessage, messagesHistory, maxTokens, temperature, topP);
   }
 }

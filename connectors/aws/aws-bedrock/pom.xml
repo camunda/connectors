@@ -15,12 +15,6 @@
     <artifactId>connector-aws-bedrock</artifactId>
     <packaging>jar</packaging>
 
-    <properties>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
-
     <licenses>
         <license>
             <name>Camunda Self-Managed Free Edition license</name>
@@ -57,7 +51,7 @@
                             <connectorClass>io.camunda.connector.aws.bedrock.BedrockConnectorFunction</connectorClass>
                             <files>
                                 <file>
-                                    <templateId>io.camunda.connectors.AWSBEDROCK.v1</templateId>
+                                    <templateId>io.camunda.connectors.aws.bedrock.v1</templateId>
                                     <templateFileName>aws-bedrock-outbound-connector.json</templateFileName>
                                 </file>
                             </files>

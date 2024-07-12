@@ -13,7 +13,7 @@ import io.camunda.connector.generator.java.annotation.NestedProperties;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
-public class BedrockRequest<T extends RequestData> extends AwsBaseRequest {
+public class BedrockRequest extends AwsBaseRequest {
   @JsonTypeInfo(
       use = JsonTypeInfo.Id.NAME,
       include = JsonTypeInfo.As.EXTERNAL_PROPERTY,
@@ -26,19 +26,13 @@ public class BedrockRequest<T extends RequestData> extends AwsBaseRequest {
   @Valid
   @NotNull
   @NestedProperties(addNestedPath = false)
-  private T data;
+  private RequestData data;
 
-  public BedrockRequest(T invokeModelData) {
-    super();
-    this.data = invokeModelData;
-  }
-
-  public BedrockRequest() {
-  }
+  public BedrockRequest() {}
 
   @Valid
   @NotNull
-  public T getData() {
+  public RequestData getData() {
     return data;
   }
 }

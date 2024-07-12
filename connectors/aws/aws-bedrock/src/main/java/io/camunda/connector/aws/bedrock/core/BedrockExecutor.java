@@ -14,19 +14,18 @@ import io.camunda.connector.aws.bedrock.model.RequestData;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 
-public class BedrockExecutor<T extends RequestData> {
+public class BedrockExecutor {
 
   private final BedrockRuntimeClient bedrockRuntimeClient;
-  private final T requestData;
+  private final RequestData requestData;
 
-  public BedrockExecutor(BedrockRuntimeClient bedrockRuntimeClient, T requestData) {
+  public BedrockExecutor(BedrockRuntimeClient bedrockRuntimeClient, RequestData requestData) {
     this.bedrockRuntimeClient = bedrockRuntimeClient;
     this.requestData = requestData;
   }
 
-  public static <T extends RequestData> BedrockExecutor<T> create(
-      BedrockRequest<T> bedrockRequest) {
-    return new BedrockExecutor<>(
+  public static BedrockExecutor create(BedrockRequest bedrockRequest) {
+    return new BedrockExecutor(
         BedrockRuntimeClient.builder()
             .credentialsProvider(CredentialsProviderSupportV2.credentialsProvider(bedrockRequest))
             .region(Region.of(bedrockRequest.getConfiguration().region()))

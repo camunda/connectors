@@ -18,7 +18,7 @@ import io.camunda.connector.generator.java.annotation.ElementTemplate;
     inputVariables = {"authentication", "configuration", "action", "data"},
     type = "io.camunda:aws-bedrock:1")
 @ElementTemplate(
-    id = "io.camunda.connectors.AWSBEDROCK.v1",
+    id = "io.camunda.connectors.aws.bedrock.v1",
     name = "AWS BedRock Outbound Connector",
     description = "Execute bedrock requests",
     inputDataClass = BedrockRequest.class,
@@ -38,7 +38,7 @@ public class BedrockConnectorFunction implements OutboundConnectorFunction {
 
   @Override
   public Object execute(OutboundConnectorContext context) {
-    BedrockRequest<?> bedrockRequest = context.bindVariables(BedrockRequest.class);
+    BedrockRequest bedrockRequest = context.bindVariables(BedrockRequest.class);
     return BedrockExecutor.create(bedrockRequest).execute();
   }
 }

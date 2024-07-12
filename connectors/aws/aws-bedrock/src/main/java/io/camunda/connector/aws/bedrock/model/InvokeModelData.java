@@ -13,10 +13,9 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty;
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import java.util.Objects;
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
-
-import java.util.Objects;
 
 @TemplateSubType(id = "invokeModel", label = "Invoke Model")
 public final class InvokeModelData implements RequestData {

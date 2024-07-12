@@ -1,6 +1,11 @@
+/*
+ * Copyright Camunda Services GmbH and/or licensed to Camunda Services GmbH
+ * under one or more contributor license agreements. Licensed under a proprietary license.
+ * See the License.txt file for more information. You may not use this file
+ * except in compliance with the proprietary license.
+ */
 package io.camunda.connector.aws.bedrock.model;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -29,10 +34,10 @@ class ConverseDataTest {
     converseData.setModelId("random-model-id");
 
     List<PreviousMessage> previousMessages = new ArrayList<>();
-    previousMessages.add(new PreviousMessage("Hey", ConversationRole.USER));
-    previousMessages.add(new PreviousMessage("How are you?", ConversationRole.ASSISTANT));
-    converseData.setMessagesHistory(previousMessages);
-    converseData.setNewMessage("I am good thanks, and you?");
+    previousMessages.add(new PreviousMessage("Hey", ConversationRole.USER.name()));
+    previousMessages.add(new PreviousMessage("How are you?", ConversationRole.ASSISTANT.name()));
+    converseData.setMessages(previousMessages);
+    converseData.setNextMessage("I am good thanks, and you?");
 
     when(bedrockRuntimeClient.converse(any(Consumer.class))).thenReturn(converseResponse);
     when(converseResponse.output().message().content().getFirst().text())
@@ -42,6 +47,6 @@ class ConverseDataTest {
     Assertions.assertInstanceOf(ConverseWrapperResponse.class, bedrockResponse);
     Assertions.assertEquals(
         "I am also good",
-        ((ConverseWrapperResponse) bedrockResponse).messagesHistory().getLast().getMessage());
+        ((ConverseWrapperResponse) bedrockResponse).messagesHistory().getLast().message());
   }
 }
