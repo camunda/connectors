@@ -35,7 +35,7 @@ public final class ConverseData implements RequestData {
       binding = @TemplateProperty.PropertyBinding(name = "data.modelId"))
   @Valid
   @NotNull
-  String modelId;
+  private String modelId;
 
   @TemplateProperty(
       label = "New Message",
@@ -157,5 +157,20 @@ public final class ConverseData implements RequestData {
 
   public void setTopP(Float topP) {
     this.topP = topP;
+  }
+
+  @Override
+  public String toString() {
+    return "ConverseData{"
+        + "modelId='"
+        + modelId
+        + '\''
+        + ", maxTokens="
+        + maxTokens
+        + ", temperature="
+        + temperature
+        + ", topP="
+        + topP
+        + '}';
   }
 }

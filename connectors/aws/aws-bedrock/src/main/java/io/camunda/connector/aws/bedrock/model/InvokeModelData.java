@@ -77,4 +77,9 @@ public final class InvokeModelData implements RequestData {
   public int hashCode() {
     return Objects.hash(modelId, payload);
   }
+
+  @Override
+  public String toString() {
+    return "InvokeModelData{" + "modelId='" + modelId + '\'' + '}';
+  }
 }
