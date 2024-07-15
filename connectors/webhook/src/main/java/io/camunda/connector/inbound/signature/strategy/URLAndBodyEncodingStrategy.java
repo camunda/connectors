@@ -52,6 +52,7 @@ public final class URLAndBodyEncodingStrategy implements HMACEncodingStrategy {
     throw new RuntimeException("Can't extract signature data from body");
   }
 
+  // Twilio specific function: sort the key in the map and concatenate to calculate the signature
   private String extractSignatureFromMap(Map<String, String> map) {
     return map.keySet().stream()
         .sorted()
