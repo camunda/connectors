@@ -52,7 +52,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -63,15 +62,14 @@ public class KafkaExecutableTest {
   private List<PartitionInfo> topicPartitions;
   private KafkaConnectorProperties kafkaConnectorProperties;
   private KafkaTopic kafkaTopic;
-  @Mock private KafkaConsumer<Object, Object> mockConsumer;
+  private KafkaConsumer<Object, Object> mockConsumer;
 
   private String topic;
-
-  private final String processId = "Process_id";
 
   private static final int MAX_ATTEMPTS = 3;
 
   @BeforeEach
+  @SuppressWarnings("unchecked")
   public void setUp() {
     topic = "my-topic";
     topicPartitions =
@@ -100,6 +98,7 @@ public class KafkaExecutableTest {
             .validation(new DefaultValidationProvider())
             .build();
     originalContext = context;
+    mockConsumer = mock(KafkaConsumer.class);
   }
 
   @Test
