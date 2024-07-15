@@ -169,7 +169,8 @@ public class KafkaExecutableTest {
     when(mockConsumer.poll(any())).thenThrow(new RuntimeException("Test exception"));
     await()
         .atMost(Duration.ofSeconds(5))
-        .until(() -> !kafkaExecutable.kafkaConnectorConsumer.shouldLoop);
+        .pollInterval(Duration.ofMillis(500))
+        .untilAsserted(() -> assertFalse(kafkaExecutable.kafkaConnectorConsumer.shouldLoop));
     kafkaExecutable.deactivate();
 
     // Then
