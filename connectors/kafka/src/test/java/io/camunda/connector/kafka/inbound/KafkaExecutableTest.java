@@ -15,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -166,7 +167,7 @@ public class KafkaExecutableTest {
 
     // When
     kafkaExecutable.activate(context);
-    when(mockConsumer.poll(any())).thenThrow(new RuntimeException("Test exception"));
+    doThrow(new RuntimeException("Test exception")).when(mockConsumer).poll(any());
     await()
         .atMost(Duration.ofSeconds(5))
         .pollInterval(Duration.ofMillis(500))
