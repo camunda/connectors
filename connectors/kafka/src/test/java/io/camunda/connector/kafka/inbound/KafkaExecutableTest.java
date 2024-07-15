@@ -166,8 +166,8 @@ public class KafkaExecutableTest {
     when(mockConsumer.groupMetadata()).thenReturn(groupMetadataMock);
 
     // When
+    when(mockConsumer.poll(any())).thenThrow(new RuntimeException("Test exception"));
     kafkaExecutable.activate(context);
-    doThrow(new RuntimeException("Test exception")).when(mockConsumer).poll(any());
     await()
         .atMost(Duration.ofSeconds(5))
         .pollInterval(Duration.ofMillis(500))
@@ -175,7 +175,7 @@ public class KafkaExecutableTest {
     kafkaExecutable.deactivate();
 
     // Then
-    verify(mockConsumer, times(MAX_ATTEMPTS)).poll(any());
+    verify(mockConsumer, times(MAX_ATTEMPTS)).poll(any(Duration.class));
   }
 
   @Test
