@@ -275,7 +275,7 @@ public class KafkaExecutableTest {
         properties -> mockConsumer,
         RetryPolicy.builder()
             .handle(Exception.class)
-            .withDelay(Duration.ofMillis(500))
+            .withDelay(Duration.ofMillis(50))
             .withMaxAttempts(MAX_ATTEMPTS)
             .build());
   }
