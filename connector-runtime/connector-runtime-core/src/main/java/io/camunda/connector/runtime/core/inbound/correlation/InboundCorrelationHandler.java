@@ -50,13 +50,17 @@ public class InboundCorrelationHandler {
 
   private final ProcessElementContextFactory processElementContextFactory;
 
+  private final Duration defaultMessageTtl;
+
   public InboundCorrelationHandler(
       ZeebeClient zeebeClient,
       FeelEngineWrapper feelEngine,
-      ProcessElementContextFactory processElementContextFactory) {
+      ProcessElementContextFactory processElementContextFactory,
+      Duration defaultMessageTtl) {
     this.zeebeClient = zeebeClient;
     this.feelEngine = feelEngine;
     this.processElementContextFactory = processElementContextFactory;
+    this.defaultMessageTtl = defaultMessageTtl;
   }
 
   public CorrelationResult correlate(List<InboundConnectorElement> elements, Object variables) {
@@ -96,15 +100,16 @@ public class InboundCorrelationHandler {
     var correlationPoint = activatedElement.correlationPoint();
 
     return switch (correlationPoint) {
-      case StartEventCorrelationPoint corPoint -> triggerStartEvent(
-          activatedElement, corPoint, variables);
-      case MessageCorrelationPoint corPoint -> triggerMessage(
-          activatedElement,
-          corPoint,
-          variables,
-          resolveMessageId(corPoint.messageIdExpression(), messageId, variables));
-      case MessageStartEventCorrelationPoint corPoint -> triggerMessageStartEvent(
-          activatedElement, corPoint, variables);
+      case StartEventCorrelationPoint corPoint ->
+          triggerStartEvent(activatedElement, corPoint, variables);
+      case MessageCorrelationPoint corPoint ->
+          triggerMessage(
+              activatedElement,
+              corPoint,
+              variables,
+              resolveMessageId(corPoint.messageIdExpression(), messageId, variables));
+      case MessageStartEventCorrelationPoint corPoint ->
+          triggerMessageStartEvent(activatedElement, corPoint, variables);
     };
   }
 
@@ -212,6 +217,8 @@ public class InboundCorrelationHandler {
               .variables(extractedVariables);
       if (timeToLive != null) {
         command.timeToLive(timeToLive);
+      } else {
+        command.timeToLive(defaultMessageTtl);
       }
       PublishMessageResponse response = command.send().join();
 
