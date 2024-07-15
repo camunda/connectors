@@ -25,6 +25,9 @@ public final class URLAndBodyEncodingStrategy implements HMACEncodingStrategy {
   }
 
   private String prepareForSignature(byte[] rawBody, String contentTypeHeader) {
+    //Twilio-specific HMAC encryption. If this is an url encoded parameter or body that is a map
+    //then this algo will be used
+    //If not we will just return the object as a serialized String
     if (MediaType.FORM_DATA.toString().equalsIgnoreCase(contentTypeHeader)) {
       String bodyAsString =
           URLDecoder.decode(new String(rawBody, StandardCharsets.UTF_8), StandardCharsets.UTF_8);
