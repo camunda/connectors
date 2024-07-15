@@ -34,28 +34,27 @@ public final class URLAndBodyEncodingStrategy implements HMACEncodingStrategy {
               .map(param -> param.split("="))
               .collect(
                   Collectors.toMap(param -> param[0], param -> param.length == 1 ? "" : param[1]));
-      return strMap.keySet().stream()
-          .sorted()
-          .map(key -> key.concat(strMap.get(key)))
-          .reduce(String::concat)
-          .orElse("");
+      return extractSignatureFromMap(strMap);
     }
     Object o = mapBytesToObject(rawBody);
     if (o instanceof Map<?, ?> map) {
       for (Map.Entry<?, ?> entry : map.entrySet()) {
-        if (entry.getKey() instanceof String) {
-          Map<String, String> strMap = (Map<String, String>) map;
-          return strMap.keySet().stream()
-              .sorted()
-              .map(key -> key.concat(strMap.get(key)))
-              .reduce(String::concat)
-              .orElse("");
+        if (entry.getKey() instanceof String && entry.getValue() instanceof String) {
+          return extractSignatureFromMap((Map<String, String>) map);
         }
       }
     } else {
       return mapObjectToString(o);
     }
     throw new RuntimeException("Can't extract signature data from body");
+  }
+
+  private String extractSignatureFromMap(Map<String, String> map) {
+    return map.keySet().stream()
+        .sorted()
+        .map(key -> key.concat(map.get(key)))
+        .reduce(String::concat)
+        .orElse("");
   }
 
   private String mapObjectToString(Object o) {
