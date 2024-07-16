@@ -143,12 +143,12 @@ public class RabbitMqIntegrationTest extends BaseTest {
     OutboundConnectorFunction function = new RabbitMqFunction();
 
     RabbitMqOutboundRouting routing =
-            new RabbitMqOutboundRouting(
-                    Routing.EXCHANGE,
-                    Routing.ROUTING_KEY,
-                    Routing.VIRTUAL_HOST,
-                    rabbitMq.getHost(),
-                    rabbitMq.getAmqpPort().toString());
+        new RabbitMqOutboundRouting(
+            Routing.EXCHANGE,
+            Routing.ROUTING_KEY,
+            Routing.VIRTUAL_HOST,
+            rabbitMq.getHost(),
+            rabbitMq.getAmqpPort().toString());
 
     // '“' and '”' are special unicode char.
     RabbitMqMessage messageOutbound =
@@ -158,10 +158,10 @@ public class RabbitMqIntegrationTest extends BaseTest {
 
     var json = ObjectMapperSupplier.instance().writeValueAsString(request);
     OutboundConnectorContext context =
-            OutboundConnectorContextBuilder.create()
-                    .validation(new DefaultValidationProvider())
-                    .variables(json)
-                    .build();
+        OutboundConnectorContextBuilder.create()
+            .validation(new DefaultValidationProvider())
+            .variables(json)
+            .build();
 
     // When
     var result = function.execute(context);
@@ -171,7 +171,6 @@ public class RabbitMqIntegrationTest extends BaseTest {
     RabbitMqResult castedResult = (RabbitMqResult) result;
     assertEquals("success", castedResult.getStatusResult());
 
-
     // Given
     RabbitMqExecutable executable = new RabbitMqExecutable();
 
@@ -180,12 +179,12 @@ public class RabbitMqIntegrationTest extends BaseTest {
     properties.setQueueName(ActualValue.QUEUE_NAME);
 
     FactoryRoutingData routingData =
-            new FactoryRoutingData(
-                    Routing.VIRTUAL_HOST, rabbitMq.getHost(), rabbitMq.getAmqpPort().toString());
+        new FactoryRoutingData(
+            Routing.VIRTUAL_HOST, rabbitMq.getHost(), rabbitMq.getAmqpPort().toString());
     properties.setRouting(routingData);
 
     TestInboundConnectorContext contextInbound =
-            InboundConnectorContextBuilder.create().properties(properties).build();
+        InboundConnectorContextBuilder.create().properties(properties).build();
 
     // When
     executable.activate(contextInbound);
@@ -195,7 +194,8 @@ public class RabbitMqIntegrationTest extends BaseTest {
     // Then
     assertEquals(1, contextInbound.getCorrelations().size());
     assertInstanceOf(RabbitMqInboundResult.class, contextInbound.getCorrelations().get(0));
-    RabbitMqInboundResult castedResultInbound = (RabbitMqInboundResult) contextInbound.getCorrelations().get(0);
+    RabbitMqInboundResult castedResultInbound =
+        (RabbitMqInboundResult) contextInbound.getCorrelations().get(0);
     RabbitMqInboundMessage messageInbound = castedResultInbound.message();
     assertInstanceOf(Map.class, messageInbound.body());
     Map<String, Object> body = (Map<String, Object>) messageInbound.body();
