@@ -53,7 +53,11 @@ public class ProcessDefinitionImporter {
   public synchronized void scheduleImport() {
     try {
       var result = search.query();
-      handleImportedDefinitions(result);
+      try {
+        handleImportedDefinitions(result);
+      } catch (Exception e) {
+        LOG.error("Failed to handle imported process definitions", e);
+      }
       ready = true;
     } catch (Exception e) {
       LOG.error("Failed to import process definitions", e);
