@@ -56,7 +56,7 @@ public class ProcessDefinitionImporter {
       try {
         handleImportedDefinitions(result);
       } catch (Exception e) {
-        LOG.error("Failed to handle imported process definitions", e);
+        LOG.warn("Failed to handle imported process definitions", e);
       }
       ready = true;
     } catch (Exception e) {
