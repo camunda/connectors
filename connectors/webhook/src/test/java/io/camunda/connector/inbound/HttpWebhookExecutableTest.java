@@ -24,6 +24,7 @@ import io.camunda.connector.inbound.utils.HttpMethods;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -95,6 +96,82 @@ class HttpWebhookExecutableTest {
 
     assertNotNull(result.response());
     assertThat((Map) result.request().body()).containsEntry("key", "value");
+
+    var request = new MappedHttpRequest(Map.of("key", "value"), null, null);
+    var context = new WebhookResultContext(request, null, null);
+    var response = result.response().apply(context);
+    assertEquals("value", response.body());
+  }
+
+  @Test
+  void triggerWebhook_ResponseIsArrayOfPrimitive_HappyCase() {
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context",
+                        "webhookContext",
+                        "method",
+                        "any",
+                        "auth",
+                        Map.of("type", "NONE"),
+                        "responseExpression",
+                        "=if request.body.key != null then {body: request.body.key} else null")))
+            .build();
+
+    WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
+    Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
+    Mockito.when(payload.headers())
+        .thenReturn(Map.of(HttpHeaders.CONTENT_TYPE, MediaType.JSON_UTF_8.toString()));
+    Mockito.when(payload.rawBody())
+        .thenReturn(("[ \"test1\", \"test2\" ]").getBytes(StandardCharsets.UTF_8));
+
+    testObject.activate(ctx);
+    var result = testObject.triggerWebhook(payload);
+
+    assertNotNull(result.response());
+    assertThat((List<String>) result.request().body()).contains("test1", "test2");
+
+    var request = new MappedHttpRequest(Map.of("key", "value"), null, null);
+    var context = new WebhookResultContext(request, null, null);
+    var response = result.response().apply(context);
+    assertEquals("value", response.body());
+  }
+
+  @Test
+  void triggerWebhook_ResponseIsArrayOfObject_HappyCase() {
+    InboundConnectorContext ctx =
+        InboundConnectorContextBuilder.create()
+            .properties(
+                Map.of(
+                    "inbound",
+                    Map.of(
+                        "context",
+                        "webhookContext",
+                        "method",
+                        "any",
+                        "auth",
+                        Map.of("type", "NONE"),
+                        "responseExpression",
+                        "=if request.body.key != null then {body: request.body.key} else null")))
+            .build();
+
+    WebhookProcessingPayload payload = Mockito.mock(WebhookProcessingPayload.class);
+    Mockito.when(payload.method()).thenReturn(HttpMethods.any.name());
+    Mockito.when(payload.headers())
+        .thenReturn(Map.of(HttpHeaders.CONTENT_TYPE, MediaType.JSON_UTF_8.toString()));
+    Mockito.when(payload.rawBody())
+        .thenReturn(
+            ("[{\"key\": \"value\"}, {\"key\": \"value\"}]").getBytes(StandardCharsets.UTF_8));
+
+    testObject.activate(ctx);
+    var result = testObject.triggerWebhook(payload);
+
+    assertNotNull(result.response());
+    assertThat((List<Map>) result.request().body())
+        .contains(Map.of("key", "value"), Map.of("key", "value"));
 
     var request = new MappedHttpRequest(Map.of("key", "value"), null, null);
     var context = new WebhookResultContext(request, null, null);
