@@ -16,7 +16,11 @@
  */
 package io.camunda.connector.runtime.core.outbound;
 
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.exc.*;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.JobContext;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
@@ -25,6 +29,8 @@ import io.camunda.connector.api.validation.ValidationProvider;
 import io.camunda.connector.runtime.core.AbstractConnectorContext;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import java.util.Objects;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Implementation of {@link io.camunda.connector.api.outbound.OutboundConnectorContext} passed on to
@@ -34,13 +40,12 @@ import java.util.Objects;
 public class JobHandlerContext extends AbstractConnectorContext
     implements OutboundConnectorContext {
 
+  private static final Logger log = LoggerFactory.getLogger(JobHandlerContext.class);
   private final ActivatedJob job;
 
   private final ObjectMapper objectMapper;
-
-  private String jsonWithSecrets = null;
-
   private final JobContext jobContext;
+  private String jsonWithSecrets = null;
 
   public JobHandlerContext(
       final ActivatedJob job,
@@ -71,8 +76,32 @@ public class JobHandlerContext extends AbstractConnectorContext
     var jsonWithSecrets = getJsonReplacedWithSecrets();
     try {
       return objectMapper.readValue(jsonWithSecrets, cls);
-    } catch (Exception e) {
-      throw new ConnectorException("JSON_MAPPING", "Error during json mapping.");
+    } catch (JsonParseException e) {
+      throw new ConnectorException("JSON_PARSE_ERROR", "This is not a JSON object");
+    } catch (InvalidFormatException
+        | InvalidNullException
+        | InvalidTypeIdException
+        | PropertyBindingException e) {
+      String errorMessage =
+          e.getPath().stream()
+              .map(JsonMappingException.Reference::getFieldName)
+              .reduce((s, s2) -> s.concat(", ").concat(s2))
+              .map("Json object contains an invalid field: "::concat)
+              .map(
+                  s ->
+                      e.getTargetType() == null
+                          ? s
+                          : s.concat(". It Must be `")
+                              .concat(e.getTargetType().getSimpleName())
+                              .concat("`"))
+              .orElse("Unexpected Error, Further investigation is needed");
+
+      throw new ConnectorException("JSON_FORMAT_ERROR", errorMessage);
+    } catch (MismatchedInputException e) {
+      throw new ConnectorException("JSON_MISMATCH_ERROR", e.getOriginalMessage());
+    } catch (JsonProcessingException e) {
+      throw new ConnectorException(
+          "JSON_PROCESSING_ERROR", "Exception: " + e.getClass().getSimpleName() + "was raised");
     }
   }
 
