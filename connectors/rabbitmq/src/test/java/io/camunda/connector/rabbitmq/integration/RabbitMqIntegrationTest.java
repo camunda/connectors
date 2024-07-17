@@ -136,6 +136,72 @@ public class RabbitMqIntegrationTest extends BaseTest {
     assertEquals("Hello World", body.get("value"));
   }
 
+  @Test
+  @Order(3)
+  void publishMessageWithOutboundConnectorAndConsumeMessageWithInboundConnector() throws Exception {
+    // Given
+    OutboundConnectorFunction function = new RabbitMqFunction();
+
+    RabbitMqOutboundRouting routing =
+        new RabbitMqOutboundRouting(
+            Routing.EXCHANGE,
+            Routing.ROUTING_KEY,
+            Routing.VIRTUAL_HOST,
+            rabbitMq.getHost(),
+            rabbitMq.getAmqpPort().toString());
+
+    // '“' and '”' are special unicode char.
+    RabbitMqMessage messageOutbound =
+        new RabbitMqMessage(null, "{\"value\": \"Hello “ ” \\\"World\\\"\"}");
+
+    RabbitMqRequest request = new RabbitMqRequest(getAuth(), routing, messageOutbound);
+
+    var json = ObjectMapperSupplier.instance().writeValueAsString(request);
+    OutboundConnectorContext context =
+        OutboundConnectorContextBuilder.create()
+            .validation(new DefaultValidationProvider())
+            .variables(json)
+            .build();
+
+    // When
+    var result = function.execute(context);
+
+    // Then
+    assertInstanceOf(RabbitMqResult.class, result);
+    RabbitMqResult castedResult = (RabbitMqResult) result;
+    assertEquals("success", castedResult.getStatusResult());
+
+    // Given
+    RabbitMqExecutable executable = new RabbitMqExecutable();
+
+    RabbitMqInboundProperties properties = new RabbitMqInboundProperties();
+    properties.setAuthentication(getAuth());
+    properties.setQueueName(ActualValue.QUEUE_NAME);
+
+    FactoryRoutingData routingData =
+        new FactoryRoutingData(
+            Routing.VIRTUAL_HOST, rabbitMq.getHost(), rabbitMq.getAmqpPort().toString());
+    properties.setRouting(routingData);
+
+    TestInboundConnectorContext contextInbound =
+        InboundConnectorContextBuilder.create().properties(properties).build();
+
+    // When
+    executable.activate(contextInbound);
+    await().atMost(Duration.ofSeconds(5)).until(() -> !contextInbound.getCorrelations().isEmpty());
+    executable.deactivate();
+
+    // Then
+    assertEquals(1, contextInbound.getCorrelations().size());
+    assertInstanceOf(RabbitMqInboundResult.class, contextInbound.getCorrelations().get(0));
+    RabbitMqInboundResult castedResultInbound =
+        (RabbitMqInboundResult) contextInbound.getCorrelations().get(0);
+    RabbitMqInboundMessage messageInbound = castedResultInbound.message();
+    assertInstanceOf(Map.class, messageInbound.body());
+    Map<String, Object> body = (Map<String, Object>) messageInbound.body();
+    assertEquals("Hello “ ” \"World\"", body.get("value"));
+  }
+
   private RabbitMqAuthentication getAuth() {
     return new CredentialsAuthentication(Authentication.USERNAME, Authentication.PASSWORD);
   }
