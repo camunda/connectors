@@ -13,6 +13,7 @@ import io.camunda.connector.generator.java.annotation.TemplateProperty.PropertyC
 import io.camunda.connector.generator.java.annotation.TemplateSubType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.Pattern;
 import java.util.List;
 
 @TemplateSubType(id = "createRow", label = "Create row")
@@ -44,6 +45,7 @@ public record CreateRow(
             feel = FeelMode.optional,
             optional = true,
             binding = @PropertyBinding(name = "operation.rowIndex"))
+        @Pattern(regexp = "^(=.*|[0-9].*|)$")
         Integer rowIndex,
     @TemplateProperty(
             label = "Enter values",

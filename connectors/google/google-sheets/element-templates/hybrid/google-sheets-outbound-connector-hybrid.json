@@ -448,6 +448,12 @@
     "label" : "Row index",
     "description" : "Enter row index. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#what-is-a-row-index\" target=\"_blank\">documentation</a>",
     "optional" : true,
+    "constraints" : {
+      "notEmpty" : false,
+      "pattern" : {
+        "value" : "^(=.*|[0-9].*|)$"
+      }
+    },
     "feel" : "optional",
     "group" : "operationDetails",
     "binding" : {
