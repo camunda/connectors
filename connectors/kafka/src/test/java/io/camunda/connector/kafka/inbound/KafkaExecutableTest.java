@@ -19,14 +19,18 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import dev.failsafe.RetryPolicy;
+import io.camunda.connector.kafka.model.KafkaAuthentication;
 import io.camunda.connector.kafka.model.KafkaTopic;
 import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
 import io.camunda.connector.test.inbound.InboundConnectorDefinitionBuilder;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -59,8 +63,6 @@ public class KafkaExecutableTest {
   private InboundConnectorContextBuilder.TestInboundConnectorContext originalContext;
   private List<PartitionInfo> topicPartitions;
   private KafkaConnectorProperties kafkaConnectorProperties;
-  @Mock private KafkaConsumer<Object, Object> mockConsumer;
-  private String topic;
 
   private static Stream<Arguments> provideStringsForGetOffsets() {
     return Stream.of(
@@ -72,8 +74,15 @@ public class KafkaExecutableTest {
         Arguments.of("1,2,3,4,5", Arrays.asList(1L, 2L, 3L, 4L, 5L)),
         Arguments.of(Arrays.asList(10L, 12L), Arrays.asList(10L, 12L)));
   }
+  private KafkaTopic kafkaTopic;
+  private KafkaConsumer<Object, Object> mockConsumer;
+
+  private String topic;
+
+  private static final int MAX_ATTEMPTS = 3;
 
   @BeforeEach
+  @SuppressWarnings("unchecked")
   public void setUp() {
     topic = "my-topic";
     topicPartitions =
@@ -95,6 +104,7 @@ public class KafkaExecutableTest {
             .validation(new DefaultValidationProvider())
             .build();
     originalContext = context;
+    mockConsumer = mock(KafkaConsumer.class);
   }
 
   @Test
@@ -144,6 +154,29 @@ public class KafkaExecutableTest {
     assertEquals(originalContext, context);
     assertNotNull(kafkaExecutable.kafkaConnectorConsumer.consumer);
     assertFalse(kafkaExecutable.kafkaConnectorConsumer.shouldLoop);
+  }
+
+  @Test
+  void testActivateAndDeactivate_consumerThrows() {
+    // Given
+    KafkaExecutable kafkaExecutable = getConsumerMock();
+    var groupMetadataMock = mock(ConsumerGroupMetadata.class);
+    when(groupMetadataMock.groupId()).thenReturn("groupId");
+    when(groupMetadataMock.groupInstanceId()).thenReturn(Optional.of("groupInstanceId"));
+    when(groupMetadataMock.generationId()).thenReturn(1);
+    when(mockConsumer.groupMetadata()).thenReturn(groupMetadataMock);
+
+    // When
+    when(mockConsumer.poll(any())).thenThrow(new RuntimeException("Test exception"));
+    kafkaExecutable.activate(context);
+    await()
+        .atMost(Duration.ofSeconds(5))
+        .pollInterval(Duration.ofMillis(500))
+        .untilAsserted(() -> assertFalse(kafkaExecutable.kafkaConnectorConsumer.shouldLoop));
+    kafkaExecutable.deactivate();
+
+    // Then
+    verify(mockConsumer, times(MAX_ATTEMPTS)).poll(any(Duration.class));
   }
 
   @Test
@@ -234,7 +267,13 @@ public class KafkaExecutableTest {
   }
 
   public KafkaExecutable getConsumerMock() {
-    return new KafkaExecutable(properties -> mockConsumer);
+    return new KafkaExecutable(
+        properties -> mockConsumer,
+        RetryPolicy.builder()
+            .handle(Exception.class)
+            .withDelay(Duration.ofMillis(50))
+            .withMaxAttempts(MAX_ATTEMPTS)
+            .build());
   }
 
   @ParameterizedTest
