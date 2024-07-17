@@ -45,7 +45,7 @@ public record CreateRow(
             feel = FeelMode.optional,
             optional = true,
             binding = @PropertyBinding(name = "operation.rowIndex"))
-        @Pattern(regexp = "^(=.*|[0-9].*|)$")
+        @Pattern(regexp = "^(=.*|[0-9]+|)$")
         Integer rowIndex,
     @TemplateProperty(
             label = "Enter values",
