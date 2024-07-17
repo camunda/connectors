@@ -20,6 +20,9 @@ import com.fasterxml.jackson.dataformat.avro.AvroSchema;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.scala.DefaultScalaModule$;
+import dev.failsafe.Failsafe;
+import dev.failsafe.RetryPolicy;
+import dev.failsafe.function.CheckedSupplier;
 import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.ForwardErrorToUpstream;
@@ -45,7 +48,6 @@ import org.apache.avro.Schema;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.consumer.OffsetOutOfRangeException;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
@@ -65,6 +67,8 @@ public class KafkaConnectorConsumer {
   KafkaConnectorProperties elementProps;
 
   private Health consumerStatus = Health.unknown();
+
+  private final RetryPolicy<Object> retryPolicy;
 
   public static ObjectMapper objectMapper =
       new ObjectMapper()
@@ -86,11 +90,13 @@ public class KafkaConnectorConsumer {
   public KafkaConnectorConsumer(
       final Function<Properties, Consumer<Object, Object>> consumerCreatorFunction,
       final InboundConnectorContext connectorContext,
-      final KafkaConnectorProperties elementProps) {
+      final KafkaConnectorProperties elementProps,
+      final RetryPolicy<Object> retryPolicy) {
     this.consumerCreatorFunction = consumerCreatorFunction;
     this.context = connectorContext;
     this.elementProps = elementProps;
     this.executorService = Executors.newSingleThreadExecutor();
+    this.retryPolicy = retryPolicy;
   }
 
   public void startConsumer() {
@@ -100,13 +106,28 @@ public class KafkaConnectorConsumer {
       AvroMapper avroMapper = new AvroMapper();
       avroObjectReader = avroMapper.reader(avroSchema);
     }
-    this.future =
-        CompletableFuture.runAsync(
-            () -> {
-              prepareConsumer();
-              consume();
-            },
-            this.executorService);
+
+    CheckedSupplier<Void> retryableFutureSupplier =
+        () -> {
+          try {
+            prepareConsumer();
+            consume();
+            return null;
+          } catch (Exception ex) {
+            LOG.error("Consumer loop failure, retry pending: {}", ex.getMessage());
+            throw ex;
+          }
+        };
+
+    future =
+        Failsafe.with(retryPolicy)
+            .with(executorService)
+            .getAsync(retryableFutureSupplier)
+            .exceptionally(
+                (e) -> {
+                  shouldLoop = false;
+                  return null;
+                });
   }
 
   private void prepareConsumer() {
@@ -160,9 +181,7 @@ public class KafkaConnectorConsumer {
         reportUp();
       } catch (Exception ex) {
         reportDown(ex);
-        if (ex instanceof OffsetOutOfRangeException) {
-          throw ex;
-        }
+        throw ex;
       }
     }
     LOG.debug("Kafka inbound loop finished");
