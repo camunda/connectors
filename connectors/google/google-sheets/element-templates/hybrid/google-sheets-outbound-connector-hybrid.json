@@ -451,7 +451,8 @@
     "constraints" : {
       "notEmpty" : false,
       "pattern" : {
-        "value" : "^(=.*|[0-9]+|)$"
+        "value" : "^(=.*|[0-9]+|)$",
+        "message" : ""
       }
     },
     "feel" : "optional",
