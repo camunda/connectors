@@ -70,7 +70,7 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
       builder.group(annotation.group());
     }
     builder.condition(buildCondition(annotation));
-    builder.constraints(buildConstraints(annotation));
+    builder.constraints(buildConstraints(annotation, builder.build().getConstraints()));
   }
 
   private Property.FeelMode determineDefaultFeelModeBasedOnContext(
@@ -163,15 +163,16 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
     }
   }
 
-  private PropertyConstraints buildConstraints(TemplateProperty propertyAnnotation) {
+  private PropertyConstraints buildConstraints(
+      TemplateProperty propertyAnnotation, PropertyConstraints propertyConstraints) {
     var constraintsAnnotation = propertyAnnotation.constraints();
     if (!constraintsAnnotation.notEmpty()
         && constraintsAnnotation.maxLength() == Integer.MAX_VALUE
         && constraintsAnnotation.minLength() == Integer.MIN_VALUE
         && constraintsAnnotation.pattern().value().isBlank()) {
-      return null;
+      return propertyConstraints;
     }
-    var builder = PropertyConstraints.builder();
+    var builder = PropertyConstraints.builder(propertyConstraints);
     if (constraintsAnnotation.notEmpty()) {
       builder.notEmpty(true);
     }
