@@ -18,7 +18,9 @@
     <licenses>
         <license>
             <name>Camunda Self-Managed Free Edition license</name>
-            <url>https://camunda.com/legal/terms/cloud-terms-and-conditions/camunda-cloud-self-managed-free-edition-terms/</url>
+            <url>
+                https://camunda.com/legal/terms/cloud-terms-and-conditions/camunda-cloud-self-managed-free-edition-terms/
+            </url>
         </license>
         <license>
             <name>Camunda Self-Managed Enterprise Edition license</name>
@@ -31,7 +33,13 @@
             <artifactId>aws-java-sdk-core</artifactId>
             <version>${version.aws-java-sdk}</version>
         </dependency>
-        
+
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>auth</artifactId>
+            <version>${version.software-aws-java-sdk}</version>
+        </dependency>
+
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk-sagemakerruntime</artifactId>

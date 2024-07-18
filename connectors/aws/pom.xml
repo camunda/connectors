@@ -24,6 +24,7 @@
     <module>aws-sns</module>
     <module>aws-sqs</module>
     <module>aws-sagemaker</module>
+    <module>aws-bedrock</module>
   </modules>
 
   <properties>
