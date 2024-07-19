@@ -67,7 +67,7 @@ import org.apache.commons.lang3.StringUtils;
 public class TemplatePropertiesUtil {
 
   private static final List<FieldProcessor> fieldProcessors =
-      List.of(new TemplatePropertyFieldProcessor(), new JakartaValidationFieldProcessor());
+      List.of(new JakartaValidationFieldProcessor(), new TemplatePropertyFieldProcessor());
 
   /**
    * Analyze the type and return a list of {@link PropertyBuilder} instances.

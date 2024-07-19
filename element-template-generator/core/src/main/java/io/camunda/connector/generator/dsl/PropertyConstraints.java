@@ -23,12 +23,23 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 public record PropertyConstraints(
     Boolean notEmpty, Integer minLength, Integer maxLength, Pattern pattern) {
 
-  @JsonInclude(Include.NON_NULL)
-  public record Pattern(String value, String message) {}
+  public static PropertyConstraintsBuilder builder(PropertyConstraints propertyConstraints) {
+    if (propertyConstraints == null) {
+      return new PropertyConstraintsBuilder();
+    }
+    return new PropertyConstraintsBuilder()
+        .notEmpty(propertyConstraints.notEmpty())
+        .minLength(propertyConstraints.minLength())
+        .maxLength(propertyConstraints.maxLength())
+        .pattern(propertyConstraints.pattern());
+  }
 
   public static PropertyConstraintsBuilder builder() {
     return new PropertyConstraintsBuilder();
   }
+
+  @JsonInclude(Include.NON_NULL)
+  public record Pattern(String value, String message) {}
 
   public static class PropertyConstraintsBuilder {
     private Boolean notEmpty;
@@ -42,17 +53,17 @@ public record PropertyConstraints(
       return new PropertyConstraintsBuilder();
     }
 
-    public PropertyConstraintsBuilder notEmpty(boolean notEmpty) {
+    public PropertyConstraintsBuilder notEmpty(Boolean notEmpty) {
       this.notEmpty = notEmpty;
       return this;
     }
 
-    public PropertyConstraintsBuilder minLength(int minLength) {
+    public PropertyConstraintsBuilder minLength(Integer minLength) {
       this.minLength = minLength;
       return this;
     }
 
-    public PropertyConstraintsBuilder maxLength(int maxLength) {
+    public PropertyConstraintsBuilder maxLength(Integer maxLength) {
       this.maxLength = maxLength;
       return this;
     }
@@ -63,6 +74,9 @@ public record PropertyConstraints(
     }
 
     public PropertyConstraints build() {
+      if (notEmpty == null && pattern == null && maxLength == null && minLength == null) {
+        return null;
+      }
       return new PropertyConstraints(notEmpty, minLength, maxLength, pattern);
     }
   }
