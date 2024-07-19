@@ -34,6 +34,7 @@ import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.Severity;
 import java.time.Duration;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
@@ -43,33 +44,17 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.apache.avro.Schema;
 import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class KafkaConnectorConsumer {
   private static final Logger LOG = LoggerFactory.getLogger(KafkaConnectorConsumer.class);
-
-  private final InboundConnectorContext context;
-
-  private final ExecutorService executorService;
-
-  public CompletableFuture<?> future;
-
-  Consumer<Object, Object> consumer;
-
-  KafkaConnectorProperties elementProps;
-
-  private Health consumerStatus = Health.unknown();
-
-  private final RetryPolicy<Object> retryPolicy;
-
   public static ObjectMapper objectMapper =
       new ObjectMapper()
           .registerModule(new Jdk8Module())
@@ -80,12 +65,16 @@ public class KafkaConnectorConsumer {
           .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
           .enable(JsonParser.Feature.ALLOW_SINGLE_QUOTES)
           .enable(JsonReadFeature.ALLOW_UNESCAPED_CONTROL_CHARS.mappedFeature());
-
-  private ObjectReader avroObjectReader;
-
-  boolean shouldLoop = true;
-
+  private final InboundConnectorContext context;
+  private final ExecutorService executorService;
+  private final RetryPolicy<Object> retryPolicy;
   private final Function<Properties, Consumer<Object, Object>> consumerCreatorFunction;
+  public CompletableFuture<?> future;
+  Consumer<Object, Object> consumer;
+  KafkaConnectorProperties elementProps;
+  boolean shouldLoop = true;
+  private Health consumerStatus = Health.unknown();
+  private ObjectReader avroObjectReader;
 
   public KafkaConnectorConsumer(
       final Function<Properties, Consumer<Object, Object>> consumerCreatorFunction,
@@ -134,10 +123,25 @@ public class KafkaConnectorConsumer {
   private void prepareConsumer() {
     try {
       this.consumer = consumerCreatorFunction.apply(getKafkaProperties(elementProps, context));
-      var partitions = assignTopicPartitions(consumer, elementProps.topic().topicName());
-      Optional.ofNullable(elementProps.offsets())
-          .filter(listOffsets -> !listOffsets.isEmpty())
-          .ifPresent(offsets -> seekOffsets(consumer, partitions, offsets));
+      String topicName = elementProps.topic().topicName();
+      consumer.subscribe(
+          List.of(topicName),
+          new ConsumerRebalanceListener() {
+            @Override
+            public void onPartitionsRevoked(Collection<TopicPartition> partitions) {}
+
+            @Override
+            public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
+              LOG.debug(
+                  "Partitions assigned: {} for topic: {} and consumer: {}",
+                  partitions,
+                  topicName,
+                  consumer.groupMetadata().memberId());
+              Optional.ofNullable(elementProps.offsets())
+                  .filter(listOffsets -> !listOffsets.isEmpty())
+                  .ifPresent(offsets -> seekOffsets(consumer, partitions, offsets, topicName));
+            }
+          });
       reportUp();
     } catch (Exception ex) {
       LOG.error("Failed to initialize connector: {}", ex.getMessage());
@@ -150,29 +154,28 @@ public class KafkaConnectorConsumer {
     }
   }
 
-  private List<TopicPartition> assignTopicPartitions(
-      Consumer<Object, Object> consumer, String topic) {
-    // dynamically assign partitions to be able to handle offsets
-    List<PartitionInfo> partitions = consumer.partitionsFor(topic);
-    List<TopicPartition> topicPartitions =
-        partitions.stream()
-            .map(partition -> new TopicPartition(partition.topic(), partition.partition()))
-            .collect(Collectors.toList());
-    consumer.assign(topicPartitions);
-    return topicPartitions;
-  }
-
   private void seekOffsets(
-      Consumer<Object, ?> consumer, List<TopicPartition> partitions, List<Long> offsets) {
-    if (partitions.size() != offsets.size()) {
+      Consumer<Object, Object> consumer,
+      Collection<TopicPartition> partitions,
+      List<Long> offsets,
+      String topicName) {
+    if (consumer.partitionsFor(topicName).size() != offsets.size()) {
       throw new ConnectorInputException(
           new IllegalArgumentException(
               "Number of offsets provided is not equal the number of partitions!"));
     }
-    for (int i = 0; i < offsets.size(); i++) {
-      consumer.seek(partitions.get(i), offsets.get(i));
-    }
-    LOG.info("Kafka inbound connector initialized");
+    partitions.forEach(
+        partition -> {
+          Long offset = offsets.get(partition.partition());
+          if (offset != null) {
+            LOG.debug(
+                "Overriding partition {} to offset: {} for consumer: {}",
+                partition,
+                offset,
+                consumer.groupMetadata().memberId());
+            consumer.seek(partition, offset);
+          }
+        });
   }
 
   public void consume() {
@@ -189,7 +192,7 @@ public class KafkaConnectorConsumer {
   }
 
   private void pollAndPublish() {
-    LOG.debug("Polling the topics: {}", this.consumer.assignment());
+    LOG.trace("Polling the topics: {}", this.consumer.assignment());
     ConsumerRecords<Object, Object> records = this.consumer.poll(Duration.ofMillis(500));
     for (ConsumerRecord<Object, Object> record : records) {
       handleMessage(record);
@@ -221,8 +224,9 @@ public class KafkaConnectorConsumer {
             throw new RuntimeException(
                 "Message cannot be processed: " + failure.getClass().getSimpleName());
           }
-          case Ignore ignored -> LOG.debug(
-              "Message not correlated, but the error is ignored. Offset will be committed");
+          case Ignore ignored ->
+              LOG.debug(
+                  "Message not correlated, but the error is ignored. Offset will be committed");
         }
       }
     }
