@@ -256,7 +256,7 @@ jobs:
           RELEASE_BRANCH: ${{ steps.determine_release_branch.outputs.releaseBranch }}
 
       - name: Update GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           prerelease: ${{ steps.validate_tag.outputs.type != 'NORMAL' }}
           body: ${{ steps.changelog.outputs.changes }}
