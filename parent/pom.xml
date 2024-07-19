@@ -148,7 +148,7 @@ limitations under the License.</license.inlineheader>
     <plugin.version.maven-shade-plugin>3.6.0</plugin.version.maven-shade-plugin>
     <plugin.version.maven-surefire-plugin>3.3.0</plugin.version.maven-surefire-plugin>
     <plugin.version.spotless-maven-plugin>2.41.1</plugin.version.spotless-maven-plugin>
-    <plugin.version.maven-jar-plugin>3.4.1</plugin.version.maven-jar-plugin>
+    <plugin.version.maven-jar-plugin>3.4.2</plugin.version.maven-jar-plugin>
   </properties>
 
   <dependencyManagement>
