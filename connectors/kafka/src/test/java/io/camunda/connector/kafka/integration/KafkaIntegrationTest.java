@@ -66,16 +66,14 @@ public class KafkaIntegrationTest {
   private static final String AVRO_TOPIC = "avro-test-topic-" + UUID.randomUUID();
   private static final Map<String, String> HEADERS =
       Map.of("header1", "value1", "header2", "value2");
-
-  private static String BOOTSTRAP_SERVERS;
-
   private static final String kafkaDockerImage = "confluentinc/cp-kafka:6.2.1";
-
-  private static Avro avro;
 
   @ClassRule
   public static final KafkaContainer kafkaContainer =
       new KafkaContainer(DockerImageName.parse(kafkaDockerImage)).withReuse(true);
+
+  private static String BOOTSTRAP_SERVERS;
+  private static Avro avro;
 
   @BeforeAll
   public static void init() throws Exception {
