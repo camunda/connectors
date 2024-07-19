@@ -34,7 +34,8 @@ public class JakartaValidationFieldProcessor implements FieldProcessor {
   @Override
   public void process(
       Field field, PropertyBuilder propertyBuilder, final TemplateGenerationContext context) {
-    PropertyConstraintsBuilder constraintsBuilder = PropertyConstraints.builder();
+    PropertyConstraintsBuilder constraintsBuilder =
+        PropertyConstraints.builder(propertyBuilder.build().getConstraints());
 
     if (hasNotEmptyConstraint(field)) {
       constraintsBuilder.notEmpty(true);
@@ -58,9 +59,7 @@ public class JakartaValidationFieldProcessor implements FieldProcessor {
       constraintsBuilder.notEmpty(false);
     }
     var constraints = constraintsBuilder.build();
-    if (!isConstraintEmpty(constraints)) {
-      propertyBuilder.constraints(constraints);
-    }
+    propertyBuilder.constraints(constraints);
   }
 
   private boolean hasNotEmptyConstraint(Field field) {
