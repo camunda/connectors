@@ -32,6 +32,9 @@ public interface CliCompatibleTemplateGenerator<IN> extends ElementTemplateGener
   /** Provides a usage description for the generator. This description is used in the CLI help. */
   String getUsage();
 
+  /** Scan the source and returns with operations (both supported and not supported). */
+  List<Operation> operations(IN input);
+
   /** Scan the source and do a dry run of the generation process. */
   ScanResult scan(IN input);
 
@@ -50,4 +53,52 @@ public interface CliCompatibleTemplateGenerator<IN> extends ElementTemplateGener
       Integer templateVersion,
       String templateType,
       Object additionalData) {}
+
+  /**
+   * Preview of the scanned operations result.
+   *
+   * @param id ID of the operation
+   * @param path Url path of the operation
+   * @param method Method(Get, Post) of the operation
+   * @param tags Tags of the operation
+   * @param supported Indicate whether the operation is supported or not
+   */
+  record Operation(String id, String path, String method, List<String> tags, boolean supported) {
+    public static class Builder {
+      String id;
+      String path;
+      String method;
+      List<String> tags;
+      boolean supported;
+
+      public Builder id(String id) {
+        this.id = id;
+        return this;
+      }
+
+      public Builder path(String path) {
+        this.path = path;
+        return this;
+      }
+
+      public Builder method(String method) {
+        this.method = method;
+        return this;
+      }
+
+      public Builder tags(List<String> tags) {
+        this.tags = tags;
+        return this;
+      }
+
+      public Builder supported(boolean supported) {
+        this.supported = supported;
+        return this;
+      }
+
+      public Operation build() {
+        return new Operation(id, path, method, tags, supported);
+      }
+    }
+  }
 }

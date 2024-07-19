@@ -25,6 +25,7 @@ import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
 import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.dsl.ElementTemplate;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskDefinition;
+import io.camunda.connector.generator.dsl.http.FactoryUtils;
 import io.camunda.connector.generator.dsl.http.HttpAuthentication;
 import io.camunda.connector.generator.dsl.http.HttpAuthentication.NoAuth;
 import io.camunda.connector.generator.dsl.http.HttpOperationBuilder;
@@ -72,11 +73,20 @@ public class OpenApiOutboundTemplateGenerator
     return OpenApiGenerationSource.USAGE;
   }
 
+  private List<OperationParseResult> extractOperations(OpenApiGenerationSource input) {
+    return OperationUtil.extractOperations(
+        input.openAPI(), input.includeOperations(), input.options());
+  }
+
+  @Override
+  public List<Operation> operations(OpenApiGenerationSource input) {
+    var operations = extractOperations(input);
+    return FactoryUtils.transformOperationParseResults(operations);
+  }
+
   @Override
   public ScanResult scan(OpenApiGenerationSource input) {
-    var operations =
-        OperationUtil.extractOperations(
-            input.openAPI(), input.includeOperations(), input.options());
+    var operations = extractOperations(input);
     var supportedOperations =
         operations.stream()
             .filter(OperationParseResult::supported)

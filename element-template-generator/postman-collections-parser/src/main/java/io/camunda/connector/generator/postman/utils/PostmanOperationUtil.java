@@ -27,6 +27,7 @@ import io.camunda.connector.generator.postman.model.PostmanCollectionV210.Item.F
 import io.camunda.connector.generator.postman.utils.PostmanBodyUtil.BodyParseResult;
 import io.camunda.connector.http.base.model.HttpMethod;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -134,7 +135,7 @@ public class PostmanOperationUtil {
 
     var label = endpoint.name();
     var operationId = TransformerUtils.normalizeString(label + " " + opIdentifier);
-
+    List<String> tags = Arrays.asList(opIdentifier.split("/"));
     Set<HttpOperationProperty> requestConfigurationProps = new HashSet<>();
     requestConfigurationProps.addAll(PostmanPathUtil.transformToPathProperty(endpoint));
     requestConfigurationProps.addAll(PostmanQueryUtil.transformToQueryParamProperty(endpoint));
@@ -158,7 +159,14 @@ public class PostmanOperationUtil {
             .method(HttpMethod.valueOf(endpoint.request().method().name()))
             .properties(requestConfigurationProps);
 
-    return new OperationParseResult(operationId, endpointUrl, true, null, opBuilder);
+    return new OperationParseResult(
+        operationId,
+        endpointUrl,
+        HttpMethod.valueOf(endpoint.request().method().name()),
+        tags,
+        true,
+        null,
+        opBuilder);
   }
 
   private static String normalizeOperationName(final String operationName) {

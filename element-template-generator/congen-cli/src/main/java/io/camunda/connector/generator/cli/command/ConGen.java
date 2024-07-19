@@ -32,7 +32,7 @@ import picocli.CommandLine.Option;
 
 @Command(
     name = "congen",
-    subcommands = {Generate.class, Scan.class, ListGenerators.class},
+    subcommands = {Generate.class, Scan.class, ListGenerators.class, Operations.class},
     mixinStandardHelpOptions = true,
     version = "congen 0.1",
     description = "Generate element templates for connectors")

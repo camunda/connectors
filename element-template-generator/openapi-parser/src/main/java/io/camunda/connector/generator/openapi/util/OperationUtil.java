@@ -63,6 +63,7 @@ public class OperationUtil {
                         pathEntry.getKey(),
                         HttpMethod.GET,
                         pathItem.getGet(),
+                        pathItem.getGet().getTags(),
                         components,
                         options));
               }
@@ -72,6 +73,7 @@ public class OperationUtil {
                         pathEntry.getKey(),
                         HttpMethod.POST,
                         pathItem.getPost(),
+                        pathItem.getPost().getTags(),
                         components,
                         options));
               }
@@ -81,6 +83,7 @@ public class OperationUtil {
                         pathEntry.getKey(),
                         HttpMethod.PUT,
                         pathItem.getPut(),
+                        pathItem.getPut().getTags(),
                         components,
                         options));
               }
@@ -90,6 +93,7 @@ public class OperationUtil {
                         pathEntry.getKey(),
                         HttpMethod.PATCH,
                         pathItem.getPatch(),
+                        pathItem.getPatch().getTags(),
                         components,
                         options));
               }
@@ -99,6 +103,7 @@ public class OperationUtil {
                         pathEntry.getKey(),
                         HttpMethod.DELETE,
                         pathItem.getDelete(),
+                        pathItem.getDelete().getTags(),
                         components,
                         options));
               }
@@ -121,7 +126,12 @@ public class OperationUtil {
   }
 
   private static OperationParseResult extractOperation(
-      String path, HttpMethod method, Operation operation, Components components, Options options) {
+      String path,
+      HttpMethod method,
+      Operation operation,
+      List<String> tags,
+      Components components,
+      Options options) {
     try {
       var parameters = operation.getParameters();
       Set<HttpOperationProperty> properties =
@@ -154,10 +164,11 @@ public class OperationUtil {
               .authenticationOverride(authenticationOverride)
               .method(method)
               .properties(properties);
-      return new OperationParseResult(operation.getOperationId(), path, true, null, opBuilder);
+      return new OperationParseResult(
+          operation.getOperationId(), path, method, tags, true, null, opBuilder);
     } catch (Exception e) {
       return new OperationParseResult(
-          operation.getOperationId(), path, false, e.getMessage(), null);
+          operation.getOperationId(), path, method, tags, false, e.getMessage(), null);
     }
   }
 

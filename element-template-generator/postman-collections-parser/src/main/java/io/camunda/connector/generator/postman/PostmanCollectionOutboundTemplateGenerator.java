@@ -23,6 +23,7 @@ import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
 import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.dsl.ElementTemplate;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskDefinition;
+import io.camunda.connector.generator.dsl.http.FactoryUtils;
 import io.camunda.connector.generator.dsl.http.HttpAuthentication;
 import io.camunda.connector.generator.dsl.http.HttpOperationBuilder;
 import io.camunda.connector.generator.dsl.http.HttpOutboundElementTemplateBuilder;
@@ -70,6 +71,12 @@ public class PostmanCollectionOutboundTemplateGenerator
   }
 
   @Override
+  public List<Operation> operations(PostmanCollectionsGenerationSource input) {
+    var operations = extractOperations(input);
+    return FactoryUtils.transformOperationParseResults(operations);
+  }
+
+  @Override
   public ScanResult scan(PostmanCollectionsGenerationSource input) {
     var templates = generate(input, null);
     if (templates.isEmpty()) {
@@ -92,6 +99,10 @@ public class PostmanCollectionOutboundTemplateGenerator
         supportedOperations);
   }
 
+  private List<OperationParseResult> extractOperations(PostmanCollectionsGenerationSource source) {
+    return PostmanOperationUtil.extractOperations(source.collection(), source.includeOperations());
+  }
+
   @Override
   public List<ElementTemplate> generate(
       PostmanCollectionsGenerationSource source, GeneratorConfiguration configuration) {
@@ -108,8 +119,7 @@ public class PostmanCollectionOutboundTemplateGenerator
 
   private List<HttpOperationBuilder> extractSupportedOperations(
       PostmanCollectionsGenerationSource source) {
-    var operations =
-        PostmanOperationUtil.extractOperations(source.collection(), source.includeOperations());
+    var operations = extractOperations(source);
     if (operations.isEmpty()) {
       throw new IllegalArgumentException("No operations found in the Postman Collection document");
     }
