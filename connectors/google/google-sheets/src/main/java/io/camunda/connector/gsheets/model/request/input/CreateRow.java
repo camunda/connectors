@@ -44,7 +44,10 @@ public record CreateRow(
             feel = FeelMode.optional,
             constraints =
                 @PropertyConstraints(
-                    pattern = @TemplateProperty.Pattern(value = "^(=.*|[0-9]+|)$", message = "")),
+                    pattern =
+                        @TemplateProperty.Pattern(
+                            value = "^(=.*|[0-9]+|)$",
+                            message = "Must be a number")),
             optional = true,
             binding = @PropertyBinding(name = "operation.rowIndex"))
         Integer rowIndex,
