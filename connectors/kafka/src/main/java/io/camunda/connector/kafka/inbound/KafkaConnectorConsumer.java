@@ -23,7 +23,6 @@ import com.fasterxml.jackson.module.scala.DefaultScalaModule$;
 import dev.failsafe.Failsafe;
 import dev.failsafe.RetryPolicy;
 import dev.failsafe.function.CheckedSupplier;
-import io.camunda.connector.api.error.ConnectorInputException;
 import io.camunda.connector.api.inbound.Activity;
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.ForwardErrorToUpstream;
 import io.camunda.connector.api.inbound.CorrelationFailureHandlingStrategy.Ignore;
@@ -34,10 +33,8 @@ import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.Severity;
 import java.time.Duration;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -46,10 +43,8 @@ import java.util.concurrent.Executors;
 import java.util.function.Function;
 import org.apache.avro.Schema;
 import org.apache.kafka.clients.consumer.Consumer;
-import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -126,22 +121,7 @@ public class KafkaConnectorConsumer {
       String topicName = elementProps.topic().topicName();
       consumer.subscribe(
           List.of(topicName),
-          new ConsumerRebalanceListener() {
-            @Override
-            public void onPartitionsRevoked(Collection<TopicPartition> partitions) {}
-
-            @Override
-            public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
-              LOG.debug(
-                  "Partitions assigned: {} for topic: {} and consumer: {}",
-                  partitions,
-                  topicName,
-                  consumer.groupMetadata().memberId());
-              Optional.ofNullable(elementProps.offsets())
-                  .filter(listOffsets -> !listOffsets.isEmpty())
-                  .ifPresent(offsets -> seekOffsets(consumer, partitions, offsets, topicName));
-            }
-          });
+          new OffsetUpdateRequiredListener(topicName, consumer, elementProps.offsets()));
       reportUp();
     } catch (Exception ex) {
       LOG.error("Failed to initialize connector: {}", ex.getMessage());
@@ -152,30 +132,6 @@ public class KafkaConnectorConsumer {
       context.reportHealth(Health.down(ex));
       throw ex;
     }
-  }
-
-  private void seekOffsets(
-      Consumer<Object, Object> consumer,
-      Collection<TopicPartition> partitions,
-      List<Long> offsets,
-      String topicName) {
-    if (consumer.partitionsFor(topicName).size() != offsets.size()) {
-      throw new ConnectorInputException(
-          new IllegalArgumentException(
-              "Number of offsets provided is not equal the number of partitions!"));
-    }
-    partitions.forEach(
-        partition -> {
-          Long offset = offsets.get(partition.partition());
-          if (offset != null) {
-            LOG.debug(
-                "Overriding partition {} to offset: {} for consumer: {}",
-                partition,
-                offset,
-                consumer.groupMetadata().memberId());
-            consumer.seek(partition, offset);
-          }
-        });
   }
 
   public void consume() {
