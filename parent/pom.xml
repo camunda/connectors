@@ -100,7 +100,7 @@ limitations under the License.</license.inlineheader>
     <version.localstack>1.19.8</version.localstack>
 
     <version.google-api-client>2.6.0</version.google-api-client>
-    <version.google-api-services-drive>v3-rev20240521-2.0.0</version.google-api-services-drive>
+    <version.google-api-services-drive>v3-rev20240628-2.0.0</version.google-api-services-drive>
     <version.google-oauth-client-jetty>1.36.0</version.google-oauth-client-jetty>
     <version.google-auth-library-oauth2-http>1.23.0</version.google-auth-library-oauth2-http>
     <version.google-api-services-docs>v1-rev20230929-2.0.0</version.google-api-services-docs>
