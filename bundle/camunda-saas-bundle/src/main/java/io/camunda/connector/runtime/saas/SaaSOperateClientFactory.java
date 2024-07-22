@@ -54,7 +54,7 @@ public class SaaSOperateClientFactory {
   public CamundaOperateClient camundaOperateClientBundle(JsonMapper jsonMapper) {
 
     var jwtConfig = new JwtConfig();
-    jwtConfig.addProduct(Product.OPERATE, configureJwtCredential());
+    jwtConfig.addProduct(Product.ZEEBE, configureJwtCredential());
 
     var authentication =
         new SaaSAuthenticationBuilder().withJwtConfig(jwtConfig).withJsonMapper(jsonMapper).build();

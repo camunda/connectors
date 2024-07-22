@@ -50,7 +50,7 @@ public class ConsoleSecretApiClient {
   public ConsoleSecretApiClient(String secretsEndpoint, JwtCredential jwt) {
     var jsonMapper = new SdkObjectMapper(ConnectorsObjectMapperSupplier.DEFAULT_MAPPER);
     var jwtConfig = new JwtConfig();
-    jwtConfig.addProduct(Product.CONSOLE, jwt);
+    jwtConfig.addProduct(Product.ZEEBE, jwt);
     this.authentication =
         new SaaSAuthenticationBuilder().withJsonMapper(jsonMapper).withJwtConfig(jwtConfig).build();
     this.secretsEndpoint = secretsEndpoint;
@@ -65,8 +65,8 @@ public class ConsoleSecretApiClient {
     LOGGER.debug("Loading secrets from " + secretsEndpoint);
     try (CloseableHttpClient httpClient = HttpClientBuilder.create().build()) {
       var request = new HttpGet(secretsEndpoint);
-      var authHeader = authentication.getTokenHeader(Product.CONSOLE);
-      request.addHeader(authHeader.getKey(), authHeader.getValue());
+      var authHeader = authentication.getTokenHeader(Product.ZEEBE);
+      authHeader.forEach(request::addHeader);
       return httpClient.execute(request, this::handleSecretsResponse);
     } catch (Exception e) {
       throw new RuntimeException(e);
@@ -78,7 +78,7 @@ public class ConsoleSecretApiClient {
     return switch (response.getCode()) {
       case 200 -> objectMapper.readValue(response.getEntity().getContent(), mapTypeReference);
       case 401, 403 -> {
-        authentication.resetToken(Product.CONSOLE);
+        authentication.resetToken(Product.ZEEBE);
         throw new RuntimeException("Authentication failed: " + response.getCode());
       }
       default -> throw new RuntimeException(

@@ -73,7 +73,8 @@ limitations under the License.</license.inlineheader>
     <!-- Camunda internal libraries -->
     <version.zeebe>8.5.3</version.zeebe>
     <version.feel-engine>1.18.0-alpha1</version.feel-engine>
-    <version.spring-zeebe>8.5.5</version.spring-zeebe>
+<!--    <version.spring-zeebe>8.5.5</version.spring-zeebe>-->
+    <version.operate-client>8.6.0-alpha1-SNAPSHOT</version.operate-client>
 
     <!-- Third party dependencies -->
 
@@ -274,24 +275,19 @@ limitations under the License.</license.inlineheader>
       </dependency>
 
       <dependency>
-        <groupId>io.camunda.spring</groupId>
-        <artifactId>spring-boot-starter-camunda</artifactId>
-        <version>${version.spring-zeebe}</version>
+        <groupId>io.camunda</groupId>
+        <artifactId>spring-boot-starter-camunda-sdk</artifactId>
+        <version>${version.zeebe}</version>
       </dependency>
       <dependency>
-        <groupId>io.camunda.spring</groupId>
-        <artifactId>spring-boot-starter-camunda-test</artifactId>
+        <groupId>io.camunda</groupId>
+        <artifactId>spring-boot-starter-camunda-sdk-test</artifactId>
         <version>${version.spring-zeebe}</version>
       </dependency>
       <dependency>
         <groupId>io.camunda.spring</groupId>
         <artifactId>java-client-operate</artifactId>
-        <version>${version.spring-zeebe}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.camunda.spring</groupId>
-        <artifactId>spring-client-zeebe</artifactId>
-        <version>${version.spring-zeebe}</version>
+        <version>${version.operate-client}</version>
       </dependency>
 
       <dependency>
@@ -470,6 +466,16 @@ limitations under the License.</license.inlineheader>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-compress</artifactId>
         <version>1.26.2</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-collections4</artifactId>
+        <version>4.4</version>
+      </dependency>
+      <dependency>
+        <groupId>org.jetbrains</groupId>
+        <artifactId>annotations</artifactId>
+        <version>24.1.0</version>
       </dependency>
 
       <!-- FIXME: maven resolves protobuf to 3.21.x while zeebe-client is compiled for 3.22.2. This is a temporary fix to be reassessed later. -->
