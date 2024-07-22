@@ -135,12 +135,11 @@ public class CommonProperties {
         .label("Message TTL")
         .description("Time-to-live for the message in the broker (ISO-8601 duration)")
         .group("correlation")
-        .optional(false)
-        .value("PT0S")
+        .optional(true)
         .constraints(
             PropertyConstraints.builder()
-                .notEmpty(true)
-                .pattern(new Pattern("P.*", "must be an ISO-8601 duration"))
+                .notEmpty(false)
+                .pattern(new Pattern("^(PT.*|)$", "must be an ISO-8601 duration"))
                 .build())
         .binding(new PropertyBinding.ZeebeProperty("messageTtl"));
   }

@@ -18,10 +18,8 @@ package io.camunda.connector.runtime.core.inbound.correlation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -45,11 +43,16 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -57,8 +60,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 public class InboundCorrelationHandlerTest {
 
+  private static final Duration DEFAULT_TTL = Duration.ofHours(2);
   private ZeebeClient zeebeClient;
   private InboundCorrelationHandler handler;
+
+  public static Stream<Arguments> durationsProvider() {
+    return Stream.of(Arguments.of(Duration.ofSeconds(10)), null);
+  }
 
   @BeforeEach
   public void initMock() {
@@ -68,18 +76,20 @@ public class InboundCorrelationHandlerTest {
             zeebeClient,
             new FeelEngineWrapper(),
             new DefaultProcessElementContextFactory(
-                new NoOpSecretProvider(), (e) -> {}, new ObjectMapper()));
+                new NoOpSecretProvider(), (e) -> {}, new ObjectMapper()),
+            DEFAULT_TTL);
   }
 
-  @Test
-  void boundaryMessageEvent_shouldCallCorrectZeebeMethod() {
+  @ParameterizedTest
+  @MethodSource("durationsProvider")
+  void boundaryMessageEvent_shouldCallCorrectZeebeMethod(Duration duration) {
     // given
     var point =
         new BoundaryEventCorrelationPoint(
             "test-boundary",
             "=\"test\"",
             "123",
-            Duration.ofSeconds(10),
+            duration,
             new BoundaryEventCorrelationPoint.Activity("123", "test"));
     var element = mock(InboundConnectorElement.class);
     when(element.correlationPoint()).thenReturn(point);
@@ -97,19 +107,20 @@ public class InboundCorrelationHandlerTest {
     verify(dummyCommand).messageName("test-boundary");
     verify(dummyCommand).correlationKey("test");
     verify(dummyCommand).messageId("123");
-    verify(dummyCommand).timeToLive(Duration.ofSeconds(10));
+    verify(dummyCommand).timeToLive(Optional.ofNullable(duration).orElse(DEFAULT_TTL));
     verify(dummyCommand).send();
   }
 
-  @Test
-  void upstreamZeebeError_shouldThrow() {
+  @ParameterizedTest
+  @MethodSource("durationsProvider")
+  void upstreamZeebeError_shouldThrow(Duration duration) {
     // given
     var point =
         new BoundaryEventCorrelationPoint(
             "test-boundary",
             "=\"test\"",
             "123",
-            Duration.ofSeconds(10),
+            duration,
             new BoundaryEventCorrelationPoint.Activity("123", "test"));
     var element = mock(InboundConnectorElement.class);
     when(element.correlationPoint()).thenReturn(point);
@@ -122,152 +133,6 @@ public class InboundCorrelationHandlerTest {
         assertDoesNotThrow(() -> handler.correlate(List.of(element), Collections.emptyMap()));
     assertThat(error).isInstanceOf(Failure.ZeebeClientStatus.class);
     assertThat(((Failure.ZeebeClientStatus) error).status()).isEqualTo("UNAVAILABLE");
-  }
-
-  @Nested
-  class ZeebeClientMethodSelection {
-
-    @Test
-    void startEvent_shouldCallCorrectZeebeMethod() {
-      // given
-      var point = new StartEventCorrelationPoint("process1", 0, 0);
-      var element = mock(InboundConnectorElement.class);
-      when(element.correlationPoint()).thenReturn(point);
-
-      var dummyCommand = Mockito.spy(new CreateCommandDummy());
-      when(zeebeClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
-
-      // when
-      var result = handler.correlate(List.of(element), Collections.emptyMap());
-
-      // then
-      verify(zeebeClient).newCreateInstanceCommand();
-      verifyNoMoreInteractions(zeebeClient);
-
-      verify(dummyCommand).bpmnProcessId(point.bpmnProcessId());
-      verify(dummyCommand).version(point.version());
-      verify(dummyCommand).send();
-
-      assertThat(result).isInstanceOf(Success.ProcessInstanceCreated.class);
-      var success = (Success.ProcessInstanceCreated) result;
-      assertThat(success.activatedElement().getElement()).isEqualTo(element.element());
-    }
-
-    @Test
-    void message_shouldCallCorrectZeebeMethod() {
-      // given
-      var correlationKeyValue = "someTestCorrelationKeyValue";
-      var point = new StandaloneMessageCorrelationPoint("msg1", "=correlationKey", null, null);
-      var element = mock(InboundConnectorElement.class);
-      when(element.correlationPoint()).thenReturn(point);
-
-      Map<String, Object> variables = Map.of("correlationKey", correlationKeyValue);
-
-      var dummyCommand = spy(new PublishMessageCommandDummy());
-      when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
-
-      // when
-      var result = handler.correlate(List.of(element), variables);
-
-      // then
-      verify(zeebeClient).newPublishMessageCommand();
-      verifyNoMoreInteractions(zeebeClient);
-
-      verify(dummyCommand).messageName(point.messageName());
-      verify(dummyCommand).correlationKey(correlationKeyValue);
-      verify(dummyCommand, times(0)).timeToLive(any());
-      verify(dummyCommand).send();
-
-      assertThat(result).isInstanceOf(Success.MessagePublished.class);
-      var success = (Success.MessagePublished) result;
-      assertThat(success.activatedElement().getElement()).isEqualTo(element.element());
-    }
-
-    @Test
-    void startMessageEvent_shouldCallCorrectZeebeMethod() {
-      // given
-      var point = new MessageStartEventCorrelationPoint("test", "", null, "", "1", 1, 0);
-      var element = mock(InboundConnectorElement.class);
-      when(element.correlationPoint()).thenReturn(point);
-
-      var dummyCommand = Mockito.spy(new PublishMessageCommandDummy());
-      when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
-
-      // when
-      var result = handler.correlate(List.of(element), Collections.emptyMap());
-
-      // then
-      verify(zeebeClient).newPublishMessageCommand();
-      verifyNoMoreInteractions(zeebeClient);
-
-      verify(dummyCommand).messageName("test");
-      verify(dummyCommand).correlationKey("");
-      verify(dummyCommand).send();
-
-      assertThat(result).isInstanceOf(Success.MessagePublished.class);
-      var success = (Success.MessagePublished) result;
-      assertThat(success.activatedElement().getElement()).isEqualTo(element.element());
-    }
-
-    @Test
-    void startMessageEvent_idempotencyKeyEvaluated() {
-      // given
-      var point = new MessageStartEventCorrelationPoint("test", "=myVar", null, "", "1", 1, 0);
-      var element = mock(InboundConnectorElement.class);
-      when(element.correlationPoint()).thenReturn(point);
-
-      var dummyCommand = Mockito.spy(new PublishMessageCommandDummy());
-      when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
-
-      // when
-      var result =
-          handler.correlate(
-              List.of(element),
-              Map.of("myVar", "myValue", "myOtherMap", Map.of("myOtherKey", "myOtherValue")));
-
-      // then
-      verify(zeebeClient).newPublishMessageCommand();
-      verifyNoMoreInteractions(zeebeClient);
-
-      ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
-      verify(dummyCommand).messageName("test");
-      verify(dummyCommand).correlationKey("");
-      verify(dummyCommand).messageId(captor.capture());
-      assertThat(captor.getValue()).isEqualTo("myValue");
-      verify(dummyCommand).send();
-
-      assertThat(result).isInstanceOf(Success.MessagePublished.class);
-      var success = (Success.MessagePublished) result;
-      assertThat(success.activatedElement().getElement()).isEqualTo(element.element());
-    }
-
-    @Test
-    void messageEvent_idempotencyCheckFailed() {
-      var point = new MessageStartEventCorrelationPoint("test", "=myVar", null, "", "1", 1, 0);
-      var element = mock(InboundConnectorElement.class);
-      when(element.correlationPoint()).thenReturn(point);
-
-      var dummyCommand = Mockito.spy(new PublishMessageCommandDummy());
-      when(dummyCommand.send())
-          .thenThrow(
-              new ClientStatusException(
-                  Status.fromCode(Status.Code.ALREADY_EXISTS).withDescription("The desc"), null));
-      when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
-
-      // when
-      var result =
-          handler.correlate(
-              List.of(element),
-              Map.of("myVar", "myValue", "myOtherMap", Map.of("myOtherKey", "myOtherValue")));
-
-      // then
-      verify(zeebeClient).newPublishMessageCommand();
-      verifyNoMoreInteractions(zeebeClient);
-
-      assertThat(result).isInstanceOf(Success.MessageAlreadyCorrelated.class);
-      var success = (Success.MessageAlreadyCorrelated) result;
-      assertThat(success.activatedElement().getElement()).isEqualTo(element.element());
-    }
   }
 
   @Test
@@ -318,6 +183,163 @@ public class InboundCorrelationHandlerTest {
     assertThat(result).isInstanceOf(Failure.InvalidInput.class);
     assertThat(((Failure.InvalidInput) result).message())
         .contains("Multiple connectors are activated");
+  }
+
+  @Nested
+  class ZeebeClientMethodSelection {
+
+    @Test
+    void startEvent_shouldCallCorrectZeebeMethod() {
+      // given
+      var point = new StartEventCorrelationPoint("process1", 0, 0);
+      var element = mock(InboundConnectorElement.class);
+      when(element.correlationPoint()).thenReturn(point);
+
+      var dummyCommand = Mockito.spy(new CreateCommandDummy());
+      when(zeebeClient.newCreateInstanceCommand()).thenReturn(dummyCommand);
+
+      // when
+      var result = handler.correlate(List.of(element), Collections.emptyMap());
+
+      // then
+      verify(zeebeClient).newCreateInstanceCommand();
+      verifyNoMoreInteractions(zeebeClient);
+
+      verify(dummyCommand).bpmnProcessId(point.bpmnProcessId());
+      verify(dummyCommand).version(point.version());
+      verify(dummyCommand).send();
+
+      assertThat(result).isInstanceOf(Success.ProcessInstanceCreated.class);
+      var success = (Success.ProcessInstanceCreated) result;
+      assertThat(success.activatedElement().getElement()).isEqualTo(element.element());
+    }
+
+    @ParameterizedTest
+    @MethodSource(
+        "io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandlerTest#durationsProvider")
+    void message_shouldCallCorrectZeebeMethod(Duration duration) {
+      // given
+      var correlationKeyValue = "someTestCorrelationKeyValue";
+      var point = new StandaloneMessageCorrelationPoint("msg1", "=correlationKey", null, duration);
+      var element = mock(InboundConnectorElement.class);
+      when(element.correlationPoint()).thenReturn(point);
+
+      Map<String, Object> variables = Map.of("correlationKey", correlationKeyValue);
+
+      var dummyCommand = spy(new PublishMessageCommandDummy());
+      when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
+
+      // when
+      var result = handler.correlate(List.of(element), variables);
+
+      // then
+      verify(zeebeClient).newPublishMessageCommand();
+      verifyNoMoreInteractions(zeebeClient);
+
+      verify(dummyCommand).messageName(point.messageName());
+      verify(dummyCommand).correlationKey(correlationKeyValue);
+      verify(dummyCommand).timeToLive(Optional.ofNullable(duration).orElse(DEFAULT_TTL));
+      verify(dummyCommand).send();
+
+      assertThat(result).isInstanceOf(Success.MessagePublished.class);
+      var success = (Success.MessagePublished) result;
+      assertThat(success.activatedElement().getElement()).isEqualTo(element.element());
+    }
+
+    @ParameterizedTest
+    @MethodSource(
+        "io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandlerTest#durationsProvider")
+    void startMessageEvent_shouldCallCorrectZeebeMethod(Duration duration) {
+      // given
+      var point = new MessageStartEventCorrelationPoint("test", "", duration, "", "1", 1, 0);
+      var element = mock(InboundConnectorElement.class);
+      when(element.correlationPoint()).thenReturn(point);
+
+      var dummyCommand = Mockito.spy(new PublishMessageCommandDummy());
+      when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
+
+      // when
+      var result = handler.correlate(List.of(element), Collections.emptyMap());
+
+      // then
+      verify(zeebeClient).newPublishMessageCommand();
+      verifyNoMoreInteractions(zeebeClient);
+
+      verify(dummyCommand).messageName("test");
+      verify(dummyCommand).correlationKey("");
+      verify(dummyCommand).timeToLive(Optional.ofNullable(duration).orElse(DEFAULT_TTL));
+      verify(dummyCommand).send();
+
+      assertThat(result).isInstanceOf(Success.MessagePublished.class);
+      var success = (Success.MessagePublished) result;
+      assertThat(success.activatedElement().getElement()).isEqualTo(element.element());
+    }
+
+    @ParameterizedTest
+    @MethodSource(
+        "io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandlerTest#durationsProvider")
+    void startMessageEvent_idempotencyKeyEvaluated(Duration duration) {
+      // given
+      var point = new MessageStartEventCorrelationPoint("test", "=myVar", duration, "", "1", 1, 0);
+      var element = mock(InboundConnectorElement.class);
+      when(element.correlationPoint()).thenReturn(point);
+
+      var dummyCommand = Mockito.spy(new PublishMessageCommandDummy());
+      when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
+
+      // when
+      var result =
+          handler.correlate(
+              List.of(element),
+              Map.of("myVar", "myValue", "myOtherMap", Map.of("myOtherKey", "myOtherValue")));
+
+      // then
+      verify(zeebeClient).newPublishMessageCommand();
+      verifyNoMoreInteractions(zeebeClient);
+
+      ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+      verify(dummyCommand).messageName("test");
+      verify(dummyCommand).correlationKey("");
+      verify(dummyCommand).messageId(captor.capture());
+      verify(dummyCommand).timeToLive(Optional.ofNullable(duration).orElse(DEFAULT_TTL));
+      assertThat(captor.getValue()).isEqualTo("myValue");
+      verify(dummyCommand).send();
+
+      assertThat(result).isInstanceOf(Success.MessagePublished.class);
+      var success = (Success.MessagePublished) result;
+      assertThat(success.activatedElement().getElement()).isEqualTo(element.element());
+    }
+
+    @ParameterizedTest
+    @MethodSource(
+        "io.camunda.connector.runtime.core.inbound.correlation.InboundCorrelationHandlerTest#durationsProvider")
+    void messageEvent_idempotencyCheckFailed(Duration duration) {
+      var point = new MessageStartEventCorrelationPoint("test", "=myVar", duration, "", "1", 1, 0);
+      var element = mock(InboundConnectorElement.class);
+      when(element.correlationPoint()).thenReturn(point);
+
+      var dummyCommand = Mockito.spy(new PublishMessageCommandDummy());
+      when(dummyCommand.send())
+          .thenThrow(
+              new ClientStatusException(
+                  Status.fromCode(Status.Code.ALREADY_EXISTS).withDescription("The desc"), null));
+      when(zeebeClient.newPublishMessageCommand()).thenReturn(dummyCommand);
+
+      // when
+      var result =
+          handler.correlate(
+              List.of(element),
+              Map.of("myVar", "myValue", "myOtherMap", Map.of("myOtherKey", "myOtherValue")));
+
+      // then
+      verify(dummyCommand).timeToLive(Optional.ofNullable(duration).orElse(DEFAULT_TTL));
+      verify(zeebeClient).newPublishMessageCommand();
+      verifyNoMoreInteractions(zeebeClient);
+
+      assertThat(result).isInstanceOf(Success.MessageAlreadyCorrelated.class);
+      var success = (Success.MessageAlreadyCorrelated) result;
+      assertThat(success.activatedElement().getElement()).isEqualTo(element.element());
+    }
   }
 
   @Nested

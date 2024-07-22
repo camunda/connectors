@@ -41,7 +41,9 @@ import io.camunda.connector.runtime.inbound.webhook.WebhookConnectorRegistry;
 import io.camunda.operate.CamundaOperateClient;
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
+import java.time.Duration;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -54,6 +56,8 @@ import org.springframework.context.annotation.Import;
   InboundConnectorRestController.class
 })
 public class InboundConnectorRuntimeConfiguration {
+  @Value("${camunda.connector.inbound.message.ttl:PT1H}")
+  private Duration messageTtl;
 
   @Bean
   public ProcessElementContextFactory processElementContextFactory(
@@ -71,7 +75,7 @@ public class InboundConnectorRuntimeConfiguration {
       final MetricsRecorder metricsRecorder,
       final ProcessElementContextFactory elementContextFactory) {
     return new MeteredInboundCorrelationHandler(
-        zeebeClient, feelEngine, metricsRecorder, elementContextFactory);
+        zeebeClient, feelEngine, metricsRecorder, elementContextFactory, messageTtl);
   }
 
   @Bean
