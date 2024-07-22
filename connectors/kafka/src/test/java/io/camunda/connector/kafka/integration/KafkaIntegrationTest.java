@@ -14,6 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import dev.failsafe.RetryPolicy;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.kafka.inbound.KafkaConnectorConsumer;
@@ -43,6 +44,7 @@ import java.util.stream.Collectors;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.NewPartitions;
 import org.apache.kafka.clients.admin.NewTopic;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.consumer.OffsetOutOfRangeException;
 import org.junit.ClassRule;
 import org.junit.jupiter.api.AfterAll;
@@ -97,7 +99,8 @@ public class KafkaIntegrationTest {
             .collect(Collectors.toList());
     try (var admin = AdminClient.create(Map.of(BOOTSTRAP_SERVERS_CONFIG, getKafkaBrokers()))) {
       admin.createTopics(newTopics);
-      admin.createPartitions(Map.of(TOPIC, NewPartitions.increaseTo(2)));
+      Arrays.stream(topics)
+          .forEach(topic -> admin.createPartitions(Map.of(topic, NewPartitions.increaseTo(2))));
     }
   }
 
@@ -197,12 +200,13 @@ public class KafkaIntegrationTest {
             .properties(kafkaConnectorProperties)
             .definition(InboundConnectorDefinitionBuilder.create().build())
             .build();
-    KafkaExecutable executable = new KafkaExecutable();
+    KafkaExecutable executable =
+        new KafkaExecutable(KafkaConsumer::new, RetryPolicy.builder().withMaxAttempts(1).build());
 
     // When
-    OffsetOutOfRangeException thrown =
+    Exception thrown =
         assertThrows(
-            OffsetOutOfRangeException.class,
+            Exception.class,
             () -> {
               try {
                 executable.activate(context);
@@ -212,6 +216,8 @@ public class KafkaIntegrationTest {
               }
             },
             "OffsetOutOfRangeException was expected");
+
+    assertThat(thrown.getCause()).isInstanceOf(OffsetOutOfRangeException.class);
 
     // Then we except exception with message
     assertThat(thrown.getMessage()).contains("Fetch position FetchPosition");
@@ -448,7 +454,7 @@ public class KafkaIntegrationTest {
             kafkaTopic,
             null,
             null,
-            List.of(0L, 0L),
+            null,
             KafkaConnectorProperties.AutoOffsetReset.EARLIEST,
             null);
 
@@ -469,8 +475,8 @@ public class KafkaIntegrationTest {
         context.getCorrelations().stream()
             .filter(
                 m -> {
-                  var messge = (KafkaInboundMessage) m;
-                  return !(messge.getValue() instanceof String);
+                  var msg = (KafkaInboundMessage) m;
+                  return !(msg.getValue() instanceof String);
                 })
             .findFirst()
             .orElse(null);
