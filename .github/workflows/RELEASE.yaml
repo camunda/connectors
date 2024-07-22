@@ -143,7 +143,7 @@ jobs:
       # Build & push bundle docker images (with version tag)
 
       - name: Build and Push Docker Image tag ${{ github.event.release.tag_name }} - connector-runtime
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: connector-runtime/connector-runtime-application/
           push: true
@@ -152,7 +152,7 @@ jobs:
           provenance: false
 
       - name: Build and Push Docker Image tag ${{ github.event.release.tag_name }} - bundle-default
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: bundle/default-bundle/
           push: true
@@ -161,7 +161,7 @@ jobs:
           provenance: false
 
       - name: Build and Push Docker Image tag ${{ github.event.release.tag_name }} - bundle-saas
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: bundle/camunda-saas-bundle/
           push: true
@@ -172,7 +172,7 @@ jobs:
       # Build & push bundle docker images (with 'latest' tag)
 
       - name: Build and Push Docker Image tag latest - connector-runtime
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: connector-runtime/connector-runtime-application/
           push: true
@@ -182,7 +182,7 @@ jobs:
 
       - name: Build and Push Docker Image tag latest - bundle-default
         if: ${{ steps.validate_tag.outputs.type == 'NORMAL' }}
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: bundle/default-bundle/
           push: true
@@ -192,7 +192,7 @@ jobs:
 
       - name: Build and Push Docker Image tag latest - bundle-saas
         if: ${{ steps.validate_tag.outputs.type == 'NORMAL' }}
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: bundle/camunda-saas-bundle/
           push: true
