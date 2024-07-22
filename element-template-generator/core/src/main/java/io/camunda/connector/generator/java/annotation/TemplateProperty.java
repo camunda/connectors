@@ -170,9 +170,17 @@ public @interface TemplateProperty {
     int maxLength() default MAX_VALUE;
 
     Pattern pattern() default @Pattern(value = "", message = "");
+
+    SecretPattern secretPattern() default @SecretPattern(value = "", message = "");
   }
 
   @interface Pattern {
+    String value();
+
+    String message();
+  }
+
+  @interface SecretPattern {
     String value();
 
     String message();

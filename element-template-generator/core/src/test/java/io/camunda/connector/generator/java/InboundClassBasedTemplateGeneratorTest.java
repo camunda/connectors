@@ -39,6 +39,7 @@ import io.camunda.connector.generator.dsl.StringProperty;
 import io.camunda.connector.generator.java.example.inbound.MyConnectorExecutable;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -46,6 +47,28 @@ import org.junit.jupiter.api.Test;
 public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
 
   private final ClassBasedTemplateGenerator generator = new ClassBasedTemplateGenerator();
+
+  @Test
+  void stringProperty_hasCorrectDefaults() {
+    // given
+    var type =
+        new ConnectorElementType(
+            Set.of(BpmnType.START_EVENT), BpmnType.MESSAGE_START_EVENT, null, null);
+    var config =
+        new GeneratorConfiguration(ConnectorMode.NORMAL, null, null, null, Set.of(type), Map.of());
+
+    // when
+    var template = generator.generate(MyConnectorExecutable.class, config).getFirst();
+
+    var property = getPropertyByLabel("Prop 1", template);
+
+    assertThat(property).isInstanceOf(StringProperty.class);
+    assertThat(property.getType()).isEqualTo("String");
+    assertThat(property.isOptional()).isFalse();
+    assertThat(property.getFeel()).isEqualTo(null);
+    assertThat(property.getBinding()).isEqualTo(new PropertyBinding.ZeebeProperty("prop1"));
+    assertThat(property.getConstraints()).isNull();
+  }
 
   @Nested
   class Basic {
@@ -272,28 +295,6 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
     }
   }
 
-  @Test
-  void stringProperty_hasCorrectDefaults() {
-    // given
-    var type =
-        new ConnectorElementType(
-            Set.of(BpmnType.START_EVENT), BpmnType.MESSAGE_START_EVENT, null, null);
-    var config =
-        new GeneratorConfiguration(ConnectorMode.NORMAL, null, null, null, Set.of(type), Map.of());
-
-    // when
-    var template = generator.generate(MyConnectorExecutable.class, config).getFirst();
-
-    var property = getPropertyByLabel("Prop 1", template);
-
-    assertThat(property).isInstanceOf(StringProperty.class);
-    assertThat(property.getType()).isEqualTo("String");
-    assertThat(property.isOptional()).isFalse();
-    assertThat(property.getFeel()).isEqualTo(null);
-    assertThat(property.getBinding()).isEqualTo(new PropertyBinding.ZeebeProperty("prop1"));
-    assertThat(property.getConstraints()).isNull();
-  }
-
   @Nested
   class Deduplication {
 
@@ -394,6 +395,21 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
           .isEqualTo("deduplicationId");
       assertThat(deduplicationKeyProperty.getCondition())
           .isEqualTo(new Equals("deduplicationModeManualFlag", true));
+    }
+
+    @Test
+    void elementTemplateAnnotations_assertSecretPatternForInboundConnector() {
+      var template = generator.generate(MyConnectorExecutable.class).getFirst();
+      String secretPattern =
+          template.properties().stream()
+              .filter(property -> Objects.equals(property.getId(), "prop2"))
+              .findFirst()
+              .get()
+              .getConstraints()
+              .pattern()
+              .value();
+
+      assertThat(secretPattern).isEqualTo("^(secrets|yyy).*$");
     }
   }
 }

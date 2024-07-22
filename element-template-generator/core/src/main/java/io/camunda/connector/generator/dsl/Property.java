@@ -40,6 +40,9 @@ public abstract sealed class Property
 
   protected final String type;
 
+  /**
+   * @Pavel
+   */
   public enum FeelMode {
     optional,
     required,

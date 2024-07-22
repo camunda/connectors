@@ -18,6 +18,12 @@ public record UriAuthentication(
             regexp = "^(=|(amqps?://|secrets|\\{\\{).*$)",
             message = "Must start with amqp(s):// or contain a secret reference")
         @TemplateProperty(
+            constraints =
+                @TemplateProperty.PropertyConstraints(
+                    secretPattern =
+                        @TemplateProperty.SecretPattern(
+                            value = "^(amqps?://|\\{\\{).*$",
+                            message = "Must start with amqp(s):// or contain a secret reference")),
             group = "authentication",
             label = "URI",
             description =

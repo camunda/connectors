@@ -47,10 +47,7 @@ import io.camunda.connector.generator.java.example.outbound.MyConnectorFunction;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Base64;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -922,6 +919,21 @@ public class OutboundClassBasedTemplateGeneratorTest extends BaseTest {
       var icon = template.icon();
 
       assertThat(icon.contents()).isEqualTo(expectedIconString);
+    }
+
+    @Test
+    void elementTemplateAnnotations_assertSecretPatternForOutboundConnector() {
+      var template = generator.generate(MyConnectorFunction.FullyAnnotated.class).getFirst();
+      String secretPattern =
+          template.properties().stream()
+              .filter(property -> Objects.equals(property.getId(), "regexSecretsValidated"))
+              .findFirst()
+              .get()
+              .getConstraints()
+              .pattern()
+              .value();
+
+      assertThat(secretPattern).isEqualTo("^(=|(secrets|yyy)).*$");
     }
   }
 }

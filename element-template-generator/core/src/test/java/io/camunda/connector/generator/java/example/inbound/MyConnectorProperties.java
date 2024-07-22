@@ -18,4 +18,12 @@ package io.camunda.connector.generator.java.example.inbound;
 
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
 
-public record MyConnectorProperties(@TemplateProperty() String prop1) {}
+public record MyConnectorProperties(
+    @TemplateProperty() String prop1,
+    @TemplateProperty(
+            id = "prop2",
+            constraints =
+                @TemplateProperty.PropertyConstraints(
+                    secretPattern =
+                        @TemplateProperty.SecretPattern(value = "yyy", message = "Oh no!")))
+        String prop2) {}

@@ -110,7 +110,14 @@ public record MyConnectorInput(
         String mayBeEmptyOrRegexValidated,
     @TemplateProperty(id = "mayBeEmptyOrRegexValidatedJakartaStyle", optional = true)
         @Pattern(regexp = "xxx", message = "Oh no!")
-        String mayBeEmptyOrRegexValidatedJakartaStyle) {
+        String mayBeEmptyOrRegexValidatedJakartaStyle,
+    @TemplateProperty(
+            id = "regexSecretsValidated",
+            constraints =
+                @PropertyConstraints(
+                    secretPattern =
+                        @TemplateProperty.SecretPattern(value = "yyy", message = "Oh no!")))
+        String regexSecretsValidated) {
 
   sealed interface NonAnnotatedSealedType permits FirstSubType, NestedSealedType, SecondSubType {
 
