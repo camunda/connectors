@@ -151,12 +151,11 @@
     "id" : "messageTtl",
     "label" : "Message TTL",
     "description" : "Time-to-live for the message in the broker (ISO-8601 duration)",
-    "optional" : false,
-    "value" : "PT0S",
+    "optional" : true,
     "constraints" : {
-      "notEmpty" : true,
+      "notEmpty" : false,
       "pattern" : {
-        "value" : "P.*",
+        "value" : "^(PT.*|)$",
         "message" : "must be an ISO-8601 duration"
       }
     },
