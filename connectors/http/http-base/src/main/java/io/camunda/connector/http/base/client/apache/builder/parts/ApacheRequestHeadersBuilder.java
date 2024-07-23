@@ -24,7 +24,7 @@ import static org.apache.hc.core5.http.HttpHeaders.CONTENT_TYPE;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Objects;
 import java.util.function.Predicate;
 import org.apache.hc.core5.http.io.support.ClassicRequestBuilder;
 
@@ -61,13 +61,13 @@ public class ApacheRequestHeadersBuilder implements ApacheRequestPartBuilder {
 
   /** Remove the content type header if it is {@code null}. */
   private Map<String, String> sanitizedHeaders(HttpCommonRequest request) {
-    var headers =
-        Optional.ofNullable(request.getHeaders()).map(HashMap::new).orElse(new HashMap<>());
-    var keysToRemove =
-        headers.entrySet().stream()
-            .filter(e -> e.getKey().equalsIgnoreCase(CONTENT_TYPE) && e.getValue() == null)
-            .findFirst();
-    keysToRemove.ifPresent(e -> headers.remove(e.getKey()));
+    var headers = request.getHeaders().map(HashMap::new).orElse(new HashMap<>());
+    headers.entrySet().stream()
+        .filter(
+            entry ->
+                Objects.isNull(entry.getValue()) && Objects.equals(entry.getKey(), CONTENT_TYPE))
+        .findFirst()
+        .ifPresent(entry -> headers.remove(entry.getKey()));
     return headers;
   }
 }

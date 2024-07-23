@@ -84,14 +84,7 @@ public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
   }
 
   private Optional<ContentType> tryGetContentType(HttpCommonRequest request) {
-    return Optional.ofNullable(request.getHeaders())
-        .flatMap(
-            headers ->
-                headers.entrySet().stream()
-                    .filter(e -> e.getKey().equalsIgnoreCase(CONTENT_TYPE))
-                    .findFirst())
-        .map(Map.Entry::getValue)
-        .map(ContentType::parse);
+    return request.getHeader(CONTENT_TYPE).map(ContentType::parse);
   }
 
   private HttpEntity createStringEntity(HttpCommonRequest request) {
