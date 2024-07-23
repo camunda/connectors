@@ -49,7 +49,6 @@ import org.apache.kafka.clients.consumer.OffsetOutOfRangeException;
 import org.junit.ClassRule;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -58,7 +57,6 @@ import org.skyscreamer.jsonassert.JSONAssert;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 
-@Disabled // to be run manually
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class KafkaIntegrationTest {
 
@@ -221,6 +219,7 @@ public class KafkaIntegrationTest {
     assertThat(thrown.getMessage()).contains("Fetch position FetchPosition");
     assertThat(thrown.getMessage()).contains("is out of range for partition " + TOPIC + "-");
     assertEquals(0, context.getCorrelations().size());
+    executable.deactivate();
   }
 
   @Test
@@ -251,7 +250,7 @@ public class KafkaIntegrationTest {
 
     // When
     executable.activate(context);
-    await().atMost(Duration.ofSeconds(5)).until(() -> !context.getCorrelations().isEmpty());
+    await().atMost(Duration.ofSeconds(55)).until(() -> !context.getCorrelations().isEmpty());
     executable.deactivate();
 
     // Then
