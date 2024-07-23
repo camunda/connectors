@@ -13,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
 
+import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import dev.failsafe.RetryPolicy;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
@@ -46,6 +47,7 @@ import org.apache.kafka.clients.admin.NewPartitions;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.consumer.OffsetOutOfRangeException;
+import org.json.JSONException;
 import org.junit.ClassRule;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -103,6 +105,32 @@ public class KafkaIntegrationTest {
   private static String getKafkaBrokers() {
     Integer mappedPort = kafkaContainer.getFirstMappedPort();
     return String.format("%s:%d", "localhost", mappedPort);
+  }
+
+  private void assertMessage(KafkaInboundMessage castedResult1) throws JSONException {
+    if (((IntNode) (castedResult1.getKey())).asText().equals("1")) {
+      assertObjectMessage(castedResult1);
+    } else {
+      assertStringMessage(castedResult1);
+    }
+  }
+
+  private void assertStringMessage(KafkaInboundMessage castedResult2) {
+    String rawValue2 = castedResult2.getRawValue();
+    assertInstanceOf(String.class, rawValue2);
+    assertEquals("Test message", rawValue2);
+    Object value2 = castedResult2.getValue();
+    assertInstanceOf(String.class, value2);
+    assertEquals("Test message", value2);
+  }
+
+  private void assertObjectMessage(KafkaInboundMessage castedResult1) throws JSONException {
+    String rawValue1 = castedResult1.getRawValue();
+    assertInstanceOf(String.class, rawValue1);
+    JSONAssert.assertEquals("{\"message\": \"Test message\"}", rawValue1, true);
+    Object value1 = castedResult1.getValue();
+    assertInstanceOf(ObjectNode.class, value1);
+    assertEquals("Test message", ((ObjectNode) value1).get("message").asText());
   }
 
   @Test
@@ -308,21 +336,11 @@ public class KafkaIntegrationTest {
     var inboundMessage = context.getCorrelations().getLast();
     assertInstanceOf(KafkaInboundMessage.class, inboundMessage);
     KafkaInboundMessage castedResult1 = (KafkaInboundMessage) inboundMessage;
-    String rawValue1 = castedResult1.getRawValue();
-    assertInstanceOf(String.class, rawValue1);
-    JSONAssert.assertEquals("{\"message\": \"Test message\"}", rawValue1, true);
-    Object value1 = castedResult1.getValue();
-    assertInstanceOf(ObjectNode.class, value1);
-    assertEquals("Test message", ((ObjectNode) value1).get("message").asText());
+    assertMessage(castedResult1);
 
     assertInstanceOf(KafkaInboundMessage.class, context.getCorrelations().getFirst());
     KafkaInboundMessage castedResult2 = (KafkaInboundMessage) context.getCorrelations().getFirst();
-    String rawValue2 = castedResult2.getRawValue();
-    assertInstanceOf(String.class, rawValue2);
-    assertEquals("Test message", rawValue2);
-    Object value2 = castedResult2.getValue();
-    assertInstanceOf(String.class, value2);
-    assertEquals("Test message", value2);
+    assertMessage(castedResult2);
   }
 
   @Test
