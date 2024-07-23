@@ -71,8 +71,9 @@ public class CloudFunctionServiceTest {
     // then
     assertThat(cloudFunctionRequest.getUrl()).isEqualTo("proxyUrl");
     assertThat(cloudFunctionRequest.getMethod()).isEqualTo(HttpMethod.POST);
-    assertThat(cloudFunctionRequest.getHeaders()).hasSize(1);
-    assertThat(cloudFunctionRequest.getHeaders()).containsEntry("Content-Type", "application/json");
+    assertThat(cloudFunctionRequest.getHeaders().orElse(Map.of())).hasSize(1);
+    assertThat(cloudFunctionRequest.getHeaders().orElse(Map.of()))
+        .containsEntry("Content-Type", "application/json");
     Map<String, Object> body =
         ConnectorsObjectMapperSupplier.DEFAULT_MAPPER.readValue(
             (String) cloudFunctionRequest.getBody(), Map.class);
