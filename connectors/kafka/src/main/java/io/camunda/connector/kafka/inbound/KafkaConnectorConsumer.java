@@ -126,7 +126,8 @@ public class KafkaConnectorConsumer {
             .exceptionally(
                 (e) -> {
                   shouldLoop = false;
-                  return null;
+                  throw new RuntimeException(
+                      "Consumer loop failed, retries exhausted: " + e.getMessage(), e);
                 });
   }
 
