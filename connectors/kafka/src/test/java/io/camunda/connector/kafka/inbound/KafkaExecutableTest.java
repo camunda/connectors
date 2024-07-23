@@ -46,7 +46,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.common.PartitionInfo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -81,10 +80,6 @@ public class KafkaExecutableTest {
   @SuppressWarnings("unchecked")
   public void setUp() {
     String topic = "my-topic";
-    List<PartitionInfo> topicPartitions =
-        Arrays.asList(
-            new PartitionInfo(topic, 0, null, null, null),
-            new PartitionInfo(topic, 1, null, null, null));
     kafkaTopic = new KafkaTopic("localhost:9092", topic);
     KafkaAuthentication kafkaAuthentication = new KafkaAuthentication(null, null);
     kafkaConnectorProperties =
