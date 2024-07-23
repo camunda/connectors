@@ -1,4 +1,4 @@
-FROM eclipse-temurin:17.0.11_9-jre
+FROM eclipse-temurin:17.0.12_7-jre
 
 VOLUME /tmp
 
