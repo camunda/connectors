@@ -42,6 +42,12 @@ public record CreateRow(
                 "Enter row index. Details in the <a href=\"https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/google-sheets/#what-is-a-row-index\" target=\"_blank\">documentation</a>",
             group = "operationDetails",
             feel = FeelMode.optional,
+            constraints =
+                @PropertyConstraints(
+                    pattern =
+                        @TemplateProperty.Pattern(
+                            value = "^(=.*|[0-9]+|)$",
+                            message = "Must be a number")),
             optional = true,
             binding = @PropertyBinding(name = "operation.rowIndex"))
         Integer rowIndex,
