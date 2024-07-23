@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -28,6 +28,7 @@ import io.camunda.connector.test.inbound.InboundConnectorContextBuilder;
 import io.camunda.connector.test.inbound.InboundConnectorDefinitionBuilder;
 import io.camunda.connector.validation.impl.DefaultValidationProvider;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
@@ -47,20 +48,30 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 public class KafkaExecutableTest {
+  private final String processId = "Process_id";
   private InboundConnectorContextBuilder.TestInboundConnectorContext context;
   private InboundConnectorContextBuilder.TestInboundConnectorContext originalContext;
   private List<PartitionInfo> topicPartitions;
   private KafkaConnectorProperties kafkaConnectorProperties;
   @Mock private KafkaConsumer<Object, Object> mockConsumer;
-
   private String topic;
 
-  private final String processId = "Process_id";
+  private static Stream<Arguments> provideStringsForGetOffsets() {
+    return Stream.of(
+        Arguments.of("=[1,2,3]", List.of(1L, 2L, 3L)),
+        Arguments.of("[1,2,3]", List.of(1L, 2L, 3L)),
+        Arguments.of("1", List.of(1L)),
+        Arguments.of("1,2", Arrays.asList(1L, 2L)),
+        Arguments.of("1,2,3,", Arrays.asList(1L, 2L, 3L)),
+        Arguments.of("1,2,3,4,5", Arrays.asList(1L, 2L, 3L, 4L, 5L)),
+        Arguments.of(Arrays.asList(10L, 12L), Arrays.asList(10L, 12L)));
+  }
 
   @BeforeEach
   public void setUp() {
@@ -90,8 +101,6 @@ public class KafkaExecutableTest {
   public void testActivateMainFunctionality() throws Exception {
     KafkaExecutable kafkaExecutable = getConsumerMock();
 
-    when(mockConsumer.partitionsFor(any())).thenReturn(topicPartitions);
-
     // Return and stop looping
     when(mockConsumer.poll(any()))
         .then(
@@ -115,16 +124,16 @@ public class KafkaExecutableTest {
     assertNotNull(kafkaExecutable.kafkaConnectorConsumer.consumer);
     assertEquals(mockConsumer, kafkaExecutable.kafkaConnectorConsumer.consumer);
     assertEquals(originalContext, context);
-    verify(mockConsumer, times(1)).partitionsFor(topic);
-    verify(mockConsumer, times(1)).assign(argThat(list -> list.size() == topicPartitions.size()));
+    // Create an ArgumentCaptor to capture the argument passed to subscribe
+    ArgumentCaptor<Collection<String>> argumentCaptor = ArgumentCaptor.forClass(Collection.class);
+    verify(mockConsumer, times(1)).subscribe(argumentCaptor.capture(), any());
     verify(mockConsumer, times(1)).poll(any());
   }
 
   @Test
   void testActivateAndDeactivate() {
     // Given
-    when(mockConsumer.partitionsFor(topic)).thenReturn(topicPartitions);
-    doNothing().when(mockConsumer).assign(any());
+    doNothing().when(mockConsumer).subscribe(anyCollection(), any());
     KafkaExecutable kafkaExecutable = getConsumerMock();
 
     // When
@@ -247,16 +256,5 @@ public class KafkaExecutableTest {
 
     var boundProps = context.bindProperties(KafkaConnectorProperties.class);
     assertThat(boundProps.getOffsets()).isEqualTo(expected);
-  }
-
-  private static Stream<Arguments> provideStringsForGetOffsets() {
-    return Stream.of(
-        Arguments.of("=[1,2,3]", List.of(1L, 2L, 3L)),
-        Arguments.of("[1,2,3]", List.of(1L, 2L, 3L)),
-        Arguments.of("1", List.of(1L)),
-        Arguments.of("1,2", Arrays.asList(1L, 2L)),
-        Arguments.of("1,2,3,", Arrays.asList(1L, 2L, 3L)),
-        Arguments.of("1,2,3,4,5", Arrays.asList(1L, 2L, 3L, 4L, 5L)),
-        Arguments.of(Arrays.asList(10L, 12L), Arrays.asList(10L, 12L)));
   }
 }
