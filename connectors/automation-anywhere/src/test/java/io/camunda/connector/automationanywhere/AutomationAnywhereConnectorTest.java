@@ -22,6 +22,7 @@ import io.camunda.connector.http.base.model.HttpMethod;
 import io.camunda.connector.http.base.model.auth.NoAuthentication;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -146,7 +147,11 @@ class AutomationAnywhereConnectorTest extends BaseTest {
   }
 
   private void verifyThatHeaderContainsToken(HttpCommonRequest request) {
-    assertThat(request.getHeaders().get(AutomationAnywhereConnector.AUTHORIZATION_KEY))
+    assertThat(
+            request
+                .getHeaders()
+                .orElse(Map.of())
+                .get(AutomationAnywhereConnector.AUTHORIZATION_KEY))
         .isEqualTo("thisIsTestToken.0123344567890qwertyuiopASDFGHJKLxcvbnm-Ug");
   }
 }

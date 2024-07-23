@@ -50,7 +50,7 @@ public class OAuthServiceTest {
       // Then
       assertThat(request.getUrl()).isEqualTo("www.example.com");
       assertThat(request.getMethod()).isEqualTo(HttpMethod.POST);
-      assertThat(request.getHeaders())
+      assertThat(request.getHeaders().orElse(Map.of()))
           .containsEntry("Content-Type", "application/x-www-form-urlencoded");
       assertThat((Map) request.getBody()).containsEntry("client_id", "clientId");
       assertThat((Map) request.getBody()).containsEntry("client_secret", "clientSecret");
@@ -77,9 +77,9 @@ public class OAuthServiceTest {
       // Then
       assertThat(request.getUrl()).isEqualTo("www.example.com");
       assertThat(request.getMethod()).isEqualTo(HttpMethod.POST);
-      assertThat(request.getHeaders())
+      assertThat(request.getHeaders().orElse(Map.of()))
           .containsEntry("Content-Type", "application/x-www-form-urlencoded");
-      assertThat(request.getHeaders())
+      assertThat(request.getHeaders().orElse(Map.of()))
           .containsEntry(
               "Authorization",
               Base64Helper.buildBasicAuthenticationHeader("clientId", "clientSecret"));

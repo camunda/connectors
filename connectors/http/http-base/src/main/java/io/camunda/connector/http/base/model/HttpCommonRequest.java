@@ -117,14 +117,6 @@ public class HttpCommonRequest {
     return body != null;
   }
 
-  public Map<String, String> getHeaders() {
-    return headers;
-  }
-
-  public void setHeaders(final Map<String, String> headers) {
-    this.headers = headers;
-  }
-
   public boolean hasQueryParameters() {
     return queryParameters != null;
   }
@@ -179,6 +171,21 @@ public class HttpCommonRequest {
 
   public void setReadTimeoutInSeconds(final Integer readTimeoutInSeconds) {
     this.readTimeoutInSeconds = readTimeoutInSeconds;
+  }
+
+  public Optional<String> getHeader(final String key) {
+    if (Objects.nonNull(headers)) {
+      return headers.keySet().stream().filter(key::equalsIgnoreCase).findFirst().map(headers::get);
+    }
+    return Optional.empty();
+  }
+
+  public Optional<Map<String, String>> getHeaders() {
+    return Optional.ofNullable(headers);
+  }
+
+  public void setHeaders(final Map<String, String> headers) {
+    this.headers = headers;
   }
 
   @Override
