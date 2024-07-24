@@ -28,5 +28,6 @@ public record OperationParseResult(
     HttpMethod method,
     List<String> tags,
     boolean supported,
+    String description,
     @JsonInclude(Include.NON_EMPTY) String info,
     @JsonIgnore HttpOperationBuilder builder) {}

@@ -22,6 +22,7 @@ import io.camunda.connector.generator.api.CliCompatibleTemplateGenerator;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElementType;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
+import io.camunda.connector.generator.api.RestTemplateGenerator;
 import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.dsl.ElementTemplate;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskDefinition;
@@ -44,7 +45,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class OpenApiOutboundTemplateGenerator
-    implements CliCompatibleTemplateGenerator<OpenApiGenerationSource> {
+    implements CliCompatibleTemplateGenerator<OpenApiGenerationSource>,
+        RestTemplateGenerator<OpenApiGenerationSource> {
 
   private static final Set<BpmnType> SUPPORTED_ELEMENT_TYPES =
       Set.of(BpmnType.SERVICE_TASK, BpmnType.INTERMEDIATE_THROW_EVENT);
@@ -79,7 +81,7 @@ public class OpenApiOutboundTemplateGenerator
   }
 
   @Override
-  public List<Operation> operations(OpenApiGenerationSource input) {
+  public List<RestTemplateGenerator.Operation> operations(OpenApiGenerationSource input) {
     var operations = extractOperations(input);
     return FactoryUtils.transformOperationParseResults(operations);
   }

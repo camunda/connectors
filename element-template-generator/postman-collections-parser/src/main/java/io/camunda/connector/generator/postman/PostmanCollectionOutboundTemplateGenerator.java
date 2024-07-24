@@ -20,6 +20,7 @@ import io.camunda.connector.generator.api.CliCompatibleTemplateGenerator;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElementType;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
+import io.camunda.connector.generator.api.RestTemplateGenerator;
 import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.dsl.ElementTemplate;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskDefinition;
@@ -40,7 +41,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class PostmanCollectionOutboundTemplateGenerator
-    implements CliCompatibleTemplateGenerator<PostmanCollectionsGenerationSource> {
+    implements CliCompatibleTemplateGenerator<PostmanCollectionsGenerationSource>,
+        RestTemplateGenerator<PostmanCollectionsGenerationSource> {
 
   private static final Logger LOG =
       LoggerFactory.getLogger(PostmanCollectionOutboundTemplateGenerator.class);

@@ -64,6 +64,7 @@ public class OperationUtil {
                         HttpMethod.GET,
                         pathItem.getGet(),
                         pathItem.getGet().getTags(),
+                        pathItem.getGet().getDescription(),
                         components,
                         options));
               }
@@ -74,6 +75,7 @@ public class OperationUtil {
                         HttpMethod.POST,
                         pathItem.getPost(),
                         pathItem.getPost().getTags(),
+                        pathItem.getPost().getDescription(),
                         components,
                         options));
               }
@@ -84,6 +86,7 @@ public class OperationUtil {
                         HttpMethod.PUT,
                         pathItem.getPut(),
                         pathItem.getPut().getTags(),
+                        pathItem.getPut().getDescription(),
                         components,
                         options));
               }
@@ -94,6 +97,7 @@ public class OperationUtil {
                         HttpMethod.PATCH,
                         pathItem.getPatch(),
                         pathItem.getPatch().getTags(),
+                        pathItem.getPatch().getDescription(),
                         components,
                         options));
               }
@@ -104,6 +108,7 @@ public class OperationUtil {
                         HttpMethod.DELETE,
                         pathItem.getDelete(),
                         pathItem.getDelete().getTags(),
+                        pathItem.getDelete().getDescription(),
                         components,
                         options));
               }
@@ -131,6 +136,7 @@ public class OperationUtil {
       HttpMethod method,
       Operation operation,
       List<String> tags,
+      String description,
       Components components,
       Options options) {
     try {
@@ -166,10 +172,10 @@ public class OperationUtil {
               .method(method)
               .properties(properties);
       return new OperationParseResult(
-          operation.getOperationId(), path, method, tags, true, null, opBuilder);
+          operation.getOperationId(), path, method, tags, true, description, null, opBuilder);
     } catch (Exception e) {
       return new OperationParseResult(
-          operation.getOperationId(), path, method, tags, false, e.getMessage(), null);
+          operation.getOperationId(), path, method, tags, false, description, e.getMessage(), null);
     }
   }
 

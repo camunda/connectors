@@ -23,7 +23,7 @@ import static io.camunda.connector.generator.cli.ReturnCodes.SUCCESS;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import io.camunda.connector.generator.api.CliCompatibleTemplateGenerator;
+import io.camunda.connector.generator.api.RestTemplateGenerator;
 import java.util.List;
 import java.util.concurrent.Callable;
 import picocli.CommandLine.Command;
@@ -50,8 +50,8 @@ public class Operations implements Callable<Integer> {
   @SuppressWarnings("unchecked")
   @Override
   public Integer call() {
-    CliCompatibleTemplateGenerator<Object> generator =
-        (CliCompatibleTemplateGenerator<Object>) Generate.loadGenerator(generatorName);
+    RestTemplateGenerator<Object> generator =
+        (RestTemplateGenerator<Object>) Generate.loadGenerator(generatorName);
     Object input;
     try {
       input = generator.prepareInput(params);
@@ -60,7 +60,7 @@ public class Operations implements Callable<Integer> {
           "Error while preparing input data for scanning operations: " + e.getMessage());
       return INPUT_PREPARATION_FAILED.getCode();
     }
-    List<CliCompatibleTemplateGenerator.Operation> result;
+    List<RestTemplateGenerator.Operation> result;
     try {
       result = generator.operations(input);
     } catch (Exception e) {

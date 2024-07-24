@@ -33,6 +33,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -134,6 +135,8 @@ public class PostmanOperationUtil {
     String endpointUrl = PostmanPathUtil.extractPathFromUrl(endpoint);
 
     var label = endpoint.name();
+    var description =
+        Optional.ofNullable(endpoint.description()).map(desc -> desc.content()).orElse(null);
     var operationId = TransformerUtils.normalizeString(label + " " + opIdentifier);
     List<String> tags = Arrays.asList(opIdentifier.split("/"));
     Set<HttpOperationProperty> requestConfigurationProps = new HashSet<>();
@@ -165,6 +168,7 @@ public class PostmanOperationUtil {
         HttpMethod.valueOf(endpoint.request().method().name()),
         tags,
         true,
+        description,
         null,
         opBuilder);
   }
