@@ -358,7 +358,7 @@
       "notEmpty" : true,
       "pattern" : {
         "value" : "^\\d+$",
-        "message" : "Must be a number"
+        "message" : "Must be a http(s) URL"
       }
     },
     "feel" : "optional",

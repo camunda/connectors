@@ -150,7 +150,7 @@
     "constraints" : {
       "notEmpty" : true,
       "pattern" : {
-        "value" : "^(secrets|([0-9]?|1[0-9]|20)).*$",
+        "value" : "^(secrets.*|([0-9]?|1[0-9]|20))$",
         "message" : ""
       }
     },

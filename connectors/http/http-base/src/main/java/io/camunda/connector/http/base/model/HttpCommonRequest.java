@@ -49,7 +49,8 @@ public class HttpCommonRequest {
       constraints =
           @TemplateProperty.PropertyConstraints(
               notEmpty = true,
-              pattern = @TemplateProperty.Pattern(value = "^\\d+$", message = "Must be a number")))
+              pattern =
+                  @TemplateProperty.Pattern(value = "^\\d+$", message = "Must be a http(s) URL")))
   private String url;
 
   @Valid private Authentication authentication;

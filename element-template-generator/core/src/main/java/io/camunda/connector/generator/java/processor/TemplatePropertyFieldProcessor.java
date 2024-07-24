@@ -206,9 +206,9 @@ public class TemplatePropertyFieldProcessor implements FieldProcessor {
   private String createSecretPatternValue(String value, Property property) {
     if (property.getFeel() == Property.FeelMode.optional
         || property.getFeel() == Property.FeelMode.required) {
-      return "^(=|(secrets|%s)).*$".formatted(value.replaceAll("\\^", "").replaceAll("\\$", ""));
+      return "^(=.*|(secrets.*|%s))$".formatted(value.replaceAll("\\^", "").replaceAll("\\$", ""));
     } else {
-      return "^(secrets|%s).*$".formatted(value.replaceAll("\\^", "").replaceAll("\\$", ""));
+      return "^(secrets.*|%s)$".formatted(value.replaceAll("\\^", "").replaceAll("\\$", ""));
     }
   }
 }

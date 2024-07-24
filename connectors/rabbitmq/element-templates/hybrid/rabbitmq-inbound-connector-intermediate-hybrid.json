@@ -75,7 +75,7 @@
     "constraints" : {
       "notEmpty" : true,
       "pattern" : {
-        "value" : "^(secrets|(amqps?://|\\{\\{).*).*$",
+        "value" : "^(secrets.*|(amqps?://|\\{\\{).*)$",
         "message" : "Must start with amqp(s):// or contain a secret reference"
       }
     },

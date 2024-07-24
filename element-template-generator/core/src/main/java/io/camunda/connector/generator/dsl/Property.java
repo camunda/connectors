@@ -41,7 +41,9 @@ public abstract sealed class Property
   protected final String type;
 
   /**
-   * @Pavel
+   * `system_default` means optional for outbound connectors and disabled for inbound connectors. It
+   * was added not long ago when different default behavior was needed for inbound/outbound
+   * generator.
    */
   public enum FeelMode {
     optional,

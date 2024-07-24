@@ -409,7 +409,7 @@ public class InboundClassBasedTemplateGeneratorTest extends BaseTest {
               .pattern()
               .value();
 
-      assertThat(secretPattern).isEqualTo("^(secrets|yyy).*$");
+      assertThat(secretPattern).isEqualTo("^(secrets.*|yyy)$");
     }
   }
 }
