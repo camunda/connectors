@@ -50,7 +50,9 @@ public class HttpCommonRequest {
           @TemplateProperty.PropertyConstraints(
               notEmpty = true,
               pattern =
-                  @TemplateProperty.Pattern(value = "^\\d+$", message = "Must be a http(s) URL")))
+                  @TemplateProperty.Pattern(
+                      value = "^(http://|https://|secrets|\\{\\{).*$",
+                      message = "Must be a http(s) URL")))
   private String url;
 
   @Valid private Authentication authentication;
@@ -59,6 +61,10 @@ public class HttpCommonRequest {
       group = "timeout",
       label = "Connection timeout in seconds",
       defaultValue = "20",
+      constraints =
+          @TemplateProperty.PropertyConstraints(
+              notEmpty = true,
+              pattern = @TemplateProperty.Pattern(value = "^\\d+$", message = "Must be a number")),
       description = "Defines the connection timeout in seconds, or 0 for an infinite timeout")
   private Integer connectionTimeoutInSeconds;
 

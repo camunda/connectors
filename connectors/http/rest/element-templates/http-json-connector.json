@@ -352,7 +352,7 @@
     "constraints" : {
       "notEmpty" : true,
       "pattern" : {
-        "value" : "^\\d+$",
+        "value" : "^(http://|https://|secrets|\\{\\{).*$",
         "message" : "Must be a http(s) URL"
       }
     },
@@ -393,6 +393,13 @@
     "description" : "Defines the connection timeout in seconds, or 0 for an infinite timeout",
     "optional" : false,
     "value" : "20",
+    "constraints" : {
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "^\\d+$",
+        "message" : "Must be a number"
+      }
+    },
     "feel" : "optional",
     "group" : "timeout",
     "binding" : {
