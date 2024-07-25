@@ -11,9 +11,6 @@ import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.inbound.Health;
 import io.camunda.connector.api.inbound.InboundConnectorContext;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
-import io.camunda.connector.api.inbound.Severity;
-import io.camunda.connector.generator.dsl.BpmnType;
-import io.camunda.connector.generator.java.annotation.ElementTemplate;
 import java.time.Duration;
 import java.util.Properties;
 import java.util.function.Function;
@@ -55,7 +52,8 @@ public class KafkaExecutable implements InboundConnectorExecutable<InboundConnec
       KafkaConnectorProperties elementProps =
           connectorContext.bindProperties(KafkaConnectorProperties.class);
       this.kafkaConnectorConsumer =
-          new KafkaConnectorConsumer(consumerCreatorFunction, connectorContext, elementProps, retryPolicy);
+          new KafkaConnectorConsumer(
+              consumerCreatorFunction, connectorContext, elementProps, retryPolicy);
       this.kafkaConnectorConsumer.startConsumer();
     } catch (Exception ex) {
       connectorContext.reportHealth(Health.down(ex));
