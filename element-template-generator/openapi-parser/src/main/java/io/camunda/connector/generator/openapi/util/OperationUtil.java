@@ -63,6 +63,8 @@ public class OperationUtil {
                         pathEntry.getKey(),
                         HttpMethod.GET,
                         pathItem.getGet(),
+                        pathItem.getGet().getTags(),
+                        pathItem.getGet().getDescription(),
                         components,
                         options));
               }
@@ -72,6 +74,8 @@ public class OperationUtil {
                         pathEntry.getKey(),
                         HttpMethod.POST,
                         pathItem.getPost(),
+                        pathItem.getPost().getTags(),
+                        pathItem.getPost().getDescription(),
                         components,
                         options));
               }
@@ -81,6 +85,8 @@ public class OperationUtil {
                         pathEntry.getKey(),
                         HttpMethod.PUT,
                         pathItem.getPut(),
+                        pathItem.getPut().getTags(),
+                        pathItem.getPut().getDescription(),
                         components,
                         options));
               }
@@ -90,6 +96,8 @@ public class OperationUtil {
                         pathEntry.getKey(),
                         HttpMethod.PATCH,
                         pathItem.getPatch(),
+                        pathItem.getPatch().getTags(),
+                        pathItem.getPatch().getDescription(),
                         components,
                         options));
               }
@@ -99,6 +107,8 @@ public class OperationUtil {
                         pathEntry.getKey(),
                         HttpMethod.DELETE,
                         pathItem.getDelete(),
+                        pathItem.getDelete().getTags(),
+                        pathItem.getDelete().getDescription(),
                         components,
                         options));
               }
@@ -116,12 +126,19 @@ public class OperationUtil {
             operation ->
                 includeOperations == null
                     || includeOperations.isEmpty()
-                    || includeOperations.contains(operation.builder().getId()))
+                    || operation.builder() != null
+                        && includeOperations.contains(operation.builder().getId()))
         .collect(Collectors.toList());
   }
 
   private static OperationParseResult extractOperation(
-      String path, HttpMethod method, Operation operation, Components components, Options options) {
+      String path,
+      HttpMethod method,
+      Operation operation,
+      List<String> tags,
+      String description,
+      Components components,
+      Options options) {
     try {
       var parameters = operation.getParameters();
       Set<HttpOperationProperty> properties =
@@ -154,10 +171,11 @@ public class OperationUtil {
               .authenticationOverride(authenticationOverride)
               .method(method)
               .properties(properties);
-      return new OperationParseResult(operation.getOperationId(), path, true, null, opBuilder);
+      return new OperationParseResult(
+          operation.getOperationId(), path, method, tags, true, description, null, opBuilder);
     } catch (Exception e) {
       return new OperationParseResult(
-          operation.getOperationId(), path, false, e.getMessage(), null);
+          operation.getOperationId(), path, method, tags, false, description, e.getMessage(), null);
     }
   }
 
