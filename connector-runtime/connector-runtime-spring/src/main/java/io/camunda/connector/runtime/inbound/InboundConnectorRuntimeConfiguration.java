@@ -44,7 +44,6 @@ import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
 import java.time.Duration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -79,11 +78,8 @@ public class InboundConnectorRuntimeConfiguration {
   }
 
   @Bean
-  public InboundConnectorAnnotationProcessor inboundConnectorAnnotationProcessor(
-      InboundConnectorFactory inboundConnectorFactory,
-      ConfigurableBeanFactory configurableBeanFactory) {
-    return new InboundConnectorAnnotationProcessor(
-        inboundConnectorFactory, configurableBeanFactory);
+  public static InboundConnectorBeanDefinitionProcessor inboundConnectorBeanDefinitionProcessor() {
+    return new InboundConnectorBeanDefinitionProcessor();
   }
 
   @Bean
