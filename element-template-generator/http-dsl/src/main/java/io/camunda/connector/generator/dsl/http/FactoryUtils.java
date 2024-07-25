@@ -16,18 +16,24 @@
  */
 package io.camunda.connector.generator.dsl.http;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import io.camunda.connector.http.base.model.HttpMethod;
+import io.camunda.connector.generator.api.RestTemplateGenerator;
 import java.util.List;
 
-public record OperationParseResult(
-    String id,
-    String path,
-    HttpMethod method,
-    List<String> tags,
-    boolean supported,
-    String description,
-    @JsonInclude(Include.NON_EMPTY) String info,
-    @JsonIgnore HttpOperationBuilder builder) {}
+public class FactoryUtils {
+
+  public static List<RestTemplateGenerator.Operation> transformOperationParseResults(
+      List<OperationParseResult> operations) {
+    return operations.stream()
+        .map(
+            o ->
+                new RestTemplateGenerator.Operation.Builder()
+                    .id(o.id())
+                    .path(o.path())
+                    .method(o.method().name())
+                    .tags(o.tags())
+                    .supported(o.supported())
+                    .description(o.description())
+                    .build())
+        .toList();
+  }
+}

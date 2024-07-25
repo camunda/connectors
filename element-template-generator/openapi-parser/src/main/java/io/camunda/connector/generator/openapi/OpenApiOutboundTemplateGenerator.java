@@ -22,9 +22,11 @@ import io.camunda.connector.generator.api.CliCompatibleTemplateGenerator;
 import io.camunda.connector.generator.api.GeneratorConfiguration;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorElementType;
 import io.camunda.connector.generator.api.GeneratorConfiguration.ConnectorMode;
+import io.camunda.connector.generator.api.RestTemplateGenerator;
 import io.camunda.connector.generator.dsl.BpmnType;
 import io.camunda.connector.generator.dsl.ElementTemplate;
 import io.camunda.connector.generator.dsl.PropertyBinding.ZeebeTaskDefinition;
+import io.camunda.connector.generator.dsl.http.FactoryUtils;
 import io.camunda.connector.generator.dsl.http.HttpAuthentication;
 import io.camunda.connector.generator.dsl.http.HttpAuthentication.NoAuth;
 import io.camunda.connector.generator.dsl.http.HttpOperationBuilder;
@@ -43,7 +45,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class OpenApiOutboundTemplateGenerator
-    implements CliCompatibleTemplateGenerator<OpenApiGenerationSource> {
+    implements CliCompatibleTemplateGenerator<OpenApiGenerationSource>,
+        RestTemplateGenerator<OpenApiGenerationSource> {
 
   private static final Set<BpmnType> SUPPORTED_ELEMENT_TYPES =
       Set.of(BpmnType.SERVICE_TASK, BpmnType.INTERMEDIATE_THROW_EVENT);
@@ -72,11 +75,20 @@ public class OpenApiOutboundTemplateGenerator
     return OpenApiGenerationSource.USAGE;
   }
 
+  private List<OperationParseResult> extractOperations(OpenApiGenerationSource input) {
+    return OperationUtil.extractOperations(
+        input.openAPI(), input.includeOperations(), input.options());
+  }
+
+  @Override
+  public List<RestTemplateGenerator.Operation> operations(OpenApiGenerationSource input) {
+    var operations = extractOperations(input);
+    return FactoryUtils.transformOperationParseResults(operations);
+  }
+
   @Override
   public ScanResult scan(OpenApiGenerationSource input) {
-    var operations =
-        OperationUtil.extractOperations(
-            input.openAPI(), input.includeOperations(), input.options());
+    var operations = extractOperations(input);
     var supportedOperations =
         operations.stream()
             .filter(OperationParseResult::supported)
