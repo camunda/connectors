@@ -20,11 +20,17 @@ import static org.apache.hc.core5.http.ContentType.MULTIPART_FORM_DATA;
 import static org.apache.hc.core5.http.HttpHeaders.CONTENT_TYPE;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentStore;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.json.ConnectorsObjectMapperSupplier;
 import io.camunda.connector.http.base.model.HttpCommonRequest;
+import java.io.BufferedInputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.hc.client5.http.entity.mime.HttpMultipartMode;
@@ -41,6 +47,8 @@ import org.apache.hc.core5.http.message.BasicNameValuePair;
  */
 public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
   public static final String EMPTY_BODY = "";
+
+  private final DocumentStore store = new DocumentStore.InMemoryDocumentStore();
 
   @Override
   public void build(ClassicRequestBuilder builder, HttpCommonRequest request) {
@@ -119,9 +127,35 @@ public class ApacheRequestBodyBuilder implements ApacheRequestPartBuilder {
     builder.setMode(HttpMultipartMode.LEGACY);
     Optional.ofNullable(contentType.getParameter("boundary")).ifPresent(builder::setBoundary);
     for (Map.Entry<?, ?> entry : body.entrySet()) {
-      builder.addTextBody(
-          String.valueOf(entry.getKey()), String.valueOf(entry.getValue()), MULTIPART_FORM_DATA);
+      if (Objects.requireNonNull(entry.getValue()) instanceof Document document) {
+        streamDocumentContent(entry, document, builder);
+      } else {
+        builder.addTextBody(
+            String.valueOf(entry.getKey()), String.valueOf(entry.getValue()), MULTIPART_FORM_DATA);
+      }
     }
     return builder.build();
+  }
+
+  private URL getDocumentUrl(Document document) {
+    try {
+      Object url = document.getMetadata().get("url");
+      if (url != null) {
+        return new URL((String) url);
+      }
+    } catch (MalformedURLException e) {
+      throw new RuntimeException(e);
+    }
+    return null;
+  }
+
+  private void streamDocumentContent(
+      Map.Entry<?, ?> entry, Document document, MultipartEntityBuilder builder) {
+    Map<String, Object> metadata = document.getMetadata();
+    builder.addBinaryBody(
+        String.valueOf(entry.getKey()),
+        new BufferedInputStream(document.loadAsStream(store)),
+        ContentType.DEFAULT_BINARY,
+        (String) metadata.get("filename"));
   }
 }
