@@ -22,7 +22,6 @@ import io.camunda.connector.api.annotation.InboundConnector;
 import io.camunda.connector.api.inbound.InboundConnectorExecutable;
 import io.camunda.connector.runtime.core.config.InboundConnectorConfiguration;
 import io.camunda.connector.runtime.core.inbound.InboundConnectorFactory;
-import io.camunda.connector.runtime.inbound.util.AnnotationUtil;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -31,12 +30,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.ListableBeanFactory;
-import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.beans.factory.support.BeanDefinitionRegistryPostProcessor;
-import org.springframework.core.type.AnnotatedTypeMetadata;
 
 public class InboundConnectorBeanDefinitionProcessor
     implements BeanDefinitionRegistryPostProcessor {
@@ -61,25 +58,6 @@ public class InboundConnectorBeanDefinitionProcessor
         preparedProperties.add(properties);
       }
     }
-  }
-
-  protected InboundConnector findInboundConnectorAnnotation(BeanDefinition beanDefinition) {
-    InboundConnector annotation = null;
-
-    if (beanDefinition instanceof AnnotatedBeanDefinition annotatedBeanDefinition) {
-      AnnotatedTypeMetadata metadata = annotatedBeanDefinition.getFactoryMethodMetadata();
-      if (metadata == null) {
-        metadata = annotatedBeanDefinition.getMetadata();
-      }
-      annotation = AnnotationUtil.get(InboundConnector.class, metadata);
-    }
-
-    if (annotation == null) {
-      LOG.warn("Did not find @InboundConnector annotation on bean: {}", beanDefinition);
-    } else {
-      LOG.info("Found annotation {} on bean {}", annotation, beanDefinition);
-    }
-    return annotation;
   }
 
   private InboundConnectorProperties getProperties(
