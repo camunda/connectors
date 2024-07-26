@@ -16,94 +16,40 @@
  */
 package io.camunda.connector.api.document;
 
-import io.camunda.connector.api.document.DocumentSource.Base64DocumentSource;
-import io.camunda.connector.api.document.DocumentSource.ByteArrayDocumentSource;
-import java.util.Base64;
-import java.util.Objects;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.util.Map;
 
-public class BasicDocument implements Document {
-
-  private final Object metadata;
-  private final DocumentContent content;
-
-  private BasicDocument(Object metadata, DocumentContent content) {
-    this.metadata = metadata;
-    this.content = content;
-  }
-
-  public static Builder builder() {
-    return new Builder();
-  }
+public record BasicDocument(Map<String, Object> metadata) implements Document {
 
   @Override
-  public Object getMetadata() {
+  public Map<String, Object> getMetadata() {
     return metadata;
   }
 
   @Override
-  public DocumentContent getContent() {
-    return content;
+  public byte[] loadAsByteArray(DocumentStore store) {
+    return store.load((String) metadata.get("docRef"));
   }
 
   @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    BasicDocument that = (BasicDocument) o;
-    return Objects.equals(metadata, that.metadata) && Objects.equals(content, that.content);
+  public String loadAsBase64(DocumentStore store) {
+    return new String(store.load((String) metadata.get("docRef")));
   }
 
   @Override
-  public int hashCode() {
-    return Objects.hash(metadata, content);
-  }
-
-  record DocumentContentImpl(byte[] bytes) implements DocumentContent {
-    @Override
-    public byte[] asBytes() {
-      return bytes;
+  public InputStream loadAsStream(DocumentStore store) {
+    Object url = metadata.get("url");
+    if (url == null) {
+      var content = loadAsByteArray(store);
+      return new ByteArrayInputStream(content);
     }
-
-    @Override
-    public String asBase64() {
-      return Base64.getEncoder().encodeToString(bytes);
-    }
-  }
-
-  public static class Builder {
-    private Object metadata;
-    private byte[] content;
-
-    public Builder metadata(Object metadata) {
-      this.metadata = metadata;
-      return this;
-    }
-
-    public Builder content(byte[] content) {
-      this.content = content;
-      return this;
-    }
-
-    public Builder source(DocumentSource source) {
-      if (source instanceof ByteArrayDocumentSource byteArrayDocument) {
-        return content(byteArrayDocument.content());
-      } else if (source instanceof Base64DocumentSource base64Document) {
-        return content(Base64.getDecoder().decode(base64Document.content()));
-      } else {
-        // TODO: reference document
-        throw new IllegalArgumentException("Unsupported source type: " + source.getClass());
-      }
-    }
-
-    public BasicDocument build() {
-      if (content == null) {
-        throw new IllegalArgumentException("Content must not be null");
-      }
-      return new BasicDocument(metadata, new DocumentContentImpl(content));
+    try {
+      return new URL((String) url).openStream();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
   }
 }
