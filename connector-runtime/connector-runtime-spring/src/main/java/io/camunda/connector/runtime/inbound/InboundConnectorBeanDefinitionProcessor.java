@@ -49,11 +49,12 @@ public class InboundConnectorBeanDefinitionProcessor
       throws BeansException {
     ListableBeanFactory listableBeanFactory = (ListableBeanFactory) registry;
     String[] handlerBeans =
-        listableBeanFactory.getBeanNamesForType(InboundConnectorExecutable.class);
+        listableBeanFactory.getBeanNamesForType(InboundConnectorExecutable.class, true, false);
     LOG.info("Found inbound connector beans: {}", (Object) handlerBeans);
     for (String beanName : handlerBeans) {
       BeanDefinition beanDefinition = registry.getBeanDefinition(beanName);
-      InboundConnector inboundConnectorAnnotation = findInboundConnectorAnnotation(beanDefinition);
+      InboundConnector inboundConnectorAnnotation =
+          listableBeanFactory.findAnnotationOnBean(beanName, InboundConnector.class);
       if (inboundConnectorAnnotation != null) {
         InboundConnectorProperties properties =
             getProperties(inboundConnectorAnnotation, beanDefinition, beanName);
