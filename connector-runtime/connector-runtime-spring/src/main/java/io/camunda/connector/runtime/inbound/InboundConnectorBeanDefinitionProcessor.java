@@ -81,22 +81,8 @@ public class InboundConnectorBeanDefinitionProcessor
   private InboundConnectorProperties getInboundConnectorProperties(
       InboundConnector inboundConnector, BeanDefinition beanDefinition, String beanName) {
     var deduplicationProperties = Arrays.asList(inboundConnector.deduplicationProperties());
-    Class<? extends InboundConnectorExecutable> inboundConnectorClass;
-    try {
-      inboundConnectorClass =
-          (Class<? extends InboundConnectorExecutable>)
-              Class.forName(beanDefinition.getBeanClassName());
-    } catch (ClassNotFoundException e) {
-      throw new RuntimeException(
-          "Error while loading class for bean with class name " + beanDefinition.getBeanClassName(),
-          e);
-    }
     return new InboundConnectorProperties(
-        beanName,
-        inboundConnector.name(),
-        inboundConnector.type(),
-        inboundConnectorClass,
-        deduplicationProperties);
+        beanName, inboundConnector.name(), inboundConnector.type(), deduplicationProperties);
   }
 
   @Override
@@ -115,15 +101,11 @@ public class InboundConnectorBeanDefinitionProcessor
     return new InboundConnectorConfiguration(
         properties.name(),
         properties.type(),
-        properties.clazz(),
-        () -> beanFactory.getBean(properties.beanName(), properties.clazz()),
+        null,
+        () -> beanFactory.getBean(properties.beanName(), InboundConnectorExecutable.class),
         properties.deduplicationProperties());
   }
 
   private record InboundConnectorProperties(
-      String beanName,
-      String name,
-      String type,
-      Class<? extends InboundConnectorExecutable> clazz,
-      List<String> deduplicationProperties) {}
+      String beanName, String name, String type, List<String> deduplicationProperties) {}
 }
