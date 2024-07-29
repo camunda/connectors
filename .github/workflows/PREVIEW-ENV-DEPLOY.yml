@@ -78,7 +78,6 @@ jobs:
         app_url: https://${{ steps.sanitize.outputs.branch_name }}-${{ matrix.product_context }}.connectors.camunda.cloud
         argocd_arguments: ${{ env.argocd_arguments }}
         argocd_server: argocd.int.camunda.com
-
   clean:
     if: always() && github.event_name == 'pull_request' && needs.deploy-preview.result != 'skipped'
     uses: camunda/connectors/.github/workflows/PREVIEW-ENV-CLEAN.yml@main
@@ -86,3 +85,10 @@ jobs:
     secrets: inherit
     with:
       pull-request: ${{ github.event.pull_request.number }}
+  comment:
+    if: always() && github.event_name == 'pull_request' && needs.deploy-preview.result != 'skipped'
+    name: create-deployment-result-summary
+    runs-on: ubuntu-22.04
+    needs: [deploy-preview]
+    steps:
+      - uses: camunda/infra-global-github-actions/preview-env/comment@main
