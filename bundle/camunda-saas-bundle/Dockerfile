@@ -8,7 +8,7 @@ RUN mkdir /opt/app
 COPY target/*-with-dependencies.jar /opt/app/
 
 # Create an unprivileged user / group and switch to that user
-RUN addgroup --gid 1003 connectors && useradd -g connectors -u 1003 -M connectors
+RUN groupadd --gid 1003 connectors && useradd -g connectors -u 1003 -M connectors
 USER connectors:connectors
 
 ENV ZEEBE_CLIENT_CONFIG_PATH=/tmp/connectors
