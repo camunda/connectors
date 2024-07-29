@@ -116,7 +116,7 @@ public class InboundConnectorBeanDefinitionProcessor
         properties.name(),
         properties.type(),
         properties.clazz(),
-        () -> (InboundConnectorExecutable) beanFactory.getBean(properties.beanName()),
+        () -> beanFactory.getBean(properties.beanName(), properties.clazz()),
         properties.deduplicationProperties());
   }
 
