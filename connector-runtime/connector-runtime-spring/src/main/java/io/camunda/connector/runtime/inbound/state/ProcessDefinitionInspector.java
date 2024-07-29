@@ -312,7 +312,19 @@ public class ProcessDefinitionInspector {
     }
     return zeebeProperties.getProperties().stream()
         .filter(property -> property.getValue() != null)
-        .collect(Collectors.toMap(ZeebeProperty::getName, ZeebeProperty::getValue));
+        .collect(
+            Collectors.toMap(
+                ZeebeProperty::getName,
+                ZeebeProperty::getValue,
+                (nameDuplicate, valueDuplicate) -> {
+                  LOG.warn(
+                      "A duplicate has been found for property name {} and value {} for element {}",
+                      nameDuplicate,
+                      valueDuplicate,
+                      element.getId());
+                  // returns null means to ignore the mapping when there is a duplicate
+                  return null;
+                }));
   }
 
   private String extractRequiredProperty(BaseElement element, String name) {
