@@ -73,13 +73,13 @@ public class InboundConnectorBeanDefinitionProcessor
               + beanDefinition);
     } else {
       InboundConnectorProperties properties =
-          getInboundConnectorProperties(inboundConnector, beanDefinition, beanName);
+          getInboundConnectorProperties(inboundConnector, beanName);
       return properties;
     }
   }
 
   private InboundConnectorProperties getInboundConnectorProperties(
-      InboundConnector inboundConnector, BeanDefinition beanDefinition, String beanName) {
+      InboundConnector inboundConnector, String beanName) {
     var deduplicationProperties = Arrays.asList(inboundConnector.deduplicationProperties());
     return new InboundConnectorProperties(
         beanName, inboundConnector.name(), inboundConnector.type(), deduplicationProperties);
