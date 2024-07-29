@@ -71,10 +71,10 @@ limitations under the License.</license.inlineheader>
     <nexus.sonatype.url>https://s01.oss.sonatype.org</nexus.sonatype.url>
 
     <!-- Camunda internal libraries -->
-    <version.zeebe>8.5.3</version.zeebe>
+    <version.zeebe>8.6.0-alpha3</version.zeebe>
     <version.feel-engine>1.18.0-alpha1</version.feel-engine>
 <!--    <version.spring-zeebe>8.5.5</version.spring-zeebe>-->
-    <version.operate-client>8.6.0-alpha1-SNAPSHOT</version.operate-client>
+    <version.operate-client>8.5.8-rc1</version.operate-client>
 
     <!-- Third party dependencies -->
 
@@ -556,6 +556,11 @@ limitations under the License.</license.inlineheader>
         <groupId>org.wiremock</groupId>
         <artifactId>wiremock-standalone</artifactId>
         <version>${version.wiremock}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.camunda</groupId>
+        <artifactId>camunda-process-test-spring</artifactId>
+        <version>${version.zeebe}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
