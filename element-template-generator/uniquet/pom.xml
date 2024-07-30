@@ -31,6 +31,11 @@
         </dependency>
 
         <dependency>
+            <groupId>io.camunda.connector</groupId>
+            <artifactId>jackson-datatype-feel</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>org.eclipse.jgit</groupId>
             <artifactId>org.eclipse.jgit</artifactId>
             <version>6.10.0.202406032230-r</version>
