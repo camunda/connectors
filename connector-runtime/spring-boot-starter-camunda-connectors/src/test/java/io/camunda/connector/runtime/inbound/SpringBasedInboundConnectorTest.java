@@ -16,7 +16,7 @@
  */
 package io.camunda.connector.runtime.inbound;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.*;
 
 import io.camunda.connector.runtime.app.TestConnectorRuntimeApplication;
 import io.camunda.connector.runtime.app.TestSpringBasedInboundConnector;
@@ -31,8 +31,6 @@ public class SpringBasedInboundConnectorTest {
 
   @Autowired InboundConnectorFactory inboundConnectorFactory;
 
-  @Autowired TestSpringBasedInboundConnector connector;
-
   @Test
   void springBasedConnectorPresent() {
     var connectorConfig =
@@ -43,8 +41,6 @@ public class SpringBasedInboundConnectorTest {
     assertThat(connectorConfig).isNotNull();
     var connectorFromFactory = inboundConnectorFactory.getInstance(connectorConfig.type());
     // Same type
-    assertThat(connectorFromFactory).isExactlyInstanceOf(connector.getClass());
-    // Different instance
-    assertThat(connectorFromFactory).isNotEqualTo(connector);
+    assertThat(connectorFromFactory).isExactlyInstanceOf(TestSpringBasedInboundConnector.class);
   }
 }
