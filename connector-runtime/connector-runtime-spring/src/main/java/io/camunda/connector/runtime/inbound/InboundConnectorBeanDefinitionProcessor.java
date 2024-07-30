@@ -31,15 +31,15 @@ import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.beans.factory.config.BeanDefinition;
-import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
+import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.beans.factory.support.BeanDefinitionRegistryPostProcessor;
 
 public class InboundConnectorBeanDefinitionProcessor
-    implements BeanDefinitionRegistryPostProcessor {
+    implements BeanDefinitionRegistryPostProcessor, BeanPostProcessor {
   private static final Logger LOG =
       LoggerFactory.getLogger(InboundConnectorBeanDefinitionProcessor.class);
-  private final List<InboundConnectorProperties> preparedProperties = new ArrayList<>();
+  private final List<InboundConnectorConfiguration> preparedConfigurations = new ArrayList<>();
 
   @Override
   public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry)
@@ -53,15 +53,19 @@ public class InboundConnectorBeanDefinitionProcessor
       InboundConnector inboundConnectorAnnotation =
           listableBeanFactory.findAnnotationOnBean(beanName, InboundConnector.class);
       if (inboundConnectorAnnotation != null) {
-        InboundConnectorProperties properties =
-            getProperties(inboundConnectorAnnotation, beanDefinition, beanName);
-        preparedProperties.add(properties);
+        InboundConnectorConfiguration configuration =
+            getProperties(
+                inboundConnectorAnnotation, beanDefinition, beanName, listableBeanFactory);
+        preparedConfigurations.add(configuration);
       }
     }
   }
 
-  private InboundConnectorProperties getProperties(
-      InboundConnector inboundConnector, BeanDefinition beanDefinition, String beanName) {
+  private InboundConnectorConfiguration getProperties(
+      InboundConnector inboundConnector,
+      BeanDefinition beanDefinition,
+      String beanName,
+      BeanFactory beanFactory) {
     var scope = beanDefinition.getScope();
     if (!SCOPE_PROTOTYPE.equals(scope)) {
       throw new IllegalStateException(
@@ -72,40 +76,31 @@ public class InboundConnectorBeanDefinitionProcessor
               + "\" for bean: "
               + beanDefinition);
     } else {
-      InboundConnectorProperties properties =
-          getInboundConnectorProperties(inboundConnector, beanName);
-      return properties;
+      return getInboundConnectorConfiguration(inboundConnector, beanName, beanFactory);
     }
   }
 
-  private InboundConnectorProperties getInboundConnectorProperties(
-      InboundConnector inboundConnector, String beanName) {
+  private InboundConnectorConfiguration getInboundConnectorConfiguration(
+      InboundConnector inboundConnector, String beanName, BeanFactory beanFactory) {
     var deduplicationProperties = Arrays.asList(inboundConnector.deduplicationProperties());
-    return new InboundConnectorProperties(
-        beanName, inboundConnector.name(), inboundConnector.type(), deduplicationProperties);
+    var configuration =
+        new InboundConnectorConfiguration(
+            inboundConnector.name(),
+            inboundConnector.type(),
+            null,
+            () -> beanFactory.getBean(beanName, InboundConnectorExecutable.class),
+            deduplicationProperties);
+    LOG.debug("Creating inbound connector configuration from bean {}: {}", beanName, configuration);
+    return configuration;
   }
 
   @Override
-  public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory)
-      throws BeansException {
-    InboundConnectorFactory inboundConnectorFactory =
-        beanFactory.getBean(InboundConnectorFactory.class);
-    preparedProperties.stream()
-        .map(p -> fromProperties(p, beanFactory))
-        .forEach(inboundConnectorFactory::registerConfiguration);
+  public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
+    if (bean instanceof InboundConnectorFactory inboundConnectorFactory) {
+      LOG.info(
+          "Configuring {} inbound connectors from bean context", preparedConfigurations.size());
+      preparedConfigurations.forEach(inboundConnectorFactory::registerConfiguration);
+    }
+    return bean;
   }
-
-  private InboundConnectorConfiguration fromProperties(
-      InboundConnectorProperties properties, BeanFactory beanFactory) {
-    LOG.info("Configuring inbound connector {} of bean '{}'", properties, properties.beanName());
-    return new InboundConnectorConfiguration(
-        properties.name(),
-        properties.type(),
-        null,
-        () -> beanFactory.getBean(properties.beanName(), InboundConnectorExecutable.class),
-        properties.deduplicationProperties());
-  }
-
-  private record InboundConnectorProperties(
-      String beanName, String name, String type, List<String> deduplicationProperties) {}
 }
