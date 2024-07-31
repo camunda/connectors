@@ -21,9 +21,11 @@ import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 public final class InvokeModelData implements RequestData {
 
   @TemplateProperty(
-      label = "Model id",
+      label = "Model ID",
       group = "invokeModel",
       id = "data.modelId0",
+      description =
+          "Specify the model ID. Learn more at https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html",
       feel = Property.FeelMode.optional,
       binding = @TemplateProperty.PropertyBinding(name = "data.modelId"))
   @Valid
@@ -33,6 +35,8 @@ public final class InvokeModelData implements RequestData {
   @TemplateProperty(
       label = "Payload",
       group = "invokeModel",
+      description =
+          "Specify the payload, It will be different depending of the model being used. Learn more at https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters.html",
       id = "data.payload",
       feel = Property.FeelMode.required,
       binding = @TemplateProperty.PropertyBinding(name = "data.payload"))

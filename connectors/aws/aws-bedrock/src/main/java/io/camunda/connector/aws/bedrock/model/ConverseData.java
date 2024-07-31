@@ -28,8 +28,10 @@ import software.amazon.awssdk.services.bedrockruntime.model.Message;
 public final class ConverseData implements RequestData {
 
   @TemplateProperty(
-      label = "Model id",
+      label = "Model ID",
       group = "converse",
+      description =
+          "Specify the model ID. Learn more at https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html",
       id = "data.modelId1",
       feel = Property.FeelMode.optional,
       binding = @TemplateProperty.PropertyBinding(name = "data.modelId"))
@@ -41,6 +43,7 @@ public final class ConverseData implements RequestData {
       label = "New Message",
       group = "converse",
       id = "data.nextMessage",
+      description = "Specify the next message",
       feel = Property.FeelMode.optional,
       binding = @TemplateProperty.PropertyBinding(name = "data.nextMessage"))
   @Valid
@@ -48,10 +51,11 @@ public final class ConverseData implements RequestData {
   private String nextMessage;
 
   @TemplateProperty(
-      label = "Messages History",
+      label = "Message History",
       group = "converse",
       id = "data.messages",
-      feel = Property.FeelMode.optional,
+      description = "Specify the message history, when previous context is needed",
+      feel = Property.FeelMode.required,
       optional = true,
       binding = @TemplateProperty.PropertyBinding(name = "data.messages"))
   @Valid
