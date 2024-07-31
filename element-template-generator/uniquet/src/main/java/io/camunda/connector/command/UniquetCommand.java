@@ -32,13 +32,18 @@ public class UniquetCommand implements Callable<Integer> {
       required = true)
   private String pathDestination;
 
+  @CommandLine.Option(
+      names = {"-g", "--git-directory"},
+      defaultValue = "")
+  private String gitDirectory;
+
   @Override
   public Integer call() {
     try {
-      GitCrawler gitCrawler = GitCrawler.create();
+      GitCrawler gitCrawler = GitCrawler.create(gitDirectory);
       gitCrawler.crawl(branch).persist(pathDestination).close();
     } catch (RuntimeException e) {
-      System.err.println(e.getCause().getMessage());
+      System.err.println(e.getMessage());
       return 1;
     }
     return 0;

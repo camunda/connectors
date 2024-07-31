@@ -42,13 +42,20 @@ public class GitCrawler {
     this.repository = repository;
   }
 
-  public static GitCrawler create() {
+  public static GitCrawler create(String gitDirectory) {
+    if (!gitDirectory.endsWith(File.separator) && !gitDirectory.isEmpty()) {
+      gitDirectory = gitDirectory + File.separator;
+    }
     try {
-      Repository repository = FileRepositoryBuilder.create(new File(".git"));
+      Repository repository = FileRepositoryBuilder.create(new File(gitDirectory + ".git"));
       return new GitCrawler(repository);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  public Map<String, Map<Integer, String>> getResult() {
+    return result;
   }
 
   public GitCrawler crawl(String branch) {

@@ -26,6 +26,7 @@
     <module>element-template-generator/openapi-parser</module>
     <module>element-template-generator/postman-collections-parser</module>
     <module>element-template-generator/congen-cli</module>
+    <module>element-template-generator/uniquet</module>
     <module>secret-providers/gcp-secret-provider</module>
     <module>connector-runtime/connector-runtime-core</module>
     <module>connector-runtime/connector-runtime-spring</module>
