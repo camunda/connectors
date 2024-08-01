@@ -149,7 +149,7 @@
   }, {
     "id" : "data.modelId0",
     "label" : "Model ID",
-    "description" : "Specify the model ID. Learn more at https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html",
+    "description" : "Specify the model ID. Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html\" target=\"_blank\">documentation</a>",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -169,7 +169,7 @@
   }, {
     "id" : "data.payload",
     "label" : "Payload",
-    "description" : "Specify the payload, It will be different depending of the model being used. Learn more at https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters.html",
+    "description" : "Specify the payload. Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters.html\" target=\"_blank\">documentation</a>",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -189,7 +189,7 @@
   }, {
     "id" : "data.modelId1",
     "label" : "Model ID",
-    "description" : "Specify the model ID. Learn more at https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html",
+    "description" : "Specify the model ID. Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html\" target=\"_blank\">documentation</a>",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
