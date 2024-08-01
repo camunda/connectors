@@ -25,7 +25,7 @@ public final class InvokeModelData implements RequestData {
       group = "invokeModel",
       id = "data.modelId0",
       description =
-          "Specify the model ID. Learn more at https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html",
+          "Specify the model ID. Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html\" target=\"_blank\">documentation</a>",
       feel = Property.FeelMode.optional,
       binding = @TemplateProperty.PropertyBinding(name = "data.modelId"))
   @Valid
@@ -36,7 +36,7 @@ public final class InvokeModelData implements RequestData {
       label = "Payload",
       group = "invokeModel",
       description =
-          "Specify the payload, It will be different depending of the model being used. Learn more at https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters.html",
+          "Specify the payload. Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters.html\" target=\"_blank\">documentation</a>",
       id = "data.payload",
       feel = Property.FeelMode.required,
       binding = @TemplateProperty.PropertyBinding(name = "data.payload"))

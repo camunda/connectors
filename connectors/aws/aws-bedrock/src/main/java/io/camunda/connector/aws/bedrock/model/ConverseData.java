@@ -31,7 +31,7 @@ public final class ConverseData implements RequestData {
       label = "Model ID",
       group = "converse",
       description =
-          "Specify the model ID. Learn more at https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html",
+          "Specify the model ID. Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html\" target=\"_blank\">documentation</a>",
       id = "data.modelId1",
       feel = Property.FeelMode.optional,
       binding = @TemplateProperty.PropertyBinding(name = "data.modelId"))
