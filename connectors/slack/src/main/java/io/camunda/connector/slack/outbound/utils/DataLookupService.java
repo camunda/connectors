@@ -31,9 +31,9 @@ import org.apache.commons.lang3.StringUtils;
 
 public class DataLookupService {
 
-  private DataLookupService() {}
-
   private static final String EMAIL_REGEX = "^.+[@].+[.].{2,4}$";
+
+  private DataLookupService() {}
 
   public static List<String> convertStringToList(String string) {
     if (StringUtils.isBlank(string)) {
@@ -134,7 +134,7 @@ public class DataLookupService {
     String nextCursor = null;
     List<String> idList = new ArrayList<>();
     do {
-      UsersListRequest request = UsersListRequest.builder().limit(100).cursor(nextCursor).build();
+      UsersListRequest request = UsersListRequest.builder().limit(1000).cursor(nextCursor).build();
 
       try {
         UsersListResponse response = methodsClient.usersList(request);
@@ -169,7 +169,7 @@ public class DataLookupService {
       ConversationsListRequest request =
           ConversationsListRequest.builder()
               .types(allChannelType)
-              .limit(100)
+              .limit(1000)
               .cursor(nextCursor)
               .build();
       try {
@@ -188,6 +188,13 @@ public class DataLookupService {
                   + channelName
                   + "; message: "
                   + response.getError());
+        }
+      } catch (SlackApiException slackApiException) {
+        if (Objects.equals(slackApiException.getError().getError(), "ratelimited")) {
+          throw new RuntimeException("Too many requests, rate limit reached");
+        } else {
+          throw new RuntimeException(
+              "Unable to find conversation with name: " + channelName, slackApiException);
         }
       } catch (Exception e) {
         throw new RuntimeException("Unable to find conversation with name: " + channelName, e);
