@@ -24,12 +24,13 @@ Executables for Windows and Unix systems are provided (`.bat` and Shell scripts,
 
 ## Usage
 
-`uniquet` has to be run at root of a git repository, It will crawl through every files inside `element-templates` directories for every commit and compile latest version of each of them in a single file 
+`uniquet` has to be run at root of a git repository, It will crawl through every files inside `element-templates` directories for every commit and compile latest version of each of them in a single file
 
 ### Examples
 
 `--branch` or `-b` is the branch one wants to start from. not required, default `main`
 `--destination` or `-d` is the location where the file will be generated.
+`--git-repository` or `-g` is the location of the git repository.
 
 ```shell
 uniquet --destination ~/Desktop/singlefile.json --branch main
