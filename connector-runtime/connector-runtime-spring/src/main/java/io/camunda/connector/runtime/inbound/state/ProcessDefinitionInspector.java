@@ -316,14 +316,14 @@ public class ProcessDefinitionInspector {
             Collectors.toMap(
                 ZeebeProperty::getName,
                 ZeebeProperty::getValue,
-                (nameDuplicate, valueDuplicate) -> {
+                (oldValue, newValue) -> {
                   LOG.warn(
-                      "A duplicate has been found for property name {} and value {} for element {}",
-                      nameDuplicate,
-                      valueDuplicate,
+                      "A duplicate has been found, old value {} and new value {} for element {}",
+                      oldValue,
+                      newValue,
                       element.getId());
-                  // returns null means to ignore the mapping when there is a duplicate
-                  return null;
+                  //In case a duplicate is found we take the first value found
+                  return oldValue;
                 }));
   }
 
