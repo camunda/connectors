@@ -22,14 +22,37 @@ import jakarta.validation.constraints.NotNull;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 
 @TemplateSubType(id = "conversations.invite", label = "Invite to channel")
 public record ConversationsInviteData(
+    @TemplateProperty(
+            label = "Invite By",
+            id = "data.channelType",
+            group = "invite",
+            defaultValue = "channelId",
+            type = TemplateProperty.PropertyType.Dropdown,
+            binding = @PropertyBinding(name = "data.channelType"),
+            choices = {
+              @TemplateProperty.DropdownPropertyChoice(value = "channelId", label = "Channel ID"),
+              @TemplateProperty.DropdownPropertyChoice(
+                  value = "channelName",
+                  label = "Channel name")
+            },
+            condition =
+                @TemplateProperty.PropertyCondition(
+                    property = "method",
+                    equals = "conversations.invite"))
+        String channelType,
     @TemplateProperty(
             label = "Channel name",
             id = "data.channelName",
             group = "invite",
             binding = @PropertyBinding(name = "data.channelName"),
+            condition =
+                @TemplateProperty.PropertyCondition(
+                    property = "data.channelType",
+                    equals = "channelName"),
             constraints =
                 @PropertyConstraints(
                     notEmpty = true,
@@ -40,6 +63,25 @@ public record ConversationsInviteData(
                                 "May contain up to 80 lowercase letters, digits, underscores, and dashes")),
             feel = FeelMode.optional)
         String channelName,
+    @TemplateProperty(
+            label = "Channel ID",
+            id = "data.channelId",
+            group = "invite",
+            binding = @PropertyBinding(name = "data.channelId"),
+            condition =
+                @TemplateProperty.PropertyCondition(
+                    property = "data.channelType",
+                    equals = "channelId"),
+            constraints =
+                @PropertyConstraints(
+                    notEmpty = true,
+                    pattern =
+                        @Pattern(
+                            value = "^(=|([-_a-z0-9]{1,80}$))",
+                            message =
+                                "May contain up to 80 lowercase letters, digits, underscores, and dashes")),
+            feel = FeelMode.optional)
+        String channelId,
     @TemplateProperty(
             label = "Users",
             id = "data.users",
@@ -67,7 +109,10 @@ public record ConversationsInviteData(
     List<String> userList = DataLookupService.getUserIdsFromUsers(userInput, methodsClient);
     ConversationsInviteRequest request =
         ConversationsInviteRequest.builder()
-            .channel(DataLookupService.getChannelIdByName(channelName, methodsClient))
+            .channel(
+                Objects.isNull(channelId)
+                    ? DataLookupService.getChannelIdByName(channelName, methodsClient)
+                    : channelId)
             .users(userList)
             .build();
 

@@ -245,6 +245,35 @@
       "value" : "PRIVATE"
     } ]
   }, {
+    "id" : "data.channelType",
+    "label" : "Invite By",
+    "optional" : false,
+    "value" : "channelId",
+    "group" : "invite",
+    "binding" : {
+      "name" : "data.channelType",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "method",
+        "equals" : "conversations.invite",
+        "type" : "simple"
+      }, {
+        "property" : "method",
+        "equals" : "conversations.invite",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "Dropdown",
+    "choices" : [ {
+      "name" : "Channel ID",
+      "value" : "channelId"
+    }, {
+      "name" : "Channel name",
+      "value" : "channelName"
+    } ]
+  }, {
     "id" : "data.channelName",
     "label" : "Channel name",
     "optional" : false,
@@ -262,9 +291,44 @@
       "type" : "zeebe:input"
     },
     "condition" : {
-      "property" : "method",
-      "equals" : "conversations.invite",
-      "type" : "simple"
+      "allMatch" : [ {
+        "property" : "data.channelType",
+        "equals" : "channelName",
+        "type" : "simple"
+      }, {
+        "property" : "method",
+        "equals" : "conversations.invite",
+        "type" : "simple"
+      } ]
+    },
+    "type" : "String"
+  }, {
+    "id" : "data.channelId",
+    "label" : "Channel ID",
+    "optional" : false,
+    "constraints" : {
+      "notEmpty" : true,
+      "pattern" : {
+        "value" : "^(=|([-_a-z0-9]{1,80}$))",
+        "message" : "May contain up to 80 lowercase letters, digits, underscores, and dashes"
+      }
+    },
+    "feel" : "optional",
+    "group" : "invite",
+    "binding" : {
+      "name" : "data.channelId",
+      "type" : "zeebe:input"
+    },
+    "condition" : {
+      "allMatch" : [ {
+        "property" : "data.channelType",
+        "equals" : "channelId",
+        "type" : "simple"
+      }, {
+        "property" : "method",
+        "equals" : "conversations.invite",
+        "type" : "simple"
+      } ]
     },
     "type" : "String"
   }, {

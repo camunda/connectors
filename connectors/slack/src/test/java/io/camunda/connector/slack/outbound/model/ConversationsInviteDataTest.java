@@ -11,7 +11,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.catchThrowable;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import com.slack.api.methods.MethodsClient;
 import com.slack.api.methods.SlackApiException;
@@ -23,6 +23,7 @@ import com.slack.api.methods.response.conversations.ConversationsListResponse;
 import com.slack.api.methods.response.users.UsersLookupByEmailResponse;
 import com.slack.api.model.*;
 import com.slack.api.model.Conversation;
+import io.camunda.connector.slack.outbound.utils.DataLookupService;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
@@ -34,27 +35,29 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 public class ConversationsInviteDataTest {
+  private static final String USERID = "testUserId";
+  private static final String CHANNEL_NAME = "channel";
+  private static final String CHANNEL_TYPE_ID = "channelId";
+  private static final String CHANNEL_TYPE_NAME = "channelName";
+  private static final String CHANNEL_ID = "id";
   @Mock private MethodsClient methodsClient;
   @Mock private UsersLookupByEmailResponse lookupByEmailResponse;
   @Mock private ConversationsListResponse conversationsListResponse;
   @Mock private User user;
   @Mock private ConversationsInviteResponse conversationsInviteResponse;
-
   @Captor private ArgumentCaptor<ConversationsInviteRequest> conversationsInviteRequest;
-
-  private static final String USERID = "testUserId";
-
-  private static final String CHANNEL_NAME = "channel";
 
   @Test
   void invoke_shouldThrowExceptionWhenUserNotFoundByEmail() throws SlackApiException, IOException {
     // Given
     ConversationsInviteData conversationsInviteData =
-        new ConversationsInviteData(CHANNEL_NAME, List.of("test1@test.com, test2@test.com"));
+        new ConversationsInviteData(
+            CHANNEL_TYPE_NAME, CHANNEL_NAME, null, List.of("test1@test.com, test2@test.com"));
     when(methodsClient.usersLookupByEmail(any(UsersLookupByEmailRequest.class))).thenReturn(null);
     // When and then
     Throwable thrown = catchThrowable(() -> conversationsInviteData.invoke(methodsClient));
@@ -66,7 +69,8 @@ public class ConversationsInviteDataTest {
   @Test
   void invoke_shouldThrowExceptionWhenNumberInputForUsers() {
     // Given number for users which is an invalid input type
-    ConversationsInviteData conversationsInviteData = new ConversationsInviteData(CHANNEL_NAME, 1);
+    ConversationsInviteData conversationsInviteData =
+        new ConversationsInviteData(CHANNEL_TYPE_NAME, CHANNEL_NAME, null, 1);
     // When and then
     Throwable thrown = catchThrowable(() -> conversationsInviteData.invoke(methodsClient));
     assertThat(thrown)
@@ -79,7 +83,7 @@ public class ConversationsInviteDataTest {
   void invoke_shouldThrowExceptionWhenBooleanInputForUsers() {
     // Given boolean for users which is an invalid input type
     ConversationsInviteData conversationsInviteData =
-        new ConversationsInviteData(CHANNEL_NAME, Boolean.TRUE);
+        new ConversationsInviteData(CHANNEL_TYPE_NAME, CHANNEL_NAME, null, Boolean.TRUE);
     // When and then
     Throwable thrown = catchThrowable(() -> conversationsInviteData.invoke(methodsClient));
     assertThat(thrown)
@@ -92,7 +96,7 @@ public class ConversationsInviteDataTest {
   void invoke_shouldThrowExceptionWhenIntegerListInputForUsers() {
     // Given List<Integer> for users which is an invalid input type
     ConversationsInviteData conversationsInviteData =
-        new ConversationsInviteData(CHANNEL_NAME, Arrays.asList(1, 2));
+        new ConversationsInviteData(CHANNEL_TYPE_NAME, CHANNEL_NAME, null, Arrays.asList(1, 2));
     // When and then
     Throwable thrown = catchThrowable(() -> conversationsInviteData.invoke(methodsClient));
     assertThat(thrown)
@@ -113,7 +117,7 @@ public class ConversationsInviteDataTest {
       throws SlackApiException, IOException {
     // Given
     ConversationsInviteData conversationsInviteData =
-        new ConversationsInviteData(CHANNEL_NAME, emailList);
+        new ConversationsInviteData(CHANNEL_TYPE_NAME, CHANNEL_NAME, null, emailList);
 
     when(methodsClient.usersLookupByEmail(any(UsersLookupByEmailRequest.class)))
         .thenReturn(lookupByEmailResponse);
@@ -148,5 +152,33 @@ public class ConversationsInviteDataTest {
     assertTrue(
         value.getUsers().containsAll(expectedResolvedUserIds)
             && expectedResolvedUserIds.containsAll(value.getUsers()));
+  }
+
+  @Test
+  void invoke_shouldNotLookUpForChannelNames() throws SlackApiException, IOException {
+
+    try (MockedStatic<DataLookupService> dataLookupService = mockStatic(DataLookupService.class)) {
+
+      List<String> mails = List.of("test1@test.com, test2@test.com");
+      ConversationsInviteData conversationsInviteData =
+          new ConversationsInviteData(CHANNEL_TYPE_ID, null, CHANNEL_ID, mails);
+
+      dataLookupService
+          .when(() -> DataLookupService.getUserIdsFromUsers(eq(mails), any()))
+          .thenReturn(List.of("id1", "id2"));
+
+      when(methodsClient.conversationsInvite(conversationsInviteRequest.capture()))
+          .thenReturn(conversationsInviteResponse);
+      when(conversationsInviteResponse.isOk()).thenReturn(true);
+      when(conversationsInviteResponse.getChannel()).thenReturn(new Conversation());
+      when(conversationsInviteResponse.getNeeded()).thenReturn("needed");
+      when(conversationsInviteResponse.getProvided()).thenReturn("provided");
+      // When
+      conversationsInviteData.invoke(methodsClient);
+      // Then
+      ConversationsInviteRequest value = conversationsInviteRequest.getValue();
+      assertEquals("id", value.getChannel());
+      dataLookupService.verify(() -> DataLookupService.getChannelIdByName(any(), any()), never());
+    }
   }
 }
