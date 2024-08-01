@@ -148,7 +148,8 @@
     } ]
   }, {
     "id" : "data.modelId0",
-    "label" : "Model id",
+    "label" : "Model ID",
+    "description" : "Specify the model ID. Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html\" target=\"_blank\">documentation</a>",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -168,6 +169,7 @@
   }, {
     "id" : "data.payload",
     "label" : "Payload",
+    "description" : "Specify the payload. Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters.html\" target=\"_blank\">documentation</a>",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -186,7 +188,8 @@
     "type" : "String"
   }, {
     "id" : "data.modelId1",
-    "label" : "Model id",
+    "label" : "Model ID",
+    "description" : "Specify the model ID. Details in the <a href=\"https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html\" target=\"_blank\">documentation</a>",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -206,6 +209,7 @@
   }, {
     "id" : "data.nextMessage",
     "label" : "New Message",
+    "description" : "Specify the next message",
     "optional" : false,
     "constraints" : {
       "notEmpty" : true
@@ -224,9 +228,10 @@
     "type" : "String"
   }, {
     "id" : "data.messages",
-    "label" : "Messages History",
+    "label" : "Message History",
+    "description" : "Specify the message history, when previous context is needed",
     "optional" : true,
-    "feel" : "optional",
+    "feel" : "required",
     "group" : "converse",
     "binding" : {
       "name" : "data.messages",
