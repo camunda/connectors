@@ -49,9 +49,9 @@ public class HttpCommonRequest {
       constraints =
           @TemplateProperty.PropertyConstraints(
               notEmpty = true,
-              pattern =
-                  @TemplateProperty.Pattern(
-                      value = "^(http://|https://|secrets|\\{\\{).*$",
+              secretPattern =
+                  @TemplateProperty.SecretPattern(
+                      value = "^(http://|https://|\\{\\{).*$",
                       message = "Must be a http(s) URL")))
   private String url;
 
