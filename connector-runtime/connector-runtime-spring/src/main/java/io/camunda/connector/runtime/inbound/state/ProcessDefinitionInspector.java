@@ -322,7 +322,7 @@ public class ProcessDefinitionInspector {
                       oldValue,
                       newValue,
                       element.getId());
-                  //In case a duplicate is found we take the first value found
+                  // In case a duplicate is found we take the first value found
                   return oldValue;
                 }));
   }

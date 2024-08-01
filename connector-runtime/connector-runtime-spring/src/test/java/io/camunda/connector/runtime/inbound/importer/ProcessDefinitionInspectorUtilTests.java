@@ -29,7 +29,6 @@ import io.camunda.operate.CamundaOperateClient;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import java.io.FileInputStream;
 import java.util.List;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.util.ResourceUtils;
@@ -113,7 +112,8 @@ public class ProcessDefinitionInspectorUtilTests {
   @Test
   public void testDuplicatePropertiesAreRemoved() {
     var inboundConnectors =
-            fromModel("multi-webhook-start-message-duplicate-property.bpmn", "multi-webhook-start-message");
+        fromModel(
+            "multi-webhook-start-message-duplicate-property.bpmn", "multi-webhook-start-message");
     Assertions.assertEquals("firstRes", inboundConnectors.getFirst().resultVariable());
     System.out.println(inboundConnectors);
   }
