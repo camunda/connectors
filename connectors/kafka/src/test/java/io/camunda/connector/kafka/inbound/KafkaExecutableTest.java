@@ -172,10 +172,10 @@ public class KafkaExecutableTest {
         .atMost(Duration.ofSeconds(5))
         .pollInterval(Duration.ofMillis(500))
         .untilAsserted(() -> assertFalse(kafkaExecutable.kafkaConnectorConsumer.shouldLoop));
-    kafkaExecutable.deactivate();
 
     // Then
     verify(mockConsumer, times(MAX_ATTEMPTS)).poll(any(Duration.class));
+    verify(mockConsumer, times(MAX_ATTEMPTS)).close();
   }
 
   @Test
