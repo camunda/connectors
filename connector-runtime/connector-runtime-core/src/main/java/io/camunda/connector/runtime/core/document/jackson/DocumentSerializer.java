@@ -14,29 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.camunda.connector.document.jackson;
+package io.camunda.connector.runtime.core.document.jackson;
 
-import com.fasterxml.jackson.core.Version;
-import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.SerializerProvider;
 import io.camunda.connector.api.document.Document;
+import java.io.IOException;
 
-public class JacksonModuleDocument extends SimpleModule {
-
-  @Override
-  public String getModuleName() {
-    return "JacksonModuleDocument";
-  }
+public class DocumentSerializer extends JsonSerializer<Document> {
 
   @Override
-  public Version version() {
-    // TODO: get version from pom.xml
-    return new Version(0, 1, 0, null, "io.camunda", "jackson-datatype-document");
-  }
-
-  @Override
-  public void setupModule(SetupContext context) {
-    addDeserializer(Document.class, new DocumentDeserializer());
-    addSerializer(Document.class, new DocumentSerializer());
-    super.setupModule(context);
+  public void serialize(
+      Document document, JsonGenerator jsonGenerator, SerializerProvider serializerProvider)
+      throws IOException {
+    jsonGenerator.writeString(document.getContent().asBase64());
   }
 }

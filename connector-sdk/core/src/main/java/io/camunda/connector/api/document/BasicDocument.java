@@ -16,94 +16,31 @@
  */
 package io.camunda.connector.api.document;
 
-import io.camunda.connector.api.document.DocumentSource.Base64DocumentSource;
-import io.camunda.connector.api.document.DocumentSource.ByteArrayDocumentSource;
-import java.util.Base64;
-import java.util.Objects;
+import java.util.Map;
 
-public class BasicDocument implements Document {
-
-  private final Object metadata;
-  private final DocumentContent content;
-
-  private BasicDocument(Object metadata, DocumentContent content) {
-    this.metadata = metadata;
-    this.content = content;
-  }
+public record BasicDocument(DocumentMetadata metadata, DocumentSource source) implements Document {
 
   public static Builder builder() {
     return new Builder();
   }
 
-  @Override
-  public Object getMetadata() {
-    return metadata;
-  }
-
-  @Override
-  public DocumentContent getContent() {
-    return content;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    BasicDocument that = (BasicDocument) o;
-    return Objects.equals(metadata, that.metadata) && Objects.equals(content, that.content);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(metadata, content);
-  }
-
-  record DocumentContentImpl(byte[] bytes) implements DocumentContent {
-    @Override
-    public byte[] asBytes() {
-      return bytes;
-    }
-
-    @Override
-    public String asBase64() {
-      return Base64.getEncoder().encodeToString(bytes);
-    }
-  }
-
   public static class Builder {
-    private Object metadata;
-    private byte[] content;
+    private Map<String, Object> metadata;
+    private DocumentSource source;
 
-    public Builder metadata(Object metadata) {
+    public Builder metadata(Map<String, Object> metadata) {
       this.metadata = metadata;
       return this;
     }
 
-    public Builder content(byte[] content) {
-      this.content = content;
+    public Builder source(DocumentSource source) {
+      this.source = null;
       return this;
     }
 
-    public Builder source(DocumentSource source) {
-      if (source instanceof ByteArrayDocumentSource byteArrayDocument) {
-        return content(byteArrayDocument.content());
-      } else if (source instanceof Base64DocumentSource base64Document) {
-        return content(Base64.getDecoder().decode(base64Document.content()));
-      } else {
-        // TODO: reference document
-        throw new IllegalArgumentException("Unsupported source type: " + source.getClass());
-      }
-    }
-
     public BasicDocument build() {
-      if (content == null) {
-        throw new IllegalArgumentException("Content must not be null");
-      }
-      return new BasicDocument(metadata, new DocumentContentImpl(content));
+
+      return new BasicDocument(metadata, source);
     }
   }
 }

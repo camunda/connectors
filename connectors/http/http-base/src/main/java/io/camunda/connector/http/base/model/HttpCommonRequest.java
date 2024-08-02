@@ -16,6 +16,8 @@
  */
 package io.camunda.connector.http.base.model;
 
+import io.camunda.connector.api.document.Document;
+import io.camunda.connector.api.document.DocumentReference;
 import io.camunda.connector.feel.annotation.FEEL;
 import io.camunda.connector.generator.dsl.Property.FeelMode;
 import io.camunda.connector.generator.java.annotation.TemplateProperty;
@@ -79,6 +81,11 @@ public class HttpCommonRequest {
       description = "Map of HTTP headers to add to the request")
   private Map<String, String> headers;
 
+  Document document;
+
+  DocumentReference documentReference;
+
+  @Document
   @FEEL
   @TemplateProperty(
       label = "Request body",

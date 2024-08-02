@@ -26,8 +26,9 @@ public interface Document {
    * Domain-specific metadata that can be attached to the document. When a file is consumed by a
    * connector as input, the metadata originates from the
    */
-  Object getMetadata();
+  DocumentMetadata metadata();
 
-  /** Document content */
-  DocumentContent getContent();
+  String base64();
+
+  DocumentReference reference();
 }

@@ -18,27 +18,7 @@ package io.camunda.connector.api.document;
 
 public sealed interface DocumentSource {
 
-  record Base64DocumentSource(String content) implements DocumentSource {
-    public Base64DocumentSource {
-      if (content == null) {
-        throw new IllegalArgumentException("Content must not be null");
-      }
-    }
-  }
+  record ByteArrayDocumentSource(byte[] content) implements DocumentSource {}
 
-  record ByteArrayDocumentSource(byte[] content) implements DocumentSource {
-    public ByteArrayDocumentSource {
-      if (content == null) {
-        throw new IllegalArgumentException("Content must not be null");
-      }
-    }
-  }
-
-  record ReferenceDocumentSource(String reference) implements DocumentSource {
-    public ReferenceDocumentSource {
-      if (reference == null) {
-        throw new IllegalArgumentException("Reference must not be null");
-      }
-    }
-  }
+  record ReferenceDocumentSource(DocumentReference reference) implements DocumentSource {}
 }
