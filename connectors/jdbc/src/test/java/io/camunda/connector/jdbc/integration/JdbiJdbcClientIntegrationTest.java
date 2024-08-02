@@ -34,11 +34,12 @@ public class JdbiJdbcClientIntegrationTest extends IntegrationBaseTest {
 
   public static final String PROVIDE_SQL_SERVERS_CONFIG =
       "io.camunda.connector.jdbc.integration.JdbiJdbcClientIntegrationTest#provideSqlServersConfig";
-  static final MSSQLServerContainer msSqlServer = new MSSQLServerContainer().acceptLicense();
-  static final MySQLContainer mySqlServer = new MySQLContainer<>();
-  static final PostgreSQLContainer postgreServer = new PostgreSQLContainer();
+  static final MSSQLServerContainer msSqlServer =
+      new MSSQLServerContainer<>("mcr.microsoft.com/mssql/server:2022-latest").acceptLicense();
+  static final MySQLContainer mySqlServer = new MySQLContainer<>("mysql:5.7.34");
+  static final PostgreSQLContainer postgreServer = new PostgreSQLContainer<>("postgres:9.6.12");
   static final MariaDBContainer mariaDbServer =
-      new MariaDBContainer(DockerImageName.parse("mariadb:11.3.2"));
+      new MariaDBContainer<>(DockerImageName.parse("mariadb:11.3.2"));
 
   static List<IntegrationTestConfig> sqlServersConfig;
 
