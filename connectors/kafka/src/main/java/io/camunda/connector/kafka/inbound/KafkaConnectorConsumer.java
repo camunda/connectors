@@ -43,6 +43,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class KafkaConnectorConsumer {
+
   private static final Logger LOG = LoggerFactory.getLogger(KafkaConnectorConsumer.class);
 
   private final InboundConnectorContext context;
@@ -102,6 +103,14 @@ public class KafkaConnectorConsumer {
             return null;
           } catch (Exception ex) {
             LOG.error("Consumer loop failure, retry pending: {}", ex.getMessage());
+            try {
+              consumer.close();
+            } catch (Exception e) {
+              LOG.error(
+                  "Failed to close consumer before retrying, reason: {}. "
+                      + "This error will be ignored. If the consumer is still running, it will be disconnected after max.poll.interval.ms.",
+                  e.getMessage());
+            }
             throw ex;
           }
         };
