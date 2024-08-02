@@ -177,6 +177,7 @@ public class KafkaExecutableTest {
     // Then
     verify(mockConsumer, times(MAX_ATTEMPTS)).subscribe(anyCollection(), any());
     verify(mockConsumer, times(MAX_ATTEMPTS)).poll(any(Duration.class));
+    verify(mockConsumer, times(MAX_ATTEMPTS)).close();
   }
 
   @Test
