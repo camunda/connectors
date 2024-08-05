@@ -84,6 +84,7 @@ public class ElementTemplateIterator implements Iterator<ElementTemplateFile> {
           }
           while (this.currentWalk.next()) {
             if (!this.currentWalk.getPathString().endsWith(".json")) continue;
+            if (this.currentWalk.getPathString().contains("/hybrid/")) continue;
             ObjectId objectId = this.currentWalk.getObjectId(0);
             ObjectLoader loader = this.repository.open(objectId);
             byte[] bytes = loader.getBytes();
