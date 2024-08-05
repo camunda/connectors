@@ -12,5 +12,5 @@ import java.lang.annotation.Target;
 @JacksonAnnotationsInside
 @JsonDeserialize
 public @interface Document {
-  // todo: eager vs lazy configuration
+  boolean lazy() default true;
 }

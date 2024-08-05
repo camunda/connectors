@@ -23,8 +23,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.camunda.connector.api.document.BasicDocument;
 import io.camunda.connector.api.document.Document;
 import io.camunda.connector.api.document.DocumentReference;
-import io.camunda.connector.api.document.DocumentSource;
-import io.camunda.connector.api.document.DocumentSource.Base64DocumentSource;
 import io.camunda.connector.api.document.DocumentSource.ByteArrayDocumentSource;
 import io.camunda.connector.api.document.DocumentSource.ReferenceDocumentSource;
 import java.io.IOException;
@@ -33,7 +31,7 @@ import java.util.Base64;
 /**
  * A Jackson deserializer to handle {@link Document} objects.
  */
-public class DocumentDeserializer extends JsonDeserializer<Document> {
+public class SimpleDocumentDeserializer extends JsonDeserializer<Document> {
 
   @Override
   public Document deserialize(JsonParser jsonParser, DeserializationContext ctx)
