@@ -35,7 +35,7 @@ public class JacksonModuleDocument extends SimpleModule {
 
   @Override
   public void setupModule(SetupContext context) {
-    addDeserializer(Document.class, new DocumentDeserializer());
+    addDeserializer(Document.class, new SimpleDocumentDeserializer());
     addSerializer(Document.class, new DocumentSerializer());
     super.setupModule(context);
   }

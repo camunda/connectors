@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import java.util.Map;
+import java.util.Optional;
 
 @JsonTypeInfo(
     use = JsonTypeInfo.Id.NAME,
@@ -12,51 +13,24 @@ public sealed interface DocumentReference {
 
   String DISCRIMINATOR_KEY = "$documentType";
 
-  @JsonTypeInfo(
-      use = JsonTypeInfo.Id.NAME,
-      property = DocumentReference.DISCRIMINATOR_KEY)
-  sealed interface StaticDocumentReference extends DocumentReference {
+  /**
+   * Document references may have operations associated with them. Operation indicates that the
+   * document should not be used as is, but should be transformed or processed in some way. This
+   * processing must take place in the context of the connector.
+   */
+  Optional<DocumentOperation> operation();
 
-    @JsonTypeName("camunda")
-    record CamundaDocumentReference(
-        @JsonProperty("$storeId")
-        String storeId,
-        @JsonProperty("$documentId")
-        String documentId,
-        @JsonProperty("$metadata")
-        Map<String, Object> metadata
-    ) implements StaticDocumentReference {}
+  @JsonTypeName("camunda")
+  record CamundaDocumentReference(
+      String storeId,
+      String documentId,
+      Map<String, Object> metadata,
+      Optional<DocumentOperation> operation
+  ) implements DocumentReference {}
 
-    @JsonTypeName("external")
-    record ExternalDocumentReference(
-        @JsonProperty("$url")
-        String url
-    ) implements StaticDocumentReference {}
-  }
-
-  @JsonTypeName("operation")
-  record DocumentOperationReference(
-      @JsonProperty("$reference")
-      StaticDocumentReference reference,
-      @JsonProperty("$operation")
-      DocumentOperation operation
-  ) {}
-}
-
-{
- "documentType": "operation",
-  "$reference": {
-    "documentType": "camunda",
-    "$storeId": "myStore",
-    "$documentId": "myDocument",
-    "$metadata": {
-      "key": "value"
-    }
-  },
-"$operation": {
-    "$name": "read",
-    "$params": {
-      "key": "value"
-    }
-  }
+  @JsonTypeName("external")
+  record ExternalDocumentReference(
+      String url,
+      Optional<DocumentOperation> operation
+  ) implements DocumentReference {}
 }
