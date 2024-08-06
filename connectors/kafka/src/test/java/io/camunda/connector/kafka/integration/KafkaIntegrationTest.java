@@ -56,7 +56,7 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.skyscreamer.jsonassert.JSONAssert;
-import org.testcontainers.containers.KafkaContainer;
+import org.testcontainers.kafka.KafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -66,11 +66,12 @@ public class KafkaIntegrationTest {
   private static final String AVRO_TOPIC = "avro-test-topic-" + UUID.randomUUID();
   private static final Map<String, String> HEADERS =
       Map.of("header1", "value1", "header2", "value2");
-  private static final String kafkaDockerImage = "confluentinc/cp-kafka:6.2.1";
 
   @ClassRule
   public static final KafkaContainer kafkaContainer =
-      new KafkaContainer(DockerImageName.parse(kafkaDockerImage)).withReuse(true);
+      new KafkaContainer(
+          DockerImageName.parse("apache/kafka-native:3.8.0")
+              .asCompatibleSubstituteFor("apache/kafka"));
 
   private static String BOOTSTRAP_SERVERS;
   private static Avro avro;
