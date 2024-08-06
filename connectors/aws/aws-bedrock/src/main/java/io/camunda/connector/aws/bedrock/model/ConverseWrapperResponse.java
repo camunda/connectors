@@ -8,5 +8,5 @@ package io.camunda.connector.aws.bedrock.model;
 
 import java.util.List;
 
-public record ConverseWrapperResponse(List<PreviousMessage> messagesHistory, String newMessage)
+public record ConverseWrapperResponse(List<PreviousMessage> messageHistory, String newMessage)
     implements BedrockResponse {}

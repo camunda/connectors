@@ -47,6 +47,6 @@ class ConverseDataTest {
     Assertions.assertInstanceOf(ConverseWrapperResponse.class, bedrockResponse);
     Assertions.assertEquals(
         "I am also good",
-        ((ConverseWrapperResponse) bedrockResponse).messagesHistory().getLast().message());
+        ((ConverseWrapperResponse) bedrockResponse).messageHistory().getLast().message());
   }
 }
