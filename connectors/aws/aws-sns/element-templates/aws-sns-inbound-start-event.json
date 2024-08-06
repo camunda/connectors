@@ -3,6 +3,10 @@
   "name" : "SNS HTTPS Start Event Connector",
   "id" : "io.camunda.connectors.inbound.AWSSNS.StartEvent.v1",
   "description" : "Receive events from AWS SNS",
+  "deprecated": {
+    "message": "None Start Events are deprecated in favor of Message Start Events for message based Connectors.",
+    "documentationRef": "https://docs.camunda.io/docs/components/modeler/bpmn/none-events/"
+  },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sns/?amazonsns=inbound",
   "version" : 4,
   "category" : {

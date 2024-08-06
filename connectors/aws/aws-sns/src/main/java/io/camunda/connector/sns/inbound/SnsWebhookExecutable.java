@@ -51,11 +51,6 @@ import org.slf4j.LoggerFactory;
     elementTypes = {
       @ConnectorElementType(
           appliesTo = BpmnType.START_EVENT,
-          elementType = BpmnType.START_EVENT,
-          templateIdOverride = "io.camunda.connectors.inbound.AWSSNS.StartEvent.v1",
-          templateNameOverride = "SNS HTTPS Start Event Connector"),
-      @ConnectorElementType(
-          appliesTo = BpmnType.START_EVENT,
           elementType = BpmnType.MESSAGE_START_EVENT,
           templateIdOverride = "io.camunda.connectors.inbound.AWSSNS.MessageStartEvent.v1",
           templateNameOverride = "SNS HTTPS Message Start Event Connector Subscription"),

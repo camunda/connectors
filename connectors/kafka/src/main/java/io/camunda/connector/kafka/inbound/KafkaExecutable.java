@@ -41,11 +41,6 @@ import org.slf4j.LoggerFactory;
     elementTypes = {
       @ElementTemplate.ConnectorElementType(
           appliesTo = BpmnType.START_EVENT,
-          elementType = BpmnType.START_EVENT,
-          templateIdOverride = "io.camunda.connectors.inbound.KAFKA.v1",
-          templateNameOverride = "Kafka Start Event Connector"),
-      @ElementTemplate.ConnectorElementType(
-          appliesTo = BpmnType.START_EVENT,
           elementType = BpmnType.MESSAGE_START_EVENT,
           templateIdOverride = "io.camunda.connectors.inbound.KafkaMessageStart.v1",
           templateNameOverride = "Kafka Message Start Event Connector"),

@@ -2,6 +2,10 @@
   "$schema" : "https://unpkg.com/@camunda/zeebe-element-templates-json-schema/resources/schema.json",
   "name" : "Amazon SQS Start Event Connector",
   "id" : "io.camunda.connectors.AWSSQS.StartEvent.v1",
+  "deprecated": {
+    "message": "None Start Events are deprecated in favor of Message Start Events for message based Connectors.",
+    "documentationRef": "https://docs.camunda.io/docs/components/modeler/bpmn/none-events/"
+  },
   "description" : "Receive message from a queue",
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/amazon-sqs/?amazonsqs=inbound",
   "version" : 9,
