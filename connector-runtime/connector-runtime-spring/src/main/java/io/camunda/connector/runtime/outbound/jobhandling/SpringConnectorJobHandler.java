@@ -91,7 +91,9 @@ public class SpringConnectorJobHandler extends ConnectorJobHandler {
           Outbound.METRIC_NAME_INVOCATIONS, Outbound.ACTION_FAILED, connectorConfiguration.type());
     } finally {
       FinalCommandStep commandStep = prepareFailJobCommand(client, job, result);
-      new CommandWrapper(commandStep, job, commandExceptionHandlingStrategy).executeAsync();
+      new CommandWrapper(
+              commandStep, job, commandExceptionHandlingStrategy, metricsRecorder, job.getRetries())
+          .executeAsync();
     }
   }
 
@@ -106,7 +108,9 @@ public class SpringConnectorJobHandler extends ConnectorJobHandler {
       new CommandWrapper(
               prepareThrowBpmnErrorCommand(client, job, value),
               job,
-              commandExceptionHandlingStrategy)
+              commandExceptionHandlingStrategy,
+              metricsRecorder,
+              job.getRetries())
           .executeAsync();
     }
   }
@@ -122,7 +126,9 @@ public class SpringConnectorJobHandler extends ConnectorJobHandler {
           connectorConfiguration.type());
     } finally {
       FinalCommandStep commandStep = prepareCompleteJobCommand(client, job, result);
-      new CommandWrapper(commandStep, job, commandExceptionHandlingStrategy).executeAsync();
+      new CommandWrapper(
+              commandStep, job, commandExceptionHandlingStrategy, metricsRecorder, job.getRetries())
+          .executeAsync();
     }
   }
 }

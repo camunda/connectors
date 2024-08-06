@@ -29,6 +29,8 @@ import io.camunda.zeebe.spring.client.annotation.value.ZeebeWorkerValue;
 import io.camunda.zeebe.spring.client.jobhandling.CommandExceptionHandlingStrategy;
 import io.camunda.zeebe.spring.client.jobhandling.JobWorkerManager;
 import io.camunda.zeebe.spring.client.metrics.MetricsRecorder;
+import java.time.Duration;
+import java.util.Arrays;
 import java.util.Set;
 import java.util.TreeSet;
 import org.slf4j.Logger;
@@ -82,9 +84,9 @@ public class OutboundConnectorManager {
     ZeebeWorkerValue zeebeWorkerValue = new ZeebeWorkerValue();
     zeebeWorkerValue.setName(connector.name());
     zeebeWorkerValue.setType(connector.type());
-    zeebeWorkerValue.setFetchVariables(connector.inputVariables());
+    zeebeWorkerValue.setFetchVariables(Arrays.asList(connector.inputVariables()));
     if (connector.timeout() != null) {
-      zeebeWorkerValue.setTimeout(connector.timeout());
+      zeebeWorkerValue.setTimeout(Duration.ofSeconds(connector.timeout()));
     }
     zeebeWorkerValue.setAutoComplete(true);
 

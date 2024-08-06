@@ -53,6 +53,11 @@
     </dependency>
 
     <dependency>
+      <groupId>io.camunda.spring</groupId>
+      <artifactId>java-client-operate-compat</artifactId>
+    </dependency>
+
+    <dependency>
       <groupId>io.camunda.connector</groupId>
       <artifactId>connector-runtime-core</artifactId>
     </dependency>
