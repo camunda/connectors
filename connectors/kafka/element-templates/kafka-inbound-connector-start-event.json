@@ -4,7 +4,7 @@
   "id" : "io.camunda.connectors.inbound.KAFKA.v1",
   "description" : "Consume Kafka messages",
   "deprecated": {
-    "message": "None start event are deprecated. Start process using a message start event",
+    "message": "None Start Events are deprecated in favor of Message Start Events for message based Connectors.",
     "documentationRef": "https://docs.camunda.io/docs/components/modeler/bpmn/none-events/"
   },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/kafka/?kafka=inbound",
