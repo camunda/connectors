@@ -3,7 +3,7 @@
   "name" : "Amazon SQS Start Event Connector",
   "id" : "io.camunda.connectors.AWSSQS.StartEvent.v1",
   "deprecated": {
-    "message": "None start event are deprecated. Start process using a message",
+    "message": "None start event are deprecated. Start process using a message start event",
     "documentationRef": "https://docs.camunda.io/docs/components/modeler/bpmn/none-events/"
   },
   "description" : "Receive message from a queue",

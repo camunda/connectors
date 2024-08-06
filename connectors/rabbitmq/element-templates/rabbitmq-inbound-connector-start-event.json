@@ -4,7 +4,7 @@
   "id" : "io.camunda.connectors.inbound.RabbitMQ.StartEvent.v1",
   "description" : "Receive a message from RabbitMQ",
   "deprecated": {
-    "message": "None start event are deprecated. Start process using a message",
+    "message": "None start event are deprecated. Start process using a message start event",
     "documentationRef": "https://docs.camunda.io/docs/components/modeler/bpmn/none-events/"
   },
   "documentationRef" : "https://docs.camunda.io/docs/components/connectors/out-of-the-box-connectors/rabbitmq/?rabbitmq=inbound",
